@@ -17,6 +17,7 @@ type AppTextFieldProps = TextFieldProps & {
     dataTestId?: string;
     childrenClassName?: string;
     disabledColor?: string;
+    autoFocus?: boolean;
 };
 
 const Description: React.FC<React.PropsWithChildren> = ({ children }) => <p className="p2 pb-2 !text-new-black-800">{children}</p>;
@@ -42,6 +43,7 @@ const AppTextField: React.FC<AppTextFieldProps> & {
         onClick,
         dataTestId = '',
         disabledColor,
+        autoFocus = false,
         ...otherProps
     } = props;
     const { t } = useBuilderTranslation();
@@ -66,6 +68,7 @@ const AppTextField: React.FC<AppTextFieldProps> & {
             })}
             <TextField
                 id={id}
+                autoFocus={autoFocus}
                 type={type}
                 variant="outlined"
                 multiline={multiline}
@@ -92,7 +95,7 @@ const AppTextField: React.FC<AppTextFieldProps> & {
                     endAdornment: getIcon('end')
                 }}
                 size="small"
-                className={cn('!mb-0 !bg-white w-full !text-black-300 ')}
+                className={cn('!mb-0 !bg-white w-full !text-black-300')}
                 {...otherProps}
                 placeholder={placeholder || t('COMPONENTS.INPUT.END_ADORNMENT_PLACEHOLDER')}
                 sx={{

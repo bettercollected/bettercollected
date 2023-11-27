@@ -15,7 +15,6 @@ import { selectWorkspace } from '@app/store/workspaces/slice';
 
 import { InfoIcon } from '../icons/info-icon';
 
-
 interface ITextFieldHandler {
     formData: FormDataDto;
     workspaceNameSuggestion: string;
@@ -69,31 +68,48 @@ const TextFieldHandler = ({ formData, workspaceNameSuggestion, setFormData, erro
         setFormData({ ...formData, workspaceName: suggestion });
     };
 
+    const [handleName, setHandleName] = useState(formData.title);
+
+    useEffect(() => {
+        const title = formData.title
+            .replace(/\s/g, '')
+            .replace(/[^a-zA-Z0-9]/g, '')
+            .toLowerCase();
+        setHandleName(title);
+        setFormData({
+            ...formData,
+            workspaceName: title
+        });
+    }, [formData.title]);
+
     const handleOnchange = (e: any) => {
+        const inputText = e.target.value;
         if (e.target.id === 'workspaceName') {
-            if (!e.target.value) {
+            if (!inputText) {
                 setIsErrorWorkspaceName(true);
                 setErrorMessage(t(onBoarding.fillHandleName));
-            } else if (e.target.value.includes(' ')) {
+            } else if (inputText.includes(' ')) {
                 setIsErrorWorkspaceName(true);
                 setErrorMessage(t(onBoarding.spaceNotAllowed));
-            } else if (!e.target.value.match(/^[a-z0-9_]+$/)) {
+            } else if (!inputText.match(/^[a-zA-Z0-9_]+$/)) {
                 setIsErrorWorkspaceName(true);
                 setErrorMessage(t(onBoarding.allowedCharacters));
             } else {
                 setIsErrorWorkspaceName(false);
-                checkWorkspacename(e.target.value);
+                checkWorkspacename(inputText.toLowerCase());
             }
+        } else {
+            setFormData({
+                ...formData,
+                workspaceName: inputText.toLowerCase()
+            });
         }
-        setFormData({
-            ...formData,
-            workspaceName: e.target.value
-        });
+        setHandleName(inputText.toLowerCase());
     };
 
     return (
         <div>
-            <AppTextField title="Handle Name" id="workspaceName" placeholder="Enter workspace handle name" value={formData.workspaceName} onChange={handleOnchange} isError={isErrorWorkspaceName}>
+            <AppTextField title="Handle Name" id="workspaceName" placeholder="Enter workspace handle name" value={handleName} onChange={handleOnchange} isError={isErrorWorkspaceName}>
                 <AppTextField.Description>
                     {t(onBoarding.useSmallCase)} (eg: abc) <br />
                     https://{environments.CLIENT_DOMAIN}/<span className="text-pink-500">{formData.workspaceName}</span>

@@ -139,15 +139,23 @@ export const builder = createSlice({
                     position: action.payload.position
                 });
             }
+            const fieldsArray = [...Object.values(state.fields)];
+
+            const previousField = fieldsArray.find((field: IFormFieldState) => field.position === action.payload.position - 1);
+
             const newField: IFormFieldState = {
                 ...action.payload,
                 id: newFieldId,
                 type: newType,
                 position: action.payload.position
             };
-            newField.properties = action.payload.properties || getInitialPropertiesForFieldType(newType);
+            let firstConditionalComparisonField;
+            if (type === FormBuilderTagNames.CONDITIONAL && previousField?.type?.includes('input_')) {
+                firstConditionalComparisonField = previousField;
+            }
+
+            newField.properties = action.payload.properties || getInitialPropertiesForFieldType(newType, firstConditionalComparisonField);
             fieldsToAdd.push(newField);
-            const fieldsArray = [...Object.values(state.fields)];
 
             fieldsArray.splice(action?.payload?.position + (action?.payload?.replace ? 0 : 1), action?.payload?.replace ? 1 : 0, ...fieldsToAdd);
             const newFieldsMap: any = {};
