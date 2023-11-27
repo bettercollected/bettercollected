@@ -7,6 +7,7 @@ import RadioButtonUncheckedIcon from '@mui/icons-material/RadioButtonUnchecked';
 
 import { FormBuilderTagNames, LabelFormBuilderTagNames } from '@app/models/enums/formBuilder';
 import { ActionType, Comparison, IFormFieldState } from '@app/store/form-builder/types';
+import { convertPlaceholderToDisplayValue } from '@app/utils/formBuilderBlockUtils';
 
 export function getComparisonText(comparison: Comparison): string {
     switch (comparison) {
@@ -106,7 +107,7 @@ export const checkShowAllFields = (actionType: ActionType) => {
     return ShowAllFieldsActionType.includes(actionType);
 };
 
-export const convertFieldForConditionalDropDownState = (field: IFormFieldState, id?: string) => {
+export const convertFieldForConditionalDropDownState = (field: IFormFieldState, fields: Array<IFormFieldState>, id?: string) => {
     let text = '';
     const x: any = {
         fieldId: id ? id : field.id
@@ -118,7 +119,7 @@ export const convertFieldForConditionalDropDownState = (field: IFormFieldState, 
     } else {
         text = _.startCase(field?.type.split('_').join(' '));
     }
-    x.value = text;
+    x.value = convertPlaceholderToDisplayValue(fields, text);
     x.fieldType = field.type;
     return x;
 };

@@ -12,7 +12,7 @@ import { selectFields, selectFormField } from '@app/store/form-builder/selectors
 import { Comparison, Condition, IChoiceFieldState, IFormFieldState, LogicalOperator } from '@app/store/form-builder/types';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { getComparisonsBasedOnFieldType } from '@app/utils/conditionalUtils';
-import { getPreviousField } from '@app/utils/formBuilderBlockUtils';
+import { convertPlaceholderToDisplayValue, getPreviousField } from '@app/utils/formBuilderBlockUtils';
 
 const TextFieldInputValueComparisons = [Comparison.STARTS_WITH, Comparison.ENDS_WITH, Comparison.IS_EQUAL, Comparison.IS_NOT_EQUAL];
 const TextFieldValueFieldTypes = [FormBuilderTagNames.INPUT_SHORT_TEXT, FormBuilderTagNames.INPUT_LONG_TEXT, FormBuilderTagNames.INPUT_PHONE_NUMBER, FormBuilderTagNames.INPUT_EMAIL, FormBuilderTagNames.INPUT_LINK];
@@ -41,7 +41,7 @@ const IfBlock = ({ field, condition }: { field: IFormFieldState; condition: Cond
                 if (LabelFormBuilderTagNames.includes(previousField?.type)) {
                     text = previousField?.value;
                 }
-                x.value = text;
+                x.value = convertPlaceholderToDisplayValue(fields, text);
                 x.type = field.type;
                 filteredFields.push(x);
             }
