@@ -14,8 +14,10 @@ import TextFieldHandler from '@app/components/onboarding/TextFieldHandler';
 import { onBoarding } from '@app/constants/locales/onboarding-screen';
 import { toastMessage } from '@app/constants/locales/toast-message';
 import { ToastId } from '@app/constants/toastId';
+import { UserStatus } from '@app/models/dtos/UserStatus';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
-import { useAppDispatch } from '@app/store/hooks';
+import { selectAuth } from '@app/store/auth/slice';
+import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { useCreateWorkspaceMutation, useLazyGetWorkspaceNameSuggestionsQuery, usePatchExistingWorkspaceMutation } from '@app/store/workspaces/api';
 import { setWorkspace } from '@app/store/workspaces/slice';
 
@@ -35,6 +37,8 @@ const OnboardingContainer = ({ workspace, createWorkspace }: onBoardingProps) =>
     const { t } = useTranslation();
     const dispatch = useAppDispatch();
     const router = useRouter();
+    const authStatus = useAppSelector(selectAuth);
+    const user: UserStatus = !!authStatus ? authStatus : null;
 
     const [createWorkspaceRequest, data] = useCreateWorkspaceMutation();
     const [patchExistingWorkspace, { isLoading, isSuccess }] = usePatchExistingWorkspaceMutation();
@@ -43,7 +47,7 @@ const OnboardingContainer = ({ workspace, createWorkspace }: onBoardingProps) =>
     const workspaceName: string | null = (workspace?.workspaceName as string) === (workspace?.ownerId as string) ? null : (workspace?.workspaceName as string);
 
     const [formData, setFormData] = useState<FormDataDto>({
-        title: workspace?.title.toLowerCase() !== 'untitled' ? workspace?.title || '' : '',
+        title: (user?.firstName || user?.lastName || user?.email) + "'s Workspace",
         description: workspace?.description ?? '',
         workspaceLogo: workspace?.profileImage ?? null,
         workspaceName: workspaceName

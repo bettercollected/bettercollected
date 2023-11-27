@@ -2,7 +2,7 @@ import { uuidv4 } from '@mswjs/interceptors/lib/utils/uuid';
 
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
 
-import { Comparison, IBuilderTitleAndDescriptionObj, IFormFieldProperties, LogicalOperator } from './types';
+import { IBuilderTitleAndDescriptionObj, IFormFieldProperties, IFormFieldState, LogicalOperator } from './types';
 
 export const builderTitleAndDescriptionList: Array<IBuilderTitleAndDescriptionObj> = [
     {
@@ -12,7 +12,7 @@ export const builderTitleAndDescriptionList: Array<IBuilderTitleAndDescriptionOb
         key: 'title',
         position: -2,
         placeholder: 'FORM_TITLE.PLACEHOLDER',
-        className: 'font-semibold text-[24px] text-black-900'
+        className: 'font-bold text-[32px] text-black-800'
     },
     {
         id: 'item-form-description',
@@ -21,11 +21,11 @@ export const builderTitleAndDescriptionList: Array<IBuilderTitleAndDescriptionOb
         key: 'description',
         position: -1,
         placeholder: 'FORM_DESCRIPTION.PLACEHOLDER',
-        className: 'text-[14px] text-black-700 '
+        className: 'text-[16px] font-normal text-black-700 '
     }
 ];
 
-export function getInitialPropertiesForFieldType(type: FormBuilderTagNames) {
+export function getInitialPropertiesForFieldType(type: FormBuilderTagNames, previousFieldId?: IFormFieldState) {
     switch (type) {
         case FormBuilderTagNames.CONDITIONAL:
             const conditionalId = uuidv4();
@@ -34,6 +34,10 @@ export function getInitialPropertiesForFieldType(type: FormBuilderTagNames) {
                 conditions: {
                     [conditionalId]: {
                         id: conditionalId,
+                        field: {
+                            id: previousFieldId?.id || '',
+                            type: previousFieldId?.type || FormBuilderTagNames.INPUT_SHORT_TEXT
+                        },
                         position: 0
                     }
                 },

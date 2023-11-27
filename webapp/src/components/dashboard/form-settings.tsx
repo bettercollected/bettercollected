@@ -237,7 +237,7 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
 
                             <AppButton
                                 className={'!py-0'}
-                                icon={<EditIcon className="h-6 w-6" />}
+                                icon={<EditIcon className="h-4 w-4" />}
                                 onClick={() => {
                                     fullScreenModal.openModal('FORM_CREATE_SLUG_VIEW', {
                                         link: isCustomDomain ? customDomain : clientHost,

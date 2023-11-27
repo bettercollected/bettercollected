@@ -452,7 +452,7 @@ const FormBuilderTagSelector = ({ closeMenu, handleSelection, className, positio
             case BlockTypes.LAYOUT_BLOCKS:
                 return <div className="text-[16px] px-2 text-center items-center leading-6 text-black-600 font-semibold">H</div>;
             case BlockTypes.CONDITIONAL:
-                return <div className="text-[16px] px-2 text-center items-center leading-6 text-black-600 font-semibold">C</div>;
+                return <Logic className={'text-black-600'} />;
         }
     };
 
