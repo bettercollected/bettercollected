@@ -126,11 +126,13 @@ export default function HeaderInputBlock({ field, id, position }: IHeaderInputBl
         // Use replace with a callback function to replace the placeholder
         return inputString?.replace(placeholderRegex, (match, fieldId) => {
             const displayName = getDisplayNameForField(fields, fieldId);
-            // Replace the placeholder with a <span> element containing the field value
-            return `<span contenteditable="false" class="bg-black-300 max-w-[200px] truncate rounded p-1 cursor-pointer" data-current-field="${field.id}" data-field-id="${fieldId}">@${toEndDottedStr(
-                convertPlaceholderToDisplayValue(fields, displayName),
-                24
-            )}</span>`;
+            if (fields.find((field) => field.id === fieldId))
+                // Replace the placeholder with a <span> element containing the field value
+                return `<span contenteditable="false" class="bg-black-300 max-w-[200px] truncate rounded p-1 cursor-pointer" data-current-field="${field.id}" data-field-id="${fieldId}">@${toEndDottedStr(
+                    convertPlaceholderToDisplayValue(fields, displayName),
+                    24
+                )}</span>`;
+            return '';
         });
     }
 

@@ -13,7 +13,6 @@ import { convertPlaceholderToDisplayValue, getPreviousField } from '@app/utils/f
 
 export default function FormBuilderFieldSelector({ field, searchQuery = '' }: { field: IFormFieldState; searchQuery: string }) {
     const pipingFieldMenuState: any = useAppSelector(selectMenuState('pipingFields'));
-    console.log(pipingFieldMenuState.atPosition);
 
     const formFields = useAppSelector(selectFields);
 
@@ -38,7 +37,7 @@ export default function FormBuilderFieldSelector({ field, searchQuery = '' }: { 
                 }
                 x.value = convertPlaceholderToDisplayValue(fields, text);
                 x.type = field.type;
-                if (x.value.match(searchQuery || '')) {
+                if (x.value.match(searchQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') || '')) {
                     filteredFields.push(x);
                 }
             }

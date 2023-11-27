@@ -107,7 +107,8 @@ export function convertPlaceholderToDisplayValue(fields: Array<IFormFieldState>,
 
     // Use replace with a callback function to replace the placeholder
     let displayString = inputString?.replace(placeholderRegex, (match, fieldId) => {
-        return `@${getDisplayNameForField(fields, fieldId)}`;
+        if (fields?.find((field: IFormFieldState) => field.id === fieldId)) return `@${getDisplayNameForField(fields, fieldId)}`;
+        return '';
     });
 
     if (displayString?.match(placeholderRegex)) {
