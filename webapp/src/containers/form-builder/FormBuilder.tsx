@@ -261,6 +261,15 @@ export default function FormBuilder({ workspace, _nextI18Next, isTemplate = fals
             };
         };
 
+        const value = builderState.fields[builderState.activeFieldId]?.value || '';
+        const selection = window.getSelection();
+
+        const cursorPosition = selection?.focusOffset;
+
+        const textBeforeCursor = value.substring(0, cursorPosition);
+
+        const occurrence = (textBeforeCursor.match(/@/g) || []).length + 1;
+
         dispatch(
             setBuilderState({
                 isFormDirty: true,
@@ -270,7 +279,8 @@ export default function FormBuilder({ workspace, _nextI18Next, isTemplate = fals
                         isOpen: true,
                         atFieldUuid: Object.keys(builderState.fields).at(builderState.activeFieldIndex) ?? '',
                         position: bottomPosition + 300 > viewportHeight ? 'up' : 'down',
-                        pos: getPosition()
+                        pos: getPosition(),
+                        atPosition: occurrence ?? 0
                     }
                 }
             })
@@ -293,6 +303,7 @@ export default function FormBuilder({ workspace, _nextI18Next, isTemplate = fals
         const currentField = targetElement.getAttribute('data-current-field');
 
         const boundingRect = targetElement.getBoundingClientRect();
+
         dispatch(
             setBuilderMenuState({
                 pipingFieldSettings: {

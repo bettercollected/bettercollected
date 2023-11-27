@@ -11,8 +11,16 @@ export default function useArrowsToSelectOption(handleSelect: any, handleNext: a
                     e.stopPropagation();
                     handleSelect();
                 },
-                [KeyType.ArrowDown]: () => handleNext(e),
-                [KeyType.ArrowUp]: () => handlePrevious(e),
+                [KeyType.ArrowDown]: () => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleNext(e);
+                },
+                [KeyType.ArrowUp]: () => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handlePrevious(e);
+                },
                 default: () => {}
             };
 

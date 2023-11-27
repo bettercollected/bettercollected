@@ -14,6 +14,7 @@ export interface IBuilderMenuState {
         position: 'up' | 'down';
         atChar?: number;
         pos: { top: number; left: number };
+        atPosition?: number;
     };
     pipingFieldSettings?: {
         isOpen: boolean;
