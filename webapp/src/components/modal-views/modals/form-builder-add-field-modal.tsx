@@ -41,7 +41,9 @@ export default function FormBuilderAddFieldModal({ index }: { index?: number }) 
         };
         const activeIndex = getActiveIndex();
         const activeField = Object.values(builderState.fields)[activeIndex];
+        const nextField = Object.values(builderState.fields)[activeIndex + 1];
         const isActiveFieldLayoutShortText = activeField?.type === FormBuilderTagNames.LAYOUT_SHORT_TEXT;
+        const isNextFieldInputField = nextField?.type.includes('input_');
         const shouldInsertInCurrentField = isActiveFieldLayoutShortText && !activeField.value;
 
         batch(() => {
@@ -50,7 +52,7 @@ export default function FormBuilderAddFieldModal({ index }: { index?: number }) 
                 setAddNewField({
                     id: v4(),
                     type,
-                    position: activeIndex
+                    position: isNextFieldInputField ? activeIndex + 1 : activeIndex
                 })
             );
             dispatch(resetBuilderMenuState());
