@@ -232,6 +232,7 @@ export const builder = createSlice({
             state.fields = newFieldsMap;
             state.isFormDirty = true;
         },
+
         // setEditForm
         setEditForm: (state, action) => {
             const fields: any = {};
@@ -362,24 +363,29 @@ export const builder = createSlice({
             const nextField = Object.values(state.fields).find((field) => field.position === action.payload.position + 1);
             const isNextFieldInputField = nextField?.type?.includes('input_');
             const inputFieldProperties = { ...nextField?.properties, hidden: action.payload.properties?.hidden };
-            return {
-                ...state,
-                isTyping: true,
-                fields:
-                    nextField && isNextFieldInputField
-                        ? {
-                              ...state.fields,
-                              [action.payload.id]: action.payload,
-                              [nextField.id]: {
-                                  ...nextField,
-                                  properties: inputFieldProperties
-                              }
-                          }
-                        : {
-                              ...state.fields,
-                              [action.payload.id]: action.payload
-                          }
-            };
+            if (isNextFieldInputField && nextField) {
+                return {
+                    ...state,
+                    isTyping: true,
+                    fields: {
+                        ...state.fields,
+                        [action.payload.id]: action.payload,
+                        [nextField.id]: {
+                            ...nextField,
+                            properties: inputFieldProperties
+                        }
+                    }
+                };
+            } else {
+                return {
+                    ...state,
+                    isTyping: true,
+                    fields: {
+                        ...state.fields,
+                        [action.payload.id]: action.payload
+                    }
+                };
+            }
         },
 
         // setBuilderState
