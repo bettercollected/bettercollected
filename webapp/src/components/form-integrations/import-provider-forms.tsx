@@ -179,7 +179,7 @@ export default function ImportProviderForms(props: any) {
         <>
             <h4 className="h6 !text-black-800 !font-medium text-center">{t(importFormConstant.choice)}</h4>
             <div className={'text-sm font-normal text-black-700'}>
-                Select the form provider from which you want to import forms. If your chosen form provider isn't linked yet,{' '}
+                Select the form provider from which you want to import forms. If your chosen form provider isn&apos;t linked yet,{' '}
                 <ActiveLink href={requestAnIntegration.href} className="body4 !not-italic !text-brand-500 hover:!text-brand-600">
                     {requestAnIntegration.name}
                 </ActiveLink>
