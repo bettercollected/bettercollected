@@ -2,11 +2,13 @@ import { Fragment, useEffect } from 'react';
 
 import { useRouter } from 'next/router';
 
+import TemplateSettingsModal from '@Components/Modals/BottomSheetModals/TemplateSettingsModal';
+import WorkspaceSettingsModal from '@Components/Modals/BottomSheetModals/WorkspaceSettingsModal';
+
 import LoginView from '@app/components/login/login-view';
 import { UPGRADE_MODAL_VIEW, useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
 import FormCreateSlugFullModalView from '@app/components/modal-views/full-screen-modals/create-form-slug-full-modal-view';
 import SelectGroupFullModalView from '@app/components/modal-views/full-screen-modals/select-group-modal-view';
-import TemplateSettingsFullModalView from '@app/components/modal-views/full-screen-modals/template-settings-full-modal-view';
 import ScheduleFormCloseDateModal from '@app/components/modal-views/modals/schedule-form-close-date-modal';
 import UpgradeToProModal from '@app/components/modal-views/modals/upgrade-to-pro-modal';
 import WorkspacePreviewModal from '@app/components/modal-views/modals/workspace-preview-modal';
@@ -44,7 +46,9 @@ function renderModalContent(view: UPGRADE_MODAL_VIEW, modalProps: any) {
         case 'SELECT_FORM_CLOSE_DATE':
             return <ScheduleFormCloseDateModal {...modalProps} />;
         case 'TEMPLATE_SETTINGS_FULL_MODAL_VIEW':
-            return <TemplateSettingsFullModalView {...modalProps} />;
+            return <TemplateSettingsModal {...modalProps} />;
+        case 'WORKSPACE_SETTINGS':
+            return <WorkspaceSettingsModal {...modalProps} />;
         default:
             return <></>;
     }
