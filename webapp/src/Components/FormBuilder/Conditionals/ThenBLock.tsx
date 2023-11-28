@@ -73,6 +73,8 @@ const ThenBlock = ({ field, action }: { field: IFormFieldState; action: Conditio
                 }
                 if (previousSelectedFields?.includes(nextField?.id) && !currentSelectedFields.includes(nextField?.id)) {
                     return;
+                } else if (!previousSelectedFields?.includes(nextField?.id) && !currentSelectedFields.includes(nextField?.id) && currentSelectedFields.includes(selectedField?.id) && previousSelectedFields?.includes(selectedField?.id)) {
+                    return;
                 } else {
                     selectedFields.push(convertFieldForConditionalDropDownState(getNextField(fields, selectedField)));
                 }
