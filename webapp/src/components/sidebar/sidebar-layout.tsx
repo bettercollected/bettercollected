@@ -97,7 +97,7 @@ export default function SidebarLayout({ children, DrawerComponent = DashboardDra
     const allNavList = [...topNavList, ...bottomNavList];
 
     const getHeader = () => {
-        const matchingNavList = allNavList.filter((item) => item.url.match(router.asPath));
+        const matchingNavList = allNavList.filter((item) => router.asPath.includes(item.url));
         if (matchingNavList.length > 0) {
             return matchingNavList[0].name;
         }

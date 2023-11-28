@@ -136,8 +136,7 @@ function MainApp({ Component, pageProps, router, emotionCache = clientSideEmotio
                                 <ServerSideWorkspaceDispatcher workspace={pageProps?.workspace}>
                                     <AuthStatusDispatcher workspace={pageProps?.workspace}>
                                         {getLayout(<Component {...pageProps} key={router.asPath} />)}
-
-                                        <ModalContainer />
+                                        {/*<ModalContainer />*/}
                                         <FullScreenModalContainer />
                                     </AuthStatusDispatcher>
                                 </ServerSideWorkspaceDispatcher>

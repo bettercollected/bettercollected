@@ -15,7 +15,6 @@ import { ResponderGroupDto } from '@app/models/dtos/groups';
 import { selectIsAdmin } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 
-
 interface IGroupMemberProps {
     group?: ResponderGroupDto;
     emails: Array<string>;
@@ -24,26 +23,20 @@ interface IGroupMemberProps {
     handleRemoveMember: (email: string) => void;
 }
 
-export default function GroupMember({
-                                        group,
-                                        emails,
-                                        handleSearch,
-                                        handleAddMembers,
-                                        handleRemoveMember
-                                    }: IGroupMemberProps) {
-    const {openModal} = useModal();
-    const {t} = useTranslation();
+export default function GroupMember({ group, emails, handleSearch, handleAddMembers, handleRemoveMember }: IGroupMemberProps) {
+    const { openModal } = useModal();
+    const { t } = useTranslation();
     const isAdmin = useAppSelector(selectIsAdmin);
     const MemberList = () => (
         <div className=" mt-6 flex flex-col md:max-w-[610px] gap-6">
             {!!handleSearch && (
                 <div className="sm:w-[240px]">
-                    <SearchInput handleSearch={handleSearch}/>
+                    <SearchInput handleSearch={handleSearch} />
                 </div>
             )}
             <div className="flex flex-col gap-2">
                 {emails.map((email) => (
-                    <MemberCard key={email} email={email} onDeleteClick={() => handleRemoveMember(email)}/>
+                    <MemberCard key={email} email={email} onDeleteClick={() => handleRemoveMember(email)} />
                 ))}
             </div>
         </div>
@@ -52,24 +45,22 @@ export default function GroupMember({
         if ((handleSearch && group && group.emails && group.emails.length > 0) || emails.length > 0) return MemberList();
     };
     return (
-        <>
-            <div className="flex flex-col md:flex-row items-center justify-between">
+        <div className="mt-12 mb-6">
+            <p className="mt-10 mb-2 h4-new !font-medium">
+                {t(groupConstant.memberAdded)} ({group?.emails?.length || emails.length || 0})
+            </p>
+            <div className="flex flex-col md:flex-row items-center border-y border-y-black-200 py-4 justify-between">
                 <div className="flex flex-col">
-                    <p className="mt-10 leading-none mb-2 body1">
-                        {t(groupConstant.memberAdded)} ({group?.emails?.length || emails.length || 0})
-                    </p>
                     <p className="text-black-700 leading-none body4">{t(groupConstant.members.description)} </p>
                 </div>
                 {isAdmin && (
-                    <AppButton variant={ButtonVariant.Ghost} icon={<Plus className="h-4 w-4"/>}
-                               onClick={() => openModal('ADD_MEMBERS', {handleAddMembers, group})}>
-
+                    <AppButton variant={ButtonVariant.Ghost} icon={<Plus className="h-4 w-4" />} onClick={() => openModal('ADD_MEMBERS', { handleAddMembers, group })}>
                         {t(buttonConstant.addMember)}
                     </AppButton>
                 )}
             </div>
 
             {handleMemberList()}
-        </>
+        </div>
     );
 }

@@ -6,13 +6,18 @@ import { useRouter } from 'next/router';
 import AppButton from '@Components/Common/Input/Button/AppButton';
 import { ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
 import { Typography } from '@mui/material';
+import DataTable from 'react-data-table-component';
 import { toast } from 'react-toastify';
 
 import GroupCard from '@app/components/cards/group-card';
 import EmptyGroup from '@app/components/dashboard/empty-group';
+import { dataTableCustomStyles } from '@app/components/datatable/form/datatable-styles';
 import { Plus } from '@app/components/icons/plus';
 import { useModal } from '@app/components/modal-views/context';
+import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
+import DeleteDropDown from '@app/components/ui/delete-dropdown';
 import Loader from '@app/components/ui/loader';
+import { localesCommon } from '@app/constants/locales/common';
 import { groupConstant } from '@app/constants/locales/group';
 import { toastMessage } from '@app/constants/locales/toast-message';
 import { ToastId } from '@app/constants/toastId';
@@ -28,9 +33,12 @@ export default function WorkspaceGroups({ workspace }: { workspace: WorkspaceDto
     const isAdmin = useAppSelector(selectIsAdmin);
     const { data, isLoading } = useGetAllRespondersGroupQuery(workspace.id);
     const [trigger] = useDeleteResponderGroupMutation();
-    const router = useRouter();
-    const handleDeletegroup = async (group: ResponderGroupDto) => {
+
+    const fullScreenModal = useFullScreenModal();
+
+    const handleDeleteGroup = async (group: ResponderGroupDto) => {
         try {
+            console.log(group);
             await trigger({
                 workspaceId: workspace.id,
                 groupId: group.id
@@ -41,32 +49,99 @@ export default function WorkspaceGroups({ workspace }: { workspace: WorkspaceDto
             toast(t(toastMessage.somethingWentWrong).toString(), { toastId: ToastId.ERROR_TOAST, type: 'error' });
         }
     };
+
+    const columns: any = [
+        {
+            name: 'Group',
+            selector: (group: ResponderGroupDto) => group.name,
+            grow: 2,
+            style: {
+                color: '#202124',
+                fontSize: '14px',
+                fontWeight: 500,
+                paddingLeft: '16px',
+                paddingRight: '16px'
+            }
+        },
+        {
+            name: 'Members',
+            selector: (group: ResponderGroupDto) => group.emails?.length ?? 0,
+            grow: 2,
+            style: {
+                color: '#202124',
+                fontSize: '14px',
+                fontWeight: 500,
+                paddingLeft: '16px',
+                paddingRight: '16px'
+            }
+        },
+        {
+            name: 'Forms',
+            selector: (group: ResponderGroupDto) => group.forms.length,
+            grow: 2,
+            style: {
+                color: '#202124',
+                fontSize: '14px',
+                fontWeight: 500,
+                paddingLeft: '16px',
+                paddingRight: '16px'
+            }
+        },
+        {
+            name: '',
+            style: {
+                justifyContent: 'end',
+                display: 'flex',
+                paddingRight: 16
+            },
+            selector: (group: ResponderGroupDto) => (
+                <div className="flex w-full justify-end">
+                    <DeleteDropDown
+                        onDropDownItemClick={(event) => {
+                            event.stopPropagation();
+                            event.preventDefault();
+                            openModal('DELETE_CONFIRMATION', {
+                                title: t(localesCommon.delete) + ' ' + group.name,
+                                handleDelete: () => {
+                                    handleDeleteGroup(group);
+                                }
+                            });
+                        }}
+                        label={t(localesCommon.delete)}
+                    />
+                </div>
+            )
+        }
+    ];
+
     const Group = () => (
         <div>
             <div className="flex justify-between">
-                <div className="flex  gap-[72px] mb-8 items-center ">
+                <div className="flex justify-between w-full mb-8 items-center ">
                     <div className="flex flex-col">
                         <div className="flex justify-between flex-col xs:flex-row">
-                            <p className="body1">
+                            <p className="h3-new font-semibold">
                                 {t(groupConstant.groups)} {data && ' (' + data.length + ')'}{' '}
                             </p>
-                            {isAdmin && (
-                                <AppButton variant={ButtonVariant.Ghost} className="w-fit" icon={<Plus className="h-4 w-4" />} onClick={() => router.push(`/${workspace?.workspaceName}/dashboard/responders-groups/create-group`)}>
-                                    <Typography className="!text-brand-500  body6"> {t(groupConstant.createGroup)}</Typography>
-                                </AppButton>
-                            )}
                         </div>
-                        <p className="mt-2  body4 text-black-700">{t(groupConstant.description)}</p>
+                        <p className="mt-2 body4 text-black-700">{t(groupConstant.description)}</p>
                     </div>
+                    {isAdmin && (
+                        <AppButton
+                            variant={ButtonVariant.Ghost}
+                            className="w-fit"
+                            icon={<Plus className="h-4 w-4" />}
+                            onClick={() => {
+                                fullScreenModal.openModal('CREATE_GROUP');
+                            }}
+                        >
+                            <Typography className="!text-brand-500  body6"> {t(groupConstant.createGroup)}</Typography>
+                        </AppButton>
+                    )}
                 </div>
             </div>
 
-            <div className="grid sm:grid-cols-2 2xl:grid-cols-3  grid-flow-row gap-6">
-                {data &&
-                    data?.map((group: ResponderGroupDto) => {
-                        return <GroupCard key={group.id} responderGroup={group} handleDelete={() => handleDeletegroup(group)} />;
-                    })}
-            </div>
+            <div className=" w-full">{data && <DataTable columns={columns} data={data} customStyles={dataTableCustomStyles} />}</div>
         </div>
     );
     if (isLoading)

@@ -68,7 +68,7 @@ export default function ConsentPurposeModalView() {
         };
         if (consentPurposeModalProps?.mode === 'create') {
             createWorkspaceConsent({ workspaceId: workspace.id, consent: consentField }).catch(() => {
-                toast.error('Failed to create workspace');
+                toast.error('Failed to create a new purpose');
             });
             dispatch(setAddConsent(consentField));
         } else if (consentPurposeModalProps?.mode === 'update') {
