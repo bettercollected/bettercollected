@@ -15,7 +15,7 @@ interface ConditionalOptionsDropdownProps {
 
 export default function ConditionalOptionsDropdown({ addOption, removeOption, text, showRemoveOption = true }: ConditionalOptionsDropdownProps) {
     return (
-        <div className="ml-2">
+        <div className=" ml-0.5 md:ml-2">
             <MenuDropdown id="Condition Actions" menuTitle="" showExpandMore={false} menuContent={<EllipsisOption />} width={210}>
                 <MenuItem onClick={addOption}>
                     <ListItemIcon>
