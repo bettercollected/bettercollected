@@ -37,8 +37,7 @@ export default function Responders({ workspace }: any) {
         <DashboardLayout>
             <NextSeo title={t(formConstant.responders) + '| ' + workspaceName} noindex={true} nofollow={true} />
             <div className="flex flex-col">
-                <div className="h4">{t(formConstant.responders)}</div>
-                <ParamTab className="my-[30px]  pb-0" tabMenu={paramTabs}>
+                <ParamTab className="mb-[30px] py-0" tabMenu={paramTabs}>
                     <TabPanel className="focus:outline-none" key="All Responders">
                         <WorkspaceResponses workspace={workspace} />
                     </TabPanel>

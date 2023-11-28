@@ -14,7 +14,7 @@ export default function MemberCard({ email, onDeleteClick }: IMemberCardProps) {
     return (
         <div className="flex  justify-between body4 bg-white px-4  rounded py-4 items-center !text-black-800">
             <span>{email}</span>
-            {isAdmin && <DeleteDropDown onDropDownItemClick={onDeleteClick} />}
+            {isAdmin && <DeleteDropDown onDropDownItemClick={onDeleteClick} className="z-[2000000000]" />}
         </div>
     );
 }

@@ -37,7 +37,7 @@ export default function AddRegexModal({ handleRegex }: { handleRegex: (regex: st
                 <span>{t(localesCommon.example)} </span>
                 <span className="!text-black-700 !font-normal">{t(groupConstant.regex.modal.description)}</span>
             </p>
-            <AppTextField onChange={handleInput} placeholder="*@example.com">
+            <AppTextField onChange={handleInput} autoFocus placeholder="*@example.com">
                 {t(groupConstant.regex.modal.label)}
             </AppTextField>
             <div className="flex justify-end mt-4">

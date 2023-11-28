@@ -2,8 +2,11 @@ import { Fragment, useCallback, useEffect } from 'react';
 
 import { useRouter } from 'next/router';
 
+import Button from '@Components/Common/Input/Button';
+
 import ImportProviderForms from '@app/components/form-integrations/import-provider-forms';
 import DeleteFormModal from '@app/components/form/delete-form-modal';
+import { Close } from '@app/components/icons/close';
 import LogoutView from '@app/components/logout/logout-view';
 import { MODAL_VIEW, useModal } from '@app/components/modal-views/context';
 import CloseFormConfirmationModal from '@app/components/modal-views/modals/close-form-confirmation-modal';
@@ -152,10 +155,9 @@ export default function ModalContainer() {
 
                 {/* This element is need to fix FocusTap headless-ui warning issue */}
                 <div className="sr-only">
-                    {/*<Button size="small" color="gray" shape="circle" onClick={closeModalHandler}*/}
-                    {/*        className="opacity-50 hover:opacity-80 ">*/}
-                    {/*    <Close className="h-auto w-[13px]"/>*/}
-                    {/*</Button>*/}
+                    <Button size="small" onClick={closeModalHandler} className="opacity-50 hover:opacity-80 ">
+                        <Close className="h-auto w-[13px]" />
+                    </Button>
                 </div>
 
                 <Transition.Child as={Fragment} enter="ease-out duration-300" enterFrom="opacity-0 scale-105" enterTo="opacity-100 scale-100" leave="ease-in duration-200" leaveFrom="opacity-100 scale-100" leaveTo="opacity-0 scale-105">

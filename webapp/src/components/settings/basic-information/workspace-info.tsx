@@ -69,7 +69,7 @@ export default function WorkspaceInfo({ workspace }: any) {
             </div>
             <div className="gap-2 w-full flex flex-col">
                 <div className="body1">Organization Descriptions</div>
-                <AppTextField multiline onChange={onChange} value={workspaceInfo.description} name="description" placeholder={t(placeHolder.description)} />
+                <AppTextField multiline fullWidth maxRows={4} minRows={4} onChange={onChange} value={workspaceInfo.description} name="description" placeholder={t(placeHolder.description)} />
             </div>
             <div className="flex justify-end mt-4">
                 <AppButton type="submit" size={ButtonSize.Medium} variant={ButtonVariant.Secondary} disabled={isLoading || !workspaceInfo.title} isLoading={isLoading}>
