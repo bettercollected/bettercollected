@@ -5,10 +5,12 @@ import { useTranslation } from 'next-i18next';
 import AppTextField from '@Components/Common/Input/AppTextField';
 import AppButton from '@Components/Common/Input/Button/AppButton';
 import { ButtonSize, ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
+import UploadLogo from '@Components/Common/UploadLogo';
 import { toast } from 'react-toastify';
 
 import ProfileImageComponent from '@app/components/dashboard/profile-image';
 import { useModal } from '@app/components/modal-views/context';
+import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
 import { placeHolder } from '@app/constants/locales/placeholder';
 import { toastMessage } from '@app/constants/locales/toast-message';
 import { workspaceConstant } from '@app/constants/locales/workspace';
@@ -21,7 +23,7 @@ export default function WorkspaceInfo({ workspace }: any) {
     const dispatch = useAppDispatch();
     const { t } = useTranslation();
     const [patchExistingWorkspace, { isLoading }] = usePatchExistingWorkspaceMutation();
-    const { closeModal } = useModal();
+    const { closeModal } = useFullScreenModal();
     const [workspaceInfo, setWorkspaceInfo] = useState({
         title: workspace.title || '',
         description: workspace.description || ''
@@ -58,10 +60,27 @@ export default function WorkspaceInfo({ workspace }: any) {
         }
     };
 
+    const onProfileImageUpload = async (file: File) => {
+        const updateProfileImageFormData = new FormData();
+        updateProfileImageFormData.append('profile_image', file);
+
+        const response: any = await patchExistingWorkspace({
+            workspace_id: workspace?.id,
+            body: updateProfileImageFormData
+        });
+
+        if (response.error) {
+            toast(response.error?.data || t(toastMessage.somethingWentWrong), {
+                toastId: ToastId.ERROR_TOAST,
+                type: 'error'
+            });
+        }
+    };
+
     return (
         <form onSubmit={onSubmit} className="w-full mt-5 flex items-start max-w-[540px] justify-center flex-col gap-6 pb-10">
             <div>
-                <ProfileImageComponent workspace={workspace} isFormCreator={true} />
+                <UploadLogo onUpload={onProfileImageUpload} logoImageUrl={workspace.profileImage} showRemove={false} />
             </div>
             <div className="gap-2 flex flex-col w-full">
                 <div className="body1">Organizations Title</div>
@@ -72,7 +91,7 @@ export default function WorkspaceInfo({ workspace }: any) {
                 <AppTextField multiline fullWidth maxRows={4} minRows={4} onChange={onChange} value={workspaceInfo.description} name="description" placeholder={t(placeHolder.description)} />
             </div>
             <div className="flex justify-end mt-4">
-                <AppButton type="submit" size={ButtonSize.Medium} variant={ButtonVariant.Secondary} disabled={isLoading || !workspaceInfo.title} isLoading={isLoading}>
+                <AppButton type="submit" size={ButtonSize.Medium} variant={ButtonVariant.Secondary} disabled={!workspaceInfo.title} isLoading={isLoading}>
                     {t('BUTTON.SAVE_CHANGES')}
                 </AppButton>
             </div>
