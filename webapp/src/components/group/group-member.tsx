@@ -34,9 +34,9 @@ export default function GroupMember({ group, emails, handleSearch, handleAddMemb
                     <SearchInput handleSearch={handleSearch} />
                 </div>
             )}
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-[1px] rounded-md bg-black-200">
                 {emails.map((email) => (
-                    <MemberCard key={email} email={email} onDeleteClick={() => handleRemoveMember(email)} />
+                    <MemberCard bg={handleSearch ? 'white' : 'black-100'} key={email} email={email} onDeleteClick={() => handleRemoveMember(email)} />
                 ))}
             </div>
         </div>
@@ -49,18 +49,19 @@ export default function GroupMember({ group, emails, handleSearch, handleAddMemb
             <p className="mt-10 mb-2 h4-new !font-medium">
                 {t(groupConstant.memberAdded)} ({group?.emails?.length || emails.length || 0})
             </p>
-            <div className="flex flex-col md:flex-row items-center border-y border-y-black-200 py-4 justify-between">
-                <div className="flex flex-col">
-                    <p className="text-black-700 leading-none body4">{t(groupConstant.members.description)} </p>
+            <div className="border-y border-y-black-200 py-4">
+                <div className="flex flex-col md:flex-row items-center  justify-between">
+                    <div className="flex flex-col">
+                        <p className="text-black-700 leading-none body4">{t(groupConstant.members.description)} </p>
+                    </div>
+                    {isAdmin && (
+                        <AppButton variant={ButtonVariant.Ghost} icon={<Plus className="h-4 w-4" />} onClick={() => openModal('ADD_MEMBERS', { handleAddMembers, group })}>
+                            {t(buttonConstant.addMember)}
+                        </AppButton>
+                    )}
                 </div>
-                {isAdmin && (
-                    <AppButton variant={ButtonVariant.Ghost} icon={<Plus className="h-4 w-4" />} onClick={() => openModal('ADD_MEMBERS', { handleAddMembers, group })}>
-                        {t(buttonConstant.addMember)}
-                    </AppButton>
-                )}
+                {handleMemberList()}
             </div>
-
-            {handleMemberList()}
         </div>
     );
 }
