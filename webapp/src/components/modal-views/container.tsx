@@ -3,6 +3,8 @@ import { Fragment, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/router';
 
 import Button from '@Components/Common/Input/Button';
+import UpdateCustomDomainModal from '@Components/Modals/DialogModals/UpdateCustomDomainModal';
+import UpdateWorkspaceHandle from '@Components/Modals/DialogModals/UpdateWorkspaceHandle';
 
 import ImportProviderForms from '@app/components/form-integrations/import-provider-forms';
 import DeleteFormModal from '@app/components/form/delete-form-modal';
@@ -100,9 +102,11 @@ function renderModalContent(view: MODAL_VIEW, modalProps: any) {
         case 'SHARE_VIEW':
             return <ShareModalView {...modalProps} />; // Done
         case 'UPDATE_WORKSPACE_DOMAIN':
-            return <UpdateWorkspaceSettings updateDomain={true} {...modalProps} />;
+            return <UpdateCustomDomainModal />;
+        // return <UpdateWorkspaceSettings updateDomain={true} {...modalProps} />;
         case 'UPDATE_WORKSPACE_HANDLE':
-            return <UpdateWorkspaceSettings updateDomain={false} />;
+            return <UpdateWorkspaceHandle {...modalProps} />;
+        // return <UpdateWorkspaceSettings updateDomain={false} />;
         case 'USER_DELETION':
             return <UserDeletionModal {...modalProps} />;
         case 'VISIBILITY_CONFIRMATION_MODAL_VIEW':

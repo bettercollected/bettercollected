@@ -16,7 +16,7 @@ export default function WorkspaceDetails() {
     return (
         <div>
             {!showBannerImageComponent && (
-                <div>
+                <div className="px-5 md:px-20 lg:px-30">
                     <AppButton
                         variant={ButtonVariant.Ghost}
                         icon={<PlusIcon />}
@@ -28,8 +28,15 @@ export default function WorkspaceDetails() {
                     </AppButton>
                 </div>
             )}
-            {showBannerImageComponent && <BannerImageComponent workspace={workspace} isFormCreator={true} />}
-            <WorkspaceInfo workspace={workspace} />
+
+            {showBannerImageComponent && (
+                <div className="w-full">
+                    <BannerImageComponent workspace={workspace} isFormCreator={true} />
+                </div>
+            )}
+            <div className="px-5 md:px-20 lg:px-30">
+                <WorkspaceInfo workspace={workspace} />
+            </div>
         </div>
     );
 }

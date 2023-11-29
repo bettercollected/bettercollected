@@ -18,13 +18,14 @@ interface ParamTabTypes {
     isRouteChangeable?: boolean;
     className?: string;
     showInfo?: boolean;
+    initialIndex?: number;
 }
 
 export { TabPanel };
 
-export default function ParamTab({ tabMenu, children, isRouteChangeable = true, className = '', showInfo = false }: ParamTabTypes) {
+export default function ParamTab({ tabMenu, children, isRouteChangeable = true, className = '', showInfo = false, initialIndex }: ParamTabTypes) {
     const router = useRouter();
-    const [selectedTabIndex, setSelectedTabIndex] = useState(tabMenu.findIndex((item) => router.query.view === item.path));
+    const [selectedTabIndex, setSelectedTabIndex] = useState(initialIndex ?? tabMenu.findIndex((item) => router.query.view === item.path));
     const statusQuerySelect = useMemo(() => authApi.endpoints.getStatus.select(), []);
     const selectGetStatus = useAppSelector(statusQuerySelect);
 
