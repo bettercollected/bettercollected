@@ -1,5 +1,6 @@
 import React, { ChangeEvent, useEffect } from 'react';
 
+import AppTextField from '@Components/Common/Input/AppTextField';
 import { FieldRequired } from '@Components/UI/FieldRequired';
 import { useDispatch } from 'react-redux';
 
@@ -80,7 +81,7 @@ export default function ShortText({ ans, enabled, field, helperText }: IShortTex
 
     return (
         <div className="relative">
-            <FormInputField
+            <AppTextField
                 style={{
                     margin: '0px !important'
                 }}
