@@ -1,6 +1,6 @@
 import { useRef } from 'react';
 
-import FormBuilderInput from '@Components/FormBuilder/FormBuilderInput';
+import AppTextField from '@Components/Common/Input/AppTextField';
 import { FieldRequired } from '@Components/UI/FieldRequired';
 import { AlternateEmail, DateRange, LocalPhone, Numbers, ShortText } from '@mui/icons-material';
 import LinkIcon from '@mui/icons-material/Link';
@@ -55,13 +55,14 @@ export default function EndAdornmentInputField({ field, id, placeholder }: IEndA
     return (
         <div className="relative w-full h-full">
             {field?.validations?.required && <FieldRequired className="top-0.5 right-1" />}
-            <FormBuilderInput
+            <AppTextField
                 autoFocus={false}
                 onChange={onChange}
                 placeholder={placeholder}
                 id={id}
                 value={field.properties?.placeholder || ''}
                 inputRef={inputRef}
+                isPlaceholder
                 InputProps={{
                     endAdornment: getIcon(field.type)
                 }}
