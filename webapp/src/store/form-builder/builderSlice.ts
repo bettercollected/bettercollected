@@ -68,12 +68,19 @@ export const builder = createSlice({
         addDuplicateField: (state: IBuilderState, action: { payload: IFormFieldState; type: string }) => {
             // TODO: fix duplicate for shortcut keys
             const fieldsArray = [...Object.values(state.fields)];
+            const nextField = Object.values(state.fields).find((field) => field.position === action.payload.position + 1);
+            const isNextFieldInputField = nextField?.type?.includes('input_');
             fieldsArray.splice(action?.payload?.position, 0, { ...action.payload });
+            if (isNextFieldInputField && nextField) {
+                const newInputField: IFormFieldState = { ...nextField };
+                newInputField.id = uuidv4();
+                newInputField.position = nextField.position;
+                fieldsArray.splice(nextField.position, 0, newInputField);
+            }
             const newFieldsMap: any = {};
             fieldsArray.forEach((field: IFormFieldState, index: number) => {
                 newFieldsMap[field.id] = field;
                 newFieldsMap[field.id].position = index;
-                ``;
             });
             state.fields = newFieldsMap;
             state.activeFieldIndex = action?.payload?.position;
@@ -208,6 +215,12 @@ export const builder = createSlice({
         // setDeleteField
         setDeleteField: (state: IBuilderState, action: { payload: string; type: string }) => {
             const fields = { ...state.fields };
+            const currentField = fields[action.payload];
+            const nextField = Object.values(state.fields).find((field) => field.position === currentField.position + 1);
+            const isNextFieldInputField = nextField?.type.includes('input_');
+            if (isNextFieldInputField && nextField) {
+                delete fields[nextField.id];
+            }
             delete fields[action.payload];
             const fieldsArray = [...Object.values(fields)];
             const newFieldsMap: any = {};
@@ -219,6 +232,7 @@ export const builder = createSlice({
             state.fields = newFieldsMap;
             state.isFormDirty = true;
         },
+
         // setEditForm
         setEditForm: (state, action) => {
             const fields: any = {};
@@ -343,6 +357,37 @@ export const builder = createSlice({
                 }
             };
         },
+
+        // setUpdateVisibility
+        setUpdateVisibility: (state: IBuilderState, action: { payload: IFormFieldState }) => {
+            const nextField = Object.values(state.fields).find((field) => field.position === action.payload.position + 1);
+            const isNextFieldInputField = nextField?.type?.includes('input_');
+            const inputFieldProperties = { ...nextField?.properties, hidden: action.payload.properties?.hidden };
+            if (isNextFieldInputField && nextField) {
+                return {
+                    ...state,
+                    isTyping: true,
+                    fields: {
+                        ...state.fields,
+                        [action.payload.id]: action.payload,
+                        [nextField.id]: {
+                            ...nextField,
+                            properties: inputFieldProperties
+                        }
+                    }
+                };
+            } else {
+                return {
+                    ...state,
+                    isTyping: true,
+                    fields: {
+                        ...state.fields,
+                        [action.payload.id]: action.payload
+                    }
+                };
+            }
+        },
+
         // setBuilderState
         setBuilderState: (state: IBuilderState, action: { payload: Partial<IBuilderState>; type: string }) => {
             return {

@@ -16,6 +16,7 @@ import AuthAccountMenuDropdown from '@app/components/auth/account-menu-dropdown'
 import AuthNavbar from '@app/components/auth/navbar';
 import Globe from '@app/components/icons/flags/globe';
 import { TemplateIcon } from '@app/components/icons/template';
+import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
 import DashboardDrawer from '@app/components/sidebar/dashboard-drawer';
 import LocaleDropdownUi from '@app/components/ui/locale-dropdown-ui';
 import { localesCommon } from '@app/constants/locales/common';
@@ -35,6 +36,8 @@ interface ISidebarLayout {
 
 export default function SidebarLayout({ children, DrawerComponent = DashboardDrawer, boxClassName = '' }: ISidebarLayout) {
     const drawerWidth = 289;
+
+    const { openModal } = useFullScreenModal();
 
     const [mobileOpen, setMobileOpen] = React.useState(false);
     const handleDrawerToggle = () => {
@@ -89,17 +92,20 @@ export default function SidebarLayout({ children, DrawerComponent = DashboardDra
         {
             key: 'urls',
             name: t(dashboardConstants.drawer.manageURLs),
-            url: `/${workspace?.workspaceName}/dashboard/urls`,
-            icon: <Globe />
+            url: ``,
+            icon: <Globe />,
+            onClick: () => {
+                openModal('WORKSPACE_SETTINGS', { initialIndex: 1 });
+            }
         }
     ];
 
     const allNavList = [...topNavList, ...bottomNavList];
 
     const getHeader = () => {
-        const matchingNavList = allNavList.filter((item) => item.url.match(router.asPath));
+        const matchingNavList = allNavList.filter((item) => router.asPath.includes(item.url));
         if (matchingNavList.length > 0) {
-            return matchingNavList[0].name;
+            return matchingNavList[matchingNavList.length - 1].name;
         }
         return 'My Workspace';
     };

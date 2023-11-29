@@ -20,13 +20,6 @@ import { selectAuth } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { usePatchExistingWorkspaceMutation } from '@app/store/workspaces/api';
 
-interface FormDataDto {
-    title: string;
-    description: string;
-    workspaceLogo: any;
-    workspaceName: string | null;
-}
-
 interface onBoardingProps {
     workspace?: WorkspaceDto;
     createWorkspace?: boolean;
@@ -57,12 +50,9 @@ export async function getServerSideProps(_context: GetServerSidePropsContext) {
 
 export default function Onboarding({ workspace, createWorkspace }: onBoardingProps) {
     const { t } = useTranslation();
-    const router = useRouter();
     const authStatus = useAppSelector(selectAuth);
     const user: UserStatus = !!authStatus ? authStatus : null;
     const [stepCount, setStepCount] = useState(createWorkspace ? 1 : 0);
-    const [patchExistingWorkspace, { isLoading, isSuccess }] = usePatchExistingWorkspaceMutation();
-    const workspaceName: string | null = (workspace?.workspaceName as string) === (workspace?.ownerId as string) ? null : (workspace?.workspaceName as string);
 
     const increaseStep = () => {
         setStepCount(stepCount + 1);
@@ -88,7 +78,6 @@ export default function Onboarding({ workspace, createWorkspace }: onBoardingPro
     );
     const StepOneContent = <OnboardingContainer workspace={workspace} createWorkspace={createWorkspace} />;
 
-    if (isSuccess) return <FullScreenLoader />;
     return (
         <div className="flex flex-col w-full min-w-0 bg-white h-screen items-center overflow-auto pb-20">
             {stepCount === 0 && StepZeroContent}

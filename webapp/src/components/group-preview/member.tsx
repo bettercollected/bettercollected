@@ -41,7 +41,7 @@ export default function GroupMembersTab({ group, workspace }: IGroupMemberTabPro
     const handleAddmembers = (members: Array<string>) => addMembersOnGroup({ emails: members, group, workspaceId: workspace.id });
 
     const handleRemoveMembers = (email: string) => {
-        openModal('DELETE_CONFIRMATION', { title: t(localesCommon.remove) + ' ' + email, handleDelete: () => removeMemberFromGroup({ email, group, workspaceId: workspace.id }) });
+        openModal('DELETE_CONFIRMATION', { headerTitle: 'Remove Member', title: t(localesCommon.remove) + ' ' + email, handleDelete: () => removeMemberFromGroup({ email, group, workspaceId: workspace.id }) });
     };
     const handleRegex = async (regex: string, type: handleRegexType) => {
         const groupInfo = {

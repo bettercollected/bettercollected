@@ -4,11 +4,13 @@ import { useTranslation } from 'next-i18next';
 
 import AppTextField from '@Components/Common/Input/AppTextField';
 import AppButton from '@Components/Common/Input/Button/AppButton';
+import { ButtonSize, ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
+import UploadLogo from '@Components/Common/UploadLogo';
 import { toast } from 'react-toastify';
 
 import ProfileImageComponent from '@app/components/dashboard/profile-image';
 import { useModal } from '@app/components/modal-views/context';
-import { buttonConstant } from '@app/constants/locales/button';
+import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
 import { placeHolder } from '@app/constants/locales/placeholder';
 import { toastMessage } from '@app/constants/locales/toast-message';
 import { workspaceConstant } from '@app/constants/locales/workspace';
@@ -17,12 +19,11 @@ import { useAppDispatch } from '@app/store/hooks';
 import { usePatchExistingWorkspaceMutation } from '@app/store/workspaces/api';
 import { setWorkspace } from '@app/store/workspaces/slice';
 
-
 export default function WorkspaceInfo({ workspace }: any) {
     const dispatch = useAppDispatch();
     const { t } = useTranslation();
     const [patchExistingWorkspace, { isLoading }] = usePatchExistingWorkspaceMutation();
-    const { closeModal } = useModal();
+    const { closeModal } = useFullScreenModal();
     const [workspaceInfo, setWorkspaceInfo] = useState({
         title: workspace.title || '',
         description: workspace.description || ''
@@ -59,27 +60,41 @@ export default function WorkspaceInfo({ workspace }: any) {
         }
     };
 
-    return (
-        // <SettingsCard>
-        <form onSubmit={onSubmit}>
-            <div className="w-full flex sm:flex-row items-center justify-center flex-col gap-6">
-                <ProfileImageComponent workspace={workspace} isFormCreator={true} />
-                <div className="gap-2 w-full">
-                    <div className="body1 mb-4">{t(workspaceConstant.title)}</div>
+    const onProfileImageUpload = async (file: File) => {
+        const updateProfileImageFormData = new FormData();
+        updateProfileImageFormData.append('profile_image', file);
 
-                    <AppTextField onChange={onChange} value={workspaceInfo.title} name="title" placeholder={t(placeHolder.workspaceTitle)} />
-                </div>
+        const response: any = await patchExistingWorkspace({
+            workspace_id: workspace?.id,
+            body: updateProfileImageFormData
+        });
+
+        if (response.error) {
+            toast(response.error?.data || t(toastMessage.somethingWentWrong), {
+                toastId: ToastId.ERROR_TOAST,
+                type: 'error'
+            });
+        }
+    };
+
+    return (
+        <form onSubmit={onSubmit} className="w-full mt-5 flex items-start max-w-[540px] justify-center flex-col gap-6 pb-10">
+            <div>
+                <UploadLogo onUpload={onProfileImageUpload} logoImageUrl={workspace.profileImage} showRemove={false} />
             </div>
-            <div className="mt-6">
-                <div className="body1 mb-4">{t(workspaceConstant.description)}</div>
-                <AppTextField multiline onChange={onChange} value={workspaceInfo.description} name="description" placeholder={t(placeHolder.description)} />
+            <div className="gap-2 flex flex-col w-full">
+                <div className="body1">Organizations Title</div>
+                <AppTextField onChange={onChange} value={workspaceInfo.title} name="title" placeholder={t(placeHolder.workspaceTitle)} />
+            </div>
+            <div className="gap-2 w-full flex flex-col">
+                <div className="body1">Organization Descriptions</div>
+                <AppTextField multiline fullWidth maxRows={4} minRows={4} onChange={onChange} value={workspaceInfo.description} name="description" placeholder={t(placeHolder.description)} />
             </div>
             <div className="flex justify-end mt-4">
-                <AppButton type="submit" disabled={isLoading || !workspaceInfo.title} isLoading={isLoading}>
-                    {t(buttonConstant.save)}
+                <AppButton type="submit" size={ButtonSize.Medium} variant={ButtonVariant.Secondary} disabled={!workspaceInfo.title} isLoading={isLoading}>
+                    {t('BUTTON.SAVE_CHANGES')}
                 </AppButton>
             </div>
         </form>
-        // </SettingsCard>
     );
 }

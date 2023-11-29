@@ -15,7 +15,7 @@ export enum BlockTypes {
     INPUT_BLOCKS = 'Without Label',
     LAYOUT_BLOCKS = 'Headings',
     QUESTION_INPUT_BLOCKS = 'With Label',
-    CONDITIONAL = 'Conditional'
+    CONDITIONAL = 'Advanced Fields'
 }
 
 export enum FormBuilderTagNames {

@@ -9,14 +9,12 @@ import EmailIcon from '@Components/Common/Icons/FormBuilder/EmailIcon';
 import LongTextIcon from '@Components/Common/Icons/FormBuilder/LongTextIcon';
 import MultipleChoiceIcon from '@Components/Common/Icons/FormBuilder/MultipleChoiceIcon';
 import PhoneNumberIcon from '@Components/Common/Icons/FormBuilder/PhoneNumberIcon';
-import RankingIcon from '@Components/Common/Icons/FormBuilder/RankingIcon';
 import RatingIcon from '@Components/Common/Icons/FormBuilder/RatingIcon';
 import ShortTextIcon from '@Components/Common/Icons/FormBuilder/ShortTextIcon';
 import UploadIcon from '@Components/Common/Icons/FormBuilder/UploadIcon';
 import TagListItem from '@Components/FormBuilder/BuilderBlock/TagListItem';
 import { Tag } from '@mui/icons-material';
 import LinkIcon from '@mui/icons-material/Link';
-import PermMediaIcon from '@mui/icons-material/PermMedia';
 import { List, ListSubheader, Paper } from '@mui/material';
 
 import { Logic } from '@app/components/icons/logic';

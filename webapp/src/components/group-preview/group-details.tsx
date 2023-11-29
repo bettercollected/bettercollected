@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { useTranslation } from 'next-i18next';
 
 import AppButton from '@Components/Common/Input/Button/AppButton';
+import { ButtonSize, ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
 import { toast } from 'react-toastify';
 
 import GroupInfo from '@app/components/group/group-info';
@@ -47,8 +48,10 @@ export default function GroupDetailsTab({ group }: { group: ResponderGroupDto })
         <form onSubmit={handleUpdateGroup} className="md:max-w-[618px]">
             <GroupInfo handleInput={handleInput} groupInfo={groupInfo} />
             {isAdmin && (
-                <div className="flex justify-end mt-10">
-                    <AppButton isLoading={updateGroupResponse.isLoading}>{t(buttonConstant.saveChanges)}</AppButton>
+                <div className="flex justify-start mt-10">
+                    <AppButton variant={ButtonVariant.Secondary} size={ButtonSize.Medium} isLoading={updateGroupResponse.isLoading}>
+                        {t(buttonConstant.saveChanges)}
+                    </AppButton>
                 </div>
             )}
         </form>

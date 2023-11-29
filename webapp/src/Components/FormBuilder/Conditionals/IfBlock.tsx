@@ -134,7 +134,7 @@ const IfBlock = ({ field, condition }: { field: IFormFieldState; condition: Cond
     };
 
     return (
-        <div className={'flex flex-col gap-2 '}>
+        <div className={'flex flex-col gap-1 md:gap-2  '}>
             {condition?.position === 0 ? (
                 <h1 className={'text-pink-500 text-sm'}>IF</h1>
             ) : (
@@ -149,8 +149,8 @@ const IfBlock = ({ field, condition }: { field: IFormFieldState; condition: Cond
                     )}
                 </>
             )}
-            <div className="flex justify-between items-center w-full">
-                <div className={'flex flex-col lg:flex-row gap-2 w-full '}>
+            <div className="flex justify-between items-center">
+                <div className={'flex flex-col lg:flex-row gap-2 w-[calc(100%-3rem)]'}>
                     <ConditionalListDropDown
                         value={inputFields.find((item: any) => item.fieldId === condition.field?.id) || null}
                         items={inputFields}

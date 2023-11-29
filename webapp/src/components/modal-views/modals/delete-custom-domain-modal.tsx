@@ -15,7 +15,6 @@ export default function DeleteCustomDomainModal() {
     const { closeModal } = useModal();
     const [deleteWorkspaceDomain, result] = useDeleteWorkspaceDomainMutation();
     const dispatch = useAppDispatch();
-    const router = useRouter();
 
     const { t } = useTranslation();
     const workspace = useAppSelector((state) => state.workspace);
@@ -25,7 +24,6 @@ export default function DeleteCustomDomainModal() {
         const res: any = await deleteWorkspaceDomain(workspace.id);
         if (res.data) {
             dispatch(setWorkspace(res.data));
-            router.push(router.asPath);
         } else {
             toast.error(t(toastMessage.customDomainDeletionError).toString());
         }
@@ -33,6 +31,14 @@ export default function DeleteCustomDomainModal() {
     };
 
     return (
-        <GenericHalfModal type="danger" headerTitle="Reset Custom Domain" positiveText="Yes" positiveAction={deleteCustomDomain} title={t(updateWorkspace.settings.domain.confirmationTitle)} subTitle={t(updateWorkspace.settings.domain.confirmationDesc)} />
+        <GenericHalfModal
+            loading={result?.isLoading}
+            type="danger"
+            headerTitle="Reset Custom Domain"
+            positiveText="Yes"
+            positiveAction={deleteCustomDomain}
+            title={t(updateWorkspace.settings.domain.confirmationTitle)}
+            subTitle={t(updateWorkspace.settings.domain.confirmationDesc)}
+        />
     );
 }

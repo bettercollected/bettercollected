@@ -117,6 +117,9 @@ export default function MenuDropdown({
                     onClick={(event) => {
                         if (closeOnClick) handleClose(event);
                     }}
+                    sx={{
+                        zIndex: 250000
+                    }}
                     draggable
                     disableScrollLock={true}
                     PaperProps={PaperProps}

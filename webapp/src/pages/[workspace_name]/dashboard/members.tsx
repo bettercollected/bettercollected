@@ -36,7 +36,6 @@ export default function ManageMembers({ workspace }: any) {
                 <TabPanel className="focus:outline-none" key="Collaborators">
                     <Collaborators />
                 </TabPanel>
-
                 <TabPanel className="focus:outline-none" key="Pending Requests">
                     <Invitations />
                 </TabPanel>

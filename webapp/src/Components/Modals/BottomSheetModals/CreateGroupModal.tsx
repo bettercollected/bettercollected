@@ -1,21 +1,18 @@
 import React, { useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
-import { NextSeo } from 'next-seo';
 import { useRouter } from 'next/router';
 
 import AppButton from '@Components/Common/Input/Button/AppButton';
+import { ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
+import BottomSheetModalWrapper from '@Components/Modals/BottomSheetModals/BottomSheetModalWrapper';
 import { toast } from 'react-toastify';
 
 import RegexCard from '@app/components/cards/regex-card';
-import BreadcrumbsRenderer from '@app/components/form/renderer/breadcrumbs-renderer';
 import GroupInfo from '@app/components/group/group-info';
 import GroupMember from '@app/components/group/group-member';
-import Back from '@app/components/icons/back';
 import { useModal } from '@app/components/modal-views/context';
-import DashboardLayout from '@app/components/sidebar/dashboard-layout';
 import { buttonConstant } from '@app/constants/locales/button';
-import { localesCommon } from '@app/constants/locales/common';
 import { groupConstant } from '@app/constants/locales/group';
 import { members } from '@app/constants/locales/members';
 import { toastMessage } from '@app/constants/locales/toast-message';
@@ -23,12 +20,11 @@ import { ToastId } from '@app/constants/toastId';
 import { GroupInfoDto } from '@app/models/dtos/groups';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { handleRegexType } from '@app/models/enums/groupRegex';
-import { BreadcrumbsItem } from '@app/models/props/breadcrumbs-item';
 import { useAppSelector } from '@app/store/hooks';
 import { useCreateRespondersGroupMutation } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 
-export default function CreateGroup() {
+export default function CreateGroupModal() {
     const router = useRouter();
     let formId: string = (router?.query?.formId as string) ?? '';
     const locale = router?.locale === 'en' ? '' : `${router?.locale}/`;
@@ -88,21 +84,6 @@ export default function CreateGroup() {
         }
     };
 
-    const breadcrumbsItem: Array<BreadcrumbsItem> = [
-        {
-            title: t(localesCommon.respondersAndGroups),
-            url: `/${locale}${workspace?.workspaceName}/dashboard/responders-groups`
-        },
-        {
-            title: t(groupConstant.groups),
-            url: `/${locale}${workspace?.workspaceName}/dashboard/responders-groups?view=Groups`
-        },
-        {
-            title: t(groupConstant.createGroup),
-            disabled: true
-        }
-    ];
-
     const handleAddMembers = (members: Array<string>) => {
         if (groupInfo.emails) {
             setGroupInfo({
@@ -121,33 +102,29 @@ export default function CreateGroup() {
             emails: groupInfo.emails?.filter((groupInfoEmail) => groupInfoEmail !== email)
         });
     };
-    return (
-        <DashboardLayout>
-            <NextSeo title={t(groupConstant.createGroup) + ' | ' + workspace.workspaceName} noindex={true} nofollow={true} />
-            <div className="flex flex-col  -mt-6 md:max-w-[700px] xl:max-w-[1000px]">
-                <BreadcrumbsRenderer items={breadcrumbsItem} />
-                <div className="md:max-w-[618px]">
-                    <div className="flex flex-col gap-10">
-                        <div className="flex justify-between">
-                            <div className="flex gap-2  items-center">
-                                <Back onClick={() => router.back()} className="cursor-pointer" />
-                                <p className="h4">{t(groupConstant.createGroup)}</p>
-                            </div>
-                            <AppButton isLoading={isLoading} disabled={!groupInfo.name || (groupInfo.emails?.length === 0 && groupInfo.regex?.length === 0)} onClick={handleCreateGroup}>
-                                {t(buttonConstant.saveGroup)}
-                            </AppButton>
-                        </div>
 
+    return (
+        <BottomSheetModalWrapper>
+            <div>
+                <div className="h2-new mb-2">{t(groupConstant.createGroup)}</div>
+                <div className="p2-new text-black-700">Create a group to limit access to form from your workspace</div>
+            </div>
+            <div className="flex flex-col md:max-w-[700px] xl:max-w-[1000px]">
+                <div className="md:max-w-[618px]">
+                    <div className="flex flex-col pt-16 gap-12">
                         <GroupInfo handleInput={handleInput} groupInfo={groupInfo} />
                         <div>
-                            <p className="leading-none mb-6 body1">{t(members.default)}</p>
                             <RegexCard handleRegex={handleRegex} regex={groupInfo.regex} />
                             {groupInfo.emails && <GroupMember emails={groupInfo.emails} handleAddMembers={handleAddMembers} handleRemoveMember={handleRemoveMember} />}
+                        </div>
+                        <div>
+                            <AppButton isLoading={isLoading} variant={ButtonVariant.Secondary} disabled={!groupInfo.name || (groupInfo.emails?.length === 0 && groupInfo.regex?.length === 0)} onClick={handleCreateGroup}>
+                                {t(buttonConstant.saveGroup)}
+                            </AppButton>
                         </div>
                     </div>
                 </div>
             </div>
-        </DashboardLayout>
+        </BottomSheetModalWrapper>
     );
 }
-export { getAuthUserPropsWithWorkspace as getServerSideProps } from '@app/lib/serverSideProps';

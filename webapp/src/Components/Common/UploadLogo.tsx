@@ -15,12 +15,12 @@ interface IUploadLogo {
     logoImageUrl?: string;
     onUpload?: (file: File) => void;
     onRemove?: () => void;
+    showRemove?: boolean;
 }
 
-const UploadLogo = ({ className, onUpload, onRemove, logoImageUrl }: IUploadLogo) => {
+const UploadLogo = ({ className, onUpload, onRemove, logoImageUrl, showRemove = true }: IUploadLogo) => {
     const [showDropdown, setShowDropdown] = useState(false);
     const [logoUrl, setLogoUrl] = useState<string | null>(null);
-
     const logoRef = useRef<HTMLInputElement | null>(null);
     const { t } = useTranslation();
 
@@ -48,7 +48,7 @@ const UploadLogo = ({ className, onUpload, onRemove, logoImageUrl }: IUploadLogo
 
     return (
         <div className={`relative z-50  ${className}`}>
-            <div className={cn('rounded-lg w-[100px] h-[100px] flex flex-col justify-center items-center items-s gap-3 cursor-pointer hover:shadow-hover', logoUrl ? '' : 'bg-new-black-800')} onClick={() => setShowDropdown(!showDropdown)}>
+            <div className={cn('rounded-lg w-[100px] h-auto flex flex-col justify-center items-center items-s gap-3 cursor-pointer hover:shadow-hover', logoUrl ? '' : 'bg-new-black-800')} onClick={() => setShowDropdown(!showDropdown)}>
                 <input ref={logoRef} id="form_logo" type="file" hidden onChange={handleFileChange} />
                 {logoUrl ? (
                     <Image height={100} width={100} objectFit="cover" src={logoUrl} alt="logo" className="rounded-lg hover:bg-black-100" />
@@ -60,7 +60,7 @@ const UploadLogo = ({ className, onUpload, onRemove, logoImageUrl }: IUploadLogo
                 )}
             </div>
             {showDropdown && (
-                <div className="flex flex-col absolute z-40 shadow-logoCard sm:h-[166px] w-full sm:w-[330px] top-[116px] bg-white p-4 rounded-lg gap-2">
+                <div className="flex flex-col absolute z-40 shadow-logoCard h-auto w-full sm:w-[330px] top-[116px] bg-white p-4 rounded-lg gap-2">
                     <div className="flex justify-between !font-semibold mb-4">
                         <h1 className="body1 text-black-900">Logo</h1>
                         <Close
@@ -73,9 +73,11 @@ const UploadLogo = ({ className, onUpload, onRemove, logoImageUrl }: IUploadLogo
                     <label onClick={() => logoRef.current?.click()} className="w-full rounded py-3 px-4 h-[36px] body4 bg-black-900 font-semibold hover:opacity-80 flex justify-center items-center">
                         <span className="text-black-100 text-xs sm:text-sm">{t('LOGO.UPDATE')}</span>
                     </label>
-                    <AppButton className="!text-black-900 font-semibold !bg-black-300 hover:!bg-black-400 " onClick={onRemoveLogo}>
-                        {t('LOGO.REMOVE')}
-                    </AppButton>
+                    {showRemove && (
+                        <AppButton className="!text-black-900 font-semibold !bg-black-300 hover:!bg-black-400 " onClick={onRemoveLogo}>
+                            {t('LOGO.REMOVE')}
+                        </AppButton>
+                    )}
                 </div>
             )}
         </div>

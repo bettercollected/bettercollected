@@ -13,6 +13,8 @@ import { toolTipConstant } from '@app/constants/locales/tooltip';
 
 export default function DeleteDropDown({ onDropDownItemClick, className, label }: { onDropDownItemClick: (event?: any) => void; className?: string; label?: string }) {
     const { t } = useTranslation();
+
+    const [open, setOpen] = useState(true);
     return (
         <MenuDropdown
             showExpandMore={false}
@@ -33,12 +35,25 @@ export default function DeleteDropDown({ onDropDownItemClick, className, label }
                     padding: 0
                 }
             }}
+            open={open}
             id="language-menu"
             menuTitle={t(toolTipConstant.Options)}
-            menuContent={<MoreHoriz />}
-            closeOnClick={true}
+            menuContent={
+                <MoreHoriz
+                    onClick={(event) => {
+                        setOpen(true);
+                    }}
+                />
+            }
+            closeOnClick
         >
-            <MenuItem className="body4  flex gap-4" onClick={onDropDownItemClick}>
+            <MenuItem
+                className="body4 flex gap-4"
+                onClick={(event) => {
+                    setOpen(false);
+                    onDropDownItemClick(event);
+                }}
+            >
                 <Delete width={20} height={20} />
                 {label ?? t(localesCommon.remove)}
             </MenuItem>

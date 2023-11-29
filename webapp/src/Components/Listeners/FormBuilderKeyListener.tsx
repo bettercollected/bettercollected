@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect } from 'react';
 
+import { uuidv4 } from '@mswjs/interceptors/lib/utils/uuid';
 import { batch } from 'react-redux';
 import { toast } from 'react-toastify';
 import { v4 } from 'uuid';
@@ -105,8 +106,8 @@ export default function FormBuilderKeyListener({ children }: React.PropsWithChil
                     } else {
                         const formField = builderState.fields[fieldId];
                         const newField: IFormFieldState = { ...formField };
-                        newField.id = v4();
-                        newField.position = builderState.activeFieldIndex + 1;
+                        newField.id = uuidv4();
+                        newField.position = builderState.activeFieldIndex;
                         dispatch(addDuplicateField(newField));
                         dispatch(setBuilderState({ isFormDirty: true }));
                     }
