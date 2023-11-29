@@ -5,6 +5,7 @@ import { useRouter } from 'next/router';
 
 import EditIcon from '@Components/Common/Icons/Edit';
 import PlusIcon from '@Components/Common/Icons/Plus';
+import SettingsIcon from '@Components/Common/Icons/Settings';
 import ShareIcon from '@Components/Common/Icons/ShareIcon';
 import AppButton from '@Components/Common/Input/Button/AppButton';
 import { ButtonSize, ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
@@ -13,6 +14,7 @@ import WorkspaceOptions from '@Components/Common/WorkspaceOptions';
 import AuthAccountProfileImage from '@app/components/auth/account-profile-image';
 import { EyeIcon } from '@app/components/icons/eye-icon';
 import { useModal } from '@app/components/modal-views/context';
+import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
 import ActiveLink from '@app/components/ui/links/active-link';
 import environments from '@app/configs/environments';
 import { workspaceConstant } from '@app/constants/locales/workspace';
@@ -28,6 +30,7 @@ interface IWorkspaceDashboardOverviewProps {
 
 const WorkspaceDashboardOverview = ({ workspace }: IWorkspaceDashboardOverviewProps) => {
     const { openModal } = useModal();
+    const fullScreenModal = useFullScreenModal();
     const isAdmin = useAppSelector(selectIsAdmin);
     const router = useRouter();
     const { t } = useTranslation();
@@ -47,7 +50,7 @@ const WorkspaceDashboardOverview = ({ workspace }: IWorkspaceDashboardOverviewPr
     };
 
     const onClickEditButton = () => {
-        openModal('EDIT_WORKSPACE_MODAL');
+        fullScreenModal.openModal('WORKSPACE_SETTINGS');
     };
     const onClickInviteCollaboratorButton = () => {
         openModal('INVITE_MEMBER');
@@ -103,8 +106,8 @@ const WorkspaceDashboardOverview = ({ workspace }: IWorkspaceDashboardOverviewPr
             <div className=" hidden lg:flex justify-between">
                 <div className="flex gap-2">
                     {isAdmin && (
-                        <AppButton onClick={onClickEditButton} icon={<EditIcon />} variant={ButtonVariant.Ghost}>
-                            {t('BUTTON.EDIT')}
+                        <AppButton onClick={onClickEditButton} icon={<SettingsIcon strokeWidth={1} />} variant={ButtonVariant.Ghost}>
+                            {t('SETTINGS')}
                         </AppButton>
                     )}
                     <ActiveLink href={getWorkspaceUrl()} target="_blank" referrerPolicy="no-referrer">

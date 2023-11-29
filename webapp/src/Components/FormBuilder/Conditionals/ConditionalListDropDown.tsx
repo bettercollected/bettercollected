@@ -4,6 +4,7 @@ import { Listbox } from '@headlessui/react';
 
 import { ArrowDown } from '@app/components/icons/arrow-down';
 import TickIcon from '@app/components/icons/tick-icon';
+import { getIconForFieldType } from '@app/utils/conditionalUtils';
 
 interface IConditionalListDropDown<T> {
     size?: string;
@@ -14,9 +15,10 @@ interface IConditionalListDropDown<T> {
     labelPicker?: (item: T) => string;
     onChange?: (item: T) => void;
     multiple?: boolean;
+    showIcons?: boolean;
 }
 
-const ConditionalListDropDown = ({ size = 'large', className, defaultValue, value, items = [], labelPicker, onChange, multiple = false }: IConditionalListDropDown<any>) => {
+const ConditionalListDropDown = ({ size = 'large', className, defaultValue, value, items = [], labelPicker, onChange, multiple = false, showIcons }: IConditionalListDropDown<any>) => {
     const [selectedState, setSelectedState] = useState(value || defaultValue || (multiple ? [] : null));
 
     const handleChange = (item: any) => {
@@ -39,7 +41,7 @@ const ConditionalListDropDown = ({ size = 'large', className, defaultValue, valu
         <Listbox value={selectedState} onChange={handleChange} multiple={multiple}>
             {({ open }) => {
                 return (
-                    <div className={`relative bg-white w-full ${size === 'small' ? 'basis-1/3 ' : 'basis-2/5  '} ${className || ''}`}>
+                    <div className={`relative bg-white w-full ${size === 'small' ? 'basis-1/3 ' : 'md:w-[370px]'} ${className || ''}`}>
                         <Listbox.Button className="w-full">
                             <div className={`flex justify-between border border-black-400 rounded p-2 text-sm font-normal text-black-800 ${open && 'border-black-900 '}`}>
                                 <div className={'w-full truncate text-start'}>{displaySelectedValue()}</div>
@@ -48,13 +50,18 @@ const ConditionalListDropDown = ({ size = 'large', className, defaultValue, valu
                         </Listbox.Button>
                         <Listbox.Options>
                             <div className={'w-full mt-2 bg-white shadow-input py-2 gap-4 absolute z-[100] rounded-lg'}>
-                                {items.map((state: any, index: number) => (
-                                    <Listbox.Option key={index} value={state} as={Fragment}>
+                                {items.map((item: any, index: number) => (
+                                    <Listbox.Option key={index} value={item} as={Fragment}>
                                         {({ active, selected }) => (
-                                            <li className={`px-4 py-2 cursor-pointer truncate text-base font-normal text-black-800 ${active ? 'bg-black-200 ' : 'bg-white text-black-800'}`}>
-                                                <div className={'flex gap-2 items-center'}>
-                                                    {multiple && <TickIcon className={`text-brand-500 h-5 w-5 ${selected ? 'visible' : 'invisible'}`} />}
-                                                    {labelPicker ? labelPicker(state) : state?.value}
+                                            <li className={`px-2 md:px-4 py-2 cursor-pointer truncate text-base font-normal text-black-800 ${active ? 'bg-black-200 ' : 'bg-white text-black-800'}`}>
+                                                <div className={'flex gap-1 sm:gap-2 items-center'}>
+                                                    {multiple && (
+                                                        <div className={`text-brand-500 h-5 min-w-1 md:min-w-3 w-5 ${selected ? 'visible' : 'invisible'}`}>
+                                                            <TickIcon />
+                                                        </div>
+                                                    )}
+                                                    {showIcons && <span className="mr-2">{getIconForFieldType(item.fieldType)}</span>}
+                                                    <span>{labelPicker ? labelPicker(item) : item?.value}</span>
                                                 </div>
                                             </li>
                                         )}

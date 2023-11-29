@@ -11,7 +11,7 @@ import useUserTypingDetection from '@app/lib/hooks/use-user-typing-detection';
 import useUndoRedo from '@app/lib/use-undo-redo';
 import { KeyType } from '@app/models/enums/formBuilder';
 import { setActiveField, setUpdateField } from '@app/store/form-builder/actions';
-import { selectActiveFieldId, selectBuilderState } from '@app/store/form-builder/selectors';
+import { selectActiveFieldId } from '@app/store/form-builder/selectors';
 import { useAppSelector } from '@app/store/hooks';
 
 interface MarkdownEditorProps {

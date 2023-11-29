@@ -73,6 +73,8 @@ const ThenBlock = ({ field, action }: { field: IFormFieldState; action: Conditio
                 }
                 if (previousSelectedFields?.includes(nextField?.id) && !currentSelectedFields.includes(nextField?.id)) {
                     return;
+                } else if (!previousSelectedFields?.includes(nextField?.id) && !currentSelectedFields.includes(nextField?.id) && currentSelectedFields.includes(selectedField?.id) && previousSelectedFields?.includes(selectedField?.id)) {
+                    return;
                 } else {
                     selectedFields.push(convertFieldForConditionalDropDownState(getNextField(fields, selectedField)));
                 }
@@ -127,12 +129,12 @@ const ThenBlock = ({ field, action }: { field: IFormFieldState; action: Conditio
     };
 
     return (
-        <div className={'flex flex-col gap-2 bg-new-white-200 rounded-lg'}>
+        <div className={'flex flex-col gap-1 md:gap-2  rounded-lg'}>
             <h1 className={'text-pink-500 text-sm'}>{action?.position == 0 ? 'THEN' : 'AND'}</h1>
-            <div className={'flex justify-between'}>
-                <div className={'flex flex-col lg:flex-row gap-2 w-full'}>
+            <div className={'flex justify-between items-center'}>
+                <div className={'flex flex-col lg:flex-row gap-2 w-[calc(100%-3rem)]'}>
                     <ConditionalListDropDown size={'small'} value={actions.find((state) => state.type == action.type) || null} onChange={onActionTypeChange} items={actions} />
-                    <ConditionalListDropDown value={selectedConditionalFields} onChange={onPayloadChange} items={inputFields} multiple />
+                    <ConditionalListDropDown showIcons={true} value={selectedConditionalFields} onChange={onPayloadChange} items={inputFields} multiple />
                 </div>
                 <ConditionalOptionsDropdown showRemoveOption={Object.keys(field.properties?.actions || {}).length > 1} addOption={handleAddAction} removeOption={() => handleRemoveAction(action)} text={'action'} />
             </div>

@@ -2,15 +2,12 @@ import React from 'react';
 
 import DeleteIcon from '@Components/Common/Icons/Delete';
 import PlusIcon from '@Components/Common/Icons/Plus';
-import MuiSwitch from '@Components/Common/Input/Switch';
 import FieldOptions from '@Components/FormBuilder/FieldOptions/FieldOptions';
-import { FormControlLabel } from '@mui/material';
 
 import { useModal } from '@app/components/modal-views/context';
-import { MenuItem } from '@app/components/ui/collapsible-menu';
-import { resetBuilderMenuState, setDeleteField, setUpdateField } from '@app/store/form-builder/actions';
-import { selectActiveFieldId, selectBuilderState, selectFormField } from '@app/store/form-builder/selectors';
-import { useAppAsyncDispatch, useAppDispatch, useAppSelector } from '@app/store/hooks';
+import { resetBuilderMenuState, setDeleteField } from '@app/store/form-builder/actions';
+import { selectFormField } from '@app/store/form-builder/selectors';
+import { useAppAsyncDispatch, useAppSelector } from '@app/store/hooks';
 
 const FormBuilderActionMenu = ({ id, provided, className = '', index }: any) => {
     const { openModal } = useModal();

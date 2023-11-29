@@ -1,5 +1,10 @@
 import _ from 'lodash';
 
+import { AlternateEmail, ArrowDropDown, DateRange, LocalPhone, Numbers, ShortText, TrendingUpSharp } from '@mui/icons-material';
+import CheckBoxOutlineBlankIcon from '@mui/icons-material/CheckBoxOutlineBlank';
+import LinkIcon from '@mui/icons-material/Link';
+import RadioButtonUncheckedIcon from '@mui/icons-material/RadioButtonUnchecked';
+
 import { FormBuilderTagNames, LabelFormBuilderTagNames } from '@app/models/enums/formBuilder';
 import { ActionType, Comparison, IFormFieldState } from '@app/store/form-builder/types';
 
@@ -114,5 +119,39 @@ export const convertFieldForConditionalDropDownState = (field: IFormFieldState, 
         text = _.startCase(field?.type.split('_').join(' '));
     }
     x.value = text;
+    x.fieldType = field.type;
     return x;
+};
+
+export const getIconForFieldType = (type: FormBuilderTagNames) => {
+    switch (type) {
+        case FormBuilderTagNames.LAYOUT_LABEL:
+        case FormBuilderTagNames.LAYOUT_HEADER1:
+        case FormBuilderTagNames.LAYOUT_HEADER2:
+        case FormBuilderTagNames.LAYOUT_HEADER3:
+        case FormBuilderTagNames.LAYOUT_HEADER4:
+            return <div className="w-6 h-6 text-xl flex justify-center font-bold">L</div>;
+        case FormBuilderTagNames.INPUT_EMAIL:
+            return <AlternateEmail />;
+        case FormBuilderTagNames.INPUT_DATE:
+            return <DateRange />;
+        case FormBuilderTagNames.INPUT_SHORT_TEXT:
+            return <ShortText />;
+        case FormBuilderTagNames.INPUT_LINK:
+            return <LinkIcon />;
+        case FormBuilderTagNames.INPUT_NUMBER:
+            return <Numbers />;
+        case FormBuilderTagNames.INPUT_PHONE_NUMBER:
+            return <LocalPhone />;
+        case FormBuilderTagNames.INPUT_CHECKBOXES:
+            return <CheckBoxOutlineBlankIcon />;
+        case FormBuilderTagNames.INPUT_MULTIPLE_CHOICE:
+            return <RadioButtonUncheckedIcon />;
+        case FormBuilderTagNames.INPUT_DROPDOWN:
+            return <ArrowDropDown />;
+        case FormBuilderTagNames.INPUT_RANKING:
+            return <TrendingUpSharp />;
+        default:
+            return <></>;
+    }
 };
