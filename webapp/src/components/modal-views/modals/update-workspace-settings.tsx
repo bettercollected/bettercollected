@@ -30,7 +30,6 @@ interface IUpdateWorkspaceSettings {
 export default function UpdateWorkspaceSettings({ updateDomain = false, customSlug }: IUpdateWorkspaceSettings) {
     const [patchExistingWorkspace, { isLoading }] = usePatchExistingWorkspaceMutation();
     const workspace = useAppSelector((state) => state.workspace);
-    const [deleteWorkspaceDomain, result] = useDeleteWorkspaceDomainMutation();
     const { t } = useTranslation();
     const { closeModal } = useModal();
     const [error, setError] = useState(false);
@@ -126,7 +125,7 @@ export default function UpdateWorkspaceSettings({ updateDomain = false, customSl
                         </AppTextField>
                     </div>
 
-                    <AppButton className="w-full" data-testid="save-button" type="submit" isLoading={isLoading || result?.isLoading} size={ButtonSize.Medium} variant={ButtonVariant.Primary} onClick={handleSubmit}>
+                    <AppButton className="w-full" data-testid="save-button" type="submit" isLoading={isLoading} size={ButtonSize.Medium} variant={ButtonVariant.Primary} onClick={handleSubmit}>
                         {t(buttonConstant.updateNow)}
                     </AppButton>
                 </div>

@@ -19,9 +19,10 @@ interface IModalWrapperProps {
     positiveText?: string;
     negativeText?: string;
     positiveAction?: (e?: any) => void;
+    loading?: boolean;
 }
 
-export default function GenericHalfModal({ headerTitle, title, subTitle, type, positiveAction, positiveText, negativeText, children }: IModalWrapperProps) {
+export default function GenericHalfModal({ headerTitle, title, subTitle, type, positiveAction, positiveText, negativeText, loading, children }: IModalWrapperProps) {
     const { closeModal } = useModal();
     const { t } = useTranslation();
     return (
@@ -33,7 +34,7 @@ export default function GenericHalfModal({ headerTitle, title, subTitle, type, p
                 <AppButton className="flex-1" size={ButtonSize.Medium} onClick={closeModal} variant={ButtonVariant.Secondary}>
                     {positiveText ? t('BUTTON.CANCEL') : negativeText}
                 </AppButton>
-                <AppButton className="flex-1" size={ButtonSize.Medium} variant={type === 'danger' ? ButtonVariant.Danger : ButtonVariant.Primary} onClick={positiveAction}>
+                <AppButton className="flex-1" size={ButtonSize.Medium} isLoading={loading} variant={type === 'danger' ? ButtonVariant.Danger : ButtonVariant.Primary} onClick={positiveAction}>
                     {type === 'danger' && !positiveText ? t('BUTTON.DELETE') : positiveText}
                 </AppButton>
             </div>
