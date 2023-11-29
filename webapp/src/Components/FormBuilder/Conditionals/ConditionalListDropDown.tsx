@@ -4,6 +4,7 @@ import { Listbox } from '@headlessui/react';
 
 import { ArrowDown } from '@app/components/icons/arrow-down';
 import TickIcon from '@app/components/icons/tick-icon';
+import { getIconForFieldType } from '@app/utils/conditionalUtils';
 
 interface IConditionalListDropDown<T> {
     size?: string;
@@ -14,9 +15,10 @@ interface IConditionalListDropDown<T> {
     labelPicker?: (item: T) => string;
     onChange?: (item: T) => void;
     multiple?: boolean;
+    showIcons?: boolean;
 }
 
-const ConditionalListDropDown = ({ size = 'large', className, defaultValue, value, items = [], labelPicker, onChange, multiple = false }: IConditionalListDropDown<any>) => {
+const ConditionalListDropDown = ({ size = 'large', className, defaultValue, value, items = [], labelPicker, onChange, multiple = false, showIcons }: IConditionalListDropDown<any>) => {
     const [selectedState, setSelectedState] = useState(value || defaultValue || (multiple ? [] : null));
 
     const handleChange = (item: any) => {
@@ -48,8 +50,8 @@ const ConditionalListDropDown = ({ size = 'large', className, defaultValue, valu
                         </Listbox.Button>
                         <Listbox.Options>
                             <div className={'w-full mt-2 bg-white shadow-input py-2 gap-4 absolute z-[100] rounded-lg'}>
-                                {items.map((state: any, index: number) => (
-                                    <Listbox.Option key={index} value={state} as={Fragment}>
+                                {items.map((item: any, index: number) => (
+                                    <Listbox.Option key={index} value={item} as={Fragment}>
                                         {({ active, selected }) => (
                                             <li className={`px-2 md:px-4 py-2 cursor-pointer truncate text-base font-normal text-black-800 ${active ? 'bg-black-200 ' : 'bg-white text-black-800'}`}>
                                                 <div className={'flex gap-1 sm:gap-2 items-center'}>
@@ -58,7 +60,8 @@ const ConditionalListDropDown = ({ size = 'large', className, defaultValue, valu
                                                             <TickIcon />
                                                         </div>
                                                     )}
-                                                    <span>{labelPicker ? labelPicker(state) : state?.value}</span>
+                                                    {showIcons && <span className="mr-2">{getIconForFieldType(item.fieldType)}</span>}
+                                                    <span>{labelPicker ? labelPicker(item) : item?.value}</span>
                                                 </div>
                                             </li>
                                         )}

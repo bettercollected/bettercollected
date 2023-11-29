@@ -134,7 +134,7 @@ const ThenBlock = ({ field, action }: { field: IFormFieldState; action: Conditio
             <div className={'flex justify-between items-center'}>
                 <div className={'flex flex-col lg:flex-row gap-2 w-[calc(100%-3rem)]'}>
                     <ConditionalListDropDown size={'small'} value={actions.find((state) => state.type == action.type) || null} onChange={onActionTypeChange} items={actions} />
-                    <ConditionalListDropDown value={selectedConditionalFields} onChange={onPayloadChange} items={inputFields} multiple />
+                    <ConditionalListDropDown showIcons={true} value={selectedConditionalFields} onChange={onPayloadChange} items={inputFields} multiple />
                 </div>
                 <ConditionalOptionsDropdown showRemoveOption={Object.keys(field.properties?.actions || {}).length > 1} addOption={handleAddAction} removeOption={() => handleRemoveAction(action)} text={'action'} />
             </div>
