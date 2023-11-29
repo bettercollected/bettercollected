@@ -111,7 +111,7 @@ export default function CreateGroupModal() {
             </div>
             <div className="flex flex-col md:max-w-[700px] xl:max-w-[1000px]">
                 <div className="md:max-w-[618px]">
-                    <div className="flex flex-col gap-12">
+                    <div className="flex flex-col pt-16 gap-12">
                         <GroupInfo handleInput={handleInput} groupInfo={groupInfo} />
                         <div>
                             <RegexCard handleRegex={handleRegex} regex={groupInfo.regex} />
