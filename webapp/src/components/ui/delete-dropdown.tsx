@@ -20,6 +20,10 @@ export default function DeleteDropDown({ onDropDownItemClick, className, label }
             showExpandMore={false}
             width={200}
             className={className}
+            onClick={(event: any) => {
+                event.stopPropagation();
+                event.preventDefault();
+            }}
             PaperProps={{
                 elevation: 0,
                 sx: {
@@ -36,7 +40,7 @@ export default function DeleteDropDown({ onDropDownItemClick, className, label }
             menuTitle={t(toolTipConstant.Options)}
             menuContent={
                 <MoreHoriz
-                    onClick={() => {
+                    onClick={(event) => {
                         setOpen(true);
                     }}
                 />

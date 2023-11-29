@@ -22,7 +22,7 @@ export default function GroupInfo({ handleInput, groupInfo }: IGroupInfoProps) {
     return (
         <div>
             {/*<p className="body1">{t(groupConstant.basicInformation)}</p>*/}
-            <p className="h4-new mt-16 !font-medium leading-none mb-2">
+            <p className="h4-new !font-medium leading-none mb-2">
                 {t(groupConstant.name)}
                 <span className="text-red-800">*</span>
             </p>

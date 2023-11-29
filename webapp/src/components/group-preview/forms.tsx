@@ -29,10 +29,8 @@ export default function GroupFormsTab({ group, workspaceForms }: { group: Respon
     const router = useRouter();
     const isAdmin = useAppSelector(selectIsAdmin);
 
-    const handleCardClick = (event: any) => {
-        event.preventDefault();
-        event.stopPropagation();
-        router.push(`/${workspace.workspaceName}/dashboard/forms`);
+    const handleCardClick = (form: any) => {
+        router.push(`/${workspace.workspaceName}/dashboard/forms/${form.formId}`);
     };
     const [forms, setForms] = useState(group.forms);
     const [searchQuery, setSearchQuery] = useState('');
@@ -78,7 +76,12 @@ export default function GroupFormsTab({ group, workspaceForms }: { group: Respon
                     <div className="mt-6 flex flex-col gap-6">
                         {forms.map((form, idx) => {
                             return (
-                                <div onClick={handleCardClick} key={form.formId + idx}>
+                                <div
+                                    onClick={() => {
+                                        handleCardClick(form);
+                                    }}
+                                    key={form.formId + idx}
+                                >
                                     <WorkspaceFormCard isResponderPortal key={form.formId} form={form} hasCustomDomain={false} workspace={workspace} group={group} />
                                 </div>
                             );

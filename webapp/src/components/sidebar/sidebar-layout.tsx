@@ -99,7 +99,7 @@ export default function SidebarLayout({ children, DrawerComponent = DashboardDra
     const getHeader = () => {
         const matchingNavList = allNavList.filter((item) => router.asPath.includes(item.url));
         if (matchingNavList.length > 0) {
-            return matchingNavList[0].name;
+            return matchingNavList[matchingNavList.length - 1].name;
         }
         return 'My Workspace';
     };

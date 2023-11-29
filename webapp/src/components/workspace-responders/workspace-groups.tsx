@@ -27,9 +27,15 @@ import { selectIsAdmin } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { useDeleteResponderGroupMutation, useGetAllRespondersGroupQuery } from '@app/store/workspaces/api';
 
+const customGroupTableStyles: any = { ...dataTableCustomStyles };
+
+customGroupTableStyles.rows.style.cursor = 'pointer';
 export default function WorkspaceGroups({ workspace }: { workspace: WorkspaceDto }) {
     const { openModal, closeModal } = useModal();
     const { t } = useTranslation();
+
+    const router = useRouter();
+
     const isAdmin = useAppSelector(selectIsAdmin);
     const { data, isLoading } = useGetAllRespondersGroupQuery(workspace.id);
     const [trigger] = useDeleteResponderGroupMutation();
@@ -48,6 +54,10 @@ export default function WorkspaceGroups({ workspace }: { workspace: WorkspaceDto
         } catch (error) {
             toast(t(toastMessage.somethingWentWrong).toString(), { toastId: ToastId.ERROR_TOAST, type: 'error' });
         }
+    };
+
+    const onGroupClicked = (group: ResponderGroupDto) => {
+        router.push(`/${workspace.workspaceName}/dashboard/responders-groups/${group.id}`);
     };
 
     const columns: any = [
@@ -141,7 +151,18 @@ export default function WorkspaceGroups({ workspace }: { workspace: WorkspaceDto
                 </div>
             </div>
 
-            <div className=" w-full">{data && <DataTable columns={columns} data={data} customStyles={dataTableCustomStyles} />}</div>
+            <div className=" w-full">
+                {data && (
+                    <DataTable
+                        onRowClicked={(group: ResponderGroupDto) => {
+                            onGroupClicked(group);
+                        }}
+                        columns={columns}
+                        data={data}
+                        customStyles={customGroupTableStyles}
+                    />
+                )}
+            </div>
         </div>
     );
     if (isLoading)
