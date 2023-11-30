@@ -115,7 +115,7 @@ const WorkspaceDashboardOverview = ({ workspace }: IWorkspaceDashboardOverviewPr
                             {t('BUTTON.OPEN_WORKSPACE')}
                         </AppButton>
                     </ActiveLink>
-                    <AppButton onClick={onClickShareWorkspaceButton} icon={<ShareIcon height={20} width={20} />} variant={ButtonVariant.Ghost}>
+                    <AppButton onClick={onClickShareWorkspaceButton} icon={<ShareIcon strokeWidth={1} height={20} width={20} />} variant={ButtonVariant.Ghost}>
                         {t('SHARE_WORKSPACE')}
                     </AppButton>
                 </div>
