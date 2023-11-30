@@ -13,7 +13,6 @@ import { usePatchExistingWorkspaceMutation } from '@app/store/workspaces/api';
 import { setWorkspace } from '@app/store/workspaces/slice';
 import { toEndDottedStr, trimTooltipTitle } from '@app/utils/stringUtils';
 
-
 interface IPublicWorkspaceTitleAndDescriptionProps {
     isFormCreator: boolean;
     className?: string;
@@ -57,11 +56,11 @@ export default function PublicWorkspaceTitleAndDescription({ isFormCreator, clas
 
     return (
         <div className={`h-full w-full ${className}`}>
-            <div className="w-full flex flex-col">
+            <div className="w-full flex flex-col gap-2">
                 <Tooltip title={trimTooltipTitle(fullWorkspaceName)}>
-                    <h4 className="h4 w-fit">{strippedWorkspaceTitle}</h4>
+                    <h4 className="h5 w-fit">{strippedWorkspaceTitle}</h4>
                 </Tooltip>
-                <MarkdownText className="lg:max-w-[700px] max-w-[200px]  overflow-hidden" text={workspace.description} />
+                <MarkdownText className="lg:max-w-[700px] max-w-[200px] overflow-hidden " markDownClassName={'mt-0 text-sm text-black-600 font-normal'} text={workspace.description} />
             </div>
         </div>
     );

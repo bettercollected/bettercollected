@@ -35,8 +35,9 @@ export default function UpdateWorkspaceHandle() {
     const handleUpdateChange = (event: any) => {
         setUpdateText(event.target.value);
     };
+
     useEffect(() => {
-        setError(!updateText.match(/^(?=.*$)(?![_.])(?!.*[_.]{2})[a-zA-Z0-9._]+(?<![_.])$/));
+        setError(!updateText.match(/^(?=.*$)(?![_][-])(?!.*[_][-]{2})[a-zA-Z0-9_-]+(?<![_][-])$/));
     }, [updateText]);
 
     const handleSubmit = async (e: any) => {
