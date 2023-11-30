@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 
+import { useTranslation } from 'next-i18next';
+
 import PlusIcon from '@Components/Common/Icons/Plus';
 import AppButton from '@Components/Common/Input/Button/AppButton';
 import { ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
@@ -10,6 +12,7 @@ import { useAppSelector } from '@app/store/hooks';
 import { WorkspaceState, selectWorkspace } from '@app/store/workspaces/slice';
 
 export default function WorkspaceDetails() {
+    const { t } = useTranslation();
     const workspace: WorkspaceState = useAppSelector(selectWorkspace);
     const [showBannerImageComponent, setShowBannerImageComponent] = useState(!!workspace.bannerImage);
 
@@ -24,7 +27,7 @@ export default function WorkspaceDetails() {
                             setShowBannerImageComponent(true);
                         }}
                     >
-                        Add Cover Image
+                        {t('WORKSPACE.SETTINGS.DETAILS.ADD_COVER_IMAGE')}
                     </AppButton>
                 </div>
             )}

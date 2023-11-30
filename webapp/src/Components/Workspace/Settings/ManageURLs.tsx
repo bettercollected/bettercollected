@@ -1,5 +1,7 @@
 import React from 'react';
 
+import { useTranslation } from 'next-i18next';
+
 import CopyIcon from '@Components/Common/Icons/Copy';
 import DeleteIcon from '@Components/Common/Icons/Delete';
 import EditIcon from '@Components/Common/Icons/Edit';
@@ -16,6 +18,7 @@ import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 
 export default function ManageURLs() {
+    const { t } = useTranslation();
     const workspace = useAppSelector(selectWorkspace);
     const { openModal } = useModal();
 
@@ -23,9 +26,9 @@ export default function ManageURLs() {
     return (
         <div className="mt-6 max-w-[788px]">
             <div>
-                <div className="h3-new mb-2">Workspace URL</div>
+                <div className="h3-new mb-2">{t('WORKSPACE.SETTINGS.URLS.TITLE')}</div>
                 <div className="flex flex-col md:flex-row gap-6">
-                    <span className="p2-new text-black-700">Customize your workspace handle name to make your workspace more personal. A link slug is a brief, descriptive part of a URL that identifies web page content.</span>
+                    <span className="p2-new text-black-700">{t('WORKSPACE.SETTINGS.URLS.DESCRIPTION')}</span>
                     <AppButton
                         icon={<EditIcon />}
                         variant={ButtonVariant.Ghost}
@@ -33,12 +36,12 @@ export default function ManageURLs() {
                             openModal('UPDATE_WORKSPACE_HANDLE');
                         }}
                     >
-                        Change Slug
+                        {t('FORM_PAGE.SETTINGS.LINKS.CHANGE_SLUG')}
                     </AppButton>
                 </div>
             </div>
             <div className="mt-[72px]">
-                <div className="h4-new mb-2">Default URL</div>
+                <div className="h4-new mb-2">{t('WORKSPACE.SETTINGS.URLS.DEFAULT')}</div>
                 <div className="p2-new flex gap-4 items-center">
                     <span>
                         {environments.HTTP_SCHEME}
@@ -54,14 +57,15 @@ export default function ManageURLs() {
                                 toast('Copied', { type: 'info' });
                             }}
                         >
-                            Copy
+                            {t('BUTTON.COPY')}
                         </AppButton>
                     </div>
                 </div>
             </div>
             <div className="mt-12">
                 <div className="h4-new flex items-center gap-2">
-                    Custom Domain{' '}
+                    {t('CUSTOM_DOMAIN')}
+
                     <div className="flex items-center rounded gap-[2px] h-5 sm:h-6 p-1 sm:p-[6px] text-[10px] sm:body5 uppercase !leading-none !font-semibold !text-white bg-brand-500">
                         <Pro width={12} height={12} />
                         <span className="leading-none">Pro</span>
@@ -100,7 +104,7 @@ export default function ManageURLs() {
                                     toast('Copied', { type: 'info' });
                                 }}
                             >
-                                Copy
+                                {t('BUTTON.COPY')}
                             </AppButton>
                         </div>
                         <AppButton
@@ -111,7 +115,7 @@ export default function ManageURLs() {
                             variant={ButtonVariant.DangerGhost}
                             icon={<DeleteIcon width={16} height={16} />}
                         >
-                            Remove
+                            {t('BUTTON.REMOVE')}
                         </AppButton>
                     </div>
                 )}

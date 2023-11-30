@@ -48,14 +48,14 @@ const UploadLogo = ({ className, onUpload, onRemove, logoImageUrl, showRemove = 
 
     return (
         <div className={`relative z-50  ${className}`}>
-            <div className={cn('rounded-lg w-[100px] h-auto flex flex-col justify-center items-center items-s gap-3 cursor-pointer hover:shadow-hover', logoUrl ? '' : 'bg-new-black-800')} onClick={() => setShowDropdown(!showDropdown)}>
+            <div className={cn('rounded-lg w-[100px] h-[100px] flex flex-col justify-center items-center items-s gap-3 cursor-pointer hover:shadow-hover', logoUrl ? '' : 'bg-new-black-800')} onClick={() => setShowDropdown(!showDropdown)}>
                 <input ref={logoRef} id="form_logo" type="file" hidden onChange={handleFileChange} />
                 {logoUrl ? (
                     <Image height={100} width={100} objectFit="cover" src={logoUrl} alt="logo" className="rounded-lg hover:bg-black-100" />
                 ) : (
                     <>
                         <Camera />
-                        <h1 className="body6 !text-white">Add Logo</h1>
+                        <h1 className="body6 !text-white">{t('WORKSPACE.SETTINGS.DETAILS.ADD_LOGO')}</h1>
                     </>
                 )}
             </div>
