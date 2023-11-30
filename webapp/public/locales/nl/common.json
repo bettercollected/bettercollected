@@ -43,6 +43,7 @@
     "CHECK_MY_DATA": "Controleer mijn gegevens",
     "CONTINUE": "Doorgaan",
     "CONTINUE_WITH_GOOGLE": "Doorgaan met Google",
+    "COPY": "Kopiëren",
     "CONFIRM": "Bevestigen",
     "COPY_LINK": "Link kopiëren",
     "CREATE_FORM": "Formulier maken",
@@ -64,6 +65,7 @@
     "PREVIOUS": "Vorige",
     "PRO": "PRO",
     "REQUEST_AN_INTEGRATION": "Vraag een integratie aan",
+    "REMOVE": "Verwijderen",
     "RESEND": "Opnieuw verzenden",
     "RESEND_CODE": "Code opnieuw verzenden",
     "SAVE": "Opslaan",
@@ -789,6 +791,24 @@
     "PREVIEW.EMPTY_FORM_DESCRIPTION": "Er zijn geen formulieren geïmporteerd in deze werkruimte.",
     "PREVIEW.EMPTY_FORM_TITLE": "Geen formulieren om te tonen",
     "PROFILE_IMAGE": "Werkruimte profielafbeelding",
+    "SETTINGS": {
+      "DEFAULT": "Werkruimte-instellingen",
+      "DESCRIPTION": "Vormgeven van uw Werkruimte-identiteit: Pas titel aan, verfijn beschrijving, upload profielfoto en verfraai met een bannerfoto",
+      "TABS": {
+        "DETAILS": "Werkruimte Details"
+      },
+      "DETAILS": {
+        "TITLE": "Organisatietitel",
+        "DESCRIPTION": "Organisatiebeschrijvingen",
+        "ADD_COVER_IMAGE": "Voeg omslagfoto toe",
+        "ADD_LOGO": "Voeg logo toe"
+      },
+      "URLS": {
+        "TITLE": "Werkruimte URL's",
+        "DEFAULT": "Standaard URL",
+        "DESCRIPTION": "Pas de naam van uw werkruimtehandvat aan om uw werkruimte persoonlijker te maken. Een link-slug is een kort, beschrijvend deel van een URL dat de inhoud van een webpagina identificeert."
+      }
+    },
     "TITLE": "Werkruimtetitel",
     "TITLE_VALIDATION_MESSAGE": "Werkruimtetitel is vereist",
     "WORKSPACE_NAME_VALIDATION_MESSAGE": "Werkruimtehandle is vereist",
