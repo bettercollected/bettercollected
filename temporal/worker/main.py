@@ -2,6 +2,7 @@ import asyncio
 import random
 import string
 
+import elasticapm
 from temporalio.client import Client
 from temporalio.worker import Worker
 
@@ -41,4 +42,9 @@ async def main():
 
 
 if __name__ == "__main__":
+    client = elasticapm.Client(service_name=settings.apm_settings.service_name,
+                               server_url=settings.apm_settings.server_url, api_key=settings.apm_settings.api_key)
+    elasticapm.instrument()  # Only call this once, as early as possible.
+    client.begin_transaction(transaction_type="script")
     asyncio.run(main())
+    client.end_transaction(name=__name__, result="success")
