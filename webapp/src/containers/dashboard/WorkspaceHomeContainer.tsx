@@ -78,7 +78,11 @@ export default function WorkspaceHomeContainer({ isCustomDomain, showProTag = tr
                     <BannerImageComponent workspace={workspace} isFormCreator={false} className={'lg:!aspect-new-workspace-banner'} />
                 </div>
             )}
-            <div className={`${isWorkspacePreview ? 'px-5 pt-5 lg:px-10 lg:pt-10 xl:pt-20 xl:px-20' : 'pt-3 lg:pt-6  px-5 lg:px-10 xl:px-20'} w-full md:h-40 bg-white flex flex-col items-center sm:flex-row justify-between gap-6 `}>
+            <div
+                className={`${
+                    isWorkspacePreview ? 'px-5 pt-5 lg:px-10 lg:pt-10 xl:pt-20 xl:px-20' : 'pt-3 lg:pt-6  px-5 lg:px-10 xl:px-20'
+                } w-full z-100 relative shadow-overview  md:h-40 bg-white flex flex-col items-center sm:flex-row justify-between gap-6 `}
+            >
                 <div className="flex items-start gap-2 md:gap-4 ">
                     <ProfileImageComponent className={`w-fit rounded`} workspace={workspace} isFormCreator={false} size={64} />
                     <div className="flex h-fit w-full ">
