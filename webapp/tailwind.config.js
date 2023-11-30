@@ -271,7 +271,8 @@ module.exports = {
                 'banner-mobile': '3 / 1',
                 'editable-banner-desktop': '3.9886363636 / 1',
                 'editable-banner-mobile': '2 / 1',
-                thank_you_cover: '59 / 10'
+                thank_you_cover: '59 / 10',
+                'new-workspace-banner': '10.5882352941/1'
             }
         }
     },
