@@ -30,13 +30,13 @@ import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import EventBusEventType from '@app/models/enums/eventBusEnum';
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
 import { selectConsentState } from '@app/store/consent/selectors';
-import { resetBuilderMenuState, setActiveField, setAddNewField, setBuilderState, setFields } from '@app/store/form-builder/actions';
+import { resetBuilderMenuState, setActiveField, setAddNewField, setBuilderMenuState, setBuilderState, setFields } from '@app/store/form-builder/actions';
 import { selectBuilderState } from '@app/store/form-builder/selectors';
 import { IBuilderState, IBuilderTitleAndDescriptionObj, IFormFieldState } from '@app/store/form-builder/types';
 import { builderTitleAndDescriptionList } from '@app/store/form-builder/utils';
 import { useAppAsyncDispatch, useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { updateStatus } from '@app/store/mutations/slice';
-import { useCreateTemplateFromFormMutation, usePatchTemplateMutation } from '@app/store/template/api';
+import { usePatchTemplateMutation } from '@app/store/template/api';
 import { usePatchFormMutation } from '@app/store/workspaces/api';
 import { reorder } from '@app/utils/arrayUtils';
 import { createNewField } from '@app/utils/formBuilderBlockUtils';
@@ -55,7 +55,6 @@ export default function FormBuilder({ workspace, _nextI18Next, isTemplate = fals
     const { openModal } = useFullScreenModal();
     const { openModal: openHalfScreenModal } = useModal();
     const fullScreenModal = useFullScreenModal();
-    const modal = useModal();
 
     // Translation
     const { t } = useBuilderTranslation();
@@ -240,25 +239,82 @@ export default function FormBuilder({ workspace, _nextI18Next, isTemplate = fals
         }
     }, [builderState.id, builderState.fields, builderState.title, builderState.description, builderState.buttonText, headerImages, consentState, imagesRemoved, builderState.settings]);
 
-    const openTagSelector = (event: any) => {
+    const openMenu = (event: any, menuType: string) => {
         const viewportHeight = window.innerHeight;
         const boundingRect = event.target.getBoundingClientRect();
         const bottomPosition = boundingRect.bottom ?? 0;
+
+        const getPosition = () => {
+            const selection: any = window.getSelection();
+            if (selection && selection.rangeCount > 0) {
+                const range = selection.getRangeAt(0);
+                if (range) {
+                    const rects = range.getClientRects();
+                    if (rects.length > 0) {
+                        return { top: rects[0].top, left: rects[0].left };
+                    }
+                }
+            }
+            return {
+                top: boundingRect.top,
+                left: boundingRect.left
+            };
+        };
+
+        const value = builderState.fields[builderState.activeFieldId]?.value || '';
+        const selection = window.getSelection();
+
+        const cursorPosition = selection?.focusOffset;
+
+        const textBeforeCursor = value.substring(0, cursorPosition);
+
+        const occurrence = (textBeforeCursor.match(/@/g) || []).length + 1;
 
         dispatch(
             setBuilderState({
                 isFormDirty: true,
                 menus: {
                     ...builderState.menus,
-                    commands: {
+                    [menuType]: {
                         isOpen: true,
                         atFieldUuid: Object.keys(builderState.fields).at(builderState.activeFieldIndex) ?? '',
-                        position: bottomPosition + 300 > viewportHeight ? 'up' : 'down'
+                        position: bottomPosition + 300 > viewportHeight ? 'up' : 'down',
+                        pos: getPosition(),
+                        atPosition: occurrence ?? 0
                     }
                 }
             })
         );
     };
+
+    const openTagSelector = (event: any) => {
+        openMenu(event, 'commands');
+    };
+
+    const openFieldSelector = (event: any) => {
+        openMenu(event, 'pipingFields');
+    };
+
+    function onClickMentionElement(event: Event) {
+        event.stopPropagation();
+        event.preventDefault();
+        const targetElement = event.target as HTMLElement;
+        const mentionedFieldId = targetElement.getAttribute('data-field-id');
+        const currentField = targetElement.getAttribute('data-current-field');
+
+        const boundingRect = targetElement.getBoundingClientRect();
+
+        dispatch(
+            setBuilderMenuState({
+                pipingFieldSettings: {
+                    isOpen: true,
+                    atFieldId: currentField || '',
+                    mentionedFieldId: mentionedFieldId || '',
+                    pos: { top: boundingRect.top, left: boundingRect.left }
+                }
+            })
+        );
+    }
 
     useEffect(() => {
         resetImages();
@@ -274,11 +330,20 @@ export default function FormBuilder({ workspace, _nextI18Next, isTemplate = fals
         // Listens events from the HOCs
         eventBus.on(EventBusEventType.FormBuilder.Preview, onPreview);
         eventBus.on(EventBusEventType.FormBuilder.OpenTagSelector, openTagSelector);
+        eventBus.on(EventBusEventType.FormBuilder.OpenFieldSelector, openFieldSelector);
+
+        document.querySelectorAll('[data-field-id]').forEach((element: Element) => {
+            element.addEventListener('click', onClickMentionElement);
+        });
 
         return () => {
             eventBus.removeListener(EventBusEventType.FormBuilder.Preview, onPreview);
             eventBus.removeListener(EventBusEventType.FormBuilder.OpenTagSelector, openTagSelector);
+            eventBus.removeListener(EventBusEventType.FormBuilder.OpenFieldSelector, openFieldSelector);
             document.removeEventListener('blur', onBlurCallback);
+            document.querySelectorAll('[data-field-id]').forEach((element: Element) => {
+                element.removeEventListener('click', onClickMentionElement);
+            });
         };
     }, [builderState]);
 

@@ -19,6 +19,7 @@ import { List, ListSubheader, Paper } from '@mui/material';
 
 import { Logic } from '@app/components/icons/logic';
 import { Ranking } from '@app/components/icons/ranking';
+import useClickOutsideMenu from '@app/lib/hooks/use-click-outside-menu';
 import { BlockTypes, FormBuilderTagNames, KeyType } from '@app/models/enums/formBuilder';
 import { OnlyClassNameInterface } from '@app/models/interfaces';
 import { selectActiveFieldId } from '@app/store/form-builder/selectors';
@@ -289,6 +290,9 @@ const FormBuilderTagSelector = ({ closeMenu, handleSelection, className, positio
     const [blockListTypes, setBlockListTypes] = useState<Array<BlockTypes>>([BlockTypes.QUESTION_INPUT_BLOCKS, BlockTypes.INPUT_BLOCKS, BlockTypes.LAYOUT_BLOCKS, BlockTypes.CONDITIONAL]);
     const listRef: any = useRef(null);
     const activeField = useAppSelector(selectActiveFieldId);
+
+    useClickOutsideMenu('tag-selector');
+
     useEffect(() => {
         if (!searchQuery) {
             setBlockListTypes([BlockTypes.QUESTION_INPUT_BLOCKS, BlockTypes.LAYOUT_BLOCKS, BlockTypes.INPUT_BLOCKS, BlockTypes.CONDITIONAL]);
@@ -429,7 +433,6 @@ const FormBuilderTagSelector = ({ closeMenu, handleSelection, className, positio
                     </div>
                     {typeTagList.map((tag: any, index: number) => {
                         const isSelected = selectedTag.blockType === blockType && selectedTag.index === index;
-
                         return <TagListItem key={index} tag={tag} index={index} blockType={blockType} isSelected={isSelected} handleSelection={handleSelection} setSelectedTag={setSelectedTag} />;
                     })}
                 </ul>

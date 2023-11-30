@@ -37,3 +37,6 @@ export const selectNextField = (id: string) => (state: RootState) => {
 
     return nextField || undefined; // Return the next field or undefined if not found
 };
+
+// @ts-ignore
+export const selectMenuState = (menu: string) => (state: RootState) => state?.builder?.present?.menus[menu];

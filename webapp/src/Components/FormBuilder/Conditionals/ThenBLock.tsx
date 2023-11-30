@@ -32,11 +32,11 @@ const ThenBlock = ({ field, action }: { field: IFormFieldState; action: Conditio
         fields.forEach((field: IFormFieldState) => {
             let convertedField = {};
             if (shouldDisplayAllFields) {
-                convertedField = convertFieldForConditionalDropDownState(field);
+                convertedField = convertFieldForConditionalDropDownState(field, fields);
             } else {
                 if (field?.type.startsWith('input_')) {
                     const previousField = getPreviousField(fields, field);
-                    convertedField = convertFieldForConditionalDropDownState(previousField, field.id);
+                    convertedField = convertFieldForConditionalDropDownState(previousField, fields, field.id);
                 } else {
                     return;
                 }
@@ -76,7 +76,7 @@ const ThenBlock = ({ field, action }: { field: IFormFieldState; action: Conditio
                 } else if (!previousSelectedFields?.includes(nextField?.id) && !currentSelectedFields.includes(nextField?.id) && currentSelectedFields.includes(selectedField?.id) && previousSelectedFields?.includes(selectedField?.id)) {
                     return;
                 } else {
-                    selectedFields.push(convertFieldForConditionalDropDownState(getNextField(fields, selectedField)));
+                    selectedFields.push(convertFieldForConditionalDropDownState(getNextField(fields, selectedField), fields));
                 }
             } else {
                 // for removing 2 fields at one deSelection
