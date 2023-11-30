@@ -24,7 +24,6 @@ import InviteMemberModal from '@app/components/modal-views/modals/invite-member-
 import MobileInsertMenu from '@app/components/modal-views/modals/mobile-insert-menu';
 import ReopenFormConfirmationModal from '@app/components/modal-views/modals/reopen-form-confirmation-modal';
 import ShareModalView from '@app/components/modal-views/modals/share-modal-view';
-import UpdateWorkspaceSettings from '@app/components/modal-views/modals/update-workspace-settings';
 import RequestForDeletionView from '@app/components/submission-request-for-deletion';
 import { Dialog } from '@app/components/ui/dialog';
 import { Transition } from '@app/components/ui/transition';
@@ -103,10 +102,8 @@ function renderModalContent(view: MODAL_VIEW, modalProps: any) {
             return <ShareModalView {...modalProps} />; // Done
         case 'UPDATE_WORKSPACE_DOMAIN':
             return <UpdateCustomDomainModal />;
-        // return <UpdateWorkspaceSettings updateDomain={true} {...modalProps} />;
         case 'UPDATE_WORKSPACE_HANDLE':
             return <UpdateWorkspaceHandle {...modalProps} />;
-        // return <UpdateWorkspaceSettings updateDomain={false} />;
         case 'USER_DELETION':
             return <UserDeletionModal {...modalProps} />;
         case 'VISIBILITY_CONFIRMATION_MODAL_VIEW':
