@@ -62,7 +62,7 @@ export default function WorkspaceGroups({ workspace }: { workspace: WorkspaceDto
 
     const columns: any = [
         {
-            name: 'Group',
+            name: t('GROUP.DEFAULT'),
             selector: (group: ResponderGroupDto) => group.name,
             grow: 2,
             style: {
@@ -74,7 +74,7 @@ export default function WorkspaceGroups({ workspace }: { workspace: WorkspaceDto
             }
         },
         {
-            name: 'Members',
+            name: t('GROUP.MEMBERS.DEFAULT'),
             selector: (group: ResponderGroupDto) => group.emails?.length ?? 0,
             grow: 2,
             style: {
@@ -86,7 +86,7 @@ export default function WorkspaceGroups({ workspace }: { workspace: WorkspaceDto
             }
         },
         {
-            name: 'Forms',
+            name: t('FORMS'),
             selector: (group: ResponderGroupDto) => group.forms.length,
             grow: 2,
             style: {

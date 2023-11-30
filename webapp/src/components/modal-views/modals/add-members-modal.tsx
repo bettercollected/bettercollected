@@ -46,9 +46,9 @@ export default function AddMembersModal({ handleAddMembers, group }: IAddMemberM
         setEmail('');
     };
     return (
-        <HeaderModalWrapper headerTitle="Add Mwmber">
+        <HeaderModalWrapper headerTitle={t('GROUP.ADD_MEMBERS.DEFAULT')}>
             <div className=" ">
-                <div className="h4-new">Email Address</div>
+                <div className="h4-new">{t('EMAIL_ADDRESS')}</div>
                 <form onSubmit={addEmail} className="flex gap-2 mt-2">
                     <div className="    ">
                         <AppTextField value={email} type="email" id="email" placeholder={t(placeHolder.memberEmail)} onChange={handleInput} />

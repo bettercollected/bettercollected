@@ -21,7 +21,7 @@ const FormCards = ({ title, formsArray, workspace, showPinned = true, showVisibi
     if (formsArray.length === 0) return <></>;
     return (
         <div data-testid="form-cards-container">
-            {!!title && <h1 className="text-gray-700 font-semibold text-md md:text-lg mb-6">{title}</h1>}
+            {!!title && <h1 className="text-gray-700 font-semibold text-md md:text-lg mb-6">{title + ' (' + formsArray.length + ')'}</h1>}
             <div className="flex flex-col gap-4">
                 {formsArray.map((form: StandardFormDto, idx: number) => {
                     const slug = form.settings?.customUrl;

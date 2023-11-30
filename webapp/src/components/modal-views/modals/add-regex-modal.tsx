@@ -31,7 +31,7 @@ export default function AddRegexModal({ handleRegex }: { handleRegex: (regex: st
     };
 
     return (
-        <HeaderModalWrapper headerTitle="Add regex">
+        <HeaderModalWrapper headerTitle={t('BUTTON.ADD_REGEX')}>
             <form onSubmit={handleSubmit}>
                 <h4 className="h4-new">{t(groupConstant.regex.modal.title)}</h4>
                 <p className="my-2">
