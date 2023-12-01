@@ -1,5 +1,7 @@
 import React, { PureComponent } from 'react';
 
+import { GoogleIcon } from '@Components/Common/Icons/google';
+
 import { ProviderIcon } from '@app/components/icons/brands/provider';
 import { darkStyle, disabledStyle, hoverStyle, lightStyle, typeformDarkStyle } from '@app/components/icons/brands/styles/google';
 
@@ -70,8 +72,9 @@ export default class ProviderLoginButton extends PureComponent<IPropTypes, IStat
         const Icon = icon;
 
         return (
-            <div {...otherProps} role="button" onClick={this.click} style={this.getStyle(style)} onMouseOver={this.mouseOver} onMouseOut={this.mouseOut} className={className}>
-                <Icon {...this.props} />
+            <div {...otherProps} role="button" onClick={this.click} onMouseOver={this.mouseOver} onMouseOut={this.mouseOut} className={`flex justify-center items-center bg-black-800 text-white ${className}`}>
+                {/*<Icon {...this.props} />*/}
+                <GoogleIcon />
                 <span className="mx-1">{label}</span>
             </div>
         );

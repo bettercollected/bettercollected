@@ -27,7 +27,7 @@ interface OtpEmailInputPropType {
 
 const providers: Array<string> = [];
 if (environments.ENABLE_GOOGLE) providers.push('google');
-if (environments.ENABLE_TYPEFORM) providers.push('typeform');
+// if (environments.ENABLE_TYPEFORM) providers.push('typeform');
 
 export default function OtpEmailInput(props: OtpEmailInputPropType) {
     const { isCreator, isModal, isSignup } = props;
@@ -110,14 +110,7 @@ export default function OtpEmailInput(props: OtpEmailInputPropType) {
                     <div className="flex gap-[20px] mt-10 w-full">
                         <div className="flex flex-col sm:flex-row gap-4 lg:gap-6 w-full  justify-center items-center">
                             {providers.map((provider: string) => (
-                                <ConnectWithProviderButton
-                                    key={provider}
-                                    type={provider === 'typeform' ? 'typeform' : 'dark'}
-                                    url={`${environments.API_ENDPOINT_HOST}/auth/${provider}/basic`}
-                                    text={`Sign in with ${capitalize(provider)}`}
-                                    creator={isCreator}
-                                    fromProPlan={fromProPlan}
-                                />
+                                <ConnectWithProviderButton key={provider} type={'dark'} url={`${environments.API_ENDPOINT_HOST}/auth/${provider}/basic`} text={`Sign in with ${capitalize(provider)}`} creator={isCreator} fromProPlan={fromProPlan} />
                             ))}
                         </div>
                     </div>
