@@ -26,8 +26,8 @@ export default function ConnectWithProviderButton(props: ConnectWithProviderButt
         );
 
     return (
-        <a href={`${url}${creator ? '?creator=true' : ''}${fromProPlan ? '&prospective_pro_user=true' : ''}`} referrerPolicy="unsafe-url" className={`w-full flex items-center justify-start`}>
-            <ProviderLoginButton className="!w-full rounded" disabled={disabled} label={text} type={type} onClick={() => {}} />
+        <a href={`${url}${creator ? '?creator=true' : ''}${fromProPlan ? '&prospective_pro_user=true' : ''}`} referrerPolicy="unsafe-url" className={`w-full flex items-center justify-start `}>
+            <ProviderLoginButton className="!w-full !rounded" disabled={disabled} label={text} type={type} onClick={() => {}} />
         </a>
     );
 }
