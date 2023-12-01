@@ -2,14 +2,13 @@ import React from 'react';
 
 import { useTranslation } from 'next-i18next';
 
-import Pro from '@Components/Common/Icons/Pro';
+import Pro from '@Components/Common/Icons/Dashboard/Pro';
 import AppButton from '@Components/Common/Input/Button/AppButton';
 
 import ProPlanHoc from '@app/components/hoc/pro-plan-hoc';
 import { buttonConstant } from '@app/constants/locales/button';
 import { Features } from '@app/constants/locales/feature';
 import { pricingPlan } from '@app/constants/locales/pricingplan';
-
 
 export default function UpgradeToPro() {
     const { t } = useTranslation();

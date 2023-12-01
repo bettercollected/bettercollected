@@ -1,4 +1,4 @@
-import Empty from '@Components/Common/Icons/Empty';
+import Empty from '@Components/Common/Icons/Common/Empty';
 
 interface IZeroElementProps {
     title: string;

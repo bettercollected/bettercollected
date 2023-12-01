@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
 
-import Delete from '@Components/Common/Icons/Delete';
+import Delete from '@Components/Common/Icons/Common/Delete';
 import MenuDropdown from '@Components/Common/Navigation/MenuDropdown/MenuDropdown';
 import { MoreHoriz } from '@mui/icons-material';
 import { MenuItem } from '@mui/material';

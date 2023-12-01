@@ -4,7 +4,7 @@ import { useRouter } from 'next/router';
 
 import _ from 'lodash';
 
-import DragHandleIcon from '@Components/Common/Icons/DragHandle';
+import DragHandleIcon from '@Components/Common/Icons/FormBuilder/DragHandle';
 import FormBuilderBlock from '@Components/FormBuilder/BuilderBlock';
 import BuilderTips from '@Components/FormBuilder/BuilderTips';
 import BuilderDragDropContext from '@Components/FormBuilder/DragDropContext';

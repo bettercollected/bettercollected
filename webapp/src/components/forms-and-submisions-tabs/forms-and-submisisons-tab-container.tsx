@@ -1,6 +1,6 @@
 import { useTranslation } from 'next-i18next';
 
-import { FormIcon } from '@Components/Common/Icons/FormIcon';
+import { FormIcon } from '@Components/Common/Icons/Form/FormIcon';
 
 import WorkspaceFormsTabContent from '@app/components/dashboard/workspace-forms-tab-content';
 import WorkspaceResponsesTabContent from '@app/components/dashboard/workspace-responses-tab-content';

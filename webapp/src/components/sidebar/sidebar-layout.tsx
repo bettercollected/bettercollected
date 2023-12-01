@@ -3,11 +3,11 @@ import React from 'react';
 import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/router';
 
-import DashboardIcon from '@Components/Common/Icons/Dashboard';
-import DeleteIcon from '@Components/Common/Icons/Delete';
-import { FormIcon } from '@Components/Common/Icons/FormIcon';
-import MembersIcon from '@Components/Common/Icons/Members';
-import ResponderIcon from '@Components/Common/Icons/Responder';
+import DeleteIcon from '@Components/Common/Icons/Common/Delete';
+import DashboardIcon from '@Components/Common/Icons/Dashboard/Dashboard';
+import MembersIcon from '@Components/Common/Icons/Dashboard/Members';
+import ResponderIcon from '@Components/Common/Icons/Dashboard/Responder';
+import { FormIcon } from '@Components/Common/Icons/Form/FormIcon';
 import { Box } from '@mui/material';
 import cn from 'classnames';
 import { AnimatePresence, motion } from 'framer-motion';
