@@ -11,7 +11,7 @@ class APMAsyncHttpClient:
 
     async def __aenter__(self):
         self.apm_client.begin_transaction(transaction_type=self.transaction_type)
-        self.client = httpx.AsyncClient()
+        self.client = httpx.AsyncClient(timeout=60)
         return self.client
 
     async def __aexit__(self, exc_type, exc, tb):
