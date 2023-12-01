@@ -1,7 +1,7 @@
 import { useTranslation } from 'next-i18next';
 
-import { DotIcon } from '@Components/Common/Icons/DotIcon';
-import FormProviderIcon from '@Components/Common/Icons/FormProviderIcon';
+import { DotIcon } from '@Components/Common/Icons/Common/DotIcon';
+import FormProviderIcon from '@Components/Common/Icons/Form/FormProviderIcon';
 import styled from '@emotion/styled';
 
 import ActiveLink from '@app/components/ui/links/active-link';

@@ -3,7 +3,7 @@ import React from 'react';
 import { useTranslation } from 'next-i18next';
 import Link from 'next/link';
 
-import Empty from '@Components/Common/Icons/Empty';
+import Empty from '@Components/Common/Icons/Common/Empty';
 import AppButton from '@Components/Common/Input/Button/AppButton';
 import { ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
 import CreateTemplateButton from '@Components/Template/CreateTemplateButton';

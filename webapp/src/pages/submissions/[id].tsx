@@ -5,10 +5,10 @@ import { useRouter } from 'next/router';
 
 import Divider from '@Components/Common/DataDisplay/Divider';
 import Tooltip from '@Components/Common/DataDisplay/Tooltip';
-import { DotIcon } from '@Components/Common/Icons/DotIcon';
-import FormProviderIcon from '@Components/Common/Icons/FormProviderIcon';
-import Preview from '@Components/Common/Icons/Preview';
-import SettingsIcon from '@Components/Common/Icons/Settings';
+import { DotIcon } from '@Components/Common/Icons/Common/DotIcon';
+import SettingsIcon from '@Components/Common/Icons/Common/Settings';
+import FormProviderIcon from '@Components/Common/Icons/Form/FormProviderIcon';
+import Preview from '@Components/Common/Icons/Form/Preview';
 import AppButton from '@Components/Common/Input/Button/AppButton';
 import { ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
 import Joyride from '@Components/Joyride';

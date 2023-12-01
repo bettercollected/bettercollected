@@ -4,7 +4,7 @@ import { useTranslation } from 'next-i18next';
 import { NextSeo } from 'next-seo';
 import { useRouter } from 'next/router';
 
-import SmallLogo from '@Components/Common/Icons/SmallLogo';
+import SmallLogo from '@Components/Common/Icons/Common/SmallLogo';
 import AppButton from '@Components/Common/Input/Button/AppButton';
 import { ButtonSize } from '@Components/Common/Input/Button/AppButtonProps';
 import HeaderImageWrapper from '@Components/Common/Wrapper/HeaderImageWrapper';

@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 
-import CopyIcon from '@Components/Common/Icons/Copy';
-import DeleteIcon from '@Components/Common/Icons/Delete';
-import DragHandleIcon from '@Components/Common/Icons/DragHandle';
-import PlusIcon from '@Components/Common/Icons/Plus';
+import CopyIcon from '@Components/Common/Icons/Common/Copy';
+import DeleteIcon from '@Components/Common/Icons/Common/Delete';
+import PlusIcon from '@Components/Common/Icons/Common/Plus';
+import DragHandleIcon from '@Components/Common/Icons/FormBuilder/DragHandle';
 import MuiSwitch from '@Components/Common/Input/Switch';
 import MenuDropdown from '@Components/Common/Navigation/MenuDropdown/MenuDropdown';
 import FormValidations from '@Components/FormBuilder/FieldOptions/FormValidations';

@@ -2,10 +2,10 @@ import React from 'react';
 
 import { useTranslation } from 'next-i18next';
 
-import CopyIcon from '@Components/Common/Icons/Copy';
-import DeleteIcon from '@Components/Common/Icons/Delete';
-import EditIcon from '@Components/Common/Icons/Edit';
-import Pro from '@Components/Common/Icons/Pro';
+import CopyIcon from '@Components/Common/Icons/Common/Copy';
+import DeleteIcon from '@Components/Common/Icons/Common/Delete';
+import EditIcon from '@Components/Common/Icons/Common/Edit';
+import Pro from '@Components/Common/Icons/Dashboard/Pro';
 import AppButton from '@Components/Common/Input/Button/AppButton';
 import { ButtonSize, ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
 import { toast } from 'react-toastify';

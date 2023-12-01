@@ -1,7 +1,7 @@
 import { useTranslation } from 'next-i18next';
 import { NextSeo } from 'next-seo';
 
-import MembersIcon from '@Components/Common/Icons/Members';
+import MembersIcon from '@Components/Common/Icons/Dashboard/Members';
 
 import Collaborators from '@app/components/member/collaborators';
 import Invitations from '@app/components/member/invitations';

@@ -3,9 +3,9 @@ import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/router';
 
+import LoadingIcon from '@Components/Common/Icons/Common/Loading';
+import PublishIcon from '@Components/Common/Icons/FormBuilder/PublishIcon';
 import UploadIcon from '@Components/Common/Icons/FormBuilder/UploadIcon';
-import LoadingIcon from '@Components/Common/Icons/Loading';
-import PublishIcon from '@Components/Common/Icons/PublishIcon';
 import AppButton from '@Components/Common/Input/Button/AppButton';
 import { ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
 import BetterCollectedForm from '@Components/Form/BetterCollectedForm';

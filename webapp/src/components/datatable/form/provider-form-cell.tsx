@@ -1,7 +1,7 @@
 import { useTranslation } from 'next-i18next';
 
 import Tooltip from '@Components/Common/DataDisplay/Tooltip';
-import SmallLogo from '@Components/Common/Icons/SmallLogo';
+import SmallLogo from '@Components/Common/Icons/Common/SmallLogo';
 import { Typography } from '@mui/material';
 
 import { TypeformIcon } from '@app/components/icons/brands/typeform';
@@ -10,7 +10,6 @@ import ActiveLink from '@app/components/ui/links/active-link';
 import { localesCommon } from '@app/constants/locales/common';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
-
 
 interface IDataTableProviderFormCellProps {
     workspace: WorkspaceDto;
