@@ -124,13 +124,13 @@ export default function ImportProviderForms(props: any) {
                         name: 'Google Forms',
                         onClick: () => handleNext('google')
                     });
-                if (p === 'typeform' && props?.providers[p])
-                    allProviders.push({
-                        provider: 'typeform',
-                        icon: <TypeformIcon className="h-[70px] w-[70px] md:h-[100px] md:w-[100px]" />,
-                        name: 'Typeform',
-                        onClick: () => handleNext('typeform')
-                    });
+                // if (p === 'typeform' && props?.providers[p])
+                //     allProviders.push({
+                //         provider: 'typeform',
+                //         icon: <TypeformIcon className="h-[70px] w-[70px] md:h-[100px] md:w-[100px]" />,
+                //         name: 'Typeform',
+                //         onClick: () => handleNext('typeform')
+                //     });
             });
             setIntegrations(allProviders);
         }
@@ -184,9 +184,9 @@ export default function ImportProviderForms(props: any) {
                     {requestAnIntegration.name}
                 </ActiveLink>
             </div>
-            <div className={` flex justify-start w-full h-full gap-4 lg:gap-6 mt-4 ${JOYRIDE_CLASS.WORKSPACE_ADMIN_FORM_IMPORT_PROVIDER_SELECTION}`}>
+            <div className={` flex justify-center w-full h-full gap-4 lg:gap-6 mt-4 ${JOYRIDE_CLASS.WORKSPACE_ADMIN_FORM_IMPORT_PROVIDER_SELECTION}`}>
                 {integrations.map((integration) => (
-                    <div key={integration.provider} className={'rounded-lg border-[1px] border-black-200 basis-1/2'}>
+                    <div key={integration.provider} className={'rounded-lg border-[1px] border-black-200 w-full'}>
                         <MuiButton sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }} onClick={integration.onClick} className=" sh1 h-[110px] w-full !text-brand-500 capitalize ">
                             <div className="h-full w-full flex flex-col items-center justify-center py-1 ">
                                 {integration.icon}
