@@ -50,7 +50,7 @@ interface IAutoCompleteFormFieldProps {
 export default function ImportProviderForms(props: any) {
     const { closeModal } = useModal();
     const { t } = useTranslation();
-    const [provider, setProvider] = useState(props?.provider ?? null);
+    const [provider, setProvider] = useState(props?.provider ?? 'google');
 
     const [integrations, setIntegrations] = useState<Array<IIntegrations>>([]);
     const [stepCount, setStepCount] = useState(0);
@@ -344,7 +344,7 @@ export default function ImportProviderForms(props: any) {
                 </div>
                 <Divider />
                 <div className="relative flex flex-col items-start gap-2 justify-between p-4 md:p-10 md:pt-6">
-                    {stepCount === 0 && stepZeroContent}
+                    {/*{stepCount === 0 && stepZeroContent}*/}
                     {stepCount === 1 && stepOneContent}
                 </div>
             </div>
