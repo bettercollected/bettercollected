@@ -1,23 +1,22 @@
-
 from temporalio import activity, workflow
 from temporalio.exceptions import FailureError
 
-from models.SavePreviewParams import SavePreviewParams
-from settings.application import settings
+from models.save_preview_params import SavePreviewParams
 
 with workflow.unsafe.imports_passed_through():
     from selenium import webdriver
-    import httpx
     from configs.crypto import crypto
     from io import BytesIO
     from models.user_tokens import UserTokens
     import json
     from asyncio import sleep
+    from settings.application import settings
+    from wrappers.APMWrapper import APMAsyncHttpClient
 
 
 @activity.defn(name="save_preview")
 async def save_preview(save_preview_params: SavePreviewParams):
-    async with httpx.AsyncClient() as client:
+    async with APMAsyncHttpClient("save_preview") as client:
         options = webdriver.ChromeOptions()
         options.add_argument("--headless")
         options.add_argument("--disable-gpu")
@@ -38,7 +37,7 @@ async def save_preview(save_preview_params: SavePreviewParams):
         headers = {"api-key": settings.api_key}
         url = settings.server_url + f"/template/{save_preview_params.template_id}/preview"
         files = {"preview_image": ("preview_image.png", image_file, "image/png")}
-        response = await client.patch(url, files=files, headers=headers)
+        response = await client.patch(url, files=files, headers=headers, timeout=60)
 
         if response.status_code != 200:
             raise FailureError("Preview Image Patch not successful")

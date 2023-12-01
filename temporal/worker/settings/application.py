@@ -1,6 +1,8 @@
 from dotenv import load_dotenv
 from pydantic import BaseSettings
 
+from settings.apm_settings import APMSettings
+
 load_dotenv()
 
 
@@ -13,6 +15,7 @@ class ApplicationSettings(BaseSettings):
     worker_queue: str = "default"
     workers: int = 10
     cookie_domain: str = "localhost"
+    apm_settings: APMSettings = APMSettings()
 
 
 settings = ApplicationSettings()
