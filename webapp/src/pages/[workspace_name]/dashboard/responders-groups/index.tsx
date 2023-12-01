@@ -3,7 +3,7 @@ import React from 'react';
 import { useTranslation } from 'next-i18next';
 import { NextSeo } from 'next-seo';
 
-import ResponderIcon from '@Components/Common/Icons/Responder';
+import ResponderIcon from '@Components/Common/Icons/Dashboard/Responder';
 
 import UserMore from '@app/components/icons/user-more';
 import DashboardLayout from '@app/components/sidebar/dashboard-layout';

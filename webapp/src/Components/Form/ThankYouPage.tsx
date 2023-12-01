@@ -3,7 +3,7 @@ import React from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/router';
 
-import SmallLogo from '@Components/Common/Icons/SmallLogo';
+import SmallLogo from '@Components/Common/Icons/Common/SmallLogo';
 
 interface IThankYouPageProps {
     isDisabled?: boolean;

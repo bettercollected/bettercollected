@@ -4,7 +4,7 @@ import { useTranslation } from 'next-i18next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import { NextSeo } from 'next-seo';
 
-import LoadingIcon from '@Components/Common/Icons/Loading';
+import LoadingIcon from '@Components/Common/Icons/Common/Loading';
 import TemplateSection from '@Components/Template/TemplateSection';
 
 import SidebarLayout from '@app/components/sidebar/sidebar-layout';

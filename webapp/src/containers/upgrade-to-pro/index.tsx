@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/router';
 
-import Pro from '@Components/Common/Icons/Pro';
+import Pro from '@Components/Common/Icons/Dashboard/Pro';
 import ModalButton from '@Components/Common/Input/Button/ModalButton';
 
 import PlanCard from '@app/components/pro-plan/plan-card';

@@ -4,8 +4,8 @@ import { useTranslation } from 'next-i18next';
 import { NextSeo } from 'next-seo';
 import { useRouter } from 'next/router';
 
-import { FormIcon } from '@Components/Common/Icons/FormIcon';
-import MembersIcon from '@Components/Common/Icons/Members';
+import MembersIcon from '@Components/Common/Icons/Dashboard/Members';
+import { FormIcon } from '@Components/Common/Icons/Form/FormIcon';
 import { Groups } from '@mui/icons-material';
 
 import BreadcrumbsRenderer from '@app/components/form/renderer/breadcrumbs-renderer';

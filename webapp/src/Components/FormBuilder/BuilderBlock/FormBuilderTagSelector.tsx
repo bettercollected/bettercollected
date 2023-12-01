@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import Element from '@Components/Common/Icons/Element';
-import ElementsWithLabel from '@Components/Common/Icons/ElementsWithLabel';
 import CheckboxIcon from '@Components/Common/Icons/FormBuilder/CheckboxIcon';
 import DateIcon from '@Components/Common/Icons/FormBuilder/DateIcon';
 import DropDownIcon from '@Components/Common/Icons/FormBuilder/DropDownIcon';
+import Element from '@Components/Common/Icons/FormBuilder/Element';
+import ElementsWithLabel from '@Components/Common/Icons/FormBuilder/ElementsWithLabel';
 import EmailIcon from '@Components/Common/Icons/FormBuilder/EmailIcon';
 import LongTextIcon from '@Components/Common/Icons/FormBuilder/LongTextIcon';
 import MultipleChoiceIcon from '@Components/Common/Icons/FormBuilder/MultipleChoiceIcon';

@@ -1,7 +1,7 @@
 import React from 'react';
 
-import DeleteIcon from '@Components/Common/Icons/Delete';
-import PlusIcon from '@Components/Common/Icons/Plus';
+import DeleteIcon from '@Components/Common/Icons/Common/Delete';
+import PlusIcon from '@Components/Common/Icons/Common/Plus';
 import FieldOptions from '@Components/FormBuilder/FieldOptions/FieldOptions';
 
 import { useModal } from '@app/components/modal-views/context';

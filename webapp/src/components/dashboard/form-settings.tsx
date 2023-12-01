@@ -4,8 +4,8 @@ import { useTranslation } from 'next-i18next';
 
 import Divider from '@Components/Common/DataDisplay/Divider';
 import Tooltip from '@Components/Common/DataDisplay/Tooltip';
-import EditIcon from '@Components/Common/Icons/Edit';
-import Pro from '@Components/Common/Icons/Pro';
+import EditIcon from '@Components/Common/Icons/Common/Edit';
+import Pro from '@Components/Common/Icons/Dashboard/Pro';
 import LockIcon from '@Components/Common/Icons/lock';
 import AppButton from '@Components/Common/Input/Button/AppButton';
 import { ButtonSize, ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';

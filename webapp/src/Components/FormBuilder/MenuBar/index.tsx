@@ -5,11 +5,11 @@ import { useRouter } from 'next/router';
 
 import CustomPopover from '@Components/Common/CustomPopover';
 import Divider from '@Components/Common/DataDisplay/Divider';
-import CircleOutlinedIcon from '@Components/Common/Icons/CircleOutlinedIcon';
-import CoverIcon from '@Components/Common/Icons/CoverIcon';
+import PublishIcon from '@Components/Common/Icons/FormBuilder/PublishIcon';
 import InfoIcon from '@Components/Common/Icons/FormBuilder/infoIcon';
-import HamburgerIcon from '@Components/Common/Icons/HamburgerIcon';
-import PublishIcon from '@Components/Common/Icons/PublishIcon';
+import CircleOutlinedIcon from '@Components/Common/Icons/Header/CircleOutlinedIcon';
+import CoverIcon from '@Components/Common/Icons/Header/CoverIcon';
+import HamburgerIcon from '@Components/Common/Icons/Header/HamburgerIcon';
 import AppButton from '@Components/Common/Input/Button/AppButton';
 import { ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
 import { ChevronLeft } from '@mui/icons-material';
