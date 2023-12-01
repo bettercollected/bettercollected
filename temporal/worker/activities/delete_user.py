@@ -5,14 +5,14 @@ from temporalio import activity, workflow
 from settings.application import settings
 
 with workflow.unsafe.imports_passed_through():
-    import httpx
+    from wrappers.APMWrapper import APMAsyncHttpClient
     from configs.crypto import crypto
     from models.user_tokens import UserTokens
 
 
 @activity.defn(name="delete_user")
 async def delete_user(token: str):
-    async with httpx.AsyncClient() as client:
+    async with APMAsyncHttpClient("delete_user") as client:
         decrypted_token = crypto.decrypt(token)
         user_token = UserTokens(**json.loads(decrypted_token))
         cookies = {"Authorization": user_token.access_token, "RefreshToken": user_token.refresh_token}
