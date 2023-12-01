@@ -1,12 +1,10 @@
 import React from 'react';
 
 import { useTranslation } from 'next-i18next';
-import Link from 'next/link';
 
-import EditIcon from '@Components/Common/Icons/Edit';
-import EllipsisOption from '@Components/Common/Icons/EllipsisOption';
-import SettingsIcon from '@Components/Common/Icons/Settings';
-import ShareIcon from '@Components/Common/Icons/ShareIcon';
+import EllipsisOption from '@Components/Common/Icons/Common/EllipsisOption';
+import SettingsIcon from '@Components/Common/Icons/Common/Settings';
+import ShareIcon from '@Components/Common/Icons/Common/ShareIcon';
 import MenuDropdown from '@Components/Common/Navigation/MenuDropdown/MenuDropdown';
 import { ListItemIcon, MenuItem } from '@mui/material';
 

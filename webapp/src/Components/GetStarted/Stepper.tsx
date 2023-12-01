@@ -2,7 +2,7 @@ import React from 'react';
 
 import { useTranslation } from 'next-i18next';
 
-import Chevron from '@Components/Common/Icons/Chevron';
+import Chevron from '@Components/Common/Icons/Common/Chevron';
 import Button from '@mui/material/Button';
 import MobileStepper from '@mui/material/MobileStepper';
 import { withStyles } from '@mui/styles';

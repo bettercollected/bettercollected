@@ -2,7 +2,7 @@ import { useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
 
-import PlusIcon from '@Components/Common/Icons/Plus';
+import PlusIcon from '@Components/Common/Icons/Common/Plus';
 import AppTextField from '@Components/Common/Input/AppTextField';
 import AppButton from '@Components/Common/Input/Button/AppButton';
 import { ButtonSize, ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';

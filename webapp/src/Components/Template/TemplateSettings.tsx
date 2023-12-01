@@ -4,7 +4,7 @@ import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/router';
 
 import Divider from '@Components/Common/DataDisplay/Divider';
-import CopyIcon from '@Components/Common/Icons/Copy';
+import CopyIcon from '@Components/Common/Icons/Common/Copy';
 import LockIcon from '@Components/Common/Icons/lock';
 import AppTextField from '@Components/Common/Input/AppTextField';
 import AppButton from '@Components/Common/Input/Button/AppButton';

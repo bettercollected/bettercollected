@@ -2,7 +2,7 @@ import React from 'react';
 
 import { useTranslation } from 'next-i18next';
 
-import Plus from '@Components/Common/Icons/Plus';
+import Plus from '@Components/Common/Icons/Common/Plus';
 import AppButton from '@Components/Common/Input/Button/AppButton';
 import { ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
 
@@ -15,16 +15,15 @@ import { useGetWorkspaceMembersQuery } from '@app/store/workspaces/members-n-inv
 import MembersTable from '../settings/members-table';
 import Loader from '../ui/loader';
 
-
 export default function Collaborators() {
     const workspace = useAppSelector((state) => state.workspace);
-    const {data, isLoading} = useGetWorkspaceMembersQuery({workspaceId: workspace.id});
-    const {t} = useTranslation();
-    const {openModal} = useModal();
+    const { data, isLoading } = useGetWorkspaceMembersQuery({ workspaceId: workspace.id });
+    const { t } = useTranslation();
+    const { openModal } = useModal();
     if (isLoading) {
         return (
             <div className=" w-full py-10 flex justify-center">
-                <Loader/>
+                <Loader />
             </div>
         );
     }
@@ -39,15 +38,14 @@ export default function Collaborators() {
                     onClick={() => {
                         openModal('INVITE_MEMBER');
                     }}
-                    icon={<Plus className="h-4 w-4"/>}
+                    icon={<Plus className="h-4 w-4" />}
                 >
                     {t(inviteCollaborator.default)}
                 </AppButton>
             </div>
 
-
             <p className="body4 mb-6 md:max-w-[301px] text-black-700">{t(members.collaborators.description)}</p>
-            <MembersTable data={data}/>
+            <MembersTable data={data} />
         </div>
     );
 }

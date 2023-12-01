@@ -1,4 +1,4 @@
-import SmallLogo from '@Components/Common/Icons/SmallLogo';
+import SmallLogo from '@Components/Common/Icons/Common/SmallLogo';
 
 import { TypeformIcon } from '@app/components/icons/brands/typeform';
 import { GoogleFormIcon } from '@app/components/icons/google-form-icon';

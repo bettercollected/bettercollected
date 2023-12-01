@@ -2,7 +2,7 @@ import React from 'react';
 
 import { useTranslation } from 'next-i18next';
 
-import Plus from '@Components/Common/Icons/Plus';
+import Plus from '@Components/Common/Icons/Common/Plus';
 import AppButton from '@Components/Common/Input/Button/AppButton';
 import { ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
 import { Typography } from '@mui/material';
