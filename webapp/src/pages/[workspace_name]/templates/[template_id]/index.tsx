@@ -4,8 +4,8 @@ import { useTranslation } from 'next-i18next';
 import { NextSeo } from 'next-seo';
 import { useRouter } from 'next/router';
 
-import LoadingIcon from '@Components/Common/Icons/Loading';
-import SettingsIcon from '@Components/Common/Icons/Settings';
+import LoadingIcon from '@Components/Common/Icons/Common/Loading';
+import SettingsIcon from '@Components/Common/Icons/Common/Settings';
 import AppButton from '@Components/Common/Input/Button/AppButton';
 import { ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
 import BetterCollectedForm from '@Components/Form/BetterCollectedForm';

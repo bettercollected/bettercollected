@@ -1,8 +1,8 @@
 import React from 'react';
 
-import DeleteIcon from '@Components/Common/Icons/Delete';
-import EllipsisOption from '@Components/Common/Icons/EllipsisOption';
-import PlusIcon from '@Components/Common/Icons/Plus';
+import DeleteIcon from '@Components/Common/Icons/Common/Delete';
+import EllipsisOption from '@Components/Common/Icons/Common/EllipsisOption';
+import PlusIcon from '@Components/Common/Icons/Common/Plus';
 import MenuDropdown from '@Components/Common/Navigation/MenuDropdown/MenuDropdown';
 import { ListItemIcon, MenuItem } from '@mui/material';
 

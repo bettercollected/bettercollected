@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 
 import _ from 'lodash';
 
-import CheckedCircle from '@Components/Common/Icons/CheckedCircle';
+import CheckedCircle from '@Components/Common/Icons/Common/CheckedCircle';
 import { Disclosure } from '@headlessui/react';
 import { Checkbox, FormControlLabel } from '@mui/material';
 

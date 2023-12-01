@@ -3,7 +3,7 @@ import React from 'react';
 import { useTranslation } from 'next-i18next';
 
 import Tooltip from '@Components/Common/DataDisplay/Tooltip';
-import Delete from '@Components/Common/Icons/Delete';
+import Delete from '@Components/Common/Icons/Common/Delete';
 import { MoreHoriz } from '@mui/icons-material';
 import { IconButton, ListItemIcon, Menu, MenuItem } from '@mui/material';
 
@@ -11,7 +11,6 @@ import { useModal } from '@app/components/modal-views/context';
 import { buttonConstant } from '@app/constants/locales/button';
 import { toolTipConstant } from '@app/constants/locales/tooltip';
 import { WorkspaceInvitationDto, WorkspaceMembersDto } from '@app/models/dtos/WorkspaceMembersDto';
-
 
 interface IMemberOptionProps {
     member?: WorkspaceMembersDto;
