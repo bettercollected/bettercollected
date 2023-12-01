@@ -10,11 +10,13 @@ class APMAsyncHttpClient:
         self.transaction_name = transaction_name
 
     async def __aenter__(self):
-        self.apm_client.begin_transaction(transaction_type=self.transaction_type)
+        if self.apm_client is not None:
+            self.apm_client.begin_transaction(transaction_type=self.transaction_type)
         self.client = httpx.AsyncClient(timeout=60)
         return self.client
 
     async def __aexit__(self, exc_type, exc, tb):
         await self.client.aclose()  # Ensure the AsyncClient is closed
-        transaction_result = "success" if exc_type is None else "failure"
-        self.apm_client.end_transaction(name=self.transaction_name, result=transaction_result)
+        if self.apm_client is not None:
+            transaction_result = "success" if exc_type is None else "failure"
+            self.apm_client.end_transaction(name=self.transaction_name, result=transaction_result)
