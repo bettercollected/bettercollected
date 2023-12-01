@@ -4,12 +4,12 @@ from models.delete_response import DeleteResponseParams
 from settings.application import settings
 
 with workflow.unsafe.imports_passed_through():
-    import httpx
+    from wrappers.APMWrapper import APMAsyncHttpClient
 
 
 @activity.defn(name="delete_response")
 async def delete_response(delete_response_params: DeleteResponseParams):
-    async with httpx.AsyncClient() as client:
+    async with APMAsyncHttpClient("delete_response") as client:
         headers = {"api-key": settings.api_key}
         response = await client.post(
             url=settings.server_url
