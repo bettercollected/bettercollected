@@ -15,6 +15,7 @@ class ApplicationSettings(BaseSettings):
     worker_queue: str = "default"
     workers: int = 10
     cookie_domain: str = "localhost"
+    max_thread_pool_executors: int = 20
     apm_settings: APMSettings = APMSettings()
 
 
