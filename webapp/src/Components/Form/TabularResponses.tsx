@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/router';
@@ -13,11 +13,13 @@ import { dataTableCustomStyles } from '@app/components/datatable/form/datatable-
 import globalConstants from '@app/constants/global';
 import { StandardFormDto, StandardFormResponseDto } from '@app/models/dtos/form';
 import { FormBuilderTagNames, LabelFormBuilderTagNames } from '@app/models/enums/formBuilder';
+import { IFormFieldState } from '@app/store/form-builder/types';
 import { useAppSelector } from '@app/store/hooks';
 import { useGetFormsSubmissionsQuery } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { IGetFormSubmissionsQuery } from '@app/store/workspaces/types';
 import { downloadFile } from '@app/utils/fileUtils';
+import { convertPlaceholderToDisplayValue } from '@app/utils/formBuilderBlockUtils';
 
 const customTableStyles = {
     ...dataTableCustomStyles,
@@ -48,6 +50,10 @@ export default function TabularResponses({ form }: TabularResponsesProps) {
         page: page,
         size: globalConstants.pageSize
     });
+
+    useEffect(() => {
+        setQuery({ ...query, page: page });
+    }, [page]);
 
     const getFilteredInputFields = () => {
         const filteredFields: Array<any> = [];
@@ -173,7 +179,15 @@ export default function TabularResponses({ form }: TabularResponsesProps) {
         },
         ...getFilteredInputFields().map((inputField: any) => {
             return {
-                name: inputField?.value,
+                name: convertPlaceholderToDisplayValue(
+                    form?.fields.map((field: any, index: number) => {
+                        return {
+                            ...field,
+                            position: index
+                        };
+                    }) ?? [],
+                    inputField?.value || ''
+                ),
                 selector: (response: StandardFormResponseDto) => getAnswerField(response, inputField),
                 style: {
                     color: 'rgba(0,0,0,.54)',
