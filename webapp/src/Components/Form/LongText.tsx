@@ -36,7 +36,7 @@ export default function LongText({ ans, enabled, field }: ILongTextProps) {
         <div className="relative w-full h-full">
             {field?.validations?.required && <FieldRequired className="top-0.5 right-1" />}
             <AppTextField
-                placeholder={field?.properties?.placeholder}
+                placeholder={field?.properties?.placeholder || ' '}
                 multiline
                 InputProps={{
                     id: `input-${field.id}`,
