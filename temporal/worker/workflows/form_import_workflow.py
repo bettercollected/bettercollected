@@ -3,7 +3,7 @@ from temporalio import workflow
 from temporalio.common import RetryPolicy
 
 from activities.import_form import import_form
-from models.ImportFormParams import ImportFormParams
+from models.import_forms_params import ImportFormParams
 
 
 @workflow.defn(name="import_form_workflow")

@@ -3,7 +3,7 @@ import React from 'react';
 import { useTranslation } from 'next-i18next';
 import { NextSeo } from 'next-seo';
 
-import ResponderIcon from '@Components/Common/Icons/Responder';
+import ResponderIcon from '@Components/Common/Icons/Dashboard/Responder';
 
 import UserMore from '@app/components/icons/user-more';
 import DashboardLayout from '@app/components/sidebar/dashboard-layout';
@@ -37,8 +37,7 @@ export default function Responders({ workspace }: any) {
         <DashboardLayout>
             <NextSeo title={t(formConstant.responders) + '| ' + workspaceName} noindex={true} nofollow={true} />
             <div className="flex flex-col">
-                <div className="h4">{t(formConstant.responders)}</div>
-                <ParamTab className="my-[30px]  pb-0" tabMenu={paramTabs}>
+                <ParamTab className="mb-[30px] py-0" tabMenu={paramTabs}>
                     <TabPanel className="focus:outline-none" key="All Responders">
                         <WorkspaceResponses workspace={workspace} />
                     </TabPanel>

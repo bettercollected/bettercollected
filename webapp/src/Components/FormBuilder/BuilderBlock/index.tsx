@@ -95,7 +95,7 @@ export default function FormBuilderBlock({ item, draggableId, setBackspaceCount 
 
     const isMobile = useIsMobile();
     const getMarginTop = () => {
-        if (item.type === FormBuilderTagNames.LAYOUT_LABEL) return 'mt-3';
+        if (item.type === FormBuilderTagNames.LAYOUT_LABEL || item.type === FormBuilderTagNames.CONDITIONAL) return 'mt-3';
         if (item.type === FormBuilderTagNames.LAYOUT_HEADER1 || item.type === FormBuilderTagNames.LAYOUT_HEADER2 || item.type === FormBuilderTagNames.LAYOUT_HEADER3 || item.type === FormBuilderTagNames.LAYOUT_HEADER4) return 'mt-3';
         return '';
     };

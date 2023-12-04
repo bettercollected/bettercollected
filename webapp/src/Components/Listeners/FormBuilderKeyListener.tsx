@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect } from 'react';
 
+import { uuidv4 } from '@mswjs/interceptors/lib/utils/uuid';
 import { batch } from 'react-redux';
 import { toast } from 'react-toastify';
 import { v4 } from 'uuid';
@@ -9,7 +10,7 @@ import { useFullScreenModal } from '@app/components/modal-views/full-screen-moda
 import useFormBuilderState from '@app/containers/form-builder/context';
 import eventBus from '@app/lib/event-bus';
 import EventBusEventType from '@app/models/enums/eventBusEnum';
-import { FormBuilderTagNames, NonInputFormBuilderTagNames } from '@app/models/enums/formBuilder';
+import { FormBuilderTagNames, LabelFormBuilderTagNames, NonInputFormBuilderTagNames } from '@app/models/enums/formBuilder';
 import { addDuplicateField, resetBuilderMenuState, setAddNewField, setBuilderState, setDeleteField } from '@app/store/form-builder/actions';
 import { selectBuilderState } from '@app/store/form-builder/selectors';
 import { IBuilderState, IFormFieldState } from '@app/store/form-builder/types';
@@ -56,7 +57,7 @@ export default function FormBuilderKeyListener({ children }: React.PropsWithChil
 
                 if (event.key === 'Escape') {
                     dispatch(resetBuilderMenuState());
-                } else if (builderState.menus?.commands?.isOpen || fullScreenModal.isOpen || modal.isOpen || builderState.menus?.spotlightField?.isOpen) {
+                } else if (builderState.menus?.commands?.isOpen || fullScreenModal.isOpen || modal.isOpen || builderState.menus?.spotlightField?.isOpen || builderState?.menus?.pipingFields?.isOpen || builderState?.menus?.pipingFieldSettings?.isOpen) {
                     return;
                 } else if (event.key === 'Enter' && !event.shiftKey && builderState.activeFieldIndex >= -1) {
                     event.preventDefault();
@@ -79,7 +80,10 @@ export default function FormBuilderKeyListener({ children }: React.PropsWithChil
                     focusPreviousField();
                 } else if (event.code === 'Slash' && builderState.activeFieldIndex >= 0 && !event.shiftKey && builderState.fields[builderState.activeFieldId]?.type === FormBuilderTagNames.LAYOUT_SHORT_TEXT) {
                     eventBus.emit(EventBusEventType.FormBuilder.OpenTagSelector, event);
+                } else if (event.key === '@' && builderState.activeFieldIndex >= 0 && LabelFormBuilderTagNames.includes(builderState.fields[builderState.activeFieldId]?.type)) {
+                    eventBus.emit(EventBusEventType.FormBuilder.OpenFieldSelector, event);
                 } else if (event.key === 'Backspace' && (!event.metaKey || !event.ctrlKey) && builderState.activeFieldIndex >= 0) {
+                    if (builderState.fields[builderState.activeFieldId].type === FormBuilderTagNames.CONDITIONAL) return;
                     if (backspaceCount === 1) {
                         event.preventDefault();
                         asyncDispatch(setDeleteField(fieldId)).then(() => setBackspaceCount(0));
@@ -104,8 +108,8 @@ export default function FormBuilderKeyListener({ children }: React.PropsWithChil
                     } else {
                         const formField = builderState.fields[fieldId];
                         const newField: IFormFieldState = { ...formField };
-                        newField.id = v4();
-                        newField.position = builderState.activeFieldIndex + 1;
+                        newField.id = uuidv4();
+                        newField.position = builderState.activeFieldIndex;
                         dispatch(addDuplicateField(newField));
                         dispatch(setBuilderState({ isFormDirty: true }));
                     }

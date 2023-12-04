@@ -2,7 +2,7 @@ import React from 'react';
 
 import { useTranslation } from 'next-i18next';
 
-import Plus from '@Components/Common/Icons/Plus';
+import Plus from '@Components/Common/Icons/Common/Plus';
 import AppButton from '@Components/Common/Input/Button/AppButton';
 import { ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
 
@@ -20,7 +20,6 @@ import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { useGetAllRespondersGroupQuery } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
-
 
 export default function FormGroups() {
     const { t } = useTranslation();

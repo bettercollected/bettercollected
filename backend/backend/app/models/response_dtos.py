@@ -1,5 +1,11 @@
 from typing import Optional, Dict, List
 
+from common.models.standard_form import (
+    StandardForm,
+    StandardFormFieldType,
+    FormBuilderTagTypes,
+    StandardFieldAttachment, Condition, ConditionalActions, LogicalOperator,
+)
 from fastapi import UploadFile
 from fastapi_camelcase import CamelModel
 from pydantic import BaseModel
@@ -9,12 +15,6 @@ from backend.app.models.workspace import WorkspaceFormSettings
 from backend.app.schemas.standard_form_response import (
     DeletionRequestStatus,
     FormResponseDocument,
-)
-from common.models.standard_form import (
-    StandardForm,
-    StandardFormFieldType,
-    FormBuilderTagTypes,
-    StandardFieldAttachment,
 )
 
 
@@ -48,6 +48,14 @@ class StandardFieldValidationsCamelModal(CamelModel):
     regex: Optional[str]
 
 
+class ConditionCamelModel(Condition, CamelModel):
+    pass
+
+
+class ConditionalActionsCamelModel(ConditionalActions, CamelModel):
+    pass
+
+
 class StandardFieldPropertyCamelModel(CamelModel):
     hidden: Optional[bool]
     description: Optional[str]
@@ -63,7 +71,11 @@ class StandardFieldPropertyCamelModel(CamelModel):
     rating_shape: Optional[str]
     labels: Optional[Dict[str, str]]
     date_format: Optional[str]
-    updateId: Optional[str]
+    update_id: Optional[str]
+    actions: Optional[List[ConditionalActionsCamelModel]]
+    conditions: Optional[List[ConditionCamelModel]]
+    logical_operator: Optional[LogicalOperator]
+    mentions: Optional[Dict[str, str]]
 
 
 class StandardFormFieldCamelModel(CamelModel):

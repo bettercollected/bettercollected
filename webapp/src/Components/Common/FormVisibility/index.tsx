@@ -2,11 +2,10 @@ import React from 'react';
 
 import { useTranslation } from 'next-i18next';
 
-import PrivateIcon from '@Components/Common/Icons/Private';
-import PublicIcon from '@Components/Common/Icons/Public';
+import PrivateIcon from '@Components/Common/Icons/Form/Private';
+import PublicIcon from '@Components/Common/Icons/Form/Public';
 
 import { localesCommon } from '@app/constants/locales/common';
-
 
 interface IFormVisibilityProps {
     isPrivate: boolean;

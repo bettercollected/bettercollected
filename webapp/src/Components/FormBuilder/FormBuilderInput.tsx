@@ -16,6 +16,7 @@ const FormBuilderInput = forwardRef<HTMLDivElement, TextFieldProps>((props, ref)
             inputMode={inputMode || 'text'}
             inputProps={
                 inputProps || {
+                    className: 'placeholder-transparent focus:placeholder-black',
                     style: {
                         paddingTop: 0,
                         paddingBottom: 0,

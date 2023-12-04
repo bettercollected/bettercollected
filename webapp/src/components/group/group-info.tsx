@@ -11,7 +11,6 @@ import { GroupInfoDto } from '@app/models/dtos/groups';
 import { selectIsAdmin } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 
-
 interface IGroupInfoProps {
     handleInput: (e: any) => void;
     groupInfo: GroupInfoDto;
@@ -22,14 +21,14 @@ export default function GroupInfo({ handleInput, groupInfo }: IGroupInfoProps) {
     const isAdmin = useAppSelector(selectIsAdmin);
     return (
         <div>
-            <p className="body1">{t(groupConstant.basicInformation)}</p>
-            <p className="body4 mt-4 leading-none mb-2">
+            {/*<p className="body1">{t(groupConstant.basicInformation)}</p>*/}
+            <p className="h4-new !font-medium leading-none mb-2">
                 {t(groupConstant.name)}
                 <span className="text-red-800">*</span>
             </p>
-            <AppTextField disabled={!isAdmin} value={groupInfo.name}  id="name" placeholder={t(placeHolder.groupName)} onChange={handleInput} />
-            <p className="body4 leading-none mt-6 mb-2">{t(localesCommon.description)}</p>
-            <AppTextField disabled={!isAdmin} value={groupInfo.description}  id="description" placeholder={t(placeHolder.description)}  multiline onChange={handleInput} />
+            <AppTextField disabled={!isAdmin} value={groupInfo.name} id="name" placeholder={t(placeHolder.groupName)} onChange={handleInput} />
+            <p className="h4-new leading-none mt-8 !font-medium mb-2">{t(localesCommon.description)}</p>
+            <AppTextField disabled={!isAdmin} value={groupInfo.description} id="description" placeholder={t(placeHolder.description)} multiline rows={5} onChange={handleInput} />
         </div>
     );
 }

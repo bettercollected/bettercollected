@@ -63,7 +63,7 @@ export default function WorkspaceResponses({ workspace }: { workspace: Workspace
         </Tooltip>
     );
     const ShowResponderGroups = (email: string) => (
-        <div className="flex flex-col gap-1">
+        <div className="flex flex-row flex-wrap gap-1">
             {responderGroupsQuery.data?.map((group: ResponderGroupDto) => {
                 if (group.emails?.includes(email))
                     return (
@@ -174,11 +174,16 @@ export default function WorkspaceResponses({ workspace }: { workspace: Workspace
     }
     return (
         <>
-            <p>
-                {t(workspaceConstant.allResponders)} {data && ' (' + data.total + ')'}{' '}
-            </p>
-            <div className="w-full md:w-[282px] mt-6">
-                <SearchInput handleSearch={handleSearch} />
+            <div className="flex flex-col md:flex-row items-start gap-6 justify-between">
+                <div>
+                    <p className="h3-new font-semibold">
+                        {t(workspaceConstant.allResponders)} {data && ' (' + data.total + ')'}{' '}
+                    </p>
+                    <div className="p2-new text-black-700 max-w-[400px] mt-2">Below, you will find a list of responders who have filled forms of your workspace.</div>
+                </div>
+                <div className="w-full md:w-[282px]">
+                    <SearchInput handleSearch={handleSearch} />
+                </div>
             </div>
             {Response()}
         </>

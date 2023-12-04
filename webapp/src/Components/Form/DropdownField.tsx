@@ -18,6 +18,8 @@ export default function DropdownField({ field, ans, enabled }: FormFieldProps) {
         dispatch(addAnswer(answer));
     };
 
+    const checkValue = ans?.choice?.value && !(ans?.choice.value || '').match('^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$');
+
     return (
         <div className="relative w-fit">
             {field?.validations?.required && <FieldRequired className=" -right-5" />}
@@ -44,7 +46,7 @@ export default function DropdownField({ field, ans, enabled }: FormFieldProps) {
                 className="w-fit min-w-[167px] !rounded-md !border-gray-600 !mb-0 text-black-900 !bg-white"
             >
                 {field?.properties?.choices?.map((choice: any, index: number) => (
-                    <MenuItem key={choice.id} value={choice?.value} className="relative">
+                    <MenuItem key={choice.id} value={checkValue ? choice?.value : choice?.id} className="relative">
                         {choice.value}
                     </MenuItem>
                 ))}

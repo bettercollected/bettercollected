@@ -4,9 +4,9 @@ import { useTranslation } from 'next-i18next';
 import Image from 'next/image';
 import { useRouter } from 'next/router';
 
-import EditIcon from '@Components/Common/Icons/Edit';
-import EllipsisOption from '@Components/Common/Icons/EllipsisOption';
-import SettingsIcon from '@Components/Common/Icons/Settings';
+import EditIcon from '@Components/Common/Icons/Common/Edit';
+import EllipsisOption from '@Components/Common/Icons/Common/EllipsisOption';
+import SettingsIcon from '@Components/Common/Icons/Common/Settings';
 import MenuDropdown from '@Components/Common/Navigation/MenuDropdown/MenuDropdown';
 import { CircularProgress, ListItemIcon, MenuItem } from '@mui/material';
 

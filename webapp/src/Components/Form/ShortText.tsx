@@ -1,5 +1,6 @@
 import React, { ChangeEvent, useEffect } from 'react';
 
+import AppTextField from '@Components/Common/Input/AppTextField';
 import { FieldRequired } from '@Components/UI/FieldRequired';
 import { useDispatch } from 'react-redux';
 
@@ -80,7 +81,7 @@ export default function ShortText({ ans, enabled, field, helperText }: IShortTex
 
     return (
         <div className="relative">
-            <FormInputField
+            <AppTextField
                 style={{
                     margin: '0px !important'
                 }}
@@ -91,7 +92,7 @@ export default function ShortText({ ans, enabled, field, helperText }: IShortTex
                 }}
                 type={getInputType()}
                 value={ans?.text || ans?.email || ans?.number || ans?.boolean || ans?.url || ans?.file_url || ans?.payment?.name || ans?.date || ans?.phone_number}
-                placeholder={field?.properties?.placeholder}
+                placeholder={field?.properties?.placeholder || ' '}
                 disabled={!enabled}
                 helperText={helperText && helperText}
                 InputLabelProps={{ shrink: true }}

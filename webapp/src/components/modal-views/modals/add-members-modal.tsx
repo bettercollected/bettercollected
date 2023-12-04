@@ -2,10 +2,12 @@ import { useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
 
+import PlusIcon from '@Components/Common/Icons/Common/Plus';
 import AppTextField from '@Components/Common/Input/AppTextField';
 import AppButton from '@Components/Common/Input/Button/AppButton';
-import { ButtonSize } from '@Components/Common/Input/Button/AppButtonProps';
+import { ButtonSize, ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
 import ModalButton from '@Components/Common/Input/Button/ModalButton';
+import HeaderModalWrapper from '@Components/Modals/HeaderModalWrapper';
 import cn from 'classnames';
 import { toast } from 'react-toastify';
 
@@ -22,6 +24,7 @@ interface IAddMemberModalProps {
     handleAddMembers: (members: Array<string>) => void;
     group?: ResponderGroupDto;
 }
+
 export default function AddMembersModal({ handleAddMembers, group }: IAddMemberModalProps) {
     const { t } = useTranslation();
     const { closeModal } = useModal();
@@ -43,43 +46,40 @@ export default function AddMembersModal({ handleAddMembers, group }: IAddMemberM
         setEmail('');
     };
     return (
-        <div className=" p-6 relative bg-white rounded-[8px] ">
-            <Close onClick={closeModal} className="absolute top-2 right-2 cursor-pointer p-2 h-8 w-8" />
-            <div className="sh1 !leading-none">{t(groupConstant.addMembers.default)}</div>
-            <div className="body4 pt-6 !leading-none ">{t(groupConstant.addMembers.description)}</div>
-            <form onSubmit={addEmail} className="flex gap-2 mt-4">
-                <div className="    ">
-                    <AppTextField value={email} type="email" id="email" placeholder={t(placeHolder.memberEmail)} onChange={handleInput} />
-                </div>
-                <AppButton size={ButtonSize.Medium} disabled={!email} className={cn('font-semibold !px-6', !email && 'opacity-30')}>
-                    {t(buttonConstant.add)}
-                </AppButton>
-            </form>
-            {emails.length !== 0 && (
-                <>
-                    <p className="mt-2 leading-none mb-4 body5">{t(groupConstant.addedMembers)}</p>
-                    <div className="items-center  w-full p-3 bg-white   gap-4 flex flex-wrap ">
-                        {emails.map((email) => {
-                            return (
-                                <div className="p-2 rounded flex items-center gap-2 leading-none bg-brand-200 border border-brand-300 body5 !text-brand-500" key={email}>
-                                    <span className="leading-none">{email}</span>
-                                    <Close
-                                        className="h-3 w-3 cursor-pointer"
-                                        onClick={() => {
-                                            setEmails(emails.filter((item) => item !== email));
-                                        }}
-                                    />
-                                </div>
-                            );
-                        })}
+        <HeaderModalWrapper headerTitle={t('GROUP.ADD_MEMBERS.DEFAULT')}>
+            <div className=" ">
+                <div className="h4-new">{t('EMAIL_ADDRESS')}</div>
+                <form onSubmit={addEmail} className="flex gap-2 mt-2">
+                    <div className="    ">
+                        <AppTextField value={email} type="email" id="email" placeholder={t(placeHolder.memberEmail)} onChange={handleInput} />
                     </div>
-                </>
-            )}
-            <div className="flex w-full mt-8 justify-end">
-                <ModalButton buttonType={'Modal'} onClick={() => handleAddMembers(emails)} size={ButtonSize.Medium} disabled={emails.length === 0} type="submit">
-                    {t(buttonConstant.addMembers)}
-                </ModalButton>
+                    <AppButton size={ButtonSize.Medium} variant={ButtonVariant.Ghost} icon={<PlusIcon width={24} height={24} />} disabled={!email} className={cn('font-semibold', !email && 'opacity-30')}></AppButton>
+                </form>
+                {emails.length !== 0 && (
+                    <>
+                        <div className="items-center  w-full mt-6 flex md:max-w-[660px] max-w-full flex-wrap gap-4 ">
+                            {emails.map((email) => {
+                                return (
+                                    <div className="p-2 rounded flex items-center gap-2 leading-none bg-brand-200 border border-brand-300 body5 !text-brand-500" key={email}>
+                                        <span className="leading-none">{email}</span>
+                                        <Close
+                                            className="h-3 w-3 cursor-pointer"
+                                            onClick={() => {
+                                                setEmails(emails.filter((item) => item !== email));
+                                            }}
+                                        />
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </>
+                )}
+                <div className="flex w-full mt-8 justify-end">
+                    <ModalButton buttonType={'Modal'} onClick={() => handleAddMembers(emails)} size={ButtonSize.Medium} disabled={emails.length === 0} type="submit">
+                        {t(buttonConstant.addMembers)}
+                    </ModalButton>
+                </div>
             </div>
-        </div>
+        </HeaderModalWrapper>
     );
 }

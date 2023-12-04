@@ -15,9 +15,8 @@ import { setWorkspace } from '@app/store/workspaces/slice';
 
 import AuthAccountProfileImage from '../auth/account-profile-image';
 
-
 export default function ProfileImageComponent(props: BannerImageComponentPropType) {
-    const { workspace, isFormCreator } = props;
+    const { workspace, isFormCreator, size } = props;
     const { t } = useTranslation();
     const [uploadImage, setUploadImage] = useState(workspace.profileImage);
     const profileInputRef = useRef<HTMLInputElement>(null);
@@ -75,7 +74,7 @@ export default function ProfileImageComponent(props: BannerImageComponentPropTyp
                     }}
                     className={`w-min ${isFormCreator ? 'cursor-pointer' : ''} `}
                 >
-                    <AuthAccountProfileImage image={uploadImage} name={workspace.title} size={143} typography="h1" />
+                    <AuthAccountProfileImage image={uploadImage} name={workspace.title} size={size ? size : 163} typography="h2" />
                     <input data-testid="file-upload-profile" type="file" accept="image/*" ref={profileInputRef} className="hidden" onChange={onUploadFileChange} />
                 </div>
             </>

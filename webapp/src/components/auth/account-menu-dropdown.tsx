@@ -5,10 +5,10 @@ import { useTranslation } from 'next-i18next';
 import _ from 'lodash';
 
 import Divider from '@Components/Common/DataDisplay/Divider';
-import Billing from '@Components/Common/Icons/Billing';
-import DashboardIcon from '@Components/Common/Icons/Dashboard';
-import Logout from '@Components/Common/Icons/Logout';
-import SettingsIcon from '@Components/Common/Icons/Settings';
+import SettingsIcon from '@Components/Common/Icons/Common/Settings';
+import Billing from '@Components/Common/Icons/Dashboard/Billing';
+import DashboardIcon from '@Components/Common/Icons/Dashboard/Dashboard';
+import Logout from '@Components/Common/Icons/Dashboard/Logout';
 import MenuDropdown from '@Components/Common/Navigation/MenuDropdown/MenuDropdown';
 import WorkspaceAdminSelector from '@Components/HOCs/WorkspaceAdminSelector';
 import { ListItem, ListItemIcon, ListItemText, MenuItem } from '@mui/material';
@@ -23,7 +23,6 @@ import { UserStatus } from '@app/models/dtos/UserStatus';
 import { selectAuth, selectIsAdmin } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
-
 
 interface IAuthAccountMenuDropdownProps {
     isClientDomain?: boolean;

@@ -6,10 +6,10 @@ import dynamic from 'next/dynamic';
 import { useRouter } from 'next/router';
 
 import Divider from '@Components/Common/DataDisplay/Divider';
-import EditIcon from '@Components/Common/Icons/Edit';
-import FormProviderIcon from '@Components/Common/Icons/FormProviderIcon';
-import Preview from '@Components/Common/Icons/Preview';
-import SettingsIcon from '@Components/Common/Icons/Settings';
+import EditIcon from '@Components/Common/Icons/Common/Edit';
+import SettingsIcon from '@Components/Common/Icons/Common/Settings';
+import FormProviderIcon from '@Components/Common/Icons/Form/FormProviderIcon';
+import Preview from '@Components/Common/Icons/Form/Preview';
 import AppButton from '@Components/Common/Input/Button/AppButton';
 import { ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
 import { Group, Share } from '@mui/icons-material';
@@ -53,6 +53,7 @@ export default function FormPage(props: any) {
     const router = useRouter();
     const { openModal } = useModal();
     const workspace = useAppSelector(selectWorkspace);
+    const workspaceForm = useAppSelector(selectForm);
     const paramTabs = [
         {
             icon: <Preview className="h-5 w-5" />,
@@ -98,7 +99,7 @@ export default function FormPage(props: any) {
             ...[
                 {
                     icon: <HistoryIcon className="h-5 w-5" />,
-                    title: t(formConstant.responses) + ' (' + form.responses + ')',
+                    title: t(formConstant.responders) + ' (' + form.responses + ')',
                     path: 'Responses'
                 },
                 {
@@ -158,7 +159,7 @@ export default function FormPage(props: any) {
                                         className="!px-0 sm:!px-5"
                                         onClick={() =>
                                             openModal('SHARE_VIEW', {
-                                                url: getFormUrl(form, workspace),
+                                                url: getFormUrl(workspaceForm, workspace),
                                                 title: t(formConstant.shareThisForm)
                                             })
                                         }

@@ -12,9 +12,10 @@ export enum KeyType {
 }
 
 export enum BlockTypes {
-    INPUT_BLOCKS = 'Elements',
-    LAYOUT_BLOCKS = 'Layout Blocks',
-    QUESTION_INPUT_BLOCKS = 'Elements with Label'
+    INPUT_BLOCKS = 'Without Label',
+    LAYOUT_BLOCKS = 'Headings',
+    QUESTION_INPUT_BLOCKS = 'With Label',
+    CONDITIONAL = 'Advanced Fields'
 }
 
 export enum FormBuilderTagNames {
@@ -49,6 +50,8 @@ export enum FormBuilderTagNames {
     INPUT_RANKING = 'input_ranking',
     INPUT_MATRIX = 'input_matrix',
     INPUT_MEDIA = 'input_file_upload',
+
+    CONDITIONAL = 'conditional',
 
     EMBED_IMAGE = 'embed_image',
     EMBED_VIDEO = 'embed_video',
@@ -97,5 +100,8 @@ export const NonInputFormBuilderTagNames = [
     FormBuilderTagNames.EMBED_AUDIO,
     FormBuilderTagNames.EMBED_ANYTHING,
     FormBuilderTagNames.EMBED_CODE,
-    FormBuilderTagNames.EMBED_RECAPTCHA
+    FormBuilderTagNames.EMBED_RECAPTCHA,
+    FormBuilderTagNames.CONDITIONAL
 ];
+
+export const LabelFormBuilderTagNames = [FormBuilderTagNames.LAYOUT_LABEL, FormBuilderTagNames.LAYOUT_HEADER3, FormBuilderTagNames.LAYOUT_HEADER4, FormBuilderTagNames.LAYOUT_HEADER2, FormBuilderTagNames.LAYOUT_HEADER1];

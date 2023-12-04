@@ -20,9 +20,8 @@ import { useAppDispatch } from '@app/store/hooks';
 import { usePatchExistingWorkspaceMutation } from '@app/store/workspaces/api';
 import { setWorkspace } from '@app/store/workspaces/slice';
 
-
 export default function BannerImageComponent(props: BannerImageComponentPropType) {
-    const { workspace, isFormCreator } = props;
+    const { workspace, isFormCreator, className } = props;
     const transformComponentRef = useRef(null);
     const [patchExistingWorkspace, { isLoading }] = usePatchExistingWorkspaceMutation();
     const [image, setImage] = useState('');
@@ -74,7 +73,7 @@ export default function BannerImageComponent(props: BannerImageComponentPropType
     };
 
     return (
-        <div className={cn('relative w-full bannerdiv aspect-banner-mobile lg:aspect-banner-desktop')}>
+        <div className={cn('relative w-full bannerdiv aspect-banner-mobile lg:aspect-banner-desktop', className)}>
             {!!image ? (
                 <TransformWrapper centerOnInit ref={transformComponentRef}>
                     {({ resetTransform }) => {
@@ -132,7 +131,7 @@ function UpdateImageOptions({ getUpdateOptionsClassName, isLoading, onClickFileU
             <div className="flex justify-between">
                 {!isLoading && !image && <AppButton onClick={onClickFileUploadButton}>{t(buttonConstant.update)}</AppButton>}
                 {!isLoading && image && (
-                    <AppButton className="!text-white flex !bg-black-600 hover:!bg-black-700 mr-2"  onClick={onCLickCancelButton}>
+                    <AppButton className="!text-white flex !bg-black-600 hover:!bg-black-700 mr-2" onClick={onCLickCancelButton}>
                         {t(buttonConstant.cancel)}
                     </AppButton>
                 )}

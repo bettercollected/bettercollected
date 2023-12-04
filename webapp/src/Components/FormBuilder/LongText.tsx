@@ -1,3 +1,4 @@
+import AppTextField from '@Components/Common/Input/AppTextField';
 import FormBuilderInput from '@Components/FormBuilder/FormBuilderInput';
 import { FieldRequired } from '@Components/UI/FieldRequired';
 import { Notes } from '@mui/icons-material';
@@ -25,7 +26,7 @@ export default function LongText({ field, id, position }: { field: IFormFieldSta
     return (
         <div className="relative w-full h-full">
             {field?.validations?.required && <FieldRequired className="top-0.5 right-1" />}
-            <FormBuilderInput
+            <AppTextField
                 multiline
                 autoFocus={false}
                 id={id}
@@ -35,12 +36,10 @@ export default function LongText({ field, id, position }: { field: IFormFieldSta
                 inputMode="text"
                 minRows={10}
                 maxRows={20}
+                isPlaceholder
                 InputProps={{
                     endAdornment: <Notes />,
                     sx: {
-                        // '& .css-3fezr7-MuiInputBase-root-MuiOutlinedInput-root': {
-                        //     padding: '4px 8px 4px 8px'
-                        // },
                         fontSize: '.875rem;',
                         alignItems: 'flex-start'
                     }

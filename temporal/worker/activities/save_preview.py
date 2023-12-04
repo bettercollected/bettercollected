@@ -1,43 +1,26 @@
-
 from temporalio import activity, workflow
 from temporalio.exceptions import FailureError
 
-from models.SavePreviewParams import SavePreviewParams
-from settings.application import settings
+from models.save_preview_params import SavePreviewParams
 
 with workflow.unsafe.imports_passed_through():
-    from selenium import webdriver
-    import requests
-    from configs.crypto import crypto
-    from io import BytesIO
-    from models.user_tokens import UserTokens
-    import json
-    from asyncio import sleep
+    import asyncio
+    from settings.application import settings
+    from wrappers.APMWrapper import APMAsyncHttpClient
+    from wrappers.thread_pool_executor import thread_pool_executor
+    from activities.get_preview_image import get_preview_image
 
 
 @activity.defn(name="save_preview")
 async def save_preview(save_preview_params: SavePreviewParams):
-    options = webdriver.ChromeOptions()
-    options.add_argument("--headless")
-    options.add_argument("--disable-gpu")
-    options.add_argument("--no-sandbox")
-    driver = webdriver.Chrome(options=options)
-    driver.set_window_size(640, 620)
-    decrypted_token = crypto.decrypt(save_preview_params.token)
-    user_token = UserTokens(**json.loads(decrypted_token))
-    auth_cookie = {"name": "Authorization", "value": user_token.access_token, "domain": settings.cookie_domain}
-    driver.get(save_preview_params.template_url)
-    driver.add_cookie(auth_cookie)
-    driver.refresh()
-    await sleep(20)
+    async with APMAsyncHttpClient("save_preview") as client:
+        get_image_task = asyncio.get_event_loop().run_in_executor(thread_pool_executor, get_preview_image,
+                                                                  save_preview_params)
+        image_file = await get_image_task
+        headers = {"api-key": settings.api_key}
+        url = settings.server_url + f"/template/{save_preview_params.template_id}/preview"
+        files = {"preview_image": ("preview_image.png", image_file, "image/png")}
+        response = await client.patch(url, files=files, headers=headers, timeout=60)
 
-    screenshot = driver.get_screenshot_as_png()
-    driver.close()
-    image_file = BytesIO(screenshot)
-    headers = {"api-key": settings.api_key}
-    url = settings.server_url + f"/template/{save_preview_params.template_id}/preview"
-    files = {"preview_image": ("preview_image.png", image_file, "image/png")}
-    response = requests.patch(url, files=files, headers=headers)
-
-    if response.status_code != 200:
-        raise FailureError("Preview Image Patch not successful")
+        if response.status_code != 200:
+            raise FailureError("Preview Image Patch not successful")

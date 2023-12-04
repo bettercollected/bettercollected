@@ -14,6 +14,7 @@ import { Check } from '@app/components/icons/check';
 import { Plus } from '@app/components/icons/plus';
 import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
 import Loader from '@app/components/ui/loader';
+import environments from '@app/configs/environments';
 import dashboardConstants from '@app/constants/locales/dashboard';
 import { Features } from '@app/constants/locales/feature';
 import { menuDropdown } from '@app/constants/locales/menu-dropdown';
@@ -25,7 +26,6 @@ import { useGetAllMineWorkspacesQuery } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { generateRandomBgColor } from '@app/utils/backgroundColors';
 import { toEndDottedStr, trimTooltipTitle } from '@app/utils/stringUtils';
-
 
 interface IWorkspaceMenuDropdownProps {
     fullWidth?: boolean;
@@ -73,7 +73,7 @@ function WorkspaceMenuDropdown({ fullWidth }: IWorkspaceMenuDropdownProps) {
         const usersWorkspaces = data.filter((space: WorkspaceDto) => {
             return space.ownerId === auth?.id;
         });
-        return usersWorkspaces.length < 3;
+        return usersWorkspaces.length < environments.MAX_WORKSPACES;
     };
 
     const getWorkspaceRole = (space: WorkspaceDto) => {

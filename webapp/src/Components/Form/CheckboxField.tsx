@@ -4,7 +4,7 @@ import { FormFieldProps } from '@Components/Form/BetterCollectedForm';
 import { FieldRequired } from '@Components/UI/FieldRequired';
 import Checkbox from '@mui/material/Checkbox';
 
-import { addAnswer, selectAnswer } from '@app/store/fill-form/slice';
+import { addAnswer, deleteAnswer, selectAnswer } from '@app/store/fill-form/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 
 export default function CheckboxField({ field, ans, enabled }: FormFieldProps) {
@@ -15,14 +15,18 @@ export default function CheckboxField({ field, ans, enabled }: FormFieldProps) {
     const handleSelectChoice = (choice: any) => {
         const answer: any = {};
         answer.field = { id: field.id };
-        if (answerChoices?.includes(choice?.value)) {
+        if (answerChoices?.includes(choice?.id)) {
             const tempAnswers = [...answerChoices];
-            tempAnswers.splice(answerChoices?.indexOf(choice?.value), 1);
+            tempAnswers.splice(answerChoices?.indexOf(choice?.id), 1);
+            if (tempAnswers.length === 0) {
+                dispatch(deleteAnswer(answer));
+                return;
+            }
             answer.choices = {
                 values: [...tempAnswers]
             };
         } else {
-            answer.choices = { values: [...(answerChoices || []), choice?.value] };
+            answer.choices = { values: [...(answerChoices || []), choice?.id] };
         }
         dispatch(addAnswer(answer));
     };
@@ -38,11 +42,11 @@ export default function CheckboxField({ field, ans, enabled }: FormFieldProps) {
                                 color: '#4D4D4D'
                             }
                         }}
-                        id={choice?.value}
+                        id={choice?.id}
                         className="!p-0"
                         size="medium"
                         disabled={!enabled}
-                        checked={!!ans?.choices?.values?.includes(choice?.value) || !!answerChoices?.includes(choice?.value)}
+                        checked={!!ans?.choices?.values?.includes(choice?.id) || !!answerChoices?.includes(choice?.id) || !!ans?.choices?.values?.includes(choice?.value) || !!answerChoices?.includes(choice?.value)}
                         onClick={() => handleSelectChoice(choice)}
                     />
                     <label htmlFor={choice?.value} className="!ml-2 body4">

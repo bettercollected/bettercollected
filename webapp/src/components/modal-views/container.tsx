@@ -2,8 +2,13 @@ import { Fragment, useCallback, useEffect } from 'react';
 
 import { useRouter } from 'next/router';
 
+import Button from '@Components/Common/Input/Button';
+import UpdateCustomDomainModal from '@Components/Modals/DialogModals/UpdateCustomDomainModal';
+import UpdateWorkspaceHandle from '@Components/Modals/DialogModals/UpdateWorkspaceHandle';
+
 import ImportProviderForms from '@app/components/form-integrations/import-provider-forms';
 import DeleteFormModal from '@app/components/form/delete-form-modal';
+import { Close } from '@app/components/icons/close';
 import LogoutView from '@app/components/logout/logout-view';
 import { MODAL_VIEW, useModal } from '@app/components/modal-views/context';
 import CloseFormConfirmationModal from '@app/components/modal-views/modals/close-form-confirmation-modal';
@@ -19,7 +24,6 @@ import InviteMemberModal from '@app/components/modal-views/modals/invite-member-
 import MobileInsertMenu from '@app/components/modal-views/modals/mobile-insert-menu';
 import ReopenFormConfirmationModal from '@app/components/modal-views/modals/reopen-form-confirmation-modal';
 import ShareModalView from '@app/components/modal-views/modals/share-modal-view';
-import UpdateWorkspaceSettings from '@app/components/modal-views/modals/update-workspace-settings';
 import RequestForDeletionView from '@app/components/submission-request-for-deletion';
 import { Dialog } from '@app/components/ui/dialog';
 import { Transition } from '@app/components/ui/transition';
@@ -97,9 +101,9 @@ function renderModalContent(view: MODAL_VIEW, modalProps: any) {
         case 'SHARE_VIEW':
             return <ShareModalView {...modalProps} />; // Done
         case 'UPDATE_WORKSPACE_DOMAIN':
-            return <UpdateWorkspaceSettings updateDomain={true} {...modalProps} />;
+            return <UpdateCustomDomainModal />;
         case 'UPDATE_WORKSPACE_HANDLE':
-            return <UpdateWorkspaceSettings updateDomain={false} />;
+            return <UpdateWorkspaceHandle {...modalProps} />;
         case 'USER_DELETION':
             return <UserDeletionModal {...modalProps} />;
         case 'VISIBILITY_CONFIRMATION_MODAL_VIEW':
@@ -152,10 +156,9 @@ export default function ModalContainer() {
 
                 {/* This element is need to fix FocusTap headless-ui warning issue */}
                 <div className="sr-only">
-                    {/*<Button size="small" color="gray" shape="circle" onClick={closeModalHandler}*/}
-                    {/*        className="opacity-50 hover:opacity-80 ">*/}
-                    {/*    <Close className="h-auto w-[13px]"/>*/}
-                    {/*</Button>*/}
+                    <Button size="small" onClick={closeModalHandler} className="opacity-50 hover:opacity-80 ">
+                        <Close className="h-auto w-[13px]" />
+                    </Button>
                 </div>
 
                 <Transition.Child as={Fragment} enter="ease-out duration-300" enterFrom="opacity-0 scale-105" enterTo="opacity-100 scale-100" leave="ease-in duration-200" leaveFrom="opacity-100 scale-100" leaveTo="opacity-0 scale-105">
