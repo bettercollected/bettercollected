@@ -92,7 +92,7 @@ export default function ShortText({ ans, enabled, field, helperText }: IShortTex
                 }}
                 type={getInputType()}
                 value={ans?.text || ans?.email || ans?.number || ans?.boolean || ans?.url || ans?.file_url || ans?.payment?.name || ans?.date || ans?.phone_number}
-                placeholder={field?.properties?.placeholder}
+                placeholder={field?.properties?.placeholder || ' '}
                 disabled={!enabled}
                 helperText={helperText && helperText}
                 InputLabelProps={{ shrink: true }}
