@@ -36,7 +36,7 @@ export default function PhoneNumber({ ans, enabled, field }: IPhoneNumberProps) 
             inputProps={{ id: `input-${field.id}` }}
             inputStyle={{ WebkitTextFillColor: isTyping ? '' : '#AAAAAA' }}
             disabled={!enabled}
-            placeholder={field?.properties?.placeholder}
+            placeholder={field?.properties?.placeholder || ' '}
             value={ans?.phone_number}
             onChange={onChange}
         />
