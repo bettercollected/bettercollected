@@ -31,7 +31,8 @@ class ActionRouter(Routable):
     @post("", response_model=ActionResponse)
     async def create_action(self,
                             action: ActionDto, user: User = Depends(get_logged_admin)):
-        return await self.action_service.create_action(action=action, user=user)
+        action = await self.action_service.create_action(action=action, user=user)
+        return ActionResponse(**action.dict())
 
     @get("", response_model=List[ActionResponse])
     async def get_all_actions(self, user: User = Depends(get_logged_admin)):

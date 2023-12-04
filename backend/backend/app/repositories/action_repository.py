@@ -22,3 +22,6 @@ class ActionRepository:
 
     async def get_action_by_id(self, action_id: PydanticObjectId):
         return await ActionDocument.find_one(ActionDocument.id == action_id)
+
+    async def get_actions_by_ids(self, action_ids: List[PydanticObjectId]):
+        return await ActionDocument.find({"_id": {"$in": action_ids}}).to_list()

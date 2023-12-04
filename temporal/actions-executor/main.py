@@ -5,7 +5,9 @@ import string
 from temporalio.client import Client
 from temporalio.worker import Worker
 
+from activities.run_action_code import run_action_code
 from settings.application import settings
+from workflows.run_action_code import RunActionCode
 
 
 def get_random_string(length=20):
@@ -20,8 +22,8 @@ async def run_worker():
         client,
         identity=get_random_string(),
         task_queue=settings.worker_queue,
-        workflows=[],
-        activities=[],
+        workflows=[RunActionCode],
+        activities=[run_action_code],
     )
     response = await worker.run()
     print(response)

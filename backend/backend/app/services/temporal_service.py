@@ -2,6 +2,7 @@ import json
 from dataclasses import asdict
 from datetime import timedelta
 from http import HTTPStatus
+from typing import Any
 
 import loguru
 from beanie import PydanticObjectId
@@ -23,10 +24,13 @@ from temporalio.exceptions import WorkflowAlreadyStartedError
 from temporalio.service import RPCError
 
 from backend.app.exceptions import HTTPException
-from backend.app.models.dataclasses.DeleteResponseParams import DeleteResponseParams
-from backend.app.models.dataclasses.ImportFormParams import ImportFormParams
-from backend.app.models.dataclasses.SavePreviewParams import SavePreviewParams
+from backend.app.models.dataclasses.delete_response_params import DeleteResponseParams
+from backend.app.models.dataclasses.import_form_params import ImportFormParams
+from backend.app.models.dataclasses.run_action_code_params import RunActionCodeParams
+from backend.app.models.dataclasses.save_preview_params import SavePreviewParams
 from backend.app.models.dataclasses.user_tokens import UserTokens
+from backend.app.schemas.action_document import ActionDocument
+from backend.app.schemas.standard_form_response import FormResponseDocument
 from backend.app.utils.date_utils import get_formatted_date_from_str
 from backend.config import settings
 
@@ -36,23 +40,23 @@ class TemporalService:
         self.server_uri = server_uri
         self.namespace = namespace
         self.crypto = crypto
-        self.client = None
+        self.temporal_client = None
         if settings.schedular_settings.ENABLED:
             self.connect_to_temporal_server(server_uri=server_uri, namespace=namespace)
 
     def connect_to_temporal_server(self, server_uri: str, namespace: str):
         try:
-            self.client: Client = asyncio_run(
+            self.temporal_client: Client = asyncio_run(
                 Client.connect(server_uri, namespace=namespace)
             )
         except Exception as e:
-            self.client: Client = None
+            self.temporal_client: Client = None
             loguru.logger.error("Could not connect to Temporal server", e)
 
     async def check_temporal_client_and_try_to_connect_if_not_connected(self):
-        if not self.client:
+        if not self.temporal_client:
             self.connect_to_temporal_server(self.server_uri, self.namespace)
-            if not self.client:
+            if not self.temporal_client:
                 raise HTTPException(
                     status_code=HTTPStatus.SERVICE_UNAVAILABLE,
                     content="Cannot connect to temporal server",
@@ -62,7 +66,7 @@ class TemporalService:
         await self.check_temporal_client_and_try_to_connect_if_not_connected()
         try:
             encrypted_tokens = self.crypto.encrypt(json.dumps(asdict(user_tokens)))
-            await self.client.start_workflow(
+            await self.temporal_client.start_workflow(
                 "delete_user_workflow",
                 encrypted_tokens,
                 id="delete_user_" + user_id,
@@ -89,12 +93,12 @@ class TemporalService:
                                        template_url=f"{settings.api_settings.CLIENT_URL}/templates/" + str(
                                            template_id) + "/preview",
                                        token=encrypted_tokens)
-            await self.client.start_workflow("save_template_preview",
-                                             arg=params,
-                                             id="save_preview_image_" + str(template_id),
-                                             task_queue=settings.temporal_settings.worker_queue,
-                                             retry_policy=RetryPolicy(maximum_attempts=4)
-                                             )
+            await self.temporal_client.start_workflow("save_template_preview",
+                                                      arg=params,
+                                                      id="save_preview_image_" + str(template_id),
+                                                      task_queue=settings.temporal_settings.worker_queue,
+                                                      retry_policy=RetryPolicy(maximum_attempts=4)
+                                                      )
             return "Workflow Started"
         except WorkflowAlreadyStartedError as e:
             loguru.logger.info("Workflow has already started")
@@ -106,7 +110,7 @@ class TemporalService:
             return
         try:
             await self.check_temporal_client_and_try_to_connect_if_not_connected()
-            await self.client.create_schedule(
+            await self.temporal_client.create_schedule(
                 "import_" + str(workspace_id) + "_" + form_id,
                 schedule=Schedule(
                     action=ScheduleActionStartWorkflow(
@@ -144,7 +148,7 @@ class TemporalService:
         expiration_date = get_formatted_date_from_str(response.expiration)
         try:
             await self.check_temporal_client_and_try_to_connect_if_not_connected()
-            await self.client.create_schedule(
+            await self.temporal_client.create_schedule(
                 "delete_response_" + str(response.response_id),
                 schedule=Schedule(
                     action=ScheduleActionStartWorkflow(
@@ -179,7 +183,7 @@ class TemporalService:
         try:
             await self.check_temporal_client_and_try_to_connect_if_not_connected()
             schedule_id = "import_" + str(workspace_id) + "_" + form_id
-            schedule_handle = self.client.get_schedule_handle(schedule_id)
+            schedule_handle = self.temporal_client.get_schedule_handle(schedule_id)
             await schedule_handle.delete()
 
         except HTTPException:
@@ -196,7 +200,7 @@ class TemporalService:
         try:
             await self.check_temporal_client_and_try_to_connect_if_not_connected()
             schedule_id = "delete_response_" + response_id
-            schedule_handle = self.client.get_schedule_handle(schedule_id)
+            schedule_handle = self.temporal_client.get_schedule_handle(schedule_id)
             await schedule_handle.delete()
 
         except HTTPException:
@@ -221,7 +225,25 @@ class TemporalService:
     async def update_interval_of_schedule(
         self, workspace_id: PydanticObjectId, form_id: str, interval: timedelta
     ):
-        handle = self.client.get_schedule_handle(
+        handle = self.temporal_client.get_schedule_handle(
             "import_" + str(workspace_id) + "_" + form_id
         )
         await handle.update(updater=self.update_schedule_interval(interval=interval))
+
+    async def start_action_execution(self, action: ActionDocument, form: Any, response: FormResponseDocument):
+        if not settings.schedular_settings.ENABLED:
+            return
+        run_action_params = RunActionCodeParams(action_code=action.action_code)
+        try:
+            await self.check_temporal_client_and_try_to_connect_if_not_connected()
+            await self.temporal_client.start_workflow(
+                "run_action_code",
+                arg=run_action_params,
+                id="action_" + str(action.id) + str(form.form_id) + str(response.response_id),
+                task_queue=settings.temporal_settings.action_queue
+            )
+            return "Workflow Started"
+        except WorkflowAlreadyStartedError as e:
+            raise HTTPException(
+                status_code=HTTPStatus.CONFLICT, content="Workflow has already started."
+            )

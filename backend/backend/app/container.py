@@ -85,6 +85,10 @@ class AppContainer(containers.DeclarativeContainer):
 
     responder_groups_repository = providers.Singleton(ResponderGroupsRepository)
 
+    action_repository = providers.Singleton(
+        ActionRepository,
+    )
+
     # Services
     crypto = providers.Singleton(Crypto, settings.auth_settings.AES_HEX_KEY)
 
@@ -166,6 +170,12 @@ class AppContainer(containers.DeclarativeContainer):
         form_service=form_service,
     )
 
+    action_service = providers.Singleton(
+        ActionService,
+        action_repository=action_repository,
+        temporal_service=temporal_service
+    )
+
     workspace_form_service: WorkspaceFormService = providers.Singleton(
         WorkspaceFormService,
         form_provider_service=form_provider_service,
@@ -181,7 +191,9 @@ class AppContainer(containers.DeclarativeContainer):
         user_tags_service=user_tags_service,
         temporal_service=temporal_service,
         aws_service=aws_service,
+        action_service=action_service
     )
+
     workspace_service: WorkspaceService = providers.Singleton(
         WorkspaceService,
         http_client=http_client,
@@ -253,14 +265,7 @@ class AppContainer(containers.DeclarativeContainer):
         temporal_service=temporal_service
     )
 
-    action_repository = providers.Singleton(
-        ActionRepository,
-    )
 
-    action_service = providers.Singleton(
-        ActionService,
-        action_repository=action_repository
-    )
 
 
 container = AppContainer()
