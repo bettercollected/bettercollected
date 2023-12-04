@@ -1,5 +1,6 @@
 from typing import Optional
 
+from beanie import PydanticObjectId
 from black import List
 from fastapi_camelcase import CamelModel
 
@@ -10,3 +11,7 @@ class ActionDto(CamelModel):
     action_code: str
     parameters: Optional[List[ParameterValue]]
     name: str
+
+
+class ActionResponse(ActionDto, CamelModel):
+    id: PydanticObjectId

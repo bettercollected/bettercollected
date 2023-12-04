@@ -1,5 +1,6 @@
 from http import HTTPStatus
 
+from beanie import PydanticObjectId
 from common.constants import MESSAGE_FORBIDDEN
 from common.models.user import User
 
@@ -18,3 +19,9 @@ class ActionService:
         return await self.action_repository.create_action(name=action.name, action_code=action.action_code,
                                                           parameters=action.parameters,
                                                           user=user)
+
+    async def get_all_actions(self):
+        return await self.action_repository.get_all_actions()
+
+    async def get_action_by_id(self, action_id: PydanticObjectId):
+        return await self.action_repository.get_action_by_id(action_id)
