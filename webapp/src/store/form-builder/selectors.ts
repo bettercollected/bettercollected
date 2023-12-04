@@ -19,6 +19,7 @@ export const selectActiveChoiceIndex = (state: RootState) => state.builder.prese
 export const selectCoverImage = (state: RootState) => state.builder.present.coverImage;
 export const selectLogo = (state: RootState) => state.builder.present.logo;
 
+export const selectFields = (state: RootState) => state.builder.present.fields;
 export const selectResponseOwnerField = (state: RootState) => state.builder.present.settings?.responseDataOwnerField;
 
 export const selectPreviousField = (id: string) => (state: RootState) => {
@@ -26,3 +27,16 @@ export const selectPreviousField = (id: string) => (state: RootState) => {
     if (currentField.position == 0) return undefined;
     return Object.values(state.builder.present.fields)[currentField.position - 1];
 };
+
+export const selectNextField = (id: string) => (state: RootState) => {
+    const currentField = state.builder.present.fields[id];
+    const nextPosition = currentField.position + 1;
+
+    // Find the field with the next position
+    const nextField = Object.values(state.builder.present.fields).find((field) => field.position === nextPosition);
+
+    return nextField || undefined; // Return the next field or undefined if not found
+};
+
+// @ts-ignore
+export const selectMenuState = (menu: string) => (state: RootState) => state?.builder?.present?.menus[menu];

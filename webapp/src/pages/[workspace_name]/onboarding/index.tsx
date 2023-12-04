@@ -5,6 +5,7 @@ import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/router';
 
 import AppButton from '@Components/Common/Input/Button/AppButton';
+import { ButtonSize } from '@Components/Common/Input/Button/AppButtonProps';
 
 import AuthAccountProfileImage from '@app/components/auth/account-profile-image';
 import FullScreenLoader from '@app/components/ui/fullscreen-loader';
@@ -18,13 +19,6 @@ import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { selectAuth } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { usePatchExistingWorkspaceMutation } from '@app/store/workspaces/api';
-
-interface FormDataDto {
-    title: string;
-    description: string;
-    workspaceLogo: any;
-    workspaceName: string | null;
-}
 
 interface onBoardingProps {
     workspace?: WorkspaceDto;
@@ -56,12 +50,9 @@ export async function getServerSideProps(_context: GetServerSidePropsContext) {
 
 export default function Onboarding({ workspace, createWorkspace }: onBoardingProps) {
     const { t } = useTranslation();
-    const router = useRouter();
     const authStatus = useAppSelector(selectAuth);
     const user: UserStatus = !!authStatus ? authStatus : null;
     const [stepCount, setStepCount] = useState(createWorkspace ? 1 : 0);
-    const [patchExistingWorkspace, { isLoading, isSuccess }] = usePatchExistingWorkspaceMutation();
-    const workspaceName: string | null = (workspace?.workspaceName as string) === (workspace?.ownerId as string) ? null : (workspace?.workspaceName as string);
 
     const increaseStep = () => {
         setStepCount(stepCount + 1);
@@ -79,17 +70,14 @@ export default function Onboarding({ workspace, createWorkspace }: onBoardingPro
                     {t(localesCommon.hey)} {user?.firstName || user?.email}!
                 </p>
                 <p className="pt-2 text-black-800 text-base">{t(onBoarding.welcomeMessage)}</p>
-                {/* <p className="mt-4 paragraph text-center text-black-700 md:w-[320px] w-full">{t(onBoarding.description)}</p> */}
-                <AppButton className="mt-12 !py-3 px-8 bg-new-blue-500 hover:bg-brand-600" onClick={increaseStep}>
+                <AppButton className="mt-12 !py-3 px-8 bg-new-blue-500 hover:bg-brand-600" size={ButtonSize.Medium} onClick={increaseStep}>
                     {t(onBoarding.addYourOrganization)}
                 </AppButton>
-                {/* <p className="body2 !text-black-600 italic">{t(onBoarding.timeMessage)}</p> */}
             </div>
         </>
     );
     const StepOneContent = <OnboardingContainer workspace={workspace} createWorkspace={createWorkspace} />;
 
-    if (isSuccess) return <FullScreenLoader />;
     return (
         <div className="flex flex-col w-full min-w-0 bg-white h-screen items-center overflow-auto pb-20">
             {stepCount === 0 && StepZeroContent}

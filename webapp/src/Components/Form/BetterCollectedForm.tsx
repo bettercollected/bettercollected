@@ -9,6 +9,7 @@ import CheckboxField from '@Components/Form/CheckboxField';
 import DropdownField from '@Components/Form/DropdownField';
 import FieldValidations from '@Components/Form/FieldValidations';
 import FileUpload from '@Components/Form/FileUpload';
+import LayoutFields from '@Components/Form/LayoutFields';
 import LongText from '@Components/Form/LongText';
 import MultipleChoiceField from '@Components/Form/MultipleChoiceField';
 import PhoneNumber from '@Components/Form/PhoneNumber';
@@ -24,11 +25,12 @@ import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
 import { ConsentAnswerDto } from '@app/store/consent/types';
 import { resetFillForm, selectAnswers, selectFormResponderOwnerField, selectInvalidFields, setDataResponseOwnerField, setFillFormId, setInvalidFields } from '@app/store/fill-form/slice';
 import { FormValidationError } from '@app/store/fill-form/type';
+import { Condition } from '@app/store/form-builder/types';
 import { useAppAsyncDispatch, useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { useSubmitResponseMutation } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { contentEditableClassNames } from '@app/utils/formBuilderBlockUtils';
-import { validateFormFieldAnswer } from '@app/utils/validationUtils';
+import { validateConditionsAndReturnUpdatedForm, validateFormFieldAnswer } from '@app/utils/validationUtils';
 
 import useFormAtom from './atom';
 
@@ -38,7 +40,7 @@ export interface FormFieldProps {
     enabled?: boolean;
 }
 
-const renderFormField = (field: StandardFormFieldDto, enabled?: boolean, answer?: any) => {
+const renderFormField = (field: StandardFormFieldDto, enabled?: boolean, answer?: any, fields?: Array<StandardFormFieldDto>) => {
     switch (field?.type) {
         case FormBuilderTagNames.LAYOUT_SHORT_TEXT:
         case FormBuilderTagNames.LAYOUT_HEADER3:
@@ -46,7 +48,7 @@ const renderFormField = (field: StandardFormFieldDto, enabled?: boolean, answer?
         case FormBuilderTagNames.LAYOUT_HEADER4:
         case FormBuilderTagNames.LAYOUT_HEADER2:
         case FormBuilderTagNames.LAYOUT_LABEL:
-            return <div className={contentEditableClassNames(false, field?.type, enabled) + ' mt-6 '}>{field?.value}</div>;
+            return <LayoutFields field={field} enabled={!!enabled} fields={fields} />;
         case FormBuilderTagNames.LAYOUT_MARKDOWN:
             return <MarkdownText text={field.value ?? ''} />;
         case FormBuilderTagNames.INPUT_SHORT_TEXT:
@@ -100,7 +102,32 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
     const workspace = useAppSelector(selectWorkspace);
     const { files, resetFormFiles } = useFormAtom();
 
+    const [updatedForm, setUpdatedForm] = useState<StandardFormDto>(form);
+
     const [isFormSubmitted, setIsFormSubmitted] = useState(false);
+
+    const conditionalFields = form?.fields?.filter((field: StandardFormFieldDto) => field?.type == FormBuilderTagNames.CONDITIONAL);
+
+    const affectingFieldIds = Array.from(new Set(conditionalFields.flatMap((field) => field?.properties?.conditions.map((condition: Condition) => condition.field?.id)).filter((id) => id !== undefined)));
+
+    const updateFormWithActions = () => {
+        let formToUpdate: any = { ...form };
+        const updatedForm = validateConditionsAndReturnUpdatedForm(formToUpdate, answers, conditionalFields);
+        setUpdatedForm(updatedForm);
+    };
+
+    useEffect(
+        () => {
+            updateFormWithActions();
+        },
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        affectingFieldIds.map((fieldId: string) => answers[fieldId])
+    );
+
+    useEffect(() => {
+        setUpdatedForm(form);
+        updateFormWithActions();
+    }, [form]);
 
     useEffect(() => {
         if (formId !== form.formId) {
@@ -168,7 +195,7 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
         if (isTemplate) return;
         const invalidFields: Record<string, Array<FormValidationError>> = {};
         let isResponseValid = true;
-        form?.fields.forEach((field: StandardFormFieldDto, index: number) => {
+        updatedForm?.fields.forEach((field: StandardFormFieldDto, index: number) => {
             const validationErrors = validateFormFieldAnswer(field, answers[field.id]);
             if (validationErrors.length > 0) {
                 setResponseValid(false);
@@ -176,17 +203,15 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
             }
             invalidFields[field.id] = validationErrors;
         });
-
+        dispatch(setInvalidFields(invalidFields));
         if (!isResponseValid) {
-            dispatch(setInvalidFields(invalidFields));
             let firstInvalidFieldId = '';
-            for (let field of form.fields) {
+            for (let field of updatedForm.fields) {
                 if (Object.keys(invalidFields).includes(field.id) && invalidFields[field.id].length > 0) {
                     firstInvalidFieldId = field.id;
                     break;
                 }
             }
-            console.log(firstInvalidFieldId);
             document.getElementById(firstInvalidFieldId)?.scrollIntoView({
                 behavior: 'smooth',
                 inline: 'center',
@@ -216,9 +241,9 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
 
     return (
         <div className="w-full bg-white">
-            {form?.coverImage && (
+            {updatedForm?.coverImage && (
                 <div className={`relative z-0 w-full flex aspect-banner-mobile lg:aspect-banner-desktop`}>
-                    <Image layout="fill" objectFit="cover" src={form.coverImage} alt="test" className="brightness-75" />
+                    <Image layout="fill" objectFit="cover" src={updatedForm.coverImage} alt="test" className="brightness-75" />
                 </div>
             )}
             <form
@@ -230,27 +255,27 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
                 }}
                 onSubmit={onSubmitForm}
             >
-                {form?.logo && (
-                    <div className={`relative ${form?.coverImage ? '-top-12' : 'mt-[60px]'} rounded-lg w-[100px] h-[100px] flex flex-col justify-center items-center gap-3 cursor-pointer hover:shadow-logoCard`}>
-                        <Image height={100} width={100} objectFit="cover" src={form.logo} alt="logo" className="rounded-lg hover:bg-black-100" />
+                {updatedForm?.logo && (
+                    <div className={`relative ${updatedForm?.coverImage ? '-top-12' : 'mt-[60px]'} rounded-lg w-[100px] h-[100px] flex flex-col justify-center items-center gap-3 cursor-pointer hover:shadow-logoCard`}>
+                        <Image height={100} width={100} objectFit="cover" src={updatedForm.logo} alt="logo" className="rounded-lg hover:bg-black-100" />
                     </div>
                 )}
-                <div className={`mb-6 ${form?.coverImage && form?.logo ? '' : 'mt-12'}`}>
-                    <div className="text-[24px] mb-2 font-semibold text-black-900">{form?.title}</div>
-                    {form?.description && <div className="text-[14px] text-black-700">{form?.description}</div>}
+                <div className={`mb-6 ${updatedForm?.coverImage && updatedForm?.logo ? '' : 'mt-12'}`}>
+                    <div className="text-[32px] mb-2 font-bold text-black-800">{updatedForm?.title || 'Untitled'}</div>
+                    {updatedForm?.description && <div className="text-[16px] font-normal text-black-700">{updatedForm?.description}</div>}
                 </div>
 
                 <div className="flex flex-col w-full gap-2">
-                    {form?.fields?.map((field: StandardFormFieldDto) => (
+                    {updatedForm?.fields?.map((field: StandardFormFieldDto) => (
                         <div key={field?.id} className="relative w-full" id={field?.id}>
-                            {renderFormField(field, enabled, response?.answers[field.id] || answers[field.id])}
+                            {!field?.properties?.hidden && renderFormField(field, enabled, response?.answers[field.id] || answers[field.id], updatedForm?.fields)}
                             <FieldValidations field={field} inValidations={invalidFields[field?.id]} />
                         </div>
                     ))}
                     <div className={'mt-10'}>
                         {!isResponseValid && <div className="text-red-500 mb-2 text-sm">*Invalid answers in one or more fields. Check and correct the highlighted entries.</div>}
                         <AppButton variant={ButtonVariant.Secondary} type="submit" disabled={!enabled}>
-                            {form?.buttonText || 'Submit'}
+                            {updatedForm?.buttonText || 'Submit'}
                         </AppButton>
                     </div>
                 </div>

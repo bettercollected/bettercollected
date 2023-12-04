@@ -28,7 +28,16 @@ export default function NavigationList({ navigationList, className = '', sx = {}
                 const active = element.url == router.asPath;
                 return (
                     <div key={element.key} className={`body4 rounded-lg mt-1 ${active ? 'bg-brand-500 !text-white' : 'text-black-600 hover:bg-brand-100'}`}>
-                        <ListItem disablePadding onClick={() => router.push(element.url, undefined, { shallow: true })}>
+                        <ListItem
+                            disablePadding
+                            onClick={() => {
+                                if (element.url) {
+                                    router.push(element.url, undefined, { shallow: true });
+                                } else {
+                                    element.onClick && element.onClick();
+                                }
+                            }}
+                        >
                             <ListItemButton sx={{ paddingY: '8px', paddingX: '20px' }} className={`${active ? '' : 'hover:!bg-transparent'}`}>
                                 {element.icon && (
                                     <ListItemIcon sx={{ minWidth: '36px' }} className={`${active ? 'text-white' : 'text-black-600'}`}>

@@ -4,12 +4,12 @@ import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/router';
 
 import Tooltip from '@Components/Common/DataDisplay/Tooltip';
-import { DotIcon } from '@Components/Common/Icons/DotIcon';
-import EditIcon from '@Components/Common/Icons/Edit';
-import FormProviderIcon from '@Components/Common/Icons/FormProviderIcon';
-import PrivateIcon from '@Components/Common/Icons/Private';
-import PublicIcon from '@Components/Common/Icons/Public';
-import ShareIcon from '@Components/Common/Icons/ShareIcon';
+import { DotIcon } from '@Components/Common/Icons/Common/DotIcon';
+import EditIcon from '@Components/Common/Icons/Common/Edit';
+import ShareIcon from '@Components/Common/Icons/Common/ShareIcon';
+import FormProviderIcon from '@Components/Common/Icons/Form/FormProviderIcon';
+import PrivateIcon from '@Components/Common/Icons/Form/Private';
+import PublicIcon from '@Components/Common/Icons/Form/Public';
 import AppButton from '@Components/Common/Input/Button/AppButton';
 import { ButtonSize, ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
 import { Typography } from '@mui/material';

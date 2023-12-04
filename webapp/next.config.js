@@ -4,9 +4,9 @@ const runtimeCaching = require('next-pwa/cache');
 
 const withPlugins = require('next-compose-plugins');
 
-const {withSentryConfig} = require('@sentry/nextjs');
+const { withSentryConfig } = require('@sentry/nextjs');
 
-const {i18n} = require('./next-i18next.config');
+const { i18n } = require('./next-i18next.config');
 
 const getHostnameFromRegex = (url) => {
     // run against regex
@@ -122,6 +122,8 @@ const nextConfig = {
         ENABLE_JOYRIDE_TOURS: process.env.ENABLE_JOYRIDE_TOURS || false,
         ENABLE_FORM_BUILDER: process.env.ENABLE_FORM_BUILDER || false,
 
+        MAX_WORKSPACES: process.env.MAX_WORKSPACES || 5,
+
         // api hosts
         API_ENDPOINT_HOST: process.env.API_ENDPOINT_HOST,
 
@@ -189,7 +191,7 @@ const nextConfigWithPWA = withPWA({
 
 const nextConfigWithSentryIfEnabled =
     !!process.env.SENTRY_DSN && !!process.env.SENTRY_URL && !!process.env.SENTRY_ORG && !!process.env.SENTRY_PROJECT && !!process.env.SENTRY_RELEASE
-        ? withSentryConfig({...nextConfigWithPWA, devtool: 'source-map'}, sentryWebpackPluginOptions)
+        ? withSentryConfig({ ...nextConfigWithPWA, devtool: 'source-map' }, sentryWebpackPluginOptions)
         : nextConfigWithPWA;
 
 module.exports = nextConfigWithSentryIfEnabled;

@@ -4,7 +4,7 @@ from temporalio import workflow
 from temporalio.common import RetryPolicy
 
 from activities.save_preview import save_preview
-from models.SavePreviewParams import SavePreviewParams
+from models.save_preview_params import SavePreviewParams
 
 
 @workflow.defn(name="save_template_preview")

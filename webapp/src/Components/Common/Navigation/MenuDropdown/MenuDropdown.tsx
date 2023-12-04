@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 
 import Tooltip from '@Components/Common/DataDisplay/Tooltip';
-import Chevron from '@Components/Common/Icons/Chevron';
+import Chevron from '@Components/Common/Icons/Common/Chevron';
 import { IconButton, IconButtonPropsSizeOverrides, Menu, PaperProps, PopoverOrigin } from '@mui/material';
 import { OverridableStringUnion } from '@mui/types';
 
@@ -116,6 +116,9 @@ export default function MenuDropdown({
                     onClose={handleClose}
                     onClick={(event) => {
                         if (closeOnClick) handleClose(event);
+                    }}
+                    sx={{
+                        zIndex: 250000
                     }}
                     draggable
                     disableScrollLock={true}

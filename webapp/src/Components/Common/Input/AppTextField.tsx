@@ -13,13 +13,16 @@ type AppTextFieldProps = TextFieldProps & {
     iconPosition?: 'start' | 'end';
     isError?: boolean;
     isDisabled?: boolean;
+    isPlaceholder?: boolean;
     onClick?: () => void;
     dataTestId?: string;
     childrenClassName?: string;
     disabledColor?: string;
+    autoFocus?: boolean;
 };
 
 const Description: React.FC<React.PropsWithChildren> = ({ children }) => <p className="p2 pb-2 !text-new-black-800">{children}</p>;
+
 const AppTextField: React.FC<AppTextFieldProps> & {
     Description: React.FC<React.PropsWithChildren>;
 } = (props: AppTextFieldProps) => {
@@ -42,6 +45,8 @@ const AppTextField: React.FC<AppTextFieldProps> & {
         onClick,
         dataTestId = '',
         disabledColor,
+        autoFocus = false,
+        isPlaceholder = false,
         ...otherProps
     } = props;
     const { t } = useBuilderTranslation();
@@ -66,6 +71,7 @@ const AppTextField: React.FC<AppTextFieldProps> & {
             })}
             <TextField
                 id={id}
+                autoFocus={autoFocus}
                 type={type}
                 variant="outlined"
                 multiline={multiline}
@@ -79,7 +85,7 @@ const AppTextField: React.FC<AppTextFieldProps> & {
                             paddingBottom: 0,
                             height: multiline ? 100 : 48,
                             fontSize: 16,
-                            color: 'black',
+                            color: isPlaceholder ? '#AAAAAA' : 'black',
                             fontWeight: 400,
                             content: 'none',
                             letterSpacing: 0
@@ -87,7 +93,9 @@ const AppTextField: React.FC<AppTextFieldProps> & {
                     }
                 }
                 InputProps={{
-                    sx: { ':before': { content: 'none' } },
+                    sx: {
+                        ':before': { content: 'none' }
+                    },
                     startAdornment: getIcon('start'),
                     endAdornment: getIcon('end')
                 }}
@@ -109,7 +117,7 @@ const AppTextField: React.FC<AppTextFieldProps> & {
                         }
                     },
                     '& .MuiInputBase-input.Mui-disabled': {
-                        WebkitTextFillColor: disabledColor ? disabledColor : '#AAAAAA'
+                        WebkitTextFillColor: disabledColor ? disabledColor : '#6E6E6E'
                     }
                 }}
                 required={required}

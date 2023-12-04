@@ -44,14 +44,16 @@ export default function EditFromPage(props: any) {
     }, [form]);
 
     return (
-        <HistoryKeyListener>
-            <FormBuilderKeyListener>
-                <NextSeo title={title || t(metaDataTitle.editForm)} noindex={true} nofollow={true} />
-                <Layout isCustomDomain={false} isClientDomain={false} showNavbar={true} hideMenu={false} showAuthAccount={true} className="!p-0 !bg-white flex flex-col !min-h-calc-68">
-                    <FormBuilder workspace={workspace} _nextI18Next={_nextI18Next} />
-                </Layout>
-            </FormBuilderKeyListener>
-        </HistoryKeyListener>
+        <>
+            <HistoryKeyListener>
+                <FormBuilderKeyListener>
+                    <NextSeo title={title || t(metaDataTitle.editForm)} noindex={true} nofollow={true} />
+                    <Layout isCustomDomain={false} isClientDomain={false} showNavbar={true} hideMenu={false} showAuthAccount={true} className="!p-0 !bg-white flex flex-col !min-h-calc-68">
+                        <FormBuilder workspace={workspace} _nextI18Next={_nextI18Next} />
+                    </Layout>
+                </FormBuilderKeyListener>
+            </HistoryKeyListener>
+        </>
     );
 }
 

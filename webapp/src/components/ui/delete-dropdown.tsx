@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
 
-import Delete from '@Components/Common/Icons/Delete';
+import Delete from '@Components/Common/Icons/Common/Delete';
 import MenuDropdown from '@Components/Common/Navigation/MenuDropdown/MenuDropdown';
 import { MoreHoriz } from '@mui/icons-material';
 import { MenuItem } from '@mui/material';
@@ -13,6 +13,8 @@ import { toolTipConstant } from '@app/constants/locales/tooltip';
 
 export default function DeleteDropDown({ onDropDownItemClick, className, label }: { onDropDownItemClick: (event?: any) => void; className?: string; label?: string }) {
     const { t } = useTranslation();
+
+    const [open, setOpen] = useState(true);
     return (
         <MenuDropdown
             showExpandMore={false}
@@ -33,12 +35,25 @@ export default function DeleteDropDown({ onDropDownItemClick, className, label }
                     padding: 0
                 }
             }}
+            open={open}
             id="language-menu"
             menuTitle={t(toolTipConstant.Options)}
-            menuContent={<MoreHoriz />}
-            closeOnClick={true}
+            menuContent={
+                <MoreHoriz
+                    onClick={(event) => {
+                        setOpen(true);
+                    }}
+                />
+            }
+            closeOnClick
         >
-            <MenuItem className="body4  flex gap-4" onClick={onDropDownItemClick}>
+            <MenuItem
+                className="body4 flex gap-4"
+                onClick={(event) => {
+                    setOpen(false);
+                    onDropDownItemClick(event);
+                }}
+            >
                 <Delete width={20} height={20} />
                 {label ?? t(localesCommon.remove)}
             </MenuItem>

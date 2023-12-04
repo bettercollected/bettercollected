@@ -1,5 +1,6 @@
 import React, { ChangeEvent } from 'react';
 
+import AppTextField from '@Components/Common/Input/AppTextField';
 import { FieldRequired } from '@Components/UI/FieldRequired';
 import { useDispatch } from 'react-redux';
 
@@ -34,8 +35,8 @@ export default function LongText({ ans, enabled, field }: ILongTextProps) {
     return (
         <div className="relative w-full h-full">
             {field?.validations?.required && <FieldRequired className="top-0.5 right-1" />}
-            <FormInputField
-                placeholder={field?.properties?.placeholder}
+            <AppTextField
+                placeholder={field?.properties?.placeholder || ' '}
                 multiline
                 InputProps={{
                     id: `input-${field.id}`,
@@ -48,11 +49,11 @@ export default function LongText({ ans, enabled, field }: ILongTextProps) {
                         fontSize: 14
                     }
                 }}
-                sx={{
-                    '& .MuiInputBase-input.Mui-disabled': {
-                        WebkitTextFillColor: '#1D1D1D'
-                    }
-                }}
+                // sx={{
+                //     '& .MuiInputBase-input.Mui-disabled': {
+                //         WebkitTextFillColor: '#AAAAAA'
+                //     }
+                // }}
                 minRows={3}
                 maxRows={10}
                 value={ans?.text || ans?.email || ans?.number || ans?.boolean || ans?.url || ans?.file_url || ans?.payment?.name}

@@ -4,9 +4,8 @@ from enum import Enum
 from typing import Any, Dict, List, Optional
 
 from beanie import PydanticObjectId
-from pydantic import BaseModel, Field
-
 from common.models.consent import Consent, ConsentResponse, ResponseRetentionType
+from pydantic import BaseModel, Field
 
 
 class EmbedProvider(str, enum.Enum):
@@ -202,11 +201,11 @@ class LogicalOperator(str, enum.Enum):
     OR = "or"
 
 
-class Conditional(BaseModel):
+class Condition(BaseModel):
     type: Optional[ConditionalType]
     comparison: Optional[Comparison]
     field: Optional["StandardFormField"]
-    conditionals: Optional[List["Conditional"]]
+    conditions: Optional[List["Condition"]]
     logical_operator: Optional[LogicalOperator]
     field_type: Optional[FieldType]
     value: Optional[Any]
@@ -270,9 +269,10 @@ class StandardFieldProperty(BaseModel):
     labels: Optional[Dict[str, str]]
     date_format: Optional[str]
     actions: Optional[List[ConditionalActions]]
-    conditionals: Optional[List[Conditional]]
+    conditions: Optional[List[Condition]]
     logical_operator: Optional[LogicalOperator]
     update_id: Optional[str]
+    mentions: Optional[Dict[str, str]]
 
 
 class StandardFieldValidations(BaseModel):
@@ -304,7 +304,7 @@ class StandardFormField(BaseModel):
 
 
 StandardFieldProperty.update_forward_refs()
-Conditional.update_forward_refs()
+Condition.update_forward_refs()
 StandardFormField.update_forward_refs()
 
 

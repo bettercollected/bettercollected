@@ -1,7 +1,7 @@
 import React from 'react';
 
-import DragHandleIcon from '@Components/Common/Icons/DragHandle';
-import PlusIcon from '@Components/Common/Icons/Plus';
+import PlusIcon from '@Components/Common/Icons/Common/Plus';
+import DragHandleIcon from '@Components/Common/Icons/FormBuilder/DragHandle';
 import StartAdornmentInputField from '@Components/FormBuilder/StartAdornmentInputField';
 import { StrictModeDroppable } from '@Components/FormBuilder/StrictModeDroppable';
 import { FieldRequired } from '@Components/UI/FieldRequired';

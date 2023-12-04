@@ -4,13 +4,13 @@ import { useRouter } from 'next/router';
 
 import _ from 'lodash';
 
-import DragHandleIcon from '@Components/Common/Icons/DragHandle';
+import DragHandleIcon from '@Components/Common/Icons/FormBuilder/DragHandle';
 import FormBuilderBlock from '@Components/FormBuilder/BuilderBlock';
 import BuilderTips from '@Components/FormBuilder/BuilderTips';
-import CustomContentEditable from '@Components/FormBuilder/ContentEditable/CustomContentEditable';
 import BuilderDragDropContext from '@Components/FormBuilder/DragDropContext';
 import { FormCoverComponent, FormLogoComponent } from '@Components/FormBuilder/Header';
 import FormBuilderMenuBar from '@Components/FormBuilder/MenuBar';
+import FormBuilderTitleDescriptionInput from '@Components/FormBuilder/TitleAndDescription/FormBuilderTitleDescriptionInput';
 import useFormBuilderAtom from '@Components/FormBuilder/builderAtom';
 import { Check } from '@mui/icons-material';
 import { CircularProgress } from '@mui/material';
@@ -30,13 +30,13 @@ import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import EventBusEventType from '@app/models/enums/eventBusEnum';
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
 import { selectConsentState } from '@app/store/consent/selectors';
-import { resetBuilderMenuState, setActiveField, setAddNewField, setBuilderState, setFields } from '@app/store/form-builder/actions';
+import { resetBuilderMenuState, setActiveField, setAddNewField, setBuilderMenuState, setBuilderState, setFields } from '@app/store/form-builder/actions';
 import { selectBuilderState } from '@app/store/form-builder/selectors';
 import { IBuilderState, IBuilderTitleAndDescriptionObj, IFormFieldState } from '@app/store/form-builder/types';
 import { builderTitleAndDescriptionList } from '@app/store/form-builder/utils';
 import { useAppAsyncDispatch, useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { updateStatus } from '@app/store/mutations/slice';
-import { useCreateTemplateFromFormMutation, usePatchTemplateMutation } from '@app/store/template/api';
+import { usePatchTemplateMutation } from '@app/store/template/api';
 import { usePatchFormMutation } from '@app/store/workspaces/api';
 import { reorder } from '@app/utils/arrayUtils';
 import { createNewField } from '@app/utils/formBuilderBlockUtils';
@@ -55,7 +55,6 @@ export default function FormBuilder({ workspace, _nextI18Next, isTemplate = fals
     const { openModal } = useFullScreenModal();
     const { openModal: openHalfScreenModal } = useModal();
     const fullScreenModal = useFullScreenModal();
-    const modal = useModal();
 
     // Translation
     const { t } = useBuilderTranslation();
@@ -87,19 +86,12 @@ export default function FormBuilder({ workspace, _nextI18Next, isTemplate = fals
     //
 
     // RTK
-    const [createFormAsTemplate] = useCreateTemplateFromFormMutation();
     const [updateTemplate] = usePatchTemplateMutation();
 
     useEffect(() => {
         setShowLogo(!!builderState.logo);
         setShowCover(!!builderState.coverImage);
     }, [builderState.logo, builderState.coverImage]);
-
-    const onInsert = () => {
-        asyncDispatch(resetBuilderMenuState()).then(() => {
-            modal.openModal('FORM_BUILDER_ADD_FIELD_VIEW');
-        });
-    };
 
     const onAddFormLogo = () => {
         setShowLogo(true);
@@ -113,10 +105,6 @@ export default function FormBuilder({ workspace, _nextI18Next, isTemplate = fals
         asyncDispatch(resetBuilderMenuState()).then(() => {
             fullScreenModal.openModal('FORM_BUILDER_PREVIEW', { publish: onFormPublish, imagesRemoved, isTemplate });
         });
-    };
-
-    const onClickSettings = () => {
-        openModal('FORM_SETTINGS_FULL_MODAL_VIEW');
     };
 
     const onClickTips = () => {
@@ -153,8 +141,18 @@ export default function FormBuilder({ workspace, _nextI18Next, isTemplate = fals
         publishRequest.title = builderState.title;
         publishRequest.description = builderState.description;
         let fields: any = Object.values(builderState.fields || {});
+        // TODO extract this to a function
         fields = fields.map((field: IFormFieldState) => {
-            if (field.properties?.choices) {
+            if (field?.type == FormBuilderTagNames.CONDITIONAL) {
+                return {
+                    ...field,
+                    properties: {
+                        ...field.properties,
+                        conditions: Object.values(field.properties?.conditions || {}),
+                        actions: Object.values(field.properties?.actions || {})
+                    }
+                };
+            } else if (field.properties?.choices) {
                 return { ...field, properties: { ...field.properties, choices: Object.values(field.properties?.choices) } };
             }
             return field;
@@ -191,7 +189,16 @@ export default function FormBuilder({ workspace, _nextI18Next, isTemplate = fals
         publishRequest.description = builderState.description;
         let fields: any = Object.values(builderState.fields || {});
         fields = fields.map((field: IFormFieldState) => {
-            if (field.properties?.choices) {
+            if (field?.type == FormBuilderTagNames.CONDITIONAL) {
+                return {
+                    ...field,
+                    properties: {
+                        ...field.properties,
+                        conditions: Object.values(field.properties?.conditions || {}),
+                        actions: Object.values(field.properties?.actions || {})
+                    }
+                };
+            } else if (field.properties?.choices) {
                 return { ...field, properties: { ...field.properties, choices: Object.values(field.properties?.choices) } };
             }
             return field;
@@ -220,24 +227,6 @@ export default function FormBuilder({ workspace, _nextI18Next, isTemplate = fals
         }
     };
 
-    const onSaveAsTemplate = async () => {
-        try {
-            const request = {
-                workspace_id: workspace.id,
-                form_id: form_id as string
-            };
-            const response: any = await createFormAsTemplate(request);
-            if (response?.data) {
-                toast('Created Successfully', { type: 'success' });
-                router.replace(`/${workspace.workspaceName}/dashboard/templates`);
-            } else {
-                toast('Error Occurred').toString(), { type: 'error' };
-            }
-        } catch (err) {
-            toast('Error Occurred').toString(), { type: 'error' };
-        }
-    };
-
     const saveFormDebounced = useCallback(
         _.debounce((builderState, consentState, headerImages) => onFormSave(builderState, consentState, headerImages), 2000),
         []
@@ -250,25 +239,82 @@ export default function FormBuilder({ workspace, _nextI18Next, isTemplate = fals
         }
     }, [builderState.id, builderState.fields, builderState.title, builderState.description, builderState.buttonText, headerImages, consentState, imagesRemoved, builderState.settings]);
 
-    const openTagSelector = (event: any) => {
+    const openMenu = (event: any, menuType: string) => {
         const viewportHeight = window.innerHeight;
         const boundingRect = event.target.getBoundingClientRect();
         const bottomPosition = boundingRect.bottom ?? 0;
+
+        const getPosition = () => {
+            const selection: any = window.getSelection();
+            if (selection && selection.rangeCount > 0) {
+                const range = selection.getRangeAt(0);
+                if (range) {
+                    const rects = range.getClientRects();
+                    if (rects.length > 0) {
+                        return { top: rects[0].top, left: rects[0].left };
+                    }
+                }
+            }
+            return {
+                top: boundingRect.top,
+                left: boundingRect.left
+            };
+        };
+
+        const value = builderState.fields[builderState.activeFieldId]?.value || '';
+        const selection = window.getSelection();
+
+        const cursorPosition = selection?.focusOffset;
+
+        const textBeforeCursor = value.substring(0, cursorPosition);
+
+        const occurrence = (textBeforeCursor.match(/@/g) || []).length + 1;
 
         dispatch(
             setBuilderState({
                 isFormDirty: true,
                 menus: {
                     ...builderState.menus,
-                    commands: {
+                    [menuType]: {
                         isOpen: true,
                         atFieldUuid: Object.keys(builderState.fields).at(builderState.activeFieldIndex) ?? '',
-                        position: bottomPosition + 300 > viewportHeight ? 'up' : 'down'
+                        position: bottomPosition + 300 > viewportHeight ? 'up' : 'down',
+                        pos: getPosition(),
+                        atPosition: occurrence ?? 0
                     }
                 }
             })
         );
     };
+
+    const openTagSelector = (event: any) => {
+        openMenu(event, 'commands');
+    };
+
+    const openFieldSelector = (event: any) => {
+        openMenu(event, 'pipingFields');
+    };
+
+    function onClickMentionElement(event: Event) {
+        event.stopPropagation();
+        event.preventDefault();
+        const targetElement = event.target as HTMLElement;
+        const mentionedFieldId = targetElement.getAttribute('data-field-id');
+        const currentField = targetElement.getAttribute('data-current-field');
+
+        const boundingRect = targetElement.getBoundingClientRect();
+
+        dispatch(
+            setBuilderMenuState({
+                pipingFieldSettings: {
+                    isOpen: true,
+                    atFieldId: currentField || '',
+                    mentionedFieldId: mentionedFieldId || '',
+                    pos: { top: boundingRect.top, left: boundingRect.left }
+                }
+            })
+        );
+    }
 
     useEffect(() => {
         resetImages();
@@ -284,11 +330,20 @@ export default function FormBuilder({ workspace, _nextI18Next, isTemplate = fals
         // Listens events from the HOCs
         eventBus.on(EventBusEventType.FormBuilder.Preview, onPreview);
         eventBus.on(EventBusEventType.FormBuilder.OpenTagSelector, openTagSelector);
+        eventBus.on(EventBusEventType.FormBuilder.OpenFieldSelector, openFieldSelector);
+
+        document.querySelectorAll('[data-field-id]').forEach((element: Element) => {
+            element.addEventListener('click', onClickMentionElement);
+        });
 
         return () => {
             eventBus.removeListener(EventBusEventType.FormBuilder.Preview, onPreview);
             eventBus.removeListener(EventBusEventType.FormBuilder.OpenTagSelector, openTagSelector);
+            eventBus.removeListener(EventBusEventType.FormBuilder.OpenFieldSelector, openFieldSelector);
             document.removeEventListener('blur', onBlurCallback);
+            document.querySelectorAll('[data-field-id]').forEach((element: Element) => {
+                element.removeEventListener('click', onClickMentionElement);
+            });
         };
     }, [builderState]);
 
@@ -303,18 +358,28 @@ export default function FormBuilder({ workspace, _nextI18Next, isTemplate = fals
         if (lastField?.type === FormBuilderTagNames.LAYOUT_SHORT_TEXT && !lastField.value) return true;
     };
 
+    const onTitleDescriptionChangeCallback = (event: FormEvent<HTMLElement>, b: IBuilderTitleAndDescriptionObj) => {
+        if (isUndoRedoInProgress) return;
+        setBackspaceCount(0);
+        dispatch(setBuilderState({ [b.key]: event.currentTarget.innerText }));
+        handleUserTypingEnd();
+    };
+
+    const onTitleDescriptionFocusCallback = (event: React.FocusEvent<HTMLElement>, b: IBuilderTitleAndDescriptionObj) => {
+        event.preventDefault();
+        setBackspaceCount(0);
+        dispatch(setActiveField({ position: b.position, id: b.id }));
+    };
+
     return (
         <div>
             <FormBuilderMenuBar
-                onInsert={onInsert}
                 onAddNewPage={() => {}}
                 onAddFormLogo={onAddFormLogo}
                 onAddFormCover={onAddFormCover}
                 onPreview={onPreview}
                 onFormPublish={onFormPublish}
-                onClickSettings={onClickSettings}
                 onClickTips={onClickTips}
-                onSaveAsTemplate={onSaveAsTemplate}
                 isUpdating={patching}
                 isTemplate={isTemplate}
                 onSaveTemplate={onSaveTemplate}
@@ -324,27 +389,7 @@ export default function FormBuilder({ workspace, _nextI18Next, isTemplate = fals
                 {showLogo && <FormLogoComponent setIsLogoClicked={setShowLogo} className={showCover ? '-mt-[90px]' : ''} imagesRemoved={imagesRemoved} setImagesRemoved={setImagesRemoved} />}
                 <div className="flex flex-col gap-2 px-12 md:px-[89px]">
                     {builderTitleAndDescriptionList.map((b: IBuilderTitleAndDescriptionObj) => (
-                        <CustomContentEditable
-                            key={b.id}
-                            id={b.id}
-                            tagName={b.tagName}
-                            type={b.type}
-                            value={builderState[b.key]}
-                            position={b.position}
-                            placeholder={t(b.placeholder)}
-                            className={b.className}
-                            onChangeCallback={(event: FormEvent<HTMLElement>) => {
-                                if (isUndoRedoInProgress) return;
-                                setBackspaceCount(0);
-                                dispatch(setBuilderState({ [b.key]: event.currentTarget.innerText }));
-                                handleUserTypingEnd();
-                            }}
-                            onFocusCallback={(event: React.FocusEvent<HTMLElement>) => {
-                                event.preventDefault();
-                                setBackspaceCount(0);
-                                dispatch(setActiveField({ position: b.position, id: b.id }));
-                            }}
-                        />
+                        <FormBuilderTitleDescriptionInput key={b.id} b={b} value={builderState[b.key]} onChangeCallback={onTitleDescriptionChangeCallback} onFocusCallback={onTitleDescriptionFocusCallback} />
                     ))}
                 </div>
                 <div ref={builderDragDropRef} className="relative">

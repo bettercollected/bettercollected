@@ -5,11 +5,11 @@ import { useRouter } from 'next/router';
 
 import CustomPopover from '@Components/Common/CustomPopover';
 import Divider from '@Components/Common/DataDisplay/Divider';
-import CircleOutlinedIcon from '@Components/Common/Icons/CircleOutlinedIcon';
-import CoverIcon from '@Components/Common/Icons/CoverIcon';
+import PublishIcon from '@Components/Common/Icons/FormBuilder/PublishIcon';
 import InfoIcon from '@Components/Common/Icons/FormBuilder/infoIcon';
-import HamburgerIcon from '@Components/Common/Icons/HamburgerIcon';
-import PublishIcon from '@Components/Common/Icons/PublishIcon';
+import CircleOutlinedIcon from '@Components/Common/Icons/Header/CircleOutlinedIcon';
+import CoverIcon from '@Components/Common/Icons/Header/CoverIcon';
+import HamburgerIcon from '@Components/Common/Icons/Header/HamburgerIcon';
 import AppButton from '@Components/Common/Input/Button/AppButton';
 import { ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
 import { ChevronLeft } from '@mui/icons-material';
@@ -24,21 +24,18 @@ import { useAppSelector } from '@app/store/hooks';
 import { selectPatchingTemplate } from '@app/store/mutations/selectors';
 
 interface IFormBuilderMenuBarProps {
-    onInsert: React.MouseEventHandler<HTMLButtonElement>;
     onAddNewPage: React.MouseEventHandler<HTMLButtonElement>;
     onAddFormLogo: React.MouseEventHandler<HTMLButtonElement>;
     onAddFormCover: React.MouseEventHandler<HTMLButtonElement>;
     onPreview: React.MouseEventHandler<HTMLButtonElement>;
     onFormPublish: React.MouseEventHandler<HTMLButtonElement>;
-    onClickSettings: React.MouseEventHandler<HTMLButtonElement>;
     onClickTips: React.MouseEventHandler<HTMLButtonElement>;
-    onSaveAsTemplate: React.MouseEventHandler<HTMLButtonElement>;
     onSaveTemplate?: React.MouseEventHandler<HTMLButtonElement>;
     isUpdating?: boolean;
     isTemplate: boolean;
 }
 
-export default function FormBuilderMenuBar({ onInsert, onAddFormLogo, onAddFormCover, onClickSettings, onClickTips, onPreview, onFormPublish, onSaveAsTemplate, isTemplate, onSaveTemplate }: IFormBuilderMenuBarProps) {
+function FormBuilderMenuBar({ onAddFormLogo, onAddFormCover, onClickTips, onPreview, onFormPublish, isTemplate, onSaveTemplate }: IFormBuilderMenuBarProps) {
     const { t } = useBuilderTranslation();
 
     const { t: translation } = useTranslation();
@@ -46,10 +43,6 @@ export default function FormBuilderMenuBar({ onInsert, onAddFormLogo, onAddFormC
     const breakpoint = useBreakpoint();
 
     const router = useRouter();
-
-    const mutationStatus = useAppSelector((state) => state.mutationStatus);
-    // @ts-ignore
-    const loading = mutationStatus.patchTemplate === 'loading';
 
     const collapseMenu = ['2xs', 'xs', 'sm', 'md'].indexOf(breakpoint) !== -1;
 
@@ -159,3 +152,5 @@ export default function FormBuilderMenuBar({ onInsert, onAddFormLogo, onAddFormC
         </AppBar>
     );
 }
+
+export default React.memo(FormBuilderMenuBar);

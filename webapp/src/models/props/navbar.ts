@@ -3,6 +3,7 @@ export interface INavbarItem {
     name: string;
     url: string;
     icon?: React.ReactNode;
+    onClick?: () => void;
 }
 
 export interface IDrawerProps {

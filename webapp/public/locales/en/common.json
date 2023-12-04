@@ -44,6 +44,7 @@
     "CONTINUE": "Continue",
     "CONTINUE_WITH_GOOGLE": "Continue with Google",
     "CONFIRM": "Confirm",
+    "COPY": "Copy",
     "COPY_LINK": "Copy link",
     "CREATE_FORM": "Create Form",
     "CREATE_WORKSPACE": "Create a workspace",
@@ -63,6 +64,7 @@
     "OPEN_WORKSPACE": "Open Workspace",
     "PREVIOUS": "Previous",
     "PRO": "PRO",
+    "REMOVE": "Remove",
     "REQUEST_AN_INTEGRATION": "Request an integration",
     "RESEND": "Resend",
     "RESEND_CODE": "Resend Code",
@@ -307,7 +309,7 @@
       "DESCRIPTION": "Below, you will find a list of responders who have requested the deletion of their submitted responses."
     },
     "RESPONSES": {
-      "DESCRIPTION": "Below, you will find a list of responders who have requested the deletion of their submitted responses.",
+      "DESCRIPTION": "Responders are the individuals who completed and submitted the form. You can see their responded date and time.",
       "BACK_TO_RESPONSES": "Back to responses",
       "DELETE_RESPONSE": "Delete Response",
       "SUBMITTED_BY": "Submitted by",
@@ -797,6 +799,24 @@
     "PREVIEW.EMPTY_FORM_DESCRIPTION": "There are no forms imported in this workspace.",
     "PREVIEW.EMPTY_FORM_TITLE": "No forms to show",
     "PROFILE_IMAGE": "Workspace Profile Image",
+    "SETTINGS": {
+      "DEFAULT": "Workspace Settings",
+      "DESCRIPTION": "Crafting Your Workspace Identity: Tailor Title, Refine Description, Upload Profile Image, and Elevate with a Banner Image",
+      "TABS": {
+        "DETAILS": "Workspace Details"
+      },
+      "DETAILS": {
+        "TITLE": "Organizations Title",
+        "DESCRIPTION": "Organization Descriptions",
+        "ADD_COVER_IMAGE": "Add cover image",
+        "ADD_LOGO": "Add logo"
+      },
+      "URLS": {
+        "TITLE": "Workspace URLs",
+        "DEFAULT": "Default URL",
+        "DESCRIPTION": "Customize your workspace handle name to make your workspace more personal. A link slug is a brief, descriptive part of a URL that identifies web page content."
+      }
+    },
     "TITLE": "Workspace Title",
     "TITLE_VALIDATION_MESSAGE": "Workspace title is required",
     "WORKSPACE_NAME_VALIDATION_MESSAGE": "Workspace Handle is required",
@@ -810,10 +830,9 @@
       "TITLE": "template",
       "DESCRIPTION_PUBLIC": "Everyone with the link can use this template. You can share this template.",
       "DESCRIPTION_PRIVATE": "Only your organization can use this template. You cannot share this template."
-
     },
-    "FORM":{
-      "TITLE":  "form",
+    "FORM": {
+      "TITLE": "form",
       "DESCRIPTION_PUBLIC": "Anyone with the link of your form page can access and view the form.",
       "DESCRIPTION_PRIVATE": "No one will be able to access or view this form."
     },
@@ -823,5 +842,9 @@
     },
     "ARE_YOU_SURE": "Are you sure you want to make the"
   },
-  "CLICK_TO_COPY": "Click to Copy link"
+  "CLICK_TO_COPY": "Click to Copy link",
+  "LOGO": {
+    "UPDATE": "Update New Logo",
+    "REMOVE": "Remove Logo"
+  }
 }

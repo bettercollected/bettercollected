@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
+import { useRouter } from 'next/router';
 
+import Divider from '@Components/Common/DataDisplay/Divider';
 import AppButton from '@Components/Common/Input/Button/AppButton';
 import { ButtonSize } from '@Components/Common/Input/Button/AppButtonProps';
 import Joyride from '@Components/Joyride';
@@ -22,9 +24,11 @@ import { buttonConstant } from '@app/constants/locales/button';
 import { importFormConstant } from '@app/constants/locales/import-form';
 import { toastMessage } from '@app/constants/locales/toast-message';
 import { Provider } from '@app/models/enums/provider';
-import { useAppSelector } from '@app/store/hooks';
+import { setBuilderState } from '@app/store/form-builder/actions';
+import { initBuilderState } from '@app/store/form-builder/builderSlice';
+import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { JOYRIDE_CLASS, JOYRIDE_ID } from '@app/store/tours/types';
-import { useImportFormMutation, useLazyGetMinifiedFormsQuery, useLazyGetSingleFormFromProviderQuery } from '@app/store/workspaces/api';
+import { useCreateFormMutation, useImportFormMutation, useLazyGetMinifiedFormsQuery, useLazyGetSingleFormFromProviderQuery } from '@app/store/workspaces/api';
 
 interface IIntegrations {
     provider: string;
@@ -46,7 +50,7 @@ interface IAutoCompleteFormFieldProps {
 export default function ImportProviderForms(props: any) {
     const { closeModal } = useModal();
     const { t } = useTranslation();
-    const [provider, setProvider] = useState(props?.provider ?? null);
+    const [provider, setProvider] = useState(props?.provider ?? 'google');
 
     const [integrations, setIntegrations] = useState<Array<IIntegrations>>([]);
     const [stepCount, setStepCount] = useState(0);
@@ -62,6 +66,10 @@ export default function ImportProviderForms(props: any) {
     const singleFormFieldList = !!singleFormFromProviderResult?.isFetching || !singleFormFromProviderResult?.data?.clientFormItems ? [] : singleFormFromProviderResult?.data?.clientFormItems ?? [];
 
     const [importForm, importFormResult] = useImportFormMutation();
+
+    const router = useRouter();
+    const [postCreateForm, { isLoading: posting }] = useCreateFormMutation();
+    const dispatch = useAppDispatch();
 
     const requestAnIntegration = {
         href: 'https://forms.bettercollected.com/bettercollected/forms/request-integration',
@@ -116,13 +124,13 @@ export default function ImportProviderForms(props: any) {
                         name: 'Google Forms',
                         onClick: () => handleNext('google')
                     });
-                if (p === 'typeform' && props?.providers[p])
-                    allProviders.push({
-                        provider: 'typeform',
-                        icon: <TypeformIcon className="h-[70px] w-[70px] md:h-[100px] md:w-[100px]" />,
-                        name: 'Typeform',
-                        onClick: () => handleNext('typeform')
-                    });
+                // if (p === 'typeform' && props?.providers[p])
+                //     allProviders.push({
+                //         provider: 'typeform',
+                //         icon: <TypeformIcon className="h-[70px] w-[70px] md:h-[100px] md:w-[100px]" />,
+                //         name: 'Typeform',
+                //         onClick: () => handleNext('typeform')
+                //     });
             });
             setIntegrations(allProviders);
         }
@@ -135,6 +143,12 @@ export default function ImportProviderForms(props: any) {
         }
         if (stepCount === 1 && provider) {
             (async () => await minifiedFormsTrigger({ provider }))();
+            selectedForm &&
+                (async () =>
+                    await singleFormFromProviderTrigger({
+                        formId: selectedForm?.formId,
+                        provider
+                    }))();
         }
         if (stepCount === 2 && provider && selectedForm) {
             (async () => await singleFormFromProviderTrigger({ formId: selectedForm?.formId, provider }))();
@@ -142,22 +156,46 @@ export default function ImportProviderForms(props: any) {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [stepCount, provider, selectedForm]);
 
+    const createNewForm = async () => {
+        const formData = new FormData();
+        const postReq: any = {};
+        postReq.title = initBuilderState.title;
+        postReq.description = initBuilderState.description;
+        postReq.fields = Object.values(initBuilderState.fields);
+        postReq.buttonText = initBuilderState.buttonText;
+        postReq.consent = [];
+        postReq.settings = {};
+        formData.append('form_body', JSON.stringify(postReq));
+        const apiObj: any = { workspaceId: workspace.id, body: formData };
+        const response: any = await postCreateForm(apiObj);
+
+        if (response?.data) {
+            router.push(`/${workspace?.workspaceName}/dashboard/forms/${response?.data?.formId}/edit`);
+            dispatch(setBuilderState({ isFormDirty: false }));
+        }
+    };
+
     const stepZeroContent = (
         <>
-            <h4 className="sh1 text-center">{t(importFormConstant.choice)}</h4>
-            <div className={` flex justify-center w-full h-full gap-4 lg:gap-10 ${JOYRIDE_CLASS.WORKSPACE_ADMIN_FORM_IMPORT_PROVIDER_SELECTION}`}>
+            <h4 className="h6 !text-black-800 !font-medium text-center">{t(importFormConstant.choice)}</h4>
+            <div className={'text-sm font-normal text-black-700'}>
+                Select the form provider from which you want to import forms. If your chosen form provider isn&apos;t linked yet,{' '}
+                <ActiveLink href={requestAnIntegration.href} className="body4 !not-italic !text-brand-500 hover:!text-brand-600">
+                    {requestAnIntegration.name}
+                </ActiveLink>
+            </div>
+            <div className={` flex justify-center w-full h-full gap-4 lg:gap-6 mt-4 ${JOYRIDE_CLASS.WORKSPACE_ADMIN_FORM_IMPORT_PROVIDER_SELECTION}`}>
                 {integrations.map((integration) => (
-                    <MuiButton key={integration.provider} sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }} onClick={integration.onClick} className="sh1 h-[120px] w-full md:h-[200px] md:w-[200px] !text-brand-500 capitalize">
-                        <div className="h-full w-full flex flex-col items-center justify-center gap-5">
-                            {integration.icon}
-                            <span className="body4 !not-italic !font-medium font-roboto tracking-wide !text-black-700">{integration.name}</span>
-                        </div>
-                    </MuiButton>
+                    <div key={integration.provider} className={'rounded-lg border-[1px] border-black-200 w-full'}>
+                        <MuiButton sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }} onClick={integration.onClick} className=" sh1 h-[110px] w-full !text-brand-500 capitalize ">
+                            <div className="h-full w-full flex flex-col items-center justify-center py-1 ">
+                                {integration.icon}
+                                <span className="body4 !not-italic !font-medium font-roboto tracking-wide !text-black-700">{integration.name}</span>
+                            </div>
+                        </MuiButton>
+                    </div>
                 ))}
             </div>
-            <ActiveLink href={requestAnIntegration.href} className="body4 !not-italic !text-brand-500 hover:!text-brand-600">
-                {requestAnIntegration.name}
-            </ActiveLink>
         </>
     );
 
@@ -185,8 +223,14 @@ export default function ImportProviderForms(props: any) {
                     ]}
                 />
             )}
-            <h4 className="sh1 w-full text-start">{t(importFormConstant.title)}</h4>
-            <div className="flex flex-col w-full h-full gap-10 items-end">
+            <h4 className="h6 !text-black-800 !font-medium text-center">{provider === Provider.google ? 'Select Google Form' : 'Select TypeForm'}</h4>
+            <div className={'text-sm font-normal text-black-700'}>
+                You can find a list of forms associated with your account. Select the forms you want to import. If there are no existing forms, you can always
+                <div onClick={createNewForm} className="body4 !not-italic !text-brand-500 hover:!text-brand-600 cursor-pointer">
+                    Create bettercollected Form.
+                </div>
+            </div>
+            <div className="flex flex-col w-full h-full gap-10 items-end mt-4">
                 <Autocomplete
                     loading={!!minifiedFormsResult?.isFetching}
                     disablePortal
@@ -210,13 +254,17 @@ export default function ImportProviderForms(props: any) {
                             </Box>
                         );
                     }}
-                    renderInput={(params) => <TextField {...params} label={provider === Provider.google ? t(importFormConstant.textLabel.googleForm) : t(importFormConstant.textLabel.typeform)} />}
+                    renderInput={(params) => <TextField {...params} label={'Select Form'} />}
                 />
-                <div>
-                    <AppButton isLoading={!!minifiedFormsResult?.isLoading} onClick={() => handleNext(provider)} disabled={!selectedForm} size={ButtonSize.Medium}>
-                        {t(buttonConstant.next)}
-                    </AppButton>
-                </div>
+                <AppButton
+                    className={'!w-full'}
+                    isLoading={!!minifiedFormsResult?.isLoading || !!importFormResult?.isLoading || !!singleFormFromProviderResult?.isLoading}
+                    onClick={handleImportForm}
+                    disabled={!selectedForm || !!singleFormFromProviderResult?.isLoading}
+                    size={ButtonSize.Medium}
+                >
+                    {t(buttonConstant.importNow)}
+                </AppButton>
             </div>
         </>
     );
@@ -289,14 +337,15 @@ export default function ImportProviderForms(props: any) {
 
     return (
         <div className="relative z-50 mx-auto max-w-full min-w-full md:max-w-[600px] md:min-w-[600px] lg:max-w-[600px] lg:min-w-[600px]" {...props}>
-            <div className="rounded-[4px] relative m-auto max-w-[500px] md:min-w-[500px] items-start justify-between bg-white">
-                <div className="relative flex flex-col items-center gap-7 justify-between p-4 md:p-10">
-                    {stepCount === 0 && stepZeroContent}
-                    {stepCount === 1 && stepOneContent}
-                    {stepCount === 2 && stepTwoContent}
+            <div className="rounded-2xl relative m-auto max-w-[600px] md:min-w-[500px] items-start justify-between bg-white">
+                <div className={'flex justify-between p-4'}>
+                    <h1 className={'text-sm font-normal text-black-700'}>Import Form</h1>
+                    <Close onClick={() => closeModal()} strokeWidth={2} />
                 </div>
-                <div className="cursor-pointer absolute top-3 right-3 text-gray-600 hover:text-black" onClick={() => closeModal()}>
-                    <Close className="h-auto w-3 text-gray-600 dark:text-white" />
+                <Divider />
+                <div className="relative flex flex-col items-start gap-2 justify-between p-4 md:p-10 md:pt-6">
+                    {/*{stepCount === 0 && stepZeroContent}*/}
+                    {stepCount === 1 && stepOneContent}
                 </div>
             </div>
         </div>

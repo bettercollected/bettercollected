@@ -1,5 +1,6 @@
 import React, { useRef, useState } from 'react';
 
+import { useTranslation } from 'next-i18next';
 import Image from 'next/image';
 
 import AppButton from '@Components/Common/Input/Button/AppButton';
@@ -14,13 +15,14 @@ interface IUploadLogo {
     logoImageUrl?: string;
     onUpload?: (file: File) => void;
     onRemove?: () => void;
+    showRemove?: boolean;
 }
 
-const UploadLogo = ({ className, onUpload, onRemove, logoImageUrl }: IUploadLogo) => {
+const UploadLogo = ({ className, onUpload, onRemove, logoImageUrl, showRemove = true }: IUploadLogo) => {
     const [showDropdown, setShowDropdown] = useState(false);
     const [logoUrl, setLogoUrl] = useState<string | null>(null);
-
     const logoRef = useRef<HTMLInputElement | null>(null);
+    const { t } = useTranslation();
 
     React.useEffect(() => {
         if (logoImageUrl) {
@@ -53,12 +55,12 @@ const UploadLogo = ({ className, onUpload, onRemove, logoImageUrl }: IUploadLogo
                 ) : (
                     <>
                         <Camera />
-                        <h1 className="body6 !text-white">Add Logo</h1>
+                        <h1 className="body6 !text-white">{t('WORKSPACE.SETTINGS.DETAILS.ADD_LOGO')}</h1>
                     </>
                 )}
             </div>
             {showDropdown && (
-                <div className="flex flex-col absolute z-40 shadow-logoCard sm:h-[166px] w-full sm:w-[330px] top-[116px] bg-white p-4 rounded-lg gap-2">
+                <div className="flex flex-col absolute z-40 shadow-logoCard h-auto w-full sm:w-[330px] top-[116px] bg-white p-4 rounded-lg gap-2">
                     <div className="flex justify-between !font-semibold mb-4">
                         <h1 className="body1 text-black-900">Logo</h1>
                         <Close
@@ -68,13 +70,14 @@ const UploadLogo = ({ className, onUpload, onRemove, logoImageUrl }: IUploadLogo
                             className="top-2 right-2 cursor-pointer p-2 h-8 w-8"
                         />
                     </div>
-
-                    <div onClick={() => logoRef.current?.click()} className="w-full rounded py-3 px-4 h-[36px] body4 bg-black-900 font-semibold hover:opacity-80 flex justify-center items-center cursor-pointer">
-                        <span className="text-black-100 text-xs sm:text-sm">Update New Logo</span>
-                    </div>
-                    <AppButton variant={ButtonVariant.Secondary} onClick={onRemoveLogo}>
-                        Remove Logo
-                    </AppButton>
+                    <label onClick={() => logoRef.current?.click()} className="w-full rounded py-3 px-4 h-[36px] body4 bg-black-900 font-semibold hover:opacity-80 flex justify-center items-center">
+                        <span className="text-black-100 text-xs sm:text-sm">{t('LOGO.UPDATE')}</span>
+                    </label>
+                    {showRemove && (
+                        <AppButton className="!text-black-900 font-semibold !bg-black-300 hover:!bg-black-400 " onClick={onRemoveLogo}>
+                            {t('LOGO.REMOVE')}
+                        </AppButton>
+                    )}
                 </div>
             )}
         </div>

@@ -29,10 +29,8 @@ export default function GroupFormsTab({ group, workspaceForms }: { group: Respon
     const router = useRouter();
     const isAdmin = useAppSelector(selectIsAdmin);
 
-    const handleCardClick = (event: any) => {
-        event.preventDefault();
-        event.stopPropagation();
-        router.push(`/${workspace.workspaceName}/dashboard/forms`);
+    const handleCardClick = (form: any) => {
+        router.push(`/${workspace.workspaceName}/dashboard/forms/${form.formId}`);
     };
     const [forms, setForms] = useState(group.forms);
     const [searchQuery, setSearchQuery] = useState('');
@@ -62,13 +60,10 @@ export default function GroupFormsTab({ group, workspaceForms }: { group: Respon
                     </p>
                     <p className="body4 leading-none   !text-black-700 ">{t(groupConstant.form.description)}</p>
                 </div>
-
-                <Tooltip title={workspaceForms.length === 0 ? t(toolTipConstant.emptyFormOnWorkspace) : ''}>
-                    <AppButton disabled={workspaceForms.length === 0} onClick={() => openModal('ADD_FORM_GROUP', { forms: workspaceForms, group })} variant={ButtonVariant.Ghost}>
-                        <Plus className="h-4 w-4" />
-                        <Typography className="!text-brand-500 min-w-[65px]  body6"> {t(buttonConstant.addForm)}</Typography>
-                    </AppButton>
-                </Tooltip>
+                <AppButton disabled={workspaceForms.length === 0} onClick={() => openModal('ADD_FORM_GROUP', { forms: workspaceForms, group })} variant={ButtonVariant.Ghost}>
+                    <Plus className="h-4 w-4" />
+                    <Typography className="!text-brand-500 min-w-[65px]  body6"> {t(buttonConstant.addForm)}</Typography>
+                </AppButton>
             </div>
             {group.forms.length > 0 && (
                 <div className="gap-6 flex flex-col">
@@ -78,7 +73,12 @@ export default function GroupFormsTab({ group, workspaceForms }: { group: Respon
                     <div className="mt-6 flex flex-col gap-6">
                         {forms.map((form, idx) => {
                             return (
-                                <div onClick={handleCardClick} key={form.formId + idx}>
+                                <div
+                                    onClick={() => {
+                                        handleCardClick(form);
+                                    }}
+                                    key={form.formId + idx}
+                                >
                                     <WorkspaceFormCard isResponderPortal key={form.formId} form={form} hasCustomDomain={false} workspace={workspace} group={group} />
                                 </div>
                             );

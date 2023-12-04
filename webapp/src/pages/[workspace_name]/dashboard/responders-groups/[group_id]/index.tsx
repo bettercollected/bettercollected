@@ -4,8 +4,8 @@ import { useTranslation } from 'next-i18next';
 import { NextSeo } from 'next-seo';
 import { useRouter } from 'next/router';
 
-import { FormIcon } from '@Components/Common/Icons/FormIcon';
-import MembersIcon from '@Components/Common/Icons/Members';
+import MembersIcon from '@Components/Common/Icons/Dashboard/Members';
+import { FormIcon } from '@Components/Common/Icons/Form/FormIcon';
 import { Groups } from '@mui/icons-material';
 
 import BreadcrumbsRenderer from '@app/components/form/renderer/breadcrumbs-renderer';
@@ -90,11 +90,7 @@ export default function GroupPreviewPage({ groupId }: { groupId: string }) {
             {!isLoading && !workspaceForms.isLoading && data && workspaceForms.data && (
                 <div className="flex flex-col -mt-6 ">
                     <BreadcrumbsRenderer items={breadcrumbsItem} />
-                    <div className="flex gap-2 items-center ">
-                        <Back onClick={() => router.push(`/${workspace?.workspaceName}/dashboard/responders-groups?view=Groups`)} className="cursor-pointer" />
-                        <span className="h4">{t(groupConstant.groups)}</span>
-                    </div>
-                    <ParamTab className="mb-[38px] mt-6  pb-0 " tabMenu={paramTabs}>
+                    <ParamTab className="mb-[38px]  pb-0 " tabMenu={paramTabs}>
                         <TabPanel className="focus:outline-none" key="Group Details">
                             <GroupDetailsTab group={data} />
                         </TabPanel>

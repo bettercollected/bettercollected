@@ -3,7 +3,7 @@ import React from 'react';
 import { useTranslation } from 'next-i18next';
 
 import Tooltip from '@Components/Common/DataDisplay/Tooltip';
-import CopyIcon from '@Components/Common/Icons/Copy';
+import CopyIcon from '@Components/Common/Icons/Common/Copy';
 import AppTextField from '@Components/Common/Input/AppTextField';
 import AppButton from '@Components/Common/Input/Button/AppButton';
 import { ButtonSize } from '@Components/Common/Input/Button/AppButtonProps';
@@ -19,7 +19,6 @@ import { workspaceConstant } from '@app/constants/locales/workspace';
 import { useCopyToClipboard } from '@app/lib/hooks/use-copy-to-clipboard';
 import { selectIsProPlan } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
-
 
 interface IUpdateURLProps {
     type: 'DOMAIN' | 'HANDLE';
