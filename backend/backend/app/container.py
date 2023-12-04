@@ -9,6 +9,7 @@ from common.services.jwt_service import JwtService
 from dependency_injector import containers, providers
 from motor.motor_asyncio import AsyncIOMotorClient
 
+from backend.app.repositories.action_repository import ActionRepository
 from backend.app.repositories.form_plugin_provider_repository import (
     FormPluginProviderRepository,
 )
@@ -28,6 +29,7 @@ from backend.app.repositories.workspace_responders_repository import (
 )
 from backend.app.repositories.workspace_user_repository import WorkspaceUserRepository
 from backend.app.schedulers.form_schedular import FormSchedular
+from backend.app.services.actions_service import ActionService
 from backend.app.services.auth_service import AuthService
 from backend.app.services.aws_service import AWSS3Service
 from backend.app.services.form_import_service import FormImportService
@@ -249,6 +251,15 @@ class AppContainer(containers.DeclarativeContainer):
         workspace_form_service=workspace_form_service,
         aws_service=aws_service,
         temporal_service=temporal_service
+    )
+
+    action_repository = providers.Singleton(
+        ActionRepository,
+    )
+
+    action_service = providers.Singleton(
+        ActionService,
+        action_repository=action_repository
     )
 
 
