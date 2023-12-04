@@ -21,6 +21,7 @@ from backend.app.schedulers.form_schedular import FormSchedular
 from backend.app.schemas.standard_form import FormDocument
 from backend.app.schemas.template import FormTemplateDocument
 from backend.app.schemas.workspace_form import WorkspaceFormDocument
+from backend.app.services.actions_service import ActionService
 from backend.app.services.aws_service import AWSS3Service
 from backend.app.services.form_import_service import FormImportService
 from backend.app.services.form_plugin_provider_service import FormPluginProviderService
@@ -51,6 +52,7 @@ class WorkspaceFormService:
         user_tags_service: UserTagsService,
         temporal_service: TemporalService,
         aws_service: AWSS3Service,
+        action_service: ActionService
     ):
         self.form_provider_service = form_provider_service
         self.plugin_proxy_service = plugin_proxy_service
@@ -65,6 +67,7 @@ class WorkspaceFormService:
         self.user_tags_service = user_tags_service
         self.temporal_service = temporal_service
         self._aws_service = aws_service
+        self.action_service = action_service
 
     # TODO : Use plugin interface for importing for now endpoint is used here
     async def import_form_to_workspace(
@@ -429,9 +432,14 @@ class WorkspaceFormService:
             )
         if not response.dataOwnerIdentifier and user:
             response.dataOwnerIdentifier = user.sub
-        return await self.form_response_service.submit_form_response(
+
+        form_response = await self.form_response_service.submit_form_response(
             form_id=form_id, response=response, workspace_id=workspace_id
         )
+
+        form = await self.form_service.get_form_document_by_id(form_id=str(form_id))
+        await self.action_service.start_actions_for_submission(form=form, response=form_response)
+        return form_response
 
     async def delete_form_response(
         self,
