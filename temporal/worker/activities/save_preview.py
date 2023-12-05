@@ -6,7 +6,7 @@ from models.save_preview_params import SavePreviewParams
 with workflow.unsafe.imports_passed_through():
     import asyncio
     from settings.application import settings
-    from wrappers.APMWrapper import APMAsyncHttpClient
+    from wrappers.apm_wrapper import APMAsyncHttpClient
     from wrappers.thread_pool_executor import thread_pool_executor
     from activities.get_preview_image import get_preview_image
 
