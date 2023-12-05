@@ -3,4 +3,7 @@ from dataclasses import dataclass
 
 @dataclass
 class RunActionCodeParams:
-    action_code: str
+    action: str
+    form: str
+    response: str
+    user_email: str
