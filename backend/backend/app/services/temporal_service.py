@@ -2,12 +2,11 @@ import json
 from dataclasses import asdict
 from datetime import timedelta
 from http import HTTPStatus
-from typing import Any
 
 import loguru
 from beanie import PydanticObjectId
 from common.configs.crypto import Crypto
-from common.models.standard_form import StandardFormResponse
+from common.models.standard_form import StandardFormResponse, StandardForm
 from common.utils.asyncio_run import asyncio_run
 from temporalio.client import (
     Client,
@@ -230,10 +229,11 @@ class TemporalService:
         )
         await handle.update(updater=self.update_schedule_interval(interval=interval))
 
-    async def start_action_execution(self, action: ActionDocument, form: Any, response: FormResponseDocument):
+    async def start_action_execution(self, action: ActionDocument, form: StandardForm, response: FormResponseDocument):
         if not settings.schedular_settings.ENABLED:
             return
-        run_action_params = RunActionCodeParams(action_code=action.action_code)
+        run_action_params = RunActionCodeParams(action=action.json(), form=form.json(), response=response.json(),
+                                                user_email="")
         try:
             await self.check_temporal_client_and_try_to_connect_if_not_connected()
             await self.temporal_client.start_workflow(
