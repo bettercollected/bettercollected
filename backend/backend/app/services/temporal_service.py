@@ -233,7 +233,7 @@ class TemporalService:
         if not settings.schedular_settings.ENABLED:
             return
         run_action_params = RunActionCodeParams(action=action.json(), form=form.json(), response=response.json(),
-                                                user_email="")
+                                                user_email=response.dataOwnerIdentifier if response is not None else "")
         try:
             await self.check_temporal_client_and_try_to_connect_if_not_connected()
             await self.temporal_client.start_workflow(
