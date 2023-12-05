@@ -1,23 +1,27 @@
 import asyncio
+import json
 from random import Random
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 from wrappers.thread_pool_executor import thread_pool_executor
 
 
 async def run_action(
-    action_code: str,
+    action: Any,
     form: Any,
     response: Any,
-    extra_params: Optional[Dict[str, str]] = None
 ):
+    action = json.loads(action)
+    form = json.loads(form)
+    response = json.loads(response)
+
     def get_state():
         if response.state and response.state.global_state:
             return response.state.global_state
         return None
 
     def get_extra_params() -> Dict[str, Any]:
-        return extra_params
+        return form.get("parameters")
 
     def get_form():
         return form
@@ -27,7 +31,7 @@ async def run_action(
 
     loop = asyncio.get_event_loop()
     result = await asyncio.wait_for(loop.run_in_executor(thread_pool_executor, execute_action_code,
-                                                         action_code,
+                                                         action.get("action_code"),
                                                          response,
                                                          form,
                                                          get_form,
@@ -52,7 +56,7 @@ def execute_action_code(action_code: str,
 
     try:
         exec(
-            action_code,
+            action_code if action_code else "",
             {
                 "__builtins__": None,
                 "__builtin__": None,
@@ -75,7 +79,6 @@ def execute_action_code(action_code: str,
                 "get_state": get_state,
             }, {}
         )
-
     except Exception as e:
         log("Exception While running action")
         log(str(e))
