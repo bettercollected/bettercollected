@@ -1,5 +1,7 @@
 from temporalio import activity, workflow
 
+from utilities.actions import run_action
+
 with workflow.unsafe.imports_passed_through():
     from models.run_action_code_params import RunActionCodeParams
     from wrappers.apm_wrapper import APMAsyncHttpClient
@@ -8,19 +10,4 @@ with workflow.unsafe.imports_passed_through():
 @activity.defn(name="run_action_code")
 async def run_action_code(run_action_code_params: RunActionCodeParams):
     async with APMAsyncHttpClient("save_preview") as client:
-        log_string = []
-
-        def log(message: str):
-            log_string.append(str(message))
-
-        try:
-            exec(
-                run_action_code_params.action_code,
-                {
-                    "log": log
-                }
-            )
-        except Exception as e:
-            log("Exception: " + str(e))
-
-        return "\n".join(log_string)
+        return await run_action(action_code=run_action_code_params.action_code, form=None, response=None)
