@@ -355,6 +355,7 @@ class StandardForm(BaseModel):
     published_at: Optional[dt.datetime]
     actions: Optional[Dict[Trigger, List[PydanticObjectId]]]
     parameters: Optional[Dict[str, List[ParameterValue]]] = Field()
+    secrets: Optional[Dict[str, List[ParameterValue]]] = Field()
 
 
 class StandardFormResponseAnswer(BaseModel):
