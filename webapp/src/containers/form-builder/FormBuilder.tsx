@@ -150,7 +150,7 @@ export default function FormBuilder({workspace, _nextI18Next, isTemplate = false
         if (headerImages.coverImage) formData.append('cover_image', headerImages.coverImage);
         if (headerImages.logo) formData.append('logo', headerImages.logo);
         const publishRequest: any = {};
-        publishRequest.title = builderState.title;
+        publishRequest.title = builderState.title || 'Untitled';
         publishRequest.description = builderState.description;
         let fields: any = Object.values(builderState.fields || {});
         // TODO extract this to a function
