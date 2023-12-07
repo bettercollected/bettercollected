@@ -37,15 +37,18 @@ async def run_action(
             if param_name is not None and param_value is not None:
                 extra_params[param_name] = param_value
 
-        overriding_params = form.get("parameters").get(action.get("id"))
-        if overriding_params is not None:
-            for overriding_param in overriding_params:
-                param_name = overriding_param.get("name")
-                param_value = overriding_param.get("value")
+        # Check if "form" has the field "parameters"
+        form_parameters = form.get("parameters")
+        if form_parameters is not None:
+            overriding_params = form_parameters.get(action.get("id"))
+            if overriding_params is not None:
+                for overriding_param in overriding_params:
+                    param_name = overriding_param.get("name")
+                    param_value = overriding_param.get("value")
 
-                # Check if either name or value is None before adding to extra_params
-                if param_name is not None and param_value is not None:
-                    extra_params[param_name] = param_value
+                    # Check if either name or value is None before adding to extra_params
+                    if param_name is not None and param_value is not None:
+                        extra_params[param_name] = param_value
 
         return extra_params
 
