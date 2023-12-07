@@ -6,6 +6,7 @@ from typing import Any, Dict, List
 import httpx
 from fastapi_mail import ConnectionConfig, MessageSchema, FastMail
 
+from configs.crypto import crypto
 from wrappers.thread_pool_executor import thread_pool_executor
 
 
@@ -23,34 +24,46 @@ async def run_action(
             return response.state.global_state
         return None
 
-    def get_extra_params() -> Dict[str, str]:
-        params = action.get("parameters")
-        if params is None:
+    def get_extra_data(key: str) -> Dict[str, str]:
+        data = action.get(key)
+        if data is None:
             return {}
 
-        extra_params = {}
-        for param in params:
-            param_name = param.get("name")
-            param_value = param.get("value")
+        extra_data = {}
+        for item in data:
+            item_name = item.get("name")
+            item_value = item.get("value")
 
-            # Check if either name or value is None before adding to extra_params
-            if param_name is not None and param_value is not None:
-                extra_params[param_name] = param_value
+            # Check if either name or value is None before adding to extra_data
+            if item_name is not None and item_value is not None:
+                extra_data[item_name] = item_value if key != "secrets" else crypto.decrypt(item_value)
 
-        # Check if "form" has the field "parameters"
-        form_parameters = form.get("parameters")
-        if form_parameters is not None:
-            overriding_params = form_parameters.get(action.get("id"))
-            if overriding_params is not None:
-                for overriding_param in overriding_params:
-                    param_name = overriding_param.get("name")
-                    param_value = overriding_param.get("value")
+        # Check if "form" has the field key
+        form_data = form.get(key)
+        if form_data is not None:
+            overriding_data = form_data.get(action.get("id"))
+            if overriding_data is not None:
+                for overriding_item in overriding_data:
+                    item_name = overriding_item.get("name")
+                    item_value = overriding_item.get("value")
 
-                    # Check if either name or value is None before adding to extra_params
-                    if param_name is not None and param_value is not None:
-                        extra_params[param_name] = param_value
+                    # Check if either name or value is None before adding to extra_data
+                    if item_name is not None and item_value is not None:
+                        extra_data[item_name] = item_value if key != "secrets" else crypto.decrypt(item_value)
 
-        return extra_params
+        return extra_data
+
+    def get_parameters() -> Dict[str, str]:
+        return get_extra_data("parameters")
+
+    def get_secrets() -> Dict[str, str]:
+        return get_extra_data("secrets")
+
+    def get_parameter(key: str) -> str:
+        return get_parameters().get(key)
+
+    def get_secret(key: str) -> str:
+        return get_secrets().get(key)
 
     def get_form():
         return form
@@ -117,7 +130,10 @@ async def run_action(
                                                          form,
                                                          get_form,
                                                          get_response,
-                                                         get_extra_params,
+                                                         get_parameters,
+                                                         get_secrets,
+                                                         get_parameter,
+                                                         get_secret,
                                                          get_state,
                                                          send_data_webhook,
                                                          config_mail,
@@ -131,7 +147,10 @@ def execute_action_code(action_code: str,
                         form,
                         get_form,
                         get_response,
-                        get_extra_params,
+                        get_parameters,
+                        get_secrets,
+                        get_parameter,
+                        get_secret,
                         get_state,
                         send_data_webhook,
                         config_mail,
@@ -163,7 +182,10 @@ def execute_action_code(action_code: str,
                 "form": form,
                 "get_form": get_form,
                 "get_response": get_response,
-                "get_extra_params": get_extra_params,
+                "get_parameters": get_parameters,
+                "get_secrets": get_secrets,
+                "get_parameter": get_parameter,
+                "get_secret": get_secret,
                 "get_state": get_state,
                 "send_data_webhook": send_data_webhook,
                 "config_mail": config_mail,
@@ -174,6 +196,7 @@ def execute_action_code(action_code: str,
         log("Exception While running action")
         log(str(e))
         status = False
+        raise RuntimeError("\n".join(log_string))
     return {
         "status": status,
         "log": "\n".join(log_string)
