@@ -173,7 +173,8 @@ class AppContainer(containers.DeclarativeContainer):
     action_service = providers.Singleton(
         ActionService,
         action_repository=action_repository,
-        temporal_service=temporal_service
+        temporal_service=temporal_service,
+        workspace_user_service=workspace_user_service
     )
 
     workspace_form_service: WorkspaceFormService = providers.Singleton(
