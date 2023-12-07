@@ -7,13 +7,14 @@ from beanie import PydanticObjectId
 from common.constants import MESSAGE_NOT_FOUND
 from common.enums.plan import Plans
 from common.models.form_import import FormImportRequestBody
-from common.models.standard_form import StandardForm, StandardFormResponse
+from common.models.standard_form import StandardForm, StandardFormResponse, Trigger
 from common.models.user import User
 from fastapi import UploadFile
 from starlette.requests import Request
 
 from backend.app.exceptions import HTTPException
 from backend.app.models.dataclasses.user_tokens import UserTokens
+from backend.app.models.dtos.action_dto import AddActionToFormDto
 from backend.app.models.response_dtos import FormFileResponse
 from backend.app.models.workspace import WorkspaceFormSettings
 from backend.app.repositories.workspace_form_repository import WorkspaceFormRepository
@@ -68,6 +69,11 @@ class WorkspaceFormService:
         self.temporal_service = temporal_service
         self._aws_service = aws_service
         self.action_service = action_service
+
+    async def check_form_exists_in_workspace(self, workspace_id: PydanticObjectId, form_id: str):
+        if not await self.workspace_form_repository.check_if_form_exists_in_workspace(workspace_id=workspace_id,
+                                                                                      form_id=form_id):
+            raise HTTPException(HTTPStatus.NOT_FOUND, MESSAGE_NOT_FOUND)
 
     # TODO : Use plugin interface for importing for now endpoint is used here
     async def import_form_to_workspace(
@@ -522,5 +528,15 @@ class WorkspaceFormService:
             duplicated_form.settings = workspace_form.settings
         return duplicated_form
 
+    async def add_action_to_form(self, workspace_id: PydanticObjectId, form_id: PydanticObjectId,
+                                 add_action_to_form_params: AddActionToFormDto, user: User):
+        await self.check_form_exists_in_workspace(workspace_id=workspace_id, form_id=str(form_id))
+        await self.workspace_user_service.check_user_has_access_in_workspace(workspace_id=workspace_id, user=user)
+        return await self.form_service.add_action_form(form_id=form_id,
+                                                       add_action_to_form_params=add_action_to_form_params)
 
-# async def upload_images_of_form
+    async def remove_action_from_form(self, workspace_id: PydanticObjectId, form_id: PydanticObjectId,
+                                      action_id: PydanticObjectId, trigger: Trigger, user: User):
+        await self.check_form_exists_in_workspace(workspace_id=workspace_id, form_id=str(form_id))
+        await self.workspace_user_service.check_user_has_access_in_workspace(workspace_id=workspace_id, user=user)
+        return await self.form_service.remove_action_from_form(form_id=form_id, action_id=action_id, trigger=trigger)

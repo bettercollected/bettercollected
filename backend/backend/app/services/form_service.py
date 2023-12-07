@@ -3,14 +3,16 @@ from http import HTTPStatus
 from typing import List
 
 from beanie import PydanticObjectId
+from common.configs.crypto import Crypto
 from common.constants import MESSAGE_FORBIDDEN
-from common.models.standard_form import StandardForm
+from common.models.standard_form import StandardForm, Trigger, ParameterValue
 from common.models.user import User
 from fastapi_pagination import Page
 from fastapi_pagination.ext.beanie import paginate
 
 from backend.app.constants.consents import default_consents
 from backend.app.exceptions import HTTPException
+from backend.app.models.dtos.action_dto import AddActionToFormDto
 from backend.app.models.dtos.workspace_member_dto import (
     FormImporterDetails,
 )
@@ -35,11 +37,13 @@ class FormService:
         form_repo: FormRepository,
         workspace_form_repo: WorkspaceFormRepository,
         user_tags_service: UserTagsService,
+        crypto: Crypto
     ):
         self._workspace_user_repo = workspace_user_repo
         self._form_repo = form_repo
         self._workspace_form_repo = workspace_form_repo
         self.user_tags_service = user_tags_service
+        self.crypto = crypto
 
     async def get_forms_in_workspace(
         self,
@@ -371,3 +375,51 @@ class FormService:
                 )
             form.form_id = str(form.form_id)
             return form
+
+    async def add_action_form(self, form_id: PydanticObjectId, add_action_to_form_params: AddActionToFormDto):
+        form = await self._form_repo.get_form_document_by_id(form_id=str(form_id))
+        actions = []
+
+        if form.actions is not None:
+
+            if form.actions.get(add_action_to_form_params.trigger) is not None:
+                actions.extend(form.actions.get(add_action_to_form_params.trigger))
+
+            actions.append(add_action_to_form_params.action_id)
+
+            actions = list(set(actions))
+
+            form.actions[add_action_to_form_params.trigger] = actions
+
+        else:
+            form.actions = {add_action_to_form_params.trigger: [add_action_to_form_params.action_id]}
+
+        if form.parameters is not None:
+
+            form.parameters[str(add_action_to_form_params.action_id)] = add_action_to_form_params.parameters
+        else:
+            form.parameters = {str(add_action_to_form_params.action_id): add_action_to_form_params.parameters}
+
+        secrets = [ParameterValue(name=secret.name, value=self.crypto.encrypt(secret.value)) for secret in
+                   add_action_to_form_params.secrets]
+
+        if form.secrets is not None:
+            form.secrets[str(add_action_to_form_params.action_id)] = secrets
+        else:
+            form.secrets = {str(add_action_to_form_params.action_id): secrets}
+
+        return await form.save()
+
+    async def remove_action_from_form(self, form_id: PydanticObjectId, action_id: PydanticObjectId, trigger: Trigger):
+        form = await self._form_repo.get_form_document_by_id(form_id=str(form_id))
+
+        if trigger in form.actions and action_id in form.actions[trigger]:
+            form.actions[trigger].remove(action_id)
+
+        if str(action_id) in form.parameters:
+            del form.parameters[str(action_id)]
+
+        if str(action_id) in form.secrets:
+            del form.secrets[str(action_id)]
+
+        return await form.save()

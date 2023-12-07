@@ -36,7 +36,8 @@ class ActionService:
         else:
             await self.workspace_user_service.check_user_has_access_in_workspace(workspace_id=workspace_id, user=user)
 
-        return await self.action_repository.get_action_by_id(workspace_id=workspace_id, action_id=action_id)
+        return await self.action_repository.get_action_by_id(workspace_id=workspace_id, action_id=action_id,
+                                                             public_only=not workspace_id)
 
     async def start_actions_for_submission(self, workspace_id: PydanticObjectId, form: FormDocument,
                                            response: FormResponseDocument):
@@ -47,3 +48,9 @@ class ActionService:
                                                                   action_ids=submission_actions)
         for action in actions:
             await self.temporal_service.start_action_execution(action=action, form=form, response=response)
+
+    async def delete_action_from_workspace(self, workspace_id: PydanticObjectId, action_id: PydanticObjectId,
+                                           user: User):
+        await self.workspace_user_service.check_is_admin_in_workspace(workspace_id=workspace_id, user=user)
+        await self.action_repository.remove_action_form_all_forms(workspace_id=workspace_id, action_id=action_id)
+        await self.action_repository.delete_action(action_id=action_id)
