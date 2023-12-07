@@ -4,7 +4,7 @@ from beanie import PydanticObjectId
 from black import List
 from fastapi_camelcase import CamelModel
 
-from backend.app.schemas.action_document import ParameterValue
+from backend.app.schemas.action_document import ParameterValue, ActionSettings
 
 
 class ActionDto(CamelModel):
@@ -15,3 +15,5 @@ class ActionDto(CamelModel):
 
 class ActionResponse(ActionDto, CamelModel):
     id: PydanticObjectId
+    settings: Optional[ActionSettings] = None
+    workspace_id: PydanticObjectId

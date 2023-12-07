@@ -37,7 +37,7 @@ class FormTemplateService:
     async def get_templates(self, workspace_id: PydanticObjectId, user: User):
         predefined_workspace = False
         if not workspace_id:
-            workspace_id = settings.template_settings.PREDEFINED_WORKSPACE_ID
+            workspace_id = settings.default_workspace_settings.WORKSPACE_ID
             predefined_workspace = True
         else:
             await self.workspace_user_service.check_user_has_access_in_workspace(

@@ -438,7 +438,8 @@ class WorkspaceFormService:
         )
 
         form = await self.form_service.get_form_document_by_id(form_id=str(form_id))
-        await self.action_service.start_actions_for_submission(form=form, response=form_response)
+        await self.action_service.start_actions_for_submission(workspace_id=workspace_id, form=form,
+                                                               response=form_response)
         return form_response
 
     async def delete_form_response(
