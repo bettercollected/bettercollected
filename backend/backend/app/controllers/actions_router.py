@@ -2,7 +2,7 @@ from http import HTTPStatus
 from typing import List
 
 from beanie import PydanticObjectId
-from classy_fastapi import Routable, post, get
+from classy_fastapi import Routable, post, get, delete
 from common.models.user import User
 from fastapi import Depends
 
@@ -42,9 +42,16 @@ class ActionRouter(Routable):
         return [ActionResponse(**action.dict()) for action in actions]
 
     @get("/actions/{action_id}", response_model=ActionResponse)
-    async def get_action_by_id(self, workspace_id: PydanticObjectId, action_id: PydanticObjectId,
+    async def get_action_by_id(self, action_id: PydanticObjectId, workspace_id: PydanticObjectId = None,
                                user: User = Depends(get_logged_user)):
         action = await self.action_service.get_action_by_id(workspace_id=workspace_id, action_id=action_id, user=user)
         if not action:
             raise HTTPException(HTTPStatus.NOT_FOUND, "Action not found")
         return ActionResponse(**action.dict())
+
+    @delete("/workspaces/{workspace_id}/actions/{action_id}")
+    async def delete_action(self, workspace_id: PydanticObjectId, action_id: PydanticObjectId,
+                            user: User = Depends(get_logged_user)):
+        await self.action_service.delete_action_from_workspace(workspace_id=workspace_id, action_id=action_id,
+                                                               user=user)
+        return action_id

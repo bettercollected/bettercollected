@@ -85,12 +85,13 @@ class AppContainer(containers.DeclarativeContainer):
 
     responder_groups_repository = providers.Singleton(ResponderGroupsRepository)
 
+    crypto = providers.Singleton(Crypto, settings.auth_settings.AES_HEX_KEY)
+
     action_repository = providers.Singleton(
-        ActionRepository,
+        ActionRepository, crypto=crypto
     )
 
     # Services
-    crypto = providers.Singleton(Crypto, settings.auth_settings.AES_HEX_KEY)
 
     temporal_service = providers.Singleton(
         TemporalService,
@@ -123,6 +124,7 @@ class AppContainer(containers.DeclarativeContainer):
         form_repo=form_repo,
         workspace_form_repo=workspace_form_repo,
         user_tags_service=user_tags_service,
+        crypto=crypto
     )
 
     form_response_service: FormResponseService = providers.Singleton(

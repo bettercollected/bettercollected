@@ -6,7 +6,7 @@ from classy_fastapi import Routable, get, patch, post, delete
 from common.constants import MESSAGE_UNAUTHORIZED
 from common.models.consent import ResponseRetentionType
 from common.models.form_import import FormImportRequestBody
-from common.models.standard_form import StandardForm
+from common.models.standard_form import StandardForm, Trigger
 from common.models.user import User
 from fastapi import Depends, UploadFile, Form
 from fastapi_pagination import Page
@@ -16,6 +16,7 @@ from starlette.requests import Request
 from backend.app.container import container
 from backend.app.decorators.user_tag_decorators import user_tag
 from backend.app.exceptions import HTTPException
+from backend.app.models.dtos.action_dto import AddActionToFormDto
 from backend.app.models.dtos.worksapce_form_dto import GroupsDto
 from backend.app.models.enum.FormVersion import FormVersion
 from backend.app.models.enum.user_tag_enum import UserTagType
@@ -360,3 +361,20 @@ class WorkspaceFormsRouter(Routable):
         return await self.workspace_form_service.delete_form_from_workspace(
             workspace_id=workspace_id, form_id=form_id, user=user
         )
+
+    @patch("/{form_id}/actions")
+    async def _add_action_to_form(self, workspace_id: PydanticObjectId, form_id: PydanticObjectId,
+                                  add_action_to_form_params: AddActionToFormDto,
+                                  user: User = Depends(get_logged_user)):
+        return await self.workspace_form_service.add_action_to_form(workspace_id=workspace_id, form_id=form_id,
+                                                                    add_action_to_form_params=add_action_to_form_params,
+                                                                    user=user)
+
+    @delete("/{form_id}/actions/{action_id}")
+    async def _remove_action_from_form(self, workspace_id: PydanticObjectId, action_id: PydanticObjectId,
+                                       form_id: PydanticObjectId, trigger: Trigger,
+                                       user: User = Depends(get_logged_user)):
+        await self.workspace_form_service.remove_action_from_form(workspace_id=workspace_id, form_id=form_id,
+                                                                  action_id=action_id, trigger=trigger,
+                                                                  user=user)
+        return action_id

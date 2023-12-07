@@ -37,7 +37,7 @@ class ActionDocument(BaseAction, MongoDocument):
         }
         indexes = [
             IndexModel(
-                [("workspace_id", pymongo.DESCENDING), ("action_name", pymongo.DESCENDING)],
+                [("workspace_id", pymongo.DESCENDING), ("name", pymongo.DESCENDING)],
                 unique=True,
             )
         ]
