@@ -1,10 +1,11 @@
 import asyncio
 import json
+import traceback
 from random import Random
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 import httpx
-from fastapi_mail import ConnectionConfig, MessageSchema, FastMail
+from fastapi_mail import ConnectionConfig, MessageSchema, FastMail, MessageType
 
 from configs.crypto import crypto
 from wrappers.thread_pool_executor import thread_pool_executor
@@ -76,11 +77,11 @@ async def run_action(
                     smtp_sender: str,
                     smtp_port: int,
                     smtp_server: str,
-                    org_name: str = "",
-                    tls: bool = True,
-                    ssl: bool = False,
-                    use_credentials=True,
-                    validate_certs: bool = True):
+                    org_name: Optional[str] = "",
+                    tls: Optional[bool] = True,
+                    ssl: Optional[bool] = False,
+                    use_credentials: Optional[bool] = True,
+                    validate_certs: Optional[bool] = True):
         return ConnectionConfig(
             MAIL_USERNAME=smtp_username,
             MAIL_PASSWORD=smtp_password,
@@ -88,8 +89,8 @@ async def run_action(
             MAIL_PORT=smtp_port,
             MAIL_SERVER=smtp_server,
             MAIL_FROM_NAME=org_name,
-            MAIL_TLS=tls,
-            MAIL_SSL=ssl,
+            MAIL_STARTTLS=tls,
+            MAIL_SSL_TLS=ssl,
             USE_CREDENTIALS=use_credentials,
             VALIDATE_CERTS=validate_certs
         )
@@ -100,10 +101,11 @@ async def run_action(
         message = MessageSchema(
             subject=subject,
             recipients=recipient,
-            html=message
+            subtype=MessageType.plain,
+            body=message
         )
         fast_mail = FastMail(mail_config)
-        fast_mail.send_message(message)
+        asyncio.run(fast_mail.send_message(message))
         return "ok"
 
     def send_data_webhook(url: str, params=None, data=None, headers=None):
@@ -175,6 +177,7 @@ def execute_action_code(action_code: str,
                 "str": str,
                 "filter": filter,
                 "list": list,
+                "int": int,
                 "log": log,
                 "random": Random,
                 "action_code": action_code,
@@ -195,7 +198,7 @@ def execute_action_code(action_code: str,
     except Exception as e:
         log("Exception While running action")
         log(str(e))
-        status = False
+        traceback.print_exception(e)
         raise RuntimeError("\n".join(log_string))
     return {
         "status": status,
