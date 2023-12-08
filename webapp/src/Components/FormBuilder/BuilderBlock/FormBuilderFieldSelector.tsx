@@ -35,7 +35,7 @@ export default function FormBuilderFieldSelector({ field, searchQuery = '' }: { 
                 if (LabelFormBuilderTagNames.includes(previousField?.type)) {
                     text = previousField?.value;
                 }
-                x.value = convertPlaceholderToDisplayValue(fields, text);
+                x.value = convertPlaceholderToDisplayValue(fields, text) || field?.type;
                 x.type = field.type;
                 if (x.value.match(searchQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') || '')) {
                     filteredFields.push(x);
@@ -109,12 +109,12 @@ export default function FormBuilderFieldSelector({ field, searchQuery = '' }: { 
         <>
             <div
                 id="field-selector"
-                style={{
-                    position: 'fixed',
-                    left: pipingFieldMenuState?.pos?.left,
-                    top: pipingFieldMenuState?.pos?.top + 24
-                }}
-                className={`max-h-48 p-2 rounded absolute w-[300px] bg-white overflow-auto drop-shadow-lg top-full z-[100]`}
+                // style={{
+                //     position: 'fixed',
+                //     left: pipingFieldMenuState?.pos?.left,
+                //     top: pipingFieldMenuState?.pos?.top + 24
+                // }}
+                className={`max-h-48 p-2 absolute rounded w-[300px] bg-white overflow-auto drop-shadow-lg top-full z-[100]`}
             >
                 <div className="text-gray-600 font-bold px-4 py-2 ">Mention a field</div>
                 <div className="flex flex-col">

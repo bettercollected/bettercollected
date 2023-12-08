@@ -95,7 +95,7 @@ export function getDisplayNameForField(fields: Array<IFormFieldState>, fieldId: 
         const previousField = getPreviousField(fields, currentField);
         let text = currentField.properties?.placeholder;
         if (LabelFormBuilderTagNames.includes(previousField?.type)) {
-            text = previousField?.value;
+            text = previousField?.value || currentField?.type;
         }
         return text;
     }

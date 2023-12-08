@@ -128,7 +128,7 @@ export default function HeaderInputBlock({ field, id, position }: IHeaderInputBl
             const displayName = getDisplayNameForField(fields, fieldId);
             if (fields.find((field) => field.id === fieldId))
                 // Replace the placeholder with a <span> element containing the field value
-                return `<span contenteditable="false" class="bg-black-300 max-w-[200px] truncate rounded p-1 cursor-pointer" data-current-field="${field.id}" data-field-id="${fieldId}">@${toEndDottedStr(
+                return `<span contenteditable="false" class="bg-black-300 max-w-[200px] truncate rounded p-1 mx-0.5 cursor-pointer" data-current-field="${field.id}" data-field-id="${fieldId}">@${toEndDottedStr(
                     convertPlaceholderToDisplayValue(fields, displayName),
                     24
                 )}</span>`;
@@ -139,7 +139,7 @@ export default function HeaderInputBlock({ field, id, position }: IHeaderInputBl
     const searchQuery = field.value?.match(/@([^@\s]*)/)?.[1] ?? '';
 
     return (
-        <div>
+        <div >
             {pipingFieldMenuState?.isOpen && pipingFieldMenuState?.atFieldUuid === field?.id && <FormBuilderFieldSelector field={field} searchQuery={searchQuery} />}
             {pipingSettingsState?.isOpen && pipingSettingsState?.atFieldId === field?.id && <MentionedFieldSettings field={field} />}
             <CustomContentEditable
