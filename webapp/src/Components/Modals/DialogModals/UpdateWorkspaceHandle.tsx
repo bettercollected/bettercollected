@@ -36,7 +36,7 @@ export default function UpdateWorkspaceHandle() {
     const [error, setError] = useState(false);
     const [errorMessage, setErrorMessage] = useState('')
     const handleUpdateChange = (event: any) => {
-        setUpdateText(event.target.value);
+        setUpdateText(event.target.value.toLowerCase());
     };
 
     useEffect(() => {
