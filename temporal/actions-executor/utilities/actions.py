@@ -6,6 +6,7 @@ from typing import Any, Dict, List, Optional
 
 import httpx
 from fastapi_mail import ConnectionConfig, MessageSchema, FastMail, MessageType
+from pydantic import EmailStr
 
 from configs.crypto import crypto
 from wrappers.thread_pool_executor import thread_pool_executor
@@ -15,6 +16,9 @@ async def run_action(
     action: Any,
     form: Any,
     response: Any,
+    user_email: Optional[EmailStr] = None,
+    parameters: Optional[List[Dict[str, str]]] = None,
+    secrets: Optional[List[Dict[str, str]]] = None
 ):
     action = json.loads(action)
     form = json.loads(form)
@@ -26,31 +30,37 @@ async def run_action(
         return None
 
     def get_extra_data(key: str) -> Dict[str, str]:
-        data = action.get(key)
-        if data is None:
-            return {}
+        def process_item(variable, decrypt=False):
+            item_name = variable.get("name")
+            item_value = variable.get("value")
+
+            if item_name is not None and item_value is not None:
+                return item_name, item_value if not decrypt else crypto.decrypt(item_value)
+            return None, None
 
         extra_data = {}
-        for item in data:
-            item_name = item.get("name")
-            item_value = item.get("value")
 
-            # Check if either name or value is None before adding to extra_data
-            if item_name is not None and item_value is not None:
-                extra_data[item_name] = item_value if key != "secrets" else crypto.decrypt(item_value)
+        # Process action data
+        action_data = action.get(key, [])
+        for item in action_data:
+            name, value = process_item(item, key == "secrets")
+            if name is not None:
+                extra_data[name] = value
 
-        # Check if "form" has the field key
-        form_data = form.get(key)
-        if form_data is not None:
-            overriding_data = form_data.get(action.get("id"))
-            if overriding_data is not None:
-                for overriding_item in overriding_data:
-                    item_name = overriding_item.get("name")
-                    item_value = overriding_item.get("value")
+        # Process form data
+        form_data = form.get(key, {})
+        overriding_data = form_data.get(action.get("id"), [])
+        for overriding_item in overriding_data:
+            name, value = process_item(overriding_item, key == "secrets")
+            if name is not None:
+                extra_data[name] = value
 
-                    # Check if either name or value is None before adding to extra_data
-                    if item_name is not None and item_value is not None:
-                        extra_data[item_name] = item_value if key != "secrets" else crypto.decrypt(item_value)
+        # Process action_data (secrets or parameters)
+        action_data = secrets if key == "secrets" else parameters
+        for overriding_item in action_data or []:
+            name, value = process_item(overriding_item, key == "secrets")
+            if name is not None:
+                extra_data[name] = value
 
         return extra_data
 
