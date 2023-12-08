@@ -34,15 +34,15 @@ from common.services.http_client import HttpClient
 
 class WorkspaceService:
     def __init__(
-        self,
-        http_client: HttpClient,
-        workspace_repo: WorkspaceRepository,
-        aws_service: AWSS3Service,
-        workspace_user_service: WorkspaceUserService,
-        workspace_form_service: WorkspaceFormService,
-        form_response_service: FormResponseService,
-        responder_groups_service: ResponderGroupsService,
-        user_tags_service: UserTagsService,
+            self,
+            http_client: HttpClient,
+            workspace_repo: WorkspaceRepository,
+            aws_service: AWSS3Service,
+            workspace_user_service: WorkspaceUserService,
+            workspace_form_service: WorkspaceFormService,
+            form_response_service: FormResponseService,
+            responder_groups_service: ResponderGroupsService,
+            user_tags_service: UserTagsService,
     ):
         self.http_client = http_client
         self._workspace_repo = workspace_repo
@@ -72,13 +72,13 @@ class WorkspaceService:
         return WorkspaceResponseDto(**workspace.dict())
 
     async def create_non_default_workspace(
-        self,
-        title: str,
-        description: str,
-        workspace_name: str,
-        profile_image_file: UploadFile,
-        banner_image_file: UploadFile,
-        user: User,
+            self,
+            title: str,
+            description: str,
+            workspace_name: str,
+            profile_image_file: UploadFile,
+            banner_image_file: UploadFile,
+            user: User,
     ):
         if user.plan != "PRO":
             raise HTTPException(
@@ -119,12 +119,12 @@ class WorkspaceService:
         return WorkspaceResponseDto(**workspace_document.dict())
 
     async def patch_workspace(
-        self,
-        profile_image_file: UploadFile,
-        banner_image_file: UploadFile,
-        workspace_id,
-        workspace_patch: WorkspaceRequestDtoCamel,
-        user: User,
+            self,
+            profile_image_file: UploadFile,
+            banner_image_file: UploadFile,
+            workspace_id,
+            workspace_patch: WorkspaceRequestDtoCamel,
+            user: User,
     ):
         await self._workspace_user_service.check_is_admin_in_workspace(
             workspace_id=workspace_id, user=user
@@ -144,8 +144,8 @@ class WorkspaceService:
         )
 
         if (
-            workspace_patch.workspace_name
-            and workspace_patch.workspace_name != workspace_document.workspace_name
+                workspace_patch.workspace_name
+                and workspace_patch.workspace_name != workspace_document.workspace_name
         ):
             exists_by_handle = await WorkspaceDocument.find_one(
                 {"workspace_name": workspace_patch.workspace_name}
@@ -223,7 +223,7 @@ class WorkspaceService:
         return WorkspaceResponseDto(**saved_workspace.dict())
 
     async def delete_custom_domain_of_workspace(
-        self, workspace_id: PydanticObjectId, user: User
+            self, workspace_id: PydanticObjectId, user: User
     ):
         if user.plan == Plans.FREE:
             raise HTTPException(
@@ -243,7 +243,7 @@ class WorkspaceService:
         return WorkspaceResponseDto(**saved_workspace.dict())
 
     async def generateUniqueNamesFromTheWorkspaceHandle(
-        self, handle: str, workspace_id: PydanticObjectId
+            self, handle: str, workspace_id: PydanticObjectId
     ):
         suggestions = []
         clean_workspace_name = re.sub(r"\W+", "", handle)
@@ -266,8 +266,11 @@ class WorkspaceService:
         return suggestions
 
     async def check_if_workspace_handle_is_unique(
-        self, title: str, workspace_id: PydanticObjectId
+            self, title: str, workspace_id: PydanticObjectId
     ):
+        predefined_workspace_name = ["submissions", "forms", "templates"]
+        if title in predefined_workspace_name:
+            return False
         current_workspace = await WorkspaceDocument.find_one({"_id": workspace_id})
         available_workspace = await WorkspaceDocument.find_one(
             {"workspace_name": title}
@@ -284,7 +287,7 @@ class WorkspaceService:
         return [WorkspaceResponseDto(**workspace.dict()) for workspace in workspaces]
 
     async def send_otp_for_workspace(
-        self, workspace_id: PydanticObjectId, receiver_email: EmailStr
+            self, workspace_id: PydanticObjectId, receiver_email: EmailStr
     ):
         workspace = await self._workspace_repo.get_workspace_by_id(workspace_id)
         await self.http_client.get(
@@ -347,7 +350,7 @@ class WorkspaceService:
             )
 
     async def update_https_server_for_certificate(
-        self, old_domain: str = None, new_domain: str = None
+            self, old_domain: str = None, new_domain: str = None
     ):
         try:
             if old_domain:
@@ -372,10 +375,10 @@ class WorkspaceService:
             # raise HTTPException(HTTPStatus.SERVICE_UNAVAILABLE, content="Could not update https certificate.")
 
     async def upload_images_of_workspace(
-        self,
-        workspace_document: WorkspaceDocument,
-        profile_image_file: UploadFile,
-        banner_image_file: UploadFile,
+            self,
+            workspace_document: WorkspaceDocument,
+            profile_image_file: UploadFile,
+            banner_image_file: UploadFile,
     ):
         if profile_image_file:
             profile_image = await self._aws_service.upload_file_to_s3(
