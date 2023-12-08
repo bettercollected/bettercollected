@@ -393,20 +393,21 @@ class FormService:
 
         else:
             form.actions = {add_action_to_form_params.trigger: [add_action_to_form_params.action_id]}
+        if add_action_to_form_params.parameters:
+            if form.parameters is not None:
 
-        if form.parameters is not None:
+                form.parameters[str(add_action_to_form_params.action_id)] = add_action_to_form_params.parameters
+            else:
+                form.parameters = {str(add_action_to_form_params.action_id): add_action_to_form_params.parameters}
 
-            form.parameters[str(add_action_to_form_params.action_id)] = add_action_to_form_params.parameters
-        else:
-            form.parameters = {str(add_action_to_form_params.action_id): add_action_to_form_params.parameters}
+        if add_action_to_form_params.secrets:
+            secrets = [ParameterValue(name=secret.name, value=self.crypto.encrypt(secret.value)) for secret in
+                       add_action_to_form_params.secrets]
 
-        secrets = [ParameterValue(name=secret.name, value=self.crypto.encrypt(secret.value)) for secret in
-                   add_action_to_form_params.secrets]
-
-        if form.secrets is not None:
-            form.secrets[str(add_action_to_form_params.action_id)] = secrets
-        else:
-            form.secrets = {str(add_action_to_form_params.action_id): secrets}
+            if form.secrets is not None:
+                form.secrets[str(add_action_to_form_params.action_id)] = secrets
+            else:
+                form.secrets = {str(add_action_to_form_params.action_id): secrets}
 
         return await form.save()
 

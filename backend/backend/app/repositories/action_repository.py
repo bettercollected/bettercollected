@@ -16,8 +16,9 @@ class ActionRepository:
         self.crypto = crypto
 
     async def create_action(self, workspace_id: PydanticObjectId, action: ActionDto, user: User):
-        for secret in action.secrets:
-            secret.value = self.crypto.encrypt(secret.value)
+        if action.secrets is not None:
+            for secret in action.secrets:
+                secret.value = self.crypto.encrypt(secret.value)
         new_action = ActionDocument(**action.dict(), created_by=PydanticObjectId(user.id), workspace_id=workspace_id)
         return await new_action.save()
 
