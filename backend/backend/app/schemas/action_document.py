@@ -1,5 +1,5 @@
 import datetime as dt
-from typing import Optional, List, Dict
+from typing import Optional, List
 
 from beanie import PydanticObjectId
 from common.configs.mongo_document import MongoDocument
@@ -27,8 +27,8 @@ class ActionDocument(MongoDocument):
     description: Optional[str]
     action_code: str
     created_by: PydanticObjectId
-    parameters: Optional[List[Dict[str, str]]]
-    secrets: Optional[List[Dict[str, str]]]
+    parameters: Optional[List[ParameterValue]]
+    secrets: Optional[List[ParameterValue]]
 
     class Settings:
         name = "actions"
