@@ -17,8 +17,6 @@ async def run_action(
     form: Any,
     response: Any,
     user_email: Optional[EmailStr] = None,
-    parameters: Optional[List[Dict[str, str]]] = None,
-    secrets: Optional[List[Dict[str, str]]] = None
 ):
     action = json.loads(action)
     form = json.loads(form)
@@ -42,25 +40,20 @@ async def run_action(
 
         # Process action data
         action_data = action.get(key, [])
-        for item in action_data:
-            name, value = process_item(item, key == "secrets")
-            if name is not None:
-                extra_data[name] = value
+        if action_data is not None:
+            for item in action_data:
+                name, value = process_item(item, key == "secrets")
+                if name is not None:
+                    extra_data[name] = value
 
         # Process form data
         form_data = form.get(key, {})
-        overriding_data = form_data.get(action.get("id"), [])
-        for overriding_item in overriding_data:
-            name, value = process_item(overriding_item, key == "secrets")
-            if name is not None:
-                extra_data[name] = value
-
-        # Process action_data (secrets or parameters)
-        action_data = secrets if key == "secrets" else parameters
-        for overriding_item in action_data or []:
-            name, value = process_item(overriding_item, key == "secrets")
-            if name is not None:
-                extra_data[name] = value
+        if form_data is not None:
+            overriding_data = form_data.get(action.get("id"), [])
+            for overriding_item in overriding_data:
+                name, value = process_item(overriding_item, key == "secrets")
+                if name is not None:
+                    extra_data[name] = value
 
         return extra_data
 
@@ -135,6 +128,7 @@ async def run_action(
 
         res = httpx.post(url=url, params=params, data=data, headers=headers)
         return res
+
     loop = asyncio.get_event_loop()
     result = await asyncio.wait_for(loop.run_in_executor(thread_pool_executor, execute_action_code,
                                                          action.get("action_code"),
