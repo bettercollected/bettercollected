@@ -8,7 +8,7 @@ from gunicorn.config import User
 
 from backend.app.container import container
 from backend.app.models.dataclasses.user_tokens import UserTokens
-from backend.app.models.minified_form import MinifiedForm
+from backend.app.models.minified_form import FormDtoCamelModel
 from backend.app.models.template import (
     StandardFormTemplateCamelModel,
     StandardFormTemplateResponse,
@@ -132,7 +132,7 @@ class FormTemplateRouter(Routable):
         return StandardFormTemplateCamelModel(**response.dict())
 
     @post(
-        "/workspaces/{workspace_id}/template/{template_id}", response_model=MinifiedForm
+        "/workspaces/{workspace_id}/template/{template_id}", response_model=FormDtoCamelModel
     )
     async def create_form_from_template(
         self,

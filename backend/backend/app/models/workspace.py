@@ -45,6 +45,7 @@ class WorkspaceFormSettings(BaseModel):
     response_expiration_type: Optional[ResponseRetentionType]
     disable_branding: Optional[bool]
     form_close_date: Optional[dt.datetime | str]
+    send_response_email: Optional[bool]
 
 
 class WorkspaceResponseDto(WorkspaceRequestDto, CamelModel):

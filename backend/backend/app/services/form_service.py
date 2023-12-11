@@ -18,7 +18,7 @@ from backend.app.models.dtos.workspace_member_dto import (
 )
 from backend.app.models.enum.user_tag_enum import UserTagType
 from backend.app.models.filter_queries.sort import SortRequest
-from backend.app.models.minified_form import MinifiedForm
+from backend.app.models.minified_form import FormDtoCamelModel
 from backend.app.models.settings_patch import SettingsPatchDto
 from backend.app.repositories.form_repository import FormRepository
 from backend.app.repositories.workspace_form_repository import WorkspaceFormRepository
@@ -52,7 +52,7 @@ class FormService:
         published: bool,
         pinned_only: bool,
         user: User,
-    ) -> Page[MinifiedForm]:
+    ) -> Page[FormDtoCamelModel]:
         has_access_to_workspace = (
             await self._workspace_user_repo.has_user_access_in_workspace(
                 workspace_id=workspace_id, user=user
@@ -136,7 +136,7 @@ class FormService:
                             **user_info, id=form["imported_by"]
                         )
                         break
-        return [MinifiedForm(**form) for form in forms]
+        return [FormDtoCamelModel(**form) for form in forms]
 
     async def get_form_by_id(
         self,
@@ -198,7 +198,7 @@ class FormService:
         form["importer_details"] = FormImporterDetails(
             **user_info, id=user_info.get("_id")
         )
-        minified_form = MinifiedForm(**form)
+        minified_form = FormDtoCamelModel(**form)
         if minified_form.consent is None:
             minified_form.consent = default_consents
         return minified_form
@@ -414,13 +414,13 @@ class FormService:
     async def remove_action_from_form(self, form_id: PydanticObjectId, action_id: PydanticObjectId, trigger: Trigger):
         form = await self._form_repo.get_form_document_by_id(form_id=str(form_id))
 
-        if trigger in form.actions and action_id in form.actions[trigger]:
+        if form.actions and trigger in form.actions and action_id in form.actions[trigger]:
             form.actions[trigger].remove(action_id)
 
-        if str(action_id) in form.parameters:
+        if form.parameters and str(action_id) in form.parameters:
             del form.parameters[str(action_id)]
 
-        if str(action_id) in form.secrets:
+        if form.secrets and str(action_id) in form.secrets:
             del form.secrets[str(action_id)]
 
-        return await form.save()
+        return (await form.save()).actions
