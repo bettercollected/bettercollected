@@ -17,13 +17,14 @@ import { workspacesApi } from '@app/store/workspaces/api';
 import { membersNInvitationsApi } from '@app/store/workspaces/members-n-invitations-api';
 import workspaceSlice from '@app/store/workspaces/slice';
 
+import { apiActionsApi } from './api-actions-api';
 import { consentApi } from './consent/api';
 import consentSlice from './consent/consentSlice';
 import mutationStatusSlice from './mutations/slice';
 
 // Add more middlewares here
 // const middlewares = [loggerMiddleware, authApi.middleware, membersNInvitationsApi.middleware, plansApi.middleware, providerApi.middleware, workspacesApi.middleware];
-const middlewares = [authApi.middleware, membersNInvitationsApi.middleware, plansApi.middleware, providerApi.middleware, workspacesApi.middleware, consentApi.middleware, templateApi.middleware];
+const middlewares = [authApi.middleware, membersNInvitationsApi.middleware, plansApi.middleware, providerApi.middleware, workspacesApi.middleware, consentApi.middleware, templateApi.middleware, apiActionsApi.middleware];
 
 // if (environments.IS_IN_PRODUCTION_MODE) middlewares.splice(0, 1);
 
@@ -40,6 +41,7 @@ const reducers = {
     [providerApi.reducerPath]: providerApi.reducer,
     [plansApi.reducerPath]: plansApi.reducer,
     [workspacesApi.reducerPath]: workspacesApi.reducer,
+    [apiActionsApi.reducerPath]: apiActionsApi.reducer,
     [consentSlice.reducerPath]: consentSlice.reducer,
     [consentApi.reducerPath]: consentApi.reducer,
     [templateApi.reducerPath]: templateApi.reducer

@@ -12,8 +12,9 @@ import FormProviderIcon from '@Components/Common/Icons/Form/FormProviderIcon';
 import Preview from '@Components/Common/Icons/Form/Preview';
 import AppButton from '@Components/Common/Input/Button/AppButton';
 import { ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
-import { Group, Share } from '@mui/icons-material';
+import { Group, IntegrationInstructions, Share } from '@mui/icons-material';
 
+import FormIntegrations from '@app/components/form/integrations';
 import BreadcrumbsRenderer from '@app/components/form/renderer/breadcrumbs-renderer';
 import { ChevronForward } from '@app/components/icons/chevron-forward';
 import { HistoryIcon } from '@app/components/icons/history';
@@ -98,6 +99,11 @@ export default function FormPage(props: any) {
             0,
             ...[
                 {
+                    icon: <IntegrationInstructions className="h-5 w-5" />,
+                    title: 'Integrations',
+                    path: 'Integrations'
+                },
+                {
                     icon: <HistoryIcon className="h-5 w-5" />,
                     title: t(formConstant.responders) + ' (' + form.responses + ')',
                     path: 'Responses'
@@ -115,7 +121,7 @@ export default function FormPage(props: any) {
             ]
         );
         if (isFormOpen) {
-            paramTabs.splice(5, 0, {
+            paramTabs.splice(6, 0, {
                 icon: <Group className="h-5 w-5" />,
                 title: t(formConstant.settings.formLink.title),
                 path: 'FormLinks'
@@ -187,12 +193,15 @@ export default function FormPage(props: any) {
                                 <FormSettings />
                             </TabPanel>
                         </FormPageLayer>
-                        {form?.isPublished ? (
-                            <TabPanel className="focus:outline-none" key="Responses">
-                                <FormResponses />
-                            </TabPanel>
-                        ) : (
-                            <></>
+                        {form?.isPublished && (
+                            <>
+                                <TabPanel className="focus:outline-none" key="Integrations">
+                                    <FormIntegrations />
+                                </TabPanel>
+                                <TabPanel className="focus:outline-none" key="Responses">
+                                    <FormResponses />
+                                </TabPanel>
+                            </>
                         )}
                         <FormPageLayer className="md:px-32 px-2">
                             {form?.isPublished ? (
