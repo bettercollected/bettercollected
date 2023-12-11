@@ -338,6 +338,7 @@ class Trigger(str, Enum):
 class ParameterValue(BaseModel):
     name: str = Field(None)
     value: str = Field(None)
+    required: Optional[bool] = Field(False)
 
 
 class StandardForm(BaseModel):
