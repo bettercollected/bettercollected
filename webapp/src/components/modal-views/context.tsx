@@ -39,7 +39,8 @@ export type MODAL_VIEW =
     | 'CLOSE_FORM_CONFIRMATION_MODAL'
     | 'REOPEN_FORM_CONFIRMATION_MODAL'
     | 'DELETE_TEMPLATE_CONFIRMATION_MODAL_VIEW'
-    | 'IMPORT_TEMPLATE_MODAL_VIEW';
+    | 'IMPORT_TEMPLATE_MODAL_VIEW'
+    | 'ADD_ACTION_TO_FORM';
 
 const modalAtom = atom({ isOpen: false, view: '', modalProps: null });
 

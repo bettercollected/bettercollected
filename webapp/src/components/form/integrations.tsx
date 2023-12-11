@@ -1,6 +1,7 @@
 import MuiSwitch from '@Components/Common/Input/Switch';
 import { toast } from 'react-toastify';
 
+import { useModal } from '@app/components/modal-views/context';
 import { useAddActionToFormMutation, useGetAllIntegrationsQuery, useRemoveActionFromFormMutation } from '@app/store/api-actions-api';
 import { selectForm, setForm } from '@app/store/forms/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
@@ -13,6 +14,7 @@ export default function FormIntegrations() {
     const workspace = useAppSelector(selectWorkspace);
     const form = useAppSelector(selectForm);
     const dispatch = useAppDispatch();
+    const { openModal } = useModal();
     return (
         <>
             {data && Array.isArray(data) && (
@@ -29,14 +31,7 @@ export default function FormIntegrations() {
                                     onChange={async (event, checked) => {
                                         let response: any;
                                         if (checked) {
-                                            response = await addActionToForm({
-                                                workspaceId: workspace.id,
-                                                formId: form.formId,
-                                                body: {
-                                                    action_id: integration.id,
-                                                    trigger: 'on_submit'
-                                                }
-                                            });
+                                            openModal('ADD_ACTION_TO_FORM', { action: integration, form: form });
                                         } else {
                                             response = await removeActionFromForm({
                                                 workspaceId: workspace.id,
@@ -48,7 +43,7 @@ export default function FormIntegrations() {
                                         if (response?.data) {
                                             dispatch(setForm({ ...form, actions: response?.data }));
                                             toast(checked ? 'Added' : 'Removed', { type: 'success' });
-                                        } else {
+                                        } else if (response?.error) {
                                             toast('Error', { type: 'error' });
                                         }
                                     }}
