@@ -9,7 +9,6 @@ import { selectWorkspace } from '@app/store/workspaces/slice';
 
 export default function FormIntegrations() {
     const { data } = useGetAllIntegrationsQuery({});
-    const [addActionToForm] = useAddActionToFormMutation();
     const [removeActionFromForm] = useRemoveActionFromFormMutation();
     const workspace = useAppSelector(selectWorkspace);
     const form = useAppSelector(selectForm);
@@ -24,6 +23,18 @@ export default function FormIntegrations() {
                             <div className="flex items-start justify-center flex-col gap-2">
                                 <div className="h4-new">{integration?.title || 'Untitled Integration'}</div>
                                 {integration?.description && <div className="p2-new text-black-700">{integration.description}</div>}
+                                {integration?.parameters && (
+                                    <div className="flex flex-col gap-2">
+                                        {integration?.parameters?.map(
+                                            (parameter: any) =>
+                                                parameter?.required && (
+                                                    <div key={parameter.name} className="flex items-center text-sm p2-new gap-2">
+                                                        <div className="font-bold text-sm">{parameter.name}</div>:<div className="text-black-700">{form?.parameters[integration.id].find((param: any) => param.name === parameter.name)?.value}</div>
+                                                    </div>
+                                                )
+                                        )}
+                                    </div>
+                                )}
                             </div>
                             <div>
                                 <MuiSwitch
