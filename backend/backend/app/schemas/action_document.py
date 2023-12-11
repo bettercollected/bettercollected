@@ -1,12 +1,10 @@
 import datetime as dt
-from typing import Optional, List
+from typing import Optional, List, Dict
 
-import pymongo
 from beanie import PydanticObjectId
 from common.configs.mongo_document import MongoDocument
 from common.models.standard_form import ParameterValue
 from pydantic import BaseModel, Field
-from pymongo import IndexModel
 
 from backend.app.handlers.database import entity
 
@@ -23,21 +21,36 @@ class ActionSettings(BaseModel):
 
 
 @entity
-class ActionDocument(BaseAction, MongoDocument):
+class ActionDocument(MongoDocument):
+    name: str
+    title: Optional[str]
+    description: Optional[str]
+    action_code: str
     created_by: PydanticObjectId
-    workspace_id: PydanticObjectId
-    settings: Optional[ActionSettings] = None
+    parameters: Optional[List[Dict[str, str]]]
+    secrets: Optional[List[Dict[str, str]]]
 
     class Settings:
-        name = "action"
+        name = "actions"
         bson_encoders = {
             dt.datetime: lambda o: dt.datetime.isoformat(o),
             dt.date: lambda o: dt.date.isoformat(o),
             dt.time: lambda o: dt.time.isoformat(o),
         }
-        indexes = [
-            IndexModel(
-                [("workspace_id", pymongo.DESCENDING), ("name", pymongo.DESCENDING)],
-                unique=True,
-            )
-        ]
+
+
+@entity
+class WorkspaceActionsDocument(MongoDocument):
+    workspace_id: PydanticObjectId
+    action_id: PydanticObjectId
+    settings: Optional[ActionSettings] = ActionSettings()
+    parameters: Optional[List[ParameterValue]]
+    secrets: Optional[List[ParameterValue]]
+
+    class Settings:
+        name = "workspace_actions"
+        bson_encoders = {
+            dt.datetime: lambda o: dt.datetime.isoformat(o),
+            dt.date: lambda o: dt.date.isoformat(o),
+            dt.time: lambda o: dt.time.isoformat(o),
+        }

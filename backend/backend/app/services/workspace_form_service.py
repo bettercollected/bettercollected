@@ -444,7 +444,7 @@ class WorkspaceFormService:
         )
 
         form = await self.form_service.get_form_document_by_id(form_id=str(form_id))
-        await self.action_service.start_actions_for_submission(workspace_id=workspace_id, form=form,
+        await self.action_service.start_actions_for_submission(form=form,
                                                                response=form_response)
         return form_response
 
@@ -532,8 +532,14 @@ class WorkspaceFormService:
                                  add_action_to_form_params: AddActionToFormDto, user: User):
         await self.check_form_exists_in_workspace(workspace_id=workspace_id, form_id=str(form_id))
         await self.workspace_user_service.check_user_has_access_in_workspace(workspace_id=workspace_id, user=user)
-        return await self.form_service.add_action_form(form_id=form_id,
-                                                       add_action_to_form_params=add_action_to_form_params)
+        action = await self.action_service.get_action_by_id(action_id=add_action_to_form_params.action_id)
+        if action is None:
+            raise HTTPException(status_code=HTTPStatus.NOT_FOUND, content=MESSAGE_NOT_FOUND)
+        await self.action_service.create_action_in_workspace_from_action(workspace_id=workspace_id,
+                                                                         action=action)
+        updated_form = await self.form_service.add_action_form(form_id=form_id,
+                                                               add_action_to_form_params=add_action_to_form_params)
+        return updated_form.actions
 
     async def remove_action_from_form(self, workspace_id: PydanticObjectId, form_id: PydanticObjectId,
                                       action_id: PydanticObjectId, trigger: Trigger, user: User):

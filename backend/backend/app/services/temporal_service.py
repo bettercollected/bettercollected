@@ -28,7 +28,7 @@ from backend.app.models.dataclasses.import_form_params import ImportFormParams
 from backend.app.models.dataclasses.run_action_code_params import RunActionCodeParams
 from backend.app.models.dataclasses.save_preview_params import SavePreviewParams
 from backend.app.models.dataclasses.user_tokens import UserTokens
-from backend.app.schemas.action_document import ActionDocument
+from backend.app.models.dtos.action_dto import ActionResponse
 from backend.app.schemas.standard_form_response import FormResponseDocument
 from backend.app.utils.date_utils import get_formatted_date_from_str
 from backend.config import settings
@@ -229,7 +229,7 @@ class TemporalService:
         )
         await handle.update(updater=self.update_schedule_interval(interval=interval))
 
-    async def start_action_execution(self, action: ActionDocument, form: StandardForm, response: FormResponseDocument):
+    async def start_action_execution(self, action: ActionResponse, form: StandardForm, response: FormResponseDocument):
         if not settings.schedular_settings.ENABLED:
             return
         run_action_params = RunActionCodeParams(action=action.json(), form=form.json(), response=response.json(),

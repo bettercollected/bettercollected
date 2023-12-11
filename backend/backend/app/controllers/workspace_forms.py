@@ -21,7 +21,7 @@ from backend.app.models.dtos.worksapce_form_dto import GroupsDto
 from backend.app.models.enum.FormVersion import FormVersion
 from backend.app.models.enum.user_tag_enum import UserTagType
 from backend.app.models.filter_queries.sort import SortRequest
-from backend.app.models.minified_form import MinifiedForm
+from backend.app.models.minified_form import FormDtoCamelModel
 from backend.app.models.response_dtos import (
     WorkspaceFormPatchResponse,
     StandardFormCamelModel,
@@ -61,7 +61,7 @@ class WorkspaceFormsRouter(Routable):
         self._temporal_service = temporal_service
         self.workspace_form_service = workspace_form_service
 
-    @get("", response_model=Page[MinifiedForm])
+    @get("", response_model=Page[FormDtoCamelModel])
     async def get_workspace_forms(
         self,
         workspace_id: PydanticObjectId,
@@ -69,7 +69,7 @@ class WorkspaceFormsRouter(Routable):
         user: User = Depends(get_user_if_logged_in),
         published: bool = False,
         pinned_only: bool = False,
-    ) -> Page[MinifiedForm]:
+    ) -> Page[FormDtoCamelModel]:
         if not user and not published:
             raise HTTPException(
                 status_code=HTTPStatus.UNAUTHORIZED, content=MESSAGE_UNAUTHORIZED
@@ -85,7 +85,7 @@ class WorkspaceFormsRouter(Routable):
 
     @post(
         "",
-        response_model=MinifiedForm,
+        response_model=FormDtoCamelModel,
     )
     async def create_form(
         self,
@@ -100,7 +100,7 @@ class WorkspaceFormsRouter(Routable):
 
         form = json.loads(form_body)
 
-        minified_form = MinifiedForm(**form)
+        minified_form = FormDtoCamelModel(**form)
         # Camel model is converted to basic modal so that camel case is not stored in db
         response = await self.workspace_form_service.create_form(
             workspace_id=workspace_id,
@@ -109,7 +109,7 @@ class WorkspaceFormsRouter(Routable):
             logo=logo,
             cover_image=cover_image,
         )
-        return MinifiedForm(**response.dict())
+        return FormDtoCamelModel(**response.dict())
 
     @post("/search")
     async def search_forms_in_workspace(
@@ -130,7 +130,7 @@ class WorkspaceFormsRouter(Routable):
 
     @get(
         "/{form_id}",
-        response_model=MinifiedForm,
+        response_model=FormDtoCamelModel,
     )
     async def _get_form_by_id(
         self,
@@ -150,7 +150,7 @@ class WorkspaceFormsRouter(Routable):
 
     @patch(
         "/{form_id}",
-        response_model=MinifiedForm,
+        response_model=FormDtoCamelModel,
     )
     async def patch_form(
         self,
@@ -166,7 +166,7 @@ class WorkspaceFormsRouter(Routable):
 
         form = json.loads(form_body)
 
-        minified_form = MinifiedForm(**form)
+        minified_form = FormDtoCamelModel(**form)
         # Camel model is converted to basic modal so that camel case is not stored in db
         response = await self.workspace_form_service.update_form(
             workspace_id=workspace_id,
@@ -178,7 +178,7 @@ class WorkspaceFormsRouter(Routable):
         )
         return StandardFormCamelModel(**response.dict())
 
-    @post("/{form_id}/duplicate", response_model=MinifiedForm)
+    @post("/{form_id}/duplicate", response_model=FormDtoCamelModel)
     async def duplicate_form(
         self,
         workspace_id: PydanticObjectId,
@@ -193,7 +193,7 @@ class WorkspaceFormsRouter(Routable):
         )
         return StandardFormCamelModel(**response.dict())
 
-    @post("/{form_id}/publish", response_model=MinifiedForm)
+    @post("/{form_id}/publish", response_model=FormDtoCamelModel)
     async def publish_form(
         self,
         workspace_id: PydanticObjectId,
@@ -265,7 +265,7 @@ class WorkspaceFormsRouter(Routable):
             user=user,
         )
 
-    @get("/{form_id}/versions/{version}", response_model=MinifiedForm)
+    @get("/{form_id}/versions/{version}", response_model=FormDtoCamelModel)
     async def get_form_with_version(
         self,
         workspace_id: PydanticObjectId,
@@ -372,9 +372,11 @@ class WorkspaceFormsRouter(Routable):
 
     @delete("/{form_id}/actions/{action_id}")
     async def _remove_action_from_form(self, workspace_id: PydanticObjectId, action_id: PydanticObjectId,
-                                       form_id: PydanticObjectId, trigger: Trigger,
+                                       form_id: PydanticObjectId, trigger: Trigger = Trigger.on_submit,
                                        user: User = Depends(get_logged_user)):
-        await self.workspace_form_service.remove_action_from_form(workspace_id=workspace_id, form_id=form_id,
-                                                                  action_id=action_id, trigger=trigger,
-                                                                  user=user)
-        return action_id
+        updated_actions = await self.workspace_form_service.remove_action_from_form(workspace_id=workspace_id,
+                                                                                    form_id=form_id,
+                                                                                    action_id=action_id,
+                                                                                    trigger=trigger,
+                                                                                    user=user)
+        return updated_actions
