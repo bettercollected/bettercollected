@@ -100,7 +100,7 @@ export default function ManageURLs() {
                                 variant={ButtonVariant.Ghost}
                                 icon={<CopyIcon width={16} height={16} />}
                                 onClick={() => {
-                                    copyToClipboard(`${environments.HTTP_SCHEME}${environments.CLIENT_DOMAIN}/${workspace.workspaceName}`);
+                                    copyToClipboard(`${environments.HTTP_SCHEME}${workspace?.customDomain}`);
                                     toast('Copied', { type: 'info' });
                                 }}
                             >
