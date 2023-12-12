@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
 
@@ -29,6 +29,11 @@ export default function FormResponsesTable({ props }: any) {
         page: page,
         size: globalConstants.pageSize
     });
+
+    useEffect(() => {
+        setQuery({ ...query, page });
+    }, [page]);
+
     const { data, isLoading } = useGetFormsSubmissionsQuery(query);
 
     const [showTabularResponses, setShowTabularResponses] = useState(form?.provider === 'self' && localStorage.getItem('tabularResponses') === 'true');
