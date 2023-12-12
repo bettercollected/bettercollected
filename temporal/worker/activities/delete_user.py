@@ -5,7 +5,7 @@ from temporalio import activity, workflow
 from settings.application import settings
 
 with workflow.unsafe.imports_passed_through():
-    from wrappers.APMWrapper import APMAsyncHttpClient
+    from wrappers.apm_wrapper import APMAsyncHttpClient
     from configs.crypto import crypto
     from models.user_tokens import UserTokens
 

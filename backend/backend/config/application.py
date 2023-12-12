@@ -11,7 +11,7 @@ from backend.config.database import MongoSettings
 from backend.config.https_certificate import HttpsCertificateApiSettings
 from backend.config.schedular_settings import SchedularSettings
 from backend.config.sentry_setting import SentrySettings
-from backend.config.template_settings import TemplateSettings
+from backend.config.template_settings import DefaultResourcesWorkspaceSettings
 from backend.config.temporal_settings import TemporalSettings
 from dotenv import load_dotenv
 from pydantic import BaseSettings
@@ -46,7 +46,7 @@ class Application(BaseSettings):
     https_cert_api_settings: HttpsCertificateApiSettings = HttpsCertificateApiSettings()
     sentry_settings: SentrySettings = SentrySettings()
     temporal_settings: TemporalSettings = TemporalSettings()
-    template_settings: TemplateSettings = TemplateSettings()
+    default_workspace_settings: DefaultResourcesWorkspaceSettings = DefaultResourcesWorkspaceSettings()
 
     # All your additional application configuration should go either here or in
     # separate file in this submodule.

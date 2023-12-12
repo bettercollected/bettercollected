@@ -3,7 +3,6 @@ import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/router';
 
-import TabularResponses from '@Components/Form/TabularResponses';
 import { ChevronLeft } from '@mui/icons-material';
 import { Button } from '@mui/material';
 import { toast } from 'react-toastify';

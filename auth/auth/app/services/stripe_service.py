@@ -1,13 +1,10 @@
 import stripe
+from common.enums.plan import Plans
+from fastapi import Request
 
 from auth.app.repositories.user_repository import UserRepository
 from auth.app.schemas.user import UserDocument
 from auth.config import settings
-
-from fastapi import Request, Response
-
-from common.enums.plan import Plans
-from common.exceptions.http import HTTPException
 
 
 class StripeService:

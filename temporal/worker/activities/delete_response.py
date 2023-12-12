@@ -4,7 +4,7 @@ from models.delete_response import DeleteResponseParams
 from settings.application import settings
 
 with workflow.unsafe.imports_passed_through():
-    from wrappers.APMWrapper import APMAsyncHttpClient
+    from wrappers.apm_wrapper import APMAsyncHttpClient
 
 
 @activity.defn(name="delete_response")

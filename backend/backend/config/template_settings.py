@@ -2,8 +2,9 @@ from beanie import PydanticObjectId
 from pydantic import BaseSettings
 
 
-class TemplateSettings(BaseSettings):
-    PREDEFINED_WORKSPACE_ID: PydanticObjectId = None
+class DefaultResourcesWorkspaceSettings(BaseSettings):
+    WORKSPACE_ID: PydanticObjectId = None
+    SHOW_TEMPLATES: bool = False
 
     class Config:
-        env_prefix = "TEMPLATE_"
+        env_prefix = "DEFAULT_"
