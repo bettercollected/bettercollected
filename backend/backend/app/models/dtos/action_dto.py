@@ -1,7 +1,7 @@
+from typing import List
 from typing import Optional
 
 from beanie import PydanticObjectId
-from black import List
 from common.models.standard_form import Trigger
 from fastapi_camelcase import CamelModel
 from pydantic import BaseModel
