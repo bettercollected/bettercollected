@@ -33,6 +33,9 @@ class ActionService:
 
     async def start_actions_for_submission(self, form: FormDocument,
                                            response: FormResponseDocument):
+        form_actions = form.actions
+        if form_actions is None:
+            return
         submission_actions = form.actions.get(Trigger.on_submit)
         if submission_actions is None:
             return
