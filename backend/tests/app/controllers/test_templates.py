@@ -23,7 +23,7 @@ private_template = {"title": "private_template", "settings": {"is_public": "fals
 @pytest.fixture()
 async def predefined_workspace_template():
     template = FormTemplateDocument(**public_template)
-    template.workspace_id = settings.template_settings.PREDEFINED_WORKSPACE_ID
+    template.workspace_id = settings.default_workspace_settings.WORKSPACE_ID
     await template.save()
     return template
 

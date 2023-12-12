@@ -3,6 +3,10 @@ from http import HTTPStatus
 from typing import List, Sequence
 
 from beanie import PydanticObjectId
+from common.constants import MESSAGE_FORBIDDEN, MESSAGE_NOT_FOUND
+from common.models.standard_form import StandardFormResponse, StandardFormResponseAnswer
+from common.models.user import User
+from common.services.crypto_service import crypto_service
 from fastapi_pagination import Page
 
 from backend.app.constants.consents import default_consent_responses
@@ -24,10 +28,6 @@ from backend.app.schemas.standard_form_response import (
 )
 from backend.app.schemas.workspace_form import WorkspaceFormDocument
 from backend.app.services.aws_service import AWSS3Service
-from common.constants import MESSAGE_FORBIDDEN, MESSAGE_NOT_FOUND
-from common.models.standard_form import StandardFormResponse, StandardFormResponseAnswer
-from common.models.user import User
-from common.services.crypto_service import crypto_service
 
 
 class FormResponseService:
@@ -288,9 +288,11 @@ class FormResponseService:
         response: StandardFormResponse,
         workspace_id: PydanticObjectId,
     ):
-        return await self._form_response_repo.save_form_response(
+        response = await self._form_response_repo.save_form_response(
             form_id=form_id, response=response, workspace_id=workspace_id
         )
+
+        return self.decrypt_form_response(workspace_id=workspace_id, response=response)
 
     async def delete_form_response(
         self, form_id: PydanticObjectId, response_id: PydanticObjectId

@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap"
+          rel="stylesheet"/>
+    <!--[if mso]>
+    <noscript>
+        <xml>
+            <o:OfficeDocumentSettings>
+                <o:AllowPNG/>
+                <o:PixelsPerInch>96</o:PixelsPerInch>
+            </o:OfficeDocumentSettings>
+        </xml>
+    </noscript>
+    <![endif]-->
+</head>
+
+<body>
+<table>
+    {% if form['cover_image'] %}
+        <tr>
+            <td>
+                <img height="100%" width="100%" src="{{ form['cover_image'] }}"/>
+            </td>
+        </tr>
+    {% endif %}
+    {% if form['logo'] %}
+        <tr>
+            <td>
+                <img height="100%" width="100%" src="{{ form['logo'] }}"/>
+            </td>
+        </tr>
+    {% endif %}
+    <tr style="font-size: 28px; font-weight: bold">
+        {{ form['title'] or 'Untitled Form' }}
+    </tr>
+
+    <tr style="font-size: 14px;">
+        {{ form['description'] or '' }}
+    </tr>
+
+    {% for field in form["fields"] %}
+        <tr style="margin-top: 10px">
+            <td>
+                <div style="display: flex; flex-direction: column">
+                    <div style="font-size: 16px; font-weight: bolder">
+                        {{ field["value"] }}
+                    </div>
+                    <div style="border: solid; border: 2px; border-color: lightgray; border-radius: 8px; max-width: 500px; width: 100%; font-weight: normal">
+                        {{ field["answer"] }}
+                    </div>
+                </div>
+            </td>
+        </tr>
+    {% endfor %}
+
+</table>
+</body>
+</html>

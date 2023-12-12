@@ -65,6 +65,9 @@ export interface StandardFormDto {
     logo?: string;
     createdAt?: string;
     updatedAt?: string;
+    actions?: any;
+    parameters?: any;
+    secrets?: any;
 }
 
 export interface StandardFormResponseDto {
