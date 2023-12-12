@@ -95,7 +95,8 @@ async def run_action(
             MAIL_STARTTLS=tls,
             MAIL_SSL_TLS=ssl,
             USE_CREDENTIALS=use_credentials,
-            VALIDATE_CERTS=validate_certs
+            VALIDATE_CERTS=validate_certs,
+            TEMPLATE_FOLDER="templates"
         )
 
     def send_mail_action(config, subject, recipient: List[str], message: str):
@@ -104,11 +105,11 @@ async def run_action(
         message = MessageSchema(
             subject=subject,
             recipients=recipient,
-            subtype=MessageType.plain,
-            body=message
+            subtype=MessageType.html,
+            template_body={"form": form, "response": response},
         )
         fast_mail = FastMail(mail_config)
-        asyncio.run(fast_mail.send_message(message))
+        asyncio.run(fast_mail.send_message(message, template_name="index.html"))
         return "ok"
 
     def send_data_webhook(url: str, params=None, data=None, headers=None):
