@@ -2,6 +2,7 @@ import { createApi } from '@reduxjs/toolkit/dist/query/react';
 import { fetchBaseQuery } from '@reduxjs/toolkit/query';
 
 import environments from '@app/configs/environments';
+import { Action } from '@app/models/dtos/actions';
 
 export const apiActionsApi = createApi({
     reducerPath: 'api-actions',
@@ -18,7 +19,7 @@ export const apiActionsApi = createApi({
         credentials: 'include'
     }),
     endpoints: (builder) => ({
-        getAllIntegrations: builder.query<any, any>({
+        getAllIntegrations: builder.query<Array<Action>, any>({
             query: (request?: any) => ({
                 url: `/actions`,
                 method: 'GET',
@@ -27,7 +28,7 @@ export const apiActionsApi = createApi({
                 }
             })
         }),
-        getSingleIntegration: builder.query<any, any>({
+        getSingleIntegration: builder.query<Action, any>({
             query: (request) => ({
                 url: `/actions/${request.actionId}`,
                 method: 'GET'
