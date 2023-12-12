@@ -4,6 +4,10 @@ from http import HTTPStatus
 
 import bson
 from beanie import PydanticObjectId
+from common.constants import MESSAGE_FORBIDDEN
+from common.enums.plan import Plans
+from common.models.user import User
+from common.services.http_client import HttpClient
 from fastapi import UploadFile
 from loguru import logger
 from pydantic import EmailStr
@@ -26,10 +30,6 @@ from backend.app.services.user_tags_service import UserTagsService
 from backend.app.services.workspace_form_service import WorkspaceFormService
 from backend.app.services.workspace_user_service import WorkspaceUserService
 from backend.config import settings
-from common.constants import MESSAGE_FORBIDDEN
-from common.enums.plan import Plans
-from common.models.user import User
-from common.services.http_client import HttpClient
 
 
 class WorkspaceService:
@@ -223,9 +223,12 @@ class WorkspaceService:
         return WorkspaceResponseDto(**saved_workspace.dict())
 
     async def delete_custom_domain_of_workspace(
-            self, workspace_id: PydanticObjectId, user: User
+        self, workspace_id: PydanticObjectId, user: User
     ):
-        if user.plan == Plans.FREE:
+        workspace_document = await self._workspace_repo.get_workspace_by_id(
+            workspace_id=workspace_id
+        )
+        if not workspace_document.is_pro:
             raise HTTPException(
                 status_code=HTTPStatus.FORBIDDEN, content=MESSAGE_FORBIDDEN
             )
