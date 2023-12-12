@@ -67,7 +67,7 @@ export interface StandardFormDto {
     updatedAt?: string;
     actions?: any;
     parameters?: any;
-    secrets: any;
+    secrets?: any;
 }
 
 export interface StandardFormResponseDto {
