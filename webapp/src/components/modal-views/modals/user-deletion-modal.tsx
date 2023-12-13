@@ -25,7 +25,6 @@ export default function UserDeletionModal() {
     const { t } = useTranslation();
     const [deleteAccount, { isLoading, isSuccess }] = useDeleteAccountMutation();
     const router = useRouter();
-    const locale = router?.locale === 'en' ? '' : `${router.locale}/`;
 
     const handleDeleteAccount = async (event: any) => {
         event.preventDefault();

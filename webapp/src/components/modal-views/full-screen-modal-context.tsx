@@ -1,6 +1,6 @@
-import { atom, useAtom } from 'jotai';
+import {atom, useAtom} from 'jotai';
 
-export type UPGRADE_MODAL_VIEW =
+export type FULL_SCREEN_MODALS =
     | 'LOGIN_VIEW'
     | 'FORM_BUILDER_PREVIEW'
     | 'CROP_IMAGE'
@@ -14,13 +14,14 @@ export type UPGRADE_MODAL_VIEW =
     | 'SELECT_FORM_CLOSE_DATE'
     | 'TEMPLATE_SETTINGS_FULL_MODAL_VIEW'
     | 'WORKSPACE_SETTINGS'
-    | 'CREATE_GROUP';
+    | 'CREATE_GROUP'
+    | "DELETE_ACCOUNT";
 
-const modalAtom = atom({ isOpen: false, modalProps: null, view: '' });
+const modalAtom = atom({isOpen: false, modalProps: null, view: ''});
 
 export function useFullScreenModal() {
     const [state, setState] = useAtom(modalAtom);
-    const openModal = (view: UPGRADE_MODAL_VIEW, modalProps: any = null) =>
+    const openModal = (view: FULL_SCREEN_MODALS, modalProps: any = null) =>
         setState({
             ...state,
             isOpen: true,
@@ -28,7 +29,7 @@ export function useFullScreenModal() {
             view: view
         });
     const closeModal = () => {
-        setState({ ...state, view: '', isOpen: false, modalProps: null });
+        setState({...state, view: '', isOpen: false, modalProps: null});
     };
 
     return {
