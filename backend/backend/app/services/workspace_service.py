@@ -5,7 +5,6 @@ from http import HTTPStatus
 import bson
 from beanie import PydanticObjectId
 from common.constants import MESSAGE_FORBIDDEN
-from common.enums.plan import Plans
 from common.models.user import User
 from common.services.http_client import HttpClient
 from fastapi import UploadFile
@@ -171,7 +170,7 @@ class WorkspaceService:
         )
 
         if workspace_patch.custom_domain:
-            if user.plan == Plans.FREE:
+            if not workspace_document.is_pro:
                 raise HTTPException(status_code=403, content=MESSAGE_FORBIDDEN)
 
             try:
