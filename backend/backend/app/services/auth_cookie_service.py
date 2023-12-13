@@ -141,7 +141,7 @@ def delete_token_cookie(response: Response):
     )
     delete_cookie(
         response=response,
-        key="Refresh_token",
+        key="RefreshToken",
         httponly=True,
         secure=should_be_secure,
         samesite=same_site,
