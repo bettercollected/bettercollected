@@ -133,6 +133,27 @@
     "DEFAULT": "Delete",
     "MESSAGE": "Once this action is completed, it can't be undone."
   },
+  "DELETE_ACCOUNT": {
+    "TITLE": "Delete Account",
+    "DESCRIPTION": "You are about to delete your bettercollected account. All your data will be removed.",
+    "WHY_DELETE": "Why are you deleting your account?",
+    "SELECT_REASON": "Select Reason",
+    "ANYTHING_ELSE": "Is there anything else you’d like to share? (optional)",
+    "WRITE_FEEDBACK": "Write your feedback",
+    "TYPE_CONFIRM": "To continue, Type \"CONFIRM\"",
+    "CONFIRM": "Confirm",
+    "I_UNDERSTAND_CONSEQUENCES":"I understand that closing my account will remove all my data.",
+    "DELETE_NOW":"Delete Now",
+    "REASONS": {
+      "1": "I find it challenging to create forms.",
+      "2": "I am having difficulties in importing the form.",
+      "3": "I miss essential features or integrations that I need.",
+      "4": "I am unhappy with the pricing.",
+      "5": "I have found a better alternative.",
+      "6": "The app is slow.",
+      "7": "Something else"
+    }
+  },
   "DELETED_ON": "Deleted On",
   "DELETION_REMAINING": "deletion remaining",
   "DESCRIPTION": "Description",
