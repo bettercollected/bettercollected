@@ -71,13 +71,14 @@ class WorkspaceService:
         return WorkspaceResponseDto(**workspace.dict())
 
     async def create_non_default_workspace(
-            self,
-            title: str,
-            description: str,
-            workspace_name: str,
-            profile_image_file: UploadFile,
-            banner_image_file: UploadFile,
-            user: User,
+        self,
+        title: str,
+        description: str,
+        user: User,
+        workspace_name: str = None,
+        profile_image_file: UploadFile = None,
+        banner_image_file: UploadFile = None,
+
     ):
         if user.plan != "PRO":
             raise HTTPException(
@@ -95,6 +96,7 @@ class WorkspaceService:
             description=description,
             owner_id=user.id,
             workspace_name=workspace_name if workspace_name else str(bson.ObjectId()),
+            is_pro=True,
         )
         workspace_document = await self.upload_images_of_workspace(
             workspace_document=workspace_document,
