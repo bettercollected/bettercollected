@@ -36,7 +36,10 @@ export default function DeleteAccountModal() {
             setError(true)
             return
         }
-        deleteAccount().then((response) => {
+        deleteAccount({
+            reasonForDeletion: dropdownValue,
+            feedback: feedback
+        }).then((response) => {
             if ('data' in response) {
                 router.push(`/`);
                 toast(t(toastMessage.accountDeletion.success).toString(), {

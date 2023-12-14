@@ -1,9 +1,9 @@
-import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/dist/query/react';
+import {createApi, fetchBaseQuery} from '@reduxjs/toolkit/dist/query/react';
 
 import environments from '@app/configs/environments';
-import { UserStatus } from '@app/models/dtos/UserStatus';
+import {UserStatus} from '@app/models/dtos/UserStatus';
 
-import { AUTH_OTP_TAGS, AUTH_REFRESH_TAG, AUTH_TAG_TYPES, VerifyOtp } from './types';
+import {AUTH_OTP_TAGS, AUTH_REFRESH_TAG, AUTH_TAG_TYPES, VerifyOtp} from './types';
 
 export const AUTH_REDUCER_PATH = 'authApi';
 export const authApi = createApi({
@@ -38,7 +38,7 @@ export const authApi = createApi({
             query: (body) => ({
                 url: body.workspace_id ? `/workspaces/${body.workspace_id}/auth/otp/send` : `/auth/otp/send`,
                 method: 'POST',
-                params: { receiver_email: body.receiver_email }
+                params: {receiver_email: body.receiver_email}
             }),
             invalidatesTags: [AUTH_OTP_TAGS]
         }),
@@ -46,7 +46,7 @@ export const authApi = createApi({
             query: (body) => ({
                 url: `/auth/creator/otp/send`,
                 method: 'POST',
-                params: { receiver_email: body.receiver_email }
+                params: {receiver_email: body.receiver_email}
             }),
             invalidatesTags: [AUTH_OTP_TAGS]
         }),
@@ -65,13 +65,23 @@ export const authApi = createApi({
                 method: 'GET'
             })
         }),
-        deleteAccount: builder.mutation<string, void>({
-            query: () => ({
+        deleteAccount: builder.mutation<string, any>({
+            query: (body) => ({
                 url: '/auth/user/delete/workflow',
-                method: 'POST'
+                method: 'POST',
+                body: body
             })
         })
     })
 });
 
-export const { useGetStatusQuery, useDeleteAccountMutation, useLazyGetStatusQuery, usePostSendOtpMutation, usePostSendOtpForCreatorMutation, usePostVerifyOtpMutation, useLazyGetLogoutQuery, useRefreshTokenMutation } = authApi;
+export const {
+    useGetStatusQuery,
+    useDeleteAccountMutation,
+    useLazyGetStatusQuery,
+    usePostSendOtpMutation,
+    usePostSendOtpForCreatorMutation,
+    usePostVerifyOtpMutation,
+    useLazyGetLogoutQuery,
+    useRefreshTokenMutation
+} = authApi;
