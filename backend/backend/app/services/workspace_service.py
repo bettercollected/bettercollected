@@ -4,6 +4,9 @@ from http import HTTPStatus
 
 import bson
 from beanie import PydanticObjectId
+from common.constants import MESSAGE_FORBIDDEN
+from common.models.user import User
+from common.services.http_client import HttpClient
 from fastapi import UploadFile
 from loguru import logger
 from pydantic import EmailStr
@@ -26,10 +29,6 @@ from backend.app.services.user_tags_service import UserTagsService
 from backend.app.services.workspace_form_service import WorkspaceFormService
 from backend.app.services.workspace_user_service import WorkspaceUserService
 from backend.config import settings
-from common.constants import MESSAGE_FORBIDDEN
-from common.enums.plan import Plans
-from common.models.user import User
-from common.services.http_client import HttpClient
 
 
 class WorkspaceService:
@@ -72,13 +71,14 @@ class WorkspaceService:
         return WorkspaceResponseDto(**workspace.dict())
 
     async def create_non_default_workspace(
-            self,
-            title: str,
-            description: str,
-            workspace_name: str,
-            profile_image_file: UploadFile,
-            banner_image_file: UploadFile,
-            user: User,
+        self,
+        title: str,
+        description: str,
+        user: User,
+        workspace_name: str = None,
+        profile_image_file: UploadFile = None,
+        banner_image_file: UploadFile = None,
+
     ):
         if user.plan != "PRO":
             raise HTTPException(
@@ -96,6 +96,7 @@ class WorkspaceService:
             description=description,
             owner_id=user.id,
             workspace_name=workspace_name if workspace_name else str(bson.ObjectId()),
+            is_pro=True,
         )
         workspace_document = await self.upload_images_of_workspace(
             workspace_document=workspace_document,
@@ -171,7 +172,7 @@ class WorkspaceService:
         )
 
         if workspace_patch.custom_domain:
-            if user.plan == Plans.FREE:
+            if not workspace_document.is_pro:
                 raise HTTPException(status_code=403, content=MESSAGE_FORBIDDEN)
 
             try:
@@ -223,9 +224,12 @@ class WorkspaceService:
         return WorkspaceResponseDto(**saved_workspace.dict())
 
     async def delete_custom_domain_of_workspace(
-            self, workspace_id: PydanticObjectId, user: User
+        self, workspace_id: PydanticObjectId, user: User
     ):
-        if user.plan == Plans.FREE:
+        workspace_document = await self._workspace_repo.get_workspace_by_id(
+            workspace_id=workspace_id
+        )
+        if not workspace_document.is_pro:
             raise HTTPException(
                 status_code=HTTPStatus.FORBIDDEN, content=MESSAGE_FORBIDDEN
             )
