@@ -65,7 +65,7 @@ class Application(BaseSettings):
     GOOGLE_CLIENT_SECRET = ""
     GOOGLE_REDIRECT_URIS = ""
     GOOGLE_JAVASCRIPT_ORIGINS = ""
-    GOOGLE_SCOPES = "openid https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/drive.metadata.readonly https://www.googleapis.com/auth/forms.body.readonly https://www.googleapis.com/auth/forms.responses.readonly"
+    GOOGLE_SCOPES = "openid https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/forms.body.readonly https://www.googleapis.com/auth/forms.responses.readonly"
     GOOGLE_API_SERVICE_NAME = "drive"
     GOOGLE_API_VERSION = "v2"
     GOOGLE_REVOKE_CREDENTIALS_URL = "https://oauth2.googleapis.com/revoke"
