@@ -184,7 +184,7 @@ const EmptyCoverItems = ({ onClickUpdateButton, onClickRemoveButton }: { onClick
             </div>
             {onClickRemoveButton && (
                 <div className="absolute z-10 bottom-6 right-8 ">
-                    <div className="z-[1000] !text-black-900 text-[12px] px-2 py-1 rounded !font-semibold hover:opacity-80 !bg-black-100 focus:!ring-0" onClick={onClickRemoveButton}>
+                    <div className="z-[1000] !text-black-900 text-[12px] px-2 py-1 rounded !font-semibold hover:opacity-80 !bg-black-100 focus:!ring-0 cursor-pointer" onClick={onClickRemoveButton}>
                         Remove Cover
                     </div>
                 </div>
