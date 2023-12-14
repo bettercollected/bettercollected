@@ -1,4 +1,5 @@
 """Application implementation - ASGI."""
+import common.exceptions.http
 import sentry_sdk
 from elasticapm.contrib.starlette import make_apm_client, ElasticAPM
 from fastapi import FastAPI
@@ -9,7 +10,6 @@ from sentry_sdk.integrations.asyncio import AsyncioIntegration
 from sentry_sdk.integrations.httpx import HttpxIntegration
 from sentry_sdk.integrations.loguru import LoguruIntegration
 
-import common.exceptions.http
 from backend.app.container import container
 from backend.app.exceptions import (
     HTTPException,
@@ -19,9 +19,6 @@ from backend.app.handlers import init_logging
 from backend.app.handlers.database import close_db, init_db
 from backend.app.middlewares import DynamicCORSMiddleware, include_middlewares
 from backend.app.router import root_api_router
-from backend.app.services.init_schedulers import (
-    migrate_schedule_to_temporal,
-)
 from backend.app.utils import AiohttpClient
 from backend.config import settings
 
@@ -39,7 +36,6 @@ async def on_startup():
     # TODO merge with container
     client = container.database_client()
     await init_db(settings.mongo_settings.DB, client)
-    await migrate_schedule_to_temporal()
 
 
 async def on_shutdown():

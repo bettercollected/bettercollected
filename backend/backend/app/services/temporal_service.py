@@ -77,9 +77,6 @@ class TemporalService:
                 + user_id
                 + " has already been started."
             )
-            raise HTTPException(
-                status_code=HTTPStatus.CONFLICT, content="Workflow has already started."
-            )
 
     async def start_save_preview_workflow(self, template_id: PydanticObjectId, user_tokens: UserTokens):
         await self.check_temporal_client_and_try_to_connect_if_not_connected()

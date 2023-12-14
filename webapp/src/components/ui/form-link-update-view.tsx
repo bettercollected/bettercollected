@@ -28,15 +28,13 @@ interface ICurrentLinkUpdate {
 
 export default function FormLinkUpdateView({ link, isCustomDomain = false, isDisable = false, isProUser }: ICurrentLinkUpdate) {
     const { openModal: openFullScreenModal } = useFullScreenModal();
-    const { openModal } = useModal();
     const [_, copyToClipboard] = useCopyToClipboard();
-    const form = useAppSelector(selectForm);
     const workspace = useAppSelector(selectWorkspace);
     const { t } = useTranslation();
 
     const handleOnClickCustomDomain = () => {
         if (isProUser) {
-            openModal('UPDATE_WORKSPACE_DOMAIN', { customSlug: form?.settings?.customUrl });
+            openFullScreenModal('WORKSPACE_SETTINGS', { initialIndex: 1 });
         } else {
             openFullScreenModal('UPGRADE_TO_PRO');
         }
@@ -59,7 +57,7 @@ export default function FormLinkUpdateView({ link, isCustomDomain = false, isDis
                         <AppButton variant={ButtonVariant.Secondary} onClick={handleOnCopy} icon={<CopyIcon className="cursor-pointer" />}>
                             {t(formPage.linkCopyLink)}
                         </AppButton>
-                        {!isProUser && (
+                        {(!isProUser || !workspace?.customDomain) && (
                             <AppButton variant={ButtonVariant.Tertiary} icon={<Globe className="h-[18px] w-[18px]" />} disabled={isDisable} onClick={handleOnClickCustomDomain}>
                                 {t(formPage.linksUseCustomDomain)}
                             </AppButton>

@@ -11,7 +11,7 @@ import { Close } from '@app/components/icons/close';
 import LoginView from '@app/components/login/login-view';
 import ModalContainer from '@app/components/modal-views/container';
 import { useModal } from '@app/components/modal-views/context';
-import { UPGRADE_MODAL_VIEW, useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
+import { FULL_SCREEN_MODALS, useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
 import FormCreateSlugFullModalView from '@app/components/modal-views/full-screen-modals/create-form-slug-full-modal-view';
 import SelectGroupFullModalView from '@app/components/modal-views/full-screen-modals/select-group-modal-view';
 import ScheduleFormCloseDateModal from '@app/components/modal-views/modals/schedule-form-close-date-modal';
@@ -25,8 +25,9 @@ import CreateConsentFullModalView from './full-screen-modals/create-consent-full
 import FormSettingFullModalView from './full-screen-modals/form-setting-full-modal-view';
 import CropImageModalView from './modals/crop-image-modal-view';
 import FormBuilderPreviewModal from './modals/form-builder-preview-modal';
+import DeleteAccountModal from "@Components/Modals/BottomSheetModals/DeleteAccountModal";
 
-function renderModalContent(view: UPGRADE_MODAL_VIEW, modalProps: any) {
+function renderModalContent(view: FULL_SCREEN_MODALS, modalProps: any) {
     switch (view) {
         case 'LOGIN_VIEW':
             return <LoginView {...modalProps} />; // Done
@@ -56,6 +57,8 @@ function renderModalContent(view: UPGRADE_MODAL_VIEW, modalProps: any) {
             return <WorkspaceSettingsModal {...modalProps} />;
         case 'CREATE_GROUP':
             return <CreateGroupModal {...modalProps} />;
+        case "DELETE_ACCOUNT":
+            return <DeleteAccountModal/>
         default:
             return <></>;
     }

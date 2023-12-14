@@ -133,6 +133,27 @@
     "DEFAULT": "Verwijderen",
     "MESSAGE": "Als deze actie eenmaal is voltooid, kan deze niet meer ongedaan worden gemaakt."
   },
+  "DELETE_ACCOUNT": {
+    "TITLE": "Account Verwijderen",
+    "DESCRIPTION": "Je staat op het punt om je bettercollected-account te verwijderen. Al je gegevens zullen worden verwijderd.",
+    "WHY_DELETE": "Waarom verwijder je je account?",
+    "SELECT_REASON": "Selecteer Reden",
+    "ANYTHING_ELSE": "Is er nog iets dat je wilt delen? (optioneel)",
+    "WRITE_FEEDBACK": "Schrijf je feedback",
+    "TYPE_CONFIRM": "Om door te gaan, typ \"CONFIRM\"",
+    "CONFIRM": "Bevestigen",
+    "I_UNDERSTAND_CONSEQUENCES": "Ik begrijp dat het sluiten van mijn account al mijn gegevens zal verwijderen.",
+    "DELETE_NOW": "Nu Verwijderen",
+    "REASONS": {
+      "1": "Ik vind het moeilijk om formulieren te maken.",
+      "2": "Ik ondervind problemen bij het importeren van het formulier.",
+      "3": "Ik mis essentiële functies of integraties die ik nodig heb.",
+      "4": "Ik ben niet tevreden met de prijsstelling.",
+      "5": "Ik heb een beter alternatief gevonden.",
+      "6": "De app is traag.",
+      "7": "Iets anders"
+    }
+  },
   "DELETED_ON": "Verwijderd op",
   "DELETION_REMAINING": "verwijdering resterend",
   "DESCRIPTION": "Beschrijving",
