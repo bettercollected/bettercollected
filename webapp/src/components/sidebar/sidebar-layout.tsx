@@ -92,7 +92,7 @@ export default function SidebarLayout({ children, DrawerComponent = DashboardDra
         {
             key: 'urls',
             name: t(dashboardConstants.drawer.manageURLs),
-            url: ``,
+            url: `/no-url/`,
             icon: <Globe />,
             onClick: () => {
                 openModal('WORKSPACE_SETTINGS', { initialIndex: 1 });
