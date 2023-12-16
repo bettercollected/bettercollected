@@ -838,5 +838,7 @@
   "LOGO": {
     "UPDATE": "Bijwerken nieuw logo",
     "REMOVE": "Logo verwijderen"
-  }
+  },
+  "HAVE_NOT_IMPORTED_OR_CREATED": "Je hebt geen formulier geïmporteerd of aangemaakt.",
+  "CREATE_OR_IMPORT": "Maak of importeer je eerste privacyvriendelijke formulier."
 }

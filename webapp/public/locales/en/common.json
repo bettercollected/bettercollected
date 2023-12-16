@@ -846,5 +846,7 @@
   "LOGO": {
     "UPDATE": "Update New Logo",
     "REMOVE": "Remove Logo"
-  }
+  },
+  "HAVE_NOT_IMPORTED_OR_CREATED": "You haven’t imported or created any form",
+  "CREATE_OR_IMPORT": "Create or import your first privacy friendly form."
 }
