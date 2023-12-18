@@ -32,7 +32,7 @@ export default function DeleteAccountModal() {
     }
 
     const onClickDelete = async () => {
-        if (!dropdownValue || !confirm || !checked || confirm.toUpperCase() !== "CONFIRM") {
+        if (!dropdownValue || !confirm || !checked || confirm.toUpperCase() !== "CONFIRM" || dropdownValue === 'Something else' && !feedback) {
             setError(true)
             return
         }
@@ -130,13 +130,16 @@ export default function DeleteAccountModal() {
             </div>
             <div className="mt-10">
                 <div className="h4-new text-black-800 mb-2">
-                    {t("DELETE_ACCOUNT.ANYTHING_ELSE")}
+                    {dropdownValue === "Something else" ? <>
+                        {t("DELETE_ACCOUNT.ANYTHING_ELSE")}
+                        < span className="text-red-500 ml-2"> *</span>
+                    </> : <>{t("DELETE_ACCOUNT.ANYTHING_ELSE") + '(' + t('DELETE_ACCOUNT.OPTIONAL') + ')'}</>}
                 </div>
                 <TextArea
                     className="w-full rounded-md border border-black-500 focus:border-[#B8E8FF] focus:shadow-input"
                     value={feedback} onChange={(event) => {
                     setFeedBack(event.target.value)
-                }} placeholder={t("DELETE_ACCOUNT.WRITE_FEEDBACK")}/>
+                }} required={dropdownValue === 'Something else'} placeholder={t("DELETE_ACCOUNT.WRITE_FEEDBACK")}/>
             </div>
             <div className="mt-10">
                 <div className="h4-new text-black-800 mb-2">
