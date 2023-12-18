@@ -21,7 +21,7 @@ export default function ConnectWithProviderButton(props: ConnectWithProviderButt
     if (disabled)
         return (
             <div className="!w-full rounded flex items-center justify-center">
-                <ProviderLoginButton disabled={disabled} label={text} type={type} onClick={() => {}} />
+                <ProviderLoginButton disabled={disabled} label={text} type={type} onClick={() => {}} className={'!w-full'} />
             </div>
         );
 
