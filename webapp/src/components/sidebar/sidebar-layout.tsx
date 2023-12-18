@@ -92,7 +92,7 @@ export default function SidebarLayout({ children, DrawerComponent = DashboardDra
         {
             key: 'urls',
             name: t(dashboardConstants.drawer.manageURLs),
-            url: `/no-url/`,
+            url: ``,
             icon: <Globe />,
             onClick: () => {
                 openModal('WORKSPACE_SETTINGS', { initialIndex: 1 });
@@ -105,7 +105,7 @@ export default function SidebarLayout({ children, DrawerComponent = DashboardDra
     const getHeader = () => {
         const matchingNavList = allNavList.filter((item) => router.asPath.includes(item.url));
         if (matchingNavList.length > 0) {
-            return matchingNavList[matchingNavList.length - 1].name;
+            return matchingNavList[matchingNavList.length - 2]?.name;
         }
         return 'My Workspace';
     };
