@@ -99,6 +99,72 @@ async def run_action(
             TEMPLATE_FOLDER="templates"
         )
 
+    def get_answer_for_field(field_answer, input_field):
+        if field_answer is None:
+            return ""
+        form_builder_tag_names = {
+            'INPUT_RATING': 'input_rating',
+            'INPUT_NUMBER': 'input_number',
+            'INPUT_SHORT_TEXT': 'input_short_text',
+            'INPUT_LONG_TEXT': 'input_long_text',
+            'INPUT_LINK': 'input_link',
+            'INPUT_EMAIL': 'input_email',
+            'INPUT_DATE': 'input_date',
+            'INPUT_MULTIPLE_CHOICE': 'input_multiple_choice',
+            'INPUT_DROPDOWN': 'input_dropdown',
+            'INPUT_CHECKBOXES': 'input_checkboxes',
+            'INPUT_PHONE_NUMBER': 'input_phone_number',
+            'INPUT_RANKING': 'input_ranking',
+            'INPUT_FILE_UPLOAD': 'input_file_upload'
+        }
+
+        input_field_type = input_field.get('type', '')
+        answer_choice_values = field_answer.get('choices', {}).get('values', []) if field_answer.get('choices',
+                                                                                                     {}) else []
+        file_metadata_name = field_answer.get("file_metadata", {}).get('name', '') if field_answer.get("file_metadata",
+                                                                                                       {}) else ""
+
+        if input_field_type in [form_builder_tag_names['INPUT_RATING'], form_builder_tag_names['INPUT_NUMBER']]:
+            return field_answer.get('number', '')
+        elif input_field_type in [form_builder_tag_names['INPUT_SHORT_TEXT'],
+                                  form_builder_tag_names['INPUT_LONG_TEXT']]:
+            return field_answer.get('text', '')
+        elif input_field_type == form_builder_tag_names['INPUT_LINK']:
+            return field_answer.get('url', '')
+        elif input_field_type == form_builder_tag_names['INPUT_EMAIL']:
+            return field_answer.get('email', '')
+        elif input_field_type == form_builder_tag_names['INPUT_DATE']:
+            return field_answer.get('date', '')
+        elif input_field_type in [form_builder_tag_names['INPUT_MULTIPLE_CHOICE'],
+                                  form_builder_tag_names['INPUT_DROPDOWN']]:
+            return next((choice['value'] for choice in input_field.get('properties', {}).get('choices', []) if
+                         choice['id'] == field_answer.get('choice', {}).get('value')), '')
+        elif input_field_type == form_builder_tag_names['INPUT_CHECKBOXES']:
+            choices = [choice['value'] for choice in input_field.get('properties', {}).get('choices', []) if
+                       choice['id'] in answer_choice_values]
+            return ', '.join(choices)
+        elif input_field_type == form_builder_tag_names['INPUT_PHONE_NUMBER']:
+            return field_answer.get('phone_number', '')
+        elif input_field_type == form_builder_tag_names['INPUT_RANKING']:
+            return ', '.join(choice.get('value', '') for choice in answer_choice_values)
+        elif input_field_type == form_builder_tag_names['INPUT_FILE_UPLOAD']:
+            return file_metadata_name
+        else:
+            return ''
+
+    def get_simple_form_response():
+        simple_form = {
+            **form
+        }
+        for field in simple_form.get("fields"):
+            if field.get("type") and "input_" in str(field.get("type")):
+                answers = response.get("answers")
+                if answers is not None:
+                    answer_for_field = answers.get(str(field.get("id")))
+                    field["answer"] = get_answer_for_field(answer_for_field,
+                                                           field) if answer_for_field else ""
+        return simple_form
+
     def send_mail_action(config, subject, recipient: List[str], message: str):
         mail_config = config
 
@@ -106,10 +172,10 @@ async def run_action(
             subject=subject,
             recipients=recipient,
             subtype=MessageType.html,
-            template_body={"form": form, "response": response},
+            template_body={"form": get_simple_form_response(), "response": response},
         )
         fast_mail = FastMail(mail_config)
-        asyncio.run(fast_mail.send_message(message, template_name="index.html"))
+        asyncio.run(fast_mail.send_message(message, template_name="new-template.html"))
         return "ok"
 
     def send_data_webhook(url: str, params=None, data=None, headers=None):
@@ -144,7 +210,8 @@ async def run_action(
                                                          get_state,
                                                          send_data_webhook,
                                                          config_mail,
-                                                         send_mail_action
+                                                         send_mail_action,
+                                                         get_simple_form_response
                                                          ), timeout=30)
     return result
 
@@ -161,7 +228,8 @@ def execute_action_code(action_code: str,
                         get_state,
                         send_data_webhook,
                         config_mail,
-                        send_mail_action):
+                        send_mail_action,
+                        get_simple_form_response):
     log_string = []
     status = True
 
@@ -197,7 +265,8 @@ def execute_action_code(action_code: str,
                 "get_state": get_state,
                 "send_data_webhook": send_data_webhook,
                 "config_mail": config_mail,
-                "send_mail_action": send_mail_action
+                "send_mail_action": send_mail_action,
+                "get_simple_form_response": get_simple_form_response
             }, {}
         )
     except Exception as e:
