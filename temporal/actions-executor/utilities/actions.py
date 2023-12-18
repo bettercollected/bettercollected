@@ -162,20 +162,20 @@ async def run_action(
                 if answers is not None:
                     answer_for_field = answers.get(str(field.get("id")))
                     field["answer"] = get_answer_for_field(answer_for_field,
-                                                           field) if answer_for_field else ""
+                                                           field) if answer_for_field else "&nbsp;"
         return simple_form
 
-    def send_mail_action(config, subject, recipient: List[str], message: str):
+    def send_mail_action(config, subject, recipient: List[str], creator_mail: Optional[bool] = False):
         mail_config = config
 
         message = MessageSchema(
             subject=subject,
             recipients=recipient,
             subtype=MessageType.html,
-            template_body={"form": get_simple_form_response(), "response": response},
+            template_body={"form": get_simple_form_response(), "response": response, "creator_mail": creator_mail},
         )
         fast_mail = FastMail(mail_config)
-        asyncio.run(fast_mail.send_message(message, template_name="new-template.html"))
+        asyncio.run(fast_mail.send_message(message, template_name="response-mail.html"))
         return "ok"
 
     def send_data_webhook(url: str, params=None, data=None, headers=None):

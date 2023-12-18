@@ -343,15 +343,21 @@
                                             <tr>
                                                 <td align="left"
                                                     style="font-size:0px;padding:10px 25px;word-break:break-word;">
-                                                    <div style="font-family:Ubuntu, Helvetica, Arial, sans-serif;font-size:13px;line-height:1;text-align:left;color:#000000;">
-                                                        <div style="display: flex; align-items: center;"> Create your
-                                                            own <a href="https://bettercollected.com/" target="_blank">
-                                                                <img alt="logo" style="padding: 0 4px;" width="100px"
-                                                                     height="10px"
-                                                                     src="https://s3.eu-central-1.wasabisys.com/bettercollected/public/logo-200-20.png">
-                                                            </a> form.
+                                                    {% if not creator_mail %}
+                                                        <div style="font-family:Ubuntu, Helvetica, Arial, sans-serif;font-size:13px;line-height:1;text-align:left;color:#000000;">
+                                                            <div style="display: flex; align-items: center;"> Create
+                                                                your
+                                                                own <a href="https://bettercollected.com/"
+                                                                       target="_blank">
+                                                                    <img alt="logo" style="padding: 0 4px;"
+                                                                         width="100px"
+                                                                         height="10px"
+                                                                         src="https://s3.eu-central-1.wasabisys.com/bettercollected/public/logo-200-20.png">
+                                                                </a> form.
+                                                            </div>
                                                         </div>
-                                                    </div>
+                                                    {% endif %}
+
                                                 </td>
                                             </tr>
                                             </tbody>
@@ -362,6 +368,7 @@
                             </tr>
                             </tbody>
                         </table>
+
                     </div>
                     <!--[if mso | IE]></td></tr></table></td></tr></table><![endif]-->
                 </td>
