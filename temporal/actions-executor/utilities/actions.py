@@ -17,15 +17,20 @@ async def run_action(
     form: Any,
     response: Any,
     user_email: Optional[EmailStr] = None,
+    workspace: Optional[str] = None
 ):
     action = json.loads(action)
     form = json.loads(form)
     response = json.loads(response)
+    workspace = json.loads(workspace)
 
     def get_state():
         if response.state and response.state.global_state:
             return response.state.global_state
         return None
+
+    def get_workspace_details():
+        return workspace
 
     def get_extra_data(key: str) -> Dict[str, str]:
         def process_item(variable, decrypt=False):
@@ -211,7 +216,8 @@ async def run_action(
                                                          send_data_webhook,
                                                          config_mail,
                                                          send_mail_action,
-                                                         get_simple_form_response
+                                                         get_simple_form_response,
+                                                         get_workspace_details
                                                          ), timeout=30)
     return result
 
@@ -229,7 +235,8 @@ def execute_action_code(action_code: str,
                         send_data_webhook,
                         config_mail,
                         send_mail_action,
-                        get_simple_form_response):
+                        get_simple_form_response,
+                        get_workspace_details):
     log_string = []
     status = True
 
@@ -266,7 +273,8 @@ def execute_action_code(action_code: str,
                 "send_data_webhook": send_data_webhook,
                 "config_mail": config_mail,
                 "send_mail_action": send_mail_action,
-                "get_simple_form_response": get_simple_form_response
+                "get_simple_form_response": get_simple_form_response,
+                "get_workspace_details": get_workspace_details
             }, {}
         )
     except Exception as e:
