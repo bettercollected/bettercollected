@@ -167,13 +167,13 @@ export default function ImportProviderForms(props: any) {
                 />
             )}
             <h4 className="h6 !text-black-800 !font-medium text-center">{provider === Provider.google ? 'Copy Google Form Edit Link' : 'Select TypeForm'}</h4>
-            <div className={'text-sm font-normal text-black-700'}>
+            <div className={'text-sm font-normal text-black-700 '}>
                 Paste the edit page link of your google form. If there
                 are no existing forms, you can always
-                <div onClick={createNewForm}
-                     className="body4 !not-italic !text-brand-500 hover:!text-brand-600 cursor-pointer">
+                <span onClick={createNewForm}
+                     className="pl-1 body4 !not-italic !text-brand-500 hover:!text-brand-600 cursor-pointer">
                     Create bettercollected Form.
-                </div>
+                </span>
             </div>
             <div className="flex flex-col w-full h-full gap-4 mt-4">
                 <AppTextField value={importFormLink} onChange={(event) => {
