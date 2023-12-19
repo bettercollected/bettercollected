@@ -1,8 +1,7 @@
 import datetime as dt
 from typing import Optional, List, Dict
 
-from beanie import PydanticObjectId
-from common.models.standard_form import ParameterValue, Trigger
+from common.models.standard_form import ParameterValue, Trigger, ActionState
 from fastapi_camelcase import CamelModel
 
 from backend.app.models.dtos.consent import ConsentCamelModel
@@ -35,6 +34,6 @@ class FormDtoCamelModel(CamelModel):
     button_text: Optional[str]
     version: Optional[str]
     updated_at: Optional[dt.datetime]
-    actions: Optional[Dict[Trigger, List[PydanticObjectId]]]
+    actions: Optional[Dict[Trigger, List[ActionState]]]
     parameters: Optional[Dict[str, List[ParameterValue]]]
     secrets: Optional[Dict[str, List[ParameterValue]]]

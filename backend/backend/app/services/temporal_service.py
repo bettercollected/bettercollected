@@ -29,6 +29,7 @@ from backend.app.models.dataclasses.run_action_code_params import RunActionCodeP
 from backend.app.models.dataclasses.save_preview_params import SavePreviewParams
 from backend.app.models.dataclasses.user_tokens import UserTokens
 from backend.app.models.dtos.action_dto import ActionResponse
+from backend.app.models.workspace import WorkspaceRequestDto
 from backend.app.schemas.standard_form_response import FormResponseDocument
 from backend.app.utils.date_utils import get_formatted_date_from_str
 from backend.config import settings
@@ -229,11 +230,13 @@ class TemporalService:
         )
         await handle.update(updater=self.update_schedule_interval(interval=interval))
 
-    async def start_action_execution(self, action: ActionResponse, form: StandardForm, response: FormResponseDocument):
+    async def start_action_execution(self, action: ActionResponse, form: StandardForm, response: FormResponseDocument,
+                                     workspace: WorkspaceRequestDto):
         if not settings.schedular_settings.ENABLED:
             return
         run_action_params = RunActionCodeParams(action=action.json(), form=form.json(), response=response.json(),
-                                                user_email=response.dataOwnerIdentifier if response is not None else "")
+                                                user_email=response.dataOwnerIdentifier if response is not None else "",
+                                                workspace=workspace.json())
         try:
             await self.check_temporal_client_and_try_to_connect_if_not_connected()
             await self.temporal_client.start_workflow(

@@ -12,4 +12,5 @@ async def run_action_code(run_action_code_params: RunActionCodeParams):
         return await run_action(action=run_action_code_params.action,
                                 form=run_action_code_params.form,
                                 response=run_action_code_params.response,
-                                user_email=run_action_code_params.user_email)
+                                user_email=run_action_code_params.user_email,
+                                workspace= run_action_code_params.workspace)

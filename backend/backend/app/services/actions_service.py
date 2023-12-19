@@ -3,6 +3,7 @@ from common.models.standard_form import Trigger
 from common.models.user import User
 
 from backend.app.models.dtos.action_dto import ActionDto, ActionResponse
+from backend.app.models.workspace import WorkspaceRequestDto
 from backend.app.repositories.action_repository import ActionRepository
 from backend.app.schemas.standard_form import FormDocument
 from backend.app.schemas.standard_form_response import FormResponseDocument
@@ -32,16 +33,18 @@ class ActionService:
         return await self.action_repository.get_action_by_id(action_id=action_id)
 
     async def start_actions_for_submission(self, form: FormDocument,
-                                           response: FormResponseDocument):
+                                           response: FormResponseDocument, workspace: WorkspaceRequestDto):
         form_actions = form.actions
         if form_actions is None:
             return
         submission_actions = form.actions.get(Trigger.on_submit)
-        if submission_actions is None:
+        submission_actions = [action.id for action in submission_actions if action.enabled]
+        if len(submission_actions) == 0:
             return
         actions = await self.action_repository.get_actions_by_ids(action_ids=submission_actions)
         for action in actions:
-            await self.temporal_service.start_action_execution(action=action, form=form, response=response)
+            await self.temporal_service.start_action_execution(action=action, form=form, response=response,
+                                                               workspace=workspace)
 
     async def delete_action_from_workspace(self, action_id: PydanticObjectId):
         await self.action_repository.remove_action_form_all_forms(action_id=action_id)
