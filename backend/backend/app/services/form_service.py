@@ -12,7 +12,7 @@ from fastapi_pagination.ext.beanie import paginate
 
 from backend.app.constants.consents import default_consents
 from backend.app.exceptions import HTTPException
-from backend.app.models.dtos.action_dto import AddActionToFormDto
+from backend.app.models.dtos.action_dto import AddActionToFormDto, UpdateActionInFormDto, ActionUpdateType
 from backend.app.models.dtos.workspace_member_dto import (
     FormImporterDetails,
 )
@@ -425,3 +425,12 @@ class FormService:
             del form.secrets[str(action_id)]
 
         return (await form.save()).actions
+
+    async def update_state_of_action_in_form(self, form_id: PydanticObjectId, update_action_dto: UpdateActionInFormDto):
+        form = await self._form_repo.get_form_document_by_id(form_id=str(form_id))
+        if form.actions and update_action_dto.trigger in form.actions:
+            for action in form.actions[update_action_dto.trigger]:
+                if action.id == update_action_dto.action_id:
+                    action.enabled = True if update_action_dto.update_type == ActionUpdateType.ENABLE else False
+
+        return await form.save()

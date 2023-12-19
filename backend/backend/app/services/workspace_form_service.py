@@ -14,7 +14,7 @@ from starlette.requests import Request
 
 from backend.app.exceptions import HTTPException
 from backend.app.models.dataclasses.user_tokens import UserTokens
-from backend.app.models.dtos.action_dto import AddActionToFormDto
+from backend.app.models.dtos.action_dto import AddActionToFormDto, UpdateActionInFormDto
 from backend.app.models.response_dtos import FormFileResponse
 from backend.app.models.workspace import WorkspaceFormSettings, WorkspaceRequestDto
 from backend.app.repositories.workspace_form_repository import WorkspaceFormRepository
@@ -551,3 +551,9 @@ class WorkspaceFormService:
         await self.check_form_exists_in_workspace(workspace_id=workspace_id, form_id=str(form_id))
         await self.workspace_user_service.check_user_has_access_in_workspace(workspace_id=workspace_id, user=user)
         return await self.form_service.remove_action_from_form(form_id=form_id, action_id=action_id, trigger=trigger)
+
+    async def update_action_status_in_form(self, workspace_id: PydanticObjectId, form_id: PydanticObjectId,
+                                           update_action_dto: UpdateActionInFormDto, user: User):
+        await self.check_form_exists_in_workspace(workspace_id=workspace_id, form_id=str(form_id))
+        await self.workspace_user_service.check_user_has_access_in_workspace(workspace_id=workspace_id, user=user)
+        await self.form_service.update_state_of_action_in_form(form_id=form_id, update_action_dto=update_action_dto)
