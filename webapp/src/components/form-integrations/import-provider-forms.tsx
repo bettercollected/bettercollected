@@ -226,9 +226,9 @@ export default function ImportProviderForms(props: any) {
             <h4 className="h6 !text-black-800 !font-medium text-center">{provider === Provider.google ? 'Select Google Form' : 'Select TypeForm'}</h4>
             <div className={'text-sm font-normal text-black-700'}>
                 You can find a list of forms associated with your account. Select the forms you want to import. If there are no existing forms, you can always
-                <div onClick={createNewForm} className="body4 !not-italic !text-brand-500 hover:!text-brand-600 cursor-pointer">
+                <span onClick={createNewForm} className="body4 pl-1 !not-italic !text-brand-500 hover:!text-brand-600 cursor-pointer">
                     Create bettercollected Form.
-                </div>
+                </span>
             </div>
             <div className="flex flex-col w-full h-full gap-10 items-end mt-4">
                 <Autocomplete
