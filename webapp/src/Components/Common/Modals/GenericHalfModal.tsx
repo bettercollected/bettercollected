@@ -32,7 +32,7 @@ export default function GenericHalfModal({ headerTitle, title, subTitle, type, p
             {children}
             <div className="flex w-full gap-4 mt-6">
                 <AppButton className="flex-1" size={ButtonSize.Medium} onClick={closeModal} variant={ButtonVariant.Secondary}>
-                    {positiveText ? t('BUTTON.CANCEL') : negativeText}
+                    {!negativeText ? t('BUTTON.CANCEL') : negativeText}
                 </AppButton>
                 <AppButton className="flex-1" size={ButtonSize.Medium} isLoading={loading} variant={type === 'danger' ? ButtonVariant.Danger : ButtonVariant.Primary} onClick={positiveAction}>
                     {type === 'danger' && !positiveText ? t('BUTTON.DELETE') : positiveText}
