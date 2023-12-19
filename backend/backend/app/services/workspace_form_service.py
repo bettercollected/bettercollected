@@ -14,13 +14,14 @@ from starlette.requests import Request
 
 from backend.app.exceptions import HTTPException
 from backend.app.models.dataclasses.user_tokens import UserTokens
-from backend.app.models.dtos.action_dto import AddActionToFormDto
+from backend.app.models.dtos.action_dto import AddActionToFormDto, UpdateActionInFormDto
 from backend.app.models.response_dtos import FormFileResponse
-from backend.app.models.workspace import WorkspaceFormSettings
+from backend.app.models.workspace import WorkspaceFormSettings, WorkspaceRequestDto
 from backend.app.repositories.workspace_form_repository import WorkspaceFormRepository
 from backend.app.schedulers.form_schedular import FormSchedular
 from backend.app.schemas.standard_form import FormDocument
 from backend.app.schemas.template import FormTemplateDocument
+from backend.app.schemas.workspace import WorkspaceDocument
 from backend.app.schemas.workspace_form import WorkspaceFormDocument
 from backend.app.services.actions_service import ActionService
 from backend.app.services.aws_service import AWSS3Service
@@ -444,8 +445,12 @@ class WorkspaceFormService:
         )
 
         form = await self.form_service.get_form_document_by_id(form_id=str(form_id))
+
+        # TODO resolve circular deps for workspace service to get workspace details
+        workspace = await WorkspaceDocument.find_one(WorkspaceDocument.id == workspace_id)
         await self.action_service.start_actions_for_submission(form=form,
-                                                               response=form_response)
+                                                               response=form_response,
+                                                               workspace=WorkspaceRequestDto(**workspace.dict()))
         return form_response
 
     async def delete_form_response(
@@ -546,3 +551,9 @@ class WorkspaceFormService:
         await self.check_form_exists_in_workspace(workspace_id=workspace_id, form_id=str(form_id))
         await self.workspace_user_service.check_user_has_access_in_workspace(workspace_id=workspace_id, user=user)
         return await self.form_service.remove_action_from_form(form_id=form_id, action_id=action_id, trigger=trigger)
+
+    async def update_action_status_in_form(self, workspace_id: PydanticObjectId, form_id: PydanticObjectId,
+                                           update_action_dto: UpdateActionInFormDto, user: User):
+        await self.check_form_exists_in_workspace(workspace_id=workspace_id, form_id=str(form_id))
+        await self.workspace_user_service.check_user_has_access_in_workspace(workspace_id=workspace_id, user=user)
+        await self.form_service.update_state_of_action_in_form(form_id=form_id, update_action_dto=update_action_dto)

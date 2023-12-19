@@ -1,3 +1,4 @@
+import enum
 from typing import List
 from typing import Optional
 
@@ -29,3 +30,14 @@ class AddActionToFormDto(BaseModel):
     trigger: Trigger = Trigger.on_submit
     parameters: Optional[List[ParameterValue]]
     secrets: Optional[List[ParameterValue]]
+
+
+class ActionUpdateType(str, enum.Enum):
+    ENABLE = "enable"
+    DISABLE = "disable"
+
+
+class UpdateActionInFormDto(CamelModel):
+    action_id: PydanticObjectId
+    update_type: ActionUpdateType
+    trigger: Trigger = Trigger.on_submit

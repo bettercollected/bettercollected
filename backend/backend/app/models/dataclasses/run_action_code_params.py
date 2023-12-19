@@ -15,4 +15,5 @@ class RunActionCodeParams:
     action: Any
     form: Any
     response: Any
-    user_email: str
+    user_email: Optional[str] = None
+    workspace: Optional[Any] = None

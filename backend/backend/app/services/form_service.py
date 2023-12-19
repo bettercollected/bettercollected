@@ -5,14 +5,14 @@ from typing import List
 from beanie import PydanticObjectId
 from common.configs.crypto import Crypto
 from common.constants import MESSAGE_FORBIDDEN
-from common.models.standard_form import StandardForm, Trigger, ParameterValue
+from common.models.standard_form import StandardForm, Trigger, ParameterValue, ActionState
 from common.models.user import User
 from fastapi_pagination import Page
 from fastapi_pagination.ext.beanie import paginate
 
 from backend.app.constants.consents import default_consents
 from backend.app.exceptions import HTTPException
-from backend.app.models.dtos.action_dto import AddActionToFormDto
+from backend.app.models.dtos.action_dto import AddActionToFormDto, UpdateActionInFormDto, ActionUpdateType
 from backend.app.models.dtos.workspace_member_dto import (
     FormImporterDetails,
 )
@@ -385,14 +385,15 @@ class FormService:
             if form.actions.get(add_action_to_form_params.trigger) is not None:
                 actions.extend(form.actions.get(add_action_to_form_params.trigger))
 
-            actions.append(add_action_to_form_params.action_id)
+            actions.append(ActionState(id=add_action_to_form_params.action_id, enabled=True))
 
-            actions = list(set(actions))
+            actions = actions
 
             form.actions[add_action_to_form_params.trigger] = actions
 
         else:
-            form.actions = {add_action_to_form_params.trigger: [add_action_to_form_params.action_id]}
+            form.actions = {
+                add_action_to_form_params.trigger: [ActionState(id=add_action_to_form_params.action_id, enabled=True)]}
         if add_action_to_form_params.parameters:
             if form.parameters is not None:
 
@@ -414,8 +415,8 @@ class FormService:
     async def remove_action_from_form(self, form_id: PydanticObjectId, action_id: PydanticObjectId, trigger: Trigger):
         form = await self._form_repo.get_form_document_by_id(form_id=str(form_id))
 
-        if form.actions and trigger in form.actions and action_id in form.actions[trigger]:
-            form.actions[trigger].remove(action_id)
+        if form.actions and trigger in form.actions:
+            form.actions[trigger] = [action for action in form.actions[trigger] if action.id != action_id]
 
         if form.parameters and str(action_id) in form.parameters:
             del form.parameters[str(action_id)]
@@ -424,3 +425,12 @@ class FormService:
             del form.secrets[str(action_id)]
 
         return (await form.save()).actions
+
+    async def update_state_of_action_in_form(self, form_id: PydanticObjectId, update_action_dto: UpdateActionInFormDto):
+        form = await self._form_repo.get_form_document_by_id(form_id=str(form_id))
+        if form.actions and update_action_dto.trigger in form.actions:
+            for action in form.actions[update_action_dto.trigger]:
+                if action.id == update_action_dto.action_id:
+                    action.enabled = True if update_action_dto.update_type == ActionUpdateType.ENABLE else False
+
+        return await form.save()
