@@ -341,6 +341,11 @@ class ParameterValue(BaseModel):
     required: Optional[bool] = Field(False)
 
 
+class ActionState(BaseModel):
+    id: PydanticObjectId
+    enabled: Optional[bool] = True
+
+
 class StandardForm(BaseModel):
     form_id: Optional[str]
     type: Optional[str]
@@ -354,7 +359,7 @@ class StandardForm(BaseModel):
     state: Optional[State] = Field(State())
     settings: Optional[StandardFormSettings] = StandardFormSettings()
     published_at: Optional[dt.datetime]
-    actions: Optional[Dict[Trigger, List[PydanticObjectId]]]
+    actions: Optional[Dict[Trigger, List[ActionState]]]
     parameters: Optional[Dict[str, List[ParameterValue]]] = Field()
     secrets: Optional[Dict[str, List[ParameterValue]]] = Field()
 

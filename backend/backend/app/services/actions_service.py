@@ -37,7 +37,8 @@ class ActionService:
         if form_actions is None:
             return
         submission_actions = form.actions.get(Trigger.on_submit)
-        if submission_actions is None:
+        submission_actions = [action.id for action in submission_actions if action.enabled]
+        if len(submission_actions) == 0:
             return
         actions = await self.action_repository.get_actions_by_ids(action_ids=submission_actions)
         for action in actions:
