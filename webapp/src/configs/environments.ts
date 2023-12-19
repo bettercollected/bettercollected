@@ -55,7 +55,12 @@ const environments = {
     ELASTIC_APM_SERVER_URL: publicRuntimeConfig.ELASTIC_APM_SERVER_URL,
     ELASTIC_APM_SERVICE_NAME: publicRuntimeConfig.ELASTIC_APM_SERVICE_NAME,
     ELASTIC_APM_ENVIRONMENT: publicRuntimeConfig.ELASTIC_APM_ENVIRONMENT,
-    APM_ENABLED: publicRuntimeConfig.ELASTIC_APM_SERVER_URL && publicRuntimeConfig.ELASTIC_APM_SERVICE_NAME
+    APM_ENABLED: publicRuntimeConfig.ELASTIC_APM_SERVER_URL && publicRuntimeConfig.ELASTIC_APM_SERVICE_NAME,
+
+
+    //umani
+    UMAMI_WEBSITE_ID: publicRuntimeConfig.UMAMI_WEBSITE_ID,
+    UMAMI_SCRIPT_URL: publicRuntimeConfig.UMAMI_SCRIPT_URL,
 };
 
 export default environments;
