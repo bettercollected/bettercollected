@@ -24,6 +24,7 @@ import {
     usePatchExistingWorkspaceMutation
 } from '@app/store/workspaces/api';
 import {setWorkspace} from '@app/store/workspaces/slice';
+import {ButtonSize} from "@Components/Common/Input/Button/AppButtonProps";
 
 interface onBoardingProps {
     workspace?: WorkspaceDto;
@@ -188,13 +189,13 @@ const OnboardingContainer = ({workspace, createWorkspace}: onBoardingProps) => {
                             <></>
                         )}
                     </div>
-                    <TextFieldHandler formData={formData} workspaceNameSuggestion={workspaceNameSuggestion}
+                    <TextFieldHandler formData={formData}
                                       setFormData={setFormData} errorWorkspaceName={errorWorkspaceName}
                                       setIsErrorOnTextField={setIsErrorOnWorkspaceNameField}/>
                     < AppTextField title="Add Your Organization Description" id="description"
                                    placeholder="Write Description" multiline value={formData.description}
                                    onChange={handleOnchange}/>
-                    <AppButton className="w-full " type="submit"
+                    <AppButton size={ButtonSize.Medium} className="w-full " type="submit"
                                disabled={isErrorOnWorkspaceNameField}>
                         {t(onBoarding.addNowButton)}
                     </AppButton>
