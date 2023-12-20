@@ -9,6 +9,7 @@ class KafkaEventType(str, enum.Enum):
     SLUG_CHANGED = "slug_changed"
     ACCOUNT_DELETED = "account_deleted"
     USER_UPGRADED_TO_PRO = "user_upgraded_to_pro"
+    USER_DOWNGRADED = "user_downgraded"
     CUSTOM_DOMAIN_CHANGED = "custom_domain_changed"
 
 

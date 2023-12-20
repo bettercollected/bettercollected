@@ -13,6 +13,7 @@ from fastapi_pagination.ext.beanie import paginate
 from backend.app.constants.consents import default_consents
 from backend.app.exceptions import HTTPException
 from backend.app.models.dtos.action_dto import AddActionToFormDto, UpdateActionInFormDto, ActionUpdateType
+from backend.app.models.dtos.kafka_event_dto import KafkaEventType
 from backend.app.models.dtos.workspace_member_dto import (
     FormImporterDetails,
 )
@@ -25,6 +26,7 @@ from backend.app.repositories.workspace_form_repository import WorkspaceFormRepo
 from backend.app.repositories.workspace_user_repository import WorkspaceUserRepository
 from backend.app.schemas.form_versions import FormVersionsDocument
 from backend.app.schemas.standard_form import FormDocument
+from backend.app.services.kafka_service import kafka_service
 from backend.app.services.user_tags_service import UserTagsService
 from backend.app.utils import AiohttpClient
 from backend.config import settings
@@ -264,6 +266,7 @@ class FormService:
                     409, "Form with given custom slug already exists in the workspace!!"
                 )
             workspace_form.settings.custom_url = settings.customUrl
+            await kafka_service.send_event(event_type=KafkaEventType.SLUG_CHANGED, user_id=user.id)
         if settings.responseDataOwnerField is not None:
             workspace_form.settings.response_data_owner_field = (
                 settings.responseDataOwnerField

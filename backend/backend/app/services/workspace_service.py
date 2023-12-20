@@ -13,7 +13,7 @@ from loguru import logger
 from pydantic import EmailStr
 
 from backend.app.exceptions import HTTPException
-from backend.app.models.dtos.kafka_event_dto import KafkaEventDto, KafkaEventType
+from backend.app.models.dtos.kafka_event_dto import KafkaEventType
 from backend.app.models.enum.user_tag_enum import UserTagType
 from backend.app.models.enum.workspace_roles import WorkspaceRoles
 from backend.app.models.workspace import (
@@ -205,6 +205,7 @@ class WorkspaceService:
                     await self.user_tags_service.add_user_tag(
                         user_id=user.id, tag=UserTagType.CUSTOM_DOMAIN_UPDATED
                     )
+                    await kafka_service.send_event(event_type=KafkaEventType.CUSTOM_DOMAIN_CHANGED, user_id=user.id)
                 else:
                     raise HTTPException(409)
             except HTTPException as e:
@@ -425,7 +426,7 @@ class WorkspaceService:
 async def create_workspace(user: User):
     workspace = await WorkspaceDocument.find_one({"owner_id": user.id, "default": True})
     if not workspace:
-        await kafka_service.send_event(KafkaEventDto(event_type=KafkaEventType.USER_CREATED, user_id=user.id))
+        await kafka_service.send_event(event_type=KafkaEventType.USER_CREATED, user_id=user.id)
         workspace = WorkspaceDocument(
             title="",
             description="",
