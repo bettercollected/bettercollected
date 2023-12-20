@@ -5,7 +5,7 @@ from pydantic import BaseSettings
 
 class KafkaSettings(BaseSettings):
     server_url: Optional[str] = "localhost:9092"
-    topic: Optional[str] = "bc_events"
+    topic: Optional[str] = "bettercollected_events"
     enabled: Optional[bool] = True
 
     class Config:
