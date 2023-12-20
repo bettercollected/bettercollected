@@ -7,7 +7,7 @@ from fastapi_camelcase import CamelModel
 from backend.app.models.dtos.consent import ConsentCamelModel
 from backend.app.models.dtos.response_group_dto import ResponderGroupDto
 from backend.app.models.dtos.workspace_member_dto import FormImporterDetails
-from backend.app.models.response_dtos import (
+from backend.app.models.dtos.response_dtos import (
     WorkspaceFormSettingsCamelModal,
     StandardFormFieldCamelModel,
 )

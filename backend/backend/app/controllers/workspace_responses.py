@@ -10,7 +10,7 @@ from backend.app.decorators.user_tag_decorators import user_tag_from_workspace
 from backend.app.models.enum.user_tag_enum import UserTagType
 from backend.app.models.filter_queries.form_responses import FormResponseFilterQuery
 from backend.app.models.filter_queries.sort import SortRequest
-from backend.app.models.response_dtos import StandardFormResponseCamelModel
+from backend.app.models.dtos.response_dtos import StandardFormResponseCamelModel
 from backend.app.router import router
 from backend.app.services.form_response_service import FormResponseService
 from backend.app.services.user_service import get_logged_user

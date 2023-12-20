@@ -21,14 +21,14 @@ from backend.app.models.dtos.worksapce_form_dto import GroupsDto
 from backend.app.models.enum.FormVersion import FormVersion
 from backend.app.models.enum.user_tag_enum import UserTagType
 from backend.app.models.filter_queries.sort import SortRequest
-from backend.app.models.minified_form import FormDtoCamelModel
-from backend.app.models.response_dtos import (
+from backend.app.models.dtos.minified_form import FormDtoCamelModel
+from backend.app.models.dtos.response_dtos import (
     WorkspaceFormPatchResponse,
     StandardFormCamelModel,
     StandardFormResponseCamelModel,
     FormFileResponse,
 )
-from backend.app.models.settings_patch import SettingsPatchDto
+from backend.app.models.dtos.settings_patch import SettingsPatchDto
 from backend.app.router import router
 from backend.app.services.form_service import FormService
 from backend.app.services.temporal_service import TemporalService

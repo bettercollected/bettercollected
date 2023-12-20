@@ -19,6 +19,7 @@ from backend.app.handlers import init_logging
 from backend.app.handlers.database import close_db, init_db
 from backend.app.middlewares import DynamicCORSMiddleware, include_middlewares
 from backend.app.router import root_api_router
+from backend.app.services.kafka_service import kafka_service
 from backend.app.utils import AiohttpClient
 from backend.config import settings
 
@@ -32,10 +33,12 @@ async def on_startup():
     """
     logger.info("Execute FastAPI startup event handler.")
 
+    await kafka_service.start_kafka_producer()
     AiohttpClient.get_aiohttp_client()
     # TODO merge with container
     client = container.database_client()
     await init_db(settings.mongo_settings.DB, client)
+
 
 async def on_shutdown():
     """Define FastAPI shutdown event handler.
@@ -50,6 +53,8 @@ async def on_shutdown():
     # TODO merge with container
     client = container.database_client()
     await close_db(client)
+
+    await kafka_service.stop_kafka_producer()
 
     await AiohttpClient.close_aiohttp_client()
     await container.http_client().aclose()
