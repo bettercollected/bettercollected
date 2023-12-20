@@ -30,7 +30,7 @@ from backend.app.services.form_import_service import FormImportService
 from backend.app.services.form_plugin_provider_service import FormPluginProviderService
 from backend.app.services.form_response_service import FormResponseService
 from backend.app.services.form_service import FormService
-from backend.app.services.kafka_service import kafka_service
+from backend.app.services.kafka_service import event_logger_service
 from backend.app.services.plugin_proxy_service import PluginProxyService
 from backend.app.services.responder_groups_service import ResponderGroupsService
 from backend.app.services.temporal_service import TemporalService
@@ -139,7 +139,7 @@ class WorkspaceFormService:
             workspace_id=workspace_id, form_id=standard_form.form_id
         )
 
-        await kafka_service.send_event(event_type=KafkaEventType.FORM_IMPORTED, user_id=user.id)
+        await event_logger_service.send_event(event_type=KafkaEventType.FORM_IMPORTED, user_id=user.id)
 
     async def convert_form(self, *, provider, request, form_import):
         provider_url = await self.form_provider_service.get_provider_url(provider)

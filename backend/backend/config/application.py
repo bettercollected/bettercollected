@@ -11,6 +11,7 @@ from backend.config.apm_settings import APMSettings
 from backend.config.auth_settings import AuthSettings
 from backend.config.aws import AWSSettings
 from backend.config.database import MongoSettings
+from backend.config.events_webhook import EventsWebhook
 from backend.config.https_certificate import HttpsCertificateApiSettings
 from backend.config.kafka_settings import KafkaSettings
 from backend.config.schedular_settings import SchedularSettings
@@ -50,6 +51,7 @@ class Application(BaseSettings):
     temporal_settings: TemporalSettings = TemporalSettings()
     default_workspace_settings: DefaultResourcesWorkspaceSettings = DefaultResourcesWorkspaceSettings()
     kafka_settings: KafkaSettings = KafkaSettings()
+    event_webhook_settings: EventsWebhook = EventsWebhook()
     # All your additional application configuration should go either here or in
     # separate file in this submodule.
 

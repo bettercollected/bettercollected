@@ -26,7 +26,7 @@ from backend.app.schemas.workspace import WorkspaceDocument
 from backend.app.schemas.workspace_user import WorkspaceUserDocument
 from backend.app.services.aws_service import AWSS3Service
 from backend.app.services.form_response_service import FormResponseService
-from backend.app.services.kafka_service import kafka_service
+from backend.app.services.kafka_service import event_logger_service
 from backend.app.services.responder_groups_service import ResponderGroupsService
 from backend.app.services.user_tags_service import UserTagsService
 from backend.app.services.workspace_form_service import WorkspaceFormService
@@ -205,7 +205,7 @@ class WorkspaceService:
                     await self.user_tags_service.add_user_tag(
                         user_id=user.id, tag=UserTagType.CUSTOM_DOMAIN_UPDATED
                     )
-                    await kafka_service.send_event(event_type=KafkaEventType.CUSTOM_DOMAIN_CHANGED, user_id=user.id)
+                    await event_logger_service.send_event(event_type=KafkaEventType.CUSTOM_DOMAIN_CHANGED, user_id=user.id)
                 else:
                     raise HTTPException(409)
             except HTTPException as e:
@@ -426,7 +426,7 @@ class WorkspaceService:
 async def create_workspace(user: User):
     workspace = await WorkspaceDocument.find_one({"owner_id": user.id, "default": True})
     if not workspace:
-        await kafka_service.send_event(event_type=KafkaEventType.USER_CREATED, user_id=user.id)
+        await event_logger_service.send_event(event_type=KafkaEventType.USER_CREATED, user_id=user.id)
         workspace = WorkspaceDocument(
             title="",
             description="",
