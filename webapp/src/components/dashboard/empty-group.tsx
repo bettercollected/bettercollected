@@ -1,24 +1,22 @@
 import React from 'react';
 
-import { useTranslation } from 'next-i18next';
-import { useRouter } from 'next/router';
+import {useTranslation} from 'next-i18next';
 
 import Tooltip from '@Components/Common/DataDisplay/Tooltip';
 import AppButton from '@Components/Common/Input/Button/AppButton';
 
 import UserMore from '@app/components/icons/user-more';
-import { groupConstant } from '@app/constants/locales/group';
-import { toolTipConstant } from '@app/constants/locales/tooltip';
-import { selectIsAdmin } from '@app/store/auth/slice';
-import { useAppSelector } from '@app/store/hooks';
-import { selectWorkspace } from '@app/store/workspaces/slice';
+import {groupConstant} from '@app/constants/locales/group';
+import {toolTipConstant} from '@app/constants/locales/tooltip';
+import {selectIsAdmin} from '@app/store/auth/slice';
+import {useAppSelector} from '@app/store/hooks';
+import {useFullScreenModal} from "@app/components/modal-views/full-screen-modal-context";
 
 
 export default function EmptyGroup({formId}: { formId?: string }) {
     const {t} = useTranslation();
     const isAdmin = useAppSelector(selectIsAdmin);
-    const router = useRouter();
-    const workspace = useAppSelector(selectWorkspace);
+    const {openModal} = useFullScreenModal()
     return (
         <div className="my-[119px] flex flex-col items-center">
             <UserMore/>
@@ -26,12 +24,9 @@ export default function EmptyGroup({formId}: { formId?: string }) {
             <Tooltip title={!isAdmin ? t(toolTipConstant.noAccessToGroup) : ''}>
                 <AppButton
                     disabled={!isAdmin}
-                    onClick={() =>
-                        router.push({
-                            pathname: `/${workspace.workspaceName}/dashboard/responders-groups/create-group`,
-                            query: formId ? {formId} : {}
-                        })
-                    }
+                    onClick={() => {
+                        openModal('CREATE_GROUP');
+                    }}
                 >
                     {t(groupConstant.createNewGroup.default)}
                 </AppButton>
