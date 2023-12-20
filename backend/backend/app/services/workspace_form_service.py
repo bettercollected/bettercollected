@@ -15,7 +15,7 @@ from starlette.requests import Request
 from backend.app.exceptions import HTTPException
 from backend.app.models.dataclasses.user_tokens import UserTokens
 from backend.app.models.dtos.action_dto import AddActionToFormDto, UpdateActionInFormDto
-from backend.app.models.response_dtos import FormFileResponse
+from backend.app.models.dtos.response_dtos import FormFileResponse
 from backend.app.models.workspace import WorkspaceFormSettings, WorkspaceRequestDto
 from backend.app.repositories.workspace_form_repository import WorkspaceFormRepository
 from backend.app.schedulers.form_schedular import FormSchedular

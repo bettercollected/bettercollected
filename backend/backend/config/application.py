@@ -3,18 +3,20 @@
 import os
 from pathlib import Path
 
+from dotenv import load_dotenv
+from pydantic import BaseSettings
+
 from backend.config.api_settings import ApiSettings
 from backend.config.apm_settings import APMSettings
 from backend.config.auth_settings import AuthSettings
 from backend.config.aws import AWSSettings
 from backend.config.database import MongoSettings
 from backend.config.https_certificate import HttpsCertificateApiSettings
+from backend.config.kafka_settings import KafkaSettings
 from backend.config.schedular_settings import SchedularSettings
 from backend.config.sentry_setting import SentrySettings
 from backend.config.template_settings import DefaultResourcesWorkspaceSettings
 from backend.config.temporal_settings import TemporalSettings
-from dotenv import load_dotenv
-from pydantic import BaseSettings
 
 default_dot_env_path = (
     Path(os.path.abspath(os.path.dirname(__file__)))
@@ -47,7 +49,7 @@ class Application(BaseSettings):
     sentry_settings: SentrySettings = SentrySettings()
     temporal_settings: TemporalSettings = TemporalSettings()
     default_workspace_settings: DefaultResourcesWorkspaceSettings = DefaultResourcesWorkspaceSettings()
-
+    kafka_settings: KafkaSettings = KafkaSettings()
     # All your additional application configuration should go either here or in
     # separate file in this submodule.
 

@@ -18,8 +18,8 @@ from backend.app.models.dtos.workspace_member_dto import (
 )
 from backend.app.models.enum.user_tag_enum import UserTagType
 from backend.app.models.filter_queries.sort import SortRequest
-from backend.app.models.minified_form import FormDtoCamelModel
-from backend.app.models.settings_patch import SettingsPatchDto
+from backend.app.models.dtos.minified_form import FormDtoCamelModel
+from backend.app.models.dtos.settings_patch import SettingsPatchDto
 from backend.app.repositories.form_repository import FormRepository
 from backend.app.repositories.workspace_form_repository import WorkspaceFormRepository
 from backend.app.repositories.workspace_user_repository import WorkspaceUserRepository
