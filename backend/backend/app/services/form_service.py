@@ -26,7 +26,7 @@ from backend.app.repositories.workspace_form_repository import WorkspaceFormRepo
 from backend.app.repositories.workspace_user_repository import WorkspaceUserRepository
 from backend.app.schemas.form_versions import FormVersionsDocument
 from backend.app.schemas.standard_form import FormDocument
-from backend.app.services.kafka_service import kafka_service
+from backend.app.services.kafka_service import event_logger_service
 from backend.app.services.user_tags_service import UserTagsService
 from backend.app.utils import AiohttpClient
 from backend.config import settings
@@ -266,7 +266,7 @@ class FormService:
                     409, "Form with given custom slug already exists in the workspace!!"
                 )
             workspace_form.settings.custom_url = settings.customUrl
-            await kafka_service.send_event(event_type=KafkaEventType.SLUG_CHANGED, user_id=user.id)
+            await event_logger_service.send_event(event_type=KafkaEventType.SLUG_CHANGED, user_id=user.id)
         if settings.responseDataOwnerField is not None:
             workspace_form.settings.response_data_owner_field = (
                 settings.responseDataOwnerField

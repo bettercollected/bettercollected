@@ -1,5 +1,6 @@
 import json
 
+import httpx
 import loguru
 from aiokafka import AIOKafkaProducer
 from aiokafka.errors import KafkaConnectionError
@@ -44,13 +45,39 @@ class KafkaService:
             loguru.logger.info("Could not connect to Kafka service")
 
     async def send_event(self, event_type: KafkaEventType, user_id: str):
-        if not settings.kafka_settings.enabled:
-            return
         event_message = KafkaEventDto(event_type=event_type, user_id=user_id)
-        try:
-            await self.producer.send_and_wait(settings.kafka_settings.topic, event_message)
-        except Exception as e:
-            loguru.logger.warning("Could not send event to kafka, Event Message: " + str(event_message.dict()))
+        if settings.kafka_settings.enabled:
+            try:
+                await self.producer.send_and_wait(settings.kafka_settings.topic, event_message)
+            except Exception as e:
+                loguru.logger.warning("Could not send event to kafka, Event Message: " + str(event_message.dict()))
+
+        if settings.event_webhook_settings.enabled:
+            try:
+                await httpx.AsyncClient().post(
+                    settings.event_webhook_settings.url,
+                    json={
+                        "embeds": [
+                            {
+                                "fields": [
+                                    {
+                                        "name": "Event Type",
+                                        "value": event_type,
+                                        "inline": True
+                                    },
+                                    {
+                                        "name": "User Id",
+                                        "value": user_id,
+                                        "inline": True
+                                    }
+                                ]
+                            }
+
+                        ]
+                    }
+                )
+            except Exception as e:
+                loguru.logger.warning("Could not send event to Webhook, Event Message: " + str(event_message.dict()))
 
 
-kafka_service = KafkaService()
+event_logger_service = KafkaService()

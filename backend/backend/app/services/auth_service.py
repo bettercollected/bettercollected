@@ -17,7 +17,7 @@ from backend.app.models.dtos.kafka_event_dto import KafkaEventType
 from backend.app.models.enum.user_tag_enum import UserTagType
 from backend.app.services import workspace_service as workspaces_service
 from backend.app.services.form_plugin_provider_service import FormPluginProviderService
-from backend.app.services.kafka_service import kafka_service
+from backend.app.services.kafka_service import event_logger_service
 from backend.app.services.plugin_proxy_service import PluginProxyService
 from backend.app.services.temporal_service import TemporalService
 from backend.app.services.user_tags_service import UserTagsService
@@ -214,7 +214,7 @@ class AuthService:
     async def add_workflow_to_delete_user(
         self, access_token: str, refresh_token: str, user: User
     ):
-        await kafka_service.send_event(event_type=KafkaEventType.ACCOUNT_DELETED)
+        await event_logger_service.send_event(event_type=KafkaEventType.ACCOUNT_DELETED)
         return await self.temporal_service.start_user_deletion_workflow(
             UserTokens(access_token=access_token, refresh_token=refresh_token),
             user_id=user.id,
