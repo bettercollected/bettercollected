@@ -8,7 +8,7 @@ from common.constants import MESSAGE_FORBIDDEN
 from common.models.standard_form import StandardForm
 
 from backend.app.container import container
-from backend.app.models.response_dtos import StandardFormCamelModel
+from backend.app.models.dtos.response_dtos import StandardFormCamelModel
 from backend.app.schemas.responder_group import ResponderGroupFormDocument
 from backend.app.schemas.standard_form import FormDocument
 from backend.app.schemas.standard_form_response import (

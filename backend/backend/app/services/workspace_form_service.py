@@ -15,7 +15,8 @@ from starlette.requests import Request
 from backend.app.exceptions import HTTPException
 from backend.app.models.dataclasses.user_tokens import UserTokens
 from backend.app.models.dtos.action_dto import AddActionToFormDto, UpdateActionInFormDto
-from backend.app.models.response_dtos import FormFileResponse
+from backend.app.models.dtos.kafka_event_dto import KafkaEventType
+from backend.app.models.dtos.response_dtos import FormFileResponse
 from backend.app.models.workspace import WorkspaceFormSettings, WorkspaceRequestDto
 from backend.app.repositories.workspace_form_repository import WorkspaceFormRepository
 from backend.app.schedulers.form_schedular import FormSchedular
@@ -29,6 +30,7 @@ from backend.app.services.form_import_service import FormImportService
 from backend.app.services.form_plugin_provider_service import FormPluginProviderService
 from backend.app.services.form_response_service import FormResponseService
 from backend.app.services.form_service import FormService
+from backend.app.services.kafka_service import event_logger_service
 from backend.app.services.plugin_proxy_service import PluginProxyService
 from backend.app.services.responder_groups_service import ResponderGroupsService
 from backend.app.services.temporal_service import TemporalService
@@ -136,6 +138,8 @@ class WorkspaceFormService:
         await self.temporal_service.add_scheduled_job_for_importing_form(
             workspace_id=workspace_id, form_id=standard_form.form_id
         )
+
+        await event_logger_service.send_event(event_type=KafkaEventType.FORM_IMPORTED, user_id=user.id)
 
     async def convert_form(self, *, provider, request, form_import):
         provider_url = await self.form_provider_service.get_provider_url(provider)
