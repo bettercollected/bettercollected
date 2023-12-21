@@ -13,7 +13,7 @@ from backend.app.constants.consents import default_consent_responses
 from backend.app.exceptions import HTTPException
 from backend.app.models.filter_queries.form_responses import FormResponseFilterQuery
 from backend.app.models.filter_queries.sort import SortRequest
-from backend.app.models.response_dtos import (
+from backend.app.models.dtos.response_dtos import (
     StandardFormCamelModel,
     StandardFormResponseCamelModel,
 )
