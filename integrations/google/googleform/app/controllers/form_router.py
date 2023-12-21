@@ -2,6 +2,7 @@ import asyncio
 from http import HTTPStatus
 from typing import Any, Dict, Optional
 
+from aiohttp import ClientResponse
 from classy_fastapi import Routable, get, post
 from fastapi import Depends
 
@@ -10,13 +11,14 @@ from googleform.app.containers import Container
 from googleform.app.schemas.oauth_credential import Oauth2CredentialDocument
 from googleform.app.services.transformer import GoogleFormTransformerService
 from googleform.app.services.user_service import get_user_credential
+from googleform.app.utils import AiohttpClient
 
 
 class GoogleFormRouter(Routable):
     def __init__(
-        self,
-        *args,
-        **kwargs,
+            self,
+            *args,
+            **kwargs,
     ):
         """This class defines the routes for interacting with the Google forms."""
         # Injecting dependencies
@@ -28,7 +30,7 @@ class GoogleFormRouter(Routable):
 
     @get("", status_code=HTTPStatus.OK)
     async def _get_all_google_forms(
-        self, credential: Oauth2CredentialDocument = Depends(get_user_credential)
+            self, credential: Oauth2CredentialDocument = Depends(get_user_credential)
     ):
         credential = await self.oauth_credential_service.verify_oauth_token(
             credential.email
@@ -45,9 +47,9 @@ class GoogleFormRouter(Routable):
 
     @get("/{form_id}", status_code=HTTPStatus.OK)
     async def _get_single_google_form(
-        self,
-        form_id: str,
-        credential: Oauth2CredentialDocument = Depends(get_user_credential),
+            self,
+            form_id: str,
+            credential: Oauth2CredentialDocument = Depends(get_user_credential),
     ):
         credential = await self.oauth_credential_service.verify_oauth_token(
             credential.email
@@ -64,10 +66,10 @@ class GoogleFormRouter(Routable):
 
     @post("/convert/standard_form")
     async def _convert_form(
-        self,
-        form_import: Dict[str, Any],
-        convert_responses: Optional[bool] = True,
-        credential: Oauth2CredentialDocument = Depends(get_user_credential),
+            self,
+            form_import: Dict[str, Any],
+            convert_responses: Optional[bool] = True,
+            credential: Oauth2CredentialDocument = Depends(get_user_credential),
     ):
         credential = await self.oauth_credential_service.verify_oauth_token(
             credential.email
@@ -85,3 +87,12 @@ class GoogleFormRouter(Routable):
             standard_responses = transformer.transform_form_responses(form_responses)
             return FormImportResponse(form=standard_form, responses=standard_responses)
         return standard_form
+
+    @get("/oauth/verify")
+    async def _get_oauth_credentials(self, credential: Oauth2CredentialDocument = Depends(get_user_credential)):
+        credential = await self.oauth_credential_service.verify_oauth_token(
+            credential.email
+        )
+        url = f"https://www.googleapis.com/oauth2/v3/tokeninfo?access_token={credential.credentials.token}"
+        verification_response: ClientResponse = await AiohttpClient.get(url)
+        return {'response': await verification_response.json(), 'status_code': verification_response.status}
