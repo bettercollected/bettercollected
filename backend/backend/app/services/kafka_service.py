@@ -57,12 +57,18 @@ class KafkaService:
                 await httpx.AsyncClient().post(
                     settings.event_webhook_settings.url,
                     json={
+                        "content": get_enthusiastic_text(event_type=event_type),
                         "embeds": [
                             {
                                 "fields": [
                                     {
                                         "name": "Event Type",
                                         "value": event_type,
+                                        "inline": True
+                                    },
+                                    {
+                                        "name": "",
+                                        "value": "",
                                         "inline": True
                                     },
                                     {
@@ -78,6 +84,23 @@ class KafkaService:
                 )
             except Exception as e:
                 loguru.logger.warning("Could not send event to Webhook, Event Message: " + str(event_message.dict()))
+
+
+def get_enthusiastic_text(event_type):
+    enthusiastic_texts = {
+        KafkaEventType.USER_CREATED: "Awesome! A new user has joined us!",
+        KafkaEventType.FORM_IMPORTED: "Exciting news! A form has been imported.",
+        KafkaEventType.SLUG_CHANGED: "Wow! The slug of a form has been changed.",
+        KafkaEventType.ACCOUNT_DELETED: "Oh no! An account has been deleted.",
+        KafkaEventType.USER_UPGRADED_TO_PRO: "Fantastic! A user has upgraded to Pro.",
+        KafkaEventType.USER_DOWNGRADED: "Oops! A user has been downgraded.",
+        KafkaEventType.CUSTOM_DOMAIN_CHANGED: "Amazing! The custom domain has been changed."
+    }
+
+    if event_type in enthusiastic_texts:
+        return enthusiastic_texts[event_type]
+    else:
+        return "Unknown event type. Enthusiasm can't contain the unknown!"
 
 
 event_logger_service = KafkaService()
