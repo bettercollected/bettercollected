@@ -32,10 +32,11 @@ import {
     useCreateFormMutation,
     useImportFormMutation,
     useLazyGetMinifiedFormsQuery,
-    useLazyGetSingleFormFromProviderQuery
+    useLazyGetSingleFormFromProviderQuery, useLazyVerifyFormTokenQuery, useVerifyFormTokenQuery
 } from '@app/store/workspaces/api';
 import AppTextField from "@Components/Common/Input/AppTextField";
 import {setForm} from "@app/store/forms/slice";
+import Loader from "@app/components/ui/loader";
 
 interface IIntegrations {
     provider: string;
@@ -68,6 +69,8 @@ export default function ImportProviderForms(props: any) {
 
     const [importForm, importFormResult] = useImportFormMutation();
 
+    const {data, isLoading, error: verificationError} = useVerifyFormTokenQuery({provider: "google"})
+
     const [formId, setFormId] = useState("")
     const [error, setError] = useState(false)
 
@@ -94,13 +97,21 @@ export default function ImportProviderForms(props: any) {
         }
     }, [importFormLink])
 
+    useEffect(() => {
+        if (verificationError || data?.status_code === 400) {
+            setShowError(true)
+        }
+        if (data?.status_code === 200) {
+            router.push(`/${workspace?.workspaceName}/dashboard/forms/import`)
+        }
+    }, [verificationError, data]);
+
     const cleanup = () => {
         setProvider(null);
         setResponseDataOwner(null);
     };
 
     const handleImportForm = async () => {
-
         const singleForm = await singleFormFromProviderTrigger({provider: "google", formId: formId})
         const form: any = {...singleForm?.data, provider};
         delete form['clientFormItems'];
@@ -171,7 +182,7 @@ export default function ImportProviderForms(props: any) {
                 Paste the edit page link of your google form. If there
                 are no existing forms, you can always
                 <span onClick={createNewForm}
-                     className="pl-1 body4 !not-italic !text-brand-500 hover:!text-brand-600 cursor-pointer">
+                      className="pl-1 body4 !not-italic !text-brand-500 hover:!text-brand-600 cursor-pointer">
                     Create bettercollected Form.
                 </span>
             </div>
@@ -192,22 +203,29 @@ export default function ImportProviderForms(props: any) {
         </>
     );
 
+
     if (showErrorView) return <ImportErrorView provider={provider}/>;
 
+    if (isLoading) return <Loader variant={'blink'}/>
+
     return (
-        <div
-            className="relative z-50 mx-auto max-w-full min-w-full md:max-w-[600px] md:min-w-[600px] lg:max-w-[600px] lg:min-w-[600px]" {...props}>
-            <div
-                className="rounded-2xl relative m-auto max-w-[600px] md:min-w-[500px] items-start justify-between bg-white">
-                <div className={'flex justify-between p-4'}>
-                    <h1 className={'text-sm font-normal text-black-700'}>Import Form</h1>
-                    <Close onClick={() => closeModal()} strokeWidth={2}/>
-                </div>
-                <Divider/>
-                <div className="relative flex flex-col items-start gap-2 justify-between p-4 md:p-10 md:pt-6">
-                    {stepOneContent}
-                </div>
-            </div>
-        </div>
+        // <div
+        //     className="relative z-50 mx-auto max-w-full min-w-full md:max-w-[600px] md:min-w-[600px] lg:max-w-[600px] lg:min-w-[600px]" {...props}>
+        //     <div
+        //         className="rounded-2xl relative m-auto max-w-[600px] md:min-w-[500px] items-start justify-between bg-white">
+        //         <div className={'flex justify-between p-4'}>
+        //             <h1 className={'text-sm font-normal text-black-700'}>Import Form</h1>
+        //             <Close onClick={() => closeModal()} strokeWidth={2}/>
+        //         </div>
+        //         <Divider/>
+        //         <div className="relative flex flex-col items-start gap-2 justify-between p-4 md:p-10 md:pt-6">
+        //             {/*{!isLoading && stepOneContent}*/}
+        //             {
+        //                 isLoading && <Loader variant="blink"/>
+        //             }
+        //         </div>
+        //     </div>
+        // </div>
+        <></>
     );
 }
