@@ -27,8 +27,9 @@ def value_serializer(model_instance):
 class KafkaService:
 
     def __init__(self):
-        self.producer: AIOKafkaProducer = AIOKafkaProducer(bootstrap_servers=settings.kafka_settings.server_url,
-                                                           value_serializer=value_serializer)
+        if settings.kafka_settings.enabled:
+            self.producer: AIOKafkaProducer = AIOKafkaProducer(bootstrap_servers=settings.kafka_settings.server_url,
+                                                               value_serializer=value_serializer)
 
     async def start_kafka_producer(self):
         try:
