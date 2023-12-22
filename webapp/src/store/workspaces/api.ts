@@ -81,7 +81,7 @@ export const workspacesApi = createApi({
                 method: 'GET',
                 refetchOnMountOrArgChange: true,
                 refetchOnReconnect: true,
-                refetchOnFocus: true
+                // refetchOnFocus: true
             }),
             transformResponse(baseQueryReturnValue: any, meta, arg) {
                 const provider = arg?.provider;
