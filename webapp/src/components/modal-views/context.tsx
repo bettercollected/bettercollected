@@ -1,6 +1,8 @@
-import { atom, useAtom } from 'jotai';
+import { isOpen } from '@typeform/embed/types/utils';
+import { PrimitiveAtom, atom, useAtom } from 'jotai';
 
 export type MODAL_VIEW =
+    | ''
     | 'UPDATE_TERMS_OF_SERVICE_AND_PRIVACY_POLICY'
     | 'REQUEST_FOR_DELETION_VIEW'
     | 'SEARCH_VIEW'
@@ -40,9 +42,14 @@ export type MODAL_VIEW =
     | 'REOPEN_FORM_CONFIRMATION_MODAL'
     | 'DELETE_TEMPLATE_CONFIRMATION_MODAL_VIEW'
     | 'IMPORT_TEMPLATE_MODAL_VIEW'
-    | 'ADD_ACTION_TO_FORM';
+    | 'ADD_ACTION_TO_FORM'
+    | 'OAUTH_VERIFICATION_MODAL';
 
-const modalAtom = atom({ isOpen: false, view: '', modalProps: null });
+const modalAtom = atom<{ isOpen: boolean; view: MODAL_VIEW; modalProps: any }>({
+    isOpen: false,
+    view: '',
+    modalProps: null
+});
 
 export function useModal() {
     const [state, setState] = useAtom(modalAtom);

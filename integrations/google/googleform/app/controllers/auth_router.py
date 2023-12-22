@@ -2,10 +2,10 @@
 import logging
 
 from classy_fastapi import Routable, get, delete
+from common.models.user import UserInfo
 from pydantic import EmailStr
 from starlette.requests import Request
 
-from common.models.user import UserInfo
 from googleform.app.containers import Container
 
 log = logging.getLogger(__name__)
@@ -28,7 +28,7 @@ class AuthRoutes(Routable):
 
     @delete("/oauth/credentials")
     async def _delete_oauth_credentials(
-        self, email: EmailStr = None, user_id: str = None
+            self, email: EmailStr = None, user_id: str = None
     ):
         await self.oauth_google_service.delete_oauth_credentials_for_user(
             email=email, user_id=user_id

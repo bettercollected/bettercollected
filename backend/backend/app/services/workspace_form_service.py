@@ -16,7 +16,7 @@ from backend.app.exceptions import HTTPException
 from backend.app.models.dataclasses.user_tokens import UserTokens
 from backend.app.models.dtos.action_dto import AddActionToFormDto, UpdateActionInFormDto
 from backend.app.models.dtos.kafka_event_dto import KafkaEventType
-from backend.app.models.dtos.response_dtos import FormFileResponse
+from backend.app.models.dtos.response_dtos import FormFileResponse, StandardFormCamelModel
 from backend.app.models.workspace import WorkspaceFormSettings, WorkspaceRequestDto
 from backend.app.repositories.workspace_form_repository import WorkspaceFormRepository
 from backend.app.schedulers.form_schedular import FormSchedular
@@ -121,7 +121,7 @@ class WorkspaceFormService:
             if standard_form.settings and standard_form.settings.embed_url
             else ""
         )
-        await self.workspace_form_repository.save_workspace_form(
+        workspace_form = await self.workspace_form_repository.save_workspace_form(
             workspace_id=workspace_id,
             form_id=standard_form.form_id,
             user_id=user.id,
@@ -140,6 +140,9 @@ class WorkspaceFormService:
         )
 
         await event_logger_service.send_event(event_type=KafkaEventType.FORM_IMPORTED, user_id=user.id)
+
+        response_dict = {**standard_form.dict(), "settings": workspace_form.settings}
+        return StandardFormCamelModel(**response_dict)
 
     async def convert_form(self, *, provider, request, form_import):
         provider_url = await self.form_provider_service.get_provider_url(provider)
