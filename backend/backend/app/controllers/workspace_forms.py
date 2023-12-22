@@ -341,10 +341,9 @@ class WorkspaceFormsRouter(Routable):
         request: Request,
         user: User = Depends(get_logged_user),
     ):
-        await self.workspace_form_service.import_form_to_workspace(
+        return await self.workspace_form_service.import_form_to_workspace(
             workspace_id, provider, form, user, request
         )
-        return {"message": "Import successful."}
 
     @delete(
         "/{form_id}",
