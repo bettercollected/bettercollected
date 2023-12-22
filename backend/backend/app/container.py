@@ -36,6 +36,7 @@ from backend.app.services.form_import_service import FormImportService
 from backend.app.services.form_plugin_provider_service import FormPluginProviderService
 from backend.app.services.form_response_service import FormResponseService
 from backend.app.services.form_service import FormService
+from backend.app.services.kafka_service import KafkaService
 from backend.app.services.plugin_proxy_service import PluginProxyService
 from backend.app.services.responder_groups_service import ResponderGroupsService
 from backend.app.services.stripe_service import StripeService
@@ -90,8 +91,6 @@ class AppContainer(containers.DeclarativeContainer):
     action_repository = providers.Singleton(
         ActionRepository, crypto=crypto
     )
-
-    # Services
 
     temporal_service = providers.Singleton(
         TemporalService,
@@ -267,8 +266,6 @@ class AppContainer(containers.DeclarativeContainer):
         aws_service=aws_service,
         temporal_service=temporal_service
     )
-
-
 
 
 container = AppContainer()

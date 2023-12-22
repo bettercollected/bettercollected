@@ -48,6 +48,7 @@ mongomock-motor = "^0.0.20"
 elastic-apm = "^6.17.0"
 schemathesis = "^3.19.6"
 common = {path = "../common", develop = true}
+aiokafka = "^0.10.0"
 
 [tool.poetry.scripts]
 backend = 'backend.cli:cli'

@@ -48,13 +48,18 @@
         <tr style="margin-top: 10px">
             <td>
                 <div style="display: flex; flex-direction: column">
-                    <div style="font-size: 16px; font-weight: bolder">
-                        {{ field["value"] }}
-                    </div>
-                    <div style="border: solid; border: 2px; border-color: lightgray; border-radius: 8px; max-width: 500px; width: 100%; font-weight: normal">
-                        {{ field["answer"] }}
-                    </div>
+                    {% if  field["value"] %}
+                        <div style="font-size: 16px; font-weight: bolder">
+                            {{ field["value"] }}
+                        </div>
+                    {% endif %}
+                    {% if field["answer"] %}
+                        <div style="border: solid; border: 2px; border-color: black; border-radius: 8px; max-width: 500px; width: 100%; font-weight: normal">
+                            {{ field["answer"] }}
+                        </div>
+                    {% endif %}
                 </div>
+
             </td>
         </tr>
     {% endfor %}
