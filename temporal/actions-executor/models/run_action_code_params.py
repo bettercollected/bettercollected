@@ -7,3 +7,4 @@ class RunActionCodeParams:
     form: str
     response: str
     user_email: str
+    workspace: str

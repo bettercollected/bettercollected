@@ -8,7 +8,7 @@ from gunicorn.config import User
 
 from backend.app.container import container
 from backend.app.models.dataclasses.user_tokens import UserTokens
-from backend.app.models.minified_form import FormDtoCamelModel
+from backend.app.models.dtos.minified_form import FormDtoCamelModel
 from backend.app.models.template import (
     StandardFormTemplateCamelModel,
     StandardFormTemplateResponse,

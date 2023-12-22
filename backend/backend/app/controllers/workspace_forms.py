@@ -16,19 +16,19 @@ from starlette.requests import Request
 from backend.app.container import container
 from backend.app.decorators.user_tag_decorators import user_tag
 from backend.app.exceptions import HTTPException
-from backend.app.models.dtos.action_dto import AddActionToFormDto
+from backend.app.models.dtos.action_dto import AddActionToFormDto, UpdateActionInFormDto
 from backend.app.models.dtos.worksapce_form_dto import GroupsDto
 from backend.app.models.enum.FormVersion import FormVersion
 from backend.app.models.enum.user_tag_enum import UserTagType
 from backend.app.models.filter_queries.sort import SortRequest
-from backend.app.models.minified_form import FormDtoCamelModel
-from backend.app.models.response_dtos import (
+from backend.app.models.dtos.minified_form import FormDtoCamelModel
+from backend.app.models.dtos.response_dtos import (
     WorkspaceFormPatchResponse,
     StandardFormCamelModel,
     StandardFormResponseCamelModel,
     FormFileResponse,
 )
-from backend.app.models.settings_patch import SettingsPatchDto
+from backend.app.models.dtos.settings_patch import SettingsPatchDto
 from backend.app.router import router
 from backend.app.services.form_service import FormService
 from backend.app.services.temporal_service import TemporalService
@@ -361,13 +361,21 @@ class WorkspaceFormsRouter(Routable):
             workspace_id=workspace_id, form_id=form_id, user=user
         )
 
-    @patch("/{form_id}/actions")
+    @post("/{form_id}/actions")
     async def _add_action_to_form(self, workspace_id: PydanticObjectId, form_id: PydanticObjectId,
                                   add_action_to_form_params: AddActionToFormDto,
                                   user: User = Depends(get_logged_user)):
         return await self.workspace_form_service.add_action_to_form(workspace_id=workspace_id, form_id=form_id,
                                                                     add_action_to_form_params=add_action_to_form_params,
                                                                     user=user)
+
+    @patch("/{form_id}/actions")
+    async def update_form_actions(self, workspace_id: PydanticObjectId, form_id: PydanticObjectId,
+                                  update_action_dto: UpdateActionInFormDto,
+                                  user: User = Depends(get_logged_user)):
+        await self.workspace_form_service.update_action_status_in_form(workspace_id=workspace_id, form_id=form_id,
+                                                                       update_action_dto=update_action_dto, user=user)
+        return "Updated"
 
     @delete("/{form_id}/actions/{action_id}")
     async def _remove_action_from_form(self, workspace_id: PydanticObjectId, action_id: PydanticObjectId,

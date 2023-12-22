@@ -1,12 +1,13 @@
+from common.services.http_client import HttpClient
+from common.services.jwt_service import JwtService
 from fastapi import Request
 
-from backend.app.exceptions import HTTPException
+from backend.app.models.dtos.kafka_event_dto import KafkaEventType
 from backend.app.services.form_plugin_provider_service import FormPluginProviderService
+from backend.app.services.kafka_service import event_logger_service
 from backend.app.services.plugin_proxy_service import PluginProxyService
 from backend.app.services.workspace_service import WorkspaceService
 from backend.config import settings
-from common.services.http_client import HttpClient
-from common.services.jwt_service import JwtService
 
 
 class StripeService:
@@ -56,10 +57,12 @@ class StripeService:
             downgrade = json_response.get("downgrade")
             upgrade = json_response.get("upgrade")
             if downgrade:
+                event_logger_service.send_event(event_type=KafkaEventType.USER_DOWNGRADED, user_id=user.get("_id"))
                 await self.workspace_service.downgrade_user_workspace(
                     user_id=user.get("_id")
                 )
             if upgrade:
+                event_logger_service.send_event(event_type=KafkaEventType.USER_UPGRADED_TO_PRO, user_id=user.get("_id"))
                 await self.workspace_service.upgrade_user_workspace(
                     user_id=user.get("_id")
                 )
