@@ -123,6 +123,7 @@ const ImportForm = () => {
                 placeholder={'Paste URL'}
                 className={'w-full'}
                 icon={<LinkIcon />}
+                disabled={singleFormFromProviderResult?.isLoading || importFormResult?.isLoading}
                 value={importFormLink}
                 onChange={(event) => {
                     setImportFormLink(event.target.value);

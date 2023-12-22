@@ -14,7 +14,7 @@ export default function ChangeSlugComponent() {
     const workspace = useAppSelector(selectWorkspace);
     const router = useRouter();
     return (
-        <div className="md:w-[500px] mx-5">
+        <div className="md:w-[500px] max-w-full px-5">
             <div className="flex gap-4 items-center justify-center mb-[72px]">
                 <CheckedCircle />
                 <span className="h3-new text-black-900">Form Imported Successfully!</span>
