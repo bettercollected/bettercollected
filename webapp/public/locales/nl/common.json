@@ -522,7 +522,7 @@
   "PINNED_FORMS": "Vastgemaakte formulieren",
   "PUBLISH_FORM": " Publiceren.",
   "PLACEHOLDER": {
-    "ENTER_CUSTOM_DOMAIN": "Voer uw aangepaste domein in",
+    "ENTER_CUSTOM_DOMAIN": "Example: www.example.com",
     "ENTER_WORKSPACE_HANDLE": "Voer de werkruimtehandle in",
     "DESCRIPTION": "Voeg uw beschrijving toe",
     "PRIVACY_POLICY_LINK": "Privacybeleid Link",
@@ -792,7 +792,9 @@
       "CUSTOM_DOMAIN": {
         "SLOGAN": "Personaliseer uw URL's met een aangepast domein",
         "TITLE": "Aangepaste domeinnaam",
-        "DESCRIPTION": "Pro-accounts bieden aangepaste domeinondersteuning, gratis accounts niet. Dit betekent dat Pro-gebruikers hun eigen domeinnaam kunnen gebruiken voor hun Workspace, in plaats van het 'BetterCollected'-domein te gebruiken. Dit kan een geweldige manier zijn om uw bedrijf er professioneler uit laten zien en uw naamsbekendheid verbeteren."
+        "DESCRIPTION": "Pro-accounts bieden aangepaste domeinondersteuning, gratis accounts niet. Dit betekent dat Pro-gebruikers hun eigen domeinnaam kunnen gebruiken voor hun Workspace, in plaats van het 'BetterCollected'-domein te gebruiken. Dit kan een geweldige manier zijn om uw bedrijf er professioneler uit laten zien en uw naamsbekendheid verbeteren.",
+        "NOTE": "Opmerking: Zorg ervoor dat je je aangepaste domein naar custom.bettercollected.com verwijst.",
+        "TEXT_FIELD_TITLE": "Voer het domein in dat je wilt verbinden"
       },
       "UNLIMITED_FORMS": {
         "SLOGAN": "Importeer onbeperkte formulieren met PRO Plan",
@@ -860,5 +862,7 @@
   "LOGO": {
     "UPDATE": "Bijwerken nieuw logo",
     "REMOVE": "Logo verwijderen"
-  }
+  },
+  "HAVE_NOT_IMPORTED_OR_CREATED": "Je hebt geen formulier geïmporteerd of aangemaakt.",
+  "CREATE_OR_IMPORT": "Maak of importeer je eerste privacyvriendelijke formulier."
 }
