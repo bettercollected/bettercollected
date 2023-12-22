@@ -15,7 +15,7 @@ from starlette.requests import Request
 from backend.app.exceptions import HTTPException
 from backend.app.models.dataclasses.user_tokens import UserTokens
 from backend.app.models.dtos.action_dto import AddActionToFormDto
-from backend.app.models.response_dtos import FormFileResponse
+from backend.app.models.response_dtos import FormFileResponse, StandardFormCamelModel
 from backend.app.models.workspace import WorkspaceFormSettings
 from backend.app.repositories.workspace_form_repository import WorkspaceFormRepository
 from backend.app.schedulers.form_schedular import FormSchedular
@@ -136,7 +136,8 @@ class WorkspaceFormService:
             workspace_id=workspace_id, form_id=standard_form.form_id
         )
 
-        return {**standard_form.dict(), "settings": workspace_form.settings}
+        response_dict = {**standard_form.dict(), "settings": workspace_form.settings}
+        return StandardFormCamelModel(**response_dict)
 
     async def convert_form(self, *, provider, request, form_import):
         provider_url = await self.form_provider_service.get_provider_url(provider)
