@@ -800,7 +800,9 @@
       "CUSTOM_DOMAIN": {
         "SLOGAN": "Personalize Your URLs With Custom Domain",
         "TITLE": "Custom Domain Name",
-        "DESCRIPTION": "Pro accounts offer custom domain support, while Free accounts do not. This means that Pro users can use their own domain name for their Workspace, instead of using the “BetterCollected” domain. This can be a great way to make your business look more professional and to improve your brand recognition."
+        "DESCRIPTION": "Pro accounts offer custom domain support, while Free accounts do not. This means that Pro users can use their own domain name for their Workspace, instead of using the “BetterCollected” domain. This can be a great way to make your business look more professional and to improve your brand recognition.",
+        "NOTE": "Note: Make sure you point your custom domain to custom.bettercollected.com",
+        "TEXT_FIELD_TITLE": "Enter the domain you want to connect"
       },
       "UNLIMITED_FORMS": {
         "SLOGAN": "Import Unlimited Forms with PRO Plan",
@@ -868,5 +870,7 @@
   "LOGO": {
     "UPDATE": "Update New Logo",
     "REMOVE": "Remove Logo"
-  }
+  },
+  "HAVE_NOT_IMPORTED_OR_CREATED": "You haven’t imported or created any form",
+  "CREATE_OR_IMPORT": "Create or import your first privacy friendly form."
 }
