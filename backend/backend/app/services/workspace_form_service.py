@@ -118,7 +118,7 @@ class WorkspaceFormService:
             if standard_form.settings and standard_form.settings.embed_url
             else ""
         )
-        await self.workspace_form_repository.save_workspace_form(
+        workspace_form = await self.workspace_form_repository.save_workspace_form(
             workspace_id=workspace_id,
             form_id=standard_form.form_id,
             user_id=user.id,
@@ -135,6 +135,8 @@ class WorkspaceFormService:
         await self.temporal_service.add_scheduled_job_for_importing_form(
             workspace_id=workspace_id, form_id=standard_form.form_id
         )
+
+        return {**standard_form.dict(), "settings": workspace_form.settings}
 
     async def convert_form(self, *, provider, request, form_import):
         provider_url = await self.form_provider_service.get_provider_url(provider)

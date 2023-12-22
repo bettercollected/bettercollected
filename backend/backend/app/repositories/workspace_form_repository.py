@@ -34,7 +34,7 @@ class WorkspaceFormRepository:
         form_id: str,
         user_id: str,
         workspace_form_settings: WorkspaceFormSettings,
-    ):
+    ) -> WorkspaceFormDocument:
         workspace_form = await WorkspaceFormDocument.find_one(
             {"workspace_id": workspace_id, "form_id": form_id, "user_id": user_id}
         )
@@ -45,7 +45,7 @@ class WorkspaceFormRepository:
                 user_id=user_id,
             )
         workspace_form.settings = workspace_form_settings
-        await workspace_form.save()
+        return await workspace_form.save()
 
     # TODO : Refactor this functions to include repo related only
     async def get_workspace_form_in_workspace(
