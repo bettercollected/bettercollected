@@ -58,12 +58,6 @@ const ImportForm = () => {
     );
 
     useEffect(() => {
-        return () => {
-            dispatch(resetSingleForm());
-        };
-    }, []);
-
-    useEffect(() => {
         setIsLoading(importFormResult.isLoading || singleFormFromProviderResult.isLoading);
     }, [importFormResult.isLoading, singleFormFromProviderResult.isLoading]);
 
