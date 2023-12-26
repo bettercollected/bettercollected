@@ -2,27 +2,28 @@ import json
 from http import HTTPStatus
 from typing import Tuple
 
+from common.configs.crypto import Crypto
+from common.enums.roles import Roles
+from common.models.user import OAuthState, User, UserInfo, UserLoginWithOTP
+from common.services.http_client import HttpClient
+from common.services.jwt_service import JwtService
 from httpx import ReadTimeout
 from pydantic import EmailStr
 from starlette.requests import Request
 
 from backend.app.exceptions import HTTPException
 from backend.app.models.dataclasses.user_tokens import UserTokens
+from backend.app.models.dtos.kafka_event_dto import KafkaEventType
 from backend.app.models.enum.user_tag_enum import UserTagType
-from backend.app.schemas.user_tags import UserTagsDocument
 from backend.app.services import workspace_service as workspaces_service
 from backend.app.services.form_plugin_provider_service import FormPluginProviderService
+from backend.app.services.kafka_service import event_logger_service
 from backend.app.services.plugin_proxy_service import PluginProxyService
 from backend.app.services.temporal_service import TemporalService
 from backend.app.services.user_tags_service import UserTagsService
 from backend.app.services.workspace_service import WorkspaceService
 from backend.app.utils import AiohttpClient
 from backend.config import settings
-from common.configs.crypto import Crypto
-from common.enums.roles import Roles
-from common.models.user import OAuthState, User, UserInfo, UserLoginWithOTP
-from common.services.http_client import HttpClient
-from common.services.jwt_service import JwtService
 
 
 class AuthService:
@@ -213,6 +214,7 @@ class AuthService:
     async def add_workflow_to_delete_user(
         self, access_token: str, refresh_token: str, user: User
     ):
+        await event_logger_service.send_event(event_type=KafkaEventType.ACCOUNT_DELETED)
         return await self.temporal_service.start_user_deletion_workflow(
             UserTokens(access_token=access_token, refresh_token=refresh_token),
             user_id=user.id,

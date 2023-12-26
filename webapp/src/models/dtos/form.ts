@@ -1,4 +1,5 @@
 import { UserStatus } from '@app/models/dtos/UserStatus';
+import { Parameters } from '@app/models/dtos/actions';
 import { IConsentField } from '@app/store/consent/types';
 import { IFormFieldValidation } from '@app/store/form-builder/types';
 
@@ -65,6 +66,9 @@ export interface StandardFormDto {
     logo?: string;
     createdAt?: string;
     updatedAt?: string;
+    actions?: any;
+    parameters?: Record<any, Array<Parameters>>;
+    secrets?: Record<any, Array<Parameters>>;
 }
 
 export interface StandardFormResponseDto {

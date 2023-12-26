@@ -5,6 +5,7 @@ from http import HTTPStatus
 import bson
 from beanie import PydanticObjectId
 from common.constants import MESSAGE_FORBIDDEN
+from common.enums.plan import Plans
 from common.models.user import User
 from common.services.http_client import HttpClient
 from fastapi import UploadFile
@@ -12,6 +13,7 @@ from loguru import logger
 from pydantic import EmailStr
 
 from backend.app.exceptions import HTTPException
+from backend.app.models.dtos.kafka_event_dto import KafkaEventType
 from backend.app.models.enum.user_tag_enum import UserTagType
 from backend.app.models.enum.workspace_roles import WorkspaceRoles
 from backend.app.models.workspace import (
@@ -24,6 +26,7 @@ from backend.app.schemas.workspace import WorkspaceDocument
 from backend.app.schemas.workspace_user import WorkspaceUserDocument
 from backend.app.services.aws_service import AWSS3Service
 from backend.app.services.form_response_service import FormResponseService
+from backend.app.services.kafka_service import event_logger_service
 from backend.app.services.responder_groups_service import ResponderGroupsService
 from backend.app.services.user_tags_service import UserTagsService
 from backend.app.services.workspace_form_service import WorkspaceFormService
@@ -204,6 +207,7 @@ class WorkspaceService:
                     await self.user_tags_service.add_user_tag(
                         user_id=user.id, tag=UserTagType.CUSTOM_DOMAIN_UPDATED
                     )
+                    await event_logger_service.send_event(event_type=KafkaEventType.CUSTOM_DOMAIN_CHANGED, user_id=user.id)
                 else:
                     raise HTTPException(409)
             except HTTPException as e:
@@ -427,6 +431,7 @@ class WorkspaceService:
 async def create_workspace(user: User):
     workspace = await WorkspaceDocument.find_one({"owner_id": user.id, "default": True})
     if not workspace:
+        await event_logger_service.send_event(event_type=KafkaEventType.USER_CREATED, user_id=user.id)
         workspace = WorkspaceDocument(
             title="",
             description="",

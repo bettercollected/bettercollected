@@ -3,6 +3,8 @@ import {Fragment, useCallback, useEffect} from 'react';
 import {useRouter} from 'next/router';
 
 import Button from '@Components/Common/Input/Button';
+import AddActionToFormModal from '@Components/Modals/DialogModals/AddActionToFormModal';
+import OauthVerificationModal from '@Components/Modals/DialogModals/OauthVerificationModal';
 import UpdateCustomDomainModal from '@Components/Modals/DialogModals/UpdateCustomDomainModal';
 import UpdateWorkspaceHandle from '@Components/Modals/DialogModals/UpdateWorkspaceHandle';
 
@@ -113,6 +115,10 @@ function renderModalContent(view: MODAL_VIEW, modalProps: any) {
             return <DeleteTemplateConfirmationModalView {...modalProps} />;
         case 'IMPORT_TEMPLATE_MODAL_VIEW':
             return <ImportTemplateModalView {...modalProps} />;
+        case 'ADD_ACTION_TO_FORM':
+            return <AddActionToFormModal {...modalProps} />;
+        case 'OAUTH_VERIFICATION_MODAL':
+            return <OauthVerificationModal {...modalProps} />;
         default:
             return <></>;
     }
@@ -126,7 +132,7 @@ export default function ModalContainer() {
 
     const closeModalHandler = useCallback(() => {
         dispatch(resetBuilderMenuState());
-        closeModal();
+        if (!modalProps?.nonClosable) closeModal();
     }, [closeModal]);
 
     useEffect(() => {

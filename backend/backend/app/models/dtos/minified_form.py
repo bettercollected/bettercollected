@@ -1,18 +1,19 @@
 import datetime as dt
-from typing import Optional, List
+from typing import Optional, List, Dict
 
+from common.models.standard_form import ParameterValue, Trigger, ActionState
 from fastapi_camelcase import CamelModel
 
 from backend.app.models.dtos.consent import ConsentCamelModel
 from backend.app.models.dtos.response_group_dto import ResponderGroupDto
 from backend.app.models.dtos.workspace_member_dto import FormImporterDetails
-from backend.app.models.response_dtos import (
+from backend.app.models.dtos.response_dtos import (
     WorkspaceFormSettingsCamelModal,
     StandardFormFieldCamelModel,
 )
 
 
-class MinifiedForm(CamelModel):
+class FormDtoCamelModel(CamelModel):
     form_id: Optional[str]
     logo: Optional[str]
     cover_image: Optional[str]
@@ -33,3 +34,6 @@ class MinifiedForm(CamelModel):
     button_text: Optional[str]
     version: Optional[str]
     updated_at: Optional[dt.datetime]
+    actions: Optional[Dict[Trigger, List[ActionState]]]
+    parameters: Optional[Dict[str, List[ParameterValue]]]
+    secrets: Optional[Dict[str, List[ParameterValue]]]
