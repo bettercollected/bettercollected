@@ -1,15 +1,22 @@
-import { uuidv4 } from '@mswjs/interceptors/lib/utils/uuid';
-import { PayloadAction, createAsyncThunk, createSlice } from '@reduxjs/toolkit';
-import { persistReducer } from 'redux-persist';
+import {uuidv4} from '@mswjs/interceptors/lib/utils/uuid';
+import {createAsyncThunk, createSlice, PayloadAction} from '@reduxjs/toolkit';
+import {persistReducer} from 'redux-persist';
 import storage from 'redux-persist/lib/storage';
 import undoable from 'redux-undo';
-import { v4 } from 'uuid';
+import {v4} from 'uuid';
 
-import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
-import { Condition, ConditionalActions, IBuilderMenuState, IBuilderState, IChoiceFieldState, IFormFieldState } from '@app/store/form-builder/types';
-import { convertProxyToObject } from '@app/utils/reduxUtils';
+import {FormBuilderTagNames} from '@app/models/enums/formBuilder';
+import {
+    Condition,
+    ConditionalActions,
+    IBuilderMenuState,
+    IBuilderState,
+    IChoiceFieldState,
+    IFormFieldState
+} from '@app/store/form-builder/types';
+import {convertProxyToObject} from '@app/utils/reduxUtils';
 
-import { getInitialPropertiesForFieldType } from './utils';
+import {getInitialPropertiesForFieldType} from './utils';
 
 const firstFieldId = v4();
 
@@ -19,14 +26,14 @@ export const initBuilderState: IBuilderState = {
     description: '',
     buttonText: 'Submit',
     menus: {
-        spotlightField: { isOpen: false, afterFieldUuid: '' },
-        commands: { isOpen: false, atFieldUuid: '', position: 'down' },
-        fieldSettings: { isOpen: false, atFieldUuid: '' },
-        pipingFields: { isOpen: false, atFieldUuid: '', position: 'down', pos: { top: 0, left: 0 }, atPosition: 0 },
+        spotlightField: {isOpen: false, afterFieldUuid: ''},
+        commands: {isOpen: false, atFieldUuid: '', position: 'down'},
+        fieldSettings: {isOpen: false, atFieldUuid: ''},
+        pipingFields: {isOpen: false, atFieldUuid: '', position: 'down', pos: {top: 0, left: 0}, atPosition: 0},
         pipingFieldSettings: {
             isOpen: false,
             atFieldId: '',
-            pos: { top: 0, left: 0 },
+            pos: {top: 0, left: 0},
             mentionedFieldId: ''
         }
     },
@@ -47,7 +54,7 @@ export const initBuilderState: IBuilderState = {
     activeChoiceIndex: 0
 };
 
-export const setIsFormDirtyAsync = createAsyncThunk('form/setIsFormDirtyAsync', async (isDirty, { getState }) => {
+export const setIsFormDirtyAsync = createAsyncThunk('form/setIsFormDirtyAsync', async (isDirty, {getState}) => {
     // Perform async logic here, e.g., making an API call or any other asynchronous operation
     // You can access the current state using `getState()`
 
@@ -75,9 +82,9 @@ export const builder = createSlice({
             const fieldsArray = [...Object.values(state.fields)];
             const nextField = Object.values(state.fields).find((field) => field.position === action.payload.position + 1);
             const isNextFieldInputField = nextField?.type?.includes('input_');
-            fieldsArray.splice(action?.payload?.position, 0, { ...action.payload });
+            fieldsArray.splice(action?.payload?.position, 0, {...action.payload});
             if (isNextFieldInputField && nextField) {
-                const newInputField: IFormFieldState = { ...nextField };
+                const newInputField: IFormFieldState = {...nextField};
                 newInputField.id = uuidv4();
                 newInputField.position = nextField.position;
                 fieldsArray.splice(nextField.position, 0, newInputField);
@@ -92,7 +99,7 @@ export const builder = createSlice({
         },
         // setActiveChoice
         setActiveChoice: (state, action: PayloadAction<{ id: string; position: number }>) => {
-            const { id, position } = action.payload;
+            const {id, position} = action.payload;
             state.activeChoiceId = id;
             state.activeChoiceIndex = position;
         },
@@ -114,10 +121,10 @@ export const builder = createSlice({
         ) => {
             const activeField = state.fields[action.payload?.fieldId ? action.payload?.fieldId : state.activeFieldId];
             const newChoices = Object.values(convertProxyToObject(activeField.properties?.choices || {}));
-            newChoices.splice(action.payload.choice.position, 0, { ...action.payload.choice });
+            newChoices.splice(action.payload.choice.position, 0, {...action.payload.choice});
             const choices: any = {};
             newChoices.forEach((choice: any, index: number) => {
-                choices[choice.id] = { ...choice, position: index };
+                choices[choice.id] = {...choice, position: index};
             });
             return {
                 ...state,
@@ -141,6 +148,12 @@ export const builder = createSlice({
             const type = action.payload?.type;
             let newType = type;
             let newFieldId = action.payload.id;
+            let value;
+            if (newType === FormBuilderTagNames.QUESTION_EMAIL) {
+                value = 'Email'
+            } else if (newType === FormBuilderTagNames.QUESTION_PHONE_NUMBER) {
+                value = 'Phone Number'
+            } else value = ''
             if (type.includes('question')) {
                 // @ts-ignore
                 newType = type.replace('question_', 'input_');
@@ -148,7 +161,8 @@ export const builder = createSlice({
                 fieldsToAdd.push({
                     id: action.payload.id,
                     type: FormBuilderTagNames.LAYOUT_LABEL,
-                    position: action.payload.position
+                    position: action.payload.position,
+                    value: value
                 });
             }
             const fieldsArray = [...Object.values(state.fields)];
@@ -172,7 +186,7 @@ export const builder = createSlice({
             fieldsArray.splice(action?.payload?.position + (action?.payload?.replace ? 0 : 1), action?.payload?.replace ? 1 : 0, ...fieldsToAdd);
             const newFieldsMap: any = {};
             fieldsArray.forEach((field: IFormFieldState, index: number) => {
-                newFieldsMap[field.id] = { ...field, position: index };
+                newFieldsMap[field.id] = {...field, position: index};
             });
             return {
                 ...state,
@@ -183,15 +197,15 @@ export const builder = createSlice({
         },
         // setBuilderMenuState
         setBuilderMenuState: (state: IBuilderState, action: { payload: Partial<IBuilderMenuState>; type: string }) => {
-            const menus = { ...state.menus, ...action.payload };
-            return { ...state, menus };
+            const menus = {...state.menus, ...action.payload};
+            return {...state, menus};
         },
         // setCommandMenuPosition
         setCommandMenuPosition: (state, action: { payload: 'up' | 'down' }) => {
             if (state.menus?.commands)
                 return {
                     ...state,
-                    menus: { ...state.menus, commands: { ...state.menus?.commands, position: action.payload } }
+                    menus: {...state.menus, commands: {...state.menus?.commands, position: action.payload}}
                 };
         },
         // setDeleteChoice
@@ -219,7 +233,7 @@ export const builder = createSlice({
         },
         // setDeleteField
         setDeleteField: (state: IBuilderState, action: { payload: string; type: string }) => {
-            const fields = { ...state.fields };
+            const fields = {...state.fields};
             const currentField = fields[action.payload];
             const nextField = Object.values(state.fields).find((field) => field.position === currentField.position + 1);
             const isNextFieldInputField = nextField?.type.includes('input_');
@@ -247,23 +261,23 @@ export const builder = createSlice({
                     const actions: Record<string, ConditionalActions> = {};
                     field?.properties?.conditions?.map((condition: Condition, position: number) => {
                         const id = uuidv4();
-                        conditions[id] = { ...condition, id, position };
+                        conditions[id] = {...condition, id, position};
                     });
                     field?.properties?.actions?.map((action: ConditionalActions, position: number) => {
                         const id = uuidv4();
-                        actions[id] = { ...action, id, position };
+                        actions[id] = {...action, id, position};
                     });
                     fields[field.id] = {
                         ...field,
                         position: index,
-                        properties: { ...field.properties, conditions, actions }
+                        properties: {...field.properties, conditions, actions}
                     };
                 } else {
                     const choices: any = {};
                     field?.properties?.choices?.map((choice: IChoiceFieldState, index: number) => {
-                        choices[choice.id] = { ...choice, position: index };
+                        choices[choice.id] = {...choice, position: index};
                     });
-                    fields[field.id] = { ...field, position: index, properties: { ...field.properties, choices: choices } };
+                    fields[field.id] = {...field, position: index, properties: {...field.properties, choices: choices}};
                 }
             });
             return {
@@ -286,7 +300,7 @@ export const builder = createSlice({
         setFields: (state: IBuilderState, action: { payload: Array<IFormFieldState>; type: string }) => {
             const fields: Record<string, IFormFieldState> = {};
             action.payload.forEach((field: IFormFieldState, position: number) => {
-                fields[field.id] = { ...field, position };
+                fields[field.id] = {...field, position};
             });
             return {
                 ...state,
@@ -308,8 +322,8 @@ export const builder = createSlice({
         },
         // setMoveField
         setMoveField: (state: IBuilderState, action: PayloadAction<{ oldIndex: number; newIndex: number }>) => {
-            const { oldIndex, newIndex } = action.payload;
-            const fields = { ...state.fields };
+            const {oldIndex, newIndex} = action.payload;
+            const fields = {...state.fields};
             const fieldsArray = [...Object.values(fields)];
             const movedField = fieldsArray.splice(oldIndex, 1)[0];
             fieldsArray.splice(newIndex, 0, movedField);
@@ -327,8 +341,8 @@ export const builder = createSlice({
         },
         // setResetBuilderMenuState
         resetBuilderMenuState: (state: IBuilderState) => {
-            const menus = { ...state.menus, ...initBuilderState.menus };
-            return { ...state, menus };
+            const menus = {...state.menus, ...initBuilderState.menus};
+            return {...state, menus};
         },
         // setResetForm
         resetForm: (state) => {
@@ -367,7 +381,7 @@ export const builder = createSlice({
         setUpdateVisibility: (state: IBuilderState, action: { payload: IFormFieldState }) => {
             const nextField = Object.values(state.fields).find((field) => field.position === action.payload.position + 1);
             const isNextFieldInputField = nextField?.type?.includes('input_');
-            const inputFieldProperties = { ...nextField?.properties, hidden: action.payload.properties?.hidden };
+            const inputFieldProperties = {...nextField?.properties, hidden: action.payload.properties?.hidden};
             if (isNextFieldInputField && nextField) {
                 return {
                     ...state,
@@ -408,7 +422,7 @@ export const builder = createSlice({
             };
         },
         updateAction: (state: IBuilderState, action: PayloadAction<any>) => {
-            const { fieldId, actionId, data } = action.payload;
+            const {fieldId, actionId, data} = action.payload;
             if (state.fields[fieldId].properties && state.fields[fieldId]?.properties?.actions) {
                 // @ts-ignore
                 state.fields[fieldId].properties.actions[actionId] = data;
@@ -422,13 +436,13 @@ export const builder = createSlice({
                 data: Condition;
             }>
         ) => {
-            const { fieldId, conditionalId, data } = action.payload;
+            const {fieldId, conditionalId, data} = action.payload;
             if (state.fields[fieldId]?.properties?.conditions) {
                 state.fields[fieldId]!.properties!.conditions![conditionalId] = data;
             }
         },
         updateConditionalOperator: (state: IBuilderState, action: PayloadAction<any>) => {
-            const { fieldId, operator } = action.payload;
+            const {fieldId, operator} = action.payload;
             if (state.fields[fieldId]?.properties?.logicalOperator) {
                 state.fields[fieldId].properties!.logicalOperator = operator;
             }
@@ -444,7 +458,7 @@ export const builder = createSlice({
                 };
         },
         deleteCondition: (state, action) => {
-            const { fieldId, conditionId } = action.payload;
+            const {fieldId, conditionId} = action.payload;
             if (Object.keys(state.fields[fieldId]?.properties?.conditions || {}).length > 1) {
                 delete state.fields[fieldId]!.properties!.conditions![conditionId];
                 Object.values(state.fields[fieldId]!.properties!.conditions || {}).map((condition: any, index: number) => {
@@ -463,7 +477,7 @@ export const builder = createSlice({
                 };
         },
         deleteAction: (state, action) => {
-            const { fieldId, actionId } = action.payload;
+            const {fieldId, actionId} = action.payload;
             if (Object.keys(state.fields[fieldId]?.properties?.actions || {}).length > 1) {
                 delete state.fields[fieldId]!.properties!.actions![actionId];
                 Object.values(state.fields[fieldId]!.properties!.actions || {}).map((action: any, index: number) => {
@@ -472,7 +486,7 @@ export const builder = createSlice({
             }
         },
         setLogicalOperator: (state, action) => {
-            const { fieldId, logicalOperator } = action.payload;
+            const {fieldId, logicalOperator} = action.payload;
             state.fields[fieldId]!.properties!.logicalOperator = logicalOperator;
         }
     }
@@ -496,5 +510,5 @@ const undoableReducer = undoable(builderPersistReducer, {
     }
 });
 
-const reducerObj = { reducerPath: builder.name, reducer: undoableReducer };
+const reducerObj = {reducerPath: builder.name, reducer: undoableReducer};
 export default reducerObj;

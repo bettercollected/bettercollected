@@ -65,7 +65,7 @@ export default function ConsentBuilderConfirmationModalView() {
             }
             const response: any = await publishForm({ workspaceId: workspace.id, formId: builderState.id });
             if (response.data) {
-                router.push(`/${workspace.workspaceName}/dashboard/forms/${builderState.id}`);
+                router.push(`/${workspace.workspaceName}/dashboard`);
             }
         } catch (error) {}
     };
