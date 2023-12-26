@@ -4,10 +4,10 @@ import uuid
 from datetime import datetime, timedelta
 
 import jwt
+from common.models.user import User
 from starlette.responses import Response
 
 from backend.config import settings
-from common.models.user import User
 
 
 # TODO move this to auth server
@@ -27,7 +27,7 @@ def set_token_to_response(
         settings.auth_settings.JWT_SECRET,
         algorithm="HS256",
     )
-    set_token_cookie(response, cookie_key, token)
+    set_token_cookie(response, cookie_key, token, expiry_after.total_seconds())
 
 
 def set_access_token_to_response(user: User, response: Response):
@@ -115,7 +115,7 @@ def delete_cookie(
     )
 
 
-def set_token_cookie(response: Response, key: str, token: str):
+def set_token_cookie(response: Response, key: str, token: str, expiry: float):
     should_be_secure = False if "localhost" in settings.api_settings.HOST else True
     same_site = "none" if should_be_secure else "lax"
     set_cookie(
@@ -125,7 +125,7 @@ def set_token_cookie(response: Response, key: str, token: str):
         httponly=True,
         secure=should_be_secure,
         samesite=same_site,
-        max_age=settings.auth_settings.REFRESH_TOKEN_EXPIRY_IN_DAYS * 24 * 60 * 60,
+        max_age=int(expiry),
     )
 
 
@@ -141,7 +141,7 @@ def delete_token_cookie(response: Response):
     )
     delete_cookie(
         response=response,
-        key="Refresh_token",
+        key="RefreshToken",
         httponly=True,
         secure=should_be_secure,
         samesite=same_site,

@@ -52,7 +52,7 @@ const OnboardingContainer = ({workspace, createWorkspace}: onBoardingProps) => {
     const workspaceName: string | null = (workspace?.workspaceName as string) === (workspace?.ownerId as string) ? null : (workspace?.workspaceName as string);
 
     const [formData, setFormData] = useState<FormDataDto>({
-        title: (user?.firstName || user?.lastName || user?.email) + "'s Workspace",
+        title: (user?.firstName || user?.lastName || user?.email?.split('@')[0]) + "'s Workspace",
         description: workspace?.description ?? '',
         workspaceLogo: workspace?.profileImage ?? null,
         workspaceName: workspaceName

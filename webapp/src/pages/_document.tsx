@@ -1,4 +1,4 @@
-import Document, { DocumentContext, DocumentInitialProps, Head, Html, Main, NextScript } from 'next/document';
+import Document, {DocumentContext, DocumentInitialProps, Head, Html, Main, NextScript} from 'next/document';
 
 import environments from '@app/configs/environments';
 
@@ -10,15 +10,21 @@ class MyDocument extends Document {
     render() {
         return (
             <Html lang="en-US" dir="ltr" className="light">
-                <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" />
+                <meta name="viewport"
+                      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0"/>
                 <Head>
                     {this.props.styles}
                     {embedScript()}
                     {embedMicrosoftClarityScript()}
+                    {
+                        environments.NEXT_PUBLIC_NODE_ENV === "production" && environments.UMAMI_WEBSITE_ID && environments.UMAMI_SCRIPT_URL &&
+                        <script async src={environments.UMAMI_SCRIPT_URL}
+                                data-website-id={environments.UMAMI_WEBSITE_ID}/>
+                    }
                 </Head>
                 <body>
-                    <Main />
-                    <NextScript />
+                <Main/>
+                <NextScript/>
                 </body>
             </Html>
         );
@@ -53,8 +59,9 @@ function embedScript() {
     const htmlStr = 'elasticApm.init(' + JSON.stringify(config) + ')';
     return environments.APM_ENABLED ? (
         <>
-            <script src="https://unpkg.com/@elastic/apm-rum@5.12.0/dist/bundles/elastic-apm-rum.umd.min.js" crossOrigin="true" />
-            <script dangerouslySetInnerHTML={{ __html: htmlStr }} />
+            <script src="https://unpkg.com/@elastic/apm-rum@5.12.0/dist/bundles/elastic-apm-rum.umd.min.js"
+                    crossOrigin="true"/>
+            <script dangerouslySetInnerHTML={{__html: htmlStr}}/>
         </>
     ) : (
         <></>

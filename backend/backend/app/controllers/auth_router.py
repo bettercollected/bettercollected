@@ -12,6 +12,7 @@ from starlette.requests import Request
 from starlette.responses import RedirectResponse, Response
 
 from backend.app.container import container
+from backend.app.models.dtos.user_feedback import UserFeedbackDto
 from backend.app.models.dtos.user_status_dto import UserStatusDto
 from backend.app.router import router
 from backend.app.services.auth_cookie_service import (
@@ -19,6 +20,8 @@ from backend.app.services.auth_cookie_service import (
     set_tokens_to_response,
     set_access_token_to_response,
 )
+from backend.app.services.auth_service import AuthService
+from backend.app.services.feedback_service import UserFeedbackService
 from backend.app.services.user_service import (
     get_logged_user,
     add_refresh_token_to_blacklist,
@@ -41,9 +44,11 @@ log = logging.getLogger(__name__)
     },
 )
 class AuthRoutes(Routable):
-    def __init__(self, auth_service=container.auth_service(), *args, **kwargs):
+    def __init__(self, auth_service=container.auth_service(), user_feedback_service=container.user_feedback_service(),
+                 *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.auth_service = auth_service
+        self.auth_service: AuthService = auth_service
+        self.user_feedback_service: UserFeedbackService = user_feedback_service
 
     @get(
         "/status",
@@ -215,10 +220,12 @@ class AuthRoutes(Routable):
     async def add_workflow_to_delete_user(
         self,
         response: Response,
+        user_feedback: UserFeedbackDto,
         access_token=Depends(get_access_token),
         refresh_token=Depends(get_refresh_token),
         user: User = Depends(get_logged_user),
     ):
+        await self.user_feedback_service.save_user_feedback(user_feedback=user_feedback)
         resp = await self.auth_service.add_workflow_to_delete_user(
             access_token=access_token, refresh_token=refresh_token, user=user
         )

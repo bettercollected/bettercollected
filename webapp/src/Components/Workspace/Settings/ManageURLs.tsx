@@ -12,8 +12,10 @@ import { toast } from 'react-toastify';
 
 import Globe from '@app/components/icons/flags/globe';
 import { useModal } from '@app/components/modal-views/context';
+import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
 import environments from '@app/configs/environments';
 import { useCopyToClipboard } from '@app/lib/hooks/use-copy-to-clipboard';
+import { selectIsAdmin, selectIsProPlan } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 
@@ -21,6 +23,11 @@ export default function ManageURLs() {
     const { t } = useTranslation();
     const workspace = useAppSelector(selectWorkspace);
     const { openModal } = useModal();
+    const { openModal: openFullScreenModal } = useFullScreenModal();
+
+    const isAdmin = useAppSelector(selectIsAdmin);
+
+    const isProWorkspace = useAppSelector(selectIsProPlan);
 
     const [_, copyToClipboard] = useCopyToClipboard();
     return (
@@ -71,7 +78,7 @@ export default function ManageURLs() {
                         <span className="leading-none">Pro</span>
                     </div>
                 </div>
-                {!workspace?.customDomain && (
+                {isAdmin && !workspace?.customDomain && (
                     <div className="border-y border-y-black-200 py-4 flex flex-col gap-4 mt-4">
                         <span className="p2-new text-black-700">Add a domain purchased through a web hosting service.</span>
                         <div>
@@ -79,7 +86,11 @@ export default function ManageURLs() {
                                 variant={ButtonVariant.Secondary}
                                 icon={<Globe />}
                                 onClick={() => {
-                                    openModal('UPDATE_WORKSPACE_DOMAIN');
+                                    if (isProWorkspace) {
+                                        openModal('UPDATE_WORKSPACE_DOMAIN');
+                                    } else {
+                                        openFullScreenModal('UPGRADE_TO_PRO');
+                                    }
                                 }}
                             >
                                 Add Custom Domain
@@ -100,7 +111,7 @@ export default function ManageURLs() {
                                 variant={ButtonVariant.Ghost}
                                 icon={<CopyIcon width={16} height={16} />}
                                 onClick={() => {
-                                    copyToClipboard(`${environments.HTTP_SCHEME}${environments.CLIENT_DOMAIN}/${workspace.workspaceName}`);
+                                    copyToClipboard(`${environments.HTTP_SCHEME}${workspace?.customDomain}`);
                                     toast('Copied', { type: 'info' });
                                 }}
                             >

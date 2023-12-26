@@ -13,7 +13,7 @@ const breakPoints = {
 export const useBreakpoint = createBreakpoint(breakPoints);
 
 export function useIsMobile() {
-    const breakpoint = useBreakpoint()
+    const breakpoint = useBreakpoint();
 
-    return ["xs", "2xs", "sm"].indexOf(breakpoint) !== -1
+    return ['xs', '2xs', 'sm', 'md'].indexOf(breakpoint) !== -1;
 }
