@@ -8,20 +8,16 @@ import _ from 'lodash';
 import AppTextField from '@Components/Common/Input/AppTextField';
 import ChangeSlugComponent from '@Components/ImportForm/ChangeSlugComponent';
 import { CircularProgress } from '@mui/material';
+import confetti from 'canvas-confetti';
 import { toast } from 'react-toastify';
 
 import GoogleFolder from '@app/assets/images/google_folder.png';
 import GoogleForm from '@app/assets/images/google_form.png';
 import { LinkIcon } from '@app/components/icons/link-icon';
 import { toastMessage } from '@app/constants/locales/toast-message';
-import { resetSingleForm, selectForm, setForm } from '@app/store/forms/slice';
+import { selectForm, setForm } from '@app/store/forms/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { useImportFormMutation, useLazyGetSingleFormFromProviderQuery } from '@app/store/workspaces/api';
-
-interface IAutoCompleteFormFieldProps {
-    label: string;
-    questionId: string;
-}
 
 const ImportForm = () => {
     const { t } = useTranslation();
@@ -42,6 +38,10 @@ const ImportForm = () => {
 
     const checkFormUrlPattern = useCallback(
         _.debounce((importFormLink) => {
+            if (!importFormLink) {
+                setError(false);
+                return;
+            }
             const pattern = /https:\/\/docs\.google\.com\/forms\/d\/([^/]+)\/edit/;
             const match = importFormLink.match(pattern);
             setIsLoading(false);
@@ -53,15 +53,9 @@ const ImportForm = () => {
                 setError(true);
                 setErrorMessage('Oops! That URL doesnot look quite right. Could you double-check it ? Hint: The URL ends with “/edit” at the end.');
             }
-        }, 1000),
-        [importFormLink]
+        }, 1500),
+        []
     );
-
-    useEffect(() => {
-        return () => {
-            dispatch(resetSingleForm());
-        };
-    }, []);
 
     useEffect(() => {
         setIsLoading(importFormResult.isLoading || singleFormFromProviderResult.isLoading);
@@ -87,6 +81,7 @@ const ImportForm = () => {
         if (response.data) {
             toast.success(t(toastMessage.formImportedSuccessfully).toString());
             dispatch(setForm(response?.data));
+            fireworks();
         } else {
             setError(true);
             setErrorMessage('error');
@@ -95,11 +90,9 @@ const ImportForm = () => {
     };
 
     useEffect(() => {
-        if (importFormLink) {
-            setIsLoading(true);
-            setError(false);
-            checkFormUrlPattern(importFormLink);
-        }
+        setIsLoading(true);
+        setError(false);
+        checkFormUrlPattern(importFormLink);
     }, [importFormLink]);
 
     const getLoadingTextType = () => {
@@ -143,3 +136,26 @@ const LoadingIconWithText = ({ text }: { text: string }) => {
         </div>
     );
 };
+
+function fireworks() {
+    let duration = 3 * 1000;
+    let animationEnd = Date.now() + duration;
+    let defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 };
+
+    function randomInRange(min: number, max: number) {
+        return Math.random() * (max - min) + min;
+    }
+
+    let interval: NodeJS.Timer = setInterval(function () {
+        let timeLeft = animationEnd - Date.now();
+
+        if (timeLeft <= 0) {
+            return clearInterval(interval);
+        }
+
+        let particleCount = 100 * (timeLeft / duration);
+        // since particles fall down, start a bit higher than random
+        confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } });
+        confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } });
+    }, 250);
+}
