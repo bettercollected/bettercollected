@@ -19,6 +19,7 @@ from backend.app.repositories.responder_groups_repository import (
     ResponderGroupsRepository,
 )
 from backend.app.repositories.template import FormTemplateRepository
+from backend.app.repositories.user_feedback import UserFeedbackRepo
 from backend.app.repositories.user_tags_repository import UserTagsRepository
 from backend.app.repositories.workspace_consent_repo import WorkspaceConsentRepo
 from backend.app.repositories.workspace_form_repository import WorkspaceFormRepository
@@ -32,6 +33,7 @@ from backend.app.schedulers.form_schedular import FormSchedular
 from backend.app.services.actions_service import ActionService
 from backend.app.services.auth_service import AuthService
 from backend.app.services.aws_service import AWSS3Service
+from backend.app.services.feedback_service import UserFeedbackService
 from backend.app.services.form_import_service import FormImportService
 from backend.app.services.form_plugin_provider_service import FormPluginProviderService
 from backend.app.services.form_response_service import FormResponseService
@@ -265,6 +267,15 @@ class AppContainer(containers.DeclarativeContainer):
         workspace_form_service=workspace_form_service,
         aws_service=aws_service,
         temporal_service=temporal_service
+    )
+
+    user_feedback_repo = providers.Singleton(
+        UserFeedbackRepo
+    )
+
+    user_feedback_service = providers.Singleton(
+        UserFeedbackService,
+        user_feedback_repo=user_feedback_repo
     )
 
 

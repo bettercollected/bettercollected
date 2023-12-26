@@ -46,4 +46,4 @@ export const selectAuth = (state: any) => state.auth;
 
 export const selectIsAdmin = (state: any) => state.auth.isAdmin;
 
-export const selectIsProPlan = (state: RootState) => state.auth.plan === 'PRO';
+export const selectIsProPlan = (state: RootState) => !!state.workspace.isPro;

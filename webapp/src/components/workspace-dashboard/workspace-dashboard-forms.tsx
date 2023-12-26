@@ -20,6 +20,7 @@ import {JOYRIDE_CLASS} from '@app/store/tours/types';
 import {useGetWorkspaceFormsQuery, useLazySearchWorkspaceFormsQuery} from '@app/store/workspaces/api';
 import {selectWorkspace} from '@app/store/workspaces/slice';
 import Empty from "@Components/Common/Icons/Common/Empty";
+import EmptyFormIcon from '@Components/Common/Icons/Form/EmptyForm';
 
 interface IWorkspaceDashboardFormsProps {
     workspace: WorkspaceDto;
@@ -110,8 +111,8 @@ export default function WorkspaceDashboardForms({title, showButtons, hasCustomDo
                     </div>
                 )}
             </> : <>
-                <div className="flex flex-col gap-2 w-full items-center">
-                    <Empty />
+                <div className="flex mt-8 flex-col gap-2 w-full items-center">
+                    <EmptyFormIcon />
                     <div className="mt-4 h4-new text-black-800 !leading-normal">{t('HAVE_NOT_IMPORTED_OR_CREATED')}</div>
                     <div className="p2-new text-black-700 !leading-normal">{t('CREATE_OR_IMPORT')}</div>
                     <div className="flex gap-4 mt-4">

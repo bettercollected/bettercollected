@@ -1,10 +1,12 @@
-import datetime
 from _socket import gaierror
 from http import HTTPStatus
-from typing import Any, Dict, List
+from typing import Any, Dict
 
 from aiohttp import ServerDisconnectedError, ClientConnectorError
 from beanie import PydanticObjectId
+from common.constants import MESSAGE_FORBIDDEN
+from common.models.user import User
+from common.services.jwt_service import JwtService
 from loguru import logger
 
 from backend.app.exceptions import HTTPException
@@ -16,11 +18,6 @@ from backend.app.services.form_response_service import FormResponseService
 from backend.app.services.temporal_service import TemporalService
 from backend.app.utils import AiohttpClient
 from backend.config import settings
-from common.constants import MESSAGE_FORBIDDEN
-from common.models.consent import ResponseRetentionType
-from common.models.standard_form import StandardFormResponse
-from common.models.user import User
-from common.services.jwt_service import JwtService
 
 
 class FormSchedular:
@@ -74,6 +71,8 @@ class FormSchedular:
             cookies = {"Authorization": self.jwt_service.encode(user)}
             raw_form = None
             try:
+                provider = self.form_provider_service.get_provider_if_enabled(
+                    provider_name=workspace_form.settings.provider)
                 raw_form = await self.perform_request(
                     provider=workspace_form.settings.provider,
                     append_url=f"/{form_id}",
@@ -158,12 +157,15 @@ class FormSchedular:
         params: Dict = None,
         json: Dict = None,
     ):
-        provider_url = await self.form_provider_service.get_provider_url(provider)
+        provider = await self.form_provider_service.get_provider_if_enabled(provider)
+
+        if not provider:
+            return None
         # TODO Perform request from containers http client
         try:
             response = await AiohttpClient.get_aiohttp_client().request(
                 method=method,
-                url=f"{provider_url}/{provider}/forms{append_url}",
+                url=f"{provider.provider_url}/{provider}/forms{append_url}",
                 params=params,
                 cookies=cookies,
                 json=json,

@@ -133,6 +133,28 @@
     "DEFAULT": "Verwijderen",
     "MESSAGE": "Als deze actie eenmaal is voltooid, kan deze niet meer ongedaan worden gemaakt."
   },
+  "DELETE_ACCOUNT": {
+    "TITLE": "Account Verwijderen",
+    "DESCRIPTION": "Je staat op het punt om je bettercollected-account te verwijderen. Al je gegevens zullen worden verwijderd.",
+    "WHY_DELETE": "Waarom verwijder je je account?",
+    "SELECT_REASON": "Selecteer Reden",
+    "ANYTHING_ELSE": "Is er nog iets dat je wilt delen?",
+    "OPTIONAL": "optioneel",
+    "WRITE_FEEDBACK": "Schrijf je feedback",
+    "TYPE_CONFIRM": "Om door te gaan, typ \"CONFIRM\"",
+    "CONFIRM": "Bevestigen",
+    "I_UNDERSTAND_CONSEQUENCES": "Ik begrijp dat het sluiten van mijn account al mijn gegevens zal verwijderen.",
+    "DELETE_NOW": "Nu Verwijderen",
+    "REASONS": {
+      "1": "Ik vind het moeilijk om formulieren te maken.",
+      "2": "Ik ondervind problemen bij het importeren van het formulier.",
+      "3": "Ik mis essentiële functies of integraties die ik nodig heb.",
+      "4": "Ik ben niet tevreden met de prijsstelling.",
+      "5": "Ik heb een beter alternatief gevonden.",
+      "6": "De app is traag.",
+      "7": "Iets anders"
+    }
+  },
   "DELETED_ON": "Verwijderd op",
   "DELETION_REMAINING": "verwijdering resterend",
   "DESCRIPTION": "Beschrijving",
@@ -500,7 +522,7 @@
   "PINNED_FORMS": "Vastgemaakte formulieren",
   "PUBLISH_FORM": " Publiceren.",
   "PLACEHOLDER": {
-    "ENTER_CUSTOM_DOMAIN": "Voer uw aangepaste domein in",
+    "ENTER_CUSTOM_DOMAIN": "Example: www.example.com",
     "ENTER_WORKSPACE_HANDLE": "Voer de werkruimtehandle in",
     "DESCRIPTION": "Voeg uw beschrijving toe",
     "PRIVACY_POLICY_LINK": "Privacybeleid Link",
@@ -770,7 +792,9 @@
       "CUSTOM_DOMAIN": {
         "SLOGAN": "Personaliseer uw URL's met een aangepast domein",
         "TITLE": "Aangepaste domeinnaam",
-        "DESCRIPTION": "Pro-accounts bieden aangepaste domeinondersteuning, gratis accounts niet. Dit betekent dat Pro-gebruikers hun eigen domeinnaam kunnen gebruiken voor hun Workspace, in plaats van het 'BetterCollected'-domein te gebruiken. Dit kan een geweldige manier zijn om uw bedrijf er professioneler uit laten zien en uw naamsbekendheid verbeteren."
+        "DESCRIPTION": "Pro-accounts bieden aangepaste domeinondersteuning, gratis accounts niet. Dit betekent dat Pro-gebruikers hun eigen domeinnaam kunnen gebruiken voor hun Workspace, in plaats van het 'BetterCollected'-domein te gebruiken. Dit kan een geweldige manier zijn om uw bedrijf er professioneler uit laten zien en uw naamsbekendheid verbeteren.",
+        "NOTE": "Opmerking: Zorg ervoor dat je je aangepaste domein naar custom.bettercollected.com verwijst.",
+        "TEXT_FIELD_TITLE": "Voer het domein in dat je wilt verbinden"
       },
       "UNLIMITED_FORMS": {
         "SLOGAN": "Importeer onbeperkte formulieren met PRO Plan",
