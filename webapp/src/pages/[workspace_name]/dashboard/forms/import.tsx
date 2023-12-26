@@ -14,7 +14,8 @@ import { useModal } from '@app/components/modal-views/context';
 import FullScreenLoader from '@app/components/ui/fullscreen-loader';
 import Loader from '@app/components/ui/loader';
 import Layout from '@app/layouts/_layout';
-import { useAppSelector } from '@app/store/hooks';
+import { resetSingleForm } from '@app/store/forms/slice';
+import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { useVerifyFormTokenQuery } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 
@@ -23,10 +24,17 @@ export default function ImportFormPage() {
     const { title } = useAppSelector(selectWorkspace);
     const router = useRouter();
     const { openModal } = useModal();
-
+    const dispatch = useAppDispatch();
     const { data, isLoading, error: verificationError } = useVerifyFormTokenQuery({ provider: 'google' });
 
     const workspace = useAppSelector(selectWorkspace);
+
+    useEffect(() => {
+        dispatch(resetSingleForm());
+        return () => {
+            dispatch(resetSingleForm());
+        };
+    }, []);
 
     useEffect(() => {
         if (verificationError || data?.status_code === 400) {
