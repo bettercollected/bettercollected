@@ -41,7 +41,7 @@ export default function FormIntegrations() {
     return (
         <div className="md:px-10 lg:px-28">
             {addedActions && addedActions.length > 0 && (
-                <div className="flex flex-col gap-[2px]">
+                <div className="flex flex-col gap-[2px] mb-10">
                     <div className="h3-new text-black-800 mb-5">Integrations added to form</div>
                     {data?.map((integration, index) => (
                         <>
