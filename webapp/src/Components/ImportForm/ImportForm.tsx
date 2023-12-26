@@ -19,11 +19,6 @@ import { selectForm, setForm } from '@app/store/forms/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { useImportFormMutation, useLazyGetSingleFormFromProviderQuery } from '@app/store/workspaces/api';
 
-interface IAutoCompleteFormFieldProps {
-    label: string;
-    questionId: string;
-}
-
 const ImportForm = () => {
     const { t } = useTranslation();
 
@@ -43,6 +38,10 @@ const ImportForm = () => {
 
     const checkFormUrlPattern = useCallback(
         _.debounce((importFormLink) => {
+            if (!importFormLink) {
+                setError(false);
+                return;
+            }
             const pattern = /https:\/\/docs\.google\.com\/forms\/d\/([^/]+)\/edit/;
             const match = importFormLink.match(pattern);
             setIsLoading(false);
@@ -54,8 +53,8 @@ const ImportForm = () => {
                 setError(true);
                 setErrorMessage('Oops! That URL doesnot look quite right. Could you double-check it ? Hint: The URL ends with “/edit” at the end.');
             }
-        }, 1000),
-        [importFormLink]
+        }, 1500),
+        []
     );
 
     useEffect(() => {
@@ -91,11 +90,9 @@ const ImportForm = () => {
     };
 
     useEffect(() => {
-        if (importFormLink) {
-            setIsLoading(true);
-            setError(false);
-            checkFormUrlPattern(importFormLink);
-        }
+        setIsLoading(true);
+        setError(false);
+        checkFormUrlPattern(importFormLink);
     }, [importFormLink]);
 
     const getLoadingTextType = () => {
