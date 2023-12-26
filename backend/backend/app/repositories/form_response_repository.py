@@ -12,7 +12,7 @@ from fastapi_pagination import Page
 
 from backend.app.models.filter_queries.form_responses import FormResponseFilterQuery
 from backend.app.models.filter_queries.sort import SortRequest
-from backend.app.models.response_dtos import StandardFormResponseCamelModel
+from backend.app.models.dtos.response_dtos import StandardFormResponseCamelModel
 from backend.app.repositories.deletion_requests_repository import (
     DeletionRequestsRepository,
 )

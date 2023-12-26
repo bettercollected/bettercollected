@@ -4,7 +4,7 @@ from models.import_forms_params import ImportFormParams
 from settings.application import settings
 
 with workflow.unsafe.imports_passed_through():
-    from wrappers.APMWrapper import APMAsyncHttpClient
+    from wrappers.apm_wrapper import APMAsyncHttpClient
 
 
 @activity.defn(name="import_form")

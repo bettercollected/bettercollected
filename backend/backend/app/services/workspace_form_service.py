@@ -7,25 +7,30 @@ from beanie import PydanticObjectId
 from common.constants import MESSAGE_NOT_FOUND
 from common.enums.plan import Plans
 from common.models.form_import import FormImportRequestBody
-from common.models.standard_form import StandardForm, StandardFormResponse
+from common.models.standard_form import StandardForm, StandardFormResponse, Trigger
 from common.models.user import User
 from fastapi import UploadFile
 from starlette.requests import Request
 
 from backend.app.exceptions import HTTPException
 from backend.app.models.dataclasses.user_tokens import UserTokens
-from backend.app.models.response_dtos import FormFileResponse
-from backend.app.models.workspace import WorkspaceFormSettings
+from backend.app.models.dtos.action_dto import AddActionToFormDto, UpdateActionInFormDto
+from backend.app.models.dtos.kafka_event_dto import KafkaEventType
+from backend.app.models.dtos.response_dtos import FormFileResponse, StandardFormCamelModel
+from backend.app.models.workspace import WorkspaceFormSettings, WorkspaceRequestDto
 from backend.app.repositories.workspace_form_repository import WorkspaceFormRepository
 from backend.app.schedulers.form_schedular import FormSchedular
 from backend.app.schemas.standard_form import FormDocument
 from backend.app.schemas.template import FormTemplateDocument
+from backend.app.schemas.workspace import WorkspaceDocument
 from backend.app.schemas.workspace_form import WorkspaceFormDocument
+from backend.app.services.actions_service import ActionService
 from backend.app.services.aws_service import AWSS3Service
 from backend.app.services.form_import_service import FormImportService
 from backend.app.services.form_plugin_provider_service import FormPluginProviderService
 from backend.app.services.form_response_service import FormResponseService
 from backend.app.services.form_service import FormService
+from backend.app.services.kafka_service import event_logger_service
 from backend.app.services.plugin_proxy_service import PluginProxyService
 from backend.app.services.responder_groups_service import ResponderGroupsService
 from backend.app.services.temporal_service import TemporalService
@@ -51,6 +56,7 @@ class WorkspaceFormService:
         user_tags_service: UserTagsService,
         temporal_service: TemporalService,
         aws_service: AWSS3Service,
+        action_service: ActionService
     ):
         self.form_provider_service = form_provider_service
         self.plugin_proxy_service = plugin_proxy_service
@@ -65,6 +71,12 @@ class WorkspaceFormService:
         self.user_tags_service = user_tags_service
         self.temporal_service = temporal_service
         self._aws_service = aws_service
+        self.action_service = action_service
+
+    async def check_form_exists_in_workspace(self, workspace_id: PydanticObjectId, form_id: str):
+        if not await self.workspace_form_repository.check_if_form_exists_in_workspace(workspace_id=workspace_id,
+                                                                                      form_id=form_id):
+            raise HTTPException(HTTPStatus.NOT_FOUND, MESSAGE_NOT_FOUND)
 
     # TODO : Use plugin interface for importing for now endpoint is used here
     async def import_form_to_workspace(
@@ -109,7 +121,7 @@ class WorkspaceFormService:
             if standard_form.settings and standard_form.settings.embed_url
             else ""
         )
-        await self.workspace_form_repository.save_workspace_form(
+        workspace_form = await self.workspace_form_repository.save_workspace_form(
             workspace_id=workspace_id,
             form_id=standard_form.form_id,
             user_id=user.id,
@@ -126,6 +138,11 @@ class WorkspaceFormService:
         await self.temporal_service.add_scheduled_job_for_importing_form(
             workspace_id=workspace_id, form_id=standard_form.form_id
         )
+
+        await event_logger_service.send_event(event_type=KafkaEventType.FORM_IMPORTED, user_id=user.id)
+
+        response_dict = {**standard_form.dict(), "settings": workspace_form.settings}
+        return StandardFormCamelModel(**response_dict)
 
     async def convert_form(self, *, provider, request, form_import):
         provider_url = await self.form_provider_service.get_provider_url(provider)
@@ -429,9 +446,19 @@ class WorkspaceFormService:
             )
         if not response.dataOwnerIdentifier and user:
             response.dataOwnerIdentifier = user.sub
-        return await self.form_response_service.submit_form_response(
+
+        form_response = await self.form_response_service.submit_form_response(
             form_id=form_id, response=response, workspace_id=workspace_id
         )
+
+        form = await self.form_service.get_form_document_by_id(form_id=str(form_id))
+
+        # TODO resolve circular deps for workspace service to get workspace details
+        workspace = await WorkspaceDocument.find_one(WorkspaceDocument.id == workspace_id)
+        await self.action_service.start_actions_for_submission(form=form,
+                                                               response=form_response,
+                                                               workspace=WorkspaceRequestDto(**workspace.dict()))
+        return form_response
 
     async def delete_form_response(
         self,
@@ -513,5 +540,27 @@ class WorkspaceFormService:
             duplicated_form.settings = workspace_form.settings
         return duplicated_form
 
+    async def add_action_to_form(self, workspace_id: PydanticObjectId, form_id: PydanticObjectId,
+                                 add_action_to_form_params: AddActionToFormDto, user: User):
+        await self.check_form_exists_in_workspace(workspace_id=workspace_id, form_id=str(form_id))
+        await self.workspace_user_service.check_user_has_access_in_workspace(workspace_id=workspace_id, user=user)
+        action = await self.action_service.get_action_by_id(action_id=add_action_to_form_params.action_id)
+        if action is None:
+            raise HTTPException(status_code=HTTPStatus.NOT_FOUND, content=MESSAGE_NOT_FOUND)
+        await self.action_service.create_action_in_workspace_from_action(workspace_id=workspace_id,
+                                                                         action=action)
+        updated_form = await self.form_service.add_action_form(form_id=form_id,
+                                                               add_action_to_form_params=add_action_to_form_params)
+        return updated_form.actions
 
-# async def upload_images_of_form
+    async def remove_action_from_form(self, workspace_id: PydanticObjectId, form_id: PydanticObjectId,
+                                      action_id: PydanticObjectId, trigger: Trigger, user: User):
+        await self.check_form_exists_in_workspace(workspace_id=workspace_id, form_id=str(form_id))
+        await self.workspace_user_service.check_user_has_access_in_workspace(workspace_id=workspace_id, user=user)
+        return await self.form_service.remove_action_from_form(form_id=form_id, action_id=action_id, trigger=trigger)
+
+    async def update_action_status_in_form(self, workspace_id: PydanticObjectId, form_id: PydanticObjectId,
+                                           update_action_dto: UpdateActionInFormDto, user: User):
+        await self.check_form_exists_in_workspace(workspace_id=workspace_id, form_id=str(form_id))
+        await self.workspace_user_service.check_user_has_access_in_workspace(workspace_id=workspace_id, user=user)
+        await self.form_service.update_state_of_action_in_form(form_id=form_id, update_action_dto=update_action_dto)

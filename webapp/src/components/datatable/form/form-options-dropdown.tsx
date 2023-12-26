@@ -127,7 +127,7 @@ export default function FormOptionsDropdownMenu({ workspace, form, hasCustomDoma
             });
     };
     const menuItemPinSettings = (
-        <MenuItem sx={{ paddingX: '20px', paddingY: '10px', height: '36px' }} className="body4 hover:bg-brand-100" onClick={(e) => onPinnedChange(e, currentActiveForm?.form)} disabled={!!currentActiveForm?.form?.settings?.private}>
+        <MenuItem sx={{ paddingX: '20px', paddingY: '10px', height: '36px' }} className="body4 hover:bg-brand-100" onClick={(e) => onPinnedChange(e, currentActiveForm?.form)} disabled={!!currentActiveForm?.form?.settings?.private || !!currentActiveForm?.form?.settings?.hidden}>
             <ListItemIcon>
                 <Pin width={20} height={20} className="text-black-600" />
             </ListItemIcon>
@@ -218,17 +218,17 @@ export default function FormOptionsDropdownMenu({ workspace, form, hasCustomDoma
     return (
         <div className={className + ' !text-black-900'} onClick={(e) => e.preventDefault()}>
             <MenuDropdown width={210} onClick={(e: any) => handleClick(e, form)} id="form-menu" menuTitle={t(toolTipConstant.formOptions)} menuContent={<EllipsisOption />} showExpandMore={false}>
-                {menuItemOpen}
-                {currentActiveForm?.form?.settings?.provider === 'self' && environments.ENABLE_FORM_BUILDER && menuItemEdit}
                 {form?.isPublished &&
                     isFormOpen &&
-                    (!!currentActiveForm?.form?.settings?.private ? (
-                        <Tooltip title={t(toolTipConstant.visibility)}>
+                    (!!currentActiveForm?.form?.settings?.private || !!currentActiveForm?.form?.settings?.hidden ? (
+                        <Tooltip title={t(toolTipConstant.visibility)} placement={'top'} >
                             <span>{menuItemPinSettings}</span>
                         </Tooltip>
                     ) : (
                         menuItemPinSettings
                     ))}
+                {menuItemOpen}
+                {currentActiveForm?.form?.settings?.provider === 'self' && environments.ENABLE_FORM_BUILDER && menuItemEdit}
                 {form?.isPublished && !form?.settings?.hidden && isFormOpen && menuItemCopy}
                 {form?.isPublished && !form?.settings?.hidden && isFormOpen && menuItemCustomizeLink}
                 {form?.isPublished && menuItemAddToGroup}

@@ -2,7 +2,7 @@ import React from 'react';
 
 export default function Empty({ props }: any) {
     return (
-        <svg width="132" height="150" viewBox="0 0 132 150" fill="none" xmlns="http://www.w3.org/2000/svg" {...props}>
+        <svg width="90" height="120" viewBox="0 0 132 150" fill="none" xmlns="http://www.w3.org/2000/svg" {...props}>
             <path
                 fillRule="evenodd"
                 clipRule="evenodd"

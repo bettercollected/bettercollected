@@ -10,7 +10,10 @@ import environments from '@app/configs/environments';
 import {onBoarding} from '@app/constants/locales/onboarding-screen';
 import {FormDataDto} from '@app/containers/Onboarding';
 import {useAppSelector} from '@app/store/hooks';
-import {useLazyGetWorkspaceNameAvailabilityQuery} from '@app/store/workspaces/api';
+import {
+    useLazyGetWorkspaceNameAvailabilityQuery,
+    useLazyGetWorkspaceNameSuggestionsQuery
+} from '@app/store/workspaces/api';
 import {selectWorkspace} from '@app/store/workspaces/slice';
 
 import {InfoIcon} from '../icons/info-icon';
@@ -18,7 +21,6 @@ import {checkIfPredefinedWorkspaceName} from "@app/utils/workspaceNameUtils";
 
 interface ITextFieldHandler {
     formData: FormDataDto;
-    workspaceNameSuggestion: string;
     setFormData: any;
     errorWorkspaceName: boolean;
     setIsErrorOnTextField: any;
@@ -26,12 +28,12 @@ interface ITextFieldHandler {
 
 const TextFieldHandler = ({
                               formData,
-                              workspaceNameSuggestion,
                               setFormData,
                               errorWorkspaceName,
                               setIsErrorOnTextField
                           }: ITextFieldHandler) => {
     const [getWorkspaceAvailability, {isLoading: isCheckingHandleName}] = useLazyGetWorkspaceNameAvailabilityQuery();
+    const [trigger] = useLazyGetWorkspaceNameSuggestionsQuery();
     const {t} = useTranslation();
     const workspace = useAppSelector(selectWorkspace);
 
@@ -46,6 +48,8 @@ const TextFieldHandler = ({
 
     const [isErrorWorkspaceName, setIsErrorWorkspaceName] = useState(false);
     const [errorMessage, setErrorMessage] = useState('');
+    const [workspaceNameSuggestion, setWorkspaceNameSuggestion] = useState<string>('');
+    const [handleName, setHandleName] = useState(formData.title);
 
     useEffect(() => {
         setIsErrorOnTextField(isErrorWorkspaceName)
@@ -86,14 +90,20 @@ const TextFieldHandler = ({
         setFormData({...formData, workspaceName: suggestion});
     };
 
-    const [handleName, setHandleName] = useState(formData.title);
-
     useEffect(() => {
         const title = formData.title
             .replace(/\s/g, '')
             .replace(/[^a-zA-Z0-9]/g, '')
             .toLowerCase();
-        setHandleName(title);
+        getAvailabilityStatusOfWorkspaceName(title).then((availability) => {
+            if (!availability) {
+                fetchSuggestionsForWorkspaceHandle(title).then((suggestion) =>
+                    setHandleName(suggestion)
+                )
+            } else {
+                setHandleName(title);
+            }
+        })
         setFormData({
             ...formData,
             workspaceName: title
@@ -127,6 +137,29 @@ const TextFieldHandler = ({
         });
         setHandleName(inputText.toLowerCase());
     };
+
+    const fetchSuggestionsForWorkspaceHandle = async (text: string) => {
+        if (!!text) {
+            const request = {
+                workspaceId: workspace?.id,
+                title: text.toLowerCase()
+            };
+            const {isSuccess, data} = await trigger(request);
+            if (isSuccess) {
+                const suggestion = data[Math.floor(Math.random() * 4) + 1];
+                setWorkspaceNameSuggestion(suggestion);
+                return suggestion;
+            }
+        }
+        fetchSuggestionsForWorkspaceHandle(formData.title)
+        return;
+    };
+
+    useEffect(() => {
+        if (isErrorWorkspaceName) {
+            fetchSuggestionsForWorkspaceHandle(handleName)
+        }
+    }, [isErrorWorkspaceName]);
 
     return (
         <div>
