@@ -98,7 +98,7 @@ const WorkspaceDashboardOverview = ({ workspace }: IWorkspaceDashboardOverviewPr
                                         <AuthAccountProfileImage image={user.profileImage} name={user?.firstName || user?.lastName || user?.email} size={40} variant="circular" />
                                     </div>
                                 ))}
-                                {data && data?.length > 2 && <div className="bg-gray-200 h-10 w-10 p-2 rounded-full text-black-800 font-bold">+ {data?.length - 1}</div>}
+                                {data && data?.length > 2 && <div className="bg-gray-200 flex items-center justify-center text-sm  h-10 w-10 rounded-full text-black-800 font-bold">+ {data?.length - 2}</div>}
                             </div>
                         </div>
                     </div>
