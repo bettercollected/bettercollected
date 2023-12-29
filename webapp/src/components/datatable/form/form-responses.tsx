@@ -36,7 +36,7 @@ export default function FormResponsesTable({ props }: any) {
 
     const { data, isLoading } = useGetFormsSubmissionsQuery(query);
 
-    const [showTabularResponses, setShowTabularResponses] = useState(form?.provider === 'self' && localStorage.getItem('tabularResponses') === 'true');
+    const [showTabularResponses, setShowTabularResponses] = useState(form?.provider === 'self' && !requestForDeletion && localStorage.getItem('tabularResponses') === 'true');
 
     const handleSearch = (event: any) => {
         if (event.target.value) setQuery({ ...query, dataOwnerIdentifier: event.target.value });
@@ -67,7 +67,7 @@ export default function FormResponsesTable({ props }: any) {
                 </div>
                 <div className="w-full md:w-[282px] flex items-end flex-col gap-4">
                     <SearchInput handleSearch={handleSearch} placeholder={t(formPage.searchByEmail)} className="!bg-black-300" />
-                    {form?.settings?.provider === 'self' && (
+                    {form?.settings?.provider === 'self' && !requestForDeletion && (
                         <div className="flex bg-gray-100  rounded-lg cursor-pointer overflow-hidden w-fit">
                             <div
                                 className={`p-3 ${!showTabularResponses ? 'bg-black-300' : ''}`}

@@ -111,7 +111,7 @@ export default function FormBuilderBlock({ item, draggableId, setBackspaceCount 
                     onKeyDown={(event: KeyboardEvent<HTMLDivElement>) => onKeyDownCallback(event, provided)}
                     {...provided.draggableProps}
                 >
-                    <div className={` min-h-[24px] builder-block flex items-center  ${getMarginTop()}`}>
+                    <div className={` min-h-[24px] builder-block flex items-center ${item?.properties?.hidden ? 'opacity-40' : ''}  ${getMarginTop()}`}>
                         <FormBuilderActionMenu index={item.position} id={item.id} provided={provided} className={!isMobile && builderState.activeFieldIndex !== item.position ? 'invisible' : 'visible'} />
                         {!isContentEditableTag(item.type) ? (
                             <FormBuilderBlockContent id={`item-${item.id}`} type={item.type} position={item.position} field={item} />

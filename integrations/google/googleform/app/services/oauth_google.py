@@ -334,3 +334,6 @@ class OauthGoogleService:
         return await self.oauth_credential_repo.delete_oauth_credential_for_user(
             email=email, user_id=user_id
         )
+
+    async def get_oauth_credentials_for_user(self, email: EmailStr, user_id: str):
+        return await self.oauth_credential_repo.get(email=email, user_id=user_id)

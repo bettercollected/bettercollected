@@ -65,6 +65,8 @@ jobs:
           - integrations/typeform
           - webapp
           - temporal/worker
+          - temporal/actions-executor
+
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code with submodules
@@ -100,6 +102,7 @@ jobs:
           - integrations/typeform
           - webapp
           - temporal/worker
+          - temporal/actions-executor
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code with submodules
@@ -155,6 +158,8 @@ jobs:
           - integrations/typeform
           - webapp
           - temporal/worker
+          - temporal/actions-executor
+          
     runs-on: ubuntu-latest
     steps:
       - name: Deploy built Image

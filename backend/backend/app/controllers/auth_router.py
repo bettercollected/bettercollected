@@ -128,7 +128,7 @@ class AuthRoutes(Routable):
             provider_name=provider_name, state=state, request=request, user=user
         )
         response = RedirectResponse(
-            state_data.client_referer_uri + "?modal=" + provider_name
+            state_data.client_referer_uri
         )
         set_tokens_to_response(user, response)
         if state_data.client_referer_uri:
@@ -152,9 +152,14 @@ class AuthRoutes(Routable):
         creator: bool = False,
         prospective_pro_user: bool = False,
     ):
+        provider_name = ''
+        if provider == FormProvider.GOOGLE:
+            provider_name = 'google'
+        else:
+            provider_name = 'typeform'
         client_referer_url = request.headers.get("referer")
         basic_auth_url = await self.auth_service.get_basic_auth_url(
-            provider,
+            provider_name,
             client_referer_url,
             creator=creator,
             prospective_pro_user=prospective_pro_user,
@@ -173,10 +178,15 @@ class AuthRoutes(Routable):
         code: Optional[str] = None,
         state: Optional[str] = None,
     ):
+        provider_name = ''
+        if provider == FormProvider.GOOGLE:
+            provider_name = 'google'
+        else:
+            provider_name = 'typeform'
         if not state or not code:
             return {"message": "You cancelled the authorization request."}
         user, client_referer_url = await self.auth_service.basic_auth_callback(
-            provider, code, state
+            provider_name, code, state
         )
         response = RedirectResponse(client_referer_url)
         if user:

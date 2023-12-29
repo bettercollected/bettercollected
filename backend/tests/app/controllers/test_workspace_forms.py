@@ -8,7 +8,7 @@ from common.constants import MESSAGE_FORBIDDEN
 from common.models.standard_form import StandardForm
 
 from backend.app.container import container
-from backend.app.models.response_dtos import StandardFormCamelModel
+from backend.app.models.dtos.response_dtos import StandardFormCamelModel
 from backend.app.schemas.responder_group import ResponderGroupFormDocument
 from backend.app.schemas.standard_form import FormDocument
 from backend.app.schemas.standard_form_response import (
@@ -610,10 +610,9 @@ class TestWorkspaceForm:
                 import_form_url, cookies=test_user_cookies, json=form_body
             )
 
-            expected_response = {"message": "Import successful."}
             actual_response = import_form.json()
             assert import_form.status_code == 200
-            assert actual_response == expected_response
+            assert actual_response.get("title") == form_body.get("form").get("title")
 
     def test_unauthorized_user_import_form_to_workspace_fails(
         self,
@@ -674,10 +673,9 @@ class TestWorkspaceForm:
                 import_form_url, cookies=test_pro_user_cookies, json=form_body
             )
 
-            expected_response = {"message": "Import successful."}
             actual_response = import_form.json()
             assert import_form.status_code == 200
-            assert actual_response == expected_response
+            assert actual_response.get("title") == form_body.get("form").get("title")
 
     async def test_normal_user_importing_more_than_100_form_fails(
         self,

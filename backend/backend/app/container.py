@@ -9,6 +9,7 @@ from common.services.jwt_service import JwtService
 from dependency_injector import containers, providers
 from motor.motor_asyncio import AsyncIOMotorClient
 
+from backend.app.repositories.action_repository import ActionRepository
 from backend.app.repositories.form_plugin_provider_repository import (
     FormPluginProviderRepository,
 )
@@ -29,6 +30,7 @@ from backend.app.repositories.workspace_responders_repository import (
 )
 from backend.app.repositories.workspace_user_repository import WorkspaceUserRepository
 from backend.app.schedulers.form_schedular import FormSchedular
+from backend.app.services.actions_service import ActionService
 from backend.app.services.auth_service import AuthService
 from backend.app.services.aws_service import AWSS3Service
 from backend.app.services.feedback_service import UserFeedbackService
@@ -36,6 +38,7 @@ from backend.app.services.form_import_service import FormImportService
 from backend.app.services.form_plugin_provider_service import FormPluginProviderService
 from backend.app.services.form_response_service import FormResponseService
 from backend.app.services.form_service import FormService
+from backend.app.services.kafka_service import KafkaService
 from backend.app.services.plugin_proxy_service import PluginProxyService
 from backend.app.services.responder_groups_service import ResponderGroupsService
 from backend.app.services.stripe_service import StripeService
@@ -85,8 +88,11 @@ class AppContainer(containers.DeclarativeContainer):
 
     responder_groups_repository = providers.Singleton(ResponderGroupsRepository)
 
-    # Services
     crypto = providers.Singleton(Crypto, settings.auth_settings.AES_HEX_KEY)
+
+    action_repository = providers.Singleton(
+        ActionRepository, crypto=crypto
+    )
 
     temporal_service = providers.Singleton(
         TemporalService,
@@ -119,6 +125,7 @@ class AppContainer(containers.DeclarativeContainer):
         form_repo=form_repo,
         workspace_form_repo=workspace_form_repo,
         user_tags_service=user_tags_service,
+        crypto=crypto
     )
 
     form_response_service: FormResponseService = providers.Singleton(
@@ -166,6 +173,13 @@ class AppContainer(containers.DeclarativeContainer):
         form_service=form_service,
     )
 
+    action_service = providers.Singleton(
+        ActionService,
+        action_repository=action_repository,
+        temporal_service=temporal_service,
+        workspace_user_service=workspace_user_service
+    )
+
     workspace_form_service: WorkspaceFormService = providers.Singleton(
         WorkspaceFormService,
         form_provider_service=form_provider_service,
@@ -181,7 +195,9 @@ class AppContainer(containers.DeclarativeContainer):
         user_tags_service=user_tags_service,
         temporal_service=temporal_service,
         aws_service=aws_service,
+        action_service=action_service
     )
+
     workspace_service: WorkspaceService = providers.Singleton(
         WorkspaceService,
         http_client=http_client,
