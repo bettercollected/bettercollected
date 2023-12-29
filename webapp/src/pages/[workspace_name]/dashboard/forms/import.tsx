@@ -40,13 +40,9 @@ export default function ImportFormPage() {
         if (verificationError || data?.status_code === 400) {
             openModal('OAUTH_VERIFICATION_MODAL', { provider: 'google', nonClosable: true });
         }
-
-        if (data?.status_code === 200) {
-            router.push(`/${workspace?.workspaceName}/dashboard/forms/import`);
-        }
     }, [verificationError, data]);
     const handleClickBack = () => {
-        router.back();
+        router.push(`/${workspace?.workspaceName}/dashboard`);
     };
 
     return (
