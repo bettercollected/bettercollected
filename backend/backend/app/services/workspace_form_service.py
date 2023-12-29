@@ -15,7 +15,7 @@ from starlette.requests import Request
 from backend.app.exceptions import HTTPException
 from backend.app.models.dataclasses.user_tokens import UserTokens
 from backend.app.models.dtos.action_dto import AddActionToFormDto, UpdateActionInFormDto
-from backend.app.models.dtos.kafka_event_dto import KafkaEventType
+from backend.app.models.dtos.kafka_event_dto import UserEventType
 from backend.app.models.dtos.response_dtos import FormFileResponse, StandardFormCamelModel
 from backend.app.models.workspace import WorkspaceFormSettings, WorkspaceRequestDto
 from backend.app.repositories.workspace_form_repository import WorkspaceFormRepository
@@ -139,7 +139,7 @@ class WorkspaceFormService:
             workspace_id=workspace_id, form_id=standard_form.form_id
         )
 
-        await event_logger_service.send_event(event_type=KafkaEventType.FORM_IMPORTED, user_id=user.id)
+        await event_logger_service.send_event(event_type=UserEventType.FORM_IMPORTED, user_id=user.id)
 
         response_dict = {**standard_form.dict(), "settings": workspace_form.settings}
         return StandardFormCamelModel(**response_dict)
