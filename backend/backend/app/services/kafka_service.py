@@ -6,7 +6,7 @@ from aiokafka import AIOKafkaProducer
 from aiokafka.errors import KafkaConnectionError
 from pydantic import BaseModel
 
-from backend.app.models.dtos.kafka_event_dto import KafkaEventType, KafkaEventDto
+from backend.app.models.dtos.kafka_event_dto import UserEventType, UserEventDto
 from backend.config import settings
 
 
@@ -45,8 +45,8 @@ class KafkaService:
         except KafkaConnectionError as e:
             loguru.logger.info("Could not connect to Kafka service")
 
-    async def send_event(self, event_type: KafkaEventType, user_id: str):
-        event_message = KafkaEventDto(event_type=event_type, user_id=user_id)
+    async def send_event(self, event_type: UserEventType, user_id: str):
+        event_message = UserEventDto(event_type=event_type, user_id=user_id)
         if settings.kafka_settings.enabled:
             try:
                 await self.producer.send_and_wait(settings.kafka_settings.topic, event_message)
@@ -89,13 +89,13 @@ class KafkaService:
 
 def get_enthusiastic_text(event_type):
     enthusiastic_texts = {
-        KafkaEventType.USER_CREATED: "Awesome! A new user has joined us!",
-        KafkaEventType.FORM_IMPORTED: "Exciting news! A form has been imported.",
-        KafkaEventType.SLUG_CHANGED: "Wow! The slug of a form has been changed.",
-        KafkaEventType.ACCOUNT_DELETED: "Oh no! An account has been deleted.",
-        KafkaEventType.USER_UPGRADED_TO_PRO: "Fantastic! A user has upgraded to Pro.",
-        KafkaEventType.USER_DOWNGRADED: "Oops! A user has been downgraded.",
-        KafkaEventType.CUSTOM_DOMAIN_CHANGED: "Amazing! The custom domain has been changed."
+        UserEventType.USER_CREATED: "Awesome! A new user has joined us!",
+        UserEventType.FORM_IMPORTED: "Exciting news! A form has been imported.",
+        UserEventType.SLUG_CHANGED: "Wow! The slug of a form has been changed.",
+        UserEventType.ACCOUNT_DELETED: "Oh no! An account has been deleted.",
+        UserEventType.USER_UPGRADED_TO_PRO: "Fantastic! A user has upgraded to Pro.",
+        UserEventType.USER_DOWNGRADED: "Oops! A user has been downgraded.",
+        UserEventType.CUSTOM_DOMAIN_CHANGED: "Amazing! The custom domain has been changed."
     }
 
     if event_type in enthusiastic_texts:
