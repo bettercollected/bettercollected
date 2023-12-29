@@ -11,6 +11,8 @@ import FormProviderContext from '@app/Contexts/FormProviderContext';
 import { useModal } from '@app/components/modal-views/context';
 import { buttonConstant } from '@app/constants/locales/button';
 import { toolTipConstant } from '@app/constants/locales/tooltip';
+import { useAppSelector } from '@app/store/hooks';
+import { selectWorkspace } from '@app/store/workspaces/slice';
 
 export default function ImportFormsButton({ size, className = '' }: { size?: ButtonSize; className?: string }) {
     const { openModal } = useModal();
@@ -18,32 +20,16 @@ export default function ImportFormsButton({ size, className = '' }: { size?: But
     const { t } = useTranslation();
     const formProviders = useContext(FormProviderContext);
 
+    const workspace = useAppSelector(selectWorkspace);
+
     const [providers, setProviders] = useState<Record<string, boolean>>({
         google: false,
         typeform: false
     });
 
     const handleClick = () => {
-        openModal('IMPORT_PROVIDER_FORMS_VIEW', { provider: null, providers });
+        router.push(`/${workspace?.workspaceName}/dashboard/forms/import`);
     };
-
-    useEffect(() => {
-        const { modal, ...other } = router.query;
-        if (modal) {
-            router.push({ query: other }, undefined, { shallow: true }).then(() => {
-                switch (modal) {
-                    case 'google':
-                        openModal('IMPORT_PROVIDER_FORMS_VIEW', { provider: 'google', providers });
-                        break;
-                    case 'typeform':
-                        openModal('IMPORT_PROVIDER_FORMS_VIEW', { provider: 'typeform', providers });
-                        break;
-                    default:
-                        break;
-                }
-            });
-        }
-    }, []);
 
     useEffect(() => {
         const providersRecord: Record<string, boolean> = {};

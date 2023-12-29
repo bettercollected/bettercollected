@@ -228,13 +228,12 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                 return (
                     <FormSettingsCard className={'!space-y-0 !mt-0'}>
                         <p className="w-full body4 !text-black-700 lg:w-[564px]">{t(formPage.linksDescription)}</p>
-                        <div className={'flex flex-row gap-2 items-start py-1 '}>
+                        <div className={'flex lg:flex-row flex-col gap-2 mt-1  items-start lg:items-center py-1 '}>
                             <Tooltip title={t('CLICK_TO_COPY')}>
-                                <p className="body4 !text-black-700 mt-1 mb-11 truncate cursor-pointer" onClick={handleOnCopy}>
+                                <p className="body4 !text-black-700 truncate cursor-pointer max-w-full" onClick={handleOnCopy}>
                                     {isCustomDomain ? customDomain : clientHost}/<span className={'text-pink-500'}>{customUrl}</span>
                                 </p>
                             </Tooltip>
-
                             <AppButton
                                 className={'!py-0'}
                                 icon={<EditIcon className="h-4 w-4" />}
@@ -249,7 +248,7 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                                 {t(formPage.linksChangeSlug)}
                             </AppButton>
                         </div>
-                        <div className={'flex flex-col gap-16'}>
+                        <div className="flex flex-col gap-16 pt-10">
                             {isCustomDomain && <FormLinkUpdateView isCustomDomain={isCustomDomain} link={customDomainUrl} isProUser={!isAdmin || workspace?.isPro} />}
                             <FormLinkUpdateView isCustomDomain={false} link={clientHostUrl} isDisable={!isProPlan && !isAdmin} isProUser={!isAdmin || workspace?.isPro} />
                         </div>

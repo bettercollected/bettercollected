@@ -189,13 +189,13 @@ const OnboardingContainer = ({workspace, createWorkspace}: onBoardingProps) => {
                             <></>
                         )}
                     </div>
-                    <TextFieldHandler formData={formData} workspaceNameSuggestion={workspaceNameSuggestion}
+                    <TextFieldHandler formData={formData}
                                       setFormData={setFormData} errorWorkspaceName={errorWorkspaceName}
                                       setIsErrorOnTextField={setIsErrorOnWorkspaceNameField}/>
                     < AppTextField title="Add Your Organization Description" id="description"
                                    placeholder="Write Description" multiline value={formData.description}
                                    onChange={handleOnchange}/>
-                    <AppButton className="w-full " type="submit" size={ButtonSize.Medium}
+                    <AppButton size={ButtonSize.Medium} className="w-full " type="submit"
                                disabled={isErrorOnWorkspaceNameField}>
                         {t(onBoarding.addNowButton)}
                     </AppButton>

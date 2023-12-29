@@ -44,6 +44,9 @@ export const slice = createSlice({
         },
         setFormSettings: (state, action) => {
             return { ...state, settings: action.payload };
+        },
+        resetSingleForm: () => {
+            return initFormState;
         }
     }
 });
@@ -60,6 +63,6 @@ const formReducer = persistReducer(
 const reducerObj = { reducerPath: slice.name, reducer: formReducer };
 
 export const selectForm = (state: RootState) => state.form;
-export const { setForm, setFormSettings } = slice.actions;
+export const { setForm, setFormSettings, resetSingleForm } = slice.actions;
 
 export default reducerObj;

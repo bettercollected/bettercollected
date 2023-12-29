@@ -9,7 +9,7 @@ from gunicorn.config import User
 
 from backend.app.exceptions import HTTPException
 from backend.app.models.dataclasses.user_tokens import UserTokens
-from backend.app.models.minified_form import MinifiedForm
+from backend.app.models.dtos.minified_form import FormDtoCamelModel
 from backend.app.models.template import StandardFormTemplate, StandardTemplateSetting
 from backend.app.repositories.template import FormTemplateRepository
 from backend.app.services.aws_service import AWSS3Service
@@ -37,7 +37,7 @@ class FormTemplateService:
     async def get_templates(self, workspace_id: PydanticObjectId, user: User):
         predefined_workspace = False
         if not workspace_id:
-            workspace_id = settings.template_settings.PREDEFINED_WORKSPACE_ID
+            workspace_id = settings.default_workspace_settings.WORKSPACE_ID
             predefined_workspace = True
         else:
             await self.workspace_user_service.check_user_has_access_in_workspace(
@@ -82,7 +82,7 @@ class FormTemplateService:
             workspace_id=workspace_id, user=user
         )
         template = await self.form_template_repo.get_template_by_id(template_id)
-        minified_form = MinifiedForm(**template.dict())
+        minified_form = FormDtoCamelModel(**template.dict())
         return await self.workspace_form_service.create_form(
             workspace_id=workspace_id,
             form=StandardForm(**minified_form.dict()),

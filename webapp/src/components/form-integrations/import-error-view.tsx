@@ -7,9 +7,7 @@ import { Disclosure } from '@headlessui/react';
 import { Checkbox, FormControlLabel } from '@mui/material';
 
 import { ChevronDown } from '@app/components/icons/chevron-down';
-import { Close } from '@app/components/icons/close';
 import ConnectWithProviderButton from '@app/components/login/login-with-google-button';
-import { useModal } from '@app/components/modal-views/context';
 import environments from '@app/configs/environments';
 
 interface ImportErrorViewProps {
@@ -37,16 +35,9 @@ interface IDefaultContent {
 }
 
 export default function ImportErrorView({ provider }: ImportErrorViewProps) {
-    const { closeModal } = useModal();
     const [isConsentGiven, setIsConsentGiven] = useState(false);
 
     const googlePermissions: Array<IPermission> = [
-        {
-            type: 'sensitive',
-            isPermissionGiven: false,
-            name: 'Permissions to search for Google Forms on your Drive',
-            description: 'To show the form on bettercollected, we require permissions to fetch the details of the forms like form descriptions and questions.'
-        },
         {
             type: 'sensitive',
             isPermissionGiven: false,
@@ -86,9 +77,6 @@ export default function ImportErrorView({ provider }: ImportErrorViewProps) {
 
     return (
         <div className="text-sm relative flex items-center justify-center flex-col space-y-5 w-full md:max-w-[560px] rounded-md shadow-md bg-white py-10">
-            <div onClick={() => closeModal()} className="absolute right-3 top-3  cursor-pointer rounded-full p-3">
-                <Close className="cursor-pointer" />
-            </div>
             <div className="flex flex-col !mt-0 items-center justify-between">
                 <CheckedCircle />
                 <h2 className="text-black-900 font-semibold mt-6 text-lg md:text-xl whitespace-pre-wrap text-center">{defaultContent.permissionText}</h2>

@@ -13,6 +13,7 @@ from common.constants.plugin_routes import (
     PLUGIN_ROUTE_FORM_RESPONSES,
     PLUGIN_ROUTE_IMPORT_FORM,
     PLUGIN_ROUTE_IMPORT_FORMS,
+    PLUGIN_ROUTE_VERIFY
 )
 from common.enums.form_provider import FormProvider
 from common.enums.http_methods import HTTPMethods
@@ -33,14 +34,14 @@ class BasePluginRoute(Protocol):
 
     @abstractmethod
     async def get_form(
-        self, form_id: str, email: str, provider: str | FormProvider, request: Request
+            self, form_id: str, email: str, provider: str | FormProvider, request: Request
     ):
         raise NotImplementedError
 
     # TODO : Refactor this import form as single form get
     @abstractmethod
     async def import_form(
-        self, form_id: str, provider: str | FormProvider, request: Request
+            self, form_id: str, provider: str | FormProvider, request: Request
     ):
         raise NotImplementedError
 
@@ -52,20 +53,20 @@ class BasePluginRoute(Protocol):
 
     @abstractmethod
     async def create_form(
-        self,
-        email: str,
-        provider: str | FormProvider,
-        request_body: Dict[str, Any] = Body(...),
+            self,
+            email: str,
+            provider: str | FormProvider,
+            request_body: Dict[str, Any] = Body(...),
     ):
         raise NotImplementedError
 
     @abstractmethod
     async def update_form(
-        self,
-        form_id: str,
-        email: str,
-        provider: str | FormProvider,
-        request_body: Dict[str, Any] = Body(...),
+            self,
+            form_id: str,
+            email: str,
+            provider: str | FormProvider,
+            request_body: Dict[str, Any] = Body(...),
     ):
         raise NotImplementedError
 
@@ -75,25 +76,29 @@ class BasePluginRoute(Protocol):
 
     @abstractmethod
     async def list_form_responses(
-        self, form_id: str, email: str, provider: str | FormProvider
+            self, form_id: str, email: str, provider: str | FormProvider
     ):
         raise NotImplementedError
 
     @abstractmethod
     async def get_form_response(
-        self, form_id: str, email: str, response_id: str, provider: str | FormProvider
+            self, form_id: str, email: str, response_id: str, provider: str | FormProvider
     ):
         raise NotImplementedError
 
     @abstractmethod
     async def delete_form_response(
-        self, form_id: str, email: str, response_id: str, provider: str | FormProvider
+            self, form_id: str, email: str, response_id: str, provider: str | FormProvider
     ):
+        raise NotImplementedError
+
+    @abstractmethod
+    async def verify_oauth_token(self, provider: str | FormProvider, request: Request):
         raise NotImplementedError
 
 
 def register_plugin_class(
-    router: CustomAPIRouter, route: BasePluginRoute, tags: List[str]
+        router: CustomAPIRouter, route: BasePluginRoute, tags: List[str]
 ):
     """Registers plugin class with required endpoints and method call.
 
@@ -125,7 +130,7 @@ def register_plugin_class(
         status_code=HTTPStatus.OK,
         methods=[HTTPMethods.GET],
         tags=tags,
-        responses={400:{"message":"Bad Request"}, 401: {"message": "Authorization token is missing."}}
+        responses={400: {"message": "Bad Request"}, 401: {"message": "Authorization token is missing."}}
     )
 
     # GET: Get Single Form from the provider
@@ -135,8 +140,8 @@ def register_plugin_class(
         status_code=HTTPStatus.OK,
         methods=[HTTPMethods.GET],
         tags=tags,
-        responses={400:{"message":"Bad Request"},401:{"message":"Authorization token is missing."},
-                   404:{"message": "Not found"},
+        responses={400: {"message": "Bad Request"}, 401: {"message": "Authorization token is missing."},
+                   404: {"message": "Not found"},
                    405: {"description": "Method not allowed"}
                    }
     )
@@ -149,7 +154,9 @@ def register_plugin_class(
         status_code=HTTPStatus.OK,
         methods=[HTTPMethods.GET],
         tags=tags,
-        responses={400:{"message":"Bad Request"}, 404:{"message":"Not found: The resource you are requesting is not available."}, 401:{"message":"Authorization token is missing."}}
+        responses={400: {"message": "Bad Request"},
+                   404: {"message": "Not found: The resource you are requesting is not available."},
+                   401: {"message": "Authorization token is missing."}}
     )
     # TODO : Refactor this import form as all forms
 
@@ -159,7 +166,8 @@ def register_plugin_class(
         status_code=HTTPStatus.OK,
         methods=[HTTPMethods.GET],
         tags=tags,
-        responses={400:{"message":"Bad Request"}, 404: {"message": "Not found: The resource you are requesting is not available."},
+        responses={400: {"message": "Bad Request"},
+                   404: {"message": "Not found: The resource you are requesting is not available."},
                    401: {"message": "Authorization token is missing."},
                    405: {"description": "Method not allowed"}
                    }
@@ -173,7 +181,7 @@ def register_plugin_class(
         status_code=HTTPStatus.CREATED,
         methods=[HTTPMethods.POST],
         tags=tags,
-        responses={400:{"message":"Bad Request"}, 401: {"message": "Authorization token is missing."},
+        responses={400: {"message": "Bad Request"}, 401: {"message": "Authorization token is missing."},
                    404: {"message": "Not found"},
                    405: {"description": "Method not allowed"}
                    }
@@ -186,7 +194,7 @@ def register_plugin_class(
         status_code=HTTPStatus.OK,
         methods=[HTTPMethods.PATCH],
         tags=tags,
-        responses={400:{"message":"Bad Request"}, 401: {"message": "Authorization token is missing."},
+        responses={400: {"message": "Bad Request"}, 401: {"message": "Authorization token is missing."},
                    404: {"message": "Not found"},
                    405: {"description": "Method not allowed"}
                    }
@@ -199,7 +207,7 @@ def register_plugin_class(
         status_code=HTTPStatus.NO_CONTENT,
         methods=[HTTPMethods.DELETE],
         tags=tags,
-        responses={400:{"message":"Bad Request"}, 401: {"message": "Authorization token is missing."},
+        responses={400: {"message": "Bad Request"}, 401: {"message": "Authorization token is missing."},
                    404: {"message": "Not found"},
                    405: {"description": "Method not allowed"}
                    }
@@ -212,7 +220,7 @@ def register_plugin_class(
         status_code=HTTPStatus.OK,
         methods=[HTTPMethods.GET],
         tags=tags,
-        responses={400:{"message":"Bad Request"}, 401: {"message": "Authorization token is missing."},
+        responses={400: {"message": "Bad Request"}, 401: {"message": "Authorization token is missing."},
                    404: {"message": "Not found"},
                    405: {"description": "Method not allowed"}
                    }
@@ -225,7 +233,7 @@ def register_plugin_class(
         status_code=HTTPStatus.OK,
         methods=[HTTPMethods.GET],
         tags=tags,
-        responses={400:{"message":"Bad Request"}, 401: {"message": "Authorization token is missing."},
+        responses={400: {"message": "Bad Request"}, 401: {"message": "Authorization token is missing."},
                    404: {"message": "Not found"},
                    405: {"description": "Method not allowed"}
                    }
@@ -238,7 +246,20 @@ def register_plugin_class(
         status_code=HTTPStatus.NO_CONTENT,
         methods=[HTTPMethods.DELETE],
         tags=tags,
-        responses={400:{"message":"Bad Request"}, 401: {"message": "Authorization token is missing."},
+        responses={400: {"message": "Bad Request"}, 401: {"message": "Authorization token is missing."},
+                   404: {"message": "Not found"},
+                   405: {"description": "Method not allowed"}
+                   }
+    )
+
+    # GET: Verify oauth access token
+    router.add_api_route(
+        PLUGIN_ROUTE_VERIFY,
+        endpoint=route.verify_oauth_token,
+        status_code=HTTPStatus.OK,
+        methods=[HTTPMethods.GET],
+        tags=tags,
+        responses={400: {"message": "Bad Request"}, 401: {"message": "Authorization token is missing."},
                    404: {"message": "Not found"},
                    405: {"description": "Method not allowed"}
                    }

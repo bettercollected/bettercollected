@@ -12,14 +12,16 @@ import FormProviderIcon from '@Components/Common/Icons/Form/FormProviderIcon';
 import Preview from '@Components/Common/Icons/Form/Preview';
 import AppButton from '@Components/Common/Input/Button/AppButton';
 import { ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
-import { Group, Share } from '@mui/icons-material';
+import { Group, IntegrationInstructions, Share } from '@mui/icons-material';
 
+import FormIntegrations from '@app/components/form/integrations';
 import BreadcrumbsRenderer from '@app/components/form/renderer/breadcrumbs-renderer';
 import { ChevronForward } from '@app/components/icons/chevron-forward';
 import { HistoryIcon } from '@app/components/icons/history';
 import { TrashIcon } from '@app/components/icons/trash';
 import { useModal } from '@app/components/modal-views/context';
 import ParamTab, { TabPanel } from '@app/components/ui/param-tab';
+import environments from '@app/configs/environments';
 import { breadcrumbsItems } from '@app/constants/locales/breadcrumbs-items';
 import { localesCommon } from '@app/constants/locales/common';
 import { formConstant } from '@app/constants/locales/form';
@@ -29,7 +31,7 @@ import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { BreadcrumbsItem } from '@app/models/props/breadcrumbs-item';
 import Error from '@app/pages/_error';
-import { selectForm, setForm } from '@app/store/forms/slice';
+import { resetSingleForm, selectForm, setForm } from '@app/store/forms/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { getFormUrl } from '@app/utils/urlUtils';
@@ -71,6 +73,9 @@ export default function FormPage(props: any) {
 
     useEffect(() => {
         dispatch(setForm(props.form));
+        return () => {
+            dispatch(resetSingleForm());
+        };
     }, [props.form]);
 
     if (!props && Object.keys(props).length === 0) {
@@ -93,29 +98,34 @@ export default function FormPage(props: any) {
     ];
 
     if (form?.isPublished) {
-        paramTabs.splice(
-            2,
-            0,
-            ...[
-                {
-                    icon: <HistoryIcon className="h-5 w-5" />,
-                    title: t(formConstant.responders) + ' (' + form.responses + ')',
-                    path: 'Responses'
-                },
-                {
-                    icon: <TrashIcon className="h-5 w-5" />,
-                    title: t(formConstant.deletionRequests) + ' (' + form.deletionRequests + ')',
-                    path: 'Deletion Request'
-                },
-                {
-                    icon: <Group className="h-5 w-5" />,
-                    title: t(formConstant.settings.visibility.title),
-                    path: 'FormVisibility'
-                }
-            ]
-        );
+        const additionalTabs = [
+            {
+                icon: <HistoryIcon className="h-5 w-5" />,
+                title: t(formConstant.responders) + ' (' + form.responses + ')',
+                path: 'Responses'
+            },
+            {
+                icon: <TrashIcon className="h-5 w-5" />,
+                title: t(formConstant.deletionRequests) + ' (' + form.deletionRequests + ')',
+                path: 'Deletion Request'
+            },
+            {
+                icon: <Group className="h-5 w-5" />,
+                title: t(formConstant.settings.visibility.title),
+                path: 'FormVisibility'
+            }
+        ];
+
+        if (form?.settings?.provider === 'self' && environments.ENABLE_ACTIONS)
+            additionalTabs.splice(0, 0, {
+                icon: <IntegrationInstructions className="h-5 w-5" />,
+                title: 'Integrations',
+                path: 'Integrations'
+            });
+        paramTabs.splice(2, 0, ...additionalTabs);
+
         if (isFormOpen) {
-            paramTabs.splice(5, 0, {
+            paramTabs.splice(6, 0, {
                 icon: <Group className="h-5 w-5" />,
                 title: t(formConstant.settings.formLink.title),
                 path: 'FormLinks'
@@ -187,12 +197,17 @@ export default function FormPage(props: any) {
                                 <FormSettings />
                             </TabPanel>
                         </FormPageLayer>
-                        {form?.isPublished ? (
-                            <TabPanel className="focus:outline-none" key="Responses">
-                                <FormResponses />
-                            </TabPanel>
-                        ) : (
-                            <></>
+                        {form?.isPublished && (
+                            <>
+                                {form?.settings?.provider === 'self' && (
+                                    <TabPanel className="focus:outline-none" key="Integrations">
+                                        <FormIntegrations />
+                                    </TabPanel>
+                                )}
+                                <TabPanel className="focus:outline-none" key="Responses">
+                                    <FormResponses />
+                                </TabPanel>
+                            </>
                         )}
                         <FormPageLayer className="md:px-32 px-2">
                             {form?.isPublished ? (

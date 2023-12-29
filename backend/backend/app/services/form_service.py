@@ -3,26 +3,30 @@ from http import HTTPStatus
 from typing import List
 
 from beanie import PydanticObjectId
+from common.configs.crypto import Crypto
 from common.constants import MESSAGE_FORBIDDEN
-from common.models.standard_form import StandardForm
+from common.models.standard_form import StandardForm, Trigger, ParameterValue, ActionState
 from common.models.user import User
 from fastapi_pagination import Page
 from fastapi_pagination.ext.beanie import paginate
 
 from backend.app.constants.consents import default_consents
 from backend.app.exceptions import HTTPException
+from backend.app.models.dtos.action_dto import AddActionToFormDto, UpdateActionInFormDto, ActionUpdateType
+from backend.app.models.dtos.kafka_event_dto import UserEventType
 from backend.app.models.dtos.workspace_member_dto import (
     FormImporterDetails,
 )
 from backend.app.models.enum.user_tag_enum import UserTagType
 from backend.app.models.filter_queries.sort import SortRequest
-from backend.app.models.minified_form import MinifiedForm
-from backend.app.models.settings_patch import SettingsPatchDto
+from backend.app.models.dtos.minified_form import FormDtoCamelModel
+from backend.app.models.dtos.settings_patch import SettingsPatchDto
 from backend.app.repositories.form_repository import FormRepository
 from backend.app.repositories.workspace_form_repository import WorkspaceFormRepository
 from backend.app.repositories.workspace_user_repository import WorkspaceUserRepository
 from backend.app.schemas.form_versions import FormVersionsDocument
 from backend.app.schemas.standard_form import FormDocument
+from backend.app.services.kafka_service import event_logger_service
 from backend.app.services.user_tags_service import UserTagsService
 from backend.app.utils import AiohttpClient
 from backend.config import settings
@@ -35,11 +39,13 @@ class FormService:
         form_repo: FormRepository,
         workspace_form_repo: WorkspaceFormRepository,
         user_tags_service: UserTagsService,
+        crypto: Crypto
     ):
         self._workspace_user_repo = workspace_user_repo
         self._form_repo = form_repo
         self._workspace_form_repo = workspace_form_repo
         self.user_tags_service = user_tags_service
+        self.crypto = crypto
 
     async def get_forms_in_workspace(
         self,
@@ -48,7 +54,7 @@ class FormService:
         published: bool,
         pinned_only: bool,
         user: User,
-    ) -> Page[MinifiedForm]:
+    ) -> Page[FormDtoCamelModel]:
         has_access_to_workspace = (
             await self._workspace_user_repo.has_user_access_in_workspace(
                 workspace_id=workspace_id, user=user
@@ -132,7 +138,7 @@ class FormService:
                             **user_info, id=form["imported_by"]
                         )
                         break
-        return [MinifiedForm(**form) for form in forms]
+        return [FormDtoCamelModel(**form) for form in forms]
 
     async def get_form_by_id(
         self,
@@ -194,7 +200,7 @@ class FormService:
         form["importer_details"] = FormImporterDetails(
             **user_info, id=user_info.get("_id")
         )
-        minified_form = MinifiedForm(**form)
+        minified_form = FormDtoCamelModel(**form)
         if minified_form.consent is None:
             minified_form.consent = default_consents
         return minified_form
@@ -260,6 +266,7 @@ class FormService:
                     409, "Form with given custom slug already exists in the workspace!!"
                 )
             workspace_form.settings.custom_url = settings.customUrl
+            await event_logger_service.send_event(event_type=UserEventType.SLUG_CHANGED, user_id=user.id)
         if settings.responseDataOwnerField is not None:
             workspace_form.settings.response_data_owner_field = (
                 settings.responseDataOwnerField
@@ -371,3 +378,62 @@ class FormService:
                 )
             form.form_id = str(form.form_id)
             return form
+
+    async def add_action_form(self, form_id: PydanticObjectId, add_action_to_form_params: AddActionToFormDto):
+        form = await self._form_repo.get_form_document_by_id(form_id=str(form_id))
+        actions = []
+
+        if form.actions is not None:
+
+            if form.actions.get(add_action_to_form_params.trigger) is not None:
+                actions.extend(form.actions.get(add_action_to_form_params.trigger))
+
+            actions.append(ActionState(id=add_action_to_form_params.action_id, enabled=True))
+
+            actions = actions
+
+            form.actions[add_action_to_form_params.trigger] = actions
+
+        else:
+            form.actions = {
+                add_action_to_form_params.trigger: [ActionState(id=add_action_to_form_params.action_id, enabled=True)]}
+        if add_action_to_form_params.parameters:
+            if form.parameters is not None:
+
+                form.parameters[str(add_action_to_form_params.action_id)] = add_action_to_form_params.parameters
+            else:
+                form.parameters = {str(add_action_to_form_params.action_id): add_action_to_form_params.parameters}
+
+        if add_action_to_form_params.secrets:
+            secrets = [ParameterValue(name=secret.name, value=self.crypto.encrypt(secret.value)) for secret in
+                       add_action_to_form_params.secrets]
+
+            if form.secrets is not None:
+                form.secrets[str(add_action_to_form_params.action_id)] = secrets
+            else:
+                form.secrets = {str(add_action_to_form_params.action_id): secrets}
+
+        return await form.save()
+
+    async def remove_action_from_form(self, form_id: PydanticObjectId, action_id: PydanticObjectId, trigger: Trigger):
+        form = await self._form_repo.get_form_document_by_id(form_id=str(form_id))
+
+        if form.actions and trigger in form.actions:
+            form.actions[trigger] = [action for action in form.actions[trigger] if action.id != action_id]
+
+        if form.parameters and str(action_id) in form.parameters:
+            del form.parameters[str(action_id)]
+
+        if form.secrets and str(action_id) in form.secrets:
+            del form.secrets[str(action_id)]
+
+        return (await form.save()).actions
+
+    async def update_state_of_action_in_form(self, form_id: PydanticObjectId, update_action_dto: UpdateActionInFormDto):
+        form = await self._form_repo.get_form_document_by_id(form_id=str(form_id))
+        if form.actions and update_action_dto.trigger in form.actions:
+            for action in form.actions[update_action_dto.trigger]:
+                if action.id == update_action_dto.action_id:
+                    action.enabled = True if update_action_dto.update_type == ActionUpdateType.ENABLE else False
+
+        return await form.save()
