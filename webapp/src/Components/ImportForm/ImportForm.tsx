@@ -116,8 +116,12 @@ const ImportForm = () => {
                 placeholder={'Paste URL'}
                 className={'w-full'}
                 icon={<LinkIcon />}
+                autoFocus
                 disabled={singleFormFromProviderResult?.isLoading || importFormResult?.isLoading}
                 value={importFormLink}
+                onFocus={(event) => {
+                    event.target.select();
+                }}
                 onChange={(event) => {
                     setImportFormLink(event.target.value);
                 }}
