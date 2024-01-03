@@ -4,9 +4,9 @@ from typing import Any, Dict, Optional
 
 from aiohttp import ClientResponse
 from classy_fastapi import Routable, get, post
+from common.models.form_import import FormImportResponse
 from fastapi import Depends
 
-from common.models.form_import import FormImportResponse
 from googleform.app.containers import Container
 from googleform.app.schemas.oauth_credential import Oauth2CredentialDocument
 from googleform.app.services.transformer import GoogleFormTransformerService
@@ -93,6 +93,7 @@ class GoogleFormRouter(Routable):
         credential = await self.oauth_credential_service.verify_oauth_token(
             credential.email
         )
+        credential = await self.oauth_credential_service.refresh_access_token(oauth_credentials=credential)
         url = f"https://www.googleapis.com/oauth2/v3/tokeninfo?access_token={credential.credentials.token}"
         verification_response: ClientResponse = await AiohttpClient.get(url)
-        return {'response': await verification_response.json(), 'status_code': verification_response.status}
+        return credential.credentials.token
