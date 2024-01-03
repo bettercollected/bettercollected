@@ -1,10 +1,11 @@
 import datetime as dt
 from typing import List, Optional
-from auth.app.services.database_service import entity
+
 from beanie import Indexed
 from common.configs.mongo_document import MongoDocument
 from common.enums.plan import Plans
-from common.enums.roles import Roles
+
+from auth.app.services.database_service import entity
 
 
 @entity
@@ -20,6 +21,7 @@ class UserDocument(MongoDocument):
     plan: Optional[Plans] = Plans.FREE
     stripe_customer_id: Optional[str]
     stripe_payment_id: Optional[str]
+    last_logged_in: Optional[dt.datetime]
 
     class Settings:
         name = "users"

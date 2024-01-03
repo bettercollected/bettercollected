@@ -62,7 +62,12 @@ const environments = {
     UMAMI_SCRIPT_URL: publicRuntimeConfig.UMAMI_SCRIPT_URL,
 
     //actions
-    ENABLE_ACTIONS: publicRuntimeConfig.ENABLE_ACTIONS && (publicRuntimeConfig.ENABLE_ACTIONS === 'true' || publicRuntimeConfig.ENABLE_ACTIONS === true)
+    ENABLE_ACTIONS: publicRuntimeConfig.ENABLE_ACTIONS && (publicRuntimeConfig.ENABLE_ACTIONS === 'true' || publicRuntimeConfig.ENABLE_ACTIONS === true),
+
+    //CHATWOOT
+    CHATWOOT_ENABLE: publicRuntimeConfig.CHATWOOT_ENABLE && (publicRuntimeConfig.CHATWOOT_ENABLE === 'true' || publicRuntimeConfig.CHATWOOT_ENABLE === true),
+    CHATWOOT_DEPLOY_URL: publicRuntimeConfig.CHATWOOT_DEPLOY_URL ?? 'https://help.bettercollected.com',
+    CHATWOOT_WEBSITE_TOKEN: publicRuntimeConfig.CHATWOOT_WEBSITE_TOKEN
 };
 
 export default environments;

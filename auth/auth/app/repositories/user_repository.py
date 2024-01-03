@@ -1,10 +1,11 @@
+import datetime
 from typing import Optional, List
 
 from beanie import PydanticObjectId
+from common.enums.roles import Roles
 from pydantic import EmailStr
 
 from auth.app.schemas.user import UserDocument
-from common.enums.roles import Roles
 
 
 class UserRepository:
@@ -117,3 +118,9 @@ class UserRepository:
     @staticmethod
     async def delete_user(user_id: PydanticObjectId):
         return await UserDocument.find({"_id": user_id}).delete()
+
+    @staticmethod
+    async def update_last_logged_in(user_id: PydanticObjectId):
+        user_document = await UserDocument.find_one(UserDocument.id == user_id)
+        user_document.last_logged_in = datetime.datetime.utcnow()
+        return await user_document.save()

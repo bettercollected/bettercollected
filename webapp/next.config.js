@@ -148,7 +148,12 @@ const nextConfig = {
         UMAMI_WEBSITE_ID: process.env.UMAMI_WEBSITE_ID,
 
         //integrations
-        ENABLE_ACTIONS: process.env.ENABLE_ACTIONS
+        ENABLE_ACTIONS: process.env.ENABLE_ACTIONS,
+
+        // Chatwoot
+        CHATWOOT_ENABLE: process.env.CHATWOOT_ENABLE,
+        CHATWOOT_DEPLOY_URL: process.env.CHATWOOT_DEPLOY_URL,
+        CHATWOOT_WEBSITE_TOKEN: process.env.CHATWOOT_WEBSITE_TOKEN
     }
 };
 
