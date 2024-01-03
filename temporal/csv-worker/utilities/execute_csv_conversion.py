@@ -13,7 +13,7 @@ from settings.application import settings
 from wrappers.thread_pool_executor import thread_pool_executor
 
 
-async def execute_csv_conversion(form: str, unconverted_responses: List[str]):
+async def execute_csv_conversion(form: str, unconverted_responses: List[str], user_email: str):
     form = json.loads(form)
     responses = []
     for response in unconverted_responses:
@@ -154,7 +154,7 @@ async def execute_csv_conversion(form: str, unconverted_responses: List[str]):
 
         message = MessageSchema(
             subject="Responses CSV Attachment",
-            recipients=["sitalnagarkoti123@gmail.com"],
+            recipients=[user_email],
             body=f"Please find the attached CSV file link below. <br> {presigned_csv_url} ",
             subtype=MessageType.html,
         )

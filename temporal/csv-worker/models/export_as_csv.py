@@ -6,4 +6,5 @@ from typing import List
 class ExportCSVParams:
     form: str
     responses: List[str]
+    user_email: str
 
