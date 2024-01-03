@@ -1,6 +1,6 @@
 import enum
 
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 
 
 class UserEventType(str, enum.Enum):
@@ -16,3 +16,4 @@ class UserEventType(str, enum.Enum):
 class UserEventDto(BaseModel):
     event_type: UserEventType
     user_id: str
+    email: EmailStr
