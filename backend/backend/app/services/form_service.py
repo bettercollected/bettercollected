@@ -14,13 +14,13 @@ from backend.app.constants.consents import default_consents
 from backend.app.exceptions import HTTPException
 from backend.app.models.dtos.action_dto import AddActionToFormDto, UpdateActionInFormDto, ActionUpdateType
 from backend.app.models.dtos.kafka_event_dto import UserEventType
+from backend.app.models.dtos.minified_form import FormDtoCamelModel
+from backend.app.models.dtos.settings_patch import SettingsPatchDto
 from backend.app.models.dtos.workspace_member_dto import (
     FormImporterDetails,
 )
 from backend.app.models.enum.user_tag_enum import UserTagType
 from backend.app.models.filter_queries.sort import SortRequest
-from backend.app.models.dtos.minified_form import FormDtoCamelModel
-from backend.app.models.dtos.settings_patch import SettingsPatchDto
 from backend.app.repositories.form_repository import FormRepository
 from backend.app.repositories.workspace_form_repository import WorkspaceFormRepository
 from backend.app.repositories.workspace_user_repository import WorkspaceUserRepository
@@ -266,7 +266,8 @@ class FormService:
                     409, "Form with given custom slug already exists in the workspace!!"
                 )
             workspace_form.settings.custom_url = settings.customUrl
-            await event_logger_service.send_event(event_type=UserEventType.SLUG_CHANGED, user_id=user.id)
+            await event_logger_service.send_event(event_type=UserEventType.SLUG_CHANGED, user_id=user.id,
+                                                  email=user.sub)
         if settings.responseDataOwnerField is not None:
             workspace_form.settings.response_data_owner_field = (
                 settings.responseDataOwnerField
