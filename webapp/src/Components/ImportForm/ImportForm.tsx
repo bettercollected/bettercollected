@@ -51,7 +51,7 @@ const ImportForm = () => {
                 handleImportForm(formId);
             } else {
                 setError(true);
-                setErrorMessage('Oops! That URL doesnot look quite right. Could you double-check it ? Hint: The URL ends with “/edit” at the end.');
+                setErrorMessage("Oops! That URL doesn't look quite right. Could you double-check it? Ensure the URL is an edit URL from the browser address bar, not a shared form link, as shown in the image below.");
             }
         }, 1500),
         []
@@ -67,7 +67,7 @@ const ImportForm = () => {
         delete form['clientFormItems'];
         if (singleForm.error) {
             setError(true);
-            if (singleForm?.error?.status === 401) setErrorMessage('Uh-oh! Looks like you need permission to access this form. Maybe check with the owner!');
+            if (singleForm?.error?.status === 401) setErrorMessage('Uh-oh! Looks like you need permission to access this form.' + 'Ensure the form is from your Google account, or, check with the owner.');
             if (singleForm?.error?.status === 404) {
                 setErrorMessage('Uh-oh! It seems like form you are trying to fetch does not exist in Google Forms.');
             }
