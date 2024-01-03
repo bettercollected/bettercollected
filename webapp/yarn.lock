@@ -1453,6 +1453,11 @@
     minimatch "^3.1.2"
     strip-json-comments "^3.1.1"
 
+"@fyelci/react-google-drive-picker@^1.2.5":
+  version "1.2.5"
+  resolved "https://registry.yarnpkg.com/@fyelci/react-google-drive-picker/-/react-google-drive-picker-1.2.5.tgz#e167ddcba069585033513e3527fa2c463127a5ce"
+  integrity sha512-KKtUAOtzuWoIe/1/2FyEl7oTpq7xdHc/yYnPrdZIZLAMPKbmHibaS9EQh2KMU9H21qOHbZy1akixtJaUyYnmjw==
+
 "@gilbarbara/deep-equal@^0.1.1":
   version "0.1.2"
   resolved "https://registry.yarnpkg.com/@gilbarbara/deep-equal/-/deep-equal-0.1.2.tgz#1a106721368dba5e7e9fb7e9a3a6f9efbd8df36d"
