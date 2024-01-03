@@ -1,26 +1,28 @@
-import React, { useEffect, useState } from 'react';
+import React, {useEffect, useState} from 'react';
 
-import { useTranslation } from 'next-i18next';
+import {useTranslation} from 'next-i18next';
 
 import SearchInput from '@Components/Common/Search/SearchInput';
 import TabularResponses from '@Components/Form/TabularResponses';
-import { FormatListBulleted, ViewList } from '@mui/icons-material';
+import {FormatListBulleted, Share, ViewList} from '@mui/icons-material';
 
 import ResponsesTable from '@app/components/datatable/responses';
 import Loader from '@app/components/ui/loader';
 import globalConstants from '@app/constants/global';
-import { formConstant } from '@app/constants/locales/form';
-import { formPage } from '@app/constants/locales/form-page';
-import { selectForm } from '@app/store/forms/slice';
-import { useAppSelector } from '@app/store/hooks';
-import { useGetFormsSubmissionsQuery } from '@app/store/workspaces/api';
-import { IGetFormSubmissionsQuery } from '@app/store/workspaces/types';
+import {formConstant} from '@app/constants/locales/form';
+import {formPage} from '@app/constants/locales/form-page';
+import {selectForm} from '@app/store/forms/slice';
+import {useAppSelector} from '@app/store/hooks';
+import {useGetFormsSubmissionsQuery} from '@app/store/workspaces/api';
+import {IGetFormSubmissionsQuery} from '@app/store/workspaces/types';
+import {useModal} from "@app/components/modal-views/context";
 
-export default function FormResponsesTable({ props }: any) {
-    const { t } = useTranslation();
+export default function FormResponsesTable({props}: any) {
+    const {t} = useTranslation();
     const form = useAppSelector(selectForm);
+    const {openModal} = useModal();
 
-    const { workspace, requestForDeletion, isSubmission = false } = props;
+    const {workspace, requestForDeletion, isSubmission = false} = props;
     const [page, setPage] = useState(1);
     const [query, setQuery] = useState<IGetFormSubmissionsQuery>({
         formId: form.formId,
@@ -31,17 +33,17 @@ export default function FormResponsesTable({ props }: any) {
     });
 
     useEffect(() => {
-        setQuery({ ...query, page });
+        setQuery({...query, page});
     }, [page]);
 
-    const { data, isLoading } = useGetFormsSubmissionsQuery(query);
+    const {data, isLoading} = useGetFormsSubmissionsQuery(query);
 
     const [showTabularResponses, setShowTabularResponses] = useState(form?.provider === 'self' && localStorage.getItem('tabularResponses') === 'true');
 
     const handleSearch = (event: any) => {
-        if (event.target.value) setQuery({ ...query, dataOwnerIdentifier: event.target.value });
+        if (event.target.value) setQuery({...query, dataOwnerIdentifier: event.target.value});
         else {
-            const { dataOwnerIdentifier, ...removedQuery } = query;
+            const {dataOwnerIdentifier, ...removedQuery} = query;
             setQuery(removedQuery);
         }
     };
@@ -49,7 +51,7 @@ export default function FormResponsesTable({ props }: any) {
     if (isLoading)
         return (
             <div className=" w-full py-10 flex justify-center">
-                <Loader />
+                <Loader/>
             </div>
         );
 
@@ -66,7 +68,8 @@ export default function FormResponsesTable({ props }: any) {
                     <p className="text-sm font-normal text-black-700 ">{isSubmission ? t(formPage.responsesDescription) : t(formPage.deletionRequestDescription)}</p>
                 </div>
                 <div className="w-full md:w-[282px] flex items-end flex-col gap-4">
-                    <SearchInput handleSearch={handleSearch} placeholder={t(formPage.searchByEmail)} className="!bg-black-300" />
+                    <SearchInput handleSearch={handleSearch} placeholder={t(formPage.searchByEmail)}
+                                 className="!bg-black-300"/>
                     {form?.settings?.provider === 'self' && (
                         <div className="flex bg-gray-100  rounded-lg cursor-pointer overflow-hidden w-fit">
                             <div
@@ -75,7 +78,7 @@ export default function FormResponsesTable({ props }: any) {
                                     setShowTabularView(false);
                                 }}
                             >
-                                <FormatListBulleted height={24} width={24} />
+                                <FormatListBulleted height={24} width={24}/>
                             </div>
                             <div
                                 className={`p-3 ${showTabularResponses ? 'bg-black-300' : ''}`}
@@ -83,16 +86,24 @@ export default function FormResponsesTable({ props }: any) {
                                     setShowTabularView(true);
                                 }}
                             >
-                                <ViewList height={24} width={24} />
+                                <ViewList height={24} width={24}/>
                             </div>
                         </div>
                     )}
+                    {isSubmission && <div
+                        onClick={() => openModal('EXPORT_RESPONSES', {
+                            formId: form.formId,
+                        })}
+                        className={'py-1 px-4 cursor-pointer text-white bg-brand-500 hover:bg-brand-600 rounded flex gap-2'}>
+                        <Share/> Export</div>}
                 </div>
             </div>
 
-            {data && showTabularResponses && <TabularResponses form={form} />}
+            {data && showTabularResponses && <TabularResponses form={form}/>}
 
-            {data && !showTabularResponses && <ResponsesTable formId={form.formId} requestForDeletion={requestForDeletion} page={page} setPage={setPage} submissions={data} />}
+            {data && !showTabularResponses &&
+                <ResponsesTable formId={form.formId} requestForDeletion={requestForDeletion} page={page}
+                                setPage={setPage} submissions={data}/>}
         </div>
     );
 }
