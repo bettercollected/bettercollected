@@ -214,7 +214,7 @@ class AuthService:
     async def add_workflow_to_delete_user(
         self, access_token: str, refresh_token: str, user: User
     ):
-        await event_logger_service.send_event(event_type=UserEventType.ACCOUNT_DELETED, user_id=user.id)
+        await event_logger_service.send_event(event_type=UserEventType.ACCOUNT_DELETED, user_id=user.id, email=user.sub)
         return await self.temporal_service.start_user_deletion_workflow(
             UserTokens(access_token=access_token, refresh_token=refresh_token),
             user_id=user.id,
