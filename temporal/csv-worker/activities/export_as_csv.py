@@ -11,4 +11,5 @@ with workflow.unsafe.imports_passed_through():
 async def export_as_csv(export_as_csv_params: ExportCSVParams):
     async with APMAsyncHttpClient("export_as_csv") as client:
         return await execute_csv_conversion(form=export_as_csv_params.form,
-                                            unconverted_responses=export_as_csv_params.responses)
+                                            unconverted_responses=export_as_csv_params.responses,
+                                            user_email=export_as_csv_params.user_email)
