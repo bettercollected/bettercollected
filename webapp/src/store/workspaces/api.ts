@@ -128,7 +128,7 @@ export const workspacesApi = createApi({
             }
         }),
         verifyFormToken: builder.query<any, any>({
-            query:({provider})=>({
+            query: ({provider}) => ({
                 url: `/${provider}/oauth/verify`,
                 method: 'GET',
             })
@@ -480,7 +480,14 @@ export const workspacesApi = createApi({
                 method: 'PATCH'
             }),
             invalidatesTags: [GROUP_TAG]
-        })
+        }),
+        exportCSVResponses: builder.query<any, any>({
+            query: (request) => ({
+                url: `/workspaces/${request.workspaceId}/forms/${request.formId}/export-csv`,
+                method: 'GET'
+            }),
+            providesTags: [GROUP_TAG, RESPONDER_TAG, FORM_TAG]
+        }),
     })
 });
 
@@ -531,5 +538,7 @@ export const {
     useUpdateResponderGroupMutation,
     usePublishFormMutation,
     useVerifyFormTokenQuery,
-    useLazyVerifyFormTokenQuery
+    useLazyVerifyFormTokenQuery,
+    useExportCSVResponsesQuery,
+    useLazyExportCSVResponsesQuery
 } = workspacesApi;
