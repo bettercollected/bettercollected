@@ -8,6 +8,7 @@ import loguru
 from beanie import PydanticObjectId
 from common.configs.crypto import Crypto
 from common.models.standard_form import StandardFormResponse, StandardForm
+from common.models.user import User
 from common.utils.asyncio_run import asyncio_run
 from temporalio.client import (
     Client,
@@ -24,8 +25,8 @@ from temporalio.exceptions import WorkflowAlreadyStartedError
 from temporalio.service import RPCError
 
 from backend.app.exceptions import HTTPException
-from backend.app.models.dataclasses.convert_to_csv import ConvertCSVParams
 from backend.app.models.dataclasses.delete_response_params import DeleteResponseParams
+from backend.app.models.dataclasses.export_to_csv import ExportCSVParams
 from backend.app.models.dataclasses.import_form_params import ImportFormParams
 from backend.app.models.dataclasses.run_action_code_params import RunActionCodeParams
 from backend.app.models.dataclasses.save_preview_params import SavePreviewParams
@@ -250,19 +251,18 @@ class TemporalService:
                 status_code=HTTPStatus.CONFLICT, content="Workflow has already started."
             )
 
-    async def export_as_csv(self, form: StandardForm, responses: List[StandardFormResponse]):
+    async def export_as_csv(self, form: StandardForm, responses: List[StandardFormResponse], user: User):
         await self.check_temporal_client_and_try_to_connect_if_not_connected()
         try:
             converted_responses = [response.json() for response in responses]
             converted_forms = form.json()
-            params = ConvertCSVParams(form=converted_forms, responses=converted_responses)
+            params = ExportCSVParams(form=converted_forms, responses=converted_responses, user_email=user.sub)
             await self.temporal_client.start_workflow("export_as_csv_workflow",
                                                       arg=params,
-                                                      id="convert_to_csv" + str(form.form_id),
+                                                      id="export_as_csv" + str(form.form_id),
                                                       task_queue=settings.temporal_settings.worker_queue,
                                                       retry_policy=RetryPolicy(maximum_attempts=4)
                                                       )
             return "Workflow Started"
         except WorkflowAlreadyStartedError as e:
             loguru.logger.info("Workflow has already started")
-
