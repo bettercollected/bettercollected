@@ -5,7 +5,7 @@ RUN python3 -m venv $VIRTUAL_ENV
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
 # Install dependencies:
-COPY ./temporal/worker/requirements.txt ./requirements.txt
+COPY ./temporal/csv-worker/requirements.txt ./requirements.txt
 RUN pip install -r requirements.txt
 
 COPY ./temporal/csv-worker/ .
