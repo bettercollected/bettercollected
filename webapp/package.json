@@ -18,6 +18,7 @@
         "@elastic/apm-rum": "^5.12.0",
         "@emotion/react": "^11.10.4",
         "@emotion/styled": "^11.10.4",
+        "@fyelci/react-google-drive-picker": "^1.2.5",
         "@headlessui/react": "^1.7.3",
         "@hookform/resolvers": "^2.9.7",
         "@mswjs/interceptors": "0.17",
