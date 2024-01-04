@@ -19,7 +19,7 @@ import { selectForm, setForm } from '@app/store/forms/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { useImportFormMutation, useLazyGetSingleFormFromProviderQuery } from '@app/store/workspaces/api';
 
-const ImportForm = () => {
+const ImportForm = ({ formId }: { formId?: string }) => {
     const { t } = useTranslation();
 
     const dispatch = useAppDispatch();
@@ -56,6 +56,10 @@ const ImportForm = () => {
         }, 1500),
         []
     );
+
+    useEffect(() => {
+        setImportFormLink(`https://docs.google.com/forms/d/${formId}/edit`);
+    }, [formId]);
 
     useEffect(() => {
         setIsLoading(importFormResult.isLoading || singleFormFromProviderResult.isLoading);
