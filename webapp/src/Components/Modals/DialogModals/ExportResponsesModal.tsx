@@ -17,11 +17,7 @@ export default function ExportResponsesModal({formId}: { formId: any }) {
     const workspace = useAppSelector(selectWorkspace);
     const [exportCSVTrigger, {isLoading}] = useLazyExportCSVResponsesQuery();
 
-    const dispatch = useAppDispatch();
     const {t} = useTranslation();
-    const [error, setError] = useState(false);
-
-    const [updateText, setUpdateText] = useState(workspace.customDomain || '');
 
     const {closeModal} = useModal();
 
@@ -33,8 +29,7 @@ export default function ExportResponsesModal({formId}: { formId: any }) {
         }
         const response: any = await exportCSVTrigger(body);
         if (response.data) {
-            dispatch(setWorkspace(response.data));
-            toast.info(t(toastMessage.customDomainUpdated).toString(), {toastId: ToastId.SUCCESS_TOAST});
+            toast.success('Exported CSV Successfully', {toastId: ToastId.SUCCESS_TOAST});
         } else if (response.error) {
             toast.error(response.error.data?.message || response.error.data || t(toastMessage.somethingWentWrong), {toastId: ToastId.ERROR_TOAST});
         }
