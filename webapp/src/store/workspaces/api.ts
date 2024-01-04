@@ -118,7 +118,7 @@ export const workspacesApi = createApi({
                 return returnValue;
             }
         }),
-        verifyFormToken: builder.query<any, any>({
+        verifyFormToken: builder.mutation<any, any>({
             query: ({ provider }) => ({
                 url: `/${provider}/oauth/verify`,
                 method: 'GET'
@@ -209,6 +209,7 @@ export const workspacesApi = createApi({
             }),
             providesTags: [WORKSPACE_TAGS, FORM_TAG]
         }),
+
         getWorkspaceForm: builder.query<StandardFormDto, IGetWorkspaceFormQuery>({
             query: (query) => ({
                 url: `/workspaces/${query.workspace_id}/forms/${query.custom_url}`,
@@ -521,6 +522,5 @@ export const {
     useDeleteGroupFormMutation,
     useUpdateResponderGroupMutation,
     usePublishFormMutation,
-    useVerifyFormTokenQuery,
-    useLazyVerifyFormTokenQuery
+    useVerifyFormTokenMutation
 } = workspacesApi;
