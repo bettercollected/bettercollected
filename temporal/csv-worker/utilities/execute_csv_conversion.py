@@ -99,6 +99,21 @@ async def execute_csv_conversion(form: str, unconverted_responses: List[str], us
             if field['id'] == field_id:
                 return field
 
+    def get_question_value(question_value, fields):
+        pattern = r"\b[a-f\d]{8}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{12}\b"
+        ids = re.findall(pattern, question_value)
+        for field_id in ids:
+            previous_field_value = get_previous_field(field_id, fields)['value']
+            if '{{' in previous_field_value:
+                previous_field_value = get_question_value(previous_field_value, fields)
+            question_value = question_value.replace('{{ ', '@').replace('}}', '').replace(field_id, previous_field_value)
+        return question_value
+
+    def get_previous_field(field_id, fields):
+        for index, field in enumerate(fields):
+            if field['id'] == field_id:
+                return fields[index - 1]
+
     def get_simple_form_responses(form, responses):
         field_lists = list(form['fields'])
         question_answers = []
@@ -108,10 +123,13 @@ async def execute_csv_conversion(form: str, unconverted_responses: List[str], us
             if field['type'].startswith('input_'):
                 x = dict()
                 x['field_id'] = field['id']
-                x['text'] = field['properties']['placeholder']
+                x['text'] = field['properties']['placeholder'] if field['properties'] else ''
                 x['type'] = field['type']
-                if field_lists[question_index - 1]['value']:
-                    x['text'] = field_lists[question_index - 1]['value']
+                question_value = field_lists[question_index - 1]['value'] if field_lists[question_index - 1] else None
+                if question_value:
+                    x['text'] = question_value
+                    if '{{' in question_value:
+                        x['text'] = get_question_value(question_value, field_lists)[:40]
                 question_answers.append(x)
                 question_csv.append(x['text'])
         answer_csv.append(question_csv)
