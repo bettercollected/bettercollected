@@ -1,6 +1,6 @@
-import {Fragment, useCallback, useEffect} from 'react';
+import { Fragment, useCallback, useEffect } from 'react';
 
-import {useRouter} from 'next/router';
+import { useRouter } from 'next/router';
 
 import Button from '@Components/Common/Input/Button';
 import AddActionToFormModal from '@Components/Modals/DialogModals/AddActionToFormModal';
@@ -8,11 +8,10 @@ import OauthVerificationModal from '@Components/Modals/DialogModals/OauthVerific
 import UpdateCustomDomainModal from '@Components/Modals/DialogModals/UpdateCustomDomainModal';
 import UpdateWorkspaceHandle from '@Components/Modals/DialogModals/UpdateWorkspaceHandle';
 
-import ImportProviderForms from '@app/components/form-integrations/import-provider-forms';
 import DeleteFormModal from '@app/components/form/delete-form-modal';
-import {Close} from '@app/components/icons/close';
+import { Close } from '@app/components/icons/close';
 import LogoutView from '@app/components/logout/logout-view';
-import {MODAL_VIEW, useModal} from '@app/components/modal-views/context';
+import { MODAL_VIEW, useModal } from '@app/components/modal-views/context';
 import CloseFormConfirmationModal from '@app/components/modal-views/modals/close-form-confirmation-modal';
 import CustomizeUrlModal from '@app/components/modal-views/modals/customize-url-modal';
 import DeleteCustomDomainModal from '@app/components/modal-views/modals/delete-custom-domain-modal';
@@ -27,10 +26,10 @@ import MobileInsertMenu from '@app/components/modal-views/modals/mobile-insert-m
 import ReopenFormConfirmationModal from '@app/components/modal-views/modals/reopen-form-confirmation-modal';
 import ShareModalView from '@app/components/modal-views/modals/share-modal-view';
 import RequestForDeletionView from '@app/components/submission-request-for-deletion';
-import {Dialog} from '@app/components/ui/dialog';
-import {Transition} from '@app/components/ui/transition';
-import {resetBuilderMenuState} from '@app/store/form-builder/actions';
-import {useAppDispatch} from '@app/store/hooks';
+import { Dialog } from '@app/components/ui/dialog';
+import { Transition } from '@app/components/ui/transition';
+import { resetBuilderMenuState } from '@app/store/form-builder/actions';
+import { useAppDispatch } from '@app/store/hooks';
 
 import AddFormOnGroup from './modals/add-form-group-modal';
 import AddGroupOnForm from './modals/add-group-form-modal';
@@ -62,7 +61,7 @@ function renderModalContent(view: MODAL_VIEW, modalProps: any) {
         case 'CONSENT_CONFIRMATION_MODAL_VIEW':
             return <ConsentConfirmationModalView {...modalProps} />;
         case 'CONSENT_PURPOSE_MODAL_VIEW':
-            return <ConsentPurposeModalView/>;
+            return <ConsentPurposeModalView />;
         case 'CONSENT_RETENTION_MODAL_VIEW':
             return <ConsentRetentionModalView {...modalProps} />;
         case 'CROP_IMAGE':
@@ -72,7 +71,7 @@ function renderModalContent(view: MODAL_VIEW, modalProps: any) {
         case 'DELETE_CONFIRMATION':
             return <DeleteConfirmationModal {...modalProps} />;
         case 'DELETE_CUSTOM_DOMAIN':
-            return <DeleteCustomDomainModal/>;
+            return <DeleteCustomDomainModal />;
         case 'DELETE_FORM_MODAL':
             return <DeleteFormModal {...modalProps} />; // Done
         case 'DELETE_INVITATION':
@@ -82,17 +81,15 @@ function renderModalContent(view: MODAL_VIEW, modalProps: any) {
         case 'DELETE_RESPONSE':
             return <DeleteResponseModal {...modalProps} />;
         case 'EDIT_WORKSPACE_MODAL':
-            return <EditWorkspaceModal/>;
+            return <EditWorkspaceModal />;
         case 'FORM_BUILDER_ADD_FIELD_VIEW':
             return <FormBuilderAddFieldModal {...modalProps} />;
         case 'FORM_BUILDER_SPOTLIGHT_VIEW':
             return <FormBuilderSpotlightModal {...modalProps} />;
         case 'FORM_BUILDER_TIPS_MODAL_VIEW':
             return <FormBuilderTipsModalView {...modalProps} />;
-        case 'IMPORT_PROVIDER_FORMS_VIEW':
-            return <ImportProviderForms {...modalProps} />; // Done
         case 'INVITE_MEMBER':
-            return <InviteMemberModal/>;
+            return <InviteMemberModal />;
         case 'LOGOUT_VIEW':
             return <LogoutView {...modalProps} />; // Done
         case 'MOBILE_INSERT_MENU':
@@ -102,7 +99,7 @@ function renderModalContent(view: MODAL_VIEW, modalProps: any) {
         case 'SHARE_VIEW':
             return <ShareModalView {...modalProps} />; // Done
         case 'UPDATE_WORKSPACE_DOMAIN':
-            return <UpdateCustomDomainModal/>;
+            return <UpdateCustomDomainModal />;
         case 'UPDATE_WORKSPACE_HANDLE':
             return <UpdateWorkspaceHandle {...modalProps} />;
         case 'VISIBILITY_CONFIRMATION_MODAL_VIEW':
@@ -126,7 +123,7 @@ function renderModalContent(view: MODAL_VIEW, modalProps: any) {
 
 export default function ModalContainer() {
     const router = useRouter();
-    const {view, isOpen, closeModal, modalProps} = useModal();
+    const { view, isOpen, closeModal, modalProps } = useModal();
 
     const dispatch = useAppDispatch();
 
@@ -145,14 +142,9 @@ export default function ModalContainer() {
 
     return (
         <Transition appear show={isOpen} as={Fragment}>
-            <Dialog as="div"
-                    className="fixed inset-0 z-[2500] h-full w-full overflow-y-auto overflow-x-hidden p-4 text-center sm:p-6 lg:p-8 xl:p-10 3xl:p-12"
-                    onClose={closeModalHandler}>
-                <Transition.Child as={Fragment} enter="ease-out duration-300" enterFrom="opacity-0"
-                                  enterTo="opacity-100" leave="ease-in duration-200" leaveFrom="opacity-100"
-                                  leaveTo="opacity-0">
-                    <Dialog.Overlay
-                        className="fixed inset-0 z-40 cursor-pointer bg-gray-700 bg-opacity-60 backdrop-blur"/>
+            <Dialog as="div" className="fixed inset-0 z-[2500] h-full w-full overflow-y-auto overflow-x-hidden p-4 text-center sm:p-6 lg:p-8 xl:p-10 3xl:p-12" onClose={closeModalHandler}>
+                <Transition.Child as={Fragment} enter="ease-out duration-300" enterFrom="opacity-0" enterTo="opacity-100" leave="ease-in duration-200" leaveFrom="opacity-100" leaveTo="opacity-0">
+                    <Dialog.Overlay className="fixed inset-0 z-40 cursor-pointer bg-gray-700 bg-opacity-60 backdrop-blur" />
                 </Transition.Child>
 
                 {/* This element is to trick the browser into centering the modal contents. */}
@@ -165,15 +157,12 @@ export default function ModalContainer() {
                 {/* This element is need to fix FocusTap headless-ui warning issue */}
                 <div className="sr-only">
                     <Button size="small" onClick={closeModalHandler} className="opacity-50 hover:opacity-80 ">
-                        <Close className="h-auto w-[13px]"/>
+                        <Close className="h-auto w-[13px]" />
                     </Button>
                 </div>
 
-                <Transition.Child as={Fragment} enter="ease-out duration-300" enterFrom="opacity-0 scale-105"
-                                  enterTo="opacity-100 scale-100" leave="ease-in duration-200"
-                                  leaveFrom="opacity-100 scale-100" leaveTo="opacity-0 scale-105">
-                    <div data-testid="modal-view"
-                         className="relative z-50 inline-block w-full text-left align-middle md:w-fit max-h-[95vh]">
+                <Transition.Child as={Fragment} enter="ease-out duration-300" enterFrom="opacity-0 scale-105" enterTo="opacity-100 scale-100" leave="ease-in duration-200" leaveFrom="opacity-100 scale-100" leaveTo="opacity-0 scale-105">
+                    <div data-testid="modal-view" className="relative z-50 inline-block w-full text-left align-middle md:w-fit max-h-[95vh]">
                         {
                             //@ts-ignore
                             view && renderModalContent(view, modalProps)
