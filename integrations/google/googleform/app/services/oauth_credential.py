@@ -1,13 +1,19 @@
 from http import HTTPStatus
 from typing import Any
 
-from fastapi import HTTPException
-
-from common.constants import MESSAGE_NOT_FOUND, MESSAGE_OAUTH_MISSING_REFRESH_TOKEN
+from aiohttp import ClientResponse
+from common.constants import MESSAGE_NOT_FOUND, MESSAGE_OAUTH_MISSING_REFRESH_TOKEN, \
+    MESSAGE_OAUTH_MISSING_TOKEN_OR_EXPIRY, MESSAGE_OAUTH_INVALID_GRANT
 from common.enums.form_provider import FormProvider
+from googleapiclient.errors import HttpError
+from oauthlib.oauth2 import InvalidGrantError
+
+from googleform.app.exceptions.http import HTTPException
 from googleform.app.repositories.oauth_credential import OauthCredentialRepository
 from googleform.app.schemas.oauth_credential import Oauth2CredentialDocument
 from googleform.app.services.oauth_google import OauthGoogleService
+from googleform.app.utils import AiohttpClient
+from googleform.config import settings
 
 
 class OauthCredentialService:
@@ -100,7 +106,7 @@ class OauthCredentialService:
         oauth_credential = await self._get_oauth_credential(email, provider)
         if not oauth_credential:
             raise HTTPException(
-                status_code=HTTPStatus.NOT_FOUND, detail=MESSAGE_NOT_FOUND
+                status_code=HTTPStatus.NOT_FOUND, content=MESSAGE_NOT_FOUND
             )
         if (
             not oauth_credential.credentials
@@ -108,6 +114,28 @@ class OauthCredentialService:
         ):
             raise HTTPException(
                 status_code=HTTPStatus.UNAUTHORIZED,
-                detail=MESSAGE_OAUTH_MISSING_REFRESH_TOKEN,
+                content=MESSAGE_OAUTH_MISSING_REFRESH_TOKEN,
             )
         return await self.oauth_google_service.fetch_oauth_token(oauth_credential)
+
+    async def verify_token_validity(self, credential: Oauth2CredentialDocument):
+        try:
+            credential = await self.refresh_access_token(oauth_credentials=credential)
+            url = f"https://www.googleapis.com/oauth2/v3/tokeninfo?access_token={credential.credentials.token}"
+            verification_response: ClientResponse = await AiohttpClient.get(url)
+            response = await verification_response.json()
+            if not all(scope in response.get("scope") for scope in settings.GOOGLE_SCOPES.split()):
+                raise HTTPException(status_code=HTTPStatus.FORBIDDEN, content="Add scopes are not authorized")
+            return credential.credentials.token
+        except HttpError:
+            raise HTTPException(
+                status_code=HTTPStatus.UNAUTHORIZED,
+                content=MESSAGE_OAUTH_MISSING_TOKEN_OR_EXPIRY,
+            )
+        except InvalidGrantError:
+            raise HTTPException(
+                status_code=HTTPStatus.FORBIDDEN, content=MESSAGE_OAUTH_INVALID_GRANT
+            )
+
+    async def refresh_access_token(self, oauth_credentials: Oauth2CredentialDocument):
+        return await self.oauth_google_service.refresh_access_token(oauth_credential=oauth_credentials)
