@@ -26,23 +26,8 @@ export default function ImportFormsButton({ size, className = '' }: { size?: But
         typeform: false
     });
 
-    const [openPicker] = useDrivePicker();
-
     const handleClick = () => {
-        // router.push(`/${workspace?.workspaceName}/dashboard/forms/import`);
-        openPicker({
-            clientId: '132120488980-hdf9tjq86k4km9kad2et532si5khuri9.apps.googleusercontent.com',
-            developerKey: 'AIzaSyA6OLL3bCqL2q3A5pl6CoPLq9LLO-p2-ok',
-            viewId: 'FORMS',
-            // token: 'ya29.a0AfB_byBmSGCAwYH-j19Ay2xd9pwghLNfB-qgrDzIdtZsjfgGRK9A1eG0LreT28QURwG8rMw7q06NYsqciBIzuzqXHzMOZrAUrrEOZ6hO3vZ1jgZFp3V0mCxXLUeG2cvXbp4mv-2lmgDITKWD-XvmRXKk91KukMrW5zpcbQaCgYKARISARMSFQHGX2MiKG-chxR44odTwCjOlPuUeQ0173',
-            customScopes: ['https://www.googleapis.com/auth/drive.file'],
-            callbackFunction: (data) => {
-                console.log(data);
-                if (data.action === 'cancel') {
-                    router.push(router.asPath);
-                }
-            }
-        });
+        router.push(`/${workspace?.workspaceName}/dashboard/forms/import`);
     };
 
     useEffect(() => {
