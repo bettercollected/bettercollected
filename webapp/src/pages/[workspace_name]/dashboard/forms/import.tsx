@@ -50,6 +50,7 @@ export default function ImportFormPage() {
             // token: 'ya29.a0AfB_byBmSGCAwYH-j19Ay2xd9pwghLNfB-qgrDzIdtZsjfgGRK9A1eG0LreT28QURwG8rMw7q06NYsqciBIzuzqXHzMOZrAUrrEOZ6hO3vZ1jgZFp3V0mCxXLUeG2cvXbp4mv-2lmgDITKWD-XvmRXKk91KukMrW5zpcbQaCgYKARISARMSFQHGX2MiKG-chxR44odTwCjOlPuUeQ0173',
             customScopes: ['https://www.googleapis.com/auth/drive.file'],
             callbackFunction: (data) => {
+                console.log('Callback Data', data);
                 if (data.action === 'picked' && data.docs && Array.isArray(data.docs) && data.docs.length > 0) {
                     const formId = data.docs[0].id;
                     setFormId(formId);

@@ -58,7 +58,7 @@ const ImportForm = ({ formId }: { formId?: string }) => {
     );
 
     useEffect(() => {
-        setImportFormLink(`https://docs.google.com/forms/d/${formId}/edit`);
+        if (formId) setImportFormLink(`https://docs.google.com/forms/d/${formId}/edit`);
     }, [formId]);
 
     useEffect(() => {
