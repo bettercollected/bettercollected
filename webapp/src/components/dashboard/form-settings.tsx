@@ -228,7 +228,7 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                 return (
                     <FormSettingsCard className={'!space-y-0 !mt-0'}>
                         <p className="w-full body4 !text-black-700 lg:w-[564px]">{t(formPage.linksDescription)}</p>
-                        <div className={'flex lg:flex-row flex-col gap-2 mt-1  items-start lg:items-center py-1 '}>
+                        <div className={'flex flex-col gap-2 mt-1  items-start py-1 '}>
                             <Tooltip title={t('CLICK_TO_COPY')}>
                                 <p className="body4 !text-black-700 truncate cursor-pointer max-w-full" onClick={handleOnCopy}>
                                     {isCustomDomain ? customDomain : clientHost}/<span className={'text-pink-500'}>{customUrl}</span>
