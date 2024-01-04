@@ -14,7 +14,7 @@ import { useModal } from '@app/components/modal-views/context';
 import Loader from '@app/components/ui/loader';
 import environments from '@app/configs/environments';
 import Layout from '@app/layouts/_layout';
-import { resetSingleForm } from '@app/store/forms/slice';
+import { resetSingleForm, selectForm } from '@app/store/forms/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { useVerifyFormTokenMutation } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
@@ -25,6 +25,8 @@ export default function ImportFormPage() {
     const router = useRouter();
     const { openModal } = useModal();
     const dispatch = useAppDispatch();
+
+    const form = useAppSelector(selectForm);
 
     const [verifyToken, { isLoading, data, error: verificationError }] = useVerifyFormTokenMutation();
 
@@ -87,16 +89,18 @@ export default function ImportFormPage() {
                     {data && (
                         <>
                             <ImportForm formId={formId} />
-                            <AppButton
-                                className="mt-20"
-                                variant={ButtonVariant.Ghost}
-                                size={ButtonSize.Medium}
-                                onClick={() => {
-                                    openGoogleFilePicker();
-                                }}
-                            >
-                                Open Google File Picker
-                            </AppButton>
+                            {!form?.formId && (
+                                <AppButton
+                                    className="mt-20"
+                                    variant={ButtonVariant.Ghost}
+                                    size={ButtonSize.Medium}
+                                    onClick={() => {
+                                        openGoogleFilePicker();
+                                    }}
+                                >
+                                    Open Google File Picker
+                                </AppButton>
+                            )}
                         </>
                     )}
                     {isLoading && (
