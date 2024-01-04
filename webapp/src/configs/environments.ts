@@ -64,6 +64,10 @@ const environments = {
     //actions
     ENABLE_ACTIONS: publicRuntimeConfig.ENABLE_ACTIONS && (publicRuntimeConfig.ENABLE_ACTIONS === 'true' || publicRuntimeConfig.ENABLE_ACTIONS === true),
 
+    // google picker api
+    GOOGLE_CLIENT_ID: publicRuntimeConfig.GOOGLE_CLIENT_ID,
+    GOOGLE_PICKER_API_KEY: publicRuntimeConfig.GOOGLE_PICKER_API_KEY,
+
     //CHATWOOT
     CHATWOOT_ENABLE: publicRuntimeConfig.CHATWOOT_ENABLE && (publicRuntimeConfig.CHATWOOT_ENABLE === 'true' || publicRuntimeConfig.CHATWOOT_ENABLE === true),
     CHATWOOT_DEPLOY_URL: publicRuntimeConfig.CHATWOOT_DEPLOY_URL ?? 'https://help.bettercollected.com',

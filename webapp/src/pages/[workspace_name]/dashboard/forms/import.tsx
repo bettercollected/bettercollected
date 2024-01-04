@@ -12,6 +12,7 @@ import useDrivePicker from '@fyelci/react-google-drive-picker';
 import { ChevronForward } from '@app/components/icons/chevron-forward';
 import { useModal } from '@app/components/modal-views/context';
 import Loader from '@app/components/ui/loader';
+import environments from '@app/configs/environments';
 import Layout from '@app/layouts/_layout';
 import { resetSingleForm } from '@app/store/forms/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
@@ -43,11 +44,10 @@ export default function ImportFormPage() {
 
     const openGoogleFilePicker = () => {
         openPicker({
-            clientId: '132120488980-hdf9tjq86k4km9kad2et532si5khuri9.apps.googleusercontent.com',
-            developerKey: 'AIzaSyA6OLL3bCqL2q3A5pl6CoPLq9LLO-p2-ok',
+            clientId: environments.GOOGLE_CLIENT_ID,
+            developerKey: environments.GOOGLE_PICKER_API_KEY,
             viewId: 'FORMS',
             token: data,
-            // token: 'ya29.a0AfB_byBmSGCAwYH-j19Ay2xd9pwghLNfB-qgrDzIdtZsjfgGRK9A1eG0LreT28QURwG8rMw7q06NYsqciBIzuzqXHzMOZrAUrrEOZ6hO3vZ1jgZFp3V0mCxXLUeG2cvXbp4mv-2lmgDITKWD-XvmRXKk91KukMrW5zpcbQaCgYKARISARMSFQHGX2MiKG-chxR44odTwCjOlPuUeQ0173',
             customScopes: ['https://www.googleapis.com/auth/drive.file'],
             callbackFunction: (data) => {
                 console.log('Callback Data', data);
