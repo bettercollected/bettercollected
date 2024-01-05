@@ -5,7 +5,7 @@ import { useRouter } from 'next/router';
 
 import AppButton from '@Components/Common/Input/Button/AppButton';
 import { ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
-import BottomSheetModalWrapper from '@Components/Modals/BottomSheetModals/BottomSheetModalWrapper';
+import BottomSheetModalWrapper from '@Components/Modals/ModalWrappers/BottomSheetModalWrapper';
 import { toast } from 'react-toastify';
 
 import RegexCard from '@app/components/cards/regex-card';

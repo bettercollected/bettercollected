@@ -2,7 +2,7 @@ import React from 'react';
 
 import AppButton from '@Components/Common/Input/Button/AppButton';
 import { ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
-import BottomSheetModalWrapper from '@Components/Modals/BottomSheetModals/BottomSheetModalWrapper';
+import BottomSheetModalWrapper from '@Components/Modals/ModalWrappers/BottomSheetModalWrapper';
 import TextField from '@mui/material/TextField';
 import { DateTimePicker } from '@mui/x-date-pickers';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';

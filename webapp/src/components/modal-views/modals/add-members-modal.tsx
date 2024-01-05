@@ -7,7 +7,7 @@ import AppTextField from '@Components/Common/Input/AppTextField';
 import AppButton from '@Components/Common/Input/Button/AppButton';
 import { ButtonSize, ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
 import ModalButton from '@Components/Common/Input/Button/ModalButton';
-import HeaderModalWrapper from '@Components/Modals/HeaderModalWrapper';
+import HeaderModalWrapper from '@Components/Modals/ModalWrappers/HeaderModalWrapper';
 import cn from 'classnames';
 import { toast } from 'react-toastify';
 

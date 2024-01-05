@@ -4,7 +4,7 @@ import { useRouter } from 'next/router';
 
 import Button from '@Components/Common/Input/Button';
 import AddActionToFormModal from '@Components/Modals/DialogModals/AddActionToFormModal';
-import OauthVerificationModal from '@Components/Modals/DialogModals/OauthVerificationModal';
+import ImportFormModal from '@Components/Modals/DialogModals/ImportFormModal';
 import UpdateCustomDomainModal from '@Components/Modals/DialogModals/UpdateCustomDomainModal';
 import UpdateWorkspaceHandle from '@Components/Modals/DialogModals/UpdateWorkspaceHandle';
 
@@ -90,6 +90,8 @@ function renderModalContent(view: MODAL_VIEW, modalProps: any) {
             return <FormBuilderTipsModalView {...modalProps} />;
         case 'INVITE_MEMBER':
             return <InviteMemberModal />;
+        case 'IMPORT_FORMS':
+            return <ImportFormModal {...modalProps} />;
         case 'LOGOUT_VIEW':
             return <LogoutView {...modalProps} />; // Done
         case 'MOBILE_INSERT_MENU':
@@ -114,8 +116,6 @@ function renderModalContent(view: MODAL_VIEW, modalProps: any) {
             return <ImportTemplateModalView {...modalProps} />;
         case 'ADD_ACTION_TO_FORM':
             return <AddActionToFormModal {...modalProps} />;
-        case 'OAUTH_VERIFICATION_MODAL':
-            return <OauthVerificationModal {...modalProps} />;
         default:
             return <></>;
     }
@@ -132,11 +132,16 @@ export default function ModalContainer() {
         if (!modalProps?.nonClosable) closeModal();
     }, [closeModal]);
 
+    const closeModalOnRouteChange = () => {
+        dispatch(resetBuilderMenuState());
+        closeModal();
+    };
+
     useEffect(() => {
         // close search modal when route change
-        router.events.on('routeChangeStart', closeModalHandler);
+        router.events.on('routeChangeStart', closeModalOnRouteChange);
         return () => {
-            router.events.off('routeChangeStart', closeModalHandler);
+            router.events.off('routeChangeStart', closeModalOnRouteChange);
         };
     }, [closeModalHandler, router.events]);
 
