@@ -1,6 +1,6 @@
 import { useTranslation } from 'next-i18next';
 
-import BottomSheetModalWrapper from '@Components/Modals/BottomSheetModals/BottomSheetModalWrapper';
+import BottomSheetModalWrapper from '@Components/Modals/ModalWrappers/BottomSheetModalWrapper';
 import ManageURLs from '@Components/Workspace/Settings/ManageURLs';
 import WorkspaceDetails from '@Components/Workspace/Settings/WorkspaceDetails';
 

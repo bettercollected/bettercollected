@@ -1,33 +1,27 @@
 import React, { useContext, useEffect, useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
-import { useRouter } from 'next/router';
 
 import Tooltip from '@Components/Common/DataDisplay/Tooltip';
 import AppButton from '@Components/Common/Input/Button/AppButton';
 import { ButtonSize, ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
-import useDrivePicker from '@fyelci/react-google-drive-picker';
 
 import FormProviderContext from '@app/Contexts/FormProviderContext';
+import { useModal } from '@app/components/modal-views/context';
 import { buttonConstant } from '@app/constants/locales/button';
 import { toolTipConstant } from '@app/constants/locales/tooltip';
-import { useAppSelector } from '@app/store/hooks';
-import { selectWorkspace } from '@app/store/workspaces/slice';
 
 export default function ImportFormsButton({ size, className = '' }: { size?: ButtonSize; className?: string }) {
-    const router = useRouter();
     const { t } = useTranslation();
     const formProviders = useContext(FormProviderContext);
-
-    const workspace = useAppSelector(selectWorkspace);
-
+    const { openModal } = useModal();
     const [providers, setProviders] = useState<Record<string, boolean>>({
         google: false,
         typeform: false
     });
 
     const handleClick = () => {
-        router.push(`/${workspace?.workspaceName}/dashboard/forms/import`);
+        openModal('IMPORT_FORMS', { nonClosable: true });
     };
 
     useEffect(() => {
