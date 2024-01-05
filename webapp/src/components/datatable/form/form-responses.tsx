@@ -16,6 +16,8 @@ import {useAppSelector} from '@app/store/hooks';
 import {useGetFormsSubmissionsQuery} from '@app/store/workspaces/api';
 import {IGetFormSubmissionsQuery} from '@app/store/workspaces/types';
 import {useModal} from "@app/components/modal-views/context";
+import AppButton from "@Components/Common/Input/Button/AppButton";
+import {ButtonVariant} from "@Components/Common/Input/Button/AppButtonProps";
 
 export default function FormResponsesTable({props}: any) {
     const {t} = useTranslation();
@@ -66,20 +68,20 @@ export default function FormResponsesTable({props}: any) {
                 <div className="flex flex-col lg:gap-2 md:w-[660px]">
                     <p className="body1">{isSubmission ? `${t(formConstant.responders)}` : `${t(formConstant.deletionRequests)}`}</p>
                     <p className="text-sm font-normal text-black-700 ">{isSubmission ? t(formPage.responsesDescription) : t(formPage.deletionRequestDescription)}</p>
+                    {form?.settings?.provider === 'self' && isSubmission && <AppButton
+                        variant={ButtonVariant.Tertiary}
+                        onClick={() => openModal('EXPORT_RESPONSES', {
+                            formId: form.formId,
+                        })}
+                        className={'w-1/4 mt-1'}
+                    >
+                        Export as CSV </AppButton>}
                 </div>
                 <div className="w-full md:w-[282px] flex items-end flex-col gap-4">
                     <SearchInput handleSearch={handleSearch} placeholder={t(formPage.searchByEmail)}
                                  className="!bg-black-300"/>
                     {form?.settings?.provider === 'self' && (
                         <div className="flex bg-gray-100  rounded-lg cursor-pointer overflow-hidden w-fit">
-                            <div
-                                className={`p-3 ${!showTabularResponses ? 'bg-black-300' : ''}`}
-                                onClick={() => {
-                                    setShowTabularView(false);
-                                }}
-                            >
-                                <FormatListBulleted height={24} width={24}/>
-                            </div>
                             <div
                                 className={`p-3 ${showTabularResponses ? 'bg-black-300' : ''}`}
                                 onClick={() => {
@@ -88,14 +90,16 @@ export default function FormResponsesTable({props}: any) {
                             >
                                 <ViewList height={24} width={24}/>
                             </div>
+                            <div
+                                className={`p-3 ${!showTabularResponses ? 'bg-black-300' : ''}`}
+                                onClick={() => {
+                                    setShowTabularView(false);
+                                }}
+                            >
+                                <FormatListBulleted height={24} width={24}/>
+                            </div>
                         </div>
                     )}
-                    {isSubmission && <div
-                        onClick={() => openModal('EXPORT_RESPONSES', {
-                            formId: form.formId,
-                        })}
-                        className={'py-1 px-4 cursor-pointer text-white bg-brand-500 hover:bg-brand-600 rounded flex gap-2'}>
-                        <Share/> Export</div>}
                 </div>
             </div>
 
