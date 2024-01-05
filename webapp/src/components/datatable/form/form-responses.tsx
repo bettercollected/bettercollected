@@ -40,7 +40,7 @@ export default function FormResponsesTable({props}: any) {
 
     const {data, isLoading} = useGetFormsSubmissionsQuery(query);
 
-    const [showTabularResponses, setShowTabularResponses] = useState(form?.provider === 'self' && localStorage.getItem('tabularResponses') === 'true');
+    const [showTabularResponses, setShowTabularResponses] = useState(form?.settings?.provider === 'self' && (localStorage.getItem('tabularResponses') === 'true' || localStorage.getItem('tabularResponses') === null));
 
     const handleSearch = (event: any) => {
         if (event.target.value) setQuery({...query, dataOwnerIdentifier: event.target.value});
