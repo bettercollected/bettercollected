@@ -37,21 +37,19 @@ export default function ExportResponsesModal({formId}: { formId: any }) {
     };
 
     return (
-        <HeaderModalWrapper headerTitle="Export Responses">
+        <HeaderModalWrapper headerTitle="Export Responses as CSV">
             <div className={'flex flex-col gap-2'}>
-                <h1 className={'body3 !text-black-800 !leading-normal'}> Below are the different options for
-                    exporting your responses:
-                </h1>
+                <h1>Export as CSV </h1>
+                <h2 className={'body4 !text-pink-500'}>
+                    Once you export the form responses as CSV. You&apos;ll be receiving the link for the CSV on
+                    your email
+                </h2>
                 <AppButton className="w-full mt-4" data-testid="save-button" type="submit"
                            onClick={handleSubmit}
                            size={ButtonSize.Medium} variant={ButtonVariant.Primary}>
-                    CSV
+                    Send me the link
                 </AppButton>
-                <h2 className={'body4 !text-pink-500'}>
-                    Note: Once you export the form responses as CSV. You&apos;ll be receiving the link for the CSV on
-                    your
-                    email
-                </h2>
+
             </div>
 
         </HeaderModalWrapper>

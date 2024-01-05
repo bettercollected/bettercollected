@@ -124,7 +124,7 @@ async def execute_csv_conversion(form: str, unconverted_responses: List[str], us
             if field['type'].startswith('input_'):
                 x = dict()
                 x['field_id'] = field['id']
-                x['text'] = field['properties']['placeholder'] if field['properties'] else ''
+                x['text'] = field.get('properties', {}).get('placeholder', "")
                 x['type'] = field['type']
                 question_value = field_lists[question_index - 1]['value'] if field_lists[question_index - 1] else None
                 if question_value:
