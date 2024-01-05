@@ -23,7 +23,7 @@ export default function ImportFormPage() {
     const { t } = useTranslation();
     const { title } = useAppSelector(selectWorkspace);
     const router = useRouter();
-    const { openModal } = useModal();
+    const { closeModal } = useModal();
     const dispatch = useAppDispatch();
 
     const form = useAppSelector(selectForm);
@@ -52,10 +52,11 @@ export default function ImportFormPage() {
             token: data,
             customScopes: ['https://www.googleapis.com/auth/drive.file'],
             callbackFunction: (data) => {
-                console.log('Callback Data', data);
                 if (data.action === 'picked' && data.docs && Array.isArray(data.docs) && data.docs.length > 0) {
                     const formId = data.docs[0].id;
                     setFormId(formId);
+                } else if (data.action === 'cancel') {
+                    closeModal();
                 }
             }
         });
@@ -66,12 +67,6 @@ export default function ImportFormPage() {
             openGoogleFilePicker();
         }
     }, [data]);
-
-    useEffect(() => {
-        if (verificationError || data?.status_code === 400) {
-            openModal('OAUTH_VERIFICATION_MODAL', { provider: 'google', nonClosable: true });
-        }
-    }, [verificationError, data]);
 
     const handleClickBack = () => {
         router.push(`/${workspace?.workspaceName}/dashboard`);
