@@ -106,7 +106,8 @@ async def execute_csv_conversion(form: str, unconverted_responses: List[str], us
             previous_field_value = get_previous_field(field_id, fields)['value']
             if '{{' in previous_field_value:
                 previous_field_value = get_question_value(previous_field_value, fields)
-            question_value = question_value.replace('{{ ', '@').replace('}}', '').replace(field_id, previous_field_value)
+            question_value = question_value.replace('{{ ', '@').replace('}}', '').replace(field_id,
+                                                                                          previous_field_value)
         return question_value
 
     def get_previous_field(field_id, fields):
@@ -173,12 +174,12 @@ async def execute_csv_conversion(form: str, unconverted_responses: List[str], us
         message = MessageSchema(
             subject="Responses CSV Attachment",
             recipients=[user_email],
-            body=f"Please find the attached CSV file link below. <br> {presigned_csv_url} ",
+            template_body={"form_title": form['title'], "csv_url": presigned_csv_url},
             subtype=MessageType.html,
         )
         fast_mail = FastMail(mail_config)
 
-        asyncio.run(fast_mail.send_message(message))
+        asyncio.run(fast_mail.send_message(message, template_name="csv.html"))
 
         # Delete the temporary CSV file after sending the email
         os.remove(filename)
@@ -206,6 +207,7 @@ async def execute_csv_conversion(form: str, unconverted_responses: List[str], us
             MAIL_SSL_TLS=ssl,
             USE_CREDENTIALS=use_credentials,
             VALIDATE_CERTS=validate_certs,
+            TEMPLATE_FOLDER="templates"
         )
 
     loop = asyncio.get_event_loop()
