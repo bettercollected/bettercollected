@@ -3,11 +3,14 @@ import React, { useState } from 'react';
 import _ from 'lodash';
 
 import CheckedCircle from '@Components/Common/Icons/Common/CheckedCircle';
+import CloseModal from '@Components/Modals/CloseModal';
 import { Disclosure } from '@headlessui/react';
 import { Checkbox, FormControlLabel } from '@mui/material';
 
 import { ChevronDown } from '@app/components/icons/chevron-down';
+import { Close } from '@app/components/icons/close';
 import ConnectWithProviderButton from '@app/components/login/login-with-google-button';
+import { useModal } from '@app/components/modal-views/context';
 import environments from '@app/configs/environments';
 
 interface ImportErrorViewProps {
@@ -36,8 +39,15 @@ interface IDefaultContent {
 
 export default function ImportErrorView({ provider }: ImportErrorViewProps) {
     const [isConsentGiven, setIsConsentGiven] = useState(false);
+    const { closeModal } = useModal();
 
     const googlePermissions: Array<IPermission> = [
+        {
+            type: 'non-sensitive',
+            isPermissionGiven: false,
+            name: 'Permission to search and pick Google Forms from Drive',
+            description: 'To be able to show google file picker, we require permissions to search your Google Drive for Google Forms.'
+        },
         {
             type: 'sensitive',
             isPermissionGiven: false,
@@ -77,6 +87,7 @@ export default function ImportErrorView({ provider }: ImportErrorViewProps) {
 
     return (
         <div className="text-sm relative flex items-center justify-center flex-col space-y-5 w-full md:max-w-[560px] rounded-md shadow-md bg-white py-10">
+            <CloseModal />
             <div className="flex flex-col !mt-0 items-center justify-between">
                 <CheckedCircle />
                 <h2 className="text-black-900 font-semibold mt-6 text-lg md:text-xl whitespace-pre-wrap text-center">{defaultContent.permissionText}</h2>

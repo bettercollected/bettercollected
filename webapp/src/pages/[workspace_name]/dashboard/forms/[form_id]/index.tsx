@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 
 import { useTranslation } from 'next-i18next';
 import { NextSeo } from 'next-seo';
