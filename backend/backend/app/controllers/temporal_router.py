@@ -1,11 +1,10 @@
 from beanie import PydanticObjectId
-from classy_fastapi import Routable, post, delete
+from classy_fastapi import Routable, post
 from fastapi import Depends
 
 from backend.app.container import container
 from backend.app.router import router
 from backend.app.services.user_service import get_api_key
-from common.utils import logger
 
 
 @router(
