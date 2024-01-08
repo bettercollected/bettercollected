@@ -383,6 +383,10 @@ export default function FormBuilder({workspace, _nextI18Next, isTemplate = false
         dispatch(setActiveField({position: b.position, id: b.id}));
     };
 
+    const onClickInsert = () =>{
+        openHalfScreenModal('FORM_BUILDER_ADD_FIELD_VIEW')
+    }
+
 
     return (
         <div>
@@ -397,6 +401,7 @@ export default function FormBuilder({workspace, _nextI18Next, isTemplate = false
                 isUpdating={patching}
                 isTemplate={isTemplate}
                 onSaveTemplate={onSaveTemplate}
+                onClickInsert={onClickInsert}
             />
             {showCover && <FormCoverComponent setIsCoverClicked={setShowCover} imagesRemoved={imagesRemoved}
                                               setImagesRemoved={setImagesRemoved}/>}

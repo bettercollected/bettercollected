@@ -22,6 +22,7 @@ import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
 import useBuilderTranslation from '@app/lib/hooks/use-builder-translation';
 import { useAppSelector } from '@app/store/hooks';
 import { selectPatchingTemplate } from '@app/store/mutations/selectors';
+import PlusIcon from "@Components/Common/Icons/Common/Plus";
 
 interface IFormBuilderMenuBarProps {
     onAddNewPage: React.MouseEventHandler<HTMLButtonElement>;
@@ -31,11 +32,12 @@ interface IFormBuilderMenuBarProps {
     onFormPublish: React.MouseEventHandler<HTMLButtonElement>;
     onClickTips: React.MouseEventHandler<HTMLButtonElement>;
     onSaveTemplate?: React.MouseEventHandler<HTMLButtonElement>;
+    onClickInsert: React.MouseEventHandler<HTMLButtonElement>;
     isUpdating?: boolean;
     isTemplate: boolean;
 }
 
-function FormBuilderMenuBar({ onAddFormLogo, onAddFormCover, onClickTips, onPreview, onFormPublish, isTemplate, onSaveTemplate }: IFormBuilderMenuBarProps) {
+function FormBuilderMenuBar({ onAddFormLogo, onAddFormCover, onClickTips, onPreview, onFormPublish, isTemplate, onSaveTemplate ,onClickInsert}: IFormBuilderMenuBarProps) {
     const { t } = useBuilderTranslation();
 
     const { t: translation } = useTranslation();
@@ -51,6 +53,12 @@ function FormBuilderMenuBar({ onAddFormLogo, onAddFormCover, onClickTips, onPrev
 
     const Actions = () => (
         <Toolbar className=" !px-0 lg:px-6 divide-y divide-black-200 lg:divide-y-0  flex flex-col lg:flex-row body4 w-full relative justify-center" variant={'dense'}>
+            <Divider orientation="vertical" className="hidden lg:flex" flexItem />
+            <IconButton color="inherit" className={optionButtonClassName} onClick={onClickInsert}>
+                <PlusIcon />
+                <span className="text-black-700 ">Insert</span>
+            </IconButton>
+            <Divider orientation="vertical" className="hidden lg:flex" flexItem />
             <Divider orientation="vertical" className="hidden lg:flex" flexItem />
             <IconButton color="inherit" className={optionButtonClassName} onClick={onAddFormLogo}>
                 <CircleOutlinedIcon />
