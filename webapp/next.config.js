@@ -121,6 +121,7 @@ const nextConfig = {
         ENABLE_BRAND_COLORS: process.env.ENABLE_BRAND_COLORS || false,
         ENABLE_JOYRIDE_TOURS: process.env.ENABLE_JOYRIDE_TOURS || false,
         ENABLE_FORM_BUILDER: process.env.ENABLE_FORM_BUILDER || false,
+        ENABLE_EXPORT_CSV: process.env.ENABLE_EXPORT_CSV || false,
 
         MAX_WORKSPACES: process.env.MAX_WORKSPACES || 5,
 
