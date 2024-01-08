@@ -10,8 +10,8 @@ import ProLogo from '@Components/Common/Icons/Common/ProLogo';
 import AppTextField from '@Components/Common/Input/AppTextField';
 import AppButton from '@Components/Common/Input/Button/AppButton';
 import { ButtonSize, ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
+import ImportFormLoading from '@Components/ImportForm/ImportFormLoading';
 import useDrivePicker from '@fyelci/react-google-drive-picker';
-import { CircularProgress } from '@mui/material';
 import confetti from 'canvas-confetti';
 import { toast } from 'react-toastify';
 
@@ -25,7 +25,6 @@ import { localesCommon } from '@app/constants/locales/common';
 import { toastMessage } from '@app/constants/locales/toast-message';
 import { useCopyToClipboard } from '@app/lib/hooks/use-copy-to-clipboard';
 import { StandardFormDto } from '@app/models/dtos/form';
-import { initFormState, setFormSettings } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { useImportFormMutation, useLazyGetSingleFormFromProviderQuery, usePatchFormSettingsMutation, useVerifyFormTokenMutation } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
@@ -97,6 +96,18 @@ export default function ImportFormModal() {
         }
     };
 
+    const customViews: any = [];
+
+    // @ts-ignore
+    if (window.google) {
+        // @ts-ignore
+        const customView = new google.picker.DocsView(google.picker.ViewId.FORMS);
+        // @ts-ignore
+        customView?.setMode(google.picker.DocsViewMode.LIST);
+
+        customViews.push(customView);
+    }
+
     const handleUpdate = async (event: any) => {
         event.preventDefault();
         const body = {
@@ -125,11 +136,12 @@ export default function ImportFormModal() {
         openPicker({
             clientId: environments.GOOGLE_CLIENT_ID,
             developerKey: environments.GOOGLE_PICKER_API_KEY,
-            viewId: 'FORMS',
+            // viewId: 'FORMS',
             token: data,
+            disableDefaultView: true,
+            customViews: customViews,
             customScopes: ['https://www.googleapis.com/auth/drive.file'],
             callbackFunction: (data) => {
-                console.log('Callback Data', data);
                 if (data.action === 'picked' && data.docs && Array.isArray(data.docs) && data.docs.length > 0) {
                     const formId = data.docs[0].id;
                     const formTitle = data.docs[0].name;
@@ -163,17 +175,7 @@ export default function ImportFormModal() {
                     }}
                 />
             )}
-            {formId && !form && (
-                <div className="flex flex-col h-full justify-center items-center">
-                    <Image className={'pb-1'} src={GoogleFolder} alt={'GoogleFolder'} />
-                    <div className=" h3-new mt-4">
-                        {singleFormFromProviderResult?.isLoading && 'Fetching Form'}
-                        {importFormResult?.isLoading && 'Importing Form'}
-                    </div>
-                    <div className=" mt-2">{formTitle}</div>
-                    <CircularProgress size={48} className="mt-12" />
-                </div>
-            )}
+            {formId && formTitle && !form && <ImportFormLoading loadingText={singleFormFromProviderResult.isLoading ? 'Fetching Form' : 'Importing'} formTitle={formTitle} />}
             {!formId && (
                 <AppButton
                     variant={ButtonVariant.Primary}
