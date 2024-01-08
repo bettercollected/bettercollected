@@ -71,7 +71,7 @@ class FormSchedular:
             cookies = {"Authorization": self.jwt_service.encode(user)}
             raw_form = None
             try:
-                provider = self.form_provider_service.get_provider_if_enabled(
+                provider = await self.form_provider_service.get_provider_if_enabled(
                     provider_name=workspace_form.settings.provider)
                 raw_form = await self.perform_request(
                     provider=workspace_form.settings.provider,
@@ -165,7 +165,7 @@ class FormSchedular:
         try:
             response = await AiohttpClient.get_aiohttp_client().request(
                 method=method,
-                url=f"{provider.provider_url}/{provider}/forms{append_url}",
+                url=f"{provider.provider_url}/{provider.provider_name}/forms{append_url}",
                 params=params,
                 cookies=cookies,
                 json=json,
