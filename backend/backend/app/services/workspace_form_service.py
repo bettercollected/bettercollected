@@ -569,13 +569,15 @@ class WorkspaceFormService:
         await self.form_service.update_state_of_action_in_form(form_id=form_id, update_action_dto=update_action_dto)
 
     async def get_responses_in_csv_format(self, workspace_id: PydanticObjectId, form_id: str, user: User):
+        if not settings.api_settings.ENABLE_EXPORT_CSV:
+            raise HTTPException(403,'Service has not been enabled.')
         await self.check_form_exists_in_workspace(workspace_id=workspace_id, form_id=form_id)
         await self.workspace_user_service.check_user_has_access_in_workspace(workspace_id=workspace_id, user=user)
         responses = await self.form_response_service.get_all_workspace_form_submissions(workspace_id=workspace_id,
                                                                                         form_id=form_id,
                                                                                         )
         form = await self.form_service.get_form_document_by_id(form_id=form_id)
-        await self.temporal_service.export_as_csv(
-            form=form, responses=responses, user=user
-        )
+        # await self.temporal_service.export_as_csv(
+        #     form=form, responses=responses, user=user
+        # )
         return 'CSV sent as email successfully.'
