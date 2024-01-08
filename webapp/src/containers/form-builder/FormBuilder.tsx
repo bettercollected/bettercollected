@@ -471,7 +471,7 @@ export default function FormBuilder({workspace, _nextI18Next, isTemplate = false
                         }}
                     />
                 </div>
-                {!builderState.isFormDirty && <BuilderTips/>}
+                {/*{!builderState.isFormDirty && <BuilderTips/>}*/}
                 <AnimatePresence mode="wait" initial={false}>
                     {showSaving.status && (
                         <motion.div
