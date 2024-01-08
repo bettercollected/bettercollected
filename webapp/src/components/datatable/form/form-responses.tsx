@@ -18,6 +18,7 @@ import {IGetFormSubmissionsQuery} from '@app/store/workspaces/types';
 import {useModal} from "@app/components/modal-views/context";
 import AppButton from "@Components/Common/Input/Button/AppButton";
 import {ButtonVariant} from "@Components/Common/Input/Button/AppButtonProps";
+import environments from "@app/configs/environments";
 
 export default function FormResponsesTable({props}: any) {
     const {t} = useTranslation();
@@ -68,7 +69,7 @@ export default function FormResponsesTable({props}: any) {
                 <div className="flex flex-col lg:gap-2 md:w-[660px]">
                     <p className="body1">{isSubmission ? `${t(formConstant.responders)}` : `${t(formConstant.deletionRequests)}`}</p>
                     <p className="text-sm font-normal text-black-700 ">{isSubmission ? t(formPage.responsesDescription) : t(formPage.deletionRequestDescription)}</p>
-                    {form?.settings?.provider === 'self' && isSubmission && <AppButton
+                    {environments.ENABLE_EXPORT_CSV && form?.settings?.provider === 'self' && isSubmission && <AppButton
                         variant={ButtonVariant.Tertiary}
                         onClick={() => openModal('EXPORT_RESPONSES', {
                             formId: form.formId,
