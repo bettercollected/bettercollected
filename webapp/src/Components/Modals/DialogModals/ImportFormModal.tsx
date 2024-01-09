@@ -71,11 +71,11 @@ export default function ImportFormModal() {
     const customViews: any = [];
 
     // @ts-ignore
-    if (window.google) {
+    if (window.google && window.google?.picker) {
         // @ts-ignore
-        const customView = new google.picker.DocsView(google.picker.ViewId.FORMS);
+        const customView = new window.google.picker.DocsView(google.picker.ViewId.FORMS);
         // @ts-ignore
-        customView?.setMode(google.picker.DocsViewMode.LIST);
+        customView?.setMode(window.google.picker.DocsViewMode.LIST);
 
         customViews.push(customView);
     }
