@@ -15,7 +15,7 @@ export enum BlockTypes {
     INPUT_BLOCKS = 'Without Label',
     LAYOUT_BLOCKS = 'Headings',
     QUESTION_INPUT_BLOCKS = 'With Label',
-    CONDITIONAL = 'Advanced Fields'
+    ADVANCED_FIELDS = 'Advanced Fields'
 }
 
 export enum FormBuilderTagNames {
@@ -52,6 +52,7 @@ export enum FormBuilderTagNames {
     INPUT_MEDIA = 'input_file_upload',
 
     CONDITIONAL = 'conditional',
+    BUTTON = 'button',
 
     EMBED_IMAGE = 'embed_image',
     EMBED_VIDEO = 'embed_video',

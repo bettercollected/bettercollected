@@ -24,6 +24,7 @@ import { BlockTypes, FormBuilderTagNames, KeyType } from '@app/models/enums/form
 import { OnlyClassNameInterface } from '@app/models/interfaces';
 import { selectActiveFieldId } from '@app/store/form-builder/selectors';
 import { useAppSelector } from '@app/store/hooks';
+import ButtonIcon from "@Components/Common/Icons/FormBuilder/ButtonIcon";
 
 export const allowedInputTags = [
     {
@@ -265,16 +266,23 @@ export const allowedQuestionAndAnswerTags = [
     }
 ];
 
-export const allowedConditionalTags = [
+export const allowedAdvancedTags = [
     {
         id: FormBuilderTagNames.CONDITIONAL,
         type: FormBuilderTagNames.CONDITIONAL,
         label: 'Conditional',
         icon: <Logic width={20} height={20} className={'text-black-600'} />,
-        blockType: BlockTypes.CONDITIONAL
+        blockType: BlockTypes.ADVANCED_FIELDS
+    },
+    {
+        id: FormBuilderTagNames.BUTTON,
+        type: FormBuilderTagNames.BUTTON,
+        label: 'Submit Button',
+        icon: <ButtonIcon width={30} height={30} className={'text-black-600'} />,
+        blockType: BlockTypes.ADVANCED_FIELDS
     }
 ];
-export const allowedTags = [...allowedQuestionAndAnswerTags, ...allowedLayoutTags, ...allowedInputTags, ...allowedConditionalTags];
+export const allowedTags = [...allowedQuestionAndAnswerTags, ...allowedLayoutTags, ...allowedInputTags, ...allowedAdvancedTags];
 
 interface IFormBuilderTagSelector extends OnlyClassNameInterface {
     closeMenu: any;
@@ -287,7 +295,7 @@ const FormBuilderTagSelector = ({ closeMenu, handleSelection, className, positio
     const [tagList, setTagList] = useState(allowedTags);
     const [selectedTag, setSelectedTag] = useState({ blockType: BlockTypes.QUESTION_INPUT_BLOCKS, index: 0 });
     const [command, setCommand] = useState('');
-    const [blockListTypes, setBlockListTypes] = useState<Array<BlockTypes>>([BlockTypes.QUESTION_INPUT_BLOCKS, BlockTypes.INPUT_BLOCKS, BlockTypes.LAYOUT_BLOCKS, BlockTypes.CONDITIONAL]);
+    const [blockListTypes, setBlockListTypes] = useState<Array<BlockTypes>>([BlockTypes.QUESTION_INPUT_BLOCKS, BlockTypes.INPUT_BLOCKS, BlockTypes.LAYOUT_BLOCKS, BlockTypes.ADVANCED_FIELDS]);
     const listRef: any = useRef(null);
     const activeField = useAppSelector(selectActiveFieldId);
 
@@ -295,14 +303,14 @@ const FormBuilderTagSelector = ({ closeMenu, handleSelection, className, positio
 
     useEffect(() => {
         if (!searchQuery) {
-            setBlockListTypes([BlockTypes.QUESTION_INPUT_BLOCKS, BlockTypes.LAYOUT_BLOCKS, BlockTypes.INPUT_BLOCKS, BlockTypes.CONDITIONAL]);
+            setBlockListTypes([BlockTypes.QUESTION_INPUT_BLOCKS, BlockTypes.LAYOUT_BLOCKS, BlockTypes.INPUT_BLOCKS, BlockTypes.ADVANCED_FIELDS]);
             setTagList(allowedTags);
         }
         if (!searchQuery || searchQuery?.includes('\n')) return; // Discard enter character in search query
         const filteredAllowedQuestionAnswerTags = allowedQuestionAndAnswerTags.filter((tag) => tag.label.toLocaleLowerCase().includes(searchQuery.toLocaleLowerCase()));
         const filteredAllowedInputTags = allowedInputTags.filter((tag) => tag.label.toLocaleLowerCase().includes(searchQuery.toLocaleLowerCase()));
         const filteredAllowedLayoutTags = allowedLayoutTags.filter((tag) => tag.label.toLocaleLowerCase().includes(searchQuery.toLocaleLowerCase()));
-        const filteredAllowedConditionalTags = allowedConditionalTags.filter((tag) => tag.label.toLocaleLowerCase().includes(searchQuery.toLocaleLowerCase()));
+        const filteredAllowedConditionalTags = allowedAdvancedTags.filter((tag) => tag.label.toLocaleLowerCase().includes(searchQuery.toLocaleLowerCase()));
         const newBlockListTypes: Array<BlockTypes> = [];
         let selectedBlockType = BlockTypes.INPUT_BLOCKS;
         if (filteredAllowedQuestionAnswerTags.length > 0) {
@@ -315,7 +323,7 @@ const FormBuilderTagSelector = ({ closeMenu, handleSelection, className, positio
             newBlockListTypes.push(BlockTypes.INPUT_BLOCKS);
         }
         if (filteredAllowedConditionalTags.length > 0) {
-            newBlockListTypes.push(BlockTypes.CONDITIONAL);
+            newBlockListTypes.push(BlockTypes.ADVANCED_FIELDS);
         }
         setSelectedTag({ blockType: newBlockListTypes.length > 0 ? newBlockListTypes[0] : selectedBlockType, index: 0 });
         setTagList([...filteredAllowedQuestionAnswerTags, ...filteredAllowedInputTags, ...filteredAllowedLayoutTags, ...filteredAllowedConditionalTags]);
@@ -452,7 +460,7 @@ const FormBuilderTagSelector = ({ closeMenu, handleSelection, className, positio
                 return <ElementsWithLabel className={'text-black-600 '} />;
             case BlockTypes.LAYOUT_BLOCKS:
                 return <div className="text-[16px] px-2 text-center items-center leading-6 text-black-600 font-semibold">H</div>;
-            case BlockTypes.CONDITIONAL:
+            case BlockTypes.ADVANCED_FIELDS:
                 return <Logic className={'text-black-600'} />;
         }
     };
