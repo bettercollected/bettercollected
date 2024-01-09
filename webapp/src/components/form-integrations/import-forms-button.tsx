@@ -5,6 +5,7 @@ import { useTranslation } from 'next-i18next';
 import Tooltip from '@Components/Common/DataDisplay/Tooltip';
 import AppButton from '@Components/Common/Input/Button/AppButton';
 import { ButtonSize, ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
+import useDrivePicker from '@fyelci/react-google-drive-picker';
 
 import FormProviderContext from '@app/Contexts/FormProviderContext';
 import { useModal } from '@app/components/modal-views/context';
@@ -15,6 +16,7 @@ export default function ImportFormsButton({ size, className = '' }: { size?: But
     const { t } = useTranslation();
     const formProviders = useContext(FormProviderContext);
     const { openModal } = useModal();
+    const [openPicker] = useDrivePicker();
     const [providers, setProviders] = useState<Record<string, boolean>>({
         google: false,
         typeform: false
