@@ -440,7 +440,7 @@ export default function FormBuilder({workspace, _nextI18Next, isTemplate = false
                     />
                     {!isLastFieldEmptyTextField() ? (
                         <div
-                            className={`w-full px-12 md:px-[89px] -mt-[2px] flex min-h-[40px] items-center group`}
+                            className={`w-full px-12 md:px-[89px] mt-[2px] flex min-h-[40px] items-center group`}
                             onClick={() => {
                                 batch(() => {
                                     const newField = createNewField(Object.keys(builderState.fields).length - 1);
@@ -451,11 +451,12 @@ export default function FormBuilder({workspace, _nextI18Next, isTemplate = false
                             }}
                         >
                             <div
-                                className="text-sm text-white hover:text-black-600 !w-full flex items-center relative h-full  !cursor-text ">
+                                className="text-sm text-black-500 hover:text-black-600 !w-full flex items-center relative h-full  !cursor-text ">
                                 {'   '}
                                 <DragHandleIcon
                                     className="flex md:hidden group-hover:flex absolute -top-0.5 add-field-drag-icon text-black-800 lg:text-black-600"
                                     width={24} height={24}/>
+                                Add form element
                             </div>
                         </div>
                     ) : (
