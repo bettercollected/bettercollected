@@ -51,6 +51,7 @@ import {createNewField} from '@app/utils/formBuilderBlockUtils';
 import {throttle} from '@app/utils/throttleUtils';
 
 import useFormBuilderState from './context';
+import useFormBuilderButtonState from "@Components/FormBuilder/bottomAtom";
 
 export default function FormBuilder({workspace, _nextI18Next, isTemplate = false, templateId}: {
     workspace: WorkspaceDto;
@@ -84,6 +85,7 @@ export default function FormBuilder({workspace, _nextI18Next, isTemplate = false
     // Form Builder State
     const {backspaceCount, setBackspaceCount} = useFormBuilderState();
     const {headerImages, resetImages} = useFormBuilderAtom();
+    const {visibility, setHideButton} = useFormBuilderButtonState();
 
     // Saving State
     const [patchForm, {isLoading: patching}] = usePatchFormMutation();
@@ -383,10 +385,9 @@ export default function FormBuilder({workspace, _nextI18Next, isTemplate = false
         dispatch(setActiveField({position: b.position, id: b.id}));
     };
 
-    const onClickInsert = () =>{
+    const onClickInsert = () => {
         openHalfScreenModal('FORM_BUILDER_ADD_FIELD_VIEW')
     }
-
 
     return (
         <div>
@@ -461,21 +462,28 @@ export default function FormBuilder({workspace, _nextI18Next, isTemplate = false
                         <div className="h-10"/>
                     )}
                 </div>
-                <div className="mt-2 px-12 md:px-[89px]">
+                {(visibility.show || builderState.buttonText) && <div className="mt-2 px-12 md:px-[89px]">
                     <ContentEditable
+                        id={'form-builder-button'}
                         className="w-fit rounded py-3 px-5 text-white !text-[14px] !font-semibold bg-black-900 min-w-[130px] text-center focus-visible:border-0 focus-visible:outline-none"
                         html={builderState.buttonText || ''}
                         onKeyDown={(event) => {
                             event.stopPropagation();
+                            if (event.key === 'Backspace' && (!event.metaKey || !event.ctrlKey)) {
+                                if (!event.currentTarget.innerText) {
+                                    setHideButton()
+                                    dispatch(setBuilderState({buttonText: ''}));
+                                }
+                            }
                         }}
-                        onBlur={(event) => {
-                            if (!event.currentTarget.innerText) dispatch(setBuilderState({buttonText: 'Submit'}));
-                        }}
+                        // onBlur={(event) => {
+                        //     if (!event.currentTarget.innerText) dispatch(setBuilderState({buttonText: 'Submit'}));
+                        // }}
                         onChange={(event: FormEvent<HTMLInputElement>) => {
                             dispatch(setBuilderState({buttonText: event.currentTarget.innerText}));
                         }}
                     />
-                </div>
+                </div>}
                 {/*{!builderState.isFormDirty && <BuilderTips/>}*/}
                 <AnimatePresence mode="wait" initial={false}>
                     {showSaving.status && (
