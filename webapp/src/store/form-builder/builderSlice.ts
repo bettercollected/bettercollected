@@ -25,7 +25,7 @@ export const initBuilderState: IBuilderState = {
     id: '',
     title: '',
     description: '',
-    buttonText: 'Submit',
+    buttonText: '',
     menus: {
         spotlightField: {isOpen: false, afterFieldUuid: ''},
         commands: {isOpen: false, atFieldUuid: '', position: 'down'},
@@ -295,7 +295,7 @@ export const builder = createSlice({
                 logo: action.payload.logo,
                 coverImage: action.payload.coverImage,
                 description: action.payload.description,
-                buttonText: action.payload.buttonText || 'Submit',
+                buttonText: action.payload.buttonText || '',
                 activeFieldIndex: -2,
                 activeFieldId: 'field-title',
                 settings: {
