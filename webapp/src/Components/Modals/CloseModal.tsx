@@ -7,7 +7,7 @@ export default function CloseModal() {
     const { closeModal } = useModal();
 
     return (
-        <div className="absolute p-1 hover:bg-black-200 top-5 right-5">
+        <div className="absolute hover:bg-black-200 top-5 right-5">
             <Close
                 onClick={() => {
                     closeModal();
