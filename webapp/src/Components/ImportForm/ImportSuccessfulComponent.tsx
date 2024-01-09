@@ -18,6 +18,7 @@ import { toast } from 'react-toastify';
 import GoogleFolder from '@app/assets/images/google_folder.png';
 import TickIcon from '@app/components/icons/tick-icon';
 import { useModal } from '@app/components/modal-views/context';
+import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
 import environments from '@app/configs/environments';
 import { localesCommon } from '@app/constants/locales/common';
 import { toastMessage } from '@app/constants/locales/toast-message';
@@ -32,6 +33,8 @@ export default function ImportSuccessfulComponent() {
     const form: StandardFormDto = useAppSelector(selectForm);
     const { formId, title: formTitle } = form;
     const { closeModal } = useModal();
+
+    const { openModal: openFullScreenModal } = useFullScreenModal();
 
     const { t } = useTranslation();
 
@@ -178,7 +181,27 @@ export default function ImportSuccessfulComponent() {
                     {(!workspace.isPro || !workspace?.customDomain) && (
                         <div className="p2-new text-black-700 flex items-center gap-4">
                             Improve your brand recognition by using custom domain.
-                            {!workspace?.isPro ? <AppButton variant={ButtonVariant.Ghost}>Upgrade to Pro</AppButton> : <AppButton variant={ButtonVariant.Ghost}>Add Custom Domain</AppButton>}
+                            {!workspace?.isPro ? (
+                                <AppButton
+                                    variant={ButtonVariant.Ghost}
+                                    onClick={() => {
+                                        closeModal();
+                                        openFullScreenModal('UPGRADE_TO_PRO');
+                                    }}
+                                >
+                                    Upgrade to Pro
+                                </AppButton>
+                            ) : (
+                                <AppButton
+                                    variant={ButtonVariant.Ghost}
+                                    onClick={() => {
+                                        closeModal();
+                                        openFullScreenModal('WORKSPACE_SETTINGS', { initialIndex: 1 });
+                                    }}
+                                >
+                                    Add Custom Domain
+                                </AppButton>
+                            )}
                         </div>
                     )}
                     {workspace?.isPro && workspace?.customDomain && (
