@@ -47,7 +47,7 @@ export default function UpdateWorkspaceHandle() {
                 setErrorMessage(t(onBoarding.fillHandleName));
             } else if (updateText.includes(' ')) {
                 setErrorMessage(t(onBoarding.spaceNotAllowed));
-            } else if (!updateText.match(/^[a-zA-Z0-9_]+$/)) {
+            } else if (!updateText.match(/^(?![_-])(?!.*[_-]{2})[a-zA-Z0-9_-]+(?![_-])$/)) {
                 setErrorMessage(t(onBoarding.allowedCharacters));
             } else if (checkIfPredefinedWorkspaceName(updateText)) {
                 setErrorMessage('It is predefined name. Please use another one.');

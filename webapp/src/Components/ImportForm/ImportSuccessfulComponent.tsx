@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
 import Image from 'next/image';
@@ -17,11 +17,11 @@ import ContentEditable from 'react-contenteditable';
 import { toast } from 'react-toastify';
 
 import GoogleFolder from '@app/assets/images/google_folder.png';
+import { Close } from '@app/components/icons/close';
 import TickIcon from '@app/components/icons/tick-icon';
 import { useModal } from '@app/components/modal-views/context';
 import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
 import environments from '@app/configs/environments';
-import { localesCommon } from '@app/constants/locales/common';
 import { toastMessage } from '@app/constants/locales/toast-message';
 import { useCopyToClipboard } from '@app/lib/hooks/use-copy-to-clipboard';
 import { StandardFormDto } from '@app/models/dtos/form';
@@ -56,7 +56,7 @@ export default function ImportSuccessfulComponent() {
     const [saving, setSaving] = useState(false);
     const [saved, setSaved] = useState(false);
 
-    const slugRegex = /^(?=.*$)(?![_][-])(?!.*[_][-]{2})[a-zA-Z0-9_-]+(?<![_][-])$/;
+    const slugRegex = /^(?![_-])(?!.*[_-]{2})[a-zA-Z0-9_-]+(?![_-])$/;
 
     const handleSlugUpdate = useCallback(
         debounce((slug: string) => handleUpdate(slug), 1200),
@@ -69,7 +69,7 @@ export default function ImportSuccessfulComponent() {
 
     const handleOnchange = (e: any) => {
         setIsError(false);
-        const plainText = e?.currentTarget?.textContent.replace(/\s/g, '') || '';
+        const plainText = e?.currentTarget?.textContent || '';
         if (!plainText.match(slugRegex)) {
             setIsError(true);
         } else {
@@ -104,7 +104,14 @@ export default function ImportSuccessfulComponent() {
     };
 
     useEffect(() => {
-        if (form?.settings?.customUrl === customSlug) return;
+        if (form?.settings?.customUrl === customSlug) {
+            setSaving(false);
+            setSaved(true);
+            setTimeout(() => {
+                setSaved(false);
+            }, 1500);
+            return;
+        }
         handleSlugUpdate(customSlug);
     }, [customSlug]);
 
@@ -122,7 +129,7 @@ export default function ImportSuccessfulComponent() {
                 <div className="pt-4 pb-8">
                     <div className="h4-new gap-5 flex mb-2">
                         <span>Form Link</span>
-                        <SavingIndicator saving={saving} saved={saved} />
+                        <SavingIndicator saving={saving} saved={saved} error={isError} />
                     </div>
                     <div className="flex gap-4 items-center flex-wrap break-words">
                         <span className="break-words max-w-full">
@@ -176,8 +183,9 @@ export default function ImportSuccessfulComponent() {
                             Copy
                         </AppButton>
                     </div>
+                    <div className="h-4">{isError && <span className="p2-new text-red-500">Avoid using spaces or special characters. Only “-” and “_” is accepted.</span>}</div>
                 </div>
-                <div className="mt-8 flex flex-col items-start">
+                <div className="mt-4 flex flex-col items-start">
                     <div className="h4-new mb-2 flex gap-2 items-center">
                         Custom Domain Link <ProLogo />
                     </div>
@@ -258,7 +266,10 @@ export default function ImportSuccessfulComponent() {
     );
 }
 
-function SavingIndicator({ saving, saved }: { saving: boolean; saved: boolean }) {
+function SavingIndicator({ saving, saved, error }: { saving: boolean; saved: boolean; error: boolean }) {
+    if (error) {
+        return <Close className="!text-red-500 p-1 " />;
+    }
     return (
         <AnimatePresence mode="wait" initial={false}>
             {(saving || saved) && (
