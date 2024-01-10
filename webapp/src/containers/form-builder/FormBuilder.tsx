@@ -440,7 +440,7 @@ export default function FormBuilder({workspace, _nextI18Next, isTemplate = false
                     />
                     {!isLastFieldEmptyTextField() ? (
                         <div
-                            className={`w-full px-12 md:px-[89px] mt-[2px] flex min-h-[40px] items-center group`}
+                            className={`w-full px-12 md:px-[89px] mt-6 mb-10 flex min-h-[40px] items-center group`}
                             onClick={() => {
                                 batch(() => {
                                     const newField = createNewField(Object.keys(builderState.fields).length - 1);
