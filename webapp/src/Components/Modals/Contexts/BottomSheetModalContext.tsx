@@ -10,7 +10,14 @@ const modalAtom = atom<{
 }>({ isOpen: false, modalProps: null, view: '' });
 
 export function useBottomSheetModal() {
-    const { openModal: openBottomSheetModal, closeModal: closeBottomSheetModal, ...state } = useBaseModal<BOTTOM_SCREEN_MODALS>(modalAtom);
+    const { openModal: openBottomSheetModal, closeModal, setState, ...state } = useBaseModal<BOTTOM_SCREEN_MODALS>(modalAtom);
+
+    const closeBottomSheetModal = () => {
+        setState({ ...state, view: '' });
+        setTimeout(() => {
+            closeModal();
+        }, 400);
+    };
 
     return {
         ...state,

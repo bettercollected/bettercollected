@@ -22,6 +22,7 @@ export function useBaseModal<T>(
     return {
         ...state,
         openModal,
-        closeModal
+        closeModal,
+        setState
     };
 }

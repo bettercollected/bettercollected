@@ -6,6 +6,7 @@ import { useRouter } from 'next/router';
 import AppTextField from '@Components/Common/Input/AppTextField';
 import AppButton from '@Components/Common/Input/Button/AppButton';
 import { ButtonSize, ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
+import { useBottomSheetModal } from '@Components/Modals/Contexts/BottomSheetModalContext';
 import HeaderModalWrapper from '@Components/Modals/ModalWrappers/HeaderModalWrapper';
 import { toast } from 'react-toastify';
 
@@ -27,8 +28,9 @@ export default function UpdateWorkspaceHandle() {
 
     const { closeModal } = useModal();
     const { t } = useTranslation();
-    const { openModal } = useFullScreenModal();
     const router = useRouter();
+
+    const { openBottomSheetModal } = useBottomSheetModal();
 
     const workspace = useAppSelector(selectWorkspace);
     const [updateText, setUpdateText] = useState(workspace.workspaceName);
@@ -74,7 +76,7 @@ export default function UpdateWorkspaceHandle() {
             // dispatch(setWorkspace(response.data));
             toast.info(t(updateWorkspace.handle).toString(), { toastId: ToastId.SUCCESS_TOAST });
             router.replace(`/${response.data.workspaceName}/dashboard`).then(() => {
-                openModal('WORKSPACE_SETTINGS', { initialIndex: 1 });
+                openBottomSheetModal('WORKSPACE_SETTINGS', { initialIndex: 1 });
             });
             closeModal();
         } else if (response.error) {
