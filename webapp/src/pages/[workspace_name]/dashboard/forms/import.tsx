@@ -1,52 +1,75 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
 import { NextSeo } from 'next-seo';
-import { isLocalURL } from 'next/dist/shared/lib/router/router';
 import { useRouter } from 'next/router';
 
 import AppButton from '@Components/Common/Input/Button/AppButton';
-import { ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
+import { ButtonSize, ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
 import ImportForm from '@Components/ImportForm/ImportForm';
+import useDrivePicker from '@fyelci/react-google-drive-picker';
 
 import { ChevronForward } from '@app/components/icons/chevron-forward';
 import { useModal } from '@app/components/modal-views/context';
-import FullScreenLoader from '@app/components/ui/fullscreen-loader';
 import Loader from '@app/components/ui/loader';
+import environments from '@app/configs/environments';
 import Layout from '@app/layouts/_layout';
-import { resetSingleForm } from '@app/store/forms/slice';
+import { resetSingleForm, selectForm } from '@app/store/forms/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
-import { useVerifyFormTokenQuery } from '@app/store/workspaces/api';
+import { useVerifyFormTokenMutation } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 
 export default function ImportFormPage() {
     const { t } = useTranslation();
     const { title } = useAppSelector(selectWorkspace);
     const router = useRouter();
-    const { openModal } = useModal();
+    const { closeModal } = useModal();
     const dispatch = useAppDispatch();
-    const { data, isLoading, error: verificationError } = useVerifyFormTokenQuery({ provider: 'google' });
+
+    const form = useAppSelector(selectForm);
+
+    const [verifyToken, { isLoading, data, error: verificationError }] = useVerifyFormTokenMutation();
 
     const workspace = useAppSelector(selectWorkspace);
 
+    const [openPicker] = useDrivePicker();
+
+    const [formId, setFormId] = useState('');
+
     useEffect(() => {
         dispatch(resetSingleForm());
+        verifyToken({ provider: 'google' });
         return () => {
             dispatch(resetSingleForm());
         };
     }, []);
 
-    useEffect(() => {
-        if (verificationError || data?.status_code === 400) {
-            openModal('OAUTH_VERIFICATION_MODAL', { provider: 'google', nonClosable: true });
-        }
+    const openGoogleFilePicker = () => {
+        openPicker({
+            clientId: environments.GOOGLE_CLIENT_ID,
+            developerKey: environments.GOOGLE_PICKER_API_KEY,
+            viewId: 'FORMS',
+            token: data,
+            customScopes: ['https://www.googleapis.com/auth/drive.file'],
+            callbackFunction: (data) => {
+                if (data.action === 'picked' && data.docs && Array.isArray(data.docs) && data.docs.length > 0) {
+                    const formId = data.docs[0].id;
+                    setFormId(formId);
+                } else if (data.action === 'cancel') {
+                    closeModal();
+                }
+            }
+        });
+    };
 
-        if (data?.status_code === 200) {
-            router.push(`/${workspace?.workspaceName}/dashboard/forms/import`);
+    useEffect(() => {
+        if (data) {
+            openGoogleFilePicker();
         }
-    }, [verificationError, data]);
+    }, [data]);
+
     const handleClickBack = () => {
-        router.back();
+        router.push(`/${workspace?.workspaceName}/dashboard`);
     };
 
     return (
@@ -58,7 +81,23 @@ export default function ImportFormPage() {
                     <p className={'text-sm text-black-700 font-normal'}>{t('BUTTON.BACK')}</p>
                 </div>
                 <div className={'flex flex-col items-center'}>
-                    {data && <ImportForm />}
+                    {data && (
+                        <>
+                            <ImportForm formId={formId} />
+                            {!form?.formId && (
+                                <AppButton
+                                    className="mt-20"
+                                    variant={ButtonVariant.Ghost}
+                                    size={ButtonSize.Medium}
+                                    onClick={() => {
+                                        openGoogleFilePicker();
+                                    }}
+                                >
+                                    Open Google File Picker
+                                </AppButton>
+                            )}
+                        </>
+                    )}
                     {isLoading && (
                         <div className="min-h-[400px]">
                             <Loader variant="blink" />

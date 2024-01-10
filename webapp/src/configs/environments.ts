@@ -59,10 +59,21 @@ const environments = {
     ELASTIC_APM_ENVIRONMENT: publicRuntimeConfig.ELASTIC_APM_ENVIRONMENT,
     APM_ENABLED: publicRuntimeConfig.ELASTIC_APM_SERVER_URL && publicRuntimeConfig.ELASTIC_APM_SERVICE_NAME,
 
-
     //umani
     UMAMI_WEBSITE_ID: publicRuntimeConfig.UMAMI_WEBSITE_ID,
     UMAMI_SCRIPT_URL: publicRuntimeConfig.UMAMI_SCRIPT_URL,
+
+    //actions
+    ENABLE_ACTIONS: publicRuntimeConfig.ENABLE_ACTIONS && (publicRuntimeConfig.ENABLE_ACTIONS === 'true' || publicRuntimeConfig.ENABLE_ACTIONS === true),
+
+    // google picker api
+    GOOGLE_CLIENT_ID: publicRuntimeConfig.GOOGLE_CLIENT_ID,
+    GOOGLE_PICKER_API_KEY: publicRuntimeConfig.GOOGLE_PICKER_API_KEY,
+
+    //CHATWOOT
+    CHATWOOT_ENABLE: publicRuntimeConfig.CHATWOOT_ENABLE && (publicRuntimeConfig.CHATWOOT_ENABLE === 'true' || publicRuntimeConfig.CHATWOOT_ENABLE === true),
+    CHATWOOT_DEPLOY_URL: publicRuntimeConfig.CHATWOOT_DEPLOY_URL ?? 'https://help.bettercollected.com',
+    CHATWOOT_WEBSITE_TOKEN: publicRuntimeConfig.CHATWOOT_WEBSITE_TOKEN
 };
 
 export default environments;

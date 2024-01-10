@@ -4,9 +4,9 @@ const runtimeCaching = require('next-pwa/cache');
 
 const withPlugins = require('next-compose-plugins');
 
-const {withSentryConfig} = require('@sentry/nextjs');
+const { withSentryConfig } = require('@sentry/nextjs');
 
-const {i18n} = require('./next-i18next.config');
+const { i18n } = require('./next-i18next.config');
 
 const getHostnameFromRegex = (url) => {
     // run against regex
@@ -146,7 +146,19 @@ const nextConfig = {
 
         //unami
         UMAMI_SCRIPT_URL: process.env.UMAMI_SCRIPT_URL,
-        UMAMI_WEBSITE_ID: process.env.UMAMI_WEBSITE_ID
+        UMAMI_WEBSITE_ID: process.env.UMAMI_WEBSITE_ID,
+
+        //integrations
+        ENABLE_ACTIONS: process.env.ENABLE_ACTIONS,
+
+        //Google Picker API
+        GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
+        GOOGLE_PICKER_API_KEY: process.env.GOOGLE_PICKER_API_KEY,
+
+        // Chatwoot
+        CHATWOOT_ENABLE: process.env.CHATWOOT_ENABLE,
+        CHATWOOT_DEPLOY_URL: process.env.CHATWOOT_DEPLOY_URL,
+        CHATWOOT_WEBSITE_TOKEN: process.env.CHATWOOT_WEBSITE_TOKEN
     }
 };
 
@@ -196,7 +208,7 @@ const nextConfigWithPWA = withPWA({
 
 const nextConfigWithSentryIfEnabled =
     !!process.env.SENTRY_DSN && !!process.env.SENTRY_URL && !!process.env.SENTRY_ORG && !!process.env.SENTRY_PROJECT && !!process.env.SENTRY_RELEASE
-        ? withSentryConfig({...nextConfigWithPWA, devtool: 'source-map'}, sentryWebpackPluginOptions)
+        ? withSentryConfig({ ...nextConfigWithPWA, devtool: 'source-map' }, sentryWebpackPluginOptions)
         : nextConfigWithPWA;
 
 module.exports = nextConfigWithSentryIfEnabled;
