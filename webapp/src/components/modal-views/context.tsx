@@ -43,7 +43,6 @@ export type MODAL_VIEW =
     | 'DELETE_TEMPLATE_CONFIRMATION_MODAL_VIEW'
     | 'IMPORT_TEMPLATE_MODAL_VIEW'
     | 'ADD_ACTION_TO_FORM'
-    | 'OAUTH_VERIFICATION_MODAL'
     | 'EXPORT_RESPONSES';
 
 const modalAtom = atom<{ isOpen: boolean; view: MODAL_VIEW; modalProps: any }>({

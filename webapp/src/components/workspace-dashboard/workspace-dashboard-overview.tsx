@@ -92,12 +92,13 @@ const WorkspaceDashboardOverview = ({ workspace }: IWorkspaceDashboardOverviewPr
                                 </div>
                             </div>
 
-                            <div className="flex-wrap flex gap-2 min-w-fit">
-                                {data?.map((user) => (
+                            <div className="flex-1 flex gap-2 max-w-[90vw] overflow-auto lg:overflow-clip lg:!max-w-[330px]">
+                                {data?.slice(0, 2)?.map((user) => (
                                     <div key={user.email}>
                                         <AuthAccountProfileImage image={user.profileImage} name={user?.firstName || user?.lastName || user?.email} size={40} variant="circular" />
                                     </div>
                                 ))}
+                                {data && data?.length > 2 && <div className="bg-gray-200 flex items-center justify-center text-sm  h-10 w-10 rounded-full text-black-800 font-bold">+ {data?.length - 2}</div>}
                             </div>
                         </div>
                     </div>

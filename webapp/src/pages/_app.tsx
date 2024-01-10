@@ -77,6 +77,32 @@ function MainApp({ Component, pageProps, router, emotionCache = clientSideEmotio
             ReactGA.initialize(environments.GA_MEASUREMENT_ID);
             ReactGA.send('pageview');
         }
+
+        // TODO Research a better option to only allow pasting plain text
+        const handlePaste = async (e: any) => {
+            e.preventDefault();
+            let text = '';
+
+            if (e.clipboardData || e.originalEvent?.clipboardData) {
+                text = (e.originalEvent || e)?.clipboardData?.getData('text/plain');
+            } else if (navigator.clipboard) {
+                try {
+                    text = await navigator.clipboard.readText();
+                } catch (error) {
+                    console.error('Error reading clipboard data:', error);
+                }
+            }
+
+            if (document.queryCommandSupported('insertText')) {
+                document.execCommand('insertText', false, text);
+            } else {
+                document.execCommand('paste', false, text);
+            }
+        };
+        document.addEventListener('paste', handlePaste);
+        return () => {
+            document.removeEventListener('paste', handlePaste);
+        };
     }, []);
 
     return (

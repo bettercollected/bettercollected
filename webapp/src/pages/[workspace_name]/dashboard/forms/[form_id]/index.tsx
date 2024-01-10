@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 
 import { useTranslation } from 'next-i18next';
 import { NextSeo } from 'next-seo';
@@ -21,6 +21,7 @@ import { HistoryIcon } from '@app/components/icons/history';
 import { TrashIcon } from '@app/components/icons/trash';
 import { useModal } from '@app/components/modal-views/context';
 import ParamTab, { TabPanel } from '@app/components/ui/param-tab';
+import environments from '@app/configs/environments';
 import { breadcrumbsItems } from '@app/constants/locales/breadcrumbs-items';
 import { localesCommon } from '@app/constants/locales/common';
 import { formConstant } from '@app/constants/locales/form';
@@ -115,7 +116,7 @@ export default function FormPage(props: any) {
             }
         ];
 
-        if (form?.settings?.provider === 'self')
+        if (form?.settings?.provider === 'self' && environments.ENABLE_ACTIONS)
             additionalTabs.splice(0, 0, {
                 icon: <IntegrationInstructions className="h-5 w-5" />,
                 title: 'Integrations',
