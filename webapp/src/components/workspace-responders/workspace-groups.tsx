@@ -5,6 +5,7 @@ import { useRouter } from 'next/router';
 
 import AppButton from '@Components/Common/Input/Button/AppButton';
 import { ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
+import { useBottomSheetModal } from '@Components/Modals/Contexts/BottomSheetModalContext';
 import { Typography } from '@mui/material';
 import DataTable from 'react-data-table-component';
 import { toast } from 'react-toastify';
@@ -40,7 +41,7 @@ export default function WorkspaceGroups({ workspace }: { workspace: WorkspaceDto
     const { data, isLoading } = useGetAllRespondersGroupQuery(workspace.id);
     const [trigger] = useDeleteResponderGroupMutation();
 
-    const fullScreenModal = useFullScreenModal();
+    const { openBottomSheetModal } = useBottomSheetModal();
 
     const handleDeleteGroup = async (group: ResponderGroupDto) => {
         try {
@@ -142,7 +143,7 @@ export default function WorkspaceGroups({ workspace }: { workspace: WorkspaceDto
                             className="w-fit"
                             icon={<Plus className="h-4 w-4" />}
                             onClick={() => {
-                                fullScreenModal.openModal('CREATE_GROUP');
+                                openBottomSheetModal('CREATE_GROUP');
                             }}
                         >
                             <Typography className="!text-brand-500  body6"> {t(groupConstant.createGroup)}</Typography>

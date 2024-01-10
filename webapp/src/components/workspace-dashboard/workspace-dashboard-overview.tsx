@@ -10,6 +10,7 @@ import ShareIcon from '@Components/Common/Icons/Common/ShareIcon';
 import AppButton from '@Components/Common/Input/Button/AppButton';
 import { ButtonSize, ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
 import WorkspaceOptions from '@Components/Common/WorkspaceOptions';
+import { useBottomSheetModal } from '@Components/Modals/Contexts/BottomSheetModalContext';
 
 import AuthAccountProfileImage from '@app/components/auth/account-profile-image';
 import { EyeIcon } from '@app/components/icons/eye-icon';
@@ -31,6 +32,7 @@ interface IWorkspaceDashboardOverviewProps {
 const WorkspaceDashboardOverview = ({ workspace }: IWorkspaceDashboardOverviewProps) => {
     const { openModal } = useModal();
     const fullScreenModal = useFullScreenModal();
+    const { openBottomSheetModal } = useBottomSheetModal();
     const isAdmin = useAppSelector(selectIsAdmin);
     const router = useRouter();
     const { t } = useTranslation();
@@ -50,7 +52,8 @@ const WorkspaceDashboardOverview = ({ workspace }: IWorkspaceDashboardOverviewPr
     };
 
     const onClickEditButton = () => {
-        fullScreenModal.openModal('WORKSPACE_SETTINGS');
+        // fullScreenModal.openModal('WORKSPACE_SETTINGS');
+        openBottomSheetModal('WORKSPACE_SETTINGS');
     };
     const onClickInviteCollaboratorButton = () => {
         openModal('INVITE_MEMBER');

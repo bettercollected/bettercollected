@@ -9,6 +9,7 @@ import SettingsIcon from '@Components/Common/Icons/Common/Settings';
 import AppButton from '@Components/Common/Input/Button/AppButton';
 import { ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
 import BetterCollectedForm from '@Components/Form/BetterCollectedForm';
+import { useBottomSheetModal } from '@Components/Modals/Contexts/BottomSheetModalContext';
 import { toast } from 'react-toastify';
 
 import { ChevronForward } from '@app/components/icons/chevron-forward';
@@ -21,7 +22,7 @@ import { convertFormTemplateToStandardForm } from '@app/utils/convertDataType';
 const SingleTemplate = (props: any) => {
     const { workspace, notFound, templateId } = props;
     const router = useRouter();
-    const { openModal } = useFullScreenModal();
+    const { openBottomSheetModal } = useBottomSheetModal();
     const { t } = useTranslation();
 
     const [importTemplate] = useImportTemplateMutation();
@@ -79,7 +80,7 @@ const SingleTemplate = (props: any) => {
                 </div>
                 <div className={'flex flex-row gap-1 md:gap-4'}>
                     {data?.workspaceId === workspace.id ? (
-                        <AppButton icon={<SettingsIcon className={'text-brand-500'} />} variant={ButtonVariant.Ghost} onClick={() => openModal('TEMPLATE_SETTINGS_FULL_MODAL_VIEW', { template: data })}>
+                        <AppButton icon={<SettingsIcon className={'text-brand-500'} />} variant={ButtonVariant.Ghost} onClick={() => openBottomSheetModal('TEMPLATE_SETTINGS_FULL_MODAL_VIEW', { template: data })}>
                             {t('SETTINGS')}
                         </AppButton>
                     ) : (

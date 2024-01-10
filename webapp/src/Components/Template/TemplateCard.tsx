@@ -8,6 +8,7 @@ import EditIcon from '@Components/Common/Icons/Common/Edit';
 import EllipsisOption from '@Components/Common/Icons/Common/EllipsisOption';
 import SettingsIcon from '@Components/Common/Icons/Common/Settings';
 import MenuDropdown from '@Components/Common/Navigation/MenuDropdown/MenuDropdown';
+import { useBottomSheetModal } from '@Components/Modals/Contexts/BottomSheetModalContext';
 import { CircularProgress, ListItemIcon, MenuItem } from '@mui/material';
 
 import { useModal } from '@app/components/modal-views/context';
@@ -27,8 +28,7 @@ const TemplateCard = ({ template, isPredefinedTemplate }: ITemplateCardProps) =>
 
     const { t } = useTranslation();
 
-    const { openModal } = useModal();
-    const fullScreenModal = useFullScreenModal();
+    const { openBottomSheetModal } = useBottomSheetModal();
     const handleClickCard = () => {
         router.push(`/${workspace.workspaceName}/templates/${template.id}`);
     };
@@ -89,7 +89,7 @@ const TemplateCard = ({ template, isPredefinedTemplate }: ITemplateCardProps) =>
                         </MenuItem>
                         <MenuItem
                             onClick={() =>
-                                fullScreenModal.openModal('TEMPLATE_SETTINGS_FULL_MODAL_VIEW', {
+                                openBottomSheetModal('TEMPLATE_SETTINGS_FULL_MODAL_VIEW', {
                                     template,
                                     showTitle: true
                                 })

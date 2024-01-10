@@ -43,10 +43,11 @@ export default function DeleteAccountModal() {
             feedback: feedback
         }).then((response) => {
             if ('data' in response) {
-                router.push(`/`);
-                toast(t(toastMessage.accountDeletion.success).toString(), {
-                    toastId: ToastId.SUCCESS_TOAST,
-                    type: 'success'
+                router.push(`/`).then(() => {
+                    toast(t(toastMessage.accountDeletion.success).toString(), {
+                        toastId: ToastId.SUCCESS_TOAST,
+                        type: 'success'
+                    });
                 });
             } else {
                 toast(t(toastMessage.accountDeletion.failed).toString(), {
