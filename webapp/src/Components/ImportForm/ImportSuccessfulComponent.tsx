@@ -10,6 +10,7 @@ import GreenCircularCheck from '@Components/Common/Icons/Common/GreenCircularChe
 import ProLogo from '@Components/Common/Icons/Common/ProLogo';
 import AppButton from '@Components/Common/Input/Button/AppButton';
 import { ButtonSize, ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
+import { useBottomSheetModal } from '@Components/Modals/Contexts/BottomSheetModalContext';
 import { CircularProgress } from '@mui/material';
 import { AnimatePresence, motion } from 'framer-motion';
 import ContentEditable from 'react-contenteditable';
@@ -35,6 +36,8 @@ export default function ImportSuccessfulComponent() {
     const { closeModal } = useModal();
 
     const { openModal: openFullScreenModal } = useFullScreenModal();
+
+    const { openBottomSheetModal } = useBottomSheetModal();
 
     const { t } = useTranslation();
 
@@ -196,7 +199,7 @@ export default function ImportSuccessfulComponent() {
                                     variant={ButtonVariant.Ghost}
                                     onClick={() => {
                                         closeModal();
-                                        openFullScreenModal('WORKSPACE_SETTINGS', { initialIndex: 1 });
+                                        openBottomSheetModal('WORKSPACE_SETTINGS', { initialIndex: 1 });
                                     }}
                                 >
                                     Add Custom Domain

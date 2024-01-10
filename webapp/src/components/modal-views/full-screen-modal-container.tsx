@@ -3,6 +3,7 @@ import { Fragment, useEffect } from 'react';
 import { useRouter } from 'next/router';
 
 import CreateGroupModal from '@Components/Modals/BottomSheetModals/CreateGroupModal';
+import DeleteAccountModal from '@Components/Modals/BottomSheetModals/DeleteAccountModal';
 import TemplateSettingsModal from '@Components/Modals/BottomSheetModals/TemplateSettingsModal';
 import WorkspaceSettingsModal from '@Components/Modals/BottomSheetModals/WorkspaceSettingsModal';
 import { Button } from '@mui/material';
@@ -25,7 +26,6 @@ import CreateConsentFullModalView from './full-screen-modals/create-consent-full
 import FormSettingFullModalView from './full-screen-modals/form-setting-full-modal-view';
 import CropImageModalView from './modals/crop-image-modal-view';
 import FormBuilderPreviewModal from './modals/form-builder-preview-modal';
-import DeleteAccountModal from "@Components/Modals/BottomSheetModals/DeleteAccountModal";
 
 function renderModalContent(view: FULL_SCREEN_MODALS, modalProps: any) {
     switch (view) {
@@ -53,12 +53,10 @@ function renderModalContent(view: FULL_SCREEN_MODALS, modalProps: any) {
             return <ScheduleFormCloseDateModal {...modalProps} />;
         case 'TEMPLATE_SETTINGS_FULL_MODAL_VIEW':
             return <TemplateSettingsModal {...modalProps} />;
-        case 'WORKSPACE_SETTINGS':
-            return <WorkspaceSettingsModal {...modalProps} />;
         case 'CREATE_GROUP':
             return <CreateGroupModal {...modalProps} />;
-        case "DELETE_ACCOUNT":
-            return <DeleteAccountModal/>
+        case 'DELETE_ACCOUNT':
+            return <DeleteAccountModal />;
         default:
             return <></>;
     }
@@ -106,7 +104,6 @@ export default function FullScreenModalContainer() {
                     <ModalContainer />
                 </Dialog>
             </Transition>
-            {!isOpen && isHalfScreenOpen && <ModalContainer />}
         </>
     );
 }

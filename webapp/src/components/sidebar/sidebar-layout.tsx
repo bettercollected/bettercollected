@@ -8,6 +8,7 @@ import DashboardIcon from '@Components/Common/Icons/Dashboard/Dashboard';
 import MembersIcon from '@Components/Common/Icons/Dashboard/Members';
 import ResponderIcon from '@Components/Common/Icons/Dashboard/Responder';
 import { FormIcon } from '@Components/Common/Icons/Form/FormIcon';
+import { useBottomSheetModal } from '@Components/Modals/Contexts/BottomSheetModalContext';
 import { Box } from '@mui/material';
 import cn from 'classnames';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -37,7 +38,7 @@ interface ISidebarLayout {
 export default function SidebarLayout({ children, DrawerComponent = DashboardDrawer, boxClassName = '' }: ISidebarLayout) {
     const drawerWidth = 289;
 
-    const { openModal } = useFullScreenModal();
+    const { openBottomSheetModal } = useBottomSheetModal();
 
     const [mobileOpen, setMobileOpen] = React.useState(false);
     const handleDrawerToggle = () => {
@@ -95,7 +96,7 @@ export default function SidebarLayout({ children, DrawerComponent = DashboardDra
             url: ``,
             icon: <Globe />,
             onClick: () => {
-                openModal('WORKSPACE_SETTINGS', { initialIndex: 1 });
+                openBottomSheetModal('WORKSPACE_SETTINGS', { initialIndex: 1 });
             }
         }
     ];
