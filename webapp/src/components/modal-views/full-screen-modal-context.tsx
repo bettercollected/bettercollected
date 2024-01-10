@@ -1,6 +1,8 @@
-import {atom, useAtom} from 'jotai';
+import { useBaseModal } from '@Components/Modals/Contexts/UseBaseModal';
+import { atom } from 'jotai';
 
 export type FULL_SCREEN_MODALS =
+    | ''
     | 'LOGIN_VIEW'
     | 'FORM_BUILDER_PREVIEW'
     | 'CROP_IMAGE'
@@ -15,26 +17,14 @@ export type FULL_SCREEN_MODALS =
     | 'TEMPLATE_SETTINGS_FULL_MODAL_VIEW'
     | 'WORKSPACE_SETTINGS'
     | 'CREATE_GROUP'
-    | "DELETE_ACCOUNT";
+    | 'DELETE_ACCOUNT';
 
-const modalAtom = atom({isOpen: false, modalProps: null, view: ''});
+const modalAtom = atom<{
+    isOpen: boolean;
+    view: FULL_SCREEN_MODALS;
+    modalProps: any;
+}>({ isOpen: false, modalProps: null, view: '' });
 
 export function useFullScreenModal() {
-    const [state, setState] = useAtom(modalAtom);
-    const openModal = (view: FULL_SCREEN_MODALS, modalProps: any = null) =>
-        setState({
-            ...state,
-            isOpen: true,
-            modalProps,
-            view: view
-        });
-    const closeModal = () => {
-        setState({...state, view: '', isOpen: false, modalProps: null});
-    };
-
-    return {
-        ...state,
-        openModal,
-        closeModal
-    };
+    return useBaseModal<FULL_SCREEN_MODALS>(modalAtom);
 }
