@@ -1,6 +1,8 @@
 import React from 'react';
 
 import { FormSlug } from '@Components/Form/FormSlug';
+import { useBottomSheetModal } from '@Components/Modals/Contexts/BottomSheetModalContext';
+import BottomSheetModalWrapper from '@Components/Modals/ModalWrappers/BottomSheetModalWrapper';
 import cn from 'classnames';
 
 import { Close } from '@app/components/icons/close';
@@ -13,20 +15,13 @@ export interface IFormCreateSlugFullModalViewProps {
 }
 
 const FormCreateSlugFullModalView = ({ customSlug, link }: IFormCreateSlugFullModalViewProps) => {
-    const { closeModal } = useFullScreenModal();
-    const handleOnSaveChanges = () => closeModal();
+    const { closeBottomSheetModal } = useBottomSheetModal();
+    const handleOnSaveChanges = () => closeBottomSheetModal();
 
     return (
-        <div className={cn('flex w-full min-h-screen !bg-transparent pt-40 overflow-hidden')}>
-            <div className="bg-white w-16 h-16 fixed top-20 z-[3000] right-10 shadow-lg rounded-full flex items-center justify-center cursor-pointer" onClick={closeModal}>
-                <Close width="32px" height="40px" stroke="#4D4D4D" strokeWidth={0.8} />
-            </div>
-            <div className={cn(' w-full bg-white min-h-screen rounded-t-3xl !mt-0 !pt-12 overflow-y-auto scroll-mt-6')}>
-                <div className="flex justify-center w-full">
-                    <FormSlug customSlug={customSlug} link={link} onSave={handleOnSaveChanges} />
-                </div>
-            </div>
-        </div>
+        <BottomSheetModalWrapper>
+            <FormSlug customSlug={customSlug} link={link} onSave={handleOnSaveChanges} />
+        </BottomSheetModalWrapper>
     );
 };
 
