@@ -26,7 +26,7 @@ class ApplicationSettings(BaseSettings):
     workers: int = 10
     cookie_domain: str = "localhost"
     max_thread_pool_executors: int = 20
-    expiration_time:int = 7200
+    expiration_time: int = 604800
     apm_settings: APMSettings = APMSettings()
 
 
