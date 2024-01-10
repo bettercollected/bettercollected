@@ -44,7 +44,7 @@ export function contentEditableClassNames(isPlaceholder: boolean, tag: string = 
             className += ' text-[16px] font-medium leading-normal text-black-800';
             break;
         case FormBuilderTagNames.LAYOUT_SHORT_TEXT:
-            className += ' text-base';
+            className += ' text-[16px] font-medium leading-normal text-black-800';
             break;
         default:
             break;
