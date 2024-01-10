@@ -6,6 +6,7 @@ import { useRouter } from 'next/router';
 import AppButton from '@Components/Common/Input/Button/AppButton';
 import { ButtonSize, ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
 import CheckBox from '@Components/Common/Input/CheckBox';
+import { useBottomSheetModal } from '@Components/Modals/Contexts/BottomSheetModalContext';
 import DataTable from 'react-data-table-component';
 import { toast } from 'react-toastify';
 
@@ -29,9 +30,9 @@ const SelectGroup = () => {
     const [patchFormSettings] = usePatchFormSettingsMutation();
     const dispatch = useAppDispatch();
     const { t } = useTranslation();
-    // const { closeModal } = useFullScreenModal();
-    const router = useRouter();
     const { openModal, closeModal } = useModal();
+
+    const { openBottomSheetModal } = useBottomSheetModal();
     const { addFormOnGroup } = useGroupForm();
     const [selectedGroup, setSelectedGroup] = useState<Array<ResponderGroupDto>>(form?.groups);
     const patchSettings = async (body: any, f: StandardFormDto) => {
@@ -43,7 +44,6 @@ const SelectGroup = () => {
         if (response.data) {
             const settings = response.data.settings;
             dispatch(setForm({ ...form, settings }));
-            // toast(t(localesCommon.updated).toString(), { type: 'success' });
         } else {
             if (response.error.status === 409) {
                 toast(t('TOAST.SLUG_ALREADY_EXISTS').toString(), { type: 'error' });
@@ -162,7 +162,7 @@ const SelectGroup = () => {
                     <h1 className={'h2-new !text-black-800'}>Select Group</h1>
                     <p className={'text-sm font-normal text-black-700'}>Only members of the specific groups be able to see the form. You can also create groups with whom you want to share this form.</p>
                 </div>
-                <AppButton variant={ButtonVariant.Secondary} onClick={() => router.push(`/${workspace?.workspaceName}/dashboard/responders-groups/create-group`)} icon={<GroupIcon className={'text-white'} />} size={ButtonSize.Medium}>
+                <AppButton variant={ButtonVariant.Secondary} onClick={() => openBottomSheetModal('CREATE_GROUP')} icon={<GroupIcon className={'text-white'} />} size={ButtonSize.Medium}>
                     Create New Group
                 </AppButton>
             </div>

@@ -1,6 +1,7 @@
 import React, { useContext, useEffect, useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
+import { useRouter } from 'next/router';
 
 import Tooltip from '@Components/Common/DataDisplay/Tooltip';
 import AppButton from '@Components/Common/Input/Button/AppButton';
@@ -17,10 +18,21 @@ export default function ImportFormsButton({ size, className = '' }: { size?: But
     const formProviders = useContext(FormProviderContext);
     const { openModal } = useModal();
     const [openPicker] = useDrivePicker();
+
+    const router = useRouter();
     const [providers, setProviders] = useState<Record<string, boolean>>({
         google: false,
         typeform: false
     });
+
+    useEffect(() => {
+        const { modal, ...other } = router.query;
+        if (typeof modal === 'string' && modal === 'true') {
+            router.push({ query: other }, undefined, { shallow: true }).then(() => {
+                openModal('IMPORT_FORMS', { nonClosable: true });
+            });
+        }
+    }, []);
 
     const handleClick = () => {
         openModal('IMPORT_FORMS', { nonClosable: true });

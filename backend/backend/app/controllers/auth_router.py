@@ -128,7 +128,7 @@ class AuthRoutes(Routable):
             provider_name=provider_name, state=state, request=request, user=user
         )
         response = RedirectResponse(
-            state_data.client_referer_uri
+            state_data.client_referer_uri + "?modal=true"
         )
         set_tokens_to_response(user, response)
         if state_data.client_referer_uri:

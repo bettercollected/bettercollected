@@ -39,9 +39,7 @@ import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { persistor, store } from '@app/store/store';
 import { NextPageWithLayout } from '@app/types';
 
-const ModalContainer = dynamic(() => import('@app/components/modal-views/container'));
-const FullScreenModalContainer = dynamic(() => import('@app/components/modal-views/full-screen-modal-container'));
-
+const BaseModalContainer = dynamic(() => import('@app/Components/Modals/Containers/BaseModalContainer'));
 // Client-side cache, shared for the whole session of the user in the browser.
 const clientSideEmotionCache = createEmotionCache();
 
@@ -162,8 +160,7 @@ function MainApp({ Component, pageProps, router, emotionCache = clientSideEmotio
                                 <ServerSideWorkspaceDispatcher workspace={pageProps?.workspace}>
                                     <AuthStatusDispatcher workspace={pageProps?.workspace}>
                                         {getLayout(<Component {...pageProps} key={router.asPath} />)}
-                                        {/*<ModalContainer />*/}
-                                        <FullScreenModalContainer />
+                                        <BaseModalContainer />
                                     </AuthStatusDispatcher>
                                 </ServerSideWorkspaceDispatcher>
                             </EnabledFormProviders>
