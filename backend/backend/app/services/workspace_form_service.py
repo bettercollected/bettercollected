@@ -577,7 +577,7 @@ class WorkspaceFormService:
                                                                                         form_id=form_id,
                                                                                         )
         form = await self.form_service.get_form_document_by_id(form_id=form_id)
-        # await self.temporal_service.export_as_csv(
-        #     form=form, responses=responses, user=user
-        # )
+        await self.temporal_service.export_as_csv(
+            form=form, responses=responses, user=user
+        )
         return 'CSV sent as email successfully.'
