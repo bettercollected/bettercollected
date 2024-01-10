@@ -260,7 +260,7 @@ class TemporalService:
             await self.temporal_client.start_workflow("export_as_csv_workflow",
                                                       arg=params,
                                                       id="export_as_csv" + str(form.form_id),
-                                                      task_queue=settings.temporal_settings.worker_queue,
+                                                      task_queue=settings.temporal_settings.csv_queue,
                                                       retry_policy=RetryPolicy(maximum_attempts=4)
                                                       )
             return "Workflow Started"
