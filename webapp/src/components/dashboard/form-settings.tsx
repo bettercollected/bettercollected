@@ -9,6 +9,7 @@ import Pro from '@Components/Common/Icons/Dashboard/Pro';
 import LockIcon from '@Components/Common/Icons/lock';
 import AppButton from '@Components/Common/Input/Button/AppButton';
 import { ButtonSize, ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
+import { useBottomSheetModal } from '@Components/Modals/Contexts/BottomSheetModalContext';
 import { FormControlLabel, Radio, RadioGroup } from '@mui/material';
 import Switch from '@mui/material/Switch';
 import cn from 'classnames';
@@ -53,7 +54,7 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
     const workspace = useAppSelector((state) => state.workspace);
     const dispatch = useAppDispatch();
     const { openModal, closeModal } = useModal();
-    const { openModal: openFullScreenModal } = useFullScreenModal();
+    const { openBottomSheetModal } = useBottomSheetModal();
     const fullScreenModal = useFullScreenModal();
     const isCustomDomain = workspace?.isPro && !!workspace.customDomain;
     const customUrl = form?.settings?.customUrl || '';
@@ -238,7 +239,7 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                                 className={'!py-0'}
                                 icon={<EditIcon className="h-4 w-4" />}
                                 onClick={() => {
-                                    fullScreenModal.openModal('FORM_CREATE_SLUG_VIEW', {
+                                    openBottomSheetModal('FORM_CREATE_SLUG_VIEW', {
                                         link: isCustomDomain ? customDomain : clientHost,
                                         customSlug: customUrl
                                     });
@@ -343,7 +344,7 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                                                     className="mt-2"
                                                     variant={ButtonVariant.Ghost}
                                                     onClick={() => {
-                                                        openFullScreenModal('SELECT_FORM_CLOSE_DATE', {
+                                                        openBottomSheetModal('SELECT_FORM_CLOSE_DATE', {
                                                             onFormClosedChange: onFormClosedChange,
                                                             closeDate: form?.settings?.formCloseDate
                                                         });
@@ -392,7 +393,7 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
 }
 
 const FormGroups = ({ groups }: { groups: ResponderGroupDto[] }) => {
-    const fullScreenModal = useFullScreenModal();
+    const { openBottomSheetModal } = useBottomSheetModal();
     const { t } = useTranslation();
 
     return (
@@ -408,7 +409,7 @@ const FormGroups = ({ groups }: { groups: ResponderGroupDto[] }) => {
                 );
             })}
             <div className={'mt-2'}>
-                <AppButton onClick={() => fullScreenModal.openModal('SELECT_GROUP_FULL_MODAL_VIEW')} icon={<GroupIcon />} variant={ButtonVariant.Secondary}>
+                <AppButton onClick={() => openBottomSheetModal('SELECT_GROUP_FULL_MODAL_VIEW')} icon={<GroupIcon />} variant={ButtonVariant.Secondary}>
                     {t(formPage.visibilityAddOrRemove)}
                 </AppButton>
             </div>

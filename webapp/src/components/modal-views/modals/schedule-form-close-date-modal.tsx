@@ -2,6 +2,7 @@ import React from 'react';
 
 import AppButton from '@Components/Common/Input/Button/AppButton';
 import { ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
+import { useBottomSheetModal } from '@Components/Modals/Contexts/BottomSheetModalContext';
 import BottomSheetModalWrapper from '@Components/Modals/ModalWrappers/BottomSheetModalWrapper';
 import TextField from '@mui/material/TextField';
 import { DateTimePicker } from '@mui/x-date-pickers';
@@ -20,7 +21,7 @@ interface IScheduleFormCloseDateModalProps {
 export default function ScheduleFormCloseDateModal({ onFormClosedChange, closeDate }: IScheduleFormCloseDateModalProps) {
     const [value, setValue] = React.useState<Dayjs | null>(closeDate ? dayjs(closeDate) : null);
 
-    const { closeModal } = useFullScreenModal();
+    const { closeBottomSheetModal } = useBottomSheetModal();
 
     const handleChange = (newValue: Dayjs | null) => {
         setValue(newValue);
@@ -47,7 +48,7 @@ export default function ScheduleFormCloseDateModal({ onFormClosedChange, closeDa
                         variant={ButtonVariant.Secondary}
                         onClick={() => {
                             onFormClosedChange(moment(value?.toISOString()));
-                            closeModal();
+                            closeBottomSheetModal();
                         }}
                     >
                         Schedule Now
