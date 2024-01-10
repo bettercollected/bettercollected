@@ -3,7 +3,7 @@ import {useState} from 'react';
 import {useTranslation} from 'next-i18next';
 import AppButton from '@Components/Common/Input/Button/AppButton';
 import {ButtonSize, ButtonVariant} from '@Components/Common/Input/Button/AppButtonProps';
-import HeaderModalWrapper from '@Components/Modals/HeaderModalWrapper';
+import HeaderModalWrapper from '@Components/Modals/ModalWrappers/HeaderModalWrapper';
 
 import {useModal} from '@app/components/modal-views/context';
 import {useAppDispatch, useAppSelector} from '@app/store/hooks';
