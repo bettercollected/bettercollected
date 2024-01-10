@@ -471,7 +471,14 @@ export const workspacesApi = createApi({
                 method: 'PATCH'
             }),
             invalidatesTags: [GROUP_TAG]
-        })
+        }),
+        exportCSVResponses: builder.query<any, any>({
+            query: (request) => ({
+                url: `/workspaces/${request.workspaceId}/forms/${request.formId}/export-csv`,
+                method: 'GET'
+            }),
+            providesTags: [GROUP_TAG, RESPONDER_TAG, FORM_TAG]
+        }),
     })
 });
 
@@ -521,5 +528,7 @@ export const {
     useDeleteGroupFormMutation,
     useUpdateResponderGroupMutation,
     usePublishFormMutation,
-    useVerifyFormTokenMutation
+    useVerifyFormTokenMutation,
+    useExportCSVResponsesQuery,
+    useLazyExportCSVResponsesQuery
 } = workspacesApi;

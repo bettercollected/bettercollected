@@ -45,6 +45,7 @@ import EditWorkspaceModal from './modals/edit-workspace-modal';
 import FormBuilderSpotlightModal from './modals/form-builder-spotlight-modal';
 import FormBuilderTipsModalView from './modals/form-builder-tips-modal-view';
 import VisibilityConfirmationModalView from './modals/visibility-confirmation-modal-view';
+import ExportResponsesModal from "@Components/Modals/DialogModals/ExportResponsesModal";
 
 function renderModalContent(view: MODAL_VIEW, modalProps: any) {
     switch (view) {
@@ -116,6 +117,8 @@ function renderModalContent(view: MODAL_VIEW, modalProps: any) {
             return <ImportTemplateModalView {...modalProps} />;
         case 'ADD_ACTION_TO_FORM':
             return <AddActionToFormModal {...modalProps} />;
+        case 'EXPORT_RESPONSES':
+            return <ExportResponsesModal {...modalProps}/>;
         default:
             return <></>;
     }
