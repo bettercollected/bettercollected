@@ -94,7 +94,6 @@ const TemplateCard = ({ template, isPredefinedTemplate }: ITemplateCardProps) =>
                                     showTitle: true
                                 })
                             }
-                            // sx={{ paddingX: '20px', paddingY: '10px', height: '36px' }}
                             className="body4"
                         >
                             <ListItemIcon>
