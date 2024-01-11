@@ -7,12 +7,10 @@ import SettingsIcon from '@Components/Common/Icons/Common/Settings';
 import AppButton from '@Components/Common/Input/Button/AppButton';
 import {ButtonVariant} from '@Components/Common/Input/Button/AppButtonProps';
 import BetterCollectedForm from '@Components/Form/BetterCollectedForm';
-import { useBottomSheetModal } from '@Components/Modals/Contexts/BottomSheetModalContext';
-import { toast } from 'react-toastify';
+import {useBottomSheetModal} from '@Components/Modals/Contexts/BottomSheetModalContext';
 import {toast} from 'react-toastify';
 
 import {ChevronForward} from '@app/components/icons/chevron-forward';
-import {useFullScreenModal} from '@app/components/modal-views/full-screen-modal-context';
 import Layout from '@app/layouts/_layout';
 import {getAuthUserPropsWithWorkspace} from '@app/lib/serverSideProps';
 import {
@@ -32,9 +30,7 @@ import {ArrowUp} from "@app/components/icons/arrow-up";
 const SingleTemplate = (props: any) => {
     const {workspace, notFound, templateId} = props;
     const router = useRouter();
-    const { openBottomSheetModal } = useBottomSheetModal();
-    const { t } = useTranslation();
-    const {openModal} = useFullScreenModal();
+    const {openBottomSheetModal} = useBottomSheetModal();
     const {t} = useTranslation();
     const isMobile = useIsMobile();
 
