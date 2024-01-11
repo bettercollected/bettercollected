@@ -65,20 +65,16 @@ export default function DeleteAccountModal() {
 
     const Reasons: Array<any> = [
         {
-            title: t('DELETE_ACCOUNT.REASONS.1'),
-            value: 'I find it challenging to create forms.'
-        },
-        {
-            title: t('DELETE_ACCOUNT.REASONS.2'),
-            value: 'I am having difficulties in importing the form.'
+            title: t('DELETE_ACCOUNT.REASONS.4'),
+            value: 'I am unhappy with the pricing.'
         },
         {
             title: t('DELETE_ACCOUNT.REASONS.3'),
             value: 'I miss essential features or integrations that I need.'
         },
         {
-            title: t('DELETE_ACCOUNT.REASONS.4'),
-            value: 'I am unhappy with the pricing.'
+            title: t('DELETE_ACCOUNT.REASONS.1'),
+            value: 'I find it challenging to create forms.'
         },
         {
             title: t('DELETE_ACCOUNT.REASONS.5'),
@@ -87,6 +83,10 @@ export default function DeleteAccountModal() {
         {
             title: t('DELETE_ACCOUNT.REASONS.6'),
             value: 'The app is slow.'
+        },
+        {
+            title: t('DELETE_ACCOUNT.REASONS.2'),
+            value: 'I am having difficulties in importing the form.'
         },
         {
             title: t('DELETE_ACCOUNT.REASONS.7'),
