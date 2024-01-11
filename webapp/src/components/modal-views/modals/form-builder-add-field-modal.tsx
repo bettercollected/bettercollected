@@ -92,7 +92,7 @@ export default function FormBuilderAddFieldModal({index}: { index?: number }) {
             />
             {Fields.map((fieldType, index) => (
                 <div key={t(fieldType.title)} className="flex flex-col">
-                    <div className="body1 mb-6">{t(fieldType.title)}</div>
+                    <div className="h5 !text-black-800 mb-6">{t(fieldType.title)}</div>
                     <div className="grid gap-x-12 gap-y-2 grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
                         {fieldType.items.map((tag: any, index: number) => (
                             <div
@@ -102,8 +102,8 @@ export default function FormBuilderAddFieldModal({index}: { index?: number }) {
                                     handleFieldSelected(tag.type);
                                 }}
                             >
-                                <div className="w-7">{tag.icon}</div>
-                                <span>{tag.label}</span>
+                                <div className="w-7 text-pink">{tag.icon}</div>
+                                <span className={'text-black-700 text-sm font-medium'}>{tag.label}</span>
                             </div>
                         ))}
                     </div>

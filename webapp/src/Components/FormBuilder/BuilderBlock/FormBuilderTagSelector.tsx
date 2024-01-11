@@ -25,97 +25,99 @@ import {OnlyClassNameInterface} from '@app/models/interfaces';
 import {selectActiveFieldId, selectPreviousField} from '@app/store/form-builder/selectors';
 import {useAppSelector} from '@app/store/hooks';
 import ButtonIcon from "@Components/Common/Icons/FormBuilder/ButtonIcon";
+import {NumberIcon} from "@Components/Common/Icons/FormBuilder/NumberIcon";
+import {MarkdownIcon} from "@Components/Common/Icons/FormBuilder/MarkdownIcon";
 
 export const allowedInputTags = [
     {
         id: FormBuilderTagNames.INPUT_SHORT_TEXT,
         type: FormBuilderTagNames.INPUT_SHORT_TEXT,
-        label: 'Short Input Text',
-        icon: <ShortTextIcon width={20} height={20} className={'text-black-600'}/>,
+        label: 'Short Question',
+        icon: <ShortTextIcon width={24} height={24}/>,
         blockType: BlockTypes.INPUT_BLOCKS
     },
     {
         id: FormBuilderTagNames.INPUT_LONG_TEXT,
         type: FormBuilderTagNames.INPUT_LONG_TEXT,
-        label: 'Long Text Input',
-        icon: <LongTextIcon width={20} height={20} className={'text-black-600'}/>,
+        label: 'Long Question',
+        icon: <LongTextIcon width={24} height={24}/>,
         blockType: BlockTypes.INPUT_BLOCKS
     },
     {
         id: FormBuilderTagNames.INPUT_EMAIL,
         type: FormBuilderTagNames.INPUT_EMAIL,
-        label: 'Email',
-        icon: <EmailIcon width={20} height={20} className={'text-black-600'}/>,
+        label: 'Email Address',
+        icon: <EmailIcon width={24} height={24}/>,
         blockType: BlockTypes.INPUT_BLOCKS
     },
     {
         id: FormBuilderTagNames.INPUT_NUMBER,
         type: FormBuilderTagNames.INPUT_NUMBER,
         label: 'Number',
-        icon: <Tag width={20} height={20} className={'text-black-600'}/>,
+        icon: <NumberIcon width={24} height={24}/>,
         blockType: BlockTypes.INPUT_BLOCKS
     },
     {
         id: FormBuilderTagNames.INPUT_LINK,
         type: FormBuilderTagNames.INPUT_LINK,
         label: 'Link',
-        icon: <LinkIcon width={20} height={20} className={'text-black-600'}/>,
+        icon: <LinkIcon width={24} height={24}/>,
         blockType: BlockTypes.INPUT_BLOCKS
     },
     {
         id: FormBuilderTagNames.INPUT_DATE,
         type: FormBuilderTagNames.INPUT_DATE,
         label: 'Date',
-        icon: <DateIcon width={20} height={20} className={'text-black-600'}/>,
+        icon: <DateIcon width={24} height={24}/>,
         blockType: BlockTypes.INPUT_BLOCKS
     },
     {
         id: FormBuilderTagNames.INPUT_PHONE_NUMBER,
         type: FormBuilderTagNames.INPUT_PHONE_NUMBER,
         label: 'Phone Number',
-        icon: <PhoneNumberIcon width={20} height={20} className={'text-black-600'}/>,
+        icon: <PhoneNumberIcon width={24} height={24}/>,
         blockType: BlockTypes.INPUT_BLOCKS
     },
     {
         id: FormBuilderTagNames.INPUT_CHECKBOXES,
         type: FormBuilderTagNames.INPUT_CHECKBOXES,
-        label: 'Checkboxes',
-        icon: <CheckboxIcon width={20} height={20} className={'text-black-600'}/>,
+        label: 'Checkbox',
+        icon: <CheckboxIcon width={24} height={24}/>,
         blockType: BlockTypes.INPUT_BLOCKS
     },
     {
         id: FormBuilderTagNames.INPUT_MULTIPLE_CHOICE,
         type: FormBuilderTagNames.INPUT_MULTIPLE_CHOICE,
         label: 'Multiple Choice',
-        icon: <MultipleChoiceIcon width={20} height={20} className={'text-black-600'}/>,
+        icon: <MultipleChoiceIcon width={24} height={24}/>,
         blockType: BlockTypes.INPUT_BLOCKS
     },
     {
         id: FormBuilderTagNames.INPUT_DROPDOWN,
         type: FormBuilderTagNames.INPUT_DROPDOWN,
         label: 'Dropdown',
-        icon: <DropDownIcon width={20} height={20} className={'text-black-600'}/>,
+        icon: <DropDownIcon width={24} height={24}/>,
         blockType: BlockTypes.INPUT_BLOCKS
     },
     {
         id: FormBuilderTagNames.INPUT_RATING,
         type: FormBuilderTagNames.INPUT_RATING,
         label: 'Rating',
-        icon: <RatingIcon width={20} height={20} className={'text-black-600'}/>,
+        icon: <RatingIcon width={24} height={24}/>,
         blockType: BlockTypes.INPUT_BLOCKS
     },
     {
         id: FormBuilderTagNames.INPUT_RANKING,
         type: FormBuilderTagNames.INPUT_RANKING,
         label: 'Ranking',
-        icon: <Ranking width={20} height={20} className={'text-black-600'}/>,
+        icon: <Ranking width={24} height={24}/>,
         blockType: BlockTypes.INPUT_BLOCKS
     },
     {
         id: FormBuilderTagNames.INPUT_MEDIA,
         type: FormBuilderTagNames.INPUT_MEDIA,
-        label: 'Upload',
-        icon: <UploadIcon width={24} height={24} className={'text-black-600'}/>,
+        label: 'Upload Media',
+        icon: <UploadIcon width={24} height={24}/>,
         blockType: BlockTypes.INPUT_BLOCKS
     }
 ];
@@ -125,49 +127,49 @@ export const allowedLayoutTags = [
         id: FormBuilderTagNames.LAYOUT_HEADER1,
         type: FormBuilderTagNames.LAYOUT_HEADER1,
         label: 'Heading 1',
-        icon: <div className="font-bold text-[16px] text-black-600">H1</div>,
+        icon: <div className="font-bold text-[16px]">H1</div>,
         blockType: BlockTypes.LAYOUT_BLOCKS
     },
     {
         id: FormBuilderTagNames.LAYOUT_HEADER2,
         type: FormBuilderTagNames.LAYOUT_HEADER2,
         label: 'Heading 2',
-        icon: <div className="font-bold text-[16px] text-black-600">H2</div>,
+        icon: <div className="font-bold text-[16px]">H2</div>,
         blockType: BlockTypes.LAYOUT_BLOCKS
     },
     {
         id: FormBuilderTagNames.LAYOUT_HEADER3,
         type: FormBuilderTagNames.LAYOUT_HEADER3,
         label: 'Heading 3',
-        icon: <div className="font-bold text-[16px] text-black-600">H3</div>,
+        icon: <div className="font-bold text-[16px] ">H3</div>,
         blockType: BlockTypes.LAYOUT_BLOCKS
     },
     {
         id: FormBuilderTagNames.LAYOUT_HEADER4,
         type: FormBuilderTagNames.LAYOUT_HEADER4,
         label: 'Heading 4',
-        icon: <div className="font-bold text-[16px] text-black-600">H4</div>,
+        icon: <div className="font-bold text-[16px] ">H4</div>,
         blockType: BlockTypes.LAYOUT_BLOCKS
     },
     {
         id: FormBuilderTagNames.LAYOUT_SHORT_TEXT,
         type: FormBuilderTagNames.LAYOUT_SHORT_TEXT,
         label: 'Text',
-        icon: <div className="font-bold text-[16px] px-2 text-black-600">T</div>,
+        icon: <div className="font-bold text-[16px] px-2 ">T</div>,
         blockType: BlockTypes.LAYOUT_BLOCKS
     },
     {
         id: FormBuilderTagNames.LAYOUT_LABEL,
         type: FormBuilderTagNames.LAYOUT_LABEL,
         label: 'Label',
-        icon: <div className="font-bold text-[16px] px-2 text-black-600">L</div>,
+        icon: <div className="font-bold text-[16px] px-2 ">L</div>,
         blockType: BlockTypes.LAYOUT_BLOCKS
     },
     {
         id: FormBuilderTagNames.LAYOUT_MARKDOWN,
         type: FormBuilderTagNames.LAYOUT_MARKDOWN,
         label: 'Markdown',
-        icon: <Tag width={20} height={20} className={'text-black-600'}/>,
+        icon: <MarkdownIcon width={24} height={24}/>,
         blockType: BlockTypes.LAYOUT_BLOCKS
     }
 ];
@@ -176,92 +178,92 @@ export const allowedQuestionAndAnswerTags = [
     {
         id: FormBuilderTagNames.QUESTION_SHORT_TEXT,
         type: FormBuilderTagNames.QUESTION_SHORT_TEXT,
-        label: 'Label + Short Input Text',
-        icon: <ShortTextIcon width={20} height={20} className={'text-black-600'}/>,
+        label: 'Short Question',
+        icon: <ShortTextIcon width={24} height={24}/>,
         blockType: BlockTypes.QUESTION_INPUT_BLOCKS
     },
     {
         id: FormBuilderTagNames.QUESTION_LONG_TEXT,
         type: FormBuilderTagNames.QUESTION_LONG_TEXT,
-        label: 'Label + Long Text Input',
-        icon: <LongTextIcon width={20} height={20} className={'text-black-600'}/>,
+        label: 'Long Question',
+        icon: <LongTextIcon width={24} height={24}/>,
         blockType: BlockTypes.QUESTION_INPUT_BLOCKS
     },
     {
         id: FormBuilderTagNames.QUESTION_EMAIL,
         type: FormBuilderTagNames.QUESTION_EMAIL,
-        label: 'Label + Email',
-        icon: <EmailIcon width={20} height={20} className={'text-black-600'}/>,
+        label: 'Email Address',
+        icon: <EmailIcon width={24} height={24}/>,
         blockType: BlockTypes.QUESTION_INPUT_BLOCKS
     },
     {
         id: FormBuilderTagNames.QUESTION_NUMBER,
         type: FormBuilderTagNames.QUESTION_NUMBER,
-        label: 'Label + Number',
-        icon: <Tag width={20} height={20} className={'text-black-600'}/>,
+        label: 'Number',
+        icon: <NumberIcon width={24} height={24}/>,
         blockType: BlockTypes.QUESTION_INPUT_BLOCKS
     },
     {
         id: FormBuilderTagNames.QUESTION_LINK,
         type: FormBuilderTagNames.QUESTION_LINK,
-        label: 'Label + Link',
-        icon: <LinkIcon width={20} height={20} className={'text-black-600'}/>,
+        label: 'Link',
+        icon: <LinkIcon width={24} height={24}/>,
         blockType: BlockTypes.QUESTION_INPUT_BLOCKS
     },
     {
         id: FormBuilderTagNames.QUESTION_DATE,
         type: FormBuilderTagNames.QUESTION_DATE,
-        label: 'Label + Date',
-        icon: <DateIcon width={20} height={20} className={'text-black-600'}/>,
+        label: 'Date',
+        icon: <DateIcon width={24} height={24}/>,
         blockType: BlockTypes.QUESTION_INPUT_BLOCKS
     },
     {
         id: FormBuilderTagNames.QUESTION_PHONE_NUMBER,
         type: FormBuilderTagNames.QUESTION_PHONE_NUMBER,
-        label: 'Label + Phone Number',
-        icon: <PhoneNumberIcon width={20} height={20} className={'text-black-600'}/>,
+        label: 'Phone Number',
+        icon: <PhoneNumberIcon width={24} height={24}/>,
         blockType: BlockTypes.QUESTION_INPUT_BLOCKS
     },
     {
         id: FormBuilderTagNames.QUESTION_CHECKBOXES,
         type: FormBuilderTagNames.QUESTION_CHECKBOXES,
-        label: 'Label + Checkboxes',
-        icon: <CheckboxIcon width={20} height={20} className={'text-black-600'}/>,
+        label: 'Checkbox',
+        icon: <CheckboxIcon width={24} height={24}/>,
         blockType: BlockTypes.QUESTION_INPUT_BLOCKS
     },
     {
         id: FormBuilderTagNames.QUESTION_MULTIPLE_CHOICE,
         type: FormBuilderTagNames.QUESTION_MULTIPLE_CHOICE,
-        label: 'Label + Multiple Choice',
-        icon: <MultipleChoiceIcon width={20} height={20} className={'text-black-600'}/>,
+        label: 'Multiple Choice',
+        icon: <MultipleChoiceIcon width={24} height={24}/>,
         blockType: BlockTypes.QUESTION_INPUT_BLOCKS
     },
     {
         id: FormBuilderTagNames.QUESTION_DROPDOWN,
         type: FormBuilderTagNames.QUESTION_DROPDOWN,
-        label: 'Label + Dropdown',
-        icon: <DropDownIcon width={20} height={20} className={'text-black-600'}/>,
+        label: 'Dropdown',
+        icon: <DropDownIcon width={24} height={24}/>,
         blockType: BlockTypes.QUESTION_INPUT_BLOCKS
     },
     {
         id: FormBuilderTagNames.QUESTION_RATING,
         type: FormBuilderTagNames.QUESTION_RATING,
-        label: 'Label + Rating',
-        icon: <RatingIcon width={20} height={20} className={'text-black-600'}/>,
+        label: 'Rating',
+        icon: <RatingIcon width={24} height={24}/>,
         blockType: BlockTypes.QUESTION_INPUT_BLOCKS
     },
     {
         id: FormBuilderTagNames.QUESTION_RANKING,
         type: FormBuilderTagNames.QUESTION_RANKING,
-        label: 'Label + Ranking',
-        icon: <Ranking width={20} height={20} className={'text-black-600'}/>,
+        label: 'Ranking',
+        icon: <Ranking width={24} height={24}/>,
         blockType: BlockTypes.QUESTION_INPUT_BLOCKS
     },
     {
         id: FormBuilderTagNames.QUESTION_INPUT_MEDIA,
         type: FormBuilderTagNames.QUESTION_INPUT_MEDIA,
-        label: 'Label + Upload',
-        icon: <UploadIcon width={24} height={24} className={'text-black-600'}/>,
+        label: 'Upload Media',
+        icon: <UploadIcon width={24} height={24}/>,
         blockType: BlockTypes.QUESTION_INPUT_BLOCKS
     }
 ];
@@ -271,14 +273,14 @@ export const allowedAdvancedTags = [
         id: FormBuilderTagNames.CONDITIONAL,
         type: FormBuilderTagNames.CONDITIONAL,
         label: 'Conditional',
-        icon: <Logic width={20} height={20} className={'text-black-600'}/>,
+        icon: <Logic width={24} height={24}/>,
         blockType: BlockTypes.ADVANCED_FIELDS
     },
     {
         id: FormBuilderTagNames.BUTTON,
         type: FormBuilderTagNames.BUTTON,
         label: 'Submit Button',
-        icon: <ButtonIcon width={30} height={30} className={'text-black-600'}/>,
+        icon: <ButtonIcon width={30} height={30}/>,
         blockType: BlockTypes.ADVANCED_FIELDS
     }
 ];
@@ -375,12 +377,6 @@ const FormBuilderTagSelector = ({
         }
         setSelectedTag({blockType: newBlockListTypes.length > 0 ? newBlockListTypes[0] : selectedBlockType, index: 0});
         setTagList([...filteredAllowedQuestionAnswerTags, ...filteredAllowedInputTags, ...filteredAllowedLayoutTags, ...filteredAllowedConditionalTags]);
-        //
-        // if (checkIfPreviousFieldIsLabel()) {
-        //     setTagList([...filteredAllowedInputTags, ...filteredAllowedLayoutTags, ...filteredAllowedConditionalTags, ...filteredAllowedQuestionAnswerTags]);
-        // } else {
-        //     setTagList([...filteredAllowedQuestionAnswerTags, ...filteredAllowedInputTags, ...filteredAllowedLayoutTags, ...filteredAllowedConditionalTags]);
-        // }
         searchQuery && setBlockListTypes([...newBlockListTypes]);
     }, [searchQuery]);
 
@@ -513,14 +509,14 @@ const FormBuilderTagSelector = ({
     const getBlockTypeIcon = (type: BlockTypes) => {
         switch (type) {
             case BlockTypes.INPUT_BLOCKS:
-                return <Element className={'text-black-600 '}/>;
+                return <Element className={'text-black-800 '}/>;
             case BlockTypes.QUESTION_INPUT_BLOCKS:
-                return <ElementsWithLabel className={'text-black-600 '}/>;
+                return <ElementsWithLabel className={'text-black-800'}/>;
             case BlockTypes.LAYOUT_BLOCKS:
                 return <div
-                    className="text-[16px] px-2 text-center items-center leading-6 text-black-600 font-semibold">H</div>;
+                    className="text-[16px] px-2 text-center items-center leading-6 text-black-800 font-semibold">H</div>;
             case BlockTypes.ADVANCED_FIELDS:
-                return <Logic className={'text-black-600'}/>;
+                return <Logic className={'text-black-800'}/>;
         }
     };
 
