@@ -14,19 +14,20 @@ import {
     setActiveField,
     setAddNewField,
     setBuilderMenuState,
-    setBuilderState,
+    setBuilderState, setDeleteField,
     setMoveField,
     setUpdateCommandField
 } from '@app/store/form-builder/actions';
-import {selectBuilderState} from '@app/store/form-builder/selectors';
+import {selectActiveFieldId, selectBuilderState} from '@app/store/form-builder/selectors';
 import {IFormFieldState} from '@app/store/form-builder/types';
-import {useAppDispatch, useAppSelector} from '@app/store/hooks';
+import {useAppAsyncDispatch, useAppDispatch, useAppSelector} from '@app/store/hooks';
 import {isContentEditableTag, isMultipleChoice} from '@app/utils/formBuilderBlockUtils';
 import {getLastItem} from '@app/utils/stringUtils';
 
 import CustomContentEditable from '../ContentEditable/CustomContentEditable';
 import FormBuilderActionMenu from './FormBuilderActionMenu';
 import FormBuilderTagSelector from './FormBuilderTagSelector';
+import useFormBuilderButtonState from "@Components/FormBuilder/bottomAtom";
 
 interface IBuilderBlockProps {
     item: IFormFieldState;
@@ -36,36 +37,52 @@ interface IBuilderBlockProps {
 
 export default function FormBuilderBlock({item, draggableId, setBackspaceCount}: IBuilderBlockProps) {
     const dispatch = useAppDispatch();
+    const asyncDispatch = useAppAsyncDispatch();
     const builderState = useAppSelector(selectBuilderState);
+    const lastFieldId = useAppSelector(selectActiveFieldId);
     const {t} = useBuilderTranslation();
+    const {setShowButton} = useFormBuilderButtonState();
     const handleTagSelection = (type: FormBuilderTagNames) => {
         batch(() => {
-            const field: IFormFieldState = {
-                id: v4(),
-                type,
-                position: item.position,
-                replace: true
-            };
-            if (isMultipleChoice(type)) {
-                const choiceId = uuidv4();
-                field.properties = {
-                    activeChoiceId: choiceId,
-                    activeChoiceIndex: 0,
-                    choices: {
-                        [choiceId]: {
-                            id: choiceId,
-                            value: '',
-                            position: 0
-                        }
-                    }
-                };
-            }
-            dispatch(setAddNewField(field));
-            dispatch(resetBuilderMenuState());
-            if (isMultipleChoice(type)) {
-                setTimeout(() => document.getElementById(`choice-${field.properties?.activeChoiceId}`)?.focus(), 1);
+            if (type === FormBuilderTagNames.BUTTON) {
+                asyncDispatch(
+                    setBuilderState({
+                        buttonText: 'Submit'
+                    })
+                ).then(() => {
+                    setShowButton();
+                    document.getElementById(`form-builder-button`)?.focus();
+                })
+                dispatch(setDeleteField(lastFieldId));
+                dispatch(resetBuilderMenuState());
             } else {
-                setTimeout(() => document.getElementById(`item-${field.id}`)?.focus(), 1);
+                const field: IFormFieldState = {
+                    id: v4(),
+                    type,
+                    position: item.position,
+                    replace: true
+                };
+                if (isMultipleChoice(type)) {
+                    const choiceId = uuidv4();
+                    field.properties = {
+                        activeChoiceId: choiceId,
+                        activeChoiceIndex: 0,
+                        choices: {
+                            [choiceId]: {
+                                id: choiceId,
+                                value: '',
+                                position: 0
+                            }
+                        }
+                    };
+                }
+                dispatch(setAddNewField(field));
+                dispatch(resetBuilderMenuState());
+                if (isMultipleChoice(type)) {
+                    setTimeout(() => document.getElementById(`choice-${field.properties?.activeChoiceId}`)?.focus(), 1);
+                } else {
+                    setTimeout(() => document.getElementById(`item-${field.id}`)?.focus(), 1);
+                }
             }
         });
     };
@@ -80,7 +97,7 @@ export default function FormBuilderBlock({item, draggableId, setBackspaceCount}:
                     const newIndex = item.position + direction;
 
                     if (newIndex >= 0 && newIndex < Object.keys(builderState.fields).length) {
-                        dispatch(setMoveField({ oldIndex: item.position, newIndex}));
+                        dispatch(setMoveField({oldIndex: item.position, newIndex}));
                     }
                 }
             });
