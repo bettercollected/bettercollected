@@ -46,13 +46,13 @@ export default function ImportErrorView({ provider }: ImportErrorViewProps) {
             type: 'non-sensitive',
             isPermissionGiven: false,
             name: 'Permission to search and pick Google Forms from Drive',
-            description: 'To be able to show google file picker, we require permissions to search your Google Drive for Google Forms.'
+            description: 'To be able to show Google File Picker, we require permissions to search your Google Drive for Google Forms.'
         },
         {
             type: 'sensitive',
             isPermissionGiven: false,
             name: 'Permissions to import your Google Forms',
-            description: 'To be able to import forms from google, we require access permissions to retrieve your Google Forms.'
+            description: 'To be able to import forms from Google, we require access permissions to retrieve your Google Forms.'
         },
         {
             type: 'sensitive',
