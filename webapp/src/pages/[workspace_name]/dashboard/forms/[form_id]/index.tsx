@@ -6,6 +6,7 @@ import dynamic from 'next/dynamic';
 import { useRouter } from 'next/router';
 
 import Divider from '@Components/Common/DataDisplay/Divider';
+import PrivateFormButtonWrapper from '@Components/Common/FormVisibility/PrivateFormButtonWrapper';
 import EditIcon from '@Components/Common/Icons/Common/Edit';
 import SettingsIcon from '@Components/Common/Icons/Common/Settings';
 import FormProviderIcon from '@Components/Common/Icons/Form/FormProviderIcon';
@@ -46,7 +47,6 @@ const FormPreview = dynamic(() => import('@app/components/form/preview'));
 
 export default function FormPage(props: any) {
     const { form }: { form: StandardFormDto } = props;
-    const localStateForm = useAppSelector(selectForm);
     const { t } = useTranslation();
     const dispatch = useAppDispatch();
     const reduxStoreForm = useAppSelector(selectForm);
@@ -162,20 +162,23 @@ export default function FormPage(props: any) {
                                         <span className="sm:block hidden">{t(formPage.editForm)}</span>
                                     </AppButton>
                                 )}
-                                {form?.isPublished && isFormOpen && !localStateForm?.settings?.hidden && (
-                                    <AppButton
-                                        variant={['sm', 'md', 'lg', 'xl', '2xl'].indexOf(breakpoint) !== -1 ? ButtonVariant.Primary : ButtonVariant.Ghost}
-                                        icon={<Share />}
-                                        className="!px-0 sm:!px-5"
-                                        onClick={() =>
-                                            openModal('SHARE_VIEW', {
-                                                url: getFormUrl(workspaceForm, workspace),
-                                                title: t(formConstant.shareThisForm)
-                                            })
-                                        }
-                                    >
-                                        <span className="sm:block hidden">{t(formPage.shareForm)}</span>
-                                    </AppButton>
+                                {form?.isPublished && isFormOpen && (
+                                    <PrivateFormButtonWrapper isPrivate={form?.settings?.hidden}>
+                                        <AppButton
+                                            variant={['sm', 'md', 'lg', 'xl', '2xl'].indexOf(breakpoint) !== -1 ? ButtonVariant.Primary : ButtonVariant.Ghost}
+                                            icon={<Share />}
+                                            className="!px-0 sm:!px-5"
+                                            disabled={form?.settings?.hidden}
+                                            onClick={() =>
+                                                openModal('SHARE_VIEW', {
+                                                    url: getFormUrl(workspaceForm, workspace),
+                                                    title: t(formConstant.shareThisForm)
+                                                })
+                                            }
+                                        >
+                                            <span className="sm:block hidden">{t(formPage.shareForm)}</span>
+                                        </AppButton>
+                                    </PrivateFormButtonWrapper>
                                 )}
                             </div>
                         </div>
