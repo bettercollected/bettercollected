@@ -190,7 +190,7 @@ class FormSchedular:
             data = await response.json()
             return data
 
-        except (ServerDisconnectedError, ClientConnectorError, gaierror):
+        except (ServerDisconnectedError, ClientConnectorError, gaierror, TimeoutError):
             raise HTTPException(
                 HTTPStatus.SERVICE_UNAVAILABLE, "Could not fetch data form proxy server"
             )
