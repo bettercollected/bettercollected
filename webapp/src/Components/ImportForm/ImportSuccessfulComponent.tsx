@@ -47,11 +47,11 @@ export default function ImportSuccessfulComponent() {
 
     const [showEditView, setShowEditView] = useState(false);
 
-    const [customSlug, setCustomSlug] = useState('');
+    const [customSlug, setCustomSlug] = useState(form?.settings?.customUrl || '');
 
     const [isError, setIsError] = useState(false);
 
-    const [patchFormSettings, { isLoading: isSavingSlug }] = usePatchFormSettingsMutation();
+    const [patchFormSettings] = usePatchFormSettingsMutation();
 
     const [saving, setSaving] = useState(false);
     const [saved, setSaved] = useState(false);
@@ -62,10 +62,6 @@ export default function ImportSuccessfulComponent() {
         debounce((slug: string) => handleUpdate(slug), 1200),
         []
     );
-
-    useEffect(() => {
-        setCustomSlug(form?.settings?.customUrl || '');
-    }, [form?.settings?.customUrl]);
 
     const handleOnchange = (e: any) => {
         setIsError(false);
@@ -183,7 +179,7 @@ export default function ImportSuccessfulComponent() {
                             Copy
                         </AppButton>
                     </div>
-                    <div className="h-4">{isError && <span className="p2-new text-red-500">Avoid using spaces or special characters. Only “-” and “_” is accepted.</span>}</div>
+                    <div className="h-4">{isError && customSlug && <span className="p2-new text-red-500">Avoid using spaces or special characters. Only “-” and “_” is accepted.</span>}</div>
                 </div>
                 <div className="mt-4 flex flex-col items-start">
                     <div className="h4-new mb-2 flex gap-2 items-center">
