@@ -154,6 +154,8 @@ class FormService:
             workspace_form = await self._workspace_form_repo.get_workspace_form_with_custom_slug_form_id(
                 workspace_id=workspace_id, custom_url=form_id
             )
+            if not workspace_form:
+                raise HTTPException(status_code=404, content="Form not found in Workspace")
             if workspace_form.settings.private or workspace_form.settings.hidden:
                 raise HTTPException(
                     status_code=HTTPStatus.UNAUTHORIZED,
