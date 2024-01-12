@@ -2,6 +2,7 @@ from datetime import datetime
 from http import HTTPStatus
 from typing import List
 
+from aiohttp import ServerDisconnectedError
 from beanie import PydanticObjectId
 from common.configs.crypto import Crypto
 from common.constants import MESSAGE_FORBIDDEN
@@ -34,12 +35,12 @@ from backend.config import settings
 
 class FormService:
     def __init__(
-        self,
-        workspace_user_repo: WorkspaceUserRepository,
-        form_repo: FormRepository,
-        workspace_form_repo: WorkspaceFormRepository,
-        user_tags_service: UserTagsService,
-        crypto: Crypto
+            self,
+            workspace_user_repo: WorkspaceUserRepository,
+            form_repo: FormRepository,
+            workspace_form_repo: WorkspaceFormRepository,
+            user_tags_service: UserTagsService,
+            crypto: Crypto
     ):
         self._workspace_user_repo = workspace_user_repo
         self._form_repo = form_repo
@@ -48,12 +49,12 @@ class FormService:
         self.crypto = crypto
 
     async def get_forms_in_workspace(
-        self,
-        workspace_id: PydanticObjectId,
-        sort: SortRequest,
-        published: bool,
-        pinned_only: bool,
-        user: User,
+            self,
+            workspace_id: PydanticObjectId,
+            sort: SortRequest,
+            published: bool,
+            pinned_only: bool,
+            user: User,
     ) -> Page[FormDtoCamelModel]:
         has_access_to_workspace = (
             await self._workspace_user_repo.has_user_access_in_workspace(
@@ -105,14 +106,19 @@ class FormService:
         return forms_page
 
     async def fetch_user_details(self, user_ids):
-        response = await AiohttpClient.get_aiohttp_client().get(
-            f"{settings.auth_settings.BASE_URL}/users",
-            params={"user_ids": user_ids},
-        )
-        return await response.json()
+        try:
+            response = await AiohttpClient.get_aiohttp_client().get(
+                f"{settings.auth_settings.BASE_URL}/users",
+                params={"user_ids": user_ids},
+            )
+            return await response.json()
+        except (ServerDisconnectedError, TimeoutError):
+            raise HTTPException(
+                HTTPStatus.SERVICE_UNAVAILABLE, "Could not fetch data form proxy server"
+            )
 
     async def search_form_in_workspace(
-        self, workspace_id: PydanticObjectId, query: str, published: bool, user: User
+            self, workspace_id: PydanticObjectId, query: str, published: bool, user: User
     ):
         form_ids = await self._workspace_form_repo.get_form_ids_in_workspace(
             workspace_id=workspace_id, is_not_admin=True, user=user
@@ -141,11 +147,11 @@ class FormService:
         return [FormDtoCamelModel(**form) for form in forms]
 
     async def get_form_by_id(
-        self,
-        workspace_id: PydanticObjectId,
-        form_id: str,
-        user: User,
-        published: bool = False,
+            self,
+            workspace_id: PydanticObjectId,
+            form_id: str,
+            user: User,
+            published: bool = False,
     ):
         is_admin = await self._workspace_user_repo.has_user_access_in_workspace(
             workspace_id=workspace_id, user=user
@@ -232,11 +238,11 @@ class FormService:
         return await self._form_repo.save_form(form_document)
 
     async def patch_settings_in_workspace_form(
-        self,
-        workspace_id: PydanticObjectId,
-        form_id: str,
-        settings: SettingsPatchDto,
-        user: User,
+            self,
+            workspace_id: PydanticObjectId,
+            form_id: str,
+            settings: SettingsPatchDto,
+            user: User,
     ):
         is_admin = await self._workspace_user_repo.has_user_access_in_workspace(
             workspace_id=workspace_id, user=user
@@ -306,29 +312,29 @@ class FormService:
         )
 
     def has_form_been_updated(
-        self, form: FormDocument, latest_version: FormVersionsDocument
+            self, form: FormDocument, latest_version: FormVersionsDocument
     ):
         if not latest_version:
             return True
         if (
-            form.title == latest_version.title
-            and form.description == latest_version.description
-            and form.consent == latest_version.consent
-            and form.fields == latest_version.fields
-            and form.logo == latest_version.logo
-            and form.cover_image == latest_version.cover_image
-            and form.button_text == latest_version.button_text
-            and form.state == latest_version.state
+                form.title == latest_version.title
+                and form.description == latest_version.description
+                and form.consent == latest_version.consent
+                and form.fields == latest_version.fields
+                and form.logo == latest_version.logo
+                and form.cover_image == latest_version.cover_image
+                and form.button_text == latest_version.button_text
+                and form.state == latest_version.state
         ):
             return False
         return True
 
     async def get_form_by_version(
-        self,
-        workspace_id: PydanticObjectId,
-        form_id: str,
-        version: str | int,
-        user: User,
+            self,
+            workspace_id: PydanticObjectId,
+            form_id: str,
+            version: str | int,
+            user: User,
     ):
         is_admin = await self._workspace_user_repo.has_user_access_in_workspace(
             workspace_id=workspace_id, user=user
