@@ -52,7 +52,6 @@ const WorkspaceDashboardOverview = ({ workspace }: IWorkspaceDashboardOverviewPr
     };
 
     const onClickEditButton = () => {
-        // fullScreenModal.openModal('WORKSPACE_SETTINGS');
         openBottomSheetModal('WORKSPACE_SETTINGS');
     };
     const onClickInviteCollaboratorButton = () => {

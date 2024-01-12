@@ -250,8 +250,8 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                             </AppButton>
                         </div>
                         <div className="flex flex-col gap-16 pt-10">
-                            {isCustomDomain && <FormLinkUpdateView isCustomDomain={isCustomDomain} link={customDomainUrl} isProUser={!isAdmin || workspace?.isPro} />}
-                            <FormLinkUpdateView isCustomDomain={false} link={clientHostUrl} isDisable={!isProPlan && !isAdmin} isProUser={!isAdmin || workspace?.isPro} />
+                            {isCustomDomain && <FormLinkUpdateView isCustomDomain={isCustomDomain} link={customDomainUrl} isProUser={!isAdmin || workspace?.isPro} isPrivate={form?.settings?.hidden} />}
+                            <FormLinkUpdateView isCustomDomain={false} link={clientHostUrl} isDisable={!isProPlan && !isAdmin} isProUser={!isAdmin || workspace?.isPro} isPrivate={form?.settings?.hidden} />
                         </div>
                     </FormSettingsCard>
                 );
