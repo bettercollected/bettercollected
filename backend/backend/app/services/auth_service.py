@@ -7,7 +7,7 @@ from common.enums.roles import Roles
 from common.models.user import OAuthState, User, UserInfo, UserLoginWithOTP
 from common.services.http_client import HttpClient
 from common.services.jwt_service import JwtService
-from httpx import ReadTimeout
+from httpx import ReadTimeout, RemoteProtocolError, ReadError
 from pydantic import EmailStr
 from starlette.requests import Request
 
@@ -28,15 +28,15 @@ from backend.config import settings
 
 class AuthService:
     def __init__(
-        self,
-        http_client: HttpClient,
-        plugin_proxy_service: PluginProxyService,
-        form_provider_service: FormPluginProviderService,
-        jwt_service: JwtService,
-        workspace_service: WorkspaceService,
-        temporal_service: TemporalService,
-        crypto: Crypto,
-        user_tags_service: UserTagsService,
+            self,
+            http_client: HttpClient,
+            plugin_proxy_service: PluginProxyService,
+            form_provider_service: FormPluginProviderService,
+            jwt_service: JwtService,
+            workspace_service: WorkspaceService,
+            temporal_service: TemporalService,
+            crypto: Crypto,
+            user_tags_service: UserTagsService,
     ):
         self.http_client = http_client
         self.plugin_proxy_service = plugin_proxy_service
@@ -58,26 +58,31 @@ class AuthService:
                 user_id=user.id
             )
             return response_data
-        except ReadTimeout as e:
+        except (ReadTimeout, ReadError, RemoteProtocolError) as e:
             raise HTTPException(
                 status_code=HTTPStatus.GATEWAY_TIMEOUT, content="Read Timeout"
             )
 
     async def send_otp_for_creator(self, receiver_email: EmailStr):
-        await self.http_client.get(
-            settings.auth_settings.BASE_URL + "/auth/otp/send",
-            params={
-                "receiver_email": receiver_email,
-                "workspace_title": "BetterCollected",
-                "workspace_profile_image": "",
-                "creator": True,
-            },
-            timeout=180,
-        )
-        return {"message": "Otp sent successfully"}
+        try:
+            await self.http_client.get(
+                settings.auth_settings.BASE_URL + "/auth/otp/send",
+                params={
+                    "receiver_email": receiver_email,
+                    "workspace_title": "BetterCollected",
+                    "workspace_profile_image": "",
+                    "creator": True,
+                },
+                timeout=180,
+            )
+            return {"message": "Otp sent successfully"}
+        except (ReadTimeout, RemoteProtocolError) as e:
+            raise HTTPException(
+                status_code=HTTPStatus.GATEWAY_TIMEOUT, content="Read Timeout"
+            )
 
     async def validate_otp(
-        self, login_details: UserLoginWithOTP, prospective_pro_user: bool
+            self, login_details: UserLoginWithOTP, prospective_pro_user: bool
     ):
         response_data = await self.http_client.get(
             settings.auth_settings.BASE_URL + "/auth/otp/validate",
@@ -107,7 +112,7 @@ class AuthService:
             raise HTTPException(HTTPStatus.UNAUTHORIZED, content="Invalid Otp Code")
 
     async def get_oauth_url(
-        self, provider_name: str, client_referer_url: str, user: User
+            self, provider_name: str, client_referer_url: str, user: User
     ):
         provider_url = await self.form_provider_service.get_provider_url(provider_name)
         oauth_state = OAuthState(
@@ -124,7 +129,7 @@ class AuthService:
         return oauth_url
 
     async def handle_backend_auth_callback(
-        self, *, provider_name: str, state: str, request: Request, user: User = None
+            self, *, provider_name: str, state: str, request: Request, user: User = None
     ) -> Tuple[User, OAuthState]:
         provider_config = await self.form_provider_service.get_provider_if_enabled(
             provider_name
@@ -149,11 +154,11 @@ class AuthService:
         return user, state
 
     async def get_basic_auth_url(
-        self,
-        provider: str,
-        client_referer_url: str,
-        creator: bool = False,
-        prospective_pro_user: bool = False,
+            self,
+            provider: str,
+            client_referer_url: str,
+            creator: bool = False,
+            prospective_pro_user: bool = False,
     ):
         response_data = await self.http_client.get(
             settings.auth_settings.BASE_URL + f"/auth/{provider}/basic",
@@ -212,7 +217,7 @@ class AuthService:
         )
 
     async def add_workflow_to_delete_user(
-        self, access_token: str, refresh_token: str, user: User
+            self, access_token: str, refresh_token: str, user: User
     ):
         await event_logger_service.send_event(event_type=UserEventType.ACCOUNT_DELETED, user_id=user.id, email=user.sub)
         return await self.temporal_service.start_user_deletion_workflow(
