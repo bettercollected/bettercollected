@@ -143,7 +143,7 @@ class PluginProxy(BasePluginRoute):
     ):
         raise HTTPException(status_code=HTTPStatus.NOT_IMPLEMENTED)
 
-    async def verify_oauth_token(self, request: Request, provider: str | FormProvider):
+    async def verify_oauth_token(self, request: Request, provider:  FormProvider):
         proxy_url = await self.form_provider_service.get_provider_url(provider)
         response = await self.plugin_proxy_service.pass_request(
             request, f"{proxy_url}/{provider}/forms/oauth/verify",

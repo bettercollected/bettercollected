@@ -190,17 +190,22 @@ class FormSchedular:
             data = await response.json()
             return data
 
-        except (ServerDisconnectedError, ClientConnectorError, gaierror):
+        except (ServerDisconnectedError, ClientConnectorError, gaierror, TimeoutError):
             raise HTTPException(
                 HTTPStatus.SERVICE_UNAVAILABLE, "Could not fetch data form proxy server"
             )
 
     async def fetch_user_details(self, user_ids):
-        response = await AiohttpClient.get_aiohttp_client().get(
-            f"{settings.auth_settings.BASE_URL}/users",
-            params={"user_ids": user_ids},
-        )
-        return await response.json()
+        try:
+            response = await AiohttpClient.get_aiohttp_client().get(
+                f"{settings.auth_settings.BASE_URL}/users",
+                params={"user_ids": user_ids},
+            )
+            return await response.json()
+        except (ServerDisconnectedError, ClientConnectorError, gaierror, TimeoutError):
+            raise HTTPException(
+                HTTPStatus.SERVICE_UNAVAILABLE, "Could not fetch data form proxy server"
+            )
 
     async def delete_response(self, submission_id: str):
         response = await self.form_response_service.delete_response(

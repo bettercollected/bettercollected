@@ -263,32 +263,37 @@ class OauthGoogleService:
         return current_date
 
     async def refresh_access_token(self, oauth_credential: Oauth2CredentialDocument):
-        credentials = dict_to_credential(oauth_credential.credentials.dict())
-        current_date = OauthGoogleService.get_current_dt_in_google_format()
-        data = {
-            "client_id": credentials.client_id,
-            "client_secret": credentials.client_secret,
-            "refresh_token": credentials.refresh_token,
-            "grant_type": "refresh_token",
-        }
-        refreshed_token_response = await AiohttpClient.post(
-            credentials.token_uri, data
-        )
-        token = await refreshed_token_response.json()
-        if token.get("error"):
-            raise InvalidGrantError()
-        if not token.get("access_token") or not token.get("expires_in"):
-            raise HttpError()
-        oauth_credential.credentials.token = token.get("access_token")
-        expiry = current_date + timedelta(seconds=token.get("expires_in"))
-        oauth_credential.credentials.expiry = expiry.strftime(
-            GOOGLE_DATETIME_FORMAT
-        )
-        oauth_credential.updated_at = current_date
-        saved_credentials = await self.oauth_credential_repo.update(
-            oauth_credential.email, oauth_credential
-        )
-        return saved_credentials
+        try:
+            credentials = dict_to_credential(oauth_credential.credentials.dict())
+            current_date = OauthGoogleService.get_current_dt_in_google_format()
+            data = {
+                "client_id": credentials.client_id,
+                "client_secret": credentials.client_secret,
+                "refresh_token": credentials.refresh_token,
+                "grant_type": "refresh_token",
+            }
+            refreshed_token_response = await AiohttpClient.post(
+                credentials.token_uri, data
+            )
+            token = await refreshed_token_response.json()
+            if token.get("error"):
+                raise InvalidGrantError()
+            if not token.get("access_token") or not token.get("expires_in"):
+                raise HttpError()
+            oauth_credential.credentials.token = token.get("access_token")
+            expiry = current_date + timedelta(seconds=token.get("expires_in"))
+            oauth_credential.credentials.expiry = expiry.strftime(
+                GOOGLE_DATETIME_FORMAT
+            )
+            oauth_credential.updated_at = current_date
+            saved_credentials = await self.oauth_credential_repo.update(
+                oauth_credential.email, oauth_credential
+            )
+            return saved_credentials
+        except TimeoutError:
+            raise HTTPException(
+                status_code=HTTPStatus.GATEWAY_TIMEOUT, content="Request Timed out"
+            )
 
     @staticmethod
     async def revoke(credentials: Oauth2CredentialDocument):
