@@ -36,16 +36,10 @@ interface IDefaultContent {
     permissions: Array<IPermission>;
 }
 
-export default function ImportErrorView({ provider, closable }: ImportErrorViewProps) {
+export default function ImportErrorView({ provider, closable = true }: ImportErrorViewProps) {
     const [isConsentGiven, setIsConsentGiven] = useState(false);
 
     const googlePermissions: Array<IPermission> = [
-        {
-            type: 'non-sensitive',
-            isPermissionGiven: false,
-            name: 'Permission to search and pick Google Forms from Drive',
-            description: 'To be able to show Google File Picker, we require permissions to search your Google Drive for Google Forms.'
-        },
         {
             type: 'sensitive',
             isPermissionGiven: false,
@@ -59,6 +53,15 @@ export default function ImportErrorView({ provider, closable }: ImportErrorViewP
             description: 'To be able to show form responses and build a beautiful responder portal for you, we require permissions to fetch form responses.'
         }
     ];
+
+    if (environments.ENABLE_IMPORT_WITH_PICKER) {
+        googlePermissions.splice(0, 0, {
+            type: 'non-sensitive',
+            isPermissionGiven: false,
+            name: 'Permission to search and pick Google Forms from Drive',
+            description: 'To be able to show Google File Picker, we require permissions to search your Google Drive for Google Forms.'
+        });
+    }
     const typeformPermissions: Array<IPermission> = [
         {
             type: 'sensitive',
