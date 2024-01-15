@@ -18,6 +18,7 @@ import { resetForm, setEditForm } from '@app/store/form-builder/actions';
 import { selectBuilderState } from '@app/store/form-builder/selectors';
 import { resetSingleForm, setForm } from '@app/store/forms/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
+import useFormBuilderButtonState from "@Components/FormBuilder/bottomAtom";
 
 export default function EditFromPage(props: any) {
     const {
@@ -32,11 +33,13 @@ export default function EditFromPage(props: any) {
     const dispatch = useAppDispatch();
     const { title } = useAppSelector(selectBuilderState);
     const { t } = useTranslation();
+    const {setHideButton} = useFormBuilderButtonState();
 
     useEffect(() => {
         dispatch(setForm(form));
         dispatch(setEditForm(form));
         dispatch(setFormConsent(form));
+        setHideButton();
         return () => {
             dispatch(resetConsentState());
             dispatch(resetForm());

@@ -5,7 +5,6 @@ from http import HTTPStatus
 import bson
 from beanie import PydanticObjectId
 from common.constants import MESSAGE_FORBIDDEN
-from common.enums.plan import Plans
 from common.models.user import User
 from common.services.http_client import HttpClient
 from fastapi import UploadFile
@@ -207,7 +206,8 @@ class WorkspaceService:
                     await self.user_tags_service.add_user_tag(
                         user_id=user.id, tag=UserTagType.CUSTOM_DOMAIN_UPDATED
                     )
-                    await event_logger_service.send_event(event_type=UserEventType.CUSTOM_DOMAIN_CHANGED, user_id=user.id)
+                    await event_logger_service.send_event(event_type=UserEventType.CUSTOM_DOMAIN_CHANGED,
+                                                          user_id=user.id, email=user.sub)
                 else:
                     raise HTTPException(409)
             except HTTPException as e:
@@ -431,7 +431,7 @@ class WorkspaceService:
 async def create_workspace(user: User):
     workspace = await WorkspaceDocument.find_one({"owner_id": user.id, "default": True})
     if not workspace:
-        await event_logger_service.send_event(event_type=UserEventType.USER_CREATED, user_id=user.id)
+        await event_logger_service.send_event(event_type=UserEventType.USER_CREATED, user_id=user.id, email=user.sub)
         workspace = WorkspaceDocument(
             title="",
             description="",

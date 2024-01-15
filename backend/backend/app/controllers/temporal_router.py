@@ -1,11 +1,11 @@
 from beanie import PydanticObjectId
-from classy_fastapi import Routable, post, delete
+from classy_fastapi import Routable, post
 from fastapi import Depends
 
 from backend.app.container import container
 from backend.app.router import router
-from backend.app.services.user_service import get_api_key
-from common.utils import logger
+from backend.app.services.init_schedulers import migrate_schedule_to_temporal
+from backend.app.services.user_service import get_api_key, get_logged_admin
 
 
 @router(
@@ -37,3 +37,8 @@ class TemporalRouter(Routable):
         self, submission_id: str, api_key=Depends(get_api_key)
     ):
         return await self.form_schedular.delete_response(submission_id=submission_id)
+
+    @post("/import/reinitialize")
+    async def reinit_temporal_form_import_schedules(self, api_key=Depends(get_api_key), user=Depends(get_logged_admin)):
+        await migrate_schedule_to_temporal()
+        return "Ok"

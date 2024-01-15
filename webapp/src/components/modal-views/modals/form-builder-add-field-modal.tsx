@@ -1,5 +1,5 @@
 import {
-    allowedConditionalTags,
+    allowedAdvancedTags,
     allowedLayoutTags,
     allowedQuestionAndAnswerTags
 } from '@Components/FormBuilder/BuilderBlock/FormBuilderTagSelector';
@@ -10,10 +10,11 @@ import {Close} from '@app/components/icons/close';
 import {useModal} from '@app/components/modal-views/context';
 import useBuilderTranslation from '@app/lib/hooks/use-builder-translation';
 import {FormBuilderTagNames} from '@app/models/enums/formBuilder';
-import {resetBuilderMenuState, setAddNewField, setDeleteField} from '@app/store/form-builder/actions';
+import {resetBuilderMenuState, setAddNewField, setBuilderState, setDeleteField} from '@app/store/form-builder/actions';
 import {selectBuilderState} from '@app/store/form-builder/selectors';
 import {IBuilderState} from '@app/store/form-builder/types';
 import {useAppAsyncDispatch, useAppDispatch, useAppSelector} from '@app/store/hooks';
+import useFormBuilderButtonState from "@Components/FormBuilder/bottomAtom";
 
 const Fields = [
     {
@@ -26,43 +27,58 @@ const Fields = [
     },
     {
         title: 'Advanced Fields',
-        items: allowedConditionalTags
+        items: allowedAdvancedTags
     }
 ];
 
 export default function FormBuilderAddFieldModal({index}: { index?: number }) {
     const {closeModal} = useModal();
     const builderState: IBuilderState = useAppSelector(selectBuilderState);
+    const {setShowButton} = useFormBuilderButtonState();
 
     const dispatch = useAppDispatch();
     const asyncDispatch = useAppAsyncDispatch();
 
     const {t} = useBuilderTranslation();
     const handleFieldSelected = (type: FormBuilderTagNames) => {
-        const getActiveIndex = () => {
-            if (index !== undefined && index > -1) return index;
-            if (builderState.activeFieldIndex > -1) return builderState.activeFieldIndex;
-            return Object.keys(builderState.fields).length - 1;
-        };
-        const activeIndex = getActiveIndex();
-        const activeField = Object.values(builderState.fields)[activeIndex];
-        const nextField = Object.values(builderState.fields)[activeIndex + 1];
-        const isActiveFieldLayoutShortText = activeField?.type === FormBuilderTagNames.LAYOUT_SHORT_TEXT;
-        const isNextFieldInputField = nextField?.type.includes('input_');
-        const shouldInsertInCurrentField = isActiveFieldLayoutShortText && !activeField.value;
-
-        batch(() => {
-            if (shouldInsertInCurrentField) dispatch(setDeleteField(activeField.id));
-            const fieldId = v4();
+        if (type === FormBuilderTagNames.BUTTON) {
             asyncDispatch(
-                setAddNewField({
-                    id: fieldId,
-                    type,
-                    position: isNextFieldInputField ? activeIndex + 1 : activeIndex
+                setBuilderState({
+                    buttonText: 'Submit'
                 })
-            ).then(() => document.getElementById(`item-${fieldId}`)?.focus())
+        ).
+            then(() => {
+                setShowButton();
+                document.getElementById(`form-builder-button`)?.focus();
+            })
             dispatch(resetBuilderMenuState());
-        });
+
+        } else {
+            const getActiveIndex = () => {
+                if (index !== undefined && index > -1) return index;
+                if (builderState.activeFieldIndex > -1) return builderState.activeFieldIndex;
+                return Object.keys(builderState.fields).length - 1;
+            };
+            const activeIndex = getActiveIndex();
+            const activeField = Object.values(builderState.fields)[activeIndex];
+            const nextField = Object.values(builderState.fields)[activeIndex + 1];
+            const isActiveFieldLayoutShortText = activeField?.type === FormBuilderTagNames.LAYOUT_SHORT_TEXT;
+            const isNextFieldInputField = nextField?.type.includes('input_');
+            const shouldInsertInCurrentField = isActiveFieldLayoutShortText && !activeField.value;
+
+            batch(() => {
+                if (shouldInsertInCurrentField) dispatch(setDeleteField(activeField.id));
+                const fieldId = v4();
+                asyncDispatch(
+                    setAddNewField({
+                        id: fieldId,
+                        type,
+                        position: isNextFieldInputField ? activeIndex + 1 : activeIndex
+                    })
+                ).then(() => document.getElementById(`item-${fieldId}`)?.focus())
+                dispatch(resetBuilderMenuState());
+            });
+        }
         closeModal();
     };
 
@@ -76,7 +92,7 @@ export default function FormBuilderAddFieldModal({index}: { index?: number }) {
             />
             {Fields.map((fieldType, index) => (
                 <div key={t(fieldType.title)} className="flex flex-col">
-                    <div className="body1 mb-6">{t(fieldType.title)}</div>
+                    <div className="h5 !text-black-800 mb-6">{t(fieldType.title)}</div>
                     <div className="grid gap-x-12 gap-y-2 grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
                         {fieldType.items.map((tag: any, index: number) => (
                             <div
@@ -86,8 +102,8 @@ export default function FormBuilderAddFieldModal({index}: { index?: number }) {
                                     handleFieldSelected(tag.type);
                                 }}
                             >
-                                <div className="w-7">{tag.icon}</div>
-                                <span>{tag.label}</span>
+                                <div className="w-7 text-pink">{tag.icon}</div>
+                                <span className={'text-black-700 text-sm font-medium'}>{tag.label}</span>
                             </div>
                         ))}
                     </div>

@@ -1,14 +1,21 @@
-import { useRef } from 'react';
+import {useRef} from 'react';
 
-import { ListItem } from '@mui/material';
+import {ListItem} from '@mui/material';
 
-import { BlockTypes } from '@app/models/enums/formBuilder';
+import {BlockTypes} from '@app/models/enums/formBuilder';
 
-function TagListItem({ tag, index, blockType, isSelected, handleSelection, setSelectedTag }: { tag: any; index: number; blockType: BlockTypes; isSelected: boolean; handleSelection: any; setSelectedTag: any }): JSX.Element {
+function TagListItem({tag, index, blockType, isSelected, handleSelection, setSelectedTag}: {
+    tag: any;
+    index: number;
+    blockType: BlockTypes;
+    isSelected: boolean;
+    handleSelection: any;
+    setSelectedTag: any
+}): JSX.Element {
     const targetRef = useRef<HTMLDivElement | null>(null);
     const listItemClass = isSelected ? 'bg-brand-200 selected' : '';
     const onMouseMove = () => {
-        if (!isSelected) setSelectedTag({ blockType: blockType, index: index });
+        if (!isSelected) setSelectedTag({blockType: blockType, index: index});
     };
 
     return (
@@ -26,7 +33,7 @@ function TagListItem({ tag, index, blockType, isSelected, handleSelection, setSe
                 }}
                 onMouseMove={onMouseMove}
             >
-                <span className="w-[24px]">{tag.icon}</span>
+                <span className="w-[24px] text-black-600">{tag.icon}</span>
                 <span className="ml-2">{tag.label}</span>
             </ListItem>
         </div>

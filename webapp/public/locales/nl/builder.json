@@ -18,7 +18,7 @@
   },
   "COMPONENTS": {
     "COMMON": {
-      "PLACEHOLDER": "Typ / om het opdrachtenmenu te openen"
+      "PLACEHOLDER": "Typ / voor een lijst van elementen"
     },
     "OPTIONS": {
       "DEFAULT": "Opties",

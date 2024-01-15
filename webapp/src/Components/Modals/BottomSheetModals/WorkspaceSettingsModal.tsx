@@ -1,6 +1,6 @@
 import { useTranslation } from 'next-i18next';
 
-import BottomSheetModalWrapper from '@Components/Modals/BottomSheetModals/BottomSheetModalWrapper';
+import BottomSheetModalWrapper from '@Components/Modals/ModalWrappers/BottomSheetModalWrapper';
 import ManageURLs from '@Components/Workspace/Settings/ManageURLs';
 import WorkspaceDetails from '@Components/Workspace/Settings/WorkspaceDetails';
 
@@ -14,10 +14,6 @@ export default function WorkspaceSettingsModal({ initialIndex }: { initialIndex?
             title: t('WORKSPACE.SETTINGS.TABS.DETAILS'),
             path: 'workspace-details'
         },
-        // {
-        //     title: 'Other Settings',
-        //     path: 'other-settings'
-        // },
         {
             title: t('MANAGE_URLS'),
             path: 'manage-url'
@@ -33,9 +29,7 @@ export default function WorkspaceSettingsModal({ initialIndex }: { initialIndex?
                 <TabPanel key="workspace-details">
                     <WorkspaceDetails />
                 </TabPanel>
-                {/*<TabPanel key="other-settings">*/}
-                {/*    <OtherSettings />*/}
-                {/*</TabPanel>*/}
+
                 <TabPanel key="manage-url">
                     <div className="px-5 md:px-20 lg:px-30">
                         <ManageURLs />

@@ -94,7 +94,7 @@ export default function Tooltip({
             slotProps={slotProps}
             slots={slots}
         >
-            {children}
+            <div>{children}</div>
         </MuiTooltip>
     );
 }

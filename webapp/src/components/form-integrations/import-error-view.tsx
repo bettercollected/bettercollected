@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import _ from 'lodash';
 
 import CheckedCircle from '@Components/Common/Icons/Common/CheckedCircle';
+import CloseModal from '@Components/Modals/CloseModal';
 import { Disclosure } from '@headlessui/react';
 import { Checkbox, FormControlLabel } from '@mui/material';
 
@@ -12,6 +13,7 @@ import environments from '@app/configs/environments';
 
 interface ImportErrorViewProps {
     provider: string;
+    closable?: boolean;
 }
 
 interface IScope {
@@ -34,7 +36,7 @@ interface IDefaultContent {
     permissions: Array<IPermission>;
 }
 
-export default function ImportErrorView({ provider }: ImportErrorViewProps) {
+export default function ImportErrorView({ provider, closable = true }: ImportErrorViewProps) {
     const [isConsentGiven, setIsConsentGiven] = useState(false);
 
     const googlePermissions: Array<IPermission> = [
@@ -42,7 +44,7 @@ export default function ImportErrorView({ provider }: ImportErrorViewProps) {
             type: 'sensitive',
             isPermissionGiven: false,
             name: 'Permissions to import your Google Forms',
-            description: 'To be able to show a list of forms for you to import, we require permissions to search your Google Drive for Google Forms.'
+            description: 'To be able to import forms from Google, we require access permissions to retrieve your Google Forms.'
         },
         {
             type: 'sensitive',
@@ -51,6 +53,15 @@ export default function ImportErrorView({ provider }: ImportErrorViewProps) {
             description: 'To be able to show form responses and build a beautiful responder portal for you, we require permissions to fetch form responses.'
         }
     ];
+
+    if (environments.ENABLE_IMPORT_WITH_PICKER) {
+        googlePermissions.splice(0, 0, {
+            type: 'non-sensitive',
+            isPermissionGiven: false,
+            name: 'Permission to search and pick Google Forms from Drive',
+            description: 'To be able to show Google File Picker, we require permissions to search your Google Drive for Google Forms.'
+        });
+    }
     const typeformPermissions: Array<IPermission> = [
         {
             type: 'sensitive',
@@ -77,6 +88,7 @@ export default function ImportErrorView({ provider }: ImportErrorViewProps) {
 
     return (
         <div className="text-sm relative flex items-center justify-center flex-col space-y-5 w-full md:max-w-[560px] rounded-md shadow-md bg-white py-10">
+            {closable && <CloseModal />}
             <div className="flex flex-col !mt-0 items-center justify-between">
                 <CheckedCircle />
                 <h2 className="text-black-900 font-semibold mt-6 text-lg md:text-xl whitespace-pre-wrap text-center">{defaultContent.permissionText}</h2>

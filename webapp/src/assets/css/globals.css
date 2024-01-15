@@ -111,3 +111,11 @@ body {
 .form-title {
     width: calc(100% - 56px);
 }
+
+.picker {
+    z-index: 9999 !important;
+}
+
+#confetti-canvas {
+    z-index: 999999 !important;
+}

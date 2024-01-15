@@ -51,6 +51,7 @@ import {createNewField} from '@app/utils/formBuilderBlockUtils';
 import {throttle} from '@app/utils/throttleUtils';
 
 import useFormBuilderState from './context';
+import useFormBuilderButtonState from "@Components/FormBuilder/bottomAtom";
 
 export default function FormBuilder({workspace, _nextI18Next, isTemplate = false, templateId}: {
     workspace: WorkspaceDto;
@@ -84,6 +85,7 @@ export default function FormBuilder({workspace, _nextI18Next, isTemplate = false
     // Form Builder State
     const {backspaceCount, setBackspaceCount} = useFormBuilderState();
     const {headerImages, resetImages} = useFormBuilderAtom();
+    const {visibility, setHideButton} = useFormBuilderButtonState();
 
     // Saving State
     const [patchForm, {isLoading: patching}] = usePatchFormMutation();
@@ -383,6 +385,9 @@ export default function FormBuilder({workspace, _nextI18Next, isTemplate = false
         dispatch(setActiveField({position: b.position, id: b.id}));
     };
 
+    const onClickInsert = () => {
+        openHalfScreenModal('FORM_BUILDER_ADD_FIELD_VIEW')
+    }
 
     return (
         <div>
@@ -397,6 +402,7 @@ export default function FormBuilder({workspace, _nextI18Next, isTemplate = false
                 isUpdating={patching}
                 isTemplate={isTemplate}
                 onSaveTemplate={onSaveTemplate}
+                onClickInsert={onClickInsert}
             />
             {showCover && <FormCoverComponent setIsCoverClicked={setShowCover} imagesRemoved={imagesRemoved}
                                               setImagesRemoved={setImagesRemoved}/>}
@@ -434,7 +440,7 @@ export default function FormBuilder({workspace, _nextI18Next, isTemplate = false
                     />
                     {!isLastFieldEmptyTextField() ? (
                         <div
-                            className={`w-full px-12 md:px-[89px] -mt-[2px] flex min-h-[40px] items-center group`}
+                            className={`w-full px-12 md:px-[89px] mt-6 mb-10 flex min-h-[40px] items-center group`}
                             onClick={() => {
                                 batch(() => {
                                     const newField = createNewField(Object.keys(builderState.fields).length - 1);
@@ -445,33 +451,41 @@ export default function FormBuilder({workspace, _nextI18Next, isTemplate = false
                             }}
                         >
                             <div
-                                className="text-sm text-white hover:text-black-600 !w-full flex items-center relative h-full  !cursor-text ">
+                                className="text-sm text-black-500 hover:text-black-600 !w-full flex items-center relative h-full  !cursor-text ">
                                 {'   '}
                                 <DragHandleIcon
                                     className="flex md:hidden group-hover:flex absolute -top-0.5 add-field-drag-icon text-black-800 lg:text-black-600"
                                     width={24} height={24}/>
+                                Add form element
                             </div>
                         </div>
                     ) : (
                         <div className="h-10"/>
                     )}
                 </div>
-                <div className="mt-2 px-12 md:px-[89px]">
+                {(visibility.show || builderState.buttonText) && <div className="mt-2 px-12 md:px-[89px]">
                     <ContentEditable
+                        id={'form-builder-button'}
                         className="w-fit rounded py-3 px-5 text-white !text-[14px] !font-semibold bg-black-900 min-w-[130px] text-center focus-visible:border-0 focus-visible:outline-none"
                         html={builderState.buttonText || ''}
                         onKeyDown={(event) => {
                             event.stopPropagation();
+                            if (event.key === 'Backspace' && (!event.metaKey || !event.ctrlKey)) {
+                                if (!event.currentTarget.innerText) {
+                                    setHideButton()
+                                    dispatch(setBuilderState({buttonText: ''}));
+                                }
+                            }
                         }}
-                        onBlur={(event) => {
-                            if (!event.currentTarget.innerText) dispatch(setBuilderState({buttonText: 'Submit'}));
-                        }}
+                        // onBlur={(event) => {
+                        //     if (!event.currentTarget.innerText) dispatch(setBuilderState({buttonText: 'Submit'}));
+                        // }}
                         onChange={(event: FormEvent<HTMLInputElement>) => {
                             dispatch(setBuilderState({buttonText: event.currentTarget.innerText}));
                         }}
                     />
-                </div>
-                {!builderState.isFormDirty && <BuilderTips/>}
+                </div>}
+                {/*{!builderState.isFormDirty && <BuilderTips/>}*/}
                 <AnimatePresence mode="wait" initial={false}>
                     {showSaving.status && (
                         <motion.div

@@ -49,6 +49,8 @@ const environments = {
     ENABLE_JOYRIDE_TOURS: (publicRuntimeConfig.ENABLE_JOYRIDE_TOURS && (publicRuntimeConfig.ENABLE_JOYRIDE_TOURS === 'true' || publicRuntimeConfig.ENABLE_JOYRIDE_TOURS === true)) ?? false,
     ENABLE_COMMAND_FORM_BUILDERS: (publicRuntimeConfig.ENABLE_COMMAND_FORM_BUILDERS && (publicRuntimeConfig.ENABLE_COMMAND_FORM_BUILDERS === 'true' || publicRuntimeConfig.ENABLE_COMMAND_FORM_BUILDERS === true)) ?? false,
     ENABLE_FORM_BUILDER: (publicRuntimeConfig.ENABLE_FORM_BUILDER && (publicRuntimeConfig.ENABLE_FORM_BUILDER === 'true' || publicRuntimeConfig.ENABLE_FORM_BUILDER === true)) ?? false,
+    ENABLE_EXPORT_CSV: (publicRuntimeConfig.ENABLE_EXPORT_CSV && (publicRuntimeConfig.ENABLE_EXPORT_CSV === 'true' || publicRuntimeConfig.ENABLE_EXPORT_CSV === true)) ?? false,
+
     // internal configs
     IS_IN_PRODUCTION_MODE,
     NEXT_PUBLIC_NODE_ENV: publicRuntimeConfig.NEXT_PUBLIC_NODE_ENV || 'development',
@@ -62,7 +64,17 @@ const environments = {
     UMAMI_SCRIPT_URL: publicRuntimeConfig.UMAMI_SCRIPT_URL,
 
     //actions
-    ENABLE_ACTIONS: publicRuntimeConfig.ENABLE_ACTIONS && (publicRuntimeConfig.ENABLE_ACTIONS === 'true' || publicRuntimeConfig.ENABLE_ACTIONS === true)
+    ENABLE_ACTIONS: publicRuntimeConfig.ENABLE_ACTIONS && (publicRuntimeConfig.ENABLE_ACTIONS === 'true' || publicRuntimeConfig.ENABLE_ACTIONS === true),
+    ENABLE_IMPORT_WITH_PICKER: publicRuntimeConfig.ENABLE_IMPORT_WITH_PICKER && (publicRuntimeConfig.ENABLE_IMPORT_WITH_PICKER === 'true' || publicRuntimeConfig.ENABLE_IMPORT_WITH_PICKER === true),
+
+    // google picker api
+    GOOGLE_CLIENT_ID: publicRuntimeConfig.GOOGLE_CLIENT_ID,
+    GOOGLE_PICKER_API_KEY: publicRuntimeConfig.GOOGLE_PICKER_API_KEY,
+
+    //CHATWOOT
+    CHATWOOT_ENABLE: publicRuntimeConfig.CHATWOOT_ENABLE && (publicRuntimeConfig.CHATWOOT_ENABLE === 'true' || publicRuntimeConfig.CHATWOOT_ENABLE === true),
+    CHATWOOT_DEPLOY_URL: publicRuntimeConfig.CHATWOOT_DEPLOY_URL ?? 'https://help.bettercollected.com',
+    CHATWOOT_WEBSITE_TOKEN: publicRuntimeConfig.CHATWOOT_WEBSITE_TOKEN
 };
 
 export default environments;

@@ -1,17 +1,20 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, {useCallback, useEffect, useState} from 'react';
 
-import { batch } from 'react-redux';
+import {batch} from 'react-redux';
 
 import useArrowsToSelectOption from '@app/lib/hooks/use-arrows-to-select-option';
 import useClickOutsideMenu from '@app/lib/hooks/use-click-outside-menu';
-import { FormBuilderTagNames, LabelFormBuilderTagNames } from '@app/models/enums/formBuilder';
-import { resetBuilderMenuState, setUpdateField } from '@app/store/form-builder/actions';
-import { selectActiveFieldIndex, selectFields, selectMenuState } from '@app/store/form-builder/selectors';
-import { IFormFieldState } from '@app/store/form-builder/types';
-import { useAppDispatch, useAppSelector } from '@app/store/hooks';
-import { convertPlaceholderToDisplayValue, getPreviousField } from '@app/utils/formBuilderBlockUtils';
+import {FormBuilderTagNames, LabelFormBuilderTagNames} from '@app/models/enums/formBuilder';
+import {resetBuilderMenuState, setUpdateField} from '@app/store/form-builder/actions';
+import {selectActiveFieldIndex, selectFields, selectMenuState} from '@app/store/form-builder/selectors';
+import {IFormFieldState} from '@app/store/form-builder/types';
+import {useAppDispatch, useAppSelector} from '@app/store/hooks';
+import {convertPlaceholderToDisplayValue, getPreviousField} from '@app/utils/formBuilderBlockUtils';
 
-export default function FormBuilderFieldSelector({ field, searchQuery = '' }: { field: IFormFieldState; searchQuery: string }) {
+export default function FormBuilderFieldSelector({field, searchQuery = ''}: {
+    field: IFormFieldState;
+    searchQuery: string
+}) {
     const pipingFieldMenuState: any = useAppSelector(selectMenuState('pipingFields'));
 
     const formFields = useAppSelector(selectFields);
@@ -32,7 +35,7 @@ export default function FormBuilderFieldSelector({ field, searchQuery = '' }: { 
                 };
                 const previousField = getPreviousField(fields, field);
                 let text = field?.properties?.placeholder;
-                if (LabelFormBuilderTagNames.includes(previousField?.type)) {
+                if (LabelFormBuilderTagNames.includes(previousField?.type) || (previousField?.type === FormBuilderTagNames.LAYOUT_SHORT_TEXT)) {
                     text = previousField?.value;
                 }
                 x.value = convertPlaceholderToDisplayValue(fields, text) || field?.type;
@@ -50,7 +53,7 @@ export default function FormBuilderFieldSelector({ field, searchQuery = '' }: { 
     const scrollToSelectedItem = (index: number | string) => {
         const selectedItem = document.getElementById('list-item-' + index);
         if (selectedItem) {
-            selectedItem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            selectedItem.scrollIntoView({behavior: 'smooth', block: 'nearest'});
         }
     };
 

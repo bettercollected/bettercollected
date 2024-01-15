@@ -19,7 +19,6 @@ import { usePatchFormSettingsMutation } from '@app/store/workspaces/api';
 import { useModal } from '../modal-views/context';
 import { ICustomizeUrlModalProps } from '../modal-views/modals/customize-url-modal';
 
-
 export default function CustomizeUrlUi({ url, form }: ICustomizeUrlModalProps) {
     const workspace = useAppSelector((state) => state.workspace);
     const { t } = useTranslation();
@@ -32,7 +31,7 @@ export default function CustomizeUrlUi({ url, form }: ICustomizeUrlModalProps) {
     const handleOnchange = (e: any) => {
         setSlug(e.target.value.trim());
     };
-    const slugRegex = /^(?=.*$)(?![_][-])(?!.*[_][-]{2})[a-zA-Z0-9_-]+(?<![_][-])$/;
+    const slugRegex = /^(?![_-])(?!.*[_-]{2})[a-zA-Z0-9_-]+(?![_-])$/;
 
     const handleUpdate = async (event: any) => {
         event.preventDefault();
@@ -80,7 +79,7 @@ export default function CustomizeUrlUi({ url, form }: ICustomizeUrlModalProps) {
                 </p>
             </div>
             <div className="mt-5 flex flex-col w-full ">
-                <AppButton size={ButtonSize.Medium} isLoading={isLoading}>
+                <AppButton size={ButtonSize.Medium} isLoading={isLoading} disabled={!slug.match(slugRegex)}>
                     {t(buttonConstant.updateNow)}
                 </AppButton>
             </div>

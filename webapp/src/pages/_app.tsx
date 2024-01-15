@@ -39,9 +39,7 @@ import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { persistor, store } from '@app/store/store';
 import { NextPageWithLayout } from '@app/types';
 
-const ModalContainer = dynamic(() => import('@app/components/modal-views/container'));
-const FullScreenModalContainer = dynamic(() => import('@app/components/modal-views/full-screen-modal-container'));
-
+const BaseModalContainer = dynamic(() => import('@app/Components/Modals/Containers/BaseModalContainer'));
 // Client-side cache, shared for the whole session of the user in the browser.
 const clientSideEmotionCache = createEmotionCache();
 
@@ -77,6 +75,32 @@ function MainApp({ Component, pageProps, router, emotionCache = clientSideEmotio
             ReactGA.initialize(environments.GA_MEASUREMENT_ID);
             ReactGA.send('pageview');
         }
+
+        // TODO Research a better option to only allow pasting plain text
+        const handlePaste = async (e: any) => {
+            e.preventDefault();
+            let text = '';
+
+            if (e.clipboardData || e.originalEvent?.clipboardData) {
+                text = (e.originalEvent || e)?.clipboardData?.getData('text/plain');
+            } else if (navigator.clipboard) {
+                try {
+                    text = await navigator.clipboard.readText();
+                } catch (error) {
+                    console.error('Error reading clipboard data:', error);
+                }
+            }
+
+            if (document.queryCommandSupported('insertText')) {
+                document.execCommand('insertText', false, text);
+            } else {
+                document.execCommand('paste', false, text);
+            }
+        };
+        document.addEventListener('paste', handlePaste);
+        return () => {
+            document.removeEventListener('paste', handlePaste);
+        };
     }, []);
 
     return (
@@ -136,8 +160,7 @@ function MainApp({ Component, pageProps, router, emotionCache = clientSideEmotio
                                 <ServerSideWorkspaceDispatcher workspace={pageProps?.workspace}>
                                     <AuthStatusDispatcher workspace={pageProps?.workspace}>
                                         {getLayout(<Component {...pageProps} key={router.asPath} />)}
-                                        {/*<ModalContainer />*/}
-                                        <FullScreenModalContainer />
+                                        <BaseModalContainer />
                                     </AuthStatusDispatcher>
                                 </ServerSideWorkspaceDispatcher>
                             </EnabledFormProviders>

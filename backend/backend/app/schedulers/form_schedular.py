@@ -71,7 +71,7 @@ class FormSchedular:
             cookies = {"Authorization": self.jwt_service.encode(user)}
             raw_form = None
             try:
-                provider = self.form_provider_service.get_provider_if_enabled(
+                provider = await self.form_provider_service.get_provider_if_enabled(
                     provider_name=workspace_form.settings.provider)
                 raw_form = await self.perform_request(
                     provider=workspace_form.settings.provider,
@@ -165,7 +165,7 @@ class FormSchedular:
         try:
             response = await AiohttpClient.get_aiohttp_client().request(
                 method=method,
-                url=f"{provider.provider_url}/{provider}/forms{append_url}",
+                url=f"{provider.provider_url}/{provider.provider_name}/forms{append_url}",
                 params=params,
                 cookies=cookies,
                 json=json,
@@ -190,17 +190,22 @@ class FormSchedular:
             data = await response.json()
             return data
 
-        except (ServerDisconnectedError, ClientConnectorError, gaierror):
+        except (ServerDisconnectedError, ClientConnectorError, gaierror, TimeoutError):
             raise HTTPException(
                 HTTPStatus.SERVICE_UNAVAILABLE, "Could not fetch data form proxy server"
             )
 
     async def fetch_user_details(self, user_ids):
-        response = await AiohttpClient.get_aiohttp_client().get(
-            f"{settings.auth_settings.BASE_URL}/users",
-            params={"user_ids": user_ids},
-        )
-        return await response.json()
+        try:
+            response = await AiohttpClient.get_aiohttp_client().get(
+                f"{settings.auth_settings.BASE_URL}/users",
+                params={"user_ids": user_ids},
+            )
+            return await response.json()
+        except (ServerDisconnectedError, ClientConnectorError, gaierror, TimeoutError):
+            raise HTTPException(
+                HTTPStatus.SERVICE_UNAVAILABLE, "Could not fetch data form proxy server"
+            )
 
     async def delete_response(self, submission_id: str):
         response = await self.form_response_service.delete_response(

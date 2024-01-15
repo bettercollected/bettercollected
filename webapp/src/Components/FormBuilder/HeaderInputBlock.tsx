@@ -93,7 +93,7 @@ export default function HeaderInputBlock({ field, id, position }: IHeaderInputBl
     }
 
     const onChange = (event: any) => {
-        const value = convertSpanToPlaceholder(event?.target?.value || '');
+        const value = convertSpanToPlaceholder(event?.currentTarget?.innerText || '');
         batch(() => {
             // @ts-ignore
             if (event.nativeEvent.inputType === 'deleteContentBackward' && isAtSymbolRemoved(field?.value, value)) {
@@ -139,7 +139,7 @@ export default function HeaderInputBlock({ field, id, position }: IHeaderInputBl
     const searchQuery = field.value?.match(/@([^@\s]*)/)?.[1] ?? '';
 
     return (
-        <div >
+        <div>
             {pipingFieldMenuState?.isOpen && pipingFieldMenuState?.atFieldUuid === field?.id && <FormBuilderFieldSelector field={field} searchQuery={searchQuery} />}
             {pipingSettingsState?.isOpen && pipingSettingsState?.atFieldId === field?.id && <MentionedFieldSettings field={field} />}
             <CustomContentEditable
