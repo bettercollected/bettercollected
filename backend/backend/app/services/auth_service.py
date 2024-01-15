@@ -64,17 +64,22 @@ class AuthService:
             )
 
     async def send_otp_for_creator(self, receiver_email: EmailStr):
-        await self.http_client.get(
-            settings.auth_settings.BASE_URL + "/auth/otp/send",
-            params={
-                "receiver_email": receiver_email,
-                "workspace_title": "BetterCollected",
-                "workspace_profile_image": "",
-                "creator": True,
-            },
-            timeout=180,
-        )
-        return {"message": "Otp sent successfully"}
+        try:
+            await self.http_client.get(
+                settings.auth_settings.BASE_URL + "/auth/otp/send",
+                params={
+                    "receiver_email": receiver_email,
+                    "workspace_title": "BetterCollected",
+                    "workspace_profile_image": "",
+                    "creator": True,
+                },
+                timeout=180,
+            )
+            return {"message": "Otp sent successfully"}
+        except (ReadTimeout, RemoteProtocolError) as e:
+            raise HTTPException(
+                status_code=HTTPStatus.GATEWAY_TIMEOUT, content="Read Timeout"
+            )
 
     async def validate_otp(
             self, login_details: UserLoginWithOTP, prospective_pro_user: bool
