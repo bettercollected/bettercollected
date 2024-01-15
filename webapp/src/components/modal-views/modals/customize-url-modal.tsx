@@ -5,7 +5,6 @@ import { useModal } from '@app/components/modal-views/context';
 import CustomizeUrlUi from '@app/components/ui/customize-url-ui';
 import { StandardFormDto } from '@app/models/dtos/form';
 
-
 export interface ICustomizeUrlModalProps {
     url: string;
     form: StandardFormDto;
