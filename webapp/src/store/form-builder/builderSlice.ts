@@ -19,12 +19,13 @@ import {convertProxyToObject} from '@app/utils/reduxUtils';
 import {getInitialPropertiesForFieldType} from './utils';
 
 const firstFieldId = v4();
+const secondField = v4();
 
 export const initBuilderState: IBuilderState = {
     id: '',
     title: '',
     description: '',
-    buttonText: 'Submit',
+    buttonText: '',
     menus: {
         spotlightField: {isOpen: false, afterFieldUuid: ''},
         commands: {isOpen: false, atFieldUuid: '', position: 'down'},
@@ -40,7 +41,14 @@ export const initBuilderState: IBuilderState = {
     fields: {
         [firstFieldId]: {
             id: firstFieldId,
-            type: FormBuilderTagNames.LAYOUT_SHORT_TEXT,
+            type: FormBuilderTagNames.LAYOUT_LABEL,
+            isCommandMenuOpen: false,
+            position: 0,
+            value: 'Full Name'
+        },
+        [secondField]: {
+            id: secondField,
+            type: FormBuilderTagNames.INPUT_SHORT_TEXT,
             isCommandMenuOpen: false,
             position: 0
         }
@@ -287,7 +295,7 @@ export const builder = createSlice({
                 logo: action.payload.logo,
                 coverImage: action.payload.coverImage,
                 description: action.payload.description,
-                buttonText: action.payload.buttonText || 'Submit',
+                buttonText: action.payload.buttonText || '',
                 activeFieldIndex: -2,
                 activeFieldId: 'field-title',
                 settings: {

@@ -1,10 +1,11 @@
-import { isOpen } from '@typeform/embed/types/utils';
-import { PrimitiveAtom, atom, useAtom } from 'jotai';
+import { useBaseModal } from '@Components/Modals/Contexts/UseBaseModal';
+import { PrimitiveAtom, atom } from 'jotai';
 
 export type MODAL_VIEW =
     | ''
     | 'UPDATE_TERMS_OF_SERVICE_AND_PRIVACY_POLICY'
     | 'REQUEST_FOR_DELETION_VIEW'
+    | 'OAUTH_ERROR_VIEW'
     | 'SEARCH_VIEW'
     | 'SHARE_VIEW'
     | 'IMPORT_PROVIDER_FORMS_VIEW'
@@ -43,30 +44,22 @@ export type MODAL_VIEW =
     | 'DELETE_TEMPLATE_CONFIRMATION_MODAL_VIEW'
     | 'IMPORT_TEMPLATE_MODAL_VIEW'
     | 'ADD_ACTION_TO_FORM'
-    | 'OAUTH_VERIFICATION_MODAL';
+    | 'EXPORT_RESPONSES';
 
-const modalAtom = atom<{ isOpen: boolean; view: MODAL_VIEW; modalProps: any }>({
+const modalAtom: PrimitiveAtom<{
+    isOpen: boolean;
+    view: MODAL_VIEW;
+    modalProps: any;
+}> = atom<{
+    isOpen: boolean;
+    view: MODAL_VIEW;
+    modalProps: any;
+}>({
     isOpen: false,
     view: '',
     modalProps: null
 });
 
-export function useModal() {
-    const [state, setState] = useAtom(modalAtom);
-    const openModal = (view: MODAL_VIEW, modalProps: any = null) =>
-        setState({
-            ...state,
-            isOpen: true,
-            view,
-            modalProps
-        });
-    const closeModal = () => {
-        setState({ ...state, isOpen: false, modalProps: null, view: '' });
-    };
-
-    return {
-        ...state,
-        openModal,
-        closeModal
-    };
+export function useModal<T>() {
+    return useBaseModal<MODAL_VIEW>(modalAtom);
 }

@@ -4,7 +4,7 @@ import httpx
 import loguru
 from aiokafka import AIOKafkaProducer
 from aiokafka.errors import KafkaConnectionError
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 
 from backend.app.models.dtos.kafka_event_dto import UserEventType, UserEventDto
 from backend.config import settings
@@ -45,8 +45,8 @@ class KafkaService:
         except KafkaConnectionError as e:
             loguru.logger.info("Could not connect to Kafka service")
 
-    async def send_event(self, event_type: UserEventType, user_id: str):
-        event_message = UserEventDto(event_type=event_type, user_id=user_id)
+    async def send_event(self, event_type: UserEventType, user_id: str, email: EmailStr):
+        event_message = UserEventDto(event_type=event_type, user_id=user_id, email=email)
         if settings.kafka_settings.enabled:
             try:
                 await self.producer.send_and_wait(settings.kafka_settings.topic, event_message)

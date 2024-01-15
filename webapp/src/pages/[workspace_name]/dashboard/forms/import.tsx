@@ -2,21 +2,17 @@ import React, { useEffect } from 'react';
 
 import { useTranslation } from 'next-i18next';
 import { NextSeo } from 'next-seo';
-import { isLocalURL } from 'next/dist/shared/lib/router/router';
 import { useRouter } from 'next/router';
 
-import AppButton from '@Components/Common/Input/Button/AppButton';
-import { ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
 import ImportForm from '@Components/ImportForm/ImportForm';
 
 import { ChevronForward } from '@app/components/icons/chevron-forward';
 import { useModal } from '@app/components/modal-views/context';
-import FullScreenLoader from '@app/components/ui/fullscreen-loader';
 import Loader from '@app/components/ui/loader';
 import Layout from '@app/layouts/_layout';
 import { resetSingleForm } from '@app/store/forms/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
-import { useVerifyFormTokenQuery } from '@app/store/workspaces/api';
+import { useVerifyFormTokenMutation } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 
 export default function ImportFormPage() {
@@ -25,11 +21,12 @@ export default function ImportFormPage() {
     const router = useRouter();
     const { openModal } = useModal();
     const dispatch = useAppDispatch();
-    const { data, isLoading, error: verificationError } = useVerifyFormTokenQuery({ provider: 'google' });
+    const [trigger, { data, isLoading, error: verificationError }] = useVerifyFormTokenMutation();
 
     const workspace = useAppSelector(selectWorkspace);
 
     useEffect(() => {
+        trigger({ provider: 'google' });
         dispatch(resetSingleForm());
         return () => {
             dispatch(resetSingleForm());
@@ -38,7 +35,7 @@ export default function ImportFormPage() {
 
     useEffect(() => {
         if (verificationError || data?.status_code === 400) {
-            openModal('OAUTH_VERIFICATION_MODAL', { provider: 'google', nonClosable: true });
+            openModal('OAUTH_ERROR_VIEW', { provider: 'google', nonClosable: true });
         }
     }, [verificationError, data]);
     const handleClickBack = () => {

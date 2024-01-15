@@ -2,11 +2,13 @@ import json
 from dataclasses import asdict
 from datetime import timedelta
 from http import HTTPStatus
+from typing import List
 
 import loguru
 from beanie import PydanticObjectId
 from common.configs.crypto import Crypto
 from common.models.standard_form import StandardFormResponse, StandardForm
+from common.models.user import User
 from common.utils.asyncio_run import asyncio_run
 from temporalio.client import (
     Client,
@@ -24,6 +26,7 @@ from temporalio.service import RPCError
 
 from backend.app.exceptions import HTTPException
 from backend.app.models.dataclasses.delete_response_params import DeleteResponseParams
+from backend.app.models.dataclasses.export_to_csv import ExportCSVParams
 from backend.app.models.dataclasses.import_form_params import ImportFormParams
 from backend.app.models.dataclasses.run_action_code_params import RunActionCodeParams
 from backend.app.models.dataclasses.save_preview_params import SavePreviewParams
@@ -101,7 +104,7 @@ class TemporalService:
             loguru.logger.info("Workflow has already started")
 
     async def add_scheduled_job_for_importing_form(
-        self, workspace_id: PydanticObjectId, form_id: str
+            self, workspace_id: PydanticObjectId, form_id: str
     ):
         if not settings.schedular_settings.ENABLED:
             return
@@ -138,7 +141,7 @@ class TemporalService:
             loguru.logger.error(e)
 
     async def add_scheduled_job_for_deleting_response(
-        self, response: StandardFormResponse
+            self, response: StandardFormResponse
     ):
         if not settings.schedular_settings.ENABLED:
             return
@@ -173,7 +176,7 @@ class TemporalService:
             loguru.logger.error(e)
 
     async def delete_form_import_schedule(
-        self, workspace_id: PydanticObjectId, form_id: str
+            self, workspace_id: PydanticObjectId, form_id: str
     ):
         if not settings.schedular_settings.ENABLED:
             return
@@ -210,7 +213,7 @@ class TemporalService:
 
     def update_schedule_interval(self, interval: timedelta):
         async def update_interval_to_default(
-            update_input: ScheduleUpdateInput,
+                update_input: ScheduleUpdateInput,
         ) -> ScheduleUpdate:
             schedule_spec = update_input.description.schedule.spec
             if isinstance(schedule_spec, ScheduleSpec):
@@ -220,7 +223,7 @@ class TemporalService:
         return update_interval_to_default
 
     async def update_interval_of_schedule(
-        self, workspace_id: PydanticObjectId, form_id: str, interval: timedelta
+            self, workspace_id: PydanticObjectId, form_id: str, interval: timedelta
     ):
         handle = self.temporal_client.get_schedule_handle(
             "import_" + str(workspace_id) + "_" + form_id
@@ -247,3 +250,19 @@ class TemporalService:
             raise HTTPException(
                 status_code=HTTPStatus.CONFLICT, content="Workflow has already started."
             )
+
+    async def export_as_csv(self, form: StandardForm, responses: List[StandardFormResponse], user: User):
+        await self.check_temporal_client_and_try_to_connect_if_not_connected()
+        try:
+            converted_responses = [response.json() for response in responses]
+            converted_forms = form.json()
+            params = ExportCSVParams(form=converted_forms, responses=converted_responses, user_email=user.sub)
+            await self.temporal_client.start_workflow("export_as_csv_workflow",
+                                                      arg=params,
+                                                      id="export_as_csv" + str(form.form_id),
+                                                      task_queue=settings.temporal_settings.csv_queue,
+                                                      retry_policy=RetryPolicy(maximum_attempts=4)
+                                                      )
+            return "Workflow Started"
+        except WorkflowAlreadyStartedError as e:
+            loguru.logger.info("Workflow has already started")

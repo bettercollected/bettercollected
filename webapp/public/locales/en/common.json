@@ -113,7 +113,7 @@
     "DESCRIPTION": "Customize your Workspace URL so that your audience can know that it’s you."
   },
   "CUSTOMIZE_FORM": {
-    "TITLE": "Customize form",
+    "TITLE": "Customize Form Link",
     "POINT_1": "Make it relevant to your business or organization.",
     "POINT_2": "Avoid using spaces or special characters. Only “-” and “_” is accepted.",
     "POINT_3": "Keep it short and concise."
@@ -307,7 +307,7 @@
       },
       "LINKS": {
         "DESCRIPTION": "Create personalized form links that align with their branding or specific requirements. A link slug is a brief, descriptive part of a URL that identifies web page content.",
-        "CHANGE_SLUG": "Change Slug",
+        "CHANGE_SLUG": "Customize Link",
         "CUSTOM_DOMAIN_LINK": "Custom Domain Link",
         "DEFAULT_LINK": "Default Link",
         "COPY_LINK": "Copy Link",

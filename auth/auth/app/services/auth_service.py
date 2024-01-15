@@ -3,7 +3,15 @@ import secrets
 import string
 from datetime import datetime, timedelta
 
+import jwt
 from beanie import PydanticObjectId
+from common.enums.roles import Roles
+from common.models.user import User, UserResponseDto
+from common.models.user import UserInfo
+from common.services.http_client import HttpClient
+from common.utils.asyncio_run import asyncio_run
+from fastapi_mail import MessageSchema
+from pydantic import EmailStr
 
 from auth.app.exceptions import HTTPException
 from auth.app.repositories.user_repository import UserRepository
@@ -11,18 +19,6 @@ from auth.app.schemas.user import UserDocument
 from auth.app.services.auth_provider_factory import AuthProviderFactory
 from auth.app.services.mail_service import MailService
 from auth.config import settings
-
-from common.enums.roles import Roles
-from common.models.user import User, UserResponseDto
-from common.models.user import UserInfo
-from common.services.http_client import HttpClient
-from common.utils.asyncio_run import asyncio_run
-
-from fastapi_mail import MessageSchema
-
-import jwt
-
-from pydantic import EmailStr
 
 
 class AuthService:
@@ -38,6 +34,7 @@ class AuthService:
 
     async def get_user_status(self, user_id: PydanticObjectId):
         user = await self.user_repository.get_user_by_id(user_id)
+        await self.user_repository.update_last_logged_in(user_id=user_id)
         return UserResponseDto(**user.dict())
 
     @staticmethod
@@ -70,6 +67,7 @@ class AuthService:
             user_document.last_name = (
                 user_info.last_name if user_info.last_name else user_document.last_name
             )
+            user_document = await user_document.save()
         return User(
             id=str(user_document.id),
             sub=user_document.email,

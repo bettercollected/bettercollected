@@ -13,7 +13,9 @@ class ApiSettings(BaseSettings):
     ALLOWED_COLLABORATORS = 10
     ALLOWED_WORKSPACES = 5
     ENABLE_FORM_CREATION = False
+    ENABLE_EXPORT_CSV: bool = False
     CLIENT_URL = "http://localhost:3000"
+    ENABLE_GOOGLE_PICKER_API: bool = False
 
     class Config:
         env_prefix = "API_"

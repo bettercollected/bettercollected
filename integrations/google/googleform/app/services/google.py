@@ -59,7 +59,7 @@ class GoogleService:
             if e.status_code == HTTPStatus.NOT_FOUND:
                 raise HTTPException(
                     status_code=HTTPStatus.NOT_FOUND,
-                    content="Form not found is Google forms",
+                    content="Form not found in Google forms",
                 )
             if e.status_code == HTTPStatus.FORBIDDEN:
                 raise HTTPException(
@@ -122,7 +122,7 @@ class GoogleService:
             if e.status_code == HTTPStatus.NOT_FOUND:
                 raise HTTPException(
                     status_code=HTTPStatus.NOT_FOUND,
-                    content="Form not found is Google forms",
+                    content="Form not found in Google forms",
                 )
             raise HTTPException(
                 status_code=HTTPStatus.SERVICE_UNAVAILABLE,
@@ -148,11 +148,30 @@ class GoogleService:
         Returns:
             dict: A dictionary containing the form responses.
         """
-        return (
-            self._build_service(credentials=credentials, service_name="forms")
-            .forms()
-            .responses()
-            .list(formId=form_id)
-            .execute()
-            .get("responses", [])
-        )
+        try:
+            return (
+                self._build_service(credentials=credentials, service_name="forms")
+                .forms()
+                .responses()
+                .list(formId=form_id)
+                .execute()
+                .get("responses", [])
+            )
+        except HttpError as e:
+            if e.status_code == HTTPStatus.NOT_FOUND:
+                raise HTTPException(
+                    status_code=HTTPStatus.NOT_FOUND,
+                    content="Responses not found in Google forms",
+                )
+            raise HTTPException(
+                status_code=HTTPStatus.SERVICE_UNAVAILABLE,
+                content="Error fetching form from Google",
+            )
+        except RefreshError as e:
+            raise HTTPException(
+                status_code=HTTPStatus.UNAUTHORIZED, content="Refresh error"
+            )
+        except TimeoutError as e:
+            raise HTTPException(
+                status_code=HTTPStatus.GATEWAY_TIMEOUT, content="Request Timed out"
+            )

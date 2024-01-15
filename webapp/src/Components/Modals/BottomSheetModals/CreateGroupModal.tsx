@@ -5,7 +5,8 @@ import { useRouter } from 'next/router';
 
 import AppButton from '@Components/Common/Input/Button/AppButton';
 import { ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
-import BottomSheetModalWrapper from '@Components/Modals/BottomSheetModals/BottomSheetModalWrapper';
+import { useBottomSheetModal } from '@Components/Modals/Contexts/BottomSheetModalContext';
+import BottomSheetModalWrapper from '@Components/Modals/ModalWrappers/BottomSheetModalWrapper';
 import { toast } from 'react-toastify';
 
 import RegexCard from '@app/components/cards/regex-card';
@@ -27,7 +28,7 @@ import { selectWorkspace } from '@app/store/workspaces/slice';
 export default function CreateGroupModal() {
     const router = useRouter();
     let formId: string = (router?.query?.formId as string) ?? '';
-    const locale = router?.locale === 'en' ? '' : `${router?.locale}/`;
+    const { closeBottomSheetModal } = useBottomSheetModal();
     const { t } = useTranslation();
     const { closeModal } = useModal();
     const workspace: WorkspaceDto = useAppSelector(selectWorkspace);
@@ -72,7 +73,7 @@ export default function CreateGroupModal() {
                         toastId: ToastId.SUCCESS_TOAST,
                         type: 'success'
                     });
-                    router.push(`/${workspace?.workspaceName}/dashboard/responders-groups?view=Groups`);
+                    closeBottomSheetModal();
                 } else
                     toast(t(toastMessage.somethingWentWrong).toString(), {
                         toastId: ToastId.ERROR_TOAST,
