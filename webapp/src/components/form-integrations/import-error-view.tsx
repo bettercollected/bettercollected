@@ -8,13 +8,12 @@ import { Disclosure } from '@headlessui/react';
 import { Checkbox, FormControlLabel } from '@mui/material';
 
 import { ChevronDown } from '@app/components/icons/chevron-down';
-import { Close } from '@app/components/icons/close';
 import ConnectWithProviderButton from '@app/components/login/login-with-google-button';
-import { useModal } from '@app/components/modal-views/context';
 import environments from '@app/configs/environments';
 
 interface ImportErrorViewProps {
     provider: string;
+    closable?: boolean;
 }
 
 interface IScope {
@@ -37,9 +36,8 @@ interface IDefaultContent {
     permissions: Array<IPermission>;
 }
 
-export default function ImportErrorView({ provider }: ImportErrorViewProps) {
+export default function ImportErrorView({ provider, closable }: ImportErrorViewProps) {
     const [isConsentGiven, setIsConsentGiven] = useState(false);
-    const { closeModal } = useModal();
 
     const googlePermissions: Array<IPermission> = [
         {
@@ -87,7 +85,7 @@ export default function ImportErrorView({ provider }: ImportErrorViewProps) {
 
     return (
         <div className="text-sm relative flex items-center justify-center flex-col space-y-5 w-full md:max-w-[560px] rounded-md shadow-md bg-white py-10">
-            <CloseModal />
+            {closable && <CloseModal />}
             <div className="flex flex-col !mt-0 items-center justify-between">
                 <CheckedCircle />
                 <h2 className="text-black-900 font-semibold mt-6 text-lg md:text-xl whitespace-pre-wrap text-center">{defaultContent.permissionText}</h2>

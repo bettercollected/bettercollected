@@ -123,6 +123,7 @@ export const workspacesApi = createApi({
                 method: 'GET'
             })
         }),
+
         publishForm: builder.mutation<any, any>({
             query: (request) => ({
                 url: `/workspaces/${request.workspaceId}/forms/${request.formId}/publish`,
@@ -478,7 +479,7 @@ export const workspacesApi = createApi({
                 method: 'GET'
             }),
             providesTags: [GROUP_TAG, RESPONDER_TAG, FORM_TAG]
-        }),
+        })
     })
 });
 
