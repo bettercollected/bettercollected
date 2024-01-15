@@ -1,4 +1,3 @@
-from http import HTTPStatus
 from typing import Any, Dict, List
 
 from common.enums.form_provider import FormProvider
@@ -20,8 +19,6 @@ from common.models.standard_form import (
 from common.services.transformer_service import (
     FormTransformerService,
 )
-from google.auth.exceptions import RefreshError
-from googleapiclient.errors import HttpError
 
 from googleform.app.exceptions import HTTPException
 from googleform.app.models.google_form import GoogleFormDto, GoogleFormItemsDto
@@ -131,27 +128,10 @@ class GoogleFormTransformerService(FormTransformerService):
                 settings=self._transform_form_settings(googleform),
             )
             return standard_form
-        except HttpError as e:
-            if e.status_code == HTTPStatus.NOT_FOUND:
-                raise HTTPException(
-                    status_code=HTTPStatus.NOT_FOUND,
-                    content="Form not found in Google forms",
-                )
-            if e.status_code == HTTPStatus.FORBIDDEN:
-                raise HTTPException(
-                    status_code=HTTPStatus.UNAUTHORIZED, content=e.reason
-                )
+        except Exception as error:
+            logger.error(f"Error transforming single form: {error}")
             raise HTTPException(
-                status_code=HTTPStatus.SERVICE_UNAVAILABLE,
-                content="Error fetching form from Google",
-            )
-        except RefreshError as e:
-            raise HTTPException(
-                status_code=HTTPStatus.UNAUTHORIZED, content="Refresh error"
-            )
-        except TimeoutError as e:
-            raise HTTPException(
-                status_code=HTTPStatus.GATEWAY_TIMEOUT, content="Request Timed out"
+                status_code=500, content=f"Google data transformation failed. {error}"
             )
 
     def transform_form_responses(
@@ -178,27 +158,10 @@ class GoogleFormTransformerService(FormTransformerService):
             if google_response.respondentEmail is not None:
                 response.dataOwnerIdentifier = google_response.respondentEmail
             return response
-        except HttpError as e:
-            if e.status_code == HTTPStatus.NOT_FOUND:
-                raise HTTPException(
-                    status_code=HTTPStatus.NOT_FOUND,
-                    content="Form not found in Google forms",
-                )
-            if e.status_code == HTTPStatus.FORBIDDEN:
-                raise HTTPException(
-                    status_code=HTTPStatus.UNAUTHORIZED, content=e.reason
-                )
+        except Exception as error:
+            logger.error(f"Error transforming single form response: {error}")
             raise HTTPException(
-                status_code=HTTPStatus.SERVICE_UNAVAILABLE,
-                content="Error fetching form from Google",
-            )
-        except RefreshError as e:
-            raise HTTPException(
-                status_code=HTTPStatus.UNAUTHORIZED, content="Refresh error"
-            )
-        except TimeoutError as e:
-            raise HTTPException(
-                status_code=HTTPStatus.GATEWAY_TIMEOUT, content="Request Timed out"
+                status_code=500, content=f"Google data transformation failed. {error}"
             )
 
     def _transform_answers(self, answers: Dict[str, GoogleAnswer]):
