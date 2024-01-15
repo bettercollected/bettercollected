@@ -19,6 +19,7 @@ from backend.app.handlers import init_logging
 from backend.app.handlers.database import close_db, init_db
 from backend.app.middlewares import DynamicCORSMiddleware, include_middlewares
 from backend.app.router import root_api_router
+from backend.app.services.init_schedulers import migrate_schedule_to_temporal
 from backend.app.services.kafka_service import event_logger_service
 from backend.app.utils import AiohttpClient
 from backend.config import settings
@@ -39,6 +40,9 @@ async def on_startup():
     # TODO merge with container
     client = container.database_client()
     await init_db(settings.mongo_settings.DB, client)
+
+    if settings.temporal_settings.add_import_schedules:
+        await migrate_schedule_to_temporal()
 
 
 async def on_shutdown():
