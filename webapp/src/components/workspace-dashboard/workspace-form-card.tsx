@@ -121,7 +121,7 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, group, worksp
                         <FormProviderIcon provider={form?.settings?.provider} />
                         {showVisibility && (
                             <Tooltip title={form?.settings?.private ? t(toolTipConstant.hideForm) : ''}>
-                                <>
+                                <div className="flex fap-2 items-center">
                                     <DotIcon />
                                     {form?.isPublished || isResponderPortal ? (
                                         <div className="flex items-center text-black-600">
@@ -133,7 +133,7 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, group, worksp
                                             {t('FORM.LAST_EDITED')} {moment.utc(form?.updatedAt).fromNow()}
                                         </div>
                                     )}
-                                </>
+                                </div>
                             </Tooltip>
                         )}
 
