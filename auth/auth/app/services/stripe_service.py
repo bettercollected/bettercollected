@@ -1,3 +1,4 @@
+import loguru
 import stripe
 from common.enums.plan import Plans
 from fastapi import Request
@@ -56,6 +57,9 @@ class StripeService:
                     stripe_payment_id
                 )
             )
+            if not user:
+                loguru.logger.error("User not found for payment_id:" + stripe_payment_id)
+                return {"message": "User not found for payment_id"}
             user.stripe_customer_id = stripe_customer_id
             user.plan = Plans.PRO
             await user.save()
@@ -70,6 +74,9 @@ class StripeService:
                     stripe_customer_id
                 )
             )
+            if not user:
+                loguru.logger.error("User not found with customer_id:" + stripe_customer_id)
+                return {"message": "User not found with customer_id:" + stripe_customer_id}
             user.plan = Plans.FREE
             user = await user.save()
             return {"user": user, "downgrade": True}
@@ -80,6 +87,9 @@ class StripeService:
                     stripe_customer_id
                 )
             )
+            if not user:
+                loguru.logger.error("User not found with customer_id:" + stripe_customer_id)
+                return {"message": "User not found with customer_id:" + stripe_customer_id}
             user.plan = Plans.PRO
             await user.save()
             return {"user": user, "upgrade": True}
