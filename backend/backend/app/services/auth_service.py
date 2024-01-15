@@ -7,7 +7,7 @@ from common.enums.roles import Roles
 from common.models.user import OAuthState, User, UserInfo, UserLoginWithOTP
 from common.services.http_client import HttpClient
 from common.services.jwt_service import JwtService
-from httpx import ReadTimeout, RemoteProtocolError
+from httpx import ReadTimeout, RemoteProtocolError, ReadError
 from pydantic import EmailStr
 from starlette.requests import Request
 
@@ -58,7 +58,7 @@ class AuthService:
                 user_id=user.id
             )
             return response_data
-        except (ReadTimeout, RemoteProtocolError) as e:
+        except (ReadTimeout, ReadError, RemoteProtocolError) as e:
             raise HTTPException(
                 status_code=HTTPStatus.GATEWAY_TIMEOUT, content="Read Timeout"
             )
