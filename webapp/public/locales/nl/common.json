@@ -113,7 +113,7 @@
     "DESCRIPTION": "Pas uw werkruimte-URL aan zodat uw publiek weet dat u het bent."
   },
   "CUSTOMIZE_FORM": {
-    "TITLE": "Formulier aanpassen",
+    "TITLE": "Formulierlink aanpassen",
     "POINT_1": "Maak het relevant voor uw bedrijf of organisatie.",
     "POINT_2": "Vermijd het gebruik van spaties of speciale tekens. Alleen '-' en '_' worden geaccepteerd.",
     "POINT_3": "Houd het kort en bondig."
@@ -306,7 +306,7 @@
       },
       "LINKS": {
         "DESCRIPTION": "Maak gepersonaliseerde formulierlinks die aansluiten bij hun merk of specifieke eisen. Een link-slug is een beknopt, beschrijvend deel van een URL dat de inhoud van de webpagina identificeert.",
-        "CHANGE_SLUG": "Slug wijzigen",
+        "CHANGE_SLUG": "Aanpassen Link",
         "CUSTOM_DOMAIN_LINK": "Link met aangepast domein",
         "DEFAULT_LINK": "Standaard link",
         "COPY_LINK": "Kopieer link",

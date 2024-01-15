@@ -10,8 +10,11 @@ import useDrivePicker from '@fyelci/react-google-drive-picker';
 
 import FormProviderContext from '@app/Contexts/FormProviderContext';
 import { useModal } from '@app/components/modal-views/context';
+import environments from '@app/configs/environments';
 import { buttonConstant } from '@app/constants/locales/button';
 import { toolTipConstant } from '@app/constants/locales/tooltip';
+import { useAppSelector } from '@app/store/hooks';
+import { selectWorkspace } from '@app/store/workspaces/slice';
 
 export default function ImportFormsButton({ size, className = '' }: { size?: ButtonSize; className?: string }) {
     const { t } = useTranslation();
@@ -19,6 +22,7 @@ export default function ImportFormsButton({ size, className = '' }: { size?: But
     const { openModal } = useModal();
     const [openPicker] = useDrivePicker();
 
+    const workspace = useAppSelector(selectWorkspace);
     const router = useRouter();
     const [providers, setProviders] = useState<Record<string, boolean>>({
         google: false,
@@ -35,7 +39,11 @@ export default function ImportFormsButton({ size, className = '' }: { size?: But
     }, []);
 
     const handleClick = () => {
-        openModal('IMPORT_FORMS', { nonClosable: true });
+        if (environments.ENABLE_IMPORT_WITH_PICKER) {
+            openModal('IMPORT_FORMS', { nonClosable: true });
+        } else {
+            router.push(`/${workspace.workspaceName}/dashboard/forms/import`);
+        }
     };
 
     useEffect(() => {
