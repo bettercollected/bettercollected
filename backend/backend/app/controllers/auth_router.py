@@ -28,6 +28,7 @@ from backend.app.services.user_service import (
     get_access_token,
     get_refresh_token, get_api_key,
 )
+from backend.config import settings
 
 log = logging.getLogger(__name__)
 
@@ -127,8 +128,13 @@ class AuthRoutes(Routable):
         user, state_data = await self.auth_service.handle_backend_auth_callback(
             provider_name=provider_name, state=state, request=request, user=user
         )
+
+        redirect_uri = state_data.client_referer_uri
+
+        if settings.api_settings.ENABLE_GOOGLE_PICKER_API:
+            redirect_uri = redirect_uri + "?modal=true"
         response = RedirectResponse(
-            state_data.client_referer_uri + "?modal=true"
+            redirect_uri
         )
         set_tokens_to_response(user, response)
         if state_data.client_referer_uri:
