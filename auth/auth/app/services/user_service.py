@@ -1,3 +1,4 @@
+import asyncio
 from typing import List
 
 from beanie import PydanticObjectId
@@ -7,12 +8,14 @@ from pydantic import EmailStr
 from auth.app.repositories.user_repository import UserRepository
 from auth.app.schemas.user import UserDocument
 from auth.app.services.mail_service import MailService
+from auth.app.services.stripe_service import StripeService
 from auth.config import settings
 
 
 class UserService:
-    def __init__(self, user_repo: UserRepository):
+    def __init__(self, user_repo: UserRepository, stripe_service: StripeService):
         self.user_repo = user_repo
+        self.stripe_service: StripeService = stripe_service
 
     async def get_user_info_from_user_ids(self, user_ids: List[PydanticObjectId]):
         return await UserRepository.get_users_by_ids(user_ids=user_ids)
@@ -58,4 +61,12 @@ class UserService:
             )
 
     async def delete_user(self, user_id: PydanticObjectId):
+        user = await self.user_repo.get_user_by_id(user_id=user_id)
+        if user.stripe_customer_id:
+            await run_sync(self.stripe_service.delete_customer, user.stripe_customer_id)
         return await UserRepository.delete_user(user_id=user_id)
+
+
+def run_sync(func, *args, **kwargs):
+    loop = asyncio.get_event_loop()
+    return loop.run_in_executor(None, func, *args, **kwargs)

@@ -1,3 +1,8 @@
+from common.services.http_client import HttpClient
+from common.services.jwt_service import JwtService
+from dependency_injector import containers, providers
+from motor.motor_asyncio import AsyncIOMotorClient
+
 from auth.app.repositories.provider_repository import ProviderRepository
 from auth.app.repositories.user_repository import UserRepository
 from auth.app.services.auth_provider_factory import AuthProviderFactory
@@ -5,13 +10,6 @@ from auth.app.services.auth_service import AuthService
 from auth.app.services.stripe_service import StripeService
 from auth.app.services.user_service import UserService
 from auth.config import settings
-
-from common.services.http_client import HttpClient
-from common.services.jwt_service import JwtService
-
-from dependency_injector import containers, providers
-
-from motor.motor_asyncio import AsyncIOMotorClient
 
 
 class AppContainer(containers.DeclarativeContainer):
@@ -45,6 +43,7 @@ class AppContainer(containers.DeclarativeContainer):
     user_service: UserService = providers.Singleton(
         UserService,
         user_repo=user_repository,
+        stripe_service=stripe_service
     )
 
 

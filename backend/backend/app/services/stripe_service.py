@@ -68,6 +68,6 @@ class StripeService:
                 await self.workspace_service.upgrade_user_workspace(
                     user_id=user.get("_id")
                 )
-        if response.get("message"):
+        if response and response.get("message"):
             return response.get("message")
         return "Success"
