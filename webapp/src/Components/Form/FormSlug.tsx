@@ -54,7 +54,7 @@ export const FormSlug = ({ customSlug, link, onSave }: IFormSlugProps) => {
                 dispatch(setFormSettings(settings));
                 toast(t(localesCommon.updated).toString(), { type: 'success' });
             } else {
-                toast(t(toastMessage.formSettingUpdateError).toString(), { type: 'error' });
+                toast(response?.error?.data || t(toastMessage.formSettingUpdateError).toString(), { type: 'error' });
                 return response.error;
             }
             onSave();
@@ -62,7 +62,7 @@ export const FormSlug = ({ customSlug, link, onSave }: IFormSlugProps) => {
     };
 
     return (
-        <div className={'px-4 sm:px-20 md:px-[120px] w-full py-16 flex flex-col gap-12'}>
+        <div className={'w-full flex flex-col gap-12'}>
             <div className={'flex flex-col gap-1'}>
                 <h1 className={'h2-new'}>{t(formPage.linksSlugTitle)}</h1>
                 <p className={'text-sm font-normal text-black-700'}>{t(formPage.linksSlugDescription)}</p>
@@ -77,7 +77,7 @@ export const FormSlug = ({ customSlug, link, onSave }: IFormSlugProps) => {
                 <AppTextField isError={isError} value={slug} onChange={(event) => handleOnchange(event)} />
                 {!slug.match(slugRegex) && isError && <p className="body4 !text-red-500 h-[10px]">{t(validationMessage.slug)}</p>}
             </div>
-            <AppButton type={'submit'} onClick={handleUpdate} className={'w-[130px]'} variant={ButtonVariant.Secondary}>
+            <AppButton type={'submit'} onClick={handleUpdate} isLoading={isLoading} className={'w-[130px]'} variant={ButtonVariant.Secondary}>
                 {t(formPage.linksSlugSaveChanges)}
             </AppButton>
         </div>
