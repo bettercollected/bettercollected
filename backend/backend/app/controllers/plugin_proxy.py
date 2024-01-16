@@ -45,7 +45,7 @@ class PluginProxy(BasePluginRoute):
             self,
             form_id: str,
             email: str,
-            provider: str,
+            provider: FormProvider,
             request: Request,
             user: User = Depends(get_logged_user),
     ):
@@ -58,7 +58,7 @@ class PluginProxy(BasePluginRoute):
     async def import_form(
             self,
             form_id: str,
-            provider: str,
+            provider: FormProvider,
             request: Request,
     ):
         proxy_url = await self.form_provider_service.get_provider_url(provider)

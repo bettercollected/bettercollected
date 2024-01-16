@@ -205,6 +205,8 @@ class FormTemplateService:
     async def update_template_preview(self, template_id: PydanticObjectId,
                                       preview_image: UploadFile):
         template = await self.form_template_repo.get_template_by_id(template_id=template_id)
+        if not template:
+            raise HTTPException(status_code=HTTPStatus.NOT_FOUND, content="Template not found")
         preview_image = await self._aws_service.upload_file_to_s3(file=preview_image.file, key=template_id,
                                                                   previous_image=template.preview_image)
         template.preview_image = preview_image
