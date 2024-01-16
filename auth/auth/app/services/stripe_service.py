@@ -37,6 +37,23 @@ class StripeService:
         )
         return portal_session.url
 
+    def cancel_subscriptions(self, customer_id):
+        subscriptions = stripe.Subscription.list(customer=customer_id)
+        for subscription in subscriptions.data:
+            subscription_id = subscription.id
+            stripe.Subscription.delete(subscription_id)
+
+        loguru.logger.success(f"All subscriptions for customer {customer_id} canceled successfully.")
+
+    def delete_customer(self, customer_id):
+        # Cancel subscriptions first
+        self.cancel_subscriptions(customer_id)
+
+        # Now, delete the customer
+        stripe.Customer.delete(customer_id)
+
+        loguru.logger.success(f"Customer {customer_id} deleted successfully.")
+
     async def webhooks(self, request: Request):
         body = await request.body()
         webhook_secret = settings.stripe_settings.webhook_secret
