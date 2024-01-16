@@ -34,7 +34,7 @@ export default function DeleteAccountModal() {
     };
 
     const onClickDelete = async () => {
-        if (!dropdownValue || !confirm || !checked || confirm.toUpperCase() !== 'CONFIRM' || (dropdownValue === 'Something else' && !feedback)) {
+        if (!dropdownValue || !confirm || !checked || confirm.toUpperCase() !== 'CONFIRM' || ((dropdownValue === 'Something else' || dropdownValue === 'I have found a better alternative.') && !feedback)) {
             setError(true);
             return;
         }
@@ -135,7 +135,7 @@ export default function DeleteAccountModal() {
                 </div>
                 <div className="mt-10">
                     <div className="h4-new text-black-800 mb-2">
-                        {dropdownValue === 'Something else' ? (
+                        {dropdownValue === 'Something else' || dropdownValue === 'I have found a better alternative.' ? (
                             <>
                                 {t('DELETE_ACCOUNT.ANYTHING_ELSE')}
                                 <span className="text-red-500 ml-2"> *</span>
