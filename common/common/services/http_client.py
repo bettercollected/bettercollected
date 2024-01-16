@@ -15,7 +15,8 @@ class HttpClient(AsyncClient):
         try:
             response = await super().get(*args, **kwargs)
             if response.status_code != 200:
-                raise HTTPException(response.status_code, response.json() or "Error Occurred")
+                raise HTTPException(response.status_code,
+                                    response.json() if response.status_code <= 499 else "Error Occurred in the proxy server.")
             return response.json()
         except ConnectError:
             raise HTTPException(status_code=HTTPStatus.SERVICE_UNAVAILABLE, content='Requested Source not available.')
@@ -24,7 +25,8 @@ class HttpClient(AsyncClient):
         try:
             response = await super().post(*args, **kwargs)
             if response.status_code != 200:
-                raise HTTPException(response.status_code, response.json() or "Error Occurred")
+                raise HTTPException(response.status_code,
+                                    response.json() if response.status_code <= 499 else "Error Occurred in the proxy server.")
             return response.json()
         except ConnectError:
             raise HTTPException(status_code=HTTPStatus.SERVICE_UNAVAILABLE, content='Requested Source not available.')

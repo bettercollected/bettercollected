@@ -125,14 +125,20 @@ class AuthService:
         workspace_profile_image: str,
         creator: bool,
     ):
-        asyncio_run(
-            self.send_otp_to_mail(
-                receiver_mail=receiver_mail,
-                workspace_title=workspace_title,
-                workspace_profile_image=workspace_profile_image,
-                creator=creator,
+        try:
+            asyncio_run(
+                self.send_otp_to_mail(
+                    receiver_mail=receiver_mail,
+                    workspace_title=workspace_title,
+                    workspace_profile_image=workspace_profile_image,
+                    creator=creator,
+                )
             )
-        )
+        except TimeoutError:
+            raise HTTPException(
+                status_code=HTTPStatus.GATEWAY_TIMEOUT, content="Timeout Error"
+            )
+
 
     async def send_otp_to_mail(
         self,
