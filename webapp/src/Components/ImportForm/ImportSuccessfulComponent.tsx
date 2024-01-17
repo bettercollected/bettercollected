@@ -5,8 +5,8 @@ import Image from 'next/image';
 
 import { debounce } from 'lodash';
 
+import CircularCheck from '@Components/Common/Icons/Common/CircularCheck';
 import CopyIcon from '@Components/Common/Icons/Common/Copy';
-import GreenCircularCheck from '@Components/Common/Icons/Common/GreenCircularCheck';
 import ProLogo from '@Components/Common/Icons/Common/ProLogo';
 import AppButton from '@Components/Common/Input/Button/AppButton';
 import { ButtonSize, ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
@@ -115,7 +115,7 @@ export default function ImportSuccessfulComponent() {
 
     return (
         <div className="lg:px-12 lg:pt-10 pb-5 px-5 pt-5 lg:w-[867px] flex flex-col items-center w-full">
-            <GreenCircularCheck />
+            <CircularCheck />
             <div className="h3-new mt-2 mb-6"> Form Imported Successfully</div>
             <div className="rounded-lg border-black-300 w-full broder border-[1px] p-6">
                 <div className="flex gap-2 items-center w-full border-b borber-b-[1px] pb-4 border-black-300">

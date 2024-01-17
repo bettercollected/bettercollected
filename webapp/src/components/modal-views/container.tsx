@@ -7,6 +7,7 @@ import AddActionToFormModal from '@Components/Modals/DialogModals/AddActionToFor
 import ExportResponsesModal from '@Components/Modals/DialogModals/ExportResponsesModal';
 import ImportFormModal from '@Components/Modals/DialogModals/ImportFormModal';
 import OauthErrorModal from '@Components/Modals/DialogModals/OauthErrorModal';
+import RedeemCouponCodeModal from '@Components/Modals/DialogModals/RedeemCouponCodeModal';
 import UpdateCustomDomainModal from '@Components/Modals/DialogModals/UpdateCustomDomainModal';
 import UpdateWorkspaceHandle from '@Components/Modals/DialogModals/UpdateWorkspaceHandle';
 
@@ -51,6 +52,8 @@ import GenerateQRModalView from "@app/components/modal-views/modals/GenrateQRMod
 
 function renderModalContent(view: MODAL_VIEW, modalProps: any) {
     switch (view) {
+        case 'REDEEM_CODE_MODAL':
+            return <RedeemCouponCodeModal {...modalProps} />;
         case 'ADD_FORM_GROUP':
             return <AddFormOnGroup {...modalProps} />;
         case 'ADD_GROUP_FORM':

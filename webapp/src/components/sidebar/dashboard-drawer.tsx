@@ -7,6 +7,7 @@ import styled from '@emotion/styled';
 import { Box, LinearProgress, List, ListItem } from '@mui/material';
 import { linearProgressClasses } from '@mui/material/LinearProgress';
 
+import { useModal } from '@app/components/modal-views/context';
 import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
 import MuiDrawer from '@app/components/sidebar/mui-drawer';
 import NavigationList from '@app/components/sidebar/navigation-list';
@@ -45,8 +46,8 @@ const Drawer = ({ topNavList, isAdmin, bottomNavList }: any) => {
     const { t } = useTranslation();
     const workspace: WorkspaceDto = useAppSelector(selectWorkspace);
     const { data } = useGetWorkspaceStatsQuery(workspace.id, { skip: !workspace.id });
-    const { openModal } = useFullScreenModal();
-
+    const { openModal: openFullScreenModal } = useFullScreenModal();
+    const { openModal } = useModal();
     const isProPlan = useAppSelector(selectIsProPlan);
 
     return (
@@ -83,7 +84,7 @@ const Drawer = ({ topNavList, isAdmin, bottomNavList }: any) => {
                                     <span
                                         className="text-brand-500 cursor-pointer hover:underline"
                                         onClick={() => {
-                                            openModal('UPGRADE_TO_PRO', { featureText: t(upgradeConst.features.unlimitedForms.slogan) });
+                                            openFullScreenModal('UPGRADE_TO_PRO', { featureText: t(upgradeConst.features.unlimitedForms.slogan) });
                                         }}
                                     >
                                         {t('BUTTON.UPGRADE')}
@@ -103,7 +104,7 @@ const Drawer = ({ topNavList, isAdmin, bottomNavList }: any) => {
                                     <span
                                         className="text-brand-500 cursor-pointer hover:underline"
                                         onClick={() => {
-                                            // openModal('UPGRADE_TO_PRO', { featureText: t(upgradeConst.features.unlimitedForms.slogan) });
+                                            openModal('REDEEM_CODE_MODAL');
                                         }}
                                     >
                                         Redeem Code
