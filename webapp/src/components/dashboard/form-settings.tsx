@@ -281,14 +281,14 @@ export default function FormSettingsTab({view = 'DEFAULT'}: IFormSettingsTabProp
                                     <FormSettingsCard>
                                         <div className=" flex flex-col items-start w-full">
                                             <div className="h5-new !text-black-800">{t(formPage.pinFormTitle)}</div>
-                                            <hr className="h-0.5 w-full bg-black-200 my-2" />
+                                            <Divider className={'w-full my-2'}/>
                                             <div className="flex flex-row md:gap-4 justify-between items-center">
                                                 <div
                                                     className="body4 !text-black-700 w-3/4">{t(formPage.pinFormDescription)}</div>
                                                 <Switch data-testid="pinned-switch" checked={!!form?.settings?.pinned}
                                                         onClick={(e) => onPinnedChange(e, form)}/>
                                             </div>
-                                            <hr className="h-0.5 w-full bg-black-200 my-2" />
+                                            <Divider className={'w-full my-2'}/>
                                         </div>
                                     </FormSettingsCard>
                                 )}
@@ -302,7 +302,7 @@ export default function FormSettingsTab({view = 'DEFAULT'}: IFormSettingsTabProp
                                                 <span className="leading-none">{t(formPage.pro)}</span>
                                             </div>
                                         </div>
-                                        <hr className="h-0.5 w-full bg-black-200 my-2"/>
+                                        <Divider className={'w-full my-2'}/>
                                         <div className="flex flex-row w-full md:gap-4 justify-between items-center">
                                             <div
                                                 className="body4 !text-black-700 w-3/4">{t(formPage.brandingDescription)}</div>
@@ -310,7 +310,7 @@ export default function FormSettingsTab({view = 'DEFAULT'}: IFormSettingsTabProp
                                                     checked={!form?.settings?.disableBranding}
                                                     onClick={(e) => onDisableBrandingChange(e, form)}/>
                                         </div>
-                                        <hr className="h-0.5 w-full bg-black-200 my-2"/>
+                                        <Divider className={'w-full my-2'}/>
                                     </div>
                                 </FormSettingsCard>
                             </>
@@ -319,8 +319,7 @@ export default function FormSettingsTab({view = 'DEFAULT'}: IFormSettingsTabProp
                             <FormSettingsCard>
                                 <div className="flex flex-col items-start w-full">
                                     <div className="body1">{t(formPage.formPurposeTitle)}</div>
-                                    <hr className="h-0.5 w-full bg-black-200 my-2"/>
-
+                                    <Divider className={'w-full my-2'}/>
                                     <div className=" w-full flex flex-row justify-between items-center gap-4">
                                         <div
                                             className="text-sm !text-black-700">{t(formPage.formPurposeDescription)}</div>
@@ -337,7 +336,7 @@ export default function FormSettingsTab({view = 'DEFAULT'}: IFormSettingsTabProp
                                             {t(formPage.formPurposeSeeDetails)}
                                         </AppButton>
                                     </div>
-                                    <hr className="h-0.5 w-full bg-black-200 my-2"/>
+                                    <Divider className={'w-full my-2'}/>
                                 </div>
                             </FormSettingsCard>
                         )}
@@ -345,7 +344,7 @@ export default function FormSettingsTab({view = 'DEFAULT'}: IFormSettingsTabProp
                             <FormSettingsCard>
                                 <div className="flex flex-col items-start w-full">
                                     <div className="body1">{t(formPage.closeForm)}</div>
-                                    <hr className="h-0.5 w-full bg-black-200 my-2"/>
+                                    <Divider className={'w-full my-2'}/>
                                     {(!form?.settings?.formCloseDate || moment.utc(form?.settings?.formCloseDate).isBefore(moment.utc())) && (
                                         <>
                                             <div className=" w-full flex flex-row justify-between items-center gap-4">
@@ -393,7 +392,7 @@ export default function FormSettingsTab({view = 'DEFAULT'}: IFormSettingsTabProp
                                             </div>
                                         </div>
                                     )}
-                                    <hr className="h-0.5 w-full bg-black-200 my-2"/>
+                                    <Divider className={'w-full my-2'}/>
                                 </div>
                             </FormSettingsCard>
                         )}
