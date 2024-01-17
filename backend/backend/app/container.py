@@ -285,7 +285,9 @@ class AppContainer(containers.DeclarativeContainer):
 
     coupon_service = providers.Singleton(
         CouponService,
-        coupon_repository=coupon_repository
+        coupon_repository=coupon_repository,
+        auth_service=auth_service,
+        workspace_service=workspace_service
     )
 
 
