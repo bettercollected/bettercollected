@@ -719,7 +719,8 @@
     "ACCOUNT_DELETION": {
       "SUCCESS": "Account Deletion Successful!",
       "FAILED": "Failed to delete account"
-    }
+    },
+    "CSV": "CSV sent to Email Successfully."
   },
   "TOOLTIP": {
     "DELETION_REQUEST": "deletion requests",

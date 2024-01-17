@@ -29,7 +29,7 @@ export default function ExportResponsesModal({formId}: { formId: any }) {
         }
         const response: any = await exportCSVTrigger(body);
         if (response.data) {
-            toast.success('Exported CSV Successfully', {toastId: ToastId.SUCCESS_TOAST});
+            toast.success(t(toastMessage.csv).toString(), {toastId: ToastId.SUCCESS_TOAST});
         } else if (response.error) {
             toast.error(response.error.data?.message || response.error.data || t(toastMessage.somethingWentWrong), {toastId: ToastId.ERROR_TOAST});
         }
@@ -39,8 +39,8 @@ export default function ExportResponsesModal({formId}: { formId: any }) {
     return (
         <HeaderModalWrapper headerTitle="Export Responses as CSV">
             <div className={'flex flex-col gap-2'}>
-                <h1>Export as CSV </h1>
-                <h2 className={'body4 !text-pink-500'}>
+                <h1 className={'text-black-800 text-base font-medium'}>Export as CSV </h1>
+                <h2 className={'body4 !text-black-700'}>
                     Once you export the form responses as CSV. You&apos;ll be receiving the link for the CSV on
                     your email
                 </h2>
