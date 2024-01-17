@@ -25,7 +25,7 @@ class CouponController(Routable):
 
     @post("/redeem/{coupon_code}")
     async def redeem_coupon(self, coupon_code: CouponCode, user: User = Depends(get_logged_user)):
-        return coupon_code
+        return await self.coupon_service.redeem_coupon(coupon_code=coupon_code, user=user)
 
     @post("")
     async def create_coupon_codes(self, count: int = 10, user: User = Depends(get_logged_admin)):
