@@ -34,5 +34,6 @@ export const toastMessage = {
         success: 'TOAST.ACCOUNT_DELETION.SUCCESS',
         failed: 'TOAST.ACCOUNT_DELETION.FAILED'
     },
-    formIsAlreadyOnGroup: 'TOAST.FORM_IS_ALREADY_ON_GROUP'
+    formIsAlreadyOnGroup: 'TOAST.FORM_IS_ALREADY_ON_GROUP',
+    csv: 'TOAST.CSV'
 };
