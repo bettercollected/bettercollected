@@ -226,6 +226,6 @@ class AuthService:
         )
 
     async def upgrade_user_to_pro(self, user: User):
-        return await self.http_client.get(
+        return await self.http_client.patch(
             settings.auth_settings.BASE_URL + f"/users/{user.id}/upgrade"
         )
