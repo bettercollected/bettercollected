@@ -134,6 +134,7 @@ class FormRepository:
             {
                 "$set": {
                     "settings": "$workspace_form.settings",
+                    "is_published": True
                 }
             },
         ]
