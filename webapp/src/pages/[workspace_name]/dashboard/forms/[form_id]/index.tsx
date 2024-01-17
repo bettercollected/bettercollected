@@ -168,7 +168,7 @@ export default function FormPage(props: any) {
                                             variant={['sm', 'md', 'lg', 'xl', '2xl'].indexOf(breakpoint) !== -1 ? ButtonVariant.Primary : ButtonVariant.Ghost}
                                             icon={<Share />}
                                             className="!px-0 sm:!px-5"
-                                            disabled={form?.settings?.hidden}
+                                            disabled={workspaceForm?.settings?.hidden}
                                             onClick={() =>
                                                 openModal('SHARE_VIEW', {
                                                     url: getFormUrl(workspaceForm, workspace),
