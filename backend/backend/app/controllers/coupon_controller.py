@@ -1,13 +1,16 @@
 from typing import List
 
 from classy_fastapi import Routable, get, post
+from common.enums.plan import Plans
 from common.models.user import User
 from fastapi import Depends
+from starlette.responses import Response
 
 from backend.app.container import container
 from backend.app.models.types.coupon_code import CouponCode
 from backend.app.router import router
 from backend.app.schemas.coupon_codes import CouponCodeDocument
+from backend.app.services.auth_cookie_service import set_tokens_to_response
 from backend.app.services.coupon_service import CouponService
 from backend.app.services.user_service import get_logged_admin, get_logged_user
 
@@ -24,8 +27,11 @@ class CouponController(Routable):
         return await self.coupon_service.get_all_coupons()
 
     @post("/redeem/{coupon_code}")
-    async def redeem_coupon(self, coupon_code: CouponCode, user: User = Depends(get_logged_user)):
-        return await self.coupon_service.redeem_coupon(coupon_code=coupon_code, user=user)
+    async def redeem_coupon(self, coupon_code: CouponCode, response: Response, user: User = Depends(get_logged_user)):
+        await self.coupon_service.redeem_coupon(coupon_code=coupon_code, user=user)
+        user.plan = Plans.PRO
+        set_tokens_to_response(user=user, response=response)
+        return "Code Redeem Successful"
 
     @post("")
     async def create_coupon_codes(self, count: int = 10, user: User = Depends(get_logged_admin)):
