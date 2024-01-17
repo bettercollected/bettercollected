@@ -15,7 +15,6 @@ import { useAppSelector } from '@app/store/hooks';
 
 import DeleteDropDown from '../ui/delete-dropdown';
 
-
 interface IGroupCardProps {
     responderGroup: ResponderGroupDto;
     handleDelete: () => void;
