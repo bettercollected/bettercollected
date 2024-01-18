@@ -2,6 +2,7 @@ import asyncio
 from typing import List
 
 from beanie import PydanticObjectId
+from common.enums.plan import Plans
 from fastapi_mail import MessageSchema
 from pydantic import EmailStr
 
@@ -65,6 +66,11 @@ class UserService:
         if user.stripe_customer_id:
             await run_sync(self.stripe_service.delete_customer, user.stripe_customer_id)
         return await UserRepository.delete_user(user_id=user_id)
+
+    async def upgrade_user_to_pro(self, user_id):
+        user = await self.user_repo.get_user_by_id(user_id=user_id)
+        user.plan = Plans.PRO
+        return await user.save()
 
 
 def run_sync(func, *args, **kwargs):

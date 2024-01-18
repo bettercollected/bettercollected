@@ -10,6 +10,7 @@ from dependency_injector import containers, providers
 from motor.motor_asyncio import AsyncIOMotorClient
 
 from backend.app.repositories.action_repository import ActionRepository
+from backend.app.repositories.coupon_repository import CouponRepository
 from backend.app.repositories.form_plugin_provider_repository import (
     FormPluginProviderRepository,
 )
@@ -33,12 +34,12 @@ from backend.app.schedulers.form_schedular import FormSchedular
 from backend.app.services.actions_service import ActionService
 from backend.app.services.auth_service import AuthService
 from backend.app.services.aws_service import AWSS3Service
+from backend.app.services.coupon_service import CouponService
 from backend.app.services.feedback_service import UserFeedbackService
 from backend.app.services.form_import_service import FormImportService
 from backend.app.services.form_plugin_provider_service import FormPluginProviderService
 from backend.app.services.form_response_service import FormResponseService
 from backend.app.services.form_service import FormService
-from backend.app.services.kafka_service import KafkaService
 from backend.app.services.plugin_proxy_service import PluginProxyService
 from backend.app.services.responder_groups_service import ResponderGroupsService
 from backend.app.services.stripe_service import StripeService
@@ -69,6 +70,10 @@ class AppContainer(containers.DeclarativeContainer):
     )
 
     # Repositories
+
+    coupon_repository: CouponRepository = providers.Singleton(
+        CouponRepository
+    )
     workspace_user_repo: WorkspaceUserRepository = providers.Singleton(
         WorkspaceUserRepository
     )
@@ -276,6 +281,13 @@ class AppContainer(containers.DeclarativeContainer):
     user_feedback_service = providers.Singleton(
         UserFeedbackService,
         user_feedback_repo=user_feedback_repo
+    )
+
+    coupon_service = providers.Singleton(
+        CouponService,
+        coupon_repository=coupon_repository,
+        auth_service=auth_service,
+        workspace_service=workspace_service
     )
 
 

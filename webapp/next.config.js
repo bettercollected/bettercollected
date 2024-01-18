@@ -152,6 +152,7 @@ const nextConfig = {
         //integrations
         ENABLE_ACTIONS: process.env.ENABLE_ACTIONS,
         ENABLE_IMPORT_WITH_PICKER: process.env.ENABLE_IMPORT_WITH_PICKER,
+        ENABLE_COUPON_CODES: process.env.ENABLE_COUPON_CODES,
 
         //Google Picker API
         GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
