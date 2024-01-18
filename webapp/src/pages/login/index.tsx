@@ -46,7 +46,7 @@ export async function getServerSideProps(_context: any) {
             return {
                 redirect: {
                     permanent: false,
-                    destination: `/${locale}${redirectWorkspace?.workspaceName}/dashboard`
+                    destination: `/${locale}${redirectWorkspace?.workspaceName}/dashboard/forms`
                 }
             };
         }

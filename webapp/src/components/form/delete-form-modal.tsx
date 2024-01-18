@@ -24,7 +24,7 @@ export default function DeleteFormModal(props: any) {
             formId: props?.form.formId
         }).finally(() => closeModal());
         if (response?.data && !!props?.redirectToDashboard) {
-            router.push(`/${workspace.workspaceName}/dashboard`);
+            router.push(`/${workspace.workspaceName}/dashboard/forms`);
             toast(t(toastMessage.formDeleted).toString(), { type: 'success' });
         }
         if (response?.error) {
