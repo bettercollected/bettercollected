@@ -14,6 +14,7 @@ import environments from '@app/configs/environments';
 interface ImportErrorViewProps {
     provider: string;
     closable?: boolean;
+    unauthorizedScopes?: Array<string>;
 }
 
 interface IScope {
@@ -28,6 +29,7 @@ interface IPermission {
     icon?: React.ReactNode;
     isPermissionGiven: boolean;
     description?: string;
+    scope?: string;
 }
 
 interface IDefaultContent {
@@ -36,7 +38,7 @@ interface IDefaultContent {
     permissions: Array<IPermission>;
 }
 
-export default function ImportErrorView({ provider, closable = true }: ImportErrorViewProps) {
+export default function ImportErrorView({ provider, closable = true, unauthorizedScopes }: ImportErrorViewProps) {
     const [isConsentGiven, setIsConsentGiven] = useState(false);
 
     const googlePermissions: Array<IPermission> = [
@@ -44,13 +46,15 @@ export default function ImportErrorView({ provider, closable = true }: ImportErr
             type: 'sensitive',
             isPermissionGiven: false,
             name: 'Permissions to import your Google Forms',
-            description: 'To be able to import forms from Google, we require access permissions to retrieve your Google Forms.'
+            description: 'To be able to import forms from Google, we require access permissions to retrieve your Google Forms.',
+            scope: 'https://www.googleapis.com/auth/forms.body.readonly'
         },
         {
             type: 'sensitive',
             isPermissionGiven: false,
             name: 'Permissions to import form responses',
-            description: 'To be able to show form responses and build a beautiful responder portal for you, we require permissions to fetch form responses.'
+            description: 'To be able to show form responses and build a beautiful responder portal for you, we require permissions to fetch form responses.',
+            scope: 'https://www.googleapis.com/auth/forms.responses.readonly'
         }
     ];
 
@@ -59,7 +63,8 @@ export default function ImportErrorView({ provider, closable = true }: ImportErr
             type: 'non-sensitive',
             isPermissionGiven: false,
             name: 'Permission to search and pick Google Forms from Drive',
-            description: 'To be able to show Google File Picker, we require permissions to search your Google Drive for Google Forms.'
+            description: 'To be able to show Google File Picker, we require permissions to search your Google Drive for Google Forms.',
+            scope: 'https://www.googleapis.com/auth/drive.file'
         });
     }
     const typeformPermissions: Array<IPermission> = [
@@ -100,7 +105,10 @@ export default function ImportErrorView({ provider, closable = true }: ImportErr
                         {({ open }) => (
                             <>
                                 <Disclosure.Button className="flex items-center w-full justify-between px-8 py-3 border-t-[1px] text-left body6 font-medium text-black-800 focus:outline-none focus-visible:ring focus-visible:ring-blue-500 focus-visible:ring-opacity-75">
-                                    <span>{permission.name}</span>
+                                    <span>
+                                        {unauthorizedScopes && unauthorizedScopes.length > 0 && <span className={`text-lg mr-2 ${unauthorizedScopes?.includes(permission.scope || '') ? 'text-black-400' : 'text-green-500'}`}>✔</span>}
+                                        {permission.name}
+                                    </span>
                                     <ChevronDown className={`${open ? 'rotate-180 transform' : ''} h-3 w-3 text-blue-900`} />
                                 </Disclosure.Button>
                                 <Disclosure.Panel className="body4 pb-2 -mt-2 pr-8 text-gray-500 w-full">{<div className="px-8">{permission?.description}</div>}</Disclosure.Panel>
