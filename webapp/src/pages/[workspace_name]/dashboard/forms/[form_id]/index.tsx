@@ -163,7 +163,7 @@ export default function FormPage(props: any) {
                                     </AppButton>
                                 )}
                                 {form?.isPublished && isFormOpen && (
-                                    <PrivateFormButtonWrapper isPrivate={form?.settings?.hidden}>
+                                    <PrivateFormButtonWrapper isPrivate={workspaceForm?.settings?.hidden}>
                                         <AppButton
                                             variant={['sm', 'md', 'lg', 'xl', '2xl'].indexOf(breakpoint) !== -1 ? ButtonVariant.Primary : ButtonVariant.Ghost}
                                             icon={<Share />}
