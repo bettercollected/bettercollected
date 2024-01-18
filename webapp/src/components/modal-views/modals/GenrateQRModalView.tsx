@@ -43,10 +43,10 @@ const GenerateQRModalView = () => {
         document.body.removeChild(link);
     };
 
-    const onShare = () => {
-        const dataUrl = canvasElement.toDataURL('image/png');
-        handleOnCopy(dataUrl)
-    }
+    // const onShare = () => {
+    //     const dataUrl = canvasElement.toDataURL('image/png');
+    //     handleOnCopy(dataUrl)
+    // }
 
     const handleCopyImageToClipboard = async () => {
             try {
@@ -90,9 +90,9 @@ const GenerateQRModalView = () => {
                     <AppButton onClick={onDownload}>
                         Download QR
                     </AppButton>
-                    <AppButton onClick={onShare}>
-                        Share QR
-                    </AppButton>
+                    {/*<AppButton onClick={onShare}>*/}
+                    {/*    Share QR*/}
+                    {/*</AppButton>*/}
                 </div>
             </div>
         </div>
