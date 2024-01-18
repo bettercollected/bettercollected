@@ -1,3 +1,4 @@
+import datetime
 from http import HTTPStatus
 
 from common.models.user import User
@@ -36,5 +37,6 @@ class CouponService:
         await self.workspace_service.upgrade_user_workspace(user_id=user.id)
         await event_logger_service.send_event(UserEventType.USER_UPGRADED_TO_PRO, user_id=user.id, email=user.sub)
         coupon_document.status = CouponStatus.USED
-        coupon_document.used_by = user.id
+        coupon_document.used_by = user.sub
+        coupon_document.activated_at = datetime.datetime.utcnow()
         await coupon_document.save()
