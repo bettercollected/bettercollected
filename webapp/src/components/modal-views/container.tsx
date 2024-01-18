@@ -47,6 +47,7 @@ import EditWorkspaceModal from './modals/edit-workspace-modal';
 import FormBuilderSpotlightModal from './modals/form-builder-spotlight-modal';
 import FormBuilderTipsModalView from './modals/form-builder-tips-modal-view';
 import VisibilityConfirmationModalView from './modals/visibility-confirmation-modal-view';
+import GenerateQRModalView from "@app/components/modal-views/modals/GenrateQRModalView";
 
 function renderModalContent(view: MODAL_VIEW, modalProps: any) {
     switch (view) {
@@ -122,6 +123,8 @@ function renderModalContent(view: MODAL_VIEW, modalProps: any) {
             return <ExportResponsesModal {...modalProps} />;
         case 'OAUTH_ERROR_VIEW':
             return <OauthErrorModal {...modalProps} />;
+        case 'GENERATE_QR':
+            return <GenerateQRModalView {...modalProps}/>
         default:
             return <></>;
     }
