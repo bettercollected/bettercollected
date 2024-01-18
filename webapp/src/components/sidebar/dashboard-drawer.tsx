@@ -91,26 +91,29 @@ const Drawer = ({ topNavList, isAdmin, bottomNavList }: any) => {
                                     </span>
                                 </div>
                             </div>
-                            <div className="rounded-md mx-2 mb-6 bg-new-white-200 p-4">
-                                <div className="h5-new mb-2">Pro Lifetime Deal</div>
-                                <div className="text-black-600 text-sm">
-                                    Redeem{' '}
-                                    <a href={environments.APP_SUMO_PRODUCT_URL} target="_blank" rel="noreferrer" className="text-black-800 underline cursor-pointer">
-                                        AppSumo code
-                                    </a>{' '}
-                                    to get a lifetime pro account.
+                            {environments.ENABLE_COUPON_CODES && (
+                                <div className="rounded-md mx-2 mb-6 bg-new-white-200 p-4">
+                                    <div className="h5-new mb-2">Pro Lifetime Deal</div>
+                                    <div className="text-black-600 text-sm">
+                                        Redeem{' '}
+                                        <a href={environments.APP_SUMO_PRODUCT_URL} target="_blank" rel="noreferrer" className="text-black-800 underline cursor-pointer">
+                                            AppSumo code
+                                        </a>{' '}
+                                        to get a lifetime pro account.
+                                    </div>
+
+                                    <div className="text-xs font-semibold flex items-center justify-end">
+                                        <span
+                                            className="text-brand-500 cursor-pointer hover:underline"
+                                            onClick={() => {
+                                                openModal('REDEEM_CODE_MODAL');
+                                            }}
+                                        >
+                                            Redeem Code
+                                        </span>
+                                    </div>
                                 </div>
-                                <div className="text-xs font-semibold flex items-center justify-end">
-                                    <span
-                                        className="text-brand-500 cursor-pointer hover:underline"
-                                        onClick={() => {
-                                            openModal('REDEEM_CODE_MODAL');
-                                        }}
-                                    >
-                                        Redeem Code
-                                    </span>
-                                </div>
-                            </div>
+                            )}
                         </div>
                     )}
                 </div>
