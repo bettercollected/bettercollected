@@ -246,19 +246,32 @@ export default function FormSettingsTab({view = 'DEFAULT'}: IFormSettingsTabProp
                                     className={'text-pink-500'}>{customUrl}</span>
                                 </p>
                             </Tooltip>
-                            <AppButton
-                                className={'!py-0'}
-                                icon={<EditIcon className="h-4 w-4"/>}
-                                onClick={() => {
-                                    openBottomSheetModal('FORM_CREATE_SLUG_VIEW', {
-                                        link: isCustomDomain ? customDomain : clientHost,
-                                        customSlug: customUrl
-                                    });
-                                }}
-                                variant={ButtonVariant.Ghost}
-                            >
-                                {t(formPage.linksChangeSlug)}
-                            </AppButton>
+                            <div className={'flex gap-8'}>
+                                <AppButton
+                                    className={'!py-0'}
+                                    icon={<EditIcon className="h-4 w-4"/>}
+                                    onClick={() => {
+                                        openBottomSheetModal('FORM_CREATE_SLUG_VIEW', {
+                                            link: isCustomDomain ? customDomain : clientHost,
+                                            customSlug: customUrl
+                                        });
+                                    }}
+                                    variant={ButtonVariant.Ghost}
+                                >
+                                    {t(formPage.linksChangeSlug)}
+                                </AppButton>
+                                {environments.ENABLE_FORM_QR && <AppButton
+                                    className={'!py-0'}
+                                    icon={<EditIcon className="h-4 w-4"/>}
+                                    onClick={() => {
+                                        openModal('GENERATE_QR')
+                                    }}
+                                    variant={ButtonVariant.Ghost}
+                                >
+                                    Generate QR Code
+                                </AppButton>}
+                            </div>
+
                         </div>
                         <div className="flex flex-col gap-16 pt-10">
                             {isCustomDomain &&
