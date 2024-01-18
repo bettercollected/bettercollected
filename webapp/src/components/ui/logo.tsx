@@ -31,7 +31,7 @@ const Logo = ({ className, isLink = true, isClientDomain = false, isCustomDomain
 
     const customDomainUrl = isFooter ? '' : '/';
     const clientDomainUrl = `/${workspace?.workspaceName}`;
-    const adminDomainUrl = `/${locale}${workspace?.workspaceName ? workspace?.workspaceName + '/' : ''}dashboard`;
+    const adminDomainUrl = `/${locale}${workspace?.workspaceName ? workspace?.workspaceName + '/' : ''}dashboard/forms`;
 
     const url = isCustomDomain ? customDomainUrl : isClientDomain ? clientDomainUrl : adminDomainUrl;
 
