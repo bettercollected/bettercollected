@@ -64,9 +64,9 @@ const environments = {
     UMAMI_WEBSITE_ID: publicRuntimeConfig.UMAMI_WEBSITE_ID,
     UMAMI_SCRIPT_URL: publicRuntimeConfig.UMAMI_SCRIPT_URL,
 
-    //actions
     ENABLE_ACTIONS: publicRuntimeConfig.ENABLE_ACTIONS && (publicRuntimeConfig.ENABLE_ACTIONS === 'true' || publicRuntimeConfig.ENABLE_ACTIONS === true),
     ENABLE_IMPORT_WITH_PICKER: publicRuntimeConfig.ENABLE_IMPORT_WITH_PICKER && (publicRuntimeConfig.ENABLE_IMPORT_WITH_PICKER === 'true' || publicRuntimeConfig.ENABLE_IMPORT_WITH_PICKER === true),
+    ENABLE_COUPON_CODES: publicRuntimeConfig.ENABLE_COUPON_CODES && (publicRuntimeConfig.ENABLE_COUPON_CODES === 'true' || publicRuntimeConfig.ENABLE_COUPON_CODES === true),
 
     // google picker api
     GOOGLE_CLIENT_ID: publicRuntimeConfig.GOOGLE_CLIENT_ID,
