@@ -7,6 +7,8 @@ import { ButtonSize, ButtonVariant } from '@Components/Common/Input/Button/AppBu
 import ImportFormLoading from '@Components/ImportForm/ImportFormLoading';
 import ImportSuccessfulComponent from '@Components/ImportForm/ImportSuccessfulComponent';
 import useDrivePicker from '@fyelci/react-google-drive-picker';
+import { SerializableError } from '@jest/test-result';
+import { FetchBaseQueryError } from '@reduxjs/toolkit/query';
 import confetti from 'canvas-confetti';
 import { toast } from 'react-toastify';
 
@@ -110,7 +112,7 @@ export default function ImportFormModal() {
 
     if (isLoading) return <FullScreenLoader />;
 
-    if (error) return <ImportErrorView provider={'google'} />;
+    if (error) return <ImportErrorView provider={'google'} unauthorizedScopes={(error as any)?.data?.unauthorizedScopes} />;
 
     return (
         <div className="bg-white w-full relative   rounded-md  flex flex-col items-center start">
