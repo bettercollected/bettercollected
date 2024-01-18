@@ -1,9 +1,9 @@
 import React from 'react';
 
-export default function GreenCircularCheck(props: React.SVGAttributes<any>) {
+export default function CircularCheck(props: React.SVGAttributes<any>) {
     return (
         <svg width="41" height="41" viewBox="0 0 41 41" fill="none" xmlns="http://www.w3.org/2000/svg" {...props}>
-            <circle cx="20.5" cy="20.5" r="20.5" fill="#2DBB7F" />
+            <circle cx="20.5" cy="20.5" r="20.5" fill={props?.color || '#2DBB7F'} />
             <g filter="url(#filter0_d_4220_6128)">
                 <path d="M12 22.4082L15.5333 25.4409C15.908 25.7625 16.4613 25.7625 16.8359 25.4409L29 15" stroke="white" strokeWidth="4" strokeLinecap="round" />
             </g>

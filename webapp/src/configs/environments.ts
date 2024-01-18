@@ -64,9 +64,9 @@ const environments = {
     UMAMI_WEBSITE_ID: publicRuntimeConfig.UMAMI_WEBSITE_ID,
     UMAMI_SCRIPT_URL: publicRuntimeConfig.UMAMI_SCRIPT_URL,
 
-    //actions
     ENABLE_ACTIONS: publicRuntimeConfig.ENABLE_ACTIONS && (publicRuntimeConfig.ENABLE_ACTIONS === 'true' || publicRuntimeConfig.ENABLE_ACTIONS === true),
     ENABLE_IMPORT_WITH_PICKER: publicRuntimeConfig.ENABLE_IMPORT_WITH_PICKER && (publicRuntimeConfig.ENABLE_IMPORT_WITH_PICKER === 'true' || publicRuntimeConfig.ENABLE_IMPORT_WITH_PICKER === true),
+    ENABLE_COUPON_CODES: publicRuntimeConfig.ENABLE_COUPON_CODES && (publicRuntimeConfig.ENABLE_COUPON_CODES === 'true' || publicRuntimeConfig.ENABLE_COUPON_CODES === true),
 
     // google picker api
     GOOGLE_CLIENT_ID: publicRuntimeConfig.GOOGLE_CLIENT_ID,
@@ -75,7 +75,9 @@ const environments = {
     //CHATWOOT
     CHATWOOT_ENABLE: publicRuntimeConfig.CHATWOOT_ENABLE && (publicRuntimeConfig.CHATWOOT_ENABLE === 'true' || publicRuntimeConfig.CHATWOOT_ENABLE === true),
     CHATWOOT_DEPLOY_URL: publicRuntimeConfig.CHATWOOT_DEPLOY_URL ?? 'https://help.bettercollected.com',
-    CHATWOOT_WEBSITE_TOKEN: publicRuntimeConfig.CHATWOOT_WEBSITE_TOKEN
+    CHATWOOT_WEBSITE_TOKEN: publicRuntimeConfig.CHATWOOT_WEBSITE_TOKEN,
+
+    APP_SUMO_PRODUCT_URL: publicRuntimeConfig.APP_SUMO_PRODUCT_URL ?? 'https://appsumo.com/products/bettercollected'
 };
 
 export default environments;
