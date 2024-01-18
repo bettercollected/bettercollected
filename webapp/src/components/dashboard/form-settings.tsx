@@ -260,7 +260,7 @@ export default function FormSettingsTab({view = 'DEFAULT'}: IFormSettingsTabProp
                                 >
                                     {t(formPage.linksChangeSlug)}
                                 </AppButton>
-                                <AppButton
+                                {environments.ENABLE_FORM_QR && <AppButton
                                     className={'!py-0'}
                                     icon={<EditIcon className="h-4 w-4"/>}
                                     onClick={() => {
@@ -269,7 +269,7 @@ export default function FormSettingsTab({view = 'DEFAULT'}: IFormSettingsTabProp
                                     variant={ButtonVariant.Ghost}
                                 >
                                     Generate QR Code
-                                </AppButton>
+                                </AppButton>}
                             </div>
 
                         </div>
