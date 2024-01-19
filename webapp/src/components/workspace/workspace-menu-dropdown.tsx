@@ -90,15 +90,15 @@ function WorkspaceMenuDropdown({ fullWidth }: IWorkspaceMenuDropdownProps) {
             showExpandMore={showExpandMore}
             width={320}
             menuContent={
-                <div className="flex items-center gap-2 py-2 px-3">
+                <div className="flex items-center gap-2 py-2 px-3 w-[200px]">
                     <AuthAccountProfileImage
                         size={40}
                         image={workspace?.profileImage}
                         name={workspace?.title || 'Untitled'}
                         // style={{ background: `${color} !important` }}
                     />
-                    <div className="flex flex-col items-start w-full">
-                        <Typography className="body3 truncate">{toEndDottedStr(workspace?.title || 'Untitled', 20)}</Typography>
+                    <div className="flex flex-col items-start w-full truncate">
+                        <Typography className="body3 truncate">{toEndDottedStr(workspace?.title || 'Untitled', 14)}</Typography>
 
                         <p className="leading-none text-[12px] text-black-700">{getWorkspaceRole(workspace)}</p>
                     </div>
