@@ -1,12 +1,19 @@
-import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
+import {createApi, fetchBaseQuery} from '@reduxjs/toolkit/query/react';
 
 import environments from '@app/configs/environments';
-import { StandardFormDto, StandardFormResponseDto, WorkspaceResponderDto } from '@app/models/dtos/form';
-import { ResponderGroupDto } from '@app/models/dtos/groups';
-import { Page } from '@app/models/dtos/page';
-import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
-import { WorkspaceStatsDto } from '@app/models/dtos/workspaceStatsDto';
-import { IGetAllSubmissionsQuery, IGetFormSubmissionsQuery, IGetWorkspaceFormQuery, IGetWorkspaceSubmissionQuery, IPatchFormSettingsRequest, ISearchWorkspaceFormsQuery } from '@app/store/workspaces/types';
+import {StandardFormDto, StandardFormResponseDto, WorkspaceResponderDto} from '@app/models/dtos/form';
+import {ResponderGroupDto} from '@app/models/dtos/groups';
+import {Page} from '@app/models/dtos/page';
+import {WorkspaceDto} from '@app/models/dtos/workspaceDto';
+import {WorkspaceStatsDto} from '@app/models/dtos/workspaceStatsDto';
+import {
+    IGetAllSubmissionsQuery,
+    IGetFormSubmissionsQuery,
+    IGetWorkspaceFormQuery,
+    IGetWorkspaceSubmissionQuery,
+    IPatchFormSettingsRequest,
+    ISearchWorkspaceFormsQuery
+} from '@app/store/workspaces/types';
 
 export const WORKSPACES_REDUCER_PATH = 'workspacesApi';
 
@@ -53,11 +60,11 @@ export const workspacesApi = createApi({
                 const returnValue: Array<{ label: string; formId: string }> = [];
                 baseQueryReturnValue.forEach((data) => {
                     if (provider === 'google') {
-                        const parsedForm = { label: data?.name, formId: data?.id };
+                        const parsedForm = {label: data?.name, formId: data?.id};
                         returnValue.push(parsedForm);
                     }
                     if (provider === 'typeform') {
-                        const parsedForm = { label: data?.title, formId: data?.id };
+                        const parsedForm = {label: data?.title, formId: data?.id};
                         returnValue.push(parsedForm);
                     }
                 });
@@ -66,7 +73,7 @@ export const workspacesApi = createApi({
             }
         }),
         getSingleFormFromProvider: builder.query<any, { provider: string; formId: string }>({
-            query: ({ provider, formId }) => ({
+            query: ({provider, formId}) => ({
                 url: `/${provider}/import/${formId}`,
                 method: 'GET',
                 refetchOnMountOrArgChange: false,
@@ -118,7 +125,7 @@ export const workspacesApi = createApi({
             }
         }),
         verifyFormToken: builder.mutation<any, any>({
-            query: ({ provider }) => ({
+            query: ({provider}) => ({
                 url: `/${provider}/oauth/verify`,
                 method: 'GET'
             })
@@ -172,13 +179,13 @@ export const workspacesApi = createApi({
         }),
         getWorkspaceNameSuggestions: builder.query<any, any>({
             query: (request) => ({
-                url: `/workspaces/${request.workspaceId}/suggest-handle/${request.title}`,
+                url: `/workspaces/suggest-handle/${request.title}`,
                 method: 'GET'
             })
         }),
         getWorkspaceNameAvailability: builder.query<any, any>({
             query: (request) => ({
-                url: `/workspaces/${request.workspaceId}/check-handle-availability/${request.title}`,
+                url: `/workspaces/check-handle-availability/${request.title}${request?.workspaceId ? `?workspace_id=${request?.workspaceId}` : ''}`,
                 method: 'GET'
             })
         }),

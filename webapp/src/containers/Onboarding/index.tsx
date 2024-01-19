@@ -1,15 +1,15 @@
-import React, {FormEvent, useEffect, useState} from 'react';
+import React, {FormEvent, useState} from 'react';
 
 import {useTranslation} from 'next-i18next';
 import {useRouter} from 'next/router';
 
 import AppTextField from '@Components/Common/Input/AppTextField';
 import AppButton from '@Components/Common/Input/Button/AppButton';
+import {ButtonSize} from '@Components/Common/Input/Button/AppButtonProps';
 import UploadLogo from '@Components/Common/UploadLogo';
 import {toast} from 'react-toastify';
 
 import AuthNavbar from '@app/components/auth/navbar';
-import {InfoIcon} from '@app/components/icons/info-icon';
 import TextFieldHandler from '@app/components/onboarding/TextFieldHandler';
 import {onBoarding} from '@app/constants/locales/onboarding-screen';
 import {toastMessage} from '@app/constants/locales/toast-message';
@@ -18,13 +18,8 @@ import {UserStatus} from '@app/models/dtos/UserStatus';
 import {WorkspaceDto} from '@app/models/dtos/workspaceDto';
 import {selectAuth} from '@app/store/auth/slice';
 import {useAppDispatch, useAppSelector} from '@app/store/hooks';
-import {
-    useCreateWorkspaceMutation,
-    useLazyGetWorkspaceNameSuggestionsQuery,
-    usePatchExistingWorkspaceMutation
-} from '@app/store/workspaces/api';
+import {useCreateWorkspaceMutation, usePatchExistingWorkspaceMutation} from '@app/store/workspaces/api';
 import {setWorkspace} from '@app/store/workspaces/slice';
-import {ButtonSize} from "@Components/Common/Input/Button/AppButtonProps";
 
 interface onBoardingProps {
     workspace?: WorkspaceDto;
@@ -35,7 +30,7 @@ export interface FormDataDto {
     title: string;
     description: string;
     workspaceLogo: any;
-    workspaceName: string | null;
+    workspaceName: string;
 }
 
 const OnboardingContainer = ({workspace, createWorkspace}: onBoardingProps) => {
@@ -47,26 +42,15 @@ const OnboardingContainer = ({workspace, createWorkspace}: onBoardingProps) => {
 
     const [createWorkspaceRequest, data] = useCreateWorkspaceMutation();
     const [patchExistingWorkspace, {isLoading, isSuccess}] = usePatchExistingWorkspaceMutation();
-    const [trigger] = useLazyGetWorkspaceNameSuggestionsQuery();
 
-    const workspaceName: string | null = (workspace?.workspaceName as string) === (workspace?.ownerId as string) ? null : (workspace?.workspaceName as string);
+    const workspaceName: string = (workspace?.workspaceName as string) === (workspace?.ownerId as string) ? '' : (workspace?.workspaceName as string);
 
     const [formData, setFormData] = useState<FormDataDto>({
-        title: (user?.firstName || user?.lastName || user?.email?.split('@')[0]) + "'s Workspace",
+        title: createWorkspace ? '' : (user?.firstName || user?.lastName || user?.email?.split('@')[0]) + "'s Workspace",
         description: workspace?.description ?? '',
         workspaceLogo: workspace?.profileImage ?? null,
-        workspaceName: workspaceName
+        workspaceName: createWorkspace ? '' : workspaceName
     });
-    const [errorTitle, setErrorTitle] = useState(false);
-    const [workspaceNameSuggestion, setWorkspaceNameSuggestion] = useState<string>('');
-    const [errorWorkspaceName, setErrorWorkspaceName] = useState(false);
-    const [isErrorOnWorkspaceNameField, setIsErrorOnWorkspaceNameField] = useState(false);
-
-    useEffect(() => {
-        if (formData.title) setErrorTitle(false);
-        if (formData.workspaceName) setErrorWorkspaceName(false);
-    }, [formData.title, formData.workspaceName]);
-
 
     const handleUploadLogo = (logo: File) => {
         setFormData({
@@ -100,7 +84,7 @@ const OnboardingContainer = ({workspace, createWorkspace}: onBoardingProps) => {
         if (response.data) {
             toast(t(toastMessage.workspaceUpdate).toString(), {type: 'success', toastId: ToastId.SUCCESS_TOAST});
             dispatch(setWorkspace(response.data));
-            router.replace(`/${response.data?.workspaceName}/dashboard`);
+            router.replace(`/${response.data?.workspaceName}/dashboard/forms`);
         }
     };
 
@@ -122,7 +106,7 @@ const OnboardingContainer = ({workspace, createWorkspace}: onBoardingProps) => {
         if (response.data) {
             toast(t(toastMessage.workspaceUpdate).toString(), {type: 'success', toastId: ToastId.SUCCESS_TOAST});
             dispatch(setWorkspace(response.data));
-            router.replace(`/${response.data?.workspaceName}/dashboard`);
+            router.replace(`/${response.data?.workspaceName}/dashboard/forms`);
         }
     };
 
@@ -141,32 +125,12 @@ const OnboardingContainer = ({workspace, createWorkspace}: onBoardingProps) => {
         });
     };
 
-    const fetchSuggestionsForWorkspaceHandle = async (e: any) => {
-        if (!!e.target.value) {
-            const request = {
-                workspaceId: workspace?.id,
-                title: e.target.value.toLowerCase()
-            };
-            const {isSuccess, data} = await trigger(request);
-            if (isSuccess) {
-                const suggestion = data[Math.floor(Math.random() * 4) + 1];
-                setWorkspaceNameSuggestion(suggestion);
-                return;
-            }
-        }
-        setWorkspaceNameSuggestion('');
-        return;
-    };
 
     const onSubmitForm = async (event: FormEvent) => {
         event.preventDefault();
         if (formData.title && formData.workspaceName) {
             await onClickDone();
         }
-        if (!formData.title) setErrorTitle(true);
-
-        if (!formData.workspaceName) setErrorWorkspaceName(true);
-        return;
     };
 
     return (
@@ -177,26 +141,16 @@ const OnboardingContainer = ({workspace, createWorkspace}: onBoardingProps) => {
                 <UploadLogo logoImageUrl={workspace?.profileImage ?? ''} className="mt-12" onUpload={handleUploadLogo}
                             onRemove={handleRemoveLogo}/>
                 <form className="mt-12 md:w-[541px] space-y-8 " onSubmit={onSubmitForm}>
-                    <div>
-                        <AppTextField title="Organization Name" id="title" placeholder="Enter name of your workspace"
-                                      value={formData.title} onChange={handleOnchange}
-                                      onBlur={fetchSuggestionsForWorkspaceHandle} isError={errorTitle}/>
-                        {errorTitle ? (
-                            <div className={'text-red-600 text-xs md:text-sm !mt-2 flex items-center gap-2'}>
-                                <InfoIcon className="w-4 h-4"/> <span>{t(onBoarding.fillOrganizationName)}</span>
-                            </div>
-                        ) : (
-                            <></>
-                        )}
-                    </div>
-                    <TextFieldHandler formData={formData}
-                                      setFormData={setFormData} errorWorkspaceName={errorWorkspaceName}
-                                      setIsErrorOnTextField={setIsErrorOnWorkspaceNameField}/>
-                    < AppTextField title="Add Your Organization Description" id="description"
-                                   placeholder="Write Description" multiline value={formData.description}
-                                   onChange={handleOnchange}/>
+                    <AppTextField required title="Organization Name" id="title"
+                                  placeholder="Enter name of your workspace" value={formData.title}
+                                  onChange={handleOnchange}/>
+                    <TextFieldHandler formData={formData} setFormData={setFormData} handleOnChange={handleOnchange}
+                                      createWorkspace={createWorkspace}/>
+                    <AppTextField title="Add Your Organization Description" id="description"
+                                  placeholder="Write Description" multiline value={formData.description}
+                                  onChange={handleOnchange}/>
                     <AppButton size={ButtonSize.Medium} className="w-full " type="submit"
-                               disabled={isErrorOnWorkspaceNameField}>
+                               disabled={!formData.title || !formData.workspaceName}>
                         {t(onBoarding.addNowButton)}
                     </AppButton>
                 </form>
