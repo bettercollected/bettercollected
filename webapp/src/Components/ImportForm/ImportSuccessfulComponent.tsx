@@ -127,7 +127,7 @@ export default function ImportSuccessfulComponent() {
                         <span>Form Link</span>
                         <SavingIndicator saving={saving} saved={saved} error={isError} />
                     </div>
-                    <div className="flex gap-4 items-center flex-wrap break-words">
+                    <div className="flex gap-4 items-start flex-col break-words">
                         <span className="break-words max-w-full">
                             {environments.HTTP_SCHEME}
                             {environments.CLIENT_DOMAIN}/{workspace.workspaceName}/
@@ -142,13 +142,13 @@ export default function ImportSuccessfulComponent() {
                                     }}
                                     onFocus={(event) => {
                                         const editableDiv = event.target;
-                                        var range = document.createRange();
+                                        let range = document.createRange();
 
                                         // Select the entire content of the editable div
                                         range.selectNodeContents(editableDiv);
 
                                         // Create a selection object
-                                        var selection = window.getSelection();
+                                        let selection = window.getSelection();
 
                                         // Remove any existing selections
                                         selection?.removeAllRanges();
@@ -158,7 +158,7 @@ export default function ImportSuccessfulComponent() {
                                     }}
                                     html={customSlug}
                                     tagName="span"
-                                    className="text-black-500 !break-words outline-none underline"
+                                    className=" focus:text-black-500 active:text-black-500 text-black-800 !break-words outline-none underline"
                                     onChange={handleOnchange}
                                 />
                             ) : (
