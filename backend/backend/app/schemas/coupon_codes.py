@@ -15,7 +15,7 @@ class CouponCodeDocument(MongoDocument):
     code: Indexed(CouponCode, unique=True)
     status: CouponStatus = CouponStatus.ACTIVE
     used_by: Optional[EmailStr]
-    activated_at: Optional[dt.date]
+    activated_at: Optional[dt.datetime]
 
     class Settings:
         name = "coupon_codes"
