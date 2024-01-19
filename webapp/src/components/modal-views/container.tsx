@@ -7,6 +7,7 @@ import AddActionToFormModal from '@Components/Modals/DialogModals/AddActionToFor
 import ExportResponsesModal from '@Components/Modals/DialogModals/ExportResponsesModal';
 import ImportFormModal from '@Components/Modals/DialogModals/ImportFormModal';
 import OauthErrorModal from '@Components/Modals/DialogModals/OauthErrorModal';
+import RedeemCouponCodeModal from '@Components/Modals/DialogModals/RedeemCouponCodeModal';
 import UpdateCustomDomainModal from '@Components/Modals/DialogModals/UpdateCustomDomainModal';
 import UpdateWorkspaceHandle from '@Components/Modals/DialogModals/UpdateWorkspaceHandle';
 
@@ -47,9 +48,12 @@ import EditWorkspaceModal from './modals/edit-workspace-modal';
 import FormBuilderSpotlightModal from './modals/form-builder-spotlight-modal';
 import FormBuilderTipsModalView from './modals/form-builder-tips-modal-view';
 import VisibilityConfirmationModalView from './modals/visibility-confirmation-modal-view';
+import GenerateQRModalView from "@app/components/modal-views/modals/GenrateQRModalView";
 
 function renderModalContent(view: MODAL_VIEW, modalProps: any) {
     switch (view) {
+        case 'REDEEM_CODE_MODAL':
+            return <RedeemCouponCodeModal {...modalProps} />;
         case 'ADD_FORM_GROUP':
             return <AddFormOnGroup {...modalProps} />;
         case 'ADD_GROUP_FORM':
@@ -122,6 +126,8 @@ function renderModalContent(view: MODAL_VIEW, modalProps: any) {
             return <ExportResponsesModal {...modalProps} />;
         case 'OAUTH_ERROR_VIEW':
             return <OauthErrorModal {...modalProps} />;
+        case 'GENERATE_QR':
+            return <GenerateQRModalView {...modalProps}/>
         default:
             return <></>;
     }

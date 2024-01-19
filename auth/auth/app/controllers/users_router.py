@@ -2,7 +2,7 @@ from http import HTTPStatus
 from typing import List
 
 from beanie import PydanticObjectId
-from classy_fastapi import Routable, get, delete
+from classy_fastapi import Routable, get, delete, patch
 from fastapi import Query
 from pydantic import EmailStr
 from starlette.background import BackgroundTasks
@@ -10,13 +10,14 @@ from starlette.background import BackgroundTasks
 from auth.app.container import container
 from auth.app.exceptions import HTTPException
 from auth.app.router import router
+from auth.app.services.user_service import UserService
 
 
 @router(prefix="/users", tags=["Users"])
 class UserRouter(Routable):
     def __init__(self, user_service=container.user_service(), *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.user_service = user_service
+        self.user_service: UserService = user_service
 
     @get("")
     async def get_details_of_users_with_ids(
@@ -63,3 +64,7 @@ class UserRouter(Routable):
     async def delete_user(self, user_id: PydanticObjectId):
         await self.user_service.delete_user(user_id=user_id)
         return "User deleted"
+
+    @patch("/{user_id}/upgrade")
+    async def upgrade_user_to_pro(self, user_id: PydanticObjectId):
+        return await self.user_service.upgrade_user_to_pro(user_id=user_id)

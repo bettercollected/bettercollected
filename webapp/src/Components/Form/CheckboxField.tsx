@@ -49,7 +49,7 @@ export default function CheckboxField({ field, ans, enabled }: FormFieldProps) {
                         checked={!!ans?.choices?.values?.includes(choice?.id) || !!answerChoices?.includes(choice?.id) || !!ans?.choices?.values?.includes(choice?.value) || !!answerChoices?.includes(choice?.value)}
                         onClick={() => handleSelectChoice(choice)}
                     />
-                    <label htmlFor={choice?.value} className="!ml-2 body4">
+                    <label htmlFor={choice?.id} className="!ml-2 body4">
                         {choice?.value}
                     </label>
                 </div>
