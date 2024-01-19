@@ -44,7 +44,7 @@ function WorkspaceMenuDropdown({ fullWidth }: IWorkspaceMenuDropdownProps) {
 
     const { t } = useTranslation();
     const handleChangeWorkspace = (space: WorkspaceDto) => {
-        if (!space?.disabled) router.push(`/${space.workspaceName}/dashboard`);
+        if (!space?.disabled) router.push(`/${space.workspaceName}/dashboard/forms`);
     };
     const auth = useAppSelector(selectAuthStatus);
 
