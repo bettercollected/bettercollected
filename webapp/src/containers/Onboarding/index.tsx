@@ -1,4 +1,4 @@
-import React, {FormEvent, useEffect, useState} from 'react';
+import React, {FormEvent, useState} from 'react';
 
 import {useTranslation} from 'next-i18next';
 import {useRouter} from 'next/router';
@@ -10,9 +10,7 @@ import UploadLogo from '@Components/Common/UploadLogo';
 import {toast} from 'react-toastify';
 
 import AuthNavbar from '@app/components/auth/navbar';
-import {InfoIcon} from '@app/components/icons/info-icon';
 import TextFieldHandler from '@app/components/onboarding/TextFieldHandler';
-import environments from '@app/configs/environments';
 import {onBoarding} from '@app/constants/locales/onboarding-screen';
 import {toastMessage} from '@app/constants/locales/toast-message';
 import {ToastId} from '@app/constants/toastId';
@@ -20,11 +18,7 @@ import {UserStatus} from '@app/models/dtos/UserStatus';
 import {WorkspaceDto} from '@app/models/dtos/workspaceDto';
 import {selectAuth} from '@app/store/auth/slice';
 import {useAppDispatch, useAppSelector} from '@app/store/hooks';
-import {
-    useCreateWorkspaceMutation,
-    useLazyGetWorkspaceNameSuggestionsQuery,
-    usePatchExistingWorkspaceMutation
-} from '@app/store/workspaces/api';
+import {useCreateWorkspaceMutation, usePatchExistingWorkspaceMutation} from '@app/store/workspaces/api';
 import {setWorkspace} from '@app/store/workspaces/slice';
 
 interface onBoardingProps {

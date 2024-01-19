@@ -28,7 +28,7 @@ interface ITextFieldHandler {
 
 const TextFieldHandler = ({formData, setFormData, handleOnChange, createWorkspace}: ITextFieldHandler) => {
     const [getWorkspaceAvailability] = useLazyGetWorkspaceNameAvailabilityQuery();
-    const [trigger] = useLazyGetWorkspaceNameSuggestionsQuery();
+    const [trigger, {data}] = useLazyGetWorkspaceNameSuggestionsQuery();
     const {t} = useTranslation();
     const workspace = useAppSelector(selectWorkspace);
 
@@ -77,29 +77,33 @@ const TextFieldHandler = ({formData, setFormData, handleOnChange, createWorkspac
             getAvailabilityStatusOfWorkspaceName(workspaceName).then((availability) => {
                 if (!availability) {
                     fetchSuggestionsForWorkspaceHandle(formData.title).then((suggestion) => {
-                        workspaceName = suggestion;
+                        setFormData({
+                            ...formData,
+                            workspaceName: suggestion
+                        });
                     });
                 }
             });
-            setFormData({
-                ...formData,
-                workspaceName: workspaceName
+        } else {
+            fetchSuggestionsForWorkspaceHandle(formData.title.toLowerCase()).then((suggestion) => {
+                setFormData({
+                    ...formData,
+                    workspaceName: suggestion
+                });
             });
         }
     }, []);
 
     useEffect(() => {
-        const inputText = formData.workspaceName;
-        if (!inputText) {
-            setErrorMessage(t(onBoarding.fillHandleName));
-        } else if (inputText.includes(' ')) {
-            setErrorMessage(t(onBoarding.spaceNotAllowed));
-        } else if (!inputText.match(/^[a-zA-Z0-9_]+$/)) {
-            setErrorMessage(t(onBoarding.allowedCharacters));
-        } else {
-            checkWorkspaceNameAvailability(inputText.toLowerCase());
+        if(formData.workspaceName){
+            if (formData.workspaceName.includes(' ')) {
+                setErrorMessage(t(onBoarding.spaceNotAllowed));
+            } else if (!formData.workspaceName.match(/^[a-zA-Z0-9_]+$/)) {
+                setErrorMessage(t(onBoarding.allowedCharacters));
+            } else {
+                checkWorkspaceNameAvailability(formData.workspaceName.toLowerCase());
+            }
         }
-        fetchSuggestionsForWorkspaceHandle(formData.title)
     }, [formData.workspaceName]);
 
     const fetchSuggestionsForWorkspaceHandle = async (text: string) => {
@@ -110,9 +114,13 @@ const TextFieldHandler = ({formData, setFormData, handleOnChange, createWorkspac
             };
             const {isSuccess, data} = await trigger(request);
             if (isSuccess) {
-                const suggestion = data[Math.floor(Math.random() * 4) + 1];
-                setWorkspaceNameSuggestion(suggestion);
-                return suggestion;
+                if (data.includes(text)) {
+                    return text
+                } else {
+                    const suggestion = data[Math.floor(Math.random() * 4) + 1];
+                    setWorkspaceNameSuggestion(suggestion);
+                    return suggestion;
+                }
             }
         }
     };
@@ -120,11 +128,12 @@ const TextFieldHandler = ({formData, setFormData, handleOnChange, createWorkspac
     return (
         <div>
             <AppTextField required title="Handle Name" id="workspaceName" placeholder="Enter workspace handle name"
-                          value={formData.workspaceName.toLowerCase()} onChange={handleOnChange}
+                          value={formData.workspaceName?.toLowerCase()} onChange={handleOnChange}
                           isError={!!errorMessage && !!formData.workspaceName}>
                 <AppTextField.Description>
                     {t(onBoarding.useSmallCase)} (eg: abc) <br/>
-                    https://{environments.CLIENT_DOMAIN}/<span className="text-pink-500">{formData.workspaceName}</span>
+                    https://{environments.CLIENT_DOMAIN}/<span
+                    className="text-pink-500">{formData.workspaceName?.toLowerCase()}</span>
                 </AppTextField.Description>
             </AppTextField>
             {errorMessage && formData.workspaceName && (
