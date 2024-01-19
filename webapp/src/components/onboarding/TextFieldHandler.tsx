@@ -95,11 +95,13 @@ const TextFieldHandler = ({formData, setFormData, handleOnChange, createWorkspac
     }, []);
 
     useEffect(() => {
-        if(formData.workspaceName){
+        if (formData.workspaceName) {
             if (formData.workspaceName.includes(' ')) {
                 setErrorMessage(t(onBoarding.spaceNotAllowed));
+                fetchSuggestionsForWorkspaceHandle(formData.title)
             } else if (!formData.workspaceName.match(/^[a-zA-Z0-9_]+$/)) {
                 setErrorMessage(t(onBoarding.allowedCharacters));
+                fetchSuggestionsForWorkspaceHandle(formData.title)
             } else {
                 checkWorkspaceNameAvailability(formData.workspaceName.toLowerCase());
             }
