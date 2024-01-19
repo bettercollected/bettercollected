@@ -5,8 +5,8 @@ import Image from 'next/image';
 
 import { debounce } from 'lodash';
 
+import CircularCheck from '@Components/Common/Icons/Common/CircularCheck';
 import CopyIcon from '@Components/Common/Icons/Common/Copy';
-import GreenCircularCheck from '@Components/Common/Icons/Common/GreenCircularCheck';
 import ProLogo from '@Components/Common/Icons/Common/ProLogo';
 import AppButton from '@Components/Common/Input/Button/AppButton';
 import { ButtonSize, ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
@@ -115,7 +115,7 @@ export default function ImportSuccessfulComponent() {
 
     return (
         <div className="lg:px-12 lg:pt-10 pb-5 px-5 pt-5 lg:w-[867px] flex flex-col items-center w-full">
-            <GreenCircularCheck />
+            <CircularCheck />
             <div className="h3-new mt-2 mb-6"> Form Imported Successfully</div>
             <div className="rounded-lg border-black-300 w-full broder border-[1px] p-6">
                 <div className="flex gap-2 items-center w-full border-b borber-b-[1px] pb-4 border-black-300">
@@ -127,7 +127,7 @@ export default function ImportSuccessfulComponent() {
                         <span>Form Link</span>
                         <SavingIndicator saving={saving} saved={saved} error={isError} />
                     </div>
-                    <div className="flex gap-4 items-center flex-wrap break-words">
+                    <div className="flex gap-4 items-start flex-col break-words">
                         <span className="break-words max-w-full">
                             {environments.HTTP_SCHEME}
                             {environments.CLIENT_DOMAIN}/{workspace.workspaceName}/
@@ -142,13 +142,13 @@ export default function ImportSuccessfulComponent() {
                                     }}
                                     onFocus={(event) => {
                                         const editableDiv = event.target;
-                                        var range = document.createRange();
+                                        let range = document.createRange();
 
                                         // Select the entire content of the editable div
                                         range.selectNodeContents(editableDiv);
 
                                         // Create a selection object
-                                        var selection = window.getSelection();
+                                        let selection = window.getSelection();
 
                                         // Remove any existing selections
                                         selection?.removeAllRanges();
@@ -158,7 +158,7 @@ export default function ImportSuccessfulComponent() {
                                     }}
                                     html={customSlug}
                                     tagName="span"
-                                    className="text-black-500 !break-words outline-none underline"
+                                    className=" focus:text-black-500 active:text-black-500 text-black-800 !break-words outline-none underline"
                                     onChange={handleOnchange}
                                 />
                             ) : (

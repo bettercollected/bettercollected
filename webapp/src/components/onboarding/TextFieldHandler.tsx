@@ -15,68 +15,49 @@ import {
     useLazyGetWorkspaceNameSuggestionsQuery
 } from '@app/store/workspaces/api';
 import {selectWorkspace} from '@app/store/workspaces/slice';
+import {checkIfPredefinedWorkspaceName} from '@app/utils/workspaceNameUtils';
 
 import {InfoIcon} from '../icons/info-icon';
-import {checkIfPredefinedWorkspaceName} from "@app/utils/workspaceNameUtils";
 
 interface ITextFieldHandler {
     formData: FormDataDto;
     setFormData: any;
-    errorWorkspaceName: boolean;
-    setIsErrorOnTextField: any;
+    handleOnChange: any;
+    createWorkspace?: boolean
 }
 
-const TextFieldHandler = ({
-                              formData,
-                              setFormData,
-                              errorWorkspaceName,
-                              setIsErrorOnTextField
-                          }: ITextFieldHandler) => {
-    const [getWorkspaceAvailability, {isLoading: isCheckingHandleName}] = useLazyGetWorkspaceNameAvailabilityQuery();
-    const [trigger] = useLazyGetWorkspaceNameSuggestionsQuery();
+const TextFieldHandler = ({formData, setFormData, handleOnChange, createWorkspace}: ITextFieldHandler) => {
+    const [getWorkspaceAvailability] = useLazyGetWorkspaceNameAvailabilityQuery();
+    const [trigger, {data}] = useLazyGetWorkspaceNameSuggestionsQuery();
     const {t} = useTranslation();
     const workspace = useAppSelector(selectWorkspace);
 
-    useEffect(() => {
-        if (errorWorkspaceName) {
-            setIsErrorWorkspaceName(true);
-            setErrorMessage(t(onBoarding.fillHandleName));
-        } else {
-            setIsErrorWorkspaceName(false);
-        }
-    }, [errorWorkspaceName]);
-
-    const [isErrorWorkspaceName, setIsErrorWorkspaceName] = useState(false);
     const [errorMessage, setErrorMessage] = useState('');
     const [workspaceNameSuggestion, setWorkspaceNameSuggestion] = useState<string>('');
-    const [handleName, setHandleName] = useState(formData.title);
-
-    useEffect(() => {
-        setIsErrorOnTextField(isErrorWorkspaceName)
-    }, [isErrorWorkspaceName]);
 
     async function getAvailability(value: string) {
         const availability = await getAvailabilityStatusOfWorkspaceName(value);
         if (!availability) {
-            setIsErrorWorkspaceName(true);
             if (checkIfPredefinedWorkspaceName(value)) {
                 setErrorMessage('It is predefined name. Please take another name.');
             } else {
                 setErrorMessage('Handle name already taken. Try another.');
-
             }
+            fetchSuggestionsForWorkspaceHandle(formData.title)
+        } else {
+            setErrorMessage('');
         }
     }
 
-    const checkWorkspacename = useCallback(
+    const checkWorkspaceNameAvailability = useCallback(
         _.debounce((value: string) => getAvailability(value), 200),
         []
     );
 
     const getAvailabilityStatusOfWorkspaceName = async (workspace_name: string | null) => {
-        if (checkIfPredefinedWorkspaceName(workspace_name)) return;
+        if (checkIfPredefinedWorkspaceName(workspace_name)) return false;
         const request = {
-            workspaceId: workspace.id,
+            workspaceId: createWorkspace ? '' : workspace.id,
             title: workspace_name
         };
         const {isSuccess, data} = await getWorkspaceAvailability(request);
@@ -91,89 +72,73 @@ const TextFieldHandler = ({
     };
 
     useEffect(() => {
-        const title = formData.title
-            .replace(/\s/g, '')
-            .replace(/[^a-zA-Z0-9]/g, '')
-            .toLowerCase();
-        getAvailabilityStatusOfWorkspaceName(title).then((availability) => {
-            if (!availability) {
-                fetchSuggestionsForWorkspaceHandle(title).then((suggestion) =>
-                    setHandleName(suggestion)
-                )
-            } else {
-                setHandleName(title);
-            }
-        })
-        setFormData({
-            ...formData,
-            workspaceName: title
-        });
+        let workspaceName = formData.workspaceName;
+        if (workspaceName) {
+            getAvailabilityStatusOfWorkspaceName(workspaceName).then((availability) => {
+                if (!availability) {
+                    fetchSuggestionsForWorkspaceHandle(formData.title).then((suggestion) => {
+                        setFormData({
+                            ...formData,
+                            workspaceName: suggestion
+                        });
+                    });
+                }
+            });
+        } else {
+            fetchSuggestionsForWorkspaceHandle(formData.title.toLowerCase()).then((suggestion) => {
+                setFormData({
+                    ...formData,
+                    workspaceName: suggestion
+                });
+            });
+        }
     }, []);
 
     useEffect(() => {
-        formData.workspaceName && setHandleName(formData.workspaceName);
-    }, [formData.workspaceName]);
-
-    const handleOnchange = (e: any) => {
-        const inputText = e.target.value;
-        if (e.target.id === 'workspaceName') {
-            if (!inputText) {
-                setIsErrorWorkspaceName(true);
-                setErrorMessage(t(onBoarding.fillHandleName));
-            } else if (inputText.includes(' ')) {
-                setIsErrorWorkspaceName(true);
+        if (formData.workspaceName) {
+            if (formData.workspaceName.includes(' ')) {
                 setErrorMessage(t(onBoarding.spaceNotAllowed));
-            } else if (!inputText.match(/^[a-zA-Z0-9_]+$/)) {
-                setIsErrorWorkspaceName(true);
+                fetchSuggestionsForWorkspaceHandle(formData.title)
+            } else if (!formData.workspaceName.match(/^[a-zA-Z0-9_]+$/)) {
                 setErrorMessage(t(onBoarding.allowedCharacters));
+                fetchSuggestionsForWorkspaceHandle(formData.title)
             } else {
-                setIsErrorWorkspaceName(false);
-                checkWorkspacename(inputText.toLowerCase());
+                checkWorkspaceNameAvailability(formData.workspaceName.toLowerCase());
             }
         }
-        setFormData({
-            ...formData,
-            workspaceName: inputText.toLowerCase()
-        });
-        setHandleName(inputText.toLowerCase());
-    };
+    }, [formData.workspaceName]);
 
     const fetchSuggestionsForWorkspaceHandle = async (text: string) => {
         if (!!text) {
             const request = {
-                workspaceId: workspace?.id,
+                workspaceId: createWorkspace ? '' : workspace?.id,
                 title: text.toLowerCase()
             };
             const {isSuccess, data} = await trigger(request);
             if (isSuccess) {
-                const suggestion = data[Math.floor(Math.random() * 4) + 1];
-                setWorkspaceNameSuggestion(suggestion);
-                return suggestion;
+                if (data.includes(text)) {
+                    return text
+                } else {
+                    const suggestion = data[Math.floor(Math.random() * 4) + 1];
+                    setWorkspaceNameSuggestion(suggestion);
+                    return suggestion;
+                }
             }
         }
-        fetchSuggestionsForWorkspaceHandle(formData.title)
-        return;
     };
-
-    useEffect(() => {
-        if (isErrorWorkspaceName) {
-            fetchSuggestionsForWorkspaceHandle(handleName)
-        }
-    }, [isErrorWorkspaceName]);
 
     return (
         <div>
-            <AppTextField title="Handle Name" id="workspaceName" placeholder="Enter workspace handle name"
-                          value={handleName} onChange={handleOnchange} isError={isErrorWorkspaceName}>
+            <AppTextField required title="Handle Name" id="workspaceName" placeholder="Enter workspace handle name"
+                          value={formData.workspaceName?.toLowerCase()} onChange={handleOnChange}
+                          isError={!!errorMessage && !!formData.workspaceName}>
                 <AppTextField.Description>
                     {t(onBoarding.useSmallCase)} (eg: abc) <br/>
-                    https://{environments.CLIENT_DOMAIN}/<span className="text-pink-500">{handleName}</span>
+                    https://{environments.CLIENT_DOMAIN}/<span
+                    className="text-pink-500">{formData.workspaceName?.toLowerCase()}</span>
                 </AppTextField.Description>
             </AppTextField>
-
-            {!isErrorWorkspaceName ? (
-                <></>
-            ) : (
+            {errorMessage && formData.workspaceName && (
                 <>
                     <div className={'text-red-600 text-xs md:text-sm !mt-2 flex items-center gap-2'}>
                         <InfoIcon className="w-4 h-4"/>
@@ -186,7 +151,6 @@ const TextFieldHandler = ({
                                 className={'text-sm font-semibold text-blue-500 cursor-pointer'}
                                 onClick={() => {
                                     setWorkspaceSuggestionToWorkspaceNameField(workspaceNameSuggestion);
-                                    setIsErrorWorkspaceName(false);
                                 }}
                             >
                                 {` ${workspaceNameSuggestion}`}

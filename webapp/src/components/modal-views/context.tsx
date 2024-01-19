@@ -44,7 +44,9 @@ export type MODAL_VIEW =
     | 'DELETE_TEMPLATE_CONFIRMATION_MODAL_VIEW'
     | 'IMPORT_TEMPLATE_MODAL_VIEW'
     | 'ADD_ACTION_TO_FORM'
-    | 'EXPORT_RESPONSES';
+    | 'REDEEM_CODE_MODAL'
+    | 'EXPORT_RESPONSES'
+    | 'GENERATE_QR';
 
 const modalAtom: PrimitiveAtom<{
     isOpen: boolean;

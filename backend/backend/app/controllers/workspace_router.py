@@ -42,13 +42,13 @@ class WorkspaceRouter(Routable):
         },
     )
     async def _get_workspace_by_query(
-        self,
-        workspace_name: Optional[str] = None,
-        custom_domain: Optional[str] = None,
-        user: User = Depends(get_user_if_logged_in),
+            self,
+            workspace_name: Optional[str] = None,
+            custom_domain: Optional[str] = None,
+            user: User = Depends(get_user_if_logged_in),
     ):
         if (workspace_name and custom_domain) or (
-            not workspace_name and not custom_domain
+                not workspace_name and not custom_domain
         ):
             raise HTTPException(
                 HTTPStatus.UNPROCESSABLE_ENTITY, "Provide only one query"
@@ -60,13 +60,13 @@ class WorkspaceRouter(Routable):
         "",
     )
     async def _create_workspace(
-        self,
-        title=Form(None),
-        description=Form(None),
-        workspace_name=Form(None),
-        profile_image: UploadFile = None,
-        banner_image: UploadFile = None,
-        user: User = Depends(get_logged_user),
+            self,
+            title=Form(None),
+            description=Form(None),
+            workspace_name=Form(None),
+            profile_image: UploadFile = None,
+            banner_image: UploadFile = None,
+            user: User = Depends(get_logged_user),
     ):
         return await self.workspace_service.create_non_default_workspace(
             title=title,
@@ -81,7 +81,7 @@ class WorkspaceRouter(Routable):
         "/mine",
     )
     async def _get_mine_workspaces(
-        self, user: User = Depends(get_logged_user)
+            self, user: User = Depends(get_logged_user)
     ) -> List[WorkspaceResponseDto]:
         workspaces = await self.workspace_service.get_mine_workspaces(user)
         return workspaces
@@ -95,28 +95,28 @@ class WorkspaceRouter(Routable):
         )
 
     @get(
-        "/{workspace_id}/check-handle-availability/{workspace_name}",
+        "/check-handle-availability/{workspace_name}",
         response_model=str,
     )
     async def check_handle_availability(
-        self,
-        workspace_name: str,
-        workspace_id: PydanticObjectId,
-        user: User = Depends(get_user_if_logged_in),
+            self,
+            workspace_name: str,
+            workspace_id: PydanticObjectId = None,
+            user: User = Depends(get_user_if_logged_in),
     ):
         return await self.workspace_service.check_if_workspace_handle_is_unique(
             workspace_name, workspace_id
         )
 
     @get(
-        "/{workspace_id}/suggest-handle/{workspace_name}",
+        "/suggest-handle/{workspace_name}",
         response_model=List[str],
     )
     async def suggest_handles(
-        self,
-        workspace_name: str,
-        workspace_id: PydanticObjectId,
-        user: User = Depends(get_user_if_logged_in),
+            self,
+            workspace_name: str,
+            workspace_id: PydanticObjectId = None,
+            user: User = Depends(get_user_if_logged_in),
     ):
         suggestion_list = (
             await self.workspace_service.generateUniqueNamesFromTheWorkspaceHandle(
@@ -129,16 +129,16 @@ class WorkspaceRouter(Routable):
         "/{workspace_id}",
     )
     async def patch_workspace(
-        self,
-        workspace_id: PydanticObjectId,
-        profile_image: UploadFile = None,
-        banner_image: UploadFile = None,
-        title: Optional[str] = Form(None),
-        workspace_name: Optional[str] = Form(None),
-        description: Optional[str] = Form(None),
-        custom_domain: Optional[str] = Form(None),
-        owner_id: Optional[str] = Form(None),
-        user: User = Depends(get_logged_user),
+            self,
+            workspace_id: PydanticObjectId,
+            profile_image: UploadFile = None,
+            banner_image: UploadFile = None,
+            title: Optional[str] = Form(None),
+            workspace_name: Optional[str] = Form(None),
+            description: Optional[str] = Form(None),
+            custom_domain: Optional[str] = Form(None),
+            owner_id: Optional[str] = Form(None),
+            user: User = Depends(get_logged_user),
     ) -> WorkspaceResponseDto:
         workspace_request = WorkspaceRequestDtoCamel(
             title=title,
@@ -153,9 +153,9 @@ class WorkspaceRouter(Routable):
 
     @post("/{workspace_id}/auth/otp/send")
     async def send_otp_for_workspace(
-        self,
-        workspace_id: PydanticObjectId,
-        receiver_email: EmailStr,
+            self,
+            workspace_id: PydanticObjectId,
+            receiver_email: EmailStr,
     ):
         return await self.workspace_service.send_otp_for_workspace(
             workspace_id, receiver_email
@@ -165,7 +165,7 @@ class WorkspaceRouter(Routable):
         "/{workspace_id}/custom-domain",
     )
     async def delete_custom_domain_of_workspace(
-        self, workspace_id: PydanticObjectId, user: User = Depends(get_logged_user)
+            self, workspace_id: PydanticObjectId, user: User = Depends(get_logged_user)
     ):
         return await self.workspace_service.delete_custom_domain_of_workspace(
             workspace_id=workspace_id, user=user
@@ -176,6 +176,6 @@ class WorkspaceRouter(Routable):
         response_model=WorkspaceStatsDto,
     )
     async def get_workspace_stats(
-        self, workspace_id: PydanticObjectId, user: User = Depends(get_logged_user)
+            self, workspace_id: PydanticObjectId, user: User = Depends(get_logged_user)
     ):
         return await self.workspace_service.get_workspace_stats(workspace_id, user)

@@ -125,7 +125,13 @@ class OauthCredentialService:
             verification_response: ClientResponse = await AiohttpClient.get(url)
             response = await verification_response.json()
             if not all(scope in response.get("scope") for scope in settings.GOOGLE_SCOPES.split()):
-                raise HTTPException(status_code=HTTPStatus.FORBIDDEN, content="Add scopes are not authorized")
+                unauthorized_scopes = [scope for scope in settings.GOOGLE_SCOPES.split() if
+                                       scope not in response.get("scope")]
+                raise HTTPException(
+                    status_code=HTTPStatus.FORBIDDEN,
+                    content=
+                    {"error": "Add scopes are not authorized", "unauthorizedScopes": unauthorized_scopes})
+
             return credential.credentials.token
         except HttpError:
             raise HTTPException(
