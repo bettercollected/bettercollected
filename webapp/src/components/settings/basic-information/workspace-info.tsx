@@ -33,6 +33,7 @@ export default function WorkspaceInfo({ workspace }: any) {
         if (e.target.name === 'title') {
             setWorkspaceInfo({ ...workspaceInfo, title: e.target.value });
         } else if (e.target.name === 'description') {
+            if (e.target.value.length >= 280) return;
             setWorkspaceInfo({ ...workspaceInfo, description: e.target.value });
         }
     };
