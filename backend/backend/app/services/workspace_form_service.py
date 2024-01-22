@@ -1,7 +1,4 @@
-import csv
 import os
-import re
-from itertools import chain
 from http import HTTPStatus
 from typing import List
 
@@ -10,7 +7,7 @@ from beanie import PydanticObjectId
 from common.constants import MESSAGE_NOT_FOUND
 from common.enums.plan import Plans
 from common.models.form_import import FormImportRequestBody
-from common.models.standard_form import StandardForm, StandardFormResponse, Trigger, StandardFormFieldType
+from common.models.standard_form import StandardForm, StandardFormResponse, Trigger
 from common.models.user import User
 from fastapi import UploadFile
 from starlette.requests import Request
@@ -124,20 +121,23 @@ class WorkspaceFormService:
             if standard_form.settings and standard_form.settings.embed_url
             else ""
         )
-        workspace_form = await self.workspace_form_repository.save_workspace_form(
-            workspace_id=workspace_id,
-            form_id=standard_form.form_id,
-            user_id=user.id,
-            workspace_form_settings=WorkspaceFormSettings(
-                custom_url=standard_form.form_id,
-                embed_url=embed_url,
-                response_data_owner_field=form_import.response_data_owner,
-                # TODO : Refactor repeated information provider is only saved on form
-                #  as it doesn't change with workspaces
-                provider=standard_form.settings.provider,
-                private=not standard_form.settings.is_public,
-            ),
-        )
+        workspace_form = await self.workspace_form_repository.get_workspace_form_with_custom_slug_form_id(
+            workspace_id=workspace_id, custom_url=standard_form.form_id)
+        if not workspace_form:
+            workspace_form = await self.workspace_form_repository.save_workspace_form(
+                workspace_id=workspace_id,
+                form_id=standard_form.form_id,
+                user_id=user.id,
+                workspace_form_settings=WorkspaceFormSettings(
+                    custom_url=standard_form.form_id,
+                    embed_url=embed_url,
+                    response_data_owner_field=form_import.response_data_owner,
+                    # TODO : Refactor repeated information provider is only saved on form
+                    #  as it doesn't change with workspaces
+                    provider=standard_form.settings.provider,
+                    private=not standard_form.settings.is_public,
+                ),
+            )
         await self.temporal_service.add_scheduled_job_for_importing_form(
             workspace_id=workspace_id, form_id=standard_form.form_id
         )
