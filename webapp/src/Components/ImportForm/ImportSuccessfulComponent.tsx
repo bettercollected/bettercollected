@@ -50,6 +50,7 @@ export default function ImportSuccessfulComponent() {
     const [customSlug, setCustomSlug] = useState(form?.settings?.customUrl || '');
 
     const [isError, setIsError] = useState(false);
+    const [errorMessage, setErrorMessage] = useState('');
 
     const [patchFormSettings] = usePatchFormSettingsMutation();
 
@@ -68,6 +69,7 @@ export default function ImportSuccessfulComponent() {
         const plainText = e?.currentTarget?.textContent || '';
         if (!plainText.match(slugRegex)) {
             setIsError(true);
+            setErrorMessage('Avoid using spaces or special characters. Only “-” and “_” is accepted.');
         } else {
             setSaving(true);
         }
@@ -87,13 +89,19 @@ export default function ImportSuccessfulComponent() {
             if (response.data) {
                 const settings: any = response.data.settings;
                 dispatch(setForm({ ...form, settings: settings }));
+                setErrorMessage('');
                 setSaved(true);
                 setSaving(false);
                 setTimeout(() => {
                     setSaved(false);
                 }, 1500);
             } else {
-                toast(t(toastMessage.formSettingUpdateError).toString(), { type: 'error' });
+                setIsError(true);
+                if (response.error?.status === 409) {
+                    setErrorMessage('Custom link already exists in workspace');
+                } else {
+                    toast(t(toastMessage.formSettingUpdateError).toString(), { type: 'error' });
+                }
                 return response.error;
             }
         }
@@ -102,6 +110,7 @@ export default function ImportSuccessfulComponent() {
     useEffect(() => {
         if (form?.settings?.customUrl === customSlug) {
             setSaving(false);
+            setErrorMessage('');
             setSaved(true);
             setTimeout(() => {
                 setSaved(false);
@@ -179,7 +188,7 @@ export default function ImportSuccessfulComponent() {
                             Copy
                         </AppButton>
                     </div>
-                    <div className="h-4">{isError && customSlug && <span className="p2-new text-red-500">Avoid using spaces or special characters. Only “-” and “_” is accepted.</span>}</div>
+                    <div className="h-4">{isError && customSlug && <span className="p2-new text-red-500">{errorMessage}</span>}</div>
                 </div>
                 <div className="mt-4 flex flex-col items-start">
                     <div className="h4-new mb-2 flex gap-2 items-center">
