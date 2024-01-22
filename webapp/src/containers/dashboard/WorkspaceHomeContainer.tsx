@@ -14,7 +14,6 @@ import WorkspaceFooter from '@app/components/layout/workspace-footer';
 import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
 import FullScreenLoader from '@app/components/ui/fullscreen-loader';
 import PublicWorkspaceTitleAndDescription from '@app/components/workspace/public-workspace-title-description';
-import environments from '@app/configs/environments';
 import { buttonConstant } from '@app/constants/locales/button';
 import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
 import { UserStatus } from '@app/models/dtos/UserStatus';
@@ -53,9 +52,10 @@ export default function WorkspaceHomeContainer({ isCustomDomain, showProTag = tr
         openModal('LOGIN_VIEW');
     };
 
-    const workspaceOptions = isCustomDomain && (
+    const workspaceOptions = (showExpandMore: boolean = false) => (
         <AuthAccountMenuDropdown
             isClientDomain={isCustomDomain}
+            showExpandMore={showExpandMore}
             menuContent={
                 <>
                     <AuthAccountProfileImage size={['xs', '2xs'].indexOf(screenSize) === -1 ? 36 : 28} image={user?.profileImage} name={getFullNameFromUser(user) ?? ''} />
@@ -75,21 +75,33 @@ export default function WorkspaceHomeContainer({ isCustomDomain, showProTag = tr
         <>
             {workspace?.bannerImage && (
                 <div className={`overflow-hidden w-full`}>
-                    <BannerImageComponent workspace={workspace} isFormCreator={false} className={'lg:!aspect-new-workspace-banner'} />
+                    <BannerImageComponent workspace={workspace} isFormCreator={false} className={'new-mobile-workspace-banner md:aspect-[8/1] lg:!aspect-new-workspace-banner'} />
                 </div>
             )}
             <div
                 className={`${
                     isWorkspacePreview ? 'px-5 pt-5 lg:px-10 lg:pt-10 xl:pt-20 xl:px-20' : 'pt-3 lg:pt-6  px-5 lg:px-10 xl:px-20'
-                } w-full z-100 relative shadow-overview  md:h-40 bg-white flex flex-col items-center sm:flex-row justify-between gap-6 `}
+                } w-full z-100 relative shadow-overview  md:min-h-40 bg-white flex flex-col items-center sm:items-start sm:flex-row justify-between gap-6 `}
             >
-                <div className="flex items-start gap-2 md:gap-4 ">
-                    <ProfileImageComponent className={`w-fit rounded`} workspace={workspace} isFormCreator={false} size={64} />
+                <div className="flex items-start flex-col md:flex-row gap-2 md:gap-4 ">
+                    <div className="flex justify-between w-full md:w-auto ">
+                        <ProfileImageComponent className={`w-fit rounded`} workspace={workspace} isFormCreator={false} size={72} />
+                        <div className="md:hidden">
+                            {isError && (
+                                <div className="">
+                                    <Button size="small" variant="contained" className="rounded body4 px-4 py-[13px] !leading-none !normal-case !text-white !bg-brand-500 hover:!bg-brand-600 shadow-none hover:shadow-none" onClick={handleCheckMyData}>
+                                        {t(buttonConstant.checkMyData)}
+                                    </Button>
+                                </div>
+                            )}
+                            {isSuccess && isCustomDomain && workspaceOptions(true)}
+                        </div>
+                    </div>
                     <div className="flex h-fit w-full ">
                         <PublicWorkspaceTitleAndDescription className={`max-w-[800px]`} isFormCreator={false} />
                     </div>
                 </div>
-                <div>
+                <div className="hidden md:flex">
                     {isError && (
                         <div className="">
                             <Button size="small" variant="contained" className="rounded body4 px-4 py-[13px] !leading-none !normal-case !text-white !bg-brand-500 hover:!bg-brand-600 shadow-none hover:shadow-none" onClick={handleCheckMyData}>
@@ -97,7 +109,7 @@ export default function WorkspaceHomeContainer({ isCustomDomain, showProTag = tr
                             </Button>
                         </div>
                     )}
-                    {isSuccess && isCustomDomain && workspaceOptions}
+                    {isSuccess && isCustomDomain && workspaceOptions()}
                 </div>
             </div>
             <div className={`h-full bg-black-100 ${!workspace?.isPro ? 'mb-8 lg:mb-0' : ''}`}>
