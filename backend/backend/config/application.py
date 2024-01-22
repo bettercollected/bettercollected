@@ -10,6 +10,7 @@ from backend.config.api_settings import ApiSettings
 from backend.config.apm_settings import APMSettings
 from backend.config.auth_settings import AuthSettings
 from backend.config.aws import AWSSettings
+from backend.config.coupon_code_settings import CouponCodeSettings
 from backend.config.database import MongoSettings
 from backend.config.events_webhook import EventsWebhook
 from backend.config.https_certificate import HttpsCertificateApiSettings
@@ -52,6 +53,7 @@ class Application(BaseSettings):
     default_workspace_settings: DefaultResourcesWorkspaceSettings = DefaultResourcesWorkspaceSettings()
     kafka_settings: KafkaSettings = KafkaSettings()
     event_webhook_settings: EventsWebhook = EventsWebhook()
+    coupon_settings: CouponCodeSettings = CouponCodeSettings()
     # All your additional application configuration should go either here or in
     # separate file in this submodule.
 

@@ -1,4 +1,5 @@
 import datetime
+from datetime import timedelta
 from http import HTTPStatus
 
 from common.enums.plan import Plans
@@ -13,6 +14,7 @@ from backend.app.schemas.coupon_codes import CouponCodeDocument
 from backend.app.services.auth_service import AuthService
 from backend.app.services.kafka_service import event_logger_service
 from backend.app.services.workspace_service import WorkspaceService
+from backend.config import settings
 
 
 class CouponService:
@@ -37,6 +39,11 @@ class CouponService:
         coupon_document = await self.coupon_repository.get_coupon_by_code(coupon_code=coupon_code)
         if coupon_document.status != CouponStatus.ACTIVE:
             raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, content="Invalid coupon code")
+        if coupon_document.created_at + timedelta(
+            days=settings.coupon_settings.EXPIRY_IN_DAYS) < datetime.datetime.utcnow():
+            coupon_document.status = CouponStatus.EXPIRED
+            await coupon_document.save()
+            raise HTTPException(status_code=HTTPStatus.GONE, content="Coupon Code has been expired")
         await self.auth_service.upgrade_user_to_pro(user=user)
         await self.workspace_service.upgrade_user_workspace(user_id=user.id)
         await event_logger_service.send_event(UserEventType.USER_UPGRADED_TO_PRO, user_id=user.id, email=user.sub)
