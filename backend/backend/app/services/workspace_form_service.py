@@ -1,4 +1,6 @@
 import os
+import random
+import re
 from http import HTTPStatus
 from typing import List
 
@@ -124,12 +126,25 @@ class WorkspaceFormService:
         workspace_form = await self.workspace_form_repository.get_workspace_form_with_custom_slug_form_id(
             workspace_id=workspace_id, custom_url=standard_form.form_id)
         if not workspace_form:
+            normalized_custom_slug = self.clean_and_normalize_string(standard_form.title)
+            existing_workspace_form = await self.workspace_form_repository.get_workspace_form_with_custom_slug_form_id(
+                workspace_id=workspace_id,
+                custom_url=normalized_custom_slug)
+            if existing_workspace_form:
+                while True:
+                    new_normalized_string = normalized_custom_slug + "-" + str(random.randint(0, 1000))
+                    existing_workspace_form = await self.workspace_form_repository.get_workspace_form_with_custom_slug_form_id(
+                        workspace_id=workspace_id, custom_url=new_normalized_string)
+                    if not existing_workspace_form:
+                        normalized_custom_slug = new_normalized_string
+                        break
+
             workspace_form = await self.workspace_form_repository.save_workspace_form(
                 workspace_id=workspace_id,
                 form_id=standard_form.form_id,
                 user_id=user.id,
                 workspace_form_settings=WorkspaceFormSettings(
-                    custom_url=standard_form.form_id,
+                    custom_url=normalized_custom_slug,
                     embed_url=embed_url,
                     response_data_owner_field=form_import.response_data_owner,
                     # TODO : Refactor repeated information provider is only saved on form
@@ -581,3 +596,21 @@ class WorkspaceFormService:
             form=form, responses=responses, user=user
         )
         return 'CSV sent as email successfully.'
+
+    def clean_and_normalize_string(self, input_string):
+        # Remove special characters, keep only alphanumeric and spaces
+        cleaned_string = re.sub('[^a-zA-Z0-9\s]', '', input_string)
+
+        # Replace multiple consecutive spaces with a single space
+        cleaned_string = re.sub('\s+', ' ', cleaned_string)
+
+        # Remove spaces at the beginning and end of the string
+        cleaned_string = cleaned_string.strip()
+
+        # Replace spaces with hyphens and reduce consecutive hyphens to a single hyphen
+        cleaned_string = re.sub(r'[^a-zA-Z0-9]+', '-', cleaned_string)
+
+        # Convert the string to lowercase
+        cleaned_string = cleaned_string.lower()
+
+        return cleaned_string
