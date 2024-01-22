@@ -27,13 +27,13 @@ class CouponController(Routable):
 
     @get("", response_model=List[CouponCodeDocument])
     async def get_all_coupon_codes(self, user: User = Depends(get_logged_admin)):
-        if not settings.api_settings.ENABLE_REDEEM_CODE:
+        if not settings.coupon_settings.ENABLED:
             raise HTTPException(status_code=HTTPStatus.SERVICE_UNAVAILABLE, content="Service not enabled")
         return await self.coupon_service.get_all_coupons()
 
     @post("/redeem/{coupon_code}")
     async def redeem_coupon(self, coupon_code: CouponCode, response: Response, user: User = Depends(get_logged_user)):
-        if not settings.api_settings.ENABLE_REDEEM_CODE:
+        if not settings.coupon_settings.ENABLED:
             raise HTTPException(status_code=HTTPStatus.SERVICE_UNAVAILABLE, content="Service not enabled")
         await self.coupon_service.redeem_coupon(coupon_code=coupon_code, user=user)
         user.plan = Plans.PRO
@@ -42,6 +42,6 @@ class CouponController(Routable):
 
     @post("")
     async def create_coupon_codes(self, count: int = 10, user: User = Depends(get_logged_admin)):
-        if not settings.api_settings.ENABLE_REDEEM_CODE:
+        if not settings.coupon_settings.ENABLED:
             raise HTTPException(status_code=HTTPStatus.SERVICE_UNAVAILABLE, content="Service not enabled")
         return await self.coupon_service.create_coupons(count=count)
