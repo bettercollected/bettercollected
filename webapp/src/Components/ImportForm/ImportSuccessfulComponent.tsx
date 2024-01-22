@@ -251,6 +251,7 @@ export default function ImportSuccessfulComponent() {
                 <AppButton
                     className="w-[200px]"
                     size={ButtonSize.Medium}
+                    disabled={isError}
                     onClick={() => {
                         closeModal();
                     }}
