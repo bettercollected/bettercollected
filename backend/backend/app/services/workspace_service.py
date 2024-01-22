@@ -255,8 +255,8 @@ class WorkspaceService:
         saved_workspace = await workspace_document.save()
         return WorkspaceResponseDto(**saved_workspace.dict())
 
-    async def generateUniqueNamesFromTheWorkspaceHandle(
-            self, workspace_name: str, workspace_id: Optional[PydanticObjectId]
+    async def generate_unique_names_from_the_workspace_handle(
+        self, workspace_name: str, workspace_id: Optional[PydanticObjectId]
     ):
         suggestions = []
         clean_workspace_name = re.sub(r"\W+", "", workspace_name)
