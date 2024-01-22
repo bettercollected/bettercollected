@@ -1,6 +1,7 @@
 import datetime
 from http import HTTPStatus
 
+from common.enums.plan import Plans
 from common.models.user import User
 
 from backend.app.exceptions import HTTPException
@@ -30,6 +31,9 @@ class CouponService:
         return await self.coupon_repository.get_all_coupons()
 
     async def redeem_coupon(self, coupon_code: CouponCode, user: User):
+
+        if user.plan == Plans.PRO:
+            raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, content="Already a PRO user")
         coupon_document = await self.coupon_repository.get_coupon_by_code(coupon_code=coupon_code)
         if coupon_document.status != CouponStatus.ACTIVE:
             raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, content="Invalid coupon code")
