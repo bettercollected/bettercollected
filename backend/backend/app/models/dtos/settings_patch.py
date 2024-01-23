@@ -12,3 +12,4 @@ class SettingsPatchDto(BaseModel):
     disableBranding: Optional[bool]
     hidden: Optional[bool] = False
     formCloseDate: Optional[datetime.datetime | str]
+    collectEmails: Optional[bool]
