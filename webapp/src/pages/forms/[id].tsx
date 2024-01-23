@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 
 import { useTranslation } from 'next-i18next';
 import { NextSeo } from 'next-seo';
@@ -52,6 +52,12 @@ export default function SingleFormPage(props: any) {
     const isFormClosed = !validateFormOpen(form?.settings?.formCloseDate);
 
     const showBranding = !workspace?.isPro || !form?.settings?.disableBranding;
+
+    useEffect(() => {
+        if (form?.settings?.provider && form.settings?.provider === 'google' && form?.fields && hasFileUpload(form?.fields)) {
+            router.push(form?.settings?.embedUrl || '');
+        }
+    }, [form]);
 
     if (data && isFormClosed)
         return (
@@ -133,6 +139,10 @@ export default function SingleFormPage(props: any) {
             .then((r) => r)
             .catch((e) => e);
     };
+
+    if (form?.settings?.provider && form.settings?.provider === 'google' && form?.fields && hasFileUpload(form?.fields)) {
+        return <FullScreenLoader />;
+    }
 
     // TODO: Update this component to be reusable
     if (form?.settings?.provider && form.settings?.provider === 'google' && form?.fields && hasFileUpload(form?.fields)) {
