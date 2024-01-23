@@ -238,7 +238,7 @@ export default function FormOptionsDropdownMenu({
             sx={{paddingX: '20px', paddingY: '10px', height: '36px'}}
             className="body4 hover:bg-brand-100"
             onClick={() => {
-                openModal('GENERATE_QR', {});
+                openModal('GENERATE_QR', {form});
             }}
         >
             <ListItemIcon>
