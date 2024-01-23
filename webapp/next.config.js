@@ -161,7 +161,10 @@ const nextConfig = {
         // Chatwoot
         CHATWOOT_ENABLE: process.env.CHATWOOT_ENABLE,
         CHATWOOT_DEPLOY_URL: process.env.CHATWOOT_DEPLOY_URL,
-        CHATWOOT_WEBSITE_TOKEN: process.env.CHATWOOT_WEBSITE_TOKEN
+        CHATWOOT_WEBSITE_TOKEN: process.env.CHATWOOT_WEBSITE_TOKEN,
+
+        // App Sumo
+        APP_SUMO_PRODUCT_URL: process.env.APP_SUMO_PRODUCT_URL
     }
 };
 

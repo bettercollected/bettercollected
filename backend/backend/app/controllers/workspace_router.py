@@ -119,7 +119,7 @@ class WorkspaceRouter(Routable):
             user: User = Depends(get_user_if_logged_in),
     ):
         suggestion_list = (
-            await self.workspace_service.generateUniqueNamesFromTheWorkspaceHandle(
+            await self.workspace_service.generate_unique_names_from_the_workspace_handle(
                 workspace_name, workspace_id
             )
         )

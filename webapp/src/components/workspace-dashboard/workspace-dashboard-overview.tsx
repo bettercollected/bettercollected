@@ -70,7 +70,7 @@ const WorkspaceDashboardOverview = ({ workspace }: IWorkspaceDashboardOverviewPr
                 <div className="flex gap-2 w-full justify-between items-start">
                     <div className="flex flex-col gap-4">
                         <div className="flex  items-center gap-4">
-                            <AuthAccountProfileImage name={reduxWorkspace?.title || 'Untitled'} size={72} image={reduxWorkspace?.profileImage} />
+                            <AuthAccountProfileImage name={reduxWorkspace?.title || 'Untitled'} typography="h2" size={72} image={reduxWorkspace?.profileImage} />
                             <div className="flex flex-col gap-2">
                                 <div className="h3-new">{reduxWorkspace?.title || 'Untitled'}</div>
                                 <div className="p2-new text-black-600 max-w-[200px] md:max-w-[300px] lg:max-w-[409px] line-clamp-2">{reduxWorkspace?.description || ''}</div>

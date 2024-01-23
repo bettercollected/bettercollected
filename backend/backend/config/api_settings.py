@@ -16,7 +16,6 @@ class ApiSettings(BaseSettings):
     ENABLE_EXPORT_CSV: bool = False
     CLIENT_URL = "http://localhost:3000"
     ENABLE_GOOGLE_PICKER_API: bool = False
-    ENABLE_REDEEM_CODE: bool = False
 
     class Config:
         env_prefix = "API_"
