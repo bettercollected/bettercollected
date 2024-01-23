@@ -55,6 +55,7 @@ export interface StandardFormDto {
         disableBranding: boolean;
         hidden: boolean;
         formCloseDate?: string;
+        collectEmails?: boolean;
     };
     isPublished?: boolean;
     importerDetails?: UserStatus;

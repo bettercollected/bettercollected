@@ -279,6 +279,10 @@
     "SETTINGS": {
       "DEFAULT": {
         "DESCRIPTION": "Effortlessly customize form links and manage their forms effectively.",
+        "COLLECT_EMAILS": {
+          "TITLE": "Collect Emails",
+          "DESCRIPTION": "When you enable this setting, the users needs to verify their identity before they can submit their response."
+        },
         "PIN_FORM": {
           "TITLE": "Pin Form",
           "DESCRIPTION": "When you pin a form in bettercollected, the form will be added to the top of the form so that it is the first thing that your audience can see from your form page."
