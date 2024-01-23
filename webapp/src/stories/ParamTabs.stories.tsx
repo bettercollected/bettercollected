@@ -70,7 +70,7 @@ export const ParamTabsStoryWithLastIndex: Story = {
     args: {
         initialIndex: 2,
         tabMenu: tabMenu,
-        isRouteChangeable: true,
+        isRouteChangeable: false,
         children: <ChildrenComponent/>
     }
 }
