@@ -261,7 +261,7 @@ export default function FormSettingsTab({view = 'DEFAULT'}: IFormSettingsTabProp
                                 >
                                     {t(formPage.linksChangeSlug)}
                                 </AppButton>
-                                {environments.ENABLE_FORM_QR && <AppButton
+                                {environments.ENABLE_FORM_QR && !form?.settings?.hidden && <AppButton
                                     className={'!py-0'}
                                     icon={<QrCode className="h-5 w-5"/>}
                                     onClick={() => {
