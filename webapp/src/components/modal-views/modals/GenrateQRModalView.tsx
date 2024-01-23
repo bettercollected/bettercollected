@@ -1,30 +1,32 @@
-import React, {useState} from 'react';
+import React from 'react';
 
 import {useTranslation} from 'next-i18next';
-import {useRouter} from 'next/router';
 
 import Divider from '@Components/Common/DataDisplay/Divider';
 import AppButton from '@Components/Common/Input/Button/AppButton';
 
 import {Close} from '@app/components/icons/close';
 import {useModal} from '@app/components/modal-views/context';
-import {WorkspaceDto} from '@app/models/dtos/workspaceDto';
 import {useAppSelector} from '@app/store/hooks';
 import QRGenerator from "@Components/Form/QRGenerator";
 import useCopyToClipboard from "react-use/lib/useCopyToClipboard";
 import {toast} from "react-toastify";
 import {toastMessage} from "@app/constants/locales/toast-message";
 import html2canvas from "html2canvas";
+import {selectForm} from "@app/store/forms/slice";
+import {StandardFormDto} from "@app/models/dtos/form";
 
-const GenerateQRModalView = () => {
+export interface IGenerateQR {
+    form?: StandardFormDto;
+}
+
+const GenerateQRModalView = ({form}: IGenerateQR) => {
         const {closeModal} = useModal();
         const {t} = useTranslation();
-        const router = useRouter();
-        const workspace: WorkspaceDto = useAppSelector((state) => state.workspace);
+        const workspaceForm = useAppSelector(selectForm)
+        const currentForm = form ? form : workspaceForm
 
         const [_, copyToClipboard] = useCopyToClipboard();
-
-        // const canvasElement = document.getElementsByTagName("canvas")[0];
 
         const handleOnCopy = (text: any) => {
             copyToClipboard(text);
@@ -51,11 +53,6 @@ const GenerateQRModalView = () => {
                 console.log(error)
             }
         };
-
-// const onShare = () => {
-//     const dataUrl = canvasElement.toDataURL('image/png');
-//     handleOnCopy(dataUrl)
-// }
 
         const handleCopyImageToClipboard = async () => {
                 try {
@@ -93,7 +90,7 @@ const GenerateQRModalView = () => {
                 </div>
                 <Divider/>
                 <div className={'p-10 pt-6 items-center flex flex-col justify-center gap-4'}>
-                    <QRGenerator/>
+                    <QRGenerator form={currentForm}/>
                     <div className={'flex gap-2 '}>
                         <AppButton onClick={handleCopyImageToClipboard}>
                             Copy QR
@@ -101,9 +98,6 @@ const GenerateQRModalView = () => {
                         <AppButton onClick={onDownload}>
                             Download QR
                         </AppButton>
-                        {/*<AppButton onClick={onShare}>*/}
-                        {/*    Share QR*/}
-                        {/*</AppButton>*/}
                     </div>
                 </div>
             </div>
