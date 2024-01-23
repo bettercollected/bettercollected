@@ -11,19 +11,21 @@ const QRGenerator = () => {
     const workspace = useAppSelector(selectWorkspace)
     const formUrl = getFormUrl(workspaceForm, workspace)
 
-    return <Canvas
-        text={formUrl}
-        options={{
-            errorCorrectionLevel: 'M',
-            margin: 3,
-            scale: 8,
-            width: 250,
-            color: {
-                light: '#DBDBDB',
-                dark: '#0764EB',
-            },
-        }}
-    />
+    return <div id={'form-qr-code'}>
+        <Canvas
+            text={formUrl}
+            options={{
+                errorCorrectionLevel: 'M',
+                margin: 3,
+                scale: 8,
+                width: 250,
+                color: {
+                    light: '#DBDBDB',
+                    dark: '#0764EB',
+                },
+            }}
+        />
+    </div>
 }
 
 export default QRGenerator

@@ -24,7 +24,8 @@ const GenerateQRModalView = () => {
 
     const [_, copyToClipboard] = useCopyToClipboard();
 
-    const canvasElement = document.getElementsByTagName("canvas")[0];
+    // const canvasElement = document.getElementsByTagName("canvas")[0];
+    const canvasElement = document.getElementById("form-qr-code");
 
     const handleOnCopy = (text: any) => {
         copyToClipboard(text);
@@ -33,14 +34,17 @@ const GenerateQRModalView = () => {
         });
     };
 
-    const onDownload = () => {
-        const dataUrl = canvasElement.toDataURL('image/png');
-        const link = document.createElement('a');
-        link.href = dataUrl;
-        link.download = 'QR.png';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+    const onDownload = async () => {
+        if (canvasElement) {
+            const canvas = await html2canvas(canvasElement);
+            const dataUrl = canvas.toDataURL('image/png');
+            const link = document.createElement('a');
+            link.href = dataUrl;
+            link.download = 'QR.png';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
     };
 
     // const onShare = () => {
@@ -50,20 +54,23 @@ const GenerateQRModalView = () => {
 
     const handleCopyImageToClipboard = async () => {
             try {
-                const canvas = await html2canvas(canvasElement);
-                canvas.toBlob((blob) => {
-                    if (blob) {
-                        const item = new ClipboardItem({'image/png': blob});
-                        navigator.clipboard.write([item])
-                    }
-                }, 'image/png');
-                toast('QR Image Copied.', {
-                    type: 'info'
-                });
+                if (canvasElement) {
+                    const canvas = await html2canvas(canvasElement);
+                    canvas.toBlob((blob) => {
+                        if (blob) {
+                            const item = new ClipboardItem({'image/png': blob});
+                            navigator.clipboard.write([item])
+                        }
+                    }, 'image/png');
+                    toast('QR Image Copied.', {
+                        type: 'info'
+                    });
+                }
             } catch (error) {
                 toast('Error Occured', {
                     type: 'info'
                 });
+                console.log(error)
             }
         }
     ;
