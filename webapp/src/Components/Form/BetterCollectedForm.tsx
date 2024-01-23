@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 
 import Image from 'next/image';
+import { useRouter } from 'next/router';
 
 import AppButton from '@Components/Common/Input/Button/AppButton';
 import { ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
@@ -22,6 +23,8 @@ import { toast } from 'react-toastify';
 import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
 import { StandardFormDto, StandardFormFieldDto, StandardFormResponseDto } from '@app/models/dtos/form';
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
+import { useLazyGetLogoutQuery, useLazyGetStatusQuery } from '@app/store/auth/api';
+import { selectAuth } from '@app/store/auth/slice';
 import { ConsentAnswerDto } from '@app/store/consent/types';
 import { resetFillForm, selectAnswers, selectFormResponderOwnerField, selectInvalidFields, setDataResponseOwnerField, setFillFormId, setInvalidFields } from '@app/store/fill-form/slice';
 import { FormValidationError } from '@app/store/fill-form/type';
@@ -101,7 +104,11 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
     const invalidFields = useAppSelector(selectInvalidFields);
     const workspace = useAppSelector(selectWorkspace);
     const { files, resetFormFiles } = useFormAtom();
+    const auth = useAppSelector(selectAuth);
+    const [trigger] = useLazyGetLogoutQuery();
+    const [authTrigger] = useLazyGetStatusQuery();
 
+    const router = useRouter();
     const [updatedForm, setUpdatedForm] = useState<StandardFormDto>(form);
 
     const [isFormSubmitted, setIsFormSubmitted] = useState(false);
@@ -114,6 +121,13 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
         let formToUpdate: any = { ...form };
         const updatedForm = validateConditionsAndReturnUpdatedForm(formToUpdate, answers, conditionalFields);
         setUpdatedForm(updatedForm);
+    };
+
+    const onClickSwitchAccount = async () => {
+        await trigger().then(async () => {
+            await authTrigger();
+        });
+        router.push(router.asPath);
     };
 
     useEffect(
@@ -264,6 +278,16 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
                     <div className="text-[32px] mb-2 font-bold text-black-800">{updatedForm?.title || 'Untitled'}</div>
                     {updatedForm?.description && <div className="text-[16px] font-normal text-black-700">{updatedForm?.description}</div>}
                 </div>
+
+                {enabled && form?.settings?.collectEmails && auth.id && (
+                    <div className="p3-new px-4 py-2 rounded-lg bg-blue-100 mt-12 mb-10 font-medium">
+                        You are filling this form as <span className="text-pink-500">{auth.email}</span>{' '}
+                        <span className="cursor-pointer ml-4 underline text-brand-500" onClick={onClickSwitchAccount}>
+                            {' '}
+                            Switch account
+                        </span>
+                    </div>
+                )}
 
                 <div className="flex flex-col w-full gap-2">
                     {updatedForm?.fields?.map((field: StandardFormFieldDto) => (

@@ -1,14 +1,9 @@
 import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/router';
 
-import AppButton from '@Components/Common/Input/Button/AppButton';
-import { ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
 import GenericHalfModal from '@Components/Common/Modals/GenericHalfModal';
 
-import { Close } from '@app/components/icons/close';
 import { useModal } from '@app/components/modal-views/context';
-import { buttonConstant } from '@app/constants/locales/button';
-import { localesCommon } from '@app/constants/locales/common';
 import { useLazyGetLogoutQuery, useLazyGetStatusQuery } from '@app/store/auth/api';
 import { initialAuthState, setAuth } from '@app/store/auth/slice';
 import { useAppDispatch } from '@app/store/hooks';

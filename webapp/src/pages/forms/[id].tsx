@@ -12,6 +12,7 @@ import BetterCollectedForm from '@Components/Form/BetterCollectedForm';
 import { ChevronLeft } from '@mui/icons-material';
 import { Widget } from '@typeform/embed-react';
 
+import { useModal } from '@app/components/modal-views/context';
 import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
 import FullScreenLoader from '@app/components/ui/fullscreen-loader';
 import ActiveLink from '@app/components/ui/links/active-link';
@@ -23,6 +24,8 @@ import { localesCommon } from '@app/constants/locales/common';
 import Layout from '@app/layouts/_layout';
 import { getGlobalServerSidePropsByDomain } from '@app/lib/serverSideProps';
 import { StandardFormDto } from '@app/models/dtos/form';
+import { selectAuth } from '@app/store/auth/slice';
+import { useAppSelector } from '@app/store/hooks';
 import { useGetWorkspaceFormQuery } from '@app/store/workspaces/api';
 import { checkHasCustomDomain, getServerSideAuthHeaderConfig } from '@app/utils/serverSidePropsUtils';
 import { validateFormOpen } from '@app/utils/validationUtils';
@@ -36,6 +39,8 @@ export default function SingleFormPage(props: any) {
         published: true
     });
 
+    const auth = useAppSelector(selectAuth);
+
     const router = useRouter();
     const form: StandardFormDto | undefined = data;
 
@@ -44,7 +49,8 @@ export default function SingleFormPage(props: any) {
     const url = globalConstants.socialPreview.url;
 
     const iframeRef = useRef(null);
-    const { openModal } = useFullScreenModal();
+    const { openModal: openFullScreenModal } = useFullScreenModal();
+    const { openModal } = useModal();
 
     const responderUri = form?.settings?.embedUrl || '';
     const { t } = useTranslation();
@@ -57,7 +63,10 @@ export default function SingleFormPage(props: any) {
         if (form?.settings?.provider && form.settings?.provider === 'google' && form?.fields && hasFileUpload(form?.fields)) {
             router.push(form?.settings?.embedUrl || '');
         }
-    }, [form]);
+        if (form?.settings?.provider === 'self' && form?.settings?.collectEmails && auth?.is401) {
+            openModal('SIGN_IN_TO_FILL_FORM', { nonClosable: true });
+        }
+    }, [form, auth]);
 
     if (data && isFormClosed)
         return (
@@ -79,7 +88,7 @@ export default function SingleFormPage(props: any) {
                 <AppButton
                     size={ButtonSize.Medium}
                     onClick={() => {
-                        openModal('LOGIN_VIEW');
+                        openFullScreenModal('LOGIN_VIEW');
                     }}
                 >
                     Login
@@ -107,6 +116,7 @@ export default function SingleFormPage(props: any) {
             </HeaderImageWrapper>
         );
     }
+
     if (isLoading) return <FullScreenLoader />;
     const hasFileUpload = (fields: Array<any>) => {
         let isUploadField = false;

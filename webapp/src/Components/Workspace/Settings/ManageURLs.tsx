@@ -40,7 +40,7 @@ export default function ManageURLs() {
                         icon={<EditIcon />}
                         variant={ButtonVariant.Ghost}
                         onClick={() => {
-                            openModal('UPDATE_WORKSPACE_HANDLE');
+                            openFullScreenModal('UPDATE_WORKSPACE_HANDLE');
                         }}
                     >
                         {t('FORM_PAGE.SETTINGS.LINKS.CHANGE_SLUG')}
@@ -87,7 +87,7 @@ export default function ManageURLs() {
                                 icon={<Globe />}
                                 onClick={() => {
                                     if (isProWorkspace) {
-                                        openModal('UPDATE_WORKSPACE_DOMAIN');
+                                        openFullScreenModal('UPDATE_WORKSPACE_DOMAIN');
                                     } else {
                                         openFullScreenModal('UPGRADE_TO_PRO');
                                     }
@@ -120,7 +120,7 @@ export default function ManageURLs() {
                         </div>
                         <AppButton
                             onClick={() => {
-                                openModal('DELETE_CUSTOM_DOMAIN');
+                                openFullScreenModal('DELETE_CUSTOM_DOMAIN');
                             }}
                             size={ButtonSize.Tiny}
                             variant={ButtonVariant.DangerGhost}
