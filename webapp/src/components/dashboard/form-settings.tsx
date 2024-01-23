@@ -40,6 +40,7 @@ import {validateFormOpen} from '@app/utils/validationUtils';
 import Globe from '../icons/flags/globe';
 import {useFullScreenModal} from '../modal-views/full-screen-modal-context';
 import FormLinkUpdateView from '../ui/form-link-update-view';
+import {QrCode} from "@mui/icons-material";
 
 interface IFormSettingsTabProps {
     view?: FormSettingsTabView;
@@ -262,7 +263,7 @@ export default function FormSettingsTab({view = 'DEFAULT'}: IFormSettingsTabProp
                                 </AppButton>
                                 {environments.ENABLE_FORM_QR && <AppButton
                                     className={'!py-0'}
-                                    icon={<EditIcon className="h-4 w-4"/>}
+                                    icon={<QrCode className="h-5 w-5"/>}
                                     onClick={() => {
                                         openModal('GENERATE_QR')
                                     }}
