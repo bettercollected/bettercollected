@@ -7,9 +7,6 @@ import { ButtonSize, ButtonVariant } from '@Components/Common/Input/Button/AppBu
 import ImportFormLoading from '@Components/ImportForm/ImportFormLoading';
 import ImportSuccessfulComponent from '@Components/ImportForm/ImportSuccessfulComponent';
 import useDrivePicker from '@fyelci/react-google-drive-picker';
-import { SerializableError } from '@jest/test-result';
-import { FetchBaseQueryError } from '@reduxjs/toolkit/query';
-import confetti from 'canvas-confetti';
 import { toast } from 'react-toastify';
 
 import ImportErrorView from '@app/components/form-integrations/import-error-view';
