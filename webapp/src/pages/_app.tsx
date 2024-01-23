@@ -38,6 +38,7 @@ import { usePreserveScroll } from '@app/lib/hooks/use-preserve-scroll';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { persistor, store } from '@app/store/store';
 import { NextPageWithLayout } from '@app/types';
+import SetClarityUserId from '@app/utils/clarityUtils';
 
 const BaseModalContainer = dynamic(() => import('@app/Components/Modals/Containers/BaseModalContainer'));
 // Client-side cache, shared for the whole session of the user in the browser.
@@ -161,6 +162,7 @@ function MainApp({ Component, pageProps, router, emotionCache = clientSideEmotio
                                     <AuthStatusDispatcher workspace={pageProps?.workspace}>
                                         {getLayout(<Component {...pageProps} key={router.asPath} />)}
                                         <BaseModalContainer />
+                                        <SetClarityUserId />
                                     </AuthStatusDispatcher>
                                 </ServerSideWorkspaceDispatcher>
                             </EnabledFormProviders>
