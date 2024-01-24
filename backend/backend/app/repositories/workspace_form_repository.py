@@ -79,7 +79,7 @@ class WorkspaceFormRepository:
         pinned_only: bool = False,
         id_only: bool = False,
         filter_closed=False,
-    ) -> List[WorkspaceFormDocument]:
+    ) -> List[Dict[str, Any]]:
         try:
             query = {"workspace_id": workspace_id}
             if pinned_only:
