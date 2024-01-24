@@ -42,7 +42,6 @@ import Globe from '../icons/flags/globe';
 import { useFullScreenModal } from '../modal-views/full-screen-modal-context';
 import FormLinkUpdateView from '../ui/form-link-update-view';
 
-
 interface IFormSettingsTabProps {
     view?: FormSettingsTabView;
 }
@@ -282,7 +281,7 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
             case 'DEFAULT':
                 return (
                     <div className=" flex flex-col gap-7 mb-10 ">
-                        {form?.settings?.provider === 'self' && (
+                        {environments.ENABLE_COLLECT_EMAILS && form?.settings?.provider === 'self' && (
                             <FormSettingsCard>
                                 <div className=" flex flex-col items-start w-full">
                                     <div className="h5-new !text-black-800">{t('FORM_PAGE.SETTINGS.DEFAULT.COLLECT_EMAILS.TITLE')}</div>
