@@ -19,7 +19,6 @@ import { selectIsAdmin, selectIsProPlan } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 
-
 export default function ManageURLs() {
     const { t } = useTranslation();
     const workspace = useAppSelector(selectWorkspace);
@@ -41,7 +40,7 @@ export default function ManageURLs() {
                         icon={<EditIcon />}
                         variant={ButtonVariant.Ghost}
                         onClick={() => {
-                            openFullScreenModal('UPDATE_WORKSPACE_HANDLE');
+                            openModal('UPDATE_WORKSPACE_HANDLE');
                         }}
                     >
                         {t('FORM_PAGE.SETTINGS.LINKS.CHANGE_SLUG')}
@@ -88,7 +87,7 @@ export default function ManageURLs() {
                                 icon={<Globe />}
                                 onClick={() => {
                                     if (isProWorkspace) {
-                                        openFullScreenModal('UPDATE_WORKSPACE_DOMAIN');
+                                        openModal('UPDATE_WORKSPACE_DOMAIN');
                                     } else {
                                         openFullScreenModal('UPGRADE_TO_PRO');
                                     }
@@ -121,7 +120,7 @@ export default function ManageURLs() {
                         </div>
                         <AppButton
                             onClick={() => {
-                                openFullScreenModal('DELETE_CUSTOM_DOMAIN');
+                                openModal('DELETE_CUSTOM_DOMAIN');
                             }}
                             size={ButtonSize.Tiny}
                             variant={ButtonVariant.DangerGhost}
