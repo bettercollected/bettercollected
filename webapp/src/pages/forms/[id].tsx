@@ -30,7 +30,6 @@ import { useGetWorkspaceFormQuery } from '@app/store/workspaces/api';
 import { checkHasCustomDomain, getServerSideAuthHeaderConfig } from '@app/utils/serverSidePropsUtils';
 import { validateFormOpen } from '@app/utils/validationUtils';
 
-
 export default function SingleFormPage(props: any) {
     const { back, slug, hasCustomDomain, workspace, form: fetched_form, error: fetched_form_error } = props;
 
@@ -250,6 +249,7 @@ export default function SingleFormPage(props: any) {
         );
     }
 
+    const isFormDisabled = form?.settings?.collectEmails && !auth.email;
     return (
         <Layout showNavbar={false} isCustomDomain={hasCustomDomain} isClientDomain={!hasCustomDomain} showAuthAccount={true} className="relative !bg-white !min-h-screen">
             <NextSeo
@@ -276,7 +276,7 @@ export default function SingleFormPage(props: any) {
                 {form?.settings?.provider === 'typeform' && <Widget id={form?.formId} style={{ height: '100vh' }} className="my-form" />}
                 {form?.settings?.provider === 'self' && (
                     <div className="flex !bg-white justify-center overflow-auto h-full w-full pb-6">
-                        <BetterCollectedForm form={form} enabled={true} isCustomDomain={hasCustomDomain} />
+                        <BetterCollectedForm form={form} enabled={!isFormDisabled} isCustomDomain={hasCustomDomain} />
                     </div>
                 )}
             </div>
