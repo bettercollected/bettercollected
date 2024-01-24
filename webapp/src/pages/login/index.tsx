@@ -5,20 +5,12 @@ import LoginLayout from '@Components/Login/login-layout';
 import environments from '@app/configs/environments';
 import { getGlobalServerSidePropsByDomain } from '@app/lib/serverSideProps';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
-import { checkHasCustomDomain, getServerSideAuthHeaderConfig } from '@app/utils/serverSidePropsUtils';
+import { getServerSideAuthHeaderConfig } from '@app/utils/serverSidePropsUtils';
 
 export async function getServerSideProps(_context: any) {
     const config = getServerSideAuthHeaderConfig(_context);
     const globalProps = (await getGlobalServerSidePropsByDomain(_context)).props;
     const locale = globalProps['_nextI18Next']['initialLocale'] === 'en' ? '' : `${globalProps['_nextI18Next']['initialLocale']}/`;
-    if (checkHasCustomDomain(_context)) {
-        return {
-            redirect: {
-                permanent: false,
-                destination: `/${locale}`
-            }
-        };
-    }
 
     try {
         const userStatus = await fetch(`${environments.INTERNAL_DOCKER_API_ENDPOINT_HOST}/auth/status`, config);
