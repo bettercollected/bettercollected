@@ -14,6 +14,7 @@ export async function getServerSideProps(_context: any) {
 
     try {
         const userStatus = await fetch(`${environments.INTERNAL_DOCKER_API_ENDPOINT_HOST}/auth/status`, config);
+        console.log(userStatus);
         const user = (await userStatus?.json().catch((e: any) => e)) ?? null;
 
         if (user?.id) {
