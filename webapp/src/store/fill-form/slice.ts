@@ -8,7 +8,6 @@ import { RootState } from '@app/store/store';
 
 import { IConsentAnswer } from '../consent/types';
 
-
 interface FillIBuilderState {
     id: string;
     answers: {
@@ -19,6 +18,7 @@ interface FillIBuilderState {
     };
     invalidFields: Record<string, Array<FormValidationError>>;
     responseDataOwnerField: string;
+    anonymize?: boolean;
 }
 
 const initialState: FillIBuilderState = {
@@ -68,6 +68,12 @@ const slice = createSlice({
                 ...state,
                 responseDataOwnerField: action.payload
             };
+        },
+        setAnonymize: (state, action) => {
+            return {
+                ...state,
+                anonymize: action.payload
+            };
         }
     }
 });
@@ -80,7 +86,7 @@ const fillFormReducer = persistReducer(
     slice.reducer
 );
 
-export const { setFillFormId, setDataResponseOwnerField, resetFillForm, setInvalidFields, deleteAnswer, addAnswer, addConsentAnswer } = slice.actions;
+export const { setAnonymize, setFillFormId, setDataResponseOwnerField, resetFillForm, setInvalidFields, deleteAnswer, addAnswer, addConsentAnswer } = slice.actions;
 
 const reducerObj = { reducerPath: slice.name, reducer: fillFormReducer };
 
@@ -91,5 +97,7 @@ export const selectAnswer = (fieldId: string) => (state: RootState) => state.fil
 export const selectInvalidFields = (state: RootState) => state.fillForm.invalidFields;
 
 export const selectFormResponderOwnerField = (state: RootState) => state.fillForm.responseDataOwnerField;
+
+export const selectAnonymize = (state: RootState) => state.fillForm.anonymize;
 
 export default reducerObj;

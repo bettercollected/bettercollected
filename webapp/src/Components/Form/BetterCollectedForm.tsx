@@ -18,6 +18,7 @@ import RankingField from '@Components/Form/RankingField';
 import RatingField from '@Components/Form/RatingField';
 import ShortText from '@Components/Form/ShortText';
 import ThankYouPage from '@Components/Form/ThankYouPage';
+import Checkbox from '@mui/material/Checkbox';
 import { toast } from 'react-toastify';
 
 import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
@@ -26,7 +27,7 @@ import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
 import { useLazyGetLogoutQuery, useLazyGetStatusQuery } from '@app/store/auth/api';
 import { selectAuth } from '@app/store/auth/slice';
 import { ConsentAnswerDto } from '@app/store/consent/types';
-import { resetFillForm, selectAnswers, selectFormResponderOwnerField, selectInvalidFields, setDataResponseOwnerField, setFillFormId, setInvalidFields } from '@app/store/fill-form/slice';
+import { resetFillForm, selectAnonymize, selectAnswers, selectFormResponderOwnerField, selectInvalidFields, setAnonymize, setDataResponseOwnerField, setFillFormId, setInvalidFields } from '@app/store/fill-form/slice';
 import { FormValidationError } from '@app/store/fill-form/type';
 import { Condition } from '@app/store/form-builder/types';
 import { useAppAsyncDispatch, useAppDispatch, useAppSelector } from '@app/store/hooks';
@@ -106,6 +107,7 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
     const auth = useAppSelector(selectAuth);
     const [trigger] = useLazyGetLogoutQuery();
     const [authTrigger] = useLazyGetStatusQuery();
+    const anonymize = useAppSelector(selectAnonymize);
 
     const router = useRouter();
     const [updatedForm, setUpdatedForm] = useState<StandardFormDto>(form);
@@ -127,6 +129,10 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
             await authTrigger();
         });
         router.push(router.asPath);
+    };
+
+    const updateAnonymize = (checked: boolean) => {
+        dispatch(setAnonymize(checked));
     };
 
     useEffect(
@@ -188,7 +194,8 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
             consent: Object.values(consentAnswers),
             expiration: responseExpirationTime,
             expirationType: responseExpirationType,
-            dataOwnerIdentifier: (answers && answers[responseDataOwnerField]?.email) || null
+            dataOwnerIdentifier: (answers && answers[responseDataOwnerField]?.email) || null,
+            anonymize: !!anonymize
         };
 
         formData.append('response', JSON.stringify(postBody));
@@ -278,13 +285,30 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
                     {updatedForm?.description && <div className="text-[16px] font-normal text-black-700">{updatedForm?.description}</div>}
                 </div>
 
-                {enabled && form?.settings?.collectEmails && auth.id && (
+                {enabled && auth.id && (
                     <div className="p3-new px-4 py-2 rounded-lg bg-new-blue-100 mt-12 mb-10 font-medium">
-                        You are filling this form as <span className="text-pink-500">{auth.email}</span>{' '}
-                        <span className="cursor-pointer ml-4 underline text-brand-500" onClick={onClickSwitchAccount}>
-                            {' '}
-                            Switch account
-                        </span>
+                        <div className="mb-4">
+                            You are filling this form as <span className="text-pink-500">{auth.email}</span>{' '}
+                            <span className="cursor-pointer ml-4 underline text-brand-500" onClick={onClickSwitchAccount}>
+                                {' '}
+                                Switch account
+                            </span>
+                        </div>
+
+                        {!form?.settings?.collectEmails && (
+                            <div>
+                                <div>
+                                    <Checkbox
+                                        checked={!!anonymize}
+                                        onClick={() => {
+                                            updateAnonymize(!anonymize);
+                                        }}
+                                    />{' '}
+                                    Submit as anonymous
+                                </div>
+                                <span className="text-xs">This means that the form collector won&apos;t be able to see your email identity but you will be able to track your response</span>
+                            </div>
+                        )}
                     </div>
                 )}
 
