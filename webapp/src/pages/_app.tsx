@@ -2,15 +2,13 @@ import React, { useEffect } from 'react';
 
 import { appWithTranslation } from 'next-i18next';
 import { NextSeo } from 'next-seo';
-import { ThemeProvider } from 'next-themes';
 import type { AppProps } from 'next/app';
 import dynamic from 'next/dynamic';
 
 import AuthStatusDispatcher from '@Components/HOCs/AuthStatusDispatcher';
 import EnabledFormProviders from '@Components/HOCs/EnabledFormProviders';
 import ServerSideWorkspaceDispatcher from '@Components/HOCs/ServerSideWorkspaceDispatcher';
-import { CacheProvider, EmotionCache, css } from '@emotion/react';
-import { GlobalStyles } from '@mui/material';
+import { CacheProvider, EmotionCache } from '@emotion/react';
 import CssBaseline from '@mui/material/CssBaseline';
 import '@uiw/react-markdown-preview/dist/markdown.min.css';
 import '@uiw/react-markdown-preview/esm/styles/markdown.css';
@@ -39,7 +37,6 @@ import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { persistor, store } from '@app/store/store';
 import { NextPageWithLayout } from '@app/types';
 import SetClarityUserId from '@app/utils/clarityUtils';
-
 
 const BaseModalContainer = dynamic(() => import('@app/Components/Modals/Containers/BaseModalContainer'));
 // Client-side cache, shared for the whole session of the user in the browser.
@@ -106,72 +103,53 @@ function MainApp({ Component, pageProps, router, emotionCache = clientSideEmotio
     }, []);
 
     return (
-        <ThemeProvider attribute="class" enableSystem={false} forcedTheme="light" defaultTheme="light">
-            <CacheProvider value={emotionCache}>
-                <MuiThemeProvider>
-                    {/* CssBaseline kickstart an elegant, consistent, and simple baseline to build upon. */}
-                    <CssBaseline />
-                    <GlobalStyles
-                        styles={css`
-                            :root {
-                                body {
-                                    background-color: #f2f7ff;
-                                    color: #121212;
-                                }
+        <CacheProvider value={emotionCache}>
+            <MuiThemeProvider>
+                {/* CssBaseline kickstart an elegant, consistent, and simple baseline to build upon. */}
+                <CssBaseline />
+                <NextSeo
+                    title={title || globalConstants.socialPreview.title}
+                    description={description}
+                    noindex={!environments.IS_IN_PRODUCTION_MODE}
+                    nofollow={!environments.IS_IN_PRODUCTION_MODE}
+                    openGraph={{
+                        type: 'website',
+                        locale: 'en_IE',
+                        url,
+                        site_name: title || globalConstants.appName,
+                        description: description,
+                        title,
+                        images: [
+                            {
+                                url: imageUrl,
+                                alt: title ?? 'Better Collected'
                             }
-
-                            [data-theme='dark'] {
-                                body {
-                                    background-color: #121212;
-                                    color: #fff;
-                                }
-                            }
-                        `}
-                    />
-                    <NextSeo
-                        title={title || globalConstants.socialPreview.title}
-                        description={description}
-                        noindex={!environments.IS_IN_PRODUCTION_MODE}
-                        nofollow={!environments.IS_IN_PRODUCTION_MODE}
-                        openGraph={{
-                            type: 'website',
-                            locale: 'en_IE',
-                            url,
-                            site_name: title || globalConstants.appName,
-                            description: description,
-                            title,
-                            images: [
-                                {
-                                    url: imageUrl,
-                                    alt: title ?? 'Better Collected'
-                                }
-                            ]
-                        }}
-                        twitter={{
-                            handle: globalConstants.twitterHandle,
-                            site: url,
-                            cardType: 'summary_large_image'
-                        }}
-                    />
-                    <CookieConsent />
-                    <NextNProgress color="#0764EB" startPosition={0} stopDelayMs={400} height={2} options={{ easing: 'ease' }} />
-                    <ToastContainer position="bottom-center" autoClose={5000} hideProgressBar newestOnTop closeOnClick rtl={false} pauseOnFocusLoss={false} draggable pauseOnHover={false} theme="dark" />{' '}
-                    <Provider store={store}>
-                        <PersistGate loading={<FullScreenLoader />} persistor={persistor}>
-                            <EnabledFormProviders>
-                                <ServerSideWorkspaceDispatcher workspace={pageProps?.workspace}>
-                                    <AuthStatusDispatcher workspace={pageProps?.workspace}>
-                                        {getLayout(<Component {...pageProps} key={router.asPath} />)}
-                                        <BaseModalContainer />
-                                        <SetClarityUserId />
-                                    </AuthStatusDispatcher>
-                                </ServerSideWorkspaceDispatcher>
-                            </EnabledFormProviders>
-                        </PersistGate>
-                    </Provider>
-                </MuiThemeProvider>
-            </CacheProvider>
-        </ThemeProvider>
+                        ]
+                    }}
+                    twitter={{
+                        handle: globalConstants.twitterHandle,
+                        site: url,
+                        cardType: 'summary_large_image'
+                    }}
+                />
+                <CookieConsent />
+                <NextNProgress color="#0764EB" startPosition={0} stopDelayMs={400} height={2} options={{ easing: 'ease' }} />
+                <ToastContainer position="bottom-center" autoClose={5000} hideProgressBar newestOnTop closeOnClick rtl={false} pauseOnFocusLoss={false} draggable pauseOnHover={false} theme="dark" />{' '}
+                <Provider store={store}>
+                    <PersistGate loading={<FullScreenLoader />} persistor={persistor}>
+                        <EnabledFormProviders>
+                            <ServerSideWorkspaceDispatcher workspace={pageProps?.workspace}>
+                                <AuthStatusDispatcher workspace={pageProps?.workspace}>
+                                    {getLayout(<Component {...pageProps} key={router.asPath} />)}
+                                    <BaseModalContainer />
+                                    <SetClarityUserId />
+                                </AuthStatusDispatcher>
+                            </ServerSideWorkspaceDispatcher>
+                        </EnabledFormProviders>
+                    </PersistGate>
+                </Provider>
+            </MuiThemeProvider>
+        </CacheProvider>
     );
 }
 
