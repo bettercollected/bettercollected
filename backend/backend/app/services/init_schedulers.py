@@ -9,10 +9,7 @@ async def migrate_schedule_to_temporal():
     temporal_service = container.temporal_service()
     workspace_forms = await WorkspaceFormDocument.find().to_list()
     for workspace_form in workspace_forms:
-        if (
-            workspace_form.settings.provider
-            != "self"
-        ):
+        if workspace_form.settings.provider != "self":
             try:
                 await temporal_service.add_scheduled_job_for_importing_form(
                     workspace_id=workspace_form.workspace_id,

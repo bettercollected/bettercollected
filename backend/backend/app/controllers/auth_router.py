@@ -26,7 +26,8 @@ from backend.app.services.user_service import (
     get_logged_user,
     add_refresh_token_to_blacklist,
     get_access_token,
-    get_refresh_token, get_api_key,
+    get_refresh_token,
+    get_api_key,
 )
 from backend.config import settings
 
@@ -45,8 +46,13 @@ log = logging.getLogger(__name__)
     },
 )
 class AuthRoutes(Routable):
-    def __init__(self, auth_service=container.auth_service(), user_feedback_service=container.user_feedback_service(),
-                 *args, **kwargs):
+    def __init__(
+        self,
+        auth_service=container.auth_service(),
+        user_feedback_service=container.user_feedback_service(),
+        *args,
+        **kwargs
+    ):
         super().__init__(*args, **kwargs)
         self.auth_service: AuthService = auth_service
         self.user_feedback_service: UserFeedbackService = user_feedback_service
@@ -133,9 +139,7 @@ class AuthRoutes(Routable):
 
         if settings.api_settings.ENABLE_GOOGLE_PICKER_API:
             redirect_uri = redirect_uri + "?modal=true"
-        response = RedirectResponse(
-            redirect_uri
-        )
+        response = RedirectResponse(redirect_uri)
         set_tokens_to_response(user, response)
         if state_data.client_referer_uri:
             return response
@@ -158,11 +162,11 @@ class AuthRoutes(Routable):
         creator: bool = False,
         prospective_pro_user: bool = False,
     ):
-        provider_name = ''
+        provider_name = ""
         if provider == FormProvider.GOOGLE:
-            provider_name = 'google'
+            provider_name = "google"
         else:
-            provider_name = 'typeform'
+            provider_name = "typeform"
         client_referer_url = request.headers.get("referer")
         basic_auth_url = await self.auth_service.get_basic_auth_url(
             provider_name,
@@ -184,11 +188,11 @@ class AuthRoutes(Routable):
         code: Optional[str] = None,
         state: Optional[str] = None,
     ):
-        provider_name = ''
+        provider_name = ""
         if provider == FormProvider.GOOGLE:
-            provider_name = 'google'
+            provider_name = "google"
         else:
-            provider_name = 'typeform'
+            provider_name = "typeform"
         if not state or not code:
             return {"message": "You cancelled the authorization request."}
         user, client_referer_url = await self.auth_service.basic_auth_callback(
@@ -214,7 +218,7 @@ class AuthRoutes(Routable):
         self,
         request: Request,
         user: User = Depends(get_logged_user),
-        api_key: str = Depends(get_api_key)
+        api_key: str = Depends(get_api_key),
     ):
         await self.auth_service.delete_user(user=user)
         await add_refresh_token_to_blacklist(request=request)

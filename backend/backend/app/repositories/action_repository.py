@@ -10,15 +10,20 @@ from backend.app.schemas.standard_form import FormDocument
 
 
 class ActionRepository:
-
     def __init__(self, crypto: Crypto):
         self.crypto = crypto
 
-    async def create_action(self, workspace_id: PydanticObjectId, action: ActionDto, user: User):
+    async def create_action(
+        self, workspace_id: PydanticObjectId, action: ActionDto, user: User
+    ):
         if action.secrets is not None:
             for secret in action.secrets:
                 secret.value = self.crypto.encrypt(secret.value)
-        new_action = ActionDocument(**action.dict(), created_by=PydanticObjectId(user.id), workspace_id=workspace_id)
+        new_action = ActionDocument(
+            **action.dict(),
+            created_by=PydanticObjectId(user.id),
+            workspace_id=workspace_id,
+        )
         new_action = await new_action.save()
         return ActionResponse(**new_action.dict())
 
@@ -98,34 +103,39 @@ class ActionRepository:
     async def remove_action_form_all_forms(self, action_id: PydanticObjectId):
         await FormDocument.find(
             {
-                "$or":
-                    [
-                        {
-                            "actions.on_submit": {"$in": [action_id]}
-                        },
-                        {
-                            "actions.on_open": {"$in": [action_id]}
-                        }
-                    ]
-            }).update(
+                "$or": [
+                    {"actions.on_submit": {"$in": [action_id]}},
+                    {"actions.on_open": {"$in": [action_id]}},
+                ]
+            }
+        ).update(
             {
                 "$pull": {"actions.on_submit": action_id},
                 "$unset": {
                     f"parameters.{str(action_id)}": "",
-                    f"secrets.{str(action_id)}": ""
-                }
-            })
+                    f"secrets.{str(action_id)}": "",
+                },
+            }
+        )
 
-    async def create_action_in_workspace_from_action(self, workspace_id: PydanticObjectId, action_id: PydanticObjectId,
-                                                     ):
+    async def create_action_in_workspace_from_action(
+        self,
+        workspace_id: PydanticObjectId,
+        action_id: PydanticObjectId,
+    ):
         workspace_action = await WorkspaceActionsDocument.find_one(
-            {"workspace_id": workspace_id, "action_id": action_id})
+            {"workspace_id": workspace_id, "action_id": action_id}
+        )
         if workspace_action is None:
-            workspace_action = await WorkspaceActionsDocument(workspace_id=workspace_id, action_id=action_id).save()
+            workspace_action = await WorkspaceActionsDocument(
+                workspace_id=workspace_id, action_id=action_id
+            ).save()
         return workspace_action
 
     async def create_global_action(self, action: ActionDto, user: User):
         if action.secrets is not None:
             for secret in action.secrets:
                 secret.value = self.crypto.encrypt(secret.value)
-        return await ActionDocument(**action.dict(), created_by=PydanticObjectId(user.id)).save()
+        return await ActionDocument(
+            **action.dict(), created_by=PydanticObjectId(user.id)
+        ).save()

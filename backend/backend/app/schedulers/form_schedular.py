@@ -72,7 +72,8 @@ class FormSchedular:
             raw_form = None
             try:
                 provider = await self.form_provider_service.get_provider_if_enabled(
-                    provider_name=workspace_form.settings.provider)
+                    provider_name=workspace_form.settings.provider
+                )
                 raw_form = await self.perform_request(
                     provider=workspace_form.settings.provider,
                     append_url=f"/{form_id}",

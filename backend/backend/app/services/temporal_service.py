@@ -85,26 +85,32 @@ class TemporalService:
                 + " has already been started."
             )
 
-    async def start_save_preview_workflow(self, template_id: PydanticObjectId, user_tokens: UserTokens):
+    async def start_save_preview_workflow(
+        self, template_id: PydanticObjectId, user_tokens: UserTokens
+    ):
         await self.check_temporal_client_and_try_to_connect_if_not_connected()
         try:
             encrypted_tokens = self.crypto.encrypt(json.dumps(asdict(user_tokens)))
-            params = SavePreviewParams(template_id=str(template_id),
-                                       template_url=f"{settings.api_settings.CLIENT_URL}/templates/" + str(
-                                           template_id) + "/preview",
-                                       token=encrypted_tokens)
-            await self.temporal_client.start_workflow("save_template_preview",
-                                                      arg=params,
-                                                      id="save_preview_image_" + str(template_id),
-                                                      task_queue=settings.temporal_settings.worker_queue,
-                                                      retry_policy=RetryPolicy(maximum_attempts=4)
-                                                      )
+            params = SavePreviewParams(
+                template_id=str(template_id),
+                template_url=f"{settings.api_settings.CLIENT_URL}/templates/"
+                + str(template_id)
+                + "/preview",
+                token=encrypted_tokens,
+            )
+            await self.temporal_client.start_workflow(
+                "save_template_preview",
+                arg=params,
+                id="save_preview_image_" + str(template_id),
+                task_queue=settings.temporal_settings.worker_queue,
+                retry_policy=RetryPolicy(maximum_attempts=4),
+            )
             return "Workflow Started"
         except WorkflowAlreadyStartedError as e:
             loguru.logger.info("Workflow has already started")
 
     async def add_scheduled_job_for_importing_form(
-            self, workspace_id: PydanticObjectId, form_id: str
+        self, workspace_id: PydanticObjectId, form_id: str
     ):
         if not settings.schedular_settings.ENABLED:
             return
@@ -141,7 +147,7 @@ class TemporalService:
             loguru.logger.error(e)
 
     async def add_scheduled_job_for_deleting_response(
-            self, response: StandardFormResponse
+        self, response: StandardFormResponse
     ):
         if not settings.schedular_settings.ENABLED:
             return
@@ -176,7 +182,7 @@ class TemporalService:
             loguru.logger.error(e)
 
     async def delete_form_import_schedule(
-            self, workspace_id: PydanticObjectId, form_id: str
+        self, workspace_id: PydanticObjectId, form_id: str
     ):
         if not settings.schedular_settings.ENABLED:
             return
@@ -213,7 +219,7 @@ class TemporalService:
 
     def update_schedule_interval(self, interval: timedelta):
         async def update_interval_to_default(
-                update_input: ScheduleUpdateInput,
+            update_input: ScheduleUpdateInput,
         ) -> ScheduleUpdate:
             schedule_spec = update_input.description.schedule.spec
             if isinstance(schedule_spec, ScheduleSpec):
@@ -223,27 +229,39 @@ class TemporalService:
         return update_interval_to_default
 
     async def update_interval_of_schedule(
-            self, workspace_id: PydanticObjectId, form_id: str, interval: timedelta
+        self, workspace_id: PydanticObjectId, form_id: str, interval: timedelta
     ):
         handle = self.temporal_client.get_schedule_handle(
             "import_" + str(workspace_id) + "_" + form_id
         )
         await handle.update(updater=self.update_schedule_interval(interval=interval))
 
-    async def start_action_execution(self, action: ActionResponse, form: StandardForm, response: FormResponseDocument,
-                                     workspace: WorkspaceRequestDto):
+    async def start_action_execution(
+        self,
+        action: ActionResponse,
+        form: StandardForm,
+        response: FormResponseDocument,
+        workspace: WorkspaceRequestDto,
+    ):
         if not settings.schedular_settings.ENABLED:
             return
-        run_action_params = RunActionCodeParams(action=action.json(), form=form.json(), response=response.json(),
-                                                user_email=response.dataOwnerIdentifier if response is not None else "",
-                                                workspace=workspace.json())
+        run_action_params = RunActionCodeParams(
+            action=action.json(),
+            form=form.json(),
+            response=response.json(),
+            user_email=response.dataOwnerIdentifier if response is not None else "",
+            workspace=workspace.json(),
+        )
         try:
             await self.check_temporal_client_and_try_to_connect_if_not_connected()
             await self.temporal_client.start_workflow(
                 "run_action_code",
                 arg=run_action_params,
-                id="action_" + str(action.id) + str(form.form_id) + str(response.response_id),
-                task_queue=settings.temporal_settings.action_queue
+                id="action_"
+                + str(action.id)
+                + str(form.form_id)
+                + str(response.response_id),
+                task_queue=settings.temporal_settings.action_queue,
             )
             return "Workflow Started"
         except WorkflowAlreadyStartedError as e:
@@ -251,18 +269,23 @@ class TemporalService:
                 status_code=HTTPStatus.CONFLICT, content="Workflow has already started."
             )
 
-    async def export_as_csv(self, form: StandardForm, responses: List[StandardFormResponse], user: User):
+    async def export_as_csv(
+        self, form: StandardForm, responses: List[StandardFormResponse], user: User
+    ):
         await self.check_temporal_client_and_try_to_connect_if_not_connected()
         try:
             converted_responses = [response.json() for response in responses]
             converted_forms = form.json()
-            params = ExportCSVParams(form=converted_forms, responses=converted_responses, user_email=user.sub)
-            await self.temporal_client.start_workflow("export_as_csv_workflow",
-                                                      arg=params,
-                                                      id="export_as_csv" + str(form.form_id),
-                                                      task_queue=settings.temporal_settings.csv_queue,
-                                                      retry_policy=RetryPolicy(maximum_attempts=4)
-                                                      )
+            params = ExportCSVParams(
+                form=converted_forms, responses=converted_responses, user_email=user.sub
+            )
+            await self.temporal_client.start_workflow(
+                "export_as_csv_workflow",
+                arg=params,
+                id="export_as_csv" + str(form.form_id),
+                task_queue=settings.temporal_settings.csv_queue,
+                retry_policy=RetryPolicy(maximum_attempts=4),
+            )
             return "Workflow Started"
         except WorkflowAlreadyStartedError as e:
             loguru.logger.info("Workflow has already started")
