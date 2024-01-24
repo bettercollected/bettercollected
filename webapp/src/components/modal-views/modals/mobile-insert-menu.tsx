@@ -16,10 +16,11 @@ import { Close } from '@app/components/icons/close';
 import { SearchIcon } from '@app/components/icons/search';
 import { useModal } from '@app/components/modal-views/context';
 import { placeHolder } from '@app/constants/locales/placeholder';
-import { BlockTypes, FormBuilderTagNames, KeyType } from '@app/models/enums/formBuilder';
+import { BlockTypes, FormBuilderTagNames } from '@app/models/enums/formBuilder';
 import { resetBuilderMenuState, setAddNewField, setDeleteField } from '@app/store/form-builder/actions';
 import { selectBuilderState } from '@app/store/form-builder/selectors';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
+
 
 export default function MobileInsertMenu({ index }: { index?: number }) {
     const { closeModal } = useModal();

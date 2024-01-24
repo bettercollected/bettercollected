@@ -9,8 +9,9 @@ import { SetStateAction } from 'jotai';
 
 import useFormBuilderAtom from '@app/Components/FormBuilder/builderAtom';
 import Camera from '@app/components/icons/camera';
-import { selectBuilderState, selectLogo } from '@app/store/form-builder/selectors';
+import { selectLogo } from '@app/store/form-builder/selectors';
 import { useAppSelector } from '@app/store/hooks';
+
 
 interface IFormLogoComponent {
     setIsLogoClicked: React.Dispatch<SetStateAction<boolean>>;

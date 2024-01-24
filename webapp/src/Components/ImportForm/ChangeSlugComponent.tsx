@@ -10,6 +10,7 @@ import FormSettingsTab from '@app/components/dashboard/form-settings';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 
+
 export default function ChangeSlugComponent() {
     const workspace = useAppSelector(selectWorkspace);
     const router = useRouter();

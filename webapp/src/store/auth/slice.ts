@@ -5,6 +5,7 @@ import storage from 'redux-persist/lib/storage';
 import { Plan, UserStatus } from '@app/models/dtos/UserStatus';
 import { RootState } from '@app/store/store';
 
+
 export const initialAuthState: UserStatus = {
     email: '',
     plan: Plan.FREE,

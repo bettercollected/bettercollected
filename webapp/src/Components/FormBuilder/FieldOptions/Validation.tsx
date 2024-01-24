@@ -8,6 +8,7 @@ import useBuilderTranslation from '@app/lib/hooks/use-builder-translation';
 import { setUpdateField } from '@app/store/form-builder/actions';
 import { IFormFieldState } from '@app/store/form-builder/types';
 
+
 interface IValidationProps {
     type: ValidationType;
     field: IFormFieldState;

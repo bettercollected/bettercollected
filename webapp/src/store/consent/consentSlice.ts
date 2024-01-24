@@ -6,6 +6,7 @@ import { ConsentCategoryType, ConsentType, ResponseRetentionType } from '@app/mo
 
 import { IConsentField, IConsentState } from './types';
 
+
 const initialState: IConsentState = {
     formId: '',
     consents: [

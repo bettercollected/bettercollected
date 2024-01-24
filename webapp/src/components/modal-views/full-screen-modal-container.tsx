@@ -21,6 +21,7 @@ import CreateConsentFullModalView from './full-screen-modals/create-consent-full
 import CropImageModalView from './modals/crop-image-modal-view';
 import FormBuilderPreviewModal from './modals/form-builder-preview-modal';
 
+
 function renderModalContent(view: FULL_SCREEN_MODALS, modalProps: any) {
     switch (view) {
         case 'LOGIN_VIEW':

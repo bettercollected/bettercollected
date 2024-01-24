@@ -4,6 +4,7 @@ import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { selectIsAdmin } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 
+
 export default function WorkspacePage({ workspace }: { workspace: WorkspaceDto }) {
     const isAdmin = useAppSelector(selectIsAdmin);
     return (

@@ -13,6 +13,7 @@ import { useAppDispatch } from '@app/store/hooks';
 
 import { useModal } from '../context';
 
+
 export interface ConsentRetentionModalProps {
     type: ResponseRetentionType;
 }

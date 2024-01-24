@@ -6,6 +6,7 @@ interface Props {
     url: string;
     title?: string;
     showCopy?: boolean;
+
     [props: string]: any;
 }
 

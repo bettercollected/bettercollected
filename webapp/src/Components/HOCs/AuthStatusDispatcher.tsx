@@ -9,6 +9,7 @@ import { initialAuthState, setAuth } from '@app/store/auth/slice';
 import { useAppDispatch } from '@app/store/hooks';
 import { isAdminDomain } from '@app/utils/domainUtils';
 
+
 interface IAuthStatusDispatcherProps {
     workspace: WorkspaceDto | null | undefined;
     children: React.ReactNode | React.ReactNode[];

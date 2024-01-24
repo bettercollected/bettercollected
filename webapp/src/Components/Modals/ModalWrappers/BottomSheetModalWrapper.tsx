@@ -6,6 +6,7 @@ import cn from 'classnames';
 import { Close } from '@app/components/icons/close';
 import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
 
+
 export default function BottomSheetModalWrapper({ children, className }: { children?: ReactNode; className?: string }) {
     const { closeModal } = useFullScreenModal();
     const { closeBottomSheetModal } = useBottomSheetModal();

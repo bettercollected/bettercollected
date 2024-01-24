@@ -1,17 +1,15 @@
-import {uuidv4} from '@mswjs/interceptors/lib/utils/uuid';
-import {v4} from 'uuid';
+import { uuidv4 } from '@mswjs/interceptors/lib/utils/uuid';
+import { v4 } from 'uuid';
 
-import {FormBuilderTagNames, LabelFormBuilderTagNames} from '@app/models/enums/formBuilder';
-import {IChoiceFieldState, IFormFieldState} from '@app/store/form-builder/types';
+import { FormBuilderTagNames, LabelFormBuilderTagNames } from '@app/models/enums/formBuilder';
+import { IChoiceFieldState, IFormFieldState } from '@app/store/form-builder/types';
 
-export function extractBlockTypeNames() {
-}
 
-export function extractFormBuilderTagNames() {
-}
+export function extractBlockTypeNames() {}
 
-export function mapFormBuilderTagNames() {
-}
+export function extractFormBuilderTagNames() {}
+
+export function mapFormBuilderTagNames() {}
 
 export function isContentEditableTag(tag: string): boolean {
     const editableTags: Array<string> = [FormBuilderTagNames.LAYOUT_SHORT_TEXT as string];
@@ -64,7 +62,7 @@ export function isMultipleChoice(type?: FormBuilderTagNames): boolean {
 
 export const createNewChoice = (position: number): IChoiceFieldState => {
     const id = uuidv4();
-    return {id, value: '', position};
+    return { id, value: '', position };
 };
 
 export const createNewField = (position: number, type?: FormBuilderTagNames): IFormFieldState => {
@@ -97,7 +95,7 @@ export function getDisplayNameForField(fields: Array<IFormFieldState>, fieldId: 
     if (currentField) {
         const previousField = getPreviousField(fields, currentField);
         let text = currentField.properties?.placeholder;
-        if (LabelFormBuilderTagNames.includes(previousField?.type) || (previousField?.type === FormBuilderTagNames.LAYOUT_SHORT_TEXT)) {
+        if (LabelFormBuilderTagNames.includes(previousField?.type) || previousField?.type === FormBuilderTagNames.LAYOUT_SHORT_TEXT) {
             text = previousField?.value || currentField?.type;
         }
         return text;

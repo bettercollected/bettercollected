@@ -6,6 +6,7 @@ import { useAppSelector } from '@app/store/hooks';
 import { contentEditableClassNames } from '@app/utils/formBuilderBlockUtils';
 import { getValueToCompareBasedOnFieldType } from '@app/utils/validationUtils';
 
+
 export default function LayoutFields({ field, enabled, fields }: { field: StandardFormFieldDto; enabled: boolean; fields?: Array<StandardFormFieldDto> }) {
     const answers = useAppSelector(selectAnswers);
     const getValueWithMentionIfExists = () => {

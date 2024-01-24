@@ -5,6 +5,7 @@ import { Hint } from '@app/components/icons/hint';
 import { consentPageInformation } from '@app/data/consent';
 import { useIsMobile } from '@app/lib/hooks/use-breakpoint';
 
+
 export default function ConsentInformationPanel() {
     const [isOpen, setOpen] = useState(false);
 

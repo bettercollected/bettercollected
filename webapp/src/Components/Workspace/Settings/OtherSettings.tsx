@@ -1,3 +1,3 @@
-export default function OtherSettings(){
-    return <></>
+export default function OtherSettings() {
+    return <></>;
 }

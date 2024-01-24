@@ -8,8 +8,9 @@ import EditIcon from '@Components/Common/Icons/Common/Edit';
 import Pro from '@Components/Common/Icons/Dashboard/Pro';
 import LockIcon from '@Components/Common/Icons/lock';
 import AppButton from '@Components/Common/Input/Button/AppButton';
-import { ButtonSize, ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
+import { ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
 import { useBottomSheetModal } from '@Components/Modals/Contexts/BottomSheetModalContext';
+import { QrCode } from '@mui/icons-material';
 import { FormControlLabel, Radio, RadioGroup } from '@mui/material';
 import Switch from '@mui/material/Switch';
 import cn from 'classnames';
@@ -40,7 +41,7 @@ import { validateFormOpen } from '@app/utils/validationUtils';
 import Globe from '../icons/flags/globe';
 import { useFullScreenModal } from '../modal-views/full-screen-modal-context';
 import FormLinkUpdateView from '../ui/form-link-update-view';
-import {QrCode} from "@mui/icons-material";
+
 
 interface IFormSettingsTabProps {
     view?: FormSettingsTabView;
@@ -258,16 +259,18 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                                 >
                                     {t(formPage.linksChangeSlug)}
                                 </AppButton>
-                                {environments.ENABLE_FORM_QR && !form?.settings?.hidden && <AppButton
-                                    className={'!py-0'}
-                                    icon={<QrCode className="h-5 w-5"/>}
-                                    onClick={() => {
-                                        openModal('GENERATE_QR')
-                                    }}
-                                    variant={ButtonVariant.Ghost}
-                                >
-                                    Generate QR Code
-                                </AppButton>}
+                                {environments.ENABLE_FORM_QR && !form?.settings?.hidden && (
+                                    <AppButton
+                                        className={'!py-0'}
+                                        icon={<QrCode className="h-5 w-5" />}
+                                        onClick={() => {
+                                            openModal('GENERATE_QR');
+                                        }}
+                                        variant={ButtonVariant.Ghost}
+                                    >
+                                        Generate QR Code
+                                    </AppButton>
+                                )}
                             </div>
                         </div>
                         <div className="flex flex-col gap-16 pt-10">

@@ -7,6 +7,7 @@ import { getGlobalServerSidePropsByDomain } from '@app/lib/serverSideProps';
 import { IServerSideProps } from '@app/models/dtos/serverSideProps';
 import { checkHasClientDomain, checkHasCustomDomain, getRequestHost } from '@app/utils/serverSidePropsUtils';
 
+
 interface IHome extends IServerSideProps {}
 
 const Home = ({ workspace }: IHome) => {

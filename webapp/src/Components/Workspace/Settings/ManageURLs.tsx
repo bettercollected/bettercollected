@@ -19,6 +19,7 @@ import { selectIsAdmin, selectIsProPlan } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 
+
 export default function ManageURLs() {
     const { t } = useTranslation();
     const workspace = useAppSelector(selectWorkspace);

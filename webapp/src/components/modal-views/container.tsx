@@ -51,6 +51,7 @@ import FormBuilderSpotlightModal from './modals/form-builder-spotlight-modal';
 import FormBuilderTipsModalView from './modals/form-builder-tips-modal-view';
 import VisibilityConfirmationModalView from './modals/visibility-confirmation-modal-view';
 
+
 function renderModalContent(view: MODAL_VIEW, modalProps: any) {
     switch (view) {
         case 'REDEEM_CODE_MODAL':

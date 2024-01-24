@@ -2,6 +2,7 @@ import { uuidv4 } from '@mswjs/interceptors/lib/utils/uuid';
 
 import { FileMetadata } from '@app/models/types/fileTypes';
 
+
 export const generateFileUrl = (file: File) => {
     const fileUrl = URL.createObjectURL(file);
     return fileUrl;

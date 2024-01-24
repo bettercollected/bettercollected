@@ -9,6 +9,7 @@ import { getGlobalServerSidePropsByDomain } from '@app/lib/serverSideProps';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { checkHasCustomDomain, getServerSideAuthHeaderConfig } from '@app/utils/serverSidePropsUtils';
 
+
 export async function getServerSideProps(_context: any) {
     const config = getServerSideAuthHeaderConfig(_context);
     const globalProps = (await getGlobalServerSidePropsByDomain(_context)).props;

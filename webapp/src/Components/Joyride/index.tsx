@@ -8,6 +8,7 @@ import { setJoyrideState } from '@app/store/tours/slice';
 
 import BeaconComponent from './JoyrideBeacon';
 
+
 interface LocalStorageJoyrideState {
     id: string;
     run?: boolean;

@@ -16,6 +16,7 @@ import { signInScreen } from '@app/constants/locales/signin-screen';
 import { usePostSendOtpForCreatorMutation, usePostSendOtpMutation, usePostVerifyOtpMutation } from '@app/store/auth/api';
 import { useAppSelector } from '@app/store/hooks';
 
+
 interface OtpCodePropType {
     email: string;
     isCreator: boolean;

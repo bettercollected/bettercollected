@@ -32,10 +32,10 @@ import { Condition } from '@app/store/form-builder/types';
 import { useAppAsyncDispatch, useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { useSubmitResponseMutation } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
-import { contentEditableClassNames } from '@app/utils/formBuilderBlockUtils';
 import { validateConditionsAndReturnUpdatedForm, validateFormFieldAnswer } from '@app/utils/validationUtils';
 
 import useFormAtom from './atom';
+
 
 export interface FormFieldProps {
     field: StandardFormFieldDto;

@@ -15,6 +15,7 @@ import { downloadFile, generateFileMetaData } from '@app/utils/fileUtils';
 import { FormFieldProps } from './BetterCollectedForm';
 import useFormAtom from './atom';
 
+
 export default function FileUpload({ field, ans, enabled }: FormFieldProps) {
     const [isDragging, setIsDragging] = useState(false);
     const inputFileRef = useRef<HTMLInputElement | null>(null);

@@ -20,6 +20,7 @@ import { useAppDispatch } from '@app/store/hooks';
 import { usePatchExistingWorkspaceMutation } from '@app/store/workspaces/api';
 import { setWorkspace } from '@app/store/workspaces/slice';
 
+
 export default function BannerImageComponent(props: BannerImageComponentPropType) {
     const { workspace, isFormCreator, className } = props;
     const transformComponentRef = useRef(null);
@@ -57,7 +58,10 @@ export default function BannerImageComponent(props: BannerImageComponentPropType
                     toast(response.error.data || t(toastMessage.somethingWentWrong).toString(), { toastId: ToastId.ERROR_TOAST });
                 }
                 if (response.data) {
-                    toast(t(toastMessage.workspaceUpdate).toString(), { type: 'success', toastId: ToastId.SUCCESS_TOAST });
+                    toast(t(toastMessage.workspaceUpdate).toString(), {
+                        type: 'success',
+                        toastId: ToastId.SUCCESS_TOAST
+                    });
                     setImage('');
                     dispatch(setWorkspace(response.data));
                 }

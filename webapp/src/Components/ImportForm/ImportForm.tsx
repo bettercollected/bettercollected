@@ -8,7 +8,6 @@ import _ from 'lodash';
 import AppTextField from '@Components/Common/Input/AppTextField';
 import ChangeSlugComponent from '@Components/ImportForm/ChangeSlugComponent';
 import { CircularProgress } from '@mui/material';
-import confetti from 'canvas-confetti';
 import { toast } from 'react-toastify';
 
 import GoogleFolder from '@app/assets/images/google_folder.png';
@@ -19,6 +18,7 @@ import { selectForm, setForm } from '@app/store/forms/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { useImportFormMutation, useLazyGetSingleFormFromProviderQuery } from '@app/store/workspaces/api';
 import { fireworks } from '@app/utils/confetti';
+
 
 const ImportForm = () => {
     const { t } = useTranslation();
