@@ -16,12 +16,12 @@ import { signInScreen } from '@app/constants/locales/signin-screen';
 import { usePostSendOtpForCreatorMutation, usePostSendOtpMutation, usePostVerifyOtpMutation } from '@app/store/auth/api';
 import { useAppSelector } from '@app/store/hooks';
 
-
 interface OtpCodePropType {
     email: string;
     isCreator: boolean;
     isModal?: boolean;
     setEmail: Dispatch<SetStateAction<string>>;
+    workspaceId?: string;
 }
 
 export default function OtpCodeComponent(props: OtpCodePropType) {
@@ -96,7 +96,7 @@ export default function OtpCodeComponent(props: OtpCodePropType) {
         } else {
             const req = {
                 receiver_email: props.email,
-                workspace_id: workspace.id
+                workspace_id: props.workspaceId ?? workspace.id
             };
             res = await postSendOtp(req);
         }

@@ -18,12 +18,12 @@ import { usePostSendOtpForCreatorMutation, usePostSendOtpMutation } from '@app/s
 import { useAppSelector } from '@app/store/hooks';
 import { capitalize } from '@app/utils/stringUtils';
 
-
 interface OtpEmailInputPropType {
     isCreator: boolean;
     isModal?: boolean;
     isSignup?: string | string[] | undefined;
     setEmail: Dispatch<SetStateAction<string>>;
+    workspaceId?: string;
 }
 
 const providers: Array<string> = [];
@@ -83,7 +83,7 @@ export default function OtpEmailInput(props: OtpEmailInputPropType) {
         e.preventDefault();
         if (!email) return;
         const req = {
-            workspace_id: workspace.id,
+            workspace_id: props.workspaceId ?? workspace.id,
             receiver_email: email
         };
         const res = await postSendOtp(req);
