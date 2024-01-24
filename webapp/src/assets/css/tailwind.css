@@ -212,6 +212,13 @@ p {
 
 }
 
+.p3-new {
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 21px;
+    letter-spacing: 0;
+}
+
 .navbar {
     @apply fixed top-0 flex h-16 w-full items-center justify-center border border-x-0 border-t-0 border-b-[1px] border-brand-200 bg-brand-100 lg:h-[84px];
 }

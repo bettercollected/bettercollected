@@ -36,7 +36,6 @@ import { validateConditionsAndReturnUpdatedForm, validateFormFieldAnswer } from 
 
 import useFormAtom from './atom';
 
-
 export interface FormFieldProps {
     field: StandardFormFieldDto;
     ans?: any;
@@ -280,7 +279,7 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
                 </div>
 
                 {enabled && form?.settings?.collectEmails && auth.id && (
-                    <div className="p3-new px-4 py-2 rounded-lg bg-blue-100 mt-12 mb-10 font-medium">
+                    <div className="p3-new px-4 py-2 rounded-lg bg-new-blue-100 mt-12 mb-10 font-medium">
                         You are filling this form as <span className="text-pink-500">{auth.email}</span>{' '}
                         <span className="cursor-pointer ml-4 underline text-brand-500" onClick={onClickSwitchAccount}>
                             {' '}
