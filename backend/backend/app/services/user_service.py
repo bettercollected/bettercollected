@@ -30,11 +30,14 @@ async def get_logged_user(request: Request, response: Response) -> User:
                     timeout=60,
                 )
                 if user_response.status_code == 404:
-                    raise HTTPException(401, 'User not found')
+                    raise HTTPException(401, "User not found")
                 user_response = user_response.json()
                 if user_response:
                     user_response["sub"] = user_response.get("email")
-                set_access_token_to_response(user=User(**user_response) if user_response else user, response=response)
+                set_access_token_to_response(
+                    user=User(**user_response) if user_response else user,
+                    response=response,
+                )
                 return user
         except Exception as e:
             logging.error(e)

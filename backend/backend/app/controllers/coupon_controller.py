@@ -20,28 +20,48 @@ from backend.config import settings
 
 @router(prefix="/coupons", tags=["Coupons"])
 class CouponController(Routable):
-
-    def __init__(self, coupon_service: CouponService = container.coupon_service(), *args, **kwargs):
+    def __init__(
+        self,
+        coupon_service: CouponService = container.coupon_service(),
+        *args,
+        **kwargs
+    ):
         self.coupon_service: CouponService = coupon_service
         super().__init__(*args, **kwargs)
 
     @get("", response_model=List[CouponCodeDocument])
     async def get_all_coupon_codes(self, user: User = Depends(get_logged_admin)):
         if not settings.coupon_settings.ENABLED:
-            raise HTTPException(status_code=HTTPStatus.SERVICE_UNAVAILABLE, content="Service not enabled")
+            raise HTTPException(
+                status_code=HTTPStatus.SERVICE_UNAVAILABLE,
+                content="Service not enabled",
+            )
         return await self.coupon_service.get_all_coupons()
 
     @post("/redeem/{coupon_code}")
-    async def redeem_coupon(self, coupon_code: CouponCode, response: Response, user: User = Depends(get_logged_user)):
+    async def redeem_coupon(
+        self,
+        coupon_code: CouponCode,
+        response: Response,
+        user: User = Depends(get_logged_user),
+    ):
         if not settings.coupon_settings.ENABLED:
-            raise HTTPException(status_code=HTTPStatus.SERVICE_UNAVAILABLE, content="Service not enabled")
+            raise HTTPException(
+                status_code=HTTPStatus.SERVICE_UNAVAILABLE,
+                content="Service not enabled",
+            )
         await self.coupon_service.redeem_coupon(coupon_code=coupon_code, user=user)
         user.plan = Plans.PRO
         set_tokens_to_response(user=user, response=response)
         return "Code Redeem Successful"
 
     @post("")
-    async def create_coupon_codes(self, count: int = 10, user: User = Depends(get_logged_admin)):
+    async def create_coupon_codes(
+        self, count: int = 10, user: User = Depends(get_logged_admin)
+    ):
         if not settings.coupon_settings.ENABLED:
-            raise HTTPException(status_code=HTTPStatus.SERVICE_UNAVAILABLE, content="Service not enabled")
+            raise HTTPException(
+                status_code=HTTPStatus.SERVICE_UNAVAILABLE,
+                content="Service not enabled",
+            )
         return await self.coupon_service.create_coupons(count=count)

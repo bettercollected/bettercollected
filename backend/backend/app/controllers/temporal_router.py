@@ -39,6 +39,8 @@ class TemporalRouter(Routable):
         return await self.form_schedular.delete_response(submission_id=submission_id)
 
     @post("/import/reinitialize")
-    async def reinit_temporal_form_import_schedules(self, api_key=Depends(get_api_key), user=Depends(get_logged_admin)):
+    async def reinit_temporal_form_import_schedules(
+        self, api_key=Depends(get_api_key), user=Depends(get_logged_admin)
+    ):
         await migrate_schedule_to_temporal()
         return "Ok"

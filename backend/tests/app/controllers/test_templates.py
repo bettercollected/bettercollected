@@ -54,11 +54,11 @@ async def workspace_1_private_template(workspace_1: WorkspaceDocument):
 
 class TestFormTemplates:
     async def test_create_template_from_form(
-            self,
-            client: TestClient,
-            workspace: WorkspaceDocument,
-            workspace_form: WorkspaceFormDocument,
-            test_user_cookies: dict[str, str],
+        self,
+        client: TestClient,
+        workspace: WorkspaceDocument,
+        workspace_form: WorkspaceFormDocument,
+        test_user_cookies: dict[str, str],
     ):
         create_template_url = (
             f"/api/v1/workspaces/{workspace.id}/form/{workspace_form.form_id}/template"
@@ -75,11 +75,11 @@ class TestFormTemplates:
         assert actual_template_id == str(expected_template_id)
 
     def test_unauthorized_user_create_template_from_form_fails(
-            self,
-            client: TestClient,
-            workspace: WorkspaceDocument,
-            workspace_form: WorkspaceFormDocument,
-            test_user_cookies_1: dict[str, str],
+        self,
+        client: TestClient,
+        workspace: WorkspaceDocument,
+        workspace_form: WorkspaceFormDocument,
+        test_user_cookies_1: dict[str, str],
     ):
         create_template_url = (
             f"/api/v1/workspaces/{workspace.id}/form/{workspace_form.form_id}/template"
@@ -93,11 +93,11 @@ class TestFormTemplates:
         assert actual_response_message == expected_response_message
 
     async def test_import_public_template_in_workspace(
-            self,
-            client: TestClient,
-            workspace: WorkspaceDocument,
-            test_user_cookies: dict[str, str],
-            workspace_1_public_template: FormTemplateDocument,
+        self,
+        client: TestClient,
+        workspace: WorkspaceDocument,
+        test_user_cookies: dict[str, str],
+        workspace_1_public_template: FormTemplateDocument,
     ):
         import_url = f"/api/v1/workspaces/{workspace.id}/template/{workspace_1_public_template.id}/import"
 
@@ -112,11 +112,11 @@ class TestFormTemplates:
         assert actual_template_id == expected_template_id
 
     def test_import_private_template_in_workspace(
-            self,
-            client: TestClient,
-            workspace: WorkspaceDocument,
-            test_user_cookies: dict[str, str],
-            workspace_1_private_template: FormTemplateDocument,
+        self,
+        client: TestClient,
+        workspace: WorkspaceDocument,
+        test_user_cookies: dict[str, str],
+        workspace_1_private_template: FormTemplateDocument,
     ):
         import_url = f"/api/v1/workspaces/{workspace.id}/template/{workspace_1_private_template.id}/import"
 
@@ -128,11 +128,11 @@ class TestFormTemplates:
         assert actual_response_message == expected_response_message
 
     def test_unauthorized_user_import_template_in_workspace(
-            self,
-            client: TestClient,
-            workspace: WorkspaceDocument,
-            test_user_cookies_1: dict[str, str],
-            workspace_1_public_template: FormTemplateDocument,
+        self,
+        client: TestClient,
+        workspace: WorkspaceDocument,
+        test_user_cookies_1: dict[str, str],
+        workspace_1_public_template: FormTemplateDocument,
     ):
         import_url = f"/api/v1/workspaces/{workspace.id}/template/{workspace_1_public_template.id}/import"
 
@@ -144,10 +144,10 @@ class TestFormTemplates:
         assert actual_response_message == expected_response_message
 
     async def test_create_new_template(
-            self,
-            client: TestClient,
-            workspace: WorkspaceDocument,
-            test_user_cookies: dict[str, str],
+        self,
+        client: TestClient,
+        workspace: WorkspaceDocument,
+        test_user_cookies: dict[str, str],
     ):
         create_url = f"/api/v1/workspaces/{workspace.id}/template"
 
@@ -163,10 +163,10 @@ class TestFormTemplates:
         assert expected_response is not None
 
     def test_unauthorized_user_create_new_template(
-            self,
-            client: TestClient,
-            workspace: WorkspaceDocument,
-            test_user_cookies_1: dict[str, str],
+        self,
+        client: TestClient,
+        workspace: WorkspaceDocument,
+        test_user_cookies_1: dict[str, str],
     ):
         create_url = f"/api/v1/workspaces/{workspace.id}/template"
 
@@ -182,11 +182,11 @@ class TestFormTemplates:
         assert actual_response_message == expected_response_message
 
     def test_update_template(
-            self,
-            client: TestClient,
-            workspace: WorkspaceDocument,
-            test_user_cookies: dict[str, str],
-            workspace_template: FormTemplateDocument,
+        self,
+        client: TestClient,
+        workspace: WorkspaceDocument,
+        test_user_cookies: dict[str, str],
+        workspace_template: FormTemplateDocument,
     ):
         update_url = (
             f"/api/v1/workspaces/{workspace.id}/template/{workspace_template.id}"
@@ -203,11 +203,11 @@ class TestFormTemplates:
         assert actual_updated_title == expected_updated_title
 
     def test_update_other_workspace_template_fails(
-            self,
-            client: TestClient,
-            workspace: WorkspaceDocument,
-            test_user_cookies: dict[str, str],
-            workspace_1_public_template: FormTemplateDocument,
+        self,
+        client: TestClient,
+        workspace: WorkspaceDocument,
+        test_user_cookies: dict[str, str],
+        workspace_1_public_template: FormTemplateDocument,
     ):
         update_url = f"/api/v1/workspaces/{workspace.id}/template/{workspace_1_public_template.id}"
 
@@ -223,11 +223,11 @@ class TestFormTemplates:
         assert actual_response_message == expected_response_message
 
     def test_unauthorized_user_update_template_fails(
-            self,
-            client: TestClient,
-            workspace: WorkspaceDocument,
-            test_user_cookies_1: dict[str, str],
-            workspace_template: FormTemplateDocument,
+        self,
+        client: TestClient,
+        workspace: WorkspaceDocument,
+        test_user_cookies_1: dict[str, str],
+        workspace_template: FormTemplateDocument,
     ):
         update_url = (
             f"/api/v1/workspaces/{workspace.id}/template/{workspace_template.id}"
@@ -245,15 +245,13 @@ class TestFormTemplates:
         assert actual_response_message == expected_response_message
 
     def test_update_template_settings(
-            self,
-            client: TestClient,
-            workspace_1: WorkspaceDocument,
-            test_user_cookies_1: dict[str, str],
-            workspace_1_public_template: FormTemplateDocument,
+        self,
+        client: TestClient,
+        workspace_1: WorkspaceDocument,
+        test_user_cookies_1: dict[str, str],
+        workspace_1_public_template: FormTemplateDocument,
     ):
-        update_url = (
-            f"/api/v1/workspaces/{workspace_1.id}/template/{workspace_1_public_template.id}/settings"
-        )
+        update_url = f"/api/v1/workspaces/{workspace_1.id}/template/{workspace_1_public_template.id}/settings"
 
         updated_template = client.patch(
             update_url,
@@ -262,15 +260,19 @@ class TestFormTemplates:
         )
 
         expected_updated_settings_visibility = False
-        actual_updated_settings_visibility = updated_template.json().get("settings").get("isPublic")
-        assert expected_updated_settings_visibility == actual_updated_settings_visibility
+        actual_updated_settings_visibility = (
+            updated_template.json().get("settings").get("isPublic")
+        )
+        assert (
+            expected_updated_settings_visibility == actual_updated_settings_visibility
+        )
 
     def test_update_other_workspace_template_settings_fails(
-            self,
-            client: TestClient,
-            workspace: WorkspaceDocument,
-            test_user_cookies: dict[str, str],
-            workspace_1_public_template: FormTemplateDocument,
+        self,
+        client: TestClient,
+        workspace: WorkspaceDocument,
+        test_user_cookies: dict[str, str],
+        workspace_1_public_template: FormTemplateDocument,
     ):
         update_url = f"/api/v1/workspaces/{workspace.id}/template/{workspace_1_public_template.id}/settings"
 
@@ -286,15 +288,13 @@ class TestFormTemplates:
         assert actual_response_message == expected_response_message
 
     def test_unauthorized_user_update_template_settings_fails(
-            self,
-            client: TestClient,
-            workspace: WorkspaceDocument,
-            test_user_cookies_1: dict[str, str],
-            workspace_template: FormTemplateDocument,
+        self,
+        client: TestClient,
+        workspace: WorkspaceDocument,
+        test_user_cookies_1: dict[str, str],
+        workspace_template: FormTemplateDocument,
     ):
-        update_url = (
-            f"/api/v1/workspaces/{workspace.id}/template/{workspace_template.id}/settings"
-        )
+        update_url = f"/api/v1/workspaces/{workspace.id}/template/{workspace_template.id}/settings"
 
         updated_template = client.patch(
             update_url,
@@ -308,11 +308,11 @@ class TestFormTemplates:
         assert actual_response_message == expected_response_message
 
     def test_delete_template(
-            self,
-            client: TestClient,
-            workspace: WorkspaceDocument,
-            workspace_template: FormTemplateDocument,
-            test_user_cookies: dict[str, str],
+        self,
+        client: TestClient,
+        workspace: WorkspaceDocument,
+        workspace_template: FormTemplateDocument,
+        test_user_cookies: dict[str, str],
     ):
         delete_url = (
             f"/api/v1/workspaces/{workspace.id}/template/{workspace_template.id}"
@@ -325,11 +325,11 @@ class TestFormTemplates:
         assert actual_deleted_template_id == expected_deleted_template_id
 
     def test_delete_other_workspace_template_fails(
-            self,
-            client: TestClient,
-            workspace: WorkspaceDocument,
-            workspace_1_public_template: FormTemplateDocument,
-            test_user_cookies: dict[str, str],
+        self,
+        client: TestClient,
+        workspace: WorkspaceDocument,
+        workspace_1_public_template: FormTemplateDocument,
+        test_user_cookies: dict[str, str],
     ):
         delete_url = f"/api/v1/workspaces/{workspace.id}/template/{workspace_1_public_template.id}"
 
@@ -341,11 +341,11 @@ class TestFormTemplates:
         assert actual_response_message == expected_response_message
 
     def test_unauthorized_user_delete_template_fails(
-            self,
-            client: TestClient,
-            workspace: WorkspaceDocument,
-            workspace_template: FormTemplateDocument,
-            test_user_cookies_1: dict[str, str],
+        self,
+        client: TestClient,
+        workspace: WorkspaceDocument,
+        workspace_template: FormTemplateDocument,
+        test_user_cookies_1: dict[str, str],
     ):
         delete_url = (
             f"/api/v1/workspaces/{workspace.id}/template/{workspace_template.id}"
@@ -359,11 +359,11 @@ class TestFormTemplates:
         assert actual_response_message == expected_response_message
 
     async def test_create_form_from_template(
-            self,
-            client: TestClient,
-            workspace: WorkspaceDocument,
-            workspace_template: FormTemplateDocument,
-            test_user_cookies: dict[str, str],
+        self,
+        client: TestClient,
+        workspace: WorkspaceDocument,
+        workspace_template: FormTemplateDocument,
+        test_user_cookies: dict[str, str],
     ):
         create_url = (
             f"/api/v1/workspaces/{workspace.id}/template/{workspace_template.id}"
@@ -376,11 +376,11 @@ class TestFormTemplates:
         assert actual_form_title == expected_form_title
 
     def test_unauthorized_user_create_form_from_template_fails(
-            self,
-            client: TestClient,
-            workspace: WorkspaceDocument,
-            workspace_template: FormTemplateDocument,
-            test_user_cookies_1: dict[str, str],
+        self,
+        client: TestClient,
+        workspace: WorkspaceDocument,
+        workspace_template: FormTemplateDocument,
+        test_user_cookies_1: dict[str, str],
     ):
         create_url = (
             f"/api/v1/workspaces/{workspace.id}/template/{workspace_template.id}"
@@ -394,12 +394,12 @@ class TestFormTemplates:
         assert actual_response_message == expected_response_message
 
     def test_get_templates_of_predefined_workspaces(
-            self,
-            client: TestClient,
-            test_user_cookies: dict[str, str],
-            workspace: WorkspaceDocument,
-            predefined_workspace_template: FormTemplateDocument,
-            workspace_template: FormTemplateDocument,
+        self,
+        client: TestClient,
+        test_user_cookies: dict[str, str],
+        workspace: WorkspaceDocument,
+        predefined_workspace_template: FormTemplateDocument,
+        workspace_template: FormTemplateDocument,
     ):
         get_url = f"/api/v1/templates"
 
@@ -410,12 +410,12 @@ class TestFormTemplates:
         assert actual_template_id == expected_template_id
 
     def test_get_templates(
-            self,
-            client: TestClient,
-            test_user_cookies: dict[str, str],
-            workspace: WorkspaceDocument,
-            predefined_workspace_template: FormTemplateDocument,
-            workspace_template: FormTemplateDocument,
+        self,
+        client: TestClient,
+        test_user_cookies: dict[str, str],
+        workspace: WorkspaceDocument,
+        predefined_workspace_template: FormTemplateDocument,
+        workspace_template: FormTemplateDocument,
     ):
         get_url = f"/api/v1/templates?workspace_id={workspace.id}"
 
@@ -426,12 +426,12 @@ class TestFormTemplates:
         assert actual_template_id == expected_template_id
 
     def test_unauthorized_user_get_templates_fails(
-            self,
-            client: TestClient,
-            test_user_cookies_1: dict[str, str],
-            workspace: WorkspaceDocument,
-            predefined_workspace_template: FormTemplateDocument,
-            workspace_template: FormTemplateDocument,
+        self,
+        client: TestClient,
+        test_user_cookies_1: dict[str, str],
+        workspace: WorkspaceDocument,
+        predefined_workspace_template: FormTemplateDocument,
+        workspace_template: FormTemplateDocument,
     ):
         get_url = f"/api/v1/templates?workspace_id={workspace.id}"
 
@@ -443,12 +443,12 @@ class TestFormTemplates:
         assert actual_response_message == expected_response_message
 
     def test_get_template_of_predefined_workspace_by_id(
-            self,
-            client: TestClient,
-            test_user_cookies: dict[str, str],
-            workspace: WorkspaceDocument,
-            predefined_workspace_template: FormTemplateDocument,
-            workspace_template: FormTemplateDocument,
+        self,
+        client: TestClient,
+        test_user_cookies: dict[str, str],
+        workspace: WorkspaceDocument,
+        predefined_workspace_template: FormTemplateDocument,
+        workspace_template: FormTemplateDocument,
     ):
         get_url = f"/api/v1/templates/{predefined_workspace_template.id}"
 
@@ -459,12 +459,12 @@ class TestFormTemplates:
         assert actual_template_id == expected_template_id
 
     def test_get_template_by_id(
-            self,
-            client: TestClient,
-            test_user_cookies: dict[str, str],
-            workspace: WorkspaceDocument,
-            predefined_workspace_template: FormTemplateDocument,
-            workspace_template: FormTemplateDocument,
+        self,
+        client: TestClient,
+        test_user_cookies: dict[str, str],
+        workspace: WorkspaceDocument,
+        predefined_workspace_template: FormTemplateDocument,
+        workspace_template: FormTemplateDocument,
     ):
         get_url = (
             f"/api/v1/templates/{workspace_template.id}?workspace_id={workspace.id}"
@@ -483,9 +483,7 @@ class TestFormTemplates:
         workspace: WorkspaceDocument,
         workspace_1_private_template: FormTemplateDocument,
     ):
-        get_url = (
-            f"/api/v1/templates/{workspace_1_private_template.id}?workspace_id={workspace.id}"
-        )
+        get_url = f"/api/v1/templates/{workspace_1_private_template.id}?workspace_id={workspace.id}"
         template_by_id = client.get(get_url, cookies=test_user_cookies_1)
 
         expected_response_message = MESSAGE_NOT_FOUND
@@ -500,9 +498,7 @@ class TestFormTemplates:
         workspace_1: WorkspaceDocument,
         workspace_1_public_template: FormTemplateDocument,
     ):
-        get_url = (
-            f"/api/v1/templates/{workspace_1_public_template.id}?workspace_id={workspace_1.id}"
-        )
+        get_url = f"/api/v1/templates/{workspace_1_public_template.id}?workspace_id={workspace_1.id}"
 
         template_by_id = client.get(get_url, cookies=test_user_cookies_1)
 
@@ -528,11 +524,11 @@ class TestFormTemplates:
         assert actual_response == MESSAGE_NOT_FOUND
 
     def test_get_other_workspace_private_template_by_id(
-            self,
-            client: TestClient,
-            test_user_cookies: dict[str, str],
-            workspace: WorkspaceDocument,
-            workspace_1_private_template: FormTemplateDocument,
+        self,
+        client: TestClient,
+        test_user_cookies: dict[str, str],
+        workspace: WorkspaceDocument,
+        workspace_1_private_template: FormTemplateDocument,
     ):
         get_url = f"/api/v1/templates/{workspace_1_private_template.id}?workspace_id={workspace.id}"
 
@@ -544,11 +540,11 @@ class TestFormTemplates:
         assert actual_response_message == expected_response_message
 
     def test_get_other_workspace_public_template_by_id(
-            self,
-            client: TestClient,
-            test_user_cookies: dict[str, str],
-            workspace: WorkspaceDocument,
-            workspace_1_public_template: FormTemplateDocument,
+        self,
+        client: TestClient,
+        test_user_cookies: dict[str, str],
+        workspace: WorkspaceDocument,
+        workspace_1_public_template: FormTemplateDocument,
     ):
         get_url = f"/api/v1/templates/{workspace_1_public_template.id}?workspace_id={workspace.id}"
 

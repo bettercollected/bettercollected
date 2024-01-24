@@ -58,9 +58,9 @@ async def workspace_1():
 
 @pytest.fixture()
 async def workspace_pro():
-    await container.workspace_service().create_non_default_workspace(title="Title", description="description",
-                                                                     workspace_name="name",
-                                                                     user=proUser)
+    await container.workspace_service().create_non_default_workspace(
+        title="Title", description="description", workspace_name="name", user=proUser
+    )
     workspace = (await WorkspaceDocument.find().to_list())[0]
     return workspace
 

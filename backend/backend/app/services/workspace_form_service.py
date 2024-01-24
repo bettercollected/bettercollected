@@ -6,6 +6,7 @@ from typing import List
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from beanie import PydanticObjectId
+from common.configs.crypto import Crypto
 from common.constants import MESSAGE_NOT_FOUND
 from common.enums.plan import Plans
 from common.models.form_import import FormImportRequestBody
@@ -58,7 +59,8 @@ class WorkspaceFormService:
             user_tags_service: UserTagsService,
             temporal_service: TemporalService,
             aws_service: AWSS3Service,
-            action_service: ActionService
+            action_service: ActionService,
+            crypto: Crypto
     ):
         self.form_provider_service = form_provider_service
         self.plugin_proxy_service = plugin_proxy_service
@@ -74,6 +76,7 @@ class WorkspaceFormService:
         self.temporal_service = temporal_service
         self._aws_service = aws_service
         self.action_service = action_service
+        self.crypto = crypto
 
     async def check_form_exists_in_workspace(self, workspace_id: PydanticObjectId, form_id: str):
         if not await self.workspace_form_repository.check_if_form_exists_in_workspace(workspace_id=workspace_id,
@@ -286,28 +289,6 @@ class WorkspaceFormService:
             self,
             key: str,
     ):
-        # await self.workspace_user_service.check_is_admin_in_workspace(
-        #     workspace_id=workspace_id, user=user
-        # )
-        #
-        # response = await FormResponseDocument.find_one({"response_id": response_id})
-        # form = await FormDocument.find_one({"form_id": form_id})
-        # workspace_form = await WorkspaceFormDocument.find_one(
-        #     {
-        #         "workspace_id": workspace_id,
-        #         "form_id": form.form_id,
-        #     }
-        # )
-        #
-        # if not workspace_form:
-        #     raise HTTPException(404, "Form not found in this workspace")
-        #
-        # if not response:
-        #     raise HTTPException(404, "Response not found in this workspace")
-        #
-        # if not response.dataOwnerIdentifier == user.sub:
-        #     raise HTTPException(403, "You are not authorized to perform this action.")
-
         return self._aws_service.generate_presigned_url(key)
 
     async def create_form(
@@ -440,6 +421,7 @@ class WorkspaceFormService:
             response: StandardFormResponse,
             user: User,
             form_files: list[FormFileResponse] = None,
+            anonymize: bool = False
     ):
         if form_files:
             response = await self.upload_files_to_s3_and_update_url(
@@ -467,7 +449,12 @@ class WorkspaceFormService:
         workspace_form = WorkspaceFormDocument(**workspace_form)
 
         if user:
-            response.dataOwnerIdentifier = user.sub
+            response.dataOwnerIdentifier = user.sub if not anonymize else ""
+
+        identifier = user.sub if user else response.dataOwnerIdentifier
+
+        if anonymize and identifier:
+            response.anonymous_identity = self.crypto.encrypt(identifier)
 
         if workspace_form.settings.collect_emails and not user:
             raise HTTPException(HTTPStatus.UNAUTHORIZED, content="Sign in to fill this form.")
