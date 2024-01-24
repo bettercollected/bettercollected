@@ -37,6 +37,7 @@ import { useGetWorkspaceSubmissionQuery, useRequestWorkspaceSubmissionDeletionMu
 import { utcToLocalDate } from '@app/utils/dateUtils';
 import { checkHasCustomDomain, getServerSideAuthHeaderConfig } from '@app/utils/serverSidePropsUtils';
 
+
 interface ISubmission extends IServerSideProps {
     form: StandardFormDto;
 }

@@ -30,6 +30,7 @@ import { useGetWorkspaceFormQuery } from '@app/store/workspaces/api';
 import { checkHasCustomDomain, getServerSideAuthHeaderConfig } from '@app/utils/serverSidePropsUtils';
 import { validateFormOpen } from '@app/utils/validationUtils';
 
+
 export default function SingleFormPage(props: any) {
     const { back, slug, hasCustomDomain, workspace, form: fetched_form, error: fetched_form_error } = props;
 

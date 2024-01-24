@@ -8,6 +8,7 @@ import { useGetTemplateByIdQuery } from '@app/store/template/api';
 import { convertFormTemplateToStandardForm } from '@app/utils/convertDataType';
 import { checkHasAdminDomain, getRequestHost } from '@app/utils/serverSidePropsUtils';
 
+
 export default function TemplatePreview(props: any) {
     const { templateId } = props;
     const { data } = useGetTemplateByIdQuery({

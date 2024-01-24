@@ -1,5 +1,4 @@
 import { useTranslation } from 'next-i18next';
-import { useRouter } from 'next/router';
 
 import GenericHalfModal from '@Components/Common/Modals/GenericHalfModal';
 import { toast } from 'react-toastify';
@@ -10,6 +9,7 @@ import { updateWorkspace } from '@app/constants/locales/update-workspace';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { useDeleteWorkspaceDomainMutation } from '@app/store/workspaces/api';
 import { setWorkspace } from '@app/store/workspaces/slice';
+
 
 export default function DeleteCustomDomainModal() {
     const { closeModal } = useModal();

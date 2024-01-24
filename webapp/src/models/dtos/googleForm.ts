@@ -25,5 +25,12 @@ export interface GoogleMinifiedFormDto {
     iconLink: string;
     createdTime: string;
     modifiedTime: string;
-    owners: Array<{ kind: string; displayName: string; photoLink: string; me: boolean; permissionId: string; emailAddress: string }>;
+    owners: Array<{
+        kind: string;
+        displayName: string;
+        photoLink: string;
+        me: boolean;
+        permissionId: string;
+        emailAddress: string;
+    }>;
 }

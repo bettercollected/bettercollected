@@ -7,6 +7,7 @@ import { NextSeo } from 'next-seo';
 import { pricingPlan } from '@app/constants/locales/pricingplan';
 import UpgradeToProContainer from '@app/containers/upgrade-to-pro';
 
+
 const PricingPlan = () => {
     const { t } = useTranslation();
     return (

@@ -24,6 +24,7 @@ import { selectAuth, selectIsAdmin } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 
+
 interface IAuthAccountMenuDropdownProps {
     isClientDomain?: boolean;
     fullWidth?: boolean;

@@ -15,6 +15,7 @@ import environments from '@app/configs/environments';
 import { useRedeemCouponCodeMutation } from '@app/store/coupon-code/api';
 import { fireworks } from '@app/utils/confetti';
 
+
 export default function RedeemCouponCodeModal({ showSuccess = false }: { showSuccess?: boolean }) {
     const [error, setError] = useState('');
     const { openModal, closeModal } = useModal();

@@ -17,6 +17,7 @@ import { validateConsents } from '@app/utils/validations/consent/consentValidati
 
 import ConsentField from './ConsentField';
 
+
 interface ConsentBuilderProps extends OnlyClassNameInterface {
     onFormSubmit: any;
     form: StandardFormDto;

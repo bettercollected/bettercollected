@@ -11,12 +11,14 @@ import { IConsentField } from '@app/store/consent/types';
 import ConsentAddInput from './ConsentAddInput';
 import ConsentBuilderField from './ConsentBuilderField';
 
+
 interface FormPurposeBuilderProps {
     form?: StandardFormDto;
     isPreview: boolean;
     options: IConsentOption[];
     consents: IConsentField[];
 }
+
 export default function FormPurposeBuilder({ form, isPreview, options, consents }: FormPurposeBuilderProps) {
     const { openModal } = useModal();
 

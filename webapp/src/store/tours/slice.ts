@@ -4,6 +4,7 @@ import storage from 'redux-persist/lib/storage';
 
 import { JoyrideStateWithoutSteps } from '@app/models/dtos/joyride';
 
+
 interface JoyrideSliceState {
     joyrides: Record<string, JoyrideStateWithoutSteps>;
     isAnyJoyrideRunning: boolean;

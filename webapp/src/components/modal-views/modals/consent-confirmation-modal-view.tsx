@@ -16,6 +16,7 @@ import { useAppDispatch } from '@app/store/hooks';
 import { useModal } from '../context';
 import { useFullScreenModal } from '../full-screen-modal-context';
 
+
 export interface ConsentConfirmationModalProps {
     onFormSubmit: any;
     consentAnswers: Record<string, IConsentAnswer>;
@@ -59,7 +60,7 @@ export default function ConsentConfirmationModalView({ onFormSubmit, consentAnsw
     };
     return (
         <form onSubmit={onSubmit} className="bg-white rounded-2xl w-fit md:w-[476px] h-content">
-            <ConsentModalTopBar title={'Confirm and Submit'}/>
+            <ConsentModalTopBar title={'Confirm and Submit'} />
             <div className="pt-5 px-6">
                 <HintBox
                     size="small"

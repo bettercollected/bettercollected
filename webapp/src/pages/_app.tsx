@@ -40,6 +40,7 @@ import { persistor, store } from '@app/store/store';
 import { NextPageWithLayout } from '@app/types';
 import SetClarityUserId from '@app/utils/clarityUtils';
 
+
 const BaseModalContainer = dynamic(() => import('@app/Components/Modals/Containers/BaseModalContainer'));
 // Client-side cache, shared for the whole session of the user in the browser.
 const clientSideEmotionCache = createEmotionCache();

@@ -15,6 +15,7 @@ import { useAppSelector } from '@app/store/hooks';
 
 import DeleteDropDown from '../ui/delete-dropdown';
 
+
 interface IGroupCardProps {
     responderGroup: ResponderGroupDto;
     handleDelete: () => void;
@@ -43,7 +44,10 @@ export default function GroupCard({ responderGroup, handleDelete, isFormGroup = 
                     onDropDownItemClick={(event) => {
                         event.stopPropagation();
                         event.preventDefault();
-                        openModal('DELETE_CONFIRMATION', { title: t(!!responderGroup.forms && !isFormGroup ? localesCommon.delete : localesCommon.remove) + ' ' + responderGroup.name, handleDelete });
+                        openModal('DELETE_CONFIRMATION', {
+                            title: t(!!responderGroup.forms && !isFormGroup ? localesCommon.delete : localesCommon.remove) + ' ' + responderGroup.name,
+                            handleDelete
+                        });
                     }}
                     className="absolute top-3 right-3"
                     label={t(!!responderGroup.forms && !isFormGroup ? localesCommon.delete : localesCommon.remove)}

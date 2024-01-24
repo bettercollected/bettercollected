@@ -5,6 +5,7 @@ import { getGlobalServerSidePropsByWorkspaceName } from '@app/lib/serverSideProp
 import SingleFormPage from '@app/pages/forms/[id]';
 import { checkHasClientDomain, getRequestHost, getServerSideAuthHeaderConfig } from '@app/utils/serverSidePropsUtils';
 
+
 export default SingleFormPage;
 
 export async function getServerSideProps(_context: any) {

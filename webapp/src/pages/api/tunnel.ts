@@ -1,6 +1,7 @@
 import * as Sentry from '@sentry/nextjs';
 import * as url from 'url';
 
+
 // Change host appropriately if you run your own Sentry instance.
 const sentryHost = 'sentry.sireto.io';
 

@@ -18,6 +18,7 @@ import { usePostSendOtpForCreatorMutation, usePostSendOtpMutation } from '@app/s
 import { useAppSelector } from '@app/store/hooks';
 import { capitalize } from '@app/utils/stringUtils';
 
+
 interface OtpEmailInputPropType {
     isCreator: boolean;
     isModal?: boolean;

@@ -6,6 +6,7 @@ import { Provider } from 'react-redux';
 import ModalContainer from '@app/components/modal-views/container';
 import { store as st } from '@app/store/store';
 
+
 export function renderWithContainers(
     ui: any,
     {

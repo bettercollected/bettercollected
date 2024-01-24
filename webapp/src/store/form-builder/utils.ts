@@ -4,6 +4,7 @@ import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
 
 import { IBuilderTitleAndDescriptionObj, IFormFieldProperties, IFormFieldState, LogicalOperator } from './types';
 
+
 export const builderTitleAndDescriptionList: Array<IBuilderTitleAndDescriptionObj> = [
     {
         id: 'item-form-title',

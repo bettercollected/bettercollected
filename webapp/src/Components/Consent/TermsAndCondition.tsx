@@ -5,6 +5,7 @@ import cn from 'classnames';
 
 import { OnlyClassNameInterface } from '@app/models/interfaces';
 
+
 type TermsAndConditionType = 'normal' | 'title_and_description';
 
 interface TermsAndConditionProps extends OnlyClassNameInterface {

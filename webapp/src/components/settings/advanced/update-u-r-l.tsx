@@ -20,6 +20,7 @@ import { useCopyToClipboard } from '@app/lib/hooks/use-copy-to-clipboard';
 import { selectIsProPlan } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 
+
 interface IUpdateURLProps {
     type: 'DOMAIN' | 'HANDLE';
 }

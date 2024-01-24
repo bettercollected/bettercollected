@@ -12,6 +12,7 @@ import { FormBuilderTagNames, NonInputFormBuilderTagNames } from '@app/models/en
 import { setUpdateField } from '@app/store/form-builder/actions';
 import { IFormFieldState } from '@app/store/form-builder/types';
 
+
 interface IIndividualFieldOptionsProps {
     field: IFormFieldState;
 }

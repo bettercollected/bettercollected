@@ -1,20 +1,24 @@
-import AppButton from "@Components/Common/Input/Button/AppButton";
-import {ButtonVariant} from "@Components/Common/Input/Button/AppButtonProps";
-import React from "react";
-import {useTranslation} from "next-i18next";
-import {toast} from "react-toastify";
-import {selectWorkspace} from "@app/store/workspaces/slice";
-import {useAppSelector} from "@app/store/hooks";
-import {selectForm} from "@app/store/forms/slice";
-import {useCreateTemplateFromFormMutation} from "@app/store/template/api";
-import {useRouter} from "next/router";
+import React from 'react';
+
+import { useTranslation } from 'next-i18next';
+import { useRouter } from 'next/router';
+
+import AppButton from '@Components/Common/Input/Button/AppButton';
+import { ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
+import { toast } from 'react-toastify';
+
+import { selectForm } from '@app/store/forms/slice';
+import { useAppSelector } from '@app/store/hooks';
+import { useCreateTemplateFromFormMutation } from '@app/store/template/api';
+import { selectWorkspace } from '@app/store/workspaces/slice';
+
 
 interface IButtonProps {
     buttonType?: ButtonVariant;
 }
 
-const MakeTemplateButton = ({buttonType = ButtonVariant.Secondary}: IButtonProps) => {
-    const {t} = useTranslation();
+const MakeTemplateButton = ({ buttonType = ButtonVariant.Secondary }: IButtonProps) => {
+    const { t } = useTranslation();
     const router = useRouter();
 
     const workspace = useAppSelector(selectWorkspace);
@@ -30,18 +34,20 @@ const MakeTemplateButton = ({buttonType = ButtonVariant.Secondary}: IButtonProps
             };
             const response: any = await createFormAsTemplate(request);
             if (response?.data) {
-                toast('Created Successfully', {type: 'success'});
+                toast('Created Successfully', { type: 'success' });
                 router.replace(`/${workspace.workspaceName}/dashboard/templates`);
             } else {
-                toast('Error Occurred').toString(), {type: 'error'};
+                toast('Error Occurred').toString(), { type: 'error' };
             }
         } catch (err) {
-            toast('Error Occurred').toString(), {type: 'error'};
+            toast('Error Occurred').toString(), { type: 'error' };
         }
-    }
-    return <AppButton variant={buttonType} onClick={onClickMakeTemplateButton}>
-        {t('TEMPLATE.BUTTONS.MAKE_TEMPLATE')}
-    </AppButton>
-}
+    };
+    return (
+        <AppButton variant={buttonType} onClick={onClickMakeTemplateButton}>
+            {t('TEMPLATE.BUTTONS.MAKE_TEMPLATE')}
+        </AppButton>
+    );
+};
 
 export default MakeTemplateButton;

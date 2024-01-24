@@ -10,6 +10,7 @@ import { useAppDispatch } from '@app/store/hooks';
 
 import { TipList } from './tipsList';
 
+
 function BuilderTips() {
     const { t } = useBuilderTranslation();
     const { openModal } = useModal();
