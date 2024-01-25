@@ -313,3 +313,23 @@ class FormResponseService:
 
     async def delete_response(self, response_id: str):
         return await self._form_response_repo.delete_response(response_id=response_id)
+
+    async def get_by_uuid(self, workspace_id: PydanticObjectId, submission_uuid: str):
+        response = await self._form_response_repo.get_by_submission_uuid(submission_uuid=submission_uuid)
+        form = await FormVersionsDocument.find_one(
+            {
+                "form_id": response.form_id,
+                "version": response.form_version if response.form_version else 1,
+            }
+        )
+        if not form:
+            form = await FormDocument.find_one({"form_id": response.form_id})
+
+        decrypted_response = self.decrypt_form_response(
+            workspace_id=workspace_id, response=response
+        )
+
+        return {
+            form: form,
+            response: decrypted_response
+        }
