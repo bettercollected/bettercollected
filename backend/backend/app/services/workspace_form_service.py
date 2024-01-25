@@ -40,6 +40,7 @@ from backend.app.services.temporal_service import TemporalService
 from backend.app.services.user_tags_service import UserTagsService
 from backend.app.services.workspace_user_service import WorkspaceUserService
 from backend.app.utils import AiohttpClient
+from backend.app.utils.hash import hash_string
 from backend.config import settings
 
 
@@ -454,7 +455,7 @@ class WorkspaceFormService:
         identifier = user.sub if user else response.dataOwnerIdentifier
 
         if anonymize and identifier:
-            response.anonymous_identity = self.crypto.encrypt(identifier)
+            response.anonymous_identity = hash_string(user.sub)
 
         if workspace_form.settings.collect_emails and not user:
             raise HTTPException(HTTPStatus.UNAUTHORIZED, content="Sign in to fill this form.")

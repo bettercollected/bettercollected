@@ -68,6 +68,7 @@ class AppContainer(containers.DeclarativeContainer):
     user_tags_service = providers.Singleton(
         UserTagsService, user_tags_repo=user_tags_repo
     )
+    crypto = providers.Singleton(Crypto, settings.auth_settings.AES_HEX_KEY)
 
     # Repositories
 
@@ -79,7 +80,8 @@ class AppContainer(containers.DeclarativeContainer):
 
     form_repo: FormRepository = providers.Singleton(FormRepository)
     form_response_repo: FormResponseRepository = providers.Singleton(
-        FormResponseRepository
+        FormResponseRepository,
+        crypto=crypto
     )
     workspace_form_repo: WorkspaceFormRepository = providers.Singleton(
         WorkspaceFormRepository
@@ -91,7 +93,6 @@ class AppContainer(containers.DeclarativeContainer):
 
     responder_groups_repository = providers.Singleton(ResponderGroupsRepository)
 
-    crypto = providers.Singleton(Crypto, settings.auth_settings.AES_HEX_KEY)
 
     action_repository = providers.Singleton(ActionRepository, crypto=crypto)
 
