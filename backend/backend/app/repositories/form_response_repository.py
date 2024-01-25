@@ -1,5 +1,6 @@
 import json
 from typing import Any, Dict, List
+from uuid import uuid4
 
 import fastapi_pagination.ext.beanie
 from beanie import PydanticObjectId
@@ -252,6 +253,7 @@ class FormResponseRepository(BaseRepository):
     ):
         response_document = FormResponseDocument(**response.dict())
         response_document.response_id = str(PydanticObjectId())
+        response_document.submission_id = uuid4()
         if workspace_id:
             for k, v in response_document.answers.items():
                 if type(v) == StandardFormResponseAnswer:
@@ -290,3 +292,6 @@ class FormResponseRepository(BaseRepository):
 
     async def get_response(self, response_id: str):
         return await FormResponseDocument.find_one({"response_id": response_id})
+
+    async def get_by_submission_uuid(self, submission_uuid: str):
+        return await FormResponseDocument.find_one({"submission_uuid": submission_uuid})

@@ -2,20 +2,20 @@ from typing import Any
 
 from beanie import PydanticObjectId
 from classy_fastapi import delete, get
+from common.models.user import User
 from fastapi import Depends
 from fastapi_pagination import Page
 
 from backend.app.container import container
 from backend.app.decorators.user_tag_decorators import user_tag_from_workspace
+from backend.app.models.dtos.response_dtos import StandardFormResponseCamelModel
 from backend.app.models.enum.user_tag_enum import UserTagType
 from backend.app.models.filter_queries.form_responses import FormResponseFilterQuery
 from backend.app.models.filter_queries.sort import SortRequest
-from backend.app.models.dtos.response_dtos import StandardFormResponseCamelModel
 from backend.app.router import router
 from backend.app.services.form_response_service import FormResponseService
 from backend.app.services.user_service import get_logged_user
 from backend.app.utils.custom_routable import CustomRoutable
-from common.models.user import User
 
 
 @router(
@@ -105,6 +105,12 @@ class WorkspaceResponsesRouter(CustomRoutable):
         return await self._form_response_service.get_workspace_submission(
             workspace_id, submission_id, user
         )
+
+    @get("/submissions/by-uuid/{submission_uuid}")
+    async def get_submission_by_uuid(self, workspace_id: PydanticObjectId, submission_uuid: str):
+        return await self._form_response_service.get_by_uuid(submission_uuid=submission_uuid,
+                                                             workspace_id=workspace_id)
+
 
     @delete(
         "/submissions/{submission_id}",
