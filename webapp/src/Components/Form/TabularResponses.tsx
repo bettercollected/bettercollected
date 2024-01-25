@@ -20,7 +20,6 @@ import { IGetFormSubmissionsQuery } from '@app/store/workspaces/types';
 import { downloadFile } from '@app/utils/fileUtils';
 import { convertPlaceholderToDisplayValue } from '@app/utils/formBuilderBlockUtils';
 
-
 const customTableStyles = {
     ...dataTableCustomStyles,
     rows: {
@@ -156,7 +155,7 @@ export default function TabularResponses({ form }: TabularResponsesProps) {
     const responseDataOwnerField = (response: StandardFormResponseDto) => (
         <div aria-hidden className="w-fit">
             <Typography className={cn('!text-black-900 body3 ')} noWrap>
-                {response?.dataOwnerIdentifier ?? 'Anonymous'}
+                {response?.dataOwnerIdentifier || 'Anonymous'}
             </Typography>
         </div>
     );
