@@ -4,15 +4,16 @@ from typing import Any, Dict, List
 import fastapi_pagination.ext.beanie
 from beanie import PydanticObjectId
 from common.base.repo import BaseRepository
+from common.configs.crypto import Crypto
 from common.enums.form_provider import FormProvider
 from common.models.standard_form import StandardFormResponse, StandardFormResponseAnswer
 from common.models.user import User
 from common.services.crypto_service import crypto_service
 from fastapi_pagination import Page
 
+from backend.app.models.dtos.response_dtos import StandardFormResponseCamelModel
 from backend.app.models.filter_queries.form_responses import FormResponseFilterQuery
 from backend.app.models.filter_queries.sort import SortRequest
-from backend.app.models.dtos.response_dtos import StandardFormResponseCamelModel
 from backend.app.repositories.deletion_requests_repository import (
     DeletionRequestsRepository,
 )
@@ -22,9 +23,15 @@ from backend.app.schemas.standard_form_response import (
     DeletionRequestStatus,
 )
 from backend.app.utils.aggregation_query_builder import create_filter_pipeline
+from backend.app.utils.hash import hash_string
 
 
 class FormResponseRepository(BaseRepository):
+
+    def __init__(self, crypto: Crypto):
+        super().__init__()
+        self.crypto = crypto
+
     @staticmethod
     async def get_form_responses(
         form_ids,
@@ -165,7 +172,8 @@ class FormResponseRepository(BaseRepository):
         self, form_ids, user: User, request_for_deletion: bool = False
     ):
         extra_find_query = {
-            "dataOwnerIdentifier": user.sub,
+            "$or": [{"dataOwnerIdentifier": user.sub}, {"anonymous_identity": hash_string(user.sub)}]
+
         }
         if request_for_deletion:
             return await DeletionRequestsRepository.get_deletion_requests(

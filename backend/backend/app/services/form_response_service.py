@@ -11,12 +11,12 @@ from fastapi_pagination import Page
 
 from backend.app.constants.consents import default_consent_responses
 from backend.app.exceptions import HTTPException
-from backend.app.models.filter_queries.form_responses import FormResponseFilterQuery
-from backend.app.models.filter_queries.sort import SortRequest
 from backend.app.models.dtos.response_dtos import (
     StandardFormCamelModel,
     StandardFormResponseCamelModel,
 )
+from backend.app.models.filter_queries.form_responses import FormResponseFilterQuery
+from backend.app.models.filter_queries.sort import SortRequest
 from backend.app.repositories.form_response_repository import FormResponseRepository
 from backend.app.repositories.workspace_form_repository import WorkspaceFormRepository
 from backend.app.repositories.workspace_user_repository import WorkspaceUserRepository
@@ -28,6 +28,7 @@ from backend.app.schemas.standard_form_response import (
 )
 from backend.app.schemas.workspace_form import WorkspaceFormDocument
 from backend.app.services.aws_service import AWSS3Service
+from backend.app.utils.hash import hash_string
 
 
 class FormResponseService:
@@ -165,7 +166,8 @@ class FormResponseService:
         if not workspace_form:
             raise HTTPException(404, "Form not found in this workspace")
 
-        if not (is_admin or response.dataOwnerIdentifier == user.sub):
+        if not (is_admin or response.dataOwnerIdentifier == user.sub or response.anonymous_identity == hash_string(
+                user.sub)):
             raise HTTPException(403, "You are not authorized to perform this action.")
 
         response = StandardFormResponseCamelModel(**response.dict())
