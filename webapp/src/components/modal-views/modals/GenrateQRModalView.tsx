@@ -77,8 +77,8 @@ const GenerateQRModalView = ({form}: IGenerateQR) => {
         ;
 
         return (
-            <div className=" bg-white w-[466px] rounded-[8px]">
-                <div className={'flex justify-between px-4 py-[18px]'}>
+            <div className=" bg-white md:w-[466px] rounded-[8px]">
+                <div className={'flex justify-between px-2 md:px-4 py-[18px]'}>
                     <h1 className={'text-sm font-normal text-black-800'}>Generated QR</h1>
                     <div className={'absolute top-3 right-5 cursor-pointer hover:bg-black-200 hover:rounded-sm p-1'}>
                         <Close
@@ -89,7 +89,7 @@ const GenerateQRModalView = ({form}: IGenerateQR) => {
                     </div>
                 </div>
                 <Divider/>
-                <div className={'p-10 pt-6 items-center flex flex-col justify-center gap-4'}>
+                <div className={'p-4 md:p-10 pt-6 items-center flex flex-col justify-center gap-4'}>
                     <QRGenerator form={currentForm}/>
                     <div className={'flex gap-2 '}>
                         <AppButton onClick={handleCopyImageToClipboard}>
