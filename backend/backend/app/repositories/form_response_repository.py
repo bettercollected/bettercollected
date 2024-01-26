@@ -253,7 +253,7 @@ class FormResponseRepository(BaseRepository):
     ):
         response_document = FormResponseDocument(**response.dict())
         response_document.response_id = str(PydanticObjectId())
-        response_document.submission_id = uuid4()
+        response_document.submission_uuid = str(uuid4())
         if workspace_id:
             for k, v in response_document.answers.items():
                 if type(v) == StandardFormResponseAnswer:

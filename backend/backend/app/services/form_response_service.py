@@ -330,6 +330,6 @@ class FormResponseService:
         )
 
         return {
-            form: form,
-            response: decrypted_response
+            "form": form,
+            "response": decrypted_response
         }
