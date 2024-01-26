@@ -22,7 +22,8 @@ jobs:
       - name: Build and Push Docker image
         id: docker_build
         run: |
-          docker build -f webapp/Dockerfile.storybook -t bettercollected/storybook:${{ github.sha }} .
+          cd webapp
+          docker build -f "Dockerfile.storybook" -t bettercollected/storybook:${{ github.sha }} .
           docker push bettercollected/storybook:${{ github.sha }}
 
       - name: Add Nightly, Latest and Release Tags
