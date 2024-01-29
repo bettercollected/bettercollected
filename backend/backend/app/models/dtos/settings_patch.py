@@ -1,15 +1,17 @@
 import datetime
 from typing import Optional
 
-from pydantic import BaseModel
+from fastapi_camelcase import CamelModel
 
 
-class SettingsPatchDto(BaseModel):
+class SettingsPatchDto(CamelModel):
     pinned: Optional[bool]
-    customUrl: Optional[str]
+    custom_url: Optional[str]
     private: Optional[bool]
-    responseDataOwnerField: Optional[str]
-    disableBranding: Optional[bool]
+    response_data_owner_field: Optional[str]
+    disable_branding: Optional[bool]
     hidden: Optional[bool] = False
-    formCloseDate: Optional[datetime.datetime | str]
-    collectEmails: Optional[bool]
+    form_close_date: Optional[datetime.datetime | str]
+    require_verified_identity: Optional[bool]
+    show_submission_number: Optional[bool]
+    allow_editing_response: Optional[bool]

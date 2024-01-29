@@ -457,7 +457,7 @@ class WorkspaceFormService:
         if anonymize and identifier:
             response.anonymous_identity = hash_string(user.sub)
 
-        if workspace_form.settings.collect_emails and not user:
+        if workspace_form.settings.require_verified_identity and not user:
             raise HTTPException(HTTPStatus.UNAUTHORIZED, content="Sign in to fill this form.")
 
         form_response = await self.form_response_service.submit_form_response(
