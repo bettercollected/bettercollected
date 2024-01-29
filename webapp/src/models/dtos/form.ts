@@ -7,7 +7,6 @@ import { ResponseRetentionType } from '../enums/consentEnum';
 import { FileMetadata } from '../types/fileTypes';
 import { ResponderGroupDto } from './groups';
 
-
 export interface StandardFormFieldDto {
     id: string;
     questionId?: string;
@@ -56,7 +55,9 @@ export interface StandardFormDto {
         disableBranding: boolean;
         hidden: boolean;
         formCloseDate?: string;
-        collectEmails?: boolean;
+        requireVerifiedIdentity?: boolean;
+        showSubmissionNumber?: boolean;
+        allowEditingResponse?: boolean;
     };
     isPublished?: boolean;
     importerDetails?: UserStatus;

@@ -115,7 +115,23 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
     };
 
     const onCollectEmailsChange = (event: any, f: StandardFormDto = form) => {
-        patchSettings({ collectEmails: !f?.settings?.collectEmails }, f)
+        patchSettings({ requireVerifiedIdentity: !f?.settings?.requireVerifiedIdentity }, f)
+            .then()
+            .catch((e) => {
+                toast(e.data, { type: 'error', toastId: 'errorToast' });
+            });
+    };
+
+    const onShowSubmissionNumberChange = (event: any, f: StandardFormDto = form) => {
+        patchSettings({ showSubmissionNumber: !f?.settings?.showSubmissionNumber }, f)
+            .then()
+            .catch((e) => {
+                toast(e.data, { type: 'error', toastId: 'errorToast' });
+            });
+    };
+
+    const onAllowResponseEditingChange = (event: any, f: StandardFormDto = form) => {
+        patchSettings({ allowEditingResponse: !f?.settings?.allowEditingResponse }, f)
             .then()
             .catch((e) => {
                 toast(e.data, { type: 'error', toastId: 'errorToast' });
@@ -284,15 +300,55 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                         {environments.ENABLE_COLLECT_EMAILS && form?.settings?.provider === 'self' && (
                             <FormSettingsCard>
                                 <div className=" flex flex-col items-start w-full">
-                                    <div className="h5-new !text-black-800">{t('FORM_PAGE.SETTINGS.DEFAULT.COLLECT_EMAILS.TITLE')}</div>
+                                    {/*<div className="h5-new !text-black-800">{t('FORM_PAGE.SETTINGS.DEFAULT.COLLECT_EMAILS.TITLE')}</div>*/}
+                                    <div className="h5-new !text-black-800">Require Verified Identity</div>
                                     <Divider className={'w-full my-2'} />
-                                    <div className="flex flex-row md:gap-4 justify-between items-center">
-                                        <div className="body4 !text-black-700 w-3/4">{t('FORM_PAGE.SETTINGS.DEFAULT.COLLECT_EMAILS.DESCRIPTION')}</div>
+                                    <div className="flex flex-row md:gap-4 justify-between w-full items-center">
+                                        <div className="body4 !text-black-700 flex-1 w-3/4">If this is enabled the user needs to verify his email identity before filling this form</div>
+                                        {/*<div className="body4 !text-black-700 w-3/4">{t('FORM_PAGE.SETTINGS.DEFAULT.COLLECT_EMAILS.DESCRIPTION')}</div>*/}
                                         <Switch
                                             data-testid="pinned-switch"
-                                            checked={!!form?.settings?.collectEmails}
+                                            checked={!!form?.settings?.requireVerifiedIdentity}
                                             onClick={(e) => {
                                                 onCollectEmailsChange(e, form);
+                                            }}
+                                        />
+                                    </div>
+                                    <Divider className={'w-full my-2'} />
+                                </div>
+                            </FormSettingsCard>
+                        )}
+
+                        <FormSettingsCard>
+                            <div className=" flex flex-col items-start w-full">
+                                <div className="h5-new !text-black-800">Show Submission ID</div>
+                                <Divider className={'w-full my-2'} />
+                                <div className="flex flex-row md:gap-4 w-full justify-between items-center">
+                                    <div className="body4 !text-black-700 w-3/4">When this is enabled the responder will br shown a submission ID which the user can use to view his response and also request for deletion of his response</div>
+                                    <Switch
+                                        data-testid="pinned-switch"
+                                        checked={!!form?.settings?.showSubmissionNumber}
+                                        onClick={(e) => {
+                                            onShowSubmissionNumberChange(e, form);
+                                        }}
+                                    />
+                                </div>
+                                <Divider className={'w-full my-2'} />
+                            </div>
+                        </FormSettingsCard>
+
+                        {form?.settings?.requireVerifiedIdentity && (
+                            <FormSettingsCard>
+                                <div className=" flex flex-col items-start w-full">
+                                    <div className="h5-new !text-black-800">Allow Response Editing</div>
+                                    <Divider className={'w-full my-2'} />
+                                    <div className="flex flex-row md:gap-4 w-full justify-between items-center">
+                                        <div className="body4 !text-black-700 w-3/4">The verified responder can change their response if this is enabled</div>
+                                        <Switch
+                                            data-testid="pinned-switch"
+                                            checked={!!form?.settings?.allowEditingResponse}
+                                            onClick={(e) => {
+                                                onAllowResponseEditingChange(e, form);
                                             }}
                                         />
                                     </div>
