@@ -63,7 +63,7 @@ export default function SingleFormPage(props: any) {
         if (form?.settings?.provider && form.settings?.provider === 'google' && form?.fields && hasFileUpload(form?.fields)) {
             router.push(form?.settings?.embedUrl || '');
         }
-        if (environments.ENABLE_COLLECT_EMAILS && form?.settings?.provider === 'self' && form?.settings?.collectEmails && auth?.is401) {
+        if (environments.ENABLE_COLLECT_EMAILS && form?.settings?.provider === 'self' && form?.settings?.requireVerifiedIdentity && auth?.is401) {
             openModal('SIGN_IN_TO_FILL_FORM', { nonClosable: true });
         }
     }, [form, auth]);
@@ -249,7 +249,7 @@ export default function SingleFormPage(props: any) {
         );
     }
 
-    const isFormDisabled = environments.ENABLE_COLLECT_EMAILS && form?.settings?.collectEmails && !auth.email;
+    const isFormDisabled = environments.ENABLE_COLLECT_EMAILS && form?.settings?.requireVerifiedIdentity && !auth.email;
     return (
         <Layout showNavbar={false} isCustomDomain={hasCustomDomain} isClientDomain={!hasCustomDomain} showAuthAccount={true} className="relative !bg-white !min-h-screen">
             <NextSeo

@@ -295,7 +295,7 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
                             </span>
                         </div>
 
-                        {!form?.settings?.collectEmails && (
+                        {!form?.settings?.requireVerifiedIdentity && (
                             <div>
                                 <div>
                                     <Checkbox
