@@ -271,31 +271,31 @@ class FormService:
             workspace_form.settings.private = settings.private
         if settings.pinned is not None:
             workspace_form.settings.pinned = settings.pinned
-        if settings.disableBranding is not None:
-            workspace_form.settings.disable_branding = settings.disableBranding
-        if settings.collectEmails is not None:
-            workspace_form.settings.collect_emails = settings.collectEmails
-        if settings.customUrl is not None:
+        if settings.disable_branding is not None:
+            workspace_form.settings.disable_branding = settings.disable_branding
+        if settings.require_verified_identity is not None:
+            workspace_form.settings.require_verified_identity = settings.require_verified_identity
+        if settings.custom_url is not None:
             await self.user_tags_service.add_user_tag(
                 user_id=user.id, tag=UserTagType.CUSTOM_SLUG
             )
             workspace_form_with_custom_slug = await self._workspace_form_repo.get_workspace_form_with_custom_slug_form_id(
-                workspace_id, settings.customUrl
+                workspace_id, settings.custom_url
             )
             if workspace_form_with_custom_slug:
                 raise HTTPException(
                     409, "Form with given custom slug already exists in the workspace!!"
                 )
-            workspace_form.settings.custom_url = settings.customUrl
+            workspace_form.settings.custom_url = settings.custom_url
             await event_logger_service.send_event(
                 event_type=UserEventType.SLUG_CHANGED, user_id=user.id, email=user.sub
             )
-        if settings.responseDataOwnerField is not None:
+        if settings.response_data_owner_field is not None:
             workspace_form.settings.response_data_owner_field = (
-                settings.responseDataOwnerField
+                settings.response_data_owner_field
             )
-        if settings.formCloseDate is not None:
-            workspace_form.settings.form_close_date = settings.formCloseDate
+        if settings.form_close_date is not None:
+            workspace_form.settings.form_close_date = settings.form_close_date
         return await self._workspace_form_repo.update(workspace_form.id, workspace_form)
 
     async def delete_form(self, form_id: str):
