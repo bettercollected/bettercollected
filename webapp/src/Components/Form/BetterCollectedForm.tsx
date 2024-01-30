@@ -97,7 +97,7 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
     const dispatch = useAppDispatch();
     const asyncDispatch = useAppAsyncDispatch();
     const { openModal, closeModal: closeFullScreenModal } = useFullScreenModal();
-    const [submitResponse] = useSubmitResponseMutation();
+    const [submitResponse, { data }] = useSubmitResponseMutation();
     const answers = useAppSelector(selectAnswers);
     const formId = useAppSelector((state) => state.fillForm.id);
     const responseDataOwnerField = useAppSelector(selectFormResponderOwnerField);
@@ -256,7 +256,7 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
     }, []);
 
     if (isFormSubmitted) {
-        return <ThankYouPage isDisabled={isDisabled} />;
+        return <ThankYouPage isDisabled={isDisabled} showSubmissionNumber={!!form?.settings?.showSubmissionNumber} submissionNumber={data} />;
     }
 
     return (
