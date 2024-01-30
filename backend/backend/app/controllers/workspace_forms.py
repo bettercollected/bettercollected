@@ -49,12 +49,12 @@ from backend.config import settings
 )
 class WorkspaceFormsRouter(Routable):
     def __init__(
-        self,
-        form_service: FormService = container.form_service(),
-        temporal_service: TemporalService = container.temporal_service(),
-        workspace_form_service: WorkspaceFormService = container.workspace_form_service(),
-        *args,
-        **kwargs
+            self,
+            form_service: FormService = container.form_service(),
+            temporal_service: TemporalService = container.temporal_service(),
+            workspace_form_service: WorkspaceFormService = container.workspace_form_service(),
+            *args,
+            **kwargs
     ):
         super().__init__(*args, **kwargs)
         self._form_service = form_service
@@ -63,12 +63,12 @@ class WorkspaceFormsRouter(Routable):
 
     @get("", response_model=Page[FormDtoCamelModel])
     async def get_workspace_forms(
-        self,
-        workspace_id: PydanticObjectId,
-        sort: SortRequest = Depends(),
-        user: User = Depends(get_user_if_logged_in),
-        published: bool = False,
-        pinned_only: bool = False,
+            self,
+            workspace_id: PydanticObjectId,
+            sort: SortRequest = Depends(),
+            user: User = Depends(get_user_if_logged_in),
+            published: bool = False,
+            pinned_only: bool = False,
     ) -> Page[FormDtoCamelModel]:
         if not user and not published:
             raise HTTPException(
@@ -88,12 +88,12 @@ class WorkspaceFormsRouter(Routable):
         response_model=FormDtoCamelModel,
     )
     async def create_form(
-        self,
-        workspace_id: PydanticObjectId,
-        form_body: str = Form(),
-        logo: UploadFile = None,
-        cover_image: UploadFile = None,
-        user: User = Depends(get_logged_user),
+            self,
+            workspace_id: PydanticObjectId,
+            form_body: str = Form(),
+            logo: UploadFile = None,
+            cover_image: UploadFile = None,
+            user: User = Depends(get_logged_user),
     ):
         if not settings.api_settings.ENABLE_FORM_CREATION:
             raise HTTPException(status_code=HTTPStatus.NOT_FOUND)
@@ -113,11 +113,11 @@ class WorkspaceFormsRouter(Routable):
 
     @post("/search")
     async def search_forms_in_workspace(
-        self,
-        workspace_id: PydanticObjectId,
-        query: str,
-        published: bool = False,
-        user: User = Depends(get_user_if_logged_in),
+            self,
+            workspace_id: PydanticObjectId,
+            query: str,
+            published: bool = False,
+            user: User = Depends(get_user_if_logged_in),
     ):
         if not user and not published:
             raise HTTPException(
@@ -133,11 +133,11 @@ class WorkspaceFormsRouter(Routable):
         response_model=FormDtoCamelModel,
     )
     async def _get_form_by_id(
-        self,
-        workspace_id: PydanticObjectId,
-        form_id: str,
-        published: bool = False,
-        user: User = Depends(get_user_if_logged_in),
+            self,
+            workspace_id: PydanticObjectId,
+            form_id: str,
+            published: bool = False,
+            user: User = Depends(get_user_if_logged_in),
     ):
         if not user and not published:
             raise HTTPException(
@@ -153,13 +153,13 @@ class WorkspaceFormsRouter(Routable):
         response_model=FormDtoCamelModel,
     )
     async def patch_form(
-        self,
-        workspace_id: PydanticObjectId,
-        form_id: PydanticObjectId,
-        form_body: str = Form(),
-        logo: UploadFile = None,
-        cover_image: UploadFile = None,
-        user: User = Depends(get_logged_user),
+            self,
+            workspace_id: PydanticObjectId,
+            form_id: PydanticObjectId,
+            form_body: str = Form(),
+            logo: UploadFile = None,
+            cover_image: UploadFile = None,
+            user: User = Depends(get_logged_user),
     ):
         if not settings.api_settings.ENABLE_FORM_CREATION:
             raise HTTPException(status_code=HTTPStatus.NOT_FOUND)
@@ -180,10 +180,10 @@ class WorkspaceFormsRouter(Routable):
 
     @post("/{form_id}/duplicate", response_model=FormDtoCamelModel)
     async def duplicate_form(
-        self,
-        workspace_id: PydanticObjectId,
-        form_id: PydanticObjectId,
-        user: User = Depends(get_logged_user),
+            self,
+            workspace_id: PydanticObjectId,
+            form_id: PydanticObjectId,
+            user: User = Depends(get_logged_user),
     ):
         if not settings.api_settings.ENABLE_FORM_CREATION:
             raise HTTPException(status_code=HTTPStatus.SERVICE_UNAVAILABLE)
@@ -195,10 +195,10 @@ class WorkspaceFormsRouter(Routable):
 
     @post("/{form_id}/publish", response_model=FormDtoCamelModel)
     async def publish_form(
-        self,
-        workspace_id: PydanticObjectId,
-        form_id: PydanticObjectId,
-        user: User = Depends(get_logged_user),
+            self,
+            workspace_id: PydanticObjectId,
+            form_id: PydanticObjectId,
+            user: User = Depends(get_logged_user),
     ):
         form = await self.workspace_form_service.publish_form(
             workspace_id=workspace_id, form_id=form_id, user=user
@@ -209,14 +209,14 @@ class WorkspaceFormsRouter(Routable):
 
     @post("/{form_id}/response")
     async def respond_to_form(
-        self,
-        workspace_id: PydanticObjectId,
-        form_id: PydanticObjectId,
-        files: list[UploadFile] = None,
-        file_field_ids: list[str] = Form(None),
-        file_ids: list[str] = Form(None),
-        response: str = Form(None),
-        user: User = Depends(get_user_if_logged_in),
+            self,
+            workspace_id: PydanticObjectId,
+            form_id: PydanticObjectId,
+            files: list[UploadFile] = None,
+            file_field_ids: list[str] = Form(None),
+            file_ids: list[str] = Form(None),
+            response: str = Form(None),
+            user: User = Depends(get_user_if_logged_in),
     ):
         form_files = None
         if files and file_field_ids and file_ids:
@@ -248,15 +248,15 @@ class WorkspaceFormsRouter(Routable):
         return response.submission_uuid
 
     @patch("/{form_id}/response/{response_id}")
-    async def patch(self,
-                    workspace_id: PydanticObjectId,
-                    form_id: PydanticObjectId,
-                    response_id: PydanticObjectId,
-                    files: list[UploadFile] = None,
-                    file_field_ids: list[str] = Form(None),
-                    file_ids: list[str] = Form(None),
-                    response: str = Form(None),
-                    user: User = Depends(get_logged_user)):
+    async def patch_form_response(self,
+                                  workspace_id: PydanticObjectId,
+                                  form_id: PydanticObjectId,
+                                  response_id: PydanticObjectId,
+                                  files: list[UploadFile] = None,
+                                  file_field_ids: list[str] = Form(None),
+                                  file_ids: list[str] = Form(None),
+                                  response: str = Form(None),
+                                  user: User = Depends(get_logged_user)):
         if not settings.api_settings.ENABLE_FORM_CREATION:
             raise HTTPException(status_code=HTTPStatus.SERVICE_UNAVAILABLE)
 
@@ -276,16 +276,15 @@ class WorkspaceFormsRouter(Routable):
                                                                 response_id=response_id, form_files=form_files,
                                                                 response=parsed_response, user=user)
 
-
     @delete(
         "/{form_id}/response/{response_id}",
     )
     async def delete_form_response(
-        self,
-        workspace_id: PydanticObjectId,
-        form_id: PydanticObjectId,
-        response_id: PydanticObjectId,
-        user: User = Depends(get_logged_user),
+            self,
+            workspace_id: PydanticObjectId,
+            form_id: PydanticObjectId,
+            response_id: PydanticObjectId,
+            user: User = Depends(get_logged_user),
     ):
         if not settings.api_settings.ENABLE_FORM_CREATION:
             raise HTTPException(status_code=HTTPStatus.NOT_FOUND)
@@ -298,11 +297,11 @@ class WorkspaceFormsRouter(Routable):
 
     @get("/{form_id}/versions/{version}", response_model=FormDtoCamelModel)
     async def get_form_with_version(
-        self,
-        workspace_id: PydanticObjectId,
-        form_id: str,
-        version: FormVersion | int,
-        user: User = Depends(get_user_if_logged_in),
+            self,
+            workspace_id: PydanticObjectId,
+            form_id: str,
+            version: FormVersion | int,
+            user: User = Depends(get_user_if_logged_in),
     ):
         return await self._form_service.get_form_by_version(
             workspace_id=workspace_id, form_id=form_id, version=version, user=user
@@ -312,11 +311,11 @@ class WorkspaceFormsRouter(Routable):
         "/{form_id}/settings",
     )
     async def patch_settings_for_workspace(
-        self,
-        workspace_id: PydanticObjectId,
-        form_id: str,
-        settings: SettingsPatchDto,
-        user: User = Depends(get_logged_user),
+            self,
+            workspace_id: PydanticObjectId,
+            form_id: str,
+            settings: SettingsPatchDto,
+            user: User = Depends(get_logged_user),
     ):
         workspace = await self.workspace_form_service.get_form_workspace_by_id(
             workspace_id
@@ -335,11 +334,11 @@ class WorkspaceFormsRouter(Routable):
     )
     @user_tag(tag=UserTagType.FORM_ADDED_TO_GROUP)
     async def patch_groups_for_form(
-        self,
-        workspace_id: PydanticObjectId,
-        form_id: str,
-        groups: GroupsDto,
-        user: User = Depends(get_logged_user),
+            self,
+            workspace_id: PydanticObjectId,
+            form_id: str,
+            groups: GroupsDto,
+            user: User = Depends(get_logged_user),
     ):
         return await self.workspace_form_service.add_groups_to_form(
             workspace_id, form_id, groups.group_ids, user
@@ -350,11 +349,11 @@ class WorkspaceFormsRouter(Routable):
         summary="Delete form from group",
     )
     async def delete_group_from_workspace(
-        self,
-        workspace_id: PydanticObjectId,
-        form_id: str,
-        group_id: PydanticObjectId,
-        user: User = Depends(get_logged_user),
+            self,
+            workspace_id: PydanticObjectId,
+            form_id: str,
+            group_id: PydanticObjectId,
+            user: User = Depends(get_logged_user),
     ):
         return await self.workspace_form_service.delete_group_from_form(
             workspace_id=workspace_id, form_id=form_id, group_id=group_id, user=user
@@ -365,12 +364,12 @@ class WorkspaceFormsRouter(Routable):
     )
     @user_tag(tag=UserTagType.FORM_IMPORTED)
     async def _import_form_to_workspace(
-        self,
-        workspace_id: PydanticObjectId,
-        provider: str,
-        form: FormImportRequestBody,
-        request: Request,
-        user: User = Depends(get_logged_user),
+            self,
+            workspace_id: PydanticObjectId,
+            provider: str,
+            form: FormImportRequestBody,
+            request: Request,
+            user: User = Depends(get_logged_user),
     ):
         return await self.workspace_form_service.import_form_to_workspace(
             workspace_id, provider, form, user, request
@@ -383,10 +382,10 @@ class WorkspaceFormsRouter(Routable):
         },
     )
     async def _delete_form_from_workspace(
-        self,
-        workspace_id: PydanticObjectId,
-        form_id: str,
-        user: User = Depends(get_logged_user),
+            self,
+            workspace_id: PydanticObjectId,
+            form_id: str,
+            user: User = Depends(get_logged_user),
     ):
         return await self.workspace_form_service.delete_form_from_workspace(
             workspace_id=workspace_id, form_id=form_id, user=user
@@ -394,11 +393,11 @@ class WorkspaceFormsRouter(Routable):
 
     @post("/{form_id}/actions")
     async def _add_action_to_form(
-        self,
-        workspace_id: PydanticObjectId,
-        form_id: PydanticObjectId,
-        add_action_to_form_params: AddActionToFormDto,
-        user: User = Depends(get_logged_user),
+            self,
+            workspace_id: PydanticObjectId,
+            form_id: PydanticObjectId,
+            add_action_to_form_params: AddActionToFormDto,
+            user: User = Depends(get_logged_user),
     ):
         return await self.workspace_form_service.add_action_to_form(
             workspace_id=workspace_id,
@@ -409,11 +408,11 @@ class WorkspaceFormsRouter(Routable):
 
     @patch("/{form_id}/actions")
     async def update_form_actions(
-        self,
-        workspace_id: PydanticObjectId,
-        form_id: PydanticObjectId,
-        update_action_dto: UpdateActionInFormDto,
-        user: User = Depends(get_logged_user),
+            self,
+            workspace_id: PydanticObjectId,
+            form_id: PydanticObjectId,
+            update_action_dto: UpdateActionInFormDto,
+            user: User = Depends(get_logged_user),
     ):
         await self.workspace_form_service.update_action_status_in_form(
             workspace_id=workspace_id,
@@ -425,12 +424,12 @@ class WorkspaceFormsRouter(Routable):
 
     @delete("/{form_id}/actions/{action_id}")
     async def _remove_action_from_form(
-        self,
-        workspace_id: PydanticObjectId,
-        action_id: PydanticObjectId,
-        form_id: PydanticObjectId,
-        trigger: Trigger = Trigger.on_submit,
-        user: User = Depends(get_logged_user),
+            self,
+            workspace_id: PydanticObjectId,
+            action_id: PydanticObjectId,
+            form_id: PydanticObjectId,
+            trigger: Trigger = Trigger.on_submit,
+            user: User = Depends(get_logged_user),
     ):
         updated_actions = await self.workspace_form_service.remove_action_from_form(
             workspace_id=workspace_id,
@@ -443,10 +442,10 @@ class WorkspaceFormsRouter(Routable):
 
     @get("/{form_id}/export-csv")
     async def export_csv_of_responses(
-        self,
-        workspace_id: PydanticObjectId,
-        form_id: PydanticObjectId,
-        user: User = Depends(get_logged_user),
+            self,
+            workspace_id: PydanticObjectId,
+            form_id: PydanticObjectId,
+            user: User = Depends(get_logged_user),
     ):
         responses = await self.workspace_form_service.get_responses_in_csv_format(
             workspace_id=workspace_id, form_id=str(form_id), user=user
