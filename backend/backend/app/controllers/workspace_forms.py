@@ -245,7 +245,7 @@ class WorkspaceFormsRouter(Routable):
                 response=response
             )
             logger.info("Add job for deletion response: " + response.response_id)
-        return response.response_id
+        return response.submission_uuid
 
     @delete(
         "/{form_id}/response/{response_id}",
