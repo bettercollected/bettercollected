@@ -1,4 +1,5 @@
 import json
+from http import HTTPStatus
 from typing import Any, Dict, List
 from uuid import uuid4
 
@@ -6,12 +7,14 @@ import fastapi_pagination.ext.beanie
 from beanie import PydanticObjectId
 from common.base.repo import BaseRepository
 from common.configs.crypto import Crypto
+from common.constants import MESSAGE_FORBIDDEN
 from common.enums.form_provider import FormProvider
 from common.models.standard_form import StandardFormResponse, StandardFormResponseAnswer
 from common.models.user import User
 from common.services.crypto_service import crypto_service
 from fastapi_pagination import Page
 
+from backend.app.exceptions import HTTPException
 from backend.app.models.dtos.response_dtos import StandardFormResponseCamelModel
 from backend.app.models.filter_queries.form_responses import FormResponseFilterQuery
 from backend.app.models.filter_queries.sort import SortRequest
@@ -265,6 +268,22 @@ class FormResponseRepository(BaseRepository):
             )
         response_document.form_id = str(form_id)
         response_document.provider = "self"
+        return await response_document.save()
+
+    async def patch_form_response(self, form_id: PydanticObjectId, response_id: PydanticObjectId,
+                                  response: StandardFormResponse,
+                                  workspace_id: PydanticObjectId, user=User):
+        response_document = await FormResponseDocument.find_one({"response_id": str(response_id)})
+        if not response_document.dataOwnerIdentifier != user.sub:
+            raise HTTPException(status_code=HTTPStatus.FORBIDDEN, content=MESSAGE_FORBIDDEN)
+        for k, v in response.answers.items():
+            if type(v) == StandardFormResponseAnswer:
+                response_document.answers[k] = v.dict()
+            response_document.answers = crypto_service.encrypt(
+                workspace_id=workspace_id,
+                form_id=form_id,
+                data=json.dumps(response_document.answers)
+            )
         return await response_document.save()
 
     async def delete_form_response(

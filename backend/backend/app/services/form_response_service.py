@@ -304,6 +304,14 @@ class FormResponseService:
 
         return self.decrypt_form_response(workspace_id=workspace_id, response=response)
 
+    async def patch_form_response(self, form_id: PydanticObjectId, response_id: PydanticObjectId,
+                                  response: StandardFormResponse, workspace_id: PydanticObjectId, user=User):
+        updated_response = await self._form_response_repo.patch_form_response(
+            form_id=form_id, response_id=response_id, response=response, workspace_id=workspace_id, user=user
+        )
+        return updated_response.response_uuid
+
+
     async def delete_form_response(
         self, form_id: PydanticObjectId, response_id: PydanticObjectId
     ):

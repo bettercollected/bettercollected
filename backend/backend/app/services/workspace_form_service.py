@@ -2,12 +2,12 @@ import os
 import random
 import re
 from http import HTTPStatus
-from typing import List
+from typing import List, Optional, Any
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from beanie import PydanticObjectId
 from common.configs.crypto import Crypto
-from common.constants import MESSAGE_NOT_FOUND
+from common.constants import MESSAGE_NOT_FOUND, MESSAGE_FORBIDDEN
 from common.enums.plan import Plans
 from common.models.form_import import FormImportRequestBody
 from common.models.standard_form import StandardForm, StandardFormResponse, Trigger
@@ -19,7 +19,8 @@ from backend.app.exceptions import HTTPException
 from backend.app.models.dataclasses.user_tokens import UserTokens
 from backend.app.models.dtos.action_dto import AddActionToFormDto, UpdateActionInFormDto
 from backend.app.models.dtos.kafka_event_dto import UserEventType
-from backend.app.models.dtos.response_dtos import FormFileResponse, StandardFormCamelModel
+from backend.app.models.dtos.response_dtos import FormFileResponse, StandardFormCamelModel, \
+    StandardFormResponseCamelModel
 from backend.app.models.workspace import WorkspaceFormSettings, WorkspaceRequestDto
 from backend.app.repositories.workspace_form_repository import WorkspaceFormRepository
 from backend.app.schedulers.form_schedular import FormSchedular
@@ -414,6 +415,39 @@ class WorkspaceFormService:
             )
             response.answers[form_file.field_id].file_metadata.url = ""
         return response
+
+    async def patch_response(self, workspace_id: PydanticObjectId, form_id: PydanticObjectId,
+                             response_id: PydanticObjectId,
+                             form_files: Optional[Any], response: StandardFormResponseCamelModel, user: User):
+        if form_files:
+            response = await self.upload_files_to_s3_and_update_url(
+                form_files=form_files,
+                response=response
+            )
+        workspace_forms = (
+            await self.workspace_form_repository.get_workspace_forms_in_workspace(
+                workspace_id=workspace_id,
+                is_not_admin=True,
+                user=user,
+                match_query={"form_id": str(form_id)}
+            )
+        )
+
+        if not workspace_forms or len(workspace_forms) == 0:
+            raise HTTPException(
+                status_code=HTTPStatus.NOT_FOUND, content="Form not found"
+            )
+
+        workspace_form = workspace_forms[0]
+        workspace_form = WorkspaceFormDocument(**workspace_form)
+
+        if not workspace_form.settings.require_verified_identity or not workspace_form.settings.allow_editing_response:
+            raise HTTPException(HTTPStatus.FORBIDDEN, content=MESSAGE_FORBIDDEN)
+
+        form_response = await self.form_response_service.patch_form_response(workspace_id=workspace_id, form_id=form_id,
+                                                                             response_id=response_id, response=response, user=user)
+
+        return form_response.submission_uuid
 
     async def submit_response(
             self,

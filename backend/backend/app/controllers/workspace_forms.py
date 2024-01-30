@@ -247,6 +247,36 @@ class WorkspaceFormsRouter(Routable):
             logger.info("Add job for deletion response: " + response.response_id)
         return response.submission_uuid
 
+    @patch("/{form_id}/response/{response_id}")
+    async def patch(self,
+                    workspace_id: PydanticObjectId,
+                    form_id: PydanticObjectId,
+                    response_id: PydanticObjectId,
+                    files: list[UploadFile] = None,
+                    file_field_ids: list[str] = Form(None),
+                    file_ids: list[str] = Form(None),
+                    response: str = Form(None),
+                    user: User = Depends(get_logged_user)):
+        if not settings.api_settings.ENABLE_FORM_CREATION:
+            raise HTTPException(status_code=HTTPStatus.SERVICE_UNAVAILABLE)
+
+        form_files = None
+        if files and file_field_ids and file_ids:
+            form_files = [
+                FormFileResponse(
+                    file_id=file_id,
+                    field_id=field_id,
+                    filename=file.filename,
+                    file=file,
+                )
+                for file_id, field_id, file in zip(file_ids, file_field_ids, files)
+            ]
+        parsed_response = StandardFormResponseCamelModel(**json.loads(response))
+        return await self.workspace_form_service.patch_response(workspace_id=workspace_id, form_id=form_id,
+                                                                response_id=response_id, form_files=form_files,
+                                                                response=parsed_response, user=user)
+
+
     @delete(
         "/{form_id}/response/{response_id}",
     )
