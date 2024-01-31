@@ -28,15 +28,13 @@ import { toastMessage } from '@app/constants/locales/toast-message';
 import { toolTipConstant } from '@app/constants/locales/tooltip';
 import { ToastId } from '@app/constants/toastId';
 import Layout from '@app/layouts/_layout';
-import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
 import { getGlobalServerSidePropsByDomain } from '@app/lib/serverSideProps';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { IServerSideProps } from '@app/models/dtos/serverSideProps';
 import { JOYRIDE_CLASS, JOYRIDE_ID } from '@app/store/tours/types';
 import { useGetWorkspaceSubmissionQuery, useRequestWorkspaceSubmissionDeletionMutation } from '@app/store/workspaces/api';
 import { utcToLocalDate } from '@app/utils/dateUtils';
-import { checkHasCustomDomain, getServerSideAuthHeaderConfig } from '@app/utils/serverSidePropsUtils';
-
+import { checkHasCustomDomain } from '@app/utils/serverSidePropsUtils';
 
 interface ISubmission extends IServerSideProps {
     form: StandardFormDto;
@@ -47,7 +45,6 @@ export default function Submission(props: any) {
     const { t } = useTranslation();
 
     const router = useRouter();
-    const breakpoint = useBreakpoint();
     const { openModal, closeModal } = useModal();
     const fullScreenModal = useFullScreenModal();
 
@@ -220,7 +217,6 @@ export default function Submission(props: any) {
 
 export async function getServerSideProps(_context: any) {
     const globalProps = (await getGlobalServerSidePropsByDomain(_context)).props;
-    let form: StandardFormDto | null = null;
     const submissionId = _context.query.id;
     const hasCustomDomain = checkHasCustomDomain(_context);
     if (!hasCustomDomain) {
@@ -238,21 +234,9 @@ export async function getServerSideProps(_context: any) {
         };
     }
 
-    const config = getServerSideAuthHeaderConfig(_context);
-
-    try {
-        if (globalProps.hasCustomDomain && globalProps.workspaceId) {
-            const formResponse = await fetch(`${environments.INTERNAL_DOCKER_API_ENDPOINT_HOST}/workspaces/${globalProps.workspaceId}/submissions/${submissionId}`, config).catch((e) => e);
-            form = (await formResponse?.json().catch((e: any) => e)) ?? null;
-        }
-    } catch (err) {
-        form = null;
-    }
-
     return {
         props: {
             ...globalProps,
-            form,
             submissionId
         }
     };
