@@ -5,7 +5,6 @@ import { UserStatus } from '@app/models/dtos/UserStatus';
 
 import { AUTH_OTP_TAGS, AUTH_REFRESH_TAG, AUTH_TAG_TYPES, VerifyOtp } from './types';
 
-
 export const AUTH_REDUCER_PATH = 'authApi';
 export const authApi = createApi({
     reducerPath: AUTH_REDUCER_PATH,
@@ -60,11 +59,12 @@ export const authApi = createApi({
             }),
             invalidatesTags: [AUTH_OTP_TAGS]
         }),
-        getLogout: builder.query<any, void>({
+        logout: builder.mutation<any, void>({
             query: () => ({
                 url: `/auth/logout`,
                 method: 'GET'
-            })
+            }),
+            invalidatesTags: [AUTH_REFRESH_TAG]
         }),
         deleteAccount: builder.mutation<string, any>({
             query: (body) => ({
@@ -76,4 +76,4 @@ export const authApi = createApi({
     })
 });
 
-export const { useGetStatusQuery, useDeleteAccountMutation, useLazyGetStatusQuery, usePostSendOtpMutation, usePostSendOtpForCreatorMutation, usePostVerifyOtpMutation, useLazyGetLogoutQuery, useRefreshTokenMutation } = authApi;
+export const { useGetStatusQuery, useDeleteAccountMutation, useLazyGetStatusQuery, usePostSendOtpMutation, usePostSendOtpForCreatorMutation, usePostVerifyOtpMutation, useLogoutMutation, useRefreshTokenMutation } = authApi;
