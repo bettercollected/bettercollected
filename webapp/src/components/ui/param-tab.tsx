@@ -6,7 +6,6 @@ import { Tab, TabItem, TabPanel, TabPanels } from '@app/components/ui/tab';
 import { authApi } from '@app/store/auth/api';
 import { useAppSelector } from '@app/store/hooks';
 
-
 interface TabMenuItem {
     title: React.ReactNode;
     path: string;
@@ -58,7 +57,7 @@ export default function ParamTab({ tabMenu, children, isRouteChangeable = true, 
 
     useEffect(() => {
         // Reset tab params to forms if logged out and tab param index is at submissions
-        if (!!selectGetStatus.error) {
+        if (!!selectGetStatus.error && selectedTabIndex === 2) {
             setSelectedTabIndex(0);
             router
                 .push(

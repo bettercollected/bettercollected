@@ -23,7 +23,6 @@ import { selectWorkspace } from '@app/store/workspaces/slice';
 
 import { useFullScreenModal } from '../full-screen-modal-context';
 
-
 export default function FormBuilderPreviewModal({ publish, isFormSubmitted = false, imagesRemoved = {}, isTemplate }: { publish: () => void; isFormSubmitted: boolean; imagesRemoved: any; isTemplate?: boolean }) {
     const [formToRender, setFormToRender] = useState(initFormState);
     const { closeModal } = useFullScreenModal();
@@ -107,7 +106,7 @@ export default function FormBuilderPreviewModal({ publish, isFormSubmitted = fal
                 {/*</div>*/}
             </div>
             <div className="h-screen overflow-auto min-h-screen w-full pt-10 pb-6">
-                {isFormSubmitted ? <ThankYouPage isDisabled={true} /> : <BetterCollectedForm form={formToRender} enabled={true} isPreview={true} closeModal={closeModal} isTemplate={isTemplate} />}
+                {isFormSubmitted ? <ThankYouPage isDisabled={true} form={formToRender} /> : <BetterCollectedForm form={formToRender} enabled={true} isPreview={true} closeModal={closeModal} isTemplate={isTemplate} />}
             </div>
             {(!workspace?.isPro || !form?.settings?.disableBranding) && <PoweredBy isFormCreatorPortal={true} />}
         </div>

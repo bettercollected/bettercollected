@@ -263,7 +263,7 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
     }, []);
 
     if (isFormSubmitted) {
-        return <ThankYouPage isDisabled={isDisabled} showSubmissionNumber={!!form?.settings?.showSubmissionNumber} submissionNumber={data} />;
+        return <ThankYouPage isDisabled={isDisabled} form={form} showSubmissionNumber={!!form?.settings?.showSubmissionNumber} submissionNumber={data} />;
     }
 
     return (
