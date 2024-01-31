@@ -113,7 +113,7 @@ export default function WorkspaceHomeContainer({ isCustomDomain, showProTag = tr
                 </div>
             </div>
             <div className={`h-full bg-black-100 ${!workspace?.isPro ? 'mb-8 lg:mb-0' : ''}`}>
-                <FormsAndSubmissionsTabContainer isFormCreator={false} workspace={workspace} workspaceId={workspace.id} showResponseBar={!!isError} />
+                <FormsAndSubmissionsTabContainer isFormCreator={false} workspace={workspace} workspaceId={workspace.id} showResponseBar={!isError} />
                 <div className="px-5 lg:px-10 xl:px-20">
                     <Divider className="mt-10 mb-6" />
                 </div>

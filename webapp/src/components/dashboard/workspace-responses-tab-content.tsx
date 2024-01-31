@@ -11,8 +11,9 @@ import environments from '@app/configs/environments';
 import { formConstant } from '@app/constants/locales/form';
 import { StandardFormResponseDto } from '@app/models/dtos/form';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
+import { selectAuth } from '@app/store/auth/slice';
+import { useAppSelector } from '@app/store/hooks';
 import { useGetWorkspaceSubmissionsQuery } from '@app/store/workspaces/api';
-
 
 interface IWorkspaceResponsesTabContentProps {
     workspace: WorkspaceDto;
@@ -21,22 +22,23 @@ interface IWorkspaceResponsesTabContentProps {
 
 export default function WorkspaceResponsesTabContent({ workspace, deletionRequests = false }: IWorkspaceResponsesTabContentProps) {
     const { t } = useTranslation();
+    const auth = useAppSelector(selectAuth);
     const { isLoading, data, isError } = useGetWorkspaceSubmissionsQuery(
         {
             workspaceId: workspace.id,
             requestedForDeletionOly: deletionRequests
         },
-        { pollingInterval: 30000 }
+        { pollingInterval: 30000, skip: !auth.id }
     );
 
-    if (isLoading)
+    if (auth.id && isLoading)
         return (
             <div data-testid="loader" className="w-full min-h-[30vh] flex flex-col items-center justify-center text-darkGrey">
                 <Loader />
             </div>
         );
 
-    if ((data?.items && Array.isArray(data?.items) && data?.items?.length === 0) || isError)
+    if ((data?.items && Array.isArray(data?.items) && data?.items?.length === 0) || isError || !auth.id)
         return (
             <ZeroElement
                 title={deletionRequests ? t(formConstant.empty.deletionRequest.title) : t(formConstant.emptyDeletionResponseTitle)}
