@@ -4,15 +4,14 @@ import { useRouter } from 'next/router';
 import GenericHalfModal from '@Components/Common/Modals/GenericHalfModal';
 
 import { useModal } from '@app/components/modal-views/context';
-import { useLazyGetLogoutQuery, useLazyGetStatusQuery } from '@app/store/auth/api';
+import { useLazyGetStatusQuery, useLogoutMutation } from '@app/store/auth/api';
 import { initialAuthState, setAuth } from '@app/store/auth/slice';
 import { useAppDispatch } from '@app/store/hooks';
-
 
 export default function LogoutView(props: any) {
     const { closeModal } = useModal();
     const { t } = useTranslation();
-    const [trigger] = useLazyGetLogoutQuery();
+    const [trigger] = useLogoutMutation();
     const [authTrigger] = useLazyGetStatusQuery();
     const dispatch = useAppDispatch();
 

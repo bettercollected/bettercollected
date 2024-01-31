@@ -50,7 +50,7 @@ export default function SingleFormPage(props: any) {
 
     const iframeRef = useRef(null);
     const { openModal: openFullScreenModal } = useFullScreenModal();
-    const { openModal } = useModal();
+    const { openModal, closeModal } = useModal();
 
     const responderUri = form?.settings?.embedUrl || '';
     const { t } = useTranslation();
@@ -66,6 +66,9 @@ export default function SingleFormPage(props: any) {
         if (environments.ENABLE_COLLECT_EMAILS && form?.settings?.provider === 'self' && form?.settings?.requireVerifiedIdentity && auth?.is401) {
             openModal('SIGN_IN_TO_FILL_FORM', { nonClosable: true });
         }
+        return () => {
+            closeModal();
+        };
     }, [form, auth]);
 
     if (data && isFormClosed)

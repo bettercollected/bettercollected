@@ -8,6 +8,7 @@ import ExportResponsesModal from '@Components/Modals/DialogModals/ExportResponse
 import ImportFormModal from '@Components/Modals/DialogModals/ImportFormModal';
 import OauthErrorModal from '@Components/Modals/DialogModals/OauthErrorModal';
 import RedeemCouponCodeModal from '@Components/Modals/DialogModals/RedeemCouponCodeModal';
+import ResponderAccountModal from '@Components/Modals/DialogModals/ResponderAccountModal';
 import SignInToFillFormModal from '@Components/Modals/DialogModals/SignInToFillFormModal';
 import UpdateCustomDomainModal from '@Components/Modals/DialogModals/UpdateCustomDomainModal';
 import UpdateWorkspaceHandle from '@Components/Modals/DialogModals/UpdateWorkspaceHandle';
@@ -50,7 +51,6 @@ import EditWorkspaceModal from './modals/edit-workspace-modal';
 import FormBuilderSpotlightModal from './modals/form-builder-spotlight-modal';
 import FormBuilderTipsModalView from './modals/form-builder-tips-modal-view';
 import VisibilityConfirmationModalView from './modals/visibility-confirmation-modal-view';
-
 
 function renderModalContent(view: MODAL_VIEW, modalProps: any) {
     switch (view) {
@@ -132,6 +132,8 @@ function renderModalContent(view: MODAL_VIEW, modalProps: any) {
             return <GenerateQRModalView {...modalProps} />;
         case 'SIGN_IN_TO_FILL_FORM':
             return <SignInToFillFormModal {...modalProps} />;
+        case 'RESPONDER_ACCOUNT':
+            return <ResponderAccountModal {...modalProps} />;
         default:
             return <></>;
     }

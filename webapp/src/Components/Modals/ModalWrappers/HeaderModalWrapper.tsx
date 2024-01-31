@@ -1,18 +1,19 @@
 import React, { ReactNode } from 'react';
 
 import Divider from '@mui/material/Divider';
+import cn from 'classnames';
 
 import { Close } from '@app/components/icons/close';
 import { useModal } from '@app/components/modal-views/context';
-
 
 interface HeaderModalWrapperProps {
     headerTitle?: string;
     children?: ReactNode;
     showClose?: boolean;
+    className?: string;
 }
 
-export default function HeaderModalWrapper({ headerTitle = '', children, showClose = true }: HeaderModalWrapperProps) {
+export default function HeaderModalWrapper({ headerTitle = '', children, showClose = true, className }: HeaderModalWrapperProps) {
     const { closeModal } = useModal();
 
     return (
@@ -30,7 +31,7 @@ export default function HeaderModalWrapper({ headerTitle = '', children, showClo
                 </div>
             </div>
             <Divider />
-            <div className="flex flex-col p-10 !pt-6">{children}</div>
+            <div className={cn('flex flex-col p-10 !pt-6', className)}>{children}</div>
         </div>
     );
 }

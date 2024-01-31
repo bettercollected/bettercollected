@@ -3,6 +3,8 @@ import React, { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/router';
 
+import Tooltip from '@Components/Common/DataDisplay/Tooltip';
+import InfoIcon from '@Components/Common/Icons/FormBuilder/infoIcon';
 import AppButton from '@Components/Common/Input/Button/AppButton';
 import { ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
 import MarkdownText from '@Components/Common/Markdown';
@@ -21,10 +23,10 @@ import ThankYouPage from '@Components/Form/ThankYouPage';
 import Checkbox from '@mui/material/Checkbox';
 import { toast } from 'react-toastify';
 
+import { useModal } from '@app/components/modal-views/context';
 import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
 import { StandardFormDto, StandardFormFieldDto, StandardFormResponseDto } from '@app/models/dtos/form';
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
-import { useLazyGetLogoutQuery, useLazyGetStatusQuery } from '@app/store/auth/api';
 import { selectAuth } from '@app/store/auth/slice';
 import { ConsentAnswerDto } from '@app/store/consent/types';
 import { resetFillForm, selectAnonymize, selectAnswers, selectFormResponderOwnerField, selectInvalidFields, setAnonymize, setDataResponseOwnerField, setFillFormId, setInvalidFields } from '@app/store/fill-form/slice';
@@ -33,6 +35,7 @@ import { Condition } from '@app/store/form-builder/types';
 import { useAppAsyncDispatch, useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { useSubmitResponseMutation } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
+import { getFullNameFromUser } from '@app/utils/userUtils';
 import { validateConditionsAndReturnUpdatedForm, validateFormFieldAnswer } from '@app/utils/validationUtils';
 
 import useFormAtom from './atom';
@@ -94,24 +97,27 @@ interface IBetterCollectedFormProps {
 }
 
 export default function BetterCollectedForm({ form, enabled = false, response, isCustomDomain = false, isPreview = false, closeModal, isDisabled = false, isTemplate = false }: IBetterCollectedFormProps) {
-    const dispatch = useAppDispatch();
-    const asyncDispatch = useAppAsyncDispatch();
-    const { openModal, closeModal: closeFullScreenModal } = useFullScreenModal();
-    const [submitResponse, { data }] = useSubmitResponseMutation();
-    const answers = useAppSelector(selectAnswers);
+    const router = useRouter();
+
+    const auth = useAppSelector(selectAuth);
+    const anonymize = useAppSelector(selectAnonymize);
     const formId = useAppSelector((state) => state.fillForm.id);
     const responseDataOwnerField = useAppSelector(selectFormResponderOwnerField);
     const invalidFields = useAppSelector(selectInvalidFields);
     const workspace = useAppSelector(selectWorkspace);
+    const answers = useAppSelector(selectAnswers);
+
+    const { openModal } = useModal();
+    const { openModal: openFullScreenModal, closeModal: closeFullScreenModal } = useFullScreenModal();
+
     const { files, resetFormFiles } = useFormAtom();
-    const auth = useAppSelector(selectAuth);
-    const [trigger] = useLazyGetLogoutQuery();
-    const [authTrigger] = useLazyGetStatusQuery();
-    const anonymize = useAppSelector(selectAnonymize);
 
-    const router = useRouter();
+    const dispatch = useAppDispatch();
+    const asyncDispatch = useAppAsyncDispatch();
+
+    const [submitResponse, { data }] = useSubmitResponseMutation();
+
     const [updatedForm, setUpdatedForm] = useState<StandardFormDto>(form);
-
     const [isFormSubmitted, setIsFormSubmitted] = useState(false);
 
     const conditionalFields = form?.fields?.filter((field: StandardFormFieldDto) => field?.type == FormBuilderTagNames.CONDITIONAL);
@@ -124,11 +130,8 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
         setUpdatedForm(updatedForm);
     };
 
-    const onClickSwitchAccount = async () => {
-        await trigger().then(async () => {
-            await authTrigger();
-        });
-        router.push(router.asPath);
+    const onClickAccountSettings = async () => {
+        openModal('RESPONDER_ACCOUNT', { form });
     };
 
     const updateAnonymize = (checked: boolean) => {
@@ -165,7 +168,7 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
 
     const onFormSubmitCallback = async (consentAnswers: Record<string, ConsentAnswerDto>) => {
         if (isPreview) {
-            openModal('FORM_BUILDER_PREVIEW', { isFormSubmitted: true });
+            openFullScreenModal('FORM_BUILDER_PREVIEW', { isFormSubmitted: true });
             return;
         }
         const formData = new FormData();
@@ -243,10 +246,14 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
         }
         setResponseValid(true);
         if (isPreview) {
-            openModal('CONSENT_FULL_MODAL_VIEW', { form: form, isPreview: true, onFormSubmit: onFormSubmitCallback });
+            openFullScreenModal('CONSENT_FULL_MODAL_VIEW', {
+                form: form,
+                isPreview: true,
+                onFormSubmit: onFormSubmitCallback
+            });
             return;
         }
-        openModal('CONSENT_FULL_MODAL_VIEW', { form: form, onFormSubmit: onFormSubmitCallback });
+        openFullScreenModal('CONSENT_FULL_MODAL_VIEW', { form: form, onFormSubmit: onFormSubmitCallback });
     };
 
     useEffect(() => {
@@ -286,29 +293,51 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
                 </div>
 
                 {enabled && auth.id && (
-                    <div className="p3-new px-4 py-2 rounded-lg bg-new-blue-100 mt-12 mb-10 font-medium">
-                        <div className="mb-4">
-                            You are filling this form as <span className="text-pink-500">{auth.email}</span>{' '}
-                            <span className="cursor-pointer ml-4 underline text-brand-500" onClick={onClickSwitchAccount}>
-                                {' '}
-                                Switch account
+                    <div className="p3-new py-2 rounded-lg mt-12 mb-10 font-medium">
+                        <div className="text-new-black-800">Hi, {getFullNameFromUser(auth)}</div>
+                        <div className="flex flex-col gap-1">
+                            <span className="text-new-black-600">
+                                You are filling this form as <span className="text-pink-500">{auth.email}</span>
+                            </span>
+                            <span className="cursor-pointer underline text-brand-500" onClick={onClickAccountSettings}>
+                                Account Settings
                             </span>
                         </div>
+                    </div>
+                )}
 
-                        {!form?.settings?.requireVerifiedIdentity && (
-                            <div>
-                                <div>
-                                    <Checkbox
-                                        checked={!!anonymize}
-                                        onClick={() => {
-                                            updateAnonymize(!anonymize);
-                                        }}
-                                    />{' '}
-                                    Submit as anonymous
-                                </div>
-                                <span className="text-xs">This means that the form collector won&apos;t be able to see your email identity but you will be able to track your response</span>
-                            </div>
-                        )}
+                {!form?.settings?.requireVerifiedIdentity && auth.id && enabled && (
+                    <div className="mb-[28px] items-center flex gap-1">
+                        <Checkbox
+                            checked={!!anonymize}
+                            onClick={() => {
+                                updateAnonymize(!anonymize);
+                            }}
+                        />
+                        <span className="p2-new text-new-black-800">Hide your email form form collector.</span>
+                        <Tooltip title="Submit this form without revealing your email to the creator.">
+                            <InfoIcon width={18} height={18} color="black" className="cursor-pointer" />
+                        </Tooltip>
+                    </div>
+                )}
+                {!form?.settings?.requireVerifiedIdentity && !auth.id && (
+                    <div className="my-[28px]">
+                        <div className="text-new-black-600 p2-new">Do you wish to track your response for future reference?</div>
+                        <div
+                            className="text-blue-500 font-medium cursor-pointer w-fit"
+                            onClick={() => {
+                                router.push({
+                                    pathname: '/login',
+                                    query: {
+                                        type: 'responder',
+                                        workspace_id: workspace.id,
+                                        redirect_to: router.asPath
+                                    }
+                                });
+                            }}
+                        >
+                            Sign In
+                        </div>
                     </div>
                 )}
 
