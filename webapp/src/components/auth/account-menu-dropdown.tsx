@@ -24,7 +24,6 @@ import { selectAuth, selectIsAdmin } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 
-
 interface IAuthAccountMenuDropdownProps {
     isClientDomain?: boolean;
     fullWidth?: boolean;
@@ -53,7 +52,7 @@ export default function AuthAccountMenuDropdown({ isClientDomain, fullWidth, hid
     const { openModal } = useModal();
 
     const handleLogout = () => {
-        openModal('LOGOUT_VIEW', { workspace, isclientdomain: `${isClientDomain}` });
+        openModal('LOGOUT_VIEW', { workspace, isClientDomain: isClientDomain });
     };
 
     if (user?.isLoading) return <div className="w-9 sm:w-32 h-9 rounded-[4px] animate-pulse bg-black-300" />;

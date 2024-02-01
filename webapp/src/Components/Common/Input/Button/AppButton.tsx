@@ -4,7 +4,6 @@ import { ButtonSize, ButtonVariant } from '@Components/Common/Input/Button/AppBu
 import { CircularProgress } from '@mui/material';
 import cn from 'classnames';
 
-
 export interface AppButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
     isLoading?: boolean;
     variant?: ButtonVariant;
@@ -34,9 +33,9 @@ export default function AppButton({ children, className, disabled, isLoading, ic
     const getClassnamesForSize = () => {
         switch (size) {
             case ButtonSize.Medium:
-                return 'h-[48px] text-sm';
+                return 'h-[48px] text-sm font-medium';
             case ButtonSize.Big:
-                return 'h-[64px] text-normal';
+                return 'h-[64px] text-normal font-medium';
             case ButtonSize.Small:
                 return 'h-[36px] text-sm';
             case ButtonSize.Tiny:

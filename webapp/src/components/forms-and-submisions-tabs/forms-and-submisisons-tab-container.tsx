@@ -42,7 +42,7 @@ export default function FormsAndSubmissionsTabContainer({ showResponseBar, works
     }
 
     return (
-        <ParamTab className="pb-[28px] !mb-0 px-5 lg:px-10 xl:px-20" tabMenu={paramTabs}>
+        <ParamTab className="pb-2 lg:!pt-0 !mb-0 px-5" tabMenu={paramTabs}>
             <TabPanel className="focus:outline-none" key="forms">
                 <WorkspaceFormsTabContent isFormCreator={isFormCreator} workspace={workspace} />
             </TabPanel>

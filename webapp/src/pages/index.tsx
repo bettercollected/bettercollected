@@ -7,7 +7,6 @@ import { getGlobalServerSidePropsByDomain } from '@app/lib/serverSideProps';
 import { IServerSideProps } from '@app/models/dtos/serverSideProps';
 import { checkHasClientDomain, checkHasCustomDomain, getRequestHost } from '@app/utils/serverSidePropsUtils';
 
-
 interface IHome extends IServerSideProps {}
 
 const Home = ({ workspace }: IHome) => {
@@ -22,6 +21,8 @@ const Home = ({ workspace }: IHome) => {
 };
 
 export default Home;
+//
+// export default RespondersPortalContainer;
 
 export async function getServerSideProps(_context: GetServerSidePropsContext) {
     const hasCustomDomain = checkHasCustomDomain(_context);
@@ -37,7 +38,6 @@ export async function getServerSideProps(_context: GetServerSidePropsContext) {
         };
     }
     const scheme = _context.req.headers?.referer?.includes('https://') ? 'https://' : 'http://';
-    const locale = globalProps['_nextI18Next']['initialLocale'] === 'en' ? '' : `${globalProps['_nextI18Next']['initialLocale']}/`;
 
     const hasClientDomain = checkHasClientDomain(getRequestHost(_context));
     if (hasClientDomain) {
@@ -52,7 +52,7 @@ export async function getServerSideProps(_context: GetServerSidePropsContext) {
     return {
         redirect: {
             permanent: false,
-            destination: `/${locale}login`
+            destination: `/login`
         }
     };
 }

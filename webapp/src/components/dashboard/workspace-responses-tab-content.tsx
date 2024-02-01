@@ -1,8 +1,10 @@
 import React from 'react';
 
 import { useTranslation } from 'next-i18next';
+import Image from 'next/image';
 
 import ZeroElement from '@Components/Common/DataDisplay/Empty/ZeroElement';
+import AppTextField from '@Components/Common/Input/AppTextField';
 import WorkspaceFormResponseDeletionCard from '@Components/WorkspaceClient/WorkspaceFormResponseDeletionCard';
 
 import EmptyFormsView from '@app/components/dashboard/empty-form';
@@ -52,14 +54,31 @@ export default function WorkspaceResponsesTabContent({ workspace, deletionReques
     const isCustomDomain = window?.location.host !== environments.CLIENT_DOMAIN;
 
     return (
-        <div className="py-6 px-5 lg:px-10 xl:px-20">
+        <div className="py-6 px-5 flex gap-6 flex-col-reverse md:flex-row">
             {submissions?.length === 0 && <EmptyFormsView description={`0 ${t(formConstant.responses)}`} />}
-            <div className=" flex flex-col gap-4">
+            <div className=" flex flex-col w-full gap-4">
                 {submissions?.length !== 0 &&
                     submissions?.map((submission: StandardFormResponseDto) => {
                         return <WorkspaceFormResponseDeletionCard deletionRequests={deletionRequests} key={submission.responseId} response={submission} isCustomDomain={isCustomDomain} workspaceName={workspace.workspaceName} />;
                     })}
             </div>
+            <SearchBySubmissionNumber />
         </div>
     );
 }
+
+const SearchBySubmissionNumber = () => {
+    return (
+        <div className="pt-2">
+            <div className="w-full flex flex-col items-center justify-center md:w-[367px] px-6 py-8 bg-white rounded-xl">
+                <Image src={'/images/search_submission.png'} height={62} width={77} />
+
+                <div className="mt-4">
+                    <div className="h4-new font-medium text-center text-new-black-800">Search by submission number</div>
+                    <div className="p2-new mt-2 !text-center text-black-700">Enter your submission number to see your form response.</div>
+                </div>
+                <AppTextField placeholder="Enter your submission number here" className="mt-4" />
+            </div>
+        </div>
+    );
+};
