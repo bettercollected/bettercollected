@@ -333,11 +333,14 @@ class FormResponseService:
         if not form:
             form = await FormDocument.find_one({"form_id": response.form_id})
 
+        workspace_form = await WorkspaceFormDocument.find_one({"form_id": form.form_id})
+        form.settings = workspace_form.settings
+
         decrypted_response = self.decrypt_form_response(
             workspace_id=workspace_id, response=response
         )
 
         return {
-            "form": form,
-            "response": decrypted_response
+            "form": StandardFormCamelModel(**form.dict()),
+            "response": StandardFormResponseCamelModel(**decrypted_response.dict())
         }
