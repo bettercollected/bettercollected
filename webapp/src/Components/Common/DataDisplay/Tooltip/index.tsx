@@ -94,7 +94,7 @@ export default function Tooltip({
             slotProps={slotProps}
             slots={slots}
         >
-            <div className={'max-w-full max-h-full'}>{children}</div>
+            <div className={' w-fit'}>{children}</div>
         </MuiTooltip>
     );
 }

@@ -16,6 +16,7 @@ import { Logout } from '@app/components/icons/logout-icon';
 import { useModal } from '@app/components/modal-views/context';
 import ActiveLink from '@app/components/ui/links/active-link';
 import Logo from '@app/components/ui/logo';
+import environments from '@app/configs/environments';
 import { localesCommon } from '@app/constants/locales/common';
 import { profileMenu } from '@app/constants/locales/profile-menu';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
@@ -28,17 +29,19 @@ export default function Container(props: { workspace: WorkspaceDto; hasCustomDom
     const { t } = useTranslation();
     const auth = useAppSelector(selectAuth);
 
+    const isClientDomain = window?.location?.origin !== environments.ADMIN_DOMAIN;
+
     const router = useRouter();
 
     const { openModal } = useModal();
 
     const handleLogout = () => {
-        openModal('LOGOUT_VIEW', { workspace, isClientDomain: hasCustomDomain });
+        openModal('LOGOUT_VIEW', { workspace, isClientDomain });
     };
 
     return (
         <div className="max-h-screen h-screen !bg-new-white-200 max-w-screen w-screen overflow-auto flex flex-col p-10 md:flex-row">
-            <div className="max-w-screen w-full md:max-w-[320px]">
+            <div className="max-w-screen w-full md:max-w-[320px] lg:sticky lg:top-0">
                 <div className="rounded-xl bg-white w-full">
                     {workspace.bannerImage && (
                         <div className="w-full relative aspect-banner-mobile rounded-t-2xl">
@@ -102,13 +105,17 @@ export default function Container(props: { workspace: WorkspaceDto; hasCustomDom
                                         <ChevronDown className={`${open ? 'rotate-180 transform' : ''} h-3 w-3 text-blue-900`} />
                                     </Disclosure.Button>
                                     <Disclosure.Panel className="pb-2">
-                                        <Divider className="text-black-200" />
-                                        <div className="p-4 p4-new text-black-600">
-                                            You have 0 workspace associated with this email.{' '}
-                                            <ActiveLink target="_blank" href="https://bettercollected.com" className="text-blue-500">
-                                                Try Bettercollected{' '}
-                                            </ActiveLink>
-                                        </div>
+                                        {!auth?.roles?.includes('FORM_CREATOR') && (
+                                            <>
+                                                <Divider className="text-black-200" />
+                                                <div className="p-4 p4-new text-black-600">
+                                                    You have 0 workspace associated with this email.{' '}
+                                                    <ActiveLink target="_blank" href="https://bettercollected.com" className="text-blue-500">
+                                                        Try Bettercollected{' '}
+                                                    </ActiveLink>
+                                                </div>
+                                            </>
+                                        )}
                                         <Divider className="text-black-200" />
                                         <div className="m-2 p-2 flex gap-2 text-black-600 hover:bg-new-blue-100 rounded cursor-pointer active:bg-blue-100" onClick={handleLogout}>
                                             <Logout width={24} height={24} />
@@ -121,15 +128,15 @@ export default function Container(props: { workspace: WorkspaceDto; hasCustomDom
                     </div>
                 )}
 
-                {}
-
-                <div className="bg-white w-full hidden md:flex mt-10 rounded p-4 shadow-powered-by gap-2">
-                    <span className="body3 text-black-700">Powered by:</span>
-                    <Logo showProTag={false} isLink={false} isCustomDomain className="h-[14px] w-fit" />
-                </div>
+                {!hasCustomDomain && (
+                    <div className="bg-white w-full hidden md:flex mt-10 rounded p-4 shadow-powered-by gap-2">
+                        <span className="body3 text-black-700">Powered by:</span>
+                        <Logo showProTag={false} isLink={false} isCustomDomain className="h-[14px] w-fit" />
+                    </div>
+                )}
             </div>
 
-            <div className="flex-1">
+            <div className="flex-1 lg:max-h-screen">
                 <FormsAndSubmissionsTabContainer isFormCreator={false} workspace={workspace} workspaceId={workspace.id} showResponseBar={!!auth.id} />
             </div>
         </div>

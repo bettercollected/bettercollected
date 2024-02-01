@@ -283,6 +283,13 @@ export const workspacesApi = createApi({
             }),
             providesTags: [WORKSPACE_TAGS, SUBMISSION_TAG]
         }),
+        getWorkspaceSubmissionByUUID: builder.query<any, any>({
+            query: (query) => ({
+                url: `/workspaces/${query.workspace_id}/submissions/by-uuid/${query.submissionNumber}`,
+                method: 'GET'
+            }),
+            providesTags: [WORKSPACE_TAGS, SUBMISSION_TAG]
+        }),
         getWorkspaceStats: builder.query<WorkspaceStatsDto, string>({
             query: (id) => ({
                 url: `/workspaces/${id}/stats`,
@@ -531,5 +538,6 @@ export const {
     usePublishFormMutation,
     useVerifyFormTokenMutation,
     useExportCSVResponsesQuery,
-    useLazyExportCSVResponsesQuery
+    useLazyExportCSVResponsesQuery,
+    useLazyGetWorkspaceSubmissionByUUIDQuery
 } = workspacesApi;
