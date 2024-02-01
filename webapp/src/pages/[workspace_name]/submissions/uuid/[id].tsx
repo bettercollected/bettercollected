@@ -6,7 +6,7 @@ import FullScreenLoader from '@app/components/ui/fullscreen-loader';
 import { useAppSelector } from '@app/store/hooks';
 import { useGetWorkspaceSubmissionByUUIDQuery } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
-import { getServerSidePropsInClientHostWithWorkspaceName } from '@app/utils/serverSidePropsUtils';
+import { checkHasClientDomain, getRequestHost, getServerSidePropsInClientHostWithWorkspaceName } from '@app/utils/serverSidePropsUtils';
 
 export default function SubmissionPageByUUid(props: any) {
     const { submissionUUID, hasCustomDomain } = props;
@@ -31,7 +31,14 @@ export default function SubmissionPageByUUid(props: any) {
 
 export async function getServerSideProps(_context: any) {
     const globalProps = (await getServerSidePropsInClientHostWithWorkspaceName(_context)).props;
+    const hasClientDomain = checkHasClientDomain(getRequestHost(_context));
+    if (!hasClientDomain) {
+        return {
+            notFound: true
+        };
+    }
     const submissionUUID = _context.query.id;
+
     return {
         props: {
             ...globalProps,
