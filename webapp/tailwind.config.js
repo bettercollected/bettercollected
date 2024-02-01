@@ -146,7 +146,8 @@ module.exports = {
                 button: '0px 2px 4px rgba(0, 0, 0, 0.06), 0px 4px 6px rgba(0, 0, 0, 0.1)',
                 logoCard: '0px 0px 40px 0px rgba(19, 73, 179, 0.25)',
                 hover: '0px 0px 8px 0px rgba(0, 0, 0, 0.25)',
-                input: '0px 0px 12px 0px rgba(7, 100, 235, 0.45)'
+                input: '0px 0px 12px 0px rgba(7, 100, 235, 0.45)',
+                'powered-by': ' 0px 0px 16px 0px #0764EB29'
             },
             dropShadow: {
                 paper: '0px 0px 15px rgba(0, 0, 0, 0.15)',

@@ -17,7 +17,6 @@ import { StandardFormDto } from '@app/models/dtos/form';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { useGetWorkspaceFormsQuery, useLazySearchWorkspaceFormsQuery } from '@app/store/workspaces/api';
 
-
 interface IWorkspaceFormsTabContentProps {
     workspace: WorkspaceDto;
     isFormCreator?: boolean;
@@ -106,7 +105,7 @@ export default function WorkspaceFormsTabContent({ workspace, isFormCreator = fa
     if ((data && Array.isArray(data) && data.length === 0) || isError || forms.length === 0) return <ZeroElement title={t(workspaceConstant.preview.emptyFormTitle)} description={t(workspaceConstant.preview.emptyFormDescription)} className="!pb-[20px]" />;
 
     return (
-        <div className="py-6 px-5 lg:px-10 xl:px-20 flex flex-col gap-6">
+        <div className="py-6 px-5 flex flex-col gap-6">
             {pinnedForms?.items?.length !== 0 && <FormCards title={t(formConstant.pinnedforms)} showPinned={false} isFormCreator={isFormCreator} showVisibility={false} workspace={workspace} formsArray={pinnedForms?.items || []} />}
             {pinnedForms?.items?.length !== 0 && <Divider />}
             <div className={`w-full md:w-[282px]`}>
