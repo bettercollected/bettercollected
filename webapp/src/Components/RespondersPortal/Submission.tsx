@@ -1,6 +1,7 @@
 import React from 'react';
 
 import { useTranslation } from 'next-i18next';
+import { useRouter } from 'next/router';
 
 import Divider from '@Components/Common/DataDisplay/Divider';
 import Tooltip from '@Components/Common/DataDisplay/Tooltip';
@@ -15,6 +16,7 @@ import { JoyrideStepContent, JoyrideStepTitle } from '@Components/Joyride/Joyrid
 import { ChevronLeft } from '@mui/icons-material';
 
 import FormRenderer from '@app/components/form/renderer/form-renderer';
+import { useModal } from '@app/components/modal-views/context';
 import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
 import FullScreenLoader from '@app/components/ui/fullscreen-loader';
 import ParamTab, { TabPanel } from '@app/components/ui/param-tab';
@@ -29,15 +31,16 @@ import { utcToLocalDate } from '@app/utils/dateUtils';
 interface SubmissionProps {
     hasCustomDomain: boolean;
     data: any;
-    goToSubmissions: any;
-    handleRequestForDeletionModal: any;
+    handleRequestForDeletion: any;
 }
 
-export default function Submission({ hasCustomDomain, data, goToSubmissions, handleRequestForDeletionModal }: SubmissionProps) {
+export default function Submission({ hasCustomDomain, data, handleRequestForDeletion }: SubmissionProps) {
     const { isLoading, isError } = data;
     const form: any = data ?? {};
+    const router = useRouter();
 
     const { t } = useTranslation();
+    const { openModal, closeModal } = useModal();
 
     const fullScreenModal = useFullScreenModal();
 
@@ -54,7 +57,32 @@ export default function Submission({ hasCustomDomain, data, goToSubmissions, han
         }
     ];
 
+    const goToSubmissions = () => {
+        let pathName;
+        if (hasCustomDomain) {
+            pathName = '/';
+        } else {
+            pathName = `/${router.query.workspace_name}`;
+        }
+
+        router
+            .push(
+                {
+                    pathname: pathName,
+                    query: { view: 'mySubmissions' }
+                },
+                undefined,
+                { scroll: true, shallow: true }
+            )
+            .then((r) => r)
+            .catch((e) => e);
+    };
+
     const deletionStatus = !!form?.response?.deletionStatus;
+
+    const handleRequestForDeletionModal = () => {
+        openModal('REQUEST_FOR_DELETION_VIEW', { handleRequestForDeletion });
+    };
 
     return (
         <Layout className="bg-white !px-0" showAuthAccount={false} isCustomDomain={hasCustomDomain} isClientDomain={!hasCustomDomain} showNavbar={true}>
