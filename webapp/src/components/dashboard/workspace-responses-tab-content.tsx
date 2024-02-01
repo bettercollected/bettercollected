@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
 import Image from 'next/image';
+import { useRouter } from 'next/router';
 
 import ZeroElement from '@Components/Common/DataDisplay/Empty/ZeroElement';
 import InfoIcon from '@Components/Common/Icons/FormBuilder/infoIcon';
@@ -9,7 +10,6 @@ import AppTextField from '@Components/Common/Input/AppTextField';
 import AppButton from '@Components/Common/Input/Button/AppButton';
 import { ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
 import WorkspaceFormResponseDeletionCard from '@Components/WorkspaceClient/WorkspaceFormResponseDeletionCard';
-import { toast } from 'react-toastify';
 
 import Loader from '@app/components/ui/loader';
 import environments from '@app/configs/environments';
@@ -76,6 +76,8 @@ const SearchBySubmissionNumber = () => {
     const workspace = useAppSelector(selectWorkspace);
     const [submissionNumber, setSubmissionNumber] = useState('');
     const [getSubmissionByUUID, { isLoading, isError }] = useLazyGetWorkspaceSubmissionByUUIDQuery();
+    const isCustomDomain = window?.location?.origin === environments.CLIENT_DOMAIN;
+    const router = useRouter();
     return (
         <div className="pt-2">
             <div className="w-full flex flex-col items-center justify-center md:w-[367px] px-6 py-8 bg-white rounded-xl">
@@ -113,7 +115,8 @@ const SearchBySubmissionNumber = () => {
                         if (!submissionNumber) return;
                         const response = await getSubmissionByUUID({ workspace_id: workspace.id, submissionNumber });
                         if (response.data) {
-                            toast('Found', { type: 'success' });
+                            const submissionUrl = isCustomDomain ? `/submissions/uuid/${submissionNumber}` : `/${workspace.workspaceName}/submissions/uuid/${submissionNumber}`;
+                            router.push(submissionUrl);
                         }
                     }}
                 >

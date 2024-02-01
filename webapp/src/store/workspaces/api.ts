@@ -285,7 +285,7 @@ export const workspacesApi = createApi({
         }),
         getWorkspaceSubmissionByUUID: builder.query<any, any>({
             query: (query) => ({
-                url: `/workspaces/${query.workspace_id}/submissions/by-uuid/${query.submissionNumber}`,
+                url: `/workspaces/${query.workspace_id}/submissions/by-uuid/${query.submissionUUID}`,
                 method: 'GET'
             }),
             providesTags: [WORKSPACE_TAGS, SUBMISSION_TAG]
@@ -539,5 +539,6 @@ export const {
     useVerifyFormTokenMutation,
     useExportCSVResponsesQuery,
     useLazyExportCSVResponsesQuery,
+    useGetWorkspaceSubmissionByUUIDQuery,
     useLazyGetWorkspaceSubmissionByUUIDQuery
 } = workspacesApi;

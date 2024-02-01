@@ -24,8 +24,7 @@ export default function SubmissionPage(props: any) {
     const { workspace, submissionId, hasCustomDomain }: ISubmission = props;
     const { t } = useTranslation();
 
-    const router = useRouter();
-    const { openModal, closeModal } = useModal();
+    const { closeModal } = useModal();
 
     const [requestWorkspaceSubmissionDeletion] = useRequestWorkspaceSubmissionDeletionMutation();
 
@@ -50,33 +49,9 @@ export default function SubmissionPage(props: any) {
         }
     };
 
-    const handleRequestForDeletionModal = () => {
-        openModal('REQUEST_FOR_DELETION_VIEW', { handleRequestForDeletion });
-    };
-
-    const goToSubmissions = () => {
-        let pathName;
-        if (hasCustomDomain) {
-            pathName = '/';
-        } else {
-            pathName = `/${router.query.workspace_name}`;
-        }
-
-        router
-            .push(
-                {
-                    pathname: pathName,
-                    query: { view: 'mySubmissions' }
-                },
-                undefined,
-                { scroll: true, shallow: true }
-            )
-            .then((r) => r)
-            .catch((e) => e);
-    };
     if (!data) return <FullScreenLoader />;
 
-    return <Submission hasCustomDomain={hasCustomDomain} data={data} goToSubmissions={goToSubmissions} handleRequestForDeletionModal={handleRequestForDeletionModal} />;
+    return <Submission hasCustomDomain={hasCustomDomain} data={data} handleRequestForDeletion={handleRequestForDeletion} />;
 }
 
 export async function getServerSideProps(_context: any) {
