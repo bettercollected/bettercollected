@@ -126,3 +126,11 @@ class WorkspaceResponsesRouter(CustomRoutable):
             workspace_id, submission_id, user
         )
         return {"message": "Request for deletion created successfully."}
+
+    @delete("/submissions/by-uuid/{submission_uuid}")
+    async def _request_workspace_form_response_delete_by_uuid(self, workspace_id: PydanticObjectId,
+                                                              submission_uuid: str):
+        await self._form_response_service.request_for_response_deletion_by_uuid(
+            workspace_id, submission_uuid
+        )
+        return {"message": "Request for deletion created successfully."}

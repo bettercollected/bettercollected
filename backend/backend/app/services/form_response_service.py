@@ -324,6 +324,9 @@ class FormResponseService:
 
     async def get_by_uuid(self, workspace_id: PydanticObjectId, submission_uuid: str):
         response = await self._form_response_repo.get_by_submission_uuid(submission_uuid=submission_uuid)
+
+        await self._form_response_repo.verify_response_exists_in_workspace(workspace_id=workspace_id,
+                                                                           response_id=response.response_id)
         form = await FormVersionsDocument.find_one(
             {
                 "form_id": response.form_id,
@@ -344,3 +347,26 @@ class FormResponseService:
             "form": StandardFormCamelModel(**form.dict()),
             "response": StandardFormResponseCamelModel(**decrypted_response.dict())
         }
+
+    async def request_for_response_deletion_by_uuid(self, workspace_id, submission_uuid):
+        response = await FormResponseDocument.find_one({"submission_uuid": submission_uuid})
+        response_id = response.response_id
+        await self._form_response_repo.verify_response_exists_in_workspace(workspace_id=workspace_id,
+                                                                           response_id=response_id)
+        deletion_request = await FormResponseDeletionRequest.find_one(
+            {"response_id": response_id}
+        )
+        if deletion_request:
+            raise HTTPException(
+                400,
+                "Error: Deletion request already exists for the response : "
+                + response_id,
+            )
+
+        await FormResponseDeletionRequest(
+            form_id=response.form_id,
+            response_id=response_id,
+            dataOwnerIdentifier=response.dataOwnerIdentifier,
+            provider=response.provider,
+        ).save()
+        pass
