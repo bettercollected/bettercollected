@@ -314,3 +314,30 @@ class FormResponseRepository(BaseRepository):
 
     async def get_by_submission_uuid(self, submission_uuid: str):
         return await FormResponseDocument.find_one({"submission_uuid": submission_uuid})
+
+    async def verify_response_exists_in_workspace(self, workspace_id: PydanticObjectId, response_id: str):
+        workspace = await FormResponseDocument.find({"response_id": response_id}).aggregate(
+            [
+                {
+                    '$lookup': {
+                        'from': 'workspace_forms',
+                        'localField': 'form_id',
+                        'foreignField': 'form_id',
+                        'as': 'workspace_form'
+                    }
+                },
+                {
+                    '$match': {
+                        'workspace_form.workspace_id': workspace_id
+                    }
+                },
+                {
+                    '$unwind': {
+                        'path': '$workspace_form',
+                        'preserveNullAndEmptyArrays': False
+                    }
+                }
+            ]
+        ).to_list()
+        if not len(workspace) > 0:
+            raise HTTPException(status_code=HTTPStatus.NOT_FOUND, content="Response not found in workspace")
