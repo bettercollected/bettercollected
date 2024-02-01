@@ -76,7 +76,8 @@ const SearchBySubmissionNumber = () => {
     const workspace = useAppSelector(selectWorkspace);
     const [submissionNumber, setSubmissionNumber] = useState('');
     const [getSubmissionByUUID, { isLoading, isError }] = useLazyGetWorkspaceSubmissionByUUIDQuery();
-    const isCustomDomain = window?.location?.origin === environments.CLIENT_DOMAIN;
+    const isCustomDomain = window?.location?.origin !== environments.CLIENT_DOMAIN;
+
     const router = useRouter();
     return (
         <div className="pt-2">
@@ -113,7 +114,10 @@ const SearchBySubmissionNumber = () => {
                     variant={ButtonVariant.Ghost}
                     onClick={async () => {
                         if (!submissionNumber) return;
-                        const response = await getSubmissionByUUID({ workspace_id: workspace.id, submissionNumber });
+                        const response = await getSubmissionByUUID({
+                            workspace_id: workspace.id,
+                            submissionUUID: submissionNumber
+                        });
                         if (response.data) {
                             const submissionUrl = isCustomDomain ? `/submissions/uuid/${submissionNumber}` : `/${workspace.workspaceName}/submissions/uuid/${submissionNumber}`;
                             router.push(submissionUrl);
