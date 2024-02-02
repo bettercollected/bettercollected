@@ -131,14 +131,6 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
         setUpdatedForm(updatedForm);
     };
 
-    const onClickAccountSettings = async () => {
-        openModal('RESPONDER_ACCOUNT', { form });
-    };
-
-    const updateAnonymize = (checked: boolean) => {
-        dispatch(setAnonymize(checked));
-    };
-
     useEffect(
         () => {
             updateFormWithActions();

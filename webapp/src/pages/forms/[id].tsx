@@ -25,7 +25,8 @@ import Layout from '@app/layouts/_layout';
 import { getGlobalServerSidePropsByDomain } from '@app/lib/serverSideProps';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { selectAuth } from '@app/store/auth/slice';
-import { useAppSelector } from '@app/store/hooks';
+import { resetSingleForm, setForm } from '@app/store/forms/slice';
+import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { useGetWorkspaceFormQuery } from '@app/store/workspaces/api';
 import { checkHasCustomDomain, getServerSideAuthHeaderConfig } from '@app/utils/serverSidePropsUtils';
 import { validateFormOpen } from '@app/utils/validationUtils';
@@ -38,6 +39,8 @@ export default function SingleFormPage(props: any) {
         custom_url: slug,
         published: true
     });
+
+    const dispatch = useAppDispatch();
 
     const auth = useAppSelector(selectAuth);
 
@@ -58,6 +61,15 @@ export default function SingleFormPage(props: any) {
     const isFormClosed = !validateFormOpen(form?.settings?.formCloseDate);
 
     const showBranding = !workspace?.isPro || !form?.settings?.disableBranding;
+
+    useEffect(() => {
+        if (form?.formId) {
+            dispatch(setForm(form));
+        }
+        return () => {
+            dispatch(resetSingleForm());
+        };
+    }, [form]);
 
     useEffect(() => {
         if (form?.settings?.provider && form.settings?.provider === 'google' && form?.fields && hasFileUpload(form?.fields)) {
