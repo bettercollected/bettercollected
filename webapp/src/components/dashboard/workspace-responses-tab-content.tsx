@@ -76,7 +76,7 @@ const SearchBySubmissionNumber = () => {
     const workspace = useAppSelector(selectWorkspace);
     const [submissionNumber, setSubmissionNumber] = useState('');
     const [getSubmissionByUUID, { isLoading, isError }] = useLazyGetWorkspaceSubmissionByUUIDQuery();
-    const isCustomDomain = window?.location?.origin !== environments.CLIENT_DOMAIN;
+    const isCustomDomain = window?.location?.host !== environments.CLIENT_DOMAIN;
 
     const router = useRouter();
     return (
