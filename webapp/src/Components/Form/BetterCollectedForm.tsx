@@ -3,10 +3,8 @@ import React, { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/router';
 
-import Tooltip from '@Components/Common/DataDisplay/Tooltip';
-import InfoIcon from '@Components/Common/Icons/FormBuilder/infoIcon';
 import AppButton from '@Components/Common/Input/Button/AppButton';
-import { ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
+import { ButtonSize, ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
 import MarkdownText from '@Components/Common/Markdown';
 import CheckboxField from '@Components/Form/CheckboxField';
 import DropdownField from '@Components/Form/DropdownField';
@@ -20,13 +18,16 @@ import RankingField from '@Components/Form/RankingField';
 import RatingField from '@Components/Form/RatingField';
 import ShortText from '@Components/Form/ShortText';
 import ThankYouPage from '@Components/Form/ThankYouPage';
-import Checkbox from '@mui/material/Checkbox';
+import { Disclosure } from '@headlessui/react';
 import { toast } from 'react-toastify';
 
+import AuthAccountProfileImage from '@app/components/auth/account-profile-image';
+import { ChevronDown } from '@app/components/icons/chevron-down';
 import { useModal } from '@app/components/modal-views/context';
 import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
 import { StandardFormDto, StandardFormFieldDto, StandardFormResponseDto } from '@app/models/dtos/form';
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
+import { useLogoutMutation } from '@app/store/auth/api';
 import { selectAuth } from '@app/store/auth/slice';
 import { ConsentAnswerDto } from '@app/store/consent/types';
 import { resetFillForm, selectAnonymize, selectAnswers, selectFormResponderOwnerField, selectInvalidFields, setAnonymize, setDataResponseOwnerField, setFillFormId, setInvalidFields } from '@app/store/fill-form/slice';
@@ -107,7 +108,7 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
     const workspace = useAppSelector(selectWorkspace);
     const answers = useAppSelector(selectAnswers);
 
-    const { openModal } = useModal();
+    const { openModal, closeModal: closeDialogModal } = useModal();
     const { openModal: openFullScreenModal, closeModal: closeFullScreenModal } = useFullScreenModal();
 
     const { files, resetFormFiles } = useFormAtom();
@@ -262,12 +263,83 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
         };
     }, []);
 
+    const [trigger] = useLogoutMutation();
+
+    const onClickSwitchAccount = async () => {
+        trigger().then(async () => {
+            router.push({
+                pathname: '/login',
+                query: {
+                    type: 'responder',
+                    workspace_id: workspace.id,
+                    redirect_to: router.asPath
+                }
+            });
+        });
+    };
+
+    const onClickLogoutAndContinue = async () => {
+        trigger().then(() => {
+            closeDialogModal();
+        });
+    };
+
     if (isFormSubmitted) {
         return <ThankYouPage isDisabled={isDisabled} form={form} showSubmissionNumber={!!form?.settings?.showSubmissionNumber} submissionNumber={data} />;
     }
 
     return (
         <div className="w-full bg-white">
+            <div className="fixed hidden xl:block top-16 right-20 bg-black-100 rounded-xl">
+                {auth.id && (
+                    <Disclosure>
+                        {({ open }) => (
+                            <>
+                                <Disclosure.Button className="flex outline-none  gap-2 p-4 w-full items-center justify-between cursor-pointer">
+                                    <div className="flex gap-2">
+                                        <AuthAccountProfileImage size={36} image={auth?.profileImage} name={getFullNameFromUser(auth) ?? ''} />
+                                        <div className="flex flex-col gap-2 text-start justify-center !text-black-700 pr-1">
+                                            <span className="body6 !leading-none">{getFullNameFromUser(auth)?.trim() || auth?.email || ''}</span>
+                                            <span className="body5 !leading-none">{auth?.email} </span>
+                                        </div>
+                                    </div>
+                                    <ChevronDown className={`${open ? 'rotate-180 transform' : ''} h-3 w-3 text-blue-900`} />
+                                </Disclosure.Button>
+                                <Disclosure.Panel className="p-2 flex flex-col items-center gap-2">
+                                    <AppButton variant={ButtonVariant.Primary} className="w-full" size={ButtonSize.Medium} onClick={onClickSwitchAccount}>
+                                        Submit with a different account
+                                    </AppButton>
+                                    {!form?.settings?.requireVerifiedIdentity && (
+                                        <AppButton variant={ButtonVariant.Secondary} size={ButtonSize.Medium} className="w-full" onClick={onClickLogoutAndContinue}>
+                                            Logout and stay anonymous
+                                        </AppButton>
+                                    )}
+                                </Disclosure.Panel>
+                            </>
+                        )}
+                    </Disclosure>
+                )}
+                {!auth.id && (
+                    <div className="flex flex-col gap-2 max-w-[310px] p-4">
+                        <div className="p2-new text-black-600">Do you wish to track your form response for future reference?</div>
+                        <div
+                            className="p2-new text-blue-500 cursor-pointer hover:underline"
+                            onClick={() => {
+                                router.push({
+                                    pathname: '/login',
+                                    query: {
+                                        type: 'responder',
+                                        workspace_id: workspace.id,
+                                        redirect_to: router.asPath
+                                    }
+                                });
+                            }}
+                        >
+                            Sign In and start tracking
+                        </div>
+                    </div>
+                )}
+            </div>
             {updatedForm?.coverImage && (
                 <div className={`relative z-0 w-full flex aspect-banner-mobile lg:aspect-banner-desktop`}>
                     <Image layout="fill" objectFit="cover" src={updatedForm.coverImage} alt="test" className="brightness-75" />
@@ -291,55 +363,6 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
                     <div className="text-[32px] mb-2 font-bold text-black-800">{updatedForm?.title || 'Untitled'}</div>
                     {updatedForm?.description && <div className="text-[16px] font-normal text-black-700">{updatedForm?.description}</div>}
                 </div>
-
-                {enabled && auth.id && (
-                    <div className="p3-new py-2 rounded-lg mt-12 mb-10 font-medium">
-                        <div className="text-new-black-800">Hi, {getFullNameFromUser(auth)}</div>
-                        <div className="flex flex-col gap-1">
-                            <span className="text-new-black-600">
-                                You are filling this form as <span className="text-pink-500">{auth.email}</span>
-                            </span>
-                            <span className="cursor-pointer underline text-brand-500" onClick={onClickAccountSettings}>
-                                Account Settings
-                            </span>
-                        </div>
-                    </div>
-                )}
-
-                {!form?.settings?.requireVerifiedIdentity && auth.id && enabled && (
-                    <div className="mb-[28px] items-center flex gap-1">
-                        <Checkbox
-                            checked={!!anonymize}
-                            onClick={() => {
-                                updateAnonymize(!anonymize);
-                            }}
-                        />
-                        <span className="p2-new text-new-black-800">Hide your email form form collector.</span>
-                        <Tooltip title="Submit this form without revealing your email to the creator.">
-                            <InfoIcon width={18} height={18} color="black" className="cursor-pointer" />
-                        </Tooltip>
-                    </div>
-                )}
-                {!form?.settings?.requireVerifiedIdentity && !auth.id && (
-                    <div className="my-[28px]">
-                        <div className="text-new-black-600 p2-new">Do you wish to track your response for future reference?</div>
-                        <div
-                            className="text-blue-500 font-medium cursor-pointer w-fit"
-                            onClick={() => {
-                                router.push({
-                                    pathname: '/login',
-                                    query: {
-                                        type: 'responder',
-                                        workspace_id: workspace.id,
-                                        redirect_to: router.asPath
-                                    }
-                                });
-                            }}
-                        >
-                            Sign In
-                        </div>
-                    </div>
-                )}
 
                 <div className="flex flex-col w-full gap-2">
                     {updatedForm?.fields?.map((field: StandardFormFieldDto) => (

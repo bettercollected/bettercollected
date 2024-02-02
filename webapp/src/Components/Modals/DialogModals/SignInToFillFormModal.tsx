@@ -28,11 +28,11 @@ export default function SignInToFillFormModal() {
     };
 
     return (
-        <HeaderModalWrapper showClose={false} headerTitle="Sign In">
-            <span className="text-black-800 text-base font-semibold">Get Form Access</span>
-            <span className="p2-new text-sm mt-2 mb-6 text-black-700">Sign in to get access to the form.</span>
+        <HeaderModalWrapper showClose={false} headerTitle="Sign In and Verify">
+            <span className="text-black-800 text-base font-semibold">Unlock Form Access</span>
+            <span className="p2-new text-sm mt-2 mb-6 text-black-700">This form requires verified account to gain access, please sign in for verification.</span>
             <AppButton size={ButtonSize.Medium} onClick={onClickSignInButton}>
-                Sign In
+                Sign In and Verify
             </AppButton>
         </HeaderModalWrapper>
     );
