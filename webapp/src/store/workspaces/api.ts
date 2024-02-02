@@ -308,6 +308,17 @@ export const workspacesApi = createApi({
             }),
             invalidatesTags: [SUBMISSION_TAG, WORKSPACE_TAGS]
         }),
+        requestWorkspaceSubmissionDeletionByUUID: builder.mutation<any, IGetWorkspaceSubmissionQuery>({
+            query: (query) => ({
+                url: `/workspaces/${query.workspace_id}/submissions/by-uuid/${query.submission_id}`,
+                method: 'DELETE',
+                credentials: 'include',
+                headers: {
+                    'Access-control-allow-origin': environments.API_ENDPOINT_HOST
+                }
+            }),
+            invalidatesTags: [SUBMISSION_TAG, WORKSPACE_TAGS]
+        }),
         searchWorkspaceForms: builder.query<Array<StandardFormDto>, ISearchWorkspaceFormsQuery>({
             query: (query) => ({
                 url: `/workspaces/${query.workspace_id}/forms/search`,
@@ -540,5 +551,6 @@ export const {
     useExportCSVResponsesQuery,
     useLazyExportCSVResponsesQuery,
     useGetWorkspaceSubmissionByUUIDQuery,
-    useLazyGetWorkspaceSubmissionByUUIDQuery
+    useLazyGetWorkspaceSubmissionByUUIDQuery,
+    useRequestWorkspaceSubmissionDeletionByUUIDMutation
 } = workspacesApi;

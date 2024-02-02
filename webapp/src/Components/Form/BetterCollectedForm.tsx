@@ -283,7 +283,7 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
     return (
         <div className="w-full bg-white">
             <div className="fixed hidden xl:block top-16 right-20 bg-black-100 rounded-xl">
-                {auth.id && (
+                {auth.id && enabled && (
                     <Disclosure>
                         {({ open }) => (
                             <>

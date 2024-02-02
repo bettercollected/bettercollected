@@ -81,7 +81,7 @@ export default function Submission({ hasCustomDomain, data, handleRequestForDele
     const deletionStatus = !!form?.response?.deletionStatus;
 
     const handleRequestForDeletionModal = () => {
-        openModal('REQUEST_FOR_DELETION_VIEW', { handleRequestForDeletion });
+        openModal('REQUEST_FOR_DELETION_VIEW', { handleRequestForDeletion: handleRequestForDeletion });
     };
 
     return (
