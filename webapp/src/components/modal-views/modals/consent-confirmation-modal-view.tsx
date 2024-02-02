@@ -14,7 +14,7 @@ import useForm from '@app/lib/hooks/use-form';
 import { ConsentCategoryType } from '@app/models/enums/consentEnum';
 import { selectAuth } from '@app/store/auth/slice';
 import { IConsentAnswer } from '@app/store/consent/types';
-import { resetFillForm } from '@app/store/fill-form/slice';
+import { selectAnonymize, setAnonymize } from '@app/store/fill-form/slice';
 import { selectForm } from '@app/store/forms/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 
@@ -34,8 +34,9 @@ export default function ConsentConfirmationModalView({ onFormSubmit, consentAnsw
     const { isLoading, error, setError, setLoading } = useForm();
     const [formPurposeTermChecked, setFormPurposeTermChecked] = useState(true);
     const [privacyTermChecked, setPrivacyTermChecked] = useState(true);
-    const [anonymize, setAnonymize] = useState(false);
-    const renderPurposeTermsAndConditon = () => {
+
+    const anonymize = useAppSelector(selectAnonymize);
+    const renderPurposeTermsAndCondition = () => {
         const formPurpose = Object.values(consentAnswers).filter((answer) => answer.category === ConsentCategoryType.PurposeOfTheForm).length !== 0;
         if (formPurpose) {
             return (
@@ -54,9 +55,8 @@ export default function ConsentConfirmationModalView({ onFormSubmit, consentAnsw
         }
         setLoading(true);
         try {
-            await onFormSubmit(consentAnswers);
+            await onFormSubmit(consentAnswers, anonymize);
             closeModal();
-            dispatch(resetFillForm());
         } catch (e) {
         } finally {
             setLoading(false);
@@ -69,7 +69,7 @@ export default function ConsentConfirmationModalView({ onFormSubmit, consentAnsw
                 <div className="w-full">
                     <div className="h3-new mt-10">We care about your data privacy!</div>
                     <div className="text-black-700 mt-2 p2-new mb-6">After confirming and submitting, you acknowledge understanding and agree to the data usage terms.</div>
-                    {renderPurposeTermsAndConditon()}
+                    {renderPurposeTermsAndCondition()}
                     <TermsAndCondition selected={privacyTermChecked} onAgree={(checked) => setPrivacyTermChecked(checked)} className="mt-2">
                         <TermsAndCondition.Title>
                             I agree to the{' '}
@@ -79,8 +79,16 @@ export default function ConsentConfirmationModalView({ onFormSubmit, consentAnsw
                         </TermsAndCondition.Title>
                         {/*<TermsAndCondition.Description>{`By checking this box, you indicate your acceptance and understanding of the provided terms and conditions.`}</TermsAndCondition.Description>*/}
                     </TermsAndCondition>
+
+                    <div className={`p2-new mt-4 h-4 text-black-600 ${auth?.id && !anonymize ? 'visible' : 'invisible'}`}> You are submitting this form as {auth?.email}</div>
                     {auth?.id && !form?.settings?.requireVerifiedIdentity && (
-                        <TermsAndCondition selected={anonymize} onAgree={(checked) => setAnonymize(checked)} className="mt-2">
+                        <TermsAndCondition
+                            selected={anonymize}
+                            onAgree={(checked) => {
+                                dispatch(setAnonymize(checked));
+                            }}
+                            className="mt-2"
+                        >
                             <TermsAndCondition.Title>
                                 <div className="flex gap-2 items-center">
                                     <span className="p2-new">Hide your email form form collector.</span>
@@ -89,16 +97,11 @@ export default function ConsentConfirmationModalView({ onFormSubmit, consentAnsw
                                     </Tooltip>
                                 </div>
                             </TermsAndCondition.Title>
-                            {/*<TermsAndCondition.Description>{`By checking this box, you indicate your acceptance and understanding of the provided terms and conditions.`}</TermsAndCondition.Description>*/}
                         </TermsAndCondition>
                     )}
                     <div className="mt-6">
                         {error && <ErrorText text="Please accept all terms and conditions before proceeding." />}
-                        {auth?.id && !anonymize && (
-                            <div className="p2-new text-black-600">
-                                You are submitting this form as <span className="text-pink-500">{auth?.email}</span>
-                            </div>
-                        )}
+
                         <AppButton type="submit" isLoading={isLoading} size={ButtonSize.Medium} className="bg-new-blue-500 !w-full mt-2">
                             Confirm & Submit
                         </AppButton>

@@ -13,6 +13,7 @@ import environments from '@app/configs/environments';
 import { useCopyToClipboard } from '@app/lib/hooks/use-copy-to-clipboard';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { selectAuth } from '@app/store/auth/slice';
+import { selectAnonymize } from '@app/store/fill-form/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { getFullNameFromUser } from '@app/utils/userUtils';
@@ -36,13 +37,7 @@ export default function ThankYouPage({ form, isDisabled, showSubmissionNumber, s
 
     const [_, copyToClipboard] = useCopyToClipboard();
 
-    const onClickGoToMyResponse = () => {
-        if (isCustomDomain) {
-            router.push('/?view=my-submissions');
-        } else {
-            router.push(`/${workspace.workspaceName}?view=my-submissions`);
-        }
-    };
+    const anonymize = useAppSelector(selectAnonymize);
 
     const workspaceResponseUrl = isCustomDomain ? '/?view=my-submissions' : `/${workspace.workspaceName}?view=my-submissions`;
 
@@ -65,7 +60,7 @@ export default function ThankYouPage({ form, isDisabled, showSubmissionNumber, s
             </div>
             <div>
                 <div className="h2-new !text-left font-bold mt-[60px] ">Thank you!</div>
-                <div className="p2-new text-gray-600 !text-left mt-1">Your form is successfully submitted.</div>
+                <div className="p2-new text-gray-600 !text-left mt-1">Your form is successfully submitted {auth.id && anonymize && 'anonymously'}.</div>
                 {auth.id && (
                     <div className="flex gap-2 w-fit mt-6 ">
                         <AuthAccountProfileImage size={36} image={auth?.profileImage} name={getFullNameFromUser(auth) ?? ''} />

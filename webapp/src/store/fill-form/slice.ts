@@ -26,7 +26,8 @@ const initialState: FillIBuilderState = {
     answers: {},
     consentAnswers: {},
     invalidFields: {},
-    responseDataOwnerField: ''
+    responseDataOwnerField: '',
+    anonymize: false
 };
 
 const slice = createSlice({
