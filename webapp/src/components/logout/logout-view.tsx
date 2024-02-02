@@ -1,4 +1,3 @@
-import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/router';
 
 import GenericHalfModal from '@Components/Common/Modals/GenericHalfModal';
@@ -10,7 +9,6 @@ import { useAppDispatch } from '@app/store/hooks';
 
 export default function LogoutView(props: any) {
     const { closeModal } = useModal();
-    const { t } = useTranslation();
     const [trigger] = useLogoutMutation();
     const [authTrigger] = useLazyGetStatusQuery();
     const dispatch = useAppDispatch();
@@ -22,8 +20,10 @@ export default function LogoutView(props: any) {
     const handleLogout = async () => {
         await trigger().then(async () => {
             await authTrigger();
-            if (!!workspace && !!workspace?.workspaceName && props?.isClientDomain) router.push(`/${workspace.workspaceName}`);
-            else router.push(`/${language}login`);
+            if (!props?.skipRedirect) {
+                if (!!workspace && !!workspace?.workspaceName && props?.isClientDomain) router.push(router.asPath);
+                else router.push(`/${language}login`);
+            }
             dispatch(setAuth(initialAuthState));
             closeModal();
         });

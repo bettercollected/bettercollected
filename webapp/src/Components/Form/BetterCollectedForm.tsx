@@ -1,11 +1,15 @@
 import React, { useEffect, useState } from 'react';
 
+import { useTranslation } from 'next-i18next';
 import Image from 'next/image';
 import { useRouter } from 'next/router';
 
+import Divider from '@Components/Common/DataDisplay/Divider';
+import LoggedOutAccountIcon from '@Components/Common/Icons/Common/LoggedOutAccountIcon';
 import AppButton from '@Components/Common/Input/Button/AppButton';
-import { ButtonSize, ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
+import { ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
 import MarkdownText from '@Components/Common/Markdown';
+import MenuDropdown from '@Components/Common/Navigation/MenuDropdown/MenuDropdown';
 import CheckboxField from '@Components/Form/CheckboxField';
 import DropdownField from '@Components/Form/DropdownField';
 import FieldValidations from '@Components/Form/FieldValidations';
@@ -18,11 +22,11 @@ import RankingField from '@Components/Form/RankingField';
 import RatingField from '@Components/Form/RatingField';
 import ShortText from '@Components/Form/ShortText';
 import ThankYouPage from '@Components/Form/ThankYouPage';
-import { Disclosure } from '@headlessui/react';
 import { toast } from 'react-toastify';
 
 import AuthAccountProfileImage from '@app/components/auth/account-profile-image';
-import { ChevronDown } from '@app/components/icons/chevron-down';
+import { Close } from '@app/components/icons/close';
+import { Logout } from '@app/components/icons/logout-icon';
 import { useModal } from '@app/components/modal-views/context';
 import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
 import { StandardFormDto, StandardFormFieldDto, StandardFormResponseDto } from '@app/models/dtos/form';
@@ -30,7 +34,7 @@ import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
 import { useLogoutMutation } from '@app/store/auth/api';
 import { selectAuth } from '@app/store/auth/slice';
 import { ConsentAnswerDto } from '@app/store/consent/types';
-import { resetFillForm, selectAnonymize, selectAnswers, selectFormResponderOwnerField, selectInvalidFields, setAnonymize, setDataResponseOwnerField, setFillFormId, setInvalidFields } from '@app/store/fill-form/slice';
+import { resetFillForm, selectAnswers, selectFormResponderOwnerField, selectInvalidFields, setDataResponseOwnerField, setFillFormId, setInvalidFields } from '@app/store/fill-form/slice';
 import { FormValidationError } from '@app/store/fill-form/type';
 import { Condition } from '@app/store/form-builder/types';
 import { useAppAsyncDispatch, useAppDispatch, useAppSelector } from '@app/store/hooks';
@@ -99,9 +103,9 @@ interface IBetterCollectedFormProps {
 
 export default function BetterCollectedForm({ form, enabled = false, response, isCustomDomain = false, isPreview = false, closeModal, isDisabled = false, isTemplate = false }: IBetterCollectedFormProps) {
     const router = useRouter();
+    const { t } = useTranslation();
 
     const auth = useAppSelector(selectAuth);
-    const anonymize = useAppSelector(selectAnonymize);
     const formId = useAppSelector((state) => state.fillForm.id);
     const responseDataOwnerField = useAppSelector(selectFormResponderOwnerField);
     const invalidFields = useAppSelector(selectInvalidFields);
@@ -159,7 +163,7 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
 
     const [isResponseValid, setResponseValid] = useState(true);
 
-    const onFormSubmitCallback = async (consentAnswers: Record<string, ConsentAnswerDto>) => {
+    const onFormSubmitCallback = async (consentAnswers: Record<string, ConsentAnswerDto>, anonymize = false) => {
         if (isPreview) {
             openFullScreenModal('FORM_BUILDER_PREVIEW', { isFormSubmitted: true });
             return;
@@ -191,15 +195,13 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
             expiration: responseExpirationTime,
             expirationType: responseExpirationType,
             dataOwnerIdentifier: (answers && answers[responseDataOwnerField]?.email) || null,
-            anonymize: !!anonymize
+            anonymize: anonymize
         };
 
         formData.append('response', JSON.stringify(postBody));
 
         const response: any = await submitResponse({ workspaceId: workspace.id, formId: form?.formId, body: formData });
         if (response?.data) {
-            resetFormFiles();
-            dispatch(resetFillForm());
             setIsFormSubmitted(true);
         } else {
             toast('Error submitting response', { type: 'error' });
@@ -252,6 +254,7 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
     useEffect(() => {
         return () => {
             resetFillForm();
+            resetFormFiles();
         };
     }, []);
 
@@ -270,10 +273,8 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
         });
     };
 
-    const onClickLogoutAndContinue = async () => {
-        trigger().then(() => {
-            closeDialogModal();
-        });
+    const handleLogout = () => {
+        openModal('LOGOUT_VIEW', { workspace, isClientDomain: true, skipRedirect: true });
     };
 
     if (isFormSubmitted) {
@@ -282,56 +283,6 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
 
     return (
         <div className="w-full bg-white">
-            <div className="fixed hidden xl:block top-16 right-20 bg-black-100 rounded-xl">
-                {auth.id && enabled && (
-                    <Disclosure>
-                        {({ open }) => (
-                            <>
-                                <Disclosure.Button className="flex outline-none  gap-2 p-4 w-full items-center justify-between cursor-pointer">
-                                    <div className="flex gap-2">
-                                        <AuthAccountProfileImage size={36} image={auth?.profileImage} name={getFullNameFromUser(auth) ?? ''} />
-                                        <div className="flex flex-col gap-2 text-start justify-center !text-black-700 pr-1">
-                                            <span className="body6 !leading-none">{getFullNameFromUser(auth)?.trim() || auth?.email || ''}</span>
-                                            <span className="body5 !leading-none">{auth?.email} </span>
-                                        </div>
-                                    </div>
-                                    <ChevronDown className={`${open ? 'rotate-180 transform' : ''} h-3 w-3 text-blue-900`} />
-                                </Disclosure.Button>
-                                <Disclosure.Panel className="p-2 flex flex-col items-center gap-2">
-                                    <AppButton variant={ButtonVariant.Primary} className="w-full" size={ButtonSize.Medium} onClick={onClickSwitchAccount}>
-                                        Submit with a different account
-                                    </AppButton>
-                                    {!form?.settings?.requireVerifiedIdentity && (
-                                        <AppButton variant={ButtonVariant.Secondary} size={ButtonSize.Medium} className="w-full" onClick={onClickLogoutAndContinue}>
-                                            Logout and stay anonymous
-                                        </AppButton>
-                                    )}
-                                </Disclosure.Panel>
-                            </>
-                        )}
-                    </Disclosure>
-                )}
-                {!auth.id && (
-                    <div className="flex flex-col gap-2 max-w-[310px] p-4">
-                        <div className="p2-new text-black-600">Do you wish to track your form response for future reference?</div>
-                        <div
-                            className="p2-new text-blue-500 cursor-pointer hover:underline"
-                            onClick={() => {
-                                router.push({
-                                    pathname: '/login',
-                                    query: {
-                                        type: 'responder',
-                                        workspace_id: workspace.id,
-                                        redirect_to: router.asPath
-                                    }
-                                });
-                            }}
-                        >
-                            Sign In and start tracking
-                        </div>
-                    </div>
-                )}
-            </div>
             {updatedForm?.coverImage && (
                 <div className={`relative z-0 w-full flex aspect-banner-mobile lg:aspect-banner-desktop`}>
                     <Image layout="fill" objectFit="cover" src={updatedForm.coverImage} alt="test" className="brightness-75" />
@@ -351,8 +302,70 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
                         <Image height={100} width={100} objectFit="cover" src={updatedForm.logo} alt="logo" className="rounded-lg hover:bg-black-100" />
                     </div>
                 )}
-                <div className={`mb-6 ${updatedForm?.coverImage && updatedForm?.logo ? '' : 'mt-12'}`}>
-                    <div className="text-[32px] mb-2 font-bold text-black-800">{updatedForm?.title || 'Untitled'}</div>
+                <div className={`mb-6 ${updatedForm?.coverImage && updatedForm?.logo ? '' : 'mt-12'} w-full`}>
+                    <div className="text-[32px] mb-2 font-bold text-black-800 flex w-full items-center justify-between">
+                        <span>{updatedForm?.title || 'Untitled'}</span>
+                        {enabled && (
+                            <MenuDropdown
+                                id="auth-menu"
+                                className="!p-0"
+                                showExpandMore={false}
+                                menuTitle=""
+                                menuContent={auth.id ? <AuthAccountProfileImage size={40} image={auth?.profileImage} name={getFullNameFromUser(auth) ?? ''} /> : <LoggedOutAccountIcon />}
+                            >
+                                {auth.id && (
+                                    <div className="px-4 py-2 relative">
+                                        <div className="flex gap-2">
+                                            <AuthAccountProfileImage size={40} image={auth?.profileImage} name={getFullNameFromUser(auth) ?? ''} />
+                                            <div className="flex flex-col gap-2 text-start justify-center !text-black-700 pr-1">
+                                                <span className="body6 !leading-none">{getFullNameFromUser(auth)?.trim() || auth?.email || ''}</span>
+                                                <span className="body5 !leading-none">{auth?.email} </span>
+                                            </div>
+                                        </div>
+                                        <div className="pl-11 mt-2  p4-new">
+                                            <span className="text-blue-500 cursor-pointer" onClick={onClickSwitchAccount}>
+                                                Switch Account
+                                            </span>
+                                        </div>
+                                        <div className="absolute text-black-600 top-0 right-2">
+                                            <Close />
+                                        </div>
+
+                                        {!form?.settings?.requireVerifiedIdentity && (
+                                            <>
+                                                <Divider className="text-black-200 mt-4" />
+                                                <div className="mt-2 py-2 px-4  flex  gap-2 text-black-800 hover:bg-new-blue-100 rounded cursor-pointer active:bg-blue-100" onClick={handleLogout}>
+                                                    <Logout width={24} height={24} />
+                                                    <span className="font-medium">Log Out</span>
+                                                </div>
+                                            </>
+                                        )}
+                                    </div>
+                                )}
+                                {!auth.id && (
+                                    <div className="px-4 py-2">
+                                        <div className="p2-new text-black-600 mb-2">Do you wish to track your form response for future reference?</div>
+                                        <div
+                                            className="p2-new text-blue-500 cursor-pointer hover:underline"
+                                            onClick={() => {
+                                                router.push({
+                                                    pathname: '/login',
+                                                    query: {
+                                                        type: 'responder',
+                                                        workspace_id: workspace.id,
+                                                        redirect_to: router.asPath
+                                                    }
+                                                });
+                                            }}
+                                        >
+                                            Sign In and start tracking
+                                        </div>
+                                    </div>
+                                )}
+                            </MenuDropdown>
+                        )}
+                    </div>
+
                     {updatedForm?.description && <div className="text-[16px] font-normal text-black-700">{updatedForm?.description}</div>}
                 </div>
 

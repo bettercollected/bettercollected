@@ -24,15 +24,14 @@ export default function SignInToFillFormModal() {
                 redirect_to: router.asPath
             }
         });
-        // openFullScreenModal('LOGIN_VIEW', { nonClosable: true });
     };
 
     return (
-        <HeaderModalWrapper showClose={false} headerTitle="Sign In and Verify">
+        <HeaderModalWrapper showClose={false} headerTitle="Unlock Form Access">
             <span className="text-black-800 text-base font-semibold">Unlock Form Access</span>
-            <span className="p2-new text-sm mt-2 mb-6 text-black-700">This form requires verified account to gain access, please sign in for verification.</span>
+            <span className="p2-new text-sm mt-2 mb-6 text-black-700">This form requires verified identity to gain access, please sign in for verification.</span>
             <AppButton size={ButtonSize.Medium} onClick={onClickSignInButton}>
-                Sign In and Verify
+                Verify Now
             </AppButton>
         </HeaderModalWrapper>
     );
