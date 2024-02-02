@@ -1,21 +1,24 @@
 import React, { useState } from 'react';
 
+import Tooltip from '@Components/Common/DataDisplay/Tooltip';
+import GreenShield from '@Components/Common/Icons/Common/GreenShield';
+import InfoIcon from '@Components/Common/Icons/FormBuilder/infoIcon';
 import AppButton from '@Components/Common/Input/Button/AppButton';
-import ConsentModalTopBar from '@Components/Consent/ConsentModalTopBar';
+import { ButtonSize } from '@Components/Common/Input/Button/AppButtonProps';
 import ErrorText from '@Components/Consent/ErrorText';
-import HintBox from '@Components/Consent/Form/HintBox';
 import TermsAndCondition from '@Components/Consent/TermsAndCondition';
+import HeaderModalWrapper from '@Components/Modals/ModalWrappers/HeaderModalWrapper';
 
 import AnchorLink from '@app/components/ui/links/anchor-link';
 import useForm from '@app/lib/hooks/use-form';
 import { ConsentCategoryType } from '@app/models/enums/consentEnum';
+import { selectAuth } from '@app/store/auth/slice';
 import { IConsentAnswer } from '@app/store/consent/types';
 import { resetFillForm } from '@app/store/fill-form/slice';
-import { useAppDispatch } from '@app/store/hooks';
+import { selectForm } from '@app/store/forms/slice';
+import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 
 import { useModal } from '../context';
-import { useFullScreenModal } from '../full-screen-modal-context';
-
 
 export interface ConsentConfirmationModalProps {
     onFormSubmit: any;
@@ -25,19 +28,20 @@ export interface ConsentConfirmationModalProps {
 
 export default function ConsentConfirmationModalView({ onFormSubmit, consentAnswers, privacyPolicyUrl }: ConsentConfirmationModalProps) {
     const { closeModal } = useModal();
-    const fullScreenModal = useFullScreenModal();
+    const form = useAppSelector(selectForm);
+    const auth = useAppSelector(selectAuth);
     const dispatch = useAppDispatch();
     const { isLoading, error, setError, setLoading } = useForm();
     const [formPurposeTermChecked, setFormPurposeTermChecked] = useState(true);
     const [privacyTermChecked, setPrivacyTermChecked] = useState(true);
-
+    const [anonymize, setAnonymize] = useState(false);
     const renderPurposeTermsAndConditon = () => {
         const formPurpose = Object.values(consentAnswers).filter((answer) => answer.category === ConsentCategoryType.PurposeOfTheForm).length !== 0;
         if (formPurpose) {
             return (
-                <TermsAndCondition selected={formPurposeTermChecked} onAgree={(checked) => setFormPurposeTermChecked(checked)} className="border-b border-new-black-300 p-5">
+                <TermsAndCondition selected={formPurposeTermChecked} onAgree={(checked) => setFormPurposeTermChecked(checked)} className="mt-2">
                     <TermsAndCondition.Title> {`I have reviewed all the form's purposes.`}</TermsAndCondition.Title>
-                    <TermsAndCondition.Description>{`This confirms whether you've taken a moment to go through the stated intentions of the form before proceeding.`}</TermsAndCondition.Description>
+                    {/*<TermsAndCondition.Description>{`This confirms whether you've taken a moment to go through the stated intentions of the form before proceeding.`}</TermsAndCondition.Description>*/}
                 </TermsAndCondition>
             );
         }
@@ -59,32 +63,48 @@ export default function ConsentConfirmationModalView({ onFormSubmit, consentAnsw
         }
     };
     return (
-        <form onSubmit={onSubmit} className="bg-white rounded-2xl w-fit md:w-[476px] h-content">
-            <ConsentModalTopBar title={'Confirm and Submit'} />
-            <div className="pt-5 px-6">
-                <HintBox
-                    size="small"
-                    iconColor="#FE3678"
-                    title={`Putting your data's safety first!`}
-                    description={`This page ensures you've seen and understood the data usage you're granting. Your trust is essential, and we're here to protect your information.`}
-                />
-                {renderPurposeTermsAndConditon()}
-                <TermsAndCondition selected={privacyTermChecked} onAgree={(checked) => setPrivacyTermChecked(checked)} className="border-b border-new-black-300 p-5">
-                    <TermsAndCondition.Title>
-                        I agree to the{' '}
-                        <AnchorLink href={privacyPolicyUrl || ''} target="_blank" referrerPolicy="no-referrer" className="text-new-blue-500">
-                            privacy policy
-                        </AnchorLink>
-                    </TermsAndCondition.Title>
-                    <TermsAndCondition.Description>{`By checking this box, you indicate your acceptance and understanding of the provided terms and conditions.`}</TermsAndCondition.Description>
-                </TermsAndCondition>
-            </div>
-            <div className="p-10">
-                {error && <ErrorText text="Please accept all terms and conditions before proceeding." />}
-                <AppButton type="submit" isLoading={isLoading} className="bg-new-blue-500 !w-full !py-3">
-                    Confirm & Submit
-                </AppButton>
-            </div>
-        </form>
+        <HeaderModalWrapper headerTitle="Confirm and Submit">
+            <form onSubmit={onSubmit} className="!w-full flex flex-col items-center">
+                <GreenShield />
+                <div className="w-full">
+                    <div className="h3-new mt-10">We care about your data privacy!</div>
+                    <div className="text-black-700 mt-2 p2-new mb-6">After confirming and submitting, you acknowledge understanding and agree to the data usage terms.</div>
+                    {renderPurposeTermsAndConditon()}
+                    <TermsAndCondition selected={privacyTermChecked} onAgree={(checked) => setPrivacyTermChecked(checked)} className="mt-2">
+                        <TermsAndCondition.Title>
+                            I agree to the{' '}
+                            <AnchorLink href={privacyPolicyUrl || ''} target="_blank" referrerPolicy="no-referrer" className="text-new-blue-500">
+                                privacy policy
+                            </AnchorLink>
+                        </TermsAndCondition.Title>
+                        {/*<TermsAndCondition.Description>{`By checking this box, you indicate your acceptance and understanding of the provided terms and conditions.`}</TermsAndCondition.Description>*/}
+                    </TermsAndCondition>
+                    {auth?.id && !form?.settings?.requireVerifiedIdentity && (
+                        <TermsAndCondition selected={anonymize} onAgree={(checked) => setAnonymize(checked)} className="mt-2">
+                            <TermsAndCondition.Title>
+                                <div className="flex gap-2 items-center">
+                                    <span className="p2-new">Hide your email form form collector.</span>
+                                    <Tooltip title="Submit this form without revealing your email to the creator.">
+                                        <InfoIcon width={18} height={18} color="black" className="cursor-pointer" />
+                                    </Tooltip>
+                                </div>
+                            </TermsAndCondition.Title>
+                            {/*<TermsAndCondition.Description>{`By checking this box, you indicate your acceptance and understanding of the provided terms and conditions.`}</TermsAndCondition.Description>*/}
+                        </TermsAndCondition>
+                    )}
+                    <div className="mt-6">
+                        {error && <ErrorText text="Please accept all terms and conditions before proceeding." />}
+                        {auth?.id && !anonymize && (
+                            <div className="p2-new text-black-600">
+                                You are submitting this form as <span className="text-pink-500">{auth?.email}</span>
+                            </div>
+                        )}
+                        <AppButton type="submit" isLoading={isLoading} size={ButtonSize.Medium} className="bg-new-blue-500 !w-full mt-2">
+                            Confirm & Submit
+                        </AppButton>
+                    </div>
+                </div>
+            </form>
+        </HeaderModalWrapper>
     );
 }
