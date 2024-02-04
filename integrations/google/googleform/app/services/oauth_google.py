@@ -350,5 +350,12 @@ class OauthGoogleService:
             email=email, user_id=user_id
         )
 
-    async def get_oauth_credentials_for_user(self, email: EmailStr, user_id: str):
-        return await self.oauth_credential_repo.get(email=email, user_id=user_id)
+    async def get_oauth_credentials_for_user(self, email: EmailStr):
+        return await self.oauth_credential_repo.get(email=email)
+
+    async def get_encrypted_credential_for_user(self, email: EmailStr):
+        if email is None:
+            raise HTTPException(400, 'Provide email')
+        credentials = await self.get_oauth_credentials_for_user(email=email)
+        encrypted_credential = _crypto.encrypt(credentials.json())
+        return encrypted_credential

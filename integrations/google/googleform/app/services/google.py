@@ -36,6 +36,111 @@ class GoogleService:
             credentials=dict_to_credential(credentials),
         )
 
+    def create_sheet(self, title: str, credentials):
+        try:
+            spreadsheet = {"properties": {"title": title}}
+            google_sheet = (
+                self._build_service(credentials=credentials, service_name="sheets", version="v4")
+                .spreadsheets()
+                .create(body=spreadsheet, fields="spreadsheetId")
+                .execute()
+            )
+            return google_sheet.get("spreadsheetId")
+        except HttpError as e:
+            if e.status_code == HTTPStatus.NOT_FOUND:
+                raise HTTPException(
+                    status_code=HTTPStatus.NOT_FOUND,
+                    content="Sheet not found in Google forms",
+                )
+            if e.status_code == HTTPStatus.FORBIDDEN:
+                raise HTTPException(
+                    status_code=HTTPStatus.UNAUTHORIZED, content=e.reason
+                )
+            raise HTTPException(
+                status_code=HTTPStatus.SERVICE_UNAVAILABLE,
+                content="Error Creating Sheet in Google",
+            )
+        except RefreshError as e:
+            raise HTTPException(
+                status_code=HTTPStatus.UNAUTHORIZED, content="Refresh error"
+            )
+        except TimeoutError as e:
+            raise HTTPException(
+                status_code=HTTPStatus.GATEWAY_TIMEOUT, content="Request Timed out"
+            )
+
+    def write_in_sheet(self, google_sheet_id: str, credentials, responses):
+        try:
+            body = {"values": responses}
+            google_sheet = (
+                self._build_service(credentials=credentials, service_name="sheets", version="v4")
+                .spreadsheets().values()
+                .update(spreadsheetId=google_sheet_id,
+                        range="Sheet1",
+                        valueInputOption="USER_ENTERED",
+                        body=body, )
+                .execute()
+            )
+            return google_sheet
+        except HttpError as e:
+            if e.status_code == HTTPStatus.NOT_FOUND:
+                raise HTTPException(
+                    status_code=HTTPStatus.NOT_FOUND,
+                    content="Sheet with given ID not found",
+                )
+            if e.status_code == HTTPStatus.FORBIDDEN:
+                raise HTTPException(
+                    status_code=HTTPStatus.UNAUTHORIZED, content=e.reason
+                )
+            raise HTTPException(
+                status_code=HTTPStatus.SERVICE_UNAVAILABLE,
+                content="Error Creating Sheet in Google",
+            )
+        except RefreshError as e:
+            raise HTTPException(
+                status_code=HTTPStatus.UNAUTHORIZED, content="Refresh error"
+            )
+        except TimeoutError as e:
+            raise HTTPException(
+                status_code=HTTPStatus.GATEWAY_TIMEOUT, content="Request Timed out"
+            )
+
+    def append_in_sheet(self, google_sheet_id: str, credentials):
+        try:
+            body = {"values": [['name', 'age', 'phone'], ['Sita', 123, 10101]]}
+            google_sheet = (
+                self._build_service(credentials=credentials, service_name="sheets", version="v4")
+                .spreadsheets().values()
+                .append(spreadsheetId=google_sheet_id,
+                        range="Sheet1",
+                        valueInputOption="USER_ENTERED",
+                        body=body, )
+                .execute()
+            )
+            return google_sheet
+        except HttpError as e:
+            if e.status_code == HTTPStatus.NOT_FOUND:
+                raise HTTPException(
+                    status_code=HTTPStatus.NOT_FOUND,
+                    content="Sheet with given ID not found",
+                )
+            if e.status_code == HTTPStatus.FORBIDDEN:
+                raise HTTPException(
+                    status_code=HTTPStatus.UNAUTHORIZED, content=e.reason
+                )
+            raise HTTPException(
+                status_code=HTTPStatus.SERVICE_UNAVAILABLE,
+                content="Error Creating Sheet in Google",
+            )
+        except RefreshError as e:
+            raise HTTPException(
+                status_code=HTTPStatus.UNAUTHORIZED, content="Refresh error"
+            )
+        except TimeoutError as e:
+            raise HTTPException(
+                status_code=HTTPStatus.GATEWAY_TIMEOUT, content="Request Timed out"
+            )
+
     def get_form(self, form_id: str, credentials):
         """
         Get a Google Form by its form ID.
