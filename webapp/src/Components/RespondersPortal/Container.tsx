@@ -16,6 +16,7 @@ import { Logout } from '@app/components/icons/logout-icon';
 import { useModal } from '@app/components/modal-views/context';
 import ActiveLink from '@app/components/ui/links/active-link';
 import Logo from '@app/components/ui/logo';
+import PoweredBy from '@app/components/ui/powered-by';
 import environments from '@app/configs/environments';
 import { localesCommon } from '@app/constants/locales/common';
 import { profileMenu } from '@app/constants/locales/profile-menu';
@@ -40,7 +41,7 @@ export default function Container(props: { workspace: WorkspaceDto; hasCustomDom
     };
 
     return (
-        <div className="max-h-screen h-screen !bg-new-white-200 max-w-screen w-screen overflow-auto flex flex-col p-5 lg:p-10 md:flex-row">
+        <div className={`max-h-screen h-screen !bg-new-white-200 max-w-screen w-screen overflow-auto flex flex-col p-5 lg:p-10 md:flex-row ${!hasCustomDomain ? 'pb-10' : ''}`}>
             <div className="max-w-screen w-full md:max-w-[320px] lg:sticky lg:top-0">
                 <div className="rounded-xl bg-white w-full">
                     {workspace.bannerImage && (
@@ -135,9 +136,11 @@ export default function Container(props: { workspace: WorkspaceDto; hasCustomDom
                     </div>
                 )}
             </div>
-
             <div className="flex-1 lg:max-h-screen">
                 <FormsAndSubmissionsTabContainer isFormCreator={false} workspace={workspace} workspaceId={workspace.id} showResponseBar={!!auth.id} />
+            </div>
+            <div className="lg:hidden">
+                <PoweredBy />
             </div>
         </div>
     );
