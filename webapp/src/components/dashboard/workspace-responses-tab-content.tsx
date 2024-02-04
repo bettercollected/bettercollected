@@ -49,8 +49,8 @@ export default function WorkspaceResponsesTabContent({ workspace, deletionReques
     const isCustomDomain = window?.location.host !== environments.CLIENT_DOMAIN;
 
     return (
-        <div className="py-6 px-5 flex gap-6 flex-col-reverse md:flex-row">
-            {auth.id && submissions?.length === 0 && (
+        <div className="py-6 px-5 flex gap-6 flex-col md:flex-row">
+            {submissions?.length === 0 && (
                 <ZeroElement
                     title={deletionRequests ? t(formConstant.empty.deletionRequest.title) : t(formConstant.emptyDeletionResponseTitle)}
                     description={deletionRequests ? t(formConstant.deletionRequestDescription) : t(formConstant.deletionResponseDescription)}
