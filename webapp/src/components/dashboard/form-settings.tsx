@@ -337,7 +337,7 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                             </div>
                         </FormSettingsCard>
 
-                        {form?.settings?.requireVerifiedIdentity && (
+                        {environments?.ENABLE_RESPONSE_EDITING && form?.settings?.requireVerifiedIdentity && (
                             <FormSettingsCard>
                                 <div className=" flex flex-col items-start w-full">
                                     <div className="h5-new !text-black-800">Allow Response Editing</div>
