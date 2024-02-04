@@ -52,8 +52,8 @@ export default function WorkspaceResponsesTabContent({ workspace, deletionReques
         <div className="py-6 md:px-5 flex gap-6 flex-col xl:flex-row">
             {submissions?.length === 0 && (
                 <ZeroElement
-                    title={deletionRequests ? t(formConstant.empty.deletionRequest.title) : t(formConstant.emptyDeletionResponseTitle)}
-                    description={deletionRequests ? t(formConstant.deletionRequestDescription) : t(formConstant.deletionResponseDescription)}
+                    title={deletionRequests ? t(formConstant.empty.deletionRequest.title) : '0 submissions'}
+                    description={deletionRequests ? t(formConstant.deletionRequestDescription) : 'Verify your email or enter your submission number you to view all your form responses.'}
                     className="!pb-[20px] w-full"
                 />
             )}
