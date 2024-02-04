@@ -1,10 +1,10 @@
 import datetime as dt
-from typing import Optional
+from typing import Optional, Dict, List
 
 from beanie import PydanticObjectId
 from common.models.consent import ResponseRetentionType
 from fastapi_camelcase import CamelModel
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class WorkspaceRequestDto(BaseModel):
@@ -16,6 +16,17 @@ class WorkspaceRequestDto(BaseModel):
     profile_image: Optional[str]
     banner_image: Optional[str]
     custom_domain: Optional[str]
+
+
+class ParameterValue(BaseModel):
+    name: str = Field(None)
+    value: str = Field(None)
+    required: Optional[bool] = Field(False)
+
+
+class WorkspaceRequestWithActionDto(WorkspaceRequestDto):
+    parameters: Optional[Dict[str, List[ParameterValue]]] = Field()
+    secrets: Optional[Dict[str, List[ParameterValue]]] = Field()
 
 
 class WorkspaceRequestDtoCamel(WorkspaceRequestDto, CamelModel):
