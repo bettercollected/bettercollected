@@ -29,6 +29,7 @@ from backend.app.services.user_service import (
     get_refresh_token, get_api_key,
 )
 from backend.config import settings
+from backend.app.models.enum.form_integration import FormIntegrationType
 
 log = logging.getLogger(__name__)
 
@@ -74,10 +75,10 @@ class AuthRoutes(Routable):
         },
     )
     async def _validate_otp(
-        self,
-        login_details: UserLoginWithOTP,
-        response: Response,
-        prospective_pro_user: bool = False,
+            self,
+            login_details: UserLoginWithOTP,
+            response: Response,
+            prospective_pro_user: bool = False,
     ):
         user = await self.auth_service.validate_otp(
             login_details, prospective_pro_user=prospective_pro_user
@@ -89,7 +90,7 @@ class AuthRoutes(Routable):
         "/refresh",
     )
     async def _refresh_access_token(
-        self, response: Response, user=Depends(get_logged_user)
+            self, response: Response, user=Depends(get_logged_user)
     ):
         user_response = await self.auth_service.get_user_status(user=user)
         user_response["sub"] = user_response.get("email")
@@ -101,10 +102,10 @@ class AuthRoutes(Routable):
         "/{provider_name}/oauth",
     )
     async def _oauth_provider(
-        self,
-        provider_name: FormProvider,
-        request: Request,
-        user=Depends(get_logged_user),
+            self,
+            provider_name: FormProvider,
+            request: Request,
+            user=Depends(get_logged_user),
     ):
         client_referer_url = request.headers.get("referer")
         oauth_url = await self.auth_service.get_oauth_url(
@@ -116,12 +117,12 @@ class AuthRoutes(Routable):
         "/{provider_name}/oauth/callback",
     )
     async def _auth_callback(
-        self,
-        request: Request,
-        provider_name: str = None,
-        state: str = None,
-        code: str = None,
-        user=Depends(get_logged_user),
+            self,
+            request: Request,
+            provider_name: str = None,
+            state: str = None,
+            code: str = None,
+            user=Depends(get_logged_user),
     ):
         if not state or not code:
             return {"message": "You cancelled the authorization request."}
@@ -152,11 +153,11 @@ class AuthRoutes(Routable):
         },
     )
     async def _basic_auth(
-        self,
-        provider: FormProvider,
-        request: Request,
-        creator: bool = False,
-        prospective_pro_user: bool = False,
+            self,
+            provider: FormProvider,
+            request: Request,
+            creator: bool = False,
+            prospective_pro_user: bool = False,
     ):
         provider_name = ''
         if provider == FormProvider.GOOGLE:
@@ -179,10 +180,10 @@ class AuthRoutes(Routable):
         },
     )
     async def _basic_auth_callback(
-        self,
-        provider: FormProvider,
-        code: Optional[str] = None,
-        state: Optional[str] = None,
+            self,
+            provider: FormProvider,
+            code: Optional[str] = None,
+            state: Optional[str] = None,
     ):
         provider_name = ''
         if provider == FormProvider.GOOGLE:
@@ -211,10 +212,10 @@ class AuthRoutes(Routable):
         "/user",
     )
     async def delete_user(
-        self,
-        request: Request,
-        user: User = Depends(get_logged_user),
-        api_key: str = Depends(get_api_key)
+            self,
+            request: Request,
+            user: User = Depends(get_logged_user),
+            api_key: str = Depends(get_api_key)
     ):
         await self.auth_service.delete_user(user=user)
         await add_refresh_token_to_blacklist(request=request)
@@ -224,12 +225,12 @@ class AuthRoutes(Routable):
         "/user/delete/workflow",
     )
     async def add_workflow_to_delete_user(
-        self,
-        response: Response,
-        user_feedback: UserFeedbackDto,
-        access_token=Depends(get_access_token),
-        refresh_token=Depends(get_refresh_token),
-        user: User = Depends(get_logged_user),
+            self,
+            response: Response,
+            user_feedback: UserFeedbackDto,
+            access_token=Depends(get_access_token),
+            refresh_token=Depends(get_refresh_token),
+            user: User = Depends(get_logged_user),
     ):
         await self.user_feedback_service.save_user_feedback(user_feedback=user_feedback)
         resp = await self.auth_service.add_workflow_to_delete_user(

@@ -182,7 +182,11 @@ class AppContainer(containers.DeclarativeContainer):
         ActionService,
         action_repository=action_repository,
         temporal_service=temporal_service,
-        workspace_user_service=workspace_user_service
+        workspace_user_service=workspace_user_service,
+        http_client=http_client,
+        form_provider_service=form_provider_service,
+        form_response_service=form_response_service,
+        workspace_repo=workspace_repo
     )
 
     workspace_form_service: WorkspaceFormService = providers.Singleton(
@@ -200,7 +204,7 @@ class AppContainer(containers.DeclarativeContainer):
         user_tags_service=user_tags_service,
         temporal_service=temporal_service,
         aws_service=aws_service,
-        action_service=action_service
+        action_service=action_service,
     )
 
     workspace_service: WorkspaceService = providers.Singleton(
