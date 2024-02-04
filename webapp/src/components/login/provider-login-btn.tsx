@@ -1,9 +1,15 @@
-import React, { PureComponent } from 'react';
+import React, {PureComponent} from 'react';
 
-import { GoogleIcon } from '@Components/Common/Icons/Google/google';
+import {GoogleIcon} from '@Components/Common/Icons/Google/google';
 
-import { ProviderIcon } from '@app/components/icons/brands/provider';
-import { darkStyle, disabledStyle, hoverStyle, lightStyle, typeformDarkStyle } from '@app/components/icons/brands/styles/google';
+import {ProviderIcon} from '@app/components/icons/brands/provider';
+import {
+    darkStyle,
+    disabledStyle,
+    hoverStyle,
+    lightStyle,
+    typeformDarkStyle
+} from '@app/components/icons/brands/styles/google';
 
 interface IPropTypes {
     label: string;
@@ -28,7 +34,8 @@ export default class ProviderLoginButton extends PureComponent<IPropTypes, IStat
         type: 'light',
         tabIndex: 0,
         className: '',
-        onClick: () => {}
+        onClick: () => {
+        }
     };
 
     state = {
@@ -40,23 +47,23 @@ export default class ProviderLoginButton extends PureComponent<IPropTypes, IStat
         if (this.props.type === 'typeform') hoverStyle.boxShadow = '0 0 3px 3px rgba(0,0,0,.3)';
         else hoverStyle.boxShadow = '0 0 3px 3px rgba(66,133,244,.3)';
         if (this.state.hovered) {
-            return { ...baseStyle, ...hoverStyle, ...propStyles };
+            return {...baseStyle, ...hoverStyle, ...propStyles};
         }
         if (this.props.disabled) {
-            return { ...baseStyle, ...disabledStyle, ...propStyles };
+            return {...baseStyle, ...disabledStyle, ...propStyles};
         }
-        return { ...baseStyle, ...propStyles };
+        return {...baseStyle, ...propStyles};
     };
 
     mouseOver = () => {
         if (!this.props.disabled) {
-            this.setState({ hovered: true });
+            this.setState({hovered: true});
         }
     };
 
     mouseOut = () => {
         if (!this.props.disabled) {
-            this.setState({ hovered: false });
+            this.setState({hovered: false});
         }
     };
 
@@ -67,14 +74,16 @@ export default class ProviderLoginButton extends PureComponent<IPropTypes, IStat
     };
 
     render() {
-        const { label, icon, style, className, ...otherProps } = this.props;
+        const {label, icon, style, className, ...otherProps} = this.props;
 
         const Icon = icon;
 
         return (
-            <div {...otherProps} role="button" onClick={this.click} onMouseOver={this.mouseOver} onMouseOut={this.mouseOut} className={`flex justify-center items-center bg-black-800 text-white ${className}`}>
+            <div {...otherProps} role="button" onClick={this.click} onMouseOver={this.mouseOver}
+                 onMouseOut={this.mouseOut}
+                 className={`flex justify-center items-center bg-black-800 text-white ${className} ${this.props.disabled ? 'cursor-not-allowed opacity-70' : ''}`}>
                 {/*<Icon {...this.props} />*/}
-                <GoogleIcon />
+                <GoogleIcon/>
                 <span className="mx-1">{label}</span>
             </div>
         );
