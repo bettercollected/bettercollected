@@ -71,7 +71,7 @@ export default function Container(props: { workspace: WorkspaceDto; hasCustomDom
                 {!auth.id && (
                     <div className="p-6 bg-white rounded-xl mt-6 flex flex-col">
                         <div className="h4-new">Check my data</div>
-                        <div className="p2-new text-black-600 mt-2">Sign in with your email to view all the responses associated with that email address.</div>
+                        <div className="p2-new text-black-600 mt-2">Verify your email address to view all the data associated with you.</div>
                         <AppButton
                             className="mt-6"
                             size={ButtonSize.Medium}
@@ -86,7 +86,7 @@ export default function Container(props: { workspace: WorkspaceDto; hasCustomDom
                                 });
                             }}
                         >
-                            Sign In
+                            Verify Now
                         </AppButton>
                     </div>
                 )}
