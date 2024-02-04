@@ -38,7 +38,7 @@ interface IContentProps {
 }
 
 interface MyLoginProps {
-    isCreator: boolean;
+    isCreator?: boolean;
     workspaceId?: string;
 }
 
@@ -89,9 +89,9 @@ export default function LoginLayout(props: MyLoginProps) {
                         <h1 className="body4 !text-black-800 mt-2">{constants.signUpLogoSubTitle}</h1>
                     </div>
                     {!email ? (
-                        <OtpEmailInput isCreator={props.isCreator} workspaceId={props.workspaceId} setEmail={setEmail} isSignup={isSignup} />
+                        <OtpEmailInput isCreator={!!props.isCreator} workspaceId={props.workspaceId} setEmail={setEmail} isSignup={isSignup} />
                     ) : (
-                        <OtpCodeComponent workspaceId={props.workspaceId} email={email} setEmail={setEmail} isCreator={props.isCreator} />
+                        <OtpCodeComponent workspaceId={props.workspaceId} email={email} setEmail={setEmail} isCreator={!!props.isCreator} />
                     )}
                     <TermsAndCondition />
                 </div>
