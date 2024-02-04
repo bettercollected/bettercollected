@@ -21,6 +21,7 @@ interface OtpCodePropType {
     isCreator: boolean;
     isModal?: boolean;
     setEmail: Dispatch<SetStateAction<string>>;
+    workspaceId?: string;
 }
 
 export default function OtpCodeComponent(props: OtpCodePropType) {
@@ -95,7 +96,7 @@ export default function OtpCodeComponent(props: OtpCodePropType) {
         } else {
             const req = {
                 receiver_email: props.email,
-                workspace_id: workspace.id
+                workspace_id: props.workspaceId ?? workspace.id
             };
             res = await postSendOtp(req);
         }

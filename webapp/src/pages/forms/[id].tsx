@@ -12,6 +12,7 @@ import BetterCollectedForm from '@Components/Form/BetterCollectedForm';
 import { ChevronLeft } from '@mui/icons-material';
 import { Widget } from '@typeform/embed-react';
 
+import { useModal } from '@app/components/modal-views/context';
 import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
 import FullScreenLoader from '@app/components/ui/fullscreen-loader';
 import ActiveLink from '@app/components/ui/links/active-link';
@@ -23,6 +24,9 @@ import { localesCommon } from '@app/constants/locales/common';
 import Layout from '@app/layouts/_layout';
 import { getGlobalServerSidePropsByDomain } from '@app/lib/serverSideProps';
 import { StandardFormDto } from '@app/models/dtos/form';
+import { selectAuth } from '@app/store/auth/slice';
+import { resetSingleForm, setForm } from '@app/store/forms/slice';
+import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { useGetWorkspaceFormQuery } from '@app/store/workspaces/api';
 import { checkHasCustomDomain, getServerSideAuthHeaderConfig } from '@app/utils/serverSidePropsUtils';
 import { validateFormOpen } from '@app/utils/validationUtils';
@@ -36,6 +40,10 @@ export default function SingleFormPage(props: any) {
         published: true
     });
 
+    const dispatch = useAppDispatch();
+
+    const auth = useAppSelector(selectAuth);
+
     const router = useRouter();
     const form: StandardFormDto | undefined = data;
 
@@ -44,7 +52,8 @@ export default function SingleFormPage(props: any) {
     const url = globalConstants.socialPreview.url;
 
     const iframeRef = useRef(null);
-    const { openModal } = useFullScreenModal();
+    const { openModal: openFullScreenModal } = useFullScreenModal();
+    const { openModal, closeModal } = useModal();
 
     const responderUri = form?.settings?.embedUrl || '';
     const { t } = useTranslation();
@@ -54,10 +63,25 @@ export default function SingleFormPage(props: any) {
     const showBranding = !workspace?.isPro || !form?.settings?.disableBranding;
 
     useEffect(() => {
+        if (form?.formId) {
+            dispatch(setForm(form));
+        }
+        return () => {
+            dispatch(resetSingleForm());
+        };
+    }, [form]);
+
+    useEffect(() => {
         if (form?.settings?.provider && form.settings?.provider === 'google' && form?.fields && hasFileUpload(form?.fields)) {
             router.push(form?.settings?.embedUrl || '');
         }
-    }, [form]);
+        if (environments.ENABLE_COLLECT_EMAILS && form?.settings?.provider === 'self' && form?.settings?.requireVerifiedIdentity && auth?.is401) {
+            openModal('SIGN_IN_TO_FILL_FORM', { nonClosable: true });
+        }
+        return () => {
+            closeModal();
+        };
+    }, [form, auth]);
 
     if (data && isFormClosed)
         return (
@@ -79,7 +103,7 @@ export default function SingleFormPage(props: any) {
                 <AppButton
                     size={ButtonSize.Medium}
                     onClick={() => {
-                        openModal('LOGIN_VIEW');
+                        openFullScreenModal('LOGIN_VIEW');
                     }}
                 >
                     Login
@@ -107,6 +131,7 @@ export default function SingleFormPage(props: any) {
             </HeaderImageWrapper>
         );
     }
+
     if (isLoading) return <FullScreenLoader />;
     const hasFileUpload = (fields: Array<any>) => {
         let isUploadField = false;
@@ -239,6 +264,7 @@ export default function SingleFormPage(props: any) {
         );
     }
 
+    const isFormDisabled = environments.ENABLE_COLLECT_EMAILS && form?.settings?.requireVerifiedIdentity && !auth.email;
     return (
         <Layout showNavbar={false} isCustomDomain={hasCustomDomain} isClientDomain={!hasCustomDomain} showAuthAccount={true} className="relative !bg-white !min-h-screen">
             <NextSeo
@@ -265,7 +291,7 @@ export default function SingleFormPage(props: any) {
                 {form?.settings?.provider === 'typeform' && <Widget id={form?.formId} style={{ height: '100vh' }} className="my-form" />}
                 {form?.settings?.provider === 'self' && (
                     <div className="flex !bg-white justify-center overflow-auto h-full w-full pb-6">
-                        <BetterCollectedForm form={form} enabled={true} isCustomDomain={hasCustomDomain} />
+                        <BetterCollectedForm form={form} enabled={!isFormDisabled} isCustomDomain={hasCustomDomain} />
                     </div>
                 )}
             </div>

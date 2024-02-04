@@ -123,6 +123,8 @@ const nextConfig = {
         ENABLE_FORM_BUILDER: process.env.ENABLE_FORM_BUILDER || false,
         ENABLE_EXPORT_CSV: process.env.ENABLE_EXPORT_CSV || false,
         ENABLE_FORM_QR: process.env.ENABLE_FORM_QR || false,
+        ENABLE_COLLECT_EMAILS: process.env.ENABLE_COLLECT_EMAILS || false,
+        ENABLE_RESPONSE_EDITING: process.env.ENABLE_RESPONSE_EDITING || false,
 
         MAX_WORKSPACES: process.env.MAX_WORKSPACES || 5,
 

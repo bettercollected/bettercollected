@@ -36,15 +36,15 @@ from backend.config import settings
 
 class WorkspaceService:
     def __init__(
-            self,
-            http_client: HttpClient,
-            workspace_repo: WorkspaceRepository,
-            aws_service: AWSS3Service,
-            workspace_user_service: WorkspaceUserService,
-            workspace_form_service: WorkspaceFormService,
-            form_response_service: FormResponseService,
-            responder_groups_service: ResponderGroupsService,
-            user_tags_service: UserTagsService,
+        self,
+        http_client: HttpClient,
+        workspace_repo: WorkspaceRepository,
+        aws_service: AWSS3Service,
+        workspace_user_service: WorkspaceUserService,
+        workspace_form_service: WorkspaceFormService,
+        form_response_service: FormResponseService,
+        responder_groups_service: ResponderGroupsService,
+        user_tags_service: UserTagsService,
     ):
         self.http_client = http_client
         self._workspace_repo = workspace_repo
@@ -81,7 +81,6 @@ class WorkspaceService:
         workspace_name: str = None,
         profile_image_file: UploadFile = None,
         banner_image_file: UploadFile = None,
-
     ):
         if user.plan != "PRO":
             raise HTTPException(
@@ -95,9 +94,14 @@ class WorkspaceService:
                 status_code=HTTPStatus.CONFLICT, content="Cannot add more workspaces"
             )
         if workspace_name:
-            existing_workspace_with_name = await WorkspaceDocument.find_one({"workspace_name": workspace_name})
+            existing_workspace_with_name = await WorkspaceDocument.find_one(
+                {"workspace_name": workspace_name}
+            )
             if existing_workspace_with_name is not None:
-                raise HTTPException(HTTPStatus.CONFLICT, content="Workspace with given name already exists.")
+                raise HTTPException(
+                    HTTPStatus.CONFLICT,
+                    content="Workspace with given name already exists.",
+                )
         workspace_document = WorkspaceDocument(
             title=title,
             description=description,
@@ -127,12 +131,12 @@ class WorkspaceService:
         return WorkspaceResponseDto(**workspace_document.dict())
 
     async def patch_workspace(
-            self,
-            profile_image_file: UploadFile,
-            banner_image_file: UploadFile,
-            workspace_id,
-            workspace_patch: WorkspaceRequestDtoCamel,
-            user: User,
+        self,
+        profile_image_file: UploadFile,
+        banner_image_file: UploadFile,
+        workspace_id,
+        workspace_patch: WorkspaceRequestDtoCamel,
+        user: User,
     ):
         await self._workspace_user_service.check_is_admin_in_workspace(
             workspace_id=workspace_id, user=user
@@ -152,8 +156,8 @@ class WorkspaceService:
         )
 
         if (
-                workspace_patch.workspace_name
-                and workspace_patch.workspace_name != workspace_document.workspace_name
+            workspace_patch.workspace_name
+            and workspace_patch.workspace_name != workspace_document.workspace_name
         ):
             exists_by_handle = await WorkspaceDocument.find_one(
                 {"workspace_name": workspace_patch.workspace_name}
@@ -211,8 +215,11 @@ class WorkspaceService:
                     await self.user_tags_service.add_user_tag(
                         user_id=user.id, tag=UserTagType.CUSTOM_DOMAIN_UPDATED
                     )
-                    await event_logger_service.send_event(event_type=UserEventType.CUSTOM_DOMAIN_CHANGED,
-                                                          user_id=user.id, email=user.sub)
+                    await event_logger_service.send_event(
+                        event_type=UserEventType.CUSTOM_DOMAIN_CHANGED,
+                        user_id=user.id,
+                        email=user.sub,
+                    )
                 else:
                     raise HTTPException(409)
             except HTTPException as e:
@@ -303,7 +310,7 @@ class WorkspaceService:
         return [WorkspaceResponseDto(**workspace.dict()) for workspace in workspaces]
 
     async def send_otp_for_workspace(
-            self, workspace_id: PydanticObjectId, receiver_email: EmailStr
+        self, workspace_id: PydanticObjectId, receiver_email: EmailStr
     ):
         workspace = await self._workspace_repo.get_workspace_by_id(workspace_id)
         await self.http_client.get(
@@ -366,7 +373,7 @@ class WorkspaceService:
             )
 
     async def update_https_server_for_certificate(
-            self, old_domain: str = None, new_domain: str = None
+        self, old_domain: str = None, new_domain: str = None
     ):
         try:
             if old_domain:
@@ -391,10 +398,10 @@ class WorkspaceService:
             # raise HTTPException(HTTPStatus.SERVICE_UNAVAILABLE, content="Could not update https certificate.")
 
     async def upload_images_of_workspace(
-            self,
-            workspace_document: WorkspaceDocument,
-            profile_image_file: UploadFile,
-            banner_image_file: UploadFile,
+        self,
+        workspace_document: WorkspaceDocument,
+        profile_image_file: UploadFile,
+        banner_image_file: UploadFile,
     ):
         if profile_image_file:
             profile_image = await self._aws_service.upload_file_to_s3(
@@ -439,7 +446,9 @@ class WorkspaceService:
 async def create_workspace(user: User):
     workspace = await WorkspaceDocument.find_one({"owner_id": user.id, "default": True})
     if not workspace:
-        await event_logger_service.send_event(event_type=UserEventType.USER_CREATED, user_id=user.id, email=user.sub)
+        await event_logger_service.send_event(
+            event_type=UserEventType.USER_CREATED, user_id=user.id, email=user.sub
+        )
         workspace = WorkspaceDocument(
             title="",
             description="",

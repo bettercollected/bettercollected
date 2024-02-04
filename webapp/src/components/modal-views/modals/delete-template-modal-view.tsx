@@ -11,6 +11,7 @@ import { useAppSelector } from '@app/store/hooks';
 import { useDeleteTemplateMutation } from '@app/store/template/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 
+
 export default function DeleteTemplateConfirmationModalView({ template }: { template: IFormTemplateDto }) {
     const { t } = useTranslation();
     const [deleteTemplate] = useDeleteTemplateMutation();

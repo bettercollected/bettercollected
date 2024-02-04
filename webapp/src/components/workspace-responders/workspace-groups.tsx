@@ -10,12 +10,10 @@ import { Typography } from '@mui/material';
 import DataTable from 'react-data-table-component';
 import { toast } from 'react-toastify';
 
-import GroupCard from '@app/components/cards/group-card';
 import EmptyGroup from '@app/components/dashboard/empty-group';
 import { dataTableCustomStyles } from '@app/components/datatable/form/datatable-styles';
 import { Plus } from '@app/components/icons/plus';
 import { useModal } from '@app/components/modal-views/context';
-import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
 import DeleteDropDown from '@app/components/ui/delete-dropdown';
 import Loader from '@app/components/ui/loader';
 import { localesCommon } from '@app/constants/locales/common';

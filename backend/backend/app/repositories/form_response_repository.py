@@ -1,18 +1,23 @@
 import json
+from http import HTTPStatus
 from typing import Any, Dict, List
+from uuid import uuid4
 
 import fastapi_pagination.ext.beanie
 from beanie import PydanticObjectId
 from common.base.repo import BaseRepository
+from common.configs.crypto import Crypto
+from common.constants import MESSAGE_FORBIDDEN
 from common.enums.form_provider import FormProvider
 from common.models.standard_form import StandardFormResponse, StandardFormResponseAnswer
 from common.models.user import User
 from common.services.crypto_service import crypto_service
 from fastapi_pagination import Page
 
+from backend.app.exceptions import HTTPException
+from backend.app.models.dtos.response_dtos import StandardFormResponseCamelModel
 from backend.app.models.filter_queries.form_responses import FormResponseFilterQuery
 from backend.app.models.filter_queries.sort import SortRequest
-from backend.app.models.dtos.response_dtos import StandardFormResponseCamelModel
 from backend.app.repositories.deletion_requests_repository import (
     DeletionRequestsRepository,
 )
@@ -22,9 +27,15 @@ from backend.app.schemas.standard_form_response import (
     DeletionRequestStatus,
 )
 from backend.app.utils.aggregation_query_builder import create_filter_pipeline
+from backend.app.utils.hash import hash_string
 
 
 class FormResponseRepository(BaseRepository):
+
+    def __init__(self, crypto: Crypto):
+        super().__init__()
+        self.crypto = crypto
+
     @staticmethod
     async def get_form_responses(
         form_ids,
@@ -165,7 +176,8 @@ class FormResponseRepository(BaseRepository):
         self, form_ids, user: User, request_for_deletion: bool = False
     ):
         extra_find_query = {
-            "dataOwnerIdentifier": user.sub,
+            "$or": [{"dataOwnerIdentifier": user.sub}, {"anonymous_identity": hash_string(user.sub)}]
+
         }
         if request_for_deletion:
             return await DeletionRequestsRepository.get_deletion_requests(
@@ -244,6 +256,7 @@ class FormResponseRepository(BaseRepository):
     ):
         response_document = FormResponseDocument(**response.dict())
         response_document.response_id = str(PydanticObjectId())
+        response_document.submission_uuid = str(uuid4())
         if workspace_id:
             for k, v in response_document.answers.items():
                 if type(v) == StandardFormResponseAnswer:
@@ -255,6 +268,22 @@ class FormResponseRepository(BaseRepository):
             )
         response_document.form_id = str(form_id)
         response_document.provider = "self"
+        return await response_document.save()
+
+    async def patch_form_response(self, form_id: PydanticObjectId, response_id: PydanticObjectId,
+                                  response: StandardFormResponse,
+                                  workspace_id: PydanticObjectId, user=User):
+        response_document = await FormResponseDocument.find_one({"response_id": str(response_id)})
+        if not response_document.dataOwnerIdentifier != user.sub:
+            raise HTTPException(status_code=HTTPStatus.FORBIDDEN, content=MESSAGE_FORBIDDEN)
+        for k, v in response.answers.items():
+            if type(v) == StandardFormResponseAnswer:
+                response_document.answers[k] = v.dict()
+            response_document.answers = crypto_service.encrypt(
+                workspace_id=workspace_id,
+                form_id=form_id,
+                data=json.dumps(response_document.answers)
+            )
         return await response_document.save()
 
     async def delete_form_response(
@@ -282,3 +311,33 @@ class FormResponseRepository(BaseRepository):
 
     async def get_response(self, response_id: str):
         return await FormResponseDocument.find_one({"response_id": response_id})
+
+    async def get_by_submission_uuid(self, submission_uuid: str):
+        return await FormResponseDocument.find_one({"submission_uuid": submission_uuid})
+
+    async def verify_response_exists_in_workspace(self, workspace_id: PydanticObjectId, response_id: str):
+        workspace = await FormResponseDocument.find({"response_id": response_id}).aggregate(
+            [
+                {
+                    '$lookup': {
+                        'from': 'workspace_forms',
+                        'localField': 'form_id',
+                        'foreignField': 'form_id',
+                        'as': 'workspace_form'
+                    }
+                },
+                {
+                    '$match': {
+                        'workspace_form.workspace_id': workspace_id
+                    }
+                },
+                {
+                    '$unwind': {
+                        'path': '$workspace_form',
+                        'preserveNullAndEmptyArrays': False
+                    }
+                }
+            ]
+        ).to_list()
+        if not len(workspace) > 0:
+            raise HTTPException(status_code=HTTPStatus.NOT_FOUND, content="Response not found in workspace")

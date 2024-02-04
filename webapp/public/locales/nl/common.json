@@ -282,6 +282,10 @@
           "TITLE": "Formulier vastzetten",
           "DESCRIPTION": "Wanneer je een formulier vastzet in bettercollected, wordt het formulier bovenaan geplaatst, zodat het het eerste is wat je publiek kan zien op je formulierpagina."
         },
+        "COLLECT_EMAILS": {
+          "TITLE": "E-mails Verzamelen",
+          "DESCRIPTION": "Wanneer u deze instelling inschakelt, moet de gebruiker hun identiteit verifiëren voordat ze hun reactie kunnen indienen."
+        },
         "BRANDING": {
           "TITLE": "bettercolleceted branding",
           "DESCRIPTION": "Toon 'Aangedreven door: bettercollected' in je formulier."

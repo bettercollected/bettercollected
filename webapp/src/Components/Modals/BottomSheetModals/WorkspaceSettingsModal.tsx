@@ -6,6 +6,7 @@ import WorkspaceDetails from '@Components/Workspace/Settings/WorkspaceDetails';
 
 import ParamTab, { TabPanel } from '@app/components/ui/param-tab';
 
+
 export default function WorkspaceSettingsModal({ initialIndex }: { initialIndex?: number }) {
     const { t } = useTranslation();
 

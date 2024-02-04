@@ -15,6 +15,7 @@ import { useGetWorkspaceMembersQuery } from '@app/store/workspaces/members-n-inv
 import MembersTable from '../settings/members-table';
 import Loader from '../ui/loader';
 
+
 export default function Collaborators() {
     const workspace = useAppSelector((state) => state.workspace);
     const { data, isLoading } = useGetWorkspaceMembersQuery({ workspaceId: workspace.id });

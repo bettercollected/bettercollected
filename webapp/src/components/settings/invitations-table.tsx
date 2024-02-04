@@ -96,7 +96,11 @@ export default function InvitationsTable({ data }: IInvitationTableProps) {
 
         {
             name: t(localesCommon.status),
-            selector: (invitation: WorkspaceInvitationDto) => Status({ status: invitation.invitationStatus, email: invitation.email }),
+            selector: (invitation: WorkspaceInvitationDto) =>
+                Status({
+                    status: invitation.invitationStatus,
+                    email: invitation.email
+                }),
             style: {
                 color: 'rgba(0,0,0,.54)',
                 paddingLeft: '16px',

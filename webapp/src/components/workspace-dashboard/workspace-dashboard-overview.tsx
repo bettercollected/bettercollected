@@ -3,7 +3,6 @@ import React from 'react';
 import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/router';
 
-import EditIcon from '@Components/Common/Icons/Common/Edit';
 import PlusIcon from '@Components/Common/Icons/Common/Plus';
 import SettingsIcon from '@Components/Common/Icons/Common/Settings';
 import ShareIcon from '@Components/Common/Icons/Common/ShareIcon';

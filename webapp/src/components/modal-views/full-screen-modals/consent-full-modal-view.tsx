@@ -10,12 +10,14 @@ import { StandardFormDto } from '@app/models/dtos/form';
 
 import { useFullScreenModal } from '../full-screen-modal-context';
 
+
 interface ConsentFullModalProps {
     onFormSubmit: any;
     form: StandardFormDto;
     isDisabled?: boolean;
     isPreview?: boolean;
 }
+
 export default function ConsentFullModalView({ onFormSubmit, form, isDisabled = false, isPreview = false }: ConsentFullModalProps) {
     const { closeModal } = useFullScreenModal();
 

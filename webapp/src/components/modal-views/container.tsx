@@ -8,6 +8,8 @@ import ExportResponsesModal from '@Components/Modals/DialogModals/ExportResponse
 import ImportFormModal from '@Components/Modals/DialogModals/ImportFormModal';
 import OauthErrorModal from '@Components/Modals/DialogModals/OauthErrorModal';
 import RedeemCouponCodeModal from '@Components/Modals/DialogModals/RedeemCouponCodeModal';
+import ResponderAccountModal from '@Components/Modals/DialogModals/ResponderAccountModal';
+import SignInToFillFormModal from '@Components/Modals/DialogModals/SignInToFillFormModal';
 import UpdateCustomDomainModal from '@Components/Modals/DialogModals/UpdateCustomDomainModal';
 import UpdateWorkspaceHandle from '@Components/Modals/DialogModals/UpdateWorkspaceHandle';
 
@@ -15,6 +17,7 @@ import DeleteFormModal from '@app/components/form/delete-form-modal';
 import { Close } from '@app/components/icons/close';
 import LogoutView from '@app/components/logout/logout-view';
 import { MODAL_VIEW, useModal } from '@app/components/modal-views/context';
+import GenerateQRModalView from '@app/components/modal-views/modals/GenrateQRModalView';
 import CloseFormConfirmationModal from '@app/components/modal-views/modals/close-form-confirmation-modal';
 import CustomizeUrlModal from '@app/components/modal-views/modals/customize-url-modal';
 import DeleteCustomDomainModal from '@app/components/modal-views/modals/delete-custom-domain-modal';
@@ -48,7 +51,6 @@ import EditWorkspaceModal from './modals/edit-workspace-modal';
 import FormBuilderSpotlightModal from './modals/form-builder-spotlight-modal';
 import FormBuilderTipsModalView from './modals/form-builder-tips-modal-view';
 import VisibilityConfirmationModalView from './modals/visibility-confirmation-modal-view';
-import GenerateQRModalView from "@app/components/modal-views/modals/GenrateQRModalView";
 
 function renderModalContent(view: MODAL_VIEW, modalProps: any) {
     switch (view) {
@@ -127,7 +129,11 @@ function renderModalContent(view: MODAL_VIEW, modalProps: any) {
         case 'OAUTH_ERROR_VIEW':
             return <OauthErrorModal {...modalProps} />;
         case 'GENERATE_QR':
-            return <GenerateQRModalView {...modalProps}/>
+            return <GenerateQRModalView {...modalProps} />;
+        case 'SIGN_IN_TO_FILL_FORM':
+            return <SignInToFillFormModal {...modalProps} />;
+        case 'RESPONDER_ACCOUNT':
+            return <ResponderAccountModal {...modalProps} />;
         default:
             return <></>;
     }

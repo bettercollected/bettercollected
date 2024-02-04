@@ -1,7 +1,5 @@
 import React from 'react';
 
-import cn from 'classnames';
-
 export function Close(props: React.SVGAttributes<{}>) {
     const { className, ...otherProps } = props;
     return (

@@ -11,7 +11,6 @@ import HeaderModalWrapper from '@Components/Modals/ModalWrappers/HeaderModalWrap
 import { toast } from 'react-toastify';
 
 import { useModal } from '@app/components/modal-views/context';
-import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
 import environments from '@app/configs/environments';
 import { buttonConstant } from '@app/constants/locales/button';
 import { onBoarding } from '@app/constants/locales/onboarding-screen';
@@ -22,6 +21,7 @@ import { useAppSelector } from '@app/store/hooks';
 import { usePatchExistingWorkspaceMutation } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { checkErrorForWorkspaceName, checkIfPredefinedWorkspaceName } from '@app/utils/workspaceNameUtils';
+
 
 export default function UpdateWorkspaceHandle() {
     const [patchExistingWorkspace, { isLoading }] = usePatchExistingWorkspaceMutation();

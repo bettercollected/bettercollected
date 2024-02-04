@@ -4,6 +4,7 @@ import environments from '@app/configs/environments';
 import Onboarding from '@app/pages/[workspace_name]/onboarding';
 import { getServerSideAuthHeaderConfig } from '@app/utils/serverSidePropsUtils';
 
+
 export async function getServerSideProps({ locale, ..._context }: any) {
     const config = getServerSideAuthHeaderConfig(_context);
     try {

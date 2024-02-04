@@ -51,6 +51,8 @@ const environments = {
     ENABLE_FORM_BUILDER: (publicRuntimeConfig.ENABLE_FORM_BUILDER && (publicRuntimeConfig.ENABLE_FORM_BUILDER === 'true' || publicRuntimeConfig.ENABLE_FORM_BUILDER === true)) ?? false,
     ENABLE_EXPORT_CSV: (publicRuntimeConfig.ENABLE_EXPORT_CSV && (publicRuntimeConfig.ENABLE_EXPORT_CSV === 'true' || publicRuntimeConfig.ENABLE_EXPORT_CSV === true)) ?? false,
     ENABLE_FORM_QR: (publicRuntimeConfig.ENABLE_FORM_QR && (publicRuntimeConfig.ENABLE_FORM_QR === 'true' || publicRuntimeConfig.ENABLE_FORM_QR === true)) ?? false,
+    ENABLE_COLLECT_EMAILS: (publicRuntimeConfig.ENABLE_COLLECT_EMAILS && (publicRuntimeConfig.ENABLE_COLLECT_EMAILS === 'true' || publicRuntimeConfig.ENABLE_COLLECT_EMAILS === true)) ?? false,
+    ENABLE_RESPONSE_EDITING: (publicRuntimeConfig.ENABLE_RESPONSE_EDITING && (publicRuntimeConfig.ENABLE_RESPONSE_EDITING === 'true' || publicRuntimeConfig.ENABLE_RESPONSE_EDITING === true)) ?? false,
 
     // internal configs
     IS_IN_PRODUCTION_MODE,

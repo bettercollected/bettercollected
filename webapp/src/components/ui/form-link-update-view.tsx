@@ -15,11 +15,9 @@ import Globe from '@app/components/icons/flags/globe';
 import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
 import { formPage } from '@app/constants/locales/form-page';
 import { toastMessage } from '@app/constants/locales/toast-message';
-import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 
-import { useModal } from '../modal-views/context';
 
 interface ICurrentLinkUpdate {
     isCustomDomain?: boolean;

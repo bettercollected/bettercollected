@@ -8,6 +8,7 @@ import { IConsentAnswer } from '@app/store/consent/types';
 import { addConsentAnswer } from '@app/store/fill-form/slice';
 import { useAppDispatch } from '@app/store/hooks';
 
+
 interface ConsentFieldProps extends OnlyClassNameInterface {
     consent: IConsentAnswer;
     disabled?: boolean;

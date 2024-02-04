@@ -11,6 +11,7 @@ import WorkspaceInfo from '@app/components/settings/basic-information/workspace-
 import { useAppSelector } from '@app/store/hooks';
 import { WorkspaceState, selectWorkspace } from '@app/store/workspaces/slice';
 
+
 export default function WorkspaceDetails() {
     const { t } = useTranslation();
     const workspace: WorkspaceState = useAppSelector(selectWorkspace);

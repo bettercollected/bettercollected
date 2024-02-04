@@ -40,7 +40,7 @@ const TermsAndCondition: React.FC<TermsAndConditionProps> & {
     }
     return (
         <div className={cn('space-y-2', className)}>
-            <div className="flex space-x-2 items-center">
+            <div className="flex space-x-2 items-center p2-new">
                 <CheckBox className="!m-0" checked={selected} onClick={handleCheckedChange} />
                 {React.Children.map(children, (child) => {
                     if (React.isValidElement(child) && child.type === Title) {

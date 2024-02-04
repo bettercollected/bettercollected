@@ -6,14 +6,23 @@ from aiohttp import ServerDisconnectedError
 from beanie import PydanticObjectId
 from common.configs.crypto import Crypto
 from common.constants import MESSAGE_FORBIDDEN
-from common.models.standard_form import StandardForm, Trigger, ParameterValue, ActionState
+from common.models.standard_form import (
+    StandardForm,
+    Trigger,
+    ParameterValue,
+    ActionState,
+)
 from common.models.user import User
 from fastapi_pagination import Page
 from fastapi_pagination.ext.beanie import paginate
 
 from backend.app.constants.consents import default_consents
 from backend.app.exceptions import HTTPException
-from backend.app.models.dtos.action_dto import AddActionToFormDto, UpdateActionInFormDto, ActionUpdateType
+from backend.app.models.dtos.action_dto import (
+    AddActionToFormDto,
+    UpdateActionInFormDto,
+    ActionUpdateType,
+)
 from backend.app.models.dtos.kafka_event_dto import UserEventType
 from backend.app.models.dtos.minified_form import FormDtoCamelModel
 from backend.app.models.dtos.settings_patch import SettingsPatchDto
@@ -35,12 +44,12 @@ from backend.config import settings
 
 class FormService:
     def __init__(
-            self,
-            workspace_user_repo: WorkspaceUserRepository,
-            form_repo: FormRepository,
-            workspace_form_repo: WorkspaceFormRepository,
-            user_tags_service: UserTagsService,
-            crypto: Crypto
+        self,
+        workspace_user_repo: WorkspaceUserRepository,
+        form_repo: FormRepository,
+        workspace_form_repo: WorkspaceFormRepository,
+        user_tags_service: UserTagsService,
+        crypto: Crypto,
     ):
         self._workspace_user_repo = workspace_user_repo
         self._form_repo = form_repo
@@ -49,12 +58,12 @@ class FormService:
         self.crypto = crypto
 
     async def get_forms_in_workspace(
-            self,
-            workspace_id: PydanticObjectId,
-            sort: SortRequest,
-            published: bool,
-            pinned_only: bool,
-            user: User,
+        self,
+        workspace_id: PydanticObjectId,
+        sort: SortRequest,
+        published: bool,
+        pinned_only: bool,
+        user: User,
     ) -> Page[FormDtoCamelModel]:
         has_access_to_workspace = (
             await self._workspace_user_repo.has_user_access_in_workspace(
@@ -118,7 +127,7 @@ class FormService:
             )
 
     async def search_form_in_workspace(
-            self, workspace_id: PydanticObjectId, query: str, published: bool, user: User
+        self, workspace_id: PydanticObjectId, query: str, published: bool, user: User
     ):
         form_ids = await self._workspace_form_repo.get_form_ids_in_workspace(
             workspace_id=workspace_id, is_not_admin=True, user=user
@@ -147,11 +156,11 @@ class FormService:
         return [FormDtoCamelModel(**form) for form in forms]
 
     async def get_form_by_id(
-            self,
-            workspace_id: PydanticObjectId,
-            form_id: str,
-            user: User,
-            published: bool = False,
+        self,
+        workspace_id: PydanticObjectId,
+        form_id: str,
+        user: User,
+        published: bool = False,
     ):
         is_admin = await self._workspace_user_repo.has_user_access_in_workspace(
             workspace_id=workspace_id, user=user
@@ -161,7 +170,9 @@ class FormService:
                 workspace_id=workspace_id, custom_url=form_id
             )
             if not workspace_form:
-                raise HTTPException(status_code=404, content="Form not found in Workspace")
+                raise HTTPException(
+                    status_code=404, content="Form not found in Workspace"
+                )
             if workspace_form.settings.private or workspace_form.settings.hidden:
                 raise HTTPException(
                     status_code=HTTPStatus.UNAUTHORIZED,
@@ -238,11 +249,11 @@ class FormService:
         return await self._form_repo.save_form(form_document)
 
     async def patch_settings_in_workspace_form(
-            self,
-            workspace_id: PydanticObjectId,
-            form_id: str,
-            settings: SettingsPatchDto,
-            user: User,
+        self,
+        workspace_id: PydanticObjectId,
+        form_id: str,
+        settings: SettingsPatchDto,
+        user: User,
     ):
         is_admin = await self._workspace_user_repo.has_user_access_in_workspace(
             workspace_id=workspace_id, user=user
@@ -260,28 +271,35 @@ class FormService:
             workspace_form.settings.private = settings.private
         if settings.pinned is not None:
             workspace_form.settings.pinned = settings.pinned
-        if settings.disableBranding is not None:
-            workspace_form.settings.disable_branding = settings.disableBranding
-        if settings.customUrl is not None:
+        if settings.disable_branding is not None:
+            workspace_form.settings.disable_branding = settings.disable_branding
+        if settings.require_verified_identity is not None:
+            workspace_form.settings.require_verified_identity = settings.require_verified_identity
+        if settings.show_submission_number is not None:
+            workspace_form.settings.show_submission_number = settings.show_submission_number
+        if settings.allow_editing_response is not None:
+            workspace_form.settings.allow_editing_response = settings.allow_editing_response
+        if settings.custom_url is not None:
             await self.user_tags_service.add_user_tag(
                 user_id=user.id, tag=UserTagType.CUSTOM_SLUG
             )
             workspace_form_with_custom_slug = await self._workspace_form_repo.get_workspace_form_with_custom_slug_form_id(
-                workspace_id, settings.customUrl
+                workspace_id, settings.custom_url
             )
             if workspace_form_with_custom_slug:
                 raise HTTPException(
                     409, "Form with given custom slug already exists in the workspace!!"
                 )
-            workspace_form.settings.custom_url = settings.customUrl
-            await event_logger_service.send_event(event_type=UserEventType.SLUG_CHANGED, user_id=user.id,
-                                                  email=user.sub)
-        if settings.responseDataOwnerField is not None:
-            workspace_form.settings.response_data_owner_field = (
-                settings.responseDataOwnerField
+            workspace_form.settings.custom_url = settings.custom_url
+            await event_logger_service.send_event(
+                event_type=UserEventType.SLUG_CHANGED, user_id=user.id, email=user.sub
             )
-        if settings.formCloseDate is not None:
-            workspace_form.settings.form_close_date = settings.formCloseDate
+        if settings.response_data_owner_field is not None:
+            workspace_form.settings.response_data_owner_field = (
+                settings.response_data_owner_field
+            )
+        if settings.form_close_date is not None:
+            workspace_form.settings.form_close_date = settings.form_close_date
         return await self._workspace_form_repo.update(workspace_form.id, workspace_form)
 
     async def delete_form(self, form_id: str):
@@ -312,29 +330,29 @@ class FormService:
         )
 
     def has_form_been_updated(
-            self, form: FormDocument, latest_version: FormVersionsDocument
+        self, form: FormDocument, latest_version: FormVersionsDocument
     ):
         if not latest_version:
             return True
         if (
-                form.title == latest_version.title
-                and form.description == latest_version.description
-                and form.consent == latest_version.consent
-                and form.fields == latest_version.fields
-                and form.logo == latest_version.logo
-                and form.cover_image == latest_version.cover_image
-                and form.button_text == latest_version.button_text
-                and form.state == latest_version.state
+            form.title == latest_version.title
+            and form.description == latest_version.description
+            and form.consent == latest_version.consent
+            and form.fields == latest_version.fields
+            and form.logo == latest_version.logo
+            and form.cover_image == latest_version.cover_image
+            and form.button_text == latest_version.button_text
+            and form.state == latest_version.state
         ):
             return False
         return True
 
     async def get_form_by_version(
-            self,
-            workspace_id: PydanticObjectId,
-            form_id: str,
-            version: str | int,
-            user: User,
+        self,
+        workspace_id: PydanticObjectId,
+        form_id: str,
+        version: str | int,
+        user: User,
     ):
         is_admin = await self._workspace_user_repo.has_user_access_in_workspace(
             workspace_id=workspace_id, user=user
@@ -388,7 +406,9 @@ class FormService:
             form.form_id = str(form.form_id)
             return form
 
-    async def add_action_form(self, form_id: PydanticObjectId, add_action_to_form_params: AddActionToFormDto):
+    async def add_action_form(
+        self, form_id: PydanticObjectId, add_action_to_form_params: AddActionToFormDto
+    ):
         form = await self._form_repo.get_form_document_by_id(form_id=str(form_id))
         actions = []
 
@@ -397,7 +417,9 @@ class FormService:
             if form.actions.get(add_action_to_form_params.trigger) is not None:
                 actions.extend(form.actions.get(add_action_to_form_params.trigger))
 
-            actions.append(ActionState(id=add_action_to_form_params.action_id, enabled=True))
+            actions.append(
+                ActionState(id=add_action_to_form_params.action_id, enabled=True)
+            )
 
             actions = actions
 
@@ -405,17 +427,30 @@ class FormService:
 
         else:
             form.actions = {
-                add_action_to_form_params.trigger: [ActionState(id=add_action_to_form_params.action_id, enabled=True)]}
+                add_action_to_form_params.trigger: [
+                    ActionState(id=add_action_to_form_params.action_id, enabled=True)
+                ]
+            }
         if add_action_to_form_params.parameters:
             if form.parameters is not None:
 
-                form.parameters[str(add_action_to_form_params.action_id)] = add_action_to_form_params.parameters
+                form.parameters[
+                    str(add_action_to_form_params.action_id)
+                ] = add_action_to_form_params.parameters
             else:
-                form.parameters = {str(add_action_to_form_params.action_id): add_action_to_form_params.parameters}
+                form.parameters = {
+                    str(
+                        add_action_to_form_params.action_id
+                    ): add_action_to_form_params.parameters
+                }
 
         if add_action_to_form_params.secrets:
-            secrets = [ParameterValue(name=secret.name, value=self.crypto.encrypt(secret.value)) for secret in
-                       add_action_to_form_params.secrets]
+            secrets = [
+                ParameterValue(
+                    name=secret.name, value=self.crypto.encrypt(secret.value)
+                )
+                for secret in add_action_to_form_params.secrets
+            ]
 
             if form.secrets is not None:
                 form.secrets[str(add_action_to_form_params.action_id)] = secrets
@@ -424,11 +459,15 @@ class FormService:
 
         return await form.save()
 
-    async def remove_action_from_form(self, form_id: PydanticObjectId, action_id: PydanticObjectId, trigger: Trigger):
+    async def remove_action_from_form(
+        self, form_id: PydanticObjectId, action_id: PydanticObjectId, trigger: Trigger
+    ):
         form = await self._form_repo.get_form_document_by_id(form_id=str(form_id))
 
         if form.actions and trigger in form.actions:
-            form.actions[trigger] = [action for action in form.actions[trigger] if action.id != action_id]
+            form.actions[trigger] = [
+                action for action in form.actions[trigger] if action.id != action_id
+            ]
 
         if form.parameters and str(action_id) in form.parameters:
             del form.parameters[str(action_id)]
@@ -438,11 +477,17 @@ class FormService:
 
         return (await form.save()).actions
 
-    async def update_state_of_action_in_form(self, form_id: PydanticObjectId, update_action_dto: UpdateActionInFormDto):
+    async def update_state_of_action_in_form(
+        self, form_id: PydanticObjectId, update_action_dto: UpdateActionInFormDto
+    ):
         form = await self._form_repo.get_form_document_by_id(form_id=str(form_id))
         if form.actions and update_action_dto.trigger in form.actions:
             for action in form.actions[update_action_dto.trigger]:
                 if action.id == update_action_dto.action_id:
-                    action.enabled = True if update_action_dto.update_type == ActionUpdateType.ENABLE else False
+                    action.enabled = (
+                        True
+                        if update_action_dto.update_type == ActionUpdateType.ENABLE
+                        else False
+                    )
 
         return await form.save()

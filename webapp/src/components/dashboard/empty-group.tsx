@@ -12,6 +12,7 @@ import { toolTipConstant } from '@app/constants/locales/tooltip';
 import { selectIsAdmin } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 
+
 export default function EmptyGroup({ formId }: { formId?: string }) {
     const { t } = useTranslation();
     const isAdmin = useAppSelector(selectIsAdmin);

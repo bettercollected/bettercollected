@@ -5,6 +5,7 @@ import environments from '@app/configs/environments';
 
 import { IConsentField } from './types';
 
+
 const CONSENT_REDUCER_PATH = 'consentApi';
 
 export const consentApi = createApi({

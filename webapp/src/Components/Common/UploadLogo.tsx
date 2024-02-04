@@ -4,11 +4,11 @@ import { useTranslation } from 'next-i18next';
 import Image from 'next/image';
 
 import AppButton from '@Components/Common/Input/Button/AppButton';
-import { ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
 import cn from 'classnames';
 
 import Camera from '@app/components/icons/camera';
 import { Close } from '@app/components/icons/close';
+
 
 interface IUploadLogo {
     className?: string;

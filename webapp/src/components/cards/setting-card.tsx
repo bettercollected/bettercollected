@@ -12,6 +12,7 @@ interface ISettingCard {
     description: string;
     link: string;
 }
+
 export default function SettingCard({ title, description, link }: ISettingCard) {
     const { t } = useTranslation();
 

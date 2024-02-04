@@ -79,7 +79,7 @@ class WorkspaceFormRepository:
         pinned_only: bool = False,
         id_only: bool = False,
         filter_closed=False,
-    ) -> List[WorkspaceFormDocument]:
+    ) -> List[Dict[str, Any]]:
         try:
             query = {"workspace_id": workspace_id}
             if pinned_only:
@@ -113,7 +113,11 @@ class WorkspaceFormRepository:
                                 {"settings.form_close_date": {"$exists": False}},
                                 {"settings.form_close_date": ""},
                                 {"settings.form_close_date": None},
-                                {"settings.form_close_date": {"$gte": datetime.utcnow().isoformat()}}
+                                {
+                                    "settings.form_close_date": {
+                                        "$gte": datetime.utcnow().isoformat()
+                                    }
+                                },
                             ]
                         }
                     }
@@ -287,7 +291,11 @@ class WorkspaceFormRepository:
             {"form_id": {"$in": form_ids}}
         ).to_list()
 
-    async def check_if_form_exists_in_workspace(self, workspace_id: PydanticObjectId, form_id: str):
+    async def check_if_form_exists_in_workspace(
+        self, workspace_id: PydanticObjectId, form_id: str
+    ):
         workspace_form = await WorkspaceFormDocument.find_one(
-            WorkspaceFormDocument.workspace_id == workspace_id and WorkspaceFormDocument.form_id == form_id)
+            WorkspaceFormDocument.workspace_id == workspace_id
+            and WorkspaceFormDocument.form_id == form_id
+        )
         return True if workspace_form is not None else False

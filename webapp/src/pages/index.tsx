@@ -1,5 +1,6 @@
 import { GetServerSidePropsContext } from 'next';
 
+import RespondersPortalContainer from '@app/Components/RespondersPortal/Container';
 import environments from '@app/configs/environments';
 import WorkspaceHomeContainer from '@app/containers/dashboard/WorkspaceHomeContainer';
 import Layout from '@app/layouts/_layout';
@@ -20,7 +21,9 @@ const Home = ({ workspace }: IHome) => {
     return <></>;
 };
 
-export default Home;
+// export default Home;
+
+export default RespondersPortalContainer;
 
 export async function getServerSideProps(_context: GetServerSidePropsContext) {
     const hasCustomDomain = checkHasCustomDomain(_context);
@@ -36,7 +39,6 @@ export async function getServerSideProps(_context: GetServerSidePropsContext) {
         };
     }
     const scheme = _context.req.headers?.referer?.includes('https://') ? 'https://' : 'http://';
-    const locale = globalProps['_nextI18Next']['initialLocale'] === 'en' ? '' : `${globalProps['_nextI18Next']['initialLocale']}/`;
 
     const hasClientDomain = checkHasClientDomain(getRequestHost(_context));
     if (hasClientDomain) {
@@ -51,7 +53,7 @@ export async function getServerSideProps(_context: GetServerSidePropsContext) {
     return {
         redirect: {
             permanent: false,
-            destination: `/${locale}login`
+            destination: `/login`
         }
     };
 }

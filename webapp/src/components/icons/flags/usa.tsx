@@ -15,10 +15,14 @@ export default function USA(props: React.SVGAttributes<{}>) {
                     {' '}
                     <g>
                         {' '}
-                        <rect y="0" fill="#DC4437" width="130" height="13.3"></rect> <rect y="26.7" fill="#DC4437" width="130" height="13.3"></rect> <rect y="80" fill="#DC4437" width="130" height="13.3"></rect>{' '}
-                        <rect y="106.7" fill="#DC4437" width="130" height="13.3"></rect> <rect y="53.3" fill="#DC4437" width="130" height="13.3"></rect> <rect y="13.3" fill="#FFFFFF" width="130" height="13.3"></rect>{' '}
-                        <rect y="40" fill="#FFFFFF" width="130" height="13.3"></rect> <rect y="93.3" fill="#FFFFFF" width="130" height="13.3"></rect> <rect y="66.7" fill="#FFFFFF" width="130" height="13.3"></rect>{' '}
-                        <rect y="0" fill="#2A66B7" width="70" height="66.7"></rect> <polygon fill="#FFFFFF" points="13.5,4 15.8,8.9 21,9.7 17.2,13.6 18.1,19 13.5,16.4 8.9,19 9.8,13.6 6,9.7 11.2,8.9 "></polygon>{' '}
+                        <rect y="0" fill="#DC4437" width="130" height="13.3"></rect>
+                        <rect y="26.7" fill="#DC4437" width="130" height="13.3"></rect>
+                        <rect y="80" fill="#DC4437" width="130" height="13.3"></rect> <rect y="106.7" fill="#DC4437" width="130" height="13.3"></rect>
+                        <rect y="53.3" fill="#DC4437" width="130" height="13.3"></rect>
+                        <rect y="13.3" fill="#FFFFFF" width="130" height="13.3"></rect> <rect y="40" fill="#FFFFFF" width="130" height="13.3"></rect>
+                        <rect y="93.3" fill="#FFFFFF" width="130" height="13.3"></rect>
+                        <rect y="66.7" fill="#FFFFFF" width="130" height="13.3"></rect> <rect y="0" fill="#2A66B7" width="70" height="66.7"></rect>
+                        <polygon fill="#FFFFFF" points="13.5,4 15.8,8.9 21,9.7 17.2,13.6 18.1,19 13.5,16.4 8.9,19 9.8,13.6 6,9.7 11.2,8.9 "></polygon>{' '}
                         <polygon fill="#FFFFFF" points="34,4 36.3,8.9 41.5,9.7 37.8,13.6 38.6,19 34,16.4 29.4,19 30.2,13.6 26.5,9.7 31.7,8.9 "></polygon>{' '}
                         <polygon fill="#FFFFFF" points="54.5,4 56.8,8.9 62,9.7 58.2,13.6 59.1,19 54.5,16.4 49.9,19 50.8,13.6 47,9.7 52.2,8.9 "></polygon>{' '}
                         <polygon fill="#FFFFFF" points="24,24 26.3,28.9 31.5,29.7 27.8,33.6 28.6,39 24,36.4 19.4,39 20.2,33.6 16.5,29.7 21.7,28.9 "></polygon>{' '}
@@ -30,7 +34,11 @@ export default function USA(props: React.SVGAttributes<{}>) {
                 </g>{' '}
                 <g id="Europe">
                     {' '}
-                    <g id="Row_5"> </g> <g id="Row_4"> </g> <g id="Row_3"> </g> <g id="Row_2"> </g> <g id="Row_1"> </g>{' '}
+                    <g id="Row_5"></g>
+                    <g id="Row_4"></g>
+                    <g id="Row_3"></g>
+                    <g id="Row_2"></g>
+                    <g id="Row_1"></g>{' '}
                 </g>{' '}
             </g>
         </svg>

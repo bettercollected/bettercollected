@@ -8,8 +8,6 @@ import { Button } from '@mui/material';
 
 import AuthAccountProfileImage from '@app/components/auth/account-profile-image';
 import SettingCard from '@app/components/cards/setting-card';
-import { useModal } from '@app/components/modal-views/context';
-import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
 import DashboardLayout from '@app/components/sidebar/dashboard-layout';
 import { buttonConstant } from '@app/constants/locales/button';
 import { localesCommon } from '@app/constants/locales/common';
@@ -19,6 +17,7 @@ import { selectAuth } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { getFullNameFromUser } from '@app/utils/userUtils';
+
 
 export default function AccountSettings(props: any) {
     const { t } = useTranslation();

@@ -11,7 +11,6 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import dayjs, { Dayjs } from 'dayjs';
 import moment from 'moment/moment';
 
-import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
 
 interface IScheduleFormCloseDateModalProps {
     onFormClosedChange: (date: string | moment.Moment) => void;

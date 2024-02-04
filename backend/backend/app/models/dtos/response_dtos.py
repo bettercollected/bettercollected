@@ -4,7 +4,10 @@ from common.models.standard_form import (
     StandardForm,
     StandardFormFieldType,
     FormBuilderTagTypes,
-    StandardFieldAttachment, Condition, ConditionalActions, LogicalOperator,
+    StandardFieldAttachment,
+    Condition,
+    ConditionalActions,
+    LogicalOperator,
 )
 from fastapi import UploadFile
 from fastapi_camelcase import CamelModel
@@ -100,6 +103,7 @@ class StandardFormResponseCamelModel(FormResponseDocument, CamelModel):
     form_imported_by: Optional[str]
     consent: Optional[List[ConsentResponseCamelModel]]
     deletion_status: Optional[DeletionRequestStatus]
+    anonymize: Optional[bool]
 
 
 class FormFileResponse(BaseModel):
