@@ -1,5 +1,6 @@
 import asyncio
 import json
+import re
 import traceback
 from random import Random
 from typing import Any, Dict, List, Optional
@@ -9,20 +10,25 @@ from fastapi_mail import ConnectionConfig, MessageSchema, FastMail, MessageType
 from pydantic import EmailStr
 
 from configs.crypto import crypto
+from models.date import GOOGLE_DATETIME_FORMAT
 from wrappers.thread_pool_executor import thread_pool_executor
+
+from googleapiclient.discovery import build
+import google.oauth2.credentials
+from datetime import datetime
 
 
 async def run_action(
-    action: Any,
-    form: Any,
-    response: Any,
-    user_email: Optional[EmailStr] = None,
-    workspace: Optional[str] = None
+        action: Any,
+        form: Any,
+        response: Any,
+        user_email: Optional[EmailStr] = None,
+        workspace: Optional[str] = None
 ):
+    workspace = json.loads(workspace)
     action = json.loads(action)
     form = json.loads(form)
     response = json.loads(response)
-    workspace = json.loads(workspace)
 
     def get_state():
         if response.state and response.state.global_state:
@@ -48,6 +54,16 @@ async def run_action(
         if action_data is not None:
             for item in action_data:
                 name, value = process_item(item, key == "secrets")
+                if name is not None:
+                    extra_data[name] = value
+
+        # process workspace data
+        a = workspace
+        workspace_data = workspace.get(key, {})
+        if workspace_data is not None:
+            overriding_data = workspace_data.get(action.get("id"), [])
+            for overriding_item in overriding_data:
+                name, value = process_item(overriding_item, key == "secrets")
                 if name is not None:
                     extra_data[name] = value
 
@@ -170,6 +186,54 @@ async def run_action(
                                                            field) if answer_for_field else "&nbsp;"
         return simple_form
 
+    def get_responses_in_array():
+        simple_form = {
+            **form
+        }
+        # this is for integrate-google-sheet and here response might be multiple
+        responses = []
+        form_response_array = []
+        for field in simple_form.get("fields"):
+            if field.get("type") and "input_" in str(field.get("type")):
+                answers = response.get("answers")
+                if answers is not None:
+                    answer_for_field = answers.get(str(field.get("id")))
+                    form_response_array.append(get_answer_for_field(answer_for_field,
+                                                                    field) if answer_for_field else "&nbsp;")
+        return form_response_array
+
+    def get_form_question_in_array():
+        simple_form = {
+            **form
+        }
+        fields = simple_form.get("fields")
+        question_list = []
+        for field in fields:
+            if field.get("type") and "input_" in str(field.get("type")):
+                question_field = get_previous_field(field.get("id"), fields)
+                if question_field:
+                    question_value = question_field.get("value", "")
+                    if '{{' in question_value:
+                        question_value = get_question_value(question_value, fields)[:40]
+                    question_list.append(question_value)
+        return question_list
+
+    def get_question_value(question_value, fields):
+        pattern = r"\b[a-f\d]{8}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{12}\b"
+        ids = re.findall(pattern, question_value)
+        for field_id in ids:
+            previous_field_value = get_previous_field(field_id, fields)['value']
+            if '{{' in previous_field_value:
+                previous_field_value = get_question_value(previous_field_value, fields)
+            question_value = question_value.replace('{{ ', '@').replace('}}', '').replace(field_id,
+                                                                                          previous_field_value)
+        return question_value
+
+    def get_previous_field(field_id, fields):
+        for index, field in enumerate(fields):
+            if field['id'] == field_id:
+                return fields[index - 1] if fields[index - 1] else None
+
     def send_mail_action(config, subject, recipient: List[str], creator_mail: Optional[bool] = False):
         mail_config = config
 
@@ -182,6 +246,58 @@ async def run_action(
         fast_mail = FastMail(mail_config)
         asyncio.run(fast_mail.send_message(message, template_name="response-mail.html"))
         return "ok"
+
+    def build_google_service(credentials, service_name: str, version: str = "v1"):
+        return build(
+            serviceName=service_name,
+            version=version,
+            credentials=dict_to_credential(credentials),
+        )
+
+    def dict_to_credential(credentials_dict):
+        credentials = google.oauth2.credentials.Credentials(**credentials_dict)
+        expiry = credentials.expiry
+        if isinstance(expiry, datetime):
+            expiry = expiry.strftime(GOOGLE_DATETIME_FORMAT)
+        credentials.expiry = datetime.strptime(expiry, GOOGLE_DATETIME_FORMAT)
+        return credentials
+
+    def create_sheet(credentials):
+        credentials = json.loads(credentials).get("credentials")
+        credentials['scopes'] = credentials.get('scopes').split(' ')[1:]
+        spreadsheet = {"properties": {"title": "Another GoogleSheet"}}
+        google_sheet = (
+            build_google_service(credentials=credentials, service_name="sheets", version="v4")
+            .spreadsheets()
+            .create(body=spreadsheet, fields="spreadsheetId")
+            .execute()
+        )
+        return google_sheet.get("spreadsheetId")
+
+    def append_in_sheet(credentials, question_array, response_array):
+        question = {"values": [question_array]}
+        response_body = {"values": [response_array]}
+        credentials = json.loads(credentials).get("credentials")
+        credentials['scopes'] = credentials.get('scopes').split(' ')[1:]
+        google_sheet_response = (
+            build_google_service(credentials=credentials, service_name="sheets", version="v4")
+            .spreadsheets().values()
+            .append(spreadsheetId='1bGncZAPdGhibPqGkxFlQRQhtu37DaGWNvO7E1tS_n04',
+                    range="Sheet1",
+                    valueInputOption="USER_ENTERED",
+                    body=response_body)
+            .execute()
+        )
+        google_sheet_question = (
+            build_google_service(credentials=credentials, service_name="sheets", version="v4")
+            .spreadsheets().values()
+            .update(spreadsheetId='1bGncZAPdGhibPqGkxFlQRQhtu37DaGWNvO7E1tS_n04',
+                    range=f"A1:{chr(ord('A') + len(question_array))}1",
+                    valueInputOption="USER_ENTERED",
+                    body=question)
+            .execute()
+        )
+        return "Appended"
 
     def send_data_webhook(url: str, params=None, data=None, headers=None):
         if headers is None:
@@ -217,7 +333,13 @@ async def run_action(
                                                          config_mail,
                                                          send_mail_action,
                                                          get_simple_form_response,
-                                                         get_workspace_details
+                                                         get_workspace_details,
+                                                         get_form_question_in_array,
+                                                         get_responses_in_array,
+                                                         create_sheet,
+                                                         build_google_service,
+                                                         dict_to_credential,
+                                                         append_in_sheet
                                                          ), timeout=30)
     return result
 
@@ -236,7 +358,14 @@ def execute_action_code(action_code: str,
                         config_mail,
                         send_mail_action,
                         get_simple_form_response,
-                        get_workspace_details):
+                        get_workspace_details,
+                        get_form_question_in_array,
+                        get_responses_in_array,
+                        create_sheet,
+                        build_google_service,
+                        dict_to_credential,
+                        append_in_sheet
+                        ):
     log_string = []
     status = True
 
@@ -258,6 +387,9 @@ def execute_action_code(action_code: str,
                 "filter": filter,
                 "list": list,
                 "int": int,
+                "print": print,
+                "type": type,
+                "json": json,
                 "log": log,
                 "random": Random,
                 "action_code": action_code,
@@ -274,7 +406,13 @@ def execute_action_code(action_code: str,
                 "config_mail": config_mail,
                 "send_mail_action": send_mail_action,
                 "get_simple_form_response": get_simple_form_response,
-                "get_workspace_details": get_workspace_details
+                "get_workspace_details": get_workspace_details,
+                "get_form_question_in_array": get_form_question_in_array,
+                "get_responses_in_array": get_responses_in_array,
+                "create_sheet": create_sheet,
+                "build_google_service": build_google_service,
+                "dict_to_credential": dict_to_credential,
+                "append_in_sheet": append_in_sheet
             }, {}
         )
     except Exception as e:
