@@ -99,12 +99,13 @@ export default function OtpEmailInput(props: OtpEmailInputPropType) {
         const res = await postSendOtpForCreator(req);
         handleResponseToast(res);
     };
-
     return (
         <form className={` w-full ${isModal ? ' mt-16' : ''}`} onSubmit={isCreator ? handleEmailInputForCreator : handleEmailInputForResponder}>
             <div className="flex flex-col gap-3">
-                <span className="h4 ">{isSignup || isModal ? constants.signUp : constants.welcomeBack}</span>
-                {isModal ? <span className="body4 sm:w-[410px]">{constants.descriptionInModal}</span> : <span className="body4 text-black-800">{isSignup ? constants.signUpToContinue : constants.signInToContinue}</span>}
+                {isCreator && <span className="h4 ">{isSignup || isModal ? constants.signUp : constants.welcomeBack}</span>}
+                {!isCreator && <span className="h4">Verify your Email address</span>}
+
+                {isCreator && <>{isModal ? <span className="body4 sm:w-[410px]">{constants.descriptionInModal}</span> : <span className="body4 text-black-800">{isSignup ? constants.signUpToContinue : constants.signInToContinue}</span>}</>}
             </div>
             {providers.length > 0 && (
                 <>
@@ -116,7 +117,7 @@ export default function OtpEmailInput(props: OtpEmailInputPropType) {
                         </div>
                     </div>
                     <Divider orientation="horizontal" flexItem className={'body4 !text-black-700 my-10'}>
-                        {constants.orSignInUsing}
+                        {isCreator ? constants.orSignInUsing : 'or verify with email'}
                     </Divider>
                 </>
             )}
