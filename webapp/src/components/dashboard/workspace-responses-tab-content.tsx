@@ -49,7 +49,7 @@ export default function WorkspaceResponsesTabContent({ workspace, deletionReques
     const isCustomDomain = window?.location.host !== environments.CLIENT_DOMAIN;
 
     return (
-        <div className="py-6 px-5 flex gap-6 flex-col md:flex-row">
+        <div className="py-6 md:px-5 flex gap-6 flex-col xl:flex-row">
             {submissions?.length === 0 && (
                 <ZeroElement
                     title={deletionRequests ? t(formConstant.empty.deletionRequest.title) : t(formConstant.emptyDeletionResponseTitle)}
@@ -81,7 +81,7 @@ const SearchBySubmissionNumber = () => {
     const router = useRouter();
     return (
         <div className="pt-2">
-            <div className="w-full flex flex-col items-center justify-center md:w-[367px] px-6 py-8 bg-white rounded-xl">
+            <div className="w-full flex flex-col items-center justify-center xl:w-[367px] px-6 py-8 bg-white rounded-xl">
                 <Image src={'/images/search_submission.png'} height={62} width={77} />
 
                 <div className="mt-4">
