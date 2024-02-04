@@ -117,11 +117,19 @@ class ActionRepository:
             })
 
     async def create_action_in_workspace_from_action(self, workspace_id: PydanticObjectId, action_id: PydanticObjectId,
+                                                     credentials: str = None,
                                                      ):
         workspace_action = await WorkspaceActionsDocument.find_one(
             {"workspace_id": workspace_id, "action_id": action_id})
+        secrets = None
+        if credentials:
+            secrets = [{'name': 'Credentials',
+                        'value': credentials}]
         if workspace_action is None:
-            workspace_action = await WorkspaceActionsDocument(workspace_id=workspace_id, action_id=action_id).save()
+            workspace_action = WorkspaceActionsDocument(workspace_id=workspace_id, action_id=action_id,
+                                                              )
+        workspace_action.secrets = secrets
+        await workspace_action.save()
         return workspace_action
 
     async def create_global_action(self, action: ActionDto, user: User):
