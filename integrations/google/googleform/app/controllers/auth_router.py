@@ -34,3 +34,10 @@ class AuthRoutes(Routable):
             email=email, user_id=user_id
         )
         return "Credentials Deleted Successfully"
+
+    @get("/credentials")
+    async def get_credentials(self, email: EmailStr):
+        credentials = await self.oauth_google_service.get_encrypted_credential_for_user(
+            email=email
+        )
+        return credentials
