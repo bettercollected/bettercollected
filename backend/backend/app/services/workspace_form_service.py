@@ -1,3 +1,4 @@
+import json
 import os
 import random
 import re
@@ -6,7 +7,9 @@ from typing import List
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from beanie import PydanticObjectId
+from common.configs.crypto import Crypto
 from common.constants import MESSAGE_NOT_FOUND
+from common.enums.form_provider import FormProvider
 from common.enums.plan import Plans
 from common.models.form_import import FormImportRequestBody
 from common.models.standard_form import StandardForm, StandardFormResponse, Trigger
@@ -21,6 +24,7 @@ from backend.app.models.dtos.kafka_event_dto import UserEventType
 from backend.app.models.dtos.response_dtos import FormFileResponse, StandardFormCamelModel
 from backend.app.models.workspace import WorkspaceFormSettings, WorkspaceRequestDto
 from backend.app.repositories.workspace_form_repository import WorkspaceFormRepository
+from backend.app.repositories.workspace_repository import WorkspaceRepository
 from backend.app.schedulers.form_schedular import FormSchedular
 from backend.app.schemas.standard_form import FormDocument
 from backend.app.schemas.template import FormTemplateDocument
@@ -41,6 +45,8 @@ from backend.app.services.workspace_user_service import WorkspaceUserService
 from backend.app.utils import AiohttpClient
 from backend.config import settings
 
+crypto = Crypto(settings.auth_settings.AES_HEX_KEY)
+
 
 class WorkspaceFormService:
     def __init__(
@@ -58,7 +64,7 @@ class WorkspaceFormService:
             user_tags_service: UserTagsService,
             temporal_service: TemporalService,
             aws_service: AWSS3Service,
-            action_service: ActionService
+            action_service: ActionService,
     ):
         self.form_provider_service = form_provider_service
         self.plugin_proxy_service = plugin_proxy_service
@@ -472,10 +478,12 @@ class WorkspaceFormService:
         form = await self.form_service.get_form_document_by_id(form_id=str(form_id))
 
         # TODO resolve circular deps for workspace service to get workspace details
-        workspace = await WorkspaceDocument.find_one(WorkspaceDocument.id == workspace_id)
+        # workspace = await WorkspaceDocument.find_one(WorkspaceDocument.id == workspace_id)
+        # workspace = await self.workspace_repo.get_workspace_with_action_by_id(workspace_id)
         await self.action_service.start_actions_for_submission(form=form,
                                                                response=form_response,
-                                                               workspace=WorkspaceRequestDto(**workspace.dict()))
+                                                               workspace_id=workspace_id,
+                                                               )
         return form_response
 
     async def delete_form_response(
@@ -566,7 +574,7 @@ class WorkspaceFormService:
         if action is None:
             raise HTTPException(status_code=HTTPStatus.NOT_FOUND, content=MESSAGE_NOT_FOUND)
         await self.action_service.create_action_in_workspace_from_action(workspace_id=workspace_id,
-                                                                         action=action)
+                                                                         action=action, user=user)
         updated_form = await self.form_service.add_action_form(form_id=form_id,
                                                                add_action_to_form_params=add_action_to_form_params)
         return updated_form.actions
@@ -585,7 +593,7 @@ class WorkspaceFormService:
 
     async def get_responses_in_csv_format(self, workspace_id: PydanticObjectId, form_id: str, user: User):
         if not settings.api_settings.ENABLE_EXPORT_CSV:
-            raise HTTPException(403,'Service has not been enabled.')
+            raise HTTPException(403, 'Service has not been enabled.')
         await self.check_form_exists_in_workspace(workspace_id=workspace_id, form_id=form_id)
         await self.workspace_user_service.check_user_has_access_in_workspace(workspace_id=workspace_id, user=user)
         responses = await self.form_response_service.get_all_workspace_form_submissions(workspace_id=workspace_id,
@@ -614,3 +622,12 @@ class WorkspaceFormService:
         cleaned_string = cleaned_string.lower()
 
         return cleaned_string
+
+    async def integrate_google_sheets(self, workspace_id: PydanticObjectId, form_id: PydanticObjectId, user: User,
+                                      request: Request):
+        forms = await self.form_service.get_form_document_by_id(str(form_id))
+        provider_url = await self.form_provider_service.get_provider_url(FormProvider.GOOGLE)
+        fetch_credential_url = f"{provider_url}/{FormProvider.GOOGLE}/forms/integrate/google-sheets"
+        user_credentials = await self.plugin_proxy_service.pass_request(request, fetch_credential_url,
+                                                                        extra_params={'email': user.sub})
+        return user_credentials
