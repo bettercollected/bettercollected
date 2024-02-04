@@ -1,25 +1,37 @@
-import { useEffect, useState } from 'react';
+import {useEffect, useState} from 'react';
 
-import { useRouter } from 'next/router';
+import {useRouter} from 'next/router';
 
 import AppTextField from '@Components/Common/Input/AppTextField';
 import AppButton from '@Components/Common/Input/Button/AppButton';
-import { ButtonSize, ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
+import {ButtonSize, ButtonVariant} from '@Components/Common/Input/Button/AppButtonProps';
 import HeaderModalWrapper from '@Components/Modals/ModalWrappers/HeaderModalWrapper';
-import { toast } from 'react-toastify';
+import {toast} from 'react-toastify';
 
-import { useModal } from '@app/components/modal-views/context';
-import { useAddActionToFormMutation } from '@app/store/api-actions-api';
-import { selectAuth } from '@app/store/auth/slice';
-import { setForm } from '@app/store/forms/slice';
-import { useAppDispatch, useAppSelector } from '@app/store/hooks';
-import { selectWorkspace } from '@app/store/workspaces/slice';
+import {useModal} from '@app/components/modal-views/context';
+import {useAddActionToFormMutation} from '@app/store/api-actions-api';
+import {selectAuth} from '@app/store/auth/slice';
+import {setForm} from '@app/store/forms/slice';
+import {useAppDispatch, useAppSelector} from '@app/store/hooks';
+import {selectWorkspace} from '@app/store/workspaces/slice';
+import {useVerifyFormTokenMutation} from "@app/store/workspaces/api";
+import FullScreenLoader from "@app/components/ui/fullscreen-loader";
+import GoogleSheetIntegrationErrorView from "@app/components/form-integrations/google-sheet-integration-error-view";
+import MuiSwitch from "@Components/Common/Input/Switch";
 
-export default function AddActionToFormModal({ action, form, ...props }: any) {
-    const { closeModal } = useModal();
+export default function AddActionToFormModal({action, form, ...props}: any) {
+    const {closeModal} = useModal();
     const [addActionToForm] = useAddActionToFormMutation();
+    const [verifyToken, {
+        data: verificationSuccess,
+        isLoading: verificationLoading,
+        error: verificationError
+    }] = useVerifyFormTokenMutation();
 
-    const [parameters, setParameters] = useState<any>({});
+    const initialParam = action?.name === "integrate_google_sheets" ? {
+        'Integrate All Responses': action?.parameters[0]?.value === "true"
+    } : {}
+    const [parameters, setParameters] = useState<any>(initialParam);
     const workspace = useAppSelector(selectWorkspace);
     const router = useRouter();
     const [error, setError] = useState(false);
@@ -28,9 +40,19 @@ export default function AddActionToFormModal({ action, form, ...props }: any) {
 
     useEffect(() => {
         if (action.name === 'creator_copy_mail') {
-            setParameters({ ['Receiving Mail Address']: user.email });
+            setParameters({['Receiving Mail Address']: user.email});
+        } else if (action.name === "integrate_google_sheets") {
+            verifyToken({provider: 'google'});
         }
     }, [action]);
+
+    if (verificationError) {
+        return <GoogleSheetIntegrationErrorView/>
+    }
+    if (verificationLoading) {
+        return <FullScreenLoader/>
+    }
+
     const onAddIntegration = async () => {
         let error = false;
         action?.parameters?.forEach((parameter: any) => {
@@ -58,10 +80,10 @@ export default function AddActionToFormModal({ action, form, ...props }: any) {
         });
         if (response?.data) {
             router.push(router.asPath);
-            toast('Added', { type: 'success' });
+            toast('Added', {type: 'success'});
             closeModal();
         } else if (response?.error) {
-            toast('Error', { type: 'error' });
+            toast('Error', {type: 'error'});
         }
         setError(error);
     };
@@ -75,18 +97,27 @@ export default function AddActionToFormModal({ action, form, ...props }: any) {
                     <>
                         <div className="text-black-800 w-full">Params required to add action:</div>
                         {action?.parameters?.map((parameter: any, index: number) =>
-                            parameter?.required ? (
-                                <div key={index} className="flex flex-col mt-3  w-full items-start gap-2">
+                            parameter?.required ? action?.name === "integrate_google_sheets" ?
+                                <div className={'flex mt-3 w-full justify-between'}>
                                     <div className="text-sm font-bold">{parameter.name}</div>
-                                    <AppTextField
-                                        className="w-full"
-                                        value={parameters[parameter.name]}
-                                        onChange={(event) => {
-                                            setParameters({ ...parameters, [parameter.name]: event.target.value });
+                                    <MuiSwitch
+                                        checked={parameters['Integrate All Responses']}
+                                        onChange={(event, checked) => {
+                                            setParameters({...parameters, [parameter.name]: checked});
                                         }}
                                     />
-                                </div>
-                            ) : (
+                                </div> : (
+                                    <div key={index} className="flex flex-col mt-3  w-full items-start gap-2">
+                                        <div className="text-sm font-bold">{parameter.name}</div>
+                                        <AppTextField
+                                            className="w-full"
+                                            value={parameters[parameter.name]}
+                                            onChange={(event) => {
+                                                setParameters({...parameters, [parameter.name]: event.target.value});
+                                            }}
+                                        />
+                                    </div>
+                                ) : (
                                 <div key={index}></div>
                             )
                         )}
@@ -94,7 +125,8 @@ export default function AddActionToFormModal({ action, form, ...props }: any) {
                     </>
                 )}
 
-                <AppButton className="mt-4" variant={ButtonVariant.Primary} size={ButtonSize.Medium} onClick={onAddIntegration}>
+                <AppButton className="mt-4" variant={ButtonVariant.Primary} size={ButtonSize.Medium}
+                           onClick={onAddIntegration}>
                     Add Integration
                 </AppButton>
             </div>
