@@ -17,6 +17,7 @@ import SelectGroupFullModalView from '@app/components/modal-views/full-screen-mo
 import ScheduleFormCloseDateModal from '@app/components/modal-views/modals/schedule-form-close-date-modal';
 import { Dialog } from '@app/components/ui/dialog';
 
+
 const renderModalContent = (view: BOTTOM_SCREEN_MODALS, modalProps: any) => {
     switch (view) {
         case 'WORKSPACE_SETTINGS':

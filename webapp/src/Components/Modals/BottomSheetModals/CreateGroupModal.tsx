@@ -15,7 +15,6 @@ import GroupMember from '@app/components/group/group-member';
 import { useModal } from '@app/components/modal-views/context';
 import { buttonConstant } from '@app/constants/locales/button';
 import { groupConstant } from '@app/constants/locales/group';
-import { members } from '@app/constants/locales/members';
 import { toastMessage } from '@app/constants/locales/toast-message';
 import { ToastId } from '@app/constants/toastId';
 import { GroupInfoDto } from '@app/models/dtos/groups';
@@ -24,6 +23,7 @@ import { handleRegexType } from '@app/models/enums/groupRegex';
 import { useAppSelector } from '@app/store/hooks';
 import { useCreateRespondersGroupMutation } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
+
 
 export default function CreateGroupModal() {
     const router = useRouter();

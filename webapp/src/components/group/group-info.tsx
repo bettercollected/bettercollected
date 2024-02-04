@@ -11,6 +11,7 @@ import { GroupInfoDto } from '@app/models/dtos/groups';
 import { selectIsAdmin } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 
+
 interface IGroupInfoProps {
     handleInput: (e: any) => void;
     groupInfo: GroupInfoDto;

@@ -25,36 +25,35 @@ export default function FormsAndSubmissionsTabContainer({ showResponseBar, works
             icon: <FormIcon />,
             title: t(localesCommon.forms),
             path: 'forms'
+        },
+        {
+            icon: <HistoryIcon className="w-5 h-5" />,
+            title: t(formConstant.submittedForms),
+            path: 'my-submissions'
         }
     ];
 
-    if (!showResponseBar && paramTabs.length === 1) {
-        paramTabs.push({
-            icon: <HistoryIcon className="w-5 h-5" />,
-            title: t(formConstant.submittedForms),
-            path: 'mySubmissions'
-        });
+    if (showResponseBar) {
         paramTabs.push({
             icon: <TrashIcon className="w-5 h-5" />,
             title: t(formConstant.deletionRequests),
             path: 'deletion-requests'
         });
-    } else if (showResponseBar && paramTabs.length === 3) {
-        paramTabs.pop();
-        paramTabs.pop();
     }
 
     return (
-        <ParamTab className="pb-[28px]  !mb-0 px-5 lg:px-10 xl:px-20" tabMenu={paramTabs}>
+        <ParamTab className="pb-2 lg:!pt-0 !mb-0 md:px-5" tabMenu={paramTabs}>
             <TabPanel className="focus:outline-none" key="forms">
                 <WorkspaceFormsTabContent isFormCreator={isFormCreator} workspace={workspace} />
             </TabPanel>
-            <TabPanel className="focus:outline-none" key="mySubmissions">
+            <TabPanel className="focus:outline-none" key="my-submissions">
                 <WorkspaceResponsesTabContent workspace={workspace} />
             </TabPanel>
-            <TabPanel className="focus:outline-none" key="deletion-requests">
-                <WorkspaceResponsesTabContent workspace={workspace} deletionRequests />
-            </TabPanel>
+            {showResponseBar && (
+                <TabPanel className="focus:outline-none" key="deletion-requests">
+                    <WorkspaceResponsesTabContent workspace={workspace} deletionRequests />
+                </TabPanel>
+            )}
         </ParamTab>
     );
 }

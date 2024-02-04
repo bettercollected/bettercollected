@@ -7,6 +7,7 @@ import { List, ListItem, ListItemButton, ListItemIcon, SxProps, Theme } from '@m
 import { INavbarItem } from '@app/models/props/navbar';
 import { isValidRelativeURL } from '@app/utils/urlUtils';
 
+
 interface INavigationListProps {
     navigationList: Array<INavbarItem>;
     className?: string;

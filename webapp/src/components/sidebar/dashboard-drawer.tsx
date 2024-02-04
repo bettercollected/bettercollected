@@ -25,6 +25,7 @@ import { JOYRIDE_CLASS } from '@app/store/tours/types';
 import { useGetWorkspaceStatsQuery } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 
+
 DashboardDrawer.defaultProps = {
     drawerWidth: 289,
     mobileOpen: false

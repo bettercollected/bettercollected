@@ -16,4 +16,5 @@ export interface UserStatus {
     isAdmin?: boolean;
     isLoading?: boolean;
     tags?: Array<string>;
+    is401?: boolean;
 }

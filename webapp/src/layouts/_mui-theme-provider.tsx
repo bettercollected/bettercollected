@@ -13,6 +13,7 @@ import { ThemeProvider } from '@mui/material';
 
 import { darkTheme, lightTheme } from '@app/configs/muiTheme';
 
+
 interface MuiThemeProviderProps {
     children: ReactNode;
 }

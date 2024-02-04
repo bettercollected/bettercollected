@@ -57,15 +57,20 @@ class StripeService:
             downgrade = json_response.get("downgrade")
             upgrade = json_response.get("upgrade")
             if downgrade:
-                await event_logger_service.send_event(event_type=UserEventType.USER_DOWNGRADED, user_id=user.get("_id"),
-                                                      email=user.get("email"))
+                await event_logger_service.send_event(
+                    event_type=UserEventType.USER_DOWNGRADED,
+                    user_id=user.get("_id"),
+                    email=user.get("email"),
+                )
                 await self.workspace_service.downgrade_user_workspace(
                     user_id=user.get("_id")
                 )
             if upgrade:
-                await event_logger_service.send_event(event_type=UserEventType.USER_UPGRADED_TO_PRO,
-                                                      user_id=user.get("_id"),
-                                                      email=user.get("email"))
+                await event_logger_service.send_event(
+                    event_type=UserEventType.USER_UPGRADED_TO_PRO,
+                    user_id=user.get("_id"),
+                    email=user.get("email"),
+                )
                 await self.workspace_service.upgrade_user_workspace(
                     user_id=user.get("_id")
                 )

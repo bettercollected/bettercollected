@@ -6,10 +6,10 @@ import Delete from '@Components/Common/Icons/Common/Delete';
 import MenuDropdown from '@Components/Common/Navigation/MenuDropdown/MenuDropdown';
 import { MoreHoriz } from '@mui/icons-material';
 import { MenuItem } from '@mui/material';
-import { useSelector } from 'react-redux';
 
 import { localesCommon } from '@app/constants/locales/common';
 import { toolTipConstant } from '@app/constants/locales/tooltip';
+
 
 export default function DeleteDropDown({ onDropDownItemClick, className, label }: { onDropDownItemClick: (event?: any) => void; className?: string; label?: string }) {
     const { t } = useTranslation();

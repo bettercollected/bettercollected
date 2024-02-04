@@ -3,6 +3,7 @@ import { fetchBaseQuery } from '@reduxjs/toolkit/query';
 
 import environments from '@app/configs/environments';
 
+
 const COUPON_REDUCER_PATH = 'couponApi';
 export const couponCodeApi = createApi({
     reducerPath: COUPON_REDUCER_PATH,

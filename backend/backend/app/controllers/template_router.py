@@ -17,8 +17,13 @@ from backend.app.models.template import (
 )
 from backend.app.router import router
 from backend.app.services.template_service import FormTemplateService
-from backend.app.services.user_service import get_logged_user, get_user_if_logged_in, get_api_key, get_access_token, \
-    get_refresh_token
+from backend.app.services.user_service import (
+    get_logged_user,
+    get_user_if_logged_in,
+    get_api_key,
+    get_access_token,
+    get_refresh_token,
+)
 from backend.app.services.workspace_form_service import WorkspaceFormService
 
 
@@ -71,7 +76,7 @@ class FormTemplateRouter(Routable):
         self,
         template_id: PydanticObjectId,
         preview_image: UploadFile = None,
-        api_key=Depends(get_api_key)
+        api_key=Depends(get_api_key),
     ):
         response = await self.form_template_service.update_template_preview(
             template_id=template_id,
@@ -90,7 +95,11 @@ class FormTemplateRouter(Routable):
     ):
         user_tokens = UserTokens(access_token=access_token, refresh_token=refresh_token)
         response = await self.workspace_form_service.duplicate_form(
-            workspace_id=workspace_id, form_id=form_id, is_template=True, user=user, user_tokens=user_tokens
+            workspace_id=workspace_id,
+            form_id=form_id,
+            is_template=True,
+            user=user,
+            user_tokens=user_tokens,
         )
         return StandardFormTemplateResponse(**response.dict())
 
@@ -132,7 +141,8 @@ class FormTemplateRouter(Routable):
         return StandardFormTemplateCamelModel(**response.dict())
 
     @post(
-        "/workspaces/{workspace_id}/template/{template_id}", response_model=FormDtoCamelModel
+        "/workspaces/{workspace_id}/template/{template_id}",
+        response_model=FormDtoCamelModel,
     )
     async def create_form_from_template(
         self,
@@ -168,7 +178,9 @@ class FormTemplateRouter(Routable):
             template_body=StandardFormTemplateCamelModel(**template),
             logo=logo,
             cover_image=cover_image,
-            user_tokens=UserTokens(access_token=access_token, refresh_token=refresh_token)
+            user_tokens=UserTokens(
+                access_token=access_token, refresh_token=refresh_token
+            ),
         )
         return response
 

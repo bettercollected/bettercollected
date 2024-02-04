@@ -47,7 +47,7 @@ export default function CropImageModalView({ profileEditorRef, uploadImage, clos
                     >
                         {t(buttonConstant.saveImage)}
                     </AppButton>
-                    <AppButton  disabled={isLoading} variant={ButtonVariant.Secondary}  className="w-full" onClick={closeModal}>
+                    <AppButton disabled={isLoading} variant={ButtonVariant.Secondary} className="w-full" onClick={closeModal}>
                         {t(buttonConstant.cancel)}
                     </AppButton>
                 </div>

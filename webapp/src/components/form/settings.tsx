@@ -6,6 +6,7 @@ import FormSettingsTab from '@app/components/dashboard/form-settings';
 import { localesCommon } from '@app/constants/locales/common';
 import { formPage } from '@app/constants/locales/form-page';
 
+
 export default function FormSettings() {
     const { t } = useTranslation();
     return (

@@ -16,6 +16,7 @@ import { setFormSettings } from '@app/store/forms/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { usePatchFormSettingsMutation } from '@app/store/workspaces/api';
 
+
 interface IFormSlugProps extends IFormCreateSlugFullModalViewProps {
     onSave: () => void;
 }

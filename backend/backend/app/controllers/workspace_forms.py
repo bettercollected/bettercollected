@@ -17,10 +17,6 @@ from backend.app.container import container
 from backend.app.decorators.user_tag_decorators import user_tag
 from backend.app.exceptions import HTTPException
 from backend.app.models.dtos.action_dto import AddActionToFormDto, UpdateActionInFormDto
-from backend.app.models.dtos.worksapce_form_dto import GroupsDto
-from backend.app.models.enum.FormVersion import FormVersion
-from backend.app.models.enum.user_tag_enum import UserTagType
-from backend.app.models.filter_queries.sort import SortRequest
 from backend.app.models.dtos.minified_form import FormDtoCamelModel
 from backend.app.models.dtos.response_dtos import (
     WorkspaceFormPatchResponse,
@@ -29,6 +25,10 @@ from backend.app.models.dtos.response_dtos import (
     FormFileResponse,
 )
 from backend.app.models.dtos.settings_patch import SettingsPatchDto
+from backend.app.models.dtos.worksapce_form_dto import GroupsDto
+from backend.app.models.enum.FormVersion import FormVersion
+from backend.app.models.enum.user_tag_enum import UserTagType
+from backend.app.models.filter_queries.sort import SortRequest
 from backend.app.router import router
 from backend.app.services.form_service import FormService
 from backend.app.services.temporal_service import TemporalService
@@ -238,13 +238,43 @@ class WorkspaceFormsRouter(Routable):
             response=parsed_response,
             form_files=form_files,
             user=user,
+            anonymize=parsed_response.anonymize,
         )
         if parsed_response.expiration_type not in [ResponseRetentionType.FOREVER, None]:
             await self._temporal_service.add_scheduled_job_for_deleting_response(
                 response=response
             )
             logger.info("Add job for deletion response: " + response.response_id)
-        return response.response_id
+        return response.submission_uuid
+
+    @patch("/{form_id}/response/{response_id}")
+    async def patch_form_response(self,
+                                  workspace_id: PydanticObjectId,
+                                  form_id: PydanticObjectId,
+                                  response_id: PydanticObjectId,
+                                  files: list[UploadFile] = None,
+                                  file_field_ids: list[str] = Form(None),
+                                  file_ids: list[str] = Form(None),
+                                  response: str = Form(None),
+                                  user: User = Depends(get_logged_user)):
+        if not settings.api_settings.ENABLE_FORM_CREATION:
+            raise HTTPException(status_code=HTTPStatus.SERVICE_UNAVAILABLE)
+
+        form_files = None
+        if files and file_field_ids and file_ids:
+            form_files = [
+                FormFileResponse(
+                    file_id=file_id,
+                    field_id=field_id,
+                    filename=file.filename,
+                    file=file,
+                )
+                for file_id, field_id, file in zip(file_ids, file_field_ids, files)
+            ]
+        parsed_response = StandardFormResponseCamelModel(**json.loads(response))
+        return await self.workspace_form_service.patch_response(workspace_id=workspace_id, form_id=form_id,
+                                                                response_id=response_id, form_files=form_files,
+                                                                response=parsed_response, user=user)
 
     @delete(
         "/{form_id}/response/{response_id}",
@@ -290,7 +320,7 @@ class WorkspaceFormsRouter(Routable):
         workspace = await self.workspace_form_service.get_form_workspace_by_id(
             workspace_id
         )
-        if not workspace.is_pro and settings.disableBranding is not None:
+        if not workspace.is_pro and settings.disable_branding is not None:
             return HTTPException(403, "You are forbidden to perform this action")
 
         data = await self._form_service.patch_settings_in_workspace_form(
@@ -362,36 +392,62 @@ class WorkspaceFormsRouter(Routable):
         )
 
     @post("/{form_id}/actions")
-    async def _add_action_to_form(self, workspace_id: PydanticObjectId, form_id: PydanticObjectId,
-                                  add_action_to_form_params: AddActionToFormDto,
-                                  user: User = Depends(get_logged_user)):
-        return await self.workspace_form_service.add_action_to_form(workspace_id=workspace_id, form_id=form_id,
-                                                                    add_action_to_form_params=add_action_to_form_params,
-                                                                    user=user)
+    async def _add_action_to_form(
+            self,
+            workspace_id: PydanticObjectId,
+            form_id: PydanticObjectId,
+            add_action_to_form_params: AddActionToFormDto,
+            user: User = Depends(get_logged_user),
+    ):
+        return await self.workspace_form_service.add_action_to_form(
+            workspace_id=workspace_id,
+            form_id=form_id,
+            add_action_to_form_params=add_action_to_form_params,
+            user=user,
+        )
 
     @patch("/{form_id}/actions")
-    async def update_form_actions(self, workspace_id: PydanticObjectId, form_id: PydanticObjectId,
-                                  update_action_dto: UpdateActionInFormDto,
-                                  user: User = Depends(get_logged_user)):
-        await self.workspace_form_service.update_action_status_in_form(workspace_id=workspace_id, form_id=form_id,
-                                                                       update_action_dto=update_action_dto, user=user)
+    async def update_form_actions(
+            self,
+            workspace_id: PydanticObjectId,
+            form_id: PydanticObjectId,
+            update_action_dto: UpdateActionInFormDto,
+            user: User = Depends(get_logged_user),
+    ):
+        await self.workspace_form_service.update_action_status_in_form(
+            workspace_id=workspace_id,
+            form_id=form_id,
+            update_action_dto=update_action_dto,
+            user=user,
+        )
         return "Updated"
 
     @delete("/{form_id}/actions/{action_id}")
-    async def _remove_action_from_form(self, workspace_id: PydanticObjectId, action_id: PydanticObjectId,
-                                       form_id: PydanticObjectId, trigger: Trigger = Trigger.on_submit,
-                                       user: User = Depends(get_logged_user)):
-        updated_actions = await self.workspace_form_service.remove_action_from_form(workspace_id=workspace_id,
-                                                                                    form_id=form_id,
-                                                                                    action_id=action_id,
-                                                                                    trigger=trigger,
-                                                                                    user=user)
+    async def _remove_action_from_form(
+            self,
+            workspace_id: PydanticObjectId,
+            action_id: PydanticObjectId,
+            form_id: PydanticObjectId,
+            trigger: Trigger = Trigger.on_submit,
+            user: User = Depends(get_logged_user),
+    ):
+        updated_actions = await self.workspace_form_service.remove_action_from_form(
+            workspace_id=workspace_id,
+            form_id=form_id,
+            action_id=action_id,
+            trigger=trigger,
+            user=user,
+        )
         return updated_actions
 
-    @get('/{form_id}/export-csv')
-    async def export_csv_of_responses(self, workspace_id: PydanticObjectId, form_id: PydanticObjectId,
-                                      user: User = Depends(get_logged_user)):
-        responses = await self.workspace_form_service.get_responses_in_csv_format(workspace_id=workspace_id,
-                                                                                  form_id=str(form_id),
-                                                                                  user=user)
+    @get("/{form_id}/export-csv")
+    async def export_csv_of_responses(
+            self,
+            workspace_id: PydanticObjectId,
+            form_id: PydanticObjectId,
+            user: User = Depends(get_logged_user),
+    ):
+        responses = await self.workspace_form_service.get_responses_in_csv_format(
+            workspace_id=workspace_id, form_id=str(form_id), user=user
+        )
         return responses

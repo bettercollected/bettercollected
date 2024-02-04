@@ -13,6 +13,7 @@ import { toastMessage } from '@app/constants/locales/toast-message';
 
 
 type SizeNames = 'large' | 'small';
+
 interface Props {
     url: string;
     title?: string;

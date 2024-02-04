@@ -5,6 +5,7 @@ import { Features } from '@app/constants/locales/feature';
 import { selectIsProPlan } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 
+
 interface IProPlanHoc {
     children: ReactNode;
     hideChildrenIfPro?: boolean;

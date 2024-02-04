@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 
+
 /**
  * Custom hook to close the dropdown when clicked outside of the dropdown div
  * @param ref

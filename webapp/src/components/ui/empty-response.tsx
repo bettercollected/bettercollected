@@ -8,6 +8,7 @@ interface IEmptyResponseProps {
     title: string;
     description: string;
 }
+
 export default function EmptyResponse({ title, description }: IEmptyResponseProps) {
     const { t } = useTranslation();
     return (

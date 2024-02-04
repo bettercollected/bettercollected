@@ -17,6 +17,7 @@ import { selectWorkspace } from '@app/store/workspaces/slice';
 
 import { useModal } from '../context';
 
+
 export type ConsentPurposeModalMode = 'add' | 'update' | 'create';
 
 export interface ConsentPurposeModalProps {

@@ -3,7 +3,6 @@ import React, { useCallback, useEffect } from 'react';
 import { uuidv4 } from '@mswjs/interceptors/lib/utils/uuid';
 import { batch } from 'react-redux';
 import { toast } from 'react-toastify';
-import { v4 } from 'uuid';
 
 import { useModal } from '@app/components/modal-views/context';
 import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';

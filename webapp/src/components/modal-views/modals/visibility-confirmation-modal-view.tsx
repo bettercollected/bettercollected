@@ -9,6 +9,7 @@ import ModalButton from '@Components/Common/Input/Button/ModalButton';
 import { Close } from '@app/components/icons/close';
 import { useModal } from '@app/components/modal-views/context';
 
+
 interface IVisibilityConfirmationModalViewProps {
     visibilityType: string;
     handleOnConfirm: () => void;

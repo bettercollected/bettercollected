@@ -8,16 +8,14 @@ import { ButtonSize, ButtonVariant } from '@Components/Common/Input/Button/AppBu
 import UploadLogo from '@Components/Common/UploadLogo';
 import { toast } from 'react-toastify';
 
-import ProfileImageComponent from '@app/components/dashboard/profile-image';
-import { useModal } from '@app/components/modal-views/context';
 import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
 import { placeHolder } from '@app/constants/locales/placeholder';
 import { toastMessage } from '@app/constants/locales/toast-message';
-import { workspaceConstant } from '@app/constants/locales/workspace';
 import { ToastId } from '@app/constants/toastId';
 import { useAppDispatch } from '@app/store/hooks';
 import { usePatchExistingWorkspaceMutation } from '@app/store/workspaces/api';
 import { setWorkspace } from '@app/store/workspaces/slice';
+
 
 export default function WorkspaceInfo({ workspace }: any) {
     const dispatch = useAppDispatch();

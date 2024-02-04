@@ -18,9 +18,12 @@ from backend.config import settings
 
 
 class CouponService:
-
-    def __init__(self, coupon_repository: CouponRepository, auth_service: AuthService,
-                 workspace_service: WorkspaceService):
+    def __init__(
+        self,
+        coupon_repository: CouponRepository,
+        auth_service: AuthService,
+        workspace_service: WorkspaceService,
+    ):
         self.coupon_repository = coupon_repository
         self.auth_service: AuthService = auth_service
         self.workspace_service: WorkspaceService = workspace_service
@@ -35,18 +38,31 @@ class CouponService:
     async def redeem_coupon(self, coupon_code: CouponCode, user: User):
 
         if user.plan == Plans.PRO:
-            raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, content="Already a PRO user")
-        coupon_document = await self.coupon_repository.get_coupon_by_code(coupon_code=coupon_code)
+            raise HTTPException(
+                status_code=HTTPStatus.BAD_REQUEST, content="Already a PRO user"
+            )
+        coupon_document = await self.coupon_repository.get_coupon_by_code(
+            coupon_code=coupon_code
+        )
         if coupon_document.status != CouponStatus.ACTIVE:
-            raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, content="Invalid coupon code")
-        if coupon_document.created_at + timedelta(
-            days=settings.coupon_settings.EXPIRY_IN_DAYS) < datetime.datetime.utcnow():
+            raise HTTPException(
+                status_code=HTTPStatus.BAD_REQUEST, content="Invalid coupon code"
+            )
+        if (
+            coupon_document.created_at
+            + timedelta(days=settings.coupon_settings.EXPIRY_IN_DAYS)
+            < datetime.datetime.utcnow()
+        ):
             coupon_document.status = CouponStatus.EXPIRED
             await coupon_document.save()
-            raise HTTPException(status_code=HTTPStatus.GONE, content="Coupon Code has been expired")
+            raise HTTPException(
+                status_code=HTTPStatus.GONE, content="Coupon Code has been expired"
+            )
         await self.auth_service.upgrade_user_to_pro(user=user)
         await self.workspace_service.upgrade_user_workspace(user_id=user.id)
-        await event_logger_service.send_event(UserEventType.USER_UPGRADED_TO_PRO, user_id=user.id, email=user.sub)
+        await event_logger_service.send_event(
+            UserEventType.USER_UPGRADED_TO_PRO, user_id=user.id, email=user.sub
+        )
         coupon_document.status = CouponStatus.USED
         coupon_document.used_by = user.sub
         coupon_document.activated_at = datetime.datetime.utcnow()

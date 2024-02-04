@@ -2,11 +2,12 @@ import os
 import random
 import re
 from http import HTTPStatus
-from typing import List
+from typing import List, Optional, Any
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from beanie import PydanticObjectId
-from common.constants import MESSAGE_NOT_FOUND
+from common.configs.crypto import Crypto
+from common.constants import MESSAGE_NOT_FOUND, MESSAGE_FORBIDDEN
 from common.enums.plan import Plans
 from common.models.form_import import FormImportRequestBody
 from common.models.standard_form import StandardForm, StandardFormResponse, Trigger
@@ -18,7 +19,8 @@ from backend.app.exceptions import HTTPException
 from backend.app.models.dataclasses.user_tokens import UserTokens
 from backend.app.models.dtos.action_dto import AddActionToFormDto, UpdateActionInFormDto
 from backend.app.models.dtos.kafka_event_dto import UserEventType
-from backend.app.models.dtos.response_dtos import FormFileResponse, StandardFormCamelModel
+from backend.app.models.dtos.response_dtos import FormFileResponse, StandardFormCamelModel, \
+    StandardFormResponseCamelModel
 from backend.app.models.workspace import WorkspaceFormSettings, WorkspaceRequestDto
 from backend.app.repositories.workspace_form_repository import WorkspaceFormRepository
 from backend.app.schedulers.form_schedular import FormSchedular
@@ -39,6 +41,7 @@ from backend.app.services.temporal_service import TemporalService
 from backend.app.services.user_tags_service import UserTagsService
 from backend.app.services.workspace_user_service import WorkspaceUserService
 from backend.app.utils import AiohttpClient
+from backend.app.utils.hash import hash_string
 from backend.config import settings
 
 
@@ -58,7 +61,8 @@ class WorkspaceFormService:
             user_tags_service: UserTagsService,
             temporal_service: TemporalService,
             aws_service: AWSS3Service,
-            action_service: ActionService
+            action_service: ActionService,
+            crypto: Crypto
     ):
         self.form_provider_service = form_provider_service
         self.plugin_proxy_service = plugin_proxy_service
@@ -74,6 +78,7 @@ class WorkspaceFormService:
         self.temporal_service = temporal_service
         self._aws_service = aws_service
         self.action_service = action_service
+        self.crypto = crypto
 
     async def check_form_exists_in_workspace(self, workspace_id: PydanticObjectId, form_id: str):
         if not await self.workspace_form_repository.check_if_form_exists_in_workspace(workspace_id=workspace_id,
@@ -286,28 +291,6 @@ class WorkspaceFormService:
             self,
             key: str,
     ):
-        # await self.workspace_user_service.check_is_admin_in_workspace(
-        #     workspace_id=workspace_id, user=user
-        # )
-        #
-        # response = await FormResponseDocument.find_one({"response_id": response_id})
-        # form = await FormDocument.find_one({"form_id": form_id})
-        # workspace_form = await WorkspaceFormDocument.find_one(
-        #     {
-        #         "workspace_id": workspace_id,
-        #         "form_id": form.form_id,
-        #     }
-        # )
-        #
-        # if not workspace_form:
-        #     raise HTTPException(404, "Form not found in this workspace")
-        #
-        # if not response:
-        #     raise HTTPException(404, "Response not found in this workspace")
-        #
-        # if not response.dataOwnerIdentifier == user.sub:
-        #     raise HTTPException(403, "You are not authorized to perform this action.")
-
         return self._aws_service.generate_presigned_url(key)
 
     async def create_form(
@@ -433,6 +416,39 @@ class WorkspaceFormService:
             response.answers[form_file.field_id].file_metadata.url = ""
         return response
 
+    async def patch_response(self, workspace_id: PydanticObjectId, form_id: PydanticObjectId,
+                             response_id: PydanticObjectId,
+                             form_files: Optional[Any], response: StandardFormResponseCamelModel, user: User):
+        if form_files:
+            response = await self.upload_files_to_s3_and_update_url(
+                form_files=form_files,
+                response=response
+            )
+        workspace_forms = (
+            await self.workspace_form_repository.get_workspace_forms_in_workspace(
+                workspace_id=workspace_id,
+                is_not_admin=True,
+                user=user,
+                match_query={"form_id": str(form_id)}
+            )
+        )
+
+        if not workspace_forms or len(workspace_forms) == 0:
+            raise HTTPException(
+                status_code=HTTPStatus.NOT_FOUND, content="Form not found"
+            )
+
+        workspace_form = workspace_forms[0]
+        workspace_form = WorkspaceFormDocument(**workspace_form)
+
+        if not workspace_form.settings.require_verified_identity or not workspace_form.settings.allow_editing_response:
+            raise HTTPException(HTTPStatus.FORBIDDEN, content=MESSAGE_FORBIDDEN)
+
+        form_response = await self.form_response_service.patch_form_response(workspace_id=workspace_id, form_id=form_id,
+                                                                             response_id=response_id, response=response, user=user)
+
+        return form_response.submission_uuid
+
     async def submit_response(
             self,
             workspace_id: PydanticObjectId,
@@ -440,13 +456,14 @@ class WorkspaceFormService:
             response: StandardFormResponse,
             user: User,
             form_files: list[FormFileResponse] = None,
+            anonymize: bool = False
     ):
         if form_files:
             response = await self.upload_files_to_s3_and_update_url(
                 form_files, response
             )
-        workspace_form_ids = (
-            await self.workspace_form_repository.get_form_ids_in_workspace(
+        workspace_forms = (
+            await self.workspace_form_repository.get_workspace_forms_in_workspace(
                 workspace_id=workspace_id,
                 is_not_admin=True,
                 user=user,
@@ -458,12 +475,24 @@ class WorkspaceFormService:
                 },
             )
         )
-        if not workspace_form_ids:
+        if not workspace_forms or len(workspace_forms) == 0:
             raise HTTPException(
                 status_code=HTTPStatus.NOT_FOUND, content="Form not found"
             )
-        if not response.dataOwnerIdentifier and user:
-            response.dataOwnerIdentifier = user.sub
+
+        workspace_form = workspace_forms[0]
+        workspace_form = WorkspaceFormDocument(**workspace_form)
+
+        if user:
+            response.dataOwnerIdentifier = user.sub if not anonymize else ""
+
+        identifier = user.sub if user else response.dataOwnerIdentifier
+
+        if anonymize and identifier:
+            response.anonymous_identity = hash_string(user.sub)
+
+        if workspace_form.settings.require_verified_identity and not user:
+            raise HTTPException(HTTPStatus.UNAUTHORIZED, content="Sign in to fill this form.")
 
         form_response = await self.form_response_service.submit_form_response(
             form_id=form_id, response=response, workspace_id=workspace_id

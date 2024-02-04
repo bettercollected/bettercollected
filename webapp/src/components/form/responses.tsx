@@ -64,7 +64,7 @@ export default function FormResponses() {
                                 }}
                             >
                                 <ChevronLeft width={24} height={24} />
-                                {t(formPage.responsesBackToResponses)}:
+                                {t(formPage.responsesBackToResponses)}
                             </span>
                         </div>
 

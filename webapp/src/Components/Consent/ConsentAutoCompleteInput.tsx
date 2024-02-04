@@ -12,6 +12,7 @@ import { ConsentCategoryType, ConsentType } from '@app/models/enums/consentEnum'
 import { OnlyClassNameInterface } from '@app/models/interfaces';
 import { IConsentOption } from '@app/models/types/consentTypes';
 
+
 interface ConsentAutoCompleteInputProps extends OnlyClassNameInterface {
     dropdownTitle?: string;
     title?: string;

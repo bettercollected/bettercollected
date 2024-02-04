@@ -2,13 +2,11 @@ import React, { useState } from 'react';
 
 import { GetServerSidePropsContext } from 'next';
 import { useTranslation } from 'next-i18next';
-import { useRouter } from 'next/router';
 
 import AppButton from '@Components/Common/Input/Button/AppButton';
 import { ButtonSize } from '@Components/Common/Input/Button/AppButtonProps';
 
 import AuthAccountProfileImage from '@app/components/auth/account-profile-image';
-import FullScreenLoader from '@app/components/ui/fullscreen-loader';
 import Logo from '@app/components/ui/logo';
 import { localesCommon } from '@app/constants/locales/common';
 import { onBoarding } from '@app/constants/locales/onboarding-screen';
@@ -18,7 +16,7 @@ import { UserStatus } from '@app/models/dtos/UserStatus';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { selectAuth } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
-import { usePatchExistingWorkspaceMutation } from '@app/store/workspaces/api';
+
 
 interface onBoardingProps {
     workspace?: WorkspaceDto;

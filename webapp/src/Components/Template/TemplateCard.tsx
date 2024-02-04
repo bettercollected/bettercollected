@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 
 import { useTranslation } from 'next-i18next';
 import Image from 'next/image';
@@ -11,11 +11,10 @@ import MenuDropdown from '@Components/Common/Navigation/MenuDropdown/MenuDropdow
 import { useBottomSheetModal } from '@Components/Modals/Contexts/BottomSheetModalContext';
 import { CircularProgress, ListItemIcon, MenuItem } from '@mui/material';
 
-import { useModal } from '@app/components/modal-views/context';
-import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
 import { IFormTemplateDto } from '@app/models/dtos/template';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
+
 
 interface ITemplateCardProps {
     template: IFormTemplateDto;
