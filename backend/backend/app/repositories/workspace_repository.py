@@ -23,7 +23,7 @@ class WorkspaceRepository(BaseRepository):
         pass
 
     async def update(
-        self, item_id: PydanticObjectId, item: WorkspaceDocument
+            self, item_id: PydanticObjectId, item: WorkspaceDocument
     ) -> WorkspaceDocument:
         document = await WorkspaceDocument.find_one(WorkspaceDocument.id == item_id)
         if document:
@@ -32,7 +32,7 @@ class WorkspaceRepository(BaseRepository):
             raise HTTPException(HTTPStatus.NOT_FOUND, "Workspace not found")
 
     async def get_workspace_by_id(
-        self, workspace_id: PydanticObjectId
+            self, workspace_id: PydanticObjectId
     ) -> WorkspaceDocument:
         workspace = await WorkspaceDocument.find_one(
             WorkspaceDocument.id == workspace_id
@@ -74,9 +74,41 @@ class WorkspaceRepository(BaseRepository):
         return await WorkspaceDocument.find({"_id": {"$in": workspace_ids}}).to_list()
 
     async def get_default_workspace_by_owner_id(
-        self, owner_id: str
+            self, owner_id: str
     ) -> WorkspaceDocument:
         return await WorkspaceDocument.find_one({"owner_id": owner_id, "default": True})
 
     async def delete_workspaces_with_ids(self, workspace_ids: List[PydanticObjectId]):
         return await WorkspaceDocument.find({"_id": {"$in": workspace_ids}}).delete()
+
+    async def get_workspace_with_action_by_id(self, workspace_id: PydanticObjectId, action_id: PydanticObjectId):
+        workspaces = await WorkspaceDocument.find({"_id": workspace_id}).aggregate([
+            {
+                "$lookup": {
+                    "from": "workspace_actions",
+                    "localField": "_id",
+                    "foreignField": "workspace_id",
+                    "as": "actions"
+                }
+            },
+            {
+                "$unwind": "$actions"
+            },
+            {
+                "$match": {
+                    "actions.action_id": action_id
+                }
+            },
+            {
+                "$set": {
+                    f"parameters.{action_id}": "$actions.parameters",
+                    f"secrets.{action_id}": "$actions.secrets"
+                }
+            },
+            {
+                "$unset": "actions"
+            }
+        ]).to_list()
+        if len(workspaces) == 0:
+            raise HTTPException(status_code=404, content='Workspace not found')
+        return workspaces[0]
