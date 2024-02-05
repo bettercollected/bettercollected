@@ -68,7 +68,7 @@ export default function Container(props: { workspace: WorkspaceDto; hasCustomDom
                         </div>
                     </div>
                 </div>
-                {!auth.id && (
+                {!auth.id && !auth.isLoading && (
                     <div className="p-6 bg-white rounded-xl mt-6 flex flex-col">
                         <div className="h4-new">Check my data</div>
                         <div className="p2-new text-black-600 mt-2">Verify your email address to view all the data associated with you.</div>
