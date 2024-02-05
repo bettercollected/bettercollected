@@ -41,7 +41,7 @@ export default function Container(props: { workspace: WorkspaceDto; hasCustomDom
     };
 
     return (
-        <div className={`max-h-screen h-screen !bg-new-white-200 max-w-screen w-screen overflow-auto flex flex-col p-5 lg:p-10 md:flex-row ${!hasCustomDomain ? 'pb-10' : ''}`}>
+        <div className={`max-h-screen h-screen !bg-new-white-200 opacity-100 max-w-screen w-screen overflow-auto flex flex-col p-5 md:p-10 md:flex-row ${!hasCustomDomain ? 'pb-10' : ''}`}>
             <div className="max-w-screen w-full md:max-w-[320px] lg:sticky lg:top-0">
                 <div className="rounded-xl bg-white w-full">
                     {workspace.bannerImage && (
@@ -68,13 +68,13 @@ export default function Container(props: { workspace: WorkspaceDto; hasCustomDom
                         </div>
                     </div>
                 </div>
-                {!auth.id && (
+                {!auth.id && !auth.isLoading && (
                     <div className="p-6 bg-white rounded-xl mt-6 flex flex-col">
                         <div className="h4-new">Check my data</div>
-                        <div className="p2-new text-black-600 mt-2">Sign in with your email to view all the responses associated with that email address.</div>
+                        <div className="p2-new text-black-600 mt-2">Verify your email address to view all the data associated with you.</div>
                         <AppButton
                             className="mt-6"
-                            size={ButtonSize.Medium}
+                            size={ButtonSize.Small}
                             onClick={() => {
                                 router.push({
                                     pathname: '/login',
@@ -86,7 +86,7 @@ export default function Container(props: { workspace: WorkspaceDto; hasCustomDom
                                 });
                             }}
                         >
-                            Sign In
+                            Verify Now
                         </AppButton>
                     </div>
                 )}
@@ -130,7 +130,7 @@ export default function Container(props: { workspace: WorkspaceDto; hasCustomDom
                 )}
 
                 {!hasCustomDomain && (
-                    <div className="bg-white w-full hidden md:flex mt-10 rounded p-4 shadow-powered-by gap-2">
+                    <div className="bg-white w-full hidden md:flex mt-6 rounded p-3 shadow-powered-by gap-2">
                         <span className="body3 text-black-700">Powered by:</span>
                         <Logo showProTag={false} isLink={false} isCustomDomain className="h-[14px] w-fit" />
                     </div>

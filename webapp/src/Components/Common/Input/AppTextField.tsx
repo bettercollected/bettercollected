@@ -5,7 +5,6 @@ import cn from 'classnames';
 
 import useBuilderTranslation from '@app/lib/hooks/use-builder-translation';
 
-
 type AppTextFieldProps = TextFieldProps & {
     title?: string;
     required?: boolean;
@@ -110,7 +109,7 @@ const AppTextField: React.FC<AppTextFieldProps> & {
                             borderColor: isError ? '#EA400E' : '#DBDBDB'
                         },
                         '&:hover fieldset': {
-                            borderColor: isDisabled ? '' : '#343A40'
+                            borderColor: isDisabled ? '' : '#DBDBDB'
                         },
                         '&.Mui-focused fieldset': {
                             borderColor: '#B8E8FF',
