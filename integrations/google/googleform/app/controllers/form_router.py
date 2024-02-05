@@ -94,14 +94,12 @@ class GoogleFormRouter(Routable):
         )
         return await self.oauth_credential_service.verify_token_validity(credential=credential)
 
-    @get("/integrate/google-sheets")
-    async def integrate_google_sheets(self, title: str,
-                                      credential: Oauth2CredentialDocument = Depends(get_user_credential)):
+    @post("/create_google_sheet")
+    async def create_google_sheet(self, title: str,
+                                  credential: Oauth2CredentialDocument = Depends(get_user_credential)):
         credential = await self.oauth_credential_service.verify_oauth_token(
             credential.email
         )
-        responses = [['name', 'age', 'phone'], ['Ram', 23, 909090], ['', 12, 1234]]
-
         task = asyncio.get_event_loop().run_in_executor(
             self.executor,
             self.google_service.create_sheet,
@@ -109,27 +107,19 @@ class GoogleFormRouter(Routable):
             credential.credentials.dict(),
         )
         google_sheet_id = await task
-        write_in_sheet_task = asyncio.get_event_loop().run_in_executor(
-            self.executor,
-            self.google_service.write_in_sheet,
-            google_sheet_id,
-            credential.credentials.dict(),
-            responses
-        )
-        google_sheet = await write_in_sheet_task
-        write_in_sheet_task = asyncio.get_event_loop().run_in_executor(
-            self.executor,
-            self.google_service.write_in_sheet,
-            google_sheet_id,
-            credential.credentials.dict(),
-            responses
-        )
-        google_sheet = await write_in_sheet_task
-        append_task = asyncio.get_event_loop().run_in_executor(
-            self.executor,
-            self.google_service.append_in_sheet,
-            google_sheet_id,
-            credential.credentials.dict()
-        )
-        append_sheet = await append_task
-        return append_sheet
+        # write_in_sheet_task = asyncio.get_event_loop().run_in_executor(
+        #     self.executor,
+        #     self.google_service.write_in_sheet,
+        #     google_sheet_id,
+        #     credential.credentials.dict(),
+        #     responses
+        # )
+        # google_sheet = await write_in_sheet_task
+        # append_task = asyncio.get_event_loop().run_in_executor(
+        #     self.executor,
+        #     self.google_service.append_in_sheet,
+        #     google_sheet_id,
+        #     credential.credentials.dict()
+        # )
+        # append_sheet = await append_task
+        return google_sheet_id
