@@ -274,27 +274,27 @@ async def run_action(
         )
         return google_sheet.get("spreadsheetId")
 
-    def append_in_sheet(credentials, question_array, response_array):
+    def append_in_sheet(google_sheet_id, credentials, question_array, response_array):
         question = {"values": [question_array]}
         response_body = {"values": [response_array]}
         credentials = json.loads(credentials).get("credentials")
         credentials['scopes'] = credentials.get('scopes').split(' ')[1:]
-        google_sheet_response = (
-            build_google_service(credentials=credentials, service_name="sheets", version="v4")
-            .spreadsheets().values()
-            .append(spreadsheetId='1bGncZAPdGhibPqGkxFlQRQhtu37DaGWNvO7E1tS_n04',
-                    range="Sheet1",
-                    valueInputOption="USER_ENTERED",
-                    body=response_body)
-            .execute()
-        )
         google_sheet_question = (
             build_google_service(credentials=credentials, service_name="sheets", version="v4")
             .spreadsheets().values()
-            .update(spreadsheetId='1bGncZAPdGhibPqGkxFlQRQhtu37DaGWNvO7E1tS_n04',
+            .update(spreadsheetId=google_sheet_id,
                     range=f"A1:{chr(ord('A') + len(question_array))}1",
                     valueInputOption="USER_ENTERED",
                     body=question)
+            .execute()
+        )
+        google_sheet_response = (
+            build_google_service(credentials=credentials, service_name="sheets", version="v4")
+            .spreadsheets().values()
+            .append(spreadsheetId=google_sheet_id,
+                    range="Sheet1",
+                    valueInputOption="USER_ENTERED",
+                    body=response_body)
             .execute()
         )
         return "Appended"
