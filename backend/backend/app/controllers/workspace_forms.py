@@ -364,10 +364,11 @@ class WorkspaceFormsRouter(Routable):
     @post("/{form_id}/actions")
     async def _add_action_to_form(self, workspace_id: PydanticObjectId, form_id: PydanticObjectId,
                                   add_action_to_form_params: AddActionToFormDto,
+                                  request: Request,
                                   user: User = Depends(get_logged_user)):
         return await self.workspace_form_service.add_action_to_form(workspace_id=workspace_id, form_id=form_id,
                                                                     add_action_to_form_params=add_action_to_form_params,
-                                                                    user=user)
+                                                                    user=user, request=request)
 
     @get('/{form_id}/integrate-google-sheets')
     async def get_integrate_google_sheets(self, workspace_id: PydanticObjectId, form_id: PydanticObjectId,
