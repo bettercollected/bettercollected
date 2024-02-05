@@ -130,7 +130,8 @@ class AppContainer(containers.DeclarativeContainer):
         form_repo=form_repo,
         workspace_form_repo=workspace_form_repo,
         user_tags_service=user_tags_service,
-        crypto=crypto
+        crypto=crypto,
+        http_client=http_client
     )
 
     form_response_service: FormResponseService = providers.Singleton(

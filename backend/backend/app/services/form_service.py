@@ -6,14 +6,17 @@ from aiohttp import ServerDisconnectedError
 from beanie import PydanticObjectId
 from common.configs.crypto import Crypto
 from common.constants import MESSAGE_FORBIDDEN
+from common.enums.form_provider import FormProvider
 from common.models.standard_form import StandardForm, Trigger, ParameterValue, ActionState
 from common.models.user import User
+from common.services.http_client import HttpClient
 from fastapi_pagination import Page
 from fastapi_pagination.ext.beanie import paginate
+from starlette.requests import Request
 
 from backend.app.constants.consents import default_consents
 from backend.app.exceptions import HTTPException
-from backend.app.models.dtos.action_dto import AddActionToFormDto, UpdateActionInFormDto, ActionUpdateType
+from backend.app.models.dtos.action_dto import AddActionToFormDto, UpdateActionInFormDto, ActionUpdateType, ActionDto
 from backend.app.models.dtos.kafka_event_dto import UserEventType
 from backend.app.models.dtos.minified_form import FormDtoCamelModel
 from backend.app.models.dtos.settings_patch import SettingsPatchDto
@@ -40,13 +43,15 @@ class FormService:
             form_repo: FormRepository,
             workspace_form_repo: WorkspaceFormRepository,
             user_tags_service: UserTagsService,
-            crypto: Crypto
+            crypto: Crypto,
+            http_client: HttpClient
     ):
         self._workspace_user_repo = workspace_user_repo
         self._form_repo = form_repo
         self._workspace_form_repo = workspace_form_repo
         self.user_tags_service = user_tags_service
-        self.crypto = crypto
+        self.crypto: Crypto = crypto
+        self.http_client = http_client
 
     async def get_forms_in_workspace(
             self,
@@ -388,7 +393,8 @@ class FormService:
             form.form_id = str(form.form_id)
             return form
 
-    async def add_action_form(self, form_id: PydanticObjectId, add_action_to_form_params: AddActionToFormDto):
+    async def add_action_form(self, form_id: PydanticObjectId, add_action_to_form_params: AddActionToFormDto,
+                              action: ActionDto, proxy_url: str, request: Request):
         form = await self._form_repo.get_form_document_by_id(form_id=str(form_id))
         actions = []
 
@@ -408,10 +414,16 @@ class FormService:
                 add_action_to_form_params.trigger: [ActionState(id=add_action_to_form_params.action_id, enabled=True)]}
         if add_action_to_form_params.parameters:
             if form.parameters is not None:
-
                 form.parameters[str(add_action_to_form_params.action_id)] = add_action_to_form_params.parameters
             else:
                 form.parameters = {str(add_action_to_form_params.action_id): add_action_to_form_params.parameters}
+            if action.name == 'integrate_google_sheets':
+                title = [params.value for params in form.parameters[str(add_action_to_form_params.action_id)] if
+                         params.name == 'Title']
+                response = await self.http_client.post(f"{proxy_url}/{FormProvider.GOOGLE}/forms/create_google_sheet",
+                                                       params={"title": title[0]}, cookies=request.cookies)
+                form.parameters[str(add_action_to_form_params.action_id)].append(
+                    ParameterValue(name='Google Sheet Id', value=response))
 
         if add_action_to_form_params.secrets:
             secrets = [ParameterValue(name=secret.name, value=self.crypto.encrypt(secret.value)) for secret in
