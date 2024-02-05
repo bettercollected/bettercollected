@@ -80,7 +80,6 @@ export default function ConsentConfirmationModalView({ onFormSubmit, consentAnsw
                         {/*<TermsAndCondition.Description>{`By checking this box, you indicate your acceptance and understanding of the provided terms and conditions.`}</TermsAndCondition.Description>*/}
                     </TermsAndCondition>
 
-                    <div className={`p2-new mt-4 h-4 text-black-600 ${auth?.id && !anonymize ? 'visible' : 'invisible'}`}> You are submitting this form as {auth?.email}</div>
                     {auth?.id && !form?.settings?.requireVerifiedIdentity && (
                         <TermsAndCondition
                             selected={anonymize}
@@ -99,7 +98,9 @@ export default function ConsentConfirmationModalView({ onFormSubmit, consentAnsw
                             </TermsAndCondition.Title>
                         </TermsAndCondition>
                     )}
-                    <div className="mt-6">
+                    {auth.id && <div className={`p2-new mt-2 text-black-600 italic `}>{auth?.id && !anonymize ? `You are submitting this form as ${auth?.email}` : 'Your identity is hidden from form creator.'} </div>}
+
+                    <div className="mt-10">
                         {error && <ErrorText text="Please accept all terms and conditions before proceeding." />}
 
                         <AppButton type="submit" isLoading={isLoading} size={ButtonSize.Medium} className="bg-new-blue-500 !w-full mt-2">
