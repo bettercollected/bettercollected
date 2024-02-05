@@ -60,8 +60,8 @@ export default function ThankYouPage({ form, isDisabled, showSubmissionNumber, s
             </div>
             <div>
                 <div className="h2-new !text-left font-bold mt-[60px] ">Thank you!</div>
-                <div className="p2-new text-gray-600 !text-left mt-1">Your form is successfully submitted {auth.id && anonymize && 'anonymously'}.</div>
-                {auth.id && (
+                <div className="p2-new text-black-600 !text-left mt-1">Your form is successfully submitted {auth.id && anonymize && 'anonymously'}.</div>
+                {auth.id && !anonymize && (
                     <div className="flex gap-2 w-fit mt-6 ">
                         <AuthAccountProfileImage size={36} image={auth?.profileImage} name={getFullNameFromUser(auth) ?? ''} />
                         <div className="flex flex-col gap-2 text-start justify-center !text-black-700 pr-1">
@@ -86,17 +86,27 @@ export default function ThankYouPage({ form, isDisabled, showSubmissionNumber, s
                                 <CopyIcon className="text-new-black-600" />
                             </span>
                         </div>
-                        <div className="text-black-600 !text-center mt-2 p2-new">
-                            Use this submission number to view or to request deletion of this response.
+                        <div className="text-black-700 text-left mt-2 p2-new">
+                            Use this submission number to view or request deletion of this response.{' '}
                             <ActiveLink className="text-blue-500 ml-1 cursor-pointer" href={workspaceResponseUrl}>
-                                Go my response
+                                See all your submissions
                             </ActiveLink>
                         </div>
                     </div>
                 )}
+
+                {!showSubmissionNumber && (
+                    <div className="text-black-600 text-left p2-new max-w-[360px] my-12">
+                        You can view or request deletion of this response{' '}
+                        <ActiveLink className="text-blue-500 ml-1 cursor-pointer" href={workspaceResponseUrl}>
+                            See all your submissions
+                        </ActiveLink>
+                    </div>
+                )}
                 <div>
+                    <div className="mb-2 text-black-700 text-xs text-left mt-10">Want to create privacy friendly forms?</div>
                     <div
-                        className={`px-3 py-2 flex gap-2  ${isDisabled ? 'cursor-default' : 'cursor-pointer'} mt-10 bg-white items-center rounded-md border-gray-200 border-[2px]`}
+                        className={`px-3 py-2 flex gap-2  ${isDisabled ? 'cursor-default' : 'cursor-pointer'} w-fit bg-white items-center rounded-md border-black-200 border-[1px]`}
                         onClick={() => {
                             if (!isDisabled) {
                                 router.push('https://bettercollected.com');
