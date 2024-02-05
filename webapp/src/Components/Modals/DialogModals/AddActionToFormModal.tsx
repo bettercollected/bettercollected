@@ -28,10 +28,8 @@ export default function AddActionToFormModal({action, form, ...props}: any) {
         error: verificationError
     }] = useVerifyFormTokenMutation();
 
-    const initialParam = action?.name === "integrate_google_sheets" ? {
-        'Integrate All Responses': action?.parameters[0]?.value === "true"
-    } : {}
-    const [parameters, setParameters] = useState<any>(initialParam);
+
+    const [parameters, setParameters] = useState<any>({});
     const workspace = useAppSelector(selectWorkspace);
     const router = useRouter();
     const [error, setError] = useState(false);
@@ -97,27 +95,18 @@ export default function AddActionToFormModal({action, form, ...props}: any) {
                     <>
                         <div className="text-black-800 w-full">Params required to add action:</div>
                         {action?.parameters?.map((parameter: any, index: number) =>
-                            parameter?.required ? action?.name === "integrate_google_sheets" ?
-                                <div className={'flex mt-3 w-full justify-between'}>
+                            parameter?.required ? (
+                                <div key={index} className="flex flex-col mt-3  w-full items-start gap-2">
                                     <div className="text-sm font-bold">{parameter.name}</div>
-                                    <MuiSwitch
-                                        checked={parameters['Integrate All Responses']}
-                                        onChange={(event, checked) => {
-                                            setParameters({...parameters, [parameter.name]: checked});
+                                    <AppTextField
+                                        className="w-full"
+                                        value={parameters[parameter.name]}
+                                        onChange={(event) => {
+                                            setParameters({...parameters, [parameter.name]: event.target.value});
                                         }}
                                     />
-                                </div> : (
-                                    <div key={index} className="flex flex-col mt-3  w-full items-start gap-2">
-                                        <div className="text-sm font-bold">{parameter.name}</div>
-                                        <AppTextField
-                                            className="w-full"
-                                            value={parameters[parameter.name]}
-                                            onChange={(event) => {
-                                                setParameters({...parameters, [parameter.name]: event.target.value});
-                                            }}
-                                        />
-                                    </div>
-                                ) : (
+                                </div>
+                            ) : (
                                 <div key={index}></div>
                             )
                         )}
