@@ -567,7 +567,8 @@ class WorkspaceFormService:
         return duplicated_form
 
     async def add_action_to_form(self, workspace_id: PydanticObjectId, form_id: PydanticObjectId,
-                                 add_action_to_form_params: AddActionToFormDto, user: User):
+                                 add_action_to_form_params: AddActionToFormDto, user: User, request: Request):
+        proxy_url = ''
         await self.check_form_exists_in_workspace(workspace_id=workspace_id, form_id=str(form_id))
         await self.workspace_user_service.check_user_has_access_in_workspace(workspace_id=workspace_id, user=user)
         action = await self.action_service.get_action_by_id(action_id=add_action_to_form_params.action_id)
@@ -575,8 +576,11 @@ class WorkspaceFormService:
             raise HTTPException(status_code=HTTPStatus.NOT_FOUND, content=MESSAGE_NOT_FOUND)
         await self.action_service.create_action_in_workspace_from_action(workspace_id=workspace_id,
                                                                          action=action, user=user)
+        if action.name == 'integrate_google_sheets':
+            proxy_url = await self.form_provider_service.get_provider_url(FormProvider.GOOGLE)
         updated_form = await self.form_service.add_action_form(form_id=form_id,
-                                                               add_action_to_form_params=add_action_to_form_params)
+                                                               add_action_to_form_params=add_action_to_form_params,
+                                                               action=action, proxy_url=proxy_url, request=request)
         return updated_form.actions
 
     async def remove_action_from_form(self, workspace_id: PydanticObjectId, form_id: PydanticObjectId,
