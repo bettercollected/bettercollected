@@ -1,6 +1,7 @@
 import { GetServerSidePropsContext } from 'next';
 
-import RespondersPortalContainer from '@app/Components/RespondersPortal/Container';
+import RespondersPortalContainer from '@Components/RespondersPortal/ResponderPortalContainer';
+
 import environments from '@app/configs/environments';
 import WorkspaceHomeContainer from '@app/containers/dashboard/WorkspaceHomeContainer';
 import Layout from '@app/layouts/_layout';
