@@ -104,7 +104,8 @@ const nextConfig = {
         CLIENT_DOMAIN: process.env.CLIENT_DOMAIN,
         ADMIN_DOMAIN: process.env.ADMIN_DOMAIN,
         HTTP_SCHEME: process.env.HTTP_SCHEME,
-        FORM_PRIVACY_POLICY_URL: process.env.FORM_PRIVACY_POLICY_URL,
+        PRIVACY_POLICY_URL: process.env.PRIVACY_POLICY_URL,
+        TERMS_OF_SERVICE_URL: process.env.TERMS_OF_SERVICE_URL,
         MICROSOFT_CLARITY_TRACKING_CODE: process.env.MICROSOFT_CLARITY_TRACKING_CODE,
 
         NEXT_PUBLIC_NODE_ENV: process.env.NEXT_PUBLIC_NODE_ENV || 'production',

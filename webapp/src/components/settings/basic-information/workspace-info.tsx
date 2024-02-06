@@ -9,37 +9,40 @@ import UploadLogo from '@Components/Common/UploadLogo';
 import { toast } from 'react-toastify';
 
 import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
+import environments from '@app/configs/environments';
 import { placeHolder } from '@app/constants/locales/placeholder';
 import { toastMessage } from '@app/constants/locales/toast-message';
 import { ToastId } from '@app/constants/toastId';
+import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { useAppDispatch } from '@app/store/hooks';
 import { usePatchExistingWorkspaceMutation } from '@app/store/workspaces/api';
 import { setWorkspace } from '@app/store/workspaces/slice';
 
-
-export default function WorkspaceInfo({ workspace }: any) {
+export default function WorkspaceInfo({ workspace }: { workspace: WorkspaceDto }) {
     const dispatch = useAppDispatch();
     const { t } = useTranslation();
     const [patchExistingWorkspace, { isLoading }] = usePatchExistingWorkspaceMutation();
     const { closeModal } = useFullScreenModal();
     const [workspaceInfo, setWorkspaceInfo] = useState({
         title: workspace.title || '',
-        description: workspace.description || ''
+        description: workspace.description || '',
+        privacy_policy: workspace.privacyPolicy || environments.PRIVACY_POLICY_URL,
+        terms_of_service: workspace.termsOfService || environments.TERMS_OF_SERVICE_URL
     });
 
     const onChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-        if (e.target.name === 'title') {
-            setWorkspaceInfo({ ...workspaceInfo, title: e.target.value });
-        } else if (e.target.name === 'description') {
+        if (e.target.name === 'description') {
             if (e.target.value.length >= 280) return;
             setWorkspaceInfo({ ...workspaceInfo, description: e.target.value });
+        } else {
+            setWorkspaceInfo({ ...workspaceInfo, [e.target.name]: e.target.value });
         }
     };
 
     const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         const formData = new FormData();
-        if (workspaceInfo.title === workspace?.title && workspaceInfo.description === workspace?.description) {
+        if (workspaceInfo.title === workspace?.title && workspaceInfo.description === workspace?.description && workspaceInfo.privacy_policy === workspace?.privacyPolicy && workspaceInfo.terms_of_service === workspace?.termsOfService) {
             closeModal();
             return;
         }
@@ -93,6 +96,15 @@ export default function WorkspaceInfo({ workspace }: any) {
                 <div className="body1">{t('WORKSPACE.SETTINGS.DETAILS.DESCRIPTION')}</div>
                 <AppTextField multiline fullWidth maxRows={4} minRows={4} onChange={onChange} value={workspaceInfo.description} name="description" placeholder={t(placeHolder.description)} />
             </div>
+            <div className="gap-2 w-full flex flex-col">
+                <div className="body1">Organization&apos;s Privacy Policy URL</div>
+                <AppTextField fullWidth onChange={onChange} value={workspaceInfo.privacy_policy} name="privacy_policy" placeholder={'Privacy Policy URL'} />
+            </div>
+            <div className="gap-2 w-full flex flex-col">
+                <div className="body1">Organization&apos;s Terms of Service URL</div>
+                <AppTextField fullWidth onChange={onChange} value={workspaceInfo.terms_of_service} name="terms_of_service" placeholder={'Privacy Policy URL'} />
+            </div>
+
             <div className="flex justify-end mt-4">
                 <AppButton type="submit" size={ButtonSize.Medium} variant={ButtonVariant.Secondary} disabled={!workspaceInfo.title} isLoading={isLoading}>
                     {t('BUTTON.SAVE_CHANGES')}
