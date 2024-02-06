@@ -111,7 +111,7 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, group, worksp
                             {!isResponderPortal && !form?.isPublished && <div className="font-semibold text-xs text-black-600 rounded right-2 px-2 py-1 bg-gray-100">{t('FORM.DRAFT')}</div>}
                             {!isResponderPortal && form?.isPublished && !isFormOpen && <div className="font-semibold text-xs text-black-600 rounded right-2 px-2 py-1 bg-gray-100">{t('FORM.CLOSED')}</div>}
                         </div>
-                        {!group && (
+                        {!group && !isResponderPortal && (
                             <div className="flex-1 lg:hidden">
                                 <FormOptionsDropdownMenu className={JOYRIDE_CLASS.WORKSPACE_ADMIN_FORM_CARD_NAVIGATION_OPTIONS} redirectToDashboard={true} form={form} hasCustomDomain={hasCustomDomain} workspace={workspace} />
                             </div>
