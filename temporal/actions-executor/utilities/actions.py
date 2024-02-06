@@ -2,15 +2,19 @@ import asyncio
 import json
 import re
 import traceback
+from http import HTTPStatus
 from random import Random
 from typing import Any, Dict, List, Optional
 
 import httpx
 from fastapi_mail import ConnectionConfig, MessageSchema, FastMail, MessageType
+from googleapiclient.errors import HttpError
 from pydantic import EmailStr
 
 from configs.crypto import crypto
 from models.date import GOOGLE_DATETIME_FORMAT
+from settings.application import settings
+from utilities.exceptions import HTTPException
 from wrappers.thread_pool_executor import thread_pool_executor
 
 from googleapiclient.discovery import build
@@ -279,25 +283,28 @@ async def run_action(
         response_body = {"values": [response_array]}
         credentials = json.loads(credentials).get("credentials")
         credentials['scopes'] = credentials.get('scopes').split(' ')[1:]
-        google_sheet_question = (
-            build_google_service(credentials=credentials, service_name="sheets", version="v4")
-            .spreadsheets().values()
-            .update(spreadsheetId=google_sheet_id,
-                    range=f"A1:{chr(ord('A') + len(question_array))}1",
-                    valueInputOption="USER_ENTERED",
-                    body=question)
-            .execute()
-        )
-        google_sheet_response = (
-            build_google_service(credentials=credentials, service_name="sheets", version="v4")
-            .spreadsheets().values()
-            .append(spreadsheetId=google_sheet_id,
-                    range="Sheet1",
-                    valueInputOption="USER_ENTERED",
-                    body=response_body)
-            .execute()
-        )
-        return "Appended"
+        try:
+            google_sheet_question = (
+                build_google_service(credentials=credentials, service_name="sheets", version="v4")
+                .spreadsheets().values()
+                .update(spreadsheetId=google_sheet_id,
+                        range=f"A1:{chr(ord('A') + len(question_array))}1",
+                        valueInputOption="USER_ENTERED",
+                        body=question)
+                .execute()
+            )
+            google_sheet_response = (
+                build_google_service(credentials=credentials, service_name="sheets", version="v4")
+                .spreadsheets().values()
+                .append(spreadsheetId=google_sheet_id,
+                        range="Sheet1",
+                        valueInputOption="USER_ENTERED",
+                        body=response_body)
+                .execute()
+            )
+            return "Appended"
+        except HttpError as e:
+            raise HTTPException(status_code=404, content="Google Sheet with given ID not found")
 
     def send_data_webhook(url: str, params=None, data=None, headers=None):
         if headers is None:
@@ -322,6 +329,8 @@ async def run_action(
                                                          action.get("action_code"),
                                                          response,
                                                          form,
+                                                         action,
+                                                         workspace,
                                                          get_form,
                                                          get_response,
                                                          get_parameters,
@@ -347,6 +356,8 @@ async def run_action(
 def execute_action_code(action_code: str,
                         response,
                         form,
+                        action,
+                        workspace,
                         get_form,
                         get_response,
                         get_parameters,
@@ -389,12 +400,15 @@ def execute_action_code(action_code: str,
                 "int": int,
                 "print": print,
                 "type": type,
+                "HTTPException": HTTPException,
                 "json": json,
                 "log": log,
                 "random": Random,
                 "action_code": action_code,
                 "response": response,
                 "form": form,
+                "action": action,
+                "workspace": workspace,
                 "get_form": get_form,
                 "get_response": get_response,
                 "get_parameters": get_parameters,
@@ -415,9 +429,14 @@ def execute_action_code(action_code: str,
                 "append_in_sheet": append_in_sheet
             }, {}
         )
-    except Exception as e:
+    except (HTTPException, Exception) as e:
         log("Exception While running action")
         log(str(e))
+        print(log(workspace))
+        if str(e) == "Google Sheet with given ID not found":
+            httpx.patch(
+                url=f"{settings.server_url}/workspaces/{workspace.get('id')}/forms/{form.get('form_id')}/action/{action.get('id')}/update",
+            )
         traceback.print_exception(e)
         raise RuntimeError("\n".join(log_string))
     return {
