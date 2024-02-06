@@ -212,6 +212,7 @@ class WorkspaceFormsRouter(Routable):
             self,
             workspace_id: PydanticObjectId,
             form_id: PydanticObjectId,
+            request: Request,
             files: list[UploadFile] = None,
             file_field_ids: list[str] = Form(None),
             file_ids: list[str] = Form(None),
@@ -238,6 +239,7 @@ class WorkspaceFormsRouter(Routable):
             response=parsed_response,
             form_files=form_files,
             user=user,
+            request=request
         )
         if parsed_response.expiration_type not in [ResponseRetentionType.FOREVER, None]:
             await self._temporal_service.add_scheduled_job_for_deleting_response(
@@ -403,3 +405,10 @@ class WorkspaceFormsRouter(Routable):
                                                                                   form_id=str(form_id),
                                                                                   user=user)
         return responses
+
+    @patch('/{form_id}/action/{action_id}/update')
+    async def update_action_from_temporal(self, workspace_id: PydanticObjectId, form_id: PydanticObjectId,
+                                          action_id: PydanticObjectId):
+        response = await self.workspace_form_service.update_action_from_temporal(workspace_id=workspace_id,
+                                                                                 form_id=form_id, action_id=action_id)
+        return response

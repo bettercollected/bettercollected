@@ -25,6 +25,7 @@ class ParameterValue(BaseModel):
 
 
 class WorkspaceRequestWithActionDto(WorkspaceRequestDto):
+    id: Optional[PydanticObjectId]
     parameters: Optional[Dict[str, List[ParameterValue]]] = Field()
     secrets: Optional[Dict[str, List[ParameterValue]]] = Field()
 

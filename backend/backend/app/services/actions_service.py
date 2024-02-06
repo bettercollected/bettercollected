@@ -3,6 +3,7 @@ from common.enums.form_provider import FormProvider
 from common.models.standard_form import Trigger
 from common.models.user import User
 from common.services.http_client import HttpClient
+from starlette.requests import Request
 
 from backend.app.models.dtos.action_dto import ActionDto, ActionResponse
 from backend.app.repositories.action_repository import ActionRepository
@@ -46,6 +47,7 @@ class ActionService:
 
     async def start_actions_for_submission(self, form: FormDocument,
                                            response: FormResponseDocument, workspace_id: PydanticObjectId,
+                                           request: Request
                                            ):
         form_actions = form.actions
         if form_actions is None:
@@ -56,6 +58,15 @@ class ActionService:
             return
         actions = await self.action_repository.get_actions_by_ids(action_ids=submission_actions)
         for action in actions:
+            # if action.name == "integrate_google_sheets":
+            #     google_sheet_id = [params.value for params in form.parameters.get(str(action.id)) if
+            #                        params.name == "Google Sheet Id"]
+            #     provider_url = await self.form_provider_service.get_provider_url(FormProvider.GOOGLE)
+            #     read_google_sheet_url = f"{provider_url}/{FormProvider.GOOGLE}/forms/read_google_sheet"
+            #     response = await self.http_client.get(read_google_sheet_url,
+            #                                           params={'google_sheet_id': google_sheet_id[0]},
+            #                                           cookies=request.cookies)
+            #     print(response)
             workspace = await self.workspace_repo.get_workspace_with_action_by_id(workspace_id=workspace_id,
                                                                                   action_id=action.id)
             await self.temporal_service.start_action_execution(action=action, form=form, response=response,
