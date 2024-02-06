@@ -107,10 +107,12 @@ class WorkspaceResponsesRouter(CustomRoutable):
         )
 
     @get("/submissions/by-uuid/{submission_uuid}")
-    async def get_submission_by_uuid(self, workspace_id: PydanticObjectId, submission_uuid: str):
-        return await self._form_response_service.get_by_uuid(submission_uuid=submission_uuid,
-                                                             workspace_id=workspace_id)
-
+    async def get_submission_by_uuid(
+        self, workspace_id: PydanticObjectId, submission_uuid: str
+    ):
+        return await self._form_response_service.get_by_uuid(
+            submission_uuid=submission_uuid, workspace_id=workspace_id
+        )
 
     @delete(
         "/submissions/{submission_id}",
@@ -128,8 +130,9 @@ class WorkspaceResponsesRouter(CustomRoutable):
         return {"message": "Request for deletion created successfully."}
 
     @delete("/submissions/by-uuid/{submission_uuid}")
-    async def _request_workspace_form_response_delete_by_uuid(self, workspace_id: PydanticObjectId,
-                                                              submission_uuid: str):
+    async def _request_workspace_form_response_delete_by_uuid(
+        self, workspace_id: PydanticObjectId, submission_uuid: str
+    ):
         await self._form_response_service.request_for_response_deletion_by_uuid(
             workspace_id, submission_uuid
         )
