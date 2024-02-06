@@ -44,6 +44,21 @@ class GoogleFormRouter(Routable):
         forms_list = await task
         return forms_list
 
+    @get("/read_google_sheet")
+    async def read_google_sheet(self, google_sheet_id: str,
+                                credential: Oauth2CredentialDocument = Depends(get_user_credential)):
+        credential = await self.oauth_credential_service.verify_oauth_token(
+            credential.email
+        )
+        read_google_sheet = asyncio.get_event_loop().run_in_executor(
+            self.executor,
+            self.google_service.read_google_sheet,
+            google_sheet_id,
+            credential.credentials.dict(),
+        )
+        response = await read_google_sheet
+        return response
+
     @get("/{form_id}", status_code=HTTPStatus.OK)
     async def _get_single_google_form(
             self,
@@ -123,3 +138,5 @@ class GoogleFormRouter(Routable):
         # )
         # append_sheet = await append_task
         return google_sheet_id
+
+

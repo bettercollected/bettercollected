@@ -50,7 +50,7 @@ class GoogleService:
             if e.status_code == HTTPStatus.NOT_FOUND:
                 raise HTTPException(
                     status_code=HTTPStatus.NOT_FOUND,
-                    content="Sheet not found in Google forms",
+                    content="Google Sheet not found in Google Drive",
                 )
             if e.status_code == HTTPStatus.FORBIDDEN:
                 raise HTTPException(
@@ -86,7 +86,7 @@ class GoogleService:
             if e.status_code == HTTPStatus.NOT_FOUND:
                 raise HTTPException(
                     status_code=HTTPStatus.NOT_FOUND,
-                    content="Sheet with given ID not found",
+                    content="Google Sheet with given ID not found",
                 )
             if e.status_code == HTTPStatus.FORBIDDEN:
                 raise HTTPException(
@@ -122,7 +122,39 @@ class GoogleService:
             if e.status_code == HTTPStatus.NOT_FOUND:
                 raise HTTPException(
                     status_code=HTTPStatus.NOT_FOUND,
-                    content="Sheet with given ID not found",
+                    content="Google Sheet with given ID not found",
+                )
+            if e.status_code == HTTPStatus.FORBIDDEN:
+                raise HTTPException(
+                    status_code=HTTPStatus.UNAUTHORIZED, content=e.reason
+                )
+            raise HTTPException(
+                status_code=HTTPStatus.SERVICE_UNAVAILABLE,
+                content="Error Creating Sheet in Google",
+            )
+        except RefreshError as e:
+            raise HTTPException(
+                status_code=HTTPStatus.UNAUTHORIZED, content="Refresh error"
+            )
+        except TimeoutError as e:
+            raise HTTPException(
+                status_code=HTTPStatus.GATEWAY_TIMEOUT, content="Request Timed out"
+            )
+
+    def read_google_sheet(self, spreadsheet_id: str, credentials):
+        try:
+            result = (
+                self._build_service(credentials=credentials, service_name="sheets", version="v4")
+                .spreadsheets()
+                .values().get(spreadsheetId=spreadsheet_id, range="Sheet1!A1")
+                .execute()
+            )
+            return result
+        except HttpError as e:
+            if e.status_code == HTTPStatus.NOT_FOUND:
+                raise HTTPException(
+                    status_code=HTTPStatus.NOT_FOUND,
+                    content="Google Sheet with given id not found in Google Drive",
                 )
             if e.status_code == HTTPStatus.FORBIDDEN:
                 raise HTTPException(
