@@ -102,7 +102,8 @@ class WorkspaceRepository(BaseRepository):
             {
                 "$set": {
                     f"parameters.{action_id}": "$actions.parameters",
-                    f"secrets.{action_id}": "$actions.secrets"
+                    f"secrets.{action_id}": "$actions.secrets",
+                    "id": workspace_id
                 }
             },
             {

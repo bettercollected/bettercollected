@@ -444,6 +444,7 @@ class WorkspaceFormService:
             workspace_id: PydanticObjectId,
             form_id: PydanticObjectId,
             response: StandardFormResponse,
+            request: Request,
             user: User,
             form_files: list[FormFileResponse] = None,
     ):
@@ -483,6 +484,7 @@ class WorkspaceFormService:
         await self.action_service.start_actions_for_submission(form=form,
                                                                response=form_response,
                                                                workspace_id=workspace_id,
+                                                               request=request
                                                                )
         return form_response
 
@@ -635,3 +637,12 @@ class WorkspaceFormService:
         user_credentials = await self.plugin_proxy_service.pass_request(request, fetch_credential_url,
                                                                         extra_params={'email': user.sub})
         return user_credentials
+
+    async def update_action_from_temporal(self, workspace_id: PydanticObjectId, form_id: PydanticObjectId,
+                                          action_id: PydanticObjectId):
+        form = await self.form_service.get_form_document_by_id(str(form_id))
+        form_action = [action for action in form.actions[Trigger.on_submit] if action.id == action_id][0]
+        form_action.enabled = False
+        await form.save()
+        return form
+
