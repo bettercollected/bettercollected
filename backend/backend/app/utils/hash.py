@@ -3,7 +3,7 @@ import hashlib
 
 def hash_string(input_string):
     # Convert the string to bytes using UTF-8 encoding
-    data = input_string.encode('utf-8')
+    data = input_string.encode("utf-8")
 
     # Create an MD5 hash object
     hash_object = hashlib.md5()

@@ -166,8 +166,11 @@ class FormResponseService:
         if not workspace_form:
             raise HTTPException(404, "Form not found in this workspace")
 
-        if not (is_admin or response.dataOwnerIdentifier == user.sub or response.anonymous_identity == hash_string(
-                user.sub)):
+        if not (
+            is_admin
+            or response.dataOwnerIdentifier == user.sub
+            or response.anonymous_identity == hash_string(user.sub)
+        ):
             raise HTTPException(403, "You are not authorized to perform this action.")
 
         response = StandardFormResponseCamelModel(**response.dict())
@@ -304,13 +307,22 @@ class FormResponseService:
 
         return self.decrypt_form_response(workspace_id=workspace_id, response=response)
 
-    async def patch_form_response(self, form_id: PydanticObjectId, response_id: PydanticObjectId,
-                                  response: StandardFormResponse, workspace_id: PydanticObjectId, user=User):
+    async def patch_form_response(
+        self,
+        form_id: PydanticObjectId,
+        response_id: PydanticObjectId,
+        response: StandardFormResponse,
+        workspace_id: PydanticObjectId,
+        user=User,
+    ):
         updated_response = await self._form_response_repo.patch_form_response(
-            form_id=form_id, response_id=response_id, response=response, workspace_id=workspace_id, user=user
+            form_id=form_id,
+            response_id=response_id,
+            response=response,
+            workspace_id=workspace_id,
+            user=user,
         )
         return updated_response.response_uuid
-
 
     async def delete_form_response(
         self, form_id: PydanticObjectId, response_id: PydanticObjectId
@@ -323,10 +335,13 @@ class FormResponseService:
         return await self._form_response_repo.delete_response(response_id=response_id)
 
     async def get_by_uuid(self, workspace_id: PydanticObjectId, submission_uuid: str):
-        response = await self._form_response_repo.get_by_submission_uuid(submission_uuid=submission_uuid)
+        response = await self._form_response_repo.get_by_submission_uuid(
+            submission_uuid=submission_uuid
+        )
 
-        await self._form_response_repo.verify_response_exists_in_workspace(workspace_id=workspace_id,
-                                                                           response_id=response.response_id)
+        await self._form_response_repo.verify_response_exists_in_workspace(
+            workspace_id=workspace_id, response_id=response.response_id
+        )
         form = await FormVersionsDocument.find_one(
             {
                 "form_id": response.form_id,
@@ -345,14 +360,19 @@ class FormResponseService:
 
         return {
             "form": StandardFormCamelModel(**form.dict()),
-            "response": StandardFormResponseCamelModel(**decrypted_response.dict())
+            "response": StandardFormResponseCamelModel(**decrypted_response.dict()),
         }
 
-    async def request_for_response_deletion_by_uuid(self, workspace_id, submission_uuid):
-        response = await FormResponseDocument.find_one({"submission_uuid": submission_uuid})
+    async def request_for_response_deletion_by_uuid(
+        self, workspace_id, submission_uuid
+    ):
+        response = await FormResponseDocument.find_one(
+            {"submission_uuid": submission_uuid}
+        )
         response_id = response.response_id
-        await self._form_response_repo.verify_response_exists_in_workspace(workspace_id=workspace_id,
-                                                                           response_id=response_id)
+        await self._form_response_repo.verify_response_exists_in_workspace(
+            workspace_id=workspace_id, response_id=response_id
+        )
         deletion_request = await FormResponseDeletionRequest.find_one(
             {"response_id": response_id}
         )

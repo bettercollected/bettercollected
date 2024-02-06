@@ -234,6 +234,19 @@ class WorkspaceService:
             if workspace_patch.custom_domain
             else workspace_document.custom_domain
         )
+
+        workspace_document.privacy_policy = (
+            workspace_patch.privacy_policy
+            if workspace_patch.privacy_policy
+            else workspace_document.privacy_policy
+        )
+
+        workspace_document.terms_of_service = (
+            workspace_patch.terms_of_service
+            if workspace_patch.terms_of_service
+            else workspace_document.terms_of_service
+        )
+
         saved_workspace = await self._workspace_repo.update(
             workspace_document.id, workspace_document
         )
