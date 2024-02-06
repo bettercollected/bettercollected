@@ -48,7 +48,7 @@ export type MODAL_VIEW =
     | 'EXPORT_RESPONSES'
     | 'GENERATE_QR'
     | 'SIGN_IN_TO_FILL_FORM'
-    | 'RESPONDER_ACCOUNT';
+    | 'SEARCH_BY_SUBMISSION_NUMBER';
 
 const modalAtom: PrimitiveAtom<{
     isOpen: boolean;
