@@ -122,21 +122,6 @@ class GoogleFormRouter(Routable):
             credential.credentials.dict(),
         )
         google_sheet_id = await task
-        # write_in_sheet_task = asyncio.get_event_loop().run_in_executor(
-        #     self.executor,
-        #     self.google_service.write_in_sheet,
-        #     google_sheet_id,
-        #     credential.credentials.dict(),
-        #     responses
-        # )
-        # google_sheet = await write_in_sheet_task
-        # append_task = asyncio.get_event_loop().run_in_executor(
-        #     self.executor,
-        #     self.google_service.append_in_sheet,
-        #     google_sheet_id,
-        #     credential.credentials.dict()
-        # )
-        # append_sheet = await append_task
         return google_sheet_id
 
 
