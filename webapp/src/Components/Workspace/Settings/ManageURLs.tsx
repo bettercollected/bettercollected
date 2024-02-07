@@ -31,7 +31,7 @@ export default function ManageURLs() {
 
     const [_, copyToClipboard] = useCopyToClipboard();
     return (
-        <div className="mt-6 max-w-[788px]">
+        <div className="mt-10 max-w-[788px]">
             <div>
                 <div className="h3-new mb-2">{t('WORKSPACE.SETTINGS.URLS.TITLE')}</div>
                 <div className="flex flex-col md:flex-row gap-6">

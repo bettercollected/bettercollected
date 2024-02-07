@@ -6,7 +6,6 @@ import WorkspaceDetails from '@Components/Workspace/Settings/WorkspaceDetails';
 
 import ParamTab, { TabPanel } from '@app/components/ui/param-tab';
 
-
 export default function WorkspaceSettingsModal({ initialIndex }: { initialIndex?: number }) {
     const { t } = useTranslation();
 
@@ -26,7 +25,7 @@ export default function WorkspaceSettingsModal({ initialIndex }: { initialIndex?
                 <div className="h2-new mb-2 text-black-800">{t('WORKSPACE.SETTINGS.DEFAULT')}</div>
                 <div className="p2-new text-black-700 max-w-[660px] mb-10">{t('WORKSPACE.SETTINGS.DESCRIPTION')}</div>
             </div>
-            <ParamTab initialIndex={initialIndex} tabMenu={tabMenu} isRouteChangeable={false} className="px-5 md:px-20 lg:px-30">
+            <ParamTab initialIndex={initialIndex} tabMenu={tabMenu} isRouteChangeable={false} className="px-5 md:px-20 !pb-0 lg:px-30">
                 <TabPanel key="workspace-details">
                     <WorkspaceDetails />
                 </TabPanel>
