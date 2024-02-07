@@ -17,7 +17,6 @@ import SelectGroupFullModalView from '@app/components/modal-views/full-screen-mo
 import ScheduleFormCloseDateModal from '@app/components/modal-views/modals/schedule-form-close-date-modal';
 import { Dialog } from '@app/components/ui/dialog';
 
-
 const renderModalContent = (view: BOTTOM_SCREEN_MODALS, modalProps: any) => {
     switch (view) {
         case 'WORKSPACE_SETTINGS':
@@ -58,7 +57,7 @@ export default function BottomSheetModalContainer() {
                 <AnimatePresence mode="wait">
                     {view && (
                         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ ease: 'easeOut', duration: 0.5 }} className="!w-screen">
-                            <Dialog.Overlay className={`fixed inset-0  bg-gray-700 bg-opacity-20   cursor-pointer`} />
+                            <Dialog.Overlay className={`fixed inset-0  bg-gray-700 bg-opacity-60  cursor-pointer`} />
                         </motion.div>
                     )}
                 </AnimatePresence>
