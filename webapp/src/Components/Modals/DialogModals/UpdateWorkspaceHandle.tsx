@@ -20,8 +20,7 @@ import { ToastId } from '@app/constants/toastId';
 import { useAppSelector } from '@app/store/hooks';
 import { usePatchExistingWorkspaceMutation } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
-import { checkErrorForWorkspaceName, checkIfPredefinedWorkspaceName } from '@app/utils/workspaceNameUtils';
-
+import { checkErrorForWorkspaceName, checkIfPredefinedWorkspaceName } from '@app/utils/workspaceUtils';
 
 export default function UpdateWorkspaceHandle() {
     const [patchExistingWorkspace, { isLoading }] = usePatchExistingWorkspaceMutation();

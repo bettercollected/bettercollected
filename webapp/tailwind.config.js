@@ -274,6 +274,7 @@ module.exports = {
                 black: '900'
             },
             aspectRatio: {
+                banner: '4.5714',
                 'banner-desktop': '5.14285714 / 1',
                 'banner-mobile': '3 / 1',
                 'editable-banner-desktop': '3.9886363636 / 1',
