@@ -8,11 +8,13 @@ from typing import Any, Dict, List, Optional
 
 import httpx
 from fastapi_mail import ConnectionConfig, MessageSchema, FastMail, MessageType
+from google.auth.exceptions import RefreshError
 from googleapiclient.errors import HttpError
 from pydantic import EmailStr
 
 from configs.crypto import crypto
 from models.date import GOOGLE_DATETIME_FORMAT
+from models.exception_enum import ExceptionType
 from settings.application import settings
 from utilities.exceptions import HTTPException
 from wrappers.thread_pool_executor import thread_pool_executor
@@ -303,8 +305,10 @@ async def run_action(
                 .execute()
             )
             return "Appended"
-        except HttpError as e:
-            raise HTTPException(status_code=404, content="Google Sheet with given ID not found")
+        except HttpError:
+            raise HTTPException(status_code=HTTPStatus.NOT_FOUND, content=ExceptionType.GOOGLE_SHEET_MISSING)
+        except RefreshError as e:
+            raise HTTPException(status_code=HTTPStatus.EXPECTATION_FAILED, content=ExceptionType.OAUTH_TOKEN_MISSING)
 
     def send_data_webhook(url: str, params=None, data=None, headers=None):
         if headers is None:
@@ -432,8 +436,7 @@ def execute_action_code(action_code: str,
     except (HTTPException, Exception) as e:
         log("Exception While running action")
         log(str(e))
-        print(log(workspace))
-        if str(e) == "Google Sheet with given ID not found":
+        if str(e) == ExceptionType.GOOGLE_SHEET_MISSING or str(e) == ExceptionType.OAUTH_TOKEN_MISSING:
             httpx.patch(
                 url=f"{settings.server_url}/workspaces/{workspace.get('id')}/forms/{form.get('form_id')}/action/{action.get('id')}/update",
             )
