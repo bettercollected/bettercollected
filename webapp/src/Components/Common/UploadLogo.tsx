@@ -9,7 +9,6 @@ import cn from 'classnames';
 import Camera from '@app/components/icons/camera';
 import { Close } from '@app/components/icons/close';
 
-
 interface IUploadLogo {
     className?: string;
     logoImageUrl?: string;
@@ -48,10 +47,10 @@ const UploadLogo = ({ className, onUpload, onRemove, logoImageUrl, showRemove = 
 
     return (
         <div className={`relative z-50  ${className}`}>
-            <div className={cn('rounded-lg w-[100px] h-[100px] flex flex-col justify-center items-center items-s gap-3 cursor-pointer hover:shadow-hover', logoUrl ? '' : 'bg-new-black-800')} onClick={() => setShowDropdown(!showDropdown)}>
+            <div className={cn('rounded-lg w-[72px] h-[72px] flex flex-col justify-center items-center items-s gap-3 cursor-pointer hover:shadow-hover', logoUrl ? '' : 'bg-new-black-800')} onClick={() => setShowDropdown(!showDropdown)}>
                 <input ref={logoRef} id="form_logo" type="file" hidden onChange={handleFileChange} />
                 {logoUrl ? (
-                    <Image height={100} width={100} objectFit="cover" src={logoUrl} alt="logo" className="rounded-lg hover:bg-black-100" />
+                    <Image height={72} width={72} objectFit="cover" src={logoUrl} alt="logo" className="rounded-lg hover:bg-black-100" />
                 ) : (
                     <>
                         <Camera />

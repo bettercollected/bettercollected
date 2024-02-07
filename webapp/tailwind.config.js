@@ -131,6 +131,9 @@ module.exports = {
             minHeight: {
                 'calc-68': 'calc(100vh - 68px)'
             },
+            height: {
+                'bottom-sheet-container': 'calc(100vh - 160px)'
+            },
             borderWidth: {
                 3: '3px'
             },
@@ -274,6 +277,7 @@ module.exports = {
                 black: '900'
             },
             aspectRatio: {
+                banner: '4.5714',
                 'banner-desktop': '5.14285714 / 1',
                 'banner-mobile': '3 / 1',
                 'editable-banner-desktop': '3.9886363636 / 1',

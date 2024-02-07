@@ -45,7 +45,7 @@ export default function ResponderPortalContainer(props: { workspace: WorkspaceDt
             <div className="max-w-screen w-full md:max-w-[320px] md:sticky md:top-0">
                 <div className="rounded-xl bg-white w-full">
                     {workspace.bannerImage && (
-                        <div className="w-full relative aspect-banner-mobile rounded-t-2xl">
+                        <div className="w-full relative aspect-banner rounded-t-2xl">
                             <Image src={workspace.bannerImage} className="rounded-t-2xl" alt="Worksace Banner" layout="fill" />
                         </div>
                     )}
@@ -59,10 +59,10 @@ export default function ResponderPortalContainer(props: { workspace: WorkspaceDt
                         <div className="h3-new">{workspace?.title || 'Untitled Workspace'}</div>
                         {workspace?.description && <div className="mt-2 text-black-600">{workspace.description}</div>}
                         <div className="mt-4 flex gap-6 text-new-black-800 p4-new">
-                            <ActiveLink target="_blank" className="p4-new !leading-none !not-italic !text-black-800" href={workspace.terms_of_service_url ?? `https://bettercollected.com/terms-of-service/`}>
+                            <ActiveLink target="_blank" className="p4-new !leading-none !not-italic !text-black-800" href={workspace.termsOfService ?? `https://bettercollected.com/terms-of-service/`}>
                                 {t(localesCommon.termsOfServices.title)}
                             </ActiveLink>
-                            <ActiveLink target="_blank" className="p4-new !leading-none !not-italic !text-black-800" href={workspace.privacy_policy_url ?? `https://bettercollected.com/privacy-policy/`}>
+                            <ActiveLink target="_blank" className="p4-new !leading-none !not-italic !text-black-800" href={workspace.privacyPolicy ?? `https://bettercollected.com/privacy-policy/`}>
                                 {t(localesCommon.privacyPolicy.title)}
                             </ActiveLink>
                         </div>
