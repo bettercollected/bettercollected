@@ -45,7 +45,7 @@ export default function ResponderPortalContainer(props: { workspace: WorkspaceDt
             <div className="max-w-screen w-full md:max-w-[320px] md:sticky md:top-0">
                 <div className="rounded-xl bg-white w-full">
                     {workspace.bannerImage && (
-                        <div className="w-full relative aspect-banner-mobile rounded-t-2xl">
+                        <div className="w-full relative aspect-banner rounded-t-2xl">
                             <Image src={workspace.bannerImage} className="rounded-t-2xl" alt="Worksace Banner" layout="fill" />
                         </div>
                     )}

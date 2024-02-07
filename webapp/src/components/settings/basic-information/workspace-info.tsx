@@ -84,8 +84,8 @@ export default function WorkspaceInfo({ workspace }: { workspace: WorkspaceDto }
     };
 
     return (
-        <form onSubmit={onSubmit} className="w-full mt-5 flex items-start max-w-[540px] justify-center flex-col gap-6 pb-10">
-            <div>
+        <form onSubmit={onSubmit} className="w-full flex items-start max-w-[540px] justify-center flex-col gap-6 pb-10">
+            <div className="relative -top-9 pl-6">
                 <UploadLogo onUpload={onProfileImageUpload} logoImageUrl={workspace.profileImage} showRemove={false} />
             </div>
             <div className="gap-2 flex flex-col w-full">
@@ -105,11 +105,9 @@ export default function WorkspaceInfo({ workspace }: { workspace: WorkspaceDto }
                 <AppTextField fullWidth onChange={onChange} value={workspaceInfo.terms_of_service} name="terms_of_service" placeholder={'Privacy Policy URL'} />
             </div>
 
-            <div className="flex justify-end mt-4">
-                <AppButton type="submit" size={ButtonSize.Medium} variant={ButtonVariant.Secondary} disabled={!workspaceInfo.title} isLoading={isLoading}>
-                    {t('BUTTON.SAVE_CHANGES')}
-                </AppButton>
-            </div>
+            <AppButton className="mt-4 w-full" type="submit" size={ButtonSize.Medium} variant={ButtonVariant.Secondary} disabled={!workspaceInfo.title} isLoading={isLoading}>
+                {t('BUTTON.SAVE_CHANGES')}
+            </AppButton>
         </form>
     );
 }
