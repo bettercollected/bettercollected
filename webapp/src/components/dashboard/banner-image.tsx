@@ -97,7 +97,7 @@ export default function BannerImageComponent(props: BannerImageComponentPropType
                     {!!workspace.bannerImage ? (
                         <Image src={workspace?.bannerImage ?? ''} priority layout="fill" objectFit="cover" objectPosition="center" alt={workspace?.title} />
                     ) : (
-                        <div className="bg-black-200 h-full align-center flex flex-col items-center justify-center">
+                        <div className="bg-black-200 h-full align-center cursor-pointer flex flex-col items-center justify-center" onClick={onClickFileUploadButton}>
                             <div className="p2-new ml-10 !text-black-700">Add banner image</div>
                         </div>
                     )}
