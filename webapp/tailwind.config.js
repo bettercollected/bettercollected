@@ -131,6 +131,9 @@ module.exports = {
             minHeight: {
                 'calc-68': 'calc(100vh - 68px)'
             },
+            height: {
+                'bottom-sheet-container': 'calc(100vh - 160px)'
+            },
             borderWidth: {
                 3: '3px'
             },
