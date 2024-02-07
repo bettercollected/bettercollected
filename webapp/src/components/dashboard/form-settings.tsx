@@ -319,25 +319,27 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                             </FormSettingsCard>
                         )}
 
-                        <FormSettingsCard>
-                            <div className=" flex flex-col items-start w-full">
-                                <div className="h5-new !text-black-800">Show Submission ID</div>
-                                <Divider className={'w-full my-2'} />
-                                <div className="flex flex-row md:gap-4 w-full justify-between items-center">
-                                    <div className="body4 !text-black-700 w-3/4">When this is enabled the responder will br shown a submission ID which the user can use to view his response and also request for deletion of his response</div>
-                                    <Switch
-                                        data-testid="pinned-switch"
-                                        checked={!!form?.settings?.showSubmissionNumber}
-                                        onClick={(e) => {
-                                            onShowSubmissionNumberChange(e, form);
-                                        }}
-                                    />
+                        {form?.settings?.provider === 'self' && (
+                            <FormSettingsCard>
+                                <div className=" flex flex-col items-start w-full">
+                                    <div className="h5-new !text-black-800">Show Submission Number</div>
+                                    <Divider className={'w-full my-2'} />
+                                    <div className="flex flex-row md:gap-4 w-full justify-between items-center">
+                                        <div className="body4 !text-black-700 w-3/4">When this is enabled the responder will br shown a submission ID which the user can use to view his response and also request for deletion of his response</div>
+                                        <Switch
+                                            data-testid="pinned-switch"
+                                            checked={!!form?.settings?.showSubmissionNumber}
+                                            onClick={(e) => {
+                                                onShowSubmissionNumberChange(e, form);
+                                            }}
+                                        />
+                                    </div>
+                                    <Divider className={'w-full my-2'} />
                                 </div>
-                                <Divider className={'w-full my-2'} />
-                            </div>
-                        </FormSettingsCard>
+                            </FormSettingsCard>
+                        )}
 
-                        {environments?.ENABLE_RESPONSE_EDITING && form?.settings?.requireVerifiedIdentity && (
+                        {environments.ENABLE_RESPONSE_EDITING && form?.settings?.provider === 'self' && form?.settings?.requireVerifiedIdentity && (
                             <FormSettingsCard>
                                 <div className=" flex flex-col items-start w-full">
                                     <div className="h5-new !text-black-800">Allow Response Editing</div>

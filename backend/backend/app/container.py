@@ -80,8 +80,7 @@ class AppContainer(containers.DeclarativeContainer):
 
     form_repo: FormRepository = providers.Singleton(FormRepository)
     form_response_repo: FormResponseRepository = providers.Singleton(
-        FormResponseRepository,
-        crypto=crypto
+        FormResponseRepository, crypto=crypto
     )
     workspace_form_repo: WorkspaceFormRepository = providers.Singleton(
         WorkspaceFormRepository
@@ -92,7 +91,6 @@ class AppContainer(containers.DeclarativeContainer):
     )
 
     responder_groups_repository = providers.Singleton(ResponderGroupsRepository)
-
 
     action_repository = providers.Singleton(ActionRepository, crypto=crypto)
 
@@ -198,7 +196,7 @@ class AppContainer(containers.DeclarativeContainer):
         temporal_service=temporal_service,
         aws_service=aws_service,
         action_service=action_service,
-        crypto=crypto
+        crypto=crypto,
     )
 
     workspace_service: WorkspaceService = providers.Singleton(
