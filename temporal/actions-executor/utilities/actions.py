@@ -13,15 +13,11 @@ from googleapiclient.errors import HttpError
 from pydantic import EmailStr
 
 from configs.crypto import crypto
-from models.date import GOOGLE_DATETIME_FORMAT
 from models.exception_enum import ExceptionType
 from settings.application import settings
 from utilities.exceptions import HTTPException
+from utilities.google_service import build_google_service, fetch_oauth_token
 from wrappers.thread_pool_executor import thread_pool_executor
-
-from googleapiclient.discovery import build
-import google.oauth2.credentials
-from datetime import datetime
 
 
 async def run_action(
@@ -205,7 +201,7 @@ async def run_action(
                 if answers is not None:
                     answer_for_field = answers.get(str(field.get("id")))
                     form_response_array.append(get_answer_for_field(answer_for_field,
-                                                                    field) if answer_for_field else "&nbsp;")
+                                                                    field) if answer_for_field else " ")
         return form_response_array
 
     def get_form_question_in_array():
@@ -253,41 +249,18 @@ async def run_action(
         asyncio.run(fast_mail.send_message(message, template_name="response-mail.html"))
         return "ok"
 
-    def build_google_service(credentials, service_name: str, version: str = "v1"):
-        return build(
-            serviceName=service_name,
-            version=version,
-            credentials=dict_to_credential(credentials),
-        )
-
-    def dict_to_credential(credentials_dict):
-        credentials = google.oauth2.credentials.Credentials(**credentials_dict)
-        expiry = credentials.expiry
-        if isinstance(expiry, datetime):
-            expiry = expiry.strftime(GOOGLE_DATETIME_FORMAT)
-        credentials.expiry = datetime.strptime(expiry, GOOGLE_DATETIME_FORMAT)
-        return credentials
-
-    def create_sheet(credentials):
-        credentials = json.loads(credentials).get("credentials")
-        credentials['scopes'] = credentials.get('scopes').split(' ')[1:]
-        spreadsheet = {"properties": {"title": "Another GoogleSheet"}}
-        google_sheet = (
-            build_google_service(credentials=credentials, service_name="sheets", version="v4")
-            .spreadsheets()
-            .create(body=spreadsheet, fields="spreadsheetId")
-            .execute()
-        )
-        return google_sheet.get("spreadsheetId")
-
     def append_in_sheet(google_sheet_id, credentials, question_array, response_array):
         question = {"values": [question_array]}
         response_body = {"values": [response_array]}
-        credentials = json.loads(credentials).get("credentials")
-        credentials['scopes'] = credentials.get('scopes').split(' ')[1:]
+        credentials = json.loads(credentials)
+        credential = fetch_oauth_token(
+            credentials.get("credentials")
+        )
+        credential['scopes'] = credential.get('scopes').split(' ')[1:]
+
         try:
             google_sheet_question = (
-                build_google_service(credentials=credentials, service_name="sheets", version="v4")
+                build_google_service(credentials=credential, service_name="sheets", version="v4")
                 .spreadsheets().values()
                 .update(spreadsheetId=google_sheet_id,
                         range=f"A1:{chr(ord('A') + len(question_array))}1",
@@ -296,7 +269,7 @@ async def run_action(
                 .execute()
             )
             google_sheet_response = (
-                build_google_service(credentials=credentials, service_name="sheets", version="v4")
+                build_google_service(credentials=credential, service_name="sheets", version="v4")
                 .spreadsheets().values()
                 .append(spreadsheetId=google_sheet_id,
                         range="Sheet1",
@@ -349,9 +322,6 @@ async def run_action(
                                                          get_workspace_details,
                                                          get_form_question_in_array,
                                                          get_responses_in_array,
-                                                         create_sheet,
-                                                         build_google_service,
-                                                         dict_to_credential,
                                                          append_in_sheet
                                                          ), timeout=30)
     return result
@@ -376,9 +346,6 @@ def execute_action_code(action_code: str,
                         get_workspace_details,
                         get_form_question_in_array,
                         get_responses_in_array,
-                        create_sheet,
-                        build_google_service,
-                        dict_to_credential,
                         append_in_sheet
                         ):
     log_string = []
@@ -427,10 +394,9 @@ def execute_action_code(action_code: str,
                 "get_workspace_details": get_workspace_details,
                 "get_form_question_in_array": get_form_question_in_array,
                 "get_responses_in_array": get_responses_in_array,
-                "create_sheet": create_sheet,
-                "build_google_service": build_google_service,
-                "dict_to_credential": dict_to_credential,
-                "append_in_sheet": append_in_sheet
+                "append_in_sheet": append_in_sheet,
+                "fetch_oauth_token": fetch_oauth_token,
+                "build_google_service": build_google_service
             }, {}
         )
     except (HTTPException, Exception) as e:
