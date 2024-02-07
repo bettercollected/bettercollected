@@ -73,7 +73,7 @@ export default function BannerImageComponent(props: BannerImageComponentPropType
     };
 
     return (
-        <div className={cn('relative w-full bannerdiv rounded-t-xl overflow-hidden md:max-w-[320px] aspect-banner', className)}>
+        <div className={cn('relative w-full bannerdiv rounded-t-xl overflow-hidden max-w-[540px] md:max-w-[320px]  aspect-banner', className)}>
             {!!image ? (
                 <TransformWrapper centerOnInit ref={transformComponentRef}>
                     {({ resetTransform }) => {
