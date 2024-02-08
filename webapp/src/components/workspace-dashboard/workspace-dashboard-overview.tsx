@@ -14,7 +14,6 @@ import { useBottomSheetModal } from '@Components/Modals/Contexts/BottomSheetModa
 import AuthAccountProfileImage from '@app/components/auth/account-profile-image';
 import { EyeIcon } from '@app/components/icons/eye-icon';
 import { useModal } from '@app/components/modal-views/context';
-import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
 import ActiveLink from '@app/components/ui/links/active-link';
 import environments from '@app/configs/environments';
 import { workspaceConstant } from '@app/constants/locales/workspace';
@@ -30,7 +29,6 @@ interface IWorkspaceDashboardOverviewProps {
 
 const WorkspaceDashboardOverview = ({ workspace }: IWorkspaceDashboardOverviewProps) => {
     const { openModal } = useModal();
-    const fullScreenModal = useFullScreenModal();
     const { openBottomSheetModal } = useBottomSheetModal();
     const isAdmin = useAppSelector(selectIsAdmin);
     const router = useRouter();
