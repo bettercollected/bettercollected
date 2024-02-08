@@ -48,7 +48,7 @@ export default function WorkspaceResponsesTabContent({ workspace, deletionReques
                 <ZeroElement
                     title={deletionRequests ? t(formConstant.empty.deletionRequest.title) : '0 submissions'}
                     description={deletionRequests ? t(formConstant.deletionRequestDescription) : 'Verify your email or enter your submission number you to view all your form responses.'}
-                    className="!pb-[20px] w-full"
+                    className="!pb-[20px]"
                 />
             )}
 
