@@ -195,7 +195,7 @@ p {
 }
 
 .p1 {
-    @apply text-[16px] font-normal leading-[24px] text-black-900;
+    @apply text-[16px] font-normal;
 }
 
 .p2 {

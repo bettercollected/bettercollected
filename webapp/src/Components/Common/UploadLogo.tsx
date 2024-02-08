@@ -15,9 +15,10 @@ interface IUploadLogo {
     onUpload?: (file: File) => void;
     onRemove?: () => void;
     showRemove?: boolean;
+    dropdownTopPosition?: number;
 }
 
-const UploadLogo = ({ className, onUpload, onRemove, logoImageUrl, showRemove = true }: IUploadLogo) => {
+const UploadLogo = ({ className, onUpload, onRemove, logoImageUrl, showRemove = true, dropdownTopPosition = 116 }: IUploadLogo) => {
     const [showDropdown, setShowDropdown] = useState(false);
     const [logoUrl, setLogoUrl] = useState<string | null>(null);
     const logoRef = useRef<HTMLInputElement | null>(null);
@@ -47,19 +48,24 @@ const UploadLogo = ({ className, onUpload, onRemove, logoImageUrl, showRemove = 
 
     return (
         <div className={`relative z-50  ${className}`}>
-            <div className={cn('rounded-lg w-[72px] h-[72px] flex flex-col justify-center items-center items-s gap-3 cursor-pointer hover:shadow-hover', logoUrl ? '' : 'bg-new-black-800')} onClick={() => setShowDropdown(!showDropdown)}>
+            <div className={cn('rounded-lg w-[72px] h-[72px] flex flex-col justify-center items-center items-s gap-1 cursor-pointer hover:shadow-hover', logoUrl ? '' : 'bg-black-900')} onClick={() => setShowDropdown(!showDropdown)}>
                 <input ref={logoRef} id="form_logo" type="file" hidden onChange={handleFileChange} />
                 {logoUrl ? (
                     <Image height={72} width={72} objectFit="cover" src={logoUrl} alt="logo" className="rounded-lg hover:bg-black-100" />
                 ) : (
                     <>
-                        <Camera />
-                        <h1 className="body6 !text-white">{t('WORKSPACE.SETTINGS.DETAILS.ADD_LOGO')}</h1>
+                        <Camera className="!text-white" />
+                        <h1 className="p4-new !text-white">{t('WORKSPACE.SETTINGS.DETAILS.ADD_LOGO')}</h1>
                     </>
                 )}
             </div>
             {showDropdown && (
-                <div className="flex flex-col absolute z-40 shadow-logoCard h-auto w-full sm:w-[330px] top-[116px] bg-white p-4 rounded-lg gap-2">
+                <div
+                    className={`flex flex-col absolute z-40 shadow-logoCard h-auto w-full sm:w-[330px] bg-white p-4 rounded-lg gap-2`}
+                    style={{
+                        top: dropdownTopPosition
+                    }}
+                >
                     <div className="flex justify-between !font-semibold mb-4">
                         <h1 className="body1 text-black-900">Logo</h1>
                         <Close

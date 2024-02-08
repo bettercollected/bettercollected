@@ -196,6 +196,8 @@ class AuthService:
     async def delete_credentials_from_integrations(self, user: User):
         providers = await self.form_provider_service.get_providers(get_all=True)
         for provider in providers:
+            if not provider.enabled:
+                return
             response = await AiohttpClient.get_aiohttp_client().delete(
                 await self.form_provider_service.get_provider_url(
                     provider.provider_name

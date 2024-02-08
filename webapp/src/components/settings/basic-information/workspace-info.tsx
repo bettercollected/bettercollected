@@ -86,7 +86,7 @@ export default function WorkspaceInfo({ workspace }: { workspace: WorkspaceDto }
     return (
         <form onSubmit={onSubmit} className="w-full flex items-start max-w-[540px] justify-center flex-col gap-6 pb-10">
             <div className="relative -top-9 pl-6">
-                <UploadLogo onUpload={onProfileImageUpload} logoImageUrl={workspace.profileImage} showRemove={false} />
+                <UploadLogo onUpload={onProfileImageUpload} logoImageUrl={workspace.profileImage} showRemove={false} dropdownTopPosition={80} />
             </div>
             <div className="gap-2 flex flex-col w-full">
                 <div className="body1">{t('WORKSPACE.SETTINGS.DETAILS.TITLE')}</div>
