@@ -8,10 +8,11 @@ export const useDraggable = ({
     gridSize
 }: IDraggableProps): [
     ref: (instance: HTMLDivElement | null) => void,
+    node: HTMLDivElement | null | undefined,
     dx: number,
     dy: number
 ] => {
-    const [node, setNode] = React.useState<HTMLElement>();
+    const [node, setNode] = React.useState<HTMLDivElement>();
     const [nearbyElements, setNearbyElements] = React.useState<
         HTMLElement[] | Element[]
     >([]);
@@ -135,5 +136,5 @@ export const useDraggable = ({
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [node, dx, dy]);
 
-    return [ref, dx, dy];
+    return [ref, node, dx, dy];
 };
