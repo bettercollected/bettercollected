@@ -32,7 +32,7 @@ export default function WorkspaceDetails() {
         <div className="w-full">
             <div className="flex gap-2 flex-col lg:flex-row lg:items-center items-start py-4 px-5 mb-10 md:px-20 shadow-settings">
                 <div
-                    className="items-center cursor-pointer flex mr-4 gap-10"
+                    className="items-center cursor-pointer flex mr-4 gap-4"
                     onClick={() => {
                         copyToClipboard(getWorkspaceShareURL(workspace));
                         toast('Copied', { type: 'info' });
@@ -45,7 +45,7 @@ export default function WorkspaceDetails() {
                     {(!workspace.isPro || !workspace.customDomain) && (
                         <AppButton
                             variant={ButtonVariant.Ghost}
-                            icon={<Globe width={16} height={16} />}
+                            icon={<Globe width={20} height={20} strokeWidth={1} />}
                             onClick={() => {
                                 if (workspace?.isPro) {
                                     openModal('UPDATE_WORKSPACE_DOMAIN');
@@ -58,7 +58,7 @@ export default function WorkspaceDetails() {
                         </AppButton>
                     )}
                     <ActiveLink href={getWorkspaceShareURL(workspace)} target="_blank" referrerPolicy="no-referrer">
-                        <AppButton variant={ButtonVariant.Ghost} icon={<EyeIcon width={16} height={16} />}>
+                        <AppButton variant={ButtonVariant.Ghost} icon={<EyeIcon width={20} height={20} />}>
                             Preview as audience
                         </AppButton>
                     </ActiveLink>

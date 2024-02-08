@@ -86,11 +86,13 @@ export default function ThankYouPage({ form, isDisabled, showSubmissionNumber, s
                                 <CopyIcon className="text-new-black-600" />
                             </span>
                         </div>
-                        <div className="text-black-700 text-left mt-2 p2-new">
-                            Use this submission number to view or request deletion of this response.{' '}
-                            <ActiveLink className="text-blue-500 ml-1 cursor-pointer" href={workspaceResponseUrl}>
-                                See all your submissions
-                            </ActiveLink>
+                        <div className="text-black-700 text-left mt-2 p2-new flex flex-wrap">
+                            <span>Use this submission number to view or request deletion of this response. </span>
+                            <span>
+                                <ActiveLink className="text-blue-500 ml-1 cursor-pointer" href={workspaceResponseUrl}>
+                                    See all your submissions
+                                </ActiveLink>
+                            </span>
                         </div>
                     </div>
                 )}
@@ -114,7 +116,7 @@ export default function ThankYouPage({ form, isDisabled, showSubmissionNumber, s
                         }}
                     >
                         <SmallLogo className="w-6 h-6" />
-                        <span className="body3 text-black-700">Try bettercollected</span>
+                        <span className="p2-new text-black-700">Try bettercollected</span>
                     </div>
                 </div>
             </div>
