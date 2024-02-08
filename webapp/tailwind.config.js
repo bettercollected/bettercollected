@@ -138,6 +138,7 @@ module.exports = {
                 3: '3px'
             },
             boxShadow: {
+                settings: '0px 4px 8px 0px #00000017',
                 main: '0px 6px 18px rgba(0, 0, 0, 0.04)',
                 overview: '0px 0px 30px 0px rgba(3, 3, 80, 0.08)',
                 light: '0px 4px 4px rgba(0, 0, 0, 0.08)',
