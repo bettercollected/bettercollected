@@ -23,9 +23,9 @@ export default function WorkspaceSettingsModal({ initialIndex }: { initialIndex?
         <BottomSheetModalWrapper className="!px-0 pb-10">
             <div className="px-5 md:px-20 lg:px-30">
                 <div className="h2-new mb-2 text-black-800">{t('WORKSPACE.SETTINGS.DEFAULT')}</div>
-                <div className="p2-new text-black-700 max-w-[660px] mb-10">{t('WORKSPACE.SETTINGS.DESCRIPTION')}</div>
+                <div className="p2-new text-black-700 max-w-[440px] mb-10">{t('WORKSPACE.SETTINGS.DESCRIPTION')}</div>
             </div>
-            <ParamTab initialIndex={initialIndex} tabMenu={tabMenu} isRouteChangeable={false} className="px-5 md:px-20 !pb-0 lg:px-30">
+            <ParamTab initialIndex={initialIndex} tabMenu={tabMenu} isRouteChangeable={false} className="px-5 md:px-20 !py-0 lg:px-30">
                 <TabPanel key="workspace-details">
                     <WorkspaceDetails />
                 </TabPanel>
