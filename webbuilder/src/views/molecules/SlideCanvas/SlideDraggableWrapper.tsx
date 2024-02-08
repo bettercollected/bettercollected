@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 import { useDraggable } from '@app/lib/hooks/useDraggable';
 
@@ -16,10 +16,14 @@ const SlideDraggableWrapper = ({
     children
 }: ISlideDraggableWrapperProps) => {
     const [isDragging, setIsDragging] = useState(false);
+    const [draggableWidth, setDraggableWidth] = useState(0);
+    const [draggableHeight, setDraggableHeight] = useState(0);
 
-    const [draggableRef, dx, dy] = useDraggable({
+    const [draggableRef, node, dx, dy] = useDraggable({
         gridSize
     });
+
+    const ref = useRef<HTMLDivElement | null>(null);
 
     const handleDragStart = () => {
         setIsDragging(true);
@@ -28,6 +32,25 @@ const SlideDraggableWrapper = ({
     const handleDragEnd = () => {
         setIsDragging(false);
     };
+
+    useEffect(() => {
+        if (ref.current === null && !!node) {
+            ref.current = node;
+        }
+        const draggableElement = ref.current;
+
+        if (!draggableElement) return;
+
+        let draggableWidth = 0;
+        let draggableHeight = 0;
+
+        const { width, height } = draggableElement.getBoundingClientRect();
+        draggableWidth = width;
+        draggableHeight = height;
+
+        setDraggableHeight(draggableHeight);
+        setDraggableWidth(draggableWidth);
+    }, [node]);
 
     return (
         <>
@@ -69,7 +92,7 @@ const SlideDraggableWrapper = ({
                         style={{
                             position: 'absolute',
                             left: 0,
-                            top: dy,
+                            top: dy + draggableHeight,
                             width: '100%',
                             height: '0.2px',
                             backgroundColor: 'rgba(7, 100, 235, 0.2)',
@@ -86,6 +109,19 @@ const SlideDraggableWrapper = ({
                             bottom: 0,
                             width: '0.2px',
                             height: '100vh',
+                            backgroundColor: 'rgba(7, 100, 235, 0.2)',
+                            pointerEvents: 'none'
+                        }}
+                    ></div>
+
+                    {/* Right vertical line */}
+                    <div
+                        style={{
+                            position: 'absolute',
+                            left: dx + draggableWidth,
+                            top: 0,
+                            height: '100vh',
+                            width: '0.2px',
                             backgroundColor: 'rgba(7, 100, 235, 0.2)',
                             pointerEvents: 'none'
                         }}
