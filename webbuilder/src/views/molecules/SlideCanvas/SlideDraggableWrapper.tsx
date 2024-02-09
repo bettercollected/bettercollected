@@ -89,7 +89,7 @@ const SlideDraggableWrapper = ({
             );
         });
 
-        // Don't remove this yet
+        // Don't remove this yet, this is needed for only nearby elements and above works for all elements
         // const nearby = elements.filter((element) => {
         //     const rect1 = node.getBoundingClientRect();
         //     const rect2 = element.getBoundingClientRect();
