@@ -12,11 +12,11 @@ interface ISlideDraggableWrapperProps {
 }
 
 const SlideDraggableWrapper = ({
-    gridSize = 5,
+    gridSize = 1,
     children
 }: ISlideDraggableWrapperProps) => {
     // Define a threshold distance for nearness
-    const NEARNESS_THRESHOLD = 30;
+    const NEARNESS_THRESHOLD = 100;
 
     const [isDragging, setIsDragging] = useState(false);
     const [draggableWidth, setDraggableWidth] = useState(0);
@@ -159,7 +159,7 @@ const SlideDraggableWrapper = ({
                                 position: 'absolute',
                                 left: 0,
                                 right: 0,
-                                top: element.getBoundingClientRect().top,
+                                top: element.getBoundingClientRect().top - 16, // 16 here is the padding of the parent container
                                 width: '100%',
                                 height: '0.2px',
                                 backgroundColor: 'rgba(255, 167, 22, 0.2)',
@@ -173,7 +173,7 @@ const SlideDraggableWrapper = ({
                                 position: 'absolute',
                                 left: 0,
                                 right: 0,
-                                bottom: element.getBoundingClientRect().bottom,
+                                top: element.getBoundingClientRect().bottom - 16,
                                 width: '100%',
                                 height: '0.2px',
                                 backgroundColor: 'rgba(255, 167, 22, 0.2)',
@@ -185,7 +185,7 @@ const SlideDraggableWrapper = ({
                         <div
                             style={{
                                 position: 'absolute',
-                                left: element.getBoundingClientRect().left,
+                                left: element.getBoundingClientRect().left - 16,
                                 top: 0,
                                 bottom: 0,
                                 width: '0.2px',
@@ -199,7 +199,7 @@ const SlideDraggableWrapper = ({
                         <div
                             style={{
                                 position: 'absolute',
-                                right: element.getBoundingClientRect().right,
+                                left: element.getBoundingClientRect().right - 16,
                                 top: 0,
                                 bottom: 0,
                                 height: '100vh',
