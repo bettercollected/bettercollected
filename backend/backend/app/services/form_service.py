@@ -420,8 +420,11 @@ class FormService:
             if action.name == 'integrate_google_sheets':
                 title = [params.value for params in form.parameters[str(add_action_to_form_params.action_id)] if
                          params.name == 'Title']
+                credential = [secrets.value for secrets in form.secrets[str(add_action_to_form_params.action_id)] if
+                              secrets.name == 'Credentials']
                 response = await self.http_client.post(f"{proxy_url}/{FormProvider.GOOGLE}/forms/create_google_sheet",
-                                                       params={"title": title[0]}, cookies=request.cookies)
+                                                       params={"title": title[0], "credential": credential[0]},
+                                                       cookies=request.cookies)
                 form.parameters[str(add_action_to_form_params.action_id)].append(
                     ParameterValue(name='Google Sheet Id', value=response))
 

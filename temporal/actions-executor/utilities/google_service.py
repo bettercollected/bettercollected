@@ -20,7 +20,6 @@ def build_google_service(credentials, service_name: str, version: str = "v1"):
 
 
 def dict_to_credential(credentials_dict):
-    print("id is : ", credentials_dict)
     credentials = google.oauth2.credentials.Credentials(**credentials_dict)
     expiry = credentials.expiry
     if isinstance(expiry, datetime):
