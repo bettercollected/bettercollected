@@ -1,4 +1,4 @@
-import React, { LegacyRef } from 'react';
+import React, { LegacyRef, useState } from 'react';
 
 interface IDraggableProps {
     gridSize: number;
@@ -12,7 +12,11 @@ export const useDraggable = ({
     dx: number,
     dy: number
 ] => {
-    const [node, setNode] = React.useState<HTMLDivElement>();
+    const [node, setNode] = useState<HTMLDivElement>();
+    const [parent, setParent] = useState(node?.parentElement);
+    const [parentRect, setParentRect] = useState(parent?.getBoundingClientRect());
+    const [eleRect, setEleRect] = useState(node?.getBoundingClientRect());
+
     const [nearbyElements, setNearbyElements] = React.useState<
         HTMLElement[] | Element[]
     >([]);
@@ -55,7 +59,20 @@ export const useDraggable = ({
 
         const snappedX = Math.round(dx / gridSize) * gridSize;
         const snappedY = Math.round(dy / gridSize) * gridSize;
-        setOffset({ dx: snappedX, dy: snappedY });
+
+        const clamp = (val: number, min: number, max: number): number =>
+            Math.max(min, Math.min(max, val));
+
+        // TODO: For first drag or touch, the element moves out of the boundary from right side and bottom side
+        let maxX = Infinity,
+            maxY = Infinity;
+        if (parentRect && eleRect) {
+            maxX = parentRect.width - eleRect.width;
+            maxY = parentRect.height - eleRect.height;
+        }
+        dx = clamp(snappedX, 0, maxX);
+        dy = clamp(snappedY, 0, maxY);
+        setOffset({ dx, dy });
         updateCursor();
     };
 
@@ -124,9 +141,12 @@ export const useDraggable = ({
     };
 
     React.useEffect(() => {
-        if (!node) {
-            return;
-        }
+        if (!node) return;
+
+        setParent(node.parentElement);
+        setParentRect(node.parentElement?.getBoundingClientRect());
+        setEleRect(node.getBoundingClientRect());
+
         node.addEventListener('mousedown', handleMouseDown);
         node.addEventListener('touchstart', handleTouchStart);
         return () => {
