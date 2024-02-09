@@ -89,10 +89,6 @@
     touch-action: none;
 }
 
-.draggable.dragging {
-    border: 1px solid rgba(7, 100, 235, 0.3);
-}
-
 .draggable>* {
     /* Reset all styles to their initial values */
     all: revert;
