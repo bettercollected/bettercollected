@@ -1,11 +1,16 @@
+import json
 from http import HTTPStatus
 
+from common.configs.crypto import Crypto
 from google.auth.exceptions import RefreshError
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
 from googleform.app.exceptions import HTTPException
 from googleform.app.utils.google import dict_to_credential
+from googleform.config import settings
+
+_crypto = Crypto(settings.AUTH_AES_HEX_KEY)
 
 
 class GoogleService:
@@ -37,10 +42,13 @@ class GoogleService:
         )
 
     def create_sheet(self, title: str, credentials):
+        encrypted_credential = _crypto.decrypt(credentials)
+        credentials_in_dict = json.loads(encrypted_credential)
         try:
             spreadsheet = {"properties": {"title": title}}
             google_sheet = (
-                self._build_service(credentials=credentials, service_name="sheets", version="v4")
+                self._build_service(credentials=credentials_in_dict.get("credentials"), service_name="sheets",
+                                    version="v4")
                 .spreadsheets()
                 .create(body=spreadsheet, fields="spreadsheetId")
                 .execute()
