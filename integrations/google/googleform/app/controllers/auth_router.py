@@ -21,10 +21,20 @@ class AuthRoutes(Routable):
         (authorization_url, state) = self.oauth_google_service.authorize(state)
         return {"oauth_url": authorization_url}
 
+    @get("/oauth/integration/authorize")
+    async def _get_integration_oauth_url(self, state: str):
+        (authorization_url, state) = self.oauth_google_service.authorize(state, is_integration=True)
+        return {"oauth_url": authorization_url}
+
     @get("/oauth/callback")
     async def _oauth_callback(self, request: Request, user_id: str) -> UserInfo:
         user_info = await self.oauth_google_service.oauth2callback(request, user_id)
         return user_info
+
+    @get("/oauth/integration/callback")
+    def _integration_oauth_callback(self, state: str, code: str):
+        response = self.oauth_google_service.handle_integration_oauth_callback(code=code, state=state)
+        return response
 
     @delete("/oauth/credentials")
     async def _delete_oauth_credentials(
