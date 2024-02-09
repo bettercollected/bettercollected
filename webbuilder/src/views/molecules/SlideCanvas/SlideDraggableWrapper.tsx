@@ -22,6 +22,7 @@ const SlideDraggableWrapper = ({
     const [draggableWidth, setDraggableWidth] = useState(0);
     const [draggableHeight, setDraggableHeight] = useState(0);
     const [nearbyElements, setNearbyElements] = useState<Element[]>([]);
+    const [elementColors, setElementColors] = useState<any>({});
 
     const [draggableRef, node, dx, dy] = useDraggable({
         gridSize
@@ -33,6 +34,26 @@ const SlideDraggableWrapper = ({
 
     const handleDragEnd = () => {
         setIsDragging(false);
+    };
+
+    const getRandomColor = (): string => {
+        const letters: string = '0123456789ABCDEF';
+        let color: string = '#';
+        for (let i: number = 0; i < 6; i++) {
+            color += letters[Math.floor(Math.random() * 16)];
+        }
+        return color + '4D';
+    };
+
+    // Set random color for an element if not already set
+    const setRandomColorForElement = (index: number): void => {
+        if (!elementColors[index]) {
+            const color = getRandomColor();
+            setElementColors((prevColors: { [key: number]: string }) => ({
+                ...prevColors,
+                [index]: color
+            }));
+        }
     };
 
     // Calculate dimensions of the dragging element
@@ -169,65 +190,71 @@ const SlideDraggableWrapper = ({
 
             {/* Render nearby lines */}
             {isDragging &&
-                nearbyElements.map((element, index) => (
-                    <React.Fragment key={index}>
-                        {/* Top horizontal line */}
-                        <div
-                            style={{
-                                position: 'absolute',
-                                left: 0,
-                                right: 0,
-                                top: element.getBoundingClientRect().top - 16, // 16 here is the padding of the parent container
-                                width: '100%',
-                                height: '0.2px',
-                                backgroundColor: 'rgba(255, 167, 22, 0.2)',
-                                pointerEvents: 'none'
-                            }}
-                        ></div>
+                nearbyElements.map((element, index) => {
+                    setRandomColorForElement(index);
+                    const color: string = elementColors[index];
 
-                        {/* Bottom horizontal line */}
-                        <div
-                            style={{
-                                position: 'absolute',
-                                left: 0,
-                                right: 0,
-                                top: element.getBoundingClientRect().bottom - 16,
-                                width: '100%',
-                                height: '0.2px',
-                                backgroundColor: 'rgba(255, 167, 22, 0.2)',
-                                pointerEvents: 'none'
-                            }}
-                        ></div>
+                    return (
+                        <React.Fragment key={index}>
+                            {/* Top horizontal line */}
+                            <div
+                                style={{
+                                    position: 'absolute',
+                                    left: 0,
+                                    right: 0,
+                                    top: element.getBoundingClientRect().top - 16, // 16 here is the padding of the parent container
+                                    width: '100%',
+                                    height: '0.2px',
+                                    backgroundColor: color,
+                                    pointerEvents: 'none'
+                                }}
+                            ></div>
 
-                        {/* Left vertical line */}
-                        <div
-                            style={{
-                                position: 'absolute',
-                                left: element.getBoundingClientRect().left - 16,
-                                top: 0,
-                                bottom: 0,
-                                width: '0.2px',
-                                height: '100vh',
-                                backgroundColor: 'rgba(255, 167, 22, 0.2)',
-                                pointerEvents: 'none'
-                            }}
-                        ></div>
+                            {/* Bottom horizontal line */}
+                            <div
+                                style={{
+                                    position: 'absolute',
+                                    left: 0,
+                                    right: 0,
+                                    top: element.getBoundingClientRect().bottom - 16,
+                                    width: '100%',
+                                    height: '0.2px',
+                                    backgroundColor: color,
+                                    pointerEvents: 'none'
+                                }}
+                            ></div>
 
-                        {/* Right vertical line */}
-                        <div
-                            style={{
-                                position: 'absolute',
-                                left: element.getBoundingClientRect().right - 16,
-                                top: 0,
-                                bottom: 0,
-                                height: '100vh',
-                                width: '0.2px',
-                                backgroundColor: 'rgba(255, 167, 22, 0.2)',
-                                pointerEvents: 'none'
-                            }}
-                        ></div>
-                    </React.Fragment>
-                ))}
+                            {/* Left vertical line */}
+                            <div
+                                style={{
+                                    position: 'absolute',
+                                    left: element.getBoundingClientRect().left - 16,
+                                    top: 0,
+                                    bottom: 0,
+                                    width: '0.2px',
+                                    height: '100vh',
+                                    backgroundColor: color,
+                                    pointerEvents: 'none'
+                                }}
+                            ></div>
+
+                            {/* Right vertical line */}
+                            <div
+                                style={{
+                                    position: 'absolute',
+                                    left: element.getBoundingClientRect().right - 16,
+                                    top: 0,
+                                    bottom: 0,
+                                    height: '100vh',
+                                    width: '0.2px',
+                                    backgroundColor: color,
+                                    // backgroundColor: 'rgba(255, 167, 22, 0.2)',
+                                    pointerEvents: 'none'
+                                }}
+                            ></div>
+                        </React.Fragment>
+                    );
+                })}
         </>
     );
 };
