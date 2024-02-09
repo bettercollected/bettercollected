@@ -40,6 +40,8 @@ from backend.app.services.form_import_service import FormImportService
 from backend.app.services.form_plugin_provider_service import FormPluginProviderService
 from backend.app.services.form_response_service import FormResponseService
 from backend.app.services.form_service import FormService
+from backend.app.services.integration_action_service import IntegrationActionService
+from backend.app.services.integration_service import IntegrationService
 from backend.app.services.plugin_proxy_service import PluginProxyService
 from backend.app.services.responder_groups_service import ResponderGroupsService
 from backend.app.services.stripe_service import StripeService
@@ -293,6 +295,19 @@ class AppContainer(containers.DeclarativeContainer):
         coupon_repository=coupon_repository,
         auth_service=auth_service,
         workspace_service=workspace_service
+    )
+
+    integration_action_service: IntegrationActionService = providers.Singleton(
+        IntegrationActionService,
+        form_service=form_service
+    )
+
+    integration_service: IntegrationService = providers.Singleton(
+        IntegrationService,
+        form_provider_service=form_provider_service,
+        crypto=crypto,
+        http_client=http_client,
+        integration_action_service=integration_action_service
     )
 
 
