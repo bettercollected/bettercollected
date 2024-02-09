@@ -1,5 +1,4 @@
 from beanie import PydanticObjectId
-from common.enums.form_provider import FormProvider
 from common.models.standard_form import Trigger
 from common.models.user import User
 from common.services.http_client import HttpClient
@@ -79,16 +78,16 @@ class ActionService:
     async def create_action_in_workspace_from_action(self, workspace_id: PydanticObjectId, action: ActionResponse,
                                                      user: User):
         action = await self.action_repository.get_action_by_id(action.id)
-        if action is not None and action.name == 'integrate_google_sheets':
-            provider_url = await self.form_provider_service.get_provider_url(FormProvider.GOOGLE)
-            fetch_credential_url = f"{provider_url}/{FormProvider.GOOGLE}/credentials"
-            credentials = await self.http_client.get(fetch_credential_url, params={'email': user.sub})
-            return await self.action_repository.create_action_in_workspace_from_action(workspace_id=workspace_id,
-                                                                                       action_id=action.id,
-                                                                                       credentials=credentials)
-        else:
-            return await self.action_repository.create_action_in_workspace_from_action(workspace_id=workspace_id,
-                                                                                       action_id=action.id)
+        # if action is not None and action.name == 'integrate_google_sheets':
+        #     provider_url = await self.form_provider_service.get_provider_url(FormProvider.GOOGLE)
+        #     fetch_credential_url = f"{provider_url}/{FormProvider.GOOGLE}/credentials"
+        #     credentials = await self.http_client.get(fetch_credential_url, params={'email': user.sub})
+        #     return await self.action_repository.create_action_in_workspace_from_action(workspace_id=workspace_id,
+        #                                                                                action_id=action.id,
+        #                                                                                credentials=credentials)
+        # else:
+        return await self.action_repository.create_action_in_workspace_from_action(workspace_id=workspace_id,
+                                                                                   action_id=action.id)
 
     async def create_global_action(self, action: ActionDto, user: User):
         return await self.action_repository.create_global_action(action=action, user=user)
