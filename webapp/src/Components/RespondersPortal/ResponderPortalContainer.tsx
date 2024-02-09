@@ -50,11 +50,7 @@ export default function ResponderPortalContainer(props: { workspace: WorkspaceDt
                         </div>
                     )}
                     <div className={`${workspace.bannerImage ? 'relative top-[-36px] left-6' : 'relative top-6 ml-6'} w-16 h-16`}>
-                        {workspace.profileImage ? (
-                            <Image src={workspace.profileImage} alt="Profile Image" className="rounded-xl" layout="fill" />
-                        ) : (
-                            <div className="rounded-xl h2 text-center flex !text-white h-full w-full items-center justify-center bg-green-500"> {(workspace?.title || 'U')[0]}</div>
-                        )}
+                        <AuthAccountProfileImage image={workspace?.profileImage} name={workspace?.title || 'U'} size={64} typography="h2" />
                     </div>
 
                     <div className={`${workspace.bannerImage ? '-mt-8' : 'mt-4'}  p-6`}>
