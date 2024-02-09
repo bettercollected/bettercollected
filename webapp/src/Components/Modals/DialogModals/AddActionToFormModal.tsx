@@ -11,23 +11,17 @@ import {toast} from 'react-toastify';
 import {useModal} from '@app/components/modal-views/context';
 import {useAddActionToFormMutation} from '@app/store/api-actions-api';
 import {selectAuth} from '@app/store/auth/slice';
-import {setForm} from '@app/store/forms/slice';
-import {useAppDispatch, useAppSelector} from '@app/store/hooks';
+import {useAppSelector} from '@app/store/hooks';
 import {selectWorkspace} from '@app/store/workspaces/slice';
-import {useVerifyFormTokenMutation} from "@app/store/workspaces/api";
-import FullScreenLoader from "@app/components/ui/fullscreen-loader";
-import GoogleSheetIntegrationErrorView from "@app/components/form-integrations/google-sheet-integration-error-view";
-import MuiSwitch from "@Components/Common/Input/Switch";
+import {useHandleIntegrationOauthCallbackMutation, useLazyGetIntegrationOauthUrlQuery} from "@app/store/integrationApi";
+import {IntegrationType} from "@app/models/enums/IntegrationTypeEnum";
+import environments from '@app/configs/environments';
 
 export default function AddActionToFormModal({action, form, ...props}: any) {
     const {closeModal} = useModal();
-    const [addActionToForm] = useAddActionToFormMutation();
-    const [verifyToken, {
-        data: verificationSuccess,
-        isLoading: verificationLoading,
-        error: verificationError
-    }] = useVerifyFormTokenMutation();
-
+    const [addActionToForm, {isLoading}] = useAddActionToFormMutation();
+    const [fetchOauthUrl, {data}] = useLazyGetIntegrationOauthUrlQuery();
+    const [handleOauthCallback] = useHandleIntegrationOauthCallbackMutation();
 
     const [parameters, setParameters] = useState<any>({});
     const workspace = useAppSelector(selectWorkspace);
@@ -35,21 +29,63 @@ export default function AddActionToFormModal({action, form, ...props}: any) {
     const [error, setError] = useState(false);
 
     const user = useAppSelector(selectAuth);
+    const [showIntegrationConsent, setShowIntegrationConsent] = useState(false)
+    const [errorMessage, setErrorMessage] = useState('')
+    const [oauthResult, setOauthResult] = useState({state: "", code: ""})
+
+    console.log("asdsad", showIntegrationConsent)
 
     useEffect(() => {
         if (action.name === 'creator_copy_mail') {
             setParameters({['Receiving Mail Address']: user.email});
         } else if (action.name === "integrate_google_sheets") {
-            verifyToken({provider: 'google'});
+            setShowIntegrationConsent(true)
         }
     }, [action]);
 
-    if (verificationError) {
-        return <GoogleSheetIntegrationErrorView/>
+    useEffect(() => {
+        if (oauthResult.code && oauthResult.state) {
+            const body = {...oauthResult, action_id: action.id, form_id: form.formId}
+            const request = {
+                body,
+                integrationType: IntegrationType.GoogleSheet
+            }
+            handleOauthCallback(request).then((result: any) => {
+                if (result?.data) {
+                    setShowIntegrationConsent(false)
+                }
+            })
+        }
+    }, [oauthResult.state])
+
+    const handleClick = () => {
+        setErrorMessage('')
+        fetchOauthUrl({integrationType: IntegrationType.GoogleSheet}).then((res) => {
+            window.open(res.data,
+                "oauthWindow", 'height=600 width=600 left=600 top=300')
+        })
     }
-    if (verificationLoading) {
-        return <FullScreenLoader/>
+
+    if (showIntegrationConsent) {
+        return <div className={"flex flex-col gap-4 p-20 bg-white"}>
+            <h1>Connect Google Sheet</h1>
+            <AppButton onClick={handleClick}>Connect</AppButton>
+            {errorMessage && <h1 className={'text-red-500'}>{errorMessage}</h1>}
+        </div>
     }
+
+    // listen for oauth event
+    window.addEventListener('message', function (event) {
+        if (event.origin === `${environments.HTTP_SCHEME}${environments.ADMIN_DOMAIN}`) {
+            if (event.data?.error) {
+                setErrorMessage('Access has been denied')
+            } else if (event.data?.state && event.data?.code) {
+                setOauthResult(
+                    {state: event.data?.state, code: event.data?.code}
+                )
+            }
+        }
+    });
 
     const onAddIntegration = async () => {
         let error = false;
@@ -85,6 +121,7 @@ export default function AddActionToFormModal({action, form, ...props}: any) {
         }
         setError(error);
     };
+
     return (
         <HeaderModalWrapper headerTitle="Add integration to form">
             <div className="flex flex-col md:min-w-[400px]">
@@ -101,7 +138,7 @@ export default function AddActionToFormModal({action, form, ...props}: any) {
                                     <AppTextField
                                         className="w-full"
                                         value={parameters[parameter.name]}
-                                        onChange={(event) => {
+                                        onChange={(event: any) => {
                                             setParameters({...parameters, [parameter.name]: event.target.value});
                                         }}
                                     />
@@ -115,6 +152,7 @@ export default function AddActionToFormModal({action, form, ...props}: any) {
                 )}
 
                 <AppButton className="mt-4" variant={ButtonVariant.Primary} size={ButtonSize.Medium}
+                           isLoading={isLoading}
                            onClick={onAddIntegration}>
                     Add Integration
                 </AppButton>
