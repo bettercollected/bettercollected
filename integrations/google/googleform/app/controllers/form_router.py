@@ -111,15 +111,12 @@ class GoogleFormRouter(Routable):
 
     @post("/create_google_sheet")
     async def create_google_sheet(self, title: str,
-                                  credential: Oauth2CredentialDocument = Depends(get_user_credential)):
-        credential = await self.oauth_credential_service.verify_oauth_token(
-            credential.email
-        )
+                                  credential: str):
         task = asyncio.get_event_loop().run_in_executor(
             self.executor,
             self.google_service.create_sheet,
             title,
-            credential.credentials.dict(),
+            credential,
         )
         google_sheet_id = await task
         return google_sheet_id
