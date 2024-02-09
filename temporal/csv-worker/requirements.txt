@@ -15,7 +15,7 @@ ecs-logging==2.1.0
 elastic-apm==6.19.0
 email-validator==2.1.0.post1
 exceptiongroup==1.1.3
-fastapi==0.109.1
+fastapi==0.109.2
 fastapi-mail==1.4.1
 h11==0.14.0
 httpcore==1.0.1
