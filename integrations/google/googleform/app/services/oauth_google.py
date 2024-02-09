@@ -23,6 +23,7 @@ from pydantic import EmailStr
 from starlette.requests import Request
 
 from googleform.app.exceptions import HTTPException
+from googleform.app.models.oauth_credential import GoogleCredentialResponse
 from googleform.app.repositories.oauth_credential import OauthCredentialRepository
 from googleform.app.schemas.oauth_credential import Oauth2CredentialDocument
 from googleform.app.utils import AiohttpClient
@@ -63,12 +64,13 @@ class OauthGoogleService:
             }
         }
 
-    def authorize(self, state: str):
+    def authorize(self, state: str, is_integration: bool = False):
         """
         Authorize the user and obtain an authorization URL.
 
         Args:
             state (str): Encrypted state of user info with email.
+            is_integration (bool): To change the scope and redirect uri if it is google_sheet_integration
 
         Returns:
             authorization_url (str): The authorization URL.
@@ -79,10 +81,10 @@ class OauthGoogleService:
         try:
             flow = google_auth_oauthlib.flow.Flow.from_client_config(
                 client_config=self.client_config,
-                scopes=settings.GOOGLE_SCOPES,
+                scopes=settings.GOOGLE_SHEET_SCOPE if is_integration else settings.GOOGLE_SCOPES,
             )
 
-            flow.redirect_uri = settings.GOOGLE_REDIRECT_URIS
+            flow.redirect_uri = settings.GOOGLE_SHEET_REDIRECT_URL if is_integration else settings.GOOGLE_REDIRECT_URIS
             authorization_url, state = flow.authorization_url(
                 access_type="offline",
                 state=state,
@@ -174,13 +176,14 @@ class OauthGoogleService:
                 content=MESSAGE_OAUTH_INVALID_CLIENT,
             )
 
-    def fetch_token(self, auth_code: str, state: str):
+    def fetch_token(self, auth_code: str, state: str, is_integration: bool = False):
         """
         Fetch the OAuth 2.0 access token. Used in oauth2callback.
 
         Args:
             auth_code (str): The authorization code returned by the authorization server.
             state (str): The encrypted state returned by the authorization server.
+            is_integration (bool): It is to check whether this is called for google service integration
 
         Returns:
             google.oauth2.credentials.Credentials: The OAuth 2.0 credentials.
@@ -191,11 +194,12 @@ class OauthGoogleService:
         try:
             flow = google_auth_oauthlib.flow.Flow.from_client_config(
                 client_config=self.client_config,
-                scopes=settings.GOOGLE_SCOPES,
+                scopes=settings.GOOGLE_SHEET_SCOPE if is_integration else settings.GOOGLE_SCOPES,
                 state=state,
             )
-            flow.redirect_uri = settings.GOOGLE_REDIRECT_URIS
-            flow.fetch_token(authorization_response=auth_code)
+            flow.redirect_uri = settings.GOOGLE_SHEET_REDIRECT_URL if is_integration else settings.GOOGLE_REDIRECT_URIS
+            flow.fetch_token(code=auth_code) if is_integration else flow.fetch_token(
+                authorization_response=auth_code)
             credentials = flow.credentials
             return credentials
         except InvalidGrantError:
@@ -359,3 +363,12 @@ class OauthGoogleService:
         credentials = await self.get_oauth_credentials_for_user(email=email)
         encrypted_credential = _crypto.encrypt(credentials.json())
         return encrypted_credential
+
+    def handle_integration_oauth_callback(self, code: str, state: str):
+        credentials = self.fetch_token(state=state, auth_code=code, is_integration=True)
+        json_credentials = credentials.to_json()
+        google_credential = GoogleCredentialResponse(**json.loads(json_credentials))
+        integration_credential = {
+            "credentials": google_credential.dict()
+        }
+        return _crypto.encrypt(json.dumps(integration_credential))
