@@ -1,5 +1,5 @@
 import enum
 
 
-class ActionName(enum.Enum):
+class ActionName(str, enum.Enum):
     INTEGRATE_GOOGLE_SHEETS: str = 'integrate_google_sheets'
