@@ -13,17 +13,14 @@ export const useDraggable = ({
     dy: number
 ] => {
     const [node, setNode] = useState<HTMLDivElement>();
-    const [parent, setParent] = useState(node?.parentElement);
-    const [parentRect, setParentRect] = useState(parent?.getBoundingClientRect());
-    const [eleRect, setEleRect] = useState(node?.getBoundingClientRect());
-
-    const [nearbyElements, setNearbyElements] = React.useState<
-        HTMLElement[] | Element[]
-    >([]);
     const [{ dx, dy }, setOffset] = React.useState({
         dx: 20,
         dy: 20
     });
+
+    // const [nearbyElements, setNearbyElements] = React.useState<
+    //     HTMLElement[] | Element[]
+    // >([]);
 
     const ref: LegacyRef<HTMLDivElement> | undefined = React.useCallback(
         (nodeEle: any) => {
@@ -34,7 +31,11 @@ export const useDraggable = ({
 
     const handleMouseMoveAxisSnap = (
         posA: { x: number; y: number },
-        posB: { x: number; y: number }
+        posB: { x: number; y: number },
+        {
+            parentElementRect,
+            elementRect
+        }: { parentElementRect: DOMRect; elementRect: DOMRect }
     ) => {
         let dx = posA.x - posB.x;
         let dy = posA.y - posB.y;
@@ -63,12 +64,11 @@ export const useDraggable = ({
         const clamp = (val: number, min: number, max: number): number =>
             Math.max(min, Math.min(max, val));
 
-        // TODO: For first drag or touch, the element moves out of the boundary from right side and bottom side
         let maxX = Infinity,
             maxY = Infinity;
-        if (parentRect && eleRect) {
-            maxX = parentRect.width - eleRect.width;
-            maxY = parentRect.height - eleRect.height;
+        if (parentElementRect && elementRect) {
+            maxX = parentElementRect.width - elementRect.width;
+            maxY = parentElementRect.height - elementRect.height;
         }
         dx = clamp(snappedX, 0, maxX);
         dy = clamp(snappedY, 0, maxY);
@@ -77,14 +77,17 @@ export const useDraggable = ({
     };
 
     const handleMouseDown = React.useCallback(
-        (e: MouseEvent) => {
+        (e: MouseEvent, parentElementRect: DOMRect, elementRect: DOMRect) => {
             const startPos = {
                 x: e.clientX - dx,
                 y: e.clientY - dy
             };
 
             const handleMouseMove = (e: MouseEvent) => {
-                handleMouseMoveAxisSnap({ x: e.clientX, y: e.clientY }, startPos);
+                handleMouseMoveAxisSnap({ x: e.clientX, y: e.clientY }, startPos, {
+                    parentElementRect,
+                    elementRect
+                });
             };
 
             const handleMouseUp = () => {
@@ -101,7 +104,7 @@ export const useDraggable = ({
     );
 
     const handleTouchStart = React.useCallback(
-        (e: TouchEvent) => {
+        (e: TouchEvent, parentElementRect: DOMRect, elementRect: DOMRect) => {
             const touch = e.touches[0];
 
             const startPos = {
@@ -113,7 +116,8 @@ export const useDraggable = ({
                 const touch = e.touches[0];
                 handleMouseMoveAxisSnap(
                     { x: touch.clientX, y: touch.clientY },
-                    startPos
+                    startPos,
+                    { parentElementRect, elementRect }
                 );
             };
 
@@ -143,15 +147,26 @@ export const useDraggable = ({
     React.useEffect(() => {
         if (!node) return;
 
-        setParent(node.parentElement);
-        setParentRect(node.parentElement?.getBoundingClientRect());
-        setEleRect(node.getBoundingClientRect());
+        const parentElement = node.parentElement;
 
-        node.addEventListener('mousedown', handleMouseDown);
-        node.addEventListener('touchstart', handleTouchStart);
+        if (!parentElement) return;
+
+        const parentElementRect = parentElement.getBoundingClientRect();
+        const elementRect = node.getBoundingClientRect();
+
+        node.addEventListener('mousedown', (e) =>
+            handleMouseDown(e, parentElementRect, elementRect)
+        );
+        node.addEventListener('touchstart', (e) =>
+            handleTouchStart(e, parentElementRect, elementRect)
+        );
         return () => {
-            node.removeEventListener('mousedown', handleMouseDown);
-            node.removeEventListener('touchstart', handleTouchStart);
+            node.removeEventListener('mousedown', (e) =>
+                handleMouseDown(e, parentElementRect, elementRect)
+            );
+            node.removeEventListener('touchstart', (e) =>
+                handleTouchStart(e, parentElementRect, elementRect)
+            );
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [node, dx, dy]);
