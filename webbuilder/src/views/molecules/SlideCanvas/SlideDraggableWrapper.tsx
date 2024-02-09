@@ -12,7 +12,7 @@ interface ISlideDraggableWrapperProps {
 }
 
 const SlideDraggableWrapper = ({
-    gridSize = 1,
+    gridSize = 5,
     children
 }: ISlideDraggableWrapperProps) => {
     // Define a threshold distance for nearness
@@ -55,15 +55,33 @@ const SlideDraggableWrapper = ({
             const rect1 = node.getBoundingClientRect();
             const rect2 = element.getBoundingClientRect();
 
-            const distanceX = Math.abs(
-                rect1.left + rect1.width / 2 - (rect2.left + rect2.width / 2)
-            );
-            const distanceY = Math.abs(
-                rect1.top + rect1.height / 2 - (rect2.top + rect2.height / 2)
-            );
+            const distanceTop = rect2.bottom - rect1.top;
+            const distanceBottom = rect1.bottom - rect2.top;
+            const distanceLeft = rect2.right - rect1.left;
+            const distanceRight = rect1.right - rect2.left;
 
-            return distanceX <= NEARNESS_THRESHOLD || distanceY <= NEARNESS_THRESHOLD;
+            return (
+                distanceTop >= NEARNESS_THRESHOLD ||
+                distanceBottom >= NEARNESS_THRESHOLD ||
+                distanceLeft >= NEARNESS_THRESHOLD ||
+                distanceRight >= NEARNESS_THRESHOLD
+            );
         });
+
+        // Don't remove this yet
+        // const nearby = elements.filter((element) => {
+        //     const rect1 = node.getBoundingClientRect();
+        //     const rect2 = element.getBoundingClientRect();
+
+        //     const distanceX = Math.abs(
+        //         rect1.left + rect1.width / 2 - (rect2.left + rect2.width / 2)
+        //     );
+        //     const distanceY = Math.abs(
+        //         rect1.top + rect1.height / 2 - (rect2.top + rect2.height / 2)
+        //     );
+
+        //     return distanceX <= NEARNESS_THRESHOLD || distanceY <= NEARNESS_THRESHOLD;
+        // });
 
         setNearbyElements(nearby);
     }, [dx, dy, node]);
