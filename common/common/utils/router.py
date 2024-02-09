@@ -15,11 +15,9 @@ from typing import (
 
 from fastapi import APIRouter, params, routing
 from fastapi.datastructures import Default, DefaultPlaceholder
-from fastapi.encoders import DictIntStrAny, SetIntStr
 from fastapi.openapi.models import Response
 from fastapi.routing import APIRoute
 from fastapi.utils import generate_unique_id
-
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 from starlette.routing import BaseRoute
@@ -151,8 +149,8 @@ class CustomAPIRoute(APIRoute):
         name: Optional[str] = None,
         methods: Optional[Union[Set[str], List[str]]] = None,
         operation_id: Optional[str] = None,
-        response_model_include: Optional[Union[SetIntStr, DictIntStrAny]] = None,
-        response_model_exclude: Optional[Union[SetIntStr, DictIntStrAny]] = None,
+        response_model_include: Optional[Union[Set[Union[int, str]], Dict[Union[int, str], Any]]] = None,
+        response_model_exclude: Optional[Union[Set[Union[int, str]], Dict[Union[int, str], Any]]] = None,
         response_model_by_alias: bool = True,
         response_model_exclude_unset: bool = False,
         response_model_exclude_defaults: bool = False,
