@@ -1,4 +1,3 @@
-import json
 import os
 import random
 import re
@@ -9,7 +8,6 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from beanie import PydanticObjectId
 from common.configs.crypto import Crypto
 from common.constants import MESSAGE_NOT_FOUND
-from common.enums.form_provider import FormProvider
 from common.enums.plan import Plans
 from common.models.form_import import FormImportRequestBody
 from common.models.standard_form import StandardForm, StandardFormResponse, Trigger
@@ -22,13 +20,11 @@ from backend.app.models.dataclasses.user_tokens import UserTokens
 from backend.app.models.dtos.action_dto import AddActionToFormDto, UpdateActionInFormDto
 from backend.app.models.dtos.kafka_event_dto import UserEventType
 from backend.app.models.dtos.response_dtos import FormFileResponse, StandardFormCamelModel
-from backend.app.models.workspace import WorkspaceFormSettings, WorkspaceRequestDto
+from backend.app.models.workspace import WorkspaceFormSettings
 from backend.app.repositories.workspace_form_repository import WorkspaceFormRepository
-from backend.app.repositories.workspace_repository import WorkspaceRepository
 from backend.app.schedulers.form_schedular import FormSchedular
 from backend.app.schemas.standard_form import FormDocument
 from backend.app.schemas.template import FormTemplateDocument
-from backend.app.schemas.workspace import WorkspaceDocument
 from backend.app.schemas.workspace_form import WorkspaceFormDocument
 from backend.app.services.actions_service import ActionService
 from backend.app.services.aws_service import AWSS3Service
@@ -569,7 +565,7 @@ class WorkspaceFormService:
         return duplicated_form
 
     async def add_action_to_form(self, workspace_id: PydanticObjectId, form_id: PydanticObjectId,
-                                 add_action_to_form_params: AddActionToFormDto, user: User, request: Request):
+                                 add_action_to_form_params: AddActionToFormDto, user: User):
         proxy_url = ''
         await self.check_form_exists_in_workspace(workspace_id=workspace_id, form_id=str(form_id))
         await self.workspace_user_service.check_user_has_access_in_workspace(workspace_id=workspace_id, user=user)
@@ -578,11 +574,9 @@ class WorkspaceFormService:
             raise HTTPException(status_code=HTTPStatus.NOT_FOUND, content=MESSAGE_NOT_FOUND)
         await self.action_service.create_action_in_workspace_from_action(workspace_id=workspace_id,
                                                                          action=action, user=user)
-        if action.name == 'integrate_google_sheets':
-            proxy_url = await self.form_provider_service.get_provider_url(FormProvider.GOOGLE)
         updated_form = await self.form_service.add_action_form(form_id=form_id,
                                                                add_action_to_form_params=add_action_to_form_params,
-                                                               action=action, proxy_url=proxy_url, request=request)
+                                                               action=action)
         return updated_form.actions
 
     async def remove_action_from_form(self, workspace_id: PydanticObjectId, form_id: PydanticObjectId,
@@ -629,15 +623,6 @@ class WorkspaceFormService:
 
         return cleaned_string
 
-    async def integrate_google_sheets(self, workspace_id: PydanticObjectId, form_id: PydanticObjectId, user: User,
-                                      request: Request):
-        forms = await self.form_service.get_form_document_by_id(str(form_id))
-        provider_url = await self.form_provider_service.get_provider_url(FormProvider.GOOGLE)
-        fetch_credential_url = f"{provider_url}/{FormProvider.GOOGLE}/forms/integrate/google-sheets"
-        user_credentials = await self.plugin_proxy_service.pass_request(request, fetch_credential_url,
-                                                                        extra_params={'email': user.sub})
-        return user_credentials
-
     async def update_action_from_temporal(self, workspace_id: PydanticObjectId, form_id: PydanticObjectId,
                                           action_id: PydanticObjectId):
         form = await self.form_service.get_form_document_by_id(str(form_id))
@@ -645,4 +630,3 @@ class WorkspaceFormService:
         form_action.enabled = False
         await form.save()
         return form
-
