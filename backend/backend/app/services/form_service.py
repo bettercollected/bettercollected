@@ -23,6 +23,7 @@ from backend.app.models.dtos.settings_patch import SettingsPatchDto
 from backend.app.models.dtos.workspace_member_dto import (
     FormImporterDetails,
 )
+from backend.app.models.enum.form_integration import FormActionType, FormIntegrationType
 from backend.app.models.enum.user_tag_enum import UserTagType
 from backend.app.models.filter_queries.sort import SortRequest
 from backend.app.repositories.form_repository import FormRepository
@@ -30,6 +31,7 @@ from backend.app.repositories.workspace_form_repository import WorkspaceFormRepo
 from backend.app.repositories.workspace_user_repository import WorkspaceUserRepository
 from backend.app.schemas.form_versions import FormVersionsDocument
 from backend.app.schemas.standard_form import FormDocument
+from backend.app.services.integration_provider_factory import IntegrationProviderFactory
 from backend.app.services.kafka_service import event_logger_service
 from backend.app.services.user_tags_service import UserTagsService
 from backend.app.utils import AiohttpClient
@@ -44,7 +46,9 @@ class FormService:
             workspace_form_repo: WorkspaceFormRepository,
             user_tags_service: UserTagsService,
             crypto: Crypto,
-            http_client: HttpClient
+            http_client: HttpClient,
+            integration_provider: IntegrationProviderFactory
+
     ):
         self._workspace_user_repo = workspace_user_repo
         self._form_repo = form_repo
@@ -52,6 +56,7 @@ class FormService:
         self.user_tags_service = user_tags_service
         self.crypto: Crypto = crypto
         self.http_client = http_client
+        self.integration_provider = integration_provider
 
     async def get_forms_in_workspace(
             self,
@@ -394,7 +399,7 @@ class FormService:
             return form
 
     async def add_action_form(self, form_id: PydanticObjectId, add_action_to_form_params: AddActionToFormDto,
-                              action: ActionDto, proxy_url: str, request: Request):
+                              action: ActionDto):
         form = await self._form_repo.get_form_document_by_id(form_id=str(form_id))
         actions = []
 
@@ -417,16 +422,12 @@ class FormService:
                 form.parameters[str(add_action_to_form_params.action_id)] = add_action_to_form_params.parameters
             else:
                 form.parameters = {str(add_action_to_form_params.action_id): add_action_to_form_params.parameters}
-            if action.name == 'integrate_google_sheets':
-                title = [params.value for params in form.parameters[str(add_action_to_form_params.action_id)] if
-                         params.name == 'Title']
-                credential = [secrets.value for secrets in form.secrets[str(add_action_to_form_params.action_id)] if
-                              secrets.name == 'Credentials']
-                response = await self.http_client.post(f"{proxy_url}/{FormProvider.GOOGLE}/forms/create_google_sheet",
-                                                       params={"title": title[0], "credential": credential[0]},
-                                                       cookies=request.cookies)
-                form.parameters[str(add_action_to_form_params.action_id)].append(
-                    ParameterValue(name='Google Sheet Id', value=response))
+            if action.type == FormActionType.EXTERNAL:
+                form_params = await self.handle_external_integrations_services(action_params=add_action_to_form_params,
+                                                                               integration_name=FormIntegrationType(
+                                                                                   action.name),
+                                                                               form_id=form_id)
+                form.parameters[str(add_action_to_form_params.action_id)].append(form_params)
 
         if add_action_to_form_params.secrets:
             secrets = [ParameterValue(name=secret.name, value=self.crypto.encrypt(secret.value)) for secret in
@@ -461,3 +462,12 @@ class FormService:
                     action.enabled = True if update_action_dto.update_type == ActionUpdateType.ENABLE else False
 
         return await form.save()
+
+    async def handle_external_integrations_services(self, action_params: AddActionToFormDto,
+                                                    integration_name: FormIntegrationType,
+                                                    form_id: PydanticObjectId,
+                                                    ):
+        form_params = await self.integration_provider.get_integration_provider(
+            integration_type=integration_name).add_google_sheet_id_to_form_action(action_params=action_params,
+                                                                                  form_id=str(form_id))
+        return form_params
