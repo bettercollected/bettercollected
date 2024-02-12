@@ -63,12 +63,11 @@
 .container {
     position: relative;
     max-width: 100vw;
-    height: calc(100vw * 9 / 16);
-    max-height: 100vh;
+    aspect-ratio: 16/9;
     overflow: hidden;
 }
 
-.container>* {
+.container > * {
     transform-origin: top left;
     transform: scale(var(--scale-factor, 1));
 }
@@ -89,7 +88,7 @@
     touch-action: none;
 }
 
-.draggable>* {
+.draggable > * {
     /* Reset all styles to their initial values */
     all: revert;
 }
