@@ -202,7 +202,7 @@ async def run_action(
                     answer_for_field = answers.get(str(field.get("id")))
                     form_response_array.append(get_answer_for_field(answer_for_field,
                                                                     field) if answer_for_field else " ")
-        return form_response_array
+        return [response.get("response_id"), *form_response_array]
 
     def get_form_question_in_array():
         simple_form = {
@@ -250,7 +250,7 @@ async def run_action(
         return "ok"
 
     def append_in_sheet(google_sheet_id, credentials, question_array, response_array):
-        question = {"values": [question_array]}
+        question = {"values": [["Response ID", *question_array]]}
         response_body = {"values": [response_array]}
         credentials = json.loads(credentials)
         credential = fetch_oauth_token(
