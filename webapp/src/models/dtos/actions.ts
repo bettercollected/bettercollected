@@ -17,4 +17,5 @@ export interface Action {
     name: string;
     title?: string;
     description?: string;
+    type?: string;
 }
