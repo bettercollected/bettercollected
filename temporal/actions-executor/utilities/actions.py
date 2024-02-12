@@ -278,8 +278,9 @@ async def run_action(
                 .execute()
             )
             return "Appended"
-        except HttpError:
-            raise HTTPException(status_code=HTTPStatus.NOT_FOUND, content=ExceptionType.GOOGLE_SHEET_MISSING)
+        except HttpError as e:
+            if e.status_code == HTTPStatus.NOT_FOUND:
+                raise HTTPException(status_code=HTTPStatus.NOT_FOUND, content=ExceptionType.GOOGLE_SHEET_MISSING)
         except RefreshError as e:
             raise HTTPException(status_code=HTTPStatus.EXPECTATION_FAILED, content=ExceptionType.OAUTH_TOKEN_MISSING)
 
@@ -405,6 +406,7 @@ def execute_action_code(action_code: str,
         if str(e) == ExceptionType.GOOGLE_SHEET_MISSING or str(e) == ExceptionType.OAUTH_TOKEN_MISSING:
             httpx.patch(
                 url=f"{settings.server_url}/workspaces/{workspace.get('id')}/forms/{form.get('form_id')}/action/{action.get('id')}/update",
+                headers={"api-key": settings.api_key},
             )
         traceback.print_exception(e)
         raise RuntimeError("\n".join(log_string))
