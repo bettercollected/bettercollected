@@ -8,6 +8,7 @@ from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
 from models.date import GOOGLE_DATETIME_FORMAT
+from models.exception_enum import ExceptionType
 from utilities.exceptions import HTTPException
 
 
@@ -58,7 +59,7 @@ def refresh_access_token(oauth_credential):
         )
         token = refreshed_token_response.json()
         if not token.get("access_token") or not token.get("expires_in"):
-            raise HttpError()
+            raise HTTPException(status_code=HTTPStatus.EXPECTATION_FAILED, content=ExceptionType.OAUTH_TOKEN_MISSING)
         oauth_credential["token"] = token.get("access_token")
         expiry = current_date + timedelta(seconds=token.get("expires_in"))
         oauth_credential["expiry"] = expiry.strftime(
