@@ -33,12 +33,10 @@ export default function AddActionToFormModal({action, form, ...props}: any) {
     const [errorMessage, setErrorMessage] = useState('')
     const [oauthResult, setOauthResult] = useState({state: "", code: ""})
 
-    console.log("asdsad", showIntegrationConsent)
-
     useEffect(() => {
         if (action.name === 'creator_copy_mail') {
             setParameters({['Receiving Mail Address']: user.email});
-        } else if (action.name === "integrate_google_sheets") {
+        } else if (action.name === IntegrationType.GoogleSheet) {
             setShowIntegrationConsent(true)
         }
     }, [action]);

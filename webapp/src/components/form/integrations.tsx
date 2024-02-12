@@ -54,7 +54,9 @@ export default function FormIntegrations() {
                                 <div key={`${integration?.id}_${index}`}
                                      className="flex items-center bg-black-100 py-4 px-5 rounded justify-between w-full">
                                     <div className="flex items-start justify-center flex-col gap-2">
-                                        <div className="h4-new">{integration?.title || 'Untitled Integration'}</div>
+                                        <div
+                                            className="h4-new">{integration?.title || 'Untitled Integration'} ( {integration?.type} )
+                                        </div>
                                         {integration?.description &&
                                             <div className="p2-new text-black-700">{integration.description}</div>}
                                         {integration?.parameters && getIntegrationIsAdded(integration) && (
@@ -128,7 +130,9 @@ export default function FormIntegrations() {
                                 <div key={`${integration?.id}_${index}`}
                                      className="flex items-center bg-black-100 py-4 px-5 rounded justify-between w-full">
                                     <div className="flex items-start justify-center flex-col gap-2">
-                                        <div className="h4-new">{integration?.title || 'Untitled Integration'}</div>
+                                        <div
+                                            className="h4-new">{integration?.title || 'Untitled Integration'} ( {integration?.type} )
+                                        </div>
                                         {integration?.description &&
                                             <div className="p2-new text-black-700">{integration.description}</div>}
                                     </div>
