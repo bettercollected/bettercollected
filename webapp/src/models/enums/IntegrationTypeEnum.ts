@@ -1,3 +1,3 @@
 export const IntegrationType = {
-    GoogleSheet: "google_sheet"
+    GoogleSheet: "integrate_google_sheets"
 }
