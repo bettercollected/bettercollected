@@ -1,5 +1,5 @@
 from beanie import PydanticObjectId
-from pydantic import BaseSettings
+from pydantic_settings import BaseSettings
 
 
 class DefaultResourcesWorkspaceSettings(BaseSettings):

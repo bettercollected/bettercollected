@@ -62,7 +62,8 @@ class AuthRoutes(Routable):
         response_model=UserStatusDto,
     )
     async def status(self, user: User = Depends(get_logged_user)):
-        return await self.auth_service.get_user_status(user)
+        response = await self.auth_service.get_user_status(user)
+        return response
 
     @post(
         "/creator/otp/send",

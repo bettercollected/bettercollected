@@ -20,8 +20,8 @@ class TestWorkspaces:
     def test_get_workspace_by_query(
         self,
         client: TestClient,
-        workspace: Coroutine[Any, Any, WorkspaceDocument],
-        workspace_1: Coroutine[Any, Any, WorkspaceDocument],
+        workspace: WorkspaceDocument,
+        workspace_1: WorkspaceDocument,
         test_user_cookies: dict[str, str],
         mock_get_workspace_by_query,
     ):

@@ -4,7 +4,7 @@ import os
 from pathlib import Path
 
 from dotenv import load_dotenv
-from pydantic import BaseSettings
+from pydantic_settings import BaseSettings
 
 from backend.config.api_settings import ApiSettings
 from backend.config.apm_settings import APMSettings

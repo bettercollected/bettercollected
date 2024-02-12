@@ -2,6 +2,7 @@ import calendar
 import secrets
 import string
 from datetime import datetime, timedelta
+from http import HTTPStatus
 
 import jwt
 from beanie import PydanticObjectId

@@ -11,7 +11,7 @@ from auth.config.stripe import StripeSettings
 from auth.config.typeform_settings import TypeformSettings
 from auth.version import __version__
 from dotenv import load_dotenv
-from pydantic import BaseSettings
+from pydantic_settings import BaseSettings
 
 default_dot_env_path = (
     Path(os.path.abspath(os.path.dirname(__file__)))

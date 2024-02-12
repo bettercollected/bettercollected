@@ -130,7 +130,7 @@ class StandardFieldAttachment(BaseModel):
     type: Optional[StandardAttachmentType]
     href: Optional[str]
     scale: Optional[float]
-    properties: Optional[StandardAttachmentProperties] = StandardAttachmentProperties()
+    properties: Optional[StandardAttachmentProperties]
     embed_provider: Optional[EmbedProvider]
 
 

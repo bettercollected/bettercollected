@@ -88,6 +88,7 @@ class WorkspaceRouter(Routable):
 
     @get(
         "/{workspace_id}",
+        response_model=WorkspaceResponseDto,
     )
     async def _get_workspace_by_id(self, workspace_id: PydanticObjectId):
         return await self.workspace_service.get_workspace_by_id(

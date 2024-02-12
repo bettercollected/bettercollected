@@ -2,21 +2,17 @@
 import logging
 
 from beanie import PydanticObjectId
+from classy_fastapi import Routable, get
+from common.models.user import (
+    User, UserResponseDto,
+)
+from pydantic import EmailStr
+from starlette.background import BackgroundTasks
+from starlette.requests import Request
 
 from auth.app.container import container
 from auth.app.router import router
 from auth.app.services.auth_service import AuthService
-
-from classy_fastapi import Routable, get
-
-from common.models.user import (
-    User,
-)
-
-from pydantic import EmailStr
-
-from starlette.background import BackgroundTasks
-from starlette.requests import Request
 
 log = logging.getLogger(__name__)
 
@@ -29,9 +25,10 @@ class AuthRoutes(Routable):
         super().__init__(*args, **kwargs)
         self.auth_service = auth_service
 
-    @get("/status")
+    @get("/status", response_model=UserResponseDto)
     async def _get_user_status(self, user_id: PydanticObjectId):
-        return await self.auth_service.get_user_status(user_id)
+        response = await self.auth_service.get_user_status(user_id)
+        return response
 
     @get("/otp/send")
     async def _send_otp_to_email(

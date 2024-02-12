@@ -4,7 +4,6 @@ import sentry_sdk
 from elasticapm.contrib.starlette import make_apm_client, ElasticAPM
 from fastapi import FastAPI
 from fastapi_pagination import add_pagination
-from fastapi_utils.timing import add_timing_middleware
 from loguru import logger
 from sentry_sdk.integrations.asyncio import AsyncioIntegration
 from sentry_sdk.integrations.httpx import HttpxIntegration
@@ -78,7 +77,7 @@ def get_application(is_test_mode: bool = False):
     logger.info("Initialize FastAPI application node.")
     api_settings = settings.api_settings
     sentry_settings = settings.sentry_settings
-    if sentry_settings.DSN:
+    if sentry_settings.DSN and not is_test_mode:
         sentry_sdk.init(
             dsn=sentry_settings.DSN,
             max_breadcrumbs=50,
@@ -106,12 +105,6 @@ def get_application(is_test_mode: bool = False):
         on_startup=[on_startup],
         on_shutdown=[on_shutdown],
     )
-    app.add_middleware(
-        DynamicCORSMiddleware,
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
     logger.info("Add application routes.")
     app.include_router(root_api_router)
     logger.info("Register global exception handler for custom HTTPException.")
@@ -120,13 +113,21 @@ def get_application(is_test_mode: bool = False):
         common.exceptions.http.HTTPException,
         common.exceptions.http.http_exception_handler,
     )
-
     logger.info("Register application middlewares.")
     include_middlewares(app)
-    add_timing_middleware(app, record=logger.info, prefix="app", exclude="untimed")
 
     add_pagination(app)  # Important for paginating elements
-    if settings.apm_settings.service_name and settings.apm_settings.server_url:
+    if (
+        settings.apm_settings.service_name
+        and settings.apm_settings.server_url
+        and not is_test_mode
+    ):
         apm = make_apm_client()
         app.add_middleware(ElasticAPM, client=apm)
+    app.add_middleware(
+        DynamicCORSMiddleware,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
     return app
