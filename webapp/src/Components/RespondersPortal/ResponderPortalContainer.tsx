@@ -49,15 +49,13 @@ export default function ResponderPortalContainer(props: { workspace: WorkspaceDt
                             <Image src={workspace.bannerImage} className="rounded-t-2xl" alt="Worksace Banner" layout="fill" />
                         </div>
                     )}
-                    {workspace.profileImage && (
-                        <div className={`${workspace.bannerImage ? 'relative top-[-36px] left-6' : 'relative top-6 ml-6'} w-16 h-16`}>
-                            <Image src={workspace.profileImage} alt="Profile Image" className="rounded-xl" layout="fill" />
-                        </div>
-                    )}
+                    <div className={`${workspace.bannerImage ? 'relative top-[-36px] left-6' : 'relative top-6 ml-6'} w-16 h-16`}>
+                        <AuthAccountProfileImage image={workspace?.profileImage} name={workspace?.title || 'U'} size={64} typography="h2" />
+                    </div>
 
                     <div className={`${workspace.bannerImage ? '-mt-8' : 'mt-4'}  p-6`}>
                         <div className="h3-new">{workspace?.title || 'Untitled Workspace'}</div>
-                        {workspace?.description && <div className="mt-2 text-black-600">{workspace.description}</div>}
+                        {workspace?.description && <div className="mt-2 p2-new text-black-600">{workspace.description}</div>}
                         <div className="mt-4 flex gap-6 text-new-black-800 p4-new">
                             <ActiveLink target="_blank" className="p4-new !leading-none !not-italic !text-black-800" href={workspace.termsOfService ?? `https://bettercollected.com/terms-of-service/`}>
                                 {t(localesCommon.termsOfServices.title)}
