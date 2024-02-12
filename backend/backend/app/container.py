@@ -41,6 +41,7 @@ from backend.app.services.form_plugin_provider_service import FormPluginProvider
 from backend.app.services.form_response_service import FormResponseService
 from backend.app.services.form_service import FormService
 from backend.app.services.integration_action_service import IntegrationActionService
+from backend.app.services.integration_provider_factory import IntegrationProviderFactory
 from backend.app.services.integration_service import IntegrationService
 from backend.app.services.plugin_proxy_service import PluginProxyService
 from backend.app.services.responder_groups_service import ResponderGroupsService
@@ -101,6 +102,9 @@ class AppContainer(containers.DeclarativeContainer):
         ActionRepository, crypto=crypto
     )
 
+    integration_action_service: IntegrationActionService = providers.Singleton(
+        IntegrationActionService)
+
     temporal_service = providers.Singleton(
         TemporalService,
         server_uri=settings.temporal_settings.server_uri,
@@ -126,6 +130,14 @@ class AppContainer(containers.DeclarativeContainer):
         PluginProxyService, http_client=http_client
     )
 
+    integration_provider: IntegrationProviderFactory = providers.Singleton(
+        IntegrationProviderFactory,
+        form_provider_service=form_provider_service,
+        crypto=crypto,
+        http_client=http_client,
+        integration_action_service=integration_action_service
+    )
+
     form_service: FormService = providers.Singleton(
         FormService,
         workspace_user_repo=workspace_user_repo,
@@ -133,7 +145,8 @@ class AppContainer(containers.DeclarativeContainer):
         workspace_form_repo=workspace_form_repo,
         user_tags_service=user_tags_service,
         crypto=crypto,
-        http_client=http_client
+        http_client=http_client,
+        integration_provider=integration_provider
     )
 
     form_response_service: FormResponseService = providers.Singleton(
@@ -295,11 +308,6 @@ class AppContainer(containers.DeclarativeContainer):
         coupon_repository=coupon_repository,
         auth_service=auth_service,
         workspace_service=workspace_service
-    )
-
-    integration_action_service: IntegrationActionService = providers.Singleton(
-        IntegrationActionService,
-        form_service=form_service
     )
 
     integration_service: IntegrationService = providers.Singleton(

@@ -14,3 +14,4 @@ class BaseIntegrationProvider(metaclass=ABCMeta):
                                                 *args, **kwargs) -> (
             bool, str):
         pass
+
