@@ -32,7 +32,7 @@ from backend.app.models.dtos.settings_patch import SettingsPatchDto
 from backend.app.router import router
 from backend.app.services.form_service import FormService
 from backend.app.services.temporal_service import TemporalService
-from backend.app.services.user_service import get_logged_user, get_user_if_logged_in
+from backend.app.services.user_service import get_logged_user, get_user_if_logged_in, get_api_key
 from backend.app.services.workspace_form_service import WorkspaceFormService
 from backend.config import settings
 
@@ -408,7 +408,9 @@ class WorkspaceFormsRouter(Routable):
 
     @patch('/{form_id}/action/{action_id}/update')
     async def update_action_from_temporal(self, workspace_id: PydanticObjectId, form_id: PydanticObjectId,
-                                          action_id: PydanticObjectId):
+                                          action_id: PydanticObjectId, temporal_api_key=Depends(get_api_key)
+                                          ):
+
         response = await self.workspace_form_service.update_action_from_temporal(workspace_id=workspace_id,
                                                                                  form_id=form_id, action_id=action_id)
         return response
