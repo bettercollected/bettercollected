@@ -1,61 +1,5 @@
-.canvas {
-    display: flex;
-    flex: 1;
-    overflow: hidden;
-    align-items: center;
-    position: relative;
-    flex-direction: column;
-}
-
-.canvas.stretch {
-    align-items: stretch;
-}
-
-.canvas-wrapper .canvas {
-    padding-bottom: 54px;
-    margin-bottom: 0;
-}
-
-.content .canvas {
-    margin: var(--slide-content-offset) var(--size-16) 0 var(--size-4);
-}
-
-.selection-helper {
-    position: absolute;
-    left: -12px;
-    right: -12px;
-    top: -12px;
-    bottom: 0;
-    -ms-user-select: text;
-    -webkit-user-select: text;
-    -moz-user-select: text;
-    user-select: text;
-}
-
-.canvas .area-selection-wrapper {
-    position: absolute;
-}
-
-.canvas #read-layer {
-    z-index: 0;
-    position: relative;
-}
-
-.slide {
-    position: relative;
-    overflow: hidden;
-    flex-shrink: 0;
-    letter-spacing: 0;
-    background-color: #fff;
-}
-
-.slide:before {
-    content: "";
-    display: block;
-    padding-top: 56.25%;
-}
-
 .canvas-grid {
+    position: relative;
     background-color: white;
     box-shadow: 0px 4px 8px rgba(7, 100, 235, 0.1);
 }
@@ -67,7 +11,7 @@
     overflow: hidden;
 }
 
-.container > * {
+.container>* {
     transform-origin: top left;
     transform: scale(var(--scale-factor, 1));
 }
@@ -88,7 +32,7 @@
     touch-action: none;
 }
 
-.draggable > * {
+.draggable>* {
     /* Reset all styles to their initial values */
     all: revert;
 }
