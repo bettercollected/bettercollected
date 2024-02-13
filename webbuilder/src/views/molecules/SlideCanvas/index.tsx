@@ -7,7 +7,7 @@ import SlideDraggableWrapper from './SlideDraggableWrapper';
 
 const SlideCanvas = () => {
     return (
-        <div className="canvas-grid container my-5">
+        <div id="canvas" className="canvas-grid container my-5">
             <SlideDraggableWrapper>
                 <p className="!m-0 !p-0">Drag first p tag</p>
             </SlideDraggableWrapper>

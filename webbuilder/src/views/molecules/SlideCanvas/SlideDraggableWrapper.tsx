@@ -3,6 +3,7 @@
 import React, { useEffect, useLayoutEffect, useState } from 'react';
 
 import { useDraggable } from '@app/lib/hooks/useDraggable';
+import useElementSize from '@app/lib/hooks/useElementSize';
 
 import './Canvas.css';
 
@@ -27,6 +28,11 @@ const SlideDraggableWrapper = ({
     const [draggableRef, node, dx, dy] = useDraggable({
         gridSize
     });
+
+    const navbarSize = useElementSize('#navbar');
+    const slidesPreviewSize = useElementSize('#slides-preview');
+    const canvasSize = useElementSize('#canvas');
+    const slideElementPropertiesSize = useElementSize('#slide-element-properties');
 
     const handleDragStart = () => {
         setIsDragging(true);
@@ -202,33 +208,39 @@ const SlideDraggableWrapper = ({
                                     position: 'absolute',
                                     left: 0,
                                     right: 0,
-                                    top: element.getBoundingClientRect().top - 16, // 16 here is the padding of the parent container
+                                    top:
+                                        element.getBoundingClientRect().top -
+                                        (navbarSize.height +
+                                            slidesPreviewSize.marginTop),
                                     width: '100%',
                                     height: '0.2px',
                                     backgroundColor: color,
                                     pointerEvents: 'none'
                                 }}
                             ></div>
-
                             {/* Bottom horizontal line */}
                             <div
                                 style={{
                                     position: 'absolute',
                                     left: 0,
                                     right: 0,
-                                    top: element.getBoundingClientRect().bottom - 16,
+                                    top:
+                                        element.getBoundingClientRect().bottom -
+                                        (navbarSize.height +
+                                            slidesPreviewSize.marginTop),
                                     width: '100%',
                                     height: '0.2px',
                                     backgroundColor: color,
                                     pointerEvents: 'none'
                                 }}
                             ></div>
-
                             {/* Left vertical line */}
                             <div
                                 style={{
                                     position: 'absolute',
-                                    left: element.getBoundingClientRect().left - 16,
+                                    left:
+                                        element.getBoundingClientRect().left -
+                                        slidesPreviewSize.width,
                                     top: 0,
                                     bottom: 0,
                                     width: '0.2px',
@@ -237,12 +249,13 @@ const SlideDraggableWrapper = ({
                                     pointerEvents: 'none'
                                 }}
                             ></div>
-
                             {/* Right vertical line */}
                             <div
                                 style={{
                                     position: 'absolute',
-                                    left: element.getBoundingClientRect().right - 16,
+                                    left:
+                                        element.getBoundingClientRect().right -
+                                        slideElementPropertiesSize.width,
                                     top: 0,
                                     bottom: 0,
                                     height: '100vh',

@@ -47,7 +47,7 @@ export const useDraggable = ({
         // );
         // setNearbyElements(nearby);
 
-        // Snap to nearby elements if close enough
+        // snap to nearby elements if close enough and snap at the elements closest position on top, left, right, bottom
         // nearby.forEach((el) => {
         //     const rect = el.getBoundingClientRect();
         //     if (Math.abs(rect.left - posA.x) < gridSize / 2) {
