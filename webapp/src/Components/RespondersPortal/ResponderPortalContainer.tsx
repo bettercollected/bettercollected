@@ -42,7 +42,7 @@ export default function ResponderPortalContainer(props: { workspace: WorkspaceDt
 
     return (
         <div className={`max-h-screen h-screen !bg-new-white-200 opacity-100 max-w-screen w-screen overflow-auto flex flex-col p-5 md:p-10 md:flex-row ${!hasCustomDomain ? '!pb-20' : ''}`}>
-            <div className="max-w-screen w-full md:max-w-[320px] md:sticky md:top-0">
+            <div className="max-w-screen w-full md:max-w-[320px] md:w-[320px] md:sticky md:top-0">
                 <div className="rounded-xl bg-white w-full">
                     {workspace.bannerImage && (
                         <div className="w-full relative aspect-banner rounded-t-2xl">
