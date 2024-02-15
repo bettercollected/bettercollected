@@ -1,11 +1,10 @@
 import SlideCanvas from '@app/views/molecules/SlideCanvas';
+import Navbar from '@app/views/organism/Navbar';
 
 export default function Home() {
     return (
         <main className="flex min-h-screen flex-col items-center justify-start bg-black-100">
-            <div id="navbar" className="h-16 w-full bg-white shadow-lg">
-                adf
-            </div>
+            <Navbar/>
             <div className="flex h-full w-full flex-row">
                 <div
                     id="slides-preview"
