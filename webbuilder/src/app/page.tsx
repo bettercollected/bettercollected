@@ -1,23 +1,27 @@
 import SlideCanvas from '@app/views/molecules/SlideCanvas';
 import Navbar from '@app/views/organism/Navbar';
+import PropertiesDrawer from "@app/views/organism/PropertiesDrawer";
 
 export default function Home() {
     return (
         <main className="flex min-h-screen flex-col items-center justify-start bg-black-100">
             <Navbar/>
-            <div className="flex h-full w-full flex-row">
+            <div className="flex h-body-content gap-10  w-full flex-row items-center">
                 <div
                     id="slides-preview"
-                    className="m-5 w-[400px]  self-stretch bg-white"
+                    className="w-[400px] h-full bg-white"
                 >
                     Slides Preview
                 </div>
-                <SlideCanvas />
+                <div className=" h-min w-full aspect-video bg-white">
+
+                </div>
+                {/*<SlideCanvas/>*/}
                 <div
                     id="slide-element-properties"
-                    className="m-5 w-[400px] self-stretch bg-white"
+                    className="w-[400px] self-stretch bg-white"
                 >
-                    Element Properties
+                    <PropertiesDrawer/>
                 </div>
             </div>
         </main>

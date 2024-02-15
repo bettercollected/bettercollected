@@ -21,7 +21,7 @@ const formFields = [
 const Navbar = () => {
     const {addField} = useFieldSelectorAtom();
 
-    return <div id="navbar" className="h-16 w-full bg-white shadow-lg p-4 flex justify-between">
+    return <div id="navbar" className="h-16 w-full border-b-[1px] border-b-black-100 bg-white p-4 flex justify-between">
         <div className={'flex gap-2 items-center'}>
             <div className={'px-4 py-[6px] rounded-lg shadow mr-4'}>
                 <BetterCollectedSmallLogo/>
