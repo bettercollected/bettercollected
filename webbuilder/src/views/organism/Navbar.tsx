@@ -14,9 +14,9 @@ import {FieldTypes} from "@app/models/dtos/form";
 const fields = [
     {name: "Short Input", type: FieldTypes.SHORT_TEXT},
     {name: "Email", type: FieldTypes.EMAIL},
-    {name: "Number", type: FieldTypes.NUMBER}
+    {name: "Number", type: FieldTypes.NUMBER},
+    {name:"File Upload",type:FieldTypes.FILE_UPLOAD}
 ]
-
 
 const Navbar = () => {
     const {formFields, addField} = useFieldSelectorAtom();
