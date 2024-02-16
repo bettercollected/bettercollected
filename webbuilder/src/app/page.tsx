@@ -1,6 +1,7 @@
 import SlideCanvas from '@app/views/molecules/SlideCanvas';
 import Navbar from '@app/views/organism/Navbar';
 import PropertiesDrawer from "@app/views/organism/PropertiesDrawer";
+import FieldSection from "@app/views/organism/FieldSection";
 
 export default function Home() {
     return (
@@ -13,9 +14,7 @@ export default function Home() {
                 >
                     Slides Preview
                 </div>
-                <div className=" h-min w-full aspect-video bg-white">
-
-                </div>
+                <FieldSection/>
                 {/*<SlideCanvas/>*/}
                 <div
                     id="slide-element-properties"

@@ -23,7 +23,7 @@ interface StandardForm {
     fields: Array<FormField>
 }
 
-interface FormField {
+export interface FormField {
     index: number
     id: string
     properties?: FormFieldProperties
@@ -64,9 +64,10 @@ interface FieldChoice {
 }
 
 
-enum FieldTypes {
+export enum FieldTypes {
     DATE = 'date',
     EMAIL = 'email',
+    NUMBER='number',
     SHORT_TEXT = 'short_text',
     LONG_TEXT = 'long_text',
     MULTIPLE_CHOICE = 'multiple_choice',
@@ -83,6 +84,7 @@ enum FieldTypes {
     IMAGE_CONTENT = 'IMAGE_CONTENT',
     DATE_INPUT = 'date_input',
     EMAIL_INPUT = 'email_input',
+    NUMBER_INPUT = 'number_input',
     SHORT_TEXT_INPUT = 'short_text_input',
     LONG_TEXT_INPUT = 'long_text_input',
     MULTIPLE_CHOICE_INPUT = 'multiple_choice_input',
