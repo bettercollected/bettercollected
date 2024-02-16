@@ -6,8 +6,9 @@ import useFieldSelectorAtom from "@app/store/jotai/fieldSelector";
 import TextField from '@mui/material/TextField';
 import {FieldTypes, FormField} from "@app/models/dtos/form";
 
-const FieldSection = () => {
-    const {fields} = useFieldSelectorAtom();
+const FieldSection = ({slide}: { slide: FormField }) => {
+    // const {fields} = useFieldSelectorAtom();
+    const slideFields = slide.properties?.fields
 
     function renderField(field: FormField) {
         switch (field.type) {
@@ -21,10 +22,10 @@ const FieldSection = () => {
 
     return <div className=" h-min w-full aspect-video bg-white">
         <div className={'flex flex-col gap-20 px-20 py-10 overflow-y-scroll h-full justify-center'}>
-            {Array.isArray(fields) && fields.length ? fields.map((field, index) => {
-                return <>
+            {Array.isArray(slideFields) && slideFields.length ? slideFields.map((field, index) => {
+                return <div key={index}>
                     {renderField(field)}
-                </>
+                </div>
             }) : <></>}
         </div>
     </div>
@@ -58,7 +59,7 @@ const InputField = ({field, value}: { field: FormField, value: string }) => {
                 },
             },
         }} type={field.type} value={field.properties?.placeholder}
-                   onChange={(e: any) => updateFieldPlaceholder(field.id, e.target.value)}
+                   onChange={(e: any) => updateFieldPlaceholder(field.index, e.target.value)}
                    className={'w-2/3 border-0 border-b-[1px] border-cyan-500'}/>
     </div>
 }

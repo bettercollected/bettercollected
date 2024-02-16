@@ -11,7 +11,7 @@ import useFieldSelectorAtom from "@app/store/jotai/fieldSelector";
 import {v4} from "uuid"
 import {FieldTypes} from "@app/models/dtos/form";
 
-const formFields = [
+const fields = [
     {name: "Short Input", type: FieldTypes.SHORT_TEXT},
     {name: "Email", type: FieldTypes.EMAIL},
     {name: "Number", type: FieldTypes.NUMBER}
@@ -19,7 +19,7 @@ const formFields = [
 
 
 const Navbar = () => {
-    const {fields, addField} = useFieldSelectorAtom();
+    const {formFields, addField} = useFieldSelectorAtom();
 
     return <div id="navbar" className="h-16 w-full border-b-[1px] border-b-black-100 bg-white p-4 flex justify-between">
         <div className={'flex gap-2 items-center'}>
@@ -33,21 +33,21 @@ const Navbar = () => {
                     <div className={'rounded h-6 w-6 bg-black-400'}></div>
                     Insert</>
             } menuTitle={'Insert'}>
-                {Array.isArray(formFields) && formFields.map((field) => {
+                {Array.isArray(fields) && fields.map((field) => {
                     return <MenuItem key={field.type}
                                      onClick={() => {
-                                         const fieldId =v4()
+                                         const fieldId = v4()
                                          addField({
                                              id: fieldId,
-                                             index: fields.length,
+                                             index: formFields[0].properties ? formFields[0].properties.fields.length : 0,
                                              type: field.type,
-                                         })
+                                         }, 0)
                                          window.setTimeout(function () {
                                              document.getElementById(`input-${fieldId}`)?.focus()
                                          }, 0);
 
                                      }
-                    }>
+                                     }>
                         {field.name}
                     </MenuItem>
                 })}
