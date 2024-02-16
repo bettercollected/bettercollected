@@ -48,7 +48,7 @@ interface FieldValidations {
 
 interface FormFieldProperties {
     hidden?: boolean
-    fields: Array<FieldChoice>
+    fields: Array<FormField>
     placeholder?: string
     choices?: Array<any>
     steps?: number
@@ -65,9 +65,10 @@ interface FieldChoice {
 
 
 export enum FieldTypes {
+    SLIDE = 'slide',
     DATE = 'date',
     EMAIL = 'email',
-    NUMBER='number',
+    NUMBER = 'number',
     SHORT_TEXT = 'short_text',
     LONG_TEXT = 'long_text',
     MULTIPLE_CHOICE = 'multiple_choice',
