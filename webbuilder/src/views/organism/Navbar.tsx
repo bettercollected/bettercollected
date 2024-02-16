@@ -7,19 +7,19 @@ import Button from "@app/views/atoms/Button";
 import PlayIcon from "../atoms/Icons/PlayIcon";
 import {ButtonVariant} from "@app/models/enums/button";
 import {MenuItem} from "@mui/material";
-import {FieldTagName} from "@app/models/enums/fieldEnum";
 import useFieldSelectorAtom from "@app/store/jotai/fieldSelector";
 import {v4} from "uuid"
+import {FieldTypes} from "@app/models/dtos/form";
 
 const formFields = [
-    {name: "Short Input", type: FieldTagName.SHORT_TEXT},
-    {name: "Email", type: FieldTagName.EMAIL},
-    {name: "Number", type: FieldTagName.NUMBER}
+    {name: "Short Input", type: FieldTypes.SHORT_TEXT},
+    {name: "Email", type: FieldTypes.EMAIL},
+    {name: "Number", type: FieldTypes.NUMBER}
 ]
 
 
 const Navbar = () => {
-    const {addField} = useFieldSelectorAtom();
+    const {fields, addField} = useFieldSelectorAtom();
 
     return <div id="navbar" className="h-16 w-full border-b-[1px] border-b-black-100 bg-white p-4 flex justify-between">
         <div className={'flex gap-2 items-center'}>
@@ -35,12 +35,19 @@ const Navbar = () => {
             } menuTitle={'Insert'}>
                 {Array.isArray(formFields) && formFields.map((field) => {
                     return <MenuItem key={field.type}
-                                     onClick={() => addField({
-                                         fieldId: v4(),
-                                         label: '',
-                                         fieldType: field.type,
-                                         placeholder: ''
-                                     })}>
+                                     onClick={() => {
+                                         const fieldId =v4()
+                                         addField({
+                                             id: fieldId,
+                                             index: fields.length,
+                                             type: field.type,
+                                         })
+                                         window.setTimeout(function () {
+                                             document.getElementById(`input-${fieldId}`)?.focus()
+                                         }, 0);
+
+                                     }
+                    }>
                         {field.name}
                     </MenuItem>
                 })}
