@@ -1,41 +1,34 @@
 'use client';
 
 import {atom, useAtom} from "jotai"
-import {FieldTagName} from "@app/models/enums/fieldEnum";
+import {FormField} from "@app/models/dtos/form";
 
-export interface IFieldType {
-    fieldId: string;
-    label: string;
-    fieldType: FieldTagName;
-    placeholder: string;
-}
-
-const initialFieldAtom = atom<IFieldType[]>([])
+const initialFieldsAtom = atom<FormField[]>([])
 
 export default function useFieldSelectorAtom() {
-    const [fields, setFields] = useAtom(initialFieldAtom);
-    const addField = (field: IFieldType) => {
+    const [fields, setFields] = useAtom(initialFieldsAtom);
+    const addField = (field: FormField) => {
         setFields([...fields, field])
     }
 
-    const updateLabel = (fieldId: string, labelText: string) => {
-        const updatedFields = fields.map((field: IFieldType) => {
-            if (field.fieldId === fieldId) {
-                return {...field, label: labelText}
-            } else return field
-        })
-        setFields(updatedFields)
+    const updateTitle = (fieldId: string, titleText: string) => {
+        const newFields = fields.map((field: FormField) => {
+                if (field.id === fieldId) {
+                    return {...field, title: titleText}
+                } else return field
+            }
+        )
+        setFields(newFields)
+    }
+    const updateFieldPlaceholder = (fieldId: string, placeholderText: string) => {
+        const newFields = fields.map((field: FormField) => {
+                if (field.id === fieldId) {
+                    return {...field, properties: {...field.properties, placeholder: placeholderText, fields: []}}
+                } else return field
+            }
+        )
+        setFields(newFields)
     }
 
-    const updatePlaceholder = (fieldId: string, placeholderText: string) => {
-        const updatedFields = fields.map((field: IFieldType) => {
-            if (field.fieldId === fieldId) {
-                return {...field, placeholder: placeholderText}
-            } else return field
-        })
-        setFields(updatedFields)
-    }
-
-
-    return {fields, setFields, addField, updateLabel, updatePlaceholder}
+    return {fields, setFields, addField, updateTitle, updateFieldPlaceholder}
 }
