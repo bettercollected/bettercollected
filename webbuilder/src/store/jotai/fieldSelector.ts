@@ -6,29 +6,38 @@ import {FormField} from "@app/models/dtos/form";
 const initialFieldsAtom = atom<FormField[]>([])
 
 export default function useFieldSelectorAtom() {
-    const [fields, setFields] = useAtom(initialFieldsAtom);
-    const addField = (field: FormField) => {
-        setFields([...fields, field])
+    const [formFields, setFormFields] = useAtom(initialFieldsAtom);
+
+    const addSlide = (field: FormField) => {
+        setFormFields([...formFields, field])
+    }
+
+    const addField = (slideField: FormField, slideIndex: number) => {
+        const slide = formFields[slideIndex]
+        slide.properties?.fields.push(slideField)
+        const newSlides = formFields.splice(slideIndex, 1, slide)
+        setFormFields(newSlides)
     }
 
     const updateTitle = (fieldId: string, titleText: string) => {
-        const newFields = fields.map((field: FormField) => {
+        const newFields = formFields.map((field: FormField) => {
                 if (field.id === fieldId) {
                     return {...field, title: titleText}
                 } else return field
             }
         )
-        setFields(newFields)
+        setFormFields(newFields)
     }
-    const updateFieldPlaceholder = (fieldId: string, placeholderText: string) => {
-        const newFields = fields.map((field: FormField) => {
-                if (field.id === fieldId) {
+    const updateFieldPlaceholder = (fieldIndex: number, placeholderText: string) => {
+        const newField = formFields[fieldIndex]
+        const newFields = formFields.map((field: FormField) => {
+                if (field.id === `${fieldIndex}`) {
                     return {...field, properties: {...field.properties, placeholder: placeholderText, fields: []}}
                 } else return field
             }
         )
-        setFields(newFields)
+        setFormFields([...formFields,])
     }
 
-    return {fields, setFields, addField, updateTitle, updateFieldPlaceholder}
+    return {formFields, addField, addSlide, updateTitle, updateFieldPlaceholder}
 }
