@@ -50,7 +50,7 @@ interface FormFieldProperties {
     hidden?: boolean
     fields: Array<FormField>
     placeholder?: string
-    choices?: Array<any>
+    choices?: Array<FieldChoice>
     steps?: number
     startFrom?: number
     ratingShape?: string
@@ -66,6 +66,8 @@ interface FieldChoice {
 
 export enum FieldTypes {
     SLIDE = 'slide',
+    YES_NO = 'yes_no',
+    LINK = "url",
     DATE = 'date',
     EMAIL = 'email',
     NUMBER = 'number',
