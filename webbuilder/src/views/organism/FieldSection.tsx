@@ -18,11 +18,13 @@ const FieldSection = ({slide}: { slide: FormField }) => {
             case (FieldTypes.NUMBER):
             case (FieldTypes.SHORT_TEXT):
             case(FieldTypes.LINK):
-                return <InputField field={field}/>
+                return <InputField field={field} slide={slide}/>
             case (FieldTypes.FILE_UPLOAD):
-                return <FileUpload field={field}/>
+                return <FileUpload field={field} slide={slide}/>
             case (FieldTypes.YES_NO):
-                return <YesNoField field={field}/>
+                return <YesNoField field={field} slide={slide}/>
+            case (FieldTypes.DROP_DOWN):
+                return <DropDownField field={field} slide={slide}/>;
         }
     }
 
@@ -38,7 +40,7 @@ const FieldSection = ({slide}: { slide: FormField }) => {
 }
 export default FieldSection
 
-const FileUpload = ({field}: { field: FormField }) => {
+const FileUpload = ({field,slide}: { field: FormField,slide:FormField }) => {
     const {updateTitle} = useFieldSelectorAtom();
     const handleFileInputChange = (event: any) => {
         const file = event.target.files[0];
@@ -46,7 +48,7 @@ const FileUpload = ({field}: { field: FormField }) => {
     };
     return <div className={'flex flex-col items-start'}>
         <input id={`input-${field.id}`} type="text" className={'px-0 -left-1 border-0 text-2xl'} value={field.title}
-               onChange={(e: any) => updateTitle(field.id, e.target.value)}/>
+               onChange={(e: any) => updateTitle(field.index,slide.index,e.target.value)}/>
         <label htmlFor="form-builder-file-upload"
                className={'h-[200px] w-[500px] cursor-pointer border-2 border-brand-500 rounded-2xl border-dotted flex flex-col gap-2 justify-center items-center'}>
             <FolderUploadIcon/>
@@ -57,12 +59,12 @@ const FileUpload = ({field}: { field: FormField }) => {
     </div>
 }
 
-const InputField = ({field}: { field: FormField }) => {
+const InputField = ({field,slide}: { field: FormField,slide:FormField }) => {
     const {updateTitle, updateFieldPlaceholder} = useFieldSelectorAtom();
 
     return <div className={'flex flex-col items-start'}>
         <input id={`input-${field.id}`} type="text" className={'px-0 -left-1 border-0 text-2xl'} value={field.title}
-               onChange={(e: any) => updateTitle(field.id, e.target.value)}/>
+               onChange={(e: any) => updateTitle(field.index,slide.index,e.target.value)}/>
         <TextField sx={{
             '& .MuiOutlinedInput-root': {
                 '& fieldset': {
@@ -84,16 +86,16 @@ const InputField = ({field}: { field: FormField }) => {
                 },
             },
         }} type={field.type} value={field.properties?.placeholder}
-                   onChange={(e: any) => updateFieldPlaceholder(field.index, e.target.value)}
+                   onChange={(e: any) => updateFieldPlaceholder(field.index,slide.index, e.target.value)}
                    className={'w-2/3 border-0 border-b-[1px] border-cyan-500'}/>
     </div>
 }
 
-const YesNoField = ({field}: { field: FormField }) => {
+const YesNoField = ({field,slide}: { field: FormField,slide:FormField }) => {
     const {updateTitle} = useFieldSelectorAtom();
     return <div className={'flex flex-col items-start'}>
         <input id={`input-${field.id}`} type="text" className={'px-0 -left-1 border-0 text-2xl'} value={field.title}
-               onChange={(e: any) => updateTitle(field.id, e.target.value)}/>
+               onChange={(e: any) => updateTitle(field.index,slide.index,e.target.value)}/>
         <RadioGroup className={'flex flex-col gap-2 w-1/3'} value={field.value} onChange={() => {
         }}>
             {field && field.properties?.choices?.map((choice, index) => {
@@ -105,6 +107,23 @@ const YesNoField = ({field}: { field: FormField }) => {
             })}
         </RadioGroup>
     </div>
+}
+
+const DropDownField = ({field,slide}: { field: FormField,slide:FormField })=>{
+    const {updateTitle} = useFieldSelectorAtom();
+    return <div className={'flex flex-col items-start'}>
+    <input id={`input-${field.id}`} type="text" className={'px-0 -left-1 border-0 text-2xl'} value={field.title}
+           onChange={(e: any) => updateTitle(field.index,slide.index,e.target.value)}/>
+            <RadioGroup className={'flex flex-col gap-2 w-1/3'} value={field.value} onChange={() => {
+        }}>
+            {field && field.properties?.choices?.map((choice, index) => {
+                return <RadioGroup.Option value={choice.value} key={index}>
+                    <input
+                        className={`rounded-xl border border-cyan-500 p-2 px-4 flex justify-between`} value={choice.value} onChange={(e)=>{}}/>
+                </RadioGroup.Option>
+            })}
+        </RadioGroup>
+           </div>
 }
 
 
