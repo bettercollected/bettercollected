@@ -2,6 +2,7 @@
 
 import {atom, useAtom} from "jotai"
 import {FormField} from "@app/models/dtos/form";
+import { v4 } from "uuid";
 
 const initialFieldsAtom = atom<FormField[]>([])
 
@@ -33,6 +34,28 @@ export default function useFieldSelectorAtom() {
         setFormFields(updatedSlides);
     }
 
+    const updateChoiceFieldValue = (fieldIndex:number,slideIndex:number,choiceId:string,choiceValue:string)=>{
+        const slide = formFields[slideIndex];
+        const updatedChoices = slide.properties!.fields[fieldIndex]?.properties?.choices?.map((choice)=>{
+            if (choice.id === choiceId){
+                choice.value = choiceValue
+                return choice
+            }
+            else return choice
+        })
+        slide.properties!.fields[fieldIndex]!.properties!.choices = updatedChoices
+        const updatedSlides = [...formFields];
+        setFormFields(updatedSlides);
+    }
 
-    return {formFields, addField, addSlide, updateTitle, updateFieldPlaceholder}
+    const addChoiceField = (fieldIndex:number,slideIndex:number)=>{
+        const choiceId = v4();
+        const slide = formFields[slideIndex];
+        slide.properties!.fields[fieldIndex]?.properties?.choices?.push({id:choiceId})
+        const updatedSlides = [...formFields];
+        setFormFields(updatedSlides)
+    }
+
+
+    return {formFields, addField, addSlide, updateTitle, updateFieldPlaceholder,updateChoiceFieldValue,addChoiceField}
 }
