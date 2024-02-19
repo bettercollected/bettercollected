@@ -1,6 +1,4 @@
 'use client'
-
-import SlideCanvas from '@app/views/molecules/SlideCanvas';
 import Navbar from '@app/views/organism/Navbar';
 import PropertiesDrawer from "@app/views/organism/PropertiesDrawer";
 import FieldSection from "@app/views/organism/FieldSection";
@@ -9,6 +7,7 @@ import {v4} from "uuid";
 import {FieldTypes} from "@app/models/dtos/form";
 
 export default function Home() {
+
     const {addSlide, formFields} = useFieldSelectorAtom();
     return (
         <main className="flex min-h-screen flex-col items-center justify-start bg-black-100">
@@ -36,7 +35,7 @@ export default function Home() {
                 }) : <div className={'w-full'}></div>}
                 <div
                     id="slide-element-properties"
-                    className="w-[400px] self-stretch bg-white"
+                    className="w-[400px] self-stretch bg-white border-l-black-300"
                 >
                     <PropertiesDrawer/>
                 </div>
