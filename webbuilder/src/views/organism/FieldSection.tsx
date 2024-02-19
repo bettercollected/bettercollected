@@ -7,9 +7,11 @@ import TextField from '@mui/material/TextField';
 import {FieldTypes, FormField} from "@app/models/dtos/form";
 import {FolderUploadIcon} from '../atoms/Icons/FolderUploadIcon';
 import {RadioGroup} from '@headlessui/react'
+import { ArrowDown } from '../atoms/Icons/ArrowDown';
+import { Button } from '@app/shadcn/components/ui/button';
+import { PlusIcon } from '../atoms/Icons/Plus';
 
 const FieldSection = ({slide}: { slide: FormField }) => {
-    // const {fields} = useFieldSelectorAtom();
     const slideFields = slide.properties?.fields
 
     function renderField(field: FormField) {
@@ -110,20 +112,22 @@ const YesNoField = ({field,slide}: { field: FormField,slide:FormField }) => {
 }
 
 const DropDownField = ({field,slide}: { field: FormField,slide:FormField })=>{
-    const {updateTitle} = useFieldSelectorAtom();
-    return <div className={'flex flex-col items-start'}>
+    const {updateTitle,updateChoiceFieldValue,addChoiceField} = useFieldSelectorAtom();
+    return <div className={'flex flex-col items-start gap-4'}>
     <input id={`input-${field.id}`} type="text" className={'px-0 -left-1 border-0 text-2xl'} value={field.title}
            onChange={(e: any) => updateTitle(field.index,slide.index,e.target.value)}/>
-            <RadioGroup className={'flex flex-col gap-2 w-1/3'} value={field.value} onChange={() => {
-        }}>
+    <div className='flex justify-between w-1/4 py-2 text-2xl items-center border-0 border-cyan-500 border-b-[1px]'><h1>Select an option</h1> <ArrowDown/> </div>
+    <div className={'flex flex-col gap-2 w-1/3'}>
             {field && field.properties?.choices?.map((choice, index) => {
-                return <RadioGroup.Option value={choice.value} key={index}>
-                    <input
-                        className={`rounded-xl border border-cyan-500 p-2 px-4 flex justify-between`} value={choice.value} onChange={(e)=>{}}/>
-                </RadioGroup.Option>
+                return <>
+                    <input type='text'  value={choice.value} 
+                        onChange={(e:any)=>updateChoiceFieldValue(field.index,slide.index,choice.id,e.target.value)}
+                        className={`rounded-xl border border-cyan-500 p-2 px-4 flex justify-between`}/>
+                </>
             })}
-        </RadioGroup>
-           </div>
+        </div>
+    <Button onClick={()=>addChoiceField(field.index,slide.index)} variant={'ghost'} className='text-lg font-semibold' icon={<PlusIcon className='h-4 w-4'/>}>Add Option</Button>    
+    </div>
 }
 
 
