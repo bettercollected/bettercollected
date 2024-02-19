@@ -57,7 +57,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
                 className={cn(buttonVariants({
                     variant,
                     size,
-                    className: disabled || isLoading ? 'cursor-not-allowed' : 'cursor-pointer',
+                    className:`${className}${disabled || isLoading ? 'cursor-not-allowed' : 'cursor-pointer'  }` ,
                 }))}
                 ref={ref}
                 {...props}
