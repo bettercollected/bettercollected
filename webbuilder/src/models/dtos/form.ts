@@ -30,7 +30,7 @@ export interface FormField {
     validations?: FieldValidations
     title?: string
     description?: string
-    type?: any
+    type?: FieldTypes
     value?: string
 }
 
