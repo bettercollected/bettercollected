@@ -4,7 +4,6 @@ import EllipsisOption from "@app/views/atoms/Icons/EllipsisOption";
 import BetterCollectedSmallLogo from "@app/views/atoms/Icons/BetterCollectedSmallLogo";
 import MenuDropdown from "@app/views/molecules/MenuDropDown";
 import PlayIcon from "../atoms/Icons/PlayIcon";
-import {ButtonVariant} from "@app/models/enums/button";
 import {MenuItem} from "@mui/material";
 import useFieldSelectorAtom from "@app/store/jotai/fieldSelector";
 import {v4} from "uuid"
@@ -17,14 +16,15 @@ const fields = [
     {name: "Number", type: FieldTypes.NUMBER},
     {name: "File Upload", type: FieldTypes.FILE_UPLOAD},
     {name: "Link", type: FieldTypes.LINK},
-    {name: 'Yes No', type: FieldTypes.YES_NO}
+    {name: 'Yes No', type: FieldTypes.YES_NO},
+    {name: 'Drop Down', type: FieldTypes.DROP_DOWN}
 ]
 
 const Navbar = () => {
     const {formFields, addField} = useFieldSelectorAtom();
     const handleAddField = (field: any) => {
         const fieldId = v4()
-        if (field.type === FieldTypes.YES_NO) {
+        if (field.type === FieldTypes.YES_NO || field.type === FieldTypes.DROP_DOWN) {
             const firstChoiceId = v4()
             const secondChoiceId = v4()
             addField({
@@ -34,8 +34,8 @@ const Navbar = () => {
                 properties: {
                     fields: [],
                     choices: [
-                        {id: firstChoiceId, value: "Yes"},
-                        {id: secondChoiceId, value: "No"}
+                        {id: firstChoiceId, value:field.type === FieldTypes.YES_NO? "Yes":""},
+                        {id: secondChoiceId, value:field.type === FieldTypes.YES_NO? "No":""}
                     ]
                 }
             }, 0)
