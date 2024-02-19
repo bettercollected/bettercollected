@@ -3,13 +3,13 @@
 import EllipsisOption from "@app/views/atoms/Icons/EllipsisOption";
 import BetterCollectedSmallLogo from "@app/views/atoms/Icons/BetterCollectedSmallLogo";
 import MenuDropdown from "@app/views/molecules/MenuDropDown";
-import Button from "@app/views/atoms/Button";
 import PlayIcon from "../atoms/Icons/PlayIcon";
 import {ButtonVariant} from "@app/models/enums/button";
 import {MenuItem} from "@mui/material";
 import useFieldSelectorAtom from "@app/store/jotai/fieldSelector";
 import {v4} from "uuid"
 import {FieldTypes} from "@app/models/dtos/form";
+import {Button} from "@app/shadcn/components/ui/button";
 
 const fields = [
     {name: "Short Input", type: FieldTypes.SHORT_TEXT},
@@ -83,10 +83,10 @@ const Navbar = () => {
             } menuTitle={'Text'}/>
         </div>
         <div className={'flex gap-2 items-center'}>
-            <Button icon={<PlayIcon/>} variant={ButtonVariant.Tertiary}>
+            <Button icon={<PlayIcon/>} variant={'tertiary'}>
                 Preview
             </Button>
-            <Button>
+            <Button >
                 Publish
             </Button>
 
