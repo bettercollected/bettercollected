@@ -19,25 +19,20 @@ export default function useFieldSelectorAtom() {
         setFormFields(newSlides)
     }
 
-    const updateTitle = (fieldId: string, titleText: string) => {
-        const newFields = formFields.map((field: FormField) => {
-                if (field.id === fieldId) {
-                    return {...field, title: titleText}
-                } else return field
-            }
-        )
-        setFormFields(newFields)
+    const updateTitle = (fieldIndex:number,slideIndex:number, titleText: string) => {
+        const slide = formFields[slideIndex]
+        slide.properties!.fields[fieldIndex].title = titleText
+        const updatedSlides = [...formFields]
+        setFormFields(updatedSlides)
     }
-    const updateFieldPlaceholder = (fieldIndex: number, placeholderText: string) => {
-        const newField = formFields[fieldIndex]
-        const newFields = formFields.map((field: FormField) => {
-                if (field.id === `${fieldIndex}`) {
-                    return {...field, properties: {...field.properties, placeholder: placeholderText, fields: []}}
-                } else return field
-            }
-        )
-        setFormFields([...formFields,])
+    const updateFieldPlaceholder = (fieldIndex: number,slideIndex:number, placeholderText: string) => {
+        const slide = formFields[slideIndex];
+        slide.properties!.fields[fieldIndex]['properties'] = slide.properties!.fields[fieldIndex].properties || {fields:[]};
+        slide.properties!.fields[fieldIndex]!.properties!.placeholder = placeholderText;
+        const updatedSlides = [...formFields];
+        setFormFields(updatedSlides);
     }
+
 
     return {formFields, addField, addSlide, updateTitle, updateFieldPlaceholder}
 }
