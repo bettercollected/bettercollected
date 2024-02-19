@@ -5,8 +5,8 @@ import React from 'react';
 import useFieldSelectorAtom from "@app/store/jotai/fieldSelector";
 import TextField from '@mui/material/TextField';
 import {FieldTypes, FormField} from "@app/models/dtos/form";
-import UploadIcon from "@app/views/atoms/Icons/UploadIcon";
 import {FolderUploadIcon} from '../atoms/Icons/FolderUploadIcon';
+import {RadioGroup} from '@headlessui/react'
 
 const FieldSection = ({slide}: { slide: FormField }) => {
     // const {fields} = useFieldSelectorAtom();
@@ -17,15 +17,17 @@ const FieldSection = ({slide}: { slide: FormField }) => {
             case (FieldTypes.EMAIL):
             case (FieldTypes.NUMBER):
             case (FieldTypes.SHORT_TEXT):
+            case(FieldTypes.LINK):
                 return <InputField field={field}/>
             case (FieldTypes.FILE_UPLOAD):
                 return <FileUpload field={field}/>
-
+            case (FieldTypes.YES_NO):
+                return <YesNoField field={field}/>
         }
     }
 
-    return <div className=" h-min w-full aspect-video bg-white">
-        <div className={'flex flex-col gap-20 px-20 py-10 overflow-y-scroll h-full justify-center'}>
+    return <div className=" h-min w-full aspect-video bg-white overflow-y-scroll">
+        <div className={'flex flex-col gap-20 px-20 py-10 justify-center'}>
             {Array.isArray(slideFields) && slideFields.length ? slideFields.map((field, index) => {
                 return <div key={index}>
                     {renderField(field)}
@@ -51,7 +53,7 @@ const FileUpload = ({field}: { field: FormField }) => {
             <div className={'flex flex-col gap-1 items-center'}><span className={'text-base font-semibold'}>Choose your file or drag file</span>
                 <span className={'text-[12px]'}>Max size limit: 25 MB</span></div>
         </label>
-        <input type="file" id="form-builder-file-upload" className={'hidden'} onChange={handleFileInputChange}/>
+        <input type="file" id="form-builder-file-upload" className={'invisible'} onChange={handleFileInputChange}/>
     </div>
 }
 
@@ -86,3 +88,23 @@ const InputField = ({field}: { field: FormField }) => {
                    className={'w-2/3 border-0 border-b-[1px] border-cyan-500'}/>
     </div>
 }
+
+const YesNoField = ({field}: { field: FormField }) => {
+    const {updateTitle} = useFieldSelectorAtom();
+    return <div className={'flex flex-col items-start'}>
+        <input id={`input-${field.id}`} type="text" className={'px-0 -left-1 border-0 text-2xl'} value={field.title}
+               onChange={(e: any) => updateTitle(field.id, e.target.value)}/>
+        <RadioGroup className={'flex flex-col gap-2 w-1/3'} value={field.value} onChange={() => {
+        }}>
+            {field && field.properties?.choices?.map((choice, index) => {
+                return <RadioGroup.Option value={choice.value} key={index}>
+                    <div
+                        className={`rounded-xl border border-cyan-500 p-2 px-4 flex justify-between`}>{choice.value}
+                    </div>
+                </RadioGroup.Option>
+            })}
+        </RadioGroup>
+    </div>
+}
+
+
