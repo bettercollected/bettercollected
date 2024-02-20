@@ -26,7 +26,7 @@ const FieldSection = ({ slide, disabled = false }: { slide: FormField, disabled?
             case (FieldTypes.SHORT_TEXT):
             case (FieldTypes.LINK):
             case (FieldTypes.PHONE_NUMBER):
-                return <InputField field={field} slide={slide} />
+                return <InputField field={field} slide={slide} disabled={disabled} />
             case (FieldTypes.FILE_UPLOAD):
                 return <FileUpload field={field} slide={slide} />
             case (FieldTypes.YES_NO):
@@ -72,11 +72,11 @@ const FileUpload = ({ field, slide }: { field: FormField, slide: FormField }) =>
     </div>
 }
 
-const InputField = ({ field, slide }: { field: FormField, slide: FormField }) => {
+const InputField = ({ field, slide, disabled }: { field: FormField, slide: FormField, disabled: boolean }) => {
     const { updateTitle, updateFieldPlaceholder } = useFieldSelectorAtom();
 
     return <div className={'flex flex-col items-start'}>
-        <input id={`input-${field.id}`} type="text" className={'px-0 -left-1 border-0 text-2xl'} value={field.title}
+        <input id={`input-${disabled ? `${slide.id}${field.id}` : field.id}`} type="text" className={'px-0 -left-1 border-0 text-2xl'} value={field.title}
             onChange={(e: any) => updateTitle(field.index, slide.index, e.target.value)} />
         <TextField sx={{
             '& .MuiOutlinedInput-root': {
@@ -128,7 +128,7 @@ const DropDownField = ({ field, slide }: { field: FormField, slide: FormField })
         <input id={`input-${field.id}`} type="text" className={'px-0 -left-1 border-0 text-2xl'} value={field.title}
             onChange={(e: any) => updateTitle(field.index, slide.index, e.target.value)} />
         {field.type === FieldTypes.DROP_DOWN &&
-            <div className='flex justify-between w-1/3 py-2 text-2xl text-cyan-500 items-center border-0 border-cyan-500 border-b-[1px]'><h1>Select an option</h1> <ArrowDown className='stroke-2'/> </div>
+            <div className='flex justify-between w-1/3 py-2 text-2xl text-cyan-500 items-center border-0 border-cyan-500 border-b-[1px]'><h1>Select an option</h1> <ArrowDown className='stroke-2' /> </div>
         }
         <div className={'flex flex-col gap-2 w-1/3'}>
             {field && field.properties?.choices?.map((choice, index) => {
