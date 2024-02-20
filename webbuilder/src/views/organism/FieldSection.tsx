@@ -6,13 +6,18 @@ import useFieldSelectorAtom from "@app/store/jotai/fieldSelector";
 import TextField from '@mui/material/TextField';
 import {FieldTypes, FormField} from "@app/models/dtos/form";
 import {FolderUploadIcon} from '../atoms/Icons/FolderUploadIcon';
+import {useActiveFieldComponent} from "@app/store/jotai/activeBuilderComponent";
+import cn from "classnames";
 import {RadioGroup} from '@headlessui/react'
 import { ArrowDown } from '../atoms/Icons/ArrowDown';
 import { Button } from '@app/shadcn/components/ui/button';
 import { PlusIcon } from '../atoms/Icons/Plus';
 
-const FieldSection = ({slide}: { slide: FormField }) => {
+const FieldSection = ({slide, disabled = false}: { slide: FormField, disabled?: boolean }) => {
+    // const {fields} = useFieldSelectorAtom();
     const slideFields = slide.properties?.fields
+
+    const {setActiveFieldComponent} = useActiveFieldComponent()
 
     function renderField(field: FormField) {
         switch (field.type) {
@@ -30,10 +35,14 @@ const FieldSection = ({slide}: { slide: FormField }) => {
         }
     }
 
-    return <div className=" h-min w-full aspect-video bg-white overflow-y-scroll">
-        <div className={'flex flex-col gap-20 px-20 py-10 justify-center'}>
+    return <div className={cn("h-min w-full aspect-video bg-white", disabled && "pointer-events-none")}>
+        <div className={'flex flex-col gap-20 px-20 py-10 overflow-y-auto h-full justify-center'}>
             {Array.isArray(slideFields) && slideFields.length ? slideFields.map((field, index) => {
-                return <div key={index}>
+                return <div key={index} tabIndex={0} className="focus-within:ring-1" onFocus={() => {
+                    setActiveFieldComponent({id: field.id, index: index})
+                }} onBlur={() => {
+                    setActiveFieldComponent(null)
+                }}>
                     {renderField(field)}
                 </div>
             }) : <></>}
@@ -120,13 +129,13 @@ const DropDownField = ({field,slide}: { field: FormField,slide:FormField })=>{
     <div className={'flex flex-col gap-2 w-1/3'}>
             {field && field.properties?.choices?.map((choice, index) => {
                 return <>
-                    <input type='text'  value={choice.value} 
+                    <input type='text'  value={choice.value}
                         onChange={(e:any)=>updateChoiceFieldValue(field.index,slide.index,choice.id,e.target.value)}
                         className={`rounded-xl border border-cyan-500 p-2 px-4 flex justify-between`}/>
                 </>
             })}
         </div>
-    <Button onClick={()=>addChoiceField(field.index,slide.index)} variant={'ghost'} className='text-lg font-semibold' icon={<PlusIcon className='h-4 w-4'/>}>Add Option</Button>    
+    <Button onClick={()=>addChoiceField(field.index,slide.index)} variant={'ghost'} className='text-lg font-semibold' icon={<PlusIcon className='h-4 w-4'/>}>Add Option</Button>
     </div>
 }
 
