@@ -14,9 +14,7 @@ import { Button } from '@app/shadcn/components/ui/button';
 import { PlusIcon } from '../atoms/Icons/Plus';
 
 const FieldSection = ({ slide, disabled = false }: { slide: FormField, disabled?: boolean }) => {
-    // const {fields} = useFieldSelectorAtom();
-    const slideFields = slide.properties?.fields
-
+    const slideFields = slide?.properties?.fields
     const { setActiveFieldComponent } = useActiveFieldComponent()
 
     function renderField(field: FormField) {
@@ -28,12 +26,12 @@ const FieldSection = ({ slide, disabled = false }: { slide: FormField, disabled?
             case (FieldTypes.PHONE_NUMBER):
                 return <InputField field={field} slide={slide} disabled={disabled} />
             case (FieldTypes.FILE_UPLOAD):
-                return <FileUpload field={field} slide={slide} />
+                return <FileUpload field={field} slide={slide} disabled={disabled} />
             case (FieldTypes.YES_NO):
-                return <YesNoField field={field} slide={slide} />
+                return <YesNoField field={field} slide={slide} disabled={disabled}/>
             case (FieldTypes.DROP_DOWN):
             case (FieldTypes.MULTIPLE_CHOICE):
-                return <DropDownField field={field} slide={slide} />;
+                return <DropDownField field={field} slide={slide} disabled={disabled}/>;
         }
     }
 
@@ -53,14 +51,14 @@ const FieldSection = ({ slide, disabled = false }: { slide: FormField, disabled?
 }
 export default FieldSection
 
-const FileUpload = ({ field, slide }: { field: FormField, slide: FormField }) => {
+const FileUpload = ({ field, slide, disabled }: { field: FormField, slide: FormField, disabled: boolean }) => {
     const { updateTitle } = useFieldSelectorAtom();
     const handleFileInputChange = (event: any) => {
         const file = event.target.files[0];
         if (file.size > 26214400) alert('Size greater than 25MB.')
     };
     return <div className={'flex flex-col items-start'}>
-        <input id={`input-${field.id}`} type="text" className={'px-0 -left-1 border-0 text-2xl'} value={field.title}
+        <input id={`input-${disabled ? `${slide.id}${field.id}` : field.id}`} type="text" className={'px-0 -left-1 border-0 text-2xl'} value={field.title}
             onChange={(e: any) => updateTitle(field.index, slide.index, e.target.value)} />
         <label htmlFor="form-builder-file-upload"
             className={'h-[200px] w-[500px] cursor-pointer border-2 border-brand-500 rounded-2xl border-dotted flex flex-col gap-2 justify-center items-center'}>
@@ -104,10 +102,10 @@ const InputField = ({ field, slide, disabled }: { field: FormField, slide: FormF
     </div>
 }
 
-const YesNoField = ({ field, slide }: { field: FormField, slide: FormField }) => {
+const YesNoField = ({ field, slide, disabled }: { field: FormField, slide: FormField, disabled: boolean }) => {
     const { updateTitle } = useFieldSelectorAtom();
     return <div className={'flex flex-col items-start'}>
-        <input id={`input-${field.id}`} type="text" className={'px-0 -left-1 border-0 text-2xl'} value={field.title}
+        <input id={`input-${disabled ? `${slide.id}${field.id}` : field.id}`} type="text" className={'px-0 -left-1 border-0 text-2xl'} value={field.title}
             onChange={(e: any) => updateTitle(field.index, slide.index, e.target.value)} />
         <RadioGroup className={'flex flex-col gap-2 w-1/3'} value={field.value} onChange={() => {
         }}>
@@ -122,10 +120,10 @@ const YesNoField = ({ field, slide }: { field: FormField, slide: FormField }) =>
     </div>
 }
 
-const DropDownField = ({ field, slide }: { field: FormField, slide: FormField }) => {
+const DropDownField = ({ field, slide, disabled }: { field: FormField, slide: FormField, disabled: boolean }) => {
     const { updateTitle, updateChoiceFieldValue, addChoiceField } = useFieldSelectorAtom();
     return <div className={'flex flex-col items-start gap-4'}>
-        <input id={`input-${field.id}`} type="text" className={'px-0 -left-1 border-0 text-2xl'} value={field.title}
+        <input id={`input-${disabled ? `${slide.id}${field.id}` : field.id}`} type="text" className={'px-0 -left-1 border-0 text-2xl'} value={field.title}
             onChange={(e: any) => updateTitle(field.index, slide.index, e.target.value)} />
         {field.type === FieldTypes.DROP_DOWN &&
             <div className='flex justify-between w-1/3 py-2 text-2xl text-cyan-500 items-center border-0 border-cyan-500 border-b-[1px]'><h1>Select an option</h1> <ArrowDown className='stroke-2' /> </div>

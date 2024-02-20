@@ -16,8 +16,8 @@ export default function useFieldSelectorAtom() {
     const addField = (slideField: FormField, slideIndex: number) => {
         const slide = formFields[slideIndex]
         slide.properties?.fields.push(slideField)
-        const newSlides = formFields.splice(slideIndex, 1, slide)
-        setFormFields(newSlides)
+        const updatedSlides = [...formFields]
+        setFormFields(updatedSlides)
     }
 
     const updateTitle = (fieldIndex:number,slideIndex:number, titleText: string) => {
