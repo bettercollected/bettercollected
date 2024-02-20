@@ -17,14 +17,16 @@ const fields = [
     {name: "File Upload", type: FieldTypes.FILE_UPLOAD},
     {name: "Link", type: FieldTypes.LINK},
     {name: 'Yes No', type: FieldTypes.YES_NO},
-    {name: 'Drop Down', type: FieldTypes.DROP_DOWN}
+    {name: 'Drop Down', type: FieldTypes.DROP_DOWN},
+    {name: 'Phone Number', type:FieldTypes.PHONE_NUMBER},
+    {name:'Multiple Choice', type:FieldTypes.MULTIPLE_CHOICE}
 ]
 
 const Navbar = () => {
     const {formFields, addField} = useFieldSelectorAtom();
     const handleAddField = (field: any) => {
         const fieldId = v4()
-        if (field.type === FieldTypes.YES_NO || field.type === FieldTypes.DROP_DOWN) {
+        if (field.type === FieldTypes.YES_NO || field.type === FieldTypes.DROP_DOWN || field.type === FieldTypes.MULTIPLE_CHOICE) {
             const firstChoiceId = v4()
             const secondChoiceId = v4()
             addField({
@@ -49,7 +51,7 @@ const Navbar = () => {
 
         window.setTimeout(function () {
             document.getElementById(`input-${fieldId}`)?.focus()
-        }, 0);
+        },0);
     }
 
     return <div id="navbar" className="h-16 w-full border-b-[1px] border-b-black-300 bg-white p-4 flex justify-between">
