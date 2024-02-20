@@ -14,7 +14,7 @@ import cn from "classnames";
 export default function Home() {
 
     const { addSlide, formFields } = useFieldSelectorAtom();
-
+    
     const { activeSlideComponent, setActiveSlideComponent } = useActiveSlideComponent()
     return (
         <main className="flex min-h-screen flex-col items-center justify-start bg-black-100">
