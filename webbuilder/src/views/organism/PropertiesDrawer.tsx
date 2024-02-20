@@ -5,10 +5,12 @@ import {Divider, MenuItem, Select} from "@mui/material"
 
 import {FieldTypes} from "@app/models/dtos/form"
 import {useState} from "react";
+import {useActiveFieldComponent, useActiveSlideComponent} from "@app/store/jotai/activeBuilderComponent";
 
 const FieldTypeSelector = () => {
 
     const [selectedValue, setSelectedValue] = useState(FieldTypes.SHORT_TEXT)
+
 
     return <div className="flex flex-col gap-4 px-4 py-6">
         <div className="p2-new text-black-700 !font-medium">
@@ -33,21 +35,22 @@ const FieldTypeSelector = () => {
 
 export default function PropertiesDrawer() {
 
-    const shouldShowSettings = true
-
-    const isTypeChangeable = true
+    const {activeSlideComponent} = useActiveSlideComponent()
+    const {activeFieldComponent} = useActiveFieldComponent()
 
     return <div className="flex flex-col border-l border-b-black-300 border-b">
         {
-            isTypeChangeable && <>
+            activeFieldComponent?.id && <>
                 <FieldTypeSelector/>
                 <Divider/>
+                <FieldSettings/>
             </>
         }
         {
-            shouldShowSettings && <FieldSettings/>
+            !activeFieldComponent?.id && activeSlideComponent?.id && <>
+                Need to render options for slide component
+            </>
         }
-
     </div>
 }
 

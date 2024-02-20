@@ -8,10 +8,10 @@ import { FieldTypes, FormField } from "@app/models/dtos/form";
 import { FolderUploadIcon } from '../atoms/Icons/FolderUploadIcon';
 import { useActiveFieldComponent } from "@app/store/jotai/activeBuilderComponent";
 import cn from "classnames";
-import { RadioGroup } from '@headlessui/react'
-import { ArrowDown } from '../atoms/Icons/ArrowDown';
-import { Button } from '@app/shadcn/components/ui/button';
-import { PlusIcon } from '../atoms/Icons/Plus';
+import {RadioGroup} from '@headlessui/react'
+import {ArrowDown} from '../atoms/Icons/ArrowDown';
+import {Button} from '@app/shadcn/components/ui/button';
+import {PlusIcon} from '../atoms/Icons/Plus';
 
 function getPlaceholderValue(fieldType: FieldTypes) {
     switch (fieldType)
@@ -64,10 +64,10 @@ const FieldSection = ({ slide, disabled = false }: { slide: FormField, disabled?
     return <div className={cn("h-min w-full aspect-video overflow-y-auto bg-white", disabled && "pointer-events-none")}>
         <div className={'flex flex-col gap-20 px-20 py-10 justify-center'}>
             {Array.isArray(slideFields) && slideFields.length ? slideFields.map((field, index) => {
-                return <div key={index} tabIndex={0} className="focus-within:ring-1 p-2 px-4" onFocus={() => {
-                    setActiveFieldComponent({ id: field.id, index: index })
-                }} onBlur={() => {
-                    setActiveFieldComponent(null)
+                return <div key={index} tabIndex={0} className="focus-within:ring-1" onClick={(event) => {
+                    event.preventDefault()
+                    event.stopPropagation()
+                    setActiveFieldComponent({id: field.id, index: index})
                 }}>
                     {renderField(field)}
                 </div>
