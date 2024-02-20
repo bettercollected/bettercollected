@@ -49,20 +49,20 @@ export default function Home() {
                                 key={slide.id} tabIndex={0} onFocus={() => {
                                 setActiveSlideComponent({id: slide.id, index})
                             }}>
-                                <FieldSection slide={slide} key={index}/>
+                                <FieldSection slide={slide} disabled/>
                             </div>)
                     }) : <div className={'w-full'}></div>}
                 </div>
                 <div className="flex-1">
                     {
-                        activeSlideComponent?.id &&
-                        <FieldSection slide={formFields[activeSlideComponent?.index]}/>
-                    }
-                    {
-                        !activeSlideComponent?.id && <div>
+                        activeSlideComponent?.id ?
+                        <FieldSection slide={formFields[activeSlideComponent?.index]}/> :<div>
                         Add a slide to start
                         </div>
                     }
+                    {/* {
+                        !activeSlideComponent?.id && 
+                    } */}
                 </div>
                 <div
                     id="slide-element-properties"
