@@ -7,15 +7,17 @@ import useFieldSelectorAtom from "@app/store/jotai/fieldSelector";
 import { v4 } from "uuid";
 import { FieldTypes } from "@app/models/dtos/form";
 import Button from "@app/views/atoms/Button";
-import { ButtonVariant } from "@app/models/enums/button";
-import { useActiveSlideComponent } from "@app/store/jotai/activeBuilderComponent";
+import {ButtonVariant} from "@app/models/enums/button";
+import {useActiveFieldComponent, useActiveSlideComponent} from "@app/store/jotai/activeBuilderComponent";
 import cn from "classnames";
 
 export default function Home() {
 
-    const { addSlide, formFields } = useFieldSelectorAtom();
-    
-    const { activeSlideComponent, setActiveSlideComponent } = useActiveSlideComponent()
+    const {addSlide, formFields} = useFieldSelectorAtom();
+
+    const {activeSlideComponent, setActiveSlideComponent} = useActiveSlideComponent()
+
+    const {setActiveFieldComponent} = useActiveFieldComponent()
     return (
         <main className="flex min-h-screen flex-col items-center justify-start bg-black-100">
             <Navbar />
@@ -53,16 +55,18 @@ export default function Home() {
                             </div>)
                     }) : <div className={'w-full'}></div>}
                 </div>
-                <div className="flex-1">
+                <div className="flex-1" onClick={() => {
+                    setActiveFieldComponent(null)
+                }}>
                     {
-                        activeSlideComponent?.id ?
-                            <FieldSection slide={formFields[activeSlideComponent?.index]} /> : <div>
-                                Add a slide to start
-                            </div>
+                        activeSlideComponent?.id &&
+                        <FieldSection slide={formFields[activeSlideComponent?.index]}/>
                     }
-                    {/* {
-                        !activeSlideComponent?.id && 
-                    } */}
+                    {
+                        !activeSlideComponent?.id && <div>
+                            Add a slide to start
+                        </div>
+                    }
                 </div>
                 <div
                     id="slide-element-properties"
