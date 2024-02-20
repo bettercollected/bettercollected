@@ -56,6 +56,21 @@ export default function useFieldSelectorAtom() {
         setFormFields(updatedSlides)
     }
 
+    const updateFieldRequired = (fieldIndex: number, slideIndex: number, required: boolean) => {
+        formFields[slideIndex].properties!.fields[fieldIndex].validations = {
+            ...formFields[slideIndex].properties!.fields[fieldIndex].validations,
+            required: required
+        }
+        setFormFields([...formFields])
+    }
+
+    const updateFieldValidation = (fieldIndex: number, slideIndex: number, validation: any) => {
+        formFields[slideIndex].properties!.fields[fieldIndex].validations = {
+            ...formFields[slideIndex].properties!.fields[fieldIndex].validations,
+            ...validation
+        }
+        setFormFields([...formFields])
+    }
 
     return {formFields, addField, addSlide, updateTitle, updateFieldPlaceholder,updateChoiceFieldValue,addChoiceField}
 }
