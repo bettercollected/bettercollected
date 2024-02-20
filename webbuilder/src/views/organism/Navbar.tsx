@@ -9,6 +9,7 @@ import useFieldSelectorAtom from "@app/store/jotai/fieldSelector";
 import {v4} from "uuid"
 import {FieldTypes} from "@app/models/dtos/form";
 import {Button} from "@app/shadcn/components/ui/button";
+import { useActiveSlideComponent } from "@app/store/jotai/activeBuilderComponent";
 
 const fields = [
     {name: "Short Input", type: FieldTypes.SHORT_TEXT},
@@ -24,6 +25,7 @@ const fields = [
 
 const Navbar = () => {
     const {formFields, addField} = useFieldSelectorAtom();
+    const { activeSlideComponent } = useActiveSlideComponent()
     const handleAddField = (field: any) => {
         const fieldId = v4()
         if (field.type === FieldTypes.YES_NO || field.type === FieldTypes.DROP_DOWN || field.type === FieldTypes.MULTIPLE_CHOICE) {
@@ -40,13 +42,13 @@ const Navbar = () => {
                         {id: secondChoiceId, value:field.type === FieldTypes.YES_NO? "No":""}
                     ]
                 }
-            }, 0)
+            }, activeSlideComponent?.index || 0)
         } else {
             addField({
                 id: fieldId,
                 index: formFields[0].properties ? formFields[0].properties.fields.length : 0,
                 type: field.type,
-            }, 0)
+            }, activeSlideComponent?.index || 0)
         }
 
         window.setTimeout(function () {
