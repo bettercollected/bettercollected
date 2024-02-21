@@ -1,25 +1,23 @@
 'use client';
 
-import {atom, useAtom} from "jotai";
+import { atom, useAtom } from 'jotai';
 
 interface ActiveFormBuilderComponent {
     id: string;
-    index: number
+    index: number;
 }
 
-const activeField = atom<ActiveFormBuilderComponent | null>(null)
+const activeField = atom<ActiveFormBuilderComponent | null>(null);
 
 export function useActiveFieldComponent() {
+    const [activeFieldComponent, setActiveFieldComponent] = useAtom(activeField);
 
-    const [activeFieldComponent, setActiveFieldComponent] = useAtom(activeField)
-
-    return {activeFieldComponent, setActiveFieldComponent}
+    return { activeFieldComponent, setActiveFieldComponent };
 }
 
-
-const activeSlide = atom<ActiveFormBuilderComponent | null>(null)
+const activeSlide = atom<ActiveFormBuilderComponent | null>(null);
 
 export function useActiveSlideComponent() {
-    const [activeSlideComponent, setActiveSlideComponent] = useAtom(activeSlide)
-    return {activeSlideComponent, setActiveSlideComponent}
+    const [activeSlideComponent, setActiveSlideComponent] = useAtom(activeSlide);
+    return { activeSlideComponent, setActiveSlideComponent };
 }
