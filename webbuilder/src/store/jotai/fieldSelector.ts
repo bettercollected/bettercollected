@@ -4,6 +4,7 @@ import {atom, useAtom} from "jotai"
 import {useActiveFieldComponent, useActiveSlideComponent} from "@app/store/jotai/activeBuilderComponent";
 
 import { FormField } from '@app/models/dtos/form';
+import {v4} from "uuid";
 
 const initialFieldsAtom = atom<FormField[]>([]);
 
@@ -17,13 +18,11 @@ export default function useFieldSelectorAtom() {
         setFormFields([...formFields, field]);
     };
 
-
     const getActiveSlide = () => {
         if (activeSlideComponent?.index !== undefined)
             return formFields[activeSlideComponent!.index];
         return;
     };
-
 
     const activeSlide = getActiveSlide()
 

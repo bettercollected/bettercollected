@@ -15,7 +15,9 @@ export default function FieldSettings() {
             <div className="text-xs text-black-700">
                 Description
             </div>
-            <Switch/>
+            <Switch checked={activeField?.description !== null} onCheckedChange={(checked)=>{
+
+            }}/>
         </div>
         <div className="flex justify-between w-full items-center">
             <div className="text-xs text-black-700">
