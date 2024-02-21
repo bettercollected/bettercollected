@@ -12,18 +12,6 @@ import { Button } from "@app/shadcn/components/ui/button";
 import { useActiveSlideComponent } from "@app/store/jotai/activeBuilderComponent";
 import { DropdownMenu } from "@app/shadcn/components/ui/dropdown-menu";
 
-const fields = [
-    { name: "Short Input", type: FieldTypes.SHORT_TEXT },
-    { name: "Email", type: FieldTypes.EMAIL },
-    { name: "Number", type: FieldTypes.NUMBER },
-    { name: "File Upload", type: FieldTypes.FILE_UPLOAD },
-    { name: "Link", type: FieldTypes.LINK },
-    { name: 'Yes No', type: FieldTypes.YES_NO },
-    { name: 'Drop Down', type: FieldTypes.DROP_DOWN },
-    { name: 'Phone Number', type: FieldTypes.PHONE_NUMBER },
-    { name: 'Multiple Choice', type: FieldTypes.MULTIPLE_CHOICE }
-]
-
 const Navbar = () => {
     const {formFields, addField} = useFieldSelectorAtom();
     const {activeSlideComponent} = useActiveSlideComponent()
@@ -76,7 +64,7 @@ const Navbar = () => {
                     </div>
                 </DropdownMenu.Trigger>
                 <DropdownMenu.Content>
-                    {Array.isArray(fields) && fields.map((field) => {
+                    {Array.isArray(formFieldsList) && formFieldsList.map((field) => {
                         return <DropdownMenu.Item onClick={() => handleAddField(field)}>
                             {field.name}
                         </DropdownMenu.Item>
