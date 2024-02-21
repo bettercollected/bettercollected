@@ -61,7 +61,7 @@ const Navbar = () => {
             <div className={'px-4 py-[6px] rounded-lg shadow mr-4'}>
                 <BetterCollectedSmallLogo/>
             </div>
-            <h1>Contact Form</h1><EllipsisOption/></div>
+            <input type="text" placeholder="Fill the Form Title" className='w-1/2 border-0'/><EllipsisOption/></div>
         <div className={'flex gap-4 items-center'}>
             <MenuDropdown width={180} showExpandMore={false} id={"item-selector"} menuContent={
                 <>
