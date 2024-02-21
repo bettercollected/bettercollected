@@ -7,7 +7,7 @@ import useElementSize from '@app/lib/hooks/useElementSize';
 
 import './Canvas.css';
 
-interface ISlideDraggableWrapperProps {
+export interface ISlideDraggableWrapperProps {
     gridSize?: number;
     children: React.ReactNode | React.ReactNode[];
 }
