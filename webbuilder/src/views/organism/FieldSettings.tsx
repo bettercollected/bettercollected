@@ -1,8 +1,8 @@
 'use client';
 
-import {Switch} from "@mui/material";
 import Validation from "@app/views/molecules/FormFields/Validation";
 import {ValidationType} from "@app/views/molecules/FormFields/ValidationType";
+import {Switch} from "@app/shadcn/components/ui/switch";
 
 export default function FieldSettings() {
 

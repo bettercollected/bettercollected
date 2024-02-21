@@ -59,7 +59,7 @@ export default function Home() {
                             </div>)
                     }) : <div className={'w-full'}></div>}
                 </div>
-                <div className="flex-1" onClick={() => {
+                <div className="flex-1 h-full flex flex-col items-center justify-center " onClick={() => {
                     setActiveFieldComponent(null)
                 }}>
                     {
