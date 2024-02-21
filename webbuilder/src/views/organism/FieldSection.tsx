@@ -40,6 +40,8 @@ function getPlaceholderValue(fieldType: FieldTypes) {
 
 const FieldSection = ({slide, disabled = false}: { slide: FormField, disabled?: boolean }) => {
     const slideFields = slide?.properties?.fields
+    const {activeSlide} = useFieldSelectorAtom()
+    const {updateTitle} = useFieldSelectorAtom();
     const {setActiveFieldComponent, activeFieldComponent} = useActiveFieldComponent()
 
     function renderField(field: FormField) {
@@ -73,7 +75,21 @@ const FieldSection = ({slide, disabled = false}: { slide: FormField, disabled?: 
                                 event.stopPropagation()
                                 setActiveFieldComponent({id: field.id, index: index})
                             }}>
-                    {renderField(field)}
+                    <div className={'flex flex-col items-start'}>
+                        <div className="flex gap-2 items-center">
+                            {
+                                activeSlide?.properties?.showQuestionNumbers && <span className="text-2xl">
+                                {index + 1}.
+                                </span>
+                            }
+
+                            <input id={`input-${disabled ? `${slide.id}${field.id}` : field.id}`}
+                                   placeholder={getPlaceholderValue(field.type || FieldTypes.SHORT_TEXT)} type="text"
+                                   className={'px-0 -left-1 border-0 text-2xl'} value={field.title}
+                                   onChange={(e: any) => updateTitle(field.index, slide.index, e.target.value)}/>
+                        </div>
+                        {renderField(field)}
+                    </div>
                 </div>
             }) : <></>}
         </div>
@@ -82,16 +98,11 @@ const FieldSection = ({slide, disabled = false}: { slide: FormField, disabled?: 
 export default FieldSection
 
 const FileUpload = ({field, slide, disabled}: { field: FormField, slide: FormField, disabled: boolean }) => {
-    const {updateTitle} = useFieldSelectorAtom();
     const handleFileInputChange = (event: any) => {
         const file = event.target.files[0];
         if (file.size > 26214400) alert('Size greater than 25MB.')
     };
-    return <div className={'flex flex-col items-start'}>
-        <input id={`input-${disabled ? `${slide.id}${field.id}` : field.id}`}
-               placeholder={getPlaceholderValue(field.type || FieldTypes.SHORT_TEXT)} type="text"
-               className={'px-0 -left-1 border-0 text-2xl'} value={field.title}
-               onChange={(e: any) => updateTitle(field.index, slide.index, e.target.value)}/>
+    return <>
         <label htmlFor="form-builder-file-upload"
                className={'h-[200px] w-[500px] cursor-pointer border-2 border-brand-500 rounded-2xl border-dotted flex flex-col gap-2 justify-center items-center'}>
             <FolderUploadIcon/>
@@ -99,17 +110,13 @@ const FileUpload = ({field, slide, disabled}: { field: FormField, slide: FormFie
                 <span className={'text-[12px]'}>Max size limit: 25 MB</span></div>
         </label>
         <input type="file" id="form-builder-file-upload" className={'invisible'} onChange={handleFileInputChange}/>
-    </div>
+    </>
 }
 
 const InputField = ({field, slide, disabled}: { field: FormField, slide: FormField, disabled: boolean }) => {
-    const {updateTitle, updateFieldPlaceholder} = useFieldSelectorAtom();
+    const {updateFieldPlaceholder} = useFieldSelectorAtom();
 
-    return <div className={'flex flex-col items-start'}>
-        <input id={`input-${disabled ? `${slide.id}${field.id}` : field.id}`}
-               placeholder={getPlaceholderValue(field.type || FieldTypes.SHORT_TEXT)} type="text"
-               className={'px-0 -left-1 border-0 text-2xl'} value={field.title}
-               onChange={(e: any) => updateTitle(field.index, slide.index, e.target.value)}/>
+    return <>
         <TextField sx={{
             '& .MuiOutlinedInput-root': {
                 '& fieldset': {
@@ -133,16 +140,11 @@ const InputField = ({field, slide, disabled}: { field: FormField, slide: FormFie
         }} type={field.type} value={field.properties?.placeholder}
                    onChange={(e: any) => updateFieldPlaceholder(field.index, slide.index, e.target.value)}
                    className={'w-2/3 border-0 border-b-[1px] border-cyan-500'}/>
-    </div>
+    </>
 }
 
 const YesNoField = ({field, slide, disabled}: { field: FormField, slide: FormField, disabled: boolean }) => {
-    const {updateTitle} = useFieldSelectorAtom();
-    return <div className={'flex flex-col items-start'}>
-        <input id={`input-${disabled ? `${slide.id}${field.id}` : field.id}`}
-               placeholder={getPlaceholderValue(field.type || FieldTypes.SHORT_TEXT)} type="text"
-               className={'px-0 -left-1 border-0 text-2xl'} value={field.title}
-               onChange={(e: any) => updateTitle(field.index, slide.index, e.target.value)}/>
+    return <>
         <RadioGroup className={'flex flex-col gap-2 w-1/3'} value={field.value} onChange={() => {
         }}>
             {field && field.properties?.choices?.map((choice, index) => {
@@ -153,16 +155,13 @@ const YesNoField = ({field, slide, disabled}: { field: FormField, slide: FormFie
                 </RadioGroup.Option>
             })}
         </RadioGroup>
-    </div>
+    </>
 }
 
 const DropDownField = ({field, slide, disabled}: { field: FormField, slide: FormField, disabled: boolean }) => {
-    const {updateTitle, updateChoiceFieldValue, addChoiceField} = useFieldSelectorAtom();
-    return <div className={'flex flex-col items-start gap-4'}>
-        <input id={`input-${disabled ? `${slide.id}${field.id}` : field.id}`}
-               placeholder={getPlaceholderValue(field.type || FieldTypes.SHORT_TEXT)} type="text"
-               className={'px-0 -left-1 border-0 text-2xl'} value={field.title}
-               onChange={(e: any) => updateTitle(field.index, slide.index, e.target.value)}/>
+    const {updateChoiceFieldValue, addChoiceField} = useFieldSelectorAtom();
+    return <>
+
         {field.type === FieldTypes.DROP_DOWN &&
             <div
                 className='flex justify-between w-1/3 py-2 text-2xl text-cyan-500 items-center border-0 border-cyan-500 border-b-[1px]'>
@@ -177,7 +176,7 @@ const DropDownField = ({field, slide, disabled}: { field: FormField, slide: Form
         </div>
         <Button onClick={() => addChoiceField(field.index, slide.index)} variant={'ghost'}
                 className='text-lg font-semibold' icon={<PlusIcon className='h-4 w-4'/>}>Add Option</Button>
-    </div>
+    </>
 }
 
 
