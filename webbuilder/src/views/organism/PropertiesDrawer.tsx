@@ -10,6 +10,7 @@ import {Tabs, TabsContent, TabsList, TabsTrigger} from "@app/shadcn/components/u
 import useFieldSelectorAtom from "@app/store/jotai/fieldSelector";
 import PagePropertiesTab from "@app/views/organism/PagePropertiesTab";
 import PageDesignTab from "@app/views/organism/PageDesignTab";
+import {formFieldsList} from "@app/constants/form-fields";
 
 const FieldTypeSelector = () => {
 
@@ -25,9 +26,10 @@ const FieldTypeSelector = () => {
                 setSelectedValue(event.target.value as FieldTypes)
             }}>
                 {
-                    Object.values(FieldTypes).map((fieldType) => {
-                        return <MenuItem key={fieldType} value={fieldType}>
-                            {fieldType}
+                    formFieldsList.map((fieldType) => {
+                        return <MenuItem className="flex gap-2" key={fieldType.name} value={fieldType.type}>
+                            <span className="h-4 w-4 bg-black-300 rounded-md"/>
+                            {fieldType.name}
                         </MenuItem>
                     })
                 }

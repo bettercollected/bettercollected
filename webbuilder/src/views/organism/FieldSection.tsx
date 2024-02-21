@@ -57,6 +57,8 @@ const FieldSection = ({slide, disabled = false}: { slide: FormField, disabled?: 
             case (FieldTypes.DROP_DOWN):
             case (FieldTypes.MULTIPLE_CHOICE):
                 return <DropDownField field={field} slide={slide} disabled={disabled}/>;
+            default:
+                return null
         }
     }
 
