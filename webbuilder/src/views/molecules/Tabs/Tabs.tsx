@@ -1,4 +1,1 @@
-export default function Tabs(){
-
-
-}
+export default function Tabs() {}

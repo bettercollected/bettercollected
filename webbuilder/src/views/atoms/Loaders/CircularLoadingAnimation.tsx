@@ -1,10 +1,11 @@
-import {Loader2} from 'lucide-react';
-import {cn} from "@app/shadcn/util/lib";
+import { Loader2 } from 'lucide-react';
 
-const Loader = ({className}: { className?: string }) => {
+import { cn } from '@app/shadcn/util/lib';
+
+const Loader = ({ className }: { className?: string }) => {
     return (
         <Loader2
-            className={cn('my-28 h-16 w-16 text-primary/60 animate-spin', className)}
+            className={cn('text-primary/60 my-28 h-16 w-16 animate-spin', className)}
         />
     );
 };

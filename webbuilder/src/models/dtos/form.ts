@@ -1,8 +1,8 @@
 interface StandardForm {
-    formId: string
-    title: string
-    description: string
-    buttonText?: string
+    formId: string;
+    title: string;
+    description: string;
+    buttonText?: string;
     version?: number;
     settings?: {
         pinned: boolean;
@@ -20,61 +20,59 @@ interface StandardForm {
         requireVerifiedIdentity?: boolean;
         showSubmissionNumber?: boolean;
     };
-    fields: Array<FormField>
+    fields: Array<FormField>;
 }
 
 export interface FormField {
-    index: number
-    id: string
-    properties?: FormFieldProperties
-    validations?: FieldValidations
-    title?: string
-    description?: string
-    type?: FieldTypes
-    value?: string
+    index: number;
+    id: string;
+    properties?: FormFieldProperties;
+    validations?: FieldValidations;
+    title?: string;
+    description?: string;
+    type?: FieldTypes;
+    value?: string;
 }
 
-
 interface FieldValidations {
-    required?: boolean
-    maxLength?: number
-    minLength?: number
-    minValue?: number
-    mazValue?: number
-    regex?: number
-    minChoice?: number
-    maxChoices?: number
+    required?: boolean;
+    maxLength?: number;
+    minLength?: number;
+    minValue?: number;
+    mazValue?: number;
+    regex?: number;
+    minChoice?: number;
+    maxChoices?: number;
 }
 
 interface FormFieldProperties {
-    hidden?: boolean
-    fields?: Array<FormField>
-    placeholder?: string
-    choices?: Array<FieldChoice>
-    steps?: number
-    startFrom?: number
-    ratingShape?: string
-    dateFormat?: string
-    showQuestionNumbers?: boolean
+    hidden?: boolean;
+    fields?: Array<FormField>;
+    placeholder?: string;
+    choices?: Array<FieldChoice>;
+    steps?: number;
+    startFrom?: number;
+    ratingShape?: string;
+    dateFormat?: string;
+    showQuestionNumbers?: boolean;
     theme?: {
-        primary: string
-        secondary: string
-        tertiary: string
-        accent: string
-    }
+        primary: string;
+        secondary: string;
+        tertiary: string;
+        accent: string;
+    };
 }
 
 interface FieldChoice {
-    id: string
-    value?: string
-    label?: string
+    id: string;
+    value?: string;
+    label?: string;
 }
-
 
 export enum FieldTypes {
     SLIDE = 'slide',
     YES_NO = 'yes_no',
-    LINK = "url",
+    LINK = 'url',
     DATE = 'date',
     PHONE_NUMBER = 'phone_number',
     EMAIL = 'email',

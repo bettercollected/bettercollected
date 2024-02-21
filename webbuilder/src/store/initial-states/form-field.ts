@@ -1,6 +1,6 @@
 const initialFormFieldState = {
-    id: "",
-    title: "",
-    description: "",
-    type: ""
-}
+    id: '',
+    title: '',
+    description: '',
+    type: ''
+};

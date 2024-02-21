@@ -11,7 +11,7 @@
     overflow: hidden;
 }
 
-.container>* {
+.container > * {
     transform-origin: top left;
     transform: scale(var(--scale-factor, 1));
 }
@@ -32,7 +32,7 @@
     touch-action: none;
 }
 
-.draggable>* {
+.draggable > * {
     /* Reset all styles to their initial values */
     all: revert;
 }
