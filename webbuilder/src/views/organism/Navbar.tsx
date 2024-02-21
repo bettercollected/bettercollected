@@ -4,6 +4,8 @@ import EllipsisOption from "@app/views/atoms/Icons/EllipsisOption";
 import BetterCollectedSmallLogo from "@app/views/atoms/Icons/BetterCollectedSmallLogo";
 import PlayIcon from "../atoms/Icons/PlayIcon";
 import useFieldSelectorAtom from "@app/store/jotai/fieldSelector";
+import {toast} from "react-toastify";
+import {formFieldsList} from "@app/constants/form-fields";
 import { v4 } from "uuid"
 import { FieldTypes } from "@app/models/dtos/form";
 import { Button } from "@app/shadcn/components/ui/button";
@@ -23,29 +25,33 @@ const fields = [
 ]
 
 const Navbar = () => {
-    const { formFields, addField } = useFieldSelectorAtom();
-    const { activeSlideComponent } = useActiveSlideComponent()
+    const {formFields, addField} = useFieldSelectorAtom();
+    const {activeSlideComponent} = useActiveSlideComponent()
     const handleAddField = (field: any) => {
+        if (activeSlideComponent === null) {
+            toast("Add a slide to add questions")
+            return
+        }
         const fieldId = v4()
         if (field.type === FieldTypes.YES_NO || field.type === FieldTypes.DROP_DOWN || field.type === FieldTypes.MULTIPLE_CHOICE) {
             const firstChoiceId = v4()
             const secondChoiceId = v4()
             addField({
                 id: fieldId,
-                index: formFields[0].properties ? formFields[0].properties.fields.length : 0,
+                index: formFields[activeSlideComponent.index]?.properties?.fields?.length ? formFields[activeSlideComponent.index]?.properties?.fields?.length! : 0,
                 type: field.type,
                 properties: {
                     fields: [],
                     choices: [
-                        { id: firstChoiceId, value: field.type === FieldTypes.YES_NO ? "Yes" : "" },
-                        { id: secondChoiceId, value: field.type === FieldTypes.YES_NO ? "No" : "" }
+                        {id: firstChoiceId, value: field.type === FieldTypes.YES_NO ? "Yes" : ""},
+                        {id: secondChoiceId, value: field.type === FieldTypes.YES_NO ? "No" : ""}
                     ]
                 }
             }, activeSlideComponent?.index || 0)
         } else {
             addField({
                 id: fieldId,
-                index: formFields[0].properties ? formFields[0].properties.fields.length : 0,
+                index: formFields[activeSlideComponent!.index]?.properties?.fields?.length ? formFields[activeSlideComponent!.index]?.properties?.fields?.length! : 0,
                 type: field.type,
             }, activeSlideComponent?.index || 0)
         }
@@ -98,7 +104,7 @@ const Navbar = () => {
             <Button icon={<PlayIcon />} variant={'tertiary'}>
                 Preview
             </Button>
-            <Button >
+            <Button>
                 Publish
             </Button>
 
