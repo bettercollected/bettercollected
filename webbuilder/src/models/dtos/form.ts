@@ -56,6 +56,12 @@ interface FormFieldProperties {
     ratingShape?: string
     dateFormat?: string
     showQuestionNumbers?: boolean
+    theme?: {
+        primary: string
+        secondary: string
+        tertiary: string
+        accent: string
+    }
 }
 
 interface FieldChoice {

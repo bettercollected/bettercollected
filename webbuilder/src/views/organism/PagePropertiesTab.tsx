@@ -4,8 +4,9 @@ import useFieldSelectorAtom from "@app/store/jotai/fieldSelector";
 import {useActiveSlideComponent} from "@app/store/jotai/activeBuilderComponent";
 
 export default function PagePropertiesTab() {
-    const {formFields} = useFieldSelectorAtom();
+    const {formFields, updateShowQuestionNumbers, activeSlide} = useFieldSelectorAtom();
     const {activeSlideComponent} = useActiveSlideComponent()
+
     return (
         <>
             <div className="mt-6 px-4 text-black-700 p2-new !font-medium mb-4">
@@ -26,7 +27,9 @@ export default function PagePropertiesTab() {
                 <div className="text-xs text-black-700">
                     Question Numbers
                 </div>
-                <Switch/>
+                <Switch checked={activeSlide?.properties?.showQuestionNumbers || false} onCheckedChange={(checked) => {
+                    updateShowQuestionNumbers(activeSlide!.index, checked)
+                }}/>
             </div>
             <div className="mt-6 text-black-700 p2-new px-4 !font-medium mb-6">
                 Used Fields

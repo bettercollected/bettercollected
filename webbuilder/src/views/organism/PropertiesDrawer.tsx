@@ -9,6 +9,7 @@ import {useActiveFieldComponent, useActiveSlideComponent} from "@app/store/jotai
 import {Tabs, TabsContent, TabsList, TabsTrigger} from "@app/shadcn/components/ui/tabs";
 import useFieldSelectorAtom from "@app/store/jotai/fieldSelector";
 import PagePropertiesTab from "@app/views/organism/PagePropertiesTab";
+import PageDesignTab from "@app/views/organism/PageDesignTab";
 
 const FieldTypeSelector = () => {
 
@@ -63,6 +64,7 @@ export default function PropertiesDrawer() {
                         <PagePropertiesTab/>
                     </TabsContent>
                     <TabsContent value="design">
+                        <PageDesignTab/>
                     </TabsContent>
                 </Tabs>
             </>

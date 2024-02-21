@@ -28,6 +28,7 @@ const buttonVariants = cva(
             },
             size: {
                 medium: "h-[48px] text-sm font-medium",
+                xs: "h-[21px] text-xs",
                 sm: "h-[36px] text-sm",
                 lg: "h-[64px] text-normal font-medium",
                 icon: "h-[28px] text-sm",
@@ -56,7 +57,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
                 className={cn(buttonVariants({
                     variant,
                     size,
-                    className:`${className}${disabled || isLoading ? 'cursor-not-allowed' : 'cursor-pointer'  }` ,
+                    className:`${className} ${disabled || isLoading ? 'cursor-not-allowed' : 'cursor-pointer'  }` ,
                 }))}
                 ref={ref}
                 {...props}
