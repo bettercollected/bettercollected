@@ -1,21 +1,22 @@
 'use client';
 
-import { atom, useAtom } from 'jotai';
-import { v4 } from 'uuid';
+import {atom, useAtom} from "jotai"
+import {useActiveFieldComponent, useActiveSlideComponent} from "@app/store/jotai/activeBuilderComponent";
 
 import { FormField } from '@app/models/dtos/form';
-import { useActiveSlideComponent } from '@app/store/jotai/activeBuilderComponent';
 
 const initialFieldsAtom = atom<FormField[]>([]);
 
 export default function useFieldSelectorAtom() {
     const [formFields, setFormFields] = useAtom(initialFieldsAtom);
 
-    const { activeSlideComponent } = useActiveSlideComponent();
+    const {activeSlideComponent} = useActiveSlideComponent()
+    const {activeFieldComponent} = useActiveFieldComponent()
 
     const addSlide = (field: FormField) => {
         setFormFields([...formFields, field]);
     };
+
 
     const getActiveSlide = () => {
         if (activeSlideComponent?.index !== undefined)
@@ -23,7 +24,15 @@ export default function useFieldSelectorAtom() {
         return;
     };
 
-    const activeSlide = getActiveSlide();
+
+    const activeSlide = getActiveSlide()
+
+    const getActiveField = () => {
+        if (activeFieldComponent?.index !== undefined)
+            return activeSlide?.properties?.fields![activeFieldComponent.index]
+        return
+    }
+    const activeField = getActiveField()
 
     const addField = (slideField: FormField, slideIndex: number) => {
         const slide = formFields[slideIndex];
@@ -126,6 +135,7 @@ export default function useFieldSelectorAtom() {
         updateFieldRequired,
         updateFieldValidation,
         updateShowQuestionNumbers,
-        activeSlide
-    };
+        activeSlide,
+        activeField
+    }
 }
