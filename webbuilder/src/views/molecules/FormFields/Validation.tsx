@@ -1,7 +1,7 @@
 'use client';
 import {useState} from "react";
-import {Switch} from "@mui/material";
 import {ValidationType} from "@app/views/molecules/FormFields/ValidationType";
+import {Switch} from "@app/shadcn/components/ui/switch";
 
 
 const ValidationTypeTitle: {
@@ -34,7 +34,7 @@ export default function Validation({field, type}: ValidationProps) {
             <span className="text-xs text-black-700">{ValidationTypeTitle[type]}</span>
             <Switch
                 checked={checked}
-                onChange={() => {
+                onChange={(event) => {
                     setChecked(!checked);
                 }}
             />

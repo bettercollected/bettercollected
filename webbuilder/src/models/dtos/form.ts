@@ -48,13 +48,14 @@ interface FieldValidations {
 
 interface FormFieldProperties {
     hidden?: boolean
-    fields: Array<FormField>
+    fields?: Array<FormField>
     placeholder?: string
     choices?: Array<FieldChoice>
     steps?: number
     startFrom?: number
     ratingShape?: string
     dateFormat?: string
+    showQuestionNumbers?: boolean
 }
 
 interface FieldChoice {
@@ -69,7 +70,7 @@ export enum FieldTypes {
     YES_NO = 'yes_no',
     LINK = "url",
     DATE = 'date',
-    PHONE_NUMBER= 'phone_number',
+    PHONE_NUMBER = 'phone_number',
     EMAIL = 'email',
     NUMBER = 'number',
     SHORT_TEXT = 'short_text',
