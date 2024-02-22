@@ -15,6 +15,7 @@ import Button from '@app/views/atoms/Button';
 import FieldSection from '@app/views/organism/FieldSection';
 import Navbar from '@app/views/organism/Navbar';
 import PropertiesDrawer from '@app/views/organism/PropertiesDrawer';
+import { ThemeColor } from '@app/constants/theme';
 
 export default function Home() {
     const { addSlide, formFields } = useFieldSelectorAtom();
@@ -43,7 +44,13 @@ export default function Home() {
                                     index: formFields.length,
                                     type: FieldTypes.SLIDE,
                                     properties: {
-                                        fields: []
+                                        fields: [],
+                                        theme: {
+                                            primary: ThemeColor.primary,
+                                            secondary: ThemeColor.secondary,
+                                            tertiary: ThemeColor.tertiary,
+                                            accent: ThemeColor.accent
+                                        }
                                     }
                                 });
                             }}
@@ -57,7 +64,7 @@ export default function Home() {
                                     className={cn(
                                         'flex rounded-md border border-black-300 outline-none',
                                         activeSlideComponent?.id === slide.id &&
-                                            '!border-pink-500'
+                                        '!border-pink-500'
                                     )}
                                     key={slide.id}
                                     tabIndex={0}
@@ -89,7 +96,7 @@ export default function Home() {
                 </div>
                 <div
                     id="slide-element-properties"
-                    className="w-[200px] self-stretch border-l-black-300 bg-white"
+                    className="w-[200px] self-stretch overflow-y-hidden border-l-black-300 bg-white"
                 >
                     <PropertiesDrawer />
                 </div>
