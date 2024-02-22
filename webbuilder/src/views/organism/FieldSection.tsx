@@ -94,7 +94,7 @@ const FieldSection = ({
     return (
         <div
             className={cn(
-                'aspect-video h-min w-full bg-white',
+                'aspect-video h-min w-full overflow-auto bg-white',
                 disabled ? 'pointer-events-none overflow-hidden' : ''
             )}
         >
