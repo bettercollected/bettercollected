@@ -8,6 +8,7 @@ import {
     useActiveFieldComponent,
     useActiveSlideComponent
 } from '@app/store/jotai/activeBuilderComponent';
+import { reorder } from '@app/utils/arrayUtils';
 
 const initialFieldsAtom = atom<FormField[]>([]);
 
@@ -138,6 +139,19 @@ export default function useFieldSelectorAtom() {
         setFormFields([...formFields]);
     };
 
+    const moveFieldInASlide = (
+        slideIndex: number,
+        sourceIndex: number,
+        destinationIndex: number
+    ) => {
+        formFields![slideIndex]!.properties!.fields = reorder(
+            formFields![slideIndex]!.properties!.fields!,
+            sourceIndex,
+            destinationIndex
+        );
+        setFormFields([...formFields]);
+    };
+
     const updateFieldProperty = (
         fieldIndex: number,
         slideIndex: number,
@@ -165,6 +179,7 @@ export default function useFieldSelectorAtom() {
         updateFieldValidation,
         updateFieldProperty,
         updateShowQuestionNumbers,
+        moveFieldInASlide,
         activeSlide,
         activeField
     };
