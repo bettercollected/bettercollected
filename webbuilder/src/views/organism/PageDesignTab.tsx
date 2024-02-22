@@ -1,38 +1,52 @@
-import { ButtonVariant } from '@app/models/enums/button';
-import { Button } from '@app/shadcn/components/ui/button';
+import { ThemeColors } from '@app/constants/theme';
+import { Separator } from '@app/shadcn/components/ui/separator';
 import { cn } from '@app/shadcn/util/lib';
 import useFieldSelectorAtom from '@app/store/jotai/fieldSelector';
 
 export default function PageDesignTab() {
-    const { activeSlide } = useFieldSelectorAtom();
+    const { updateSlideTheme } = useFieldSelectorAtom();
     return (
-        <>
-            <div className="mb-4 mt-6 flex items-center justify-between px-4">
-                <span className="p2-new text-black-700">Theme</span>
-                <Button
-                    className="rounded-lg !px-2 "
-                    size={'xs'}
-                    variant={ButtonVariant.Tertiary}
-                >
-                    Customize
-                </Button>
+        <div className='flex flex-col '>
+            <span className="font-medium text-black-700 px-4 ">Theme</span>
+            <Separator className='my-4' />
+            <div className='flex flex-col gap-4 max-h-screen overflow-y-auto'>
+                {ThemeColors.map((themeColor) => {
+                    return <div className='cursor-pointer' onClick={() => updateSlideTheme(themeColor)}>
+                        <ThemeComponent color={themeColor} />
+                        <Separator className='my-3' />
+                    </div>
+                })}
             </div>
-            <div className="flex gap-2 px-4">
-                <ThemeColorBox
-                    color={activeSlide?.properties?.theme?.accent || '#F5FFFE'}
-                />
-                <ThemeColorBox
-                    color={activeSlide?.properties?.theme?.tertiary || '#B1E0DE'}
-                />
-                <ThemeColorBox
-                    color={activeSlide?.properties?.theme?.secondary || '#407270'}
-                />
-                <ThemeColorBox
-                    color={activeSlide?.properties?.theme?.primary || '#2E2E2E'}
-                />
-            </div>
-        </>
+        </div>
     );
+}
+
+const ThemeComponent = ({ color }: { color: any }) => {
+    const { name, primary, secondary, tertiary, accent } = color
+    return <div className='flex flex-col items-start gap-2 m-2'>
+        <div style={{
+            background: accent
+        }} className="rounded-lg w-full h-[100px] flex flex-col gap-1 border border-black-300 px-6 py-3">
+            <h1 style={{ color: primary }}>Question</h1>
+            <h1 style={{ color: tertiary }}>Answer Field</h1>
+            <div style={{ background: secondary }} className='w-[35px] h-[13px] rounded-sm' />
+        </div>
+        <div className="flex gap-2 px-3">
+            <ThemeColorBox
+                color={accent}
+            />
+            <ThemeColorBox
+                color={tertiary}
+            />
+            <ThemeColorBox
+                color={secondary}
+            />
+            <ThemeColorBox
+                color={primary}
+            />
+        </div>
+        <h1 className='text-xs font-normal'>{name}</h1>
+    </div>
 }
 
 const ThemeColorBox = ({ color }: { color: string }) => {

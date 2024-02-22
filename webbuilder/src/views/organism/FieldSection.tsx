@@ -2,10 +2,7 @@
 
 import React from 'react';
 
-import { divide } from 'lodash';
-
 import { RadioGroup } from '@headlessui/react';
-import TextField from '@mui/material/TextField';
 import cn from 'classnames';
 
 import { FieldTypes, FormField } from '@app/models/dtos/form';
@@ -16,6 +13,7 @@ import useFieldSelectorAtom from '@app/store/jotai/fieldSelector';
 import { ArrowDown } from '../atoms/Icons/ArrowDown';
 import { FolderUploadIcon } from '../atoms/Icons/FolderUploadIcon';
 import { PlusIcon } from '../atoms/Icons/Plus';
+import { Input } from '@app/shadcn/components/ui/input';
 
 function getPlaceholderValueForTitle(fieldType: FieldTypes) {
     switch (fieldType) {
@@ -95,6 +93,9 @@ const FieldSection = ({
 
     return (
         <div
+            style={{
+                backgroundColor: slide.properties?.theme?.accent
+            }}
             className={cn(
                 'aspect-video h-min w-full bg-white',
                 disabled ? 'pointer-events-none overflow-hidden' : ''
@@ -109,7 +110,7 @@ const FieldSection = ({
                                 tabIndex={0}
                                 className={cn(
                                     activeFieldComponent?.id === field.id &&
-                                        'ring-1 ring-blue-500',
+                                    'ring-1 ring-blue-500',
                                     'w-fit p-1'
                                 )}
                                 onClick={(event) => {
@@ -128,14 +129,13 @@ const FieldSection = ({
                                                 {index + 1}.
                                             </span>
                                         )}
-
-                                        <input
+                                        <Input slide={slide} textColor={slide.properties?.theme?.primary || 'text-black-800'}
                                             id={`input-${disabled ? `${slide.id}${field.id}` : field.id}`}
                                             placeholder={getPlaceholderValueForTitle(
                                                 field.type || FieldTypes.SHORT_TEXT
                                             )}
                                             type="text"
-                                            className={'-left-1 border-0 px-0 text-2xl'}
+                                            className={`-left-1 border-0 px-0 text-base font-semibold`}
                                             value={field.title}
                                             onChange={(e: any) =>
                                                 updateTitle(
@@ -212,38 +212,14 @@ const InputField = ({
 
     return (
         <>
-            <TextField
-                sx={{
-                    '& .MuiOutlinedInput-root': {
-                        '& fieldset': {
-                            border: 'none',
-                            borderBottom: '1px solid #407270'
-                        },
-                        '&:hover fieldset': {
-                            border: 'none',
-                            borderBottom: '1px solid #407270'
-                        },
-                        '&.Mui-focused fieldset': {
-                            border: 'none',
-                            borderBottom: '1px solid #407270'
-                        },
-                        '& .MuiInputBase-input': {
-                            color: '#407270',
-                            fontSize: 24,
-                            paddingLeft: 0
-                        }
-                    }
-                }}
-                type={field.type}
+            <Input slide={slide} type="text" textColor={slide.properties?.theme?.secondary || 'text-black-500'}
                 value={field.properties?.placeholder}
                 placeholder={getPlaceholderValueForField(
                     field.type || FieldTypes.SHORT_TEXT
                 )}
                 onChange={(e: any) =>
                     updateFieldPlaceholder(field.index, slide.index, e.target.value)
-                }
-                className={'w-full border-0 border-b-[1px] border-cyan-500'}
-            />
+                } />
         </>
     );
 };
@@ -262,7 +238,7 @@ const YesNoField = ({
             <RadioGroup
                 className={'flex w-full flex-col gap-2'}
                 value={field.value}
-                onChange={() => {}}
+                onChange={() => { }}
             >
                 {field &&
                     field.properties?.choices?.map((choice, index) => {
@@ -293,19 +269,19 @@ const DropDownField = ({
     const { updateChoiceFieldValue, addChoiceField } = useFieldSelectorAtom();
     return (
         <>
-            {field.type === FieldTypes.DROP_DOWN ? (
-                <div className="mb-2 flex w-full items-center justify-between border-0 border-b-[1px] border-brand-500 py-2 text-2xl text-brand-500">
-                    <h1>Select an option</h1> <ArrowDown className="stroke-2" />
+            {field.type === FieldTypes.DROP_DOWN && (
+                <div style={{
+                    borderColor: slide.properties?.theme?.tertiary,
+                    color: slide.properties?.theme?.tertiary
+                }} className="mb-2 flex w-full items-center justify-between py-2 border-0 border-b-[1px] text-3xl ">
+                    <h1>Select an option</h1> <ArrowDown style={{color:slide.properties?.theme?.secondary}} />
                 </div>
-            ) : (
-                <div>Choose as many you like</div>
             )}
             <div className={'flex w-full flex-col gap-2'}>
                 {field &&
                     field.properties?.choices?.map((choice, index) => {
                         return (
-                            <input
-                                type="text"
+                            <Input slide={slide} type="text" textColor={slide.properties?.theme?.secondary || 'text-black-500'}
                                 value={choice.value}
                                 key={index}
                                 placeholder={`Item ${index + 1}`}
@@ -317,12 +293,16 @@ const DropDownField = ({
                                         e.target.value
                                     )
                                 }
-                                className={`flex justify-between rounded-xl border border-cyan-500 p-2 px-4`}
+                                className={`flex justify-between border rounded-xl p-2 px-4`}
                             />
                         );
                     })}
             </div>
             <Button
+            style={{
+                color:"white",
+                background: slide.properties?.theme?.tertiary
+            }}
                 onClick={() => addChoiceField(field.index, slide.index)}
                 variant={'ghost'}
                 className="mt-2 text-lg font-semibold"

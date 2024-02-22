@@ -60,7 +60,7 @@ export default function PropertiesDrawer() {
     const { activeFieldComponent } = useActiveFieldComponent();
 
     return (
-        <div className="flex h-full flex-col border-l">
+        <div className="flex max-h-screen flex-col border-l ">
             {activeFieldComponent?.id && (
                 <>
                     <FieldTypeSelector />
@@ -70,7 +70,7 @@ export default function PropertiesDrawer() {
             )}
             {!activeFieldComponent?.id && activeSlideComponent?.id && (
                 <>
-                    <Tabs defaultValue="page" className="h-full w-full">
+                    <Tabs defaultValue="page" className="h-full w-full ">
                         <TabsList className="my-2 w-full px-2 ">
                             <TabsTrigger value="page" className="w-full">
                                 Page
