@@ -1,18 +1,21 @@
 'use client';
 
-import {atom, useAtom} from "jotai"
-import {useActiveFieldComponent, useActiveSlideComponent} from "@app/store/jotai/activeBuilderComponent";
+import { atom, useAtom } from 'jotai';
+import { v4 } from 'uuid';
 
 import { FormField } from '@app/models/dtos/form';
-import {v4} from "uuid";
+import {
+    useActiveFieldComponent,
+    useActiveSlideComponent
+} from '@app/store/jotai/activeBuilderComponent';
 
 const initialFieldsAtom = atom<FormField[]>([]);
 
 export default function useFieldSelectorAtom() {
     const [formFields, setFormFields] = useAtom(initialFieldsAtom);
 
-    const {activeSlideComponent} = useActiveSlideComponent()
-    const {activeFieldComponent} = useActiveFieldComponent()
+    const { activeSlideComponent } = useActiveSlideComponent();
+    const { activeFieldComponent } = useActiveFieldComponent();
 
     const addSlide = (field: FormField) => {
         setFormFields([...formFields, field]);
@@ -24,14 +27,14 @@ export default function useFieldSelectorAtom() {
         return;
     };
 
-    const activeSlide = getActiveSlide()
+    const activeSlide = getActiveSlide();
 
     const getActiveField = () => {
         if (activeFieldComponent?.index !== undefined)
-            return activeSlide?.properties?.fields![activeFieldComponent.index]
-        return
-    }
-    const activeField = getActiveField()
+            return activeSlide?.properties?.fields![activeFieldComponent.index];
+        return;
+    };
+    const activeField = getActiveField();
 
     const addField = (slideField: FormField, slideIndex: number) => {
         const slide = formFields[slideIndex];
@@ -46,6 +49,18 @@ export default function useFieldSelectorAtom() {
         const updatedSlides = [...formFields];
         setFormFields(updatedSlides);
     };
+
+    const updateDescription = (
+        fieldIndex: number,
+        slideIndex: number,
+        description: string | undefined
+    ) => {
+        const slide = formFields[slideIndex];
+        slide.properties!.fields![fieldIndex].description = description;
+        const updatedSlides = [...formFields];
+        setFormFields(updatedSlides);
+    };
+
     const updateFieldPlaceholder = (
         fieldIndex: number,
         slideIndex: number,
@@ -128,6 +143,7 @@ export default function useFieldSelectorAtom() {
         addField,
         addSlide,
         updateTitle,
+        updateDescription,
         updateFieldPlaceholder,
         updateChoiceFieldValue,
         addChoiceField,
@@ -136,5 +152,5 @@ export default function useFieldSelectorAtom() {
         updateShowQuestionNumbers,
         activeSlide,
         activeField
-    }
+    };
 }

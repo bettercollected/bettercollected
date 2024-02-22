@@ -2,8 +2,6 @@
 
 import React from 'react';
 
-import { divide } from 'lodash';
-
 import { RadioGroup } from '@headlessui/react';
 import TextField from '@mui/material/TextField';
 import cn from 'classnames';
@@ -67,8 +65,7 @@ const FieldSection = ({
     disabled?: boolean;
 }) => {
     const slideFields = slide?.properties?.fields;
-    const { activeSlide } = useFieldSelectorAtom();
-    const { updateTitle } = useFieldSelectorAtom();
+    const { updateTitle, updateDescription } = useFieldSelectorAtom();
     const { setActiveFieldComponent, activeFieldComponent } = useActiveFieldComponent();
 
     function renderField(field: FormField) {
@@ -112,6 +109,14 @@ const FieldSection = ({
                                         'ring-1 ring-blue-500',
                                     'w-fit p-1'
                                 )}
+                                onFocus={(event) => {
+                                    event.preventDefault();
+                                    event.stopPropagation();
+                                    setActiveFieldComponent({
+                                        id: field.id,
+                                        index: index
+                                    });
+                                }}
                                 onClick={(event) => {
                                     event.preventDefault();
                                     event.stopPropagation();
@@ -128,7 +133,6 @@ const FieldSection = ({
                                                 {index + 1}.
                                             </span>
                                         )}
-
                                         <input
                                             id={`input-${disabled ? `${slide.id}${field.id}` : field.id}`}
                                             placeholder={getPlaceholderValueForTitle(
@@ -146,6 +150,26 @@ const FieldSection = ({
                                             }
                                         />
                                     </div>
+                                    {field?.description !== undefined && (
+                                        <input
+                                            id={`input-${disabled ? `${slide.id}${field.id}` : field.id}`}
+                                            placeholder={getPlaceholderValueForTitle(
+                                                field.type || FieldTypes.SHORT_TEXT
+                                            )}
+                                            className={
+                                                'text-md ring-none -left-1 border-0 px-0 py-0 text-black-800 outline-none '
+                                            }
+                                            type="text"
+                                            value={field.description}
+                                            onChange={(e: any) =>
+                                                updateDescription(
+                                                    field.index,
+                                                    slide.index,
+                                                    e.target.value
+                                                )
+                                            }
+                                        />
+                                    )}
                                     {renderField(field)}
                                 </div>
                             </div>
