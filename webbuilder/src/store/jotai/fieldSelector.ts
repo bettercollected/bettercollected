@@ -138,6 +138,20 @@ export default function useFieldSelectorAtom() {
         setFormFields([...formFields]);
     };
 
+    const updateFieldProperty = (
+        fieldIndex: number,
+        slideIndex: number,
+        property: string,
+        value: any
+    ) => {
+        formFields![slideIndex]!.properties!.fields![fieldIndex].properties = {
+            ...(formFields![slideIndex]!.properties!.fields![fieldIndex].properties ||
+                {}),
+            [property]: value
+        };
+        setFormFields([...formFields]);
+    };
+
     return {
         formFields,
         addField,
@@ -149,6 +163,7 @@ export default function useFieldSelectorAtom() {
         addChoiceField,
         updateFieldRequired,
         updateFieldValidation,
+        updateFieldProperty,
         updateShowQuestionNumbers,
         activeSlide,
         activeField

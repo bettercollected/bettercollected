@@ -10,6 +10,7 @@ import { FieldTypes, FormField } from '@app/models/dtos/form';
 import { Button } from '@app/shadcn/components/ui/button';
 import { useActiveFieldComponent } from '@app/store/jotai/activeBuilderComponent';
 import useFieldSelectorAtom from '@app/store/jotai/fieldSelector';
+import RequiredIcon from '@app/views/atoms/Icons/Required';
 
 import { ArrowDown } from '../atoms/Icons/ArrowDown';
 import { FolderUploadIcon } from '../atoms/Icons/FolderUploadIcon';
@@ -127,7 +128,7 @@ const FieldSection = ({
                                 }}
                             >
                                 <div className={'flex flex-col items-start'}>
-                                    <div className="flex items-center gap-2">
+                                    <div className="relative flex items-center gap-2">
                                         {slide?.properties?.showQuestionNumbers && (
                                             <span className="text-2xl">
                                                 {index + 1}.
@@ -139,7 +140,11 @@ const FieldSection = ({
                                                 field.type || FieldTypes.SHORT_TEXT
                                             )}
                                             type="text"
-                                            className={'-left-1 border-0 px-0 text-2xl'}
+                                            className={cn(
+                                                '-left-1 border-0 px-0 text-2xl',
+                                                field?.validations?.required &&
+                                                    'after:content-[*]'
+                                            )}
                                             value={field.title}
                                             onChange={(e: any) =>
                                                 updateTitle(
@@ -149,6 +154,11 @@ const FieldSection = ({
                                                 )
                                             }
                                         />
+                                        {field?.validations?.required && (
+                                            <div className="absolute -right-2 top-4 text-red-500">
+                                                <RequiredIcon />
+                                            </div>
+                                        )}
                                     </div>
                                     {field?.description !== undefined && (
                                         <input
@@ -321,8 +331,10 @@ const DropDownField = ({
                 <div className="mb-2 flex w-full items-center justify-between border-0 border-b-[1px] border-brand-500 py-2 text-2xl text-brand-500">
                     <h1>Select an option</h1> <ArrowDown className="stroke-2" />
                 </div>
-            ) : (
+            ) : field?.properties?.allowMultipleSelection ? (
                 <div>Choose as many you like</div>
+            ) : (
+                <></>
             )}
             <div className={'flex w-full flex-col gap-2'}>
                 {field &&
@@ -346,6 +358,13 @@ const DropDownField = ({
                         );
                     })}
             </div>
+            {field?.properties?.allowOtherOption && (
+                <div
+                    className={`mt-2 flex w-full justify-between rounded-xl border border-cyan-500 p-2 px-4 text-black-700`}
+                >
+                    Other
+                </div>
+            )}
             <Button
                 onClick={() => addChoiceField(field.index, slide.index)}
                 variant={'ghost'}
