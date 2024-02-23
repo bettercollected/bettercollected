@@ -1,7 +1,7 @@
 import nextPwa from 'next-pwa';
 import runtimeCaching from 'next-pwa/cache.js';
 
-import {withSentryConfig} from '@sentry/nextjs';
+import { withSentryConfig } from '@sentry/nextjs';
 
 import i18nextConfig from './next-i18next.config.js';
 
@@ -10,7 +10,7 @@ const i18n = i18nextConfig.i18n;
 const imageDomains = process.env.IMAGE_DOMAINS
     ? process.env.IMAGE_DOMAINS.split(',')
     : null;
-const imageDomainsWithOnlyHostname = ["images.unsplash.com"];
+const imageDomainsWithOnlyHostname = ['images.unsplash.com'];
 
 function getHostnameFromRegex(url) {
     // run against regex
@@ -139,9 +139,9 @@ const nextConfigWithSentryIfEnabled =
     !!process.env.SENTRY_PROJECT &&
     !!process.env.SENTRY_RELEASE
         ? withSentryConfig(
-            {...nextConfigWithPWA, devtool: 'source-map'},
-            sentryWebpackPluginOptions
-        )
+              { ...nextConfigWithPWA, devtool: 'source-map' },
+              sentryWebpackPluginOptions
+          )
         : nextConfigWithPWA;
 
 export default nextConfigWithSentryIfEnabled;
