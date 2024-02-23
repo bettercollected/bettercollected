@@ -25,7 +25,7 @@ export default function Home() {
     return (
         <main className="flex min-h-screen flex-col items-center justify-start bg-black-100">
             <Navbar />
-            <div className="max-h-body-content flex  w-full flex-row items-center gap-10">
+            <div className="flex max-h-body-content  w-full flex-row items-center gap-10">
                 <div
                     id="slides-preview"
                     className="flex  h-body-content w-[200px] flex-col gap-5 overflow-auto bg-white p-5"
