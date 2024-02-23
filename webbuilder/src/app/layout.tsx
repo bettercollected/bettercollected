@@ -3,11 +3,6 @@ import React from 'react';
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 
-// import '@uiw/react-markdown-preview/dist/markdown.min.css';
-// import '@uiw/react-markdown-preview/esm/styles/markdown.css';
-// import '@uiw/react-md-editor/dist/mdeditor.min.css';
-// import 'katex/dist/katex.min.css';
-// import 'react-phone-input-2/lib/style.css';
 import 'nprogress/nprogress.css';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';

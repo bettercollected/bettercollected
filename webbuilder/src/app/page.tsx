@@ -26,10 +26,10 @@ export default function Home() {
     return (
         <main className="flex h-screen flex-col items-center justify-start bg-black-100">
             <Navbar />
-            <div className="flex h-body-content w-full flex-row items-center gap-10">
+            <div className="flex max-h-body-content  w-full flex-row items-center gap-10">
                 <div
                     id="slides-preview"
-                    className="flex h-full w-[200px] flex-col gap-5 bg-white p-5"
+                    className="flex  h-body-content w-[200px] flex-col gap-5 overflow-auto bg-white p-5"
                 >
                     <div className="flex w-full items-center justify-between">
                         <span className="h4-new font-medium text-black-700">Pages</span>
@@ -57,31 +57,71 @@ export default function Home() {
                             icon={<PlusIcon />}
                         ></Button>
                     </div>
+                    <div
+                        className={cn(
+                            ' ml-3 flex !aspect-video !h-[85px] cursor-pointer items-center justify-center overflow-auto rounded-lg border bg-white',
+                            activeSlideComponent?.id === 'welcome-page' &&
+                                'border-pink-500'
+                        )}
+                        onClick={() => {
+                            setActiveSlideComponent({
+                                id: 'welcome-page',
+                                index: -10
+                            });
+                        }}
+                    >
+                        Welcome Page
+                    </div>
                     {Array.isArray(formFields) && formFields.length ? (
                         formFields.map((slide, index) => {
                             return (
-                                <div
-                                    className={cn(
-                                        'flex rounded-md border border-black-300 outline-none',
-                                        activeSlideComponent?.id === slide.id &&
-                                            '!border-pink-500'
-                                    )}
-                                    key={slide.id}
-                                    tabIndex={0}
-                                    onFocus={() => {
-                                        setActiveSlideComponent({
-                                            id: slide.id,
-                                            index
-                                        });
-                                    }}
-                                >
-                                    <FieldSection slide={slide} disabled />
+                                <div key={slide.id} className="flex items-center gap-2">
+                                    <span
+                                        className={cn(
+                                            activeSlideComponent?.id === slide.id
+                                                ? 'text-pink-500'
+                                                : 'text-black-700'
+                                        )}
+                                    >
+                                        {index + 1}
+                                    </span>
+                                    <div
+                                        className={cn(
+                                            'flex overflow-hidden rounded-lg border border-black-300 outline-none',
+                                            activeSlideComponent?.id === slide.id &&
+                                                '!border-pink-500'
+                                        )}
+                                        tabIndex={0}
+                                        onFocus={() => {
+                                            setActiveSlideComponent({
+                                                id: slide.id,
+                                                index
+                                            });
+                                        }}
+                                    >
+                                        <FieldSection slide={slide} disabled />
+                                    </div>
                                 </div>
                             );
                         })
                     ) : (
-                        <div className={'w-full'}></div>
+                        <></>
                     )}
+                    <div
+                        className={cn(
+                            'ml-3 flex !aspect-video h-[85px] cursor-pointer items-center justify-center overflow-clip rounded-lg border bg-white',
+                            activeSlideComponent?.id === 'thank-you-page' &&
+                                'border-pink-500'
+                        )}
+                        onClick={() => {
+                            setActiveSlideComponent({
+                                id: 'thank-you-page',
+                                index: -20
+                            });
+                        }}
+                    >
+                        Thank you Page
+                    </div>
                 </div>
                 <div
                     className="flex h-full flex-1 flex-col items-center justify-center "
@@ -89,10 +129,17 @@ export default function Home() {
                         setActiveFieldComponent(null);
                     }}
                 >
-                    {activeSlideComponent?.id && (
+                    {activeSlideComponent?.id && activeSlideComponent?.index >= 0 && (
                         <FieldSection slide={formFields[activeSlideComponent?.index]} />
                     )}
                     {!activeSlideComponent?.id && <div>Add a slide to start</div>}
+                    {activeSlideComponent?.id === 'welcome-page' && (
+                        <div>TO Make Welcome Page Here</div>
+                    )}
+
+                    {activeSlideComponent?.id === 'thank-you-page' && (
+                        <div>TO Make Thank you Page Here</div>
+                    )}
                 </div>
                 <div
                     id="slide-element-properties"

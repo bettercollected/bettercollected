@@ -789,7 +789,8 @@ export default {
             min: 'min-content',
             max: 'max-content',
             fit: 'fit-content',
-            'design-content': 'calc(100vh - 185px)'
+            'design-content': 'calc(100vh - 185px)',
+            'body-content': 'calc(100vh - 64px)'
         }),
         maxWidth: ({ theme, breakpoints }) => ({
             ...theme('spacing'),
