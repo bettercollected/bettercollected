@@ -616,7 +616,8 @@ export default {
             min: 'min-content',
             max: 'max-content',
             fit: 'fit-content',
-            'body-content': 'calc(100vh - 64px)'
+            'body-content': 'calc(100vh - 64px)',
+            'design-content': 'calc(100vh - 165px)'
         }),
         hueRotate: {
             0: '0deg',
@@ -787,7 +788,8 @@ export default {
             dvh: '100dvh',
             min: 'min-content',
             max: 'max-content',
-            fit: 'fit-content'
+            fit: 'fit-content',
+            'design-content': 'calc(100vh - 185px)'
         }),
         maxWidth: ({ theme, breakpoints }) => ({
             ...theme('spacing'),
