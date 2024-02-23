@@ -1,13 +1,13 @@
 'use client';
 
-import {toast} from 'react-toastify';
-import {v4} from 'uuid';
+import { toast } from 'react-toastify';
+import { v4 } from 'uuid';
 
-import {formFieldsList} from '@app/constants/form-fields';
-import {FieldTypes} from '@app/models/dtos/form';
-import {Button} from '@app/shadcn/components/ui/button';
-import {DropdownMenu} from '@app/shadcn/components/ui/dropdown-menu';
-import {useActiveSlideComponent} from '@app/store/jotai/activeBuilderComponent';
+import { formFieldsList } from '@app/constants/form-fields';
+import { FieldTypes } from '@app/models/dtos/form';
+import { Button } from '@app/shadcn/components/ui/button';
+import { DropdownMenu } from '@app/shadcn/components/ui/dropdown-menu';
+import { useActiveSlideComponent } from '@app/store/jotai/activeBuilderComponent';
 import useFieldSelectorAtom from '@app/store/jotai/fieldSelector';
 import BetterCollectedSmallLogo from '@app/views/atoms/Icons/BetterCollectedSmallLogo';
 import EllipsisOption from '@app/views/atoms/Icons/EllipsisOption';
@@ -15,13 +15,19 @@ import EllipsisOption from '@app/views/atoms/Icons/EllipsisOption';
 import PlayIcon from '../atoms/Icons/PlayIcon';
 
 const Navbar = () => {
-    const {formFields, addField} = useFieldSelectorAtom();
-    const {activeSlideComponent} = useActiveSlideComponent();
+    const { formFields, addField } = useFieldSelectorAtom();
+    const { activeSlideComponent } = useActiveSlideComponent();
     const handleAddField = (field: any) => {
         if (activeSlideComponent === null) {
             toast('Add a slide to add questions');
             return;
         }
+
+        if (activeSlideComponent?.index < 0) {
+            toast('Select a slide to add questions');
+            return;
+        }
+
         const fieldId = v4();
         if (
             field.type === FieldTypes.YES_NO ||
@@ -36,7 +42,7 @@ const Navbar = () => {
                     index: formFields[activeSlideComponent.index]?.properties?.fields
                         ?.length
                         ? formFields[activeSlideComponent.index]?.properties?.fields
-                            ?.length!
+                              ?.length!
                         : 0,
                     type: field.type,
                     properties: {
@@ -62,7 +68,7 @@ const Navbar = () => {
                     index: formFields[activeSlideComponent!.index]?.properties?.fields
                         ?.length
                         ? formFields[activeSlideComponent!.index]?.properties?.fields
-                            ?.length!
+                              ?.length!
                         : 0,
                     type: field.type
                 },
@@ -82,14 +88,14 @@ const Navbar = () => {
         >
             <div className={'flex items-center gap-2'}>
                 <div className={'mr-4 rounded-lg px-4 py-[6px] shadow'}>
-                    <BetterCollectedSmallLogo/>
+                    <BetterCollectedSmallLogo />
                 </div>
                 <input
                     type="text"
                     placeholder="Fill the Form Title"
                     className="w-1/2 border-0"
                 />
-                <EllipsisOption/>
+                <EllipsisOption />
             </div>
             <div className={'flex items-center gap-4'}>
                 <DropdownMenu>
@@ -131,7 +137,7 @@ const Navbar = () => {
                 </DropdownMenu>
             </div>
             <div className={'flex items-center gap-2'}>
-                <Button icon={<PlayIcon/>} variant={'tertiary'}>
+                <Button icon={<PlayIcon />} variant={'tertiary'}>
                     Preview
                 </Button>
                 <Button>Publish</Button>
