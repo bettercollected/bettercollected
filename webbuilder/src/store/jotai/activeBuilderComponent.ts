@@ -15,7 +15,10 @@ export function useActiveFieldComponent() {
     return { activeFieldComponent, setActiveFieldComponent };
 }
 
-const activeSlide = atom<ActiveFormBuilderComponent | null>(null);
+const activeSlide = atom<ActiveFormBuilderComponent | null>({
+    id: 'welcome-page',
+    index: -10
+});
 
 export function useActiveSlideComponent() {
     const [activeSlideComponent, setActiveSlideComponent] = useAtom(activeSlide);
