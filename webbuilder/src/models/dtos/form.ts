@@ -58,6 +58,7 @@ interface FormFieldProperties {
     allowMultipleSelection?: boolean;
     allowOtherOption?: boolean;
     theme?: {
+        title: string;
         primary: string;
         secondary: string;
         tertiary: string;
