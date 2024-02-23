@@ -167,7 +167,10 @@ const nextConfig = {
         CHATWOOT_WEBSITE_TOKEN: process.env.CHATWOOT_WEBSITE_TOKEN,
 
         // App Sumo
-        APP_SUMO_PRODUCT_URL: process.env.APP_SUMO_PRODUCT_URL
+        APP_SUMO_PRODUCT_URL: process.env.APP_SUMO_PRODUCT_URL,
+
+        // Enable Suggest price allowing user to get pro feature for free
+        ENABLE_SUGGEST_PRICE: process.env.ENABLE_SUGGEST_PRICE
     }
 };
 

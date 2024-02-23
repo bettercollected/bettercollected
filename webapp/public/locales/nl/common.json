@@ -789,26 +789,26 @@
     "DEFAULT_SLOGAN": "Upgrade naar PRO-abonnement voor meer functies",
     "FEATURES": {
       "WORKSPACE": {
-        "SLOGAN": "Organiseer uw gebruikers met meerdere werkruimtes",
-        "TITLE": "Meerdere Werkruimte",
-        "DESCRIPTION": "Pro-accounts bieden de mogelijkheid om meerdere werkruimten te creëren, terwijl gratis accounts slechts één werkruimte toestaan. Dit betekent dat Pro-gebruikers afzonderlijke werkruimten kunnen creëren voor verschillende projecten of teams."
+        "SLOGAN": "Organiseer uw gebruikers met meerdere werkruimten",
+        "TITLE": "Meerdere Werkruimten",
+        "DESCRIPTION": "Maak aparte werkruimten voor verschillende teams, organisaties en projecten."
       },
       "COLLABORATOR": {
-        "SLOGAN": "Begin met samenwerken met uw team",
+        "SLOGAN": "Begin samen te werken met uw team",
         "TITLE": "Samenwerken met anderen",
-        "DESCRIPTION": "Pro-accounts bieden samenwerkingsfuncties, Basic-accounts niet. Dit betekent dat Pro-gebruikers met anderen kunnen samenwerken om formulieren te importeren en formulieren te beheren. Dit kan een geweldige manier zijn om werk sneller en efficiënter gedaan te krijgen."
+        "DESCRIPTION": "Krijg werk sneller en efficiënter gedaan door samen te werken met anderen."
       },
       "CUSTOM_DOMAIN": {
-        "SLOGAN": "Personaliseer uw URL's met een aangepast domein",
-        "TITLE": "Aangepaste domeinnaam",
-        "DESCRIPTION": "Pro-accounts bieden aangepaste domeinondersteuning, gratis accounts niet. Dit betekent dat Pro-gebruikers hun eigen domeinnaam kunnen gebruiken voor hun Workspace, in plaats van het 'BetterCollected'-domein te gebruiken. Dit kan een geweldige manier zijn om uw bedrijf er professioneler uit laten zien en uw naamsbekendheid verbeteren.",
-        "NOTE": "Opmerking: Zorg ervoor dat je je aangepaste domein naar custom.bettercollected.com verwijst.",
-        "TEXT_FIELD_TITLE": "Voer het domein in dat je wilt verbinden"
+        "SLOGAN": "Personaliseer uw URL's met aangepast domein",
+        "TITLE": "Aangepaste Domeinnaam",
+        "DESCRIPTION": "Laat uw bedrijf er professioneler uitzien en verbeter uw merkherkenning.",
+        "NOTE": "Opmerking: Zorg ervoor dat u uw aangepaste domein naar custom.bettercollected.com verwijst.",
+        "TEXT_FIELD_TITLE": "Voer het domein in dat u wilt verbinden"
       },
       "UNLIMITED_FORMS": {
-        "SLOGAN": "Importeer onbeperkte formulieren met PRO Plan",
-        "TITLE": "Onbeperkt formulier importeren",
-        "DESCRIPTION": "Pro-accounts bieden onbeperkte formulierimport, terwijl gratis accounts beperkt zijn tot 100 formulierimport. Dit kan een groot voordeel zijn voor bedrijven die grote hoeveelheden gegevens uit formulieren moeten importeren."
+        "SLOGAN": "Importeer onbeperkte formulieren met PRO-abonnement",
+        "TITLE": "Onbeperkte Formulieren",
+        "DESCRIPTION": "Maak en importeer zoveel formulieren als u wilt; het gratis account staat slechts 100 formulieren toe."
       }
     }
   },
