@@ -2,8 +2,6 @@
 
 import { atom, useAtom } from 'jotai';
 import { v4 } from 'uuid';
-import { atom, useAtom } from 'jotai';
-import { v4 } from 'uuid';
 
 import { FormField } from '@app/models/dtos/form';
 import {
@@ -17,8 +15,6 @@ const initialFieldsAtom = atom<FormField[]>([]);
 export default function useFieldSelectorAtom() {
     const [formFields, setFormFields] = useAtom(initialFieldsAtom);
 
-    const { activeSlideComponent } = useActiveSlideComponent();
-    const { activeFieldComponent } = useActiveFieldComponent();
     const { activeSlideComponent } = useActiveSlideComponent();
     const { activeFieldComponent } = useActiveFieldComponent();
 
@@ -143,8 +139,15 @@ export default function useFieldSelectorAtom() {
         setFormFields([...formFields]);
     };
 
-    const updateSlideTheme = (color: any) => {
+    const updateSlideTheme = (color: {
+        title: string;
+        primary: string;
+        secondary: string;
+        tertiary: string;
+        accent: string;
+    }) => {
         formFields[activeSlide?.index || 0].properties!.theme = {
+            title: color.title,
             primary: color.primary,
             secondary: color.secondary,
             tertiary: color.tertiary,
