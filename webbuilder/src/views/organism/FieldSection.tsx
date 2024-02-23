@@ -269,8 +269,9 @@ const FileUpload = ({
         <>
             <label
                 htmlFor="form-builder-file-upload"
+                style={{ borderColor: slide.properties?.theme?.tertiary }}
                 className={
-                    'flex h-[200px] w-[500px] cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dotted border-brand-500'
+                    'flex h-[200px] w-[500px] cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dotted'
                 }
             >
                 <FolderUploadIcon />
