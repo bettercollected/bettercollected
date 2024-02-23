@@ -4,6 +4,7 @@ import cn from 'classnames';
 import { PlusIcon } from 'lucide-react';
 import { v4 } from 'uuid';
 
+import { ThemeColor } from '@app/constants/theme';
 import { FieldTypes } from '@app/models/dtos/form';
 import { ButtonSize, ButtonVariant } from '@app/models/enums/button';
 import {
@@ -15,7 +16,6 @@ import Button from '@app/views/atoms/Button';
 import FieldSection from '@app/views/organism/FieldSection';
 import Navbar from '@app/views/organism/Navbar';
 import PropertiesDrawer from '@app/views/organism/PropertiesDrawer';
-import { ThemeColor } from '@app/constants/theme';
 
 export default function Home() {
     const { addSlide, formFields } = useFieldSelectorAtom();
@@ -24,7 +24,7 @@ export default function Home() {
 
     const { setActiveFieldComponent } = useActiveFieldComponent();
     return (
-        <main className="flex min-h-screen flex-col items-center justify-start bg-black-100">
+        <main className="flex h-screen flex-col items-center justify-start bg-black-100">
             <Navbar />
             <div className="flex h-body-content w-full flex-row items-center gap-10">
                 <div
@@ -64,7 +64,7 @@ export default function Home() {
                                     className={cn(
                                         'flex rounded-md border border-black-300 outline-none',
                                         activeSlideComponent?.id === slide.id &&
-                                        '!border-pink-500'
+                                            '!border-pink-500'
                                     )}
                                     key={slide.id}
                                     tabIndex={0}
@@ -96,7 +96,7 @@ export default function Home() {
                 </div>
                 <div
                     id="slide-element-properties"
-                    className="w-[200px] self-stretch overflow-y-hidden border-l-black-300 bg-white"
+                    className="h-full w-[200px] self-stretch overflow-auto border-l-black-300 bg-white"
                 >
                     <PropertiesDrawer />
                 </div>
