@@ -1,23 +1,26 @@
 import { ThemeColors } from '@app/constants/theme';
 import { Separator } from '@app/shadcn/components/ui/separator';
 import { cn } from '@app/shadcn/util/lib';
+import { useActiveSlideComponent } from '@app/store/jotai/activeBuilderComponent';
 import useFieldSelectorAtom from '@app/store/jotai/fieldSelector';
 
 export default function PageDesignTab() {
-    const { updateSlideTheme } = useFieldSelectorAtom();
+    const { updateSlideTheme, activeSlide } = useFieldSelectorAtom();
     return (
         <div className="flex h-full flex-col ">
             <span className="px-4 font-medium text-black-700 ">Theme</span>
             <Separator className="mt-4" />
-            <div className="max-h-design-content flex flex-col overflow-y-auto pt-4">
+            <div className="flex max-h-design-content flex-col overflow-y-auto">
                 {ThemeColors.map((themeColor) => {
                     return (
                         <div
-                            className="cursor-pointer hover:bg-black-200"
-                            onClick={() => updateSlideTheme(themeColor)}
+                            className={`cursor-pointer border-[1px] hover:bg-black-200 ${activeSlide?.properties?.theme?.title === themeColor.title && 'border-brand-500'}`}
+                            onClick={() => {
+                                updateSlideTheme(themeColor);
+                            }}
                         >
                             <ThemeComponent color={themeColor} />
-                            <Separator />
+                            {/* <Separator /> */}
                         </div>
                     );
                 })}
@@ -27,9 +30,9 @@ export default function PageDesignTab() {
 }
 
 const ThemeComponent = ({ color }: { color: any }) => {
-    const { name, primary, secondary, tertiary, accent } = color;
+    const { title, primary, secondary, tertiary, accent } = color;
     return (
-        <div className="mx-2 flex flex-col items-start gap-2 py-3">
+        <div className="flex flex-col items-start gap-2 px-2 py-4">
             <div
                 style={{
                     background: accent
@@ -49,7 +52,7 @@ const ThemeComponent = ({ color }: { color: any }) => {
                 <ThemeColorBox color={secondary} />
                 <ThemeColorBox color={primary} />
             </div>
-            <h1 className="text-xs font-normal">{name}</h1>
+            <h1 className="text-xs font-normal">{title}</h1>
         </div>
     );
 };

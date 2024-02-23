@@ -46,6 +46,7 @@ export default function Home() {
                                     properties: {
                                         fields: [],
                                         theme: {
+                                            title: 'Default',
                                             primary: ThemeColor.primary,
                                             secondary: ThemeColor.secondary,
                                             tertiary: ThemeColor.tertiary,
