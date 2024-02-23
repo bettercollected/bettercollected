@@ -9,8 +9,8 @@ import { DragDropContext, Draggable, DroppableProvided } from 'react-beautiful-d
 
 import { FieldTypes, FormField } from '@app/models/dtos/form';
 import { Button } from '@app/shadcn/components/ui/button';
-import { StrictModeDroppable } from '@app/shared/hocs/StrictModeDroppable';
 import { Input } from '@app/shadcn/components/ui/input';
+import { StrictModeDroppable } from '@app/shared/hocs/StrictModeDroppable';
 import { useActiveFieldComponent } from '@app/store/jotai/activeBuilderComponent';
 import useFieldSelectorAtom from '@app/store/jotai/fieldSelector';
 import RequiredIcon from '@app/views/atoms/Icons/Required';
@@ -141,7 +141,7 @@ const FieldSection = ({
                                                         activeFieldComponent?.id ===
                                                             field.id &&
                                                             'ring-1 ring-blue-500',
-                                                        'w-fit p-1'
+                                                        'w-fit cursor-pointer p-1'
                                                     )}
                                                     onFocus={(event) => {
                                                         event.preventDefault();
@@ -365,7 +365,7 @@ const DropDownField = ({
     const { updateChoiceFieldValue, addChoiceField } = useFieldSelectorAtom();
     return (
         <>
-            {field.type === FieldTypes.DROP_DOWN && (
+            {field.type === FieldTypes.DROP_DOWN ? (
                 <div
                     style={{
                         borderColor: slide.properties?.theme?.tertiary,
@@ -373,13 +373,19 @@ const DropDownField = ({
                     }}
                     className="mb-2 flex w-full items-center justify-between border-0 border-b-[1px] py-2 text-3xl "
                 >
-                    <h1>Select an option</h1>{' '}
+                    <h1>Select an option</h1>
                     <ArrowDown style={{ color: slide.properties?.theme?.secondary }} />
                 </div>
-            ) : field?.properties?.allowMultipleSelection ? (
-                <div>Choose as many you like</div>
             ) : (
-                <></>
+                field.properties &&
+                field.properties.allowMultipleSelection && (
+                    <h1
+                        style={{ color: slide.properties?.theme?.secondary }}
+                        className="-mt-1 mb-1 font-medium"
+                    >
+                        Choose as many as you like
+                    </h1>
+                )
             )}
             <div className={'flex w-full flex-col gap-2'}>
                 {field &&
@@ -410,7 +416,11 @@ const DropDownField = ({
             </div>
             {field?.properties?.allowOtherOption && (
                 <div
-                    className={`mt-2 flex w-full justify-between rounded-xl border border-cyan-500 p-2 px-4 text-black-700`}
+                    style={{
+                        color: slide.properties?.theme?.tertiary,
+                        borderColor: slide.properties?.theme?.tertiary
+                    }}
+                    className={`mt-2 flex w-full justify-between rounded-xl border p-2 py-1 text-[32px]`}
                 >
                     Other
                 </div>
