@@ -140,7 +140,7 @@ input.spin-button-hidden::-webkit-inner-spin-button {
 }
 
 .h5-new {
-    @apply text-[14px] font-semibold leading-[21px] text-black-900;
+    @apply text-[14px] font-semibold leading-[21px];
 }
 
 .h6 {
