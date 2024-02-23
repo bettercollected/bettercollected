@@ -183,6 +183,11 @@ export default function useFieldSelectorAtom() {
         setFormFields([...formFields]);
     };
 
+    const deleteField = (slideIndex:number,fieldIndex:number)=>{
+        formFields![slideIndex]!.properties!.fields!.splice(fieldIndex,1);
+        setFormFields([...formFields]);
+    }
+
     return {
         formFields,
         addField,
@@ -199,6 +204,7 @@ export default function useFieldSelectorAtom() {
         updateSlideTheme,
         moveFieldInASlide,
         activeSlide,
-        activeField
+        activeField,
+        deleteField
     };
 }
