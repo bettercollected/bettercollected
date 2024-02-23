@@ -11,9 +11,10 @@ export default function PageDesignTab() {
             <span className="px-4 font-medium text-black-700 ">Theme</span>
             <Separator className="mt-4" />
             <div className="flex max-h-design-content flex-col overflow-y-auto">
-                {ThemeColors.map((themeColor) => {
+                {ThemeColors.map((themeColor, index) => {
                     return (
                         <div
+                            key={index}
                             className={`cursor-pointer border-[1px] hover:bg-black-200 ${activeSlide?.properties?.theme?.title === themeColor.title && 'border-brand-500'}`}
                             onClick={() => {
                                 updateSlideTheme(themeColor);
