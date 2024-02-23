@@ -41,6 +41,7 @@ from backend.app.services.form_plugin_provider_service import FormPluginProvider
 from backend.app.services.form_response_service import FormResponseService
 from backend.app.services.form_service import FormService
 from backend.app.services.plugin_proxy_service import PluginProxyService
+from backend.app.services.price_suggestion import PriceSuggestionService
 from backend.app.services.responder_groups_service import ResponderGroupsService
 from backend.app.services.stripe_service import StripeService
 from backend.app.services.template_service import FormTemplateService
@@ -279,6 +280,12 @@ class AppContainer(containers.DeclarativeContainer):
     coupon_service = providers.Singleton(
         CouponService,
         coupon_repository=coupon_repository,
+        auth_service=auth_service,
+        workspace_service=workspace_service,
+    )
+
+    price_suggestion_service = providers.Singleton(
+        PriceSuggestionService,
         auth_service=auth_service,
         workspace_service=workspace_service,
     )
