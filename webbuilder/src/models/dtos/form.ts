@@ -55,6 +55,8 @@ interface FormFieldProperties {
     ratingShape?: string;
     dateFormat?: string;
     showQuestionNumbers?: boolean;
+    allowMultipleSelection?: boolean;
+    allowOtherOption?: boolean;
     theme?: {
         primary: string;
         secondary: string;

@@ -2,18 +2,23 @@
 
 import { atom, useAtom } from 'jotai';
 import { v4 } from 'uuid';
+import { atom, useAtom } from 'jotai';
+import { v4 } from 'uuid';
 
 import { FormField } from '@app/models/dtos/form';
 import {
     useActiveFieldComponent,
     useActiveSlideComponent
 } from '@app/store/jotai/activeBuilderComponent';
+import { reorder } from '@app/utils/arrayUtils';
 
 const initialFieldsAtom = atom<FormField[]>([]);
 
 export default function useFieldSelectorAtom() {
     const [formFields, setFormFields] = useAtom(initialFieldsAtom);
 
+    const { activeSlideComponent } = useActiveSlideComponent();
+    const { activeFieldComponent } = useActiveFieldComponent();
     const { activeSlideComponent } = useActiveSlideComponent();
     const { activeFieldComponent } = useActiveFieldComponent();
 
@@ -49,6 +54,18 @@ export default function useFieldSelectorAtom() {
         const updatedSlides = [...formFields];
         setFormFields(updatedSlides);
     };
+
+    const updateDescription = (
+        fieldIndex: number,
+        slideIndex: number,
+        description: string | undefined
+    ) => {
+        const slide = formFields[slideIndex];
+        slide.properties!.fields![fieldIndex].description = description;
+        const updatedSlides = [...formFields];
+        setFormFields(updatedSlides);
+    };
+
     const updateFieldPlaceholder = (
         fieldIndex: number,
         slideIndex: number,
@@ -136,18 +153,48 @@ export default function useFieldSelectorAtom() {
         setFormFields([...formFields]);
     };
 
+    const moveFieldInASlide = (
+        slideIndex: number,
+        sourceIndex: number,
+        destinationIndex: number
+    ) => {
+        formFields![slideIndex]!.properties!.fields = reorder(
+            formFields![slideIndex]!.properties!.fields!,
+            sourceIndex,
+            destinationIndex
+        );
+        setFormFields([...formFields]);
+    };
+
+    const updateFieldProperty = (
+        fieldIndex: number,
+        slideIndex: number,
+        property: string,
+        value: any
+    ) => {
+        formFields![slideIndex]!.properties!.fields![fieldIndex].properties = {
+            ...(formFields![slideIndex]!.properties!.fields![fieldIndex].properties ||
+                {}),
+            [property]: value
+        };
+        setFormFields([...formFields]);
+    };
+
     return {
         formFields,
         addField,
         addSlide,
         updateTitle,
+        updateDescription,
         updateFieldPlaceholder,
         updateChoiceFieldValue,
         addChoiceField,
         updateFieldRequired,
         updateFieldValidation,
+        updateFieldProperty,
         updateShowQuestionNumbers,
         updateSlideTheme,
+        moveFieldInASlide,
         activeSlide,
         activeField
     };

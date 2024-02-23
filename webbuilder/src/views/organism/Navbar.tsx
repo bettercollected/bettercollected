@@ -22,6 +22,12 @@ const Navbar = () => {
             toast('Add a slide to add questions');
             return;
         }
+
+        if (activeSlideComponent?.index < 0) {
+            toast('Select a slide to add questions');
+            return;
+        }
+
         const fieldId = v4();
         if (
             field.type === FieldTypes.YES_NO ||

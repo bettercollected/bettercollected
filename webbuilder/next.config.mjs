@@ -10,7 +10,7 @@ const i18n = i18nextConfig.i18n;
 const imageDomains = process.env.IMAGE_DOMAINS
     ? process.env.IMAGE_DOMAINS.split(',')
     : null;
-const imageDomainsWithOnlyHostname = [];
+const imageDomainsWithOnlyHostname = ['images.unsplash.com'];
 
 function getHostnameFromRegex(url) {
     // run against regex
