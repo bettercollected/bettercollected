@@ -6,15 +6,20 @@ import useFieldSelectorAtom from '@app/store/jotai/fieldSelector';
 export default function PageDesignTab() {
     const { updateSlideTheme } = useFieldSelectorAtom();
     return (
-        <div className='flex flex-col '>
-            <span className="font-medium text-black-700 px-4 ">Theme</span>
-            <Separator className='my-4' />
-            <div className='flex flex-col gap-4 max-h-screen overflow-y-auto'>
+        <div className="flex h-full flex-col ">
+            <span className="px-4 font-medium text-black-700 ">Theme</span>
+            <Separator className="mt-4" />
+            <div className="max-h-design-content flex flex-col overflow-y-auto pt-4">
                 {ThemeColors.map((themeColor) => {
-                    return <div className='cursor-pointer' onClick={() => updateSlideTheme(themeColor)}>
-                        <ThemeComponent color={themeColor} />
-                        <Separator className='my-3' />
-                    </div>
+                    return (
+                        <div
+                            className="cursor-pointer hover:bg-black-200"
+                            onClick={() => updateSlideTheme(themeColor)}
+                        >
+                            <ThemeComponent color={themeColor} />
+                            <Separator />
+                        </div>
+                    );
                 })}
             </div>
         </div>
@@ -22,32 +27,32 @@ export default function PageDesignTab() {
 }
 
 const ThemeComponent = ({ color }: { color: any }) => {
-    const { name, primary, secondary, tertiary, accent } = color
-    return <div className='flex flex-col items-start gap-2 m-2'>
-        <div style={{
-            background: accent
-        }} className="rounded-lg w-full h-[100px] flex flex-col gap-1 border border-black-300 px-6 py-3">
-            <h1 style={{ color: primary }}>Question</h1>
-            <h1 style={{ color: tertiary }}>Answer Field</h1>
-            <div style={{ background: secondary }} className='w-[35px] h-[13px] rounded-sm' />
+    const { name, primary, secondary, tertiary, accent } = color;
+    return (
+        <div className="mx-2 flex flex-col items-start gap-2 py-3">
+            <div
+                style={{
+                    background: accent
+                }}
+                className="flex h-[100px] w-full flex-col gap-1 rounded-lg border border-black-300 px-6 py-3"
+            >
+                <h1 style={{ color: primary }}>Question</h1>
+                <h1 style={{ color: tertiary }}>Answer Field</h1>
+                <div
+                    style={{ background: secondary }}
+                    className="h-[13px] w-[35px] rounded-sm"
+                />
+            </div>
+            <div className="flex gap-2 px-3">
+                <ThemeColorBox color={accent} />
+                <ThemeColorBox color={tertiary} />
+                <ThemeColorBox color={secondary} />
+                <ThemeColorBox color={primary} />
+            </div>
+            <h1 className="text-xs font-normal">{name}</h1>
         </div>
-        <div className="flex gap-2 px-3">
-            <ThemeColorBox
-                color={accent}
-            />
-            <ThemeColorBox
-                color={tertiary}
-            />
-            <ThemeColorBox
-                color={secondary}
-            />
-            <ThemeColorBox
-                color={primary}
-            />
-        </div>
-        <h1 className='text-xs font-normal'>{name}</h1>
-    </div>
-}
+    );
+};
 
 const ThemeColorBox = ({ color }: { color: string }) => {
     return (

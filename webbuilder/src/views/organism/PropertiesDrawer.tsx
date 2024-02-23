@@ -60,7 +60,7 @@ export default function PropertiesDrawer() {
     const { activeFieldComponent } = useActiveFieldComponent();
 
     return (
-        <div className="flex max-h-screen flex-col border-l ">
+        <div className="flex h-full flex-col border-l ">
             {activeFieldComponent?.id && (
                 <>
                     <FieldTypeSelector />
