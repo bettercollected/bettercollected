@@ -151,7 +151,8 @@ module.exports = {
                 logoCard: '0px 0px 40px 0px rgba(19, 73, 179, 0.25)',
                 hover: '0px 0px 8px 0px rgba(0, 0, 0, 0.25)',
                 input: '0px 0px 12px 0px rgba(7, 100, 235, 0.45)',
-                'powered-by': ' 0px 0px 16px 0px #0764EB29'
+                'powered-by': ' 0px 0px 16px 0px #0764EB29',
+                "suggestion-price": " 0px 0px 12px 0px #0764EB73"
             },
             dropShadow: {
                 paper: '0px 0px 15px rgba(0, 0, 0, 0.15)',
