@@ -80,7 +80,11 @@ const environments = {
     CHATWOOT_DEPLOY_URL: publicRuntimeConfig.CHATWOOT_DEPLOY_URL ?? 'https://help.bettercollected.com',
     CHATWOOT_WEBSITE_TOKEN: publicRuntimeConfig.CHATWOOT_WEBSITE_TOKEN,
 
-    APP_SUMO_PRODUCT_URL: publicRuntimeConfig.APP_SUMO_PRODUCT_URL ?? 'https://appsumo.com/products/bettercollected'
+    APP_SUMO_PRODUCT_URL: publicRuntimeConfig.APP_SUMO_PRODUCT_URL ?? 'https://appsumo.com/products/bettercollected',
+    
+    // Enable Price Suggestion
+    ENABLE_SUGGEST_PRICE: publicRuntimeConfig.ENABLE_SUGGEST_PRICE && (publicRuntimeConfig.ENABLE_SUGGEST_PRICE === 'true' || publicRuntimeConfig.ENABLE_SUGGEST_PRICE === true),
+
 };
 
 export default environments;

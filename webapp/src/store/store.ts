@@ -1,4 +1,4 @@
-import { Reducer, combineReducers, configureStore } from '@reduxjs/toolkit';
+import { combineReducers, configureStore, Reducer } from '@reduxjs/toolkit';
 import { setupListeners } from '@reduxjs/toolkit/query';
 import { persistStore } from 'redux-persist';
 
@@ -19,6 +19,7 @@ import { membersNInvitationsApi } from '@app/store/workspaces/members-n-invitati
 import workspaceSlice from '@app/store/workspaces/slice';
 
 import { apiActionsApi } from './api-actions-api';
+import { priceSuggestionApi } from './price-suggestion/api';
 import { consentApi } from './consent/api';
 import consentSlice from './consent/consentSlice';
 import mutationStatusSlice from './mutations/slice';
@@ -26,7 +27,7 @@ import mutationStatusSlice from './mutations/slice';
 
 // Add more middlewares here
 // const middlewares = [loggerMiddleware, authApi.middleware, membersNInvitationsApi.middleware, plansApi.middleware, providerApi.middleware, workspacesApi.middleware];
-const middlewares = [authApi.middleware, membersNInvitationsApi.middleware, plansApi.middleware, providerApi.middleware, workspacesApi.middleware, consentApi.middleware, templateApi.middleware, apiActionsApi.middleware, couponCodeApi.middleware];
+const middlewares = [priceSuggestionApi.middleware, authApi.middleware, membersNInvitationsApi.middleware, plansApi.middleware, providerApi.middleware, workspacesApi.middleware, consentApi.middleware, templateApi.middleware, apiActionsApi.middleware, couponCodeApi.middleware];
 
 // if (environments.IS_IN_PRODUCTION_MODE) middlewares.splice(0, 1);
 
@@ -47,7 +48,8 @@ const reducers = {
     [consentSlice.reducerPath]: consentSlice.reducer,
     [consentApi.reducerPath]: consentApi.reducer,
     [templateApi.reducerPath]: templateApi.reducer,
-    [couponCodeApi.reducerPath]: couponCodeApi.reducer
+    [couponCodeApi.reducerPath]: couponCodeApi.reducer,
+    [priceSuggestionApi.reducerPath]: priceSuggestionApi.reducer
 };
 
 const combinedReducer = combineReducers<typeof reducers>(reducers);
