@@ -20,6 +20,8 @@ import { useGetPlansQuery } from '@app/store/plans/api';
 import cn from 'classnames';
 import AppButton from '@Components/Common/Input/Button/AppButton';
 import { ButtonSize } from '@Components/Common/Input/Button/AppButtonProps';
+import { useSuggestPriceAndUpgradeUserToProMutation } from '@app/store/price-suggestion/api';
+import { toast } from 'react-toastify';
 
 export interface IUpgradeToProModal {
     featureText?: string;
@@ -36,6 +38,8 @@ export default function UpgradeToProContainer({ featureText, isModal = true }: I
     const { t } = useTranslation();
     const [activePlan, setActivePlan] = useState<any>();
     const auth = useAppSelector(selectAuthStatus);
+
+    const [suggestPrice, { isLoading: isSuggesting }] = useSuggestPriceAndUpgradeUserToProMutation();
 
     const [activeSuggestion, setActiveSuggestion] = useState<null | number>(null);
     const [customPrice, setCustomPrice] = useState('');
@@ -168,7 +172,34 @@ export default function UpgradeToProContainer({ featureText, isModal = true }: I
 
                         </div>
                         <div className="mt-10">
-                            <AppButton className="mb-2" size={ButtonSize.Medium}>
+                            <AppButton isLoading={isSuggesting} className="mb-2" size={ButtonSize.Medium}
+                                       onClick={async () => {
+                                           if (!activeSuggestion && !customPrice) {
+                                               toast('Please select a price first', { type: 'warning' });
+                                               return;
+                                           }
+                                           let price = 0;
+                                           if (activeSuggestion) {
+                                               price = activeSuggestion;
+                                           }
+                                           if (customPrice) {
+                                               price = parseInt(customPrice);
+                                           }
+                                           suggestPrice({
+                                               price
+                                           }).then((response: any) => {
+                                               if (response.data) {
+
+                                                   toast('Congratulations! You have been upgraded to PRO', { type: 'success' });
+                                                   router.push(router.asPath);
+                                               }
+                                               if (response.error) {
+                                                   toast('Something went wrong', {
+                                                       type: 'error'
+                                                   });
+                                               }
+                                           });
+                                       }}>
                                 Unlock Pro Features
                             </AppButton>
                             <div className="text-center p2-new text-black-600 italic">
