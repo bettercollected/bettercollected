@@ -183,10 +183,18 @@ export default function useFieldSelectorAtom() {
         setFormFields([...formFields]);
     };
 
-    const deleteField = (slideIndex:number,fieldIndex:number)=>{
-        formFields![slideIndex]!.properties!.fields!.splice(fieldIndex,1);
+    const deleteField = (slideIndex: number, fieldIndex: number) => {
+        formFields![slideIndex]!.properties!.fields!.splice(fieldIndex, 1);
         setFormFields([...formFields]);
-    }
+    };
+
+    const resetFields = () => {
+        setFormFields([]);
+    };
+
+    const dispatchLocalStorageFields = (fields: FormField[]) => {
+        setFormFields(fields);
+    };
 
     return {
         formFields,
@@ -205,6 +213,8 @@ export default function useFieldSelectorAtom() {
         moveFieldInASlide,
         activeSlide,
         activeField,
-        deleteField
+        deleteField,
+        resetFields,
+        dispatchLocalStorageFields
     };
 }

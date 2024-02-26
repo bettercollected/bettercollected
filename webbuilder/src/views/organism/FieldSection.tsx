@@ -2,10 +2,18 @@
 
 import React from 'react';
 
+
+
+import { usePathname } from 'next/navigation';
+
+
+
 import { RadioGroup } from '@headlessui/react';
 import cn from 'classnames';
 import { GripVertical } from 'lucide-react';
 import { DragDropContext, Draggable, DroppableProvided } from 'react-beautiful-dnd';
+
+
 
 import { FieldTypes, FormField } from '@app/models/dtos/form';
 import { Button } from '@app/shadcn/components/ui/button';
@@ -15,9 +23,13 @@ import { useActiveFieldComponent } from '@app/store/jotai/activeBuilderComponent
 import useFieldSelectorAtom from '@app/store/jotai/fieldSelector';
 import RequiredIcon from '@app/views/atoms/Icons/Required';
 
+
+
 import { ArrowDown } from '../atoms/Icons/ArrowDown';
+import DeleteIcon from '../atoms/Icons/Delete';
 import { FolderUploadIcon } from '../atoms/Icons/FolderUploadIcon';
 import { PlusIcon } from '../atoms/Icons/Plus';
+
 
 function getPlaceholderValueForTitle(fieldType: FieldTypes) {
     switch (fieldType) {
@@ -69,9 +81,23 @@ const FieldSection = ({
     disabled?: boolean;
 }) => {
     const slideFields = slide?.properties?.fields;
-    const { updateTitle, updateDescription, moveFieldInASlide, deleteField } =
-        useFieldSelectorAtom();
+    const {
+        updateTitle,
+        updateDescription,
+        moveFieldInASlide,
+        deleteField,
+        formFields
+    } = useFieldSelectorAtom();
     const { setActiveFieldComponent, activeFieldComponent } = useActiveFieldComponent();
+
+    const formId = usePathname().split('/')[1];
+    const forms = JSON.parse(localStorage.getItem('Forms') || '');
+    const formIndex = forms.findIndex((form:any) => form[formId]);
+   
+    const handleSaveButton = ()=>{
+        forms.splice(formIndex,1,{[formId]:formFields});
+        localStorage.setItem('Forms',JSON.stringify(forms));
+    }
 
     function renderField(field: FormField) {
         switch (field.type) {
@@ -98,7 +124,7 @@ const FieldSection = ({
     return (
         <div
             style={{
-                backgroundColor: slide.properties?.theme?.accent
+                backgroundColor: slide?.properties?.theme?.accent
             }}
             className={cn(
                 'aspect-video h-min w-full overflow-auto bg-white',
@@ -247,6 +273,7 @@ const FieldSection = ({
                                                         activeFieldComponent?.id ===
                                                             field.id && (
                                                             <Button
+                                                                icon={<DeleteIcon />}
                                                                 variant={'danger'}
                                                                 onClick={() =>
                                                                     deleteField(
@@ -254,9 +281,7 @@ const FieldSection = ({
                                                                         index
                                                                     )
                                                                 }
-                                                            >
-                                                                Delete
-                                                            </Button>
+                                                            />
                                                         )}
                                                 </div>
                                             )}
@@ -271,6 +296,18 @@ const FieldSection = ({
                     )}
                 </StrictModeDroppable>
             </DragDropContext>
+            {/* Just for saving DTO to localstorage will be removed later after autosave feature */}
+            {slide?.index === formFields.length - 1 && (
+                <div className=" flex justify-end p-2">
+                    <Button
+                        size={'lg'}
+                        className="relative bottom-2 w-1/12"
+                        onClick={handleSaveButton}
+                    >
+                        Save
+                    </Button>
+                </div>
+            )}
         </div>
     );
 };
