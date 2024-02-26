@@ -83,7 +83,7 @@ export default function UpgradeToProContainer({ featureText, isModal = true }: I
         }
     };
     return (
-        <div className="container p-10  w-full h-full mx-auto flex flex-col items-center justify-center">
+        <div className="container pb-10  w-full h-full mx-auto flex flex-col items-center justify-center">
             <div className={`w-fit ${!isModal ? 'cursor-pointer' : ''}`} onClick={onClickProTag}>
                 <div className="flex pb-10 items-center pointer-events-none">
                     <Logo />
@@ -125,16 +125,11 @@ export default function UpgradeToProContainer({ featureText, isModal = true }: I
                     </>
                 ) : (
                     <>
-                        <div className="text-pink-500 mt-10 h5-new mb-6">
-                            Help us set the price
-                        </div>
-
                         <div className="h2-new text-center mb-2">
                             Suggest a monthly price for PRO
                         </div>
                         <div className="max-w-[314px] p2-new text-black-700 text-center">
-                            Did you love the Pro features? Let us know how
-                            much you value them!
+                            Share your suggestion for pricing and be a part of our journey!
                         </div>
                         <div className="mt-10 flex flex-wrap gap-2">
                             {
@@ -143,7 +138,7 @@ export default function UpgradeToProContainer({ featureText, isModal = true }: I
                                         setActiveSuggestion(price);
                                         setCustomPrice('');
                                     }}
-                                                className={cn('w-[70px] h-10 flex items-center bg-black-100 cursor-pointer justify-center hover:text-black-800 ' +
+                                                className={cn('w-[70px] h-10 flex items-center font-medium bg-black-100 cursor-pointer justify-center hover:text-black-800 ' +
                                                     'rounded-lg hover:border hover:border-blue-200 text-black-500' +
                                                     ' hover:bg-white', price === activeSuggestion && 'bg-white shadow-suggestion-price !text-black-800')}>
                                         ${price}
@@ -166,7 +161,7 @@ export default function UpgradeToProContainer({ featureText, isModal = true }: I
                                        onChange={(event) => {
                                            setCustomPrice(event.target.value);
                                        }}
-                                       className={cn('outline-none border-0 rounded-r-lg text-sm bg-white w-[82px] placeholder-black-500 font-medium !p-2 text-center')}
+                                       className={cn('outline-none border-0 rounded-r-lg text-sm bg-white w-[82px] placeholder-black-500 font-medium !p-2 text-left')}
                                        placeholder="Amount" />
                             </div>
 
@@ -211,14 +206,14 @@ export default function UpgradeToProContainer({ featureText, isModal = true }: I
             }
             <div className="max-w-[658px]">
                 <div className="text-xs mt-12 mb-2">{t(upgradeConst.proIncludes)}</div>
-                <div className="grid grid-cols-1 md:grid-cols-2 w-full gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 w-full gap-4">
                     {features.map((feature: any, idx: number) => {
                         return (
                             <div key={feature.title + idx} style={{ background: feature.color }}
                                  className={`flex rounded-lg p-4 flex-col`}>
                                 <div className="h4-new font-medium ">{feature.title}</div>
 
-                                <div className="mt-2 p2-new">{feature.description}</div>
+                                <div className="mt-2 p2-new text-black-700">{feature.description}</div>
                             </div>
                         );
                     })}
