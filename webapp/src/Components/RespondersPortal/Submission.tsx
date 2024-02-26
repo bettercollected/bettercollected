@@ -14,7 +14,6 @@ import { ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
 import Joyride from '@Components/Joyride';
 import { JoyrideStepContent, JoyrideStepTitle } from '@Components/Joyride/JoyrideStepTitleAndContent';
 import { ChevronLeft } from '@mui/icons-material';
-import { toast } from 'react-toastify';
 
 import FormRenderer from '@app/components/form/renderer/form-renderer';
 import { useModal } from '@app/components/modal-views/context';
@@ -24,40 +23,26 @@ import ParamTab, { TabPanel } from '@app/components/ui/param-tab';
 import environments from '@app/configs/environments';
 import { buttonConstant } from '@app/constants/locales/button';
 import { localesCommon } from '@app/constants/locales/common';
-import { toastMessage } from '@app/constants/locales/toast-message';
 import { toolTipConstant } from '@app/constants/locales/tooltip';
-import { ToastId } from '@app/constants/toastId';
 import Layout from '@app/layouts/_layout';
-import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
-import { getGlobalServerSidePropsByDomain } from '@app/lib/serverSideProps';
-import { StandardFormDto } from '@app/models/dtos/form';
-import { IServerSideProps } from '@app/models/dtos/serverSideProps';
 import { JOYRIDE_CLASS, JOYRIDE_ID } from '@app/store/tours/types';
-import { useGetWorkspaceSubmissionQuery, useRequestWorkspaceSubmissionDeletionMutation } from '@app/store/workspaces/api';
 import { utcToLocalDate } from '@app/utils/dateUtils';
-import { checkHasCustomDomain, getServerSideAuthHeaderConfig } from '@app/utils/serverSidePropsUtils';
 
-interface ISubmission extends IServerSideProps {
-    form: StandardFormDto;
+interface SubmissionProps {
+    hasCustomDomain: boolean;
+    data: any;
+    handleRequestForDeletion: any;
 }
 
-export default function Submission(props: any) {
-    const { workspace, submissionId, hasCustomDomain }: ISubmission = props;
-    const { t } = useTranslation();
-
-    const router = useRouter();
-    const breakpoint = useBreakpoint();
-    const { openModal, closeModal } = useModal();
-    const fullScreenModal = useFullScreenModal();
-
-    const [requestWorkspaceSubmissionDeletion] = useRequestWorkspaceSubmissionDeletionMutation();
-
-    const { isLoading, isError, data } = useGetWorkspaceSubmissionQuery({
-        workspace_id: workspace?.id ?? '',
-        submission_id: submissionId
-    });
-
+export default function Submission({ hasCustomDomain, data, handleRequestForDeletion }: SubmissionProps) {
+    const { isLoading, isError } = data;
     const form: any = data ?? {};
+    const router = useRouter();
+
+    const { t } = useTranslation();
+    const { openModal, closeModal } = useModal();
+
+    const fullScreenModal = useFullScreenModal();
 
     const paramTabs = [
         {
@@ -71,25 +56,6 @@ export default function Submission(props: any) {
             path: 'Settings'
         }
     ];
-    const handleRequestForDeletion = async () => {
-        if (workspace && workspace.id && submissionId) {
-            try {
-                const query = {
-                    workspace_id: workspace.id,
-                    submission_id: submissionId
-                };
-                await requestWorkspaceSubmissionDeletion(query);
-                toast(t(toastMessage.workspaceSuccess).toString(), { toastId: ToastId.SUCCESS_TOAST, type: 'success' });
-                closeModal();
-            } catch (e) {
-                toast(t(toastMessage.somethingWentWrong).toString(), { toastId: ToastId.ERROR_TOAST, type: 'error' });
-            }
-        }
-    };
-
-    const handleRequestForDeletionModal = () => {
-        openModal('REQUEST_FOR_DELETION_VIEW', { handleRequestForDeletion });
-    };
 
     const goToSubmissions = () => {
         let pathName;
@@ -113,7 +79,10 @@ export default function Submission(props: any) {
     };
 
     const deletionStatus = !!form?.response?.deletionStatus;
-    const submittedAt = `${utcToLocalDate(form?.response?.createdAt)}`;
+
+    const handleRequestForDeletionModal = () => {
+        openModal('REQUEST_FOR_DELETION_VIEW', { handleRequestForDeletion: handleRequestForDeletion });
+    };
 
     return (
         <Layout className="bg-white !px-0" showAuthAccount={false} isCustomDomain={hasCustomDomain} isClientDomain={!hasCustomDomain} showNavbar={true}>
@@ -148,7 +117,7 @@ export default function Submission(props: any) {
                         </div>
                     </div>
                     <div className="w-full flex flex-col mt-12 gap-2 px-5 md:px-10 lg:px-28">
-                        <span className="!text-pink h2-new">{form?.title || 'Untitled Form'}</span>
+                        <span className="!text-pink h2-new">{form?.form?.title || 'Untitled Form'}</span>
                         <div className="text-black-600 text-sm flex flex-wrap gap-2 items-center">
                             <FormProviderIcon provider={form?.form?.settings?.provider} />
                             <DotIcon />
@@ -197,7 +166,7 @@ export default function Submission(props: any) {
                                 {!form?.response?.deletionStatus ? (
                                     <div>
                                         <Tooltip title={deletionStatus ? t(toolTipConstant.alreadyRequestedForDeletion) : t(toolTipConstant.requestForDeletion)}>
-                                            <AppButton className={` ${JOYRIDE_CLASS.RESPONDERS_SUBMISSION_DELETE}`} variant={ButtonVariant.Danger} onClick={handleRequestForDeletionModal}>
+                                            <AppButton className={`w-fit ${JOYRIDE_CLASS.RESPONDERS_SUBMISSION_DELETE}`} variant={ButtonVariant.Danger} onClick={handleRequestForDeletionModal}>
                                                 {t(buttonConstant.requestForDeletion)}
                                             </AppButton>
                                         </Tooltip>
@@ -215,44 +184,4 @@ export default function Submission(props: any) {
             )}
         </Layout>
     );
-}
-
-export async function getServerSideProps(_context: any) {
-    const globalProps = (await getGlobalServerSidePropsByDomain(_context)).props;
-    let form: StandardFormDto | null = null;
-    const submissionId = _context.query.id;
-    const hasCustomDomain = checkHasCustomDomain(_context);
-    if (!hasCustomDomain) {
-        return {
-            redirect: {
-                permanent: false,
-                destination: '/'
-            }
-        };
-    }
-
-    if (!globalProps.workspace?.id) {
-        return {
-            notFound: true
-        };
-    }
-
-    const config = getServerSideAuthHeaderConfig(_context);
-
-    try {
-        if (globalProps.hasCustomDomain && globalProps.workspaceId) {
-            const formResponse = await fetch(`${environments.INTERNAL_DOCKER_API_ENDPOINT_HOST}/workspaces/${globalProps.workspaceId}/submissions/${submissionId}`, config).catch((e) => e);
-            form = (await formResponse?.json().catch((e: any) => e)) ?? null;
-        }
-    } catch (err) {
-        form = null;
-    }
-
-    return {
-        props: {
-            ...globalProps,
-            form,
-            submissionId
-        }
-    };
 }

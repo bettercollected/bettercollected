@@ -140,7 +140,7 @@ input.spin-button-hidden::-webkit-inner-spin-button {
 }
 
 .h5-new {
-    @apply text-[14px] font-semibold leading-[21px] text-black-900;
+    @apply text-[14px] font-semibold leading-[21px];
 }
 
 .h6 {
@@ -195,7 +195,7 @@ p {
 }
 
 .p1 {
-    @apply text-[16px] font-normal leading-[24px] text-black-900;
+    @apply text-[16px] font-normal;
 }
 
 .p2 {
@@ -203,12 +203,24 @@ p {
     @apply text-[14px] font-normal leading-[21px] text-black-900;
 }
 
-.p2-new{
-    font-family: Inter;
+.p2-new {
     font-size: 14px;
     font-weight: 400;
     line-height: 21px;
-    text-align: left;
+}
+
+.p3-new {
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 21px;
+    letter-spacing: 0;
+}
+
+.p4-new {
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 18px;
+    letter-spacing: 0;
 
 }
 

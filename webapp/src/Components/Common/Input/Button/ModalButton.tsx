@@ -7,10 +7,12 @@ interface ModalbuttonProps extends AppButtonProps {
     buttonType?: 'Normal' | 'Modal';
 }
 
-const ModalButton = ({children, buttonType = "Normal", ...otherProps}: ModalbuttonProps) => {
-    return <AppButton className={`!font-semibold ${buttonType == 'Modal' ? 'w-full' : '!px-8'}`} {...otherProps}>
-        {children}
-    </AppButton>
-}
+const ModalButton = ({ children, buttonType = 'Normal', ...otherProps }: ModalbuttonProps) => {
+    return (
+        <AppButton className={`!font-semibold ${buttonType == 'Modal' ? 'w-full' : '!px-8'}`} {...otherProps}>
+            {children}
+        </AppButton>
+    );
+};
 
-export default ModalButton
+export default ModalButton;

@@ -11,6 +11,7 @@ import { useAppSelector } from '@app/store/hooks';
 
 import { useModal } from '../context';
 
+
 export default function EditWorkspaceModal() {
     const { closeModal } = useModal();
     const { t } = useTranslation();

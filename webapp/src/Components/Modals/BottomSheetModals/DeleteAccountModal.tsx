@@ -17,6 +17,7 @@ import { toastMessage } from '@app/constants/locales/toast-message';
 import { ToastId } from '@app/constants/toastId';
 import { useDeleteAccountMutation } from '@app/store/auth/api';
 
+
 export default function DeleteAccountModal() {
     const [deleteAccount] = useDeleteAccountMutation();
     const router = useRouter();

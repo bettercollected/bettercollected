@@ -13,7 +13,6 @@ import { dataTableCustomStyles } from '@app/components/datatable/form/datatable-
 import globalConstants from '@app/constants/global';
 import { StandardFormDto, StandardFormResponseDto } from '@app/models/dtos/form';
 import { FormBuilderTagNames, LabelFormBuilderTagNames } from '@app/models/enums/formBuilder';
-import { IFormFieldState } from '@app/store/form-builder/types';
 import { useAppSelector } from '@app/store/hooks';
 import { useGetFormsSubmissionsQuery } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
@@ -156,7 +155,7 @@ export default function TabularResponses({ form }: TabularResponsesProps) {
     const responseDataOwnerField = (response: StandardFormResponseDto) => (
         <div aria-hidden className="w-fit">
             <Typography className={cn('!text-black-900 body3 ')} noWrap>
-                {response?.dataOwnerIdentifier ?? 'Anonymous'}
+                {response?.dataOwnerIdentifier || 'Anonymous'}
             </Typography>
         </div>
     );

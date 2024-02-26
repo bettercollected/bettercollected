@@ -11,18 +11,22 @@ export default function Netherland(props: React.SVGAttributes<{}>) {
                     {' '}
                     <rect id="BG" x="-1550" y="-880" fill="#D8D8D8" width="2180" height="1700"></rect>{' '}
                 </g>{' '}
-                <g id="Others"> </g>{' '}
+                <g id="Others"></g>{' '}
                 <g id="Europe">
                     {' '}
-                    <g id="Row_5"> </g> <g id="Row_4"> </g>{' '}
+                    <g id="Row_5"></g>
+                    <g id="Row_4"></g>{' '}
                     <g id="Row_3">
                         {' '}
                         <g>
                             {' '}
-                            <rect y="0" fill="#DC4437" width="130" height="39"></rect> <rect y="39" fill="#FFFFFF" width="130" height="42"></rect> <rect y="81" fill="#2A66B7" width="130" height="39"></rect>{' '}
+                            <rect y="0" fill="#DC4437" width="130" height="39"></rect>
+                            <rect y="39" fill="#FFFFFF" width="130" height="42"></rect>
+                            <rect y="81" fill="#2A66B7" width="130" height="39"></rect>{' '}
                         </g>{' '}
                     </g>{' '}
-                    <g id="Row_2"> </g> <g id="Row_1"> </g>{' '}
+                    <g id="Row_2"></g>
+                    <g id="Row_1"></g>{' '}
                 </g>{' '}
             </g>
         </svg>

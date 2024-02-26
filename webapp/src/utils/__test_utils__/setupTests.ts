@@ -4,6 +4,7 @@ import 'whatwg-fetch';
 import { server } from '@app/mock/api/server';
 import mockUseRouter from '@app/utils/__test_utils__/mock-use-router';
 
+
 jest.mock('@app/configs/environments', () => ({
     ENABLE_GOOGLE: true,
     ENABLE_TYPEFORM: true,

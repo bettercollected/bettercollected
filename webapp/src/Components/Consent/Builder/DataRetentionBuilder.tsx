@@ -16,6 +16,7 @@ import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import ConsentAddInput from './ConsentAddInput';
 import ConsentBuilderField from './ConsentBuilderField';
 
+
 interface DataRetentionBuilderProps {
     form?: StandardFormDto;
     isPreview: boolean;

@@ -1,7 +1,10 @@
 import React from 'react';
 
+
+
 import Button from '@mui/material/Button';
 import { TooltipRenderProps } from 'react-joyride';
+
 
 // Currently not used, used the default one by modifying it's styles
 export default function JoyrideTooltip({ continuous, index, step, backProps, closeProps, primaryProps, tooltipProps, isLastStep, size }: TooltipRenderProps) {

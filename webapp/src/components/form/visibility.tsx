@@ -5,6 +5,7 @@ import { useTranslation } from 'next-i18next';
 import FormSettingsTab from '@app/components/dashboard/form-settings';
 import { formPage } from '@app/constants/locales/form-page';
 
+
 export default function FormVisibilities() {
     const { t } = useTranslation();
     return (

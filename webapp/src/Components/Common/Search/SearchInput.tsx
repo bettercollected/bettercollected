@@ -12,6 +12,7 @@ import { StyledTextField } from '@app/components/dashboard/workspace-forms-tab-c
 import { SearchIcon } from '@app/components/icons/search';
 import { placeHolder } from '@app/constants/locales/placeholder';
 
+
 interface ISearchInputProps {
     handleSearch: (event: any) => void;
     className?: string;

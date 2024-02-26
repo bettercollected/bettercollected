@@ -7,6 +7,7 @@ import { ArrowDown } from '@app/components/icons/arrow-down';
 import { LinkHorizontalIcon } from '@app/components/icons/link-horizontal-icon';
 import useBuilderTranslation from '@app/lib/hooks/use-builder-translation';
 
+
 type ConsentInputProps = TextFieldProps & { title?: string; required?: boolean; showIcon?: boolean };
 
 const ConsentInput = forwardRef<HTMLDivElement, ConsentInputProps>((props, ref) => {
@@ -53,7 +54,11 @@ const ConsentInput = forwardRef<HTMLDivElement, ConsentInputProps>((props, ref) 
                         }
                     }
                 }
-                InputProps={{ sx: { ':before': { content: 'none' } }, startAdornment: getIcon('start'), endAdornment: getIcon('end') }}
+                InputProps={{
+                    sx: { ':before': { content: 'none' } },
+                    startAdornment: getIcon('start'),
+                    endAdornment: getIcon('end')
+                }}
                 size="small"
                 className={cn('!mb-0 !bg-white w-full !text-black-300 ')}
                 {...otherProps}

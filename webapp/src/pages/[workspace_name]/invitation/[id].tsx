@@ -26,6 +26,7 @@ import { useRespondToWorkspaceInvitationMutation } from '@app/store/workspaces/m
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { getServerSideAuthHeaderConfig } from '@app/utils/serverSidePropsUtils';
 
+
 export default function Id({ workspace, user, invitation }: { workspace: WorkspaceDto; user: UserStatus; invitation: WorkspaceInvitationDto }) {
     const [trigger, { isLoading }] = useRespondToWorkspaceInvitationMutation();
     const { t } = useTranslation();

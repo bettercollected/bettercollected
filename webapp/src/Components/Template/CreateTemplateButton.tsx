@@ -13,6 +13,7 @@ import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { useCreateTemplateMutation } from '@app/store/template/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 
+
 export default function CreateTemplateButton({ variant }: { variant?: ButtonVariant }) {
     const router = useRouter();
     const workspace = useAppSelector(selectWorkspace);

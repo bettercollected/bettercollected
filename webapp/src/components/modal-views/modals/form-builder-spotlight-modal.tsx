@@ -12,6 +12,7 @@ import { resetBuilderMenuState, setAddNewField } from '@app/store/form-builder/a
 import { selectBuilderState } from '@app/store/form-builder/selectors';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 
+
 const GroupHeader = styled('div')(({ theme }) => ({
     position: 'sticky',
     top: '-8px',

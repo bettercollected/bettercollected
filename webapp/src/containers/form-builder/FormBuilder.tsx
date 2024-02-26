@@ -6,7 +6,6 @@ import _ from 'lodash';
 
 import DragHandleIcon from '@Components/Common/Icons/FormBuilder/DragHandle';
 import FormBuilderBlock from '@Components/FormBuilder/BuilderBlock';
-import BuilderTips from '@Components/FormBuilder/BuilderTips';
 import BuilderDragDropContext from '@Components/FormBuilder/DragDropContext';
 import { FormCoverComponent, FormLogoComponent } from '@Components/FormBuilder/Header';
 import FormBuilderMenuBar from '@Components/FormBuilder/MenuBar';

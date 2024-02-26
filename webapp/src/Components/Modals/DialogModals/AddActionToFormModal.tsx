@@ -11,9 +11,9 @@ import { toast } from 'react-toastify';
 import { useModal } from '@app/components/modal-views/context';
 import { useAddActionToFormMutation } from '@app/store/api-actions-api';
 import { selectAuth } from '@app/store/auth/slice';
-import { setForm } from '@app/store/forms/slice';
-import { useAppDispatch, useAppSelector } from '@app/store/hooks';
+import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
+
 
 export default function AddActionToFormModal({ action, form, ...props }: any) {
     const { closeModal } = useModal();

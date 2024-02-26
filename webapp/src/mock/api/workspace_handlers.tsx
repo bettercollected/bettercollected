@@ -2,6 +2,7 @@ import { rest } from 'msw';
 
 import { workspaceMock } from '@app/mock/data/workspace-mock';
 
+
 export const workspace_handlers = [
     rest.get('http://localhost:8000/workspaces/:workspace_id', (req, res, context) => {
         return res(

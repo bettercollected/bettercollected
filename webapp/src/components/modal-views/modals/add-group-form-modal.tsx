@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { useTranslation } from 'next-i18next';
 
 import Tooltip from '@Components/Common/DataDisplay/Tooltip';
-import { ButtonSize, ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
+import { ButtonSize } from '@Components/Common/Input/Button/AppButtonProps';
 import ModalButton from '@Components/Common/Input/Button/ModalButton';
 import { CheckCircle } from '@mui/icons-material';
 import { Autocomplete, Box, TextField, createFilterOptions } from '@mui/material';
@@ -20,6 +20,7 @@ import { ResponderGroupDto } from '@app/models/dtos/groups';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { isFormAlreadyInGroup } from '@app/utils/groupUtils';
+
 
 interface IAddGroupOnFormProps {
     responderGroups?: Array<ResponderGroupDto>;

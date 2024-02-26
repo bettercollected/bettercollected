@@ -2,6 +2,7 @@ import cn from 'classnames';
 
 export type LoaderSizeTypes = 'large' | 'medium' | 'small';
 export type LoaderVariantTypes = 'blink' | 'scaleUp' | 'moveUp';
+
 export interface LoaderTypes extends React.HTMLAttributes<HTMLDivElement | HTMLSpanElement> {
     tag?: 'div' | 'span';
     size?: LoaderSizeTypes;

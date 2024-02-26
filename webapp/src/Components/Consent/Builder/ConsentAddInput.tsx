@@ -9,6 +9,7 @@ import { IConsentOption } from '@app/models/types/consentTypes';
 
 import ConsentAutoCompleteInput from '../ConsentAutoCompleteInput';
 
+
 interface ConsentAddInputProps extends OnlyClassNameInterface {
     title?: string;
     placeholder?: string;

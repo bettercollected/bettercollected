@@ -18,7 +18,6 @@ import { signInScreen } from '@app/constants/locales/signin-screen';
 import { signUpScreen } from '@app/constants/locales/signup-screen';
 import Layout from '@app/layouts/_layout';
 
-
 interface ConstantType {
     signInEmailTitle: string;
     signInEmailDescription: string;
@@ -34,12 +33,13 @@ interface ConstantType {
 }
 
 interface IContentProps {
-    isSignup: string | string[] | undefined;
+    isSignup: boolean;
     constants: ConstantType;
 }
 
 interface MyLoginProps {
-    isCreator: boolean;
+    isCreator?: boolean;
+    workspaceId?: string;
 }
 
 export default function LoginLayout(props: MyLoginProps) {
@@ -81,14 +81,18 @@ export default function LoginLayout(props: MyLoginProps) {
         <Layout className="min-h-screen !mt-0 !p-0">
             <div className=" h-full w-full flex flex-col lg:flex-row">
                 <div className={` bg-sign-in bg-no-repeat bg-cover relative min-h-fit sm:min-h-screen order-2 lg:order-1 overflow-hidden w-full lg:w-[50%] flex flex-col justify-start`}>
-                    {email ? <OtpCodeContent isSignup={isSignup} constants={constants} /> : <OtpEmailContent isSignup={isSignup} constants={constants} />}
+                    {email ? <OtpCodeContent isSignup={!!isSignup || !props.isCreator} constants={constants} /> : <OtpEmailContent isSignup={!!isSignup || !props.isCreator} constants={constants} />}
                 </div>
                 <div className="relative flex flex-col order-1 lg:order-2 items-start justify-between px-8 py-7 lg:py-8 xl:pl-[90px] xl:pr-28 min-h-fit sm:min-h-screen w-full lg:max-w-[50%]">
                     <div className="mb-20 lg:mb-0">
                         <Logo isLink={false} />
                         <h1 className="body4 !text-black-800 mt-2">{constants.signUpLogoSubTitle}</h1>
                     </div>
-                    {!email ? <OtpEmailInput isCreator={props.isCreator} setEmail={setEmail} isSignup={isSignup} /> : <OtpCodeComponent email={email} setEmail={setEmail} isCreator={props.isCreator} />}
+                    {!email ? (
+                        <OtpEmailInput isCreator={!!props.isCreator} workspaceId={props.workspaceId} setEmail={setEmail} isSignup={isSignup} />
+                    ) : (
+                        <OtpCodeComponent workspaceId={props.workspaceId} email={email} setEmail={setEmail} isCreator={!!props.isCreator} />
+                    )}
                     <TermsAndCondition />
                 </div>
             </div>

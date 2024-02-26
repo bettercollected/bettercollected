@@ -9,6 +9,7 @@ import { useDispatch } from 'react-redux';
 import { addAnswer, selectAnswer } from '@app/store/fill-form/slice';
 import { useAppSelector } from '@app/store/hooks';
 
+
 export default function MultipleChoiceField({ field, ans, enabled }: FormFieldProps) {
     const dispatch = useDispatch();
     const answer = useAppSelector(selectAnswer(field.id));

@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 import { useTranslation } from 'next-i18next';
 import { NextSeo } from 'next-seo';
 
+import useFormBuilderButtonState from '@Components/FormBuilder/bottomAtom';
 import FormBuilderKeyListener from '@Components/Listeners/FormBuilderKeyListener';
 import HistoryKeyListener from '@Components/Listeners/HistoryKeyListener';
 
@@ -18,7 +19,7 @@ import { resetForm, setEditForm } from '@app/store/form-builder/actions';
 import { selectBuilderState } from '@app/store/form-builder/selectors';
 import { resetSingleForm, setForm } from '@app/store/forms/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
-import useFormBuilderButtonState from "@Components/FormBuilder/bottomAtom";
+
 
 export default function EditFromPage(props: any) {
     const {
@@ -33,7 +34,7 @@ export default function EditFromPage(props: any) {
     const dispatch = useAppDispatch();
     const { title } = useAppSelector(selectBuilderState);
     const { t } = useTranslation();
-    const {setHideButton} = useFormBuilderButtonState();
+    const { setHideButton } = useFormBuilderButtonState();
 
     useEffect(() => {
         dispatch(setForm(form));

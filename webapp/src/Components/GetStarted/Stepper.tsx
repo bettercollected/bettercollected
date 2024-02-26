@@ -9,6 +9,7 @@ import { withStyles } from '@mui/styles';
 
 import { buttonConstant } from '@app/constants/locales/button';
 
+
 const CustomMobileStepper: any = withStyles({
     progress: {
         backgroundColor: '#CED4DA',

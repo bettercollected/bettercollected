@@ -41,6 +41,7 @@ from backend.app.services.form_plugin_provider_service import FormPluginProvider
 from backend.app.services.form_response_service import FormResponseService
 from backend.app.services.form_service import FormService
 from backend.app.services.plugin_proxy_service import PluginProxyService
+from backend.app.services.price_suggestion import PriceSuggestionService
 from backend.app.services.responder_groups_service import ResponderGroupsService
 from backend.app.services.stripe_service import StripeService
 from backend.app.services.template_service import FormTemplateService
@@ -68,12 +69,11 @@ class AppContainer(containers.DeclarativeContainer):
     user_tags_service = providers.Singleton(
         UserTagsService, user_tags_repo=user_tags_repo
     )
+    crypto = providers.Singleton(Crypto, settings.auth_settings.AES_HEX_KEY)
 
     # Repositories
 
-    coupon_repository: CouponRepository = providers.Singleton(
-        CouponRepository
-    )
+    coupon_repository: CouponRepository = providers.Singleton(CouponRepository)
     workspace_user_repo: WorkspaceUserRepository = providers.Singleton(
         WorkspaceUserRepository
     )
@@ -81,7 +81,7 @@ class AppContainer(containers.DeclarativeContainer):
 
     form_repo: FormRepository = providers.Singleton(FormRepository)
     form_response_repo: FormResponseRepository = providers.Singleton(
-        FormResponseRepository
+        FormResponseRepository, crypto=crypto
     )
     workspace_form_repo: WorkspaceFormRepository = providers.Singleton(
         WorkspaceFormRepository
@@ -93,11 +93,7 @@ class AppContainer(containers.DeclarativeContainer):
 
     responder_groups_repository = providers.Singleton(ResponderGroupsRepository)
 
-    crypto = providers.Singleton(Crypto, settings.auth_settings.AES_HEX_KEY)
-
-    action_repository = providers.Singleton(
-        ActionRepository, crypto=crypto
-    )
+    action_repository = providers.Singleton(ActionRepository, crypto=crypto)
 
     temporal_service = providers.Singleton(
         TemporalService,
@@ -130,7 +126,7 @@ class AppContainer(containers.DeclarativeContainer):
         form_repo=form_repo,
         workspace_form_repo=workspace_form_repo,
         user_tags_service=user_tags_service,
-        crypto=crypto
+        crypto=crypto,
     )
 
     form_response_service: FormResponseService = providers.Singleton(
@@ -182,7 +178,7 @@ class AppContainer(containers.DeclarativeContainer):
         ActionService,
         action_repository=action_repository,
         temporal_service=temporal_service,
-        workspace_user_service=workspace_user_service
+        workspace_user_service=workspace_user_service,
     )
 
     workspace_form_service: WorkspaceFormService = providers.Singleton(
@@ -200,7 +196,8 @@ class AppContainer(containers.DeclarativeContainer):
         user_tags_service=user_tags_service,
         temporal_service=temporal_service,
         aws_service=aws_service,
-        action_service=action_service
+        action_service=action_service,
+        crypto=crypto,
     )
 
     workspace_service: WorkspaceService = providers.Singleton(
@@ -271,23 +268,26 @@ class AppContainer(containers.DeclarativeContainer):
         form_template_repo=form_template_repo,
         workspace_form_service=workspace_form_service,
         aws_service=aws_service,
-        temporal_service=temporal_service
+        temporal_service=temporal_service,
     )
 
-    user_feedback_repo = providers.Singleton(
-        UserFeedbackRepo
-    )
+    user_feedback_repo = providers.Singleton(UserFeedbackRepo)
 
     user_feedback_service = providers.Singleton(
-        UserFeedbackService,
-        user_feedback_repo=user_feedback_repo
+        UserFeedbackService, user_feedback_repo=user_feedback_repo
     )
 
     coupon_service = providers.Singleton(
         CouponService,
         coupon_repository=coupon_repository,
         auth_service=auth_service,
-        workspace_service=workspace_service
+        workspace_service=workspace_service,
+    )
+
+    price_suggestion_service = providers.Singleton(
+        PriceSuggestionService,
+        auth_service=auth_service,
+        workspace_service=workspace_service,
     )
 
 

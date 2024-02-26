@@ -15,6 +15,7 @@ import { useAppSelector } from '@app/store/hooks';
 import { usePatchFormSettingsMutation, usePublishFormMutation } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 
+
 export default function ConsentBuilderConfirmationModalView() {
     const router = useRouter();
     const { error, setError } = useForm();

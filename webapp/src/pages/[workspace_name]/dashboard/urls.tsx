@@ -9,6 +9,7 @@ import { metaDataTitle } from '@app/constants/locales/meta-data-title';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 
+
 export default function AdvancedSettings({ workspace }: any) {
     const { workspaceName } = useAppSelector(selectWorkspace);
     const { t } = useTranslation();

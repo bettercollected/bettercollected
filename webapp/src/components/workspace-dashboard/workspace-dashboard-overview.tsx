@@ -3,7 +3,6 @@ import React from 'react';
 import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/router';
 
-import EditIcon from '@Components/Common/Icons/Common/Edit';
 import PlusIcon from '@Components/Common/Icons/Common/Plus';
 import SettingsIcon from '@Components/Common/Icons/Common/Settings';
 import ShareIcon from '@Components/Common/Icons/Common/ShareIcon';
@@ -15,7 +14,6 @@ import { useBottomSheetModal } from '@Components/Modals/Contexts/BottomSheetModa
 import AuthAccountProfileImage from '@app/components/auth/account-profile-image';
 import { EyeIcon } from '@app/components/icons/eye-icon';
 import { useModal } from '@app/components/modal-views/context';
-import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
 import ActiveLink from '@app/components/ui/links/active-link';
 import environments from '@app/configs/environments';
 import { workspaceConstant } from '@app/constants/locales/workspace';
@@ -31,7 +29,6 @@ interface IWorkspaceDashboardOverviewProps {
 
 const WorkspaceDashboardOverview = ({ workspace }: IWorkspaceDashboardOverviewProps) => {
     const { openModal } = useModal();
-    const fullScreenModal = useFullScreenModal();
     const { openBottomSheetModal } = useBottomSheetModal();
     const isAdmin = useAppSelector(selectIsAdmin);
     const router = useRouter();

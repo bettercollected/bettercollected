@@ -9,6 +9,7 @@ import AnchorLink from '@app/components/ui/links/anchor-link';
 interface ActiveLinkProps extends LinkProps {
     activeClassName?: string;
 }
+
 const ActiveLink: React.FC<ActiveLinkProps & Omit<React.AnchorHTMLAttributes<HTMLAnchorElement>, 'href'>> = ({ href, className, activeClassName = 'active', ...props }) => {
     const { pathname } = useRouter();
     return (

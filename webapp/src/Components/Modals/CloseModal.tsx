@@ -3,6 +3,7 @@ import React from 'react';
 import { Close } from '@app/components/icons/close';
 import { useModal } from '@app/components/modal-views/context';
 
+
 export default function CloseModal() {
     const { closeModal } = useModal();
 

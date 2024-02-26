@@ -41,6 +41,7 @@ class Application(BaseSettings):
     """
 
     DEBUG: bool = True
+    ENABLE_SUGGEST_PRICE: bool = False
     apm_settings: APMSettings = APMSettings()
     api_settings: ApiSettings = ApiSettings()
     auth_settings: AuthSettings = AuthSettings()
@@ -50,7 +51,9 @@ class Application(BaseSettings):
     https_cert_api_settings: HttpsCertificateApiSettings = HttpsCertificateApiSettings()
     sentry_settings: SentrySettings = SentrySettings()
     temporal_settings: TemporalSettings = TemporalSettings()
-    default_workspace_settings: DefaultResourcesWorkspaceSettings = DefaultResourcesWorkspaceSettings()
+    default_workspace_settings: DefaultResourcesWorkspaceSettings = (
+        DefaultResourcesWorkspaceSettings()
+    )
     kafka_settings: KafkaSettings = KafkaSettings()
     event_webhook_settings: EventsWebhook = EventsWebhook()
     coupon_settings: CouponCodeSettings = CouponCodeSettings()

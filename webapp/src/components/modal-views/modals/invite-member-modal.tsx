@@ -19,14 +19,14 @@ import { useGetWorkspaceMembersQuery, useInviteToWorkspaceMutation } from '@app/
 
 
 export default function InviteMemberModal() {
-    const [trigger, {data, isLoading}] = useInviteToWorkspaceMutation();
+    const [trigger, { data, isLoading }] = useInviteToWorkspaceMutation();
     const workspace = useAppSelector((state) => state.workspace);
 
-    const {t} = useTranslation();
+    const { t } = useTranslation();
     const [invitationMail, setInvitationMail] = useState('');
-    const workspaceMember = useGetWorkspaceMembersQuery({workspaceId: workspace.id});
+    const workspaceMember = useGetWorkspaceMembersQuery({ workspaceId: workspace.id });
 
-    const {closeModal} = useModal();
+    const { closeModal } = useModal();
     const isMemberExist = () => {
         if (workspaceMember.data && workspaceMember.data?.filter((member) => member.email === invitationMail).length > 0) {
             return true;
@@ -40,7 +40,7 @@ export default function InviteMemberModal() {
         }
 
         if (isMemberExist()) {
-            toast(t(toastMessage.emailAlreadyExist).toString(), {type: 'error'});
+            toast(t(toastMessage.emailAlreadyExist).toString(), { type: 'error' });
         } else {
             const response: any = await trigger({
                 workspaceId: workspace.id,
@@ -52,9 +52,9 @@ export default function InviteMemberModal() {
 
             if (response.data) {
                 setInvitationMail('');
-                toast(t(toastMessage.invitationSent).toString(), {type: 'success'});
+                toast(t(toastMessage.invitationSent).toString(), { type: 'success' });
             } else if (response.error) {
-                toast(t(toastMessage.failedToSentEmail).toString(), {type: 'error'});
+                toast(t(toastMessage.failedToSentEmail).toString(), { type: 'error' });
             }
         }
 
@@ -62,7 +62,7 @@ export default function InviteMemberModal() {
     };
     return (
         <SettingsCard className="!space-y-0 relative py-6 pb-10 px-10">
-            <Close onClick={closeModal} className="absolute top-2 right-2 cursor-pointer p-2 h-8 w-8"/>
+            <Close onClick={closeModal} className="absolute top-2 right-2 cursor-pointer p-2 h-8 w-8" />
             <div className="sh1 !leading-none">{t(inviteCollaborator.default)}</div>
             <div className="body4 pt-6 !leading-none ">{t(inviteCollaborator.description)}</div>
             <form onSubmit={handleSendInvitation} className="flex pt-8  flex-col justify-start">

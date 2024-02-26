@@ -7,13 +7,12 @@ import AppButton from '@Components/Common/Input/Button/AppButton';
 import { ButtonSize } from '@Components/Common/Input/Button/AppButtonProps';
 import HeaderModalWrapper from '@Components/Modals/ModalWrappers/HeaderModalWrapper';
 
-import { Close } from '@app/components/icons/close';
 import { useModal } from '@app/components/modal-views/context';
 import { buttonConstant } from '@app/constants/locales/button';
-import { localesCommon } from '@app/constants/locales/common';
 import { groupConstant } from '@app/constants/locales/group';
 import { handleRegexType } from '@app/models/enums/groupRegex';
 import { isEmptyString } from '@app/utils/stringUtils';
+
 
 export default function AddRegexModal({ handleRegex }: { handleRegex: (regex: string, type: handleRegexType) => void }) {
     const { closeModal } = useModal();

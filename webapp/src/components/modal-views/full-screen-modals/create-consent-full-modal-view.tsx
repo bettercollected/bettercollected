@@ -11,6 +11,7 @@ import { StandardFormDto } from '@app/models/dtos/form';
 
 import { useFullScreenModal } from '../full-screen-modal-context';
 
+
 interface CreateConsentFullModalProps {
     form?: StandardFormDto;
     isPreview?: boolean;

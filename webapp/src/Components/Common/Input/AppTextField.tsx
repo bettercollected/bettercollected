@@ -109,7 +109,7 @@ const AppTextField: React.FC<AppTextFieldProps> & {
                             borderColor: isError ? '#EA400E' : '#DBDBDB'
                         },
                         '&:hover fieldset': {
-                            borderColor: isDisabled ? '' : '#343A40'
+                            borderColor: isDisabled ? '' : '#DBDBDB'
                         },
                         '&.Mui-focused fieldset': {
                             borderColor: '#B8E8FF',

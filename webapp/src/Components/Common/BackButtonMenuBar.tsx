@@ -9,6 +9,7 @@ interface BackButtonMenuBarProps {
     className?: string;
     onBack?: () => void;
 }
+
 export default function BackButtonMenuBar({ text, onBack, className }: BackButtonMenuBarProps) {
     return (
         <div className={cn('flex px-5 items-center w-full h-12 bg-white', className)}>

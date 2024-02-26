@@ -4,6 +4,7 @@ import storage from 'redux-persist/lib/storage';
 
 import { RootState } from '@app/store/store';
 
+
 export interface BrandColor {
     primary_color: string;
     accent_color: string;

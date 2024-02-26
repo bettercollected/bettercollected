@@ -1,18 +1,16 @@
 import React from 'react';
 
 import { useTranslation } from 'next-i18next';
-import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import { NextSeo } from 'next-seo';
 
-import LoadingIcon from '@Components/Common/Icons/Common/Loading';
 import TemplateSection from '@Components/Template/TemplateSection';
 
 import SidebarLayout from '@app/components/sidebar/sidebar-layout';
 import environments from '@app/configs/environments';
-import { localesCommon } from '@app/constants/locales/common';
 import { getAuthUserPropsWithWorkspace } from '@app/lib/serverSideProps';
 import { useGetTemplatesQuery } from '@app/store/template/api';
 import { getServerSideAuthHeaderConfig } from '@app/utils/serverSidePropsUtils';
+
 
 const TemplatePage = (props: any) => {
     const { t } = useTranslation();

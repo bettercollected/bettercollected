@@ -7,6 +7,7 @@ import { Close } from '@app/components/icons/close';
 
 import { useModal } from '../context';
 
+
 const FormBuilderTipsModalView = () => {
     const { closeModal } = useModal();
     return (
