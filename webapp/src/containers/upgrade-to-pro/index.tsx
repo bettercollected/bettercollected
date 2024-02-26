@@ -174,7 +174,7 @@ export default function UpgradeToProContainer({ featureText, isModal = true }: I
                         <div className="mt-10">
                             <AppButton isLoading={isSuggesting} className="mb-2" size={ButtonSize.Medium}
                                        onClick={async () => {
-                                           if (!activeSuggestion && !customPrice) {
+                                           if (activeSuggestion === null && !customPrice) {
                                                toast('Please select a price first', { type: 'warning' });
                                                return;
                                            }
