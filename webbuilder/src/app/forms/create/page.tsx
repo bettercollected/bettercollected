@@ -3,6 +3,7 @@
 import React from 'react';
 
 import Image from 'next/image';
+import { useRouter } from 'next/router';
 
 import cn from 'classnames';
 import { ChevronLeft, Download, Plus, Sparkles } from 'lucide-react';
@@ -59,6 +60,7 @@ const templates = [
 ];
 
 export default function CreateFormPage() {
+    const router = useRouter();
     return (
         <div className="min-h-screen bg-white">
             <div
@@ -80,7 +82,14 @@ export default function CreateFormPage() {
                         variant={'blue'}
                         icon={<Plus size={24} className="text-blue-500" />}
                         content={'Create New Form'}
-                        onClick={() => {}}
+                        onClick={() => {
+                            router.push({
+                                pathname: '/',
+                                query: {
+                                    showTitle: 'true'
+                                }
+                            });
+                        }}
                     />
                     <Card
                         variant={'orange'}

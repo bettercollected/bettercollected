@@ -11,6 +11,7 @@ import 'swiper/css/navigation';
 import 'vanilla-cookieconsent/dist/cookieconsent.css';
 
 import '@app/assets/css/globals.css';
+import { DialogModalContainer } from '@app/lib/hooks/useDialogModal';
 import ReduxProvider from '@app/shared/hocs/ReduxProvider';
 import ThemeProvider from '@app/shared/hocs/ThemeProvider';
 import CookieConsent from '@app/views/atoms/CookieConsent';
@@ -52,7 +53,10 @@ export default function RootLayout({
                         pauseOnHover={false}
                         theme="dark"
                     />
-                    <ReduxProvider>{children}</ReduxProvider>
+                    <ReduxProvider>
+                        {children}
+                        <DialogModalContainer />
+                    </ReduxProvider>
                 </ThemeProvider>
             </body>
         </html>
