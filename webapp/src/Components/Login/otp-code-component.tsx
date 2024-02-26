@@ -21,6 +21,7 @@ interface OtpCodePropType {
     isCreator: boolean;
     isModal?: boolean;
     setEmail: Dispatch<SetStateAction<string>>;
+    workspaceId?: string;
 }
 
 export default function OtpCodeComponent(props: OtpCodePropType) {
@@ -95,7 +96,7 @@ export default function OtpCodeComponent(props: OtpCodePropType) {
         } else {
             const req = {
                 receiver_email: props.email,
-                workspace_id: workspace.id
+                workspace_id: props.workspaceId ?? workspace.id
             };
             res = await postSendOtp(req);
         }
@@ -122,10 +123,12 @@ export default function OtpCodeComponent(props: OtpCodePropType) {
 
     return (
         <div className="w-full">
-            <div className={`absolute flex items-center cursor-pointer gap-1 hover:text-brand ${isModal ? 'top-16' : ' top-24'}`} onClick={handleGoBackOnStepOne}>
-                <Back />
-                <p className={'hover:text-brand'}>{constants.backButtonTitle}</p>
-            </div>
+            {props.isCreator && (
+                <div className={`absolute flex items-center cursor-pointer gap-1 hover:text-brand ${isModal ? 'top-16' : ' top-24'}`} onClick={handleGoBackOnStepOne}>
+                    <Back />
+                    <p className={'hover:text-brand'}>{constants.backButtonTitle}</p>
+                </div>
+            )}
             <h3 className={`h4 mb-3 ${isModal ? 'mt-5' : ' mt-[44px]'}`}>{constants.verificationTitle}</h3>
             <h5 className="body4 !text-black-800">
                 {constants.verificationDescription} <span className={'font-semibold text-pink'}>{props.email}</span>

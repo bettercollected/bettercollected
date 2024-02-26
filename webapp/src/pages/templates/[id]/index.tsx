@@ -19,6 +19,7 @@ import { useGetAllMineWorkspacesQuery } from '@app/store/workspaces/api';
 import { convertFormTemplateToStandardForm } from '@app/utils/convertDataType';
 import { checkHasAdminDomain, getRequestHost } from '@app/utils/serverSidePropsUtils';
 
+
 export default function TemplatePage(props: any) {
     const { templateId } = props;
     const { data } = useGetTemplateByIdQuery({

@@ -23,6 +23,7 @@ import ConsentInput from './ConsentInput';
 import DataRetentionBuilder from './DataRetentionBuilder';
 import FormPurposeBuilder from './FormPurposeBuilder';
 
+
 interface ConsentBuilderProps extends OnlyClassNameInterface {
     onFormPublish?: any;
     isPreview?: boolean;

@@ -3,6 +3,7 @@ import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/dist/query/react';
 import environments from '@app/configs/environments';
 import { Plan } from '@app/store/plans/types';
 
+
 export const PLANS_PATH = 'plans';
 
 export const plansApi = createApi({

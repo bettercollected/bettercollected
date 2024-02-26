@@ -6,6 +6,7 @@ import GenericHalfModal from '@Components/Common/Modals/GenericHalfModal';
 
 import { localesCommon } from '@app/constants/locales/common';
 
+
 interface IDeleteConfirmationModal {
     title: string;
     handleDelete: () => void;

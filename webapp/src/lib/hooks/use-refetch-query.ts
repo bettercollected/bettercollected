@@ -4,6 +4,7 @@ import { atom, useAtom } from 'jotai';
 
 import { GlobalQueryTagTypes } from '@app/models/enums/rtkQueryTags';
 
+
 interface RefetchCallback {
     (): void;
 }

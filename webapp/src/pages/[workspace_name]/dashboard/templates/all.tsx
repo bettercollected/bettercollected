@@ -7,11 +7,11 @@ import { useRouter } from 'next/router';
 import TemplateSection from '@Components/Template/TemplateSection';
 
 import { ChevronForward } from '@app/components/icons/chevron-forward';
-import SidebarLayout from '@app/components/sidebar/sidebar-layout';
 import environments from '@app/configs/environments';
 import Layout from '@app/layouts/_layout';
 import { getAuthUserPropsWithWorkspace } from '@app/lib/serverSideProps';
 import { getServerSideAuthHeaderConfig } from '@app/utils/serverSidePropsUtils';
+
 
 const TemplateAllPages = (props: any) => {
     const { predefined_templates, workspace, notFound } = props;

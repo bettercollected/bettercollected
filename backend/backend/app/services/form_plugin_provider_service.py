@@ -1,14 +1,15 @@
 from http import HTTPStatus
 from typing import List
 
+from common.constants import MESSAGE_NOT_FOUND, MESSAGE_PROVIDER_IS_NOT_ENABLED
+from common.models.user import User
+
 from backend.app.exceptions import HTTPException
 from backend.app.models.form_plugin_config import FormProviderConfigDto
 from backend.app.repositories.form_plugin_provider_repository import (
     FormPluginProviderRepository,
 )
 from backend.app.schemas.form_plugin_config import FormPluginConfigDocument
-from common.constants import MESSAGE_NOT_FOUND, MESSAGE_PROVIDER_IS_NOT_ENABLED
-from common.models.user import User
 
 
 class FormPluginProviderService:
@@ -58,7 +59,7 @@ class FormPluginProviderService:
             raise HTTPException(
                 status_code=HTTPStatus.BAD_REQUEST,
                 content=MESSAGE_PROVIDER_IS_NOT_ENABLED.format(
-                    provider_name=provider.provider_name
+                    provider=provider.provider_name
                 ),
             )
         return provider

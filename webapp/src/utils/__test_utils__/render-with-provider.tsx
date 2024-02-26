@@ -7,6 +7,7 @@ import { initWorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { store as st } from '@app/store/store';
 import { setWorkspace } from '@app/store/workspaces/slice';
 
+
 export function renderWithProviders(
     ui: any,
     {
@@ -17,6 +18,7 @@ export function renderWithProviders(
     }: any = {}
 ) {
     st.dispatch(setWorkspace(initWorkspaceDto));
+
     function Wrapper({ children }: any) {
         return <Provider store={store}>{children}</Provider>;
     }

@@ -5,6 +5,7 @@ import * as Sentry from '@sentry/nextjs';
 
 import { ClientSideException } from '@app/utils/errorAndExceptions';
 
+
 const Error = ({ statusCode, hasGetInitialPropsRun, err }: any) => {
     if (!hasGetInitialPropsRun && err) {
         // getInitialProps is not called in case of

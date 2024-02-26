@@ -55,6 +55,9 @@ export interface StandardFormDto {
         disableBranding: boolean;
         hidden: boolean;
         formCloseDate?: string;
+        requireVerifiedIdentity?: boolean;
+        showSubmissionNumber?: boolean;
+        allowEditingResponse?: boolean;
     };
     isPublished?: boolean;
     importerDetails?: UserStatus;

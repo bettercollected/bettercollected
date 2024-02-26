@@ -11,6 +11,7 @@ import { localesCommon } from '@app/constants/locales/common';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 
+
 interface IDataTableProviderFormCellProps {
     workspace: WorkspaceDto;
     form: StandardFormDto;

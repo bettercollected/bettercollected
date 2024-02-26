@@ -16,6 +16,7 @@ import { selectWorkspace } from '@app/store/workspaces/slice';
 
 import TemplateCard from './TemplateCard';
 
+
 interface ITemplateSectionProps {
     templates?: Array<IFormTemplateDto>;
     title?: string;

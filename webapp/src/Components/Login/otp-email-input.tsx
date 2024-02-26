@@ -23,6 +23,7 @@ interface OtpEmailInputPropType {
     isModal?: boolean;
     isSignup?: string | string[] | undefined;
     setEmail: Dispatch<SetStateAction<string>>;
+    workspaceId?: string;
 }
 
 const providers: Array<string> = [];
@@ -82,7 +83,7 @@ export default function OtpEmailInput(props: OtpEmailInputPropType) {
         e.preventDefault();
         if (!email) return;
         const req = {
-            workspace_id: workspace.id,
+            workspace_id: props.workspaceId ?? workspace.id,
             receiver_email: email
         };
         const res = await postSendOtp(req);
@@ -98,12 +99,13 @@ export default function OtpEmailInput(props: OtpEmailInputPropType) {
         const res = await postSendOtpForCreator(req);
         handleResponseToast(res);
     };
-
     return (
         <form className={` w-full ${isModal ? ' mt-16' : ''}`} onSubmit={isCreator ? handleEmailInputForCreator : handleEmailInputForResponder}>
             <div className="flex flex-col gap-3">
-                <span className="h4 ">{isSignup || isModal ? constants.signUp : constants.welcomeBack}</span>
-                {isModal ? <span className="body4 sm:w-[410px]">{constants.descriptionInModal}</span> : <span className="body4 text-black-800">{isSignup ? constants.signUpToContinue : constants.signInToContinue}</span>}
+                {isCreator && <span className="h4 ">{isSignup || isModal ? constants.signUp : constants.welcomeBack}</span>}
+                {!isCreator && <span className="p2-new text-black-700 w-full text-center">Verify your Email address</span>}
+
+                {isCreator && <>{isModal ? <span className="body4 sm:w-[410px]">{constants.descriptionInModal}</span> : <span className="body4 text-black-800">{isSignup ? constants.signUpToContinue : constants.signInToContinue}</span>}</>}
             </div>
             {providers.length > 0 && (
                 <>
@@ -114,9 +116,11 @@ export default function OtpEmailInput(props: OtpEmailInputPropType) {
                             ))}
                         </div>
                     </div>
-                    <Divider orientation="horizontal" flexItem className={'body4 !text-black-700 my-10'}>
-                        {constants.orSignInUsing}
-                    </Divider>
+                    {isCreator && (
+                        <Divider orientation="horizontal" flexItem className={'body4 !text-black-700 my-10'}>
+                            {constants.orSignInUsing}
+                        </Divider>
+                    )}
                 </>
             )}
             <p className="text-base font-semibold mb-3 mt-[44px] text-black-900">{constants.emailInputLabel}</p>

@@ -39,7 +39,7 @@ export default function AuthStatusDispatcher({ workspace, children, isCustomDoma
             dispatch(setAuth(user));
         }
         if (is401) {
-            dispatch(setAuth({ ...initialAuthState, isLoading: false }));
+            dispatch(setAuth({ ...initialAuthState, isLoading: false, is401 }));
             if (isAdminDomain()) router.replace(router.asPath);
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps

@@ -62,11 +62,4 @@ export async function getServerSideProps(_context: any) {
             }
         };
     }
-    // return {
-    //     props: {
-    //         ...globalProps,
-    //         slug,
-    //         back
-    //     }
-    // };
 }

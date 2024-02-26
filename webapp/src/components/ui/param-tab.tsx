@@ -57,7 +57,7 @@ export default function ParamTab({ tabMenu, children, isRouteChangeable = true, 
 
     useEffect(() => {
         // Reset tab params to forms if logged out and tab param index is at submissions
-        if (!!selectGetStatus.error) {
+        if (!!selectGetStatus.error && selectedTabIndex === 2) {
             setSelectedTabIndex(0);
             router
                 .push(
@@ -82,7 +82,7 @@ export default function ParamTab({ tabMenu, children, isRouteChangeable = true, 
                             {tabMenu.map((item, index) => (
                                 <TabItem key={item.path} className={`min-w-fit ${selectedTabIndex !== index ? 'hover:bg-black-100' : ''}`}>
                                     <div className={`flex items-center ${selectedTabIndex === index ? 'text-black-900' : 'text-black-600'}`}>
-                                        <div className="">{item.title}</div>
+                                        <div className="p1">{item.title}</div>
                                     </div>
                                 </TabItem>
                             ))}

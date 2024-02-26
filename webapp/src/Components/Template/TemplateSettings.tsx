@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
-import { useRouter } from 'next/router';
 
 import Divider from '@Components/Common/DataDisplay/Divider';
 import CopyIcon from '@Components/Common/Icons/Common/Copy';
@@ -21,8 +20,9 @@ import { formConstant } from '@app/constants/locales/form';
 import { toastMessage } from '@app/constants/locales/toast-message';
 import { IFormTemplateDto } from '@app/models/dtos/template';
 import { useAppSelector } from '@app/store/hooks';
-import { useDeleteTemplateMutation, usePatchTemplateSettingsMutation } from '@app/store/template/api';
+import { usePatchTemplateSettingsMutation } from '@app/store/template/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
+
 
 const TemplateSettings = ({ template, showTitle }: { template: IFormTemplateDto; showTitle: boolean }) => {
     const { t } = useTranslation();

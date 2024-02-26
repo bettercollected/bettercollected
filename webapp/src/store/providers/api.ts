@@ -5,6 +5,7 @@ import { IntegrationFormProviders } from '@app/models/dtos/provider';
 
 import { PROVIDER_TAG_TYPES } from './types';
 
+
 export const PROVIDER_REDUCER_PATH = 'providerApi';
 export const providerApi = createApi({
     reducerPath: PROVIDER_REDUCER_PATH,

@@ -9,7 +9,7 @@ botocore==1.34.11
 certifi==2023.7.22
 cffi==1.15.1
 charset-normalizer==3.2.0
-cryptography==41.0.1
+cryptography==42.0.4
 dnspython==2.4.2
 ecs-logging==2.1.0
 elastic-apm==6.19.0

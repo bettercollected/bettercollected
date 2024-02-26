@@ -10,6 +10,7 @@ import { buttonConstant } from '@app/constants/locales/button';
 import { Features } from '@app/constants/locales/feature';
 import { pricingPlan } from '@app/constants/locales/pricingplan';
 
+
 export default function UpgradeToPro() {
     const { t } = useTranslation();
     return (

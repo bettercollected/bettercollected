@@ -24,7 +24,7 @@ const initialState: IConsentState = {
             category: ConsentCategoryType.DataRetention
         }
     ],
-    privacyPolicyUrl: environments.FORM_PRIVACY_POLICY_URL,
+    privacyPolicyUrl: environments.PRIVACY_POLICY_URL,
     responseExpiration: '',
     responseExpirationType: 'forever'
 };
@@ -37,7 +37,7 @@ export const consent = createSlice({
             state.consents = action.payload?.consent && action.payload?.consent?.length > 0 ? action.payload.consent : initialState.consents;
             state.responseExpiration = action.payload.settings.responseExpiration || initialState.responseExpiration;
             state.responseExpirationType = action.payload.settings.responseExpirationType || initialState.responseExpirationType;
-            state.privacyPolicyUrl = action.payload.settings.privacyPolicyUrl || environments.FORM_PRIVACY_POLICY_URL;
+            state.privacyPolicyUrl = action.payload.settings.privacyPolicyUrl || environments.PRIVACY_POLICY_URL;
         },
         setAddConsent: (state, action: PayloadAction<IConsentField>) => {
             return { ...state, consents: [...state.consents, action.payload] };

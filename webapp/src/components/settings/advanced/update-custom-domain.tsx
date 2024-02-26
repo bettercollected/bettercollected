@@ -14,6 +14,7 @@ import { upgradeConst } from '@app/constants/locales/upgrade';
 import { selectIsProPlan } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 
+
 export default function UpdateCustomDomain() {
     const { t } = useTranslation();
     const workspace = useAppSelector((state) => state.workspace);

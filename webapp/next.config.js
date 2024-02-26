@@ -104,7 +104,8 @@ const nextConfig = {
         CLIENT_DOMAIN: process.env.CLIENT_DOMAIN,
         ADMIN_DOMAIN: process.env.ADMIN_DOMAIN,
         HTTP_SCHEME: process.env.HTTP_SCHEME,
-        FORM_PRIVACY_POLICY_URL: process.env.FORM_PRIVACY_POLICY_URL,
+        PRIVACY_POLICY_URL: process.env.PRIVACY_POLICY_URL,
+        TERMS_OF_SERVICE_URL: process.env.TERMS_OF_SERVICE_URL,
         MICROSOFT_CLARITY_TRACKING_CODE: process.env.MICROSOFT_CLARITY_TRACKING_CODE,
 
         NEXT_PUBLIC_NODE_ENV: process.env.NEXT_PUBLIC_NODE_ENV || 'production',
@@ -123,6 +124,8 @@ const nextConfig = {
         ENABLE_FORM_BUILDER: process.env.ENABLE_FORM_BUILDER || false,
         ENABLE_EXPORT_CSV: process.env.ENABLE_EXPORT_CSV || false,
         ENABLE_FORM_QR: process.env.ENABLE_FORM_QR || false,
+        ENABLE_COLLECT_EMAILS: process.env.ENABLE_COLLECT_EMAILS || false,
+        ENABLE_RESPONSE_EDITING: process.env.ENABLE_RESPONSE_EDITING || false,
 
         MAX_WORKSPACES: process.env.MAX_WORKSPACES || 5,
 
@@ -164,7 +167,10 @@ const nextConfig = {
         CHATWOOT_WEBSITE_TOKEN: process.env.CHATWOOT_WEBSITE_TOKEN,
 
         // App Sumo
-        APP_SUMO_PRODUCT_URL: process.env.APP_SUMO_PRODUCT_URL
+        APP_SUMO_PRODUCT_URL: process.env.APP_SUMO_PRODUCT_URL,
+
+        // Enable Suggest price allowing user to get pro feature for free
+        ENABLE_SUGGEST_PRICE: process.env.ENABLE_SUGGEST_PRICE
     }
 };
 

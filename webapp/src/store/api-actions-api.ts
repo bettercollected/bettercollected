@@ -1,8 +1,9 @@
-import {createApi} from '@reduxjs/toolkit/dist/query/react';
-import {fetchBaseQuery} from '@reduxjs/toolkit/query';
+import { createApi } from '@reduxjs/toolkit/dist/query/react';
+import { fetchBaseQuery } from '@reduxjs/toolkit/query';
 
 import environments from '@app/configs/environments';
-import {Action} from '@app/models/dtos/actions';
+import { Action } from '@app/models/dtos/actions';
+
 
 export const apiActionsApi = createApi({
     reducerPath: 'api-actions',
@@ -50,17 +51,11 @@ export const apiActionsApi = createApi({
         updateActionStatusInForm: builder.mutation<any, any>({
             query: (request) => ({
                 url: `/workspaces/${request.workspaceId}/forms/${request.formId}/actions`,
-                method: "PATCH",
+                method: 'PATCH',
                 body: request.body
             })
         })
     })
 });
 
-export const {
-    useGetAllIntegrationsQuery,
-    useGetSingleIntegrationQuery,
-    useAddActionToFormMutation,
-    useRemoveActionFromFormMutation,
-    useUpdateActionStatusInFormMutation
-} = apiActionsApi;
+export const { useGetAllIntegrationsQuery, useGetSingleIntegrationQuery, useAddActionToFormMutation, useRemoveActionFromFormMutation, useUpdateActionStatusInFormMutation } = apiActionsApi;

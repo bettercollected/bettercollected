@@ -18,6 +18,7 @@ interface IWorkspaceLogoProps {
     image?: string;
     profileName: string;
 }
+
 export default function WorkSpaceLogoUi({ workspaceLogoRef, onChange, onClick, image, profileName }: IWorkspaceLogoProps) {
     const { t } = useTranslation();
     return (

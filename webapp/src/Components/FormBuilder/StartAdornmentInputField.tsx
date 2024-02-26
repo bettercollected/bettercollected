@@ -9,6 +9,7 @@ import useFormBuilderState from '@app/containers/form-builder/context';
 import useBuilderTranslation from '@app/lib/hooks/use-builder-translation';
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
 
+
 interface IStartAdornmentInputFieldProps {
     type: FormBuilderTagNames;
     value: string;

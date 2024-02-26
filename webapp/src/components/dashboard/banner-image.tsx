@@ -8,11 +8,8 @@ import html2canvas from 'html2canvas';
 import { toast } from 'react-toastify';
 import { TransformComponent, TransformWrapper } from 'react-zoom-pan-pinch';
 
-import uploadImage from '@app/assets/images/upload.png';
 import Image from '@app/components/ui/image';
 import { buttonConstant } from '@app/constants/locales/button';
-import { localesCommon } from '@app/constants/locales/common';
-import editWorkspace from '@app/constants/locales/edit-workpsace';
 import { toastMessage } from '@app/constants/locales/toast-message';
 import { ToastId } from '@app/constants/toastId';
 import { BannerImageComponentPropType } from '@app/containers/dashboard/WorkspaceHomeContainer';
@@ -57,7 +54,10 @@ export default function BannerImageComponent(props: BannerImageComponentPropType
                     toast(response.error.data || t(toastMessage.somethingWentWrong).toString(), { toastId: ToastId.ERROR_TOAST });
                 }
                 if (response.data) {
-                    toast(t(toastMessage.workspaceUpdate).toString(), { type: 'success', toastId: ToastId.SUCCESS_TOAST });
+                    toast(t(toastMessage.workspaceUpdate).toString(), {
+                        type: 'success',
+                        toastId: ToastId.SUCCESS_TOAST
+                    });
                     setImage('');
                     dispatch(setWorkspace(response.data));
                 }
@@ -73,7 +73,7 @@ export default function BannerImageComponent(props: BannerImageComponentPropType
     };
 
     return (
-        <div className={cn('relative w-full bannerdiv aspect-banner-mobile lg:aspect-banner-desktop', className)}>
+        <div className={cn('relative w-full bannerdiv rounded-t-xl overflow-hidden max-w-[540px] md:max-w-[320px]  aspect-banner', className)}>
             {!!image ? (
                 <TransformWrapper centerOnInit ref={transformComponentRef}>
                     {({ resetTransform }) => {
@@ -96,16 +96,10 @@ export default function BannerImageComponent(props: BannerImageComponentPropType
                 <>
                     {!!workspace.bannerImage ? (
                         <Image src={workspace?.bannerImage ?? ''} priority layout="fill" objectFit="cover" objectPosition="center" alt={workspace?.title} />
-                    ) : isFormCreator ? (
-                        <div className="flex body1 text-black-700 flex-col gap-3 items-center justify-center h-full">
-                            <Image src={uploadImage} height="29px" width="45px" alt={'upload'} />
-                            <div className="cursor-pointer body6 !leading-none !text-brand-500" onClick={onClickFileUploadButton}>
-                                {t(editWorkspace.uploadBannerImage)}
-                            </div>
-                            <div className="hidden md:flex body5 !leading-none !text-black-700">{t(editWorkspace.bannerAspectRatio)}</div>
-                        </div>
                     ) : (
-                        <div className="flex h-full justify-center items-center">{t(localesCommon.noImage)}</div>
+                        <div className="bg-new-black-200 hover:bg-new-black-300 h-full align-center cursor-pointer flex flex-col items-center justify-center" onClick={onClickFileUploadButton}>
+                            <div className="p2-new ml-10 !text-black-700">Add banner image</div>
+                        </div>
                     )}
                     <input ref={imageInputRef} data-testid="file-upload" type="file" accept="image/*" className="hidden" onChange={onUploadFileChange} />
                 </>

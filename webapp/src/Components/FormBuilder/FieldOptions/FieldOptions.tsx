@@ -16,7 +16,7 @@ import { useModal } from '@app/components/modal-views/context';
 import { useIsMobile } from '@app/lib/hooks/use-breakpoint';
 import useBuilderTranslation from '@app/lib/hooks/use-builder-translation';
 import { FormBuilderTagNames, LabelFormBuilderTagNames, NonInputFormBuilderTagNames } from '@app/models/enums/formBuilder';
-import { addDuplicateField, setAddNewField, setDeleteField, setIdentifierField, setUpdateField, setUpdateVisibility } from '@app/store/form-builder/actions';
+import { addDuplicateField, setAddNewField, setDeleteField, setIdentifierField, setUpdateVisibility } from '@app/store/form-builder/actions';
 import { selectActiveFieldId, selectFormField, selectNextField, selectPreviousField, selectResponseOwnerField } from '@app/store/form-builder/selectors';
 import { IFormFieldState } from '@app/store/form-builder/types';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';

@@ -3,10 +3,11 @@ import React, { useCallback, useEffect } from 'react';
 import useBuilderTranslation from '@app/lib/hooks/use-builder-translation';
 import { FormBuilderTagNames, NonInputFormBuilderTagNames } from '@app/models/enums/formBuilder';
 import { setAddNewField } from '@app/store/form-builder/actions';
-import { selectActiveFieldId, selectBuilderState, selectFormField, selectPreviousField } from '@app/store/form-builder/selectors';
+import { selectActiveFieldId, selectFormField, selectPreviousField } from '@app/store/form-builder/selectors';
 import { IFormFieldState } from '@app/store/form-builder/types';
-import { useAppAsyncDispatch, useAppDispatch, useAppSelector } from '@app/store/hooks';
+import { useAppAsyncDispatch, useAppSelector } from '@app/store/hooks';
 import { createNewField } from '@app/utils/formBuilderBlockUtils';
+
 
 interface LabelTagValidatorProps extends React.PropsWithChildren {
     position: number;

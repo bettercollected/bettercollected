@@ -10,6 +10,7 @@ import { setRemoveConsent } from '@app/store/consent/actions';
 import { IConsentField } from '@app/store/consent/types';
 import { useAppDispatch } from '@app/store/hooks';
 
+
 interface ConsentBuilderFieldProps extends OnlyClassNameInterface {
     disabled?: boolean;
     consent: IConsentField;

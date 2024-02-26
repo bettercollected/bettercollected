@@ -16,6 +16,7 @@ import { selectIsAdmin } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { isEmptyString } from '@app/utils/stringUtils';
 
+
 interface IRegexCardProps {
     handleRegex: (regex: string, type: handleRegexType) => void;
     regex?: string;

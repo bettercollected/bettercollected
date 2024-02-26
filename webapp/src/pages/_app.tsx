@@ -9,8 +9,7 @@ import dynamic from 'next/dynamic';
 import AuthStatusDispatcher from '@Components/HOCs/AuthStatusDispatcher';
 import EnabledFormProviders from '@Components/HOCs/EnabledFormProviders';
 import ServerSideWorkspaceDispatcher from '@Components/HOCs/ServerSideWorkspaceDispatcher';
-import { CacheProvider, EmotionCache, css } from '@emotion/react';
-import { GlobalStyles } from '@mui/material';
+import { CacheProvider, EmotionCache } from '@emotion/react';
 import CssBaseline from '@mui/material/CssBaseline';
 import '@uiw/react-markdown-preview/dist/markdown.min.css';
 import '@uiw/react-markdown-preview/esm/styles/markdown.css';
@@ -110,23 +109,6 @@ function MainApp({ Component, pageProps, router, emotionCache = clientSideEmotio
                 <MuiThemeProvider>
                     {/* CssBaseline kickstart an elegant, consistent, and simple baseline to build upon. */}
                     <CssBaseline />
-                    <GlobalStyles
-                        styles={css`
-                            :root {
-                                body {
-                                    background-color: #f2f7ff;
-                                    color: #121212;
-                                }
-                            }
-
-                            [data-theme='dark'] {
-                                body {
-                                    background-color: #121212;
-                                    color: #fff;
-                                }
-                            }
-                        `}
-                    />
                     <NextSeo
                         title={title || globalConstants.socialPreview.title}
                         description={description}

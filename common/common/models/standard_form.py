@@ -409,3 +409,5 @@ class StandardFormResponse(BaseModel):
     state: Optional[ResponseState] = Field(None)
     dataOwnerIdentifierType: Optional[str]
     dataOwnerIdentifier: Optional[str]
+    anonymous_identity: Optional[str]
+    submission_uuid: Optional[str] = None

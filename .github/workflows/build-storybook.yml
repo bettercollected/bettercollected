@@ -1,0 +1,48 @@
+name: Storybook CI
+
+on:
+  push:
+    branches:
+      - develop
+
+jobs:
+  build_and_push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code with submodules
+        uses: actions/checkout@v2
+
+      - name: Set up Docker
+        uses: docker/login-action@v1
+        with:
+          registry: docker.io
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_TOKEN }}
+
+      - name: Build and Push Docker image
+        id: docker_build
+        run: |
+          cd webapp
+          docker build -f "Dockerfile.storybook" -t bettercollected/storybook:${{ github.sha }} .
+          docker push bettercollected/storybook:${{ github.sha }}
+
+      - name: Add Nightly, Latest and Release Tags
+        run: |
+          docker tag bettercollected/storybook:${{ github.sha }} bettercollected/storybook:nightly
+          docker push bettercollected/storybook:nightly
+
+  deploy_services:
+    needs: build_and_push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy built Image
+        id: docker_deploy
+        uses: appleboy/ssh-action@v0.1.10
+        with:
+          host: ${{ secrets.SIRETO_BASTION_HOST }}
+          username: ${{ secrets.SIRETO_BASTION_USERNAME }}
+          key: ${{ secrets.SIRETO_BASTION_SSH_KEY }}
+          port: ${{ secrets.SIRETO_BASTION_PORT }}
+          script: |
+            DOCKER_STACK=${{ vars.DEVELOP_STACK }}
+            DOCKER_HOST=${{ vars.DEVELOP_HOST }} docker service update --image  bettercollected/storybook:${{ github.sha }} ${DOCKER_STACK}_storybook

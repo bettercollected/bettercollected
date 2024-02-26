@@ -19,10 +19,12 @@ import { selectIsAdmin } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { useUpdateResponderGroupMutation } from '@app/store/workspaces/api';
 
+
 interface IGroupMemberTabProps {
     group: ResponderGroupDto;
     workspace: WorkspaceDto;
 }
+
 export default function GroupMembersTab({ group, workspace }: IGroupMemberTabProps) {
     const [emails, setEmails] = useState(group.emails);
     const { t } = useTranslation();
@@ -38,10 +40,19 @@ export default function GroupMembersTab({ group, workspace }: IGroupMemberTabPro
 
     const { addMembersOnGroup, removeMemberFromGroup } = useGroupMember();
 
-    const handleAddmembers = (members: Array<string>) => addMembersOnGroup({ emails: members, group, workspaceId: workspace.id });
+    const handleAddmembers = (members: Array<string>) =>
+        addMembersOnGroup({
+            emails: members,
+            group,
+            workspaceId: workspace.id
+        });
 
     const handleRemoveMembers = (email: string) => {
-        openModal('DELETE_CONFIRMATION', { headerTitle: 'Remove Member', title: t(localesCommon.remove) + ' ' + email, handleDelete: () => removeMemberFromGroup({ email, group, workspaceId: workspace.id }) });
+        openModal('DELETE_CONFIRMATION', {
+            headerTitle: 'Remove Member',
+            title: t(localesCommon.remove) + ' ' + email,
+            handleDelete: () => removeMemberFromGroup({ email, group, workspaceId: workspace.id })
+        });
     };
     const handleRegex = async (regex: string, type: handleRegexType) => {
         const groupInfo = {
@@ -56,7 +67,11 @@ export default function GroupMembersTab({ group, workspace }: IGroupMemberTabPro
                 if (`data` in response) {
                     toast(t(toastMessage.updated).toString(), { toastId: ToastId.SUCCESS_TOAST, type: 'success' });
                     closeModal();
-                } else toast(t(toastMessage.somethingWentWrong).toString(), { toastId: ToastId.ERROR_TOAST, type: 'error' });
+                } else
+                    toast(t(toastMessage.somethingWentWrong).toString(), {
+                        toastId: ToastId.ERROR_TOAST,
+                        type: 'error'
+                    });
             });
         } catch (error) {
             toast(t(toastMessage.somethingWentWrong).toString(), { toastId: ToastId.ERROR_TOAST, type: 'error' });

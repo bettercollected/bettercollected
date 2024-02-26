@@ -131,12 +131,7 @@ class FormRepository:
             },
             {"$unwind": "$workspace_form"},
             {"$match": {"workspace_form.workspace_id": workspace_id}},
-            {
-                "$set": {
-                    "settings": "$workspace_form.settings",
-                    "is_published": True
-                }
-            },
+            {"$set": {"settings": "$workspace_form.settings", "is_published": True}},
         ]
         aggregation_pipeline.extend(create_filter_pipeline(sort=sort))
         form_versions_query = FormVersionsDocument.find(
@@ -202,11 +197,7 @@ class FormRepository:
                 ]
             )
 
-        aggregation_pipeline.append({
-            "$sort": {
-                "created_at": -1
-            }
-        })
+        aggregation_pipeline.append({"$sort": {"created_at": -1}})
         return (
             await query_document.find(
                 {
