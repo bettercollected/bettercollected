@@ -2,18 +2,12 @@
 
 import React from 'react';
 
-
-
 import { usePathname } from 'next/navigation';
-
-
 
 import { RadioGroup } from '@headlessui/react';
 import cn from 'classnames';
 import { GripVertical } from 'lucide-react';
 import { DragDropContext, Draggable, DroppableProvided } from 'react-beautiful-dnd';
-
-
 
 import { FieldTypes, FormField } from '@app/models/dtos/form';
 import { Button } from '@app/shadcn/components/ui/button';
@@ -23,13 +17,10 @@ import { useActiveFieldComponent } from '@app/store/jotai/activeBuilderComponent
 import useFieldSelectorAtom from '@app/store/jotai/fieldSelector';
 import RequiredIcon from '@app/views/atoms/Icons/Required';
 
-
-
 import { ArrowDown } from '../atoms/Icons/ArrowDown';
 import DeleteIcon from '../atoms/Icons/Delete';
 import { FolderUploadIcon } from '../atoms/Icons/FolderUploadIcon';
 import { PlusIcon } from '../atoms/Icons/Plus';
-
 
 function getPlaceholderValueForTitle(fieldType: FieldTypes) {
     switch (fieldType) {
@@ -92,12 +83,12 @@ const FieldSection = ({
 
     const formId = usePathname().split('/')[1];
     const forms = JSON.parse(localStorage.getItem('Forms') || '');
-    const formIndex = forms.findIndex((form:any) => form[formId]);
-   
-    const handleSaveButton = ()=>{
-        forms.splice(formIndex,1,{[formId]:formFields});
-        localStorage.setItem('Forms',JSON.stringify(forms));
-    }
+    const formIndex = forms.findIndex((form: any) => form[formId]);
+
+    const handleSaveButton = () => {
+        forms.splice(formIndex, 1, { [formId]: formFields });
+        localStorage.setItem('Forms', JSON.stringify(forms));
+    };
 
     function renderField(field: FormField) {
         switch (field.type) {
@@ -335,7 +326,9 @@ const FileUpload = ({
                     'flex h-[200px] w-[500px] cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dotted'
                 }
             >
-                <FolderUploadIcon />
+                <FolderUploadIcon
+                    style={{ color: slide.properties?.theme?.secondary }}
+                />
                 <div className={'flex flex-col items-center gap-1'}>
                     <span className={'text-base font-semibold'}>
                         Choose your file or drag file
