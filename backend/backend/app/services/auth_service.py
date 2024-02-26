@@ -197,7 +197,7 @@ class AuthService:
         providers = await self.form_provider_service.get_providers(get_all=True)
         for provider in providers:
             if not provider.enabled:
-                return
+                continue
             response = await AiohttpClient.get_aiohttp_client().delete(
                 await self.form_provider_service.get_provider_url(
                     provider.provider_name
