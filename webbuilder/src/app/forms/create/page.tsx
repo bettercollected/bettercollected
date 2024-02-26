@@ -3,10 +3,11 @@
 import React from 'react';
 
 import Image from 'next/image';
-import { useRouter } from 'next/router';
+import { useRouter } from 'next/navigation';
 
 import cn from 'classnames';
 import { ChevronLeft, Download, Plus, Sparkles } from 'lucide-react';
+import { URL } from 'url';
 
 import BetterCollectedSmallLogo from '@app/views/atoms/Icons/BetterCollectedSmallLogo';
 
@@ -83,12 +84,7 @@ export default function CreateFormPage() {
                         icon={<Plus size={24} className="text-blue-500" />}
                         content={'Create New Form'}
                         onClick={() => {
-                            router.push({
-                                pathname: '/',
-                                query: {
-                                    showTitle: 'true'
-                                }
-                            });
+                            router.push('/?showTitle=true');
                         }}
                     />
                     <Card
