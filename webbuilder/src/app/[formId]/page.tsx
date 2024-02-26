@@ -18,6 +18,9 @@ import Button from '@app/views/atoms/Button';
 import FieldSection from '@app/views/organism/FieldSection';
 import Navbar from '@app/views/organism/Navbar';
 import PropertiesDrawer from '@app/views/organism/PropertiesDrawer';
+import WelcomePage from '@app/views/organism/WelcomePage';
+import WelcomeSlide from '@app/views/organism/WelcomePage';
+import ThankYouSlide from '@app/views/organism/ThankYouPage';
 
 export default function FormPage() {
     const { addSlide, formFields } = useFieldSelectorAtom();
@@ -75,7 +78,7 @@ export default function FormPage() {
                             });
                         }}
                     >
-                        Welcome Page
+                        <WelcomeSlide disabled />
                     </div>
                     {Array.isArray(Slides) && Slides.length ? (
                         Slides.map((slide, index) => {
@@ -140,7 +143,7 @@ export default function FormPage() {
                             });
                         }}
                     >
-                        Thank you Page
+                        <ThankYouSlide disabled/>
                     </div>
                 </div>
                 <div
@@ -153,13 +156,9 @@ export default function FormPage() {
                         <FieldSection slide={formFields[activeSlideComponent?.index]} />
                     )}
                     {!activeSlideComponent?.id && <div>Add a slide to start</div>}
-                    {activeSlideComponent?.id === 'welcome-page' && (
-                        <div>TO Make Welcome Page Here</div>
-                    )}
+                    {activeSlideComponent?.id === 'welcome-page' && <WelcomeSlide />}
 
-                    {activeSlideComponent?.id === 'thank-you-page' && (
-                        <div>TO Make Thank you Page Here</div>
-                    )}
+                    {activeSlideComponent?.id === 'thank-you-page' && <ThankYouSlide />}
                 </div>
                 <div
                     id="slide-element-properties"
