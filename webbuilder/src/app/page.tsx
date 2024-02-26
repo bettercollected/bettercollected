@@ -45,7 +45,7 @@ export default function HomePage() {
 
     useEffect(() => {
         if (showModal === 'true') {
-            router.push(pathname);
+            router.replace(pathname);
             openDialogModal('ADD_FORM_TITLE');
         }
     }, [showModal]);

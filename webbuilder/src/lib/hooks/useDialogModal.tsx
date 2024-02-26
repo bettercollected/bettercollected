@@ -1,13 +1,13 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
 
+import { usePathname, useSearchParams } from 'next/navigation';
+
+import { log } from 'console';
 import { atom, useAtom } from 'jotai';
 
-import {
-    Dialog,
-    DialogContent
-} from '@app/shadcn/components/ui/dialog';
+import { Dialog, DialogContent } from '@app/shadcn/components/ui/dialog';
 
 export type DIALOG_MODALS = 'ADD_FORM_TITLE' | '';
 
@@ -50,6 +50,14 @@ const getModalToRender = (view?: DIALOG_MODALS, props?: any) => {
 
 export function DialogModalContainer() {
     const { isOpen, view, closeDialogModal, props } = useDialogModal();
+
+    const pathname = usePathname();
+    useEffect(() => {
+        closeDialogModal();
+        return () => {
+            closeDialogModal();
+        };
+    }, [pathname]);
 
     return (
         <Dialog
