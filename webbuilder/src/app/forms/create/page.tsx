@@ -8,7 +8,9 @@ import { useRouter } from 'next/navigation';
 import cn from 'classnames';
 import { ChevronLeft, Download, Plus, Sparkles } from 'lucide-react';
 import { URL } from 'url';
+import { v4 } from 'uuid';
 
+import useFormBuilderAtom from '@app/store/jotai/fieldSelector';
 import BetterCollectedSmallLogo from '@app/views/atoms/Icons/BetterCollectedSmallLogo';
 
 const CardVariants = {
@@ -60,7 +62,18 @@ const templates = [
     }
 ];
 
+const Forms = JSON.parse(localStorage.getItem('Forms') || '[]');
+
 export default function CreateFormPage() {
+    const { resetFields } = useFormBuilderAtom();
+    const handleCreateForm = () => {
+        const formId = v4();
+        Forms ? Forms.push({ [formId]: {} }) : [{ [formId]: {} }];
+        localStorage.setItem('Forms', JSON.stringify(Forms));
+        resetFields();
+        router.push(`/${formId}`);
+    };
+
     const router = useRouter();
     return (
         <div className="min-h-screen bg-white">
@@ -83,9 +96,7 @@ export default function CreateFormPage() {
                         variant={'blue'}
                         icon={<Plus size={24} className="text-blue-500" />}
                         content={'Create New Form'}
-                        onClick={() => {
-                            router.push('/?showTitle=true');
-                        }}
+                        onClick={handleCreateForm}
                     />
                     <Card
                         variant={'orange'}

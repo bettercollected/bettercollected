@@ -12,7 +12,7 @@ import { reorder } from '@app/utils/arrayUtils';
 
 const initialFieldsAtom = atom<FormField[]>([]);
 
-export default function useFieldSelectorAtom() {
+export default function useFormBuilderAtom() {
     const [formFields, setFormFields] = useAtom(initialFieldsAtom);
 
     const { activeSlideComponent } = useActiveSlideComponent();

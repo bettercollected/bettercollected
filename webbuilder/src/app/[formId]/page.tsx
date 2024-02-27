@@ -1,35 +1,52 @@
 'use client';
 
-import { usePathname, useSearchParams } from 'next/navigation';
+import { useEffect } from 'react';
+
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
 import cn from 'classnames';
 import { PlusIcon } from 'lucide-react';
 import { v4 } from 'uuid';
 
 import { ThemeColor } from '@app/constants/theme';
+import { useDialogModal } from '@app/lib/hooks/useDialogModal';
 import { FieldTypes } from '@app/models/dtos/form';
 import { ButtonSize, ButtonVariant } from '@app/models/enums/button';
 import {
     useActiveFieldComponent,
     useActiveSlideComponent
 } from '@app/store/jotai/activeBuilderComponent';
-import useFieldSelectorAtom from '@app/store/jotai/fieldSelector';
+import useFormBuilderAtom from '@app/store/jotai/fieldSelector';
 import Button from '@app/views/atoms/Button';
 import FieldSection from '@app/views/organism/FieldSection';
 import Navbar from '@app/views/organism/Navbar';
 import PropertiesDrawer from '@app/views/organism/PropertiesDrawer';
-import WelcomePage from '@app/views/organism/WelcomePage';
-import WelcomeSlide from '@app/views/organism/WelcomePage';
 import ThankYouSlide from '@app/views/organism/ThankYouPage';
+import WelcomeSlide from '@app/views/organism/WelcomePage';
 
 export default function FormPage() {
-    const { addSlide, formFields } = useFieldSelectorAtom();
+    const router = useRouter();
+    const { addSlide, formFields } = useFormBuilderAtom();
 
     const { activeSlideComponent, setActiveSlideComponent } = useActiveSlideComponent();
 
     const { setActiveFieldComponent } = useActiveFieldComponent();
 
     const Slides = formFields;
+
+    const searchParams = useSearchParams();
+    const showModal = searchParams.get('showTitle');
+
+    const { openDialogModal } = useDialogModal();
+    const pathname = usePathname();
+
+    useEffect(() => {
+        if (showModal === 'true') {
+            router.replace(pathname);
+            openDialogModal('ADD_FORM_TITLE');
+        }
+    }, [showModal]);
+
     return (
         <main className="flex h-screen flex-col items-center justify-start bg-black-100">
             <Navbar />
@@ -143,7 +160,7 @@ export default function FormPage() {
                             });
                         }}
                     >
-                        <ThankYouSlide disabled/>
+                        <ThankYouSlide disabled />
                     </div>
                 </div>
                 <div
