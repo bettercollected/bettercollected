@@ -2,9 +2,8 @@
 
 import React, { useEffect } from 'react';
 
-import { usePathname, useSearchParams } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 
-import { log } from 'console';
 import { atom, useAtom } from 'jotai';
 
 import { Dialog, DialogContent } from '@app/shadcn/components/ui/dialog';
@@ -53,7 +52,6 @@ export function DialogModalContainer() {
 
     const pathname = usePathname();
     useEffect(() => {
-        closeDialogModal();
         return () => {
             closeDialogModal();
         };
