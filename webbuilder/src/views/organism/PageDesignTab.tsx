@@ -2,10 +2,10 @@ import { ThemeColors } from '@app/constants/theme';
 import { Separator } from '@app/shadcn/components/ui/separator';
 import { cn } from '@app/shadcn/util/lib';
 import { useActiveSlideComponent } from '@app/store/jotai/activeBuilderComponent';
-import useFormBuilderAtom from '@app/store/jotai/fieldSelector';
+import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
 
 export default function PageDesignTab() {
-    const { updateSlideTheme, activeSlide } = useFormBuilderAtom();
+    const { updateSlideTheme, activeSlide } = useFormFieldsAtom();
     return (
         <div className="flex h-full flex-col ">
             <span className="px-4 font-medium text-black-700 ">Theme</span>

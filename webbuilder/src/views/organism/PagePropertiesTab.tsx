@@ -2,10 +2,10 @@
 
 import { Switch } from '@app/shadcn/components/ui/switch';
 import { useActiveSlideComponent } from '@app/store/jotai/activeBuilderComponent';
-import useFormBuilderAtom from '@app/store/jotai/fieldSelector';
+import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
 
 export default function PagePropertiesTab() {
-    const { formFields, updateShowQuestionNumbers, activeSlide } = useFormBuilderAtom();
+    const { formFields, updateShowQuestionNumbers, activeSlide } = useFormFieldsAtom();
     const { activeSlideComponent } = useActiveSlideComponent();
 
     return (
