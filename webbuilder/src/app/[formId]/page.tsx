@@ -19,6 +19,7 @@ import {
     useActiveSlideComponent
 } from '@app/store/jotai/activeBuilderComponent';
 import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
+import { useFormState } from '@app/store/jotai/form';
 import Button from '@app/views/atoms/Button';
 import AutoSaveForm from '@app/views/molecules/FormBuilder/AutoSaveForm';
 import FieldSection from '@app/views/organism/FieldSection';
@@ -29,7 +30,8 @@ import WelcomeSlide from '@app/views/organism/WelcomePage';
 
 export default function FormPage({ params }: { params: { formId: string } }) {
     const router = useRouter();
-    const { addSlide, formFields, setFormFields, resetFields } = useFormFieldsAtom();
+    const { addSlide, formFields, setFormFields } = useFormFieldsAtom();
+    const { setFormState } = useFormState();
 
     const { activeSlideComponent, setActiveSlideComponent } = useActiveSlideComponent();
 
@@ -54,7 +56,11 @@ export default function FormPage({ params }: { params: { formId: string } }) {
     useEffect(() => {
         const forms = JSON.parse(localStorage.getItem('forms') || '{}');
         const currentForm = forms[formId];
-        if (currentForm?.fields) setFormFields(currentForm.fields);
+        if (currentForm) {
+            const { fields, ...state } = currentForm;
+            if (currentForm?.fields) setFormFields(fields);
+            setFormState(state);
+        }
     }, []);
 
     return (
