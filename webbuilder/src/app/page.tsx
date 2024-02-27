@@ -2,14 +2,9 @@
 
 import { useRouter } from 'next/navigation';
 
-import { v4 } from 'uuid';
-
-import { FormField } from '@app/models/dtos/form';
 import { Button } from '@app/shadcn/components/ui/button';
-import useFormBuilderAtom from '@app/store/jotai/fieldSelector';
 
 export default function HomePage() {
-    const { dispatchLocalStorageFields } = useFormBuilderAtom();
     const forms = JSON.parse(localStorage.getItem('forms') || '{}');
     const router = useRouter();
 
@@ -30,10 +25,10 @@ export default function HomePage() {
                                 className=" cursor-pointer bg-brand-300 p-2 hover:bg-brand-400"
                                 key={index}
                                 onClick={() => {
-                                    if (form?.id) router.push(`/${form?.id}`);
+                                    if (form?.formId) router.push(`/${form?.formId}`);
                                 }}
                             >
-                                <h1>Form with id {form?.id}</h1>
+                                <h1>Form with id {form?.formId}</h1>
                             </div>
                         );
                     })

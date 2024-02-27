@@ -10,7 +10,7 @@ import { ChevronLeft, Download, Plus, Sparkles } from 'lucide-react';
 import { URL } from 'url';
 import { v4 } from 'uuid';
 
-import useFormBuilderAtom from '@app/store/jotai/fieldSelector';
+import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
 import BetterCollectedSmallLogo from '@app/views/atoms/Icons/BetterCollectedSmallLogo';
 
 const CardVariants = {
@@ -62,16 +62,12 @@ const templates = [
     }
 ];
 
-const Forms = JSON.parse(localStorage.getItem('Forms') || '[]');
-
 export default function CreateFormPage() {
-    const { resetFields } = useFormBuilderAtom();
+    const { resetFields } = useFormFieldsAtom();
     const handleCreateForm = () => {
         const formId = v4();
-        Forms ? Forms.push({ [formId]: {} }) : [{ [formId]: {} }];
-        localStorage.setItem('Forms', JSON.stringify(Forms));
         resetFields();
-        router.push(`/${formId}`);
+        router.push(`/${formId}?showTitle=true`);
     };
 
     const router = useRouter();
@@ -84,7 +80,12 @@ export default function CreateFormPage() {
                 <div className={'mr-4 rounded-lg px-4 py-[6px] shadow'}>
                     <BetterCollectedSmallLogo />
                 </div>
-                <div className="flex gap-2 text-black-700">
+                <div
+                    className="flex cursor-pointer gap-2 text-black-700"
+                    onClick={() => {
+                        router.back();
+                    }}
+                >
                     <ChevronLeft />
                     Back
                 </div>

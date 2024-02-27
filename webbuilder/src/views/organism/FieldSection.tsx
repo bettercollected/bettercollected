@@ -2,7 +2,7 @@
 
 import React from 'react';
 
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 
 import { RadioGroup } from '@headlessui/react';
 import cn from 'classnames';
@@ -14,7 +14,7 @@ import { Button } from '@app/shadcn/components/ui/button';
 import { Input } from '@app/shadcn/components/ui/input';
 import { StrictModeDroppable } from '@app/shared/hocs/StrictModeDroppable';
 import { useActiveFieldComponent } from '@app/store/jotai/activeBuilderComponent';
-import useFormBuilderAtom from '@app/store/jotai/fieldSelector';
+import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
 import RequiredIcon from '@app/views/atoms/Icons/Required';
 
 import { ArrowDown } from '../atoms/Icons/ArrowDown';
@@ -74,24 +74,9 @@ const FieldSection = ({
     disabled?: boolean;
 }) => {
     const slideFields = slide?.properties?.fields;
-    const {
-        updateTitle,
-        updateDescription,
-        moveFieldInASlide,
-        deleteField,
-        formFields
-    } = useFormBuilderAtom();
+    const { updateTitle, updateDescription, moveFieldInASlide, deleteField } =
+        useFormFieldsAtom();
     const { setActiveFieldComponent, activeFieldComponent } = useActiveFieldComponent();
-
-    const formId = usePathname().split('/')[1];
-    const forms = JSON.parse(localStorage.getItem('Forms') || '');
-    const formIndex = forms.findIndex((form: any) => form[formId]);
-
-    const handleSaveButton = () => {
-        forms.splice(formIndex, 1, { [formId]: formFields });
-        localStorage.setItem('Forms', JSON.stringify(forms));
-    };
-
     function renderField(field: FormField) {
         switch (field.type) {
             case FieldTypes.EMAIL:
@@ -302,18 +287,6 @@ const FieldSection = ({
                     )}
                 </StrictModeDroppable>
             </DragDropContext>
-            {/* Just for saving DTO to localstorage will be removed later after autosave feature */}
-            {slide?.index === formFields.length - 1 && (
-                <div className=" flex justify-end p-2">
-                    <Button
-                        size={'lg'}
-                        className="relative bottom-2 w-1/12"
-                        onClick={handleSaveButton}
-                    >
-                        Save
-                    </Button>
-                </div>
-            )}
         </div>
     );
 };
@@ -370,7 +343,7 @@ const InputField = ({
     slide: FormField;
     disabled: boolean;
 }) => {
-    const { updateFieldPlaceholder } = useFormBuilderAtom();
+    const { updateFieldPlaceholder } = useFormFieldsAtom();
 
     return (
         <>
@@ -432,7 +405,7 @@ const DropDownField = ({
     slide: FormField;
     disabled: boolean;
 }) => {
-    const { updateChoiceFieldValue, addChoiceField } = useFormBuilderAtom();
+    const { updateChoiceFieldValue, addChoiceField } = useFormFieldsAtom();
     return (
         <>
             {field.type === FieldTypes.DROP_DOWN ? (

@@ -4,7 +4,9 @@ import { useEffect } from 'react';
 
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
+import { current } from '@reduxjs/toolkit';
 import cn from 'classnames';
+import { log } from 'console';
 import { PlusIcon } from 'lucide-react';
 import { v4 } from 'uuid';
 
@@ -16,17 +18,18 @@ import {
     useActiveFieldComponent,
     useActiveSlideComponent
 } from '@app/store/jotai/activeBuilderComponent';
-import useFormBuilderAtom from '@app/store/jotai/fieldSelector';
+import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
 import Button from '@app/views/atoms/Button';
+import AutoSaveForm from '@app/views/molecules/FormBuilder/AutoSaveForm';
 import FieldSection from '@app/views/organism/FieldSection';
 import Navbar from '@app/views/organism/Navbar';
 import PropertiesDrawer from '@app/views/organism/PropertiesDrawer';
 import ThankYouSlide from '@app/views/organism/ThankYouPage';
 import WelcomeSlide from '@app/views/organism/WelcomePage';
 
-export default function FormPage() {
+export default function FormPage({ params }: { params: { formId: string } }) {
     const router = useRouter();
-    const { addSlide, formFields } = useFormBuilderAtom();
+    const { addSlide, formFields, setFormFields, resetFields } = useFormFieldsAtom();
 
     const { activeSlideComponent, setActiveSlideComponent } = useActiveSlideComponent();
 
@@ -40,6 +43,7 @@ export default function FormPage() {
     const { openDialogModal } = useDialogModal();
     const pathname = usePathname();
 
+    const formId = params.formId;
     useEffect(() => {
         if (showModal === 'true') {
             router.replace(pathname);
@@ -47,9 +51,16 @@ export default function FormPage() {
         }
     }, [showModal]);
 
+    useEffect(() => {
+        const forms = JSON.parse(localStorage.getItem('forms') || '{}');
+        const currentForm = forms[formId];
+        if (currentForm?.fields) setFormFields(currentForm.fields);
+    }, []);
+
     return (
         <main className="flex h-screen flex-col items-center justify-start bg-black-100">
             <Navbar />
+            <AutoSaveForm formId={formId} />
             <div className="flex max-h-body-content  w-full flex-row items-center gap-10">
                 <div
                     id="slides-preview"
@@ -99,7 +110,6 @@ export default function FormPage() {
                     </div>
                     {Array.isArray(Slides) && Slides.length ? (
                         Slides.map((slide, index) => {
-                            console.log('slide: ', slide);
                             return (
                                 <div
                                     key={slide.id}

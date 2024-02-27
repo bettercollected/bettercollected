@@ -8,14 +8,14 @@ import { FieldTypes } from '@app/models/dtos/form';
 import { Button } from '@app/shadcn/components/ui/button';
 import { DropdownMenu } from '@app/shadcn/components/ui/dropdown-menu';
 import { useActiveSlideComponent } from '@app/store/jotai/activeBuilderComponent';
-import useFormBuilderAtom from '@app/store/jotai/fieldSelector';
+import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
 import BetterCollectedSmallLogo from '@app/views/atoms/Icons/BetterCollectedSmallLogo';
 import EllipsisOption from '@app/views/atoms/Icons/EllipsisOption';
 
 import PlayIcon from '../atoms/Icons/PlayIcon';
 
 const Navbar = () => {
-    const { formFields, addField } = useFormBuilderAtom();
+    const { formFields, addField } = useFormFieldsAtom();
     const { activeSlideComponent } = useActiveSlideComponent();
     const handleAddField = (field: any) => {
         if (activeSlideComponent === null) {

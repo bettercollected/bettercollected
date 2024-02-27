@@ -12,7 +12,7 @@ import { reorder } from '@app/utils/arrayUtils';
 
 const initialFieldsAtom = atom<FormField[]>([]);
 
-export default function useFormBuilderAtom() {
+export default function useFormFieldsAtom() {
     const [formFields, setFormFields] = useAtom(initialFieldsAtom);
 
     const { activeSlideComponent } = useActiveSlideComponent();
@@ -192,12 +192,9 @@ export default function useFormBuilderAtom() {
         setFormFields([]);
     };
 
-    const dispatchLocalStorageFields = (fields: FormField[]) => {
-        setFormFields(fields);
-    };
-
     return {
         formFields,
+        setFormFields,
         addField,
         addSlide,
         updateTitle,
@@ -214,7 +211,6 @@ export default function useFormBuilderAtom() {
         activeSlide,
         activeField,
         deleteField,
-        resetFields,
-        dispatchLocalStorageFields
+        resetFields
     };
 }

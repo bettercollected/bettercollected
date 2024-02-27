@@ -96,6 +96,7 @@
         "swiper": "^11.0.5",
         "tailwind-merge": "^2.2.1",
         "tailwindcss-animate": "^1.0.7",
+        "usehooks-ts": "^2.15.1",
         "uuid": "^9.0.1",
         "vanilla-cookieconsent": "^3.0.0"
     },
