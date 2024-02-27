@@ -11,7 +11,7 @@ import { DragDropContext, Draggable, DroppableProvided } from 'react-beautiful-d
 
 import { FieldTypes, FormField } from '@app/models/dtos/form';
 import { Button } from '@app/shadcn/components/ui/button';
-import { Input } from '@app/shadcn/components/ui/input';
+import { FieldInput } from '@app/shadcn/components/ui/input';
 import { StrictModeDroppable } from '@app/shared/hocs/StrictModeDroppable';
 import { useActiveFieldComponent } from '@app/store/jotai/activeBuilderComponent';
 import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
@@ -347,7 +347,7 @@ const InputField = ({
 
     return (
         <>
-            <Input
+            <FieldInput
                 slide={slide}
                 type="text"
                 textColor={slide.properties?.theme?.secondary || 'text-black-500'}
@@ -434,7 +434,7 @@ const DropDownField = ({
                 {field &&
                     field.properties?.choices?.map((choice, index) => {
                         return (
-                            <Input
+                            <FieldInput
                                 slide={slide}
                                 type="text"
                                 textColor={

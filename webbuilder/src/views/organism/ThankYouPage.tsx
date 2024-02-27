@@ -2,7 +2,7 @@ import Image from 'next/image';
 
 import RectangleImage from '@app/assets/image/rectangle.png';
 import { Button } from '@app/shadcn/components/ui/button';
-import { Input } from '@app/shadcn/components/ui/input';
+import { FieldInput } from '@app/shadcn/components/ui/input';
 import { useFormState } from '@app/store/jotai/form';
 
 const ThankYouSlide = ({ disabled }: { disabled?: boolean }) => {
