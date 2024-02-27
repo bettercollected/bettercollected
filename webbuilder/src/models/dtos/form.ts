@@ -1,4 +1,4 @@
-interface StandardForm {
+export interface StandardForm {
     formId: string;
     title: string;
     description: string;
