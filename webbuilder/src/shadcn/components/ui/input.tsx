@@ -4,11 +4,9 @@ import { styled } from '@mui/material';
 
 import { FormField } from '@app/models/dtos/form';
 import { cn } from '@app/shadcn/util/lib';
-import { useActiveSlideComponent } from '@app/store/jotai/activeBuilderComponent';
-import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
 
 export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
-    textColor: string;
+    textColor?: string;
 }
 
 const ShadCNInput = React.forwardRef<HTMLInputElement, InputProps>(
@@ -31,7 +29,7 @@ const ShadCNInput = React.forwardRef<HTMLInputElement, InputProps>(
 );
 ShadCNInput.displayName = 'ShadCNInput';
 
-const Input = styled(ShadCNInput)(({ slide }: { slide: FormField }) => {
+const FieldInput = styled(ShadCNInput)(({ slide }: { slide: FormField }) => {
     // const { activeSlide: slide } = useFieldSelectorAtom();
     return {
         borderColor: slide?.properties?.theme?.tertiary,
@@ -43,6 +41,6 @@ const Input = styled(ShadCNInput)(({ slide }: { slide: FormField }) => {
         }
     };
 });
-Input.displayName = 'Input';
+FieldInput.displayName = 'FieldInput';
 
-export { Input };
+export { FieldInput, ShadCNInput as Input };

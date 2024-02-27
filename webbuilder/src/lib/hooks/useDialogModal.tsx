@@ -7,6 +7,7 @@ import { usePathname } from 'next/navigation';
 import { atom, useAtom } from 'jotai';
 
 import { Dialog, DialogContent } from '@app/shadcn/components/ui/dialog';
+import AddFormTitleModal from '@app/views/molecules/Dialogs/AddFormTitleModal';
 
 export type DIALOG_MODALS = 'ADD_FORM_TITLE' | '';
 
@@ -41,7 +42,7 @@ export const useDialogModal = () => {
 const getModalToRender = (view?: DIALOG_MODALS, props?: any) => {
     switch (view) {
         case 'ADD_FORM_TITLE':
-            return <>Add Content to Add Form Title</>;
+            return <AddFormTitleModal />;
         default:
             return <></>;
     }
@@ -64,7 +65,7 @@ export function DialogModalContainer() {
                 closeDialogModal();
             }}
         >
-            <DialogContent className="!bg-white">
+            <DialogContent className="!bg-white !p-0">
                 <div className="">{getModalToRender(view, props)}</div>
             </DialogContent>
         </Dialog>
