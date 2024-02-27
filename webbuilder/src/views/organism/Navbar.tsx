@@ -9,6 +9,7 @@ import { Button } from '@app/shadcn/components/ui/button';
 import { DropdownMenu } from '@app/shadcn/components/ui/dropdown-menu';
 import { useActiveSlideComponent } from '@app/store/jotai/activeBuilderComponent';
 import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
+import { useFormState } from '@app/store/jotai/form';
 import BetterCollectedSmallLogo from '@app/views/atoms/Icons/BetterCollectedSmallLogo';
 
 import { MediaOutlinedIcon } from '../atoms/Icons/MediaOutlined';
@@ -19,6 +20,7 @@ import { TextOutlinedIcon } from '../atoms/Icons/TextOutlined';
 const Navbar = () => {
     const { formFields, addField } = useFormFieldsAtom();
     const { activeSlideComponent } = useActiveSlideComponent();
+    const { formState, setFormTitle } = useFormState();
     const handleAddField = (field: any) => {
         if (activeSlideComponent === null) {
             toast('Add a slide to add questions');
@@ -130,8 +132,15 @@ const Navbar = () => {
                     </DropdownMenu.Trigger>
                 </DropdownMenu>
             </div>
-            <h1>New Form</h1>
-            <div className={'flex items-center gap-2'}>
+            <input
+                type="text"
+                value={formState.title}
+                onChange={(event) => {
+                    setFormTitle(event.target.value);
+                }}
+                className="border-0"
+            />
+            <div className={'flex items-center gap-2 '}>
                 <Button icon={<PlayIcon />} variant={'tertiary'}>
                     Preview
                 </Button>
