@@ -18,5 +18,14 @@ const initialFormState = atom<IFormState>({
 
 export function useFormState() {
     const [formState, setFormState] = useAtom(initialFormState);
-    return { formState, setFormState };
+
+    const setFormTitle = (title: string) => {
+        setFormState({ ...formState, title });
+    };
+
+    const setFormDescription = (description: string) => {
+        setFormState({ ...formState, description });
+    };
+    
+    return { formState, setFormState, setFormDescription, setFormTitle };
 }

@@ -1,7 +1,18 @@
+'use client';
+
+import { useState } from 'react';
+
+import { useDialogModal } from '@app/lib/hooks/useDialogModal';
 import { Button } from '@app/shadcn/components/ui/button';
 import { Input } from '@app/shadcn/components/ui/input';
+import { useFormState } from '@app/store/jotai/form';
 
 export default function AddFormTitleModal() {
+    const { setFormTitle } = useFormState();
+
+    const [title, setTitle] = useState('');
+
+    const { closeDialogModal } = useDialogModal();
     return (
         <div>
             <div className="p2-new border-b border-b-black-300 p-4 ">
@@ -18,9 +29,20 @@ export default function AddFormTitleModal() {
                     type="text"
                     className="text-brand-500 placeholder-brand-500 placeholder-opacity-20"
                     placeholder="Form Title"
+                    onChange={(event) => {
+                        setTitle(event.target.value);
+                    }}
                 />
                 <div className="flex justify-end pt-10">
-                    <Button variant={'primary'}>Continue</Button>
+                    <Button
+                        variant={'primary'}
+                        onClick={() => {
+                            setFormTitle(title);
+                            closeDialogModal();
+                        }}
+                    >
+                        Continue
+                    </Button>
                 </div>
             </div>
         </div>
