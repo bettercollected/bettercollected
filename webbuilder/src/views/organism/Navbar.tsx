@@ -10,9 +10,11 @@ import { DropdownMenu } from '@app/shadcn/components/ui/dropdown-menu';
 import { useActiveSlideComponent } from '@app/store/jotai/activeBuilderComponent';
 import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
 import BetterCollectedSmallLogo from '@app/views/atoms/Icons/BetterCollectedSmallLogo';
-import EllipsisOption from '@app/views/atoms/Icons/EllipsisOption';
 
+import { MediaOutlinedIcon } from '../atoms/Icons/MediaOutlined';
 import PlayIcon from '../atoms/Icons/PlayIcon';
+import { PlusOutlined } from '../atoms/Icons/PlusOutlined';
+import { TextOutlinedIcon } from '../atoms/Icons/TextOutlined';
 
 const Navbar = () => {
     const { formFields, addField } = useFormFieldsAtom();
@@ -86,22 +88,14 @@ const Navbar = () => {
             id="navbar"
             className="flex h-16 w-full justify-between border-b-[1px] border-b-black-300 bg-white p-4"
         >
-            <div className={'flex items-center gap-2'}>
+            <div className={'flex items-center gap-6'}>
                 <div className={'mr-4 rounded-lg px-4 py-[6px] shadow'}>
                     <BetterCollectedSmallLogo />
                 </div>
-                <input
-                    type="text"
-                    placeholder="Fill the Form Title"
-                    className="w-1/2 border-0"
-                />
-                <EllipsisOption />
-            </div>
-            <div className={'flex items-center gap-4'}>
                 <DropdownMenu>
                     <DropdownMenu.Trigger tooltipLabel={'Insert Fields'}>
-                        <div>
-                            <div className={'h-6 w-6 rounded bg-black-400'}></div>
+                        <div className="text-xs font-semibold">
+                            <PlusOutlined />
                             Insert
                         </div>
                     </DropdownMenu.Trigger>
@@ -121,21 +115,22 @@ const Navbar = () => {
                 </DropdownMenu>
                 <DropdownMenu>
                     <DropdownMenu.Trigger tooltipLabel={'Add Media'}>
-                        <div>
-                            <div className={'h-6 w-6 rounded bg-black-400'}></div>
+                        <div className="text-xs font-semibold">
+                            <TextOutlinedIcon />
                             Media
                         </div>
                     </DropdownMenu.Trigger>
                 </DropdownMenu>
                 <DropdownMenu>
                     <DropdownMenu.Trigger tooltipLabel={'Insert Text'}>
-                        <div>
-                            <div className={'h-6 w-6 rounded bg-black-400'}></div>
+                        <div className="text-xs font-semibold">
+                            <MediaOutlinedIcon />
                             Text
                         </div>
                     </DropdownMenu.Trigger>
                 </DropdownMenu>
             </div>
+            <h1>New Form</h1>
             <div className={'flex items-center gap-2'}>
                 <Button icon={<PlayIcon />} variant={'tertiary'}>
                     Preview
