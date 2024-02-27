@@ -7,7 +7,6 @@ import { useRouter } from 'next/navigation';
 
 import cn from 'classnames';
 import { ChevronLeft, Download, Plus, Sparkles } from 'lucide-react';
-import { URL } from 'url';
 import { v4 } from 'uuid';
 
 import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
