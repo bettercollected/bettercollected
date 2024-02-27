@@ -1,22 +1,22 @@
 import React from 'react';
 
-export function AddIcon(props: React.SVGAttributes<{}>) {
+export function AddIcon(props: React.SVGAttributes<{}> & Readonly<{}>) {
     return (
         <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="24"
-            height="25"
-            viewBox="0 0 24 25"
+            width="14"
+            height="14"
+            viewBox="0 0 14 14"
             fill="none"
+            xmlns="http://www.w3.org/2000/svg"
             {...props}
         >
+            <path d="M7 1V13" stroke="#4D4D4D" strokeWidth="2" strokeLinecap="round" />
             <path
-                d="M12 6.5L12 18.5"
-                stroke="white"
+                d="M1 7L13 7"
+                stroke="#4D4D4D"
                 strokeWidth="2"
                 strokeLinecap="round"
             />
-            <path d="M6 12.5H18" stroke="white" strokeWidth="2" strokeLinecap="round" />
         </svg>
     );
 }

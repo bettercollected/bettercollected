@@ -66,9 +66,11 @@ function getPlaceholderValueForField(fieldType: FieldTypes) {
 
 const FieldSection = ({
     slide,
+    isScaledDown = false,
     disabled = false
 }: {
     slide: FormField;
+    isScaledDown?: boolean;
     disabled?: boolean;
 }) => {
     const slideFields = slide?.properties?.fields;
@@ -119,7 +121,8 @@ const FieldSection = ({
             }}
             className={cn(
                 'aspect-video h-min w-full overflow-auto bg-white',
-                disabled ? 'pointer-events-none overflow-hidden' : ''
+                disabled ? 'pointer-events-none overflow-hidden' : '',
+                isScaledDown ? '!h-full !w-full' : ''
             )}
         >
             <DragDropContext
@@ -137,9 +140,9 @@ const FieldSection = ({
                         <div
                             {...provided.droppableProps}
                             ref={provided.innerRef}
-                            className={
+                            className={cn(
                                 'flex flex-col justify-center gap-20 px-20 py-10'
-                            }
+                            )}
                         >
                             {Array.isArray(slideFields) && slideFields.length ? (
                                 slideFields.map((field, index) => {
@@ -148,9 +151,15 @@ const FieldSection = ({
                                             key={index}
                                             draggableId={`${index}`}
                                             index={index}
+                                            disableInteractiveElementBlocking={disabled}
+                                            isDragDisabled={disabled}
                                         >
                                             {(provided) => (
-                                                <div className="flex flex-row gap-1">
+                                                <div
+                                                    className={cn(
+                                                        'flex flex-row gap-1'
+                                                    )}
+                                                >
                                                     <div
                                                         key={index}
                                                         tabIndex={0}
@@ -185,7 +194,7 @@ const FieldSection = ({
                                                             }
                                                         >
                                                             <div
-                                                                className="absolute -left-8 top-1/2 cursor-grab text-black-500"
+                                                                className={cn("absolute -left-8 top-1/2 cursor-grab text-black-500", isScaledDown ? 'hidden': '')}
                                                                 {...provided.dragHandleProps}
                                                             >
                                                                 <GripVertical />
@@ -260,7 +269,7 @@ const FieldSection = ({
                                                             {renderField(field)}
                                                         </div>
                                                     </div>
-                                                    {activeFieldComponent &&
+                                                    {!isScaledDown && activeFieldComponent &&
                                                         activeFieldComponent?.id ===
                                                             field.id && (
                                                             <Button

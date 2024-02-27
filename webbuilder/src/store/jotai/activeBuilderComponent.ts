@@ -2,7 +2,9 @@
 
 import { atom, useAtom } from 'jotai';
 
-interface ActiveFormBuilderComponent {
+export type SetAtom<Args extends any[], Result> = (...args: Args) => Result;
+
+export interface ActiveFormBuilderComponent {
     id: string;
     index: number;
 }
