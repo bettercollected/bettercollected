@@ -5,7 +5,7 @@ import { styled } from '@mui/material';
 import { FormField } from '@app/models/dtos/form';
 import { cn } from '@app/shadcn/util/lib';
 import { useActiveSlideComponent } from '@app/store/jotai/activeBuilderComponent';
-import useFieldSelectorAtom from '@app/store/jotai/fieldSelector';
+import useFormBuilderAtom from '@app/store/jotai/fieldSelector';
 
 export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
     textColor: string;

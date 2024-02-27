@@ -2,7 +2,7 @@
 
 import { FieldTypes } from '@app/models/dtos/form';
 import { Switch } from '@app/shadcn/components/ui/switch';
-import useFieldSelectorAtom from '@app/store/jotai/fieldSelector';
+import useFormBuilderAtom from '@app/store/jotai/fieldSelector';
 
 export default function FieldSettings() {
     const {
@@ -11,7 +11,7 @@ export default function FieldSettings() {
         activeField,
         updateDescription,
         updateFieldProperty
-    } = useFieldSelectorAtom();
+    } = useFormBuilderAtom();
 
     return (
         <div className="flex flex-col gap-4 px-4 py-6">

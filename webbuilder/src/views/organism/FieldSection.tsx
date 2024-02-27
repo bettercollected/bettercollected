@@ -14,7 +14,7 @@ import { Button } from '@app/shadcn/components/ui/button';
 import { Input } from '@app/shadcn/components/ui/input';
 import { StrictModeDroppable } from '@app/shared/hocs/StrictModeDroppable';
 import { useActiveFieldComponent } from '@app/store/jotai/activeBuilderComponent';
-import useFieldSelectorAtom from '@app/store/jotai/fieldSelector';
+import useFormBuilderAtom from '@app/store/jotai/fieldSelector';
 import RequiredIcon from '@app/views/atoms/Icons/Required';
 
 import { ArrowDown } from '../atoms/Icons/ArrowDown';
@@ -80,7 +80,7 @@ const FieldSection = ({
         moveFieldInASlide,
         deleteField,
         formFields
-    } = useFieldSelectorAtom();
+    } = useFormBuilderAtom();
     const { setActiveFieldComponent, activeFieldComponent } = useActiveFieldComponent();
 
     const formId = usePathname().split('/')[1];
@@ -194,7 +194,12 @@ const FieldSection = ({
                                                             }
                                                         >
                                                             <div
-                                                                className={cn("absolute -left-8 top-1/2 cursor-grab text-black-500", isScaledDown ? 'hidden': '')}
+                                                                className={cn(
+                                                                    'absolute -left-8 top-1/2 cursor-grab text-black-500',
+                                                                    isScaledDown
+                                                                        ? 'hidden'
+                                                                        : ''
+                                                                )}
                                                                 {...provided.dragHandleProps}
                                                             >
                                                                 <GripVertical />
@@ -269,7 +274,8 @@ const FieldSection = ({
                                                             {renderField(field)}
                                                         </div>
                                                     </div>
-                                                    {!isScaledDown && activeFieldComponent &&
+                                                    {!isScaledDown &&
+                                                        activeFieldComponent &&
                                                         activeFieldComponent?.id ===
                                                             field.id && (
                                                             <Button
@@ -364,7 +370,7 @@ const InputField = ({
     slide: FormField;
     disabled: boolean;
 }) => {
-    const { updateFieldPlaceholder } = useFieldSelectorAtom();
+    const { updateFieldPlaceholder } = useFormBuilderAtom();
 
     return (
         <>
@@ -426,7 +432,7 @@ const DropDownField = ({
     slide: FormField;
     disabled: boolean;
 }) => {
-    const { updateChoiceFieldValue, addChoiceField } = useFieldSelectorAtom();
+    const { updateChoiceFieldValue, addChoiceField } = useFormBuilderAtom();
     return (
         <>
             {field.type === FieldTypes.DROP_DOWN ? (
