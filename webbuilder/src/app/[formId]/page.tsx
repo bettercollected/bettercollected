@@ -33,7 +33,7 @@ export default function FormPage() {
             <div className="flex max-h-body-content  w-full flex-row items-center gap-10">
                 <div
                     id="slides-preview"
-                    className="flex  h-body-content w-[200px] flex-col gap-5 overflow-auto bg-white p-5"
+                    className="flex h-body-content w-[200px] flex-col gap-5 overflow-x-hidden overflow-y-scroll bg-white p-5"
                 >
                     <div className="flex w-full items-center justify-between">
                         <span className="h4-new font-medium text-black-700">Pages</span>
@@ -64,7 +64,7 @@ export default function FormPage() {
                     </div>
                     <div
                         className={cn(
-                            ' ml-3 flex !aspect-video !h-[85px] cursor-pointer items-center justify-center overflow-auto rounded-lg border bg-white',
+                            'ml-3 flex !aspect-video !h-[85px] cursor-pointer items-center justify-center overflow-auto rounded-lg border bg-white',
                             activeSlideComponent?.id === 'welcome-page' &&
                                 'border-pink-500'
                         )}
@@ -81,9 +81,17 @@ export default function FormPage() {
                         Slides.map((slide, index) => {
                             console.log('slide: ', slide);
                             return (
-                                <div key={slide.id} className="flex items-center gap-2">
+                                <div
+                                    key={slide.id}
+                                    className={cn(
+                                        'relative flex items-center gap-2',
+                                        activeSlideComponent?.id === slide.id &&
+                                            '!border-pink-500'
+                                    )}
+                                >
                                     <span
                                         className={cn(
+                                            'absolute -left-2',
                                             activeSlideComponent?.id === slide.id
                                                 ? 'text-pink-500'
                                                 : 'text-black-700'
@@ -92,20 +100,26 @@ export default function FormPage() {
                                         {index + 1}
                                     </span>
                                     <div
+                                        role="button"
                                         className={cn(
-                                            'flex overflow-hidden rounded-lg border border-black-300 outline-none',
+                                            'ml-3 flex !aspect-video cursor-pointer items-center justify-center overflow-hidden rounded-lg border',
                                             activeSlideComponent?.id === slide.id &&
                                                 '!border-pink-500'
                                         )}
-                                        tabIndex={0}
-                                        onFocus={() => {
+                                        onClick={() => {
                                             setActiveSlideComponent({
                                                 id: slide.id,
                                                 index
                                             });
                                         }}
                                     >
-                                        <FieldSection slide={slide} disabled />
+                                        <div className={'scale-[0.25]'}>
+                                            <FieldSection
+                                                slide={slide}
+                                                disabled
+                                                isScaledDown
+                                            />
+                                        </div>
                                     </div>
                                 </div>
                             );
@@ -130,7 +144,7 @@ export default function FormPage() {
                     </div>
                 </div>
                 <div
-                    className="flex h-full flex-1 flex-col items-center justify-center "
+                    className="relative flex h-full flex-1 flex-col items-center justify-center "
                     onClick={() => {
                         setActiveFieldComponent(null);
                     }}
