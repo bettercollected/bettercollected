@@ -129,7 +129,8 @@ export default function UpgradeToProContainer({ featureText, isModal = true }: I
                             Suggest a monthly price for PRO
                         </div>
                         <div className="max-w-[314px] p2-new text-black-700 text-center">
-                            Share your suggestion for pricing and be a part of our journey!
+                            We&apos;re committed to putting our users first, making online form building accessible to all.
+                            Share your thoughts on what our Pro features are worth to you.
                         </div>
                         <div className="mt-10 flex flex-wrap gap-2">
                             {
@@ -198,7 +199,7 @@ export default function UpgradeToProContainer({ featureText, isModal = true }: I
                                 Unlock Pro Features
                             </AppButton>
                             <div className="text-center p2-new text-black-600 italic">
-                                Free for a limited time!
+                                Free for 90 days!
                             </div>
                         </div>
                     </>
