@@ -14,6 +14,7 @@ import { formFieldsList } from '@app/constants/form-fields';
 import { useDialogModal } from '@app/lib/hooks/useDialogModal';
 import { FieldTypes } from '@app/models/dtos/form';
 import { ButtonSize, ButtonVariant } from '@app/models/enums/button';
+import { ScrollArea } from '@app/shadcn/components/ui/scroll-area';
 import {
     useActiveFieldComponent,
     useActiveSlideComponent
