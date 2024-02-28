@@ -202,117 +202,130 @@ export default function FormPage({ params }: { params: { formId: string } }) {
                             exit={{ opacity: 0, x: '-100%' }}
                             transition={{ duration: 0.5 }}
                             id="slides-preview"
-                            className="flex h-body-content w-[200px] flex-col gap-5 overflow-y-auto overflow-x-hidden bg-white p-5"
+                            className="flex h-body-content w-[200px] flex-col gap-5 overflow-y-auto overflow-x-hidden bg-white"
                         >
                             <div className="flex w-full items-center justify-between border-b border-b-black-400 p-5">
-            <span className="h4-new font-medium text-black-700">Pages</span>
-            <Button
-              variant={ButtonVariant.Secondary}
-              className="!p-2"
-              size={ButtonSize.Small}
-              onClick={() => {
-                const fieldId = v4();
-                addSlide({
-                  id: fieldId,
-                  index: formFields.length,
-                  type: FieldTypes.SLIDE,
-                  properties: {
-                    fields: [],
-                  },
-                });
-              }}
-              icon={<PlusIcon />}
-            ></Button>
-          </div>
-          <div className=" flex flex-1 flex-col justify-between overflow-auto">
-            <div className="border-b border-b-black-400 !px-4">
-              <div className="p2-new mb-1 font-medium text-black-700">
-                Welcome
-              </div>
-              <div
-                className={cn(
-                  " mb-6 flex !aspect-video cursor-pointer items-center justify-center overflow-auto rounded-lg  bg-white",
-                  activeSlideComponent?.id === "welcome-page" &&
-                    "border border-pink-500"
-                )}
-                onClick={() => {
-                  setActiveSlideComponent({
-                    id: "welcome-page",
-                    index: -10,
-                  });
-                }}
-              >
-                <WelcomeSlide disabled />
-              </div>
-            </div>
-            <ScrollArea className="max-h-pages-container flex-1  overflow-y-auto">
-              <div className="flex  w-[200px]  flex-col gap-2  px-4 py-6">
-                {Array.isArray(Slides) && Slides.length ? (
-                  Slides.map((slide, index) => {
-                    return (
-                      <div>
-                        <div className="p2-new mb-1 font-medium text-black-700">
-                          Page {index + 1}
-                        </div>
-                        <div
-                          key={slide.id}
-                          className={cn(
-                            "relative flex items-center gap-2",
-                            activeSlideComponent?.id === slide.id &&
-                              "!border-pink-500"
-                          )}
-                        >
-                          <div
-                            role="button"
-                            className={cn(
-                              "flex !aspect-video cursor-pointer items-center justify-center overflow-hidden rounded-lg border",
-                              activeSlideComponent?.id === slide.id &&
-                                "!border-pink-500"
-                            )}
-                            onClick={() => {
-                              setActiveSlideComponent({
-                                id: slide.id,
-                                index,
-                              });
-                            }}
-                          >
-                            <div className={"scale-[0.25]"}>
-                              <FieldSection
-                                slide={slide}
-                                disabled
-                                isScaledDown
-                              />
+                                <span className="h4-new font-medium text-black-700">
+                                    Pages
+                                </span>
+                                <Button
+                                    variant={ButtonVariant.Secondary}
+                                    className="!p-2"
+                                    size={ButtonSize.Small}
+                                    onClick={() => {
+                                        const fieldId = v4();
+                                        addSlide({
+                                            id: fieldId,
+                                            index: formFields.length,
+                                            type: FieldTypes.SLIDE,
+                                            properties: {
+                                                fields: []
+                                            }
+                                        });
+                                    }}
+                                    icon={<PlusIcon />}
+                                ></Button>
                             </div>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })
-                ) : (
-                  <></>
-                )}
-              </div>
-            </ScrollArea>
+                            <div className=" flex flex-1 flex-col justify-between overflow-auto">
+                                <div className="border-b border-b-black-400 !px-4">
+                                    <div className="p2-new mb-1 font-medium text-black-700">
+                                        Welcome
+                                    </div>
+                                    <div
+                                        className={cn(
+                                            ' mb-6 flex !aspect-video cursor-pointer items-center justify-center overflow-auto rounded-lg  bg-white',
+                                            activeSlideComponent?.id ===
+                                                'welcome-page' &&
+                                                'border border-pink-500'
+                                        )}
+                                        onClick={() => {
+                                            setActiveSlideComponent({
+                                                id: 'welcome-page',
+                                                index: -10
+                                            });
+                                        }}
+                                    >
+                                        <WelcomeSlide disabled />
+                                    </div>
+                                </div>
+                                <ScrollArea className="max-h-pages-container flex-1  overflow-y-auto">
+                                    <div className="flex  w-[200px]  flex-col gap-2  px-4 py-6">
+                                        {Array.isArray(Slides) && Slides.length ? (
+                                            Slides.map((slide, index) => {
+                                                return (
+                                                    <div>
+                                                        <div className="p2-new mb-1 font-medium text-black-700">
+                                                            Page {index + 1}
+                                                        </div>
+                                                        <div
+                                                            key={slide.id}
+                                                            className={cn(
+                                                                'relative flex items-center gap-2',
+                                                                activeSlideComponent?.id ===
+                                                                    slide.id &&
+                                                                    '!border-pink-500'
+                                                            )}
+                                                        >
+                                                            <div
+                                                                role="button"
+                                                                className={cn(
+                                                                    'flex !aspect-video cursor-pointer items-center justify-center overflow-hidden rounded-lg border',
+                                                                    activeSlideComponent?.id ===
+                                                                        slide.id &&
+                                                                        '!border-pink-500'
+                                                                )}
+                                                                onClick={() => {
+                                                                    setActiveSlideComponent(
+                                                                        {
+                                                                            id: slide.id,
+                                                                            index
+                                                                        }
+                                                                    );
+                                                                }}
+                                                            >
+                                                                <div
+                                                                    className={
+                                                                        'scale-[0.25]'
+                                                                    }
+                                                                >
+                                                                    <FieldSection
+                                                                        slide={slide}
+                                                                        disabled
+                                                                        isScaledDown
+                                                                    />
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })
+                                        ) : (
+                                            <></>
+                                        )}
+                                    </div>
+                                </ScrollArea>
 
-            <div className="border-t border-t-black-400 px-4 pt-4">
-              <div className="p2-new mb-1 font-medium text-black-700">End</div>
-              <div
-                className={cn(
-                  " mb-5 flex !aspect-video h-[85px] cursor-pointer items-center justify-center overflow-clip rounded-lg border bg-white",
-                  activeSlideComponent?.id === "thank-you-page" &&
-                    "border-pink-500"
-                )}
-                onClick={() => {
-                  setActiveSlideComponent({
-                    id: "thank-you-page",
-                    index: -20,
-                  });
-                }}
-              >
-                <ThankYouSlide disabled />
-              </div>
-            </div>
-          </div>
+                                <div className="border-t border-t-black-400 px-4 pt-4">
+                                    <div className="p2-new mb-1 font-medium text-black-700">
+                                        End
+                                    </div>
+                                    <div
+                                        className={cn(
+                                            ' mb-5 flex !aspect-video h-[85px] cursor-pointer items-center justify-center overflow-clip rounded-lg border bg-white',
+                                            activeSlideComponent?.id ===
+                                                'thank-you-page' && 'border-pink-500'
+                                        )}
+                                        onClick={() => {
+                                            setActiveSlideComponent({
+                                                id: 'thank-you-page',
+                                                index: -20
+                                            });
+                                        }}
+                                    >
+                                        <ThankYouSlide disabled />
+                                    </div>
+                                </div>
+                            </div>
                         </motion.div>
                     )}
                 </AnimatePresence>
