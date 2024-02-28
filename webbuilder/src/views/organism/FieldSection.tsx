@@ -124,7 +124,7 @@ const FieldSection = ({
                             {...provided.droppableProps}
                             ref={provided.innerRef}
                             className={cn(
-                                'flex flex-col justify-center gap-20 px-20 py-10'
+                                'flex h-min min-h-full flex-col justify-center gap-20 px-20 py-60'
                             )}
                         >
                             {Array.isArray(slideFields) && slideFields.length ? (
