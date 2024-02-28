@@ -44,6 +44,7 @@ const Navbar = () => {
             addField(
                 {
                     id: fieldId,
+                    title: '',
                     index: formFields[activeSlideComponent.index]?.properties?.fields
                         ?.length
                         ? formFields[activeSlideComponent.index]?.properties?.fields
@@ -75,7 +76,8 @@ const Navbar = () => {
                         ? formFields[activeSlideComponent!.index]?.properties?.fields
                               ?.length!
                         : 0,
-                    type: field.type
+                    type: field.type,
+                    title: ''
                 },
                 activeSlideComponent?.index || 0
             );
