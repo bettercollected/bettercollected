@@ -4,12 +4,12 @@ import { useEffect } from 'react';
 
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
-import { current } from '@reduxjs/toolkit';
 import cn from 'classnames';
-import { log } from 'console';
+import { motion } from 'framer-motion';
 import { PlusIcon } from 'lucide-react';
 import { v4 } from 'uuid';
 
+import { formFieldsList } from '@app/constants/form-fields';
 import { ThemeColor } from '@app/constants/theme';
 import { useDialogModal } from '@app/lib/hooks/useDialogModal';
 import { FieldTypes } from '@app/models/dtos/form';
@@ -20,6 +20,7 @@ import {
 } from '@app/store/jotai/activeBuilderComponent';
 import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
 import { useFormState } from '@app/store/jotai/form';
+import { useNavbarState } from '@app/store/jotai/navbar';
 import Button from '@app/views/atoms/Button';
 import AutoSaveForm from '@app/views/molecules/FormBuilder/AutoSaveForm';
 import FieldSection from '@app/views/organism/FieldSection';
@@ -36,6 +37,8 @@ export default function FormPage({ params }: { params: { formId: string } }) {
     const { activeSlideComponent, setActiveSlideComponent } = useActiveSlideComponent();
 
     const { setActiveFieldComponent } = useActiveFieldComponent();
+
+    const { navbarState, setNavbarState } = useNavbarState();
 
     const Slides = formFields;
 
@@ -63,115 +66,176 @@ export default function FormPage({ params }: { params: { formId: string } }) {
         }
     }, []);
 
+    function handleClickOutsideFieldOption(event: any) {
+        var divA = document.getElementById('fields-option');
+        var clickedElement = event.target as HTMLDivElement;
+
+        if (!divA?.contains(clickedElement)) {
+            setNavbarState({ insertClicked: false });
+        }
+    }
+
+    useEffect(() => {
+        if (navbarState.insertClicked) {
+            document.addEventListener('click', handleClickOutsideFieldOption);
+        }
+
+        return () => {
+            document.removeEventListener('click', handleClickOutsideFieldOption);
+        };
+    }, [navbarState]);
+
     return (
         <main className="flex h-screen flex-col items-center justify-start bg-black-100">
             <Navbar />
             <AutoSaveForm formId={formId} />
             <div className="flex max-h-body-content  w-full flex-row items-center gap-10">
-                <div
-                    id="slides-preview"
-                    className="flex h-body-content w-[200px] flex-col gap-5 overflow-x-hidden overflow-y-scroll bg-white p-5"
-                >
-                    <div className="flex w-full items-center justify-between">
-                        <span className="h4-new font-medium text-black-700">Pages</span>
-                        <Button
-                            variant={ButtonVariant.Secondary}
-                            className="!p-2"
-                            size={ButtonSize.Small}
+                {!(
+                    activeSlideComponent?.id === 'welcome-page' ||
+                    activeSlideComponent?.id === 'thank-you-page'
+                ) && navbarState.insertClicked ? (
+                    <motion.div
+                        initial={{ x: '-100%' }}
+                        animate={{ x: 0 }}
+                        transition={{ type: 'tween', stiffness: 80, duration: 0.3 }}
+                        id="fields-option"
+                        className="grid h-body-content w-[240px] grid-cols-2 overflow-y-auto overflow-x-hidden bg-white 
+                        "
+                    >
+                        {Array.isArray(formFieldsList) &&
+                            formFieldsList.length &&
+                            formFieldsList.map(
+                                (
+                                    field: { name: string; type: FieldTypes },
+                                    index: number
+                                ) => {
+                                    return (
+                                        <div
+                                            key={index}
+                                            className="flex w-[120px] cursor-grab items-center justify-center border-[1px] border-black-300"
+                                        >
+                                            {field.name}
+                                        </div>
+                                    );
+                                }
+                            )}
+                    </motion.div>
+                ) : (
+                    <div
+                        id="slides-preview"
+                        className="flex h-body-content w-[200px] flex-col gap-5 overflow-y-auto overflow-x-hidden bg-white p-5"
+                    >
+                        <div className="flex w-full items-center justify-between">
+                            <span className="h4-new font-medium text-black-700">
+                                Pages
+                            </span>
+                            <Button
+                                variant={ButtonVariant.Secondary}
+                                className="!p-2"
+                                size={ButtonSize.Small}
+                                onClick={() => {
+                                    const fieldId = v4();
+                                    addSlide({
+                                        id: fieldId,
+                                        index: formFields.length,
+                                        type: FieldTypes.SLIDE,
+                                        properties: {
+                                            fields: [],
+                                            theme: {
+                                                title: 'Default',
+                                                primary: ThemeColor.primary,
+                                                secondary: ThemeColor.secondary,
+                                                tertiary: ThemeColor.tertiary,
+                                                accent: ThemeColor.accent
+                                            }
+                                        }
+                                    });
+                                }}
+                                icon={<PlusIcon />}
+                            ></Button>
+                        </div>
+                        <div
+                            className={cn(
+                                'ml-3 flex !aspect-video !h-[85px] cursor-pointer items-center justify-center overflow-auto rounded-lg border bg-white',
+                                activeSlideComponent?.id === 'welcome-page' &&
+                                    'border-pink-500'
+                            )}
                             onClick={() => {
-                                const fieldId = v4();
-                                addSlide({
-                                    id: fieldId,
-                                    index: formFields.length,
-                                    type: FieldTypes.SLIDE,
-                                    properties: {
-                                        fields: []
-                                    }
+                                setActiveSlideComponent({
+                                    id: 'welcome-page',
+                                    index: -10
                                 });
                             }}
-                            icon={<PlusIcon />}
-                        ></Button>
-                    </div>
-                    <div
-                        className={cn(
-                            'ml-3 flex !aspect-video !h-[85px] cursor-pointer items-center justify-center overflow-auto rounded-lg border bg-white',
-                            activeSlideComponent?.id === 'welcome-page' &&
-                                'border-pink-500'
-                        )}
-                        onClick={() => {
-                            setActiveSlideComponent({
-                                id: 'welcome-page',
-                                index: -10
-                            });
-                        }}
-                    >
-                        <WelcomeSlide disabled />
-                    </div>
-                    {Array.isArray(Slides) && Slides.length ? (
-                        Slides.map((slide, index) => {
-                            return (
-                                <div
-                                    key={slide.id}
-                                    className={cn(
-                                        'relative flex items-center gap-2',
-                                        activeSlideComponent?.id === slide.id &&
-                                            '!border-pink-500'
-                                    )}
-                                >
-                                    <span
-                                        className={cn(
-                                            'absolute -left-2',
-                                            activeSlideComponent?.id === slide.id
-                                                ? 'text-pink-500'
-                                                : 'text-black-700'
-                                        )}
-                                    >
-                                        {index + 1}
-                                    </span>
+                        >
+                            <WelcomeSlide disabled />
+                        </div>
+                        {Array.isArray(Slides) && Slides.length ? (
+                            Slides.map((slide, index) => {
+                                return (
                                     <div
-                                        role="button"
+                                        key={slide.id}
                                         className={cn(
-                                            'ml-3 flex !aspect-video cursor-pointer items-center justify-center overflow-hidden rounded-lg border',
+                                            'relative flex items-center gap-2',
                                             activeSlideComponent?.id === slide.id &&
                                                 '!border-pink-500'
                                         )}
-                                        onClick={() => {
-                                            setActiveSlideComponent({
-                                                id: slide.id,
-                                                index
-                                            });
-                                        }}
                                     >
-                                        <div className={'scale-[0.25]'}>
-                                            <FieldSection
-                                                slide={slide}
-                                                disabled
-                                                isScaledDown
-                                            />
+                                        <span
+                                            className={cn(
+                                                'absolute -left-2',
+                                                activeSlideComponent?.id === slide.id
+                                                    ? 'text-pink-500'
+                                                    : 'text-black-700'
+                                            )}
+                                        >
+                                            {index + 1}
+                                        </span>
+                                        <div
+                                            role="button"
+                                            className={cn(
+                                                'ml-3 flex !aspect-video cursor-pointer items-center justify-center overflow-hidden rounded-lg border',
+                                                activeSlideComponent?.id === slide.id &&
+                                                    '!border-pink-500'
+                                            )}
+                                            onClick={() => {
+                                                setActiveSlideComponent({
+                                                    id: slide.id,
+                                                    index
+                                                });
+                                            }}
+                                        >
+                                            <div className={'scale-[0.25]'}>
+                                                <FieldSection
+                                                    slide={slide}
+                                                    disabled
+                                                    isScaledDown
+                                                />
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                            );
-                        })
-                    ) : (
-                        <></>
-                    )}
-                    <div
-                        className={cn(
-                            'ml-3 flex !aspect-video h-[85px] cursor-pointer items-center justify-center overflow-clip rounded-lg border bg-white',
-                            activeSlideComponent?.id === 'thank-you-page' &&
-                                'border-pink-500'
+                                );
+                            })
+                        ) : (
+                            <></>
                         )}
-                        onClick={() => {
-                            setActiveSlideComponent({
-                                id: 'thank-you-page',
-                                index: -20
-                            });
-                        }}
-                    >
-                        <ThankYouSlide disabled />
+                        <div
+                            className={cn(
+                                'ml-3 flex !aspect-video h-[85px] cursor-pointer items-center justify-center overflow-clip rounded-lg border bg-white',
+                                activeSlideComponent?.id === 'thank-you-page' &&
+                                    'border-pink-500'
+                            )}
+                            onClick={() => {
+                                setActiveSlideComponent({
+                                    id: 'thank-you-page',
+                                    index: -20
+                                });
+                            }}
+                        >
+                            <ThankYouSlide disabled />
+                        </div>
                     </div>
-                </div>
+                )}
+
                 <div
                     className="relative flex h-full flex-1 flex-col items-center justify-center "
                     onClick={() => {

@@ -28,15 +28,18 @@ const DropdownMenu = ({ children }: { children: React.ReactNode }) => {
 DropdownMenu.Trigger = function DropdownMenuTrigger({
     children,
     className,
-    tooltipLabel
+    tooltipLabel,
+    onClick
 }: {
     children: React.ReactNode;
     className?: string;
     tooltipLabel?: string;
+    onClick?: () => void;
 }) {
     return (
         <ToolTip label={tooltipLabel || ''}>
             <DropdownMenuPrimitive.Trigger
+                onClick={onClick}
                 asChild
                 className={cn(
                     'flex items-center gap-2 rounded-md p-2 text-lg text-black-700 hover:bg-black-200 ',
