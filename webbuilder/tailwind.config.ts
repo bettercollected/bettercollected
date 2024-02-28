@@ -617,7 +617,8 @@ export default {
             max: 'max-content',
             fit: 'fit-content',
             'body-content': 'calc(100vh - 64px)',
-            'design-content': 'calc(100vh - 165px)'
+            'design-content': 'calc(100vh - 165px)',
+            'pages-container': 'calc(100% - 332px)'
         }),
         hueRotate: {
             0: '0deg',
@@ -790,7 +791,8 @@ export default {
             max: 'max-content',
             fit: 'fit-content',
             'design-content': 'calc(100vh - 185px)',
-            'body-content': 'calc(100vh - 64px)'
+            'body-content': 'calc(100vh - 64px)',
+            'pages-container': 'calc(100% - 168px)'
         }),
         maxWidth: ({ theme, breakpoints }) => ({
             ...theme('spacing'),
