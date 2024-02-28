@@ -2,14 +2,14 @@ import Image from 'next/image';
 
 import RectangleImage from '@app/assets/image/rectangle.png';
 import { Button } from '@app/shadcn/components/ui/button';
-import { FieldInput } from '@app/shadcn/components/ui/input';
 import { useFormState } from '@app/store/jotai/form';
 
 const ThankYouSlide = ({ disabled }: { disabled?: boolean }) => {
-    const { formState, setFormState } = useFormState();
+    const { formState, setFormState, theme } = useFormState();
     return (
         <div
             className={`flex aspect-video h-min w-full bg-blue-100  ${disabled ? 'pointer-events-none overflow-hidden' : ''}`}
+            style={{ background: theme?.accent }}
         >
             <div className=" flex basis-1/2 flex-col items-start justify-center gap-12 px-12">
                 <div className="flex w-full flex-col">
