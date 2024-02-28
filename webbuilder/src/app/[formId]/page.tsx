@@ -7,6 +7,7 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import cn from 'classnames';
 import { motion } from 'framer-motion';
 import { PlusIcon } from 'lucide-react';
+import { toast } from 'react-toastify';
 import { v4 } from 'uuid';
 
 import { formFieldsList } from '@app/constants/form-fields';
@@ -31,7 +32,7 @@ import WelcomeSlide from '@app/views/organism/WelcomePage';
 
 export default function FormPage({ params }: { params: { formId: string } }) {
     const router = useRouter();
-    const { addSlide, formFields, setFormFields } = useFormFieldsAtom();
+    const { addSlide, formFields, setFormFields, addField } = useFormFieldsAtom();
     const { setFormState } = useFormState();
 
     const { activeSlideComponent, setActiveSlideComponent } = useActiveSlideComponent();
@@ -85,6 +86,70 @@ export default function FormPage({ params }: { params: { formId: string } }) {
         };
     }, [navbarState]);
 
+    const handleAddField = (field: any) => {
+        if (activeSlideComponent === null) {
+            toast('Add a slide to add questions');
+            return;
+        }
+
+        if (activeSlideComponent?.index < 0) {
+            toast('Select a slide to add questions');
+            return;
+        }
+
+        const fieldId = v4();
+        if (
+            field.type === FieldTypes.YES_NO ||
+            field.type === FieldTypes.DROP_DOWN ||
+            field.type === FieldTypes.MULTIPLE_CHOICE
+        ) {
+            const firstChoiceId = v4();
+            const secondChoiceId = v4();
+            addField(
+                {
+                    id: fieldId,
+                    index: formFields[activeSlideComponent.index]?.properties?.fields
+                        ?.length
+                        ? formFields[activeSlideComponent.index]?.properties?.fields
+                              ?.length!
+                        : 0,
+                    type: field.type,
+                    properties: {
+                        fields: [],
+                        choices: [
+                            {
+                                id: firstChoiceId,
+                                value: field.type === FieldTypes.YES_NO ? 'Yes' : ''
+                            },
+                            {
+                                id: secondChoiceId,
+                                value: field.type === FieldTypes.YES_NO ? 'No' : ''
+                            }
+                        ]
+                    }
+                },
+                activeSlideComponent?.index || 0
+            );
+        } else {
+            addField(
+                {
+                    id: fieldId,
+                    index: formFields[activeSlideComponent!.index]?.properties?.fields
+                        ?.length
+                        ? formFields[activeSlideComponent!.index]?.properties?.fields
+                              ?.length!
+                        : 0,
+                    type: field.type
+                },
+                activeSlideComponent?.index || 0
+            );
+        }
+        setNavbarState({ insertClicked: false });
+        window.setTimeout(function () {
+            document.getElementById(`input-${fieldId}`)?.focus();
+        }, 0);
+    };
+
     return (
         <main className="flex h-screen flex-col items-center justify-start bg-black-100">
             <Navbar />
@@ -115,6 +180,7 @@ export default function FormPage({ params }: { params: { formId: string } }) {
                                 ) => {
                                     return (
                                         <div
+                                            onClick={() => handleAddField(field)}
                                             key={index}
                                             className="flex w-[120px] cursor-grab flex-col items-center justify-center gap-1 border-[1px] border-black-300 text-black-600"
                                         >
