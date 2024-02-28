@@ -16,7 +16,6 @@ import {
     useActiveFieldComponent,
     useActiveSlideComponent
 } from '@app/store/jotai/activeBuilderComponent';
-import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
 import FieldSettings from '@app/views/organism/FieldSettings';
 import PageDesignTab from '@app/views/organism/PageDesignTab';
 import PagePropertiesTab from '@app/views/organism/PagePropertiesTab';
@@ -54,8 +53,6 @@ const FieldTypeSelector = () => {
 };
 
 export default function PropertiesDrawer() {
-    const { formFields } = useFormFieldsAtom();
-
     const { activeSlideComponent } = useActiveSlideComponent();
     const { activeFieldComponent } = useActiveFieldComponent();
 

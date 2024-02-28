@@ -1,11 +1,10 @@
 import { ThemeColors } from '@app/constants/theme';
 import { Separator } from '@app/shadcn/components/ui/separator';
 import { cn } from '@app/shadcn/util/lib';
-import { useActiveSlideComponent } from '@app/store/jotai/activeBuilderComponent';
-import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
+import { useFormState } from '@app/store/jotai/form';
 
 export default function PageDesignTab() {
-    const { updateSlideTheme, activeSlide } = useFormFieldsAtom();
+    const { updateFormTheme, theme } = useFormState();
     return (
         <div className="flex h-full flex-col ">
             <span className="px-4 font-medium text-black-700 ">Theme</span>
@@ -15,13 +14,12 @@ export default function PageDesignTab() {
                     return (
                         <div
                             key={index}
-                            className={`cursor-pointer border-[1px] hover:bg-black-200 ${activeSlide?.properties?.theme?.title === themeColor.title && 'border-brand-500'}`}
+                            className={`cursor-pointer border-[1px] hover:bg-black-200 ${theme?.title === themeColor.title && 'border-brand-500'}`}
                             onClick={() => {
-                                updateSlideTheme(themeColor);
+                                updateFormTheme(themeColor);
                             }}
                         >
                             <ThemeComponent color={themeColor} />
-                            {/* <Separator /> */}
                         </div>
                     );
                 })}

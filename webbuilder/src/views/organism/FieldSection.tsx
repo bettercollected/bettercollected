@@ -1,9 +1,5 @@
 'use client';
 
-import React from 'react';
-
-import { usePathname, useSearchParams } from 'next/navigation';
-
 import { RadioGroup } from '@headlessui/react';
 import cn from 'classnames';
 import { GripVertical } from 'lucide-react';
@@ -15,6 +11,7 @@ import { FieldInput } from '@app/shadcn/components/ui/input';
 import { StrictModeDroppable } from '@app/shared/hocs/StrictModeDroppable';
 import { useActiveFieldComponent } from '@app/store/jotai/activeBuilderComponent';
 import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
+import { useFormState } from '@app/store/jotai/form';
 import RequiredIcon from '@app/views/atoms/Icons/Required';
 
 import { ArrowDown } from '../atoms/Icons/ArrowDown';
@@ -73,6 +70,7 @@ const FieldSection = ({
     isScaledDown?: boolean;
     disabled?: boolean;
 }) => {
+    const { theme } = useFormState();
     const slideFields = slide?.properties?.fields;
     const { updateTitle, updateDescription, moveFieldInASlide, deleteField } =
         useFormFieldsAtom();
@@ -102,10 +100,10 @@ const FieldSection = ({
     return (
         <div
             style={{
-                backgroundColor: slide?.properties?.theme?.accent
+                backgroundColor: slide?.properties?.theme?.accent || theme?.accent
             }}
             className={cn(
-                'aspect-video h-min w-full overflow-auto bg-white',
+                'aspect-video h-min w-full  overflow-auto bg-white',
                 disabled ? 'pointer-events-none overflow-hidden' : '',
                 isScaledDown ? '!h-full !w-full' : ''
             )}
@@ -126,7 +124,7 @@ const FieldSection = ({
                             {...provided.droppableProps}
                             ref={provided.innerRef}
                             className={cn(
-                                'flex h-full flex-col justify-center gap-20 px-20 py-10'
+                                'flex flex-col justify-center gap-20 px-20 py-10'
                             )}
                         >
                             {Array.isArray(slideFields) && slideFields.length ? (
@@ -301,6 +299,8 @@ const FileUpload = ({
     slide: FormField;
     disabled: boolean;
 }) => {
+    const { theme } = useFormState();
+
     const handleFileInputChange = (event: any) => {
         const file = event.target.files[0];
         if (file.size > 26214400) alert('Size greater than 25MB.');
@@ -309,13 +309,17 @@ const FileUpload = ({
         <>
             <label
                 htmlFor="form-builder-file-upload"
-                style={{ borderColor: slide.properties?.theme?.tertiary }}
+                style={{
+                    borderColor: slide.properties?.theme?.tertiary || theme?.tertiary
+                }}
                 className={
                     'flex h-[200px] w-[500px] cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dotted'
                 }
             >
                 <FolderUploadIcon
-                    style={{ color: slide.properties?.theme?.secondary }}
+                    style={{
+                        color: slide.properties?.theme?.secondary || theme?.secondary
+                    }}
                 />
                 <div className={'flex flex-col items-center gap-1'}>
                     <span className={'text-base font-semibold'}>
@@ -344,13 +348,19 @@ const InputField = ({
     disabled: boolean;
 }) => {
     const { updateFieldPlaceholder } = useFormFieldsAtom();
+    const { theme } = useFormState();
 
     return (
         <>
             <FieldInput
-                slide={slide}
+                $slide={slide}
                 type="text"
-                textColor={slide.properties?.theme?.secondary || 'text-black-500'}
+                $formTheme={theme}
+                textColor={
+                    slide.properties?.theme?.secondary ||
+                    theme?.secondary ||
+                    'text-black-500'
+                }
                 value={field.properties?.placeholder}
                 placeholder={getPlaceholderValueForField(
                     field.type || FieldTypes.SHORT_TEXT
@@ -372,6 +382,8 @@ const YesNoField = ({
     slide: FormField;
     disabled: boolean;
 }) => {
+    const { theme } = useFormState();
+
     return (
         <>
             <RadioGroup
@@ -406,24 +418,34 @@ const DropDownField = ({
     disabled: boolean;
 }) => {
     const { updateChoiceFieldValue, addChoiceField } = useFormFieldsAtom();
+    const { theme } = useFormState();
     return (
         <>
             {field.type === FieldTypes.DROP_DOWN ? (
                 <div
                     style={{
-                        borderColor: slide.properties?.theme?.tertiary,
-                        color: slide.properties?.theme?.tertiary
+                        borderColor:
+                            slide.properties?.theme?.tertiary || theme?.tertiary,
+                        color: slide.properties?.theme?.tertiary || theme?.tertiary
                     }}
                     className="mb-2 flex w-full items-center justify-between border-0 border-b-[1px] py-2 text-3xl "
                 >
                     <h1>Select an option</h1>
-                    <ArrowDown style={{ color: slide.properties?.theme?.secondary }} />
+                    <ArrowDown
+                        style={{
+                            color:
+                                slide.properties?.theme?.secondary || theme?.secondary
+                        }}
+                    />
                 </div>
             ) : (
                 field.properties &&
                 field.properties.allowMultipleSelection && (
                     <h1
-                        style={{ color: slide.properties?.theme?.secondary }}
+                        style={{
+                            color:
+                                slide.properties?.theme?.secondary || theme?.secondary
+                        }}
                         className="-mt-1 mb-1 font-medium"
                     >
                         Choose as many as you like
@@ -435,10 +457,12 @@ const DropDownField = ({
                     field.properties?.choices?.map((choice, index) => {
                         return (
                             <FieldInput
-                                slide={slide}
+                                $slide={slide}
                                 type="text"
+                                $formTheme={theme}
                                 textColor={
                                     slide.properties?.theme?.secondary ||
+                                    theme?.secondary ||
                                     'text-black-500'
                                 }
                                 value={choice.value}
@@ -460,8 +484,9 @@ const DropDownField = ({
             {field?.properties?.allowOtherOption && (
                 <div
                     style={{
-                        color: slide.properties?.theme?.tertiary,
-                        borderColor: slide.properties?.theme?.tertiary
+                        color: slide.properties?.theme?.tertiary || theme?.tertiary,
+                        borderColor:
+                            slide.properties?.theme?.tertiary || theme?.tertiary
                     }}
                     className={`mt-2 flex w-full justify-between rounded-xl border p-2 py-1 text-[32px]`}
                 >
@@ -471,7 +496,7 @@ const DropDownField = ({
             <Button
                 style={{
                     color: 'white',
-                    background: slide.properties?.theme?.tertiary
+                    background: slide.properties?.theme?.tertiary || theme?.tertiary
                 }}
                 onClick={() => addChoiceField(field.index, slide.index)}
                 variant={'ghost'}

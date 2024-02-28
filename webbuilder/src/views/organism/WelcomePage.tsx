@@ -5,9 +5,12 @@ import { Button } from '@app/shadcn/components/ui/button';
 import { useFormState } from '@app/store/jotai/form';
 
 const WelcomeSlide = ({ disabled }: { disabled?: boolean }) => {
-    const { formState, setFormDescription, setFormTitle } = useFormState();
+    const { theme, formState, setFormDescription, setFormTitle } = useFormState();
     return (
         <div
+            style={{
+                background: theme?.accent
+            }}
             className={`flex aspect-video h-min w-full bg-blue-100  ${disabled ? 'pointer-events-none overflow-hidden' : ''}`}
         >
             <div className=" flex basis-1/2 flex-col items-start justify-center gap-12 px-12">

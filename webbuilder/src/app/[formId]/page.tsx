@@ -85,14 +85,7 @@ export default function FormPage({ params }: { params: { formId: string } }) {
                                     index: formFields.length,
                                     type: FieldTypes.SLIDE,
                                     properties: {
-                                        fields: [],
-                                        theme: {
-                                            title: 'Default',
-                                            primary: ThemeColor.primary,
-                                            secondary: ThemeColor.secondary,
-                                            tertiary: ThemeColor.tertiary,
-                                            accent: ThemeColor.accent
-                                        }
+                                        fields: []
                                     }
                                 });
                             }}
