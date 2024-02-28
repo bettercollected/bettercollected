@@ -46,7 +46,10 @@ export default function useFormFieldsAtom() {
 
     const updateTitle = (fieldIndex: number, slideIndex: number, titleText: string) => {
         const slide = formFields[slideIndex];
-        slide.properties!.fields![fieldIndex].title = titleText;
+        slide.properties!.fields![fieldIndex] = {
+            ...(slide.properties!.fields![fieldIndex] || {}),
+            title: titleText
+        };
         const updatedSlides = [...formFields];
         setFormFields(updatedSlides);
     };
