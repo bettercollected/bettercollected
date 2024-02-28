@@ -5,7 +5,7 @@ import { ReactNode, useEffect } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
 import cn from 'classnames';
-import { motion } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import { PlusIcon } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { v4 } from 'uuid';
@@ -154,158 +154,168 @@ export default function FormPage({ params }: { params: { formId: string } }) {
         <main className="flex h-screen flex-col items-center justify-start bg-black-100">
             <Navbar />
             <AutoSaveForm formId={formId} />
-            <div className="flex max-h-body-content  w-full flex-row items-center gap-10">
-                {!(
-                    activeSlideComponent?.id === 'welcome-page' ||
-                    activeSlideComponent?.id === 'thank-you-page'
-                ) && navbarState.insertClicked ? (
-                    <motion.div
-                        initial={{ x: '-100%' }}
-                        animate={{ x: 0 }}
-                        transition={{ type: 'tween', stiffness: 80, duration: 0.3 }}
-                        id="fields-option"
-                        className="grid h-body-content w-[240px] grid-cols-2 overflow-y-auto overflow-x-hidden bg-white 
+            <div className="flex max-h-body-content w-full flex-row items-center gap-10">
+                <AnimatePresence initial={false} mode="wait">
+                    {!(
+                        activeSlideComponent?.id === 'welcome-page' ||
+                        activeSlideComponent?.id === 'thank-you-page'
+                    ) && navbarState.insertClicked ? (
+                        <motion.div
+                            key="field-options"
+                            initial={{ opacity: 0, x: '-100%' }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: '-100%' }}
+                            transition={{ duration: 0.5 }}
+                            id="fields-option"
+                            className=" grid h-body-content w-[240px] grid-cols-2 overflow-y-auto overflow-x-hidden bg-white 
                         "
-                    >
-                        {Array.isArray(formFieldsList) &&
-                            formFieldsList.length &&
-                            formFieldsList.map(
-                                (
-                                    field: {
-                                        name: string;
-                                        type: FieldTypes;
-                                        icon: ReactNode;
-                                    },
-                                    index: number
-                                ) => {
-                                    return (
-                                        <div
-                                            onClick={() => handleAddField(field)}
-                                            key={index}
-                                            className="flex w-[120px] cursor-grab flex-col items-center justify-center gap-1 border-[1px] border-black-300 text-black-600"
-                                        >
-                                            {field.icon}
-                                            <h1> {field.name}</h1>
-                                        </div>
-                                    );
-                                }
-                            )}
-                    </motion.div>
-                ) : (
-                    <div
-                        id="slides-preview"
-                        className="flex h-body-content w-[200px] flex-col gap-5 overflow-y-auto overflow-x-hidden bg-white p-5"
-                    >
-                        <div className="flex w-full items-center justify-between">
-                            <span className="h4-new font-medium text-black-700">
-                                Pages
-                            </span>
-                            <Button
-                                variant={ButtonVariant.Secondary}
-                                className="!p-2"
-                                size={ButtonSize.Small}
-                                onClick={() => {
-                                    const fieldId = v4();
-                                    addSlide({
-                                        id: fieldId,
-                                        index: formFields.length,
-                                        type: FieldTypes.SLIDE,
-                                        properties: {
-                                            fields: [],
-                                            theme: {
-                                                title: 'Default',
-                                                primary: ThemeColor.primary,
-                                                secondary: ThemeColor.secondary,
-                                                tertiary: ThemeColor.tertiary,
-                                                accent: ThemeColor.accent
+                        >
+                            {Array.isArray(formFieldsList) &&
+                                formFieldsList.length &&
+                                formFieldsList.map(
+                                    (
+                                        field: {
+                                            name: string;
+                                            type: FieldTypes;
+                                            icon: ReactNode;
+                                        },
+                                        index: number
+                                    ) => {
+                                        return (
+                                            <div
+                                                onClick={() => handleAddField(field)}
+                                                key={index}
+                                                className="flex w-[120px] cursor-grab flex-col items-center justify-center gap-1 border-[1px] border-black-300 text-black-600"
+                                            >
+                                                {field.icon}
+                                                <h1> {field.name}</h1>
+                                            </div>
+                                        );
+                                    }
+                                )}
+                        </motion.div>
+                    ) : (
+                        <motion.div
+                            key="field"
+                            initial={{ opacity: 0, x: '-100%' }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: '-100%' }}
+                            transition={{ duration: 0.5 }}
+                            id="slides-preview"
+                            className="flex h-body-content w-[200px] flex-col gap-5 overflow-y-auto overflow-x-hidden bg-white p-5"
+                        >
+                            <div className="flex w-full items-center justify-between">
+                                <span className="h4-new font-medium text-black-700">
+                                    Pages
+                                </span>
+                                <Button
+                                    variant={ButtonVariant.Secondary}
+                                    className="!p-2"
+                                    size={ButtonSize.Small}
+                                    onClick={() => {
+                                        const fieldId = v4();
+                                        addSlide({
+                                            id: fieldId,
+                                            index: formFields.length,
+                                            type: FieldTypes.SLIDE,
+                                            properties: {
+                                                fields: [],
+                                                theme: {
+                                                    title: 'Default',
+                                                    primary: ThemeColor.primary,
+                                                    secondary: ThemeColor.secondary,
+                                                    tertiary: ThemeColor.tertiary,
+                                                    accent: ThemeColor.accent
+                                                }
                                             }
-                                        }
+                                        });
+                                    }}
+                                    icon={<PlusIcon />}
+                                ></Button>
+                            </div>
+                            <div
+                                className={cn(
+                                    'ml-3 flex !aspect-video !h-[85px] cursor-pointer items-center justify-center overflow-auto rounded-lg border bg-white',
+                                    activeSlideComponent?.id === 'welcome-page' &&
+                                        'border-pink-500'
+                                )}
+                                onClick={() => {
+                                    setActiveSlideComponent({
+                                        id: 'welcome-page',
+                                        index: -10
                                     });
                                 }}
-                                icon={<PlusIcon />}
-                            ></Button>
-                        </div>
-                        <div
-                            className={cn(
-                                'ml-3 flex !aspect-video !h-[85px] cursor-pointer items-center justify-center overflow-auto rounded-lg border bg-white',
-                                activeSlideComponent?.id === 'welcome-page' &&
-                                    'border-pink-500'
-                            )}
-                            onClick={() => {
-                                setActiveSlideComponent({
-                                    id: 'welcome-page',
-                                    index: -10
-                                });
-                            }}
-                        >
-                            <WelcomeSlide disabled />
-                        </div>
-                        {Array.isArray(Slides) && Slides.length ? (
-                            Slides.map((slide, index) => {
-                                return (
-                                    <div
-                                        key={slide.id}
-                                        className={cn(
-                                            'relative flex items-center gap-2',
-                                            activeSlideComponent?.id === slide.id &&
-                                                '!border-pink-500'
-                                        )}
-                                    >
-                                        <span
-                                            className={cn(
-                                                'absolute -left-2',
-                                                activeSlideComponent?.id === slide.id
-                                                    ? 'text-pink-500'
-                                                    : 'text-black-700'
-                                            )}
-                                        >
-                                            {index + 1}
-                                        </span>
+                            >
+                                <WelcomeSlide disabled />
+                            </div>
+                            {Array.isArray(Slides) && Slides.length ? (
+                                Slides.map((slide, index) => {
+                                    return (
                                         <div
-                                            role="button"
+                                            key={slide.id}
                                             className={cn(
-                                                'ml-3 flex !aspect-video cursor-pointer items-center justify-center overflow-hidden rounded-lg border',
+                                                'relative flex items-center gap-2',
                                                 activeSlideComponent?.id === slide.id &&
                                                     '!border-pink-500'
                                             )}
-                                            onClick={() => {
-                                                setActiveSlideComponent({
-                                                    id: slide.id,
-                                                    index
-                                                });
-                                            }}
                                         >
-                                            <div className={'scale-[0.25]'}>
-                                                <FieldSection
-                                                    slide={slide}
-                                                    disabled
-                                                    isScaledDown
-                                                />
+                                            <span
+                                                className={cn(
+                                                    'absolute -left-2',
+                                                    activeSlideComponent?.id ===
+                                                        slide.id
+                                                        ? 'text-pink-500'
+                                                        : 'text-black-700'
+                                                )}
+                                            >
+                                                {index + 1}
+                                            </span>
+                                            <div
+                                                role="button"
+                                                className={cn(
+                                                    'ml-3 flex !aspect-video cursor-pointer items-center justify-center overflow-hidden rounded-lg border',
+                                                    activeSlideComponent?.id ===
+                                                        slide.id && '!border-pink-500'
+                                                )}
+                                                onClick={() => {
+                                                    setActiveSlideComponent({
+                                                        id: slide.id,
+                                                        index
+                                                    });
+                                                }}
+                                            >
+                                                <div className={'scale-[0.25]'}>
+                                                    <FieldSection
+                                                        slide={slide}
+                                                        disabled
+                                                        isScaledDown
+                                                    />
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
-                                );
-                            })
-                        ) : (
-                            <></>
-                        )}
-                        <div
-                            className={cn(
-                                'ml-3 flex !aspect-video h-[85px] cursor-pointer items-center justify-center overflow-clip rounded-lg border bg-white',
-                                activeSlideComponent?.id === 'thank-you-page' &&
-                                    'border-pink-500'
+                                    );
+                                })
+                            ) : (
+                                <></>
                             )}
-                            onClick={() => {
-                                setActiveSlideComponent({
-                                    id: 'thank-you-page',
-                                    index: -20
-                                });
-                            }}
-                        >
-                            <ThankYouSlide disabled />
-                        </div>
-                    </div>
-                )}
+                            <div
+                                className={cn(
+                                    'ml-3 flex !aspect-video h-[85px] cursor-pointer items-center justify-center overflow-clip rounded-lg border bg-white',
+                                    activeSlideComponent?.id === 'thank-you-page' &&
+                                        'border-pink-500'
+                                )}
+                                onClick={() => {
+                                    setActiveSlideComponent({
+                                        id: 'thank-you-page',
+                                        index: -20
+                                    });
+                                }}
+                            >
+                                <ThankYouSlide disabled />
+                            </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
 
                 <div
                     className="relative flex h-full flex-1 flex-col items-center justify-center "
