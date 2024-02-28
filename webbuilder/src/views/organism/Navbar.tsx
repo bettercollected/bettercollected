@@ -3,13 +3,13 @@
 import { toast } from 'react-toastify';
 import { v4 } from 'uuid';
 
-import { formFieldsList } from '@app/constants/form-fields';
 import { FieldTypes } from '@app/models/dtos/form';
 import { Button } from '@app/shadcn/components/ui/button';
 import { DropdownMenu } from '@app/shadcn/components/ui/dropdown-menu';
 import { useActiveSlideComponent } from '@app/store/jotai/activeBuilderComponent';
 import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
 import { useFormState } from '@app/store/jotai/form';
+import { useNavbarState } from '@app/store/jotai/navbar';
 import BetterCollectedSmallLogo from '@app/views/atoms/Icons/BetterCollectedSmallLogo';
 
 import { MediaOutlinedIcon } from '../atoms/Icons/MediaOutlined';
@@ -21,6 +21,7 @@ const Navbar = () => {
     const { formFields, addField } = useFormFieldsAtom();
     const { activeSlideComponent } = useActiveSlideComponent();
     const { formState, setFormTitle } = useFormState();
+    const { navbarState, setNavbarState } = useNavbarState();
     const handleAddField = (field: any) => {
         if (activeSlideComponent === null) {
             toast('Add a slide to add questions');
@@ -95,13 +96,24 @@ const Navbar = () => {
                     <BetterCollectedSmallLogo />
                 </div>
                 <DropdownMenu>
-                    <DropdownMenu.Trigger tooltipLabel={'Insert Fields'}>
+                    <DropdownMenu.Trigger
+                        tooltipLabel={'Insert Fields'}
+                        onClick={() => {
+                            !(
+                                activeSlideComponent?.id === 'welcome-page' ||
+                                activeSlideComponent?.id === 'thank-you-page'
+                            ) &&
+                                setNavbarState({
+                                    insertClicked: true
+                                });
+                        }}
+                    >
                         <div className="text-xs font-semibold">
                             <PlusOutlined />
                             Insert
                         </div>
                     </DropdownMenu.Trigger>
-                    <DropdownMenu.Content>
+                    {/* <DropdownMenu.Content>
                         {Array.isArray(formFieldsList) &&
                             formFieldsList.map((field) => {
                                 return (
@@ -113,7 +125,7 @@ const Navbar = () => {
                                     </DropdownMenu.Item>
                                 );
                             })}
-                    </DropdownMenu.Content>
+                    </DropdownMenu.Content> */}
                 </DropdownMenu>
                 <DropdownMenu>
                     <DropdownMenu.Trigger tooltipLabel={'Add Media'}>
