@@ -134,6 +134,7 @@ const Navbar = () => {
             </div>
             <input
                 type="text"
+                placeholder="Form Title"
                 value={formState.title}
                 onChange={(event) => {
                     setFormTitle(event.target.value);
