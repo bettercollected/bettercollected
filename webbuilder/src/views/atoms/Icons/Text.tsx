@@ -1,6 +1,6 @@
 import React from 'react';
 
-export default function DropDownIcon(props: React.SVGAttributes<any>) {
+export function TextIcon(props: React.SVGAttributes<any>) {
     return (
         <svg
             width="40"
@@ -11,11 +11,8 @@ export default function DropDownIcon(props: React.SVGAttributes<any>) {
             {...props}
         >
             <path
-                d="M6.5 13L20.5 27L34.5 13"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
+                d="M23.7617 32H15.9917V29.9H18.9317V9.6H12.4217V12.89H10.3217V7.5H29.6767V12.89H27.5767V9.6H21.1367V29.9H23.7617V32Z"
+                fill="#6E6E6E"
             />
         </svg>
     );

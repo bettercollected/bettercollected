@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { ReactNode, useEffect } from 'react';
 
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
@@ -106,15 +106,20 @@ export default function FormPage({ params }: { params: { formId: string } }) {
                             formFieldsList.length &&
                             formFieldsList.map(
                                 (
-                                    field: { name: string; type: FieldTypes },
+                                    field: {
+                                        name: string;
+                                        type: FieldTypes;
+                                        icon: ReactNode;
+                                    },
                                     index: number
                                 ) => {
                                     return (
                                         <div
                                             key={index}
-                                            className="flex w-[120px] cursor-grab items-center justify-center border-[1px] border-black-300"
+                                            className="flex w-[120px] cursor-grab flex-col items-center justify-center gap-1 border-[1px] border-black-300 text-black-600"
                                         >
-                                            {field.name}
+                                            {field.icon}
+                                            <h1> {field.name}</h1>
                                         </div>
                                     );
                                 }
