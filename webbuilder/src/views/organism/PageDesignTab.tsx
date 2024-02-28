@@ -1,4 +1,5 @@
 import { ThemeColors } from '@app/constants/theme';
+import { ScrollArea } from '@app/shadcn/components/ui/scroll-area';
 import { Separator } from '@app/shadcn/components/ui/separator';
 import { cn } from '@app/shadcn/util/lib';
 import { useFormState } from '@app/store/jotai/form';
@@ -9,12 +10,12 @@ export default function PageDesignTab() {
         <div className="flex h-full flex-col ">
             <span className="px-4 font-medium text-black-700 ">Theme</span>
             <Separator className="mt-4" />
-            <div className="flex max-h-design-content flex-col overflow-y-auto">
+            <ScrollArea className="flex max-h-design-content flex-col overflow-y-auto p-2">
                 {ThemeColors.map((themeColor, index) => {
                     return (
                         <div
                             key={index}
-                            className={`cursor-pointer border-[1px] hover:bg-black-200 ${theme?.title === themeColor.title && 'border-brand-500'}`}
+                            className={`mb-2 cursor-pointer rounded-lg border-[1px] hover:bg-black-200 ${theme?.title === themeColor.title && 'border-brand-500'}`}
                             onClick={() => {
                                 updateFormTheme(themeColor);
                             }}
@@ -23,7 +24,7 @@ export default function PageDesignTab() {
                         </div>
                     );
                 })}
-            </div>
+            </ScrollArea>
         </div>
     );
 }
