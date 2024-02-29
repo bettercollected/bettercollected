@@ -10,7 +10,7 @@ RUN npm install --omit=dev
 
 # Rebuild the source code only when needed
 FROM prod as builder
-ARG BASE_DEPLOY_PATH
+ARG BASE_DEPLOY_PATH="/builder"
 ARG NEXT_PUBLIC_NODE_ENV="production"
 ARG SENTRY_DSN
 ARG SENTRY_RELEASE
