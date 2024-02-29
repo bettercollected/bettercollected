@@ -16,6 +16,7 @@ import ReduxProvider from '@app/shared/hocs/ReduxProvider';
 import ThemeProvider from '@app/shared/hocs/ThemeProvider';
 import CookieConsent from '@app/views/atoms/CookieConsent';
 import NextNProgress from '@app/views/atoms/NextNProgress';
+import { Toaster } from '@app/shadcn/components/ui/toaster';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -53,6 +54,7 @@ export default function RootLayout({
                         pauseOnHover={false}
                         theme="dark"
                     />
+                    <Toaster />
                     <ReduxProvider>
                         {children}
                         <DialogModalContainer />

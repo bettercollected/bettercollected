@@ -1,5 +1,4 @@
 import Image from 'next/image';
-import Link from 'next/link';
 
 import RectangleImage from '@app/assets/image/rectangle.png';
 import { Button } from '@app/shadcn/components/ui/button';
@@ -33,14 +32,9 @@ const ThankYouSlide = ({ disabled }: { disabled?: boolean }) => {
                     )}
                 </div>
                 {formState.thankYouButtonText !== undefined ? (
-                    <Link
-                        href={formState.buttonLink ? formState.buttonLink : '#'}
-                        target="_blank"
-                    >
-                        <Button size={'medium'}>
-                            {formState.thankYouButtonText || 'Try bettercollected'}
-                        </Button>
-                    </Link>
+                    <Button size={'medium'}>
+                        {formState.thankYouButtonText || 'Try bettercollected'}
+                    </Button>
                 ) : (
                     <></>
                 )}
