@@ -36,7 +36,7 @@ const WelcomeSlide = ({ disabled }: { disabled?: boolean }) => {
                         <></>
                     )}
                 </div>
-                <Button size={'medium'}>Start</Button>
+                <Button size={'medium'}>{formState.buttonText||'Start'}</Button>
             </div>
             <Image
                 objectFit="cover"
