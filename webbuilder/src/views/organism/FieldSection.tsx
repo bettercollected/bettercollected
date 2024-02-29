@@ -396,7 +396,12 @@ const YesNoField = ({
                         return (
                             <RadioGroup.Option value={choice.value} key={index}>
                                 <div
-                                    className={`flex justify-between rounded-xl border border-cyan-500 p-2 px-4`}
+                                    style={{
+                                        borderColor:
+                                            slide.properties?.theme?.tertiary ||
+                                            theme?.tertiary
+                                    }}
+                                    className={`flex justify-between rounded-xl border p-2 px-4`}
                                 >
                                     {choice.value}
                                 </div>
