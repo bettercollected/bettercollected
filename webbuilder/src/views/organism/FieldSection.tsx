@@ -39,6 +39,8 @@ function getPlaceholderValueForTitle(fieldType: FieldTypes) {
             return 'Select an option';
         case FieldTypes.MULTIPLE_CHOICE:
             return 'Select from list below.';
+        case FieldTypes.TEXT:
+            return 'Add Text';
         default:
             return 'No Field Selected';
     }
@@ -58,6 +60,25 @@ function getPlaceholderValueForField(fieldType: FieldTypes) {
             return '0123456789';
         default:
             return 'No Field Selected';
+    }
+}
+
+function getClassName(fieldType: FieldTypes) {
+    switch (fieldType) {
+        case FieldTypes.TEXT:
+            return 'text-[32px] font-bold';
+        case FieldTypes.EMAIL:
+        case FieldTypes.NUMBER:
+        case FieldTypes.SHORT_TEXT:
+        case FieldTypes.LINK:
+        case FieldTypes.PHONE_NUMBER:
+        case FieldTypes.FILE_UPLOAD:
+        case FieldTypes.YES_NO:
+        case FieldTypes.DROP_DOWN:
+        case FieldTypes.MULTIPLE_CHOICE:
+            return '';
+        default:
+            return '';
     }
 }
 
@@ -92,6 +113,8 @@ const FieldSection = ({
                 return (
                     <DropDownField field={field} slide={slide} disabled={disabled} />
                 );
+            case FieldTypes.TEXT:
+                return <></>;
             default:
                 return null;
         }
@@ -178,7 +201,11 @@ const FieldSection = ({
                                                         >
                                                             <div
                                                                 className={cn(
-                                                                    'absolute -left-8 top-1/2 cursor-grab text-black-500',
+                                                                    'absolute -left-8 cursor-grab text-black-500',
+                                                                    field.type ===
+                                                                        FieldTypes.TEXT
+                                                                        ? 'top-1/3'
+                                                                        : 'top-1/2',
                                                                     isScaledDown
                                                                         ? 'hidden'
                                                                         : ''
@@ -206,7 +233,11 @@ const FieldSection = ({
                                                                         field
                                                                             ?.validations
                                                                             ?.required &&
-                                                                            'after:content-[*]'
+                                                                            'after:content-[*]',
+                                                                        getClassName(
+                                                                            field.type ||
+                                                                                FieldTypes.SHORT_TEXT
+                                                                        )
                                                                     )}
                                                                     value={field.title}
                                                                     onChange={(
