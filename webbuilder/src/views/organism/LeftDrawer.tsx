@@ -6,6 +6,8 @@ import { v4 } from 'uuid';
 
 import { formFieldsList } from '@app/constants/form-fields';
 import { FieldTypes } from '@app/models/dtos/form';
+import { ButtonSize, ButtonVariant } from '@app/models/enums/button';
+import { Button } from '@app/shadcn/components/ui/button';
 import { ScrollArea } from '@app/shadcn/components/ui/scroll-area';
 import { cn } from '@app/shadcn/util/lib';
 import { useActiveSlideComponent } from '@app/store/jotai/activeBuilderComponent';
@@ -18,7 +20,7 @@ import WelcomeSlide from './WelcomePage';
 
 export default function LeftDrawer() {
     const { activeSlideComponent, setActiveSlideComponent } = useActiveSlideComponent();
-    const { formFields, addField } = useFormFieldsAtom();
+    const { formFields, addField, addSlide } = useFormFieldsAtom();
     const Slides = formFields;
     const { navbarState, setNavbarState } = useNavbarState();
 
@@ -94,23 +96,24 @@ export default function LeftDrawer() {
             >
                 <div className="flex w-full items-center justify-between border-b border-b-black-400 p-5">
                     <span className="h4-new font-medium text-black-700">Pages</span>
-                    {/* <Button
-                            variant={ButtonVariant.Secondary}
-                            className="!p-2"
-                            size={ButtonSize.Small}
-                            onClick={() => {
-                                const fieldId = v4();
-                                addSlide({
-                                    id: fieldId,
-                                    index: formFields.length,
-                                    type: FieldTypes.SLIDE,
-                                    properties: {
-                                        fields: []
-                                    }
-                                });
-                            }}
-                            icon={<PlusIcon />}
-                        ></Button> */}
+                    <Button
+                        variant={ButtonVariant.Ghost}
+                        className="!p-2"
+                        size={ButtonSize.Small}
+                        onClick={() => {
+                            const fieldId = v4();
+                            addSlide({
+                                id: fieldId,
+                                index: formFields.length,
+                                type: FieldTypes.SLIDE,
+                                properties: {
+                                    fields: []
+                                }
+                            });
+                        }}
+                    >
+                        Add Slide
+                    </Button>
                 </div>
                 <div className=" flex flex-1 flex-col justify-between overflow-auto">
                     <div className="border-b border-b-black-400 !px-2">

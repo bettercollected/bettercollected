@@ -14,7 +14,13 @@ export default function AddFormTitleModal() {
 
     const { closeDialogModal } = useDialogModal();
     return (
-        <div>
+        <form
+            onSubmit={(event) => {
+                event.preventDefault();
+                setFormTitle(title);
+                closeDialogModal();
+            }}
+        >
             <div className="p2-new border-b border-b-black-300 p-4 ">
                 Create New Form
             </div>
@@ -34,17 +40,11 @@ export default function AddFormTitleModal() {
                     }}
                 />
                 <div className="flex justify-end pt-10">
-                    <Button
-                        variant={'primary'}
-                        onClick={() => {
-                            setFormTitle(title);
-                            closeDialogModal();
-                        }}
-                    >
+                    <Button variant={'primary'} type="submit">
                         Continue
                     </Button>
                 </div>
             </div>
-        </div>
+        </form>
     );
 }
