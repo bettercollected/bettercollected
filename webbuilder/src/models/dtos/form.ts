@@ -73,6 +73,7 @@ interface FieldChoice {
 }
 
 export enum FieldTypes {
+    TEXT = 'text',
     SLIDE = 'slide',
     YES_NO = 'yes_no',
     LINK = 'url',

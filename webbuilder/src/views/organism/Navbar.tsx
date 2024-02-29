@@ -1,5 +1,8 @@
 'use client';
 
+import { v4 } from 'uuid';
+
+import { FieldTypes } from '@app/models/dtos/form';
 import { Button } from '@app/shadcn/components/ui/button';
 import { DropdownMenu } from '@app/shadcn/components/ui/dropdown-menu';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
@@ -20,6 +23,34 @@ const Navbar = () => {
     const { formState, setFormTitle } = useFormState();
     const { navbarState, setNavbarState } = useNavbarState();
     const { toast } = useToast();
+
+    const handleAddText = () => {
+        if (activeSlideComponent === null) {
+            toast({ title: 'Add a slide to add questions', variant: 'destructive' });
+            return;
+        }
+        if (activeSlideComponent?.index < 0) {
+            toast({ title: 'Select a slide to add questions', variant: 'destructive' });
+            return;
+        }
+
+        const fieldId = v4();
+        addField(
+            {
+                id: fieldId,
+                index: formFields[activeSlideComponent!.index]?.properties?.fields
+                    ?.length
+                    ? formFields[activeSlideComponent!.index]?.properties?.fields
+                          ?.length!
+                    : 0,
+                type: FieldTypes.TEXT
+            },
+            activeSlideComponent?.index || 0
+        );
+        window.setTimeout(function () {
+            document.getElementById(`input-${fieldId}`)?.focus();
+        }, 0);
+    };
 
     function isGreetingSlide() {
         return (
@@ -56,19 +87,6 @@ const Navbar = () => {
                             Insert
                         </div>
                     </DropdownMenu.Trigger>
-                    {/* <DropdownMenu.Content>
-                        {Array.isArray(formFieldsList) &&
-                            formFieldsList.map((field) => {
-                                return (
-                                    <DropdownMenu.Item
-                                        key={field.name}
-                                        onClick={() => handleAddField(field)}
-                                    >
-                                        {field.name}
-                                    </DropdownMenu.Item>
-                                );
-                            })}
-                    </DropdownMenu.Content> */}
                 </DropdownMenu>
                 <DropdownMenu>
                     <DropdownMenu.Trigger tooltipLabel={'Add Media'}>
@@ -79,7 +97,10 @@ const Navbar = () => {
                     </DropdownMenu.Trigger>
                 </DropdownMenu>
                 <DropdownMenu>
-                    <DropdownMenu.Trigger tooltipLabel={'Insert Text'}>
+                    <DropdownMenu.Trigger
+                        tooltipLabel={'Insert Text'}
+                        onClick={handleAddText}
+                    >
                         <div className="text-xs font-semibold">
                             <MediaOutlinedIcon />
                             Text
