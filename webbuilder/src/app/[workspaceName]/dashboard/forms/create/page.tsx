@@ -10,6 +10,7 @@ import { ChevronLeft, Download, Plus, Sparkles } from 'lucide-react';
 import { v4 } from 'uuid';
 
 import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
+import useWorkspace from '@app/store/jotai/workspace';
 import BetterCollectedSmallLogo from '@app/views/atoms/Icons/BetterCollectedSmallLogo';
 
 const CardVariants = {
