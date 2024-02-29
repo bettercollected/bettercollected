@@ -1,11 +1,35 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-export function middleware(request: NextRequest) {
-    console.log(request.cookies);
+export async function middleware(request: NextRequest) {
+    const Authorization = request.cookies.get('Authorization')?.value;
+    const RefreshToken = request.cookies.get('RefreshToken')?.value;
 
-    return NextResponse.redirect(new URL('/forms/create', request.url));
+    const auth = !!Authorization ? `Authorization=${Authorization}` : '';
+    const refresh = !!RefreshToken ? `RefreshToken=${RefreshToken}` : '';
+
+    const config = {
+        method: 'GET',
+        headers: {
+            cookie: `${auth};${refresh}`
+        }
+    };
+    try {
+        const statusResponse = await fetch(
+            process.env.API_ENDPOINT_HOST + '/auth/status',
+            config
+        );
+        const user = await statusResponse.json();
+        if (statusResponse.status !== 200) {
+            return NextResponse.redirect(new URL('/login', request.url));
+        }
+    } catch (e) {
+        return NextResponse.redirect('/login');
+    }
+
+    const response = NextResponse.next();
+    return response;
 }
 
 export const config = {
-    matcher: '/test'
+    matcher: ['/((?!api|_next/static|_next/image|favicon.ico|login).*)']
 };

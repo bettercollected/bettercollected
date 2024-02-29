@@ -45,7 +45,7 @@ export const store = configureStore({
         getDefaultEnhancers().concat(
             environments.IS_IN_PRODUCTION_MODE || environments.IS_REDUX_LOGGER_DISABLED
                 ? []
-                : [monitorReducerEnhancer]
+                : []
         )
 });
 
