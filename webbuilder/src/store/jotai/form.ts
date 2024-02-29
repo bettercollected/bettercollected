@@ -8,6 +8,7 @@ interface IFormState {
     thankYouMessage?: string;
     thankYouButtonText?: string;
     buttonText?: string;
+    buttonLink?: string;
     theme?: {
         title: string;
         primary: string;
@@ -31,6 +32,7 @@ const initialFormState = atom<IFormState>({
     thankYouMessage: undefined,
     thankYouButtonText: '',
     buttonText: undefined,
+    buttonLink:undefined,
     theme: {
         title: 'Default',
         primary: ThemeColor.primary,

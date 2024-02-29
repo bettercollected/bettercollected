@@ -50,17 +50,85 @@ export default function PagePropertiesTab() {
                                 }}
                             />
                         </div>
-                        {activeSlideComponent?.id === 'thank-you-page' && (
-                            <div className="flex flex-row justify-between">
+                        {activeSlideComponent?.id === 'thank-you-page' ? (
+                            <div className="flex flex-col gap-3">
+                                <div className="flex flex-row justify-between">
+                                    <div className="text-xs text-black-700">Button</div>
+                                    <Switch
+                                        checked={
+                                            formState.thankYouButtonText !== undefined
+                                        }
+                                        onCheckedChange={(checked) => {
+                                            setFormState({
+                                                ...formState,
+                                                thankYouButtonText: checked
+                                                    ? ''
+                                                    : undefined
+                                            });
+                                        }}
+                                    />
+                                </div>
+                                {formState.thankYouButtonText !== undefined && (
+                                    <>
+                                        <input
+                                            type="text"
+                                            placeholder="buttonText"
+                                            value={formState.thankYouButtonText}
+                                            onChange={(e: any) =>
+                                                setFormState({
+                                                    ...formState,
+                                                    thankYouButtonText: e.target.value
+                                                })
+                                            }
+                                            className="borer-[1px] rounded-lg border-black-300 p-2 focus:border-black-300 active:border-black-300"
+                                        />
+                                        <div className="flex flex-row justify-between">
+                                            <div className="text-xs text-black-700">
+                                                Button Link
+                                            </div>
+                                            <Switch
+                                                checked={
+                                                    formState.buttonLink !== undefined
+                                                }
+                                                onCheckedChange={(checked) => {
+                                                    setFormState({
+                                                        ...formState,
+                                                        buttonLink: checked
+                                                            ? ''
+                                                            : undefined
+                                                    });
+                                                }}
+                                            />
+                                        </div>
+                                        <input
+                                            type="text"
+                                            placeholder="buttonLink"
+                                            value={formState.buttonLink}
+                                            onChange={(e: any) =>
+                                                setFormState({
+                                                    ...formState,
+                                                    buttonLink: e.target.value
+                                                })
+                                            }
+                                            className="borer-[1px] rounded-lg border-black-300 p-2 focus:border-black-300 active:border-black-300"
+                                        />
+                                    </>
+                                )}
+                            </div>
+                        ) : (
+                            <div className="flex flex-col gap-3">
                                 <div className="text-xs text-black-700">Button</div>
-                                <Switch
-                                    checked={formState.thankYouButtonText !== undefined}
-                                    onCheckedChange={(checked) => {
+                                <input
+                                    type="text"
+                                    placeholder="buttonText"
+                                    value={formState.buttonText}
+                                    onChange={(e: any) =>
                                         setFormState({
                                             ...formState,
-                                            thankYouButtonText: checked ? '' : undefined
-                                        });
-                                    }}
+                                            buttonText: e.target.value
+                                        })
+                                    }
+                                    className="borer-[1px] rounded-lg border-black-300 p-2 focus:border-black-300 active:border-black-300"
                                 />
                             </div>
                         )}
