@@ -1,11 +1,8 @@
 'use client';
 
-import { toast } from 'react-toastify';
-import { v4 } from 'uuid';
-
-import { FieldTypes } from '@app/models/dtos/form';
 import { Button } from '@app/shadcn/components/ui/button';
 import { DropdownMenu } from '@app/shadcn/components/ui/dropdown-menu';
+import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { useActiveSlideComponent } from '@app/store/jotai/activeBuilderComponent';
 import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
 import { useFormState } from '@app/store/jotai/form';
@@ -22,71 +19,14 @@ const Navbar = () => {
     const { activeSlideComponent } = useActiveSlideComponent();
     const { formState, setFormTitle } = useFormState();
     const { navbarState, setNavbarState } = useNavbarState();
-    const handleAddField = (field: any) => {
-        if (activeSlideComponent === null) {
-            toast('Add a slide to add questions');
-            return;
-        }
+    const { toast } = useToast();
 
-        if (activeSlideComponent?.index < 0) {
-            toast('Select a slide to add questions');
-            return;
-        }
-
-        const fieldId = v4();
-        if (
-            field.type === FieldTypes.YES_NO ||
-            field.type === FieldTypes.DROP_DOWN ||
-            field.type === FieldTypes.MULTIPLE_CHOICE
-        ) {
-            const firstChoiceId = v4();
-            const secondChoiceId = v4();
-            addField(
-                {
-                    id: fieldId,
-                    title: '',
-                    index: formFields[activeSlideComponent.index]?.properties?.fields
-                        ?.length
-                        ? formFields[activeSlideComponent.index]?.properties?.fields
-                              ?.length!
-                        : 0,
-                    type: field.type,
-                    properties: {
-                        fields: [],
-                        choices: [
-                            {
-                                id: firstChoiceId,
-                                value: field.type === FieldTypes.YES_NO ? 'Yes' : ''
-                            },
-                            {
-                                id: secondChoiceId,
-                                value: field.type === FieldTypes.YES_NO ? 'No' : ''
-                            }
-                        ]
-                    }
-                },
-                activeSlideComponent?.index || 0
-            );
-        } else {
-            addField(
-                {
-                    id: fieldId,
-                    index: formFields[activeSlideComponent!.index]?.properties?.fields
-                        ?.length
-                        ? formFields[activeSlideComponent!.index]?.properties?.fields
-                              ?.length!
-                        : 0,
-                    type: field.type,
-                    title: ''
-                },
-                activeSlideComponent?.index || 0
-            );
-        }
-
-        window.setTimeout(function () {
-            document.getElementById(`input-${fieldId}`)?.focus();
-        }, 0);
-    };
+    function isGreetingSlide() {
+        return (
+            activeSlideComponent?.id === 'welcome-page' ||
+            activeSlideComponent?.id === 'thank-you-page'
+        );
+    }
 
     return (
         <div
@@ -101,13 +41,14 @@ const Navbar = () => {
                     <DropdownMenu.Trigger
                         tooltipLabel={'Insert Fields'}
                         onClick={() => {
-                            !(
-                                activeSlideComponent?.id === 'welcome-page' ||
-                                activeSlideComponent?.id === 'thank-you-page'
-                            ) &&
-                                setNavbarState({
-                                    insertClicked: true
-                                });
+                            isGreetingSlide()
+                                ? toast({
+                                      variant: 'destructive',
+                                      title: 'Add Slides or Go to Slides to add fields'
+                                  })
+                                : setNavbarState({
+                                      insertClicked: true
+                                  });
                         }}
                     >
                         <div className="text-xs font-semibold">

@@ -80,7 +80,7 @@ export default function PagePropertiesTab() {
                                                     thankYouButtonText: e.target.value
                                                 })
                                             }
-                                            className="borer-[1px] rounded-lg border-black-300 p-2 focus:border-black-300 active:border-black-300"
+                                            className="borer-[1px] rounded-lg border-black-300 p-2 text-xs focus:border-black-300 active:border-black-300"
                                         />
                                         <div className="flex flex-row justify-between">
                                             <div className="text-xs text-black-700">
@@ -110,7 +110,7 @@ export default function PagePropertiesTab() {
                                                     buttonLink: e.target.value
                                                 })
                                             }
-                                            className="borer-[1px] rounded-lg border-black-300 p-2 focus:border-black-300 active:border-black-300"
+                                            className="borer-[1px] rounded-lg border-black-300 p-2 text-xs focus:border-black-300 active:border-black-300"
                                         />
                                     </>
                                 )}
@@ -128,7 +128,7 @@ export default function PagePropertiesTab() {
                                             buttonText: e.target.value
                                         })
                                     }
-                                    className="borer-[1px] rounded-lg border-black-300 p-2 focus:border-black-300 active:border-black-300"
+                                    className="borer-[1px] rounded-lg border-black-300 p-2 text-xs focus:border-black-300 active:border-black-300"
                                 />
                             </div>
                         )}

@@ -14,7 +14,7 @@ const WelcomeSlide = ({ disabled }: { disabled?: boolean }) => {
             className={`flex aspect-video h-min w-full bg-blue-100  ${disabled ? 'pointer-events-none overflow-hidden' : ''}`}
         >
             <div className=" flex basis-1/2 flex-col items-start justify-center gap-12 px-12">
-                <div>
+                <div className="flex flex-col">
                     <input
                         type="text"
                         placeholder="Form Title"
@@ -36,7 +36,7 @@ const WelcomeSlide = ({ disabled }: { disabled?: boolean }) => {
                         <></>
                     )}
                 </div>
-                <Button size={'medium'}>{formState.buttonText||'Start'}</Button>
+                <Button size={'medium'}>{formState.buttonText || 'Start'}</Button>
             </div>
             <Image
                 objectFit="cover"
