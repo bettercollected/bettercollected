@@ -1,4 +1,4 @@
-export default function ({
+export default function FormPage({
     params
 }: {
     params: { formId: string; workspaceName: string };
