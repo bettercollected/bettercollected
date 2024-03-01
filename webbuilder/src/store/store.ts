@@ -13,7 +13,11 @@ import joyrideSlice from '@app/store/tours/slice';
 const loggerMiddleware = createLogger({ collapsed: true });
 const middlewares: any = [loggerMiddleware];
 
-if (environments.IS_IN_PRODUCTION_MODE || environments.IS_REDUX_LOGGER_DISABLED)
+if (
+    environments.IS_IN_PRODUCTION_MODE ||
+    environments.IS_REDUX_LOGGER_DISABLED ||
+    environments.NEXT_PUBLIC_NODE_ENV === 'production'
+)
     middlewares.splice(0, 1);
 
 const reducers = {

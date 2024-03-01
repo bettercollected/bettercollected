@@ -23,7 +23,7 @@ export async function middleware(request: NextRequest) {
             return NextResponse.redirect(new URL('/login', request.url));
         }
     } catch (e) {
-        return NextResponse.redirect('/login');
+        return NextResponse.redirect(new URL('/login', request.url));
     }
 
     const response = NextResponse.next();
