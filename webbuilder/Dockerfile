@@ -11,7 +11,6 @@ RUN npm install --omit=dev
 # Rebuild the source code only when needed
 FROM prod as builder
 ARG BASE_DEPLOY_PATH
-ARG ASSET_PREFIX="/static"
 ENV ASSET_PREFIX=${ASSET_PREFIX}
 ARG NEXT_PUBLIC_NODE_ENV="production"
 ARG SENTRY_DSN
