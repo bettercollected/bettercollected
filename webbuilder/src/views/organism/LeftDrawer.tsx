@@ -235,32 +235,38 @@ export default function LeftDrawer() {
                             exit={{ opacity: 0, x: '-100%' }}
                             transition={{ duration: 0.3 }}
                             id="fields-option"
-                            className=" absolute z-10 grid h-body-content w-[240px] grid-cols-2 overflow-y-auto overflow-x-hidden bg-white 
-                        "
+                            className=" absolute z-10 h-body-content w-[240px] overflow-y-auto overflow-x-hidden bg-white "
                         >
-                            {Array.isArray(formFieldsList) &&
-                                formFieldsList.length &&
-                                formFieldsList.map(
-                                    (
-                                        field: {
-                                            name: string;
-                                            type: FieldTypes;
-                                            icon: ReactNode;
-                                        },
-                                        index: number
-                                    ) => {
-                                        return (
-                                            <div
-                                                onClick={() => handleAddField(field)}
-                                                key={index}
-                                                className="flex w-[120px] cursor-grab flex-col items-center justify-center gap-1 border-[1px] border-black-300 text-black-600"
-                                            >
-                                                {field.icon}
-                                                <h1> {field.name}</h1>
-                                            </div>
-                                        );
-                                    }
-                                )}
+                            <div className="grid grid-cols-2">
+                                {Array.isArray(formFieldsList) &&
+                                    formFieldsList.length &&
+                                    formFieldsList.map(
+                                        (
+                                            field: {
+                                                name: string;
+                                                type: FieldTypes;
+                                                icon: ReactNode;
+                                            },
+                                            index: number
+                                        ) => {
+                                            return (
+                                                <div
+                                                    onClick={() =>
+                                                        handleAddField(field)
+                                                    }
+                                                    key={index}
+                                                    className="flex h-[120px] w-[120px] cursor-grab flex-col items-center justify-center gap-1 border-[1px] border-black-300 text-black-600"
+                                                >
+                                                    {field.icon}
+                                                    <span className="text-xs">
+                                                        {' '}
+                                                        {field.name}
+                                                    </span>
+                                                </div>
+                                            );
+                                        }
+                                    )}
+                            </div>
                         </motion.div>
                     )}
             </AnimatePresence>
