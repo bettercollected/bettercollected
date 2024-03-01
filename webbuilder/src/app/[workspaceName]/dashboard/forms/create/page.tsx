@@ -10,7 +10,6 @@ import { ChevronLeft, Download, Plus, Sparkles } from 'lucide-react';
 import { v4 } from 'uuid';
 
 import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
-import useWorkspace from '@app/store/jotai/workspace';
 import BetterCollectedSmallLogo from '@app/views/atoms/Icons/BetterCollectedSmallLogo';
 
 const CardVariants = {
@@ -67,7 +66,7 @@ export default function CreateFormPage() {
     const handleCreateForm = () => {
         const formId = v4();
         resetFields();
-        router.push(`/${formId}?showTitle=true`);
+        router.push(`/test/dashboard/forms/${formId}/edit?showTitle=true`);
     };
 
     const router = useRouter();

@@ -82,7 +82,7 @@ const nextConfig = {
     }
 };
 
-nextConfig.assetPrefix = process.env.ASSET_PREFIX ?? '/static';
+nextConfig.assetPrefix = process.env.ASSET_PREFIX ?? '';
 nextConfig.basePath = process.env.BASE_DEPLOY_PATH;
 
 const withPWA = nextPwa({

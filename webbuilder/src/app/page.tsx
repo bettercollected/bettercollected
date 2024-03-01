@@ -9,7 +9,7 @@ export default function HomePage() {
     const router = useRouter();
 
     const handleCreateForm = () => {
-        router.push(`/forms/create`);
+        router.push(`/test/dashboard/forms/create`);
     };
 
     return (
@@ -25,7 +25,10 @@ export default function HomePage() {
                                 className=" cursor-pointer bg-brand-300 p-2 hover:bg-brand-400"
                                 key={index}
                                 onClick={() => {
-                                    if (form?.formId) router.push(`/${form?.formId}`);
+                                    if (form?.formId)
+                                        router.push(
+                                            `/test/dashboard/forms/${form?.formId}/edit`
+                                        );
                                 }}
                             >
                                 <h1>Form with id {form?.formId}</h1>
