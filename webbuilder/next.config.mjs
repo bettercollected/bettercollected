@@ -82,10 +82,8 @@ const nextConfig = {
     }
 };
 
-if (process.env.BASE_DEPLOY_PATH) {
-    nextConfig.assetPrefix = process.env.BASE_DEPLOY_PATH;
-    nextConfig.basePath = process.env.BASE_DEPLOY_PATH;
-}
+nextConfig.assetPrefix = process.env.ASSET_PREFIX || '/static';
+nextConfig.basePath = process.env.BASE_DEPLOY_PATH;
 
 const withPWA = nextPwa({
     dest: 'public',
