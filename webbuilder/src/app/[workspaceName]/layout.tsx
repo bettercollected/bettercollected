@@ -31,8 +31,7 @@ async function WorkspaceWrapper({
     children: React.ReactNode;
 }) {
     // const workspace = await getWorkspaceByName(workspaceName);
-    const workspace = '';
-
+    const workspace = null;
     return (
         <>
             <Suspense fallback={<>Loading</>}>
