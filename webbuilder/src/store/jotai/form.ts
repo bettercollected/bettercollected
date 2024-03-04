@@ -2,7 +2,7 @@ import { atom, useAtom } from 'jotai';
 
 import { ThemeColor } from '@app/constants/theme';
 
-interface IFormState {
+export interface IFormState {
     title: string;
     description?: string;
     thankYouMessage?: string;
@@ -26,13 +26,13 @@ export interface IThemeState {
     accent: string;
 }
 
-const initialFormState = atom<IFormState>({
+export const initialFormState = atom<IFormState>({
     title: '',
     description: undefined,
     thankYouMessage: undefined,
     thankYouButtonText: '',
     buttonText: undefined,
-    buttonLink:undefined,
+    buttonLink: undefined,
     theme: {
         title: 'Default',
         primary: ThemeColor.primary,

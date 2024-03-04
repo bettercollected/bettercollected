@@ -181,7 +181,8 @@ export default {
             '2xl': '0 25px 50px -12px rgb(0 0 0 / 0.25)',
             inner: 'inset 0 2px 4px 0 rgb(0 0 0 / 0.05)',
             none: 'none',
-            tooltip: '0px 0px 6px 0px #00000026'
+            tooltip: '0px 0px 6px 0px #00000026',
+            'blue-hue': ' 0px 0px 16px 0px #0764EB29'
         },
         boxShadowColor: ({ theme }) => theme('colors'),
         brightness: {
