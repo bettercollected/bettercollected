@@ -3,15 +3,10 @@
 import { useState } from 'react';
 
 import { RadioGroup } from '@headlessui/react';
-import { Color } from '@tiptap/extension-color';
-import TextStyle from '@tiptap/extension-text-style';
-import Underline from '@tiptap/extension-underline';
-import { BubbleMenu, Editor, EditorContent, useEditor } from '@tiptap/react';
-import StarterKit from '@tiptap/starter-kit';
+import { BubbleMenu, Editor, EditorContent } from '@tiptap/react';
 import cn from 'classnames';
 import { GripVertical } from 'lucide-react';
 import { DragDropContext, Draggable, DroppableProvided } from 'react-beautiful-dnd';
-import { HexColorPicker } from 'react-colorful';
 
 import { FieldTypes, FormField } from '@app/models/dtos/form';
 import { Button } from '@app/shadcn/components/ui/button';
@@ -20,41 +15,16 @@ import { StrictModeDroppable } from '@app/shared/hocs/StrictModeDroppable';
 import { useActiveFieldComponent } from '@app/store/jotai/activeBuilderComponent';
 import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
 import { useFormState } from '@app/store/jotai/form';
-import { FontSize } from '@app/utils/richTextEditorExtenstion/fontSize';
 import RequiredIcon from '@app/views/atoms/Icons/Required';
 
 import { ArrowDown } from '../atoms/Icons/ArrowDown';
-import { ArrowUp } from '../atoms/Icons/ArrowUp';
 import DeleteIcon from '../atoms/Icons/Delete';
 import { FolderUploadIcon } from '../atoms/Icons/FolderUploadIcon';
 import { PlusIcon } from '../atoms/Icons/Plus';
-
-function getPlaceholderValueForTitle(fieldType: FieldTypes) {
-    switch (fieldType) {
-        case FieldTypes.EMAIL:
-            return 'Enter Your Email Address';
-        case FieldTypes.NUMBER:
-            return 'Enter Number';
-        case FieldTypes.SHORT_TEXT:
-            return 'Enter Text';
-        case FieldTypes.LINK:
-            return 'Enter Link';
-        case FieldTypes.PHONE_NUMBER:
-            return 'Enter Your Phone Number';
-        case FieldTypes.FILE_UPLOAD:
-            return 'Upload Your File';
-        case FieldTypes.YES_NO:
-            return 'Are you sure?';
-        case FieldTypes.DROP_DOWN:
-            return 'Select an option';
-        case FieldTypes.MULTIPLE_CHOICE:
-            return 'Select from list below.';
-        case FieldTypes.TEXT:
-            return 'Add Text';
-        default:
-            return 'No Field Selected';
-    }
-}
+import {
+    RichTextEditor,
+    getPlaceholderValueForTitle
+} from '../molecules/RichTextEditor';
 
 function getPlaceholderValueForField(fieldType: FieldTypes) {
     switch (fieldType) {
@@ -130,24 +100,20 @@ const FieldSection = ({
         }
     }
 
-    function getEditors(field: FormField) {
-        return useEditor({
-            extensions: [StarterKit, TextStyle, FontSize, Underline, Color],
-            content: getPlaceholderValueForTitle(field.type || FieldTypes.SHORT_TEXT),
-            editorProps: {
-                attributes: {
-                    class: 'w-[400px] font-semibold text-3xl focus:outline-none'
-                }
-            },
-            onUpdate: ({ editor }) => {
-                console.log('updated Text : ', editor.getText(), editor.getHTML());
-            }
-        });
-    }
-
-    const TitleEditors = slideFields?.map((field) => getEditors(field)) ?? [
-        new Editor({ extensions: [StarterKit, FontSize] })
-    ];
+    // function useGetEditors(field: FormField) {
+    //     return useEditor({
+    //         extensions: [StarterKit, TextStyle, FontSize, Underline, Color],
+    //         content: getPlaceholderValueForTitle(field.type || FieldTypes.SHORT_TEXT),
+    //         editorProps: {
+    //             attributes: {
+    //                 class: 'w-[400px] font-semibold text-3xl focus:outline-none'
+    //             }
+    //         },
+    //         onUpdate: ({ editor }) => {
+    //             console.log('updated Text : ', editor.getText(), editor.getHTML());
+    //         }
+    //     });
+    // }
 
     return (
         <div
@@ -280,19 +246,8 @@ const FieldSection = ({
                                                                         )
                                                                     }
                                                                 /> */}
-                                                                <MenuBar
-                                                                    editor={
-                                                                        TitleEditors[
-                                                                            index
-                                                                        ]
-                                                                    }
-                                                                />
-                                                                <EditorContent
-                                                                    editor={
-                                                                        TitleEditors[
-                                                                            index
-                                                                        ]
-                                                                    }
+                                                                <RichTextEditor
+                                                                    field={field}
                                                                 />
 
                                                                 {field?.validations
