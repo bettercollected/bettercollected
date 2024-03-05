@@ -18,7 +18,7 @@ const CardVariants = {
     pink: 'text-pink-500 hover:bg-pink-100 hover:border-pink-100'
 };
 
-const templates = [
+export const templates = [
     {
         title: 'Contact Form',
         imageUrl:

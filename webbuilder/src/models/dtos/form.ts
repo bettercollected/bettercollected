@@ -32,6 +32,7 @@ export interface FormField {
     description?: string;
     type?: FieldTypes;
     value?: string;
+    imageUrl?:string;
 }
 
 interface FieldValidations {
