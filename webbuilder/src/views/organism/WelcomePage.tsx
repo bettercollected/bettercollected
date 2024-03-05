@@ -1,6 +1,6 @@
 import Image from 'next/image';
 
-// import RectangleImage from '@app/assets/image/rectangle.png';
+import RectangleImage from '@app/assets/image/rectangle.png';
 import { Button } from '@app/shadcn/components/ui/button';
 import { useFormState } from '@app/store/jotai/form';
 
@@ -38,12 +38,12 @@ const WelcomeSlide = ({ disabled }: { disabled?: boolean }) => {
                 </div>
                 <Button size={'medium'}>{formState.buttonText || 'Start'}</Button>
             </div>
-            {/* <Image
+            <Image
                 objectFit="cover"
                 className="basis-1/2"
                 src={RectangleImage}
                 alt="LayoutImage"
-            /> */}
+            />
         </div>
     );
 };
