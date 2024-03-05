@@ -34,7 +34,7 @@ export default function WelcomeSlide() {
                             />
                         </div>
                     </PopoverTrigger>
-                    <PopoverContent className="p2-new shadow-blue-hue z-[10] mt-2 max-w-[235px] rounded-lg bg-white p-4 text-black-700">
+                    <PopoverContent className="p2-new z-[10] mt-2 max-w-[235px] rounded-lg bg-white p-4 text-black-700 shadow-blue-hue">
                         Do you wish to track your form response for future reference?
                     </PopoverContent>
                 </Popover>
