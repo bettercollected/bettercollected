@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 
 import Color from '@tiptap/extension-color';
 import TextStyle from '@tiptap/extension-text-style';
@@ -54,6 +54,14 @@ export function RichTextEditor({ field }: { field: FormField }) {
             console.log('updated Text : ', editor.getText(), editor.getHTML());
         }
     });
+    const handleUpdateFontSize = (value = 0) => {
+        setSize((prevSize) => {
+            const newSize = prevSize + value;
+            editor?.chain().focus().setFontSize(`${FontSizes[newSize]}`).run();
+            return newSize;
+        });
+    };
+
     return (
         <div className="tiptap">
             <EditorContent editor={editor} />
@@ -112,25 +120,11 @@ export function RichTextEditor({ field }: { field: FormField }) {
                         <div className="flex flex-col">
                             <ArrowDown
                                 className="h-4 w-4 rotate-180"
-                                onClick={() => {
-                                    setSize(size + 1);
-                                    editor
-                                        ?.chain()
-                                        .focus()
-                                        .setFontSize(`${FontSizes[size]}`)
-                                        .run();
-                                }}
+                                onClick={() => handleUpdateFontSize(+1)}
                             />
                             <ArrowDown
                                 className="h-4 w-4"
-                                onClick={() => {
-                                    setSize(size - 1);
-                                    editor
-                                        ?.chain()
-                                        .focus()
-                                        .setFontSize(`${FontSizes[size]}`)
-                                        .run();
-                                }}
+                                onClick={() => handleUpdateFontSize(-1)}
                             />
                         </div>
                     </div>
