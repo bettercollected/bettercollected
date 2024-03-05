@@ -3,10 +3,18 @@ import { useCallback, useState } from 'react';
 import Color from '@tiptap/extension-color';
 import TextStyle from '@tiptap/extension-text-style';
 import Underline from '@tiptap/extension-underline';
-import { BubbleMenu, Editor, EditorContent, useEditor } from '@tiptap/react';
+import { Transaction } from '@tiptap/pm/state';
+import {
+    BubbleMenu,
+    Editor,
+    EditorContent,
+    generateHTML,
+    useEditor
+} from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 
 import { FieldTypes, FormField } from '@app/models/dtos/form';
+import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
 import { FontSize } from '@app/utils/richTextEditorExtenstion/fontSize';
 import { ArrowDown } from '@app/views/atoms/Icons/ArrowDown';
 
@@ -37,21 +45,33 @@ export function getPlaceholderValueForTitle(fieldType: FieldTypes) {
     }
 }
 
-export function RichTextEditor({ field }: { field: FormField }) {
+export function RichTextEditor({
+    field,
+    onUpdate
+}: {
+    field: FormField;
+    onUpdate: (editor: any) => void;
+}) {
     const FontSizes = [8, 10, 12, 14, 16, 18, 20, 24, 28, 32, 40, 48, 64];
     const [size, setSize] = useState(5);
-    const [showColorPicker, setShowColorPicker] = useState(false);
-    const [color, setColor] = useState('#aabbcc');
+    const getHtmlForJson = (json: any) => {
+        return generateHTML(json, [StarterKit, TextStyle, FontSize, Underline, Color]);
+    };
+    const getContentForEditor = () => {
+        return field.title
+            ? getHtmlForJson(JSON.parse(field.title))
+            : getPlaceholderValueForTitle(field.type || FieldTypes.SHORT_TEXT);
+    };
     const editor = useEditor({
         extensions: [StarterKit, TextStyle, FontSize, Underline, Color],
-        content: getPlaceholderValueForTitle(field.type || FieldTypes.SHORT_TEXT),
+        content: getContentForEditor(),
         editorProps: {
             attributes: {
                 class: 'w-[400px] font-semibold text-3xl focus:outline-none'
             }
         },
         onUpdate: ({ editor }) => {
-            console.log('updated Text : ', editor.getText(), editor.getHTML());
+            onUpdate(editor);
         }
     });
     const handleUpdateFontSize = (value = 0) => {
