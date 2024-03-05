@@ -19,7 +19,7 @@ interface FormResponse {
 
 const initialFormResponse: FormResponse = {
     formId: '',
-    currentSlide: -1,
+    currentSlide: -1
 };
 
 const formResponseAtom = atom<FormResponse>(initialFormResponse);

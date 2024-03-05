@@ -12,11 +12,11 @@ import 'vanilla-cookieconsent/dist/cookieconsent.css';
 
 import '@app/assets/css/globals.css';
 import { DialogModalContainer } from '@app/lib/hooks/useDialogModal';
+import { Toaster } from '@app/shadcn/components/ui/toaster';
 import ReduxProvider from '@app/shared/hocs/ReduxProvider';
 import ThemeProvider from '@app/shared/hocs/ThemeProvider';
 import CookieConsent from '@app/views/atoms/CookieConsent';
 import NextNProgress from '@app/views/atoms/NextNProgress';
-import { Toaster } from '@app/shadcn/components/ui/toaster';
 
 const inter = Inter({ subsets: ['latin'] });
 

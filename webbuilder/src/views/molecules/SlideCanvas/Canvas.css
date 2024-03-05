@@ -4,7 +4,7 @@
     box-shadow: 0px 4px 8px rgba(7, 100, 235, 0.1);
 }
 
-.canvas-grid>* {
+.canvas-grid > * {
     position: absolute;
 }
 

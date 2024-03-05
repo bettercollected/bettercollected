@@ -1,8 +1,7 @@
-import { atom, useAtom } from "jotai";
+import { atom, useAtom } from 'jotai';
 
-
-interface INavbar{
-    insertClicked:boolean 
+interface INavbar {
+    insertClicked: boolean;
 }
 
 const initialNavbarState = atom<INavbar>({
@@ -11,5 +10,5 @@ const initialNavbarState = atom<INavbar>({
 
 export function useNavbarState() {
     const [navbarState, setNavbarState] = useAtom(initialNavbarState);
-    return {navbarState, setNavbarState}
+    return { navbarState, setNavbarState };
 }

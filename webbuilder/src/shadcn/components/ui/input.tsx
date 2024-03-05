@@ -31,15 +31,16 @@ const ShadCNInput = React.forwardRef<HTMLInputElement, InputProps>(
 ShadCNInput.displayName = 'ShadCNInput';
 
 const FieldInput = styled(ShadCNInput)<{
-    $slide: FormField;
+    $slide?: FormField;
     $formTheme?: IThemeState;
 }>(({ $slide, $formTheme }) => {
     const themeColor = $slide?.properties?.theme?.tertiary || $formTheme?.tertiary;
+    console.log(themeColor);
 
     return {
         borderColor: themeColor,
         '::placeholder': {
-            color: themeColor
+            color: `${themeColor} !important`
         }
     };
 });
