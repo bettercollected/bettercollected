@@ -1,7 +1,10 @@
 'use client';
 
+import Image from 'next/image';
+
 import { v4 } from 'uuid';
 
+import { templates } from '@app/app/[workspaceName]/dashboard/forms/create/page';
 import { FieldTypes } from '@app/models/dtos/form';
 import { Button } from '@app/shadcn/components/ui/button';
 import { DropdownMenu } from '@app/shadcn/components/ui/dropdown-menu';
@@ -18,7 +21,7 @@ import { PlusOutlined } from '../atoms/Icons/PlusOutlined';
 import { TextOutlinedIcon } from '../atoms/Icons/TextOutlined';
 
 const Navbar = () => {
-    const { formFields, addField } = useFormFieldsAtom();
+    const { formFields, addField, addMedia } = useFormFieldsAtom();
     const { activeSlideComponent } = useActiveSlideComponent();
     const { formState, setFormTitle } = useFormState();
     const { navbarState, setNavbarState } = useNavbarState();
@@ -50,6 +53,10 @@ const Navbar = () => {
         window.setTimeout(function () {
             document.getElementById(`input-${fieldId}`)?.focus();
         }, 0);
+    };
+
+    const handleAddMedia = (imageUrl: string) => {
+        addMedia(activeSlideComponent?.index || 0, imageUrl);
     };
 
     function isGreetingSlide() {
@@ -95,6 +102,36 @@ const Navbar = () => {
                             Media
                         </div>
                     </DropdownMenu.Trigger>
+                    <DropdownMenu.Content>
+                        <DropdownMenu.Item>
+                            <div className="grid grid-cols-1 gap-x-6 gap-y-10 px-2 sm:grid-cols-2 lg:grid-cols-3">
+                                {templates.map(
+                                    (template: { imageUrl: string; title: string }) => (
+                                        <div
+                                            className="flex cursor-pointer flex-col"
+                                            key={template.imageUrl}
+                                            onClick={() =>
+                                                handleAddMedia(template.imageUrl)
+                                            }
+                                        >
+                                            <div className="relative !aspect-video overflow-hidden rounded-md">
+                                                <Image
+                                                    alt={template.title}
+                                                    src={template.imageUrl}
+                                                    fill
+                                                    sizes="100%"
+                                                    style={{ objectFit: 'cover' }}
+                                                />
+                                            </div>
+                                            <div className="p2-new mt-2 !font-medium">
+                                                {template.title}
+                                            </div>
+                                        </div>
+                                    )
+                                )}
+                            </div>
+                        </DropdownMenu.Item>
+                    </DropdownMenu.Content>
                 </DropdownMenu>
                 <DropdownMenu>
                     <DropdownMenu.Trigger
