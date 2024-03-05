@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 
+import Image from 'next/image';
+
 import { RadioGroup } from '@headlessui/react';
 import { BubbleMenu, Editor, EditorContent } from '@tiptap/react';
 import cn from 'classnames';
@@ -106,9 +108,10 @@ const FieldSection = ({
                 backgroundColor: slide?.properties?.theme?.accent || theme?.accent
             }}
             className={cn(
-                'aspect-video h-min w-full  overflow-auto bg-white',
+                'flex aspect-video h-min w-full overflow-auto bg-white',
                 disabled ? 'pointer-events-none overflow-hidden' : '',
                 isScaledDown ? '!h-full !w-full' : ''
+                // slide.imageUrl ? 'grid-cols-2' : 'grid-cols-1'
             )}
         >
             <DragDropContext
@@ -127,7 +130,7 @@ const FieldSection = ({
                             {...provided.droppableProps}
                             ref={provided.innerRef}
                             className={cn(
-                                'flex h-min flex-col justify-center gap-20 px-20 py-60'
+                                'h-min basis-1/2 flex-col justify-center space-y-20 px-20 py-60'
                             )}
                         >
                             {Array.isArray(slideFields) && slideFields.length ? (
@@ -280,6 +283,18 @@ const FieldSection = ({
                     )}
                 </StrictModeDroppable>
             </DragDropContext>
+            <div className="basis-1/2">
+                {slide.imageUrl && (
+                    <Image
+                        className="h-full w-full"
+                        objectFit="cover"
+                        src={slide.imageUrl}
+                        width={2000}
+                        height={2000}
+                        alt="LayoutImage"
+                    />
+                )}
+            </div>
         </div>
     );
 };
