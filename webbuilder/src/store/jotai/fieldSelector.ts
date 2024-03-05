@@ -54,6 +54,12 @@ export default function useFormFieldsAtom() {
         setFormFields(updatedSlides);
     };
 
+    const addMedia = (slideIndex: number, imageUrl: string) => {
+        formFields[slideIndex].imageUrl = imageUrl;
+        const updatedSlides = [...formFields];
+        setFormFields(updatedSlides);
+    };
+
     const updateDescription = (
         fieldIndex: number,
         slideIndex: number,
@@ -214,6 +220,7 @@ export default function useFormFieldsAtom() {
         activeSlide,
         activeField,
         deleteField,
-        resetFields
+        resetFields,
+        addMedia
     };
 }
