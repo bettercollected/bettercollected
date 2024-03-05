@@ -4,6 +4,6 @@ export default function FormPage({
     params: { formId: string; workspaceName: string };
 }) {
     const { formId, workspaceName } = params;
-    console.log(formId, workspaceName);
+    console.log('forms', formId, workspaceName);
     return <div></div>;
 }

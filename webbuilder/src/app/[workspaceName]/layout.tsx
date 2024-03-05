@@ -30,7 +30,8 @@ async function WorkspaceWrapper({
     workspaceName: string;
     children: React.ReactNode;
 }) {
-    const workspace = await getWorkspaceByName(workspaceName);
+    // const workspace = await getWorkspaceByName(workspaceName);
+    const workspace = '';
 
     return (
         <>
