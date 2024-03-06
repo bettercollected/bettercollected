@@ -131,10 +131,14 @@ module.exports = {
             minHeight: {
                 'calc-68': 'calc(100vh - 68px)'
             },
+            height: {
+                'bottom-sheet-container': 'calc(100vh - 160px)'
+            },
             borderWidth: {
                 3: '3px'
             },
             boxShadow: {
+                settings: '0px 4px 8px 0px #00000017',
                 main: '0px 6px 18px rgba(0, 0, 0, 0.04)',
                 overview: '0px 0px 30px 0px rgba(3, 3, 80, 0.08)',
                 light: '0px 4px 4px rgba(0, 0, 0, 0.08)',
@@ -147,7 +151,8 @@ module.exports = {
                 logoCard: '0px 0px 40px 0px rgba(19, 73, 179, 0.25)',
                 hover: '0px 0px 8px 0px rgba(0, 0, 0, 0.25)',
                 input: '0px 0px 12px 0px rgba(7, 100, 235, 0.45)',
-                'powered-by': ' 0px 0px 16px 0px #0764EB29'
+                'powered-by': ' 0px 0px 16px 0px #0764EB29',
+                "suggestion-price": " 0px 0px 12px 0px #0764EB73"
             },
             dropShadow: {
                 paper: '0px 0px 15px rgba(0, 0, 0, 0.15)',
@@ -274,6 +279,7 @@ module.exports = {
                 black: '900'
             },
             aspectRatio: {
+                banner: '4.5714',
                 'banner-desktop': '5.14285714 / 1',
                 'banner-mobile': '3 / 1',
                 'editable-banner-desktop': '3.9886363636 / 1',

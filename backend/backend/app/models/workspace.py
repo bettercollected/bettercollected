@@ -16,6 +16,8 @@ class WorkspaceRequestDto(BaseModel):
     profile_image: Optional[str]
     banner_image: Optional[str]
     custom_domain: Optional[str]
+    privacy_policy: Optional[str]
+    terms_of_service: Optional[str]
 
 
 class WorkspaceRequestDtoCamel(WorkspaceRequestDto, CamelModel):
@@ -59,3 +61,5 @@ class WorkspaceResponseDto(WorkspaceRequestDto, CamelModel):
     disabled: Optional[bool]
     default: Optional[bool]
     is_pro: Optional[bool] = False
+    privacy_policy: Optional[str]
+    terms_of_service: Optional[str]

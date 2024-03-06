@@ -44,9 +44,9 @@ export default function ThankYouPage({ form, isDisabled, showSubmissionNumber, s
     return (
         <div className="flex w-full flex-col items-center justify-start h-full text-center">
             <div className="w-full aspect-banner-mobile  lg:aspect-thank_you_cover  relative flex items-center justify-center">
-                <Image src="/images/thankyou_cover.png" layout="fill" objectFit="cover" alt="ALternative" />
+                <Image src="/images/thankyou_cover.png" layout="fill" objectFit="fill" alt="ALternative" />
                 <svg
-                    className="w-16 h-16 md:w-20 md:h-20  lg:w-24 lg:h-24"
+                    className="w-16 h-16 md:w-20 md:h-20 lg:w-24 lg:h-24"
                     viewBox="0 0 100 100"
                     fill="none"
                     style={{
@@ -59,10 +59,10 @@ export default function ThankYouPage({ form, isDisabled, showSubmissionNumber, s
                 </svg>
             </div>
             <div>
-                <div className="h2-new !text-left font-bold mt-[60px] ">Thank you!</div>
+                <div className="h2-new !text-left font-bold mt-10 ">Thank you!</div>
                 <div className="p2-new text-black-600 !text-left mt-1">Your form is successfully submitted {auth.id && anonymize && 'anonymously'}.</div>
                 {auth.id && !anonymize && (
-                    <div className="flex gap-2 w-fit mt-6 ">
+                    <div className="flex gap-2 w-fit mt-6 rounded bg-new-white-200 p-2">
                         <AuthAccountProfileImage size={36} image={auth?.profileImage} name={getFullNameFromUser(auth) ?? ''} />
                         <div className="flex flex-col gap-2 text-start justify-center !text-black-700 pr-1">
                             <span className="body6 !leading-none">{getFullNameFromUser(auth)?.trim() || auth?.email || ''}</span>
@@ -86,21 +86,25 @@ export default function ThankYouPage({ form, isDisabled, showSubmissionNumber, s
                                 <CopyIcon className="text-new-black-600" />
                             </span>
                         </div>
-                        <div className="text-black-700 text-left mt-2 p2-new">
-                            Use this submission number to view or request deletion of this response.{' '}
-                            <ActiveLink className="text-blue-500 ml-1 cursor-pointer" href={workspaceResponseUrl}>
-                                See all your submissions
-                            </ActiveLink>
+                        <div className="text-black-700 text-left mt-2 p2-new flex flex-wrap">
+                            <span>Use this submission number to view or request deletion of this response. </span>
+                            <span>
+                                <ActiveLink className="text-blue-500 ml-1 cursor-pointer" href={workspaceResponseUrl}>
+                                    See all your submissions
+                                </ActiveLink>
+                            </span>
                         </div>
                     </div>
                 )}
 
                 {!showSubmissionNumber && (
-                    <div className="text-black-600 text-left p2-new max-w-[360px] my-12">
+                    <div className="text-black-600 text-left p2-new max-w-[360px] my-12 flex flex-wrap">
                         You can view or request deletion of this response{' '}
-                        <ActiveLink className="text-blue-500 ml-1 cursor-pointer" href={workspaceResponseUrl}>
-                            See all your submissions
-                        </ActiveLink>
+                        <span>
+                            <ActiveLink className="text-blue-500 ml-1 cursor-pointer" href={workspaceResponseUrl}>
+                                See all your submissions
+                            </ActiveLink>
+                        </span>
                     </div>
                 )}
                 <div>
@@ -114,7 +118,7 @@ export default function ThankYouPage({ form, isDisabled, showSubmissionNumber, s
                         }}
                     >
                         <SmallLogo className="w-6 h-6" />
-                        <span className="body3 text-black-700">Try bettercollected</span>
+                        <span className="p2-new text-black-700">Try bettercollected</span>
                     </div>
                 </div>
             </div>

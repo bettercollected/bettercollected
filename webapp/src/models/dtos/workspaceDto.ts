@@ -14,6 +14,8 @@ export interface WorkspaceDto {
         accent_color: string;
         text_color: string;
     };
+    privacyPolicy?: string;
+    termsOfService?: string;
     privacy_policy_url: string;
     terms_of_service_url: string;
     mailSettings?: string | null;
@@ -34,6 +36,8 @@ export const initWorkspaceDto: WorkspaceDto = {
         accent_color: '',
         text_color: ''
     },
+    privacyPolicy: '',
+    termsOfService: '',
     privacy_policy_url: 'https://bettercollected.com/legal/privacy-policy-2022.pdf',
     terms_of_service_url: 'https://bettercollected.com/legal/terms-and-conditions-2022.pdf',
     mailSettings: '',

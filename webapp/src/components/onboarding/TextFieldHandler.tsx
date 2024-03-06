@@ -12,10 +12,9 @@ import { FormDataDto } from '@app/containers/Onboarding';
 import { useAppSelector } from '@app/store/hooks';
 import { useLazyGetWorkspaceNameAvailabilityQuery, useLazyGetWorkspaceNameSuggestionsQuery } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
-import { checkIfPredefinedWorkspaceName } from '@app/utils/workspaceNameUtils';
+import { checkIfPredefinedWorkspaceName } from '@app/utils/workspaceUtils';
 
 import { InfoIcon } from '../icons/info-icon';
-
 
 interface ITextFieldHandler {
     formData: FormDataDto;

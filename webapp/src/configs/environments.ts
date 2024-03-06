@@ -27,7 +27,8 @@ const environments = {
     METATAG_TITLE: publicRuntimeConfig.METATAG_TITLE,
     METATAG_DESCRIPTION: publicRuntimeConfig.METATAG_DESCRIPTION,
     METATAG_IMAGE: publicRuntimeConfig.METATAG_IMAGE,
-    FORM_PRIVACY_POLICY_URL: publicRuntimeConfig.FORM_PRIVACY_POLICY_URL || 'https://bettercollected.com/privacy-policy',
+    PRIVACY_POLICY_URL: publicRuntimeConfig.PRIVACY_POLICY_URL || 'https://bettercollected.com/privacy-policy',
+    TERMS_OF_SERVICE_URL: publicRuntimeConfig.TERMS_OF_SERVICE_URL || 'https://bettercollected.com/terms-of-service',
 
     // run-time configg
     GA_MEASUREMENT_ID: publicRuntimeConfig.GA_MEASUREMENT_ID,
@@ -79,7 +80,11 @@ const environments = {
     CHATWOOT_DEPLOY_URL: publicRuntimeConfig.CHATWOOT_DEPLOY_URL ?? 'https://help.bettercollected.com',
     CHATWOOT_WEBSITE_TOKEN: publicRuntimeConfig.CHATWOOT_WEBSITE_TOKEN,
 
-    APP_SUMO_PRODUCT_URL: publicRuntimeConfig.APP_SUMO_PRODUCT_URL ?? 'https://appsumo.com/products/bettercollected'
+    APP_SUMO_PRODUCT_URL: publicRuntimeConfig.APP_SUMO_PRODUCT_URL ?? 'https://appsumo.com/products/bettercollected',
+    
+    // Enable Price Suggestion
+    ENABLE_SUGGEST_PRICE: publicRuntimeConfig.ENABLE_SUGGEST_PRICE && (publicRuntimeConfig.ENABLE_SUGGEST_PRICE === 'true' || publicRuntimeConfig.ENABLE_SUGGEST_PRICE === true),
+
 };
 
 export default environments;

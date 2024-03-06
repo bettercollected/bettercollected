@@ -41,6 +41,7 @@ from backend.app.services.form_plugin_provider_service import FormPluginProvider
 from backend.app.services.form_response_service import FormResponseService
 from backend.app.services.form_service import FormService
 from backend.app.services.plugin_proxy_service import PluginProxyService
+from backend.app.services.price_suggestion import PriceSuggestionService
 from backend.app.services.responder_groups_service import ResponderGroupsService
 from backend.app.services.stripe_service import StripeService
 from backend.app.services.template_service import FormTemplateService
@@ -80,8 +81,7 @@ class AppContainer(containers.DeclarativeContainer):
 
     form_repo: FormRepository = providers.Singleton(FormRepository)
     form_response_repo: FormResponseRepository = providers.Singleton(
-        FormResponseRepository,
-        crypto=crypto
+        FormResponseRepository, crypto=crypto
     )
     workspace_form_repo: WorkspaceFormRepository = providers.Singleton(
         WorkspaceFormRepository
@@ -92,7 +92,6 @@ class AppContainer(containers.DeclarativeContainer):
     )
 
     responder_groups_repository = providers.Singleton(ResponderGroupsRepository)
-
 
     action_repository = providers.Singleton(ActionRepository, crypto=crypto)
 
@@ -198,7 +197,7 @@ class AppContainer(containers.DeclarativeContainer):
         temporal_service=temporal_service,
         aws_service=aws_service,
         action_service=action_service,
-        crypto=crypto
+        crypto=crypto,
     )
 
     workspace_service: WorkspaceService = providers.Singleton(
@@ -281,6 +280,12 @@ class AppContainer(containers.DeclarativeContainer):
     coupon_service = providers.Singleton(
         CouponService,
         coupon_repository=coupon_repository,
+        auth_service=auth_service,
+        workspace_service=workspace_service,
+    )
+
+    price_suggestion_service = providers.Singleton(
+        PriceSuggestionService,
         auth_service=auth_service,
         workspace_service=workspace_service,
     )

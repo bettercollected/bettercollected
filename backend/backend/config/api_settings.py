@@ -1,3 +1,5 @@
+from typing import Optional
+
 from pydantic import BaseSettings
 
 from backend.version import __version__
@@ -10,6 +12,7 @@ class ApiSettings(BaseSettings):
     VERSION: str = __version__
     ROOT_PATH: str = "/api/v1"
     HOST: str = ""
+    DOMAIN: Optional[str] = ""
     ALLOWED_COLLABORATORS = 10
     ALLOWED_WORKSPACES = 5
     ENABLE_FORM_CREATION = False
