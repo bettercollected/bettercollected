@@ -1,4 +1,5 @@
-import RespondersPortalContainer from '@app/Components/RespondersPortal/Container';
+import RespondersPortalContainer from '@Components/RespondersPortal/ResponderPortalContainer';
+
 import WorkspaceHomeContainer from '@app/containers/dashboard/WorkspaceHomeContainer';
 import Layout from '@app/layouts/_layout';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';

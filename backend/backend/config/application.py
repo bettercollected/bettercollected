@@ -41,6 +41,7 @@ class Application(BaseSettings):
     """
 
     DEBUG: bool = True
+    ENABLE_SUGGEST_PRICE: bool = False
     apm_settings: APMSettings = APMSettings()
     api_settings: ApiSettings = ApiSettings()
     auth_settings: AuthSettings = AuthSettings()

@@ -274,11 +274,17 @@ class FormService:
         if settings.disable_branding is not None:
             workspace_form.settings.disable_branding = settings.disable_branding
         if settings.require_verified_identity is not None:
-            workspace_form.settings.require_verified_identity = settings.require_verified_identity
+            workspace_form.settings.require_verified_identity = (
+                settings.require_verified_identity
+            )
         if settings.show_submission_number is not None:
-            workspace_form.settings.show_submission_number = settings.show_submission_number
+            workspace_form.settings.show_submission_number = (
+                settings.show_submission_number
+            )
         if settings.allow_editing_response is not None:
-            workspace_form.settings.allow_editing_response = settings.allow_editing_response
+            workspace_form.settings.allow_editing_response = (
+                settings.allow_editing_response
+            )
         if settings.custom_url is not None:
             await self.user_tags_service.add_user_tag(
                 user_id=user.id, tag=UserTagType.CUSTOM_SLUG

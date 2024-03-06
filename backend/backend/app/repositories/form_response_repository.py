@@ -31,7 +31,6 @@ from backend.app.utils.hash import hash_string
 
 
 class FormResponseRepository(BaseRepository):
-
     def __init__(self, crypto: Crypto):
         super().__init__()
         self.crypto = crypto
@@ -176,8 +175,10 @@ class FormResponseRepository(BaseRepository):
         self, form_ids, user: User, request_for_deletion: bool = False
     ):
         extra_find_query = {
-            "$or": [{"dataOwnerIdentifier": user.sub}, {"anonymous_identity": hash_string(user.sub)}]
-
+            "$or": [
+                {"dataOwnerIdentifier": user.sub},
+                {"anonymous_identity": hash_string(user.sub)},
+            ]
         }
         if request_for_deletion:
             return await DeletionRequestsRepository.get_deletion_requests(
@@ -270,19 +271,28 @@ class FormResponseRepository(BaseRepository):
         response_document.provider = "self"
         return await response_document.save()
 
-    async def patch_form_response(self, form_id: PydanticObjectId, response_id: PydanticObjectId,
-                                  response: StandardFormResponse,
-                                  workspace_id: PydanticObjectId, user=User):
-        response_document = await FormResponseDocument.find_one({"response_id": str(response_id)})
+    async def patch_form_response(
+        self,
+        form_id: PydanticObjectId,
+        response_id: PydanticObjectId,
+        response: StandardFormResponse,
+        workspace_id: PydanticObjectId,
+        user=User,
+    ):
+        response_document = await FormResponseDocument.find_one(
+            {"response_id": str(response_id)}
+        )
         if not response_document.dataOwnerIdentifier != user.sub:
-            raise HTTPException(status_code=HTTPStatus.FORBIDDEN, content=MESSAGE_FORBIDDEN)
+            raise HTTPException(
+                status_code=HTTPStatus.FORBIDDEN, content=MESSAGE_FORBIDDEN
+            )
         for k, v in response.answers.items():
             if type(v) == StandardFormResponseAnswer:
                 response_document.answers[k] = v.dict()
             response_document.answers = crypto_service.encrypt(
                 workspace_id=workspace_id,
                 form_id=form_id,
-                data=json.dumps(response_document.answers)
+                data=json.dumps(response_document.answers),
             )
         return await response_document.save()
 
@@ -315,29 +325,34 @@ class FormResponseRepository(BaseRepository):
     async def get_by_submission_uuid(self, submission_uuid: str):
         return await FormResponseDocument.find_one({"submission_uuid": submission_uuid})
 
-    async def verify_response_exists_in_workspace(self, workspace_id: PydanticObjectId, response_id: str):
-        workspace = await FormResponseDocument.find({"response_id": response_id}).aggregate(
-            [
-                {
-                    '$lookup': {
-                        'from': 'workspace_forms',
-                        'localField': 'form_id',
-                        'foreignField': 'form_id',
-                        'as': 'workspace_form'
-                    }
-                },
-                {
-                    '$match': {
-                        'workspace_form.workspace_id': workspace_id
-                    }
-                },
-                {
-                    '$unwind': {
-                        'path': '$workspace_form',
-                        'preserveNullAndEmptyArrays': False
-                    }
-                }
-            ]
-        ).to_list()
+    async def verify_response_exists_in_workspace(
+        self, workspace_id: PydanticObjectId, response_id: str
+    ):
+        workspace = (
+            await FormResponseDocument.find({"response_id": response_id})
+            .aggregate(
+                [
+                    {
+                        "$lookup": {
+                            "from": "workspace_forms",
+                            "localField": "form_id",
+                            "foreignField": "form_id",
+                            "as": "workspace_form",
+                        }
+                    },
+                    {"$match": {"workspace_form.workspace_id": workspace_id}},
+                    {
+                        "$unwind": {
+                            "path": "$workspace_form",
+                            "preserveNullAndEmptyArrays": False,
+                        }
+                    },
+                ]
+            )
+            .to_list()
+        )
         if not len(workspace) > 0:
-            raise HTTPException(status_code=HTTPStatus.NOT_FOUND, content="Response not found in workspace")
+            raise HTTPException(
+                status_code=HTTPStatus.NOT_FOUND,
+                content="Response not found in workspace",
+            )

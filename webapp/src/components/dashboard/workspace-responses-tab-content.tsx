@@ -42,15 +42,15 @@ export default function WorkspaceResponsesTabContent({ workspace, deletionReques
 
     const isCustomDomain = window?.location.host !== environments.CLIENT_DOMAIN;
 
+    const getEmptyMessage = () => {
+        if (!auth.id) return 'Verify your email or enter your submission number you to view all your form responses.';
+        if (deletionRequests) return t(formConstant.deletionRequestDescription);
+        return 'You have not submitted any response on the forms provided in this workspace.';
+    };
+
     return (
         <SearchByUUIDWrapper>
-            {submissions?.length === 0 && (
-                <ZeroElement
-                    title={deletionRequests ? t(formConstant.empty.deletionRequest.title) : '0 submissions'}
-                    description={deletionRequests ? t(formConstant.deletionRequestDescription) : 'Verify your email or enter your submission number you to view all your form responses.'}
-                    className="!pb-[20px] w-full"
-                />
-            )}
+            {submissions?.length === 0 && <ZeroElement title={deletionRequests ? t(formConstant.empty.deletionRequest.title) : '0 submissions'} description={getEmptyMessage()} className="!pb-[20px]" />}
 
             {submissions?.length !== 0 && (
                 <div className="w-full">

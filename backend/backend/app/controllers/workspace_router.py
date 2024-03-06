@@ -3,6 +3,7 @@ from typing import List, Optional
 
 from beanie import PydanticObjectId
 from classy_fastapi import Routable, delete, get, patch, post
+from common.models.user import User
 from fastapi import Depends, Form, UploadFile
 from pydantic import EmailStr
 
@@ -16,7 +17,6 @@ from backend.app.models.workspace import (
 from backend.app.router import router
 from backend.app.services.user_service import get_logged_user, get_user_if_logged_in
 from backend.app.services.workspace_service import WorkspaceService
-from common.models.user import User
 
 
 @router(
@@ -135,7 +135,8 @@ class WorkspaceRouter(Routable):
         workspace_name: Optional[str] = Form(None),
         description: Optional[str] = Form(None),
         custom_domain: Optional[str] = Form(None),
-        owner_id: Optional[str] = Form(None),
+        privacy_policy: Optional[str] = Form(None),
+        terms_of_service: Optional[str] = Form(None),
         user: User = Depends(get_logged_user),
     ) -> WorkspaceResponseDto:
         workspace_request = WorkspaceRequestDtoCamel(
@@ -143,7 +144,8 @@ class WorkspaceRouter(Routable):
             workspace_name=workspace_name,
             description=description,
             custom_domain=custom_domain,
-            owner_id=owner_id,
+            privacy_policy=privacy_policy,
+            terms_of_service=terms_of_service,
         )
         return await self.workspace_service.patch_workspace(
             profile_image, banner_image, workspace_id, workspace_request, user

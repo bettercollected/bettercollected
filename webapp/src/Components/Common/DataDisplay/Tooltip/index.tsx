@@ -1,6 +1,6 @@
 import React from 'react';
 
-import { Tooltip as MuiTooltip, PopperProps, SxProps, Theme } from '@mui/material';
+import { PopperProps, SxProps, Theme, Tooltip as MuiTooltip } from '@mui/material';
 
 interface ITooltipProps {
     title: React.ReactNode;
@@ -29,46 +29,47 @@ interface ITooltipProps {
 }
 
 export default function Tooltip({
-    title,
-    children,
-    components = {},
-    className = '',
-    onClick = () => {},
-    componentsProps = {
-        tooltip: {
-            sx: {
-                padding: '4px 12px',
-                fontSize: '14px',
-                lineHeight: '21px',
-                color: '#F2F7FF',
-                backgroundColor: '#343A40',
-                opacity: '0.7 !important',
-                borderRadius: '4px',
-                '& .MuiTooltip-arrow': {
-                    color: 'common.black',
-                    opacity: '0.7 !important'
-                }
-            }
-        }
-    },
-    arrow = false,
-    describeChild = false,
-    disableFocusListener = false,
-    disableHoverListener = false,
-    disableInteractive = false,
-    disableTouchListener = false,
-    enterDelay = 100,
-    enterNextDelay = 0,
-    enterTouchDelay = 100,
-    followCursor = false,
-    leaveDelay = 0,
-    leaveTouchDelay = 100,
-    placement = 'bottom',
-    PopperProps = {},
-    slotProps = {},
-    slots = {},
-    sx = {}
-}: ITooltipProps) {
+                                    title,
+                                    children,
+                                    components = {},
+                                    className = '',
+                                    onClick = () => {
+                                    },
+                                    componentsProps = {
+                                        tooltip: {
+                                            sx: {
+                                                padding: '4px 12px',
+                                                fontSize: '14px',
+                                                lineHeight: '21px',
+                                                color: '#F2F7FF',
+                                                backgroundColor: '#343A40',
+                                                opacity: '0.7 !important',
+                                                borderRadius: '4px',
+                                                '& .MuiTooltip-arrow': {
+                                                    color: 'common.black',
+                                                    opacity: '0.7 !important'
+                                                }
+                                            }
+                                        }
+                                    },
+                                    arrow = false,
+                                    describeChild = false,
+                                    disableFocusListener = false,
+                                    disableHoverListener = false,
+                                    disableInteractive = false,
+                                    disableTouchListener = false,
+                                    enterDelay = 100,
+                                    enterNextDelay = 0,
+                                    enterTouchDelay = 100,
+                                    followCursor = false,
+                                    leaveDelay = 0,
+                                    leaveTouchDelay = 100,
+                                    placement = 'bottom',
+                                    PopperProps = {},
+                                    slotProps = {},
+                                    slots = {},
+                                    sx = {}
+                                }: ITooltipProps) {
     return (
         <MuiTooltip
             title={title}
@@ -94,7 +95,9 @@ export default function Tooltip({
             slotProps={slotProps}
             slots={slots}
         >
-            <div className={'max-w-full'}>{children}</div>
+            {/*<div className={'max-w-full'}>*/}
+            {children}
+            {/*</div>*/}
         </MuiTooltip>
     );
 }

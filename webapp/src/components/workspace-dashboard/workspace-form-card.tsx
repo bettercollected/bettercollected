@@ -12,7 +12,6 @@ import PrivateIcon from '@Components/Common/Icons/Form/Private';
 import PublicIcon from '@Components/Common/Icons/Form/Public';
 import AppButton from '@Components/Common/Input/Button/AppButton';
 import { ButtonSize, ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
-import { Typography } from '@mui/material';
 import moment from 'moment/moment';
 
 import FormOptionsDropdownMenu from '@app/components/datatable/form/form-options-dropdown';
@@ -29,6 +28,7 @@ import { ResponderGroupDto } from '@app/models/dtos/groups';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { JOYRIDE_CLASS } from '@app/store/tours/types';
 import { validateFormOpen } from '@app/utils/validationUtils';
+import { Typography } from '@mui/material';
 
 interface IWorkspaceFormCardProps {
     form: StandardFormDto;
@@ -42,7 +42,16 @@ interface IWorkspaceFormCardProps {
     showVisibility?: boolean;
 }
 
-export default function WorkspaceFormCard({ form, hasCustomDomain, group, workspace, isResponderPortal = false, className = '', showPinned = true, showVisibility = true }: IWorkspaceFormCardProps) {
+export default function WorkspaceFormCard({
+                                              form,
+                                              hasCustomDomain,
+                                              group,
+                                              workspace,
+                                              isResponderPortal = false,
+                                              className = '',
+                                              showPinned = true,
+                                              showVisibility = true
+                                          }: IWorkspaceFormCardProps) {
     const { openModal } = useModal();
     const router = useRouter();
     const { t } = useTranslation();
@@ -98,22 +107,28 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, group, worksp
     const isFormOpen = validateFormOpen(form?.settings?.formCloseDate);
 
     return (
-        <div className={`flex flex-col items-start justify-between h-full bg-white border-[1px]  border-transparent hover:border-brand-200 transition cursor-pointer rounded-lg shadow-formCardDefault hover:shadow-formCard ${className}`}>
+        <div
+            className={`flex flex-col items-start justify-between h-full bg-white border-[1px]  border-transparent hover:border-brand-200 transition cursor-pointer rounded-lg shadow-formCardDefault hover:shadow-formCard ${className}`}>
             <div className="rounded w-full group px-5 py-4 flex items-center justify-between">
                 <div className=" flex flex-col gap-2 w-full">
                     <div className="flex gap-4 items-center flex-1 justify-between">
                         <div className="flex form-title gap-2">
                             <Tooltip title="">
-                                <Typography className="h4-new" noWrap>
+                                <Typography className="h4-new">
                                     {form?.title || t(localesCommon.untitled)}
                                 </Typography>
                             </Tooltip>
-                            {!isResponderPortal && !form?.isPublished && <div className="font-semibold text-xs text-black-600 rounded right-2 px-2 py-1 bg-gray-100">{t('FORM.DRAFT')}</div>}
-                            {!isResponderPortal && form?.isPublished && !isFormOpen && <div className="font-semibold text-xs text-black-600 rounded right-2 px-2 py-1 bg-gray-100">{t('FORM.CLOSED')}</div>}
+                            {!isResponderPortal && !form?.isPublished && <div
+                                className="font-semibold text-xs text-black-600 rounded right-2 px-2 py-1 bg-gray-100">{t('FORM.DRAFT')}</div>}
+                            {!isResponderPortal && form?.isPublished && !isFormOpen && <div
+                                className="font-semibold text-xs text-black-600 rounded right-2 px-2 py-1 bg-gray-100">{t('FORM.CLOSED')}</div>}
                         </div>
-                        {!group && (
+                        {!group && !isResponderPortal && (
                             <div className="flex-1 lg:hidden">
-                                <FormOptionsDropdownMenu className={JOYRIDE_CLASS.WORKSPACE_ADMIN_FORM_CARD_NAVIGATION_OPTIONS} redirectToDashboard={true} form={form} hasCustomDomain={hasCustomDomain} workspace={workspace} />
+                                <FormOptionsDropdownMenu
+                                    className={JOYRIDE_CLASS.WORKSPACE_ADMIN_FORM_CARD_NAVIGATION_OPTIONS}
+                                    redirectToDashboard={true} form={form} hasCustomDomain={hasCustomDomain}
+                                    workspace={workspace} />
                             </div>
                         )}
                     </div>
@@ -157,7 +172,8 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, group, worksp
                 {!isResponderPortal && !group && (
                     <div className="hidden lg:invisible lg:group-hover:visible lg:flex gap-2 items-center">
                         {form?.isPublished && !form?.settings?.hidden && isFormOpen && (
-                            <AppButton onClick={handleShareClick} variant={ButtonVariant.Ghost} size={ButtonSize.Small} icon={<ShareIcon width={16} height={16} />}>
+                            <AppButton onClick={handleShareClick} variant={ButtonVariant.Ghost} size={ButtonSize.Small}
+                                       icon={<ShareIcon width={16} height={16} />}>
                                 {t('BUTTON.SHARE')}
                             </AppButton>
                         )}
@@ -175,7 +191,9 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, group, worksp
                                 {t('BUTTON.EDIT')}
                             </AppButton>
                         )}
-                        <FormOptionsDropdownMenu className={JOYRIDE_CLASS.WORKSPACE_ADMIN_FORM_CARD_NAVIGATION_OPTIONS} redirectToDashboard={true} form={form} hasCustomDomain={hasCustomDomain} workspace={workspace} />
+                        <FormOptionsDropdownMenu className={JOYRIDE_CLASS.WORKSPACE_ADMIN_FORM_CARD_NAVIGATION_OPTIONS}
+                                                 redirectToDashboard={true} form={form}
+                                                 hasCustomDomain={hasCustomDomain} workspace={workspace} />
                     </div>
                 )}
                 {!!group && (

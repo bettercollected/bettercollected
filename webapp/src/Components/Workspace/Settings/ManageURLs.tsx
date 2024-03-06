@@ -31,7 +31,7 @@ export default function ManageURLs() {
 
     const [_, copyToClipboard] = useCopyToClipboard();
     return (
-        <div className="mt-6 max-w-[788px]">
+        <div className="mt-10 max-w-[788px]">
             <div>
                 <div className="h3-new mb-2">{t('WORKSPACE.SETTINGS.URLS.TITLE')}</div>
                 <div className="flex flex-col md:flex-row gap-6">
@@ -100,12 +100,12 @@ export default function ManageURLs() {
                 )}
 
                 {workspace?.customDomain && (
-                    <div className="flex justify-between items-center gap-4 p2-new border-y border-y-black-200 py-4 mt-4">
+                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 p2-new border-y border-y-black-200 py-4 mt-4">
+                        <div>
+                            {environments.HTTP_SCHEME}
+                            <span className="text-pink">{workspace?.customDomain}</span>
+                        </div>
                         <div className="flex items-center gap-4">
-                            <div>
-                                {environments.HTTP_SCHEME}
-                                <span className="text-pink">{workspace?.customDomain}</span>
-                            </div>
                             <AppButton
                                 size={ButtonSize.Tiny}
                                 variant={ButtonVariant.Ghost}
@@ -117,17 +117,17 @@ export default function ManageURLs() {
                             >
                                 {t('BUTTON.COPY')}
                             </AppButton>
+                            <AppButton
+                                onClick={() => {
+                                    openModal('DELETE_CUSTOM_DOMAIN');
+                                }}
+                                size={ButtonSize.Tiny}
+                                variant={ButtonVariant.DangerGhost}
+                                icon={<DeleteIcon width={16} height={16} />}
+                            >
+                                {t('BUTTON.REMOVE')}
+                            </AppButton>
                         </div>
-                        <AppButton
-                            onClick={() => {
-                                openModal('DELETE_CUSTOM_DOMAIN');
-                            }}
-                            size={ButtonSize.Tiny}
-                            variant={ButtonVariant.DangerGhost}
-                            icon={<DeleteIcon width={16} height={16} />}
-                        >
-                            {t('BUTTON.REMOVE')}
-                        </AppButton>
                     </div>
                 )}
             </div>

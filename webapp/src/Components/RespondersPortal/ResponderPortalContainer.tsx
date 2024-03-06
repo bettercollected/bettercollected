@@ -25,7 +25,7 @@ import { selectAuth } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { getFullNameFromUser } from '@app/utils/userUtils';
 
-export default function Container(props: { workspace: WorkspaceDto; hasCustomDomain: boolean }) {
+export default function ResponderPortalContainer(props: { workspace: WorkspaceDto; hasCustomDomain: boolean }) {
     const { workspace, hasCustomDomain } = props;
     const { t } = useTranslation();
     const auth = useAppSelector(selectAuth);
@@ -41,28 +41,26 @@ export default function Container(props: { workspace: WorkspaceDto; hasCustomDom
     };
 
     return (
-        <div className={`max-h-screen h-screen !bg-new-white-200 opacity-100 max-w-screen w-screen overflow-auto flex flex-col p-5 md:p-10 md:flex-row ${!hasCustomDomain ? 'pb-10' : ''}`}>
-            <div className="max-w-screen w-full md:max-w-[320px] lg:sticky lg:top-0">
+        <div className={`max-h-screen h-screen !bg-new-white-200 opacity-100 max-w-screen w-screen overflow-auto flex flex-col p-5 md:p-10 md:flex-row ${!hasCustomDomain ? '!pb-20' : ''}`}>
+            <div className="max-w-screen w-full md:max-w-[320px] md:w-[320px] md:sticky md:top-0">
                 <div className="rounded-xl bg-white w-full">
                     {workspace.bannerImage && (
-                        <div className="w-full relative aspect-banner-mobile rounded-t-2xl">
+                        <div className="w-full relative aspect-banner rounded-t-2xl">
                             <Image src={workspace.bannerImage} className="rounded-t-2xl" alt="Worksace Banner" layout="fill" />
                         </div>
                     )}
-                    {workspace.profileImage && (
-                        <div className={`${workspace.bannerImage ? 'relative top-[-36px] left-6' : 'relative top-6 ml-6'} w-16 h-16`}>
-                            <Image src={workspace.profileImage} alt="Profile Image" className="rounded-xl" layout="fill" />
-                        </div>
-                    )}
+                    <div className={`${workspace.bannerImage ? 'relative top-[-36px] left-6' : 'relative top-6 ml-6'} w-16 h-16`}>
+                        <AuthAccountProfileImage image={workspace?.profileImage} name={workspace?.title || 'U'} size={64} typography="h2" />
+                    </div>
 
                     <div className={`${workspace.bannerImage ? '-mt-8' : 'mt-4'}  p-6`}>
                         <div className="h3-new">{workspace?.title || 'Untitled Workspace'}</div>
-                        {workspace?.description && <div className="mt-2 text-black-600">{workspace.description}</div>}
+                        {workspace?.description && <div className="mt-2 p2-new text-black-600">{workspace.description}</div>}
                         <div className="mt-4 flex gap-6 text-new-black-800 p4-new">
-                            <ActiveLink target="_blank" className="p4-new !leading-none !not-italic !text-black-800" href={workspace.terms_of_service_url ?? `https://bettercollected.com/terms-of-service/`}>
+                            <ActiveLink target="_blank" className="p4-new !leading-none !not-italic !text-black-800" href={workspace.termsOfService ?? `https://bettercollected.com/terms-of-service/`}>
                                 {t(localesCommon.termsOfServices.title)}
                             </ActiveLink>
-                            <ActiveLink target="_blank" className="p4-new !leading-none !not-italic !text-black-800" href={workspace.privacy_policy_url ?? `https://bettercollected.com/privacy-policy/`}>
+                            <ActiveLink target="_blank" className="p4-new !leading-none !not-italic !text-black-800" href={workspace.privacyPolicy ?? `https://bettercollected.com/privacy-policy/`}>
                                 {t(localesCommon.privacyPolicy.title)}
                             </ActiveLink>
                         </div>
@@ -129,6 +127,15 @@ export default function Container(props: { workspace: WorkspaceDto; hasCustomDom
                     </div>
                 )}
 
+                <div
+                    className="bg-white w-full xl:hidden my-6 p2-new p-4 cursor-pointer rounded-xl"
+                    onClick={() => {
+                        openModal('SEARCH_BY_SUBMISSION_NUMBER');
+                    }}
+                >
+                    Search your form response by submission number
+                </div>
+
                 {!hasCustomDomain && (
                     <div className="bg-white w-full hidden md:flex mt-6 rounded p-3 shadow-powered-by gap-2">
                         <span className="body3 text-black-700">Powered by:</span>
@@ -136,7 +143,7 @@ export default function Container(props: { workspace: WorkspaceDto; hasCustomDom
                     </div>
                 )}
             </div>
-            <div className="flex-1 lg:max-h-screen">
+            <div className="flex-1">
                 <FormsAndSubmissionsTabContainer isFormCreator={false} workspace={workspace} workspaceId={workspace.id} showResponseBar={!!auth.id} />
             </div>
             <div className="lg:hidden">

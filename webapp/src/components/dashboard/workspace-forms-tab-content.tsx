@@ -103,7 +103,12 @@ export default function WorkspaceFormsTabContent({ workspace, isFormCreator = fa
         );
     const forms: Array<StandardFormDto> = data?.items ?? [];
 
-    if ((data && Array.isArray(data) && data.length === 0) || isError || forms.length === 0) return <ZeroElement title={t(workspaceConstant.preview.emptyFormTitle)} description={t(workspaceConstant.preview.emptyFormDescription)} className="!pb-[20px]" />;
+    if ((data && Array.isArray(data) && data.length === 0) || isError || forms.length === 0)
+        return (
+            <SearchByUUIDWrapper>
+                <ZeroElement title={t(workspaceConstant.preview.emptyFormTitle)} description={t(workspaceConstant.preview.emptyFormDescription)} className="!pb-[20px]" />
+            </SearchByUUIDWrapper>
+        );
 
     return (
         <SearchByUUIDWrapper>
