@@ -136,9 +136,13 @@ def set_token_cookie(response: Response, key: str, token: str, expiry: float):
 def delete_token_cookie(response: Response):
     should_be_secure = False if "localhost" in settings.api_settings.HOST else True
     same_site = "none" if should_be_secure else "lax"
+    domain = (
+        "." + settings.api_settings.DOMAIN if settings.api_settings.DOMAIN else None
+    )
     delete_cookie(
         response=response,
         key="Authorization",
+        domain=domain,
         httponly=True,
         secure=should_be_secure,
         samesite=same_site,
@@ -146,6 +150,7 @@ def delete_token_cookie(response: Response):
     delete_cookie(
         response=response,
         key="RefreshToken",
+        domain=domain,
         httponly=True,
         secure=should_be_secure,
         samesite=same_site,
