@@ -6,8 +6,14 @@ import Image from 'next/image';
 
 import DemoImage from '@app/assets/image/rectangle.png';
 import { FieldTypes, FormField } from '@app/models/dtos/form';
+import { Button } from '@app/shadcn/components/ui/button';
 import { FieldInput } from '@app/shadcn/components/ui/input';
-import { useFormSlide, useFormTheme } from '@app/store/jotai/fetchedForm';
+import {
+    useFormSlide,
+    useFormTheme,
+    useStandardForm
+} from '@app/store/jotai/fetchedForm';
+import { useFormResponse } from '@app/store/jotai/responderFormResponse';
 import RequiredIcon from '@app/views/atoms/Icons/Required';
 
 function QuestionWrapper({
@@ -87,15 +93,30 @@ function FormFieldComponent({ field }: { field: FormField }) {
 
 export default function FormSlide({ index }: { index: number }) {
     const formSlide = useFormSlide(index);
+    const { currentSlide, setCurrentSlideToThankyouPage, nextSlide } =
+        useFormResponse();
+    const { standardForm } = useStandardForm();
     return (
         <div className="grid h-full w-full grid-cols-2">
             <div className="flex h-full flex-col items-center justify-center">
                 <div className="  w-full max-w-[544px] px-10">
                     {formSlide?.properties?.fields?.map((field) => (
-                        <div className="mt-20">
+                        <div className="mt-20" key={field.id}>
                             <FormFieldComponent key={field.id} field={field} />
                         </div>
                     ))}
+                    <Button
+                        className="mt-20"
+                        onClick={() => {
+                            if (currentSlide + 1 === standardForm?.fields?.length) {
+                                setCurrentSlideToThankyouPage();
+                            } else {
+                                nextSlide();
+                            }
+                        }}
+                    >
+                        Next
+                    </Button>
                 </div>
             </div>
             <div className="relative h-full w-full">

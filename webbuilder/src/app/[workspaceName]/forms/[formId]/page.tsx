@@ -12,9 +12,9 @@ export default function FormPage({
 }: {
     params: { formId: string; workspaceName: string };
 }) {
-    const { formResponse, nextSlide, previousSlide } = useFormResponse();
-    const { formId, workspaceName } = params;
-    const { setStandardForm, standardForm } = useStandardForm();
+    const { formResponse } = useFormResponse();
+    const { formId } = params;
+    const { setStandardForm } = useStandardForm();
 
     useEffect(() => {
         const forms = JSON.parse(localStorage.getItem('forms') || '{}');
