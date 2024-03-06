@@ -1,43 +1,22 @@
-import { useState } from 'react';
-
 import Image from 'next/image';
 import Link from 'next/link';
 
-import { PopoverContent } from '@radix-ui/react-popover';
-import { ChevronDown, Globe, Lock, UserRoundPlus } from 'lucide-react';
+import { Globe, Lock } from 'lucide-react';
 
 import DemoImage from '@app/assets/image/rectangle.png';
 import { Button } from '@app/shadcn/components/ui/button';
-import { Popover, PopoverTrigger } from '@app/shadcn/components/ui/popover';
-import { cn } from '@app/shadcn/util/lib';
 import { useStandardForm } from '@app/store/jotai/fetchedForm';
 import { useFormResponse } from '@app/store/jotai/responderFormResponse';
+import UserAvatarDropDown from '@app/views/molecules/UserAvatarDropdown';
 
-export default function WelcomeSlide() {
+export default function WelcomePage() {
     const { standardForm } = useStandardForm();
     const { nextSlide } = useFormResponse();
-
-    const [popOverOpen, setPopoverOpen] = useState(false);
 
     return (
         <div className="grid h-full w-full grid-cols-2">
             <div className=" relative flex h-full flex-col justify-center px-20">
-                <Popover open={popOverOpen} onOpenChange={setPopoverOpen}>
-                    <PopoverTrigger className="absolute right-10 top-4">
-                        <div className="flex cursor-pointer  items-center rounded-full bg-black-400 p-1">
-                            <UserRoundPlus className="rounded-full bg-black-500 p-1 text-white" />
-                            <ChevronDown
-                                className={cn(
-                                    ' pt-1 text-black-600 transition',
-                                    popOverOpen && 'rotate-180'
-                                )}
-                            />
-                        </div>
-                    </PopoverTrigger>
-                    <PopoverContent className="p2-new z-[10] mt-2 max-w-[235px] rounded-lg bg-white p-4 text-black-700 shadow-blue-hue">
-                        Do you wish to track your form response for future reference?
-                    </PopoverContent>
-                </Popover>
+                <UserAvatarDropDown />
 
                 <div className="text-[40px] font-bold leading-[48px]">
                     {standardForm.title}

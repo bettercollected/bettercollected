@@ -1,11 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 
 import { useStandardForm } from '@app/store/jotai/fetchedForm';
 import { useFormResponse } from '@app/store/jotai/responderFormResponse';
 import FormSlide from '@app/views/organism/Form/FormSlide';
-import WelcomeSlide from '@app/views/organism/Form/WelcomeSlide';
+import ThankyouPage from '@app/views/organism/Form/ThankyouPage';
+import WelcomePage from '@app/views/organism/Form/WelcomePage';
 
 export default function FormPage({
     params
@@ -26,8 +27,8 @@ export default function FormPage({
 
     return (
         <div className="h-screen w-screen">
-            {formResponse?.currentSlide === -1 && <WelcomeSlide />}
-            {formResponse?.currentSlide === -2 && <div>This will be End Slide</div>}
+            {formResponse?.currentSlide === -1 && <WelcomePage />}
+            {formResponse?.currentSlide === -2 && <ThankyouPage />}
             {formResponse?.currentSlide >= 0 && (
                 <FormSlide index={formResponse.currentSlide} />
             )}
