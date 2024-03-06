@@ -1,3 +1,5 @@
+import { set } from 'lodash';
+
 import { atom, useAtom } from 'jotai';
 
 interface FormResponse {
@@ -28,9 +30,10 @@ export const useFormResponse = () => {
     const [formResponse, setFormResponse] = useAtom(formResponseAtom);
 
     const nextSlide = () => {
+        const nextSlideNumber = formResponse.currentSlide + 1;
         setFormResponse({
             ...formResponse,
-            currentSlide: formResponse.currentSlide + 1
+            currentSlide: nextSlideNumber
         });
     };
 
@@ -40,10 +43,19 @@ export const useFormResponse = () => {
             currentSlide: formResponse.currentSlide + 1
         });
     };
+
+    const setCurrentSlideToThankyouPage = () => {
+        setFormResponse({
+            ...formResponse,
+            currentSlide: -2
+        });
+    };
     return {
         formResponse,
+        currentSlide: formResponse.currentSlide,
         nextSlide,
         previousSlide,
-        setFormResponse
+        setFormResponse,
+        setCurrentSlideToThankyouPage
     };
 };

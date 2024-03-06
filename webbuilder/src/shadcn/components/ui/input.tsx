@@ -35,8 +35,6 @@ const FieldInput = styled(ShadCNInput)<{
     $formTheme?: IThemeState;
 }>(({ $slide, $formTheme }) => {
     const themeColor = $slide?.properties?.theme?.tertiary || $formTheme?.tertiary;
-    console.log(themeColor);
-
     return {
         borderColor: themeColor,
         '::placeholder': {
