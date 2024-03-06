@@ -128,7 +128,7 @@ export default function UpgradeToProContainer({ featureText, isModal = true }: I
                         <div className="h2-new text-center mb-2">
                             Suggest a monthly price for PRO
                         </div>
-                        <div className="max-w-[314px] p2-new text-black-700 text-center">
+                        <div className="max-w-[426px] p2-new text-black-700 text-center">
                             We&apos;re committed to putting our users first, making online form building accessible to all.
                             Share your thoughts on what our Pro features are worth to you.
                         </div>

@@ -118,9 +118,13 @@ def delete_cookie(
 def set_token_cookie(response: Response, key: str, token: str, expiry: float):
     should_be_secure = False if "localhost" in settings.api_settings.HOST else True
     same_site = "none" if should_be_secure else "lax"
+    domain = (
+        "." + settings.api_settings.DOMAIN if settings.api_settings.DOMAIN else None
+    )
     set_cookie(
         response=response,
         key=key,
+        domain=domain,
         value=token,
         httponly=True,
         secure=should_be_secure,
