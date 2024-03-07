@@ -13,6 +13,8 @@ from fastapi import UploadFile
 from fastapi_camelcase import CamelModel
 from pydantic import BaseModel
 
+from common.models.standard_form import Theme
+
 from backend.app.models.dtos.consent import ConsentResponseCamelModel
 from backend.app.models.workspace import WorkspaceFormSettings
 from backend.app.schemas.standard_form_response import (
@@ -79,6 +81,7 @@ class StandardFieldPropertyCamelModel(CamelModel):
     conditions: Optional[List[ConditionCamelModel]]
     logical_operator: Optional[LogicalOperator]
     mentions: Optional[Dict[str, str]]
+    theme: Optional[Theme]
 
 
 class StandardFormFieldCamelModel(CamelModel):

@@ -7,6 +7,13 @@ from beanie import PydanticObjectId
 from common.models.consent import Consent, ConsentResponse, ResponseRetentionType
 from pydantic import BaseModel, Field
 
+class Theme(BaseModel):
+    title:str
+    primary: str
+    secondary:str
+    tertiary: str
+    accent: str
+
 
 class EmbedProvider(str, enum.Enum):
     YOUTUBE = "youtube"
@@ -49,6 +56,7 @@ class FormBuilderTagTypes(str, enum.Enum):
 
 
 class StandardFormFieldType(str, Enum):
+    SLIDE = "slide"
     DATE = "date"
     SHORT_TEXT = "short_text"
     LONG_TEXT = "long_text"
@@ -101,6 +109,24 @@ class StandardFormFieldType(str, Enum):
     INPUT_RANKING = "input_ranking"
     INPUT_MATRIX = "input_matrix"
 
+    TEXT = 'text'
+    YES_NO = 'yes_no'
+    LINK = 'url'
+    PHONE_NUMBER = 'phone_number'
+    NUMBER = 'number'
+    VIDEO_CONTENT = 'VIDEO_CONTENT'
+    IMAGE_CONTENT = 'IMAGE_CONTENT'
+    DATE_INPUT = 'date_input'
+    EMAIL_INPUT = 'email_input'
+    NUMBER_INPUT = 'number_input'
+    SHORT_TEXT_INPUT = 'short_text_input'
+    LONG_TEXT_INPUT = 'long_text_input'
+    MULTIPLE_CHOICE_INPUT = 'multiple_choice_input'
+    RANKING_INPUT = 'ranking_input'
+    RATING_INPUT = 'rating_input'
+    DROP_DOWN_INPUT = 'drop_down_input'
+    MEDIA_INPUT = 'media_input'
+    MATRIX_ROW_INPUT = 'matrix_row_input'
 
 class StandardResponseType(str, Enum):
     TEXT = "text"
@@ -273,6 +299,7 @@ class StandardFieldProperty(BaseModel):
     logical_operator: Optional[LogicalOperator]
     update_id: Optional[str]
     mentions: Optional[Dict[str, str]]
+    theme: Optional[Theme]
 
 
 class StandardFieldValidations(BaseModel):
@@ -292,6 +319,7 @@ class StandardFormField(BaseModel):
     """
 
     id: Optional[str]
+    index: Optional[int]
     ref: Optional[str]
     title: Optional[str]
     description: Optional[str]
@@ -347,6 +375,7 @@ class ActionState(BaseModel):
 
 
 class StandardForm(BaseModel):
+    builderVersion: Optional[str]
     form_id: Optional[str]
     type: Optional[str]
     title: Optional[str]
@@ -354,6 +383,7 @@ class StandardForm(BaseModel):
     cover_image: Optional[str]
     description: Optional[str]
     button_text: Optional[str]
+    button_link: Optional[str]
     fields: Optional[List[StandardFormField]]
     consent: Optional[List[Consent]]
     state: Optional[State] = Field(State())
@@ -362,6 +392,7 @@ class StandardForm(BaseModel):
     actions: Optional[Dict[Trigger, List[ActionState]]]
     parameters: Optional[Dict[str, List[ParameterValue]]] = Field()
     secrets: Optional[Dict[str, List[ParameterValue]]] = Field()
+    theme: Optional[Theme]
 
 
 class StandardFormResponseAnswer(BaseModel):

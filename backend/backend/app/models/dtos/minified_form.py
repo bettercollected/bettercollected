@@ -12,8 +12,11 @@ from backend.app.models.dtos.response_dtos import (
     StandardFormFieldCamelModel,
 )
 
+from common.models.standard_form import Theme
+
 
 class FormDtoCamelModel(CamelModel):
+    builder_version: Optional[str]
     form_id: Optional[str]
     logo: Optional[str]
     cover_image: Optional[str]
@@ -32,8 +35,10 @@ class FormDtoCamelModel(CamelModel):
     importer_details: Optional[FormImporterDetails]
     fields: Optional[List[StandardFormFieldCamelModel]]
     button_text: Optional[str]
+    button_link: Optional[str]
     version: Optional[str]
     updated_at: Optional[dt.datetime]
     actions: Optional[Dict[Trigger, List[ActionState]]]
     parameters: Optional[Dict[str, List[ParameterValue]]]
     secrets: Optional[Dict[str, List[ParameterValue]]]
+    theme: Optional[Theme]
