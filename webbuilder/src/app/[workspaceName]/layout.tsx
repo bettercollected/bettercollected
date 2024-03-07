@@ -1,5 +1,12 @@
 import React, { Suspense } from 'react';
 
+import { notFound } from 'next/navigation';
+
+import { setWorkspace } from '@app/store/redux/workspace';
+import { store } from '@app/store/store';
+import BetterCollectedSmallLogo from '@app/views/atoms/Icons/BetterCollectedSmallLogo';
+import FullScreenLoader from '@app/views/atoms/Loaders/FullScreenLoader';
+
 import { WorkspaceDispatcher } from './_dispatcher/WorkspaceDispatcher';
 
 export default function WorkspaceLayout({
@@ -20,7 +27,9 @@ const getWorkspaceByName = async (workspaceName: string) => {
         process.env.API_ENDPOINT_HOST + '/workspaces?workspace_name=' + workspaceName
     );
 
-    return await workspaceResponse.json();
+    const workspace = await workspaceResponse.json();
+    store.dispatch(setWorkspace(workspace));
+    return workspace;
 };
 
 async function WorkspaceWrapper({
@@ -30,11 +39,15 @@ async function WorkspaceWrapper({
     workspaceName: string;
     children: React.ReactNode;
 }) {
-    // const workspace = await getWorkspaceByName(workspaceName);
-    const workspace = null;
+    const workspace = await getWorkspaceByName(workspaceName);
+
+    if (!workspace.id) {
+        return notFound();
+    }
+
     return (
         <>
-            <Suspense fallback={<>Loading</>}>
+            <Suspense fallback={<FullScreenLoader />}>
                 <WorkspaceDispatcher workspace={workspace}>
                     {children}
                 </WorkspaceDispatcher>

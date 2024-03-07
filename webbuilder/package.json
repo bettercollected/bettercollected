@@ -9,6 +9,8 @@
         "lint:fix": "eslint --fix \"**/*.{js,jsx,ts,tsx}\"",
         "lint": "eslint \"**/*.{js,jsx,ts,tsx}\"",
         "dev": "cross-env NODE_OPTIONS='--inspect' next dev",
+        "dev-4000": "cross-env NODE_OPTIONS='--inspect' next dev -p 4000",
+
         "build": "next build",
         "start": "next start",
         "test": "jest"
