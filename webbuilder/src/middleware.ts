@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 import environments from './configs/environments';
 
-export async function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {    
     if (environments.AUTH_ENABLED) {
         const Authorization = request.cookies.get('Authorization')?.value;
         const RefreshToken = request.cookies.get('RefreshToken')?.value;

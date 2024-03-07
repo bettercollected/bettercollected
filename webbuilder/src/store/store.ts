@@ -5,8 +5,8 @@ import { persistStore } from 'redux-persist';
 
 import environments from '@app/configs/environments';
 import { RESET_STATE_ACTION_TYPE } from '@app/store/actions/resetState';
-import { monitorReducerEnhancer } from '@app/store/enhancers';
 import mutationStatusSlice from '@app/store/mutations/slice';
+import workspaceSlice from '@app/store/redux/workspace';
 import joyrideSlice from '@app/store/tours/slice';
 
 // Add more middlewares here
@@ -22,7 +22,8 @@ if (
 
 const reducers = {
     [mutationStatusSlice.reducerPath]: mutationStatusSlice.reducer,
-    [joyrideSlice.reducerPath]: joyrideSlice.reducer
+    [joyrideSlice.reducerPath]: joyrideSlice.reducer,
+    [workspaceSlice.reducerPath]: workspaceSlice.reducer
 };
 
 const combinedReducer = combineReducers<typeof reducers>(reducers);
