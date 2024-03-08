@@ -9,9 +9,11 @@ import mutationStatusSlice from '@app/store/mutations/slice';
 import workspaceSlice from '@app/store/redux/workspace';
 import joyrideSlice from '@app/store/tours/slice';
 
+import { formsApi } from './redux/formApi';
+
 // Add more middlewares here
 const loggerMiddleware = createLogger({ collapsed: true });
-const middlewares: any = [loggerMiddleware];
+const middlewares: any = [loggerMiddleware, formsApi.middleware];
 
 if (
     environments.IS_IN_PRODUCTION_MODE ||
@@ -23,7 +25,8 @@ if (
 const reducers = {
     [mutationStatusSlice.reducerPath]: mutationStatusSlice.reducer,
     [joyrideSlice.reducerPath]: joyrideSlice.reducer,
-    [workspaceSlice.reducerPath]: workspaceSlice.reducer
+    [workspaceSlice.reducerPath]: workspaceSlice.reducer,
+    [formsApi.reducerPath]: formsApi.reducer
 };
 
 const combinedReducer = combineReducers<typeof reducers>(reducers);

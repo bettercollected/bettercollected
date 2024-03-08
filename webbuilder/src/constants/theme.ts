@@ -5,7 +5,15 @@ export const ThemeColor = {
     primary: '#2E2E2E'
 };
 
-export const ThemeColors = [
+export interface FormTheme {
+    title: string;
+    primary: string;
+    secondary: string;
+    tertiary: string;
+    accent: string;
+}
+
+export const ThemeColors: Array<FormTheme> = [
     {
         title: 'Default',
         primary: '#2E2E2E',

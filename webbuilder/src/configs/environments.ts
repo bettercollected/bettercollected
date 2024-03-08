@@ -7,7 +7,9 @@ const environments = {
     BASE_DEPLOY_PATH,
 
     // api host configs
-    API_ENDPOINT_HOST: process.env.API_ENDPOINT_HOST,
+    API_ENDPOINT_HOST:
+        process.env.API_ENDPOINT_HOST || process.env.NEXT_PUBLIC_API_ENDPOINT_HOST,
+    NEXT_PUBLIC_API_ENDPOINT_HOST: process.env.NEXT_PUBLIC_API_ENDPOINT_HOST,
 
     FORM_PRIVACY_POLICY_URL:
         process.env.FORM_PRIVACY_POLICY_URL ??
