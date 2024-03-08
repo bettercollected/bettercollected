@@ -7,10 +7,11 @@ from beanie import PydanticObjectId
 from common.models.consent import Consent, ConsentResponse, ResponseRetentionType
 from pydantic import BaseModel, Field
 
+
 class Theme(BaseModel):
-    title:str
+    title: str
     primary: str
-    secondary:str
+    secondary: str
     tertiary: str
     accent: str
 
@@ -109,24 +110,25 @@ class StandardFormFieldType(str, Enum):
     INPUT_RANKING = "input_ranking"
     INPUT_MATRIX = "input_matrix"
 
-    TEXT = 'text'
-    YES_NO = 'yes_no'
-    LINK = 'url'
-    PHONE_NUMBER = 'phone_number'
-    NUMBER = 'number'
-    VIDEO_CONTENT = 'VIDEO_CONTENT'
-    IMAGE_CONTENT = 'IMAGE_CONTENT'
-    DATE_INPUT = 'date_input'
-    EMAIL_INPUT = 'email_input'
-    NUMBER_INPUT = 'number_input'
-    SHORT_TEXT_INPUT = 'short_text_input'
-    LONG_TEXT_INPUT = 'long_text_input'
-    MULTIPLE_CHOICE_INPUT = 'multiple_choice_input'
-    RANKING_INPUT = 'ranking_input'
-    RATING_INPUT = 'rating_input'
-    DROP_DOWN_INPUT = 'drop_down_input'
-    MEDIA_INPUT = 'media_input'
-    MATRIX_ROW_INPUT = 'matrix_row_input'
+    TEXT = "text"
+    YES_NO = "yes_no"
+    LINK = "url"
+    PHONE_NUMBER = "phone_number"
+    NUMBER = "number"
+    VIDEO_CONTENT = "VIDEO_CONTENT"
+    IMAGE_CONTENT = "IMAGE_CONTENT"
+    DATE_INPUT = "date_input"
+    EMAIL_INPUT = "email_input"
+    NUMBER_INPUT = "number_input"
+    SHORT_TEXT_INPUT = "short_text_input"
+    LONG_TEXT_INPUT = "long_text_input"
+    MULTIPLE_CHOICE_INPUT = "multiple_choice_input"
+    RANKING_INPUT = "ranking_input"
+    RATING_INPUT = "rating_input"
+    DROP_DOWN_INPUT = "drop_down_input"
+    MEDIA_INPUT = "media_input"
+    MATRIX_ROW_INPUT = "matrix_row_input"
+
 
 class StandardResponseType(str, Enum):
     TEXT = "text"
@@ -343,14 +345,16 @@ class State(BaseModel):
             "global_var1": "default value",
             "global_var2": 0,
             "global_var3": True,
-        })
+        },
+    )
     processor_state: Optional[Dict[str, Any]] = Field(
         None,
         example={
             "processor_var1": "default value",
             "processor_var2": 0,
             "processor_var3": True,
-        })
+        },
+    )
     # Is form response locked at submission by default can be set otherwise
     # by default it will be in locked state
     is_locked: Optional[bool] = Field(None)
@@ -375,7 +379,7 @@ class ActionState(BaseModel):
 
 
 class StandardForm(BaseModel):
-    builderVersion: Optional[str]
+    builder_version: Optional[str]
     form_id: Optional[str]
     type: Optional[str]
     title: Optional[str]
@@ -423,13 +427,14 @@ class StandardFormResponse(BaseModel):
     """
     Data transfer object for a standard form response.
     """
+
     response_id: Optional[str]
     form_id: Optional[str]
     provider: Optional[str]
     respondent_email: Optional[str] = None
-    answers: Optional[
-                 Dict[str, StandardFormResponseAnswer | Dict[str, Any]]
-             ] | bytes | str
+    answers: (
+        Optional[Dict[str, StandardFormResponseAnswer | Dict[str, Any]]] | bytes | str
+    )
     form_version: Optional[int]
     created_at: Optional[dt.datetime]
     updated_at: Optional[dt.datetime]
