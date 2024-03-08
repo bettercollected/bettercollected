@@ -10,7 +10,12 @@ from common.configs.crypto import Crypto
 from common.constants import MESSAGE_NOT_FOUND, MESSAGE_FORBIDDEN
 from common.enums.plan import Plans
 from common.models.form_import import FormImportRequestBody
-from common.models.standard_form import StandardForm, StandardFormResponse, Trigger
+from common.models.standard_form import (
+    StandardForm,
+    StandardFormResponse,
+    Trigger,
+    StandardFormSettings,
+)
 from common.models.user import User
 from fastapi import UploadFile
 from starlette.requests import Request
@@ -332,19 +337,25 @@ class WorkspaceFormService:
                 key=form.form_id + f"_cover{os.path.splitext(cover_image.filename)[1]}",
             )
             form.cover_image = cover_image_url
-
         saved_form = await self.form_service.create_form(form=form)
+        settings = (
+            form.settings
+            if form.settings
+            else StandardFormSettings(
+                privacy_policy_url="",
+                response_expiration="",
+                response_expiration_type=None,
+                response_data_owner_field="",
+            )
+        )
+
         workspace_form_settings = WorkspaceFormSettings(
             custom_url=form.form_id,
             provider="self",
-            privacy_policy_url=form.settings.privacy_policy_url,
-            response_expiration=form.settings.response_expiration,
-            response_expiration_type=form.settings.response_expiration_type
-            if form.settings
-            else "",
-            response_data_owner_field=form.settings.response_data_owner_field
-            if form.settings
-            else "",
+            privacy_policy_url=settings.privacy_policy_url,
+            response_expiration=settings.response_expiration,
+            response_expiration_type=settings.response_expiration_type,
+            response_data_owner_field=(settings.response_data_owner_field),
         )
         await self.workspace_form_repository.save_workspace_form(
             workspace_id=workspace_id,
