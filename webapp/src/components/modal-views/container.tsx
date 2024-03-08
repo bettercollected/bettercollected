@@ -4,6 +4,7 @@ import { useRouter } from 'next/router';
 
 import Button from '@Components/Common/Input/Button';
 import AddActionToFormModal from '@Components/Modals/DialogModals/AddActionToFormModal';
+import BuilderVersionSelectorModal from '@Components/Modals/DialogModals/BuilderVersion';
 import ExportResponsesModal from '@Components/Modals/DialogModals/ExportResponsesModal';
 import ImportFormModal from '@Components/Modals/DialogModals/ImportFormModal';
 import OauthErrorModal from '@Components/Modals/DialogModals/OauthErrorModal';
@@ -134,7 +135,8 @@ function renderModalContent(view: MODAL_VIEW, modalProps: any) {
             return <SignInToFillFormModal {...modalProps} />;
         case 'SEARCH_BY_SUBMISSION_NUMBER':
             return <SearchBySubmissionNumberModal {...modalProps} />;
-
+        case 'BUILDER_SELECTOR':
+            return <BuilderVersionSelectorModal {...modalProps} />;
         default:
             return <></>;
     }
