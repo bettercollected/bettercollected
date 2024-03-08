@@ -5,6 +5,7 @@ on:
     branches:
       - develop
       - master
+      - feature/slide-formbuilder
     tags:
       - "*"
   pull_request:
@@ -88,8 +89,7 @@ jobs:
           SERVICE_TAG: ${{ matrix.service }}
         run: |
           SERVICE_TAG=${SERVICE_TAG//\//-}
-          docker build -f ${{ matrix.service }}/Dockerfile -t bettercollected/${SERVICE_TAG}:${{ github.sha }} .  
-  
+          docker build -f ${{ matrix.service }}/Dockerfile -t bettercollected/${SERVICE_TAG}:${{ github.sha }} .
 
   build_and_push:
     if: github.event_name != 'pull_request'
@@ -105,6 +105,7 @@ jobs:
           - temporal/worker
           - temporal/actions-executor
           - temporal/csv-worker
+          - webbuilder
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code with submodules
@@ -139,8 +140,10 @@ jobs:
             docker tag bettercollected/${SERVICE_TAG}:${{ github.sha }} bettercollected/${SERVICE_TAG}:latest
             docker push bettercollected/${SERVICE_TAG}:latest
           fi
-          echo GITHUB_REF_NAME
-          echo ${{ github.ref_name }}
+          if [[ "${{ github.ref }}" = "refs/heads/feature/slide-formbuilder" ]]; then
+            docker tag bettercollected/${SERVICE_TAG}:${{ github.sha }} bettercollected/${SERVICE_TAG}:builder
+            docker push bettercollected/${SERVICE_TAG}:builder
+          fi
           if [[ "${{ github.ref }}" =~ ^refs/tags/ ]]; then
             docker tag bettercollected/${SERVICE_TAG}:${{ github.sha }} bettercollected/${SERVICE_TAG}:release
             docker tag bettercollected/${SERVICE_TAG}:${{ github.sha }} bettercollected/${SERVICE_TAG}:${{ github.ref_name }}
@@ -162,7 +165,8 @@ jobs:
           - temporal/worker
           - temporal/actions-executor
           - temporal/csv-worker
-          
+          - webbuilder
+
     runs-on: ubuntu-latest
     steps:
       - name: Deploy built Image
@@ -183,4 +187,7 @@ jobs:
               DOCKER_STACK=${{ vars.PROD_STACK }}
               DOCKER_HOST=${{ vars.PROD_HOST }} docker service update --image  bettercollected/${SERVICE_TAG}:${{ github.ref_name }} ${DOCKER_STACK}_${SERVICE_TAG}
             fi
-
+            if [[ "${{ github.ref }}" = "refs/heads/feature/slide-formbuilder" ]]; then
+              DOCKER_STACK=${{ vars.BUILDER_STACK }}
+              DOCKER_HOST=${{ vars.BUILDER_HOST }} docker service update --image  bettercollected/${SERVICE_TAG}:${{ github.sha }} ${DOCKER_STACK}_${SERVICE_TAG}
+            fi
