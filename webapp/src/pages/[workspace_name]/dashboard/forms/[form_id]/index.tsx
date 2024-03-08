@@ -38,7 +38,6 @@ import { selectWorkspace } from '@app/store/workspaces/slice';
 import { getFormUrl } from '@app/utils/urlUtils';
 import { validateFormOpen } from '@app/utils/validationUtils';
 
-
 const FormResponses = dynamic(() => import('@app/components/form/responses'));
 const FormResponsesTable = dynamic(() => import('@app/components/datatable/form/form-responses'));
 const FormVisibilities = dynamic(() => import('@app/components/form/visibility'));
@@ -157,7 +156,12 @@ export default function FormPage(props: any) {
                                         variant={['sm', 'md', 'lg', 'xl', '2xl'].indexOf(breakpoint) !== -1 ? ButtonVariant.Secondary : ButtonVariant.Ghost}
                                         className="!px-0 sm:!px-5"
                                         onClick={() => {
-                                            router.push(`/${workspace.workspaceName}/dashboard/forms/${form.formId}/edit`);
+                                            const editFormUrl = `/${workspace.workspaceName}/dashboard/forms/${form.formId}/edit`;
+                                            if (form?.builderVersion === 'v2') {
+                                                router.push(environments.HTTP_SCHEME + environments.V2_BUILDER_DOMAIN + editFormUrl);
+                                            } else {
+                                                router.push(editFormUrl);
+                                            }
                                         }}
                                     >
                                         <span className="sm:block hidden">{t(formPage.editForm)}</span>

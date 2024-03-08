@@ -40,6 +40,7 @@ export interface StandardFormDto {
     responses?: number;
     deletionRequests?: number;
     groups: Array<ResponderGroupDto>;
+    builderVersion?: string;
     settings?: {
         pinned: boolean;
         embedUrl?: string;
