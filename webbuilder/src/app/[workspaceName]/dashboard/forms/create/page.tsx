@@ -7,9 +7,11 @@ import { useRouter } from 'next/navigation';
 
 import cn from 'classnames';
 import { ChevronLeft, Download, Plus, Sparkles } from 'lucide-react';
-import { v4 } from 'uuid';
 
+import { defaultForm } from '@app/constants/form';
 import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
+import useWorkspace from '@app/store/jotai/workspace';
+import { useCreateV2FormMutation } from '@app/store/redux/formApi';
 import BetterCollectedSmallLogo from '@app/views/atoms/Icons/BetterCollectedSmallLogo';
 
 const CardVariants = {
@@ -62,14 +64,25 @@ export const templates = [
 ];
 
 export default function CreateFormPage() {
+    const [createV2Form] = useCreateV2FormMutation();
     const { resetFields } = useFormFieldsAtom();
-    const handleCreateForm = () => {
-        const formId = v4();
+    const { workspace } = useWorkspace();
+    const router = useRouter();
+
+    const handleCreateForm = async () => {
         resetFields();
-        router.push(`/test/dashboard/forms/${formId}/edit?showTitle=true`);
+        const formBody = { ...defaultForm, builderVersion: 'v2' };
+        const formData = new FormData();
+        formData.append('form_body', JSON.stringify(formBody));
+        const apiRequestBody: any = { workspaceId: workspace.id, body: formData };
+        const response: any = await createV2Form(apiRequestBody);
+        if (response?.data) {
+            router.push(
+                `/${workspace?.workspaceName}/dashboard/forms/${response?.data?.formId}/edit?showTitle=true`
+            );
+        }
     };
 
-    const router = useRouter();
     return (
         <div className="min-h-screen bg-white">
             <div

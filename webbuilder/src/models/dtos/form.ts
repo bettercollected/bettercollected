@@ -1,7 +1,9 @@
+import { FormTheme } from '@app/constants/theme';
+
 export interface StandardForm {
     formId: string;
     title: string;
-    description: string;
+    description?: string;
     buttonText?: string;
     version?: number;
     settings?: {
@@ -21,6 +23,7 @@ export interface StandardForm {
         showSubmissionNumber?: boolean;
     };
     fields: Array<FormField>;
+    theme?: FormTheme;
 }
 
 export interface FormField {
@@ -32,7 +35,7 @@ export interface FormField {
     description?: string;
     type?: FieldTypes;
     value?: string;
-    imageUrl?:string;
+    imageUrl?: string;
 }
 
 interface FieldValidations {

@@ -34,13 +34,6 @@ async function FormWrapper({
     formId: string;
     children: React.ReactNode;
 }) {
-    console.log(
-        environments.API_ENDPOINT_HOST +
-            '/workspaces/' +
-            workspaceId +
-            '/forms/' +
-            formId
-    );
     const config = {
         method: 'GET'
     };
