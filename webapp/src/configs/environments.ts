@@ -54,6 +54,10 @@ const environments = {
     ENABLE_FORM_QR: (publicRuntimeConfig.ENABLE_FORM_QR && (publicRuntimeConfig.ENABLE_FORM_QR === 'true' || publicRuntimeConfig.ENABLE_FORM_QR === true)) ?? false,
     ENABLE_COLLECT_EMAILS: (publicRuntimeConfig.ENABLE_COLLECT_EMAILS && (publicRuntimeConfig.ENABLE_COLLECT_EMAILS === 'true' || publicRuntimeConfig.ENABLE_COLLECT_EMAILS === true)) ?? false,
     ENABLE_RESPONSE_EDITING: (publicRuntimeConfig.ENABLE_RESPONSE_EDITING && (publicRuntimeConfig.ENABLE_RESPONSE_EDITING === 'true' || publicRuntimeConfig.ENABLE_RESPONSE_EDITING === true)) ?? false,
+    
+    // V2 builder
+    ENABLE_V2_BUILDER: (publicRuntimeConfig.ENABLE_V2_BUILDER && (publicRuntimeConfig.ENABLE_V2_BUILDER === 'true' || publicRuntimeConfig.ENABLE_V2_BUILDER === true)) ?? false,
+    V2_BUILDER_DOMAIN: publicRuntimeConfig.V2_BUILDER_DOMAIN || "",
 
     // internal configs
     IS_IN_PRODUCTION_MODE,
