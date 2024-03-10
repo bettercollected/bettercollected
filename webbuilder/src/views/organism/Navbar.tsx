@@ -1,18 +1,23 @@
 'use client';
 
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 
 import { v4 } from 'uuid';
 
 import { templates } from '@app/app/[workspaceName]/dashboard/forms/create/page';
+import environments from '@app/configs/environments';
 import { FieldTypes } from '@app/models/dtos/form';
 import { Button } from '@app/shadcn/components/ui/button';
 import { DropdownMenu } from '@app/shadcn/components/ui/dropdown-menu';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { useActiveSlideComponent } from '@app/store/jotai/activeBuilderComponent';
+import { useStandardForm } from '@app/store/jotai/fetchedForm';
 import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
 import { useFormState } from '@app/store/jotai/form';
 import { useNavbarState } from '@app/store/jotai/navbar';
+import useWorkspace from '@app/store/jotai/workspace';
+import { usePublishV2FormMutation } from '@app/store/redux/formApi';
 import BetterCollectedSmallLogo from '@app/views/atoms/Icons/BetterCollectedSmallLogo';
 
 import { MediaOutlinedIcon } from '../atoms/Icons/MediaOutlined';
@@ -24,9 +29,15 @@ const Navbar = () => {
     const { formFields, addField, addMedia } = useFormFieldsAtom();
     const { activeSlideComponent } = useActiveSlideComponent();
     const { formState, setFormTitle } = useFormState();
-    const { navbarState, setNavbarState } = useNavbarState();
+    const { setNavbarState } = useNavbarState();
     const { toast } = useToast();
 
+    const [publishV2Form, { isLoading }] = usePublishV2FormMutation();
+
+    const { standardForm } = useStandardForm();
+    const { workspace } = useWorkspace();
+
+    const router = useRouter();
     const handleAddText = () => {
         if (activeSlideComponent === null) {
             toast({ title: 'Add a slide to add questions', variant: 'destructive' });
@@ -158,7 +169,26 @@ const Navbar = () => {
                 <Button icon={<PlayIcon />} variant={'tertiary'}>
                     Preview
                 </Button>
-                <Button>Publish</Button>
+                <Button
+                    isLoading={isLoading}
+                    onClick={async () => {
+                        const response: any = await publishV2Form({
+                            workspaceId: workspace.id,
+                            formId: standardForm.formId
+                        });
+                        if (response.data) {
+                            toast({
+                                title: 'Form Published!',
+                                description: 'Share and start collecting responses'
+                            });
+                            router.push(
+                                `https://${environments.NEXT_PUBLIC_DASHBOARD_DOMAIN}/${workspace.workspaceName}/dashboard/forms/${standardForm.formId}?view=FormLinks`
+                            );
+                        }
+                    }}
+                >
+                    Publish
+                </Button>
             </div>
         </div>
     );
