@@ -13,8 +13,6 @@ export function FormDispatcher({
 }) {
     const { setStandardForm } = useStandardForm();
     useEffect(() => {
-        console.log(form);
-
         setStandardForm(form);
     }, [form]);
 
