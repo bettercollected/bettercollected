@@ -9,6 +9,7 @@ import {
     useActiveFieldComponent,
     useActiveSlideComponent
 } from '@app/store/jotai/activeBuilderComponent';
+import { useStandardForm } from '@app/store/jotai/fetchedForm';
 import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
 import { useFormState } from '@app/store/jotai/form';
 import { useNavbarState } from '@app/store/jotai/navbar';
@@ -35,6 +36,8 @@ export default function FormPage({ params }: { params: { formId: string } }) {
     const showModal = searchParams.get('showTitle');
 
     const { openDialogModal } = useDialogModal();
+
+    const { standardForm } = useStandardForm();
     const pathname = usePathname();
 
     const formId = params.formId;
@@ -46,14 +49,11 @@ export default function FormPage({ params }: { params: { formId: string } }) {
     }, [showModal]);
 
     useEffect(() => {
-        const forms = JSON.parse(localStorage.getItem('forms') || '{}');
-        const currentForm = forms[formId];
-        if (currentForm) {
-            const { fields, ...state } = currentForm;
-            if (currentForm?.fields) setFormFields(fields);
-            setFormState(state);
+        if (standardForm.formId) {
+            setFormState({ ...standardForm });
+            setFormFields(standardForm?.fields || []);
         }
-    }, []);
+    }, [standardForm]);
 
     function handleClickOutsideFieldOption(event: any) {
         var divA = document.getElementById('fields-option');

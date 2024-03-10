@@ -29,8 +29,15 @@ export const formsApi = createApi({
                 method: 'PATCH',
                 body: request.body
             })
-        })
+        }),
+        publishV2Form: builder.mutation<any, any>({
+            query: (request) => ({
+                url: `/workspaces/${request.workspaceId}/forms/${request.formId}/publish`,
+                method: 'POST',
+                body: request.body
+            }),
+        }),
     })
 });
 
-export const { useCreateV2FormMutation, usePatchV2FormMutation } = formsApi;
+export const { useCreateV2FormMutation, usePatchV2FormMutation, usePublishV2FormMutation } = formsApi;
