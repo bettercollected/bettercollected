@@ -1,11 +1,21 @@
 'use client';
 
 import { Switch } from '@app/shadcn/components/ui/switch';
+import { cn } from '@app/shadcn/util/lib';
 import { useActiveSlideComponent } from '@app/store/jotai/activeBuilderComponent';
 import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
 import { useFormState } from '@app/store/jotai/form';
 
-export default function PagePropertiesTab() {
+import SlideLayoutLeftImage from '../atoms/Icons/SlideLayoutLeftImage';
+import SlideLayoutRightImage from '../atoms/Icons/SlideLayoutRightImage';
+
+export default function PagePropertiesTab({
+    layout,
+    setLayout
+}: {
+    layout: 'two-column-right' | 'two-column-left';
+    setLayout: Function;
+}) {
     const { formFields, updateShowQuestionNumbers, activeSlide } = useFormFieldsAtom();
     const { activeSlideComponent } = useActiveSlideComponent();
     const { formState, setFormState } = useFormState();
@@ -15,11 +25,24 @@ export default function PagePropertiesTab() {
                 Layout
             </div>
             <div className="grid grid-cols-2 gap-2 border-b px-4 pb-6">
-                {[1, 2, 3].map((item) => (
+                {[
+                    { style: 'two-column-left', Icon: SlideLayoutRightImage },
+                    { style: 'two-column-right', Icon: SlideLayoutLeftImage }
+                ].map((item) => (
                     <div
-                        key={item}
-                        className="h-[50px] w-20 rounded-xl bg-gray-500"
-                    ></div>
+                        key={item.style}
+                        className={cn(
+                            'flex h-[50px] w-20 cursor-pointer items-center justify-center rounded-xl border-[1px] p-2 hover:bg-gray-200',
+                            item.style === layout
+                                ? 'border-pink-500 ring-offset-1'
+                                : 'border-gray-200'
+                        )}
+                        onClick={() => setLayout(item.style)}
+                    >
+                        {item.Icon && <item.Icon />}
+                        {/* <SlideLayoutRightImage />
+                        <SlideLayoutLeftImage /> */}
+                    </div>
                 ))}
             </div>
             <div className="p2-new mb-4 mt-6 px-4 !font-medium text-black-700">

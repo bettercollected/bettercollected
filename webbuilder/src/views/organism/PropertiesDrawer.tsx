@@ -52,7 +52,13 @@ const FieldTypeSelector = () => {
     );
 };
 
-export default function PropertiesDrawer() {
+export default function PropertiesDrawer({
+    layout,
+    setLayout
+}: {
+    layout: 'two-column-right' | 'two-column-left';
+    setLayout: Function;
+}) {
     const { activeSlideComponent } = useActiveSlideComponent();
     const { activeFieldComponent } = useActiveFieldComponent();
 
@@ -77,7 +83,7 @@ export default function PropertiesDrawer() {
                             </TabsTrigger>
                         </TabsList>
                         <TabsContent value="page" className="border-b">
-                            <PagePropertiesTab />
+                            <PagePropertiesTab layout={layout} setLayout={setLayout} />
                         </TabsContent>
                         <TabsContent value="design">
                             <PageDesignTab />
