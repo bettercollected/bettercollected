@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
@@ -22,6 +22,10 @@ import ThankYouSlide from '@app/views/organism/ThankYouPage';
 import WelcomeSlide from '@app/views/organism/WelcomePage';
 
 export default function FormPage({ params }: { params: { formId: string } }) {
+    const [layout, setLayout] = useState<'two-column-right' | 'two-column-left'>(
+        'two-column-left'
+    );
+
     const router = useRouter();
     const { formFields, setFormFields } = useFormFieldsAtom();
     const { setFormState } = useFormState();
@@ -79,7 +83,7 @@ export default function FormPage({ params }: { params: { formId: string } }) {
             <Navbar />
             <AutoSaveForm formId={formId} />
             <div className="flex max-h-body-content w-full flex-row items-center gap-10">
-                <LeftDrawer />
+                <LeftDrawer layout={layout} />
                 <div
                     className="relative flex h-full flex-1 flex-col items-center justify-center "
                     onClick={() => {
@@ -87,18 +91,25 @@ export default function FormPage({ params }: { params: { formId: string } }) {
                     }}
                 >
                     {activeSlideComponent?.id && activeSlideComponent?.index >= 0 && (
-                        <FieldSection slide={formFields[activeSlideComponent?.index]} />
+                        <FieldSection
+                            slide={formFields[activeSlideComponent?.index]}
+                            layout={layout}
+                        />
                     )}
                     {!activeSlideComponent?.id && <div>Add a slide to start</div>}
-                    {activeSlideComponent?.id === 'welcome-page' && <WelcomeSlide />}
+                    {activeSlideComponent?.id === 'welcome-page' && (
+                        <WelcomeSlide layout={layout} />
+                    )}
 
-                    {activeSlideComponent?.id === 'thank-you-page' && <ThankYouSlide />}
+                    {activeSlideComponent?.id === 'thank-you-page' && (
+                        <ThankYouSlide layout={'two-column-right'} />
+                    )}
                 </div>
                 <div
                     id="slide-element-properties"
                     className="h-full w-[200px] self-stretch overflow-auto border-l-black-300 bg-white"
                 >
-                    <PropertiesDrawer />
+                    <PropertiesDrawer layout={layout} setLayout={setLayout} />
                 </div>
             </div>
         </main>

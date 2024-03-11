@@ -1,19 +1,36 @@
 import Image from 'next/image';
 
+import cn from 'classnames';
+
 import RectangleImage from '@app/assets/image/rectangle.png';
 import { Button } from '@app/shadcn/components/ui/button';
 import { useFormState } from '@app/store/jotai/form';
 
-const WelcomeSlide = ({ disabled }: { disabled?: boolean }) => {
+const WelcomeSlide = ({
+    disabled,
+    layout
+}: {
+    disabled?: boolean;
+    layout: 'two-column-right' | 'two-column-left';
+}) => {
     const { theme, formState, setFormDescription, setWelcomeTitle } = useFormState();
     return (
         <div
             style={{
                 background: theme?.accent
             }}
-            className={`flex aspect-video h-min w-full bg-blue-100  ${disabled ? 'pointer-events-none overflow-hidden' : ''}`}
+            className={`grid aspect-video h-min w-full grid-cols-2 bg-blue-100  ${disabled ? 'pointer-events-none overflow-hidden' : ''}`}
         >
-            <div className=" flex basis-1/2 flex-col items-start justify-center gap-12 px-12">
+            <div
+                className={cn(
+                    'grid-flow-col grid-cols-1 items-center justify-center gap-12 self-center px-12',
+                    layout === 'two-column-right'
+                        ? 'order-1'
+                        : layout === 'two-column-left'
+                          ? 'order-0'
+                          : ''
+                )}
+            >
                 <div className="flex flex-col">
                     <input
                         type="text"
@@ -38,12 +55,30 @@ const WelcomeSlide = ({ disabled }: { disabled?: boolean }) => {
                 </div>
                 <Button size={'medium'}>{formState.buttonText || 'Start'}</Button>
             </div>
-            <Image
-                objectFit="cover"
-                className="basis-1/2"
-                src={RectangleImage}
-                alt="LayoutImage"
-            />
+            <div
+                className={cn(
+                    'grid-cols-1',
+                    layout === 'two-column-right'
+                        ? 'order-0'
+                        : layout === 'two-column-left'
+                          ? 'order-1'
+                          : ''
+                )}
+            >
+                <Image
+                    objectFit="cover"
+                    className={cn(
+                        'h-full w-full',
+                        layout === 'two-column-right'
+                            ? 'order-0'
+                            : layout === 'two-column-left'
+                              ? 'order-1'
+                              : ''
+                    )}
+                    src={RectangleImage}
+                    alt="LayoutImage"
+                />
+            </div>
         </div>
     );
 };

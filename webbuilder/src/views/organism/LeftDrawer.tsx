@@ -18,7 +18,11 @@ import FieldSection from './FieldSection';
 import ThankYouSlide from './ThankYouPage';
 import WelcomeSlide from './WelcomePage';
 
-export default function LeftDrawer() {
+export default function LeftDrawer({
+    layout
+}: {
+    layout: 'two-column-right' | 'two-column-left';
+}) {
     const { activeSlideComponent, setActiveSlideComponent } = useActiveSlideComponent();
     const { formFields, addField, addSlide } = useFormFieldsAtom();
     const Slides = formFields;
@@ -138,7 +142,7 @@ export default function LeftDrawer() {
                                     });
                                 }}
                             >
-                                <WelcomeSlide disabled />
+                                <WelcomeSlide layout={layout} disabled />
                             </div>
                         </div>
                     </div>
@@ -176,9 +180,10 @@ export default function LeftDrawer() {
                                                         });
                                                     }}
                                                 >
-                                                    <div className={'scale-[0.25]'}>
+                                                    <div className={''}>
                                                         <FieldSection
                                                             slide={slide}
+                                                            layout={layout}
                                                             disabled
                                                             isScaledDown
                                                         />
@@ -216,7 +221,7 @@ export default function LeftDrawer() {
                                     });
                                 }}
                             >
-                                <ThankYouSlide disabled />
+                                <ThankYouSlide layout={layout} disabled />
                             </div>
                         </div>
                     </div>
