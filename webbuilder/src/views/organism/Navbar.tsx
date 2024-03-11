@@ -182,7 +182,7 @@ const Navbar = () => {
                                 description: 'Share and start collecting responses'
                             });
                             router.push(
-                                `https://${environments.NEXT_PUBLIC_DASHBOARD_DOMAIN}/${workspace.workspaceName}/dashboard/forms/${standardForm.formId}?view=FormLinks`
+                                `${environments.NEXT_PUBLIC_HTTP_SCHEME}://${environments.NEXT_PUBLIC_DASHBOARD_DOMAIN}/${workspace.workspaceName}/dashboard/forms/${standardForm.formId}?view=FormLinks`
                             );
                         }
                     }}
