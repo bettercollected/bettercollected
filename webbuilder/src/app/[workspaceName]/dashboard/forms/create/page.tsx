@@ -77,7 +77,7 @@ export default function CreateFormPage() {
         const apiRequestBody: any = { workspaceId: workspace.id, body: formData };
         const response: any = await createV2Form(apiRequestBody);
         if (response?.data) {
-            router.push(
+            router.replace(
                 `/${workspace?.workspaceName}/dashboard/forms/${response?.data?.formId}/edit?showTitle=true`
             );
         }

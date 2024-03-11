@@ -8,7 +8,7 @@ import { Input } from '@app/shadcn/components/ui/input';
 import { useFormState } from '@app/store/jotai/form';
 
 export default function AddFormTitleModal() {
-    const { setFormTitle } = useFormState();
+    const { setFormState, formState } = useFormState();
 
     const [title, setTitle] = useState('');
 
@@ -17,7 +17,7 @@ export default function AddFormTitleModal() {
         <form
             onSubmit={(event) => {
                 event.preventDefault();
-                setFormTitle(title);
+                setFormState({ ...formState, title, welcomeTitle: title });
                 closeDialogModal();
             }}
         >
