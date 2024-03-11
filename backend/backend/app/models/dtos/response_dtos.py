@@ -90,6 +90,7 @@ class StandardFormFieldCamelModel(CamelModel):
     title: Optional[str]
     description: Optional[str]
     value: Optional[str]
+    index: Optional[int]
     type: Optional[StandardFormFieldType]
     tag: Optional[FormBuilderTagTypes]
     properties: Optional[StandardFieldPropertyCamelModel]
