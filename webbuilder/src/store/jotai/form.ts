@@ -4,6 +4,7 @@ import { ThemeColor } from '@app/constants/theme';
 
 export interface IFormState {
     title: string;
+    welcomeTitle?: string;
     description?: string;
     thankYouMessage?: string;
     thankYouButtonText?: string;
@@ -28,6 +29,7 @@ export interface IThemeState {
 
 export const initialFormState = atom<IFormState>({
     title: '',
+    welcomeTitle: '',
     description: undefined,
     thankYouMessage: undefined,
     thankYouButtonText: '',
@@ -47,6 +49,10 @@ export function useFormState() {
 
     const setFormTitle = (title: string) => {
         setFormState({ ...formState, title });
+    };
+
+    const setWelcomeTitle = (welcomeTitle: string) => {
+        setFormState({ ...formState, welcomeTitle });
     };
 
     const setFormDescription = (description: string) => {
@@ -69,6 +75,7 @@ export function useFormState() {
         setFormDescription,
         setFormTitle,
         updateFormTheme,
-        theme: formState.theme
+        theme: formState.theme,
+        setWelcomeTitle
     };
 }

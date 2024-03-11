@@ -5,7 +5,7 @@ import { Button } from '@app/shadcn/components/ui/button';
 import { useFormState } from '@app/store/jotai/form';
 
 const WelcomeSlide = ({ disabled }: { disabled?: boolean }) => {
-    const { theme, formState, setFormDescription, setFormTitle } = useFormState();
+    const { theme, formState, setFormDescription, setWelcomeTitle } = useFormState();
     return (
         <div
             style={{
@@ -19,9 +19,9 @@ const WelcomeSlide = ({ disabled }: { disabled?: boolean }) => {
                         type="text"
                         placeholder="Form Title"
                         className="border-0 px-0 text-[40px] font-bold"
-                        value={formState.title}
+                        value={formState.welcomeTitle}
                         onChange={(event) => {
-                            setFormTitle(event.target.value);
+                            setWelcomeTitle(event.target.value);
                         }}
                     />
                     {formState.description !== undefined ? (

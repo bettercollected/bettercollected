@@ -383,6 +383,7 @@ class StandardForm(BaseModel):
     form_id: Optional[str]
     type: Optional[str]
     title: Optional[str]
+    welcome_title: Optional[str]
     logo: Optional[str]
     cover_image: Optional[str]
     description: Optional[str]
