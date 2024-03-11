@@ -129,7 +129,8 @@ const nextConfig = {
 
         // V2 builder
         ENABLE_V2_BUILDER: process.env.ENABLE_V2_BUILDER || false,
-        V2_BUILDER_DOMAIN: process.env.V2_BUILDER_DOMAIN || "",
+        V2_BUILDER_DOMAIN: process.env.V2_BUILDER_DOMAIN || '',
+        V2_FORM_DOMAIN: process.env.V2_FORM_DOMAIN || '',
 
         // Enable Suggest price allowing user to get pro feature for free
         ENABLE_SUGGEST_PRICE: process.env.ENABLE_SUGGEST_PRICE,
@@ -174,9 +175,7 @@ const nextConfig = {
         CHATWOOT_WEBSITE_TOKEN: process.env.CHATWOOT_WEBSITE_TOKEN,
 
         // App Sumo
-        APP_SUMO_PRODUCT_URL: process.env.APP_SUMO_PRODUCT_URL,
-
-
+        APP_SUMO_PRODUCT_URL: process.env.APP_SUMO_PRODUCT_URL
     }
 };
 

@@ -36,6 +36,7 @@ import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { usePatchFormSettingsMutation } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { utcToLocalDateTIme } from '@app/utils/dateUtils';
+import getFormShareURL from '@app/utils/formUtils';
 import { validateFormOpen } from '@app/utils/validationUtils';
 
 import Globe from '../icons/flags/globe';
@@ -59,10 +60,10 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
     const fullScreenModal = useFullScreenModal();
     const isCustomDomain = workspace?.isPro && !!workspace.customDomain;
     const customUrl = form?.settings?.customUrl || '';
-    const clientHost = `${environments.CLIENT_DOMAIN.includes('localhost') ? 'http' : 'https'}://${environments.CLIENT_DOMAIN}/${workspace.workspaceName}/forms`;
-    const customDomain = `${environments.CLIENT_DOMAIN.includes('localhost') ? 'http' : 'https'}://${workspace.customDomain}/forms`;
-    const clientHostUrl = `${clientHost}/${customUrl}`;
-    const customDomainUrl = `${customDomain}/${customUrl}`;
+    const clientHost = `${environments.HTTP_SCHEME}${environments.CLIENT_DOMAIN}/${workspace.workspaceName}/forms`;
+    const customDomain = `${environments.HTTP_SCHEME}${workspace.customDomain}/forms`;
+    const V2FormDomain = `${environments.HTTP_SCHEME}${environments.V2_FORM_DOMAIN}`;
+
     const [_, copyToClipboard] = useCopyToClipboard();
 
     const handleOnCopy = () => {
@@ -257,7 +258,7 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                         <div className={'flex flex-col gap-2 mt-1  items-start py-1 '}>
                             <Tooltip title={t('CLICK_TO_COPY')}>
                                 <p className="body4 !text-black-700 truncate cursor-pointer max-w-full" onClick={handleOnCopy}>
-                                    {isCustomDomain ? customDomain : clientHost}/<span className={'text-pink-500'}>{customUrl}</span>
+                                    {isCustomDomain ? customDomain : form?.builderVersion === 'v2' ? V2FormDomain : clientHost}/<span className={'text-pink-500'}>{customUrl}</span>
                                 </p>
                             </Tooltip>
                             <div className={'flex gap-8'}>
@@ -266,7 +267,7 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                                     icon={<EditIcon className="h-4 w-4" />}
                                     onClick={() => {
                                         openBottomSheetModal('FORM_CREATE_SLUG_VIEW', {
-                                            link: isCustomDomain ? customDomain : clientHost,
+                                            link: isCustomDomain ? customDomain : form?.builderVersion === 'v2' ? V2FormDomain : clientHost,
                                             customSlug: customUrl
                                         });
                                     }}
@@ -289,8 +290,8 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                             </div>
                         </div>
                         <div className="flex flex-col gap-16 pt-10">
-                            {isCustomDomain && <FormLinkUpdateView isCustomDomain={isCustomDomain} link={customDomainUrl} isProUser={!isAdmin || workspace?.isPro} isPrivate={form?.settings?.hidden} />}
-                            <FormLinkUpdateView isCustomDomain={false} link={clientHostUrl} isDisable={!isProPlan && !isAdmin} isProUser={!isAdmin || workspace?.isPro} isPrivate={form?.settings?.hidden} />
+                            {isCustomDomain && <FormLinkUpdateView isCustomDomain={isCustomDomain} link={getFormShareURL(form, workspace)} isProUser={!isAdmin || workspace?.isPro} isPrivate={form?.settings?.hidden} />}
+                            <FormLinkUpdateView isCustomDomain={false} link={getFormShareURL(form, workspace, true)} isDisable={!isProPlan && !isAdmin} isProUser={!isAdmin || workspace?.isPro} isPrivate={form?.settings?.hidden} />
                         </div>
                     </FormSettingsCard>
                 );
