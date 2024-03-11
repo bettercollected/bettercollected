@@ -21,6 +21,7 @@ class FormDtoCamelModel(CamelModel):
     logo: Optional[str]
     cover_image: Optional[str]
     title: Optional[str]
+    welcome_title: Optional[str]
     description: Optional[str]
     type: Optional[str]
     settings: Optional[WorkspaceFormSettingsCamelModal]
