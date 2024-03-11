@@ -35,7 +35,7 @@ import Error from '@app/pages/_error';
 import { resetSingleForm, selectForm, setForm } from '@app/store/forms/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
-import { getFormUrl } from '@app/utils/urlUtils';
+import getFormShareURL from '@app/utils/formUtils';
 import { validateFormOpen } from '@app/utils/validationUtils';
 
 const FormResponses = dynamic(() => import('@app/components/form/responses'));
@@ -176,7 +176,7 @@ export default function FormPage(props: any) {
                                             disabled={workspaceForm?.settings?.hidden}
                                             onClick={() =>
                                                 openModal('SHARE_VIEW', {
-                                                    url: getFormUrl(workspaceForm, workspace),
+                                                    url: getFormShareURL(workspaceForm, workspace),
                                                     title: t(formConstant.shareThisForm)
                                                 })
                                             }

@@ -28,6 +28,7 @@ import { StandardFormDto } from '@app/models/dtos/form';
 import { ResponderGroupDto } from '@app/models/dtos/groups';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { JOYRIDE_CLASS } from '@app/store/tours/types';
+import getFormShareURL from '@app/utils/formUtils';
 import { validateFormOpen } from '@app/utils/validationUtils';
 
 interface IWorkspaceFormCardProps {
@@ -61,21 +62,11 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, group, worksp
         event.preventDefault();
         event.stopPropagation();
         openModal('SHARE_VIEW', {
-            url: getShareUrl(),
+            url: getFormShareURL(form, workspace),
             title: t(formConstant.shareThisForm)
         });
     };
 
-    const getShareUrl = () => {
-        const slug = form.settings?.customUrl;
-        let shareUrl = '';
-        if (window && typeof window !== 'undefined') {
-            const scheme = `${environments.CLIENT_DOMAIN.includes('localhost') ? 'http' : 'https'}://`;
-            const domainHost = hasCustomDomain ? `${workspace.customDomain}/forms/${slug}` : `${environments.CLIENT_DOMAIN}/${workspace.workspaceName}/forms/${slug}`;
-            shareUrl = scheme + domainHost;
-        }
-        return shareUrl;
-    };
     const visibility = () => {
         if (form?.settings?.hidden) {
             return {
