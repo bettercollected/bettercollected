@@ -19,7 +19,9 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import SelectDropdown from '@app/components/dropdown/select';
 import Loader from '@app/components/ui/loader';
 import { StandardFormFieldDto } from '@app/models/dtos/form';
-
+import { useAppSelector } from '@app/store/hooks';
+import { selectWorkspace } from '@app/store/workspaces/slice';
+import getFormShareURL from '@app/utils/formUtils';
 
 const StyledTextField = styled.div`
     textarea:disabled {
@@ -80,13 +82,14 @@ FormRenderer.defaultProps = {
 };
 
 export default function FormRenderer({ form, response, enabled, isDisabled = false }: FormRendererProps) {
+    const workspace = useAppSelector(selectWorkspace);
+
     const renderGridRowColumns = (question: any) => {
         const gridRowQuestions = question.properties?.fields;
         const gridColumnOptions = question.properties?.fields[0].properties.choices;
         const Component = gridRowQuestions[0].properties.allow_multiple_selection ? Checkbox : Radio;
 
         const gridColumnCount = gridColumnOptions && Array.isArray(gridColumnOptions) ? gridColumnOptions.length : 0;
-        const gridAnswers = question.answer ? question.answer : [];
 
         return (
             <div className="" data-testid="form-renderer">
@@ -329,7 +332,15 @@ export default function FormRenderer({ form, response, enabled, isDisabled = fal
     return (
         <div data-testid="form-renderer" className="relative  w-full flex justify-center  md:px-0">
             {form?.settings?.provider === 'self' ? (
-                <BetterCollectedForm form={form} response={response} enabled={enabled} isDisabled={isDisabled} />
+                <>
+                    {form?.builderVersion === 'v2' ? (
+                        <div className="w-full aspect-video bg-blue-200">
+                            <iframe src={getFormShareURL(form, workspace)} className="h-full w-full pointer-events-none"></iframe>
+                        </div>
+                    ) : (
+                        <BetterCollectedForm form={form} response={response} enabled={enabled} isDisabled={isDisabled} />
+                    )}
+                </>
             ) : (
                 <div className="flex flex-col gap-4 max-w-[700px] w-full !bg-white rounded">
                     <div className="p-6 bg-white rounded-lg flex flex-col gap-4">
