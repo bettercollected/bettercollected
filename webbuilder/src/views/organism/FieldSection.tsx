@@ -288,21 +288,17 @@ const FieldSection = ({
                                                                 activeFieldComponent &&
                                                                 activeFieldComponent?.id ===
                                                                     field.id && (
-                                                                    <Button
-                                                                        className="absolute -top-10"
-                                                                        icon={
-                                                                            <DeleteIcon />
-                                                                        }
-                                                                        variant={
-                                                                            'danger'
-                                                                        }
+                                                                    <div
+                                                                        className="shadow-bubble absolute -top-12 right-0 cursor-pointer rounded-md bg-white p-2"
                                                                         onClick={() =>
                                                                             deleteField(
                                                                                 slide.index,
                                                                                 index
                                                                             )
                                                                         }
-                                                                    />
+                                                                    >
+                                                                        <DeleteIcon />
+                                                                    </div>
                                                                 )}
                                                         </div>
                                                     )}

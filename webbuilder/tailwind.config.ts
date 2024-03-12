@@ -182,7 +182,8 @@ export default {
             inner: 'inset 0 2px 4px 0 rgb(0 0 0 / 0.05)',
             none: 'none',
             tooltip: '0px 0px 6px 0px #00000026',
-            'blue-hue': ' 0px 0px 16px 0px #0764EB29'
+            'blue-hue': ' 0px 0px 16px 0px #0764EB29',
+            bubble: '-4px 0px 12px 0px #0000001A'
         },
         boxShadowColor: ({ theme }) => theme('colors'),
         brightness: {
