@@ -153,8 +153,8 @@ const FieldSection = ({
                                         slideFields.map((field, index) => {
                                             return (
                                                 <Draggable
-                                                    key={index}
-                                                    draggableId={`${index}`}
+                                                    key={field.id}
+                                                    draggableId={`${field.id}`}
                                                     index={index}
                                                     disableInteractiveElementBlocking={
                                                         disabled
