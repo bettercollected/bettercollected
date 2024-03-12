@@ -207,7 +207,7 @@ export default function FormPage(props: any) {
                         </FormPageLayer>
                         {form?.isPublished && (
                             <>
-                                {form?.settings?.provider === 'self' && (
+                                {form?.settings?.provider === 'self' && environments.ENABLE_ACTIONS && (
                                     <TabPanel className="focus:outline-none" key="Integrations">
                                         <FormIntegrations />
                                     </TabPanel>
