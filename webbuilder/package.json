@@ -10,7 +10,6 @@
         "lint": "eslint \"**/*.{js,jsx,ts,tsx}\"",
         "dev": "cross-env NODE_OPTIONS='--inspect' next dev",
         "dev-4000": "cross-env NODE_OPTIONS='--inspect' next dev -p 4000",
-
         "build": "next build",
         "start": "next start",
         "test": "jest"
@@ -62,6 +61,7 @@
         "elastic-apm-node": "^4.4.0",
         "file-type": "^19.0.0",
         "framer-motion": "^10.18.0",
+        "html-react-parser": "^5.1.8",
         "html2canvas": "^1.4.1",
         "jotai": "^2.6.2",
         "js-cookie": "^3.0.5",
