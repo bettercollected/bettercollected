@@ -16,6 +16,7 @@ import StarterKit from '@tiptap/starter-kit';
 import { FieldTypes, FormField } from '@app/models/dtos/form';
 import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
 import { FontSize } from '@app/utils/richTextEditorExtenstion/fontSize';
+import { getHtmlFromJson } from '@app/utils/richTextEditorExtenstion/getHtmlFromJson';
 import { ArrowDown } from '@app/views/atoms/Icons/ArrowDown';
 
 export function getPlaceholderValueForTitle(fieldType: FieldTypes) {
@@ -45,6 +46,8 @@ export function getPlaceholderValueForTitle(fieldType: FieldTypes) {
     }
 }
 
+export const Extenstions = [StarterKit, TextStyle, FontSize, Underline, Color];
+
 export function RichTextEditor({
     field,
     onUpdate
@@ -54,16 +57,14 @@ export function RichTextEditor({
 }) {
     const FontSizes = [8, 10, 12, 14, 16, 18, 20, 24, 28, 32, 40, 48, 64];
     const [size, setSize] = useState(5);
-    const getHtmlForJson = (json: any) => {
-        return generateHTML(json, [StarterKit, TextStyle, FontSize, Underline, Color]);
-    };
+
     const getContentForEditor = () => {
         return field.title
-            ? getHtmlForJson(JSON.parse(field.title))
+            ? getHtmlFromJson(field.title ?? '')
             : getPlaceholderValueForTitle(field.type || FieldTypes.SHORT_TEXT);
     };
     const editor = useEditor({
-        extensions: [StarterKit, TextStyle, FontSize, Underline, Color],
+        extensions: Extenstions,
         content: getContentForEditor(),
         editorProps: {
             attributes: {

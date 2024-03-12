@@ -13,8 +13,10 @@ export function FormDispatcher({
 }) {
     const { setStandardForm } = useStandardForm();
     useEffect(() => {
-        setStandardForm(form);
-    }, [form]);
+        if (form.formId) {
+            setStandardForm(form);
+        }
+    }, [form.formId]);
 
     return <>{children}</>;
 }

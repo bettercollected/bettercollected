@@ -4,6 +4,8 @@ import React from 'react';
 
 import Image from 'next/image';
 
+import parse from 'html-react-parser';
+
 import DemoImage from '@app/assets/image/rectangle.png';
 import { FieldTypes, FormField } from '@app/models/dtos/form';
 import { Button } from '@app/shadcn/components/ui/button';
@@ -14,6 +16,7 @@ import {
     useStandardForm
 } from '@app/store/jotai/fetchedForm';
 import { useFormResponse } from '@app/store/jotai/responderFormResponse';
+import { getHtmlFromJson } from '@app/utils/richTextEditorExtenstion/getHtmlFromJson';
 import RequiredIcon from '@app/views/atoms/Icons/Required';
 
 function QuestionWrapper({
@@ -30,8 +33,9 @@ function QuestionWrapper({
                     <RequiredIcon className="text-red-500" />
                 </div>
             )}
-
-            <div className="font-semibold">{field.title}</div>
+            <div className="font-semibold">
+                {parse(getHtmlFromJson(field?.title || '') ?? 'No Fields')}
+            </div>
             {field?.description && (
                 <div className="mt-2 text-black-700">{field?.description}</div>
             )}
@@ -46,7 +50,7 @@ function FormFieldComponent({ field }: { field: FormField }) {
         case FieldTypes.TEXT:
             return (
                 <div className="h1-new w-full text-left text-[32px] font-bold">
-                    {field.title}
+                    {parse(getHtmlFromJson(field?.title || '') ?? 'No Fields')}
                 </div>
             );
         case FieldTypes.EMAIL:

@@ -1,10 +1,13 @@
 'use client';
 
+import parse from 'html-react-parser';
+
 import { Switch } from '@app/shadcn/components/ui/switch';
 import { cn } from '@app/shadcn/util/lib';
 import { useActiveSlideComponent } from '@app/store/jotai/activeBuilderComponent';
 import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
 import { useFormState } from '@app/store/jotai/form';
+import { getHtmlFromJson } from '@app/utils/richTextEditorExtenstion/getHtmlFromJson';
 
 import SlideLayoutLeftImage from '../atoms/Icons/SlideLayoutLeftImage';
 import SlideLayoutRightImage from '../atoms/Icons/SlideLayoutRightImage';
@@ -188,8 +191,12 @@ export default function PagePropertiesTab({
                                         key={field.id}
                                         className="flex items-center justify-between gap-2 text-xs text-black-700"
                                     >
-                                        <div className="truncate">
-                                            {field?.title || 'Untitled Question'}
+                                        <div className="truncate !text-xs">
+                                            {parse(
+                                                getHtmlFromJson(field?.title || '') ??
+                                                    'Untitled Question'
+                                            )}
+                                            {/* <p>{'hellasdo'}</p> */}
                                         </div>
                                         <svg
                                             width="20"
