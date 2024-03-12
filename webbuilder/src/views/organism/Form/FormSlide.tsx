@@ -105,8 +105,8 @@ export default function FormSlide({ index }: { index: number }) {
             <div className="flex h-full flex-col items-center justify-center">
                 <div className="  w-full max-w-[544px] px-10">
                     {formSlide?.properties?.fields?.map((field) => (
-                        <div className="mt-20" key={field.id}>
-                            <FormFieldComponent key={field.id} field={field} />
+                        <div className="mt-20" key={field.index}>
+                            <FormFieldComponent field={field} />
                         </div>
                     ))}
                     <Button
