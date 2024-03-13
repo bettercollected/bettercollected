@@ -41,7 +41,7 @@ const FieldInput = styled(ShadCNInput)<{
     return {
         background: theme?.accent,
         borderColor: themeColor,
-        '::placeholder': {
+        '&::placeholder': {
             color: `${themeColor} !important`
         }
     };

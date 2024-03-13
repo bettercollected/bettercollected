@@ -62,7 +62,7 @@ function FormFieldComponent({ field, form }: { field: FormField; form: StandardF
                 <QuestionWrapper field={field}>
                     <FieldInput
                         type="text"
-                        // style={{ background: form.theme?.accent }}
+                        placeholder={field?.properties?.placeholder}
                         $slide={field}
                     />
                 </QuestionWrapper>
