@@ -20,6 +20,6 @@ else
     fi
 fi
 
-bash ./scripts/replace-runtime-variables.sh && 
+# bash ./scripts/replace-runtime-variables.sh && 
 
 exec "./node_modules/.bin/next" "start" "-p" "4000"
