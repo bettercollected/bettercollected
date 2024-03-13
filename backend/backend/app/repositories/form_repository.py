@@ -236,6 +236,7 @@ class FormRepository:
         form_document.cover_image = form.cover_image
         form_document.description = form.description
         form_document.button_text = form.button_text
+        form_document.theme = form.theme
         form_document.consent = form.consent if form.consent else form_document.consent
         form_document.settings = (
             form.settings if form.settings else form_document.settings
