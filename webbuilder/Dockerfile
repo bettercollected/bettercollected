@@ -31,7 +31,7 @@ FROM base
 USER node
 
 ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1
-EXPOSE 3000
+EXPOSE 4000
 
 
 # You only need to copy next.config.js if you are NOT using the default configuration
