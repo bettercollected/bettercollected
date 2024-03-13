@@ -2,6 +2,7 @@
 
 import parse from 'html-react-parser';
 
+import { FieldTypes } from '@app/models/dtos/form';
 import { Switch } from '@app/shadcn/components/ui/switch';
 import { cn } from '@app/shadcn/util/lib';
 import { useActiveSlideComponent } from '@app/store/jotai/activeBuilderComponent';
@@ -11,6 +12,7 @@ import { getHtmlFromJson } from '@app/utils/richTextEditorExtenstion/getHtmlFrom
 
 import SlideLayoutLeftImage from '../atoms/Icons/SlideLayoutLeftImage';
 import SlideLayoutRightImage from '../atoms/Icons/SlideLayoutRightImage';
+import { getPlaceholderValueForTitle } from '../molecules/RichTextEditor';
 
 export default function PagePropertiesTab({
     layout,
@@ -193,8 +195,10 @@ export default function PagePropertiesTab({
                                     >
                                         <div className="truncate text-xs">
                                             {parse(
-                                                getHtmlFromJson(field?.title ) ??
-                                                    'Untitled Question'
+                                                getHtmlFromJson(field?.title) ??
+                                                    getPlaceholderValueForTitle(
+                                                        field.type || FieldTypes.TEXT
+                                                    )
                                             )}
                                         </div>
                                         <svg
