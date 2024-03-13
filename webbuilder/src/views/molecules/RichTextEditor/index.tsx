@@ -3,7 +3,7 @@ import { useState } from 'react';
 import Color from '@tiptap/extension-color';
 import TextStyle from '@tiptap/extension-text-style';
 import Underline from '@tiptap/extension-underline';
-import { EditorProvider, useCurrentEditor, useEditor } from '@tiptap/react';
+import { Editor, EditorProvider, useCurrentEditor, useEditor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 
 import { FieldTypes, FormField } from '@app/models/dtos/form';
@@ -68,11 +68,14 @@ export function RichTextEditor({
     );
 }
 
-const TiptapMenuBar = ({ focused }: any) => {
+const getActiveFontSize = (editor?: Editor) => {
+    if (!editor) return null;
+    return editor.getAttributes('textStyle')?.fontSize;
+};
+
+const TiptapMenuBar = () => {
     const editorRef = useCurrentEditor();
     const FontSizes = [8, 10, 12, 14, 16, 18, 20, 24, 28, 32, 40, 48, 64];
-    const [size, setSize] = useState(5);
-
     const editor = editorRef.editor;
 
     if (!editor) {
@@ -80,11 +83,10 @@ const TiptapMenuBar = ({ focused }: any) => {
     }
 
     const handleUpdateFontSize = (value = 0) => {
-        setSize((prevSize) => {
-            const newSize = prevSize + value;
-            editor?.chain().focus().setFontSize(`${FontSizes[newSize]}`).run();
-            return newSize;
-        });
+        const activeFontSize = (getActiveFontSize(editor) as number) || 18;
+        const currentActiveIndex = FontSizes.findIndex((num) => num == activeFontSize);
+        const newSize = currentActiveIndex + value;
+        editor?.chain().focus().setFontSize(`${FontSizes[newSize]}`).run();
     };
 
     return (
@@ -100,8 +102,6 @@ const TiptapMenuBar = ({ focused }: any) => {
         >
             <button
                 onClick={() => {
-                    console.log('BOlded');
-
                     editor?.chain().focus().toggleBold().run();
                 }}
             >
@@ -146,7 +146,7 @@ const TiptapMenuBar = ({ focused }: any) => {
                 Redo
             </button>
             <div className="flex flex-row items-center justify-center gap-2">
-                <span>{FontSizes[size]}</span>
+                <span>{getActiveFontSize(editor) || 18}</span>
                 <div className="flex flex-col">
                     <button
                         onClick={() => {
