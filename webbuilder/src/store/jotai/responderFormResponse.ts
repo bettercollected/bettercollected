@@ -2,7 +2,7 @@ import { set } from 'lodash';
 
 import { atom, useAtom } from 'jotai';
 
-interface FormResponse {
+export interface FormResponse {
     currentSlide: number;
     formId: string;
     answers?: {

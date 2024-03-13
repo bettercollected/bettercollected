@@ -5,6 +5,7 @@ import cn from 'classnames';
 import RectangleImage from '@app/assets/image/rectangle.png';
 import { Button } from '@app/shadcn/components/ui/button';
 import { useFormState } from '@app/store/jotai/form';
+import { useFormResponse } from '@app/store/jotai/responderFormResponse';
 
 const WelcomeSlide = ({
     disabled,
@@ -14,6 +15,7 @@ const WelcomeSlide = ({
     layout: 'two-column-right' | 'two-column-left';
 }) => {
     const { theme, formState, setFormDescription, setWelcomeTitle } = useFormState();
+    const { nextSlide } = useFormResponse();
     return (
         <div
             style={{
@@ -53,7 +55,9 @@ const WelcomeSlide = ({
                         <></>
                     )}
                 </div>
-                <Button size={'medium'}>{formState.buttonText || 'Start'}</Button>
+                <Button size={'medium'} onClick={() => nextSlide()}>
+                    {formState.buttonText || 'Start'}
+                </Button>
             </div>
             <div
                 className={cn(
