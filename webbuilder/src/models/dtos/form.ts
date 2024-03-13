@@ -1,4 +1,5 @@
 import { FormTheme } from '@app/constants/theme';
+import { JSONContent } from '@tiptap/react';
 
 export interface StandardForm {
     formId: string;
@@ -31,7 +32,7 @@ export interface FormField {
     id: string;
     properties?: FormFieldProperties;
     validations?: FieldValidations;
-    title?: string;
+    title?: JSONContent;
     description?: string;
     type?: FieldTypes;
     value?: string;

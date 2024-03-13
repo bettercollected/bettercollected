@@ -1,10 +1,13 @@
-import { generateHTML } from '@tiptap/react';
+import { JSONContent, generateHTML } from '@tiptap/react';
 
 import { Extenstions } from '@app/views/molecules/RichTextEditor';
 
-export function getHtmlFromJson(jsonString: string) {
-    if (!jsonString) {
+export function getHtmlFromJson(jsonValue: JSONContent | undefined) {
+    if (!jsonValue) {
         return null;
     }
-    return generateHTML(JSON.parse(jsonString), Extenstions);
+    if (typeof jsonValue === 'string') {
+    return generateHTML(JSON.parse(jsonValue), Extenstions);
+    }
+    return generateHTML(jsonValue, Extenstions);
 }

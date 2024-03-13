@@ -239,9 +239,7 @@ const FieldSection = ({
                                                                                 updateTitle(
                                                                                     field.index,
                                                                                     slide.index,
-                                                                                    JSON.stringify(
-                                                                                        editor.getJSON()
-                                                                                    )
+                                                                                    editor.getJSON()
                                                                                 )
                                                                             }
                                                                         />
@@ -254,7 +252,7 @@ const FieldSection = ({
                                                                         )}
                                                                     </div>
                                                                     {field?.description !==
-                                                                        undefined && (
+                                                                        null && (
                                                                         <input
                                                                             id={`input-${disabled ? `${slide.id}${field.id}` : field.id}`}
                                                                             placeholder={getPlaceholderValueForTitle(

@@ -165,7 +165,7 @@ class WorkspaceFormsRouter(Routable):
             raise HTTPException(status_code=HTTPStatus.NOT_FOUND)
 
         form = json.loads(form_body)
-
+        
         minified_form = FormDtoCamelModel(**form)
         # Camel model is converted to basic modal so that camel case is not stored in db
         response = await self.workspace_form_service.update_form(

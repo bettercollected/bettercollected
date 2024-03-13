@@ -1,5 +1,6 @@
 'use client';
 
+import { JSONContent } from '@tiptap/react';
 import { atom, useAtom } from 'jotai';
 import { v4 } from 'uuid';
 
@@ -44,7 +45,11 @@ export default function useFormFieldsAtom() {
         setFormFields(updatedSlides);
     };
 
-    const updateTitle = (fieldIndex: number, slideIndex: number, titleText: string) => {
+    const updateTitle = (
+        fieldIndex: number,
+        slideIndex: number,
+        titleText: JSONContent
+    ) => {
         const slide = formFields[slideIndex];
         slide.properties!.fields![fieldIndex] = {
             ...(slide.properties!.fields![fieldIndex] || {}),

@@ -1,4 +1,4 @@
-from typing import Optional, Dict, List
+from typing import Any, Optional, Dict, List
 
 from common.models.standard_form import (
     StandardForm,
@@ -87,7 +87,7 @@ class StandardFieldPropertyCamelModel(CamelModel):
 class StandardFormFieldCamelModel(CamelModel):
     id: Optional[str]
     ref: Optional[str]
-    title: Optional[str]
+    title: Optional[str | Dict[str, Any]]
     description: Optional[str]
     value: Optional[str]
     index: Optional[int]

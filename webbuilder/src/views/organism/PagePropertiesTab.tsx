@@ -191,12 +191,11 @@ export default function PagePropertiesTab({
                                         key={field.id}
                                         className="flex items-center justify-between gap-2 text-xs text-black-700"
                                     >
-                                        <div className="truncate !text-xs">
+                                        <div className="truncate text-xs">
                                             {parse(
-                                                getHtmlFromJson(field?.title || '') ??
+                                                getHtmlFromJson(field?.title ) ??
                                                     'Untitled Question'
                                             )}
-                                            {/* <p>{'hellasdo'}</p> */}
                                         </div>
                                         <svg
                                             width="20"
