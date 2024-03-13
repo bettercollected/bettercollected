@@ -11,7 +11,7 @@
         "dev": "cross-env NODE_OPTIONS='--inspect' next dev",
         "dev-4000": "cross-env NODE_OPTIONS='--inspect' next dev -p 4000",
         "build": "next build",
-        "start": "next start",
+        "start": "next start -p 4000",
         "test": "jest"
     },
     "dependencies": {

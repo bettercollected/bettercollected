@@ -19,4 +19,7 @@ else
         echo "[WARN] Apm Service partially Confuguired. Missing: " "${MISSING}" 1>&2
     fi
 fi
-exec "./node_modules/.bin/next" "start"
+
+bash ./scripts/replace-runtime-variables.sh && 
+
+exec "./node_modules/.bin/next" "start" "-p" "4000"
