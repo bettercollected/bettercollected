@@ -42,7 +42,6 @@ export const useStandardForm = () => {
 
 export const useFormSlide = (slideIndex: number) => {
     const [standardForm] = useAtom(fetchedFormAtom);
-
     const getFormSlide = () => {
         if (
             !standardForm.fields ||

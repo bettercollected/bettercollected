@@ -18,6 +18,7 @@ import {
 import { useFormResponse } from '@app/store/jotai/responderFormResponse';
 import { getHtmlFromJson } from '@app/utils/richTextEditorExtenstion/getHtmlFromJson';
 import RequiredIcon from '@app/views/atoms/Icons/Required';
+import { getPlaceholderValueForTitle } from '@app/views/molecules/RichTextEditor';
 
 function QuestionWrapper({
     field,
@@ -34,7 +35,10 @@ function QuestionWrapper({
                 </div>
             )}
             <div className="font-semibold">
-                {parse(getHtmlFromJson(field?.title) ?? 'No Fields')}
+                {parse(
+                    getHtmlFromJson(field?.title) ??
+                        getPlaceholderValueForTitle(field?.type || FieldTypes.TEXT)
+                )}
             </div>
             {field?.description && (
                 <div className="mt-2 text-black-700">{field?.description}</div>
