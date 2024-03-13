@@ -14,7 +14,10 @@ export default function WelcomePage() {
     const { nextSlide } = useFormResponse();
 
     return (
-        <div className="grid h-full w-full grid-cols-2">
+        <div
+            className="grid h-full w-full grid-cols-2"
+            style={{ background: standardForm.theme?.accent }}
+        >
             <div className=" relative flex h-full flex-col justify-center px-20">
                 <UserAvatarDropDown />
 
@@ -66,6 +69,7 @@ export default function WelcomePage() {
                 </div>
                 <div className="mt-6">
                     <Button
+                        style={{ background: standardForm.theme?.secondary }}
                         onClick={() => {
                             if (!standardForm?.settings?.requireVerifiedIdentity) {
                                 nextSlide();

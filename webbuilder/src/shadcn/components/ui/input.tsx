@@ -4,7 +4,7 @@ import styled from 'styled-components';
 
 import { FormField } from '@app/models/dtos/form';
 import { cn } from '@app/shadcn/util/lib';
-import { IThemeState } from '@app/store/jotai/form';
+import { IThemeState, useFormState } from '@app/store/jotai/form';
 
 export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
     textColor?: string;
@@ -12,10 +12,12 @@ export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> 
 
 const ShadCNInput = React.forwardRef<HTMLInputElement, InputProps>(
     ({ className, type, textColor, ...props }, ref) => {
+        const { theme } = useFormState();
+
         return (
             <input
                 style={{
-                    color: textColor
+                    color: theme?.secondary
                 }}
                 type={type}
                 className={cn(
@@ -34,8 +36,10 @@ const FieldInput = styled(ShadCNInput)<{
     $slide?: FormField;
     $formTheme?: IThemeState;
 }>(({ $slide, $formTheme }) => {
-    const themeColor = $slide?.properties?.theme?.tertiary || $formTheme?.tertiary;
+    const { theme } = useFormState();
+    const themeColor = theme?.tertiary;
     return {
+        background: theme?.accent,
         borderColor: themeColor,
         '::placeholder': {
             color: `${themeColor} !important`

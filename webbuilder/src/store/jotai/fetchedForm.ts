@@ -31,7 +31,14 @@ export default interface StandardForm {
 const fetchedFormAtom = atom<StandardForm>({
     formId: '',
     title: '',
-    description: ''
+    description: '',
+    theme: {
+        title: '',
+        primary: '',
+        secondary: '',
+        tertiary: '',
+        accent: ''
+    }
 });
 
 export const useStandardForm = () => {
@@ -58,6 +65,5 @@ export const useFormSlide = (slideIndex: number) => {
 
 export const useFormTheme = () => {
     const [{ theme }] = useAtom(fetchedFormAtom);
-
     return theme;
 };
