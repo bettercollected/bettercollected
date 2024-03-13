@@ -323,7 +323,7 @@ class StandardFormField(BaseModel):
     id: Optional[str]
     index: Optional[int]
     ref: Optional[str]
-    title: Optional[str]
+    title: Optional[str | Dict[str, Any]]
     description: Optional[str]
     value: Optional[str]
     type: Optional[StandardFormFieldType]
