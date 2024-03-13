@@ -19,7 +19,10 @@ export default function FieldSettings() {
             <div className="flex w-full items-center justify-between">
                 <div className="text-xs text-black-700">Description</div>
                 <Switch
-                    checked={activeField?.description !== undefined}
+                    checked={
+                        activeField?.description !== undefined &&
+                        activeField?.description !== null
+                    }
                     onCheckedChange={(checked) => {
                         updateDescription(
                             activeField!.index,

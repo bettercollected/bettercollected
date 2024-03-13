@@ -252,33 +252,35 @@ const FieldSection = ({
                                                                         )}
                                                                     </div>
                                                                     {field?.description !==
-                                                                        null && (
-                                                                        <input
-                                                                            id={`input-${disabled ? `${slide.id}${field.id}` : field.id}`}
-                                                                            placeholder={getPlaceholderValueForTitle(
-                                                                                field.type ||
-                                                                                    FieldTypes.SHORT_TEXT
-                                                                            )}
-                                                                            className={
-                                                                                'text-md ring-none -left-1 border-0 px-0 py-0 text-black-800 outline-none '
-                                                                            }
-                                                                            type="text"
-                                                                            value={
-                                                                                field.description
-                                                                            }
-                                                                            onChange={(
-                                                                                e: any
-                                                                            ) =>
-                                                                                updateDescription(
-                                                                                    field.index,
-                                                                                    slide.index,
-                                                                                    e
-                                                                                        .target
-                                                                                        .value
-                                                                                )
-                                                                            }
-                                                                        />
-                                                                    )}
+                                                                        undefined &&
+                                                                        field?.description !==
+                                                                            null && (
+                                                                            <input
+                                                                                id={`input-${disabled ? `${slide.id}${field.id}` : field.id}`}
+                                                                                placeholder={getPlaceholderValueForTitle(
+                                                                                    field.type ||
+                                                                                        FieldTypes.SHORT_TEXT
+                                                                                )}
+                                                                                className={
+                                                                                    'text-md ring-none -left-1 border-0 px-0 py-0 text-black-800 outline-none '
+                                                                                }
+                                                                                type="text"
+                                                                                value={
+                                                                                    field.description
+                                                                                }
+                                                                                onChange={(
+                                                                                    e: any
+                                                                                ) =>
+                                                                                    updateDescription(
+                                                                                        field.index,
+                                                                                        slide.index,
+                                                                                        e
+                                                                                            .target
+                                                                                            .value
+                                                                                    )
+                                                                                }
+                                                                            />
+                                                                        )}
                                                                     {renderField(field)}
                                                                 </div>
                                                             </div>
