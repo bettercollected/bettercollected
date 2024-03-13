@@ -15,13 +15,13 @@ export default function FormPage({
     const { formId } = params;
     const { setStandardForm } = useStandardForm();
 
-    useEffect(() => {
-        const forms = JSON.parse(localStorage.getItem('forms') || '{}');
-        const currentForm = forms[formId];
-        if (currentForm) {
-            setStandardForm(currentForm);
-        }
-    }, []);
+    // useEffect(() => {
+    //     const forms = JSON.parse(localStorage.getItem('forms') || '{}');
+    //     const currentForm = forms[formId];
+    //     if (currentForm) {
+    //         setStandardForm(currentForm);
+    //     }
+    // }, []);
 
     return <FormComponent formResponse={formResponse} />;
 }

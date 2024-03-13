@@ -10,7 +10,7 @@ import DemoImage from '@app/assets/image/rectangle.png';
 import { FieldTypes, FormField } from '@app/models/dtos/form';
 import { Button } from '@app/shadcn/components/ui/button';
 import { FieldInput } from '@app/shadcn/components/ui/input';
-import {
+import StandardForm, {
     useFormSlide,
     useFormTheme,
     useStandardForm
@@ -48,7 +48,7 @@ function QuestionWrapper({
     );
 }
 
-function FormFieldComponent({ field }: { field: FormField }) {
+function FormFieldComponent({ field, form }: { field: FormField; form: StandardForm }) {
     const theme = useFormTheme();
     switch (field.type) {
         case FieldTypes.TEXT:
@@ -60,7 +60,11 @@ function FormFieldComponent({ field }: { field: FormField }) {
         case FieldTypes.EMAIL:
             return (
                 <QuestionWrapper field={field}>
-                    <FieldInput $slide={field} />
+                    <FieldInput
+                        type="text"
+                        // style={{ background: form.theme?.accent }}
+                        $slide={field}
+                    />
                 </QuestionWrapper>
             );
         case FieldTypes.SHORT_TEXT:
@@ -105,15 +109,19 @@ export default function FormSlide({ index }: { index: number }) {
         useFormResponse();
     const { standardForm } = useStandardForm();
     return (
-        <div className="grid h-full w-full grid-cols-2">
+        <div
+            className="grid h-full w-full grid-cols-2"
+            style={{ background: standardForm.theme?.accent }}
+        >
             <div className="flex h-full flex-col items-center justify-center">
                 <div className="  w-full max-w-[544px] px-10">
                     {formSlide?.properties?.fields?.map((field) => (
                         <div className="mt-20" key={field.index}>
-                            <FormFieldComponent field={field} />
+                            <FormFieldComponent field={field} form={standardForm} />
                         </div>
                     ))}
                     <Button
+                        style={{ background: standardForm.theme?.secondary }}
                         className="mt-20"
                         onClick={() => {
                             if (currentSlide + 1 === standardForm?.fields?.length) {

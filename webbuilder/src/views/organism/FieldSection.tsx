@@ -416,12 +416,12 @@ const InputField = ({
             <FieldInput
                 $slide={slide}
                 type="text"
-                $formTheme={theme}
-                textColor={
-                    slide.properties?.theme?.secondary ||
-                    theme?.secondary ||
-                    'text-black-500'
-                }
+                // $formTheme={theme}
+                // textColor={
+                //     slide.properties?.theme?.secondary ||
+                //     theme?.secondary ||
+                //     'text-black-500'
+                // }
                 value={field.properties?.placeholder}
                 placeholder={getPlaceholderValueForField(
                     field.type || FieldTypes.SHORT_TEXT

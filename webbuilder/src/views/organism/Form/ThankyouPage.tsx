@@ -10,7 +10,9 @@ import UserAvatarDropDown from '@app/views/molecules/UserAvatarDropdown';
 export default function ThankyouPage() {
     const { standardForm } = useStandardForm();
     return (
-        <div className="grid h-full w-full grid-cols-2">
+        <div className="grid h-full w-full grid-cols-2" 
+                        style={{ background: standardForm.theme?.accent }}
+        >
             <div className=" relative flex h-full flex-col justify-center px-20">
                 <UserAvatarDropDown />
 
@@ -23,7 +25,9 @@ export default function ThankyouPage() {
                     <div className="p2-new mt-4 text-black-700">
                         Your response is successfully submitted anonymously.
                     </div>
-                    <Button className="mt-14" size={ButtonSize.Medium}>
+                    <Button 
+                        style={{ background: standardForm.theme?.secondary }}
+                    className="mt-14" size={ButtonSize.Medium}>
                         <Link
                             href={
                                 standardForm?.buttonLink ||
