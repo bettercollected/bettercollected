@@ -4,7 +4,6 @@ import { notFound } from 'next/navigation';
 
 import { setWorkspace } from '@app/store/redux/workspace';
 import { store } from '@app/store/store';
-import BetterCollectedSmallLogo from '@app/views/atoms/Icons/BetterCollectedSmallLogo';
 import FullScreenLoader from '@app/views/atoms/Loaders/FullScreenLoader';
 
 import { WorkspaceDispatcher } from './_dispatcher/WorkspaceDispatcher';

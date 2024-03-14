@@ -3,6 +3,7 @@
 import Image from 'next/image';
 
 import parse from 'html-react-parser';
+import { toast } from 'react-toastify';
 
 import DemoImage from '@app/assets/image/rectangle.png';
 import { FieldTypes, FormField } from '@app/models/dtos/form';
@@ -13,17 +14,18 @@ import StandardForm, {
     useStandardForm
 } from '@app/store/jotai/fetchedForm';
 import { useFormResponse } from '@app/store/jotai/responderFormResponse';
+import useWorkspace from '@app/store/jotai/workspace';
+import { useSubmitResponseMutation } from '@app/store/redux/formApi';
 import { getHtmlFromJson } from '@app/utils/richTextEditorExtenstion/getHtmlFromJson';
 import DropDownField from '@app/views/molecules/ResponderFormFields/DropDownField';
 import FileUploadField from '@app/views/molecules/ResponderFormFields/FileUploadField';
+import { validateSlide } from '@app/utils/validationUtils';
 import InputField from '@app/views/molecules/ResponderFormFields/InputField';
 import MultipleChoiceField from '@app/views/molecules/ResponderFormFields/MultipleChoiceField';
 import QuestionWrapper from '@app/views/molecules/ResponderFormFields/QuestionQwrapper';
 import YesNoField from '@app/views/molecules/ResponderFormFields/YesNoField';
 
 function FormFieldComponent({ field, form }: { field: FormField; form: StandardForm }) {
-    const { formResponse } = useFormResponse();
-    console.log('sda', formResponse);
     switch (field.type) {
         case FieldTypes.TEXT:
             return (
@@ -55,6 +57,47 @@ export default function FormSlide({ index }: { index: number }) {
     const { currentSlide, setCurrentSlideToThankyouPage, nextSlide } =
         useFormResponse();
     const { standardForm } = useStandardForm();
+    const { formResponse, setInvalidFields } = useFormResponse();
+    const { workspace } = useWorkspace();
+    const [submitResponse, { data }] = useSubmitResponseMutation();
+
+    const submitFormResponse = async () => {
+        const formData = new FormData();
+
+        const postBody = {
+            form_id: standardForm?.formId,
+            answers: formResponse.answers
+        };
+
+        formData.append('response', JSON.stringify(postBody));
+
+        const response: any = await submitResponse({
+            workspaceId: workspace.id,
+            formId: standardForm?.formId,
+            body: formData
+        });
+        if (!response.data) {
+            throw new Error(response?.error);
+        }
+    };
+
+    const onNext = () => {
+        const invalidations = validateSlide(formSlide!, formResponse.answers || {});
+        setInvalidFields(invalidations);
+        if (Object.values(invalidations).length === 0) {
+            if (currentSlide + 1 === standardForm?.fields?.length) {
+                submitFormResponse()
+                    .then(() => {
+                        setCurrentSlideToThankyouPage();
+                    })
+                    .catch((e) => {
+                        toast('Error Submitting Response');
+                    });
+            } else {
+                nextSlide();
+            }
+        }
+    };
     return (
         <div
             className="grid h-full w-full grid-cols-2"
@@ -71,13 +114,7 @@ export default function FormSlide({ index }: { index: number }) {
                         <Button
                             style={{ background: standardForm.theme?.secondary }}
                             className="mt-20"
-                            onClick={() => {
-                                if (currentSlide + 1 === standardForm?.fields?.length) {
-                                    setCurrentSlideToThankyouPage();
-                                } else {
-                                    nextSlide();
-                                }
-                            }}
+                            onClick={onNext}
                         >
                             Next
                         </Button>

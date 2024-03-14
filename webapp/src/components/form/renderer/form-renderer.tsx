@@ -329,13 +329,18 @@ export default function FormRenderer({ form, response, enabled, isDisabled = fal
         </div>
     );
 
+    const formShareURL = getFormShareURL(form, workspace);
+    const responseId = response?.responseId;
+    const previewURL = responseId ? `${formShareURL}/preview?responseId=${responseId}` : `${formShareURL}/preview`;
+    console.log('Preview Url', form);
+
     return (
         <div data-testid="form-renderer" className="relative  w-full flex justify-center  md:px-0">
             {form?.settings?.provider === 'self' ? (
                 <>
                     {form?.builderVersion === 'v2' ? (
                         <div className="w-full aspect-video bg-blue-200">
-                            <iframe src={getFormShareURL(form, workspace)} className="h-full w-full pointer-events-none"></iframe>
+                            <iframe src={previewURL} className="h-full w-full"></iframe>{' '}
                         </div>
                     ) : (
                         <BetterCollectedForm form={form} response={response} enabled={enabled} isDisabled={isDisabled} />
