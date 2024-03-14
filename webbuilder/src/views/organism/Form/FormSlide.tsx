@@ -53,7 +53,7 @@ function QuestionWrapper({
 
 function FormFieldComponent({ field, form }: { field: FormField; form: StandardForm }) {
     const theme = useFormTheme();
-    const { addFieldChoiceAnswer, formResponse } = useFormResponse();
+    const { addFieldTextAnswer, addFieldEmailAnswer, formResponse } = useFormResponse();
     console.log('sda', formResponse);
     switch (field.type) {
         case FieldTypes.TEXT:
@@ -70,7 +70,7 @@ function FormFieldComponent({ field, form }: { field: FormField; form: StandardF
                         placeholder={field?.properties?.placeholder}
                         $slide={field}
                         onChange={(e: any) =>
-                            addFieldChoiceAnswer(field.id, e.target.value)
+                            addFieldEmailAnswer(field.id, e.target.value)
                         }
                     />
                 </QuestionWrapper>
@@ -83,12 +83,13 @@ function FormFieldComponent({ field, form }: { field: FormField; form: StandardF
                         placeholder={field?.properties?.placeholder}
                         className="mt-4"
                         onChange={(e: any) =>
-                            addFieldChoiceAnswer(field.id, e.target.value)
+                            addFieldTextAnswer(field.id, e.target.value)
                         }
                     />
                 </QuestionWrapper>
             );
         case FieldTypes.MULTIPLE_CHOICE:
+            return <MultipleChoiceField field={field} />;
         case FieldTypes.YES_NO:
             return <YesNoField field={field} />;
 
@@ -96,6 +97,80 @@ function FormFieldComponent({ field, form }: { field: FormField; form: StandardF
             return <QuestionWrapper field={field} />;
     }
 }
+
+// optional
+// const MultipleChoiceField = ({ field }: { field: FormField }) => {
+//     const { addFieldChoiceAnswer } = useFormResponse();
+//     const theme = useFormTheme();
+//     return (
+//         <QuestionWrapper field={field}>
+//             <select
+//                 className="w-full space-y-2 overflow-hidden border-0 p-0"
+//                 multiple
+//                 onChange={(e) =>
+//                     console.log(
+//                         e
+//                         // Array.from(e.target.selectedOptions).map(
+//                         //     (selectedOptions) => selectedOptions.value
+//                         // )
+//                     )
+//                 }
+//             >
+//                 {field.properties?.choices?.map((choice) => {
+//                     return (
+//                         <option
+//                             style={{ borderColor: theme?.tertiary }}
+//                             className="cursor-pointer rounded-xl border p-2 px-4 checked:bg-red-500 hover:bg-black-700 active:bg-yellow-500"
+//                             value={choice.value}
+//                         >
+//                             {choice.value}
+//                         </option>
+//                     );
+//                 })}
+//             </select>
+//         </QuestionWrapper>
+//     );
+// };
+
+const MultipleChoiceField = ({ field }: { field: FormField }) => {
+    const { addFieldChoicesAnswer } = useFormResponse();
+    const theme = useFormTheme();
+    const [selectedItems, setSelectedItems] = useState<Array<string>>([]);
+
+    const handleClick = (item: string) => {
+        const isSelected = selectedItems.includes(item);
+        setSelectedItems((prev) => {
+            const updatedSelection = isSelected
+                ? selectedItems.filter((selectedItem: string) => selectedItem !== item)
+                : [...selectedItems, item];
+            addFieldChoicesAnswer(field.id, updatedSelection);
+            return updatedSelection;
+        });
+    };
+
+    return (
+        <QuestionWrapper field={field}>
+            <div className="w-full space-y-2 overflow-hidden border-0 p-0">
+                {field.properties?.choices?.map((choice) => (
+                    <div
+                        style={{
+                            background: selectedItems.includes(choice.value || '')
+                                ? theme?.tertiary
+                                : '',
+                            borderColor: theme?.tertiary
+                        }}
+                        className="flex cursor-pointer justify-between rounded-xl border p-2 px-4"
+                        key={choice.value}
+                        onClick={() => handleClick(choice.value || '')}
+                    >
+                        {choice.value}{' '}
+                        {selectedItems.includes(choice.value || '') && <Check />}
+                    </div>
+                ))}
+            </div>
+        </QuestionWrapper>
+    );
+};
 
 const YesNoField = ({ field }: { field: FormField }) => {
     const { addFieldChoiceAnswer } = useFormResponse();
@@ -119,10 +194,11 @@ const YesNoField = ({ field }: { field: FormField }) => {
                                         <div
                                             style={{
                                                 borderColor: theme?.tertiary,
-                                                background:
-                                                    active || checked
-                                                        ? theme?.secondary
-                                                        : ''
+                                                background: active
+                                                    ? theme?.secondary
+                                                    : checked
+                                                      ? theme?.tertiary
+                                                      : ''
                                             }}
                                             className={`flex cursor-pointer justify-between rounded-xl border p-2 px-4`}
                                         >
