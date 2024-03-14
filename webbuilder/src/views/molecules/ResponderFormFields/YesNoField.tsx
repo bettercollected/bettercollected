@@ -10,13 +10,13 @@ import { Check } from '@app/views/atoms/Icons/Check';
 import QuestionWrapper from './QuestionQwrapper';
 
 const YesNoField = ({ field }: { field: FormField }) => {
-    const { addFieldChoiceAnswer } = useFormResponse();
+    const { addFieldBooleanAnswer } = useFormResponse();
     const theme = useFormTheme();
     return (
         <QuestionWrapper field={field}>
             <RadioGroup
                 className={'flex w-full flex-col gap-2'}
-                onChange={(value) => addFieldChoiceAnswer(field.id, value)}
+                onChange={(value) => addFieldBooleanAnswer(field.id, value === 'Yes')}
             >
                 {field &&
                     field.properties?.choices?.map((choice, index) => {

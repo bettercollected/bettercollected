@@ -14,10 +14,9 @@ import StandardForm, {
 } from '@app/store/jotai/fetchedForm';
 import { useFormResponse } from '@app/store/jotai/responderFormResponse';
 import { getHtmlFromJson } from '@app/utils/richTextEditorExtenstion/getHtmlFromJson';
-import EmailField from '@app/views/molecules/ResponderFormFields/EmailField';
+import InputField from '@app/views/molecules/ResponderFormFields/InputField';
 import MultipleChoiceField from '@app/views/molecules/ResponderFormFields/MultipleChoiceField';
 import QuestionWrapper from '@app/views/molecules/ResponderFormFields/QuestionQwrapper';
-import ShortTextField from '@app/views/molecules/ResponderFormFields/ShortTextField';
 import YesNoField from '@app/views/molecules/ResponderFormFields/YesNoField';
 
 function FormFieldComponent({ field, form }: { field: FormField; form: StandardForm }) {
@@ -30,15 +29,15 @@ function FormFieldComponent({ field, form }: { field: FormField; form: StandardF
                     {parse(getHtmlFromJson(field?.title) ?? 'No Fields')}
                 </div>
             );
+        case FieldTypes.NUMBER:
         case FieldTypes.EMAIL:
-            return <EmailField field={field} />;
         case FieldTypes.SHORT_TEXT:
-            return <ShortTextField field={field} />;
+        case FieldTypes.LINK:
+            return <InputField field={field} />;
         case FieldTypes.MULTIPLE_CHOICE:
             return <MultipleChoiceField field={field} />;
         case FieldTypes.YES_NO:
             return <YesNoField field={field} />;
-
         default:
             return <QuestionWrapper field={field} />;
     }
