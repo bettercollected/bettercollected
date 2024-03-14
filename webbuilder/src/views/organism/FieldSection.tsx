@@ -164,7 +164,7 @@ const FieldSection = ({
                                                     {(provided) => (
                                                         <div
                                                             className={cn(
-                                                                'relative flex flex-row'
+                                                                'relative flex flex-row pb-20'
                                                             )}
                                                         >
                                                             <div
@@ -175,7 +175,7 @@ const FieldSection = ({
                                                                     activeFieldComponent?.id ===
                                                                         field.id &&
                                                                         'ring-1 ring-blue-500',
-                                                                    'w-fit cursor-pointer p-1'
+                                                                    'w-full max-w-[600px] cursor-pointer p-1'
                                                                 )}
                                                                 onFocus={(event) => {
                                                                     event.preventDefault();
@@ -242,7 +242,7 @@ const FieldSection = ({
                                                                     >
                                                                         <GripVertical />
                                                                     </div>
-                                                                    <div className="relative flex items-center gap-2">
+                                                                    <div className="relative w-full items-center gap-2">
                                                                         {slide
                                                                             ?.properties
                                                                             ?.showQuestionNumbers && (
@@ -269,7 +269,7 @@ const FieldSection = ({
                                                                         {field
                                                                             ?.validations
                                                                             ?.required && (
-                                                                            <div className="absolute -right-2 top-4 text-red-500">
+                                                                            <div className="absolute -right-6 top-0 text-red-500">
                                                                                 <RequiredIcon />
                                                                             </div>
                                                                         )}
