@@ -164,7 +164,7 @@ const FieldSection = ({
                                                     {(provided) => (
                                                         <div
                                                             className={cn(
-                                                                'relative flex flex-row'
+                                                                'relative flex flex-row pb-20'
                                                             )}
                                                         >
                                                             <div
@@ -175,7 +175,7 @@ const FieldSection = ({
                                                                     activeFieldComponent?.id ===
                                                                         field.id &&
                                                                         'ring-1 ring-blue-500',
-                                                                    'w-fit cursor-pointer p-1'
+                                                                    'w-full max-w-[600px] cursor-pointer p-1'
                                                                 )}
                                                                 onFocus={(event) => {
                                                                     event.preventDefault();
@@ -210,12 +210,12 @@ const FieldSection = ({
                                                                             field.id && (
                                                                             <div
                                                                                 className="absolute -top-14 right-0 cursor-pointer rounded-md bg-white p-2 shadow-bubble"
-                                                                                onClick={() =>
+                                                                                onClick={() => {
                                                                                     deleteField(
                                                                                         slide.index,
                                                                                         index
-                                                                                    )
-                                                                                }
+                                                                                    );
+                                                                                }}
                                                                             >
                                                                                 <DeleteIcon
                                                                                     width={
@@ -229,20 +229,20 @@ const FieldSection = ({
                                                                         )}
                                                                     <div
                                                                         className={cn(
-                                                                            'absolute -left-8 cursor-grab text-black-500',
-                                                                            field.type ===
-                                                                                FieldTypes.TEXT
-                                                                                ? 'top-1/3'
-                                                                                : 'top-1/2',
+                                                                            'absolute -left-8 -mt-3 cursor-grab text-black-500',
+                                                                            'top-1/2',
                                                                             isScaledDown
                                                                                 ? 'hidden'
                                                                                 : ''
                                                                         )}
                                                                         {...provided.dragHandleProps}
                                                                     >
-                                                                        <GripVertical />
+                                                                        <GripVertical
+                                                                            height={24}
+                                                                            width={24}
+                                                                        />
                                                                     </div>
-                                                                    <div className="relative flex items-center gap-2">
+                                                                    <div className="relative w-full items-center gap-2">
                                                                         {slide
                                                                             ?.properties
                                                                             ?.showQuestionNumbers && (
@@ -269,7 +269,7 @@ const FieldSection = ({
                                                                         {field
                                                                             ?.validations
                                                                             ?.required && (
-                                                                            <div className="absolute -right-2 top-4 text-red-500">
+                                                                            <div className="absolute -right-6 top-0 text-red-500">
                                                                                 <RequiredIcon />
                                                                             </div>
                                                                         )}
@@ -285,7 +285,7 @@ const FieldSection = ({
                                                                                         FieldTypes.SHORT_TEXT
                                                                                 )}
                                                                                 className={
-                                                                                    'text-md ring-none -left-1 border-0 px-0 py-0 text-black-800 outline-none '
+                                                                                    'text-md ring-none -left-1 w-full border-0 px-0 py-0 text-black-800 outline-none '
                                                                                 }
                                                                                 type="text"
                                                                                 value={
@@ -307,22 +307,6 @@ const FieldSection = ({
                                                                     {renderField(field)}
                                                                 </div>
                                                             </div>
-                                                            {!isScaledDown &&
-                                                                activeFieldComponent &&
-                                                                activeFieldComponent?.id ===
-                                                                    field.id && (
-                                                                    <div
-                                                                        className="absolute -top-12 right-0 cursor-pointer rounded-md bg-white p-2 shadow-bubble"
-                                                                        onClick={() =>
-                                                                            deleteField(
-                                                                                slide.index,
-                                                                                index
-                                                                            )
-                                                                        }
-                                                                    >
-                                                                        <DeleteIcon />
-                                                                    </div>
-                                                                )}
                                                         </div>
                                                     )}
                                                 </Draggable>

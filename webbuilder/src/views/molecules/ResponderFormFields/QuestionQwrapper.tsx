@@ -1,6 +1,7 @@
 import parse from 'html-react-parser';
 
 import { FieldTypes, FormField } from '@app/models/dtos/form';
+import { useFormResponse } from '@app/store/jotai/responderFormResponse';
 import { getHtmlFromJson } from '@app/utils/richTextEditorExtenstion/getHtmlFromJson';
 import RequiredIcon from '@app/views/atoms/Icons/Required';
 
@@ -13,6 +14,10 @@ export default function QuestionWrapper({
     field: FormField;
     children?: React.ReactNode;
 }) {
+    const { formResponse } = useFormResponse();
+
+    const { invalidFields } = formResponse;
+
     return (
         <div className="relative flex flex-col">
             {field?.validations?.required && (
@@ -30,6 +35,11 @@ export default function QuestionWrapper({
                 <div className="mb-4 text-black-700">{field?.description}</div>
             )}
             {children}
+            {invalidFields &&
+                invalidFields[field.id] &&
+                invalidFields[field.id].length && (
+                    <div className="mt-2 text-red-500">*Field Required</div>
+                )}
         </div>
     );
 }

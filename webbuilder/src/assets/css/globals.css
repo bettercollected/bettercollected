@@ -7,6 +7,7 @@
 @import './range-slider.css';
 @import './scrollbar.css';
 @import './mui.css';
+@import './tiptap.css';
 
 :root {
     --foreground-rgb: 0, 0, 0;
