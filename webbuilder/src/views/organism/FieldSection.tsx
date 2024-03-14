@@ -210,12 +210,12 @@ const FieldSection = ({
                                                                             field.id && (
                                                                             <div
                                                                                 className="absolute -top-14 right-0 cursor-pointer rounded-md bg-white p-2 shadow-bubble"
-                                                                                onClick={() =>
+                                                                                onClick={() => {
                                                                                     deleteField(
                                                                                         slide.index,
                                                                                         index
-                                                                                    )
-                                                                                }
+                                                                                    );
+                                                                                }}
                                                                             >
                                                                                 <DeleteIcon
                                                                                     width={
@@ -229,18 +229,18 @@ const FieldSection = ({
                                                                         )}
                                                                     <div
                                                                         className={cn(
-                                                                            'absolute -left-8 cursor-grab text-black-500',
-                                                                            field.type ===
-                                                                                FieldTypes.TEXT
-                                                                                ? 'top-1/3'
-                                                                                : 'top-1/2',
+                                                                            'absolute -left-8 -mt-3 cursor-grab text-black-500',
+                                                                            'top-1/2',
                                                                             isScaledDown
                                                                                 ? 'hidden'
                                                                                 : ''
                                                                         )}
                                                                         {...provided.dragHandleProps}
                                                                     >
-                                                                        <GripVertical />
+                                                                        <GripVertical
+                                                                            height={24}
+                                                                            width={24}
+                                                                        />
                                                                     </div>
                                                                     <div className="relative w-full items-center gap-2">
                                                                         {slide
@@ -307,22 +307,6 @@ const FieldSection = ({
                                                                     {renderField(field)}
                                                                 </div>
                                                             </div>
-                                                            {!isScaledDown &&
-                                                                activeFieldComponent &&
-                                                                activeFieldComponent?.id ===
-                                                                    field.id && (
-                                                                    <div
-                                                                        className="absolute -top-12 right-0 cursor-pointer rounded-md bg-white p-2 shadow-bubble"
-                                                                        onClick={() =>
-                                                                            deleteField(
-                                                                                slide.index,
-                                                                                index
-                                                                            )
-                                                                        }
-                                                                    >
-                                                                        <DeleteIcon />
-                                                                    </div>
-                                                                )}
                                                         </div>
                                                     )}
                                                 </Draggable>

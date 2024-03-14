@@ -17,7 +17,7 @@ export default function useFormFieldsAtom() {
     const [formFields, setFormFields] = useAtom(initialFieldsAtom);
 
     const { activeSlideComponent } = useActiveSlideComponent();
-    const { activeFieldComponent } = useActiveFieldComponent();
+    const { activeFieldComponent, setActiveFieldComponent } = useActiveFieldComponent();
 
     const addSlide = (field: FormField) => {
         setFormFields([...formFields, field]);
@@ -200,6 +200,9 @@ export default function useFormFieldsAtom() {
     const deleteField = (slideIndex: number, fieldIndex: number) => {
         formFields![slideIndex]!.properties!.fields!.splice(fieldIndex, 1);
         setFormFields([...formFields]);
+        setTimeout(() => {
+            setActiveFieldComponent(null);
+        }, 0);
     };
 
     const resetFields = () => {

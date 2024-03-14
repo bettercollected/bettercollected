@@ -114,7 +114,7 @@ const Navbar = () => {
                 <DropdownMenu>
                     <DropdownMenu.Trigger tooltipLabel={'Add Media'}>
                         <div className="text-xs font-semibold">
-                            <TextOutlinedIcon />
+                            <MediaOutlinedIcon />
                             Media
                         </div>
                     </DropdownMenu.Trigger>
@@ -155,7 +155,7 @@ const Navbar = () => {
                         onClick={handleAddText}
                     >
                         <div className="text-xs font-semibold">
-                            <MediaOutlinedIcon />
+                            <TextOutlinedIcon />
                             Text
                         </div>
                     </DropdownMenu.Trigger>
