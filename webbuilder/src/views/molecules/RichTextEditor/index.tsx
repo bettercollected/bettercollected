@@ -61,6 +61,7 @@ export function RichTextEditor({
                 extensions={Extenstions}
                 slotBefore={<TiptapMenuBar />}
                 editorProps={{ attributes: { class: 'outline-none' } }}
+                onUpdate={(editor) => onUpdate(editor.editor)}
             >
                 {''}
             </EditorProvider>
