@@ -21,8 +21,6 @@ import QuestionWrapper from '@app/views/molecules/ResponderFormFields/QuestionQw
 import YesNoField from '@app/views/molecules/ResponderFormFields/YesNoField';
 
 function FormFieldComponent({ field, form }: { field: FormField; form: StandardForm }) {
-    const { formResponse } = useFormResponse();
-    console.log('sda', formResponse);
     switch (field.type) {
         case FieldTypes.TEXT:
             return (
@@ -49,11 +47,11 @@ export default function FormSlide({ index }: { index: number }) {
     const { currentSlide, setCurrentSlideToThankyouPage, nextSlide } =
         useFormResponse();
     const { standardForm } = useStandardForm();
-    const { formResponse } = useFormResponse();
+    const { formResponse, setInvalidFields } = useFormResponse();
 
     const onNext = () => {
         const invalidations = validateSlide(formSlide!, formResponse.answers || {});
-        console.log(invalidations);
+        setInvalidFields(invalidations);
         if (Object.values(invalidations).length === 0) {
             if (currentSlide + 1 === standardForm?.fields?.length) {
                 setCurrentSlideToThankyouPage();
