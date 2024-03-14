@@ -3,6 +3,7 @@
 import Image from 'next/image';
 
 import parse from 'html-react-parser';
+import { toast } from 'react-toastify';
 
 import DemoImage from '@app/assets/image/rectangle.png';
 import { FieldTypes, FormField } from '@app/models/dtos/form';
@@ -13,6 +14,8 @@ import StandardForm, {
     useStandardForm
 } from '@app/store/jotai/fetchedForm';
 import { useFormResponse } from '@app/store/jotai/responderFormResponse';
+import useWorkspace from '@app/store/jotai/workspace';
+import { useSubmitResponseMutation } from '@app/store/redux/formApi';
 import { getHtmlFromJson } from '@app/utils/richTextEditorExtenstion/getHtmlFromJson';
 import { validateSlide } from '@app/utils/validationUtils';
 import InputField from '@app/views/molecules/ResponderFormFields/InputField';
@@ -48,13 +51,41 @@ export default function FormSlide({ index }: { index: number }) {
         useFormResponse();
     const { standardForm } = useStandardForm();
     const { formResponse, setInvalidFields } = useFormResponse();
+    const { workspace } = useWorkspace();
+    const [submitResponse, { data }] = useSubmitResponseMutation();
+
+    const submitFormResponse = async () => {
+        const formData = new FormData();
+
+        const postBody = {
+            form_id: standardForm?.formId,
+            answers: formResponse.answers
+        };
+
+        formData.append('response', JSON.stringify(postBody));
+
+        const response: any = await submitResponse({
+            workspaceId: workspace.id,
+            formId: standardForm?.formId,
+            body: formData
+        });
+        if (!response.data) {
+            throw new Error(response?.error);
+        }
+    };
 
     const onNext = () => {
         const invalidations = validateSlide(formSlide!, formResponse.answers || {});
         setInvalidFields(invalidations);
         if (Object.values(invalidations).length === 0) {
             if (currentSlide + 1 === standardForm?.fields?.length) {
-                setCurrentSlideToThankyouPage();
+                submitFormResponse()
+                    .then(() => {
+                        setCurrentSlideToThankyouPage();
+                    })
+                    .catch((e) => {
+                        toast('Error Submitting Response');
+                    });
             } else {
                 nextSlide();
             }

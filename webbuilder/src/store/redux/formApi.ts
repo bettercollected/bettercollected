@@ -35,9 +35,28 @@ export const formsApi = createApi({
                 url: `/workspaces/${request.workspaceId}/forms/${request.formId}/publish`,
                 method: 'POST',
                 body: request.body
-            }),
+            })
         }),
+        getFormResponse: builder.query<any, any>({
+            query: (request) => ({
+                method: 'GET',
+                url: `/workspaces/${request.workspaceId}/forms/${request.formId}/responses/${request.responseId}`
+            })
+        }),
+        submitResponse: builder.mutation<any, any>({
+            query: (request) => ({
+                url: `/workspaces/${request.workspaceId}/forms/${request.formId}/response`,
+                method: 'POST',
+                body: request.body
+            })
+        })
     })
 });
 
-export const { useCreateV2FormMutation, usePatchV2FormMutation, usePublishV2FormMutation } = formsApi;
+export const {
+    useCreateV2FormMutation,
+    usePatchV2FormMutation,
+    usePublishV2FormMutation,
+    useGetFormResponseQuery,
+    useSubmitResponseMutation
+} = formsApi;
