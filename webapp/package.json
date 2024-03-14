@@ -47,6 +47,7 @@
     "file-type": "^16.5.3",
     "framer-motion": "^7.2.1",
     "html2canvas": "^1.4.1",
+    "iframe-resizer-react": "^1.1.0",
     "jotai": "^1.8.2",
     "js-cookie": "^3.0.1",
     "katex": "^0.16.8",
