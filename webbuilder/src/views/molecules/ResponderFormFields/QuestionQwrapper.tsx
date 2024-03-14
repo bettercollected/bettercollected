@@ -27,7 +27,7 @@ export default function QuestionWrapper({
                 )}
             </div>
             {field?.description && (
-                <div className="mt-2 text-black-700">{field?.description}</div>
+                <div className="mb-4 text-black-700">{field?.description}</div>
             )}
             {children}
         </div>
