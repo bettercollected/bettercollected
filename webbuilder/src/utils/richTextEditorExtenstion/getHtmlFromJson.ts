@@ -6,8 +6,8 @@ export function getHtmlFromJson(jsonValue: JSONContent | undefined) {
     if (!jsonValue) {
         return null;
     }
-    if (typeof jsonValue === 'string') {
-    return generateHTML(JSON.parse(jsonValue), Extenstions);
-    }
+    // if (typeof jsonValue === 'string') {
+    // return generateHTML(JSON.parse(jsonValue), Extenstions);
+    // }
     return generateHTML(jsonValue, Extenstions);
 }
