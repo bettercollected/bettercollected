@@ -285,7 +285,7 @@ const FieldSection = ({
                                                                                         FieldTypes.SHORT_TEXT
                                                                                 )}
                                                                                 className={
-                                                                                    'text-md ring-none -left-1 border-0 px-0 py-0 text-black-800 outline-none '
+                                                                                    'text-md ring-none -left-1 w-full border-0 px-0 py-0 text-black-800 outline-none '
                                                                                 }
                                                                                 type="text"
                                                                                 value={
