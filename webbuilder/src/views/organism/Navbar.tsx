@@ -11,6 +11,7 @@ import { FieldTypes } from '@app/models/dtos/form';
 import { Button } from '@app/shadcn/components/ui/button';
 import { DropdownMenu } from '@app/shadcn/components/ui/dropdown-menu';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
+import { cn } from '@app/shadcn/util/lib';
 import { useActiveSlideComponent } from '@app/store/jotai/activeBuilderComponent';
 import { useStandardForm } from '@app/store/jotai/fetchedForm';
 import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
@@ -29,7 +30,7 @@ const Navbar = () => {
     const { formFields, addField, addMedia } = useFormFieldsAtom();
     const { activeSlideComponent } = useActiveSlideComponent();
     const { formState, setFormTitle } = useFormState();
-    const { setNavbarState } = useNavbarState();
+    const { navbarState, setNavbarState } = useNavbarState();
     const { toast } = useToast();
 
     const [publishV2Form, { isLoading }] = usePublishV2FormMutation();
@@ -88,6 +89,10 @@ const Navbar = () => {
                 </div>
                 <DropdownMenu>
                     <DropdownMenu.Trigger
+                        className={cn(
+                            navbarState.insertClicked && 'bg-black-300',
+                            'rounded'
+                        )}
                         tooltipLabel={'Insert Fields'}
                         onClick={() => {
                             isGreetingSlide()
