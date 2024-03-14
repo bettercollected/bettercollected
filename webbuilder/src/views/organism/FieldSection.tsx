@@ -289,7 +289,7 @@ const FieldSection = ({
                                                                 activeFieldComponent?.id ===
                                                                     field.id && (
                                                                     <div
-                                                                        className="shadow-bubble absolute -top-12 right-0 cursor-pointer rounded-md bg-white p-2"
+                                                                        className="absolute -top-12 right-0 cursor-pointer rounded-md bg-white p-2 shadow-bubble"
                                                                         onClick={() =>
                                                                             deleteField(
                                                                                 slide.index,
