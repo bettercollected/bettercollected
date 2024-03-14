@@ -12,16 +12,6 @@ export default function FormPage({
     params: { formId: string; workspaceName: string };
 }) {
     const { formResponse } = useFormResponse();
-    const { formId } = params;
-    const { setStandardForm } = useStandardForm();
-
-    // useEffect(() => {
-    //     const forms = JSON.parse(localStorage.getItem('forms') || '{}');
-    //     const currentForm = forms[formId];
-    //     if (currentForm) {
-    //         setStandardForm(currentForm);
-    //     }
-    // }, []);
 
     return <FormComponent formResponse={formResponse} />;
 }

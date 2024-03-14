@@ -2,6 +2,8 @@ import { set } from 'lodash';
 
 import { atom, useAtom } from 'jotai';
 
+import { Invalidations } from '@app/utils/validationUtils';
+
 enum AnswerType {
     TEXT = 'text',
     CHOICE = 'choice',
@@ -35,6 +37,7 @@ export interface FormResponse {
         };
     };
     consent?: Array<any>;
+    invalidFields?: Record<string, Array<Invalidations>>;
 }
 
 const initialFormResponse: FormResponse = {
@@ -186,10 +189,18 @@ export const useFormResponse = () => {
         });
     };
 
+    const setInvalidFields = (invalidFields: Record<string, Array<Invalidations>>) => {
+        setFormResponse({
+            ...formResponse,
+            invalidFields
+        });
+    };
+
     const removeAnswer = (fieldId: string) => {
         delete formResponse!.answers![fieldId];
         setFormResponse({ ...formResponse });
     };
+
     return {
         formResponse,
         currentSlide: formResponse.currentSlide,
@@ -205,6 +216,8 @@ export const useFormResponse = () => {
         addFieldPhoneNumberAnswer,
         addFieldURLAnswer,
         addFieldChoicesAnswer,
-        setCurrentSlideToThankyouPage
+        setCurrentSlideToThankyouPage,
+        removeAnswer,
+        setInvalidFields
     };
 };

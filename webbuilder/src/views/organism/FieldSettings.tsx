@@ -32,19 +32,21 @@ export default function FieldSettings() {
                     }}
                 />
             </div>
-            <div className="flex w-full items-center justify-between">
-                <div className="text-xs text-black-700">Required</div>
-                <Switch
-                    checked={activeField?.validations?.required || false}
-                    onCheckedChange={(checked) => {
-                        updateFieldRequired(
-                            activeField!.index,
-                            activeSlide!.index,
-                            checked
-                        );
-                    }}
-                />
-            </div>
+            {activeField?.type !== FieldTypes.TEXT && (
+                <div className="flex w-full items-center justify-between">
+                    <div className="text-xs text-black-700">Required</div>
+                    <Switch
+                        checked={activeField?.validations?.required || false}
+                        onCheckedChange={(checked) => {
+                            updateFieldRequired(
+                                activeField!.index,
+                                activeSlide!.index,
+                                checked
+                            );
+                        }}
+                    />
+                </div>
+            )}
             {activeField?.type === FieldTypes.MULTIPLE_CHOICE && (
                 <>
                     <div className="flex w-full items-center justify-between">

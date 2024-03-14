@@ -14,6 +14,7 @@ import StandardForm, {
 } from '@app/store/jotai/fetchedForm';
 import { useFormResponse } from '@app/store/jotai/responderFormResponse';
 import { getHtmlFromJson } from '@app/utils/richTextEditorExtenstion/getHtmlFromJson';
+import { validateSlide } from '@app/utils/validationUtils';
 import InputField from '@app/views/molecules/ResponderFormFields/InputField';
 import MultipleChoiceField from '@app/views/molecules/ResponderFormFields/MultipleChoiceField';
 import QuestionWrapper from '@app/views/molecules/ResponderFormFields/QuestionQwrapper';
@@ -48,6 +49,19 @@ export default function FormSlide({ index }: { index: number }) {
     const { currentSlide, setCurrentSlideToThankyouPage, nextSlide } =
         useFormResponse();
     const { standardForm } = useStandardForm();
+    const { formResponse } = useFormResponse();
+
+    const onNext = () => {
+        const invalidations = validateSlide(formSlide!, formResponse.answers || {});
+        console.log(invalidations);
+        if (Object.values(invalidations).length === 0) {
+            if (currentSlide + 1 === standardForm?.fields?.length) {
+                setCurrentSlideToThankyouPage();
+            } else {
+                nextSlide();
+            }
+        }
+    };
     return (
         <div
             className="grid h-full w-full grid-cols-2"
@@ -64,13 +78,7 @@ export default function FormSlide({ index }: { index: number }) {
                         <Button
                             style={{ background: standardForm.theme?.secondary }}
                             className="mt-20"
-                            onClick={() => {
-                                if (currentSlide + 1 === standardForm?.fields?.length) {
-                                    setCurrentSlideToThankyouPage();
-                                } else {
-                                    nextSlide();
-                                }
-                            }}
+                            onClick={onNext}
                         >
                             Next
                         </Button>

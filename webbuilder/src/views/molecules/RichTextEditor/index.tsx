@@ -1,8 +1,9 @@
+import { useState } from 'react';
+
 import Color from '@tiptap/extension-color';
-import Placeholder from '@tiptap/extension-placeholder';
 import TextStyle from '@tiptap/extension-text-style';
 import Underline from '@tiptap/extension-underline';
-import { Editor, EditorProvider, useCurrentEditor } from '@tiptap/react';
+import { Editor, EditorProvider, useCurrentEditor, useEditor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 
 import { FieldTypes, FormField } from '@app/models/dtos/form';
@@ -11,7 +12,7 @@ import { FontSize } from '@app/utils/richTextEditorExtenstion/fontSize';
 import { getHtmlFromJson } from '@app/utils/richTextEditorExtenstion/getHtmlFromJson';
 import { ArrowDown } from '@app/views/atoms/Icons/ArrowDown';
 
-export function getPlaceholderValueForTitle(fieldType?: FieldTypes) {
+export function getPlaceholderValueForTitle(fieldType: FieldTypes) {
     switch (fieldType) {
         case FieldTypes.EMAIL:
             return 'Enter Your Email Address';
@@ -34,20 +35,11 @@ export function getPlaceholderValueForTitle(fieldType?: FieldTypes) {
         case FieldTypes.TEXT:
             return 'Add Text';
         default:
-            return '';
+            return 'No Field Selected';
     }
 }
 
-export const Extenstions: any = [StarterKit, TextStyle, FontSize, Underline, Color];
-
-const getExtensionsWithPlaceholder = (fieldType?: FieldTypes) => {
-    // Extenstions.push(
-    //     Placeholder.configure({
-    //         placeholder: getPlaceholderValueForTitle(fieldType)
-    //     })
-    // );
-    return Extenstions;
-};
+export const Extenstions = [StarterKit, TextStyle, FontSize, Underline, Color];
 
 export function RichTextEditor({
     field,
@@ -57,18 +49,18 @@ export function RichTextEditor({
     onUpdate: (editor: any) => void;
 }) {
     const getContentForEditor = () => {
-        return field.title ? getHtmlFromJson(field.title ?? '') : '';
+        return field.title
+            ? getHtmlFromJson(field.title ?? '')
+            : getPlaceholderValueForTitle(field.type || FieldTypes.SHORT_TEXT);
     };
 
     return (
-        <div className="tiptap group relative w-full">
+        <div className="tiptap group relative">
             <EditorProvider
                 content={getContentForEditor()}
-                extensions={getExtensionsWithPlaceholder(field?.type)}
+                extensions={Extenstions}
                 slotBefore={<TiptapMenuBar />}
-                editorProps={{
-                    attributes: { class: 'outline-none font-medium w-full' }
-                }}
+                editorProps={{ attributes: { class: 'outline-none font-medium' } }}
                 onUpdate={({ editor }) => {
                     onUpdate(editor);
                 }}
