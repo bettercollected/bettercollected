@@ -6,6 +6,7 @@ import QuestionWrapper from './QuestionQwrapper';
 
 export default function InputField({ field }: { field: FormField }) {
     const {
+        formResponse,
         addFieldTextAnswer,
         addFieldEmailAnswer,
         addFieldNumberAnswer,
@@ -30,12 +31,38 @@ export default function InputField({ field }: { field: FormField }) {
         }
     };
 
+    const getFieldValue = () => {
+        switch (field.type) {
+            case FieldTypes.LINK:
+                return (
+                    (formResponse.answers && formResponse.answers[field.id]?.url) || ''
+                );
+            case FieldTypes.NUMBER:
+                return (
+                    (formResponse.answers && formResponse.answers[field.id]?.number) ||
+                    ''
+                );
+            case FieldTypes.EMAIL:
+                return (
+                    (formResponse.answers && formResponse.answers[field.id]?.email) ||
+                    ''
+                );
+            case FieldTypes.SHORT_TEXT:
+                return (
+                    (formResponse.answers && formResponse.answers[field.id]?.text) || ''
+                );
+            default:
+                break;
+        }
+    };
+
     return (
         <QuestionWrapper field={field}>
             <FieldInput
                 type={field.type === FieldTypes.SHORT_TEXT ? 'text' : field.type}
                 placeholder={field?.properties?.placeholder}
                 className="mt-4"
+                value={getFieldValue()}
                 onChange={(e: any) => handleChange(e)}
             />
         </QuestionWrapper>

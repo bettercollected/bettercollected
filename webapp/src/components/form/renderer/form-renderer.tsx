@@ -332,7 +332,6 @@ export default function FormRenderer({ form, response, enabled, isDisabled = fal
     const formShareURL = getFormShareURL(form, workspace);
     const responseId = response?.responseId;
     const previewURL = responseId ? `${formShareURL}/preview?responseId=${responseId}` : `${formShareURL}/preview`;
-    console.log('Preview Url', form);
 
     return (
         <div data-testid="form-renderer" className="relative  w-full flex justify-center  md:px-0">

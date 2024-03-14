@@ -40,7 +40,7 @@ export const formsApi = createApi({
         getFormResponse: builder.query<any, any>({
             query: (request) => ({
                 method: 'GET',
-                url: `/workspaces/${request.workspaceId}/forms/${request.formId}/responses/${request.responseId}`
+                url: `/workspaces/${request.workspaceId}/submissions/${request.responseId}`
             })
         }),
         submitResponse: builder.mutation<any, any>({
