@@ -196,6 +196,7 @@ export const useFormResponse = () => {
         nextSlide,
         previousSlide,
         setFormResponse,
+        addFieldTextAnswer,
         addFieldBooleanAnswer,
         addFieldChoiceAnswer,
         addFieldDateAnswer,
