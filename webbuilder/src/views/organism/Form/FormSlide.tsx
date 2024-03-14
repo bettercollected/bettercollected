@@ -1,59 +1,27 @@
 'use client';
 
-import React, { Fragment, useState } from 'react';
-
 import Image from 'next/image';
 
-import { RadioGroup } from '@headlessui/react';
 import parse from 'html-react-parser';
 
 import DemoImage from '@app/assets/image/rectangle.png';
 import { FieldTypes, FormField } from '@app/models/dtos/form';
 import { Button } from '@app/shadcn/components/ui/button';
-import { FieldInput } from '@app/shadcn/components/ui/input';
 import { ScrollArea } from '@app/shadcn/components/ui/scroll-area';
 import StandardForm, {
     useFormSlide,
-    useFormTheme,
     useStandardForm
 } from '@app/store/jotai/fetchedForm';
 import { useFormResponse } from '@app/store/jotai/responderFormResponse';
 import { getHtmlFromJson } from '@app/utils/richTextEditorExtenstion/getHtmlFromJson';
-import { Check } from '@app/views/atoms/Icons/Check';
-import RequiredIcon from '@app/views/atoms/Icons/Required';
-import { getPlaceholderValueForTitle } from '@app/views/molecules/RichTextEditor';
-
-function QuestionWrapper({
-    field,
-    children
-}: {
-    field: FormField;
-    children?: React.ReactNode;
-}) {
-    return (
-        <div className="relative flex flex-col">
-            {field?.validations?.required && (
-                <div className="top- 2 absolute -right-10">
-                    <RequiredIcon className="text-red-500" />
-                </div>
-            )}
-            <div className="font-semibold">
-                {parse(
-                    getHtmlFromJson(field?.title) ??
-                        getPlaceholderValueForTitle(field?.type || FieldTypes.TEXT)
-                )}
-            </div>
-            {field?.description && (
-                <div className="mt-2 text-black-700">{field?.description}</div>
-            )}
-            {children}
-        </div>
-    );
-}
+import EmailField from '@app/views/molecules/ResponderFormFields/EmailField';
+import MultipleChoiceField from '@app/views/molecules/ResponderFormFields/MultipleChoiceField';
+import QuestionWrapper from '@app/views/molecules/ResponderFormFields/QuestionQwrapper';
+import ShortTextField from '@app/views/molecules/ResponderFormFields/ShortTextField';
+import YesNoField from '@app/views/molecules/ResponderFormFields/YesNoField';
 
 function FormFieldComponent({ field, form }: { field: FormField; form: StandardForm }) {
-    const theme = useFormTheme();
-    const { addFieldTextAnswer, addFieldEmailAnswer, formResponse } = useFormResponse();
+    const { formResponse } = useFormResponse();
     console.log('sda', formResponse);
     switch (field.type) {
         case FieldTypes.TEXT:
@@ -63,31 +31,9 @@ function FormFieldComponent({ field, form }: { field: FormField; form: StandardF
                 </div>
             );
         case FieldTypes.EMAIL:
-            return (
-                <QuestionWrapper field={field}>
-                    <FieldInput
-                        type="email"
-                        placeholder={field?.properties?.placeholder}
-                        $slide={field}
-                        onChange={(e: any) =>
-                            addFieldEmailAnswer(field.id, e.target.value)
-                        }
-                    />
-                </QuestionWrapper>
-            );
+            return <EmailField field={field} />;
         case FieldTypes.SHORT_TEXT:
-            return (
-                <QuestionWrapper field={field}>
-                    <FieldInput
-                        type="text"
-                        placeholder={field?.properties?.placeholder}
-                        className="mt-4"
-                        onChange={(e: any) =>
-                            addFieldTextAnswer(field.id, e.target.value)
-                        }
-                    />
-                </QuestionWrapper>
-            );
+            return <ShortTextField field={field} />;
         case FieldTypes.MULTIPLE_CHOICE:
             return <MultipleChoiceField field={field} />;
         case FieldTypes.YES_NO:
@@ -97,123 +43,6 @@ function FormFieldComponent({ field, form }: { field: FormField; form: StandardF
             return <QuestionWrapper field={field} />;
     }
 }
-
-// optional
-// const MultipleChoiceField = ({ field }: { field: FormField }) => {
-//     const { addFieldChoiceAnswer } = useFormResponse();
-//     const theme = useFormTheme();
-//     return (
-//         <QuestionWrapper field={field}>
-//             <select
-//                 className="w-full space-y-2 overflow-hidden border-0 p-0"
-//                 multiple
-//                 onChange={(e) =>
-//                     console.log(
-//                         e
-//                         // Array.from(e.target.selectedOptions).map(
-//                         //     (selectedOptions) => selectedOptions.value
-//                         // )
-//                     )
-//                 }
-//             >
-//                 {field.properties?.choices?.map((choice) => {
-//                     return (
-//                         <option
-//                             style={{ borderColor: theme?.tertiary }}
-//                             className="cursor-pointer rounded-xl border p-2 px-4 checked:bg-red-500 hover:bg-black-700 active:bg-yellow-500"
-//                             value={choice.value}
-//                         >
-//                             {choice.value}
-//                         </option>
-//                     );
-//                 })}
-//             </select>
-//         </QuestionWrapper>
-//     );
-// };
-
-const MultipleChoiceField = ({ field }: { field: FormField }) => {
-    const { addFieldChoicesAnswer } = useFormResponse();
-    const theme = useFormTheme();
-    const [selectedItems, setSelectedItems] = useState<Array<string>>([]);
-
-    const handleClick = (item: string) => {
-        const isSelected = selectedItems.includes(item);
-        setSelectedItems((prev) => {
-            const updatedSelection = isSelected
-                ? selectedItems.filter((selectedItem: string) => selectedItem !== item)
-                : [...selectedItems, item];
-            addFieldChoicesAnswer(field.id, updatedSelection);
-            return updatedSelection;
-        });
-    };
-
-    return (
-        <QuestionWrapper field={field}>
-            <div className="w-full space-y-2 overflow-hidden border-0 p-0">
-                {field.properties?.choices?.map((choice) => (
-                    <div
-                        style={{
-                            background: selectedItems.includes(choice.value || '')
-                                ? theme?.tertiary
-                                : '',
-                            borderColor: theme?.tertiary
-                        }}
-                        className="flex cursor-pointer justify-between rounded-xl border p-2 px-4"
-                        key={choice.value}
-                        onClick={() => handleClick(choice.value || '')}
-                    >
-                        {choice.value}{' '}
-                        {selectedItems.includes(choice.value || '') && <Check />}
-                    </div>
-                ))}
-            </div>
-        </QuestionWrapper>
-    );
-};
-
-const YesNoField = ({ field }: { field: FormField }) => {
-    const { addFieldChoiceAnswer } = useFormResponse();
-    const theme = useFormTheme();
-    return (
-        <QuestionWrapper field={field}>
-            <RadioGroup
-                className={'flex w-full flex-col gap-2'}
-                onChange={(value) => addFieldChoiceAnswer(field.id, value)}
-            >
-                {field &&
-                    field.properties?.choices?.map((choice, index) => {
-                        return (
-                            <RadioGroup.Option
-                                value={choice.value}
-                                key={index}
-                                as={Fragment}
-                            >
-                                {({ active, checked }) => {
-                                    return (
-                                        <div
-                                            style={{
-                                                borderColor: theme?.tertiary,
-                                                background: active
-                                                    ? theme?.secondary
-                                                    : checked
-                                                      ? theme?.tertiary
-                                                      : ''
-                                            }}
-                                            className={`flex cursor-pointer justify-between rounded-xl border p-2 px-4`}
-                                        >
-                                            {choice.value}
-                                            {checked && <Check />}
-                                        </div>
-                                    );
-                                }}
-                            </RadioGroup.Option>
-                        );
-                    })}
-            </RadioGroup>
-        </QuestionWrapper>
-    );
-};
 
 export default function FormSlide({ index }: { index: number }) {
     const formSlide = useFormSlide(index);
