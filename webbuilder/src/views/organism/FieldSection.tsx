@@ -5,7 +5,7 @@ import { useState } from 'react';
 import Image from 'next/image';
 
 import { RadioGroup } from '@headlessui/react';
-import { BubbleMenu, Editor, EditorContent } from '@tiptap/react';
+import { Editor } from '@tiptap/react';
 import cn from 'classnames';
 import { GripVertical } from 'lucide-react';
 import { DragDropContext, Draggable, DroppableProvided } from 'react-beautiful-dnd';
@@ -112,7 +112,7 @@ const FieldSection = ({
                 backgroundColor: slide?.properties?.theme?.accent || theme?.accent
             }}
             className={cn(
-                'grid aspect-video h-min w-full grid-cols-2 overflow-hidden bg-white',
+                'grid aspect-video h-min w-full grid-cols-2 overflow-hidden rounded-lg bg-white',
                 disabled ? 'pointer-events-none overflow-hidden' : '',
                 isScaledDown ? '!h-full !w-full' : ''
                 // slide.imageUrl ? 'grid-cols-2' : 'grid-cols-1'
@@ -204,6 +204,29 @@ const FieldSection = ({
                                                                         'relative flex flex-col items-start'
                                                                     }
                                                                 >
+                                                                    {!isScaledDown &&
+                                                                        activeFieldComponent &&
+                                                                        activeFieldComponent?.id ===
+                                                                            field.id && (
+                                                                            <div
+                                                                                className="absolute -top-14 right-0 cursor-pointer rounded-md bg-white p-2 shadow-bubble"
+                                                                                onClick={() =>
+                                                                                    deleteField(
+                                                                                        slide.index,
+                                                                                        index
+                                                                                    )
+                                                                                }
+                                                                            >
+                                                                                <DeleteIcon
+                                                                                    width={
+                                                                                        24
+                                                                                    }
+                                                                                    height={
+                                                                                        24
+                                                                                    }
+                                                                                />
+                                                                            </div>
+                                                                        )}
                                                                     <div
                                                                         className={cn(
                                                                             'absolute -left-8 cursor-grab text-black-500',
