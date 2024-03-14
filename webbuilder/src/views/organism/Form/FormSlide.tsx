@@ -14,6 +14,7 @@ import StandardForm, {
 } from '@app/store/jotai/fetchedForm';
 import { useFormResponse } from '@app/store/jotai/responderFormResponse';
 import { getHtmlFromJson } from '@app/utils/richTextEditorExtenstion/getHtmlFromJson';
+import DropDownField from '@app/views/molecules/ResponderFormFields/DropDownField';
 import FileUploadField from '@app/views/molecules/ResponderFormFields/FileUploadField';
 import InputField from '@app/views/molecules/ResponderFormFields/InputField';
 import MultipleChoiceField from '@app/views/molecules/ResponderFormFields/MultipleChoiceField';
@@ -41,6 +42,9 @@ function FormFieldComponent({ field, form }: { field: FormField; form: StandardF
             return <YesNoField field={field} />;
         case FieldTypes.FILE_UPLOAD:
             return <FileUploadField field={field} />;
+        case FieldTypes.DROP_DOWN:
+            return <DropDownField field={field} />;
+        case FieldTypes.DATE:
         default:
             return <QuestionWrapper field={field} />;
     }
