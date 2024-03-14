@@ -37,7 +37,7 @@ export const FontSize = Extension.create<FontSizeOptions>({
                 attributes: {
                     fontSize: {
                         default: {
-                            style: `font-size: 16px`
+                            style: `font-size: 16px; font-weight:600`
                         },
                         parseHTML: (element) =>
                             element.style.fontSize.replace(/['"]+/g, ''),
@@ -67,7 +67,7 @@ export const FontSize = Extension.create<FontSizeOptions>({
                 () =>
                 ({ chain }) => {
                     return chain()
-                        .setMark('textStyle', { fontSize: "16px" })
+                        .setMark('textStyle', { fontSize: '16px' })
                         .removeEmptyTextStyle()
                         .run();
                 }
