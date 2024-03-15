@@ -24,10 +24,17 @@ import FileUploadField from '@app/views/molecules/ResponderFormFields/FileUpload
 import InputField from '@app/views/molecules/ResponderFormFields/InputField';
 import MultipleChoiceField from '@app/views/molecules/ResponderFormFields/MultipleChoiceField';
 import PhoneNumberField from '@app/views/molecules/ResponderFormFields/PhoneNumberField';
+import MultipleChoiceWithMultipleSelection from '@app/views/molecules/ResponderFormFields/MultipleChoiceWirhMultipleSelections';
 import QuestionWrapper from '@app/views/molecules/ResponderFormFields/QuestionQwrapper';
 import YesNoField from '@app/views/molecules/ResponderFormFields/YesNoField';
 
-function FormFieldComponent({ field, form }: { field: FormField; form: StandardForm }) {
+function FormFieldComponent({
+    field,
+    slideIndex
+}: {
+    field: FormField;
+    slideIndex: number;
+}) {
     switch (field.type) {
         case FieldTypes.TEXT:
             return (
@@ -41,7 +48,15 @@ function FormFieldComponent({ field, form }: { field: FormField; form: StandardF
         case FieldTypes.LINK:
             return <InputField field={field} />;
         case FieldTypes.MULTIPLE_CHOICE:
-            return <MultipleChoiceField field={field} />;
+            if (field?.properties?.allowMultipleSelection) {
+                return (
+                    <MultipleChoiceWithMultipleSelection
+                        field={field}
+                        slideIndex={slideIndex}
+                    />
+                );
+            }
+            return <MultipleChoiceField field={field} slideIndex={slideIndex} />;
         case FieldTypes.YES_NO:
             return <YesNoField field={field} />;
         case FieldTypes.FILE_UPLOAD:
@@ -119,7 +134,10 @@ export default function FormSlide({ index }: { index: number }) {
                     <div className="  w-full max-w-[544px] px-10">
                         {formSlide?.properties?.fields?.map((field) => (
                             <div className="mt-20" key={field.index}>
-                                <FormFieldComponent field={field} form={standardForm} />
+                                <FormFieldComponent
+                                    field={field}
+                                    slideIndex={formSlide.index}
+                                />
                             </div>
                         ))}
                         <Button

@@ -53,7 +53,7 @@ interface FieldValidations {
     maxChoices?: number;
 }
 
-interface FormFieldProperties {
+export interface FormFieldProperties {
     hidden?: boolean;
     fields?: Array<FormField>;
     placeholder?: string;
@@ -75,7 +75,7 @@ interface FormFieldProperties {
     };
 }
 
-interface FieldChoice {
+export interface FieldChoice {
     id: string;
     value?: string;
     label?: string;
