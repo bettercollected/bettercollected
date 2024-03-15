@@ -10,9 +10,14 @@ export default function InputField({ field }: { field: FormField }) {
         addFieldTextAnswer,
         addFieldEmailAnswer,
         addFieldNumberAnswer,
-        addFieldURLAnswer
+        addFieldURLAnswer,
+        removeAnswer
     } = useFormResponse();
     const handleChange = (e: any) => {
+        if (!e.target.value) {
+            removeAnswer(field.id);
+            return;
+        }
         switch (field.type) {
             case FieldTypes.LINK:
                 addFieldURLAnswer(field.id, e.target.value);
