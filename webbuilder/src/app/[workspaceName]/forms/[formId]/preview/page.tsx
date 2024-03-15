@@ -49,7 +49,7 @@ export default function ResponsePage({
                     </div>
                     {standardForm?.fields?.map((_, index) => {
                         return (
-                            <div className="p-4">
+                            <div className="p-4" key={index}>
                                 <div className="aspect-video w-full overflow-hidden rounded-xl border border-2 border-black-400 ">
                                     <FormSlide index={index} />
                                 </div>
