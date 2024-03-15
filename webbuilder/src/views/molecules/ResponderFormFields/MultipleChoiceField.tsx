@@ -55,37 +55,3 @@ const MultipleChoiceField = ({ field }: { field: FormField }) => {
 };
 
 export default MultipleChoiceField;
-
-// optional
-// const MultipleChoiceField = ({ field }: { field: FormField }) => {
-//     const { addFieldChoiceAnswer } = useFormResponse();
-//     const theme = useFormTheme();
-//     return (
-//         <QuestionWrapper field={field}>
-//             <select
-//                 className="w-full space-y-2 overflow-hidden border-0 p-0"
-//                 multiple
-//                 onChange={(e) =>
-//                     console.log(
-//                         e
-//                         // Array.from(e.target.selectedOptions).map(
-//                         //     (selectedOptions) => selectedOptions.value
-//                         // )
-//                     )
-//                 }
-//             >
-//                 {field.properties?.choices?.map((choice) => {
-//                     return (
-//                         <option
-//                             style={{ borderColor: theme?.tertiary }}
-//                             className="cursor-pointer rounded-xl border p-2 px-4 checked:bg-red-500 hover:bg-black-700 active:bg-yellow-500"
-//                             value={choice.value}
-//                         >
-//                             {choice.value}
-//                         </option>
-//                     );
-//                 })}
-//             </select>
-//         </QuestionWrapper>
-//     );
-// };
