@@ -21,6 +21,21 @@ enum AnswerType {
     FILE_UPLOAD = 'file_upload'
 }
 
+export interface ChoicesAnswer {
+    values?: Array<string>;
+    other?: string;
+}
+
+export interface ChoiceAnswer {
+    value?: string;
+    other?: string;
+}
+
+export interface ChoicesAnswer {
+    values?: Array<string>;
+    other?: string;
+}
+
 export interface FormResponse {
     currentSlide: number;
     formId: string;
@@ -33,8 +48,8 @@ export interface FormResponse {
             date?: string;
             phone_number?: string;
             url?: string;
-            choice?: string;
-            choices?: string[];
+            choice?: ChoiceAnswer;
+            choices?: ChoicesAnswer;
             boolean?: boolean;
             file_metadata?: FileMetadata;
         };
@@ -95,7 +110,9 @@ export const useFormResponse = () => {
                 ...(formResponse.answers || {}),
                 [fieldId]: {
                     type: AnswerType.CHOICE,
-                    choice: choice
+                    choice: {
+                        value: choice
+                    }
                 }
             }
         });
@@ -108,7 +125,42 @@ export const useFormResponse = () => {
                 ...(formResponse.answers || {}),
                 [fieldId]: {
                     type: AnswerType.CHOICES,
-                    choices: choices
+                    choices: {
+                        values: choices
+                    }
+                }
+            }
+        });
+    };
+
+    const addOtherChoiceAnswer = (fieldId: string, other: string) => {
+        setFormResponse({
+            ...formResponse,
+            answers: {
+                ...(formResponse?.answers || {}),
+                [fieldId]: {
+                    type: AnswerType.CHOICE,
+                    choice: {
+                        other
+                    }
+                }
+            }
+        });
+    };
+
+    const addOtherChoicesAnswer = (fieldId: string, other: string) => {
+        setFormResponse({
+            ...formResponse,
+            answers: {
+                ...(formResponse?.answers || {}),
+                [fieldId]: {
+                    type: AnswerType.CHOICES,
+                    choices: {
+                        ...(formResponse?.answers
+                            ? formResponse?.answers[fieldId]?.choices
+                            : {}),
+                        other
+                    }
                 }
             }
         });
@@ -232,6 +284,8 @@ export const useFormResponse = () => {
         addFieldPhoneNumberAnswer,
         addFieldURLAnswer,
         addFieldChoicesAnswer,
+        addOtherChoiceAnswer,
+        addOtherChoicesAnswer,
         addFieldFileAnswer,
         setCurrentSlideToThankyouPage,
         removeAnswer,

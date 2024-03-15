@@ -22,7 +22,7 @@ export default function AutoSaveForm({ formId }: { formId: string }) {
         }),
         [formFields, formState]
     );
-    const [debouncedForm] = useDebounceValue(combinedFormState, 500);
+    const [debouncedForm] = useDebounceValue(combinedFormState, 1000);
 
     const saveForm = async () => {
         const formData = new FormData();
