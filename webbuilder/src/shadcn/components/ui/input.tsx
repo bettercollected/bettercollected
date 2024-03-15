@@ -43,7 +43,10 @@ const FieldInput = styled(ShadCNInput)<{
         borderColor: themeColor,
         '&::placeholder': {
             color: `${themeColor} !important`
-        }
+        },
+        '&:focus': {
+            borderColor: themeColor
+        },
     };
 });
 FieldInput.displayName = 'FieldInput';
