@@ -19,6 +19,7 @@ import { StrictModeDroppable } from '@app/shared/hocs/StrictModeDroppable';
 import { useActiveFieldComponent } from '@app/store/jotai/activeBuilderComponent';
 import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
 import { useFormState } from '@app/store/jotai/form';
+import { getPlaceholderValueForField } from '@app/utils/formUtils';
 import RequiredIcon from '@app/views/atoms/Icons/Required';
 
 import { ArrowDown } from '../atoms/Icons/ArrowDown';
@@ -29,23 +30,6 @@ import {
     RichTextEditor,
     getPlaceholderValueForTitle
 } from '../molecules/RichTextEditor';
-
-function getPlaceholderValueForField(fieldType: FieldTypes) {
-    switch (fieldType) {
-        case FieldTypes.EMAIL:
-            return 'name@gmail.com';
-        case FieldTypes.NUMBER:
-            return '123';
-        case FieldTypes.SHORT_TEXT:
-            return 'Answer';
-        case FieldTypes.LINK:
-            return 'https://';
-        case FieldTypes.PHONE_NUMBER:
-            return '0123456789';
-        default:
-            return 'No Field Selected';
-    }
-}
 
 function getClassName(fieldType: FieldTypes) {
     switch (fieldType) {
