@@ -127,6 +127,8 @@ export default function useFormFieldsAtom() {
         slideIndex: number,
         required: boolean
     ) => {
+        console.log(fieldIndex);
+
         formFields[slideIndex].properties!.fields![fieldIndex].validations = {
             ...formFields[slideIndex].properties!.fields![fieldIndex].validations,
             required: required
@@ -205,6 +207,9 @@ export default function useFormFieldsAtom() {
 
     const deleteField = (slideIndex: number, fieldIndex: number) => {
         formFields![slideIndex]!.properties!.fields!.splice(fieldIndex, 1);
+        formFields![slideIndex!].properties!.fields = formFields![
+            slideIndex!
+        ].properties!.fields?.map((field, index) => ({ ...field, index }));
         setFormFields([...formFields]);
         setTimeout(() => {
             setActiveFieldComponent(null);

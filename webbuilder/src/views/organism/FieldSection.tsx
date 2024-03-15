@@ -150,7 +150,7 @@ const FieldSection = ({
                                         slideFields.map((field, index) => {
                                             return (
                                                 <Draggable
-                                                    key={field.id}
+                                                    key={field.id + index}
                                                     draggableId={`${field.id}`}
                                                     index={index}
                                                     disableInteractiveElementBlocking={
@@ -543,7 +543,7 @@ const DropDownField = ({
                         );
                     })}
             </div>
-            {field?.properties?.allowOtherOption && (
+            {field?.properties?.allowOtherChoice && (
                 <div
                     style={{
                         color: slide.properties?.theme?.tertiary || theme?.tertiary,

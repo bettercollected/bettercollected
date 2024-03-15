@@ -64,7 +64,7 @@ interface FormFieldProperties {
     dateFormat?: string;
     showQuestionNumbers?: boolean;
     allowMultipleSelection?: boolean;
-    allowOtherOption?: boolean;
+    allowOtherChoice?: boolean;
     layout?: FormSlideLayout;
     theme?: {
         title: string;

@@ -54,12 +54,12 @@ export default function FieldSettings() {
                             &quot;Other&quot; Option
                         </div>
                         <Switch
-                            checked={activeField?.properties?.allowOtherOption || false}
+                            checked={activeField?.properties?.allowOtherChoice || false}
                             onCheckedChange={(checked) => {
                                 updateFieldProperty(
                                     activeField!.index,
                                     activeSlide!.index,
-                                    'allowOtherOption',
+                                    'allowOtherChoice',
                                     checked
                                 );
                             }}

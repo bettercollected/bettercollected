@@ -55,7 +55,6 @@ const FieldTypeSelector = () => {
 export default function PropertiesDrawer({}: {}) {
     const { activeSlideComponent } = useActiveSlideComponent();
     const { activeFieldComponent } = useActiveFieldComponent();
-
     return (
         <div className="flex h-full flex-col border-l ">
             {activeFieldComponent?.id && (
