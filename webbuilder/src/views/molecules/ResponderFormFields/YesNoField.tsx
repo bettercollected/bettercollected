@@ -31,13 +31,12 @@ const YesNoField = ({ field }: { field: FormField }) => {
                                         <div
                                             style={{
                                                 borderColor: theme?.tertiary,
-                                                background: active
-                                                    ? theme?.secondary
-                                                    : checked
-                                                      ? theme?.tertiary
-                                                      : ''
+                                                background:
+                                                    active || checked
+                                                        ? theme?.tertiary
+                                                        : ''
                                             }}
-                                            className={`flex cursor-pointer justify-between rounded-xl border p-2 px-4`}
+                                            className={`flex cursor-pointer justify-between rounded-xl border p-2 px-4 hover:!border-black-900`}
                                         >
                                             {choice.value}
                                             {checked && <Check />}

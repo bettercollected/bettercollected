@@ -113,8 +113,9 @@ export default function FormSlide({ index }: { index: number }) {
                         ))}
                         <Button
                             style={{ background: standardForm.theme?.secondary }}
-                            className="mt-20"
+                            className="mt-20 rounded px-8 py-3"
                             onClick={onNext}
+                            size="medium"
                         >
                             Next
                         </Button>
