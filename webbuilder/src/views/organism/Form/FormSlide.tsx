@@ -17,11 +17,12 @@ import { useFormResponse } from '@app/store/jotai/responderFormResponse';
 import useWorkspace from '@app/store/jotai/workspace';
 import { useSubmitResponseMutation } from '@app/store/redux/formApi';
 import { getHtmlFromJson } from '@app/utils/richTextEditorExtenstion/getHtmlFromJson';
+import { validateSlide } from '@app/utils/validationUtils';
 import DropDownField from '@app/views/molecules/ResponderFormFields/DropDownField';
 import FileUploadField from '@app/views/molecules/ResponderFormFields/FileUploadField';
-import { validateSlide } from '@app/utils/validationUtils';
 import InputField from '@app/views/molecules/ResponderFormFields/InputField';
 import MultipleChoiceField from '@app/views/molecules/ResponderFormFields/MultipleChoiceField';
+import PhoneNumberField from '@app/views/molecules/ResponderFormFields/PhoneNumberField';
 import QuestionWrapper from '@app/views/molecules/ResponderFormFields/QuestionQwrapper';
 import YesNoField from '@app/views/molecules/ResponderFormFields/YesNoField';
 
@@ -47,6 +48,8 @@ function FormFieldComponent({ field, form }: { field: FormField; form: StandardF
         case FieldTypes.DROP_DOWN:
             return <DropDownField field={field} />;
         case FieldTypes.DATE:
+        case FieldTypes.PHONE_NUMBER:
+            return <PhoneNumberField field={field} />;
         default:
             return <QuestionWrapper field={field} />;
     }
@@ -97,6 +100,7 @@ export default function FormSlide({ index }: { index: number }) {
                 nextSlide();
             }
         }
+        console.log('responses : ', formResponse);
     };
     return (
         <div
