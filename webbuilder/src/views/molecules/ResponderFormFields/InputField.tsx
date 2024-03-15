@@ -1,6 +1,7 @@
 import { FieldTypes, FormField } from '@app/models/dtos/form';
 import { FieldInput } from '@app/shadcn/components/ui/input';
 import { useFormResponse } from '@app/store/jotai/responderFormResponse';
+import { getPlaceholderValueForField } from '@app/utils/formUtils';
 
 import QuestionWrapper from './QuestionQwrapper';
 
@@ -65,7 +66,10 @@ export default function InputField({ field }: { field: FormField }) {
         <QuestionWrapper field={field}>
             <FieldInput
                 type={field.type === FieldTypes.SHORT_TEXT ? 'text' : field.type}
-                placeholder={field?.properties?.placeholder}
+                placeholder={
+                    field?.properties?.placeholder ||
+                    getPlaceholderValueForField(field.type)
+                }
                 className="mt-4"
                 value={getFieldValue()}
                 onChange={(e: any) => handleChange(e)}
