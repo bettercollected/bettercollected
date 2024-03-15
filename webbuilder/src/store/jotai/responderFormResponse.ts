@@ -2,6 +2,7 @@ import { set } from 'lodash';
 
 import { atom, useAtom } from 'jotai';
 
+import { FileMetadata } from '@app/models/types/fieldTypes';
 import { Invalidations } from '@app/utils/validationUtils';
 
 enum AnswerType {
@@ -16,7 +17,8 @@ enum AnswerType {
     URL = 'url',
     PHONE_NUMBER = 'phone_number',
     FILE_URL = 'file_url',
-    PAYMENT = 'payment'
+    PAYMENT = 'payment',
+    FILE_UPLOAD = 'file_upload'
 }
 
 export interface FormResponse {
@@ -29,11 +31,12 @@ export interface FormResponse {
             number?: number;
             email?: string;
             date?: string;
-            phoneNumber?: string;
+            phone_number?: string;
             url?: string;
             choice?: string;
             choices?: string[];
             boolean?: boolean;
+            file_metadata?: FileMetadata;
         };
     };
     consent?: Array<any>;
@@ -183,7 +186,20 @@ export const useFormResponse = () => {
                 ...(formResponse.answers || {}),
                 [fieldId]: {
                     type: AnswerType.PHONE_NUMBER,
-                    phoneNumber: phoneNumber
+                    phone_number: phoneNumber
+                }
+            }
+        });
+    };
+
+    const addFieldFileAnswer = (fieldId: string, fileMetaData: FileMetadata) => {
+        setFormResponse({
+            ...formResponse,
+            answers: {
+                ...(formResponse.answers || {}),
+                [fieldId]: {
+                    type: AnswerType.FILE_UPLOAD,
+                    file_metadata: fileMetaData
                 }
             }
         });
@@ -216,6 +232,7 @@ export const useFormResponse = () => {
         addFieldPhoneNumberAnswer,
         addFieldURLAnswer,
         addFieldChoicesAnswer,
+        addFieldFileAnswer,
         setCurrentSlideToThankyouPage,
         removeAnswer,
         setInvalidFields

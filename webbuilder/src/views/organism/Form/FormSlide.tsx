@@ -2,17 +2,18 @@
 
 import Image from 'next/image';
 
+
+
 import parse from 'html-react-parser';
 import { toast } from 'react-toastify';
+
+
 
 import DemoImage from '@app/assets/image/rectangle.png';
 import { FieldTypes, FormField } from '@app/models/dtos/form';
 import { Button } from '@app/shadcn/components/ui/button';
 import { ScrollArea } from '@app/shadcn/components/ui/scroll-area';
-import StandardForm, {
-    useFormSlide,
-    useStandardForm
-} from '@app/store/jotai/fetchedForm';
+import StandardForm, { useFormSlide, useStandardForm } from '@app/store/jotai/fetchedForm';
 import { useFormResponse } from '@app/store/jotai/responderFormResponse';
 import useWorkspace from '@app/store/jotai/workspace';
 import { useSubmitResponseMutation } from '@app/store/redux/formApi';
@@ -25,6 +26,8 @@ import MultipleChoiceField from '@app/views/molecules/ResponderFormFields/Multip
 import PhoneNumberField from '@app/views/molecules/ResponderFormFields/PhoneNumberField';
 import QuestionWrapper from '@app/views/molecules/ResponderFormFields/QuestionQwrapper';
 import YesNoField from '@app/views/molecules/ResponderFormFields/YesNoField';
+import useFormAtom from '@app/store/jotai/formFile';
+
 
 function FormFieldComponent({ field, form }: { field: FormField; form: StandardForm }) {
     switch (field.type) {
@@ -63,6 +66,7 @@ export default function FormSlide({ index }: { index: number }) {
     const { formResponse, setInvalidFields } = useFormResponse();
     const { workspace } = useWorkspace();
     const [submitResponse, { data }] = useSubmitResponseMutation();
+    const { files, resetFormFiles } = useFormAtom();
 
     const submitFormResponse = async () => {
         const formData = new FormData();
@@ -73,6 +77,11 @@ export default function FormSlide({ index }: { index: number }) {
         };
 
         formData.append('response', JSON.stringify(postBody));
+        files.forEach((fileObj) => {
+            formData.append('files', fileObj.file, fileObj.fileName);
+            formData.append('file_field_ids', fileObj.fieldId);
+            formData.append('file_ids', fileObj.fileId);
+        });
 
         const response: any = await submitResponse({
             workspaceId: workspace.id,
