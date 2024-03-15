@@ -60,19 +60,18 @@ export default function PhoneNumberField({ field }: { field: FormField }) {
     const theme = useFormTheme();
     const { addFieldPhoneNumberAnswer, removeAnswer, formResponse } = useFormResponse();
     const handleChange = (phone: string) => {
-        console.log("phone: " + phone);
         if (!phone) {
             removeAnswer(field.id);
             return;
         }
-        addFieldPhoneNumberAnswer(field.id,phone);
+        addFieldPhoneNumberAnswer(field.id, phone);
     };
     return (
         <QuestionWrapper field={field}>
             <CustomPhoneInputField
                 value={
                     (formResponse.answers &&
-                        formResponse.answers[field.id]?.phoneNumber) ||
+                        formResponse.answers[field.id]?.phone_number) ||
                     ''
                 }
                 onChange={(e) => handleChange(e)}
