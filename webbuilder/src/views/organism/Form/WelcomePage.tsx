@@ -70,6 +70,8 @@ export default function WelcomePage() {
                 <div className="mt-6">
                     <Button
                         style={{ background: standardForm.theme?.secondary }}
+                        className="mt-20 rounded px-8 py-3"
+                        size="medium"
                         onClick={() => {
                             if (!standardForm?.settings?.requireVerifiedIdentity) {
                                 nextSlide();

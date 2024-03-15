@@ -40,6 +40,7 @@ export default function DropDownField({ field }: { field: FormField }) {
                     {field.properties?.choices?.map((choice) => {
                         return (
                             <div
+                                key={choice.id}
                                 onClick={() => {
                                     choice.value && setChoiceValue(choice.value);
                                     addFieldChoiceAnswer(field.id, choice.value ?? '');
