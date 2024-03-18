@@ -440,7 +440,8 @@ class WorkspaceFormService:
             await self._aws_service.upload_file_to_s3(
                 form_file.file.file, str(form_file.file_id), private=True
             )
-            response.answers[form_file.field_id]["file_metadata"]["url"] = ""
+            # TODO handle this for both builder versions
+            # response.answers[form_file.field_id]["file_metadata"]["url"] = ""
         return response
 
     async def patch_response(
