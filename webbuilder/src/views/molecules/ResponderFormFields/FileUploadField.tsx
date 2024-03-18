@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import Image from 'next/image';
 
@@ -14,6 +14,8 @@ import { downloadFile, generateFileMetaData } from '@app/utils/fileUtils';
 import DeleteIcon from '@app/views/atoms/Icons/Delete';
 import { FolderUploadIcon } from '@app/views/atoms/Icons/FolderUploadIcon';
 
+import QuestionWrapper from './QuestionQwrapper';
+
 export default function FileUpload({ field }: { field: FormField }) {
     const { formResponse, addFieldFileAnswer } = useFormResponse();
     const { theme } = useFormState();
@@ -25,6 +27,12 @@ export default function FileUpload({ field }: { field: FormField }) {
     const [fileMetaData, setFileMetadata] = useState<FileMetadata>(
         ans?.file_metadata ?? { id: v4() }
     );
+    useEffect(() => {
+        formResponse.answers &&
+            setFileMetadata(
+                formResponse.answers[field.id]?.file_metadata ?? { id: v4() }
+            );
+    }, [formResponse.answers]);
 
     const handleDragEnter = (event: any) => {
         event.preventDefault();
@@ -92,7 +100,8 @@ export default function FileUpload({ field }: { field: FormField }) {
         return (
             <div className="flex w-full space-x-2">
                 <div
-                    className="p1 flex w-full cursor-pointer items-center justify-between rounded bg-blue-200 px-3 py-2"
+                    style={{ backgroundColor: theme?.tertiary }}
+                    className="p1 flex w-full cursor-pointer items-center justify-between rounded px-3 py-2"
                     onClick={downloadFormFile}
                 >
                     <p className="mr-5 flex-1 truncate">{fileMetaData?.name}</p>
@@ -100,7 +109,11 @@ export default function FileUpload({ field }: { field: FormField }) {
                 </div>
 
                 <div
-                    className="items-center justify-center rounded bg-blue-200 p-2"
+                    style={{
+                        backgroundColor: theme?.tertiary,
+                        color: theme?.primary
+                    }}
+                    className="items-center justify-center rounded p-2"
                     onClick={handleDeleteFile}
                 >
                     <DeleteIcon />
@@ -110,48 +123,54 @@ export default function FileUpload({ field }: { field: FormField }) {
     };
 
     return (
-        <div className="w-full space-y-3 md:w-[541px]">
-            {!ans?.file_metadata && (
-                <div
-                    tabIndex={0}
-                    className={`flex flex-col  items-center justify-center space-y-3 rounded border border-dashed border-black-600 bg-black-200 py-10 focus-visible:!outline-none ${isDragging ? 'border-blue-500' : ''}`}
-                    onDragEnter={handleDragEnter}
-                    onDragLeave={handleDragLeave}
-                    onDragOver={handleDragOver}
-                    onDrop={handleDrop}
-                >
-                    <label
-                        htmlFor={`${fileMetaData.id}-file-input`}
-                        className="flex cursor-pointer items-center space-x-2 rounded border bg-white px-3 py-2 hover:bg-gray-50"
+        <QuestionWrapper field={field}>
+            <div className="w-full space-y-3 md:w-[541px]">
+                {!ans?.file_metadata && (
+                    <div
+                        style={{
+                            borderColor: isDragging ? theme?.tertiary : theme?.secondary
+                        }}
+                        tabIndex={0}
+                        className={`flex flex-col  items-center justify-center space-y-3 rounded-2xl border border-dashed py-10 focus-visible:!outline-none `}
+                        onDragEnter={handleDragEnter}
+                        onDragLeave={handleDragLeave}
+                        onDragOver={handleDragOver}
+                        onDrop={handleDrop}
                     >
-                        <FolderUploadIcon
-                            style={{
-                                color: theme?.secondary
-                            }}
+                        <label
+                            htmlFor={`${fileMetaData.id}-file-input`}
+                            className="flex cursor-pointer items-center space-x-2 rounded px-3 py-2 "
+                        >
+                            <FolderUploadIcon
+                                style={{
+                                    color: theme?.secondary
+                                }}
+                            />
+                        </label>
+                        <input
+                            ref={inputFileRef}
+                            type="file"
+                            id={`${fileMetaData.id}-file-input`}
+                            className="hidden"
+                            onChange={handleFileInputChange}
                         />
-                        <span className="text-sm font-semibold leading-5 text-black-900">
-                            Upload File
-                        </span>
-                    </label>
-                    <input
-                        ref={inputFileRef}
-                        type="file"
-                        id={`${fileMetaData.id}-file-input`}
-                        className="hidden"
-                        onChange={handleFileInputChange}
-                    />
-                    <div className="flex w-full flex-col items-center space-y-2 text-xs text-black-800">
-                        <span className="font-semibold leading-4">
-                            {isDragging ? 'Release to drop' : 'Or drag here'}
-                        </span>
-                        <span className="text-center leading-5">
-                            Media supported: Images, PDF, Videos, Audios, File{' '}
-                            <span className="block">Max size limit: 25 MB</span>
-                        </span>
+                        <div
+                            style={{ color: theme?.secondary }}
+                            className="flex w-full flex-col items-center space-y-2 text-sm "
+                        >
+                            <span className="font-semibold leading-4">
+                                {isDragging
+                                    ? 'Release to drop'
+                                    : 'Choose your file or drag file'}
+                            </span>
+                            <span className="text-center text-xs leading-5">
+                                <span className="block">Max size limit: 25 MB</span>
+                            </span>
+                        </div>
                     </div>
-                </div>
-            )}
-            {fileMetaData.name && getFilePreview()}
-        </div>
+                )}
+                {fileMetaData.name && getFilePreview()}
+            </div>
+        </QuestionWrapper>
     );
 }

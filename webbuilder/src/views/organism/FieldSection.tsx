@@ -384,7 +384,7 @@ const FileUpload = ({
                         color: slide.properties?.theme?.secondary || theme?.secondary
                     }}
                 />
-                <div className={'flex flex-col items-center gap-1'}>
+                <div style={{color:theme?.secondary}} className={'flex flex-col items-center gap-1'}>
                     <span className={'text-base font-semibold'}>
                         Choose your file or drag file
                     </span>
