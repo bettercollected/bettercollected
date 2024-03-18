@@ -1,6 +1,7 @@
 import { v4 } from 'uuid';
 
 import { FieldTypes, StandardForm } from '@app/models/dtos/form';
+import { FormSlideLayout } from '@app/models/enums/form';
 
 export const defaultForm: StandardForm = {
     formId: '',
@@ -12,6 +13,7 @@ export const defaultForm: StandardForm = {
             index: 0,
             type: FieldTypes.SLIDE,
             properties: {
+                layout: FormSlideLayout.TWO_COLUMN_LEFT,
                 fields: [
                     {
                         id: v4(),

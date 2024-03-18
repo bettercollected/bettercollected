@@ -52,12 +52,9 @@ const FieldTypeSelector = () => {
     );
 };
 
-export default function PropertiesDrawer({
-}: {
-}) {
+export default function PropertiesDrawer({}: {}) {
     const { activeSlideComponent } = useActiveSlideComponent();
     const { activeFieldComponent } = useActiveFieldComponent();
-    console.log(activeFieldComponent);
 
     return (
         <div className="flex h-full flex-col border-l ">
