@@ -23,9 +23,10 @@ import DropDownField from '@app/views/molecules/ResponderFormFields/DropDownFiel
 import FileUploadField from '@app/views/molecules/ResponderFormFields/FileUploadField';
 import InputField from '@app/views/molecules/ResponderFormFields/InputField';
 import MultipleChoiceField from '@app/views/molecules/ResponderFormFields/MultipleChoiceField';
-import PhoneNumberField from '@app/views/molecules/ResponderFormFields/PhoneNumberField';
 import MultipleChoiceWithMultipleSelection from '@app/views/molecules/ResponderFormFields/MultipleChoiceWirhMultipleSelections';
+import PhoneNumberField from '@app/views/molecules/ResponderFormFields/PhoneNumberField';
 import QuestionWrapper from '@app/views/molecules/ResponderFormFields/QuestionQwrapper';
+import RatingField from '@app/views/molecules/ResponderFormFields/RatingField';
 import YesNoField from '@app/views/molecules/ResponderFormFields/YesNoField';
 
 function FormFieldComponent({
@@ -60,12 +61,14 @@ function FormFieldComponent({
         case FieldTypes.YES_NO:
             return <YesNoField field={field} />;
         case FieldTypes.FILE_UPLOAD:
-            return <FileUploadField field={field}/>;
+            return <FileUploadField field={field} />;
         case FieldTypes.DROP_DOWN:
-            return <DropDownField field={field}  slideIndex={slideIndex} />;
+            return <DropDownField field={field} slideIndex={slideIndex} />;
         case FieldTypes.DATE:
         case FieldTypes.PHONE_NUMBER:
             return <PhoneNumberField field={field} />;
+        case FieldTypes.RATING:
+            return <RatingField field={field} />;
         default:
             return <QuestionWrapper field={field} />;
     }
@@ -80,6 +83,7 @@ export default function FormSlide({ index }: { index: number }) {
     const { workspace } = useWorkspace();
     const [submitResponse, { data }] = useSubmitResponseMutation();
     const { files, resetFormFiles } = useFormAtom();
+    console.log('responses: ', formResponse);
 
     const submitFormResponse = async () => {
         const formData = new FormData();
