@@ -1,5 +1,7 @@
 import { Fragment } from 'react';
 
+import { get } from 'lodash';
+
 import { RadioGroup } from '@headlessui/react';
 
 import { FormField } from '@app/models/dtos/form';
@@ -10,19 +12,29 @@ import { Check } from '@app/views/atoms/Icons/Check';
 import QuestionWrapper from './QuestionQwrapper';
 
 const YesNoField = ({ field }: { field: FormField }) => {
-    const { addFieldBooleanAnswer } = useFormResponse();
+    const { addFieldBooleanAnswer, formResponse } = useFormResponse();
     const theme = useFormTheme();
+
+    const getValue = () => {
+        if (
+            formResponse?.answers?.[field.id]?.boolean !== null ||
+            formResponse?.answers?.[field.id]?.boolean !== undefined
+        )
+            return formResponse?.answers?.[field.id]?.boolean;
+        else return null;
+    };
     return (
         <QuestionWrapper field={field}>
             <RadioGroup
+                value={getValue()}
                 className={'flex w-full flex-col gap-2'}
-                onChange={(value) => addFieldBooleanAnswer(field.id, value === 'Yes')}
+                onChange={(value) => addFieldBooleanAnswer(field.id, !!value)}
             >
                 {field &&
                     field.properties?.choices?.map((choice, index) => {
                         return (
                             <RadioGroup.Option
-                                value={choice.value}
+                                value={choice.value === 'Yes'}
                                 key={index}
                                 as={Fragment}
                             >
