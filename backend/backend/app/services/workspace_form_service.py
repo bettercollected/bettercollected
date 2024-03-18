@@ -433,12 +433,14 @@ class WorkspaceFormService:
             )
         return await self.form_service.update_form(form_id=form_id, form=form)
 
-    async def upload_files_to_s3_and_update_url(self, form_files, response):
+    async def upload_files_to_s3_and_update_url(
+        self, form_files, response: StandardFormResponseCamelModel
+    ):
         for form_file in form_files:
             await self._aws_service.upload_file_to_s3(
                 form_file.file.file, str(form_file.file_id), private=True
             )
-            response.answers[form_file.field_id].file_metadata.url = ""
+            response.answers[form_file.field_id]["file_metadata"]["url"] = ""
         return response
 
     async def patch_response(
