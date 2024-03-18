@@ -62,7 +62,7 @@ function FormFieldComponent({
         case FieldTypes.FILE_UPLOAD:
             return <FileUploadField field={field} />;
         case FieldTypes.DROP_DOWN:
-            return <DropDownField field={field} />;
+            return <DropDownField field={field}  slideIndex={slideIndex} />;
         case FieldTypes.DATE:
         case FieldTypes.PHONE_NUMBER:
             return <PhoneNumberField field={field} />;

@@ -50,6 +50,7 @@ export default function MultipleChoiceWithMultipleSelection({
                     const isSelected = selectedValues.includes(choice.id);
                     return (
                         <Choice
+                            key={choice.id}
                             isSelected={isSelected}
                             theme={theme}
                             choice={choice}

@@ -40,6 +40,7 @@ const MultipleChoiceField = ({
                     const isSelected = getSelectedValue() === choice.id;
                     return (
                         <Choice
+                            key={choice.id}
                             isSelected={isSelected}
                             theme={theme}
                             choice={choice}
