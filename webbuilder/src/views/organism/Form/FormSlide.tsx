@@ -65,6 +65,7 @@ function FormFieldComponent({
             return <FileUploadField field={field} />;
         case FieldTypes.DROP_DOWN:
             return <DropDownField field={field} slideIndex={slideIndex} />;
+        case FieldTypes.DATE:
         case FieldTypes.PHONE_NUMBER:
             return <PhoneNumberField field={field} />;
         case FieldTypes.RATING:
@@ -136,7 +137,7 @@ export default function FormSlide({ index }: { index: number }) {
         >
             <ScrollArea className="h-full flex-1 overflow-y-auto">
                 <div className="flex h-full flex-col items-center justify-center py-4">
-                    <div className="  w-full max-w-[544px] px-10">
+                    <div className="  w-full max-w-[800px] px-10">
                         {formSlide?.properties?.fields?.map((field) => (
                             <div className="mt-20" key={field.index}>
                                 <FormFieldComponent
