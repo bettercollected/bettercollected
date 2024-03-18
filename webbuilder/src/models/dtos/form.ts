@@ -1,5 +1,8 @@
-import { FormTheme } from '@app/constants/theme';
 import { JSONContent } from '@tiptap/react';
+
+import { FormTheme } from '@app/constants/theme';
+
+import { FormSlideLayout } from '../enums/form';
 
 export interface StandardForm {
     formId: string;
@@ -62,6 +65,7 @@ interface FormFieldProperties {
     showQuestionNumbers?: boolean;
     allowMultipleSelection?: boolean;
     allowOtherOption?: boolean;
+    layout?: FormSlideLayout;
     theme?: {
         title: string;
         primary: string;

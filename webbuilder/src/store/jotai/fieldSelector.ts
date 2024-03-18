@@ -5,6 +5,7 @@ import { atom, useAtom } from 'jotai';
 import { v4 } from 'uuid';
 
 import { FormField } from '@app/models/dtos/form';
+import { FormSlideLayout } from '@app/models/enums/form';
 import {
     useActiveFieldComponent,
     useActiveSlideComponent
@@ -170,6 +171,11 @@ export default function useFormFieldsAtom() {
         setFormFields([...formFields]);
     };
 
+    const updateSlideLayout = (layout: FormSlideLayout) => {
+        formFields[activeSlide?.index || 0].properties!.layout = layout;
+        setFormFields([...formFields]);
+    };
+
     const moveFieldInASlide = (
         slideIndex: number,
         sourceIndex: number,
@@ -224,6 +230,7 @@ export default function useFormFieldsAtom() {
         updateFieldProperty,
         updateShowQuestionNumbers,
         updateSlideTheme,
+        updateSlideLayout,
         moveFieldInASlide,
         activeSlide,
         activeField,

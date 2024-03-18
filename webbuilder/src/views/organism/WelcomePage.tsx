@@ -3,32 +3,34 @@ import Image from 'next/image';
 import cn from 'classnames';
 
 import RectangleImage from '@app/assets/image/rectangle.png';
+import { FormSlideLayout } from '@app/models/enums/form';
 import { Button } from '@app/shadcn/components/ui/button';
+import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
 import { useFormState } from '@app/store/jotai/form';
 import { useFormResponse } from '@app/store/jotai/responderFormResponse';
 
-const WelcomeSlide = ({
-    disabled,
-    layout
-}: {
-    disabled?: boolean;
-    layout: 'two-column-right' | 'two-column-left';
-}) => {
+const WelcomeSlide = ({ disabled }: { disabled?: boolean }) => {
     const { theme, formState, setFormDescription, setWelcomeTitle } = useFormState();
+
+    const { activeSlide } = useFormFieldsAtom();
     const { nextSlide } = useFormResponse();
     return (
         <div
             style={{
                 background: theme?.accent
             }}
-            className={`grid aspect-video h-min w-full grid-cols-2 bg-blue-100  ${disabled ? 'pointer-events-none overflow-hidden' : ''}`}
+            className={`grid aspect-video h-min w-full grid-cols-2 bg-blue-100 h-[${93.28 * 4}px] w-[${165.83 * 4}px] ${disabled ? 'pointer-events-none overflow-hidden' : ''}`}
         >
             <div
                 className={cn(
                     'grid-flow-col grid-cols-1 items-center justify-center gap-12 self-center px-12',
-                    layout === 'two-column-right'
+                    activeSlide &&
+                        activeSlide.properties?.layout ===
+                            FormSlideLayout.TWO_COLUMN_RIGHT
                         ? 'order-1'
-                        : layout === 'two-column-left'
+                        : activeSlide &&
+                            activeSlide.properties?.layout ===
+                                FormSlideLayout.TWO_COLUMN_LEFT
                           ? 'order-0'
                           : ''
                 )}
@@ -62,9 +64,13 @@ const WelcomeSlide = ({
             <div
                 className={cn(
                     'grid-cols-1',
-                    layout === 'two-column-right'
+                    activeSlide &&
+                        activeSlide.properties?.layout ===
+                            FormSlideLayout.TWO_COLUMN_RIGHT
                         ? 'order-0'
-                        : layout === 'two-column-left'
+                        : activeSlide &&
+                            activeSlide.properties?.layout ===
+                                FormSlideLayout.TWO_COLUMN_LEFT
                           ? 'order-1'
                           : ''
                 )}
@@ -73,9 +79,13 @@ const WelcomeSlide = ({
                     objectFit="cover"
                     className={cn(
                         'h-full w-full',
-                        layout === 'two-column-right'
+                        activeSlide &&
+                            activeSlide.properties?.layout ===
+                                FormSlideLayout.TWO_COLUMN_RIGHT
                             ? 'order-0'
-                            : layout === 'two-column-left'
+                            : activeSlide &&
+                                activeSlide.properties?.layout ===
+                                    FormSlideLayout.TWO_COLUMN_LEFT
                               ? 'order-1'
                               : ''
                     )}

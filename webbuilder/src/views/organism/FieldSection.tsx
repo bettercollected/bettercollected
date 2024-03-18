@@ -12,11 +12,15 @@ import { DragDropContext, Draggable, DroppableProvided } from 'react-beautiful-d
 
 import RectangleImage from '@app/assets/image/rectangle.png';
 import { FieldTypes, FormField } from '@app/models/dtos/form';
+import { FormSlideLayout } from '@app/models/enums/form';
 import { Button } from '@app/shadcn/components/ui/button';
 import { FieldInput } from '@app/shadcn/components/ui/input';
 import { ScrollArea } from '@app/shadcn/components/ui/scroll-area';
 import { StrictModeDroppable } from '@app/shared/hocs/StrictModeDroppable';
-import { useActiveFieldComponent } from '@app/store/jotai/activeBuilderComponent';
+import {
+    useActiveFieldComponent,
+    useActiveSlideComponent
+} from '@app/store/jotai/activeBuilderComponent';
 import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
 import { useFormState } from '@app/store/jotai/form';
 import { getPlaceholderValueForField } from '@app/utils/formUtils';
@@ -52,19 +56,24 @@ function getClassName(fieldType: FieldTypes) {
 
 const FieldSection = ({
     slide,
-    layout,
+    // layout = FormSlideLayout.TWO_COLUMN_LEFT,
     isScaledDown = false,
     disabled = false
 }: {
     slide: FormField;
-    layout: 'two-column-right' | 'two-column-left';
+    // layout: FormSlideLayout,
     isScaledDown?: boolean;
     disabled?: boolean;
 }) => {
     const { theme } = useFormState();
     const slideFields = slide?.properties?.fields;
-    const { updateTitle, updateDescription, moveFieldInASlide, deleteField } =
-        useFormFieldsAtom();
+    const {
+        activeSlide,
+        updateTitle,
+        updateDescription,
+        moveFieldInASlide,
+        deleteField
+    } = useFormFieldsAtom();
     const { setActiveFieldComponent, activeFieldComponent } = useActiveFieldComponent();
     function renderField(field: FormField) {
         switch (field.type) {
@@ -105,9 +114,13 @@ const FieldSection = ({
             <div
                 className={cn(
                     'grid-cols-1 overflow-x-hidden',
-                    layout === 'two-column-right'
+                    slide &&
+                        slide?.properties?.layout ===
+                            FormSlideLayout.TWO_COLUMN_RIGHT
                         ? 'order-1'
-                        : layout === 'two-column-left'
+                        : slide &&
+                            slide?.properties?.layout ===
+                                FormSlideLayout.TWO_COLUMN_LEFT
                           ? 'order-0'
                           : '' // Add a default case or handle the case when layout is neither 'two-column-right' nor 'two-column-left'
                 )}
@@ -311,9 +324,11 @@ const FieldSection = ({
                     objectFit="cover"
                     className={cn(
                         'h-full w-full',
-                        layout === 'two-column-right'
+                        slide && slide?.properties?.layout ===
+                                FormSlideLayout.TWO_COLUMN_RIGHT
                             ? 'order-0'
-                            : layout === 'two-column-left'
+                            : slide && slide?.properties?.layout ===
+                                    FormSlideLayout.TWO_COLUMN_LEFT
                               ? 'order-1'
                               : ''
                     )}

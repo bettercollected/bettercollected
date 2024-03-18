@@ -3,6 +3,7 @@
 import parse from 'html-react-parser';
 
 import { FieldTypes } from '@app/models/dtos/form';
+import { FormSlideLayout } from '@app/models/enums/form';
 import { Switch } from '@app/shadcn/components/ui/switch';
 import { cn } from '@app/shadcn/util/lib';
 import { useActiveSlideComponent } from '@app/store/jotai/activeBuilderComponent';
@@ -14,15 +15,19 @@ import SlideLayoutLeftImage from '../atoms/Icons/SlideLayoutLeftImage';
 import SlideLayoutRightImage from '../atoms/Icons/SlideLayoutRightImage';
 import { getPlaceholderValueForTitle } from '../molecules/RichTextEditor';
 
-export default function PagePropertiesTab({
-    layout,
-    setLayout
-}: {
-    layout: 'two-column-right' | 'two-column-left';
-    setLayout: Function;
-}) {
-    const { formFields, updateShowQuestionNumbers, activeSlide } = useFormFieldsAtom();
+export default function PagePropertiesTab({}: {}) {
+    const { formFields, updateShowQuestionNumbers, activeSlide, updateSlideLayout } =
+        useFormFieldsAtom();
     const { activeSlideComponent } = useActiveSlideComponent();
+
+    // Function to handle layout update for a specific slide
+    const handleSlideLayoutChange = (slideId?: string, newLayout?: FormSlideLayout) => {
+        console.log(slideId, newLayout);
+        if (slideId && newLayout) updateSlideLayout(newLayout);
+    };
+
+    console.log(activeSlide)
+
     const { formState, setFormState } = useFormState();
     return (
         <>
@@ -31,18 +36,29 @@ export default function PagePropertiesTab({
             </div>
             <div className="grid grid-cols-2 gap-2 border-b px-4 pb-6">
                 {[
-                    { style: 'two-column-left', Icon: SlideLayoutRightImage },
-                    { style: 'two-column-right', Icon: SlideLayoutLeftImage }
-                ].map((item) => (
+                    {
+                        style: FormSlideLayout.TWO_COLUMN_LEFT,
+                        Icon: SlideLayoutRightImage
+                    },
+                    {
+                        style: FormSlideLayout.TWO_COLUMN_RIGHT,
+                        Icon: SlideLayoutLeftImage
+                    }
+                ].map((item: { style: FormSlideLayout; Icon: any }) => (
                     <div
                         key={item.style}
                         className={cn(
                             'flex h-[50px] w-20 cursor-pointer items-center justify-center rounded-xl border-[1px] p-2 hover:bg-gray-200',
-                            item.style === layout
+                            activeSlide && activeSlide.properties?.layout === item.style
                                 ? 'border-pink-500 ring-offset-1'
                                 : 'border-gray-200'
                         )}
-                        onClick={() => setLayout(item.style)}
+                        onClick={() =>
+                            handleSlideLayoutChange(
+                                activeSlideComponent?.id,
+                                item.style
+                            )
+                        }
                     >
                         {item.Icon && <item.Icon />}
                         {/* <SlideLayoutRightImage />
