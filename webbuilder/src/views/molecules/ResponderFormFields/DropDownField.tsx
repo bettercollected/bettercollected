@@ -9,29 +9,63 @@ import {
     CollapsibleContent,
     CollapsibleTrigger
 } from '@app/shadcn/components/ui/collapsible';
+import { useStandardForm } from '@app/store/jotai/fetchedForm';
 import { useFormState } from '@app/store/jotai/form';
 import { useFormResponse } from '@app/store/jotai/responderFormResponse';
 import { ChevronDown } from '@app/views/atoms/Icons/ChevronDown';
+import Choice from '@app/views/atoms/ResponderFormFields/Choice';
 
 import QuestionWrapper from './QuestionQwrapper';
 
-export default function DropDownField({ field }: { field: FormField }) {
+export default function DropDownField({
+    field,
+    slideIndex
+}: {
+    field: FormField;
+    slideIndex: number;
+}) {
     const [isOpen, setIsOpen] = React.useState(false);
     const { theme } = useFormState();
-    const { addFieldChoiceAnswer } = useFormResponse();
-    const [choiceValue, setChoiceValue] = useState('');
+    const { addFieldChoiceAnswer, formResponse } = useFormResponse();
+
+    const getSelectedValue = () => {
+        if (!formResponse.answers) {
+            return null;
+        }
+        const selectedChoiceId = formResponse?.answers[field.id]?.choice?.value;
+        return field?.properties?.choices?.find(
+            (choice) => choice.id === selectedChoiceId
+        )?.value;
+    };
+
+    const choiceValue = getSelectedValue();
+
+    const handleClick = (choiceId: string) => {
+        addFieldChoiceAnswer(field.id, choiceId);
+        setIsOpen(false);
+    };
+
+    const getTextStyle = () => {
+        if (choiceValue) {
+            return {
+                borderColor: theme?.secondary,
+                color: theme?.secondary
+            };
+        }
+        return { borderColor: theme?.tertiary, color: theme?.tertiary };
+    };
 
     return (
         <QuestionWrapper field={field}>
             <Collapsible open={isOpen} onOpenChange={setIsOpen} className=" space-y-2">
                 <CollapsibleTrigger asChild>
                     <div
-                        style={{ borderColor: theme?.tertiary, color: theme?.tertiary }}
+                        style={getTextStyle()}
                         className="flex cursor-pointer items-center justify-between space-x-4 border-b-[1px] text-3xl"
                     >
                         {choiceValue ? choiceValue : 'Select an Option'}
                         <ChevronDown
-                            className={`h-6 w-7 ${isOpen ? 'rotate-180' : ''}`}
+                            className={`duration-400 h-6 w-7 transition ${isOpen ? 'rotate-180' : ''}`}
                             style={{ color: theme?.secondary }}
                         />
                     </div>
@@ -39,20 +73,13 @@ export default function DropDownField({ field }: { field: FormField }) {
                 <CollapsibleContent className="space-y-2">
                     {field.properties?.choices?.map((choice) => {
                         return (
-                            <div
+                            <Choice
                                 key={choice.id}
-                                onClick={() => {
-                                    choice.value && setChoiceValue(choice.value);
-                                    addFieldChoiceAnswer(field.id, choice.value ?? '');
-                                    setIsOpen(false);
-                                }}
-                                style={{
-                                    borderColor: theme?.tertiary
-                                }}
-                                className={`flex cursor-pointer justify-between rounded-xl border p-2 px-4 active:bg-brand-200`}
-                            >
-                                {choice.value}
-                            </div>
+                                isSelected={choice.id === choiceValue}
+                                theme={theme}
+                                choice={choice}
+                                onClick={handleClick}
+                            />
                         );
                     })}
                 </CollapsibleContent>
@@ -60,39 +87,3 @@ export default function DropDownField({ field }: { field: FormField }) {
         </QuestionWrapper>
     );
 }
-
-// import * as React from 'react';
-
-// import { FormField } from '@app/models/dtos/form';
-// import {
-//     Select,
-//     SelectContent,
-//     SelectGroup,
-//     SelectItem,
-//     SelectLabel,
-//     SelectTrigger,
-//     SelectValue
-// } from '@app/shadcn/components/ui/select';
-
-// import QuestionWrapper from './QuestionQwrapper';
-
-// export default function DropDownField({ field }: { field: FormField }) {
-//     return (
-//         <QuestionWrapper field={field}>
-//             <Select>
-//                 <SelectTrigger className="w-[180px]">
-//                     <SelectValue placeholder="Select a fruit" />
-//                 </SelectTrigger>
-//                 <SelectContent>
-//                     <SelectGroup>
-//                         <SelectItem value="apple">Apple</SelectItem>
-//                         <SelectItem value="banana">Banana</SelectItem>
-//                         <SelectItem value="blueberry">Blueberry</SelectItem>
-//                         <SelectItem value="grapes">Grapes</SelectItem>
-//                         <SelectItem value="pineapple">Pineapple</SelectItem>
-//                     </SelectGroup>
-//                 </SelectContent>
-//             </Select>
-//         </QuestionWrapper>
-//     );
-// }
