@@ -1,7 +1,5 @@
 import { Fragment } from 'react';
 
-import { get } from 'lodash';
-
 import { RadioGroup } from '@headlessui/react';
 
 import { FormField } from '@app/models/dtos/form';
