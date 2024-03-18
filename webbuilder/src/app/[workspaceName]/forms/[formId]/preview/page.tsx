@@ -43,21 +43,21 @@ export default function ResponsePage({
             <ScrollArea className="overfloe-y-auto  flex h-full w-full flex-col">
                 <div className="pointer-events-none">
                     <div className="p-4">
-                        <div className="aspect-video w-full overflow-hidden rounded-xl border border-2 border-black-400">
+                        <div className="aspect-video w-full overflow-hidden rounded-xl border border-black-400">
                             <WelcomePage />
                         </div>
                     </div>
                     {standardForm?.fields?.map((_, index) => {
                         return (
                             <div className="p-4" key={index}>
-                                <div className="aspect-video w-full overflow-hidden rounded-xl border border-2 border-black-400 ">
+                                <div className="aspect-video w-full overflow-hidden rounded-xl border border-black-400 ">
                                     <FormSlide index={index} />
                                 </div>
                             </div>
                         );
                     })}
                     <div className="p-4">
-                        <div className="aspect-video w-full overflow-hidden rounded-xl border border-2 border-black-400 ">
+                        <div className="aspect-video w-full overflow-hidden rounded-xl border border-black-400 ">
                             <ThankyouPage />
                         </div>
                     </div>

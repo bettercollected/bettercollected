@@ -60,7 +60,7 @@ function FormFieldComponent({
         case FieldTypes.YES_NO:
             return <YesNoField field={field} />;
         case FieldTypes.FILE_UPLOAD:
-            return <FileUploadField field={field} />;
+            return <FileUploadField field={field}/>;
         case FieldTypes.DROP_DOWN:
             return <DropDownField field={field}  slideIndex={slideIndex} />;
         case FieldTypes.DATE:
@@ -80,7 +80,6 @@ export default function FormSlide({ index }: { index: number }) {
     const { workspace } = useWorkspace();
     const [submitResponse, { data }] = useSubmitResponseMutation();
     const { files, resetFormFiles } = useFormAtom();
-    console.log('responses : ', formResponse);
 
     const submitFormResponse = async () => {
         const formData = new FormData();
