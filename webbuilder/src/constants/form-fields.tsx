@@ -5,6 +5,7 @@ import { LinkIcon } from '@app/views/atoms/Icons/Link';
 import MultipleChoiceIcon from '@app/views/atoms/Icons/MultipleChoiceIcon';
 import { NumberIcon } from '@app/views/atoms/Icons/NumberIcon';
 import PhoneNumberIcon from '@app/views/atoms/Icons/PhoneNumberIcon';
+import RatingIcon from '@app/views/atoms/Icons/RatingIcon';
 import { TextIcon } from '@app/views/atoms/Icons/Text';
 import UploadIcon from '@app/views/atoms/Icons/UploadIcon';
 import { YesNoIcon } from '@app/views/atoms/Icons/YesNoIcon';
@@ -42,5 +43,10 @@ export const formFieldsList = [
         name: 'Multiple Choice',
         type: FieldTypes.MULTIPLE_CHOICE,
         icon: <MultipleChoiceIcon />
+    },
+    {
+        name: 'Rating',
+        type: FieldTypes.RATING,
+        icon: <RatingIcon />
     }
 ];

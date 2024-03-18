@@ -18,7 +18,8 @@ enum AnswerType {
     PHONE_NUMBER = 'phone_number',
     FILE_URL = 'file_url',
     PAYMENT = 'payment',
-    FILE_UPLOAD = 'file_upload'
+    FILE_UPLOAD = 'file_upload',
+    RATING = 'rating'
 }
 
 export interface ChoicesAnswer {
@@ -257,6 +258,19 @@ export const useFormResponse = () => {
         });
     };
 
+    const addFieldRatingAnswer = (fieldId: string, number: number) => {
+        setFormResponse({
+            ...formResponse,
+            answers: {
+                ...(formResponse.answers || {}),
+                [fieldId]: {
+                    type: AnswerType.RATING,
+                    number: number
+                }
+            }
+        });
+    };
+
     const setInvalidFields = (invalidFields: Record<string, Array<Invalidations>>) => {
         setFormResponse({
             ...formResponse,
@@ -287,6 +301,7 @@ export const useFormResponse = () => {
         addOtherChoiceAnswer,
         addOtherChoicesAnswer,
         addFieldFileAnswer,
+        addFieldRatingAnswer,
         setCurrentSlideToThankyouPage,
         removeAnswer,
         setInvalidFields

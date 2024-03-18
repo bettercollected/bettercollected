@@ -30,6 +30,7 @@ import { ArrowDown } from '../atoms/Icons/ArrowDown';
 import DeleteIcon from '../atoms/Icons/Delete';
 import { FolderUploadIcon } from '../atoms/Icons/FolderUploadIcon';
 import { PlusIcon } from '../atoms/Icons/Plus';
+import RatingField from '../molecules/ResponderFormFields/RatingField';
 import {
     RichTextEditor,
     getPlaceholderValueForTitle
@@ -94,6 +95,8 @@ const FieldSection = ({
                 );
             case FieldTypes.TEXT:
                 return <></>;
+            case FieldTypes.RATING:
+                return <RatingField field={field} slide={slide} disabled={true} />;
             default:
                 return null;
         }
@@ -115,8 +118,7 @@ const FieldSection = ({
                 className={cn(
                     'grid-cols-1 overflow-x-hidden',
                     slide &&
-                        slide?.properties?.layout ===
-                            FormSlideLayout.TWO_COLUMN_RIGHT
+                        slide?.properties?.layout === FormSlideLayout.TWO_COLUMN_RIGHT
                         ? 'order-1'
                         : slide &&
                             slide?.properties?.layout ===
@@ -324,10 +326,12 @@ const FieldSection = ({
                     objectFit="cover"
                     className={cn(
                         'h-full w-full',
-                        slide && slide?.properties?.layout ===
+                        slide &&
+                            slide?.properties?.layout ===
                                 FormSlideLayout.TWO_COLUMN_RIGHT
                             ? 'order-0'
-                            : slide && slide?.properties?.layout ===
+                            : slide &&
+                                slide?.properties?.layout ===
                                     FormSlideLayout.TWO_COLUMN_LEFT
                               ? 'order-1'
                               : ''
@@ -384,7 +388,10 @@ const FileUpload = ({
                         color: slide.properties?.theme?.secondary || theme?.secondary
                     }}
                 />
-                <div style={{color:theme?.secondary}} className={'flex flex-col items-center gap-1'}>
+                <div
+                    style={{ color: theme?.secondary }}
+                    className={'flex flex-col items-center gap-1'}
+                >
                     <span className={'text-base font-semibold'}>
                         Choose your file or drag file
                     </span>

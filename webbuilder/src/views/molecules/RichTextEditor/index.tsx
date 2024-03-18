@@ -34,6 +34,8 @@ export function getPlaceholderValueForTitle(fieldType: FieldTypes) {
             return 'Select from list below.';
         case FieldTypes.TEXT:
             return 'Add Text';
+        case FieldTypes.RATING:
+            return 'Rate from 1 to 5';
         default:
             return 'No Field Selected';
     }
