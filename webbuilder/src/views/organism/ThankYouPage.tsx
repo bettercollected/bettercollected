@@ -1,18 +1,16 @@
 import Image from 'next/image';
 
 import RectangleImage from '@app/assets/image/rectangle.png';
+import { FormSlideLayout } from '@app/models/enums/form';
 import { Button } from '@app/shadcn/components/ui/button';
 import { cn } from '@app/shadcn/util/lib';
+import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
 import { useFormState } from '@app/store/jotai/form';
 
-const ThankYouSlide = ({
-    disabled,
-    layout
-}: {
-    disabled?: boolean;
-    layout: 'two-column-right' | 'two-column-left';
-}) => {
+const ThankYouSlide = ({ disabled }: { disabled?: boolean }) => {
     const { formState, setFormState, theme } = useFormState();
+    const { activeSlide } = useFormFieldsAtom();
+
     return (
         <div
             className={`grid aspect-video h-min w-full grid-cols-2 bg-blue-100  ${disabled ? 'pointer-events-none overflow-hidden' : ''}`}
@@ -21,9 +19,13 @@ const ThankYouSlide = ({
             <div
                 className={cn(
                     'grid-flow-col grid-cols-1 items-start justify-center gap-12 self-center px-12',
-                    layout === 'two-column-right'
+                    activeSlide &&
+                        activeSlide.properties?.layout ===
+                            FormSlideLayout.TWO_COLUMN_RIGHT
                         ? 'order-1'
-                        : layout === 'two-column-left'
+                        : activeSlide &&
+                            activeSlide.properties?.layout ===
+                                FormSlideLayout.TWO_COLUMN_LEFT
                           ? 'order-0'
                           : ''
                 )}
@@ -58,9 +60,13 @@ const ThankYouSlide = ({
             <div
                 className={cn(
                     'grid-cols-1',
-                    layout === 'two-column-right'
+                    activeSlide &&
+                        activeSlide.properties?.layout ===
+                            FormSlideLayout.TWO_COLUMN_RIGHT
                         ? 'order-0'
-                        : layout === 'two-column-left'
+                        : activeSlide &&
+                            activeSlide.properties?.layout ===
+                                FormSlideLayout.TWO_COLUMN_LEFT
                           ? 'order-1'
                           : ''
                 )}

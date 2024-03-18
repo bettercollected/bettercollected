@@ -7,6 +7,7 @@ import { v4 } from 'uuid';
 import { formFieldsList } from '@app/constants/form-fields';
 import { FieldTypes } from '@app/models/dtos/form';
 import { ButtonSize, ButtonVariant } from '@app/models/enums/button';
+import { FormSlideLayout } from '@app/models/enums/form';
 import { Button } from '@app/shadcn/components/ui/button';
 import { ScrollArea } from '@app/shadcn/components/ui/scroll-area';
 import { cn } from '@app/shadcn/util/lib';
@@ -18,11 +19,7 @@ import FieldSection from './FieldSection';
 import ThankYouSlide from './ThankYouPage';
 import WelcomeSlide from './WelcomePage';
 
-export default function LeftDrawer({
-    layout
-}: {
-    layout: 'two-column-right' | 'two-column-left';
-}) {
+export default function LeftDrawer({}: {}) {
     const { activeSlideComponent, setActiveSlideComponent } = useActiveSlideComponent();
     const { formFields, addField, addSlide } = useFormFieldsAtom();
     const Slides = formFields;
@@ -111,6 +108,7 @@ export default function LeftDrawer({
                                 index: formFields.length,
                                 type: FieldTypes.SLIDE,
                                 properties: {
+                                    layout: FormSlideLayout.TWO_COLUMN_LEFT,
                                     fields: []
                                 }
                             });
@@ -133,7 +131,7 @@ export default function LeftDrawer({
                             </div>
                             <div
                                 className={cn(
-                                    ' flex !aspect-video cursor-pointer items-center justify-center overflow-auto rounded-lg  bg-white'
+                                    ' flex !aspect-video cursor-pointer items-center justify-center overflow-auto rounded-lg bg-white'
                                 )}
                                 onClick={() => {
                                     setActiveSlideComponent({
@@ -142,7 +140,7 @@ export default function LeftDrawer({
                                     });
                                 }}
                             >
-                                <WelcomeSlide layout={layout} disabled />
+                                <WelcomeSlide disabled />
                             </div>
                         </div>
                     </div>
@@ -165,7 +163,7 @@ export default function LeftDrawer({
                                             <div
                                                 key={slide.id}
                                                 className={cn(
-                                                    'relative flex items-center gap-2'
+                                                    'relative flex items-center gap-2' //h-[93.28px] w-[165.83px]
                                                 )}
                                             >
                                                 <div
@@ -183,7 +181,6 @@ export default function LeftDrawer({
                                                     <div className={''}>
                                                         <FieldSection
                                                             slide={slide}
-                                                            layout={layout}
                                                             disabled
                                                             isScaledDown
                                                         />
@@ -221,7 +218,7 @@ export default function LeftDrawer({
                                     });
                                 }}
                             >
-                                <ThankYouSlide layout={layout} disabled />
+                                <ThankYouSlide disabled />
                             </div>
                         </div>
                     </div>
