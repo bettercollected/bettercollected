@@ -8,8 +8,9 @@ import { atom, useAtom } from 'jotai';
 
 import { Dialog, DialogContent } from '@app/shadcn/components/ui/dialog';
 import AddFormTitleModal from '@app/views/molecules/Dialogs/AddFormTitleModal';
+import UnsplashImagePicker from '@app/views/molecules/UnsplashImagePicker';
 
-export type DIALOG_MODALS = 'ADD_FORM_TITLE' | '';
+export type DIALOG_MODALS = 'ADD_FORM_TITLE' | 'UNSPLASH_IMAGE_PICKER' | '';
 
 export interface ModalState {
     isOpen: boolean;
@@ -43,6 +44,8 @@ const getModalToRender = (view?: DIALOG_MODALS, props?: any) => {
     switch (view) {
         case 'ADD_FORM_TITLE':
             return <AddFormTitleModal />;
+        case 'UNSPLASH_IMAGE_PICKER':
+            return <UnsplashImagePicker {...props} />;
         default:
             return <></>;
     }

@@ -15,7 +15,7 @@ const environments = {
         process.env.FORM_PRIVACY_POLICY_URL ??
         'https://bettercollected.com/privacy-policy',
 
-    // run-time configg
+    // run-time config
     GA_MEASUREMENT_ID: process.env.GA_MEASUREMENT_ID,
     MICROSOFT_CLARITY_TRACKING_CODE: process.env.MICROSOFT_CLARITY_TRACKING_CODE,
     SENTRY_DSN: process.env.SENTRY_DSN,
@@ -25,7 +25,7 @@ const environments = {
     SENTRY_AUTH_TOKEN: process.env.SENTRY_AUTH_TOKEN,
     SENTRY_RELEASE: process.env.SENTRY_RELEASE,
     UNSPLASH_APPLICATION_ID: process.env.UNSPLASH_APPLICATION_ID,
-    UNSPLASH_ACCESS_KEY: process.env.UNSPLASH_ACCESS_KEY,
+    UNSPLASH_ACCESS_KEY: process.env.UNSPLASH_ACCESS_KEY ?? '',
     UNSPLASH_SECRET_KEY: process.env.UNSPLASH_SECRET_KEY,
     UNSPLASH_API_URL: process.env.UNSPLASH_API_URL ?? 'https://api.unsplash.com/',
 
