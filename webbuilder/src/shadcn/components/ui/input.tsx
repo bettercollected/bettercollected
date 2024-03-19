@@ -39,14 +39,14 @@ const FieldInput = styled(ShadCNInput)<{
     const { theme } = useFormState();
     const themeColor = theme?.tertiary;
     return {
-        background: theme?.accent,
+        background: 'inherit',
         borderColor: themeColor,
         '&::placeholder': {
             color: `${themeColor} !important`
         },
         '&:focus': {
             borderColor: themeColor
-        },
+        }
     };
 });
 FieldInput.displayName = 'FieldInput';
