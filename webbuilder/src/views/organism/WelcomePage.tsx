@@ -26,11 +26,11 @@ const WelcomeSlide = ({ disabled }: { disabled?: boolean }) => {
                     'grid-flow-col grid-cols-1 items-center justify-center gap-12 self-center px-12',
                     activeSlide &&
                         activeSlide.properties?.layout ===
-                            FormSlideLayout.TWO_COLUMN_RIGHT
+                            FormSlideLayout.TWO_COLUMN_IMAGE_LEFT
                         ? 'order-1'
                         : activeSlide &&
                             activeSlide.properties?.layout ===
-                                FormSlideLayout.TWO_COLUMN_LEFT
+                                FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT
                           ? 'order-0'
                           : ''
                 )}
@@ -66,11 +66,11 @@ const WelcomeSlide = ({ disabled }: { disabled?: boolean }) => {
                     'grid-cols-1',
                     activeSlide &&
                         activeSlide.properties?.layout ===
-                            FormSlideLayout.TWO_COLUMN_RIGHT
+                            FormSlideLayout.TWO_COLUMN_IMAGE_LEFT
                         ? 'order-0'
                         : activeSlide &&
                             activeSlide.properties?.layout ===
-                                FormSlideLayout.TWO_COLUMN_LEFT
+                                FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT
                           ? 'order-1'
                           : ''
                 )}
@@ -81,11 +81,11 @@ const WelcomeSlide = ({ disabled }: { disabled?: boolean }) => {
                         'h-full w-full',
                         activeSlide &&
                             activeSlide.properties?.layout ===
-                                FormSlideLayout.TWO_COLUMN_RIGHT
+                                FormSlideLayout.TWO_COLUMN_IMAGE_LEFT
                             ? 'order-0'
                             : activeSlide &&
                                 activeSlide.properties?.layout ===
-                                    FormSlideLayout.TWO_COLUMN_LEFT
+                                    FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT
                               ? 'order-1'
                               : ''
                     )}

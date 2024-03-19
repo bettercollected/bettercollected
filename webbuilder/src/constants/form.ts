@@ -13,7 +13,7 @@ export const defaultForm: StandardForm = {
             index: 0,
             type: FieldTypes.SLIDE,
             properties: {
-                layout: FormSlideLayout.TWO_COLUMN_LEFT,
+                layout: FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT,
                 fields: [
                     {
                         id: v4(),
