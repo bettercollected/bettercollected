@@ -66,24 +66,27 @@ export default function SlideLayoutWrapper({
                 layout="fill"
             />
 
-            {showControls && !disabled && (
-                <div
-                    className={cn(
-                        'absolute flex h-full w-full items-center gap-4',
-                        slide?.properties?.layout ===
-                            FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND
-                            ? '-top-[55%] left-0'
-                            : 'justify-center'
-                    )}
-                >
-                    <Button variant="dangerGhost" onClick={handleRemoveImage}>
-                        Remove
-                    </Button>
-                    <Button variant="secondary" onClick={handleChangeImage}>
-                        Change
-                    </Button>
-                </div>
-            )}
+            {(showControls ||
+                slide?.properties?.layout ===
+                    FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND) &&
+                !disabled && (
+                    <div
+                        className={cn(
+                            'absolute flex h-full w-full items-center gap-4',
+                            slide?.properties?.layout ===
+                                FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND
+                                ? '-top-[55%] left-0'
+                                : 'justify-center'
+                        )}
+                    >
+                        <Button variant="dangerGhost" onClick={handleRemoveImage}>
+                            Remove
+                        </Button>
+                        <Button variant="secondary" onClick={handleChangeImage}>
+                            Change
+                        </Button>
+                    </div>
+                )}
         </>
     );
 
@@ -165,9 +168,7 @@ export default function SlideLayoutWrapper({
                     role="button"
                 >
                     {/* No need to show controls for single column without background layout */}
-                    {slide?.imageUrl &&
-                    slide?.properties?.layout ===
-                        FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND ? (
+                    {slide?.imageUrl ? (
                         <DisplayImageWithControls imageUrl={slide.imageUrl} />
                     ) : (
                         <div
