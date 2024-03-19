@@ -58,7 +58,7 @@ function getClassName(fieldType: FieldTypes) {
 
 const FieldSection = ({
     slide,
-    // layout = FormSlideLayout.TWO_COLUMN_LEFT,
+    // layout = FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT,
     isScaledDown = false,
     disabled = false
 }: {
@@ -121,11 +121,12 @@ const FieldSection = ({
                 className={cn(
                     'grid-cols-1 overflow-x-hidden',
                     slide &&
-                        slide?.properties?.layout === FormSlideLayout.TWO_COLUMN_RIGHT
+                        slide?.properties?.layout ===
+                            FormSlideLayout.TWO_COLUMN_IMAGE_LEFT
                         ? 'order-1'
                         : slide &&
                             slide?.properties?.layout ===
-                                FormSlideLayout.TWO_COLUMN_LEFT
+                                FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT
                           ? 'order-0'
                           : '' // Add a default case or handle the case when layout is neither 'two-column-right' nor 'two-column-left'
                 )}
@@ -331,11 +332,11 @@ const FieldSection = ({
                         'h-full w-full',
                         slide &&
                             slide?.properties?.layout ===
-                                FormSlideLayout.TWO_COLUMN_RIGHT
+                                FormSlideLayout.TWO_COLUMN_IMAGE_LEFT
                             ? 'order-0'
                             : slide &&
                                 slide?.properties?.layout ===
-                                    FormSlideLayout.TWO_COLUMN_LEFT
+                                    FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT
                               ? 'order-1'
                               : ''
                     )}

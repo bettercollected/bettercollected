@@ -108,7 +108,7 @@ export default function LeftDrawer({}: {}) {
                                 index: formFields.length,
                                 type: FieldTypes.SLIDE,
                                 properties: {
-                                    layout: FormSlideLayout.TWO_COLUMN_LEFT,
+                                    layout: FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT,
                                     fields: []
                                 }
                             });

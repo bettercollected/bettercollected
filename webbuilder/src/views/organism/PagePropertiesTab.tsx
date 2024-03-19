@@ -11,7 +11,9 @@ import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
 import { useFormState } from '@app/store/jotai/form';
 import { getHtmlFromJson } from '@app/utils/richTextEditorExtenstion/getHtmlFromJson';
 
+import SlideLayoutBackgroundImage from '../atoms/Icons/SlideLayoutBackgroundImage';
 import SlideLayoutLeftImage from '../atoms/Icons/SlideLayoutLeftImage';
+import SlideLayoutNoImage from '../atoms/Icons/SlideLayoutNoImage';
 import SlideLayoutRightImage from '../atoms/Icons/SlideLayoutRightImage';
 import { getPlaceholderValueForTitle } from '../molecules/RichTextEditor';
 
@@ -22,8 +24,11 @@ export default function PagePropertiesTab({}: {}) {
 
     // Function to handle layout update for a specific slide
     const handleSlideLayoutChange = (slideId?: string, newLayout?: FormSlideLayout) => {
+        console.log(slideId, newLayout);
         if (slideId && newLayout) updateSlideLayout(newLayout);
     };
+
+    console.log(activeSlide?.properties?.layout);
 
     const { formState, setFormState } = useFormState();
     return (
@@ -34,12 +39,20 @@ export default function PagePropertiesTab({}: {}) {
             <div className="grid grid-cols-2 gap-2 border-b px-4 pb-6">
                 {[
                     {
-                        style: FormSlideLayout.TWO_COLUMN_LEFT,
+                        style: FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT,
                         Icon: SlideLayoutRightImage
                     },
                     {
-                        style: FormSlideLayout.TWO_COLUMN_RIGHT,
+                        style: FormSlideLayout.TWO_COLUMN_IMAGE_LEFT,
                         Icon: SlideLayoutLeftImage
+                    },
+                    {
+                        style: FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND,
+                        Icon: SlideLayoutBackgroundImage
+                    },
+                    {
+                        style: FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND,
+                        Icon: SlideLayoutNoImage
                     }
                 ].map((item: { style: FormSlideLayout; Icon: any }) => (
                     <div
