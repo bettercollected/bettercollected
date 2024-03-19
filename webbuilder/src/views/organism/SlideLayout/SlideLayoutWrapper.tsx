@@ -15,12 +15,14 @@ import { useFormState } from '@app/store/jotai/form';
 interface ISlideLayoutWrapperProps {
     slide: FormField;
     children: React.ReactNode | React.ReactNode[];
+    style?: React.CSSProperties;
     disabled?: boolean;
 }
 
 export default function SlideLayoutWrapper({
     slide,
     children,
+    style = {},
     disabled = false
 }: ISlideLayoutWrapperProps) {
     const [showControls, setShowControls] = useState(false);
@@ -94,7 +96,8 @@ export default function SlideLayoutWrapper({
         <>
             <div
                 style={{
-                    backgroundColor: slide?.properties?.theme?.accent || theme?.accent
+                    backgroundColor: slide?.properties?.theme?.accent || theme?.accent,
+                    ...style
                 }}
                 className={cn(
                     'relative grid aspect-video h-min w-full overflow-hidden rounded-lg bg-white',
@@ -133,18 +136,20 @@ export default function SlideLayoutWrapper({
                             {slide?.imageUrl ? (
                                 <DisplayImageWithControls imageUrl={slide.imageUrl} />
                             ) : (
-                                <div
-                                    className={cn(
-                                        'flex h-full items-center justify-center text-lg font-semibold'
-                                    )}
-                                >
-                                    <Button
-                                        variant="secondary"
-                                        onClick={handleChangeImage}
+                                !disabled && (
+                                    <div
+                                        className={cn(
+                                            'flex h-full items-center justify-center text-lg font-semibold'
+                                        )}
                                     >
-                                        Select Layout Image
-                                    </Button>
-                                </div>
+                                        <Button
+                                            variant="secondary"
+                                            onClick={handleChangeImage}
+                                        >
+                                            Select Layout Image
+                                        </Button>
+                                    </div>
+                                )
                             )}
                         </div>
                     )}
@@ -171,19 +176,21 @@ export default function SlideLayoutWrapper({
                     {slide?.imageUrl ? (
                         <DisplayImageWithControls imageUrl={slide.imageUrl} />
                     ) : (
-                        <div
-                            className={cn(
-                                'flex h-full items-center justify-center text-lg font-semibold',
-                                slide?.properties?.layout ===
-                                    FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND
-                                    ? 'absolute -top-[55%] left-0'
-                                    : ''
-                            )}
-                        >
-                            <Button variant="secondary" onClick={handleChangeImage}>
-                                Select Layout Image
-                            </Button>
-                        </div>
+                        !disabled && (
+                            <div
+                                className={cn(
+                                    'flex h-full items-center justify-center text-lg font-semibold',
+                                    slide?.properties?.layout ===
+                                        FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND
+                                        ? 'absolute -top-[55%] left-0'
+                                        : ''
+                                )}
+                            >
+                                <Button variant="secondary" onClick={handleChangeImage}>
+                                    Select Layout Image
+                                </Button>
+                            </div>
+                        )
                     )}
                 </div>
             )}

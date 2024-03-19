@@ -116,27 +116,32 @@ const TiptapMenuBar = () => {
                         {getActiveFontSize(editor) || 18}
                     </span>
                     <div className="flex flex-col">
-                        <button
+                        <div
+                            className="cursor-pointer"
                             onClick={() => {
                                 handleUpdateFontSize(+1);
                             }}
                         >
                             <ArrowDown className="h-4 w-4 rotate-180" />
-                        </button>
-                        <button
+                        </div>
+                        <div
+                            className="cursor-pointer"
                             onClick={() => {
                                 handleUpdateFontSize(-1);
                             }}
                         >
                             <ArrowDown className="h-4 w-4" />
-                        </button>
+                        </div>
                     </div>
                 </div>
-                <button
+                <div
                     onClick={() => {
                         editor?.chain().focus().toggleBold().run();
                     }}
-                    className={cn('rounded', editor?.isActive('bold') && 'bg-gray-200')}
+                    className={cn(
+                        'cursor-pointer rounded',
+                        editor?.isActive('bold') && 'bg-gray-200'
+                    )}
                 >
                     <svg
                         width="24"
@@ -150,11 +155,11 @@ const TiptapMenuBar = () => {
                             fill="#4D4D4D"
                         />
                     </svg>
-                </button>
-                <button
+                </div>
+                <div
                     onClick={() => editor?.chain().focus().toggleItalic().run()}
                     className={cn(
-                        'rounded',
+                        'rounded cursor-pointer',
                         editor?.isActive('italic') && 'bg-gray-200'
                     )}
                 >
@@ -170,16 +175,16 @@ const TiptapMenuBar = () => {
                             fill="#4D4D4D"
                         />
                     </svg>
-                </button>
-                <button
+                </div>
+                <div
                     onClick={() => editor?.chain().focus().toggleUnderline().run()}
                     className={cn(
-                        'rounded',
+                        'rounded cursor-pointer',
                         editor?.isActive('underline') && 'bg-gray-200'
                     )}
                 >
                     <u className="px-1 text-xl">U</u>
-                </button>
+                </div>
             </div>
         </button>
     );
