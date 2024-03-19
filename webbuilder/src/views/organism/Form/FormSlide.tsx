@@ -1,7 +1,10 @@
 'use client';
 
+import { useRef, useState } from 'react';
+
 import Image from 'next/image';
 
+import { AnimatePresence, motion } from 'framer-motion';
 import parse from 'html-react-parser';
 import { toast } from 'react-toastify';
 
@@ -9,10 +12,7 @@ import DemoImage from '@app/assets/image/rectangle.png';
 import { FieldTypes, FormField } from '@app/models/dtos/form';
 import { Button } from '@app/shadcn/components/ui/button';
 import { ScrollArea } from '@app/shadcn/components/ui/scroll-area';
-import StandardForm, {
-    useFormSlide,
-    useStandardForm
-} from '@app/store/jotai/fetchedForm';
+import { useFormSlide, useStandardForm } from '@app/store/jotai/fetchedForm';
 import useFormAtom from '@app/store/jotai/formFile';
 import { useFormResponse } from '@app/store/jotai/responderFormResponse';
 import useWorkspace from '@app/store/jotai/workspace';
@@ -79,14 +79,26 @@ function FormFieldComponent({
 
 export default function FormSlide({ index }: { index: number }) {
     const formSlide = useFormSlide(index);
-    const { currentSlide, setCurrentSlideToThankyouPage, nextSlide } =
-        useFormResponse();
+    const {
+        currentSlide,
+        setCurrentSlideToThankyouPage,
+        nextSlide,
+        currentField,
+        setCurrentField
+    } = useFormResponse();
     const { standardForm } = useStandardForm();
     const { formResponse, setInvalidFields } = useFormResponse();
     const { workspace } = useWorkspace();
-    const [submitResponse, { data }] = useSubmitResponseMutation();
-    const { files, resetFormFiles } = useFormAtom();
-    console.log('responses: ', formResponse.answers??{});
+    const [submitResponse] = useSubmitResponseMutation();
+    const { files } = useFormAtom();
+
+    // Inside your component
+    const [prevCurrentField, setPrevCurrentField] = useState(currentField);
+
+    const handleFieldChange = (newCurrentField: number) => {
+        setPrevCurrentField(currentField);
+        setCurrentField(newCurrentField);
+    };
 
     const submitFormResponse = async () => {
         const formData = new FormData();
@@ -130,32 +142,202 @@ export default function FormSlide({ index }: { index: number }) {
             }
         }
     };
+
+    const transitionClass = 'transition-opacity duration-300 ease-in-out';
+
     return (
         <div
             className="grid h-full w-full grid-cols-2"
             style={{ background: standardForm.theme?.accent }}
         >
-            <ScrollArea className="h-full flex-1 overflow-y-auto">
-                <div className="flex h-full flex-col items-center justify-center py-4">
-                    <div className="  w-full max-w-[800px] px-10">
-                        {formSlide?.properties?.fields?.map((field) => (
-                            <div className="mt-20" key={field.index}>
+            <ScrollArea asChild className="h-full flex-1 overflow-y-auto">
+                <AnimatePresence mode="wait">
+                    <div className=" flex h-full flex-col items-center justify-center py-4">
+                        <div className="  w-full max-w-[800px] px-10">
+                            {formSlide?.properties?.fields?.map((field, index) => (
+                                <>
+                                    {currentField - 1 === index && (
+                                        <motion.div
+                                            initial={{
+                                                y:
+                                                    prevCurrentField < currentField
+                                                        ? '100%'
+                                                        : '-100%'
+                                            }}
+                                            animate={{ y: 0 }}
+                                            className={`relative `}
+                                            onClick={() => {
+                                                handleFieldChange(currentField - 1);
+                                            }}
+                                        >
+                                            <div
+                                                className="absolute bottom-0 left-0 right-0 top-0 z-[10]"
+                                                style={{
+                                                    background:
+                                                        'linear-gradient(360deg, rgba(242, 247, 255, 0) 0%, #F2F7FF 100%)'
+                                                }}
+                                            />
+                                            <FormFieldComponent
+                                                field={
+                                                    formSlide!.properties!.fields![
+                                                        currentField - 1
+                                                    ]
+                                                }
+                                                slideIndex={formSlide!.index}
+                                            />
+                                        </motion.div>
+                                    )}
+                                    {currentField === index && (
+                                        <motion.div
+                                            initial={{
+                                                y:
+                                                    prevCurrentField < currentField
+                                                        ? '100%'
+                                                        : '-100%'
+                                            }}
+                                            animate={{ y: 0 }}
+                                            className={`mt-20 ${transitionClass}`}
+                                        >
+                                            <FormFieldComponent
+                                                field={
+                                                    formSlide!.properties!.fields![
+                                                        currentField
+                                                    ]
+                                                }
+                                                slideIndex={formSlide!.index}
+                                            />
+                                        </motion.div>
+                                    )}
+
+                                    {currentField + 1 === index && (
+                                        <motion.div
+                                            id={
+                                                formSlide!.properties!.fields![
+                                                    currentField - 1
+                                                ]?.id
+                                            }
+                                            initial={{
+                                                y:
+                                                    prevCurrentField < currentField
+                                                        ? '100%'
+                                                        : '-100%'
+                                            }}
+                                            animate={{ y: 0 }}
+                                            className={`relative mt-20 ${transitionClass}`}
+                                            onClick={() => {
+                                                handleFieldChange(currentField + 1);
+                                            }}
+                                        >
+                                            <div className="relative">
+                                                <div
+                                                    className="absolute bottom-0 left-0 right-0 top-0 z-[10]"
+                                                    style={{
+                                                        background:
+                                                            'linear-gradient(180deg, rgba(242, 247, 255, 0) 0%, #F2F7FF 100%)'
+                                                    }}
+                                                />
+                                                <FormFieldComponent
+                                                    field={
+                                                        formSlide!.properties!.fields![
+                                                            currentField + 1
+                                                        ]
+                                                    }
+                                                    slideIndex={formSlide!.index}
+                                                />
+                                            </div>
+                                        </motion.div>
+                                    )}
+                                </>
+                            ))}
+                            {/* 
+                            {currentField > 0 && (
+                                <motion.div
+                                    id={
+                                        formSlide!.properties!.fields![currentField - 1]
+                                            ?.id
+                                    }
+                                    key={'thank-you-page'}
+                                    initial={{ opacity: 0, y: 100 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0 }}
+                                    transition={{ duration: 0.2 }}
+                                    className="translate transition"
+                                    onClick={() => {
+                                        setCurrentField(currentField - 1);
+                                    }}
+                                >
+                                    <div className="relative">
+                                        <div
+                                            className="absolute bottom-0 left-0 right-0 top-0 z-[10]"
+                                            style={{
+                                                background:
+                                                    'linear-gradient(360deg, rgba(242, 247, 255, 0) 0%, #F2F7FF 100%)'
+                                            }}
+                                        />
+                                        <FormFieldComponent
+                                            field={
+                                                formSlide!.properties!.fields![
+                                                    currentField - 1
+                                                ]
+                                            }
+                                            slideIndex={formSlide!.index}
+                                        />
+                                    </div>
+                                </motion.div>
+                            )}
+                            <div className="translate mt-20 transition">
                                 <FormFieldComponent
-                                    field={field}
-                                    slideIndex={formSlide.index}
+                                    field={formSlide!.properties!.fields![currentField]}
+                                    slideIndex={formSlide!.index}
                                 />
                             </div>
-                        ))}
-                        <Button
-                            style={{ background: standardForm.theme?.secondary }}
-                            className="mt-20 rounded px-8 py-3"
-                            onClick={onNext}
-                            size="medium"
-                        >
-                            Next
-                        </Button>
+                            {currentField + 1 <
+                                (formSlide?.properties?.fields?.length || 0) && (
+                                <div
+                                    id={
+                                        formSlide!.properties!.fields![currentField - 1]
+                                            ?.id
+                                    }
+                                    className="translate pt-20 transition"
+                                    onClick={() => {
+                                        setCurrentField(currentField + 1);
+                                    }}
+                                >
+                                    <div className="relative">
+                                        <div
+                                            className="absolute bottom-0 left-0 right-0 top-0 z-[10]"
+                                            style={{
+                                                background:
+                                                    'linear-gradient(180deg, rgba(242, 247, 255, 0) 0%, #F2F7FF 100%)'
+                                            }}
+                                        />
+                                        <FormFieldComponent
+                                            field={
+                                                formSlide!.properties!.fields![
+                                                    currentField + 1
+                                                ]
+                                            }
+                                            slideIndex={formSlide!.index}
+                                        />
+                                    </div>
+                                </div>
+                            )} */}
+                            {currentField + 1 ===
+                                formSlide?.properties?.fields?.length && (
+                                <Button
+                                    style={{
+                                        background: standardForm.theme?.secondary
+                                    }}
+                                    className="mt-20 rounded px-8 py-3"
+                                    onClick={onNext}
+                                    size="medium"
+                                >
+                                    Next
+                                </Button>
+                            )}
+                        </div>
                     </div>
-                </div>
+                </AnimatePresence>
             </ScrollArea>
             <div className="relative h-full w-full">
                 <Image
