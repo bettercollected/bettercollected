@@ -1,4 +1,5 @@
 import { FieldTypes } from '@app/models/dtos/form';
+import { CalenderIcon } from '@app/views/atoms/Icons/CalendarIcon';
 import DropDownIcon from '@app/views/atoms/Icons/DropDownIcon';
 import EmailIcon from '@app/views/atoms/Icons/EmailIcon';
 import { LinkIcon } from '@app/views/atoms/Icons/Link';
@@ -9,6 +10,7 @@ import RatingIcon from '@app/views/atoms/Icons/RatingIcon';
 import { TextIcon } from '@app/views/atoms/Icons/Text';
 import UploadIcon from '@app/views/atoms/Icons/UploadIcon';
 import { YesNoIcon } from '@app/views/atoms/Icons/YesNoIcon';
+
 
 export const formFieldsList = [
     {
@@ -48,5 +50,10 @@ export const formFieldsList = [
         name: 'Rating',
         type: FieldTypes.RATING,
         icon: <RatingIcon />
+    },
+    {
+        name: 'Calendar',
+        type: FieldTypes.DATE,
+        icon: <CalenderIcon className="h-10 w-10" />
     }
 ];

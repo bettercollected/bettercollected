@@ -37,7 +37,7 @@ export default function RatingField({
                     return (
                         <span
                             key={index}
-                            onMouseOut={() => {
+                        onMouseOut={() => {
                                 if (!disabled) setHovered((answer || 0) - 1 || -1);
                             }}
                             onClick={() => {
