@@ -166,7 +166,7 @@ const FieldSection = ({
                                                     {(provided) => (
                                                         <div
                                                             className={cn(
-                                                                'relative flex flex-row pb-20'
+                                                                'relative flex flex-row first:!pb-0 last:pb-20'
                                                             )}
                                                         >
                                                             <div
