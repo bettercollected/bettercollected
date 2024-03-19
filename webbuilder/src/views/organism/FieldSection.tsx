@@ -38,6 +38,7 @@ import {
     getPlaceholderValueForTitle
 } from '../molecules/RichTextEditor';
 import UnsplashImagePicker from '../molecules/UnsplashImagePicker';
+import SlideLayoutWrapper from './SlideLayout/SlideLayoutWrapper';
 
 function getClassName(fieldType: FieldTypes) {
     switch (fieldType) {
@@ -129,20 +130,10 @@ const FieldSection = ({
     }
 
     return (
-        <div
-            style={{
-                backgroundColor: slide?.properties?.theme?.accent || theme?.accent
-            }}
-            className={cn(
-                'grid aspect-video h-min w-full grid-cols-2 overflow-hidden rounded-lg bg-white',
-                disabled ? 'pointer-events-none overflow-hidden' : '',
-                isScaledDown ? '!h-full !w-full' : ''
-                // slide.imageUrl ? 'grid-cols-2' : 'grid-cols-1'
-            )}
-        >
+        <SlideLayoutWrapper slide={slide} disabled={disabled}>
             <div
                 className={cn(
-                    'grid-cols-1 overflow-x-hidden',
+                    'z-10 grid-cols-1 overflow-hidden',
                     slide &&
                         slide?.properties?.layout ===
                             FormSlideLayout.TWO_COLUMN_IMAGE_LEFT
@@ -190,7 +181,7 @@ const FieldSection = ({
                                                     {(provided) => (
                                                         <div
                                                             className={cn(
-                                                                'relative flex flex-row first:!pb-0 last:pb-20'
+                                                                'relative flex flex-row items-center justify-center first:!pb-0 last:pb-20'
                                                             )}
                                                         >
                                                             <div
@@ -311,7 +302,7 @@ const FieldSection = ({
                                                                                         FieldTypes.SHORT_TEXT
                                                                                 )}
                                                                                 className={
-                                                                                    'text-md ring-none -left-1 w-full border-0 px-0 py-0 text-black-800 outline-none '
+                                                                                    'text-md ring-none -left-1 w-full border-0 !bg-inherit px-0 py-0 text-black-800 outline-none '
                                                                                 }
                                                                                 type="text"
                                                                                 value={
@@ -348,57 +339,7 @@ const FieldSection = ({
                     </DragDropContext>
                 </ScrollArea>
             </div>
-            <div
-                className={cn(
-                    'relative grid-cols-1',
-                    slide?.imageUrl
-                        ? 'hover:cursor-pointer hover:!bg-black/30'
-                        : 'bg-neutral-100 shadow hover:cursor-default'
-                )}
-                onClick={handleGridClick}
-                role="button"
-            >
-                {slide?.imageUrl ? (
-                    <>
-                        <Image
-                            objectFit="cover"
-                            className={cn(
-                                'h-full w-full',
-                                slide?.properties?.layout ===
-                                    FormSlideLayout.TWO_COLUMN_IMAGE_LEFT
-                                    ? 'order-0'
-                                    : slide?.properties?.layout ===
-                                        FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT
-                                      ? 'order-1'
-                                      : ''
-                            )}
-                            src={slide.imageUrl}
-                            alt={slide.id + ' image'}
-                            layout="fill"
-                        />
-                        {showControls && (
-                            <div className="absolute left-0 top-0 flex h-full w-full items-center justify-center gap-4 bg-black bg-opacity-20 hover:cursor-pointer hover:!bg-black/40">
-                                <Button
-                                    variant="dangerGhost"
-                                    onClick={handleRemoveImage}
-                                >
-                                    Remove
-                                </Button>
-                                <Button variant="secondary" onClick={handleChangeImage}>
-                                    Change
-                                </Button>
-                            </div>
-                        )}
-                    </>
-                ) : (
-                    <div className="flex h-full items-center justify-center text-lg font-semibold">
-                        <Button variant="secondary" onClick={handleChangeImage}>
-                            Select Layout Image
-                        </Button>
-                    </div>
-                )}
-            </div>
-        </div>
+        </SlideLayoutWrapper>
     );
 };
 export default FieldSection;
