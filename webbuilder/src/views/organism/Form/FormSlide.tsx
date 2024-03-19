@@ -19,6 +19,7 @@ import useWorkspace from '@app/store/jotai/workspace';
 import { useSubmitResponseMutation } from '@app/store/redux/formApi';
 import { getHtmlFromJson } from '@app/utils/richTextEditorExtenstion/getHtmlFromJson';
 import { validateSlide } from '@app/utils/validationUtils';
+import DateField from '@app/views/molecules/ResponderFormFields/DateField';
 import DropDownField from '@app/views/molecules/ResponderFormFields/DropDownField';
 import FileUploadField from '@app/views/molecules/ResponderFormFields/FileUploadField';
 import InputField from '@app/views/molecules/ResponderFormFields/InputField';
@@ -64,11 +65,12 @@ function FormFieldComponent({
             return <FileUploadField field={field} />;
         case FieldTypes.DROP_DOWN:
             return <DropDownField field={field} slideIndex={slideIndex} />;
-        case FieldTypes.DATE:
         case FieldTypes.PHONE_NUMBER:
             return <PhoneNumberField field={field} />;
         case FieldTypes.RATING:
             return <RatingField field={field} />;
+        case FieldTypes.DATE:
+            return <DateField field={field} />;
         default:
             return <QuestionWrapper field={field} />;
     }
@@ -83,14 +85,14 @@ export default function FormSlide({ index }: { index: number }) {
     const { workspace } = useWorkspace();
     const [submitResponse, { data }] = useSubmitResponseMutation();
     const { files, resetFormFiles } = useFormAtom();
-    console.log('responses: ', formResponse);
+    console.log('responses: ', formResponse.answers??{});
 
     const submitFormResponse = async () => {
         const formData = new FormData();
 
         const postBody = {
             form_id: standardForm?.formId,
-            answers: formResponse.answers
+            answers: formResponse.answers??{}
         };
 
         formData.append('response', JSON.stringify(postBody));
