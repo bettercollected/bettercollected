@@ -27,17 +27,29 @@ export default function RatingField({
             setHovered((formResponse?.answers[field.id]?.number ?? 0) - 1);
     }, [formResponse.answers]);
     const { theme } = useFormState();
+    const [mouseOver, setMouseOver] = useState(false);
     const RatingSection = () => {
         return (
-            <div className="relative !mb-0 flex w-fit  flex-wrap gap-3">
+            <div
+                className="relative !mb-0 flex w-fit  flex-wrap gap-3"
+                onMouseOut={() => {
+                    setMouseOver(false);
+                }}
+                onMouseOver={() => {
+                    setMouseOver(true);
+                }}
+            >
                 {_.range(field.properties?.steps || 5).map((index) => {
                     const Component = index <= hovered ? Star : StarBorder;
-
+                    console.log('asds ; ', mouseOver, answer);
                     return (
                         <span
+                            style={{
+                                color: mouseOver ? theme?.tertiary : theme?.secondary
+                            }}
                             key={index}
                             onMouseOut={() => {
-                                if (!disabled) setHovered((answer || 0) - 1 || -1);
+                                if (!disabled) setHovered((answer || 0) - 1);
                             }}
                             onClick={() => {
                                 if (!disabled) {
@@ -50,13 +62,8 @@ export default function RatingField({
                             }}
                         >
                             <Component
-                                style={{
-                                    color:
-                                        slide?.properties?.theme?.tertiary ||
-                                        theme?.tertiary
-                                }}
                                 fontSize="large"
-                                className={`pointer-events-none ${index <= hovered ? ' text-yellow-500' : 'text-gray-400'} `}
+                                className={`pointer-events-none  `}
                             />
                         </span>
                     );
