@@ -105,7 +105,7 @@ export default function FormSlide({ index }: { index: number }) {
 
         const postBody = {
             form_id: standardForm?.formId,
-            answers: formResponse.answers??{}
+            answers: formResponse.answers ?? {}
         };
 
         formData.append('response', JSON.stringify(postBody));
@@ -165,7 +165,7 @@ export default function FormSlide({ index }: { index: number }) {
                                                         : '-100%'
                                             }}
                                             animate={{ y: 0 }}
-                                            className={`relative `}
+                                            className={`relative h-[200px] overflow-y-hidden`}
                                             onClick={() => {
                                                 handleFieldChange(currentField - 1);
                                             }}
@@ -177,14 +177,16 @@ export default function FormSlide({ index }: { index: number }) {
                                                         'linear-gradient(360deg, rgba(242, 247, 255, 0) 0%, #F2F7FF 100%)'
                                                 }}
                                             />
-                                            <FormFieldComponent
-                                                field={
-                                                    formSlide!.properties!.fields![
-                                                        currentField - 1
-                                                    ]
-                                                }
-                                                slideIndex={formSlide!.index}
-                                            />
+                                            <div className="absolute bottom-0 w-full">
+                                                <FormFieldComponent
+                                                    field={
+                                                        formSlide!.properties!.fields![
+                                                            currentField - 1
+                                                        ]
+                                                    }
+                                                    slideIndex={formSlide!.index}
+                                                />
+                                            </div>
                                         </motion.div>
                                     )}
                                     {currentField === index && (
@@ -228,7 +230,7 @@ export default function FormSlide({ index }: { index: number }) {
                                                 handleFieldChange(currentField + 1);
                                             }}
                                         >
-                                            <div className="relative">
+                                            <div className="relative max-h-[200px] overflow-hidden">
                                                 <div
                                                     className="absolute bottom-0 left-0 right-0 top-0 z-[10]"
                                                     style={{
@@ -249,79 +251,7 @@ export default function FormSlide({ index }: { index: number }) {
                                     )}
                                 </>
                             ))}
-                            {/* 
-                            {currentField > 0 && (
-                                <motion.div
-                                    id={
-                                        formSlide!.properties!.fields![currentField - 1]
-                                            ?.id
-                                    }
-                                    key={'thank-you-page'}
-                                    initial={{ opacity: 0, y: 100 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    exit={{ opacity: 0 }}
-                                    transition={{ duration: 0.2 }}
-                                    className="translate transition"
-                                    onClick={() => {
-                                        setCurrentField(currentField - 1);
-                                    }}
-                                >
-                                    <div className="relative">
-                                        <div
-                                            className="absolute bottom-0 left-0 right-0 top-0 z-[10]"
-                                            style={{
-                                                background:
-                                                    'linear-gradient(360deg, rgba(242, 247, 255, 0) 0%, #F2F7FF 100%)'
-                                            }}
-                                        />
-                                        <FormFieldComponent
-                                            field={
-                                                formSlide!.properties!.fields![
-                                                    currentField - 1
-                                                ]
-                                            }
-                                            slideIndex={formSlide!.index}
-                                        />
-                                    </div>
-                                </motion.div>
-                            )}
-                            <div className="translate mt-20 transition">
-                                <FormFieldComponent
-                                    field={formSlide!.properties!.fields![currentField]}
-                                    slideIndex={formSlide!.index}
-                                />
-                            </div>
-                            {currentField + 1 <
-                                (formSlide?.properties?.fields?.length || 0) && (
-                                <div
-                                    id={
-                                        formSlide!.properties!.fields![currentField - 1]
-                                            ?.id
-                                    }
-                                    className="translate pt-20 transition"
-                                    onClick={() => {
-                                        setCurrentField(currentField + 1);
-                                    }}
-                                >
-                                    <div className="relative">
-                                        <div
-                                            className="absolute bottom-0 left-0 right-0 top-0 z-[10]"
-                                            style={{
-                                                background:
-                                                    'linear-gradient(180deg, rgba(242, 247, 255, 0) 0%, #F2F7FF 100%)'
-                                            }}
-                                        />
-                                        <FormFieldComponent
-                                            field={
-                                                formSlide!.properties!.fields![
-                                                    currentField + 1
-                                                ]
-                                            }
-                                            slideIndex={formSlide!.index}
-                                        />
-                                    </div>
-                                </div>
-                            )} */}
+
                             {currentField + 1 ===
                                 formSlide?.properties?.fields?.length && (
                                 <Button
