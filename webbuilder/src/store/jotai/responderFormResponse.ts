@@ -39,6 +39,7 @@ export interface ChoicesAnswer {
 
 export interface FormResponse {
     currentSlide: number;
+    prevActiveField: number;
     currentField: number;
     formId: string;
     answers?: {
@@ -62,7 +63,8 @@ export interface FormResponse {
 
 const initialFormResponse: FormResponse = {
     formId: '',
-    currentField: 1,
+    prevActiveField: -1,
+    currentField: 0,
     currentSlide: -1
 };
 
@@ -94,7 +96,11 @@ export const useFormResponse = () => {
     };
 
     const setCurrentField = (currentField: number) => {
-        setFormResponse({ ...formResponse, currentField: currentField });
+        setFormResponse({
+            ...formResponse,
+            currentField: currentField,
+            prevActiveField: formResponse.currentField
+        });
     };
 
     const addFieldTextAnswer = (fieldId: string, text: string) => {
@@ -293,6 +299,7 @@ export const useFormResponse = () => {
         formResponse,
         currentSlide: formResponse.currentSlide,
         currentField: formResponse.currentField,
+        prevActiveField: formResponse.prevActiveField,
         nextSlide,
         setCurrentField,
         previousSlide,

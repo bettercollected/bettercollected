@@ -83,6 +83,7 @@ export default function FormSlide({ index }: { index: number }) {
         currentSlide,
         setCurrentSlideToThankyouPage,
         nextSlide,
+        prevActiveField,
         currentField,
         setCurrentField
     } = useFormResponse();
@@ -92,11 +93,8 @@ export default function FormSlide({ index }: { index: number }) {
     const [submitResponse] = useSubmitResponseMutation();
     const { files } = useFormAtom();
 
-    // Inside your component
-    const [prevCurrentField, setPrevCurrentField] = useState(currentField);
 
     const handleFieldChange = (newCurrentField: number) => {
-        setPrevCurrentField(currentField);
         setCurrentField(newCurrentField);
     };
 
@@ -160,7 +158,7 @@ export default function FormSlide({ index }: { index: number }) {
                                         <motion.div
                                             initial={{
                                                 y:
-                                                    prevCurrentField < currentField
+                                                    prevActiveField < currentField
                                                         ? '100%'
                                                         : '-100%'
                                             }}
@@ -193,7 +191,7 @@ export default function FormSlide({ index }: { index: number }) {
                                         <motion.div
                                             initial={{
                                                 y:
-                                                    prevCurrentField < currentField
+                                                    prevActiveField < currentField
                                                         ? '100%'
                                                         : '-100%'
                                             }}
@@ -220,7 +218,7 @@ export default function FormSlide({ index }: { index: number }) {
                                             }
                                             initial={{
                                                 y:
-                                                    prevCurrentField < currentField
+                                                    prevActiveField < currentField
                                                         ? '100%'
                                                         : '-100%'
                                             }}
