@@ -14,12 +14,14 @@ const WelcomeSlide = ({ disabled }: { disabled?: boolean }) => {
 
     const { activeSlide } = useFormFieldsAtom();
     const { nextSlide } = useFormResponse();
+
     return (
         <div
             style={{
                 background: theme?.accent
             }}
-            className={`grid aspect-video h-min w-full grid-cols-2 bg-blue-100 h-[${93.28 * 4}px] w-[${165.83 * 4}px] ${disabled ? 'pointer-events-none overflow-hidden' : ''}`}
+            // TODO: Change this to apply layout from other layout
+            className={`grid aspect-video h-min w-full grid-cols-1 bg-blue-100 h-[${93.28 * 4}px] w-[${165.83 * 4}px] ${disabled ? 'pointer-events-none overflow-hidden' : ''}`}
         >
             <div
                 className={cn(
@@ -61,7 +63,7 @@ const WelcomeSlide = ({ disabled }: { disabled?: boolean }) => {
                     {formState.buttonText || 'Start'}
                 </Button>
             </div>
-            <div
+            {/* <div
                 className={cn(
                     'grid-cols-1',
                     activeSlide &&
@@ -92,7 +94,7 @@ const WelcomeSlide = ({ disabled }: { disabled?: boolean }) => {
                     src={RectangleImage}
                     alt="LayoutImage"
                 />
-            </div>
+            </div> */}
         </div>
     );
 };

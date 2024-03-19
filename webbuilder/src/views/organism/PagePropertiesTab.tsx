@@ -42,47 +42,53 @@ export default function PagePropertiesTab({}: {}) {
     const { formState, setFormState } = useFormState();
     return (
         <>
-            <div className="p2-new mb-4 mt-6 px-4 !font-medium text-black-700">
-                Layout
-            </div>
-            <div className="grid grid-cols-2 gap-2 border-b px-4 pb-6">
-                {[
-                    {
-                        style: FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT,
-                        Icon: SlideLayoutRightImage
-                    },
-                    {
-                        style: FormSlideLayout.TWO_COLUMN_IMAGE_LEFT,
-                        Icon: SlideLayoutLeftImage
-                    },
-                    {
-                        style: FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND,
-                        Icon: SlideLayoutBackgroundImage
-                    },
-                    {
-                        style: FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND,
-                        Icon: SlideLayoutNoImage
-                    }
-                ].map((item: { style: FormSlideLayout; Icon: any }) => (
-                    <div
-                        key={item.style}
-                        className={cn(
-                            'flex h-[50px] w-20 cursor-pointer items-center justify-center rounded-xl border-[1px] p-2 hover:bg-gray-200',
-                            activeSlide && activeSlide.properties?.layout === item.style
-                                ? 'border-pink-500 ring-offset-1'
-                                : 'border-gray-200'
-                        )}
-                        onClick={() =>
-                            handleSlideLayoutChange(
-                                activeSlideComponent?.id,
-                                item.style
-                            )
-                        }
-                    >
-                        {item.Icon && <item.Icon />}
+            {activeSlide && (
+                <>
+                    <div className="p2-new mb-4 mt-6 px-4 !font-medium text-black-700">
+                        Layout
                     </div>
-                ))}
-            </div>
+                    <div className="grid grid-cols-2 gap-2 border-b px-4 pb-6">
+                        {[
+                            {
+                                style: FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT,
+                                Icon: SlideLayoutRightImage
+                            },
+                            {
+                                style: FormSlideLayout.TWO_COLUMN_IMAGE_LEFT,
+                                Icon: SlideLayoutLeftImage
+                            },
+                            {
+                                style: FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND,
+                                Icon: SlideLayoutBackgroundImage
+                            },
+                            {
+                                style: FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND,
+                                Icon: SlideLayoutNoImage
+                            }
+                        ].map((item: { style: FormSlideLayout; Icon: any }) => (
+                            <div
+                                key={item.style}
+                                className={cn(
+                                    'flex h-[50px] w-20 cursor-pointer items-center justify-center rounded-xl border-[1px] p-2 hover:bg-gray-200',
+                                    activeSlide &&
+                                        activeSlide.properties?.layout === item.style
+                                        ? 'border-pink-500 ring-offset-1'
+                                        : 'border-gray-200'
+                                )}
+                                onClick={() =>
+                                    handleSlideLayoutChange(
+                                        activeSlideComponent?.id,
+                                        item.style
+                                    )
+                                }
+                            >
+                                {item.Icon && <item.Icon />}
+                            </div>
+                        ))}
+                    </div>
+                </>
+            )}
+
             {activeSlide?.properties?.layout &&
                 activeSlide?.properties?.layout !==
                     FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND && (
