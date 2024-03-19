@@ -22,11 +22,8 @@ export default function PagePropertiesTab({}: {}) {
 
     // Function to handle layout update for a specific slide
     const handleSlideLayoutChange = (slideId?: string, newLayout?: FormSlideLayout) => {
-        console.log(slideId, newLayout);
         if (slideId && newLayout) updateSlideLayout(newLayout);
     };
-
-    console.log(activeSlide)
 
     const { formState, setFormState } = useFormState();
     return (
@@ -61,8 +58,6 @@ export default function PagePropertiesTab({}: {}) {
                         }
                     >
                         {item.Icon && <item.Icon />}
-                        {/* <SlideLayoutRightImage />
-                        <SlideLayoutLeftImage /> */}
                     </div>
                 ))}
             </div>

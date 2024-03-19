@@ -12455,6 +12455,11 @@ universalify@^2.0.0:
   resolved "https://registry.npmjs.org/universalify/-/universalify-2.0.1.tgz"
   integrity sha512-gptHNQghINnc/vTGIk0SOFGFNXw7JVrlRUtConJRlvaw6DuX0wO5Jeko9sWrMBhh+PsYAZ7oXAiOnf/UKogyiw==
 
+unsplash-js@^7.0.19:
+  version "7.0.19"
+  resolved "https://registry.npmjs.org/unsplash-js/-/unsplash-js-7.0.19.tgz"
+  integrity sha512-j6qT2floy5Q2g2d939FJpwey1yw/GpQecFiSouyJtsHQPj3oqmqq3K4rI+GF8vU1zwGCT7ZwIGQd2dtCQLjYJw==
+
 upath@^1.2.0:
   version "1.2.0"
   resolved "https://registry.npmjs.org/upath/-/upath-1.2.0.tgz"

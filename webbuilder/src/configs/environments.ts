@@ -24,6 +24,10 @@ const environments = {
     SENTRY_PROJECT: process.env.SENTRY_PROJECT,
     SENTRY_AUTH_TOKEN: process.env.SENTRY_AUTH_TOKEN,
     SENTRY_RELEASE: process.env.SENTRY_RELEASE,
+    UNSPLASH_APPLICATION_ID: process.env.UNSPLASH_APPLICATION_ID,
+    UNSPLASH_ACCESS_KEY: process.env.UNSPLASH_ACCESS_KEY,
+    UNSPLASH_SECRET_KEY: process.env.UNSPLASH_SECRET_KEY,
+    UNSPLASH_API_URL: process.env.UNSPLASH_API_URL ?? 'https://api.unsplash.com/',
 
     // Integrations enabled
     ENABLE_BRAND_COLORS:
