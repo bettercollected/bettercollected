@@ -11,6 +11,7 @@ import { GripVertical } from 'lucide-react';
 import { DragDropContext, Draggable, DroppableProvided } from 'react-beautiful-dnd';
 
 import RectangleImage from '@app/assets/image/rectangle.png';
+import { useDialogModal } from '@app/lib/hooks/useDialogModal';
 import { FieldTypes, FormField } from '@app/models/dtos/form';
 import { FormSlideLayout } from '@app/models/enums/form';
 import { Button } from '@app/shadcn/components/ui/button';
@@ -36,6 +37,7 @@ import {
     RichTextEditor,
     getPlaceholderValueForTitle
 } from '../molecules/RichTextEditor';
+import UnsplashImagePicker from '../molecules/UnsplashImagePicker';
 
 function getClassName(fieldType: FieldTypes) {
     switch (fieldType) {
@@ -74,9 +76,30 @@ const FieldSection = ({
         updateTitle,
         updateDescription,
         moveFieldInASlide,
-        deleteField
+        deleteField,
+        updateSlideImage
     } = useFormFieldsAtom();
     const { setActiveFieldComponent, activeFieldComponent } = useActiveFieldComponent();
+
+    const [showControls, setShowControls] = useState(false);
+
+    const { openDialogModal } = useDialogModal();
+
+    const handleGridClick = () => {
+        setShowControls(!showControls);
+    };
+
+    const handleRemoveImage = () => {
+        updateSlideImage('');
+    };
+
+    const handleChangeImage = () => {
+        openDialogModal('UNSPLASH_IMAGE_PICKER', {
+            activeSlide,
+            updateSlideImage
+        });
+    };
+
     function renderField(field: FormField) {
         switch (field.type) {
             case FieldTypes.EMAIL:
@@ -325,37 +348,56 @@ const FieldSection = ({
                     </DragDropContext>
                 </ScrollArea>
             </div>
-            <div className="grid-cols-1 ">
-                <Image
-                    objectFit="cover"
-                    className={cn(
-                        'h-full w-full',
-                        slide &&
-                            slide?.properties?.layout ===
-                                FormSlideLayout.TWO_COLUMN_IMAGE_LEFT
-                            ? 'order-0'
-                            : slide &&
-                                slide?.properties?.layout ===
-                                    FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT
-                              ? 'order-1'
-                              : ''
-                    )}
-                    src={RectangleImage}
-                    alt="LayoutImage"
-                />
-            </div>
-            {/* <div className="basis-1/2">
-                {slide.imageUrl && (
-                    <Image
-                        className="h-full w-full"
-                        objectFit="cover"
-                        src={slide.imageUrl}
-                        width={2000}
-                        height={2000}
-                        alt="LayoutImage"
-                    />
+            <div
+                className={cn(
+                    'relative grid-cols-1',
+                    slide?.imageUrl
+                        ? 'hover:cursor-pointer hover:!bg-black/30'
+                        : 'bg-neutral-100 shadow hover:cursor-default'
                 )}
-            </div> */}
+                onClick={handleGridClick}
+                role="button"
+            >
+                {slide?.imageUrl ? (
+                    <>
+                        <Image
+                            objectFit="cover"
+                            className={cn(
+                                'h-full w-full',
+                                slide?.properties?.layout ===
+                                    FormSlideLayout.TWO_COLUMN_IMAGE_LEFT
+                                    ? 'order-0'
+                                    : slide?.properties?.layout ===
+                                        FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT
+                                      ? 'order-1'
+                                      : ''
+                            )}
+                            src={slide.imageUrl}
+                            alt={slide.id + ' image'}
+                            layout="fill"
+                        />
+                        {showControls && (
+                            <div className="absolute left-0 top-0 flex h-full w-full items-center justify-center gap-4 bg-black bg-opacity-20 hover:cursor-pointer hover:!bg-black/40">
+                                <Button
+                                    variant="dangerGhost"
+                                    onClick={handleRemoveImage}
+                                >
+                                    Remove
+                                </Button>
+                                <Button variant="secondary" onClick={handleChangeImage}>
+                                    Change
+                                </Button>
+                            </div>
+                        )}
+                    </>
+                ) : (
+                    <div className="flex h-full items-center justify-center text-lg font-semibold">
+                        <Button variant="secondary" onClick={handleChangeImage}>
+                            Select Layout Image
+                        </Button>
+                    </div>
+                )}
+            </div>
         </div>
     );
 };

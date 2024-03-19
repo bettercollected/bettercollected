@@ -178,6 +178,11 @@ export default function useFormFieldsAtom() {
         setFormFields([...formFields]);
     };
 
+    const updateSlideImage = (imageUrl: string) => {
+        formFields[activeSlide?.index || 0].imageUrl = imageUrl;
+        setFormFields([...formFields]);
+    };
+
     const moveFieldInASlide = (
         slideIndex: number,
         sourceIndex: number,
@@ -236,6 +241,7 @@ export default function useFormFieldsAtom() {
         updateShowQuestionNumbers,
         updateSlideTheme,
         updateSlideLayout,
+        updateSlideImage,
         moveFieldInASlide,
         activeSlide,
         activeField,

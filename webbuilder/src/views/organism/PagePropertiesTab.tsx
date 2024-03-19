@@ -2,8 +2,10 @@
 
 import parse from 'html-react-parser';
 
+import { useDialogModal } from '@app/lib/hooks/useDialogModal';
 import { FieldTypes } from '@app/models/dtos/form';
 import { FormSlideLayout } from '@app/models/enums/form';
+import { Button } from '@app/shadcn/components/ui/button';
 import { Switch } from '@app/shadcn/components/ui/switch';
 import { cn } from '@app/shadcn/util/lib';
 import { useActiveSlideComponent } from '@app/store/jotai/activeBuilderComponent';
@@ -18,9 +20,16 @@ import SlideLayoutRightImage from '../atoms/Icons/SlideLayoutRightImage';
 import { getPlaceholderValueForTitle } from '../molecules/RichTextEditor';
 
 export default function PagePropertiesTab({}: {}) {
-    const { formFields, updateShowQuestionNumbers, activeSlide, updateSlideLayout } =
-        useFormFieldsAtom();
+    const {
+        formFields,
+        updateShowQuestionNumbers,
+        activeSlide,
+        updateSlideLayout,
+        updateSlideImage
+    } = useFormFieldsAtom();
     const { activeSlideComponent } = useActiveSlideComponent();
+
+    const { openDialogModal } = useDialogModal();
 
     // Function to handle layout update for a specific slide
     const handleSlideLayoutChange = (slideId?: string, newLayout?: FormSlideLayout) => {
@@ -74,6 +83,41 @@ export default function PagePropertiesTab({}: {}) {
                     </div>
                 ))}
             </div>
+            {activeSlide?.properties?.layout &&
+                activeSlide?.properties?.layout !==
+                    FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND && (
+                    <>
+                        <div className="p2-new mb-4 mt-6 px-4 !font-medium text-black-700">
+                            Background Image
+                        </div>
+                        <div className="flex w-full items-center justify-between border-b px-4 pb-4">
+                            <div className="flex w-full flex-col gap-4">
+                                {activeSlide?.imageUrl ? (
+                                    <Button
+                                        variant="danger"
+                                        onClick={() => updateSlideImage('')}
+                                        className="!h-auto py-2"
+                                    >
+                                        Remove Layout Image
+                                    </Button>
+                                ) : (
+                                    <Button
+                                        variant="secondary"
+                                        onClick={() =>
+                                            openDialogModal('UNSPLASH_IMAGE_PICKER', {
+                                                activeSlide,
+                                                updateSlideImage
+                                            })
+                                        }
+                                        className="!h-auto py-2"
+                                    >
+                                        Select Layout Image
+                                    </Button>
+                                )}
+                            </div>
+                        </div>
+                    </>
+                )}
             <div className="p2-new mb-4 mt-6 px-4 !font-medium text-black-700">
                 Settings
             </div>
