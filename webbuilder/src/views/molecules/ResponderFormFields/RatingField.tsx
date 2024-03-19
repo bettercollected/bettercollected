@@ -20,13 +20,12 @@ export default function RatingField({
     disabled?: boolean;
 }) {
     const { addFieldRatingAnswer, formResponse } = useFormResponse();
-    const answer = formResponse.answers && formResponse.answers[field.id].number;
+    const answer = formResponse.answers && formResponse.answers[field.id]?.number;
     const [hovered, setHovered] = useState(answer || -1);
     useEffect(() => {
         formResponse.answers &&
-            setHovered((formResponse?.answers[field.id]?.number ?? 1) - 1);
+            setHovered((formResponse?.answers[field.id]?.number ?? 0) - 1);
     }, [formResponse.answers]);
-    console.log('sadasd : ', answer, formResponse);
     const { theme } = useFormState();
     const RatingSection = () => {
         return (
@@ -37,7 +36,7 @@ export default function RatingField({
                     return (
                         <span
                             key={index}
-                        onMouseOut={() => {
+                            onMouseOut={() => {
                                 if (!disabled) setHovered((answer || 0) - 1 || -1);
                             }}
                             onClick={() => {
