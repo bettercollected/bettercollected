@@ -30,6 +30,7 @@ import { ArrowDown } from '../atoms/Icons/ArrowDown';
 import DeleteIcon from '../atoms/Icons/Delete';
 import { FolderUploadIcon } from '../atoms/Icons/FolderUploadIcon';
 import { PlusIcon } from '../atoms/Icons/Plus';
+import DateField from '../molecules/ResponderFormFields/DateField';
 import RatingField from '../molecules/ResponderFormFields/RatingField';
 import {
     RichTextEditor,
@@ -97,6 +98,8 @@ const FieldSection = ({
                 return <></>;
             case FieldTypes.RATING:
                 return <RatingField field={field} slide={slide} disabled={true} />;
+            case FieldTypes.DATE:
+                return <DateField field={field} slide={slide} disabled={true} />;
             default:
                 return null;
         }
