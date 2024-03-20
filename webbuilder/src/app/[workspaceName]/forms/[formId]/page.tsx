@@ -9,7 +9,6 @@ export default function FormPage({
 }: {
     params: { formId: string; workspaceName: string };
 }) {
-    const { formResponse } = useFormResponse();
 
-    return <FormComponent formResponse={formResponse} />;
+    return <FormComponent  />;
 }

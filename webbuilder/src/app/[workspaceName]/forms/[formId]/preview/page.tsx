@@ -43,7 +43,9 @@ export default function ResponsePage({
     return (
         <div className="h-screen w-screen">
             <ScrollArea className="overfloe-y-auto  flex h-full w-full flex-col">
-                <div className="pointer-events-none">
+                <div
+                    className="pointer-events-none"
+                >
                     <div className="p-4">
                         <div className="aspect-video w-full overflow-hidden rounded-xl border border-black-400">
                             <WelcomePage />

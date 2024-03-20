@@ -2,6 +2,7 @@ import { FormField } from '@app/models/dtos/form';
 import { FieldInput } from '@app/shadcn/components/ui/input';
 import { useFormTheme, useStandardForm } from '@app/store/jotai/fetchedForm';
 import { useFormResponse } from '@app/store/jotai/responderFormResponse';
+import { useResponderState } from '@app/store/jotai/responderFormState';
 import Choice from '@app/views/atoms/ResponderFormFields/Choice';
 
 import QuestionWrapper from './QuestionQwrapper';
@@ -20,6 +21,8 @@ const MultipleChoiceField = ({
     const { standardForm } = useStandardForm();
     const currentSlide = standardForm.fields![slideIndex];
 
+    const { nextField } = useResponderState();
+
     const getSelectedValue = () => {
         if (!formResponse.answers) {
             return null;
@@ -31,6 +34,9 @@ const MultipleChoiceField = ({
 
     const handleClick = (item: string) => {
         addFieldChoiceAnswer(field.id, item);
+        setTimeout(() => {
+            nextField();
+        }, 200);
     };
 
     return (

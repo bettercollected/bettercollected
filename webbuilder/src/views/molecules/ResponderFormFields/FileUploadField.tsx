@@ -10,6 +10,7 @@ import { FileMetadata } from '@app/models/types/fieldTypes';
 import { useFormState } from '@app/store/jotai/form';
 import useFormAtom from '@app/store/jotai/formFile';
 import { useFormResponse } from '@app/store/jotai/responderFormResponse';
+import { useResponderState } from '@app/store/jotai/responderFormState';
 import { downloadFile, generateFileMetaData } from '@app/utils/fileUtils';
 import DeleteIcon from '@app/views/atoms/Icons/Delete';
 import { FolderUploadIcon } from '@app/views/atoms/Icons/FolderUploadIcon';
@@ -19,6 +20,7 @@ import QuestionWrapper from './QuestionQwrapper';
 export default function FileUpload({ field }: { field: FormField }) {
     const { formResponse, addFieldFileAnswer } = useFormResponse();
     const { theme } = useFormState();
+    const { nextField } = useResponderState();
 
     const [isDragging, setIsDragging] = useState(false);
     const inputFileRef = useRef<HTMLInputElement | null>(null);
@@ -56,6 +58,9 @@ export default function FileUpload({ field }: { field: FormField }) {
         setFileMetadata({ ...fMetaData });
         addFile(field.id, fMetaData.id, fMetaData.name!, file);
         addFieldFileAnswer(field.id, { ...fMetaData });
+        setTimeout(() => {
+            nextField();
+        }, 200);
     };
 
     const handleDrop = (event: any) => {

@@ -1,5 +1,3 @@
-import { set } from 'lodash';
-
 import { atom, useAtom } from 'jotai';
 
 import { FileMetadata } from '@app/models/types/fieldTypes';
@@ -38,11 +36,8 @@ export interface ChoicesAnswer {
 }
 
 export interface FormResponse {
-    currentSlide: number;
-    prevActiveField: number;
-    currentField: number;
     formId: string;
-    answers?: {
+    answers: {
         [fieldId: string]: {
             type: AnswerType;
             text?: string;
@@ -63,45 +58,13 @@ export interface FormResponse {
 
 const initialFormResponse: FormResponse = {
     formId: '',
-    prevActiveField: -1,
-    currentField: 0,
-    currentSlide: -1
+    answers: {}
 };
 
 const formResponseAtom = atom<FormResponse>(initialFormResponse);
 
 export const useFormResponse = () => {
     const [formResponse, setFormResponse] = useAtom(formResponseAtom);
-
-    const nextSlide = () => {
-        const nextSlideNumber = formResponse.currentSlide + 1;
-        setFormResponse({
-            ...formResponse,
-            currentSlide: nextSlideNumber
-        });
-    };
-
-    const previousSlide = () => {
-        setFormResponse({
-            ...formResponse,
-            currentSlide: formResponse.currentSlide + 1
-        });
-    };
-
-    const setCurrentSlideToThankyouPage = () => {
-        setFormResponse({
-            ...formResponse,
-            currentSlide: -2
-        });
-    };
-
-    const setCurrentField = (currentField: number) => {
-        setFormResponse({
-            ...formResponse,
-            currentField: currentField,
-            prevActiveField: formResponse.currentField
-        });
-    };
 
     const addFieldTextAnswer = (fieldId: string, text: string) => {
         setFormResponse({
@@ -297,12 +260,6 @@ export const useFormResponse = () => {
 
     return {
         formResponse,
-        currentSlide: formResponse.currentSlide,
-        currentField: formResponse.currentField,
-        prevActiveField: formResponse.prevActiveField,
-        nextSlide,
-        setCurrentField,
-        previousSlide,
         setFormResponse,
         addFieldTextAnswer,
         addFieldBooleanAnswer,
@@ -317,7 +274,6 @@ export const useFormResponse = () => {
         addOtherChoicesAnswer,
         addFieldFileAnswer,
         addFieldRatingAnswer,
-        setCurrentSlideToThankyouPage,
         removeAnswer,
         setInvalidFields
     };

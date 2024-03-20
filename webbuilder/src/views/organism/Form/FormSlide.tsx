@@ -1,12 +1,13 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useCallback } from 'react';
 
 import Image from 'next/image';
 
 import { AnimatePresence, motion } from 'framer-motion';
 import parse from 'html-react-parser';
 import { toast } from 'react-toastify';
+import { useDebounceCallback } from 'usehooks-ts';
 
 import DemoImage from '@app/assets/image/rectangle.png';
 import { FieldTypes, FormField } from '@app/models/dtos/form';
@@ -15,6 +16,7 @@ import { ScrollArea } from '@app/shadcn/components/ui/scroll-area';
 import { useFormSlide, useStandardForm } from '@app/store/jotai/fetchedForm';
 import useFormAtom from '@app/store/jotai/formFile';
 import { useFormResponse } from '@app/store/jotai/responderFormResponse';
+import { useResponderState } from '@app/store/jotai/responderFormState';
 import useWorkspace from '@app/store/jotai/workspace';
 import { useSubmitResponseMutation } from '@app/store/redux/formApi';
 import { getHtmlFromJson } from '@app/utils/richTextEditorExtenstion/getHtmlFromJson';
@@ -79,6 +81,7 @@ function FormFieldComponent({
 
 export default function FormSlide({ index }: { index: number }) {
     const formSlide = useFormSlide(index);
+
     const {
         currentSlide,
         setCurrentSlideToThankyouPage,
@@ -86,7 +89,7 @@ export default function FormSlide({ index }: { index: number }) {
         prevActiveField,
         currentField,
         setCurrentField
-    } = useFormResponse();
+    } = useResponderState();
     const { standardForm } = useStandardForm();
     const { formResponse, setInvalidFields } = useFormResponse();
     const { workspace } = useWorkspace();
@@ -96,6 +99,24 @@ export default function FormSlide({ index }: { index: number }) {
     const handleFieldChange = (newCurrentField: number) => {
         setCurrentField(newCurrentField);
     };
+
+    const onScroll = useCallback(
+        (direction: number) => {
+            if (direction === -1 && currentField === 0) {
+                return;
+            }
+            if (
+                direction === 1 &&
+                currentField === (formSlide?.properties?.fields?.length || 0) - 1
+            ) {
+                return;
+            }
+            setCurrentField(currentField + direction);
+        },
+        [currentField]
+    );
+
+    const onScrollDebounced = useDebounceCallback(onScroll, 200);
 
     const submitFormResponse = async () => {
         const formData = new FormData();
@@ -141,13 +162,20 @@ export default function FormSlide({ index }: { index: number }) {
     };
 
     const transitionClass = 'transition-opacity duration-300 ease-in-out';
+    console.log();
 
     return (
         <div
             className="grid h-full w-full grid-cols-2"
             style={{ background: standardForm.theme?.accent }}
         >
-            <ScrollArea asChild className="h-full flex-1 overflow-y-auto">
+            <ScrollArea
+                asChild
+                className="h-full flex-1 overflow-y-auto"
+                onWheel={(event) => {
+                    onScrollDebounced(event?.deltaY > 0 ? 1 : -1);
+                }}
+            >
                 <AnimatePresence mode="wait">
                     <div className=" flex h-full flex-col items-center justify-center py-4">
                         <div className="  w-full max-w-[800px] px-10">
@@ -249,16 +277,25 @@ export default function FormSlide({ index }: { index: number }) {
 
                             {currentField + 1 ===
                                 formSlide?.properties?.fields?.length && (
-                                <Button
-                                    style={{
-                                        background: standardForm.theme?.secondary
-                                    }}
-                                    className="mt-20 rounded px-8 py-3"
-                                    onClick={onNext}
-                                    size="medium"
+                                <motion.div
+                                    initial={{ y: '100%', opacity: 0 }}
+                                    animate={{ y: '0', opacity: 1 }}
+                                    exit={{ y: '100%', opacity: 0 }}
                                 >
-                                    Next
-                                </Button>
+                                    <Button
+                                        style={{
+                                            background: standardForm.theme?.secondary
+                                        }}
+                                        className="mt-20 rounded px-8 py-3"
+                                        onClick={onNext}
+                                        size="medium"
+                                    >
+                                        {(standardForm?.fields?.length || 0) - 1 ===
+                                        currentSlide
+                                            ? 'Submit'
+                                            : 'Next'}
+                                    </Button>
+                                </motion.div>
                             )}
                         </div>
                     </div>

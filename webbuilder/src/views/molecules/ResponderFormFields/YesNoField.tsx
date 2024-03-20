@@ -5,6 +5,7 @@ import { RadioGroup } from '@headlessui/react';
 import { FormField } from '@app/models/dtos/form';
 import { useFormTheme } from '@app/store/jotai/fetchedForm';
 import { useFormResponse } from '@app/store/jotai/responderFormResponse';
+import { useResponderState } from '@app/store/jotai/responderFormState';
 import { Check } from '@app/views/atoms/Icons/Check';
 
 import QuestionWrapper from './QuestionQwrapper';
@@ -12,6 +13,8 @@ import QuestionWrapper from './QuestionQwrapper';
 const YesNoField = ({ field }: { field: FormField }) => {
     const { addFieldBooleanAnswer, formResponse } = useFormResponse();
     const theme = useFormTheme();
+
+    const { nextField } = useResponderState();
 
     const getValue = () => {
         if (
@@ -21,12 +24,18 @@ const YesNoField = ({ field }: { field: FormField }) => {
             return formResponse?.answers?.[field.id]?.boolean;
         else return null;
     };
+
     return (
         <QuestionWrapper field={field}>
             <RadioGroup
                 value={getValue()}
                 className={'flex w-full flex-col gap-2'}
-                onChange={(value) => addFieldBooleanAnswer(field.id, !!value)}
+                onChange={(value) => {
+                    addFieldBooleanAnswer(field.id, !!value);
+                    setTimeout(() => {
+                        nextField();
+                    }, 200);
+                }}
             >
                 {field &&
                     field.properties?.choices?.map((choice, index) => {
