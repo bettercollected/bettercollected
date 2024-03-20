@@ -161,9 +161,6 @@ export default function FormSlide({ index }: { index: number }) {
         }
     };
 
-    const transitionClass = 'transition-opacity duration-300 ease-in-out';
-    console.log();
-
     return (
         <div
             className="grid h-full w-full grid-cols-2"
@@ -190,6 +187,7 @@ export default function FormSlide({ index }: { index: number }) {
                                                         : '-100%'
                                             }}
                                             animate={{ y: 0 }}
+                                            transition={{ type: 'tween' }}
                                             className={`relative h-[200px] overflow-y-hidden`}
                                             onClick={() => {
                                                 handleFieldChange(currentField - 1);
@@ -221,8 +219,9 @@ export default function FormSlide({ index }: { index: number }) {
                                                         ? '100%'
                                                         : '-100%'
                                             }}
+                                            transition={{ type: 'tween' }}
                                             animate={{ y: 0 }}
-                                            className={`mt-20 ${transitionClass}`}
+                                            className={`mt-20`}
                                         >
                                             <FormFieldComponent
                                                 field={
@@ -249,7 +248,8 @@ export default function FormSlide({ index }: { index: number }) {
                                                         : '-100%'
                                             }}
                                             animate={{ y: 0 }}
-                                            className={`relative mt-20 ${transitionClass}`}
+                                            transition={{ type: 'tween' }}
+                                            className={`relative mt-20`}
                                             onClick={() => {
                                                 handleFieldChange(currentField + 1);
                                             }}
@@ -278,9 +278,10 @@ export default function FormSlide({ index }: { index: number }) {
                             {currentField + 1 ===
                                 formSlide?.properties?.fields?.length && (
                                 <motion.div
-                                    initial={{ y: '100%', opacity: 0 }}
+                                    initial={{ y: '200%', opacity: 0 }}
                                     animate={{ y: '0', opacity: 1 }}
                                     exit={{ y: '100%', opacity: 0 }}
+                                    transition={{ type: 'tween' }}
                                 >
                                     <Button
                                         style={{

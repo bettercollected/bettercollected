@@ -46,8 +46,9 @@ export default function DropDownField({
     const handleClick = (choiceId: string) => {
         addFieldChoiceAnswer(field.id, choiceId);
         setIsOpen(false);
+                    nextField();
+
         setTimeout(() => {
-            nextField();
         }, 200);
     };
 
