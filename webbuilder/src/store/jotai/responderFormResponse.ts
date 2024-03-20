@@ -1,14 +1,9 @@
 import { set } from 'lodash';
 
-
-
 import { atom, useAtom } from 'jotai';
-
-
 
 import { FileMetadata } from '@app/models/types/fieldTypes';
 import { Invalidations } from '@app/utils/validationUtils';
-
 
 enum AnswerType {
     TEXT = 'text',
