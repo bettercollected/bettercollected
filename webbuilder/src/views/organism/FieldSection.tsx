@@ -2,15 +2,12 @@
 
 import { useState } from 'react';
 
-import Image from 'next/image';
-
 import { RadioGroup } from '@headlessui/react';
 import { Editor } from '@tiptap/react';
 import cn from 'classnames';
 import { GripVertical } from 'lucide-react';
 import { DragDropContext, Draggable, DroppableProvided } from 'react-beautiful-dnd';
 
-import RectangleImage from '@app/assets/image/rectangle.png';
 import { useDialogModal } from '@app/lib/hooks/useDialogModal';
 import { FieldTypes, FormField } from '@app/models/dtos/form';
 import { FormSlideLayout } from '@app/models/enums/form';
@@ -18,10 +15,7 @@ import { Button } from '@app/shadcn/components/ui/button';
 import { FieldInput } from '@app/shadcn/components/ui/input';
 import { ScrollArea } from '@app/shadcn/components/ui/scroll-area';
 import { StrictModeDroppable } from '@app/shared/hocs/StrictModeDroppable';
-import {
-    useActiveFieldComponent,
-    useActiveSlideComponent
-} from '@app/store/jotai/activeBuilderComponent';
+import { useActiveFieldComponent } from '@app/store/jotai/activeBuilderComponent';
 import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
 import { useFormState } from '@app/store/jotai/form';
 import { getPlaceholderValueForField } from '@app/utils/formUtils';
@@ -32,12 +26,12 @@ import DeleteIcon from '../atoms/Icons/Delete';
 import { FolderUploadIcon } from '../atoms/Icons/FolderUploadIcon';
 import { PlusIcon } from '../atoms/Icons/Plus';
 import DateField from '../molecules/ResponderFormFields/DateField';
+import LinearRatingField from '../molecules/ResponderFormFields/LinearRating';
 import RatingField from '../molecules/ResponderFormFields/RatingField';
 import {
     RichTextEditor,
     getPlaceholderValueForTitle
 } from '../molecules/RichTextEditor';
-import UnsplashImagePicker from '../molecules/UnsplashImagePicker';
 import SlideLayoutWrapper from './SlideLayout/SlideLayoutWrapper';
 
 function getClassName(fieldType: FieldTypes) {
@@ -124,6 +118,10 @@ const FieldSection = ({
                 return <RatingField field={field} slide={slide} disabled={true} />;
             case FieldTypes.DATE:
                 return <DateField field={field} slide={slide} disabled={true} />;
+            case FieldTypes.LINEAR_RATING:
+                return (
+                    <LinearRatingField field={field} slide={slide} disabled={true} />
+                );
             default:
                 return null;
         }

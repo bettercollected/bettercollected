@@ -38,6 +38,8 @@ export function getPlaceholderValueForTitle(fieldType: FieldTypes) {
             return 'Rate from 1 to 5';
         case FieldTypes.DATE:
             return 'Select a date';
+        case FieldTypes.LINEAR_RATING:
+            return 'Rate from 1 to 10';
         default:
             return 'No Field Selected';
     }
@@ -159,7 +161,7 @@ const TiptapMenuBar = () => {
                 <div
                     onClick={() => editor?.chain().focus().toggleItalic().run()}
                     className={cn(
-                        'rounded cursor-pointer',
+                        'cursor-pointer rounded',
                         editor?.isActive('italic') && 'bg-gray-200'
                     )}
                 >
@@ -179,7 +181,7 @@ const TiptapMenuBar = () => {
                 <div
                     onClick={() => editor?.chain().focus().toggleUnderline().run()}
                     className={cn(
-                        'rounded cursor-pointer',
+                        'cursor-pointer rounded',
                         editor?.isActive('underline') && 'bg-gray-200'
                     )}
                 >
