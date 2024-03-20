@@ -1,19 +1,14 @@
-import Image from 'next/image';
-
 import cn from 'classnames';
 
-import RectangleImage from '@app/assets/image/rectangle.png';
 import { FormSlideLayout } from '@app/models/enums/form';
 import { Button } from '@app/shadcn/components/ui/button';
 import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
 import { useFormState } from '@app/store/jotai/form';
-import { useFormResponse } from '@app/store/jotai/responderFormResponse';
 
 const WelcomeSlide = ({ disabled }: { disabled?: boolean }) => {
     const { theme, formState, setFormDescription, setWelcomeTitle } = useFormState();
 
     const { activeSlide } = useFormFieldsAtom();
-    const { nextSlide } = useFormResponse();
 
     return (
         <div
@@ -59,9 +54,7 @@ const WelcomeSlide = ({ disabled }: { disabled?: boolean }) => {
                         <></>
                     )}
                 </div>
-                <Button size={'medium'} onClick={() => nextSlide()}>
-                    {formState.buttonText || 'Start'}
-                </Button>
+                <Button size={'medium'}>{formState.buttonText || 'Start'}</Button>
             </div>
             {/* <div
                 className={cn(

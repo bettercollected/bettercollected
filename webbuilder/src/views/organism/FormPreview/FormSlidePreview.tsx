@@ -19,6 +19,7 @@ export default function FormSlidePreview({ slide }: { slide: FormField }) {
                     {slide?.properties?.fields?.map((field) => {
                         return (
                             <FormFieldComponent
+                                key={field.id}
                                 field={field}
                                 slideIndex={slide!.index}
                             />
