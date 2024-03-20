@@ -69,6 +69,26 @@ export default function LeftDrawer({}: {}) {
                 },
                 activeSlideComponent?.index || 0
             );
+        } else if (
+            field.type === FieldTypes.RATING ||
+            field.type === FieldTypes.LINEAR_RATING
+        ) {
+            addField(
+                {
+                    id: fieldId,
+                    index: formFields[activeSlideComponent!.index]?.properties?.fields
+                        ?.length
+                        ? formFields[activeSlideComponent!.index]?.properties?.fields
+                              ?.length!
+                        : 0,
+                    type: field.type,
+                    properties: {
+                        fields: [],
+                        steps: field.type === FieldTypes.RATING ? 5 : 10
+                    }
+                },
+                activeSlideComponent?.index || 0
+            );
         } else {
             addField(
                 {
