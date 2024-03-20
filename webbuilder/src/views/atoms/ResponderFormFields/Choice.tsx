@@ -19,7 +19,7 @@ export default function Choice({ isSelected, theme, choice, onClick }: ChoicePro
                 background: isSelected ? theme?.tertiary : '',
                 borderColor: theme?.tertiary
             }}
-            className="flex cursor-pointer justify-between rounded-xl border p-2 px-4"
+            className="flex cursor-pointer justify-between rounded-xl border p-2 px-4 hover:!border-black-900"
             key={choice.id}
             onClick={() => onClick && onClick(choice.id || '')}
         >
