@@ -22,6 +22,13 @@ class EmbedProvider(str, enum.Enum):
     NO_EMBED = "no_embed"
 
 
+class LayoutType(str, enum.Enum):
+    TWO_COLUMN_IMAGE_LEFT = ("TWO_COLUMN_IMAGE_LEFT",)
+    TWO_COLUMN_IMAGE_RIGHT = ("TWO_COLUMN_IMAGE_RIGHT",)
+    SINGLE_COLUMN_IMAGE_BACKGROUND = ("SINGLE_COLUMN_IMAGE_BACKGROUND",)
+    SINGLE_COLUMN_NO_BACKGROUND = "SINGLE_COLUMN_NO_BACKGROUND"
+
+
 class FormBuilderTagTypes(str, enum.Enum):
     LAYOUT_HEADER1 = "h1"
     LAYOUT_HEADER2 = "h2"
@@ -302,6 +309,7 @@ class StandardFieldProperty(BaseModel):
     update_id: Optional[str]
     mentions: Optional[Dict[str, str]]
     theme: Optional[Theme]
+    layout: Optional[LayoutType]
 
 
 class StandardFieldValidations(BaseModel):
@@ -331,6 +339,7 @@ class StandardFormField(BaseModel):
     properties: Optional[StandardFieldProperty] = StandardFieldProperty()
     validations: Optional[StandardFieldValidations] = StandardFieldValidations()
     attachment: Optional[StandardFieldAttachment] = None
+    image_url: Optional[str]
 
 
 StandardFieldProperty.update_forward_refs()

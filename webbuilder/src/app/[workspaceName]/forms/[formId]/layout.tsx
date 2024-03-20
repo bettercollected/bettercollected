@@ -48,28 +48,11 @@ async function FormWrapper({
         config
     );
 
-    // TODO: [Save in db] Set default layout if it's not saved in database (for now)
-    const updatedFormFields: any = [];
-    if (form && Array.isArray(form.fields)) {
-        form.fields.forEach((field: any) => {
-            if (field.type === 'slide') {
-                const properties = field.properties;
-                if (!properties?.layout) {
-                    properties.layout = FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND;
-                }
-
-                field.properties = properties;
-                updatedFormFields.push(field);
-            }
-        });
-    }
-
-    const newForm = { ...form, fields: updatedFormFields };
 
     return (
         <>
             <Suspense fallback={<FullScreenLoader />}>
-                <FormDispatcher form={newForm}>{children}</FormDispatcher>
+                <FormDispatcher form={form}>{children}</FormDispatcher>
             </Suspense>
         </>
     );
