@@ -15,7 +15,7 @@ export default function WelcomePage() {
 
     return (
         <div
-            className="grid h-full w-full grid-cols-2"
+            className="grid h-screen w-full grid-cols-2"
             style={{ background: standardForm.theme?.accent }}
         >
             <div className=" relative flex h-full flex-col justify-center px-20">

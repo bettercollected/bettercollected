@@ -25,7 +25,6 @@ import DateField from '@app/views/molecules/ResponderFormFields/DateField';
 import DropDownField from '@app/views/molecules/ResponderFormFields/DropDownField';
 import FileUploadField from '@app/views/molecules/ResponderFormFields/FileUploadField';
 import InputField from '@app/views/molecules/ResponderFormFields/InputField';
-import LinearRatingField from '@app/views/molecules/ResponderFormFields/LinearRating';
 import MultipleChoiceField from '@app/views/molecules/ResponderFormFields/MultipleChoiceField';
 import MultipleChoiceWithMultipleSelection from '@app/views/molecules/ResponderFormFields/MultipleChoiceWirhMultipleSelections';
 import PhoneNumberField from '@app/views/molecules/ResponderFormFields/PhoneNumberField';
@@ -33,8 +32,7 @@ import QuestionWrapper from '@app/views/molecules/ResponderFormFields/QuestionQw
 import RatingField from '@app/views/molecules/ResponderFormFields/RatingField';
 import YesNoField from '@app/views/molecules/ResponderFormFields/YesNoField';
 
-
-function FormFieldComponent({
+export function FormFieldComponent({
     field,
     slideIndex
 }: {
@@ -69,14 +67,13 @@ function FormFieldComponent({
             return <FileUploadField field={field} />;
         case FieldTypes.DROP_DOWN:
             return <DropDownField field={field} slideIndex={slideIndex} />;
+        case FieldTypes.DATE:
         case FieldTypes.PHONE_NUMBER:
             return <PhoneNumberField field={field} />;
         case FieldTypes.RATING:
             return <RatingField field={field} />;
         case FieldTypes.DATE:
             return <DateField field={field} />;
-        case FieldTypes.LINEAR_RATING:
-            return <LinearRatingField field={field} />;
         default:
             return <QuestionWrapper field={field} />;
     }

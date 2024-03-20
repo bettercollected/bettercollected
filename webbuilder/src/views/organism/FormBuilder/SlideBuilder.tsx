@@ -35,7 +35,7 @@ import {
 import SlideLayoutWrapper from '../SlideLayout/SlideLayoutWrapper';
 
 
-const FieldSection = ({
+const SlideBuilder = ({
     slide,
     // layout = FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT,
     isScaledDown = false,
@@ -321,7 +321,7 @@ const FieldSection = ({
         </SlideLayoutWrapper>
     );
 };
-export default FieldSection;
+export default SlideBuilder;
 
 const FileUpload = ({
     field,
