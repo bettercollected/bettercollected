@@ -96,7 +96,7 @@ export default function FormSlide({ index }: { index: number }) {
     const { standardForm } = useStandardForm();
     const { formResponse, setInvalidFields } = useFormResponse();
     const { workspace } = useWorkspace();
-    const [submitResponse] = useSubmitResponseMutation();
+    const [submitResponse, { isLoading }] = useSubmitResponseMutation();
     const { files } = useFormAtom();
 
     const handleFieldChange = (newCurrentField: number) => {
@@ -290,6 +290,7 @@ export default function FormSlide({ index }: { index: number }) {
                                         style={{
                                             background: standardForm.theme?.secondary
                                         }}
+                                        isLoading={isLoading}
                                         className="mt-20 rounded px-8 py-3"
                                         onClick={onNext}
                                         size="medium"
