@@ -8,12 +8,12 @@ from common.models.standard_form import (
     Condition,
     ConditionalActions,
     LogicalOperator,
+    LayoutType,
+    Theme,
 )
 from fastapi import UploadFile
 from fastapi_camelcase import CamelModel
 from pydantic import BaseModel
-
-from common.models.standard_form import Theme
 
 from backend.app.models.dtos.consent import ConsentResponseCamelModel
 from backend.app.models.workspace import WorkspaceFormSettings
@@ -82,6 +82,7 @@ class StandardFieldPropertyCamelModel(CamelModel):
     logical_operator: Optional[LogicalOperator]
     mentions: Optional[Dict[str, str]]
     theme: Optional[Theme]
+    layout: Optional[LayoutType]
 
 
 class StandardFormFieldCamelModel(CamelModel):
@@ -96,6 +97,7 @@ class StandardFormFieldCamelModel(CamelModel):
     properties: Optional[StandardFieldPropertyCamelModel]
     validations: Optional[StandardFieldValidationsCamelModal]
     attachment: Optional[StandardFieldAttachment] = None
+    image_url: Optional[str]
 
 
 StandardFieldPropertyCamelModel.update_forward_refs()
