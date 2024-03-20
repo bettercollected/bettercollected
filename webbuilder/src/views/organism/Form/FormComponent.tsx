@@ -1,17 +1,19 @@
 import { AnimatePresence, motion } from 'framer-motion';
 
-import { FormResponse } from '@app/store/jotai/responderFormResponse';
+import { useFormResponse } from '@app/store/jotai/responderFormResponse';
+import { useResponderState } from '@app/store/jotai/responderFormState';
 
 import FormSlide from './FormSlide';
 import ThankyouPage from './ThankyouPage';
 import WelcomePage from './WelcomePage';
 
-const FormComponent = ({ formResponse }: { formResponse: FormResponse }) => {
-    const currentSlide = formResponse.currentSlide;
+const FormComponent = () => {
+    const { currentSlide } = useResponderState();
+
     return (
         <div className="h-screen w-screen">
             <AnimatePresence custom={currentSlide} mode="wait">
-                {formResponse.currentSlide === -1 && (
+                {currentSlide === -1 && (
                     <motion.div
                         className="h-full"
                         key={'welcome-page'}
@@ -24,20 +26,20 @@ const FormComponent = ({ formResponse }: { formResponse: FormResponse }) => {
                     </motion.div>
                 )}
 
-                {formResponse.currentSlide >= 0 && (
+                {currentSlide >= 0 && (
                     <motion.div
                         className="h-full"
-                        key={formResponse.currentSlide}
+                        key={currentSlide}
                         initial={{ opacity: 0, x: -100 }}
                         animate={{ opacity: 1, x: 0 }}
                         exit={{ opacity: 0 }}
                         transition={{ duration: 0.2 }}
                     >
-                        <FormSlide index={formResponse.currentSlide} />
+                        <FormSlide index={currentSlide} />
                     </motion.div>
                 )}
 
-                {formResponse.currentSlide === -2 && (
+                {currentSlide === -2 && (
                     <motion.div
                         className="h-full"
                         key={'thank-you-page'}

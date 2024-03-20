@@ -1,6 +1,8 @@
 import { FieldTypes, FormField } from '@app/models/dtos/form';
 import { FieldInput } from '@app/shadcn/components/ui/input';
+import { useStandardForm } from '@app/store/jotai/fetchedForm';
 import { useFormResponse } from '@app/store/jotai/responderFormResponse';
+import { useResponderState } from '@app/store/jotai/responderFormState';
 import { getPlaceholderValueForField } from '@app/utils/formUtils';
 
 import QuestionWrapper from './QuestionQwrapper';
@@ -14,6 +16,9 @@ export default function InputField({ field }: { field: FormField }) {
         addFieldURLAnswer,
         removeAnswer
     } = useFormResponse();
+
+    const { nextField, currentSlide } = useResponderState();
+    const { standardForm } = useStandardForm();
     const handleChange = (e: any) => {
         if (!e.target.value) {
             removeAnswer(field.id);
@@ -64,16 +69,23 @@ export default function InputField({ field }: { field: FormField }) {
 
     return (
         <QuestionWrapper field={field}>
-            <FieldInput
-                type={field.type === FieldTypes.SHORT_TEXT ? 'text' : field.type}
-                placeholder={
-                    field?.properties?.placeholder ||
-                    getPlaceholderValueForField(field.type)
-                }
-                className="mt-4"
-                value={getFieldValue()}
-                onChange={(e: any) => handleChange(e)}
-            />
+            <form
+                onSubmit={(event) => {
+                    event.preventDefault();
+                    nextField();
+                }}
+            >
+                <FieldInput
+                    type={field.type === FieldTypes.SHORT_TEXT ? 'text' : field.type}
+                    placeholder={
+                        field?.properties?.placeholder ||
+                        getPlaceholderValueForField(field.type)
+                    }
+                    className="mt-4"
+                    value={getFieldValue()}
+                    onChange={(e: any) => handleChange(e)}
+                />
+            </form>
         </QuestionWrapper>
     );
 }

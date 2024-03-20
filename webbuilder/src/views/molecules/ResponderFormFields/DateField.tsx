@@ -4,6 +4,7 @@ import { FormField } from '@app/models/dtos/form';
 import { FieldInput } from '@app/shadcn/components/ui/input';
 import { useFormState } from '@app/store/jotai/form';
 import { useFormResponse } from '@app/store/jotai/responderFormResponse';
+import { useResponderState } from '@app/store/jotai/responderFormState';
 import {
     getFormattedDate,
     getUnformattedDate,
@@ -124,11 +125,20 @@ function DateFieldSection({ field, slide, disabled }: IDateField) {
 }
 
 const DateField = ({ field, slide, disabled = false }: IDateField) => {
+    const { nextField } = useResponderState();
+
     return disabled ? (
         <DateFieldSection field={field} slide={slide} disabled={disabled} />
     ) : (
         <QuestionWrapper field={field}>
-            <DateFieldSection field={field} slide={slide} disabled={disabled} />
+            <form
+                onSubmit={(event) => {
+                    event.preventDefault();
+                    nextField();
+                }}
+            >
+                <DateFieldSection field={field} slide={slide} disabled={disabled} />
+            </form>
         </QuestionWrapper>
     );
 };

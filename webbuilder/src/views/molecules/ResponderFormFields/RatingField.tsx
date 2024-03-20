@@ -7,6 +7,7 @@ import { Star, StarBorder } from '@mui/icons-material';
 import { FormField } from '@app/models/dtos/form';
 import { useFormState } from '@app/store/jotai/form';
 import { useFormResponse } from '@app/store/jotai/responderFormResponse';
+import { useResponderState } from '@app/store/jotai/responderFormState';
 
 import QuestionWrapper from './QuestionQwrapper';
 
@@ -22,6 +23,9 @@ export default function RatingField({
     const { addFieldRatingAnswer, formResponse } = useFormResponse();
     const answer = formResponse.answers && formResponse.answers[field.id]?.number;
     const [hovered, setHovered] = useState(answer || -1);
+
+    const { nextField } = useResponderState();
+
     useEffect(() => {
         formResponse.answers &&
             setHovered((formResponse?.answers[field.id]?.number ?? 0) - 1);
@@ -56,6 +60,9 @@ export default function RatingField({
                             onClick={() => {
                                 if (!disabled) {
                                     addFieldRatingAnswer(field.id, index + 1);
+                                    setTimeout(() => {
+                                        nextField();
+                                    }, 200);
                                 }
                             }}
                             className="cursor-pointer"
@@ -76,7 +83,7 @@ export default function RatingField({
     return (
         <>
             {disabled ? (
-                <RatingSection></RatingSection>
+                <RatingSection />
             ) : (
                 <QuestionWrapper field={field}>
                     <RatingSection />

@@ -12,6 +12,7 @@ import {
 import { useStandardForm } from '@app/store/jotai/fetchedForm';
 import { useFormState } from '@app/store/jotai/form';
 import { useFormResponse } from '@app/store/jotai/responderFormResponse';
+import { useResponderState } from '@app/store/jotai/responderFormState';
 import { ChevronDown } from '@app/views/atoms/Icons/ChevronDown';
 import Choice from '@app/views/atoms/ResponderFormFields/Choice';
 
@@ -28,6 +29,8 @@ export default function DropDownField({
     const { theme } = useFormState();
     const { addFieldChoiceAnswer, formResponse } = useFormResponse();
 
+    const { nextField } = useResponderState();
+
     const getSelectedValue = () => {
         if (!formResponse.answers) {
             return null;
@@ -43,6 +46,9 @@ export default function DropDownField({
     const handleClick = (choiceId: string) => {
         addFieldChoiceAnswer(field.id, choiceId);
         setIsOpen(false);
+        setTimeout(() => {
+            nextField();
+        }, 200);
     };
 
     const getTextStyle = () => {

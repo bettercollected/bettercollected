@@ -8,6 +8,7 @@ import { FormField } from '@app/models/dtos/form';
 import { useFormTheme } from '@app/store/jotai/fetchedForm';
 import { useFormState } from '@app/store/jotai/form';
 import { useFormResponse } from '@app/store/jotai/responderFormResponse';
+import { useResponderState } from '@app/store/jotai/responderFormState';
 import { getPlaceholderValueForField } from '@app/utils/formUtils';
 
 import QuestionWrapper from './QuestionQwrapper';
@@ -66,35 +67,44 @@ export default function PhoneNumberField({ field }: { field: FormField }) {
         }
         addFieldPhoneNumberAnswer(field.id, phone);
     };
+    const { nextField } = useResponderState();
+
     return (
         <QuestionWrapper field={field}>
-            <CustomPhoneInputField
-                value={
-                    (formResponse.answers &&
-                        formResponse.answers[field.id]?.phone_number) ||
-                    ''
-                }
-                onChange={(e) => handleChange(e)}
-                country={'np'}
-                buttonStyle={{
-                    border: '0px',
-                    borderBottom: `1px solid ${theme?.tertiary}`,
-                    background: theme?.accent,
-                    height: '100%'
+            <form
+                onSubmit={(event) => {
+                    event.preventDefault();
+                    nextField();
                 }}
-                dropdownStyle={{ background: theme?.accent }}
-                inputStyle={{
-                    border: '0px',
-                    borderBottom: `1px solid ${theme?.tertiary}`
-                }}
-                placeholder={
-                    field?.properties?.placeholder ||
-                    getPlaceholderValueForField(field.type)
-                }
-                inputProps={{
-                    className: 'bg-opacity-50 mx-14 border-0 border-b-[1px]'
-                }}
-            />
+            >
+                <CustomPhoneInputField
+                    value={
+                        (formResponse.answers &&
+                            formResponse.answers[field.id]?.phone_number) ||
+                        ''
+                    }
+                    onChange={(e) => handleChange(e)}
+                    country={'np'}
+                    buttonStyle={{
+                        border: '0px',
+                        borderBottom: `1px solid ${theme?.tertiary}`,
+                        background: theme?.accent,
+                        height: '100%'
+                    }}
+                    dropdownStyle={{ background: theme?.accent }}
+                    inputStyle={{
+                        border: '0px',
+                        borderBottom: `1px solid ${theme?.tertiary}`
+                    }}
+                    placeholder={
+                        field?.properties?.placeholder ||
+                        getPlaceholderValueForField(field.type)
+                    }
+                    inputProps={{
+                        className: 'bg-opacity-50 mx-14 border-0 border-b-[1px]'
+                    }}
+                />
+            </form>
         </QuestionWrapper>
     );
 }

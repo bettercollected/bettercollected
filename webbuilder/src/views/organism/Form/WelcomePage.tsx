@@ -6,12 +6,12 @@ import { Globe, Lock } from 'lucide-react';
 import DemoImage from '@app/assets/image/rectangle.png';
 import { Button } from '@app/shadcn/components/ui/button';
 import { useStandardForm } from '@app/store/jotai/fetchedForm';
-import { useFormResponse } from '@app/store/jotai/responderFormResponse';
+import { useResponderState } from '@app/store/jotai/responderFormState';
 import UserAvatarDropDown from '@app/views/molecules/UserAvatarDropdown';
 
 export default function WelcomePage() {
     const { standardForm } = useStandardForm();
-    const { nextSlide } = useFormResponse();
+    const { nextSlide } = useResponderState();
 
     return (
         <div
