@@ -1,13 +1,13 @@
 import { AnimatePresence, motion } from 'framer-motion';
 
-import { useFormResponse } from '@app/store/jotai/responderFormResponse';
 import { useResponderState } from '@app/store/jotai/responderFormState';
 
 import FormSlide from './FormSlide';
 import ThankyouPage from './ThankyouPage';
 import WelcomePage from './WelcomePage';
 
-const FormComponent = () => {
+
+const Form = () => {
     const { currentSlide } = useResponderState();
 
     return (
@@ -56,4 +56,4 @@ const FormComponent = () => {
     );
 };
 
-export default FormComponent;
+export default Form;

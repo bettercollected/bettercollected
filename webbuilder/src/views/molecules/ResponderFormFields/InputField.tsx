@@ -1,11 +1,11 @@
 import { FieldTypes, FormField } from '@app/models/dtos/form';
 import { FieldInput } from '@app/shadcn/components/ui/input';
-import { useStandardForm } from '@app/store/jotai/fetchedForm';
 import { useFormResponse } from '@app/store/jotai/responderFormResponse';
 import { useResponderState } from '@app/store/jotai/responderFormState';
 import { getPlaceholderValueForField } from '@app/utils/formUtils';
 
 import QuestionWrapper from './QuestionQwrapper';
+
 
 export default function InputField({ field }: { field: FormField }) {
     const {
@@ -17,8 +17,7 @@ export default function InputField({ field }: { field: FormField }) {
         removeAnswer
     } = useFormResponse();
 
-    const { nextField, currentSlide } = useResponderState();
-    const { standardForm } = useStandardForm();
+    const { nextField } = useResponderState();
     const handleChange = (e: any) => {
         if (!e.target.value) {
             removeAnswer(field.id);

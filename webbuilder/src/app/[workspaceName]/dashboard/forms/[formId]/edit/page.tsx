@@ -5,7 +5,6 @@ import { useEffect } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
 import { useDialogModal } from '@app/lib/hooks/useDialogModal';
-import { FormSlideLayout } from '@app/models/enums/form';
 import {
     useActiveFieldComponent,
     useActiveSlideComponent
@@ -16,11 +15,12 @@ import { useFormState } from '@app/store/jotai/form';
 import { useNavbarState } from '@app/store/jotai/navbar';
 import AutoSaveForm from '@app/views/molecules/FormBuilder/AutoSaveForm';
 import FieldSection from '@app/views/organism/FieldSection';
-import LeftDrawer from '@app/views/organism/LeftDrawer';
+import LeftDrawer from '@app/views/organism/FormBuilder/LeftDrawer';
+import PropertiesDrawer from '@app/views/organism/FormBuilder/PropertiesDrawer';
+import ThankYouSlide from '@app/views/organism/FormBuilder/ThankYouPage';
+import WelcomeSlide from '@app/views/organism/FormBuilder/WelcomePage';
 import Navbar from '@app/views/organism/Navbar';
-import PropertiesDrawer from '@app/views/organism/PropertiesDrawer';
-import ThankYouSlide from '@app/views/organism/ThankYouPage';
-import WelcomeSlide from '@app/views/organism/WelcomePage';
+
 
 export default function FormPage({ params }: { params: { formId: string } }) {
     const router = useRouter();
