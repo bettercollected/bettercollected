@@ -96,6 +96,7 @@ export enum FieldTypes {
     OPINION_SCALE = 'opinion_scale',
     RANKING = 'ranking',
     RATING = 'rating',
+    LINEAR_RATING = 'linear_rating',
     DROP_DOWN = 'dropdown',
     MATRIX = 'matrix',
     FILE_UPLOAD = 'file_upload',
