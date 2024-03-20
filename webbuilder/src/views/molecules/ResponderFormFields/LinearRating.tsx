@@ -42,7 +42,7 @@ const LinearRatingSection = ({
     const [ratingAnswer, setRatingAnswer] = useState(-1);
     useEffect(() => {
         formResponse.answers &&
-            setRatingAnswer(formResponse.answers[field.id]?.number || -1);
+            setRatingAnswer((formResponse.answers[field.id]?.number??0)-1);
     }, [formResponse.answers]);
     const secondaryColor = theme?.secondary;
     return (
@@ -59,7 +59,7 @@ const LinearRatingSection = ({
                         key={index}
                         onClick={() => {
                             if (!disabled) {
-                                addFieldLinearRatingAnswer(field.id, index);
+                                addFieldLinearRatingAnswer(field.id, index+1);
                             }
                         }}
                         className="flex h-12 w-12  cursor-pointer items-center justify-center rounded-sm border-[1px]"
