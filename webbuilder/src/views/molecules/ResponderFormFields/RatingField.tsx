@@ -36,16 +36,18 @@ export default function RatingField({
                     setMouseOver(false);
                 }}
                 onMouseOver={() => {
-                    setMouseOver(true);
+                    !disabled && setMouseOver(true);
                 }}
             >
                 {_.range(field.properties?.steps || 5).map((index) => {
                     const Component = index <= hovered ? Star : StarBorder;
-                    console.log('asds ; ', mouseOver, answer);
                     return (
                         <span
                             style={{
-                                color: mouseOver ? theme?.tertiary : theme?.secondary
+                                color:
+                                    mouseOver || disabled
+                                        ? theme?.tertiary
+                                        : theme?.secondary
                             }}
                             key={index}
                             onMouseOut={() => {
