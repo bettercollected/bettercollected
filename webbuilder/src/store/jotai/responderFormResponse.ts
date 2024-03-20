@@ -1,7 +1,14 @@
+import { set } from 'lodash';
+
+
+
 import { atom, useAtom } from 'jotai';
+
+
 
 import { FileMetadata } from '@app/models/types/fieldTypes';
 import { Invalidations } from '@app/utils/validationUtils';
+
 
 enum AnswerType {
     TEXT = 'text',
@@ -17,7 +24,8 @@ enum AnswerType {
     FILE_URL = 'file_url',
     PAYMENT = 'payment',
     FILE_UPLOAD = 'file_upload',
-    RATING = 'rating'
+    RATING = 'rating',
+    LINEAR_RATING = 'linear_rating'
 }
 
 export interface ChoicesAnswer {
@@ -246,6 +254,19 @@ export const useFormResponse = () => {
         });
     };
 
+    const addFieldLinearRatingAnswer = (fieldId: string, number: number) => {
+        setFormResponse({
+            ...formResponse,
+            answers: {
+                ...(formResponse.answers || {}),
+                [fieldId]: {
+                    type: AnswerType.LINEAR_RATING,
+                    number: number
+                }
+            }
+        });
+    };
+
     const setInvalidFields = (invalidFields: Record<string, Array<Invalidations>>) => {
         setFormResponse({
             ...formResponse,
@@ -274,6 +295,7 @@ export const useFormResponse = () => {
         addOtherChoicesAnswer,
         addFieldFileAnswer,
         addFieldRatingAnswer,
+        addFieldLinearRatingAnswer,
         removeAnswer,
         setInvalidFields
     };

@@ -4,13 +4,13 @@ import { JSONContent } from '@tiptap/react';
 import { atom, useAtom } from 'jotai';
 import { v4 } from 'uuid';
 
-import { FormField } from '@app/models/dtos/form';
+
+
+import { FieldTypes, FormField } from '@app/models/dtos/form';
 import { FormSlideLayout } from '@app/models/enums/form';
-import {
-    useActiveFieldComponent,
-    useActiveSlideComponent
-} from '@app/store/jotai/activeBuilderComponent';
+import { useActiveFieldComponent, useActiveSlideComponent } from '@app/store/jotai/activeBuilderComponent';
 import { reorder } from '@app/utils/arrayUtils';
+
 
 const initialFieldsAtom = atom<FormField[]>([]);
 
@@ -221,6 +221,21 @@ export default function useFormFieldsAtom() {
         }, 0);
     };
 
+    const updateRatingSteps = (
+        slideIndex: number,
+        fieldIndex: number,
+        steps: number,
+        type?: FieldTypes
+    ) => {
+        formFields![slideIndex]!.properties!.fields![fieldIndex].type = type;
+        formFields![slideIndex]!.properties!.fields![fieldIndex].properties = {
+            ...(formFields![slideIndex]!.properties!.fields![fieldIndex].properties ||
+                {}),
+            steps: steps
+        };
+        setFormFields([...formFields]);
+    };
+
     const resetFields = () => {
         setFormFields([]);
     };
@@ -242,6 +257,7 @@ export default function useFormFieldsAtom() {
         updateSlideTheme,
         updateSlideLayout,
         updateSlideImage,
+        updateRatingSteps,
         moveFieldInASlide,
         activeSlide,
         activeField,
