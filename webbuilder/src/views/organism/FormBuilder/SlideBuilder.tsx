@@ -21,37 +21,19 @@ import { useFormState } from '@app/store/jotai/form';
 import { getPlaceholderValueForField } from '@app/utils/formUtils';
 import RequiredIcon from '@app/views/atoms/Icons/Required';
 
-import { ArrowDown } from '../atoms/Icons/ArrowDown';
-import DeleteIcon from '../atoms/Icons/Delete';
-import { FolderUploadIcon } from '../atoms/Icons/FolderUploadIcon';
-import { PlusIcon } from '../atoms/Icons/Plus';
-import DateField from '../molecules/ResponderFormFields/DateField';
-import LinearRatingField from '../molecules/ResponderFormFields/LinearRating';
-import RatingField from '../molecules/ResponderFormFields/RatingField';
+import { ArrowDown } from '../../atoms/Icons/ArrowDown';
+import DeleteIcon from '../../atoms/Icons/Delete';
+import { FolderUploadIcon } from '../../atoms/Icons/FolderUploadIcon';
+import { PlusIcon } from '../../atoms/Icons/Plus';
+import DateField from '../../molecules/ResponderFormFields/DateField';
+import LinearRatingField from '../../molecules/ResponderFormFields/LinearRating';
+import RatingField from '../../molecules/ResponderFormFields/RatingField';
 import {
     RichTextEditor,
     getPlaceholderValueForTitle
-} from '../molecules/RichTextEditor';
-import SlideLayoutWrapper from './SlideLayout/SlideLayoutWrapper';
+} from '../../molecules/RichTextEditor';
+import SlideLayoutWrapper from '../SlideLayout/SlideLayoutWrapper';
 
-function getClassName(fieldType: FieldTypes) {
-    switch (fieldType) {
-        case FieldTypes.TEXT:
-            return 'text-[32px] font-bold';
-        case FieldTypes.EMAIL:
-        case FieldTypes.NUMBER:
-        case FieldTypes.SHORT_TEXT:
-        case FieldTypes.LINK:
-        case FieldTypes.PHONE_NUMBER:
-        case FieldTypes.FILE_UPLOAD:
-        case FieldTypes.YES_NO:
-        case FieldTypes.DROP_DOWN:
-        case FieldTypes.MULTIPLE_CHOICE:
-            return '';
-        default:
-            return '';
-    }
-}
 
 const FieldSection = ({
     slide,
@@ -64,7 +46,6 @@ const FieldSection = ({
     isScaledDown?: boolean;
     disabled?: boolean;
 }) => {
-    const { theme } = useFormState();
     const slideFields = slide?.properties?.fields;
     const {
         activeSlide,

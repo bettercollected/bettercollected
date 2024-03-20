@@ -13,11 +13,12 @@ import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
 import { useFormState } from '@app/store/jotai/form';
 import { getHtmlFromJson } from '@app/utils/richTextEditorExtenstion/getHtmlFromJson';
 
-import SlideLayoutBackgroundImage from '../atoms/Icons/SlideLayoutBackgroundImage';
-import SlideLayoutLeftImage from '../atoms/Icons/SlideLayoutLeftImage';
-import SlideLayoutNoImage from '../atoms/Icons/SlideLayoutNoImage';
-import SlideLayoutRightImage from '../atoms/Icons/SlideLayoutRightImage';
-import { getPlaceholderValueForTitle } from '../molecules/RichTextEditor';
+import SlideLayoutBackgroundImage from '../../atoms/Icons/SlideLayoutBackgroundImage';
+import SlideLayoutLeftImage from '../../atoms/Icons/SlideLayoutLeftImage';
+import SlideLayoutNoImage from '../../atoms/Icons/SlideLayoutNoImage';
+import SlideLayoutRightImage from '../../atoms/Icons/SlideLayoutRightImage';
+import { getPlaceholderValueForTitle } from '../../molecules/RichTextEditor';
+
 
 export default function PagePropertiesTab({}: {}) {
     const {

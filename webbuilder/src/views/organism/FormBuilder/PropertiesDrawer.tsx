@@ -17,8 +17,9 @@ import {
     useActiveSlideComponent
 } from '@app/store/jotai/activeBuilderComponent';
 import FieldSettings from '@app/views/organism/FieldSettings';
-import PageDesignTab from '@app/views/organism/PageDesignTab';
-import PagePropertiesTab from '@app/views/organism/PagePropertiesTab';
+import PageDesignTab from '@app/views/organism/FormBuilder/PageDesignTab';
+import PagePropertiesTab from '@app/views/organism/FormBuilder/PagePropertiesTab';
+
 
 const FieldTypeSelector = () => {
     const [selectedValue, setSelectedValue] = useState(FieldTypes.SHORT_TEXT);

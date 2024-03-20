@@ -19,6 +19,7 @@ import FieldSection from './FieldSection';
 import ThankYouSlide from './ThankYouPage';
 import WelcomeSlide from './WelcomePage';
 
+
 export default function LeftDrawer({}: {}) {
     const { activeSlideComponent, setActiveSlideComponent } = useActiveSlideComponent();
     const { formFields, addField, addSlide } = useFormFieldsAtom();
