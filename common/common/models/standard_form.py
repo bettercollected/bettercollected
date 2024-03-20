@@ -120,6 +120,7 @@ class StandardFormFieldType(str, Enum):
     TEXT = "text"
     YES_NO = "yes_no"
     LINK = "url"
+    LINEAR_RATING = "linear_rating"
     PHONE_NUMBER = "phone_number"
     NUMBER = "number"
     VIDEO_CONTENT = "VIDEO_CONTENT"
