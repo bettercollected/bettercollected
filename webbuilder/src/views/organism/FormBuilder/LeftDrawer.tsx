@@ -15,10 +15,9 @@ import { useActiveSlideComponent } from '@app/store/jotai/activeBuilderComponent
 import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
 import { useNavbarState } from '@app/store/jotai/navbar';
 
-import FieldSection from './FieldSection';
+import SlideBuilder from './SlideBuilder';
 import ThankYouSlide from './ThankYouPage';
 import WelcomeSlide from './WelcomePage';
-
 
 export default function LeftDrawer({}: {}) {
     const { activeSlideComponent, setActiveSlideComponent } = useActiveSlideComponent();
@@ -200,7 +199,7 @@ export default function LeftDrawer({}: {}) {
                                                     }}
                                                 >
                                                     <div className={''}>
-                                                        <FieldSection
+                                                        <SlideBuilder
                                                             slide={slide}
                                                             disabled
                                                             isScaledDown

@@ -14,13 +14,12 @@ import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
 import { useFormState } from '@app/store/jotai/form';
 import { useNavbarState } from '@app/store/jotai/navbar';
 import AutoSaveForm from '@app/views/molecules/FormBuilder/AutoSaveForm';
-import FieldSection from '@app/views/organism/FieldSection';
 import LeftDrawer from '@app/views/organism/FormBuilder/LeftDrawer';
 import PropertiesDrawer from '@app/views/organism/FormBuilder/PropertiesDrawer';
+import SlideBuilder from '@app/views/organism/FormBuilder/SlideBuilder';
 import ThankYouSlide from '@app/views/organism/FormBuilder/ThankYouPage';
 import WelcomeSlide from '@app/views/organism/FormBuilder/WelcomePage';
 import Navbar from '@app/views/organism/Navbar';
-
 
 export default function FormPage({ params }: { params: { formId: string } }) {
     const router = useRouter();
@@ -88,7 +87,7 @@ export default function FormPage({ params }: { params: { formId: string } }) {
                     }}
                 >
                     {activeSlideComponent?.id && activeSlideComponent?.index >= 0 && (
-                        <FieldSection slide={formFields[activeSlideComponent?.index]} />
+                        <SlideBuilder slide={formFields[activeSlideComponent?.index]} />
                     )}
                     {!activeSlideComponent?.id && <div>Add a slide to start</div>}
                     {activeSlideComponent?.id === 'welcome-page' && <WelcomeSlide />}
