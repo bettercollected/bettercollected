@@ -93,7 +93,6 @@ export default function FormSlide({ index }: { index: number }) {
     const [submitResponse] = useSubmitResponseMutation();
     const { files } = useFormAtom();
 
-
     const handleFieldChange = (newCurrentField: number) => {
         setCurrentField(newCurrentField);
     };
@@ -171,8 +170,7 @@ export default function FormSlide({ index }: { index: number }) {
                                             <div
                                                 className="absolute bottom-0 left-0 right-0 top-0 z-[10]"
                                                 style={{
-                                                    background:
-                                                        'linear-gradient(360deg, rgba(242, 247, 255, 0) 0%, #F2F7FF 100%)'
+                                                    background: `linear-gradient(360deg, transparent 0%, ${standardForm.theme?.accent} 100%)`
                                                 }}
                                             />
                                             <div className="absolute bottom-0 w-full">
@@ -232,8 +230,7 @@ export default function FormSlide({ index }: { index: number }) {
                                                 <div
                                                     className="absolute bottom-0 left-0 right-0 top-0 z-[10]"
                                                     style={{
-                                                        background:
-                                                            'linear-gradient(180deg, rgba(242, 247, 255, 0) 0%, #F2F7FF 100%)'
+                                                        background: `linear-gradient(180deg, transparent 0%, ${standardForm.theme?.accent} 100%)`
                                                     }}
                                                 />
                                                 <FormFieldComponent

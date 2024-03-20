@@ -34,6 +34,8 @@ export default function ResponsePage({
             setFormResponse({
                 formId: standardForm.formId,
                 currentSlide: 0,
+                currentField: 0,
+                prevActiveField: -1,
                 answers: data?.response?.answers
             });
         }
