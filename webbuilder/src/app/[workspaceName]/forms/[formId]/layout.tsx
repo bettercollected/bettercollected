@@ -44,10 +44,10 @@ async function FormWrapper({
             '/workspaces/' +
             workspaceId +
             '/forms/' +
-            formId,
+            formId +
+            '?published=true',
         config
     );
-
 
     return (
         <>
