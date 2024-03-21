@@ -4,13 +4,13 @@ import { JSONContent } from '@tiptap/react';
 import { atom, useAtom } from 'jotai';
 import { v4 } from 'uuid';
 
-
-
 import { FieldTypes, FormField } from '@app/models/dtos/form';
 import { FormSlideLayout } from '@app/models/enums/form';
-import { useActiveFieldComponent, useActiveSlideComponent } from '@app/store/jotai/activeBuilderComponent';
+import {
+    useActiveFieldComponent,
+    useActiveSlideComponent
+} from '@app/store/jotai/activeBuilderComponent';
 import { reorder } from '@app/utils/arrayUtils';
-
 
 const initialFieldsAtom = atom<FormField[]>([]);
 
@@ -221,6 +221,12 @@ export default function useFormFieldsAtom() {
         }, 0);
     };
 
+    const deleteActiveSlide = () => {
+        const slideIndex = activeSlide?.index;
+        formFields.splice(slideIndex!, 1);
+        setFormFields([...formFields]);
+    };
+
     const updateRatingSteps = (
         slideIndex: number,
         fieldIndex: number,
@@ -262,6 +268,7 @@ export default function useFormFieldsAtom() {
         activeSlide,
         activeField,
         deleteField,
+        deleteActiveSlide,
         resetFields,
         addMedia
     };
