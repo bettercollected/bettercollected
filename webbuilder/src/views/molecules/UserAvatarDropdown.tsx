@@ -1,5 +1,7 @@
 import { useState } from 'react';
 
+import { usePathname, useRouter } from 'next/navigation';
+
 import { ChevronDown, UserRoundPlus } from 'lucide-react';
 
 import {
@@ -9,9 +11,13 @@ import {
 } from '@app/shadcn/components/ui/popover';
 import { cn } from '@app/shadcn/util/lib';
 import { useAuthAtom } from '@app/store/jotai/auth';
+import useWorkspace from '@app/store/jotai/workspace';
 
 export default function UserAvatarDropDown() {
     const [popOverOpen, setPopoverOpen] = useState(false);
+    const router = useRouter();
+    const { workspace } = useWorkspace();
+    const pathname = usePathname();
 
     return (
         <Popover open={popOverOpen} onOpenChange={setPopoverOpen}>
@@ -26,7 +32,14 @@ export default function UserAvatarDropDown() {
                     />
                 </div>
             </PopoverTrigger>
-            <PopoverContent className="p2-new z-[10] mt-2 max-w-[235px] rounded-lg bg-white p-4 text-black-700 shadow-blue-hue">
+            <PopoverContent
+                onClick={() => {
+                    router.push(
+                        `https://3001.sital.sireto.dev/login?type=responder&workspace_id=${workspace.id}&redirect_to=https://forms.sital.sireto.dev${pathname}`
+                    );
+                }}
+                className="p2-new z-[10] mt-2 max-w-[235px] cursor-pointer rounded-lg bg-white p-4 text-black-700 shadow-blue-hue"
+            >
                 Do you wish to track your form response for future reference?
             </PopoverContent>
         </Popover>
@@ -35,7 +48,7 @@ export default function UserAvatarDropDown() {
 
 const UserAvatar = () => {
     const { authState } = useAuthAtom();
-    if (!authState.email) {
+    if (!authState.id) {
         return (
             <UserRoundPlus className="h-7 w-7 rounded-full bg-black-500 p-1 text-white" />
         );
