@@ -17,7 +17,7 @@ const initialFieldsAtom = atom<FormField[]>([]);
 export default function useFormFieldsAtom() {
     const [formFields, setFormFields] = useAtom(initialFieldsAtom);
 
-    const { activeSlideComponent } = useActiveSlideComponent();
+    const { activeSlideComponent, setActiveSlideComponent } = useActiveSlideComponent();
     const { activeFieldComponent, setActiveFieldComponent } = useActiveFieldComponent();
 
     const addSlide = (field: FormField) => {
@@ -222,8 +222,27 @@ export default function useFormFieldsAtom() {
     };
 
     const deleteActiveSlide = () => {
-        const slideIndex = activeSlide?.index;
+        const slideIndex = getActiveSlide()?.index;
         formFields.splice(slideIndex!, 1);
+
+        formFields.forEach((field, index) => {
+            field.index = index;
+        });
+
+        const newActiveSlideIndex = slideIndex! - 1;
+        if (newActiveSlideIndex < 0) {
+            setActiveSlideComponent({
+                id: 'welcome-page',
+                index: -10
+            });
+        } else {
+            const newFormField = formFields[newActiveSlideIndex];
+            setActiveSlideComponent({
+                id: newFormField?.id ?? v4(),
+                index: newFormField.index
+            });
+        }
+
         setFormFields([...formFields]);
     };
 
