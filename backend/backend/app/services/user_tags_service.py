@@ -14,7 +14,7 @@ class UserTagsService:
 
     async def get_user_tags_by_id(self, user_id: str) -> List[UserTagType]:
         user_tag_document = await self.user_tags_repo.get_tags_by_id(user_id=user_id)
-        return user_tag_document.tags
+        return user_tag_document.tags if user_tag_document else None
 
     async def get_user_tags(self):
         return await self.user_tags_repo.list()
