@@ -19,7 +19,6 @@ import SlideLayoutNoImage from '../../atoms/Icons/SlideLayoutNoImage';
 import SlideLayoutRightImage from '../../atoms/Icons/SlideLayoutRightImage';
 import { getPlaceholderValueForTitle } from '../../molecules/RichTextEditor';
 
-
 export default function PagePropertiesTab({}: {}) {
     const {
         formFields,
@@ -34,11 +33,8 @@ export default function PagePropertiesTab({}: {}) {
 
     // Function to handle layout update for a specific slide
     const handleSlideLayoutChange = (slideId?: string, newLayout?: FormSlideLayout) => {
-        console.log(slideId, newLayout);
         if (slideId && newLayout) updateSlideLayout(newLayout);
     };
-
-    console.log(activeSlide?.properties?.layout);
 
     const { formState, setFormState } = useFormState();
     return (

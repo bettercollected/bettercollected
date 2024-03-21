@@ -6,17 +6,17 @@ import { v4 } from 'uuid';
 
 import { formFieldsList } from '@app/constants/form-fields';
 import { FieldTypes } from '@app/models/dtos/form';
-import { ButtonSize, ButtonVariant } from '@app/models/enums/button';
-import { FormSlideLayout } from '@app/models/enums/form';
-import { Button } from '@app/shadcn/components/ui/button';
 import { ScrollArea } from '@app/shadcn/components/ui/scroll-area';
 import { cn } from '@app/shadcn/util/lib';
 import { useActiveSlideComponent } from '@app/store/jotai/activeBuilderComponent';
 import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
 import { useNavbarState } from '@app/store/jotai/navbar';
+import EllipsisOption from '@app/views/atoms/Icons/EllipsisOption';
 import DeleteIcon from '@app/views/atoms/Icons/Delete';
 
+import AddSlidePopover from './AddSlide/AddSlidePopover';
 import SlideBuilder from './SlideBuilder';
+import SlideOptions from './SlideOptions';
 import ThankYouSlide from './ThankYouPage';
 import WelcomeSlide from './WelcomePage';
 
@@ -118,25 +118,7 @@ export default function LeftDrawer({}: {}) {
             >
                 <div className="flex w-full items-center justify-between border-b border-b-black-400 p-5">
                     <span className="h4-new font-medium text-black-700">Pages</span>
-                    <Button
-                        variant={ButtonVariant.Ghost}
-                        className="!p-2"
-                        size={ButtonSize.Small}
-                        onClick={() => {
-                            const fieldId = v4();
-                            addSlide({
-                                id: fieldId,
-                                index: formFields.length,
-                                type: FieldTypes.SLIDE,
-                                properties: {
-                                    layout: FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND,
-                                    fields: []
-                                }
-                            });
-                        }}
-                    >
-                        Add Slide
-                    </Button>
+                    <AddSlidePopover />
                 </div>
                 <div className=" flex flex-1 flex-col justify-between overflow-auto">
                     <div className="border-b border-b-black-400 !px-2">
@@ -178,8 +160,13 @@ export default function LeftDrawer({}: {}) {
                                                     '!border-pink-500'
                                             )}
                                         >
-                                            <div className="p2-new mb-1 font-medium text-black-700">
-                                                Page {index + 1}
+                                            <div className="flex w-full justify-between">
+                                                <div className="p2-new mb-1 font-medium text-black-700">
+                                                    Page {index + 1}
+                                                </div>
+                                                <SlideOptions
+                                                    slideIndex={slide.index}
+                                                />
                                             </div>
                                             <div
                                                 key={slide.id}

@@ -106,7 +106,6 @@ export default function UnsplashImagePicker({
                             try {
                                 // let blob = await fetch(photo.urls.regular).then((r) => r.blob())
                                 // let image = await URL.createObjectURL(blob)
-                                console.log(photo);
                                 if (activeSlide && photo) {
                                     updateSlideImage(photo.urls.full);
                                     closeDialogModal();

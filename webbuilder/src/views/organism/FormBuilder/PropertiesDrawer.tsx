@@ -20,7 +20,6 @@ import FieldSettings from '@app/views/organism/FieldSettings';
 import PageDesignTab from '@app/views/organism/FormBuilder/PageDesignTab';
 import PagePropertiesTab from '@app/views/organism/FormBuilder/PagePropertiesTab';
 
-
 const FieldTypeSelector = () => {
     const [selectedValue, setSelectedValue] = useState(FieldTypes.SHORT_TEXT);
 
@@ -60,8 +59,8 @@ export default function PropertiesDrawer({}: {}) {
         <div className="flex h-full flex-col border-l ">
             {activeFieldComponent?.id && (
                 <>
-                    <FieldTypeSelector />
-                    <Divider />
+                    {/* <FieldTypeSelector />
+                    <Divider /> */}
                     <FieldSettings />
                 </>
             )}
