@@ -16,11 +16,11 @@ import QuestionWrapper from './QuestionQwrapper';
 interface IDateField {
     field: FormField;
     slide?: FormField;
-    disabled?: boolean;
+    isBuilder?: boolean;
 }
 type dateType = 'day' | 'month' | 'year' | '';
 
-function DateFieldSection({ field, slide, disabled }: IDateField) {
+function DateFieldSection({ field, slide, isBuilder }: IDateField) {
     const { theme } = useFormState();
     const { formResponse, addFieldDateAnswer } = useFormResponse();
     const [date, setDate] = useState({
@@ -83,7 +83,7 @@ function DateFieldSection({ field, slide, disabled }: IDateField) {
                     className={inputClassName}
                     value={date.day}
                     onChange={(e) => handleDateChange(e, 'day')}
-                    disabled={disabled}
+                    disabled={isBuilder}
                 />
                 <div
                     style={{
@@ -98,7 +98,7 @@ function DateFieldSection({ field, slide, disabled }: IDateField) {
                     className={inputClassName}
                     value={date.month}
                     onChange={(e) => handleDateChange(e, 'month')}
-                    disabled={disabled}
+                    disabled={isBuilder}
                 />
                 <div
                     style={{
@@ -114,7 +114,7 @@ function DateFieldSection({ field, slide, disabled }: IDateField) {
                     className={`${inputClassName} w-24`}
                     onChange={(e) => handleDateChange(e, 'year')}
                     onBlur={(e) => handleBlurValidation(e, '')}
-                    disabled={disabled}
+                    disabled={isBuilder}
                 />
             </div>
             {errorMessage && (
@@ -124,11 +124,11 @@ function DateFieldSection({ field, slide, disabled }: IDateField) {
     );
 }
 
-const DateField = ({ field, slide, disabled = false }: IDateField) => {
+const DateField = ({ field, slide, isBuilder = false }: IDateField) => {
     const { nextField } = useResponderState();
 
-    return disabled ? (
-        <DateFieldSection field={field} slide={slide} disabled={disabled} />
+    return isBuilder ? (
+        <DateFieldSection field={field} slide={slide} isBuilder={isBuilder} />
     ) : (
         <QuestionWrapper field={field}>
             <form
@@ -137,7 +137,7 @@ const DateField = ({ field, slide, disabled = false }: IDateField) => {
                     nextField();
                 }}
             >
-                <DateFieldSection field={field} slide={slide} disabled={disabled} />
+                <DateFieldSection field={field} slide={slide} isBuilder={isBuilder} />
             </form>
         </QuestionWrapper>
     );

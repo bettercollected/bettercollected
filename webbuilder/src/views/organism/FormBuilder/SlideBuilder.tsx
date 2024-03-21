@@ -96,12 +96,12 @@ const SlideBuilder = ({
             case FieldTypes.TEXT:
                 return <></>;
             case FieldTypes.RATING:
-                return <RatingField field={field} slide={slide} disabled={true} />;
+                return <RatingField field={field} slide={slide} isBuilder={true} />;
             case FieldTypes.DATE:
-                return <DateField field={field} slide={slide} disabled={true} />;
+                return <DateField field={field} slide={slide} isBuilder={true} />;
             case FieldTypes.LINEAR_RATING:
                 return (
-                    <LinearRatingField field={field} slide={slide} disabled={true} />
+                    <LinearRatingField field={field} slide={slide} isBuilder={true} />
                 );
             default:
                 return null;
