@@ -14,6 +14,7 @@ import { cn } from '@app/shadcn/util/lib';
 import { useActiveSlideComponent } from '@app/store/jotai/activeBuilderComponent';
 import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
 import { useNavbarState } from '@app/store/jotai/navbar';
+import DeleteIcon from '@app/views/atoms/Icons/Delete';
 
 import SlideBuilder from './SlideBuilder';
 import ThankYouSlide from './ThankYouPage';
@@ -21,7 +22,7 @@ import WelcomeSlide from './WelcomePage';
 
 export default function LeftDrawer({}: {}) {
     const { activeSlideComponent, setActiveSlideComponent } = useActiveSlideComponent();
-    const { formFields, addField, addSlide } = useFormFieldsAtom();
+    const { formFields, addField, addSlide, deleteActiveSlide } = useFormFieldsAtom();
     const Slides = formFields;
     const { navbarState, setNavbarState } = useNavbarState();
 
@@ -205,6 +206,23 @@ export default function LeftDrawer({}: {}) {
                                                             isScaledDown
                                                         />
                                                     </div>
+
+                                                    {activeSlideComponent?.id ===
+                                                        slide.id && (
+                                                        <div
+                                                            className="absolute -top-7 right-0 cursor-pointer rounded-md bg-white p-2 shadow-bubble"
+                                                            onClick={(e: any) => {
+                                                                e.preventDefault();
+                                                                e.stopPropagation();
+                                                                deleteActiveSlide();
+                                                            }}
+                                                        >
+                                                            <DeleteIcon
+                                                                width={24}
+                                                                height={24}
+                                                            />
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </div>
                                         </div>
