@@ -31,6 +31,7 @@ import PhoneNumberField from '@app/views/molecules/ResponderFormFields/PhoneNumb
 import QuestionWrapper from '@app/views/molecules/ResponderFormFields/QuestionQwrapper';
 import RatingField from '@app/views/molecules/ResponderFormFields/RatingField';
 import YesNoField from '@app/views/molecules/ResponderFormFields/YesNoField';
+import LinearRatingField from '@app/views/molecules/ResponderFormFields/LinearRating';
 
 export function FormFieldComponent({
     field,
@@ -74,6 +75,8 @@ export function FormFieldComponent({
             return <RatingField field={field} />;
         case FieldTypes.DATE:
             return <DateField field={field} />;
+        case FieldTypes.LINEAR_RATING:
+            return <LinearRatingField field={field} />;
         default:
             return <QuestionWrapper field={field} />;
     }

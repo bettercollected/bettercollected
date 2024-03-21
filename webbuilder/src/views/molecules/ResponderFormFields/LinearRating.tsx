@@ -13,17 +13,17 @@ import QuestionWrapper from './QuestionQwrapper';
 
 const StyledDiv = styled.div<{
     $slide?: FormField;
-    disabled: boolean;
-}>(({ $slide, disabled = false }) => {
+    isBuilder: boolean;
+}>(({ $slide, isBuilder = false }) => {
     const { theme } = useFormState();
     const tertiaryColor = $slide?.properties?.theme?.tertiary || theme?.tertiary;
     const secondaryColor = $slide?.properties?.theme?.secondary || theme?.secondary;
 
     return {
         color: secondaryColor,
-        borderColor: disabled ? tertiaryColor : secondaryColor,
+        borderColor: isBuilder ? tertiaryColor : secondaryColor,
         '&:hover': {
-            background: disabled ? '' : tertiaryColor
+            background: isBuilder ? '' : tertiaryColor
         }
     };
 });
@@ -31,11 +31,11 @@ const StyledDiv = styled.div<{
 const LinearRatingSection = ({
     field,
     slide,
-    disabled = false
+    isBuilder = false
 }: {
     field: FormField;
     slide?: FormField;
-    disabled?: boolean;
+    isBuilder?: boolean;
 }) => {
     const theme = useFormTheme();
     const { formResponse, addFieldLinearRatingAnswer } = useFormResponse();
@@ -51,14 +51,14 @@ const LinearRatingSection = ({
                 return (
                     <StyledDiv
                         $slide={slide}
-                        disabled={disabled}
+                        isBuilder={isBuilder}
                         style={{
                             background: ratingAnswer === index ? secondaryColor : '',
                             color: ratingAnswer === index ? '#ffffff' : ''
                         }}
                         key={index}
                         onClick={() => {
-                            if (!disabled) {
+                            if (!isBuilder) {
                                 addFieldLinearRatingAnswer(field.id, index+1);
                             }
                         }}
@@ -75,24 +75,24 @@ const LinearRatingSection = ({
 const LinearRatingField = ({
     field,
     slide,
-    disabled = false
+    isBuilder = false
 }: {
     field: FormField;
     slide?: FormField;
-    disabled?: boolean;
+    isBuilder?: boolean;
 }) => {
-    return disabled ? (
+    return isBuilder ? (
         <LinearRatingSection
             field={field}
             slide={slide}
-            disabled={disabled}
+            isBuilder={isBuilder}
         ></LinearRatingSection>
     ) : (
         <QuestionWrapper field={field}>
             <LinearRatingSection
                 field={field}
                 slide={slide}
-                disabled={disabled}
+                isBuilder={isBuilder}
             ></LinearRatingSection>
         </QuestionWrapper>
     );

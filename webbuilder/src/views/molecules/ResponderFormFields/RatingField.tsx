@@ -14,11 +14,11 @@ import QuestionWrapper from './QuestionQwrapper';
 export default function RatingField({
     field,
     slide,
-    disabled = false
+    isBuilder = false
 }: {
     field: FormField;
     slide?: FormField;
-    disabled?: boolean;
+    isBuilder?: boolean;
 }) {
     const { addFieldRatingAnswer, formResponse } = useFormResponse();
     const answer = formResponse.answers && formResponse.answers[field.id]?.number;
@@ -40,7 +40,7 @@ export default function RatingField({
                     setMouseOver(false);
                 }}
                 onMouseOver={() => {
-                    !disabled && setMouseOver(true);
+                    !isBuilder && setMouseOver(true);
                 }}
             >
                 {_.range(field.properties?.steps || 5).map((index) => {
@@ -49,16 +49,16 @@ export default function RatingField({
                         <span
                             style={{
                                 color:
-                                    mouseOver || disabled
+                                    mouseOver || isBuilder
                                         ? theme?.tertiary
                                         : theme?.secondary
                             }}
                             key={index}
                             onMouseOut={() => {
-                                if (!disabled) setHovered((answer || 0) - 1);
+                                if (!isBuilder) setHovered((answer || 0) - 1);
                             }}
                             onClick={() => {
-                                if (!disabled) {
+                                if (!isBuilder) {
                                     addFieldRatingAnswer(field.id, index + 1);
                                     setTimeout(() => {
                                         nextField();
@@ -67,7 +67,7 @@ export default function RatingField({
                             }}
                             className="cursor-pointer"
                             onMouseOver={() => {
-                                if (!disabled) setHovered(index);
+                                if (!isBuilder) setHovered(index);
                             }}
                         >
                             <Component
@@ -82,7 +82,7 @@ export default function RatingField({
     };
     return (
         <>
-            {disabled ? (
+            {isBuilder ? (
                 <RatingSection />
             ) : (
                 <QuestionWrapper field={field}>
