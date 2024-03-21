@@ -1,7 +1,6 @@
 import React, { Suspense } from 'react';
 
 import environments from '@app/configs/environments';
-import { FormSlideLayout } from '@app/models/enums/form';
 import { store } from '@app/store/store';
 import fetchWithCookies from '@app/utils/fetchUtils';
 import FullScreenLoader from '@app/views/atoms/Loaders/FullScreenLoader';
@@ -9,7 +8,7 @@ import FullScreenLoader from '@app/views/atoms/Loaders/FullScreenLoader';
 import { FormDispatcher } from './_dispatcher/FormDispatcher';
 
 export default function Layout({
-    children,
+    children,   
     params
 }: {
     children: React.ReactNode;
@@ -44,8 +43,7 @@ async function FormWrapper({
             '/workspaces/' +
             workspaceId +
             '/forms/' +
-            formId +
-            '?published=true',
+            formId,
         config
     );
 

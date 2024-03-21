@@ -11,7 +11,7 @@ const AuthDispatcher = ({
     auth: any;
     children: React.ReactNode;
 }) => {
-    const { authState, setAuthState } = useAuthAtom();
+    const { setAuthState } = useAuthAtom();
     useEffect(() => {
         if (auth instanceof Object) {
             setAuthState(auth);
