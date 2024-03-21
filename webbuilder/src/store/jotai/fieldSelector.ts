@@ -24,6 +24,21 @@ export default function useFormFieldsAtom() {
         setFormFields([...formFields, field]);
     };
 
+    const deleteSlide = (slideIndex: number) => {
+        formFields.splice(slideIndex, 1);
+        const updatedFormFields = formFields?.map((slide: FormField, index) => {
+            slide.index = index;
+            return slide;
+        });
+        if (activeSlideComponent?.index === formFields.length) {
+            setActiveSlideComponent({
+                id: 'welcome-page',
+                index: -10
+            });
+        }
+        setFormFields([...updatedFormFields]);
+    };
+
     const getActiveSlide = () => {
         if (activeSlideComponent?.index !== undefined)
             return formFields[activeSlideComponent!.index];
@@ -127,8 +142,6 @@ export default function useFormFieldsAtom() {
         slideIndex: number,
         required: boolean
     ) => {
-        console.log(fieldIndex);
-
         formFields[slideIndex].properties!.fields![fieldIndex].validations = {
             ...formFields[slideIndex].properties!.fields![fieldIndex].validations,
             required: required
@@ -270,6 +283,7 @@ export default function useFormFieldsAtom() {
         setFormFields,
         addField,
         addSlide,
+        deleteSlide,
         updateTitle,
         updateDescription,
         updateFieldPlaceholder,

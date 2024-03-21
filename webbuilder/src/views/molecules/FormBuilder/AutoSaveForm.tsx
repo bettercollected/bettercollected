@@ -36,8 +36,6 @@ export default function AutoSaveForm({ formId }: { formId: string }) {
     };
 
     useEffect(() => {
-        console.log('Call autosave');
-
         if (debouncedForm.fields.length > 0) {
             const forms = JSON.parse(localStorage.getItem('forms') || '{}');
             const form = {

@@ -8,6 +8,7 @@ export default function SlideLayoutBackgroundImage(props: React.SVGAttributes<an
             viewBox="0 0 72 41"
             fill="none"
             xmlns="http://www.w3.org/2000/svg"
+            {...props}
         >
             <rect width="72" height="41" rx="6" fill="#D9D9D9" />
             <rect x="21" y="12" width="15" height="4" rx="2" fill="white" />
