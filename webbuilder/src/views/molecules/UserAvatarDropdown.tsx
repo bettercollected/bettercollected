@@ -4,6 +4,7 @@ import { usePathname, useRouter } from 'next/navigation';
 
 import { ChevronDown, UserRoundPlus } from 'lucide-react';
 
+import environments from '@app/configs/environments';
 import {
     Popover,
     PopoverContent,
@@ -18,7 +19,6 @@ export default function UserAvatarDropDown() {
     const router = useRouter();
     const { workspace } = useWorkspace();
     const pathname = usePathname();
-
     return (
         <Popover open={popOverOpen} onOpenChange={setPopoverOpen}>
             <PopoverTrigger className="absolute right-10 top-4">
@@ -35,7 +35,7 @@ export default function UserAvatarDropDown() {
             <PopoverContent
                 onClick={() => {
                     router.push(
-                        `https://3001.sital.sireto.dev/login?type=responder&workspace_id=${workspace.id}&redirect_to=https://forms.sital.sireto.dev${pathname}`
+                        `${environments.NEXT_PUBLIC_HTTP_SCHEME}://${environments.NEXT_PUBLIC_V1_CLIENT_ENDPOINT_DOMAIN}/login?type=responder&workspace_id=${workspace.id}&redirect_to=${environments.NEXT_PUBLIC_HTTP_SCHEME}://${environments.NEXT_PUBLIC_V2_CLIENT_ENDPOINT_DOMAIN}${pathname}`
                     );
                 }}
                 className="p2-new z-[10] mt-2 max-w-[235px] cursor-pointer rounded-lg bg-white p-4 text-black-700 shadow-blue-hue"
