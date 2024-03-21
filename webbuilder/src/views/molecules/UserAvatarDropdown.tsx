@@ -8,6 +8,7 @@ import {
     PopoverTrigger
 } from '@app/shadcn/components/ui/popover';
 import { cn } from '@app/shadcn/util/lib';
+import { useAuthAtom } from '@app/store/jotai/auth';
 
 export default function UserAvatarDropDown() {
     const [popOverOpen, setPopoverOpen] = useState(false);
@@ -16,7 +17,7 @@ export default function UserAvatarDropDown() {
         <Popover open={popOverOpen} onOpenChange={setPopoverOpen}>
             <PopoverTrigger className="absolute right-10 top-4">
                 <div className="flex cursor-pointer  items-center rounded-full bg-black-400 p-1">
-                    <UserRoundPlus className="rounded-full bg-black-500 p-1 text-white" />
+                    <UserAvatar />
                     <ChevronDown
                         className={cn(
                             ' pt-1 text-black-600 transition',
@@ -31,3 +32,28 @@ export default function UserAvatarDropDown() {
         </Popover>
     );
 }
+
+const UserAvatar = () => {
+    const { authState } = useAuthAtom();
+    if (!authState.email) {
+        return (
+            <UserRoundPlus className="h-7 w-7 rounded-full bg-black-500 p-1 text-white" />
+        );
+    }
+    if (authState.profileImage) {
+        return (
+            <img
+                className="h-8 w-8 rounded-full"
+                src={authState.profileImage}
+                alt={authState.email}
+            />
+        );
+    }
+    const name = authState.firstName || authState.lastName || authState.email;
+
+    return (
+        <div className="h-8 w-8 rounded-full bg-black-500 p-1 font-medium">
+            {name[0]?.toUpperCase()}
+        </div>
+    );
+};
