@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 
 import { AnimatePresence, motion } from 'framer-motion';
 import parse from 'html-react-parser';
@@ -169,6 +169,36 @@ export default function FormSlide({ index }: { index: number }) {
         }
     };
 
+    useEffect(() => {
+        const handleKeyDown = (event: KeyboardEvent) => {
+            const ARROW_DOWN = 'ArrowDown';
+            const ARROW_UP = 'ArrowUp';
+            const ENTER = 'Enter';
+            const TAB = 'Tab';
+
+            switch (event.key) {
+                case ENTER:
+                case TAB:
+                case ARROW_DOWN:
+                    event.preventDefault();
+                    onScrollDebounced(1);
+                    break;
+                case ARROW_UP:
+                    event.preventDefault();
+                    onScrollDebounced(-1);
+                    break;
+                default:
+                    break;
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+
+        return () => {
+            window.removeEventListener('keydown', handleKeyDown);
+        };
+    }, [onScrollDebounced, currentField]);
+
     if (!formSlide) return <FullScreenLoader />;
 
     return (
@@ -207,16 +237,19 @@ export default function FormSlide({ index }: { index: number }) {
                         <AnimatePresence mode="wait">
                             <div
                                 className={cn(
-                                    'grid h-full grid-cols-1 items-center justify-center px-20 py-60'
+                                    'grid h-full grid-cols-1 content-center items-center justify-center px-20 py-60'
                                 )}
                             >
                                 {formSlide?.properties?.fields?.map((field, index) => (
                                     <Scene
                                         key={field.id}
                                         duration={800}
-                                        pin={{ pushFollowers: true }}
+                                        pin={{
+                                            pushFollowers: true,
+                                            spacerClass: 'spacer'
+                                        }}
                                         triggerHook={1}
-                                        offset={125}
+                                        offset={305}
                                     >
                                         <>
                                             {currentField - 1 === index && (
@@ -271,17 +304,20 @@ export default function FormSlide({ index }: { index: number }) {
                                             {currentField === index && (
                                                 <Timeline
                                                     target={
-                                                        <FormFieldComponent
-                                                            field={
-                                                                formSlide!.properties!
-                                                                    .fields![
-                                                                    currentField
-                                                                ]
-                                                            }
-                                                            slideIndex={
-                                                                formSlide!.index
-                                                            }
-                                                        />
+                                                        <div className="mt-20">
+                                                            <FormFieldComponent
+                                                                field={
+                                                                    formSlide!
+                                                                        .properties!
+                                                                        .fields![
+                                                                        currentField
+                                                                    ]
+                                                                }
+                                                                slideIndex={
+                                                                    formSlide!.index
+                                                                }
+                                                            />
+                                                        </div>
                                                     }
                                                 >
                                                     <Tween
