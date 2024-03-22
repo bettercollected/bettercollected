@@ -1,6 +1,3 @@
-import Image from 'next/image';
-
-import DemoImage from '@app/assets/image/rectangle.png';
 import { FormField } from '@app/models/dtos/form';
 import { useStandardForm } from '@app/store/jotai/fetchedForm';
 
