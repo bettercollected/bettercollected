@@ -395,8 +395,9 @@ export default function FormSlide({
                                     </Scene>
                                 ))}
 
-                                {currentField + 1 ===
-                                    formSlide?.properties?.fields?.length && (
+                                {(!formSlide?.properties?.fields?.length ||
+                                    currentField + 1 ===
+                                        formSlide?.properties?.fields?.length) && (
                                     <motion.div
                                         initial={{ y: '200%', opacity: 0 }}
                                         animate={{ y: '0', opacity: 1 }}
