@@ -113,7 +113,7 @@ const SlideBuilder = ({
                                     {...provided.droppableProps}
                                     ref={provided.innerRef}
                                     className={cn(
-                                        'grid h-full grid-cols-1 justify-center gap-5 px-20 py-60'
+                                        'grid h-full grid-cols-1 justify-center gap-20 px-20 py-60'
                                     )}
                                 >
                                     {Array.isArray(slideFields) &&
