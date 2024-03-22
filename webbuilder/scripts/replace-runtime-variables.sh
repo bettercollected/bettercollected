@@ -17,7 +17,7 @@ else
 fi
 
 # Define a list of environment variables to check and replace
-VARIABLES=("NEXT_PUBLIC_API_ENDPOINT_HOST" "NEXT_PUBLIC_DASHBOARD_DOMAIN")
+VARIABLES=("NEXT_PUBLIC_API_ENDPOINT_HOST" "NEXT_PUBLIC_DASHBOARD_DOMAIN" "NEXT_PUBLIC_UNSPLASH_ACCESS_KEY")
 
 # Check if each variable is set
 for VAR in "${VARIABLES[@]}"; do

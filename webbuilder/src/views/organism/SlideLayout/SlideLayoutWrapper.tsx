@@ -77,7 +77,7 @@ export default function SlideLayoutWrapper({
                             'absolute flex h-full w-full items-center gap-4',
                             slide?.properties?.layout ===
                                 FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND
-                                ? '-top-[55%] left-0'
+                                ? '-top-[52%] left-0'
                                 : 'justify-center'
                         )}
                     >
@@ -187,7 +187,7 @@ export default function SlideLayoutWrapper({
                                     'flex h-full items-center justify-center text-lg font-semibold',
                                     slide?.properties?.layout ===
                                         FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND
-                                        ? 'absolute -top-[55%] left-0'
+                                        ? 'absolute -top-[52%] left-0'
                                         : ''
                                 )}
                             >

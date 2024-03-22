@@ -81,7 +81,7 @@ export default function FormPage({ params }: { params: { formId: string } }) {
             <div className="flex max-h-body-content w-full flex-row items-center gap-10">
                 <LeftDrawer />
                 <div
-                    className="relative flex h-full flex-1 flex-col items-center justify-center "
+                    className="relative mx-10 flex h-full flex-1 flex-col items-center justify-center "
                     onClick={() => {
                         setActiveFieldComponent(null);
                     }}

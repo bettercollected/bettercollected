@@ -86,6 +86,7 @@ export default function LayoutsTab({ closePopover }: { closePopover: () => void 
                     ].map(
                         (item: { style: FormSlideLayout; Icon: any; name: string }) => (
                             <Layout
+                                key={item.name}
                                 Icon={item.Icon}
                                 style={item.style}
                                 name={item.name}

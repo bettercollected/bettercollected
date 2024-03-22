@@ -101,7 +101,7 @@ export default function PagePropertiesTab({}: {}) {
                                         onClick={() => updateSlideImage('')}
                                         className="!h-auto py-2"
                                     >
-                                        Remove Layout Image
+                                        Remove Image
                                     </Button>
                                 ) : (
                                     <Button
