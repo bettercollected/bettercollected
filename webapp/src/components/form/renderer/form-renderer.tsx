@@ -339,7 +339,7 @@ export default function FormRenderer({ form, response, enabled, isDisabled = fal
                 <>
                     {form?.builderVersion === 'v2' ? (
                         <div className="w-full aspect-video bg-blue-200">
-                            <iframe src={previewURL} className="h-full w-full"></iframe>{' '}
+                            <iframe src={previewURL} className="h-full w-full overflow-y-auto"></iframe>{' '}
                         </div>
                     ) : (
                         <BetterCollectedForm form={form} response={response} enabled={enabled} isDisabled={isDisabled} />
