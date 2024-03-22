@@ -1,14 +1,11 @@
 'use client';
 
-import { useState } from 'react';
-
 import { RadioGroup } from '@headlessui/react';
 import { Editor } from '@tiptap/react';
 import cn from 'classnames';
 import { GripVertical } from 'lucide-react';
 import { DragDropContext, Draggable, DroppableProvided } from 'react-beautiful-dnd';
 
-import { useDialogModal } from '@app/lib/hooks/useDialogModal';
 import { FieldTypes, FormField } from '@app/models/dtos/form';
 import { FormSlideLayout } from '@app/models/enums/form';
 import { Button } from '@app/shadcn/components/ui/button';
