@@ -9,7 +9,6 @@ import { Controller, Scene } from 'react-scrollmagic';
 import { toast } from 'react-toastify';
 import { useDebounceCallback } from 'usehooks-ts';
 
-import DemoImage from '@app/assets/image/rectangle.png';
 import { FieldTypes, FormField } from '@app/models/dtos/form';
 import { FormSlideLayout } from '@app/models/enums/form';
 import { Button } from '@app/shadcn/components/ui/button';

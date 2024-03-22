@@ -4,7 +4,6 @@ import React from 'react';
 
 import { createApi } from 'unsplash-js';
 
-import environments from '@app/configs/environments';
 import { useDialogModal } from '@app/lib/hooks/useDialogModal';
 import { FormField } from '@app/models/dtos/form';
 import { Unsplash } from '@app/views/atoms/Icons/Brands/Unsplash';
@@ -36,7 +35,10 @@ export default function UnsplashImagePicker({
     const updateSlideImage = props?.updateSlideImage ?? (() => {});
 
     const unsplash = createApi({
-        accessKey: environments.NEXT_PUBLIC_UNSPLASH_ACCESS_KEY || ''
+        accessKey:
+            props.UNSPLASH_ACCESS_KEY ||
+            process.env.NEXT_PUBLIC_UNSPLASH_ACCESS_KEY ||
+            ''
     });
 
     React.useEffect(() => {
