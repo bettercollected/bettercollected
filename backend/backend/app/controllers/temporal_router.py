@@ -1,10 +1,13 @@
 from beanie import PydanticObjectId
-from classy_fastapi import Routable, post
+from classy_fastapi import Routable, post, patch
 from fastapi import Depends
 
 from backend.app.container import container
 from backend.app.router import router
-from backend.app.services.init_schedulers import migrate_schedule_to_temporal
+from backend.app.services.init_schedulers import (
+    migrate_schedule_to_temporal,
+    update_schedule_intervals,
+)
 from backend.app.services.user_service import get_api_key, get_logged_admin
 
 
@@ -44,3 +47,13 @@ class TemporalRouter(Routable):
     ):
         await migrate_schedule_to_temporal()
         return "Ok"
+
+    @patch("/import/interval")
+    async def update_import_interval(
+        self,
+        interval: int,
+        api_key=Depends(get_api_key),
+        user=Depends(get_logged_admin),
+    ):
+        await update_schedule_intervals(interval)
+        return "Done"
