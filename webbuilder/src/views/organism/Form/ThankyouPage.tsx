@@ -7,7 +7,7 @@ import { Button } from '@app/shadcn/components/ui/button';
 import { useStandardForm } from '@app/store/jotai/fetchedForm';
 import UserAvatarDropDown from '@app/views/molecules/UserAvatarDropdown';
 
-export default function ThankyouPage() {
+export default function ThankyouPage({ isPreviewMode }: { isPreviewMode: boolean }) {
     const { standardForm } = useStandardForm();
     return (
         <div
@@ -15,7 +15,7 @@ export default function ThankyouPage() {
             style={{ background: standardForm.theme?.accent }}
         >
             <div className=" relative flex h-full flex-col justify-center px-20">
-                <UserAvatarDropDown />
+                <UserAvatarDropDown disabled />
 
                 <div className="px-10 lg:px-20">
                     <div className="flex">
@@ -33,8 +33,10 @@ export default function ThankyouPage() {
                     >
                         <Link
                             href={
-                                standardForm?.buttonLink ||
-                                'https://bettercollected.com'
+                                isPreviewMode
+                                    ? ''
+                                    : standardForm?.buttonLink ||
+                                      'https://bettercollected.com'
                             }
                             target="_blank"
                             referrerPolicy="no-referrer"
@@ -48,7 +50,7 @@ export default function ThankyouPage() {
                         </div>
                         <div>
                             <Link
-                                href={'https://youtube.com'}
+                                href={isPreviewMode ? '' : 'https://youtube.com'}
                                 className="text-blue-500"
                             >
                                 See all your submissions

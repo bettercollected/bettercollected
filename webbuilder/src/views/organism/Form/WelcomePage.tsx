@@ -1,17 +1,26 @@
 import Image from 'next/image';
 import Link from 'next/link';
+import { usePathname, useRouter } from 'next/navigation';
 
 import { Globe, Lock } from 'lucide-react';
 
 import DemoImage from '@app/assets/image/rectangle.png';
+import environments from '@app/configs/environments';
 import { Button } from '@app/shadcn/components/ui/button';
+import { useAuthAtom } from '@app/store/jotai/auth';
 import { useStandardForm } from '@app/store/jotai/fetchedForm';
 import { useResponderState } from '@app/store/jotai/responderFormState';
+import useWorkspace from '@app/store/jotai/workspace';
 import UserAvatarDropDown from '@app/views/molecules/UserAvatarDropdown';
 
-export default function WelcomePage() {
+export default function WelcomePage({ isPreviewMode }: { isPreviewMode: boolean }) {
     const { standardForm } = useStandardForm();
     const { nextSlide } = useResponderState();
+    const router = useRouter();
+    const pathname = usePathname();
+    const { workspace } = useWorkspace();
+    const { authState } = useAuthAtom();
+    const responderSignInUrl = `${environments.NEXT_PUBLIC_HTTP_SCHEME}://${environments.NEXT_PUBLIC_V1_CLIENT_ENDPOINT_DOMAIN}/login?type=responder&workspace_id=${workspace.id}&redirect_to=${environments.NEXT_PUBLIC_HTTP_SCHEME}://${environments.NEXT_PUBLIC_V2_CLIENT_ENDPOINT_DOMAIN}${pathname}`;
 
     return (
         <div
@@ -19,7 +28,9 @@ export default function WelcomePage() {
             style={{ background: standardForm.theme?.accent }}
         >
             <div className="relative flex h-full flex-col justify-center px-20">
-                <UserAvatarDropDown />
+                <UserAvatarDropDown
+                    responderSignInUrl={isPreviewMode ? '' : responderSignInUrl}
+                />
 
                 <div className="text-[40px] font-bold leading-[48px]">
                     {standardForm.title}
@@ -58,7 +69,10 @@ export default function WelcomePage() {
                                 The form you are trying to access is public, but you can
                                 always sign in to view your response later.{' '}
                                 <span>
-                                    <Link href={'/login'} className="text-blue-500 ">
+                                    <Link
+                                        href={isPreviewMode ? '' : '/login'}
+                                        className="text-blue-500 "
+                                    >
                                         {' '}
                                         Verify Account
                                     </Link>
@@ -73,14 +87,20 @@ export default function WelcomePage() {
                         className="mt-20 rounded px-8 py-3"
                         size="medium"
                         onClick={() => {
-                            if (!standardForm?.settings?.requireVerifiedIdentity) {
+                            if (
+                                !authState.id &&
+                                standardForm?.settings?.requireVerifiedIdentity
+                            ) {
+                                router.push(responderSignInUrl);
+                            } else {
                                 nextSlide();
                                 return;
                             }
                         }}
                     >
-                        {standardForm?.settings?.requireVerifiedIdentity
-                            ? 'Verify Now'
+                        {standardForm?.settings?.requireVerifiedIdentity &&
+                        !authState.id
+                            ? 'Verify and Start'
                             : 'Start'}
                     </Button>
                 </div>
