@@ -11,8 +11,10 @@ import { useDebounceCallback } from 'usehooks-ts';
 
 import DemoImage from '@app/assets/image/rectangle.png';
 import { FieldTypes, FormField } from '@app/models/dtos/form';
+import { FormSlideLayout } from '@app/models/enums/form';
 import { Button } from '@app/shadcn/components/ui/button';
 import { ScrollArea } from '@app/shadcn/components/ui/scroll-area';
+import { cn } from '@app/shadcn/util/lib';
 import { useFormSlide, useStandardForm } from '@app/store/jotai/fetchedForm';
 import useFormAtom from '@app/store/jotai/formFile';
 import { useFormResponse } from '@app/store/jotai/responderFormResponse';
@@ -21,17 +23,20 @@ import useWorkspace from '@app/store/jotai/workspace';
 import { useSubmitResponseMutation } from '@app/store/redux/formApi';
 import { getHtmlFromJson } from '@app/utils/richTextEditorExtenstion/getHtmlFromJson';
 import { validateSlide } from '@app/utils/validationUtils';
+import FullScreenLoader from '@app/views/atoms/Loaders/FullScreenLoader';
 import DateField from '@app/views/molecules/ResponderFormFields/DateField';
 import DropDownField from '@app/views/molecules/ResponderFormFields/DropDownField';
 import FileUploadField from '@app/views/molecules/ResponderFormFields/FileUploadField';
 import InputField from '@app/views/molecules/ResponderFormFields/InputField';
+import LinearRatingField from '@app/views/molecules/ResponderFormFields/LinearRating';
 import MultipleChoiceField from '@app/views/molecules/ResponderFormFields/MultipleChoiceField';
 import MultipleChoiceWithMultipleSelection from '@app/views/molecules/ResponderFormFields/MultipleChoiceWirhMultipleSelections';
 import PhoneNumberField from '@app/views/molecules/ResponderFormFields/PhoneNumberField';
 import QuestionWrapper from '@app/views/molecules/ResponderFormFields/QuestionQwrapper';
 import RatingField from '@app/views/molecules/ResponderFormFields/RatingField';
 import YesNoField from '@app/views/molecules/ResponderFormFields/YesNoField';
-import LinearRatingField from '@app/views/molecules/ResponderFormFields/LinearRating';
+
+import SlideLayoutWrapper from '../SlideLayout/SlideLayoutWrapper';
 
 export function FormFieldComponent({
     field,
@@ -164,21 +169,48 @@ export default function FormSlide({ index }: { index: number }) {
         }
     };
 
+    if (!formSlide) return <FullScreenLoader />;
+
+    console.log(formSlide);
+
     return (
-        <div
-            className="grid h-full w-full grid-cols-2"
-            style={{ background: standardForm.theme?.accent }}
-        >
-            <ScrollArea
-                asChild
-                className="h-full flex-1 overflow-y-auto"
-                onWheel={(event) => {
-                    onScrollDebounced(event?.deltaY > 0 ? 1 : -1);
+        <SlideLayoutWrapper slide={formSlide} disabled>
+            <div
+                className={cn(
+                    'grid-cols-1 overflow-hidden',
+                    formSlide &&
+                        formSlide?.type === FieldTypes.SLIDE &&
+                        formSlide?.properties?.layout ===
+                            FormSlideLayout.TWO_COLUMN_IMAGE_LEFT
+                        ? 'order-1'
+                        : formSlide &&
+                            formSlide?.properties?.layout ===
+                                FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT
+                          ? 'order-0'
+                          : '' // Add a default case or handle the case when layout is neither 'two-column-right' nor 'two-column-left'
+                )}
+                style={{
+                    background:
+                        formSlide &&
+                        formSlide?.properties?.layout ===
+                            FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND
+                            ? 'transparent'
+                            : standardForm.theme?.accent
                 }}
             >
-                <AnimatePresence mode="wait">
-                    <div className=" flex h-full flex-col items-center justify-center py-4">
-                        <div className="  w-full max-w-[800px] px-10">
+                <ScrollArea
+                    asChild
+                    className="z-10 h-full flex-1 overflow-y-auto"
+                    onWheel={(event) => {
+                        onScrollDebounced(event?.deltaY > 0 ? 1 : -1);
+                    }}
+                >
+                    <AnimatePresence mode="wait">
+                        <div
+                            className={cn(
+                                'grid h-full grid-cols-1 items-center justify-center px-20 py-60'
+                            )}
+                        >
                             {formSlide?.properties?.fields?.map((field, index) => (
                                 <>
                                     {currentField - 1 === index && (
@@ -197,9 +229,15 @@ export default function FormSlide({ index }: { index: number }) {
                                             }}
                                         >
                                             <div
-                                                className="absolute bottom-0 left-0 right-0 top-0 z-[10]"
+                                                className="absolute bottom-0 left-0 right-0 top-0"
                                                 style={{
-                                                    background: `linear-gradient(360deg, transparent 0%, ${standardForm.theme?.accent} 100%)`
+                                                    background:
+                                                        formSlide &&
+                                                        formSlide?.properties
+                                                            ?.layout ===
+                                                            FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND
+                                                            ? 'transparent'
+                                                            : `linear-gradient(360deg, transparent 0%, ${standardForm.theme?.accent} 100%)`
                                                 }}
                                             />
                                             <div className="absolute bottom-0 w-full">
@@ -261,7 +299,13 @@ export default function FormSlide({ index }: { index: number }) {
                                                 <div
                                                     className="absolute bottom-0 left-0 right-0 top-0 z-[10]"
                                                     style={{
-                                                        background: `linear-gradient(180deg, transparent 0%, ${standardForm.theme?.accent} 100%)`
+                                                        background:
+                                                            formSlide &&
+                                                            formSlide?.properties
+                                                                ?.layout ===
+                                                                FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND
+                                                                ? 'transparent'
+                                                                : `linear-gradient(180deg, transparent 0%, ${standardForm.theme?.accent} 100%)`
                                                     }}
                                                 />
                                                 <FormFieldComponent
@@ -303,21 +347,9 @@ export default function FormSlide({ index }: { index: number }) {
                                 </motion.div>
                             )}
                         </div>
-                    </div>
-                </AnimatePresence>
-            </ScrollArea>
-            <div className="relative h-full w-full">
-                <Image
-                    src={DemoImage}
-                    alt="Demo Image"
-                    fill
-                    style={{
-                        objectFit: 'cover'
-                    }}
-                    priority
-                    sizes="(min-w: 0px) 100%"
-                />
+                    </AnimatePresence>
+                </ScrollArea>
             </div>
-        </div>
+        </SlideLayoutWrapper>
     );
 }

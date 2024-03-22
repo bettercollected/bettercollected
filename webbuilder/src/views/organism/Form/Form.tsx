@@ -6,7 +6,6 @@ import FormSlide from './FormSlide';
 import ThankyouPage from './ThankyouPage';
 import WelcomePage from './WelcomePage';
 
-
 const Form = () => {
     const { currentSlide } = useResponderState();
 
@@ -15,7 +14,7 @@ const Form = () => {
             <AnimatePresence custom={currentSlide} mode="wait">
                 {currentSlide === -1 && (
                     <motion.div
-                        className="h-full"
+                        className="relative flex h-full flex-1 flex-col items-center justify-center "
                         key={'welcome-page'}
                         initial={{ opacity: 0, x: -100 }}
                         animate={{ opacity: 1, x: 0 }}
@@ -28,7 +27,7 @@ const Form = () => {
 
                 {currentSlide >= 0 && (
                     <motion.div
-                        className="h-full"
+                        className="relative flex h-full flex-1 flex-col items-center justify-center "
                         key={currentSlide}
                         initial={{ opacity: 0, x: -100 }}
                         animate={{ opacity: 1, x: 0 }}
@@ -41,7 +40,7 @@ const Form = () => {
 
                 {currentSlide === -2 && (
                     <motion.div
-                        className="h-full"
+                        className="relative flex h-full flex-1 flex-col items-center justify-center "
                         key={'thank-you-page'}
                         initial={{ opacity: 0, x: -100 }}
                         animate={{ opacity: 1, x: 0 }}

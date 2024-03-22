@@ -8,7 +8,7 @@ import FullScreenLoader from '@app/views/atoms/Loaders/FullScreenLoader';
 import { FormDispatcher } from './_dispatcher/FormDispatcher';
 
 export default function Layout({
-    children,   
+    children,
     params
 }: {
     children: React.ReactNode;
@@ -17,11 +17,9 @@ export default function Layout({
     const workspaceId = store.getState().workspace.id;
 
     return (
-        <>
-            <FormWrapper workspaceId={workspaceId} formId={params.formId}>
-                {children}
-            </FormWrapper>
-        </>
+        <FormWrapper workspaceId={workspaceId} formId={params.formId}>
+            {children}
+        </FormWrapper>
     );
 }
 
@@ -48,10 +46,8 @@ async function FormWrapper({
     );
 
     return (
-        <>
-            <Suspense fallback={<FullScreenLoader />}>
-                <FormDispatcher form={form}>{children}</FormDispatcher>
-            </Suspense>
-        </>
+        <Suspense fallback={<FullScreenLoader />}>
+            <FormDispatcher form={form}>{children}</FormDispatcher>
+        </Suspense>
     );
 }

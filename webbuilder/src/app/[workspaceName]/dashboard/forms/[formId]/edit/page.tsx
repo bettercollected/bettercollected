@@ -75,7 +75,7 @@ export default function FormPage({ params }: { params: { formId: string } }) {
     }, [navbarState]);
 
     return (
-        <main className="flex h-screen flex-col items-center justify-start bg-black-100">
+        <main className="flex h-screen flex-col items-center justify-start overflow-hidden bg-black-100">
             <Navbar />
             <AutoSaveForm formId={formId} />
             <div className="flex max-h-body-content w-full flex-row items-center gap-10">

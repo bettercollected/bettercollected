@@ -39,27 +39,24 @@ export default function ResponsePage({
         }
     }, [data?.response?.responseId]);
     return (
-        <div className="h-screen w-screen">
-            <ScrollArea className="overfloe-y-auto  flex h-full w-full flex-col">
+        <div className="max-h-screen w-full">
+            <ScrollArea className="flex h-full w-full flex-col overflow-y-auto">
                 <div className="pointer-events-none">
-                    <div className="p-4">
-                        <div className="min-h-screen w-full overflow-hidden rounded-xl border border-black-400">
-                            <WelcomePage />
-                        </div>
+                    <div className="max-h-screen w-full overflow-hidden rounded-xl border border-black-400">
+                        <WelcomePage />
                     </div>
                     {standardForm?.fields?.map((slide, index) => {
                         return (
-                            <div className="p-4" key={index}>
-                                <div className="h-full min-h-screen w-full overflow-hidden rounded-xl border border-black-400 ">
-                                    <FormSlidePreview slide={slide} />
-                                </div>
+                            <div
+                                key={index}
+                                className="h-full max-h-screen w-full overflow-hidden rounded-xl border border-black-400"
+                            >
+                                <FormSlidePreview slide={slide} />
                             </div>
                         );
                     })}
-                    <div className="p-4">
-                        <div className="min-h-screen w-full overflow-hidden rounded-xl border border-black-400 ">
-                            <ThankyouPage />
-                        </div>
+                    <div className="max-h-screen w-full overflow-hidden rounded-xl border border-black-400 ">
+                        <ThankyouPage />
                     </div>
                 </div>
             </ScrollArea>

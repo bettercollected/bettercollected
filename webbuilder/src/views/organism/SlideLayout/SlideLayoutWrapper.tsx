@@ -107,7 +107,7 @@ export default function SlideLayoutWrapper({
                             FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT
                         ? 'grid-cols-2'
                         : 'grid-cols-1',
-                    disabled ? 'pointer-events-none overflow-hidden' : ''
+                    disabled ? 'h-full overflow-hidden' : ''
                 )}
             >
                 {children}
@@ -126,12 +126,15 @@ export default function SlideLayoutWrapper({
                                         FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT
                                     ? 'grid-cols-1'
                                     : '',
-                                slide?.imageUrl
+                                slide?.imageUrl && !disabled
                                     ? 'hover:cursor-pointer hover:!bg-black/30'
                                     : 'bg-neutral-100 shadow hover:cursor-default'
                             )}
-                            onClick={handleGridClick}
+                            onClick={disabled ? () => {} : handleGridClick}
                             role="button"
+                            {...(disabled
+                                ? { tabIndex: -1, 'aria-disabled': true }
+                                : {})}
                         >
                             {slide?.imageUrl ? (
                                 <DisplayImageWithControls imageUrl={slide.imageUrl} />
@@ -161,16 +164,18 @@ export default function SlideLayoutWrapper({
                 <div
                     className={cn(
                         'relative z-0',
-                        slide?.imageUrl
+                        slide?.imageUrl && !disabled
                             ? 'hover:cursor-pointer hover:!bg-black/30'
                             : 'bg-neutral-100 shadow hover:cursor-default',
                         slide?.properties?.layout ===
                             FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND
                             ? 'absolute inset-0 top-1/2 aspect-video h-min -translate-y-1/2 transform !bg-transparent'
-                            : ''
+                            : '',
+                        disabled ? 'h-full' : ''
                     )}
-                    onClick={handleGridClick}
+                    onClick={disabled ? () => {} : handleGridClick}
                     role="button"
+                    {...(disabled ? { tabIndex: -1, 'aria-disabled': true } : {})}
                 >
                     {/* No need to show controls for single column without background layout */}
                     {slide?.imageUrl ? (
