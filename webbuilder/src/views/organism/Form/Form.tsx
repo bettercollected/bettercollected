@@ -21,7 +21,7 @@ const Form = ({isPreviewMode = false}: {isPreviewMode?: boolean}) => {
                         exit={{ opacity: 0 }}
                         transition={{ duration: 0.2 }}
                     >
-                        <WelcomePage />
+                        <WelcomePage isPreviewMode={isPreviewMode}/>
                     </motion.div>
                 )}
 
@@ -47,7 +47,7 @@ const Form = ({isPreviewMode = false}: {isPreviewMode?: boolean}) => {
                         exit={{ opacity: 0 }}
                         transition={{ duration: 0.2 }}
                     >
-                        <ThankyouPage />
+                        <ThankyouPage isPreviewMode={isPreviewMode}/>
                     </motion.div>
                 )}
             </AnimatePresence>
