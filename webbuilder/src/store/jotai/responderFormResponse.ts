@@ -57,6 +57,7 @@ export interface FormResponse {
     };
     consent?: Array<any>;
     invalidFields?: Record<string, Array<Invalidations>>;
+    anonymize?: boolean;
 }
 
 const initialFormResponse: FormResponse = {

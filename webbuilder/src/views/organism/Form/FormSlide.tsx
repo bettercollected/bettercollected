@@ -12,8 +12,10 @@ import { useDebounceCallback } from 'usehooks-ts';
 import { FieldTypes, FormField } from '@app/models/dtos/form';
 import { FormSlideLayout } from '@app/models/enums/form';
 import { Button } from '@app/shadcn/components/ui/button';
+import { FieldInput } from '@app/shadcn/components/ui/input';
 import { ScrollArea } from '@app/shadcn/components/ui/scroll-area';
 import { cn } from '@app/shadcn/util/lib';
+import { useAuthAtom } from '@app/store/jotai/auth';
 import { useFormSlide, useStandardForm } from '@app/store/jotai/fetchedForm';
 import useFormAtom from '@app/store/jotai/formFile';
 import { useFormResponse } from '@app/store/jotai/responderFormResponse';
@@ -104,10 +106,11 @@ export default function FormSlide({
         setCurrentField
     } = useResponderState();
     const { standardForm } = useStandardForm();
-    const { formResponse, setInvalidFields } = useFormResponse();
+    const { formResponse, setInvalidFields, setFormResponse } = useFormResponse();
     const { workspace } = useWorkspace();
     const [submitResponse, { isLoading }] = useSubmitResponseMutation();
     const { files } = useFormAtom();
+    const { authState } = useAuthAtom();
 
     const handleFieldChange = (newCurrentField: number) => {
         setCurrentField(newCurrentField);
@@ -136,7 +139,8 @@ export default function FormSlide({
 
         const postBody = {
             form_id: standardForm?.formId,
-            answers: formResponse.answers ?? {}
+            answers: formResponse.answers ?? {},
+            anonymize: formResponse.anonymize ?? false
         };
 
         formData.append('response', JSON.stringify(postBody));
@@ -405,13 +409,51 @@ export default function FormSlide({
                                             type: 'tween'
                                         }}
                                     >
+                                        {(standardForm?.fields?.length || 0) - 1 ===
+                                            currentSlide && (
+                                            <div className="mt-20 flex flex-col">
+                                                {authState.id &&
+                                                    !standardForm.settings
+                                                        ?.requireVerifiedIdentity && (
+                                                        <div className="flex flex-row gap-2 text-sm ">
+                                                            <FieldInput
+                                                                checked={
+                                                                    formResponse.anonymize
+                                                                }
+                                                                onChange={(e) =>
+                                                                    setFormResponse({
+                                                                        ...formResponse,
+                                                                        anonymize:
+                                                                            e.target
+                                                                                .checked
+                                                                    })
+                                                                }
+                                                                type="checkbox"
+                                                                className="h-4 w-4 border focus:border-0 focus:outline-none"
+                                                            />
+                                                            Hide your email from Form
+                                                            Collector
+                                                        </div>
+                                                    )}
+                                                {authState.id && (
+                                                    <div
+                                                        className={`p2-new mt-2 italic text-black-600 `}
+                                                    >
+                                                        {authState?.id &&
+                                                        !formResponse.anonymize
+                                                            ? `You are submitting this form as ${authState?.email}`
+                                                            : 'Your identity is hidden from form creator.'}{' '}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
                                         <Button
                                             style={{
                                                 background:
                                                     standardForm.theme?.secondary
                                             }}
                                             isLoading={isLoading}
-                                            className="mt-20 rounded px-8 py-3"
+                                            className="mt-4 rounded px-8 py-3"
                                             onClick={onNext}
                                             size="medium"
                                         >
