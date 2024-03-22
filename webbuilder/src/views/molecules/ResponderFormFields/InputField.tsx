@@ -6,7 +6,6 @@ import { getPlaceholderValueForField } from '@app/utils/formUtils';
 
 import QuestionWrapper from './QuestionQwrapper';
 
-
 export default function InputField({ field }: { field: FormField }) {
     const {
         formResponse,

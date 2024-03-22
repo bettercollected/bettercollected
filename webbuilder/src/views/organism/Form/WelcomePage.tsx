@@ -15,10 +15,10 @@ export default function WelcomePage() {
 
     return (
         <div
-            className="grid h-screen w-full grid-cols-2"
+            className="grid h-screen w-full grid-cols-1"
             style={{ background: standardForm.theme?.accent }}
         >
-            <div className=" relative flex h-full flex-col justify-center px-20">
+            <div className="relative flex h-full flex-col justify-center px-20">
                 <UserAvatarDropDown />
 
                 <div className="text-[40px] font-bold leading-[48px]">
@@ -84,18 +84,6 @@ export default function WelcomePage() {
                             : 'Start'}
                     </Button>
                 </div>
-            </div>
-            <div className="relative h-full w-full">
-                <Image
-                    src={DemoImage}
-                    alt="Demo Image"
-                    fill
-                    style={{
-                        objectFit: 'cover'
-                    }}
-                    priority
-                    sizes="(min-w: 0px) 100%"
-                />
             </div>
         </div>
     );

@@ -13,11 +13,9 @@ export default function WorkspaceLayout({
     params
 }: Readonly<{ children: React.ReactNode; params: { workspaceName: string } }>) {
     return (
-        <main className="h-full">
-            <WorkspaceWrapper workspaceName={params.workspaceName}>
-                {children}
-            </WorkspaceWrapper>
-        </main>
+        <WorkspaceWrapper workspaceName={params.workspaceName}>
+            {children}
+        </WorkspaceWrapper>
     );
 }
 
@@ -45,12 +43,8 @@ async function WorkspaceWrapper({
     }
 
     return (
-        <>
-            <Suspense fallback={<FullScreenLoader />}>
-                <WorkspaceDispatcher workspace={workspace}>
-                    {children}
-                </WorkspaceDispatcher>
-            </Suspense>
-        </>
+        <Suspense fallback={<FullScreenLoader />}>
+            <WorkspaceDispatcher workspace={workspace}>{children}</WorkspaceDispatcher>
+        </Suspense>
     );
 }

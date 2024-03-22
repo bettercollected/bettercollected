@@ -34,47 +34,19 @@ import {
 } from '../../molecules/RichTextEditor';
 import SlideLayoutWrapper from '../SlideLayout/SlideLayoutWrapper';
 
-
 const SlideBuilder = ({
     slide,
-    // layout = FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT,
     isScaledDown = false,
     disabled = false
 }: {
     slide: FormField;
-    // layout: FormSlideLayout,
     isScaledDown?: boolean;
     disabled?: boolean;
 }) => {
     const slideFields = slide?.properties?.fields;
-    const {
-        activeSlide,
-        updateTitle,
-        updateDescription,
-        moveFieldInASlide,
-        deleteField,
-        updateSlideImage
-    } = useFormFieldsAtom();
+    const { updateTitle, updateDescription, moveFieldInASlide, deleteField } =
+        useFormFieldsAtom();
     const { setActiveFieldComponent, activeFieldComponent } = useActiveFieldComponent();
-
-    const [showControls, setShowControls] = useState(false);
-
-    const { openDialogModal } = useDialogModal();
-
-    const handleGridClick = () => {
-        setShowControls(!showControls);
-    };
-
-    const handleRemoveImage = () => {
-        updateSlideImage('');
-    };
-
-    const handleChangeImage = () => {
-        openDialogModal('UNSPLASH_IMAGE_PICKER', {
-            activeSlide,
-            updateSlideImage
-        });
-    };
 
     function renderField(field: FormField) {
         switch (field.type) {

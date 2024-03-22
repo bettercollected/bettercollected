@@ -11,7 +11,7 @@ export default function ThankyouPage() {
     const { standardForm } = useStandardForm();
     return (
         <div
-            className="grid h-screen w-full grid-cols-2"
+            className="grid h-screen w-full grid-cols-1"
             style={{ background: standardForm.theme?.accent }}
         >
             <div className=" relative flex h-full flex-col justify-center px-20">
@@ -56,18 +56,6 @@ export default function ThankyouPage() {
                         </div>
                     </div>
                 </div>
-            </div>
-            <div className="relative h-full w-full">
-                <Image
-                    src={DemoImage}
-                    alt="Demo Image"
-                    fill
-                    style={{
-                        objectFit: 'cover'
-                    }}
-                    priority
-                    sizes="(min-w: 0px) 100%"
-                />
             </div>
         </div>
     );

@@ -14,30 +14,16 @@ export default function FormSlidePreview({ slide }: { slide: FormField }) {
             className="grid min-h-screen w-full grid-cols-2"
             style={{ background: standardForm.theme?.accent }}
         >
-            <div className=" flex h-full flex-col items-center justify-center py-4">
-                <div className=" flex h-full w-full max-w-[800px] flex-col  gap-20 px-10 py-20">
-                    {slide?.properties?.fields?.map((field) => {
-                        return (
-                            <FormFieldComponent
-                                key={field.id}
-                                field={field}
-                                slideIndex={slide!.index}
-                            />
-                        );
-                    })}
-                </div>
-            </div>
-            <div className="relative h-full w-full">
-                <Image
-                    src={DemoImage}
-                    alt="Demo Image"
-                    fill
-                    style={{
-                        objectFit: 'cover'
-                    }}
-                    priority
-                    sizes="(min-w: 0px) 100%"
-                />
+            <div className="relative flex h-full flex-1 flex-col items-center justify-center ">
+                {slide?.properties?.fields?.map((field) => {
+                    return (
+                        <FormFieldComponent
+                            key={field.id}
+                            field={field}
+                            slideIndex={slide!.index}
+                        />
+                    );
+                })}
             </div>
         </div>
     );

@@ -18,6 +18,7 @@ import ReduxProvider from '@app/shared/hocs/ReduxProvider';
 import ThemeProvider from '@app/shared/hocs/ThemeProvider';
 import CookieConsent from '@app/views/atoms/CookieConsent';
 import NextNProgress from '@app/views/atoms/NextNProgress';
+import { cn } from '@app/shadcn/util/lib';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -33,7 +34,7 @@ export default function RootLayout({
 }>) {
     return (
         <html lang="en">
-            <body className={inter.className}>
+            <body className={cn('max-h-screen overflow-hidden', inter.className)}>
                 <ThemeProvider>
                     <CookieConsent />
                     <NextNProgress
