@@ -1,6 +1,7 @@
 import { atom, useAtom } from 'jotai';
 
 import { ThemeColor } from '@app/constants/theme';
+import { FormSlideLayout } from '@app/models/enums/form';
 
 export interface IFormState {
     title: string;
@@ -10,6 +11,19 @@ export interface IFormState {
     thankYouButtonText?: string;
     buttonText?: string;
     buttonLink?: string;
+    welcomePage?: {
+        title?: string;
+        description?: string;
+        layout: FormSlideLayout;
+        imageUrl?: string;
+    };
+    thankyouPage?: Array<{
+        message?: string;
+        buttonText?: string;
+        buttonLink?: string;
+        layout: FormSlideLayout;
+        imageUrl?: string;
+    }>;
     theme?: {
         title: string;
         primary: string;
@@ -35,6 +49,15 @@ export const initialFormState = atom<IFormState>({
     thankYouButtonText: '',
     buttonText: undefined,
     buttonLink: undefined,
+    welcomePage: {
+        title: '',
+        layout: FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT
+    },
+    thankyouPage: [
+        {
+            layout: FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT
+        }
+    ],
     theme: {
         title: 'Default',
         primary: ThemeColor.primary,

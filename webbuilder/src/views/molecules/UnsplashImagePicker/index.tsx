@@ -5,12 +5,12 @@ import React from 'react';
 import { createApi } from 'unsplash-js';
 
 import environments from '@app/configs/environments';
+import { useDialogModal } from '@app/lib/hooks/useDialogModal';
 import { FormField } from '@app/models/dtos/form';
 import { Unsplash } from '@app/views/atoms/Icons/Brands/Unsplash';
 
 import PhotoList from './PhotoList';
 import SearchBar from './PhotoSearch';
-import { useDialogModal } from '@app/lib/hooks/useDialogModal';
 
 interface IUnsplashImagePickerProps {
     initialPhotoSearchQuery?: string;
@@ -35,7 +35,9 @@ export default function UnsplashImagePicker({
     const activeSlide: FormField = props?.activeSlide;
     const updateSlideImage = props?.updateSlideImage ?? (() => {});
 
-    const unsplash = createApi({ accessKey: environments.UNSPLASH_ACCESS_KEY });
+    const unsplash = createApi({
+        accessKey: environments.NEXT_PUBLIC_UNSPLASH_ACCESS_KEY || ''
+    });
 
     React.useEffect(() => {
         if (initialPhotoSearchQuery !== '') {

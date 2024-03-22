@@ -11,7 +11,6 @@ import { cn } from '@app/shadcn/util/lib';
 import { useActiveSlideComponent } from '@app/store/jotai/activeBuilderComponent';
 import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
 import { useNavbarState } from '@app/store/jotai/navbar';
-import EllipsisOption from '@app/views/atoms/Icons/EllipsisOption';
 import DeleteIcon from '@app/views/atoms/Icons/Delete';
 
 import AddSlidePopover from './AddSlide/AddSlidePopover';
@@ -22,7 +21,7 @@ import WelcomeSlide from './WelcomePage';
 
 export default function LeftDrawer({}: {}) {
     const { activeSlideComponent, setActiveSlideComponent } = useActiveSlideComponent();
-    const { formFields, addField, addSlide, deleteActiveSlide } = useFormFieldsAtom();
+    const { formFields, addField, deleteActiveSlide } = useFormFieldsAtom();
     const Slides = formFields;
     const { navbarState, setNavbarState } = useNavbarState();
 
@@ -194,7 +193,7 @@ export default function LeftDrawer({}: {}) {
                                                         />
                                                     </div>
 
-                                                    {activeSlideComponent?.id ===
+                                                    {/* {activeSlideComponent?.id ===
                                                         slide.id && (
                                                         <div
                                                             className="absolute -top-7 right-0 cursor-pointer rounded-md bg-white p-2 shadow-bubble"
@@ -209,7 +208,7 @@ export default function LeftDrawer({}: {}) {
                                                                 height={24}
                                                             />
                                                         </div>
-                                                    )}
+                                                    )} */}
                                                 </div>
                                             </div>
                                         </div>
