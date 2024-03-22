@@ -1,6 +1,9 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 
+
+
 import environments from '@app/configs/environments';
+
 
 export const formsApi = createApi({
     reducerPath: 'formsApi',
@@ -49,6 +52,12 @@ export const formsApi = createApi({
                 method: 'POST',
                 body: request.body
             })
+        }),
+        logOut: builder.query<any, any>({
+            query: () => ({
+                url: `/auth/logout`,
+                method: 'GET',
+            })
         })
     })
 });
@@ -58,5 +67,6 @@ export const {
     usePatchV2FormMutation,
     usePublishV2FormMutation,
     useGetFormResponseQuery,
-    useSubmitResponseMutation
+    useSubmitResponseMutation,
+    useLazyLogOutQuery
 } = formsApi;
