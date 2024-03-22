@@ -36,7 +36,7 @@ export default function UnsplashImagePicker({
 
     const unsplash = createApi({
         accessKey:
-            props.UNSPLASH_ACCESS_KEY ||
+            process.env.UNSPLASH_ACCESS_KEY ||
             process.env.NEXT_PUBLIC_UNSPLASH_ACCESS_KEY ||
             ''
     });
