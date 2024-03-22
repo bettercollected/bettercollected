@@ -802,7 +802,7 @@
         "SLOGAN": "Personaliseer uw URL's met aangepast domein",
         "TITLE": "Aangepaste Domeinnaam",
         "DESCRIPTION": "Laat uw bedrijf er professioneler uitzien en verbeter uw merkherkenning.",
-        "NOTE": "Opmerking: Zorg ervoor dat u uw aangepaste domein naar custom.bettercollected.com verwijst.",
+        "NOTE": "Let op !!! Zorg ervoor dat het DNS A-record van je aangepaste domein is ingesteld op {{ domain }}",
         "TEXT_FIELD_TITLE": "Voer het domein in dat u wilt verbinden"
       },
       "UNLIMITED_FORMS": {

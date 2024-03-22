@@ -85,6 +85,8 @@ const environments = {
     // Enable Price Suggestion
     ENABLE_SUGGEST_PRICE: publicRuntimeConfig.ENABLE_SUGGEST_PRICE && (publicRuntimeConfig.ENABLE_SUGGEST_PRICE === 'true' || publicRuntimeConfig.ENABLE_SUGGEST_PRICE === true),
 
+    CUSTOM_DOMAIN_IP: publicRuntimeConfig.CUSTOM_DOMAIN_IP || ""
+
 };
 
 export default environments;
