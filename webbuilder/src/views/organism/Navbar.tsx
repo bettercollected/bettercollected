@@ -20,6 +20,7 @@ import { useStandardForm } from '@app/store/jotai/fetchedForm';
 import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
 import { useFormState } from '@app/store/jotai/form';
 import { useNavbarState } from '@app/store/jotai/navbar';
+import { useResponderState } from '@app/store/jotai/responderFormState';
 import useWorkspace from '@app/store/jotai/workspace';
 import { usePublishV2FormMutation } from '@app/store/redux/formApi';
 import BetterCollectedSmallLogo from '@app/views/atoms/Icons/BetterCollectedSmallLogo';
@@ -42,6 +43,7 @@ const Navbar = () => {
     const { standardForm } = useStandardForm();
     const { workspace } = useWorkspace();
     const { openDialogModal } = useDialogModal();
+    const { resetResponderState } = useResponderState();
 
     const router = useRouter();
 
@@ -161,7 +163,13 @@ const Navbar = () => {
                             Preview
                         </Button>
                     </SheetTrigger>
-                    <SheetContent className="h-full w-full p-0" side={'bottom'}>
+                    <SheetContent
+                        className="h-full w-full p-0"
+                        side={'bottom'}
+                        onClickCloseIcon={() => {
+                            resetResponderState();
+                        }}
+                    >
                         <Form isPreviewMode />
                     </SheetContent>
                 </Sheet>

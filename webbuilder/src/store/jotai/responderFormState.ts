@@ -66,11 +66,16 @@ export const useResponderState = () => {
             });
     };
 
+    const resetResponderState = () => {
+        setResponderState(initialresponderState);
+    };
+
     return {
         responderState,
         currentSlide: responderState.currentSlide,
         currentField: responderState.currentField,
         prevActiveField: responderState.prevActiveField,
+        resetResponderState,
         nextSlide,
         setCurrentField,
         previousSlide,
