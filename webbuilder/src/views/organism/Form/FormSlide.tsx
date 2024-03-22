@@ -2,10 +2,10 @@
 
 import { useCallback } from 'react';
 
-import Image from 'next/image';
-
 import { AnimatePresence, motion } from 'framer-motion';
 import parse from 'html-react-parser';
+import { Timeline, Tween } from 'react-gsap';
+import { Controller, Scene } from 'react-scrollmagic';
 import { toast } from 'react-toastify';
 import { useDebounceCallback } from 'usehooks-ts';
 
@@ -171,185 +171,218 @@ export default function FormSlide({ index }: { index: number }) {
 
     if (!formSlide) return <FullScreenLoader />;
 
-    console.log(formSlide);
-
     return (
-        <SlideLayoutWrapper slide={formSlide} disabled>
-            <div
-                className={cn(
-                    'grid-cols-1 overflow-hidden',
-                    formSlide &&
-                        formSlide?.type === FieldTypes.SLIDE &&
-                        formSlide?.properties?.layout ===
-                            FormSlideLayout.TWO_COLUMN_IMAGE_LEFT
-                        ? 'order-1'
-                        : formSlide &&
-                            formSlide?.properties?.layout ===
-                                FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT
-                          ? 'order-0'
-                          : '' // Add a default case or handle the case when layout is neither 'two-column-right' nor 'two-column-left'
-                )}
-                style={{
-                    background:
+        <Controller>
+            <SlideLayoutWrapper slide={formSlide} disabled>
+                <div
+                    className={cn(
+                        'grid-cols-1 overflow-hidden',
                         formSlide &&
-                        formSlide?.properties?.layout ===
-                            FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND
-                            ? 'transparent'
-                            : standardForm.theme?.accent
-                }}
-            >
-                <ScrollArea
-                    asChild
-                    className="z-10 h-full flex-1 overflow-y-auto"
-                    onWheel={(event) => {
-                        onScrollDebounced(event?.deltaY > 0 ? 1 : -1);
+                            formSlide?.type === FieldTypes.SLIDE &&
+                            formSlide?.properties?.layout ===
+                                FormSlideLayout.TWO_COLUMN_IMAGE_LEFT
+                            ? 'order-1'
+                            : formSlide &&
+                                formSlide?.properties?.layout ===
+                                    FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT
+                              ? 'order-0'
+                              : '' // Add a default case or handle the case when layout is neither 'two-column-right' nor 'two-column-left'
+                    )}
+                    style={{
+                        background:
+                            formSlide &&
+                            formSlide?.properties?.layout ===
+                                FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND
+                                ? 'transparent'
+                                : standardForm.theme?.accent
                     }}
                 >
-                    <AnimatePresence mode="wait">
-                        <div
-                            className={cn(
-                                'grid h-full grid-cols-1 items-center justify-center px-20 py-60'
-                            )}
-                        >
-                            {formSlide?.properties?.fields?.map((field, index) => (
-                                <>
-                                    {currentField - 1 === index && (
-                                        <motion.div
-                                            initial={{
-                                                y:
-                                                    prevActiveField < currentField
-                                                        ? '100%'
-                                                        : '-100%'
-                                            }}
-                                            animate={{ y: 0 }}
-                                            transition={{ type: 'tween' }}
-                                            className={`relative h-[200px] overflow-y-hidden`}
-                                            onClick={() => {
-                                                handleFieldChange(currentField - 1);
-                                            }}
-                                        >
-                                            <div
-                                                className="absolute bottom-0 left-0 right-0 top-0"
-                                                style={{
-                                                    background:
-                                                        formSlide &&
-                                                        formSlide?.properties
-                                                            ?.layout ===
-                                                            FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND
-                                                            ? 'transparent'
-                                                            : `linear-gradient(360deg, transparent 0%, ${standardForm.theme?.accent} 100%)`
-                                                }}
-                                            />
-                                            <div className="absolute bottom-0 w-full">
-                                                <FormFieldComponent
-                                                    field={
-                                                        formSlide!.properties!.fields![
-                                                            currentField - 1
-                                                        ]
-                                                    }
-                                                    slideIndex={formSlide!.index}
-                                                />
-                                            </div>
-                                        </motion.div>
-                                    )}
-                                    {currentField === index && (
-                                        <motion.div
-                                            initial={{
-                                                y:
-                                                    prevActiveField < currentField
-                                                        ? '100%'
-                                                        : '-100%'
-                                            }}
-                                            transition={{ type: 'tween' }}
-                                            animate={{ y: 0 }}
-                                            className={`mt-20`}
-                                        >
-                                            <FormFieldComponent
-                                                field={
-                                                    formSlide!.properties!.fields![
-                                                        currentField
-                                                    ]
-                                                }
-                                                slideIndex={formSlide!.index}
-                                            />
-                                        </motion.div>
-                                    )}
-
-                                    {currentField + 1 === index && (
-                                        <motion.div
-                                            id={
-                                                formSlide!.properties!.fields![
-                                                    currentField - 1
-                                                ]?.id
-                                            }
-                                            initial={{
-                                                y:
-                                                    prevActiveField < currentField
-                                                        ? '100%'
-                                                        : '-100%'
-                                            }}
-                                            animate={{ y: 0 }}
-                                            transition={{ type: 'tween' }}
-                                            className={`relative mt-20`}
-                                            onClick={() => {
-                                                handleFieldChange(currentField + 1);
-                                            }}
-                                        >
-                                            <div className="relative max-h-[200px] overflow-hidden">
-                                                <div
-                                                    className="absolute bottom-0 left-0 right-0 top-0 z-[10]"
-                                                    style={{
-                                                        background:
-                                                            formSlide &&
-                                                            formSlide?.properties
-                                                                ?.layout ===
-                                                                FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND
-                                                                ? 'transparent'
-                                                                : `linear-gradient(180deg, transparent 0%, ${standardForm.theme?.accent} 100%)`
-                                                    }}
-                                                />
-                                                <FormFieldComponent
-                                                    field={
-                                                        formSlide!.properties!.fields![
-                                                            currentField + 1
-                                                        ]
-                                                    }
-                                                    slideIndex={formSlide!.index}
-                                                />
-                                            </div>
-                                        </motion.div>
-                                    )}
-                                </>
-                            ))}
-
-                            {currentField + 1 ===
-                                formSlide?.properties?.fields?.length && (
-                                <motion.div
-                                    initial={{ y: '200%', opacity: 0 }}
-                                    animate={{ y: '0', opacity: 1 }}
-                                    exit={{ y: '100%', opacity: 0 }}
-                                    transition={{ type: 'tween' }}
-                                >
-                                    <Button
-                                        style={{
-                                            background: standardForm.theme?.secondary
-                                        }}
-                                        isLoading={isLoading}
-                                        className="mt-20 rounded px-8 py-3"
-                                        onClick={onNext}
-                                        size="medium"
+                    <ScrollArea
+                        asChild
+                        className="z-10 h-full flex-1 overflow-y-auto"
+                        onWheel={(event) => {
+                            onScrollDebounced(event?.deltaY > 0 ? 1 : -1);
+                        }}
+                    >
+                        <AnimatePresence mode="wait">
+                            <div
+                                className={cn(
+                                    'grid h-full grid-cols-1 items-center justify-center px-20 py-60'
+                                )}
+                            >
+                                {formSlide?.properties?.fields?.map((field, index) => (
+                                    <Scene
+                                        key={field.id}
+                                        duration={800}
+                                        pin={{ pushFollowers: true }}
+                                        triggerHook={1}
+                                        offset={125}
                                     >
-                                        {(standardForm?.fields?.length || 0) - 1 ===
-                                        currentSlide
-                                            ? 'Submit'
-                                            : 'Next'}
-                                    </Button>
-                                </motion.div>
-                            )}
-                        </div>
-                    </AnimatePresence>
-                </ScrollArea>
-            </div>
-        </SlideLayoutWrapper>
+                                        <>
+                                            {currentField - 1 === index && (
+                                                <Timeline
+                                                    target={
+                                                        <div
+                                                            className={`relative h-[200px] overflow-y-hidden`}
+                                                            onClick={() => {
+                                                                handleFieldChange(
+                                                                    currentField - 1
+                                                                );
+                                                            }}
+                                                        >
+                                                            <div
+                                                                className="absolute bottom-0 left-0 right-0 top-0"
+                                                                style={{
+                                                                    background:
+                                                                        formSlide &&
+                                                                        formSlide
+                                                                            ?.properties
+                                                                            ?.layout ===
+                                                                            FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND
+                                                                            ? 'transparent'
+                                                                            : `linear-gradient(360deg, transparent 0%, ${standardForm.theme?.accent} 100%)`
+                                                                }}
+                                                            />
+                                                            <div className="absolute bottom-0 w-full">
+                                                                <FormFieldComponent
+                                                                    field={
+                                                                        formSlide!
+                                                                            .properties!
+                                                                            .fields![
+                                                                            currentField -
+                                                                                1
+                                                                        ]
+                                                                    }
+                                                                    slideIndex={
+                                                                        formSlide!.index
+                                                                    }
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                    }
+                                                >
+                                                    <Tween
+                                                        from={{ opacity: 1 }}
+                                                        to={{ opacity: 0.4 }}
+                                                        duration={0}
+                                                    />
+                                                </Timeline>
+                                            )}
+                                            {currentField === index && (
+                                                <Timeline
+                                                    target={
+                                                        <FormFieldComponent
+                                                            field={
+                                                                formSlide!.properties!
+                                                                    .fields![
+                                                                    currentField
+                                                                ]
+                                                            }
+                                                            slideIndex={
+                                                                formSlide!.index
+                                                            }
+                                                        />
+                                                    }
+                                                >
+                                                    <Tween
+                                                        from={{ opacity: 0.4 }}
+                                                        to={{ opacity: 1 }}
+                                                        duration={0}
+                                                    />
+                                                </Timeline>
+                                            )}
+
+                                            {currentField + 1 === index && (
+                                                <Timeline
+                                                    target={
+                                                        <div
+                                                            id={
+                                                                formSlide!.properties!
+                                                                    .fields![
+                                                                    currentField - 1
+                                                                ]?.id
+                                                            }
+                                                            className={`relative mt-20`}
+                                                            onClick={() => {
+                                                                handleFieldChange(
+                                                                    currentField + 1
+                                                                );
+                                                            }}
+                                                        >
+                                                            <div className="relative max-h-[200px] overflow-hidden">
+                                                                <div
+                                                                    className="absolute bottom-0 left-0 right-0 top-0 z-[10]"
+                                                                    style={{
+                                                                        background:
+                                                                            formSlide &&
+                                                                            formSlide
+                                                                                ?.properties
+                                                                                ?.layout ===
+                                                                                FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND
+                                                                                ? 'transparent'
+                                                                                : `linear-gradient(180deg, transparent 0%, ${standardForm.theme?.accent} 100%)`
+                                                                    }}
+                                                                />
+                                                                <FormFieldComponent
+                                                                    field={
+                                                                        formSlide!
+                                                                            .properties!
+                                                                            .fields![
+                                                                            currentField +
+                                                                                1
+                                                                        ]
+                                                                    }
+                                                                    slideIndex={
+                                                                        formSlide!.index
+                                                                    }
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                    }
+                                                >
+                                                    <Tween
+                                                        from={{ opacity: 1 }}
+                                                        to={{ opacity: 0.4 }}
+                                                        duration={0}
+                                                    />
+                                                </Timeline>
+                                            )}
+                                        </>
+                                    </Scene>
+                                ))}
+
+                                {currentField + 1 ===
+                                    formSlide?.properties?.fields?.length && (
+                                    <motion.div
+                                        initial={{ y: '200%', opacity: 0 }}
+                                        animate={{ y: '0', opacity: 1 }}
+                                        exit={{ y: '100%', opacity: 0 }}
+                                        transition={{
+                                            type: 'tween'
+                                        }}
+                                    >
+                                        <Button
+                                            style={{
+                                                background:
+                                                    standardForm.theme?.secondary
+                                            }}
+                                            isLoading={isLoading}
+                                            className="mt-20 rounded px-8 py-3"
+                                            onClick={onNext}
+                                            size="medium"
+                                        >
+                                            {(standardForm?.fields?.length || 0) - 1 ===
+                                            currentSlide
+                                                ? 'Submit'
+                                                : 'Next'}
+                                        </Button>
+                                    </motion.div>
+                                )}
+                            </div>
+                        </AnimatePresence>
+                    </ScrollArea>
+                </div>
+            </SlideLayoutWrapper>
+        </Controller>
     );
 }
