@@ -12,6 +12,7 @@ import { FieldTypes } from '@app/models/dtos/form';
 import { FormSlideLayout } from '@app/models/enums/form';
 import { Button } from '@app/shadcn/components/ui/button';
 import { DropdownMenu } from '@app/shadcn/components/ui/dropdown-menu';
+import { Sheet, SheetContent, SheetTrigger } from '@app/shadcn/components/ui/sheet';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { cn } from '@app/shadcn/util/lib';
 import { useActiveSlideComponent } from '@app/store/jotai/activeBuilderComponent';
@@ -27,6 +28,7 @@ import { MediaOutlinedIcon } from '../atoms/Icons/MediaOutlined';
 import PlayIcon from '../atoms/Icons/PlayIcon';
 import { PlusOutlined } from '../atoms/Icons/PlusOutlined';
 import { TextOutlinedIcon } from '../atoms/Icons/TextOutlined';
+import Form from './Form/Form';
 
 const Navbar = () => {
     const { activeSlide, formFields, addField, updateSlideImage } = useFormFieldsAtom();
@@ -153,9 +155,17 @@ const Navbar = () => {
                 className="border-0"
             />
             <div className={'flex items-center gap-2 '}>
-                <Button icon={<PlayIcon />} variant={'tertiary'}>
-                    Preview
-                </Button>
+                <Sheet>
+                    <SheetTrigger asChild>
+                        <Button icon={<PlayIcon />} variant={'tertiary'}>
+                            Preview
+                        </Button>
+                    </SheetTrigger>
+                    <SheetContent className="h-full w-full p-0" side={'bottom'}>
+                        <Form isPreviewMode />
+                    </SheetContent>
+                </Sheet>
+
                 <Button
                     isLoading={isLoading}
                     onClick={async () => {
