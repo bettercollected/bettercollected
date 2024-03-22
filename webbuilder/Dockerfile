@@ -5,8 +5,8 @@ FROM node:18 AS base
 WORKDIR /app
 
 FROM base AS prod
-COPY ./webbuilder/package.json ./webbuilder/package-lock.json ./
-RUN npm install --omit=dev
+COPY ./webbuilder/package.json ./webbuilder/yarn.lock ./
+RUN yarn install --prod --frozen-lockfile
 
 # Rebuild the source code only when needed
 FROM prod as builder
@@ -24,9 +24,9 @@ ARG NEXT_PUBLIC_API_ENDPOINT_HOST="https://bettercollected.io/api/v1"
 ARG AUTH_ENABLED=true
 ARG NEXT_PUBLIC_DASHBOARD_DOMAIN=admin.bettercollected.io
 ARG API_ENDPOINT_HOST=http://backend:8000/api/v1
-RUN npm install
+RUN yarn install --frozen-lockfile
 COPY --chown=node:node ./webbuilder .
-RUN  BASE_DEPLOY_PATH=${BASE_DEPLOY_PATH} ASSET_PREFIX=${ASSET_PREFIX} SENTRY_DSN=${SENTRY_DSN} SENTRY_RELEASE=${SENTRY_RELEASE} SENTRY_URL=${SENTRY_URL} SENTRY_ORG=${SENTRY_ORG} SENTRY_PROJECT=${SENTRY_PROJECT} SENTRY_AUTH_TOKEN=${SENTRY_AUTH_TOKEN} SENTRY_LOG_LEVEL=${SENTRY_LOG_LEVEL} NEXT_PUBLIC_NODE_ENV=${NEXT_PUBLIC_NODE_ENV} npm run build
+RUN  BASE_DEPLOY_PATH=${BASE_DEPLOY_PATH} ASSET_PREFIX=${ASSET_PREFIX} SENTRY_DSN=${SENTRY_DSN} SENTRY_RELEASE=${SENTRY_RELEASE} SENTRY_URL=${SENTRY_URL} SENTRY_ORG=${SENTRY_ORG} SENTRY_PROJECT=${SENTRY_PROJECT} SENTRY_AUTH_TOKEN=${SENTRY_AUTH_TOKEN} SENTRY_LOG_LEVEL=${SENTRY_LOG_LEVEL} NEXT_PUBLIC_NODE_ENV=${NEXT_PUBLIC_NODE_ENV} yarn build
 RUN rm -rf ./.next/cache/* && mkdir moveTarget && mv entrypoint.sh sentry.client.config.js sentry.edge.config.js sentry.server.config.js sentry.properties next.config.mjs next-i18next.config.js package.json next-sitemap.config.js public scripts ./moveTarget
 
 # Production image, copy all the files and run next
