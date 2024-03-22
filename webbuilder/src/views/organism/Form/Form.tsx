@@ -6,7 +6,7 @@ import FormSlide from './FormSlide';
 import ThankyouPage from './ThankyouPage';
 import WelcomePage from './WelcomePage';
 
-const Form = () => {
+const Form = ({isPreviewMode = false}: {isPreviewMode?: boolean}) => {
     const { currentSlide } = useResponderState();
 
     return (
@@ -34,7 +34,7 @@ const Form = () => {
                         exit={{ opacity: 0 }}
                         transition={{ duration: 0.2 }}
                     >
-                        <FormSlide index={currentSlide} />
+                        <FormSlide index={currentSlide} isPreviewMode={isPreviewMode} />
                     </motion.div>
                 )}
 

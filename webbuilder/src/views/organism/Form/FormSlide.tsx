@@ -87,7 +87,13 @@ export function FormFieldComponent({
     }
 }
 
-export default function FormSlide({ index }: { index: number }) {
+export default function FormSlide({
+    index,
+    isPreviewMode = false
+}: {
+    index: number;
+    isPreviewMode: boolean;
+}) {
     const formSlide = useFormSlide(index);
 
     const {
@@ -156,13 +162,15 @@ export default function FormSlide({ index }: { index: number }) {
         setInvalidFields(invalidations);
         if (Object.values(invalidations).length === 0) {
             if (currentSlide + 1 === standardForm?.fields?.length) {
-                submitFormResponse()
-                    .then(() => {
-                        setCurrentSlideToThankyouPage();
-                    })
-                    .catch((e) => {
-                        toast('Error Submitting Response');
-                    });
+                if (isPreviewMode) setCurrentSlideToThankyouPage();
+                else
+                    submitFormResponse()
+                        .then(() => {
+                            setCurrentSlideToThankyouPage();
+                        })
+                        .catch((e) => {
+                            toast('Error Submitting Response');
+                        });
             } else {
                 nextSlide();
             }
