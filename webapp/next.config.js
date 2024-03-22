@@ -170,7 +170,9 @@ const nextConfig = {
         APP_SUMO_PRODUCT_URL: process.env.APP_SUMO_PRODUCT_URL,
 
         // Enable Suggest price allowing user to get pro feature for free
-        ENABLE_SUGGEST_PRICE: process.env.ENABLE_SUGGEST_PRICE
+        ENABLE_SUGGEST_PRICE: process.env.ENABLE_SUGGEST_PRICE,
+
+        CUSTOM_DOMAIN_IP: process.env.CUSTOM_DOMAIN_IP
     }
 };
 

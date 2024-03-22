@@ -806,7 +806,7 @@
         "SLOGAN": "Personalize Your URLs With Custom Domain",
         "TITLE": "Custom Domain Name",
         "DESCRIPTION": "Make your business look more professional and to improve your brand recognition.",
-        "NOTE": "Note: Make sure you point your custom domain to custom.bettercollected.com",
+        "NOTE": "Notice !!! Ensure  DNS A Record of your custom-domain is Pointed to {{ domain }} ",
         "TEXT_FIELD_TITLE": "Enter the domain you want to connect"
       },
       "UNLIMITED_FORMS": {

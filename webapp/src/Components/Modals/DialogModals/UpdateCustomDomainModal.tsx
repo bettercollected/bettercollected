@@ -16,6 +16,7 @@ import { ToastId } from '@app/constants/toastId';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { usePatchExistingWorkspaceMutation } from '@app/store/workspaces/api';
 import { selectWorkspace, setWorkspace } from '@app/store/workspaces/slice';
+import environments from '@app/configs/environments';
 
 
 export default function UpdateCustomDomainModal() {
@@ -60,7 +61,7 @@ export default function UpdateCustomDomainModal() {
     return (
         <HeaderModalWrapper headerTitle="Add Custom Domain">
             <form onSubmit={handleSubmit}>
-                <div className="text-start max-w-full mb-4 body4 !text-pink-500">{t('UPGRADE.FEATURES.CUSTOM_DOMAIN.NOTE')}</div>
+                <div className="text-start max-w-full mb-4 body4 !text-pink-500">{t('UPGRADE.FEATURES.CUSTOM_DOMAIN.NOTE', {domain: environments.CUSTOM_DOMAIN_IP})}</div>
                 <h1 className={'body3 !text-black-800 mb-1'}>{t('UPGRADE.FEATURES.CUSTOM_DOMAIN.TEXT_FIELD_TITLE')}</h1>
                 <AppTextField
                     isError={error}
