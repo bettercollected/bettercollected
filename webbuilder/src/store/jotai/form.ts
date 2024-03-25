@@ -14,14 +14,14 @@ export interface IFormState {
     welcomePage?: {
         title?: string;
         description?: string;
-        layout: FormSlideLayout;
+        layout?: FormSlideLayout;
         imageUrl?: string;
     };
     thankyouPage?: Array<{
         message?: string;
         buttonText?: string;
         buttonLink?: string;
-        layout: FormSlideLayout;
+        layout?: FormSlideLayout;
         imageUrl?: string;
     }>;
     theme?: {
@@ -51,11 +51,11 @@ export const initialFormState = atom<IFormState>({
     buttonLink: undefined,
     welcomePage: {
         title: '',
-        layout: FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT
+        layout: FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND
     },
     thankyouPage: [
         {
-            layout: FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT
+            layout: FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND
         }
     ],
     theme: {
@@ -92,6 +92,18 @@ export function useFormState() {
         setFormState({ ...formState, theme });
     };
 
+    const updateWelcomePageImage = (imageUrl: string) => {
+        setFormState({
+            ...formState,
+            welcomePage: { ...formState.welcomePage, imageUrl }
+        });
+    };
+
+    const updateThankYouPageImage = (imageUrl: string) => {
+        formState.thankyouPage![0].imageUrl = imageUrl;
+        setFormState({ ...formState });
+    };
+
     return {
         formState,
         setFormState,
@@ -99,6 +111,8 @@ export function useFormState() {
         setFormTitle,
         updateFormTheme,
         theme: formState.theme,
-        setWelcomeTitle
+        setWelcomeTitle,
+        updateWelcomePageImage,
+        updateThankYouPageImage
     };
 }
