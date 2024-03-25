@@ -3,6 +3,7 @@
 import parse from 'html-react-parser';
 
 import { useDialogModal } from '@app/lib/hooks/useDialogModal';
+import useGetPageAttributes from '@app/lib/hooks/useGetPageAttributes';
 import { FieldTypes } from '@app/models/dtos/form';
 import { FormSlideLayout } from '@app/models/enums/form';
 import { Button } from '@app/shadcn/components/ui/button';
@@ -28,18 +29,37 @@ export default function PagePropertiesTab({}: {}) {
         updateSlideImage
     } = useFormFieldsAtom();
     const { activeSlideComponent } = useActiveSlideComponent();
+    const {
+        formState,
+        setFormState,
+        updateThankYouPageLayout,
+        updateWelcomePageLayout
+    } = useFormState();
 
     const { openDialogModal } = useDialogModal();
+    function getPageIndex() {
+        if (activeSlideComponent?.id === 'welcome-page') return -10;
+        else if (activeSlideComponent?.id === 'thank-you-page') return -20;
+        else return activeSlide?.index;
+    }
+    const { layout, imageUrl } = useGetPageAttributes(getPageIndex() ?? -10);
 
     // Function to handle layout update for a specific slide
     const handleSlideLayoutChange = (slideId?: string, newLayout?: FormSlideLayout) => {
-        if (slideId && newLayout) updateSlideLayout(newLayout);
+        if (newLayout) {
+            if (slideId === 'welcome-page') {
+                updateWelcomePageLayout(newLayout);
+            } else if (slideId === 'thank-you-page') {
+                updateThankYouPageLayout(newLayout);
+            } else {
+                updateSlideLayout(newLayout);
+            }
+        }
     };
 
-    const { formState, setFormState } = useFormState();
     return (
         <>
-            {activeSlide && (
+            {
                 <>
                     <div className="p2-new mb-4 mt-6 px-4 !font-medium text-black-700">
                         Layout
@@ -67,8 +87,8 @@ export default function PagePropertiesTab({}: {}) {
                                 key={item.style}
                                 className={cn(
                                     'flex h-[50px] w-20 cursor-pointer items-center justify-center rounded-xl border-[1px] p-2 hover:bg-gray-200',
-                                    activeSlide &&
-                                        activeSlide.properties?.layout === item.style
+
+                                    layout && layout === item.style
                                         ? 'border-pink-500 ring-offset-1'
                                         : 'border-gray-200'
                                 )}
@@ -84,43 +104,41 @@ export default function PagePropertiesTab({}: {}) {
                         ))}
                     </div>
                 </>
-            )}
+            }
 
-            {activeSlide?.properties?.layout &&
-                activeSlide?.properties?.layout !==
-                    FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND && (
-                    <>
-                        <div className="p2-new mb-4 mt-6 px-4 !font-medium text-black-700">
-                            Background Image
+            {layout && layout !== FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND && (
+                <>
+                    <div className="p2-new mb-4 mt-6 px-4 !font-medium text-black-700">
+                        Background Image
+                    </div>
+                    <div className="flex w-full items-center justify-between border-b px-4 pb-4">
+                        <div className="flex w-full flex-col gap-4">
+                            {imageUrl ? (
+                                <Button
+                                    variant="danger"
+                                    onClick={() => updateSlideImage('')}
+                                    className="!h-auto py-2"
+                                >
+                                    Remove Image
+                                </Button>
+                            ) : (
+                                <Button
+                                    variant="secondary"
+                                    onClick={() =>
+                                        openDialogModal('UNSPLASH_IMAGE_PICKER', {
+                                            activeSlide,
+                                            updateSlideImage
+                                        })
+                                    }
+                                    className="!h-auto py-2"
+                                >
+                                    Select Layout Image
+                                </Button>
+                            )}
                         </div>
-                        <div className="flex w-full items-center justify-between border-b px-4 pb-4">
-                            <div className="flex w-full flex-col gap-4">
-                                {activeSlide?.imageUrl ? (
-                                    <Button
-                                        variant="danger"
-                                        onClick={() => updateSlideImage('')}
-                                        className="!h-auto py-2"
-                                    >
-                                        Remove Image
-                                    </Button>
-                                ) : (
-                                    <Button
-                                        variant="secondary"
-                                        onClick={() =>
-                                            openDialogModal('UNSPLASH_IMAGE_PICKER', {
-                                                activeSlide,
-                                                updateSlideImage
-                                            })
-                                        }
-                                        className="!h-auto py-2"
-                                    >
-                                        Select Layout Image
-                                    </Button>
-                                )}
-                            </div>
-                        </div>
-                    </>
-                )}
+                    </div>
+                </>
+            )}
             <div className="p2-new mb-4 mt-6 px-4 !font-medium text-black-700">
                 Settings
             </div>
