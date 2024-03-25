@@ -9,7 +9,10 @@ import { FormSlideLayout } from '@app/models/enums/form';
 import { Button } from '@app/shadcn/components/ui/button';
 import { Switch } from '@app/shadcn/components/ui/switch';
 import { cn } from '@app/shadcn/util/lib';
-import { useActiveSlideComponent } from '@app/store/jotai/activeBuilderComponent';
+import {
+    useActiveSlideComponent,
+    useActiveThankYouPageComponent
+} from '@app/store/jotai/activeBuilderComponent';
 import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
 import { useFormState } from '@app/store/jotai/form';
 import { getHtmlFromJson } from '@app/utils/richTextEditorExtenstion/getHtmlFromJson';
@@ -29,11 +32,17 @@ export default function PagePropertiesTab({}: {}) {
         updateSlideImage
     } = useFormFieldsAtom();
     const { activeSlideComponent } = useActiveSlideComponent();
+    const { activeThankYouPageComponent } = useActiveThankYouPageComponent();
     const {
         formState,
         setFormState,
+        setWelcomePageButtonText,
+        setThankYouPageDescription,
+        setThankYouPageButtonText,
+        setThankYouPageButtonLink,
         updateThankYouPageLayout,
-        updateWelcomePageLayout
+        updateWelcomePageLayout,
+        setFormDescription
     } = useFormState();
 
     const { openDialogModal } = useDialogModal();
@@ -152,18 +161,18 @@ export default function PagePropertiesTab({}: {}) {
                                 checked={
                                     activeSlideComponent?.id === 'welcome-page'
                                         ? formState.description !== undefined
-                                        : formState.thankYouMessage !== undefined
+                                        : formState.thankyouPage &&
+                                          formState.thankyouPage[
+                                              activeThankYouPageComponent?.index || 0
+                                          ].message !== undefined
                                 }
                                 onCheckedChange={(checked) => {
                                     activeSlideComponent?.id === 'welcome-page'
-                                        ? setFormState({
-                                              ...formState,
-                                              description: checked ? '' : undefined
-                                          })
-                                        : setFormState({
-                                              ...formState,
-                                              thankYouMessage: checked ? '' : undefined
-                                          });
+                                        ? setFormDescription(checked ? '' : undefined)
+                                        : setThankYouPageDescription(
+                                              activeThankYouPageComponent?.index || 0,
+                                              checked ? '' : undefined
+                                          );
                                 }}
                             />
                         </div>
@@ -173,64 +182,85 @@ export default function PagePropertiesTab({}: {}) {
                                     <div className="text-xs text-black-700">Button</div>
                                     <Switch
                                         checked={
-                                            formState.thankYouButtonText !== undefined
+                                            formState.thankyouPage &&
+                                            formState.thankyouPage[
+                                                activeThankYouPageComponent?.index || 0
+                                            ].buttonText !== undefined
                                         }
                                         onCheckedChange={(checked) => {
-                                            setFormState({
-                                                ...formState,
-                                                thankYouButtonText: checked
-                                                    ? ''
-                                                    : undefined
-                                            });
+                                            setThankYouPageButtonText(
+                                                activeThankYouPageComponent?.index || 0,
+                                                checked ? '' : undefined
+                                            );
                                         }}
                                     />
                                 </div>
-                                {formState.thankYouButtonText !== undefined && (
-                                    <>
-                                        <input
-                                            type="text"
-                                            placeholder="buttonText"
-                                            value={formState.thankYouButtonText}
-                                            onChange={(e: any) =>
-                                                setFormState({
-                                                    ...formState,
-                                                    thankYouButtonText: e.target.value
-                                                })
-                                            }
-                                            className="borer-[1px] rounded-lg border-black-300 p-2 text-xs focus:border-black-300 active:border-black-300"
-                                        />
-                                        <div className="flex flex-row justify-between">
-                                            <div className="text-xs text-black-700">
-                                                Button Link
-                                            </div>
-                                            <Switch
-                                                checked={
-                                                    formState.buttonLink !== undefined
+                                {formState.thankyouPage &&
+                                    formState.thankyouPage[
+                                        activeThankYouPageComponent?.index || 0
+                                    ].buttonText !== undefined && (
+                                        <>
+                                            <input
+                                                type="text"
+                                                placeholder="buttonText"
+                                                value={
+                                                    formState.thankyouPage &&
+                                                    formState.thankyouPage[
+                                                        activeThankYouPageComponent?.index ||
+                                                            0
+                                                    ].buttonText
                                                 }
-                                                onCheckedChange={(checked) => {
-                                                    setFormState({
-                                                        ...formState,
-                                                        buttonLink: checked
-                                                            ? ''
-                                                            : undefined
-                                                    });
-                                                }}
+                                                onChange={(e: any) =>
+                                                    setThankYouPageButtonText(
+                                                        activeThankYouPageComponent?.index ||
+                                                            0,
+                                                        e.target.value
+                                                    )
+                                                }
+                                                className="borer-[1px] rounded-lg border-black-300 p-2 text-xs focus:border-black-300 active:border-black-300"
                                             />
-                                        </div>
-                                        <input
-                                            type="text"
-                                            placeholder="buttonLink"
-                                            value={formState.buttonLink}
-                                            onChange={(e: any) =>
-                                                setFormState({
-                                                    ...formState,
-                                                    buttonLink: e.target.value
-                                                })
-                                            }
-                                            className="borer-[1px] rounded-lg border-black-300 p-2 text-xs focus:border-black-300 active:border-black-300"
-                                        />
-                                    </>
-                                )}
+                                            <div className="flex flex-row justify-between">
+                                                <div className="text-xs text-black-700">
+                                                    Button Link
+                                                </div>
+                                                <Switch
+                                                    checked={
+                                                        formState.thankyouPage &&
+                                                        formState.thankyouPage[
+                                                            activeThankYouPageComponent?.index ||
+                                                                0
+                                                        ].buttonLink !== undefined
+                                                    }
+                                                    onCheckedChange={(checked) => {
+                                                        setThankYouPageButtonLink(
+                                                            activeThankYouPageComponent?.index ||
+                                                                0,
+                                                            checked ? '' : undefined
+                                                        );
+                                                    }}
+                                                />
+                                            </div>
+                                            <input
+                                                type="text"
+                                                placeholder="buttonLink"
+                                                value={
+                                                    formState.thankyouPage &&
+                                                    formState.thankyouPage[
+                                                        activeThankYouPageComponent?.index ||
+                                                            0
+                                                    ].buttonLink
+                                                }
+                                                onChange={(e: any) =>
+                                                    setThankYouPageButtonLink(
+                                                        activeThankYouPageComponent?.index ||
+                                                            0,
+                                                        e.target.value
+                                                    )
+                                                }
+                                                className="borer-[1px] rounded-lg border-black-300 p-2 text-xs focus:border-black-300 active:border-black-300"
+                                            />
+                                        </>
+                                    )}
                             </div>
                         ) : (
                             <div className="flex flex-col gap-3">
@@ -238,12 +268,9 @@ export default function PagePropertiesTab({}: {}) {
                                 <input
                                     type="text"
                                     placeholder="buttonText"
-                                    value={formState.buttonText}
+                                    value={formState.welcomePage?.buttonText}
                                     onChange={(e: any) =>
-                                        setFormState({
-                                            ...formState,
-                                            buttonText: e.target.value
-                                        })
+                                        setWelcomePageButtonText(e.target.value)
                                     }
                                     className="borer-[1px] rounded-lg border-black-300 p-2 text-xs focus:border-black-300 active:border-black-300"
                                 />
