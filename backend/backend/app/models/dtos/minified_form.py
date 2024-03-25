@@ -29,6 +29,7 @@ class FormDtoCamelModel(CamelModel):
     title: Optional[str]
     description: Optional[str]
     type: Optional[str]
+    button_text: Optional[str]
     settings: Optional[WorkspaceFormSettingsCamelModal]
     is_published: Optional[bool]
     created_at: Optional[dt.datetime]
