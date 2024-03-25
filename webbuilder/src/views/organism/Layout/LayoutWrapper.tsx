@@ -1,34 +1,36 @@
 'use client';
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 
 import Image from 'next/image';
 
 import { useDialogModal } from '@app/lib/hooks/useDialogModal';
-import { FormField } from '@app/models/dtos/form';
 import { FormSlideLayout } from '@app/models/enums/form';
 import { Button } from '@app/shadcn/components/ui/button';
 import { cn } from '@app/shadcn/util/lib';
-import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
 import { useFormState } from '@app/store/jotai/form';
 
-interface ISlideLayoutWrapperProps {
-    slide: FormField;
-    children: React.ReactNode | React.ReactNode[];
-    style?: React.CSSProperties;
+interface ILayoutWrapper {
+    layout?: FormSlideLayout;
+    imageUrl?: string;
+    updatePageImage: (...args: any[]) => void;
+    altImage: string;
     disabled?: boolean;
+    style?: React.CSSProperties;
+    children: React.ReactNode | React.ReactNode[];
 }
 
-export default function SlideLayoutWrapper({
-    slide,
-    children,
+const LayoutWrapper = ({
+    layout,
+    imageUrl,
+    updatePageImage,
+    altImage,
+    disabled = false,
     style = {},
-    disabled = false
-}: ISlideLayoutWrapperProps) {
+    children
+}: ILayoutWrapper) => {
     const [showControls, setShowControls] = useState(false);
     const { openDialogModal } = useDialogModal();
-
-    const { activeSlide, updateSlideImage } = useFormFieldsAtom();
     const { theme } = useFormState();
 
     const handleGridClick = () => {
@@ -36,13 +38,12 @@ export default function SlideLayoutWrapper({
     };
 
     const handleRemoveImage = () => {
-        updateSlideImage('');
+        updatePageImage('');
     };
 
     const handleChangeImage = () => {
         openDialogModal('UNSPLASH_IMAGE_PICKER', {
-            activeSlide,
-            updateSlideImage
+            updatePageImage
         });
     };
 
@@ -52,31 +53,27 @@ export default function SlideLayoutWrapper({
                 objectFit="cover"
                 className={cn(
                     'h-full w-full',
-                    slide?.properties?.layout === FormSlideLayout.TWO_COLUMN_IMAGE_LEFT
+                    layout === FormSlideLayout.TWO_COLUMN_IMAGE_LEFT
                         ? 'order-0'
-                        : slide?.properties?.layout ===
-                            FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT
+                        : layout === FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT
                           ? 'order-1'
                           : '',
-                    slide?.properties?.layout ===
-                        FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND
+                    layout === FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND
                         ? 'absolute inset-0 opacity-50 backdrop-blur-lg'
                         : 'opacity-100'
                 )}
                 src={imageUrl}
-                alt={slide.id + ' image'}
+                alt={altImage + ' image'}
                 layout="fill"
             />
 
             {(showControls ||
-                slide?.properties?.layout ===
-                    FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND) &&
+                layout === FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND) &&
                 !disabled && (
                     <div
                         className={cn(
                             'absolute flex h-full w-full items-center gap-4',
-                            slide?.properties?.layout ===
-                                FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND
+                            layout === FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND
                                 ? '-top-[52%] left-0'
                                 : 'justify-center'
                         )}
@@ -96,15 +93,13 @@ export default function SlideLayoutWrapper({
         <>
             <div
                 style={{
-                    backgroundColor: slide?.properties?.theme?.accent || theme?.accent,
+                    backgroundColor: theme?.accent,
                     ...style
                 }}
                 className={cn(
                     'relative grid aspect-video h-min w-full overflow-hidden rounded-lg bg-white',
-                    slide?.properties?.layout ===
-                        FormSlideLayout.TWO_COLUMN_IMAGE_LEFT ||
-                        slide?.properties?.layout ===
-                            FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT
+                    layout === FormSlideLayout.TWO_COLUMN_IMAGE_LEFT ||
+                        layout === FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT
                         ? 'grid-cols-2'
                         : 'grid-cols-1',
                     disabled ? 'h-full overflow-hidden' : ''
@@ -113,20 +108,20 @@ export default function SlideLayoutWrapper({
                 {children}
 
                 {/* Image with controls works for left and right image layout */}
-                {slide?.properties?.layout !==
-                    FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND &&
-                    slide?.properties?.layout !==
-                        FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND && (
+                {layout &&
+                    layout !== FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND &&
+                    layout !== FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND && (
                         <div
                             className={cn(
                                 'relative',
-                                slide?.properties?.layout ===
-                                    FormSlideLayout.TWO_COLUMN_IMAGE_LEFT ||
-                                    slide?.properties?.layout ===
-                                        FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT
+                                (layout &&
+                                    layout === FormSlideLayout.TWO_COLUMN_IMAGE_LEFT) ||
+                                    (layout &&
+                                        layout ===
+                                            FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT)
                                     ? 'grid-cols-1'
                                     : '',
-                                slide?.imageUrl && !disabled
+                                imageUrl && !disabled
                                     ? 'hover:cursor-pointer hover:!bg-black/30'
                                     : 'bg-neutral-100 shadow hover:cursor-default'
                             )}
@@ -136,8 +131,8 @@ export default function SlideLayoutWrapper({
                                 ? { tabIndex: -1, 'aria-disabled': true }
                                 : {})}
                         >
-                            {slide?.imageUrl ? (
-                                <DisplayImageWithControls imageUrl={slide.imageUrl} />
+                            {imageUrl ? (
+                                <DisplayImageWithControls imageUrl={imageUrl} />
                             ) : (
                                 !disabled && (
                                     <div
@@ -159,17 +154,15 @@ export default function SlideLayoutWrapper({
             </div>
 
             {/* Layout logic for background image or no background image */}
-            {slide?.properties?.layout ===
-                FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND && (
+            {layout && layout === FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND && (
                 <div
                     className={cn(
-                        'relative z-0',
-                        slide?.imageUrl && !disabled
+                        'test relative z-0',
+                        imageUrl && !disabled
                             ? 'hover:cursor-pointer hover:!bg-black/30'
                             : 'bg-neutral-100 shadow hover:cursor-default',
-                        slide?.properties?.layout ===
-                            FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND
-                            ? 'absolute inset-0 top-1/2 aspect-video h-min -translate-y-1/2 transform !bg-transparent'
+                        layout === FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND
+                            ? 'absolute inset-0 top-1/2 aspect-video h-fit -translate-y-1/2 transform !bg-transparent'
                             : '',
                         disabled ? 'h-full' : ''
                     )}
@@ -178,14 +171,14 @@ export default function SlideLayoutWrapper({
                     {...(disabled ? { tabIndex: -1, 'aria-disabled': true } : {})}
                 >
                     {/* No need to show controls for single column without background layout */}
-                    {slide?.imageUrl ? (
-                        <DisplayImageWithControls imageUrl={slide.imageUrl} />
+                    {imageUrl ? (
+                        <DisplayImageWithControls imageUrl={imageUrl} />
                     ) : (
                         !disabled && (
                             <div
                                 className={cn(
                                     'flex h-full items-center justify-center text-lg font-semibold',
-                                    slide?.properties?.layout ===
+                                    layout ===
                                         FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND
                                         ? 'absolute -top-[52%] left-0'
                                         : ''
@@ -201,4 +194,6 @@ export default function SlideLayoutWrapper({
             )}
         </>
     );
-}
+};
+
+export default LayoutWrapper;
