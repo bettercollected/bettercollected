@@ -30,13 +30,24 @@ const WelcomeSlide = ({ disabled }: { disabled?: boolean }) => {
                           : ''
                 )}
             >
-                <div className={cn('flex flex-col items-center justify-center px-12')}>
-                    <div className="flex flex-col items-start">
+                <div
+                    className={cn(
+                        'grid items-center justify-center px-12',
+                        formState.welcomePage?.layout &&
+                            (formState.welcomePage?.layout ===
+                                FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND ||
+                                formState.welcomePage?.layout ===
+                                    FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND)
+                            ? 'grid-cols-3'
+                            : 'grid-cols-1'
+                    )}
+                >
+                    <div className="col-start-2 flex flex-col items-start">
                         <input
                             type="text"
                             placeholder="Form Title"
                             className="border-0 px-0 text-[40px] font-bold"
-                            value={formState.welcomeTitle}
+                            value={formState.welcomePage?.title}
                             onChange={(event) => {
                                 setWelcomeTitle(event.target.value);
                             }}
@@ -55,7 +66,7 @@ const WelcomeSlide = ({ disabled }: { disabled?: boolean }) => {
                             <></>
                         )}
                         <Button size={'medium'} className="mt-12">
-                            {formState.buttonText || 'Start'}
+                            {formState.welcomePage?.buttonText || 'Start'}
                         </Button>
                     </div>
                 </div>

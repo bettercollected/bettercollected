@@ -5,17 +5,18 @@ import { FormSlideLayout } from '@app/models/enums/form';
 
 export interface IFormState {
     title: string;
-    welcomeTitle?: string;
+    // welcomeTitle?: string;
     description?: string;
-    thankYouMessage?: string;
-    thankYouButtonText?: string;
-    buttonText?: string;
-    buttonLink?: string;
+    // thankYouMessage?: string;
+    // thankYouButtonText?: string;
+    // buttonText?: string;
+    // buttonLink?: string;
     welcomePage?: {
         title?: string;
         description?: string;
         layout?: FormSlideLayout;
         imageUrl?: string;
+        buttonText?: string;
     };
     thankyouPage?: Array<{
         message?: string;
@@ -43,12 +44,12 @@ export interface IThemeState {
 
 export const initialFormState = atom<IFormState>({
     title: '',
-    welcomeTitle: '',
     description: undefined,
-    thankYouMessage: undefined,
-    thankYouButtonText: '',
-    buttonText: undefined,
-    buttonLink: undefined,
+    // welcomeTitle: '',
+    // thankYouMessage: undefined,
+    // thankYouButtonText: '',
+    // buttonText: undefined,
+    // buttonLink: undefined,
     welcomePage: {
         title: '',
         layout: FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND
@@ -75,11 +76,44 @@ export function useFormState() {
     };
 
     const setWelcomeTitle = (welcomeTitle: string) => {
-        setFormState({ ...formState, welcomeTitle });
+        setFormState({
+            ...formState,
+            welcomePage: { ...formState.welcomePage, title: welcomeTitle }
+        });
     };
 
-    const setFormDescription = (description: string) => {
-        setFormState({ ...formState, description });
+    const setFormDescription = (description?: string) => {
+        formState.description = description;
+        setFormState({
+            ...formState
+        });
+    };
+
+    const setThankYouPageDescription = (
+        thankyouPageIndex: number,
+        description?: string
+    ) => {
+        formState.thankyouPage &&
+            (formState.thankyouPage[thankyouPageIndex].message = description);
+        setFormState({ ...formState });
+    };
+
+    const setThankYouPageButtonText = (thankyouPageIndex: number, btnText?: string) => {
+        formState.thankyouPage![thankyouPageIndex].buttonText = btnText;
+        setFormState({ ...formState });
+    };
+
+    const setThankYouPageButtonLink = (thankyouPageIndex: number, btnLink?: string) => {
+        formState.thankyouPage &&
+            (formState.thankyouPage[thankyouPageIndex].buttonLink = btnLink);
+        setFormState({ ...formState });
+    };
+
+    const setWelcomePageButtonText = (btnText: string) => {
+        setFormState({
+            ...formState,
+            welcomePage: { ...formState.welcomePage, buttonText: btnText }
+        });
     };
 
     const updateFormTheme = (theme: {
@@ -93,29 +127,26 @@ export function useFormState() {
     };
 
     const updateWelcomePageImage = (imageUrl: string) => {
+        formState.welcomePage && (formState.welcomePage.imageUrl = imageUrl);
         setFormState({
-            ...formState,
-            welcomePage: { ...formState.welcomePage, imageUrl }
+            ...formState
         });
     };
 
     const updateWelcomePageLayout = (layout: FormSlideLayout) => {
+        formState.welcomePage && (formState.welcomePage.layout = layout);
         setFormState({
-            ...formState,
-            welcomePage: {
-                ...formState?.welcomePage,
-                layout: layout
-            }
+            ...formState
         });
     };
 
     const updateThankYouPageImage = (imageUrl: string) => {
-        formState.thankyouPage![0].imageUrl = imageUrl;
+        formState.thankyouPage && (formState.thankyouPage![0].imageUrl = imageUrl);
         setFormState({ ...formState });
     };
 
     const updateThankYouPageLayout = (layout: FormSlideLayout) => {
-        formState.thankyouPage![0].layout = layout;
+        formState.thankyouPage && (formState.thankyouPage![0].layout = layout);
         setFormState({ ...formState });
     };
 
@@ -123,10 +154,14 @@ export function useFormState() {
         formState,
         setFormState,
         setFormDescription,
+        setWelcomeTitle,
+        setWelcomePageButtonText,
+        setThankYouPageDescription,
+        setThankYouPageButtonText,
+        setThankYouPageButtonLink,
         setFormTitle,
         updateFormTheme,
         theme: formState.theme,
-        setWelcomeTitle,
         updateWelcomePageImage,
         updateThankYouPageImage,
         updateWelcomePageLayout,
