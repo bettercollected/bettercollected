@@ -24,7 +24,7 @@ import Navbar from '@app/views/organism/Navbar';
 export default function FormPage({ params }: { params: { formId: string } }) {
     const router = useRouter();
     const { formFields, setFormFields } = useFormFieldsAtom();
-    const { setFormState } = useFormState();
+    const { setFormState, formState } = useFormState();
 
     const { activeSlideComponent } = useActiveSlideComponent();
 
@@ -50,7 +50,7 @@ export default function FormPage({ params }: { params: { formId: string } }) {
 
     useEffect(() => {
         if (standardForm.formId) {
-            setFormState({ ...standardForm });
+            setFormState({ ...formState, ...standardForm });
             setFormFields(standardForm?.fields || []);
         }
     }, [standardForm]);
@@ -81,7 +81,7 @@ export default function FormPage({ params }: { params: { formId: string } }) {
             <div className="flex max-h-body-content w-full flex-row items-center gap-10">
                 <LeftDrawer />
                 <div
-                    className="relative mx-10 flex h-full flex-1 flex-col items-center justify-center "
+                    className="relative mx-10 flex h-full w-full flex-1 flex-col items-center justify-center "
                     onClick={() => {
                         setActiveFieldComponent(null);
                     }}
