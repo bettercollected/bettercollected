@@ -29,7 +29,7 @@ import {
     RichTextEditor,
     getPlaceholderValueForTitle
 } from '../../molecules/RichTextEditor';
-import SlideLayoutWrapper from '../SlideLayout/SlideLayoutWrapper';
+import SlideLayoutWrapper from '../Layout/SlideLayoutWrapper';
 
 const SlideBuilder = ({
     slide,

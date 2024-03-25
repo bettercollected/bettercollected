@@ -7,79 +7,60 @@ import { cn } from '@app/shadcn/util/lib';
 import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
 import { useFormState } from '@app/store/jotai/form';
 
+import GreetingLayoutWrapper from '../Layout/GreetingLayoutWrapper';
+
 const ThankYouSlide = ({ disabled }: { disabled?: boolean }) => {
     const { formState, setFormState, theme } = useFormState();
-    const { activeSlide } = useFormFieldsAtom();
 
     return (
-        <div
-            // TODO: Change this to apply layout from other layout
-            className={`grid aspect-video h-min w-full grid-cols-1 bg-blue-100  ${disabled ? 'pointer-events-none overflow-hidden' : ''}`}
-            style={{ background: theme?.accent }}
-        >
+        <GreetingLayoutWrapper disabled={disabled} greetingIndex={-20}>
             <div
+                // TODO: Change this to apply layout from other layout
                 className={cn(
-                    'grid-flow-col grid-cols-1 items-start justify-center gap-12 self-center px-12',
-                    activeSlide &&
-                        activeSlide.properties?.layout ===
+                    'h-[${93.28 * 4}px] w-[${165.83 * 4}px] grid aspect-video h-min w-full grid-cols-1 bg-blue-100',
+                    disabled ? 'pointer-events-none overflow-hidden' : '',
+                    formState.thankyouPage &&
+                        formState.thankyouPage[0].layout ===
                             FormSlideLayout.TWO_COLUMN_IMAGE_LEFT
                         ? 'order-1'
-                        : activeSlide &&
-                            activeSlide.properties?.layout ===
+                        : formState.thankyouPage &&
+                            formState.thankyouPage[0].layout ===
                                 FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT
                           ? 'order-0'
                           : ''
                 )}
+                style={{ background: theme?.accent }}
             >
-                <div className="flex w-full flex-col">
-                    <h1 className="text-2xl font-semibold">Thank You!</h1>
-                    {formState.thankYouMessage !== undefined ? (
-                        <input
-                            type="text"
-                            placeholder="Your response has been successfully submitted"
-                            value={formState.thankYouMessage}
-                            className="border-0 px-0 text-base"
-                            onChange={(e: any) =>
-                                setFormState({
-                                    ...formState,
-                                    thankYouMessage: e.target.value
-                                })
-                            }
-                        />
-                    ) : (
-                        <></>
-                    )}
+                <div className={cn('flex flex-col items-center justify-center px-12')}>
+                    <div className="flex flex-col items-start">
+                        <h1 className="text-2xl font-semibold">Thank You!</h1>
+                        {formState.thankYouMessage !== undefined ? (
+                            <input
+                                type="text"
+                                placeholder="Your response has been successfully submitted"
+                                value={formState.thankYouMessage}
+                                className="border-0 px-0 text-base"
+                                onChange={(e: any) =>
+                                    setFormState({
+                                        ...formState,
+                                        thankYouMessage: e.target.value
+                                    })
+                                }
+                            />
+                        ) : (
+                            <></>
+                        )}
+                        {formState.thankYouButtonText !== undefined ? (
+                            <Button size={'medium'} className='mt-4'>
+                                {formState.thankYouButtonText || 'Try bettercollected'}
+                            </Button>
+                        ) : (
+                            <></>
+                        )}
+                    </div>
                 </div>
-                {formState.thankYouButtonText !== undefined ? (
-                    <Button size={'medium'}>
-                        {formState.thankYouButtonText || 'Try bettercollected'}
-                    </Button>
-                ) : (
-                    <></>
-                )}
             </div>
-            {/* <div
-                className={cn(
-                    'grid-cols-1',
-                    activeSlide &&
-                        activeSlide.properties?.layout ===
-                            FormSlideLayout.TWO_COLUMN_IMAGE_LEFT
-                        ? 'order-0'
-                        : activeSlide &&
-                            activeSlide.properties?.layout ===
-                                FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT
-                          ? 'order-1'
-                          : ''
-                )}
-            >
-                <Image
-                    objectFit="cover"
-                    className={cn('h-full w-full')}
-                    src={RectangleImage}
-                    alt="LayoutImage"
-                />
-            </div> */}
-        </div>
+        </GreetingLayoutWrapper>
     );
 };
 
