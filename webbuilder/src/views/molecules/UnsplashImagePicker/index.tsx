@@ -33,7 +33,7 @@ export default function UnsplashImagePicker({
     const { closeDialogModal } = useDialogModal();
 
     const activeSlide: FormField = props?.activeSlide;
-    const updateSlideImage = props?.updateSlideImage ?? (() => {});
+    const updatePageImage = props?.updatePageImage ?? (() => {});
 
     const unsplash = createApi({
         accessKey:
@@ -111,8 +111,8 @@ export default function UnsplashImagePicker({
                             try {
                                 // let blob = await fetch(photo.urls.regular).then((r) => r.blob())
                                 // let image = await URL.createObjectURL(blob)
-                                if (activeSlide && photo) {
-                                    updateSlideImage(photo.urls.full);
+                                if (photo) {
+                                    updatePageImage(photo.urls.full);
                                     closeDialogModal();
                                 }
                             } catch (error) {
