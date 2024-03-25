@@ -99,8 +99,23 @@ export function useFormState() {
         });
     };
 
+    const updateWelcomePageLayout = (layout: FormSlideLayout) => {
+        setFormState({
+            ...formState,
+            welcomePage: {
+                ...formState?.welcomePage,
+                layout: layout
+            }
+        });
+    };
+
     const updateThankYouPageImage = (imageUrl: string) => {
         formState.thankyouPage![0].imageUrl = imageUrl;
+        setFormState({ ...formState });
+    };
+
+    const updateThankYouPageLayout = (layout: FormSlideLayout) => {
+        formState.thankyouPage![0].layout = layout;
         setFormState({ ...formState });
     };
 
@@ -113,6 +128,8 @@ export function useFormState() {
         theme: formState.theme,
         setWelcomeTitle,
         updateWelcomePageImage,
-        updateThankYouPageImage
+        updateThankYouPageImage,
+        updateWelcomePageLayout,
+        updateThankYouPageLayout
     };
 }
