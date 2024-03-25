@@ -1,7 +1,13 @@
 import datetime as dt
 from typing import Optional, List, Dict
 
-from common.models.standard_form import ParameterValue, Trigger, ActionState
+from common.models.standard_form import (
+    ParameterValue,
+    Trigger,
+    ActionState,
+    WelcomePageField,
+    ThankYouPageField,
+)
 from fastapi_camelcase import CamelModel
 
 from backend.app.models.dtos.consent import ConsentCamelModel
@@ -21,7 +27,6 @@ class FormDtoCamelModel(CamelModel):
     logo: Optional[str]
     cover_image: Optional[str]
     title: Optional[str]
-    welcome_title: Optional[str]
     description: Optional[str]
     type: Optional[str]
     settings: Optional[WorkspaceFormSettingsCamelModal]
@@ -35,11 +40,11 @@ class FormDtoCamelModel(CamelModel):
     imported_by: Optional[str]
     importer_details: Optional[FormImporterDetails]
     fields: Optional[List[StandardFormFieldCamelModel]]
-    button_text: Optional[str]
-    button_link: Optional[str]
     version: Optional[str]
     updated_at: Optional[dt.datetime]
     actions: Optional[Dict[Trigger, List[ActionState]]]
     parameters: Optional[Dict[str, List[ParameterValue]]]
     secrets: Optional[Dict[str, List[ParameterValue]]]
     theme: Optional[Theme]
+    welcome_page: Optional[WelcomePageField]
+    thankyou_page: Optional[List[ThankYouPageField]]
