@@ -377,6 +377,13 @@ class Trigger(str, Enum):
     on_open = "on_open"
 
 
+class FormSlideLayout(str, Enum):
+    TWO_COLUMN_IMAGE_LEFT = ("TWO_COLUMN_IMAGE_LEFT",)
+    TWO_COLUMN_IMAGE_RIGHT = ("TWO_COLUMN_IMAGE_RIGHT",)
+    SINGLE_COLUMN_IMAGE_BACKGROUND = ("SINGLE_COLUMN_IMAGE_BACKGROUND",)
+    SINGLE_COLUMN_NO_BACKGROUND = "SINGLE_COLUMN_NO_BACKGROUND"
+
+
 class ParameterValue(BaseModel):
     name: str = Field(None)
     value: str = Field(None)
@@ -388,17 +395,30 @@ class ActionState(BaseModel):
     enabled: Optional[bool] = True
 
 
+class WelcomePageField(BaseModel):
+    title: Optional[str]
+    description: Optional[str]
+    layout: Optional[FormSlideLayout]
+    imageUrl: Optional[str]
+    buttonText: Optional[str]
+
+
+class ThankYouPageField(BaseModel):
+    message: Optional[str]
+    buttonText: Optional[str]
+    buttonLink: Optional[str]
+    layout: Optional[FormSlideLayout]
+    imageUrl: Optional[str]
+
+
 class StandardForm(BaseModel):
     builder_version: Optional[str]
     form_id: Optional[str]
     type: Optional[str]
     title: Optional[str]
-    welcome_title: Optional[str]
     logo: Optional[str]
     cover_image: Optional[str]
     description: Optional[str]
-    button_text: Optional[str]
-    button_link: Optional[str]
     fields: Optional[List[StandardFormField]]
     consent: Optional[List[Consent]]
     state: Optional[State] = Field(State())
@@ -408,6 +428,8 @@ class StandardForm(BaseModel):
     parameters: Optional[Dict[str, List[ParameterValue]]] = Field()
     secrets: Optional[Dict[str, List[ParameterValue]]] = Field()
     theme: Optional[Theme]
+    welcome_page: Optional[WelcomePageField]
+    thankyou_page: Optional[List[ThankYouPageField]]
 
 
 class StandardFormResponseAnswer(BaseModel):
