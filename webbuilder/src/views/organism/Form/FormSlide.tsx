@@ -37,7 +37,7 @@ import QuestionWrapper from '@app/views/molecules/ResponderFormFields/QuestionQw
 import RatingField from '@app/views/molecules/ResponderFormFields/RatingField';
 import YesNoField from '@app/views/molecules/ResponderFormFields/YesNoField';
 
-import SlideLayoutWrapper from '../SlideLayout/SlideLayoutWrapper';
+import SlideLayoutWrapper from '../Layout/SlideLayoutWrapper';
 
 export function FormFieldComponent({
     field,

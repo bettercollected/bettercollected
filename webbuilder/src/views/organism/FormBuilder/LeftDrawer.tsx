@@ -133,7 +133,7 @@ export default function LeftDrawer({}: {}) {
                             </div>
                             <div
                                 className={cn(
-                                    ' flex !aspect-video cursor-pointer items-center justify-center overflow-auto rounded-lg bg-white'
+                                    ' relative flex !aspect-video cursor-pointer items-center justify-center overflow-auto rounded-lg bg-white'
                                 )}
                                 onClick={() => {
                                     setActiveSlideComponent({
@@ -233,7 +233,7 @@ export default function LeftDrawer({}: {}) {
                             </div>
                             <div
                                 className={cn(
-                                    ' flex !aspect-video cursor-pointer items-center justify-center overflow-clip rounded-lg border bg-white'
+                                    ' relative flex !aspect-video cursor-pointer items-center justify-center overflow-clip rounded-lg border bg-white'
                                 )}
                                 onClick={() => {
                                     setActiveSlideComponent({
