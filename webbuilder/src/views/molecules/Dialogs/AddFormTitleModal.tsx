@@ -5,12 +5,18 @@ import { useState } from 'react';
 import { useDialogModal } from '@app/lib/hooks/useDialogModal';
 import { Button } from '@app/shadcn/components/ui/button';
 import { Input } from '@app/shadcn/components/ui/input';
+import { useActiveSlideComponent } from '@app/store/jotai/activeBuilderComponent';
+import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
 import { useFormState } from '@app/store/jotai/form';
+import { useNavbarState } from '@app/store/jotai/navbar';
 
 export default function AddFormTitleModal() {
     const { setFormState, formState, setFormTitle, setWelcomeTitle } = useFormState();
 
-    const [title, setTitle] = useState('');
+    const [title, setTitle] = useState('New Form');
+    const { formFields } = useFormFieldsAtom();
+    const { setActiveSlideComponent } = useActiveSlideComponent();
+    const { setNavbarState } = useNavbarState();
 
     const { closeDialogModal } = useDialogModal();
     return (
@@ -19,6 +25,16 @@ export default function AddFormTitleModal() {
                 event.preventDefault();
                 setFormTitle(title);
                 setWelcomeTitle(title);
+                setTimeout(() => {
+                    setActiveSlideComponent({
+                        id: formFields?.[0]?.id,
+                        index: 0
+                    });
+                    setNavbarState({
+                        insertClicked: true
+                    });
+                }, 200);
+
                 closeDialogModal();
             }}
         >
@@ -34,6 +50,7 @@ export default function AddFormTitleModal() {
                 </div>
                 <Input
                     type="text"
+                    value={title}
                     className="text-brand-500 placeholder-brand-500 placeholder-opacity-20"
                     placeholder="Form Title"
                     onChange={(event) => {

@@ -26,7 +26,7 @@ export default function FormPage({ params }: { params: { formId: string } }) {
     const { formFields, setFormFields } = useFormFieldsAtom();
     const { setFormState, formState } = useFormState();
 
-    const { activeSlideComponent } = useActiveSlideComponent();
+    const { activeSlideComponent, setActiveSlideComponent } = useActiveSlideComponent();
 
     const { setActiveFieldComponent } = useActiveFieldComponent();
 
@@ -41,10 +41,12 @@ export default function FormPage({ params }: { params: { formId: string } }) {
     const pathname = usePathname();
 
     const formId = params.formId;
+
     useEffect(() => {
         if (showModal === 'true') {
             openDialogModal('ADD_FORM_TITLE');
             router.replace(pathname);
+          
         }
     }, [showModal]);
 
@@ -53,7 +55,7 @@ export default function FormPage({ params }: { params: { formId: string } }) {
             setFormState({ ...formState, ...standardForm });
             setFormFields(standardForm?.fields || []);
         }
-    }, [standardForm]);
+    }, [standardForm.formId]);
 
     function handleClickOutsideFieldOption(event: any) {
         var divA = document.getElementById('fields-option');
