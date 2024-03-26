@@ -4,15 +4,35 @@ import { JSONContent } from '@tiptap/react';
 import { atom, useAtom } from 'jotai';
 import { v4 } from 'uuid';
 
+
+
 import { FieldTypes, FormField } from '@app/models/dtos/form';
 import { FormSlideLayout } from '@app/models/enums/form';
-import {
-    useActiveFieldComponent,
-    useActiveSlideComponent
-} from '@app/store/jotai/activeBuilderComponent';
+import { useActiveFieldComponent, useActiveSlideComponent } from '@app/store/jotai/activeBuilderComponent';
 import { reorder } from '@app/utils/arrayUtils';
 
-const initialFieldsAtom = atom<FormField[]>([]);
+
+const initialFieldsAtom = atom<FormField[]>([
+    {
+        id: v4(),
+        index: 0,
+        type: FieldTypes.SLIDE,
+        properties: {
+            layout: FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT,
+            fields: [
+                {
+                    id: v4(),
+                    index: 0,
+                    type: FieldTypes.SHORT_TEXT,
+                    value: 'Hi, what is your name?',
+                    properties: {
+                        placeholder: 'Your full name please'
+                    }
+                }
+            ]
+        }
+    }
+]);
 
 export default function useFormFieldsAtom() {
     const [formFields, setFormFields] = useAtom(initialFieldsAtom);
