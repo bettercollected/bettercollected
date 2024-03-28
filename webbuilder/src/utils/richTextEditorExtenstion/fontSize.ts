@@ -47,7 +47,7 @@ export const FontSize = Extension.create<FontSizeOptions>({
                             }
 
                             return {
-                                style: `font-size: ${attributes.fontSize}px`
+                                style: `font-size: ${attributes.fontSize}${attributes.fontSize.includes('px') ? '' : 'px'}`
                             };
                         }
                     }
