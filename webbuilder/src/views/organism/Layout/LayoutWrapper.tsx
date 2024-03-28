@@ -98,11 +98,14 @@ const LayoutWrapper = ({
                     ...style
                 }}
                 className={cn(
-                    'relative grid aspect-video h-min w-full overflow-hidden rounded-lg bg-white',
+                    'relative flex aspect-video h-min w-full  overflow-hidden rounded-lg bg-white lg:grid',
+                    layout === FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT
+                        ? 'flex-col-reverse'
+                        : 'flex-col',
                     layout === FormSlideLayout.TWO_COLUMN_IMAGE_LEFT ||
                         layout === FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT
-                        ? 'grid-cols-2'
-                        : 'grid-cols-1',
+                        ? 'lg:grid-cols-2'
+                        : 'lg:grid-cols-1',
                     disabled ? 'h-full overflow-hidden' : ''
                 )}
             >
@@ -114,7 +117,7 @@ const LayoutWrapper = ({
                     layout !== FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND && (
                         <div
                             className={cn(
-                                'relative',
+                                'relative h-[30%] lg:h-auto ',
                                 (layout &&
                                     layout === FormSlideLayout.TWO_COLUMN_IMAGE_LEFT) ||
                                     (layout &&

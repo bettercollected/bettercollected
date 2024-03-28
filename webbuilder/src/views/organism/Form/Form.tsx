@@ -13,7 +13,6 @@ const Form = ({ isPreviewMode = false }: { isPreviewMode?: boolean }) => {
     const { currentSlide } = useResponderState();
 
     const { standardForm } = useStandardForm();
-    console.log(standardForm);
 
     return (
         <div className={cn(isPreviewMode ? 'h-full w-full' : 'h-screen w-screen')}>

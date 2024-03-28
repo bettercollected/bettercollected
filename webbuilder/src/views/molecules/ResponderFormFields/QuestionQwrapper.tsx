@@ -25,15 +25,17 @@ export default function QuestionWrapper({
                     <RequiredIcon className="text-red-500" />
                 </div>
             )}
-            <div className="font-semibold">
-                {parse(
-                    getHtmlFromJson(field?.title) ??
-                        getPlaceholderValueForTitle(field?.type || FieldTypes.TEXT)
+            <div className="mb-4">
+                <div className="font-semibold">
+                    {parse(
+                        getHtmlFromJson(field?.title) ??
+                            getPlaceholderValueForTitle(field?.type || FieldTypes.TEXT)
+                    )}
+                </div>
+                {field?.description && (
+                    <div className="mt-1 text-black-700">{field?.description}</div>
                 )}
             </div>
-            {field?.description && (
-                <div className="mb-4 text-black-700">{field?.description}</div>
-            )}
             {children}
             {invalidFields &&
                 invalidFields[field.id] &&

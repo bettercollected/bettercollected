@@ -1,10 +1,8 @@
-import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 
 import { Globe, Lock } from 'lucide-react';
 
-import DemoImage from '@app/assets/image/rectangle.png';
 import environments from '@app/configs/environments';
 import { Button } from '@app/shadcn/components/ui/button';
 import { useAuthAtom } from '@app/store/jotai/auth';
@@ -24,7 +22,7 @@ export default function WelcomePage({ isPreviewMode }: { isPreviewMode: boolean 
 
     return (
         <div
-            className="grid h-screen w-full grid-cols-1"
+            className="grid h-full w-full grid-cols-1"
             style={{ background: standardForm.theme?.accent }}
         >
             <div className="relative flex h-full flex-col justify-center px-20">
