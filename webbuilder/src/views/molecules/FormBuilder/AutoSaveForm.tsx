@@ -51,7 +51,7 @@ export default function AutoSaveForm({ formId }: { formId: string }) {
             localStorage.setItem('forms', JSON.stringify(forms));
             workspace.id && saveForm();
         }
-    }, [debouncedForm]);
+    }, [debouncedForm, workspace?.id]);
 
     return <></>;
 }

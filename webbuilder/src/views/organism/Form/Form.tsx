@@ -1,14 +1,19 @@
 import { AnimatePresence, motion } from 'framer-motion';
 
+import { useStandardForm } from '@app/store/jotai/fetchedForm';
 import { cn } from '@app/shadcn/util/lib';
 import { useResponderState } from '@app/store/jotai/responderFormState';
 
+import LayoutWrapper from '../Layout/LayoutWrapper';
 import FormSlide from './FormSlide';
 import ThankyouPage from './ThankyouPage';
 import WelcomePage from './WelcomePage';
 
 const Form = ({ isPreviewMode = false }: { isPreviewMode?: boolean }) => {
     const { currentSlide } = useResponderState();
+
+    const { standardForm } = useStandardForm();
+    console.log(standardForm);
 
     return (
         <div className={cn(isPreviewMode ? 'h-full w-full' : 'h-screen w-screen')}>
@@ -22,7 +27,13 @@ const Form = ({ isPreviewMode = false }: { isPreviewMode?: boolean }) => {
                         exit={{ opacity: 0 }}
                         transition={{ duration: 0.2 }}
                     >
-                        <WelcomePage isPreviewMode={isPreviewMode} />
+                        <LayoutWrapper
+                            disabled
+                            layout={standardForm.welcomePage?.layout}
+                            imageUrl={standardForm?.welcomePage?.imageUrl}
+                        >
+                            <WelcomePage isPreviewMode={isPreviewMode} />
+                        </LayoutWrapper>
                     </motion.div>
                 )}
 
@@ -48,7 +59,13 @@ const Form = ({ isPreviewMode = false }: { isPreviewMode?: boolean }) => {
                         exit={{ opacity: 0 }}
                         transition={{ duration: 0.2 }}
                     >
-                        <ThankyouPage isPreviewMode={isPreviewMode} />
+                        <LayoutWrapper
+                            disabled
+                            layout={standardForm?.thankyouPage?.[0]?.layout}
+                            imageUrl={standardForm?.thankyouPage?.[0]?.imageUrl}
+                        >
+                            <ThankyouPage isPreviewMode={isPreviewMode} />
+                        </LayoutWrapper>
                     </motion.div>
                 )}
             </AnimatePresence>

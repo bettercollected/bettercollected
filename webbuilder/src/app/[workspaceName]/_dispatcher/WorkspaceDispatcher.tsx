@@ -13,7 +13,7 @@ export function WorkspaceDispatcher({
 }) {
     const { setWorkspace } = useWorkspace();
     useEffect(() => {
-        setWorkspace(workspace);
+        if (workspace?.id) setWorkspace(workspace);
     }, [workspace]);
 
     return <>{children}</>;
