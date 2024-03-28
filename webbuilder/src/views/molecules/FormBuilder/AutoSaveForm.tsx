@@ -42,13 +42,6 @@ export default function AutoSaveForm({ formId }: { formId: string }) {
 
     useEffect(() => {
         if (debouncedForm.fields.length > 0) {
-            const forms = JSON.parse(localStorage.getItem('forms') || '{}');
-            const form = {
-                formId,
-                ...debouncedForm
-            };
-            forms[formId] = form;
-            localStorage.setItem('forms', JSON.stringify(forms));
             workspace.id && saveForm();
         }
     }, [debouncedForm, workspace?.id]);
