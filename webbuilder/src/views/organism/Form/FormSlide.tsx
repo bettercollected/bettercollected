@@ -4,6 +4,7 @@ import { useCallback, useEffect } from 'react';
 
 import { AnimatePresence, motion } from 'framer-motion';
 import parse from 'html-react-parser';
+import { ChevronLeft } from 'lucide-react';
 import { Timeline, Tween } from 'react-gsap';
 import { Controller, Scene } from 'react-scrollmagic';
 import { toast } from 'react-toastify';
@@ -74,7 +75,6 @@ export function FormFieldComponent({
             return <FileUploadField field={field} />;
         case FieldTypes.DROP_DOWN:
             return <DropDownField field={field} slideIndex={slideIndex} />;
-        case FieldTypes.DATE:
         case FieldTypes.PHONE_NUMBER:
             return <PhoneNumberField field={field} />;
         case FieldTypes.RATING:
@@ -101,7 +101,7 @@ export default function FormSlide({
         currentSlide,
         setCurrentSlideToThankyouPage,
         nextSlide,
-        prevActiveField,
+        previousSlide,
         currentField,
         setCurrentField
     } = useResponderState();
@@ -217,7 +217,7 @@ export default function FormSlide({
             <SlideLayoutWrapper slide={formSlide} disabled>
                 <div
                     className={cn(
-                        'h-full grid-cols-1 overflow-hidden',
+                        'relative h-full grid-cols-1 overflow-hidden',
                         formSlide &&
                             formSlide?.type === FieldTypes.SLIDE &&
                             formSlide?.properties?.layout ===
@@ -238,6 +238,17 @@ export default function FormSlide({
                                 : standardForm.theme?.accent
                     }}
                 >
+                    {currentSlide > 0 && (
+                        <div
+                            className="absolute left-5 top-8 z-[100] flex cursor-pointer gap-2 lg:left-20"
+                            onClick={() => {
+                                previousSlide();
+                            }}
+                        >
+                            <ChevronLeft className="text-black-700" />{' '}
+                            <span className="text-black-700">Back</span>
+                        </div>
+                    )}
                     <ScrollArea
                         asChild
                         className="z-10  h-full flex-1 items-center items-center overflow-y-auto"
@@ -412,9 +423,9 @@ export default function FormSlide({
                                         currentField + 1 ===
                                             formSlide?.properties?.fields?.length) && (
                                         <motion.div
-                                            initial={{ y: '200%', opacity: 0 }}
-                                            animate={{ y: '0', opacity: 1 }}
-                                            exit={{ y: '100%', opacity: 0 }}
+                                            initial={{ opacity: 0 }}
+                                            animate={{ opacity: 1 }}
+                                            exit={{ opacity: 0 }}
                                             transition={{
                                                 type: 'tween'
                                             }}
