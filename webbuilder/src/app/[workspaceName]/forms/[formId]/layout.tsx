@@ -12,26 +12,31 @@ export default function Layout({
     params
 }: {
     children: React.ReactNode;
-    params: { formId: string };
+    params: { formId: string; workspaceName: string };
 }) {
     const workspaceId = store.getState().workspace.id;
 
     return (
-        <FormWrapper workspaceId={workspaceId} formId={params.formId}>
+        <FormWrapper workspaceName={params.workspaceName} formId={params.formId}>
             {children}
         </FormWrapper>
     );
 }
 
 async function FormWrapper({
-    workspaceId,
+    workspaceName,
     formId,
     children
 }: {
-    workspaceId: string;
+    workspaceName: string;
     formId: string;
     children: React.ReactNode;
 }) {
+    const workspaceResponse = await fetch(
+        process.env.API_ENDPOINT_HOST + '/workspaces?workspace_name=' + workspaceName
+    );
+    const workspace = await workspaceResponse.json();
+
     const config = {
         method: 'GET'
     };
@@ -39,9 +44,10 @@ async function FormWrapper({
     const form = await fetchWithCookies(
         environments.API_ENDPOINT_HOST +
             '/workspaces/' +
-            workspaceId +
+            workspace.id +
             '/forms/' +
-            formId,
+            formId +
+            '?published=true',
         config
     );
 
