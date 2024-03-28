@@ -16,7 +16,7 @@ export default function InputField({ field }: { field: FormField }) {
         removeAnswer
     } = useFormResponse();
 
-    const { nextField } = useResponderState();
+    const { nextField, currentField } = useResponderState();
     const handleChange = (e: any) => {
         if (!e.target.value) {
             removeAnswer(field.id);
@@ -79,6 +79,7 @@ export default function InputField({ field }: { field: FormField }) {
                         field?.properties?.placeholder ||
                         getPlaceholderValueForField(field.type)
                     }
+                    autoFocus={currentField === field.index}
                     className="mt-4"
                     value={getFieldValue()}
                     onChange={(e: any) => handleChange(e)}

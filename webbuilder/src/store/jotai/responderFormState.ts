@@ -34,7 +34,7 @@ export const useResponderState = () => {
     const previousSlide = () => {
         setResponderState({
             ...responderState,
-            currentSlide: responderState.currentSlide + 1
+            currentSlide: responderState.currentSlide - 1
         });
     };
 
