@@ -46,13 +46,12 @@ export default function FormPage({ params }: { params: { formId: string } }) {
         if (showModal === 'true') {
             openDialogModal('ADD_FORM_TITLE');
             router.replace(pathname);
-          
         }
     }, [showModal]);
 
     useEffect(() => {
         if (standardForm.formId) {
-            setFormState({ ...formState, ...standardForm });
+            setFormState({ ...standardForm, ...formState });
             setFormFields(standardForm?.fields || []);
         }
     }, [standardForm.formId]);
