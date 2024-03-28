@@ -1,16 +1,17 @@
 import { AnimatePresence, motion } from 'framer-motion';
 
+import { cn } from '@app/shadcn/util/lib';
 import { useResponderState } from '@app/store/jotai/responderFormState';
 
 import FormSlide from './FormSlide';
 import ThankyouPage from './ThankyouPage';
 import WelcomePage from './WelcomePage';
 
-const Form = ({isPreviewMode = false}: {isPreviewMode?: boolean}) => {
+const Form = ({ isPreviewMode = false }: { isPreviewMode?: boolean }) => {
     const { currentSlide } = useResponderState();
 
     return (
-        <div className="h-screen w-screen">
+        <div className={cn(isPreviewMode ? 'h-full w-full' : 'h-screen w-screen')}>
             <AnimatePresence custom={currentSlide} mode="wait">
                 {currentSlide === -1 && (
                     <motion.div
@@ -21,7 +22,7 @@ const Form = ({isPreviewMode = false}: {isPreviewMode?: boolean}) => {
                         exit={{ opacity: 0 }}
                         transition={{ duration: 0.2 }}
                     >
-                        <WelcomePage isPreviewMode={isPreviewMode}/>
+                        <WelcomePage isPreviewMode={isPreviewMode} />
                     </motion.div>
                 )}
 
@@ -47,7 +48,7 @@ const Form = ({isPreviewMode = false}: {isPreviewMode?: boolean}) => {
                         exit={{ opacity: 0 }}
                         transition={{ duration: 0.2 }}
                     >
-                        <ThankyouPage isPreviewMode={isPreviewMode}/>
+                        <ThankyouPage isPreviewMode={isPreviewMode} />
                     </motion.div>
                 )}
             </AnimatePresence>

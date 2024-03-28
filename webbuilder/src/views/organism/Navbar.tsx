@@ -1,13 +1,11 @@
 'use client';
 
+import React from 'react';
+
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 
-
-
 import { v4 } from 'uuid';
-
-
 
 import { templates } from '@app/app/[workspaceName]/dashboard/forms/create/page';
 import environments from '@app/configs/environments';
@@ -30,14 +28,12 @@ import useWorkspace from '@app/store/jotai/workspace';
 import { usePublishV2FormMutation } from '@app/store/redux/formApi';
 import BetterCollectedSmallLogo from '@app/views/atoms/Icons/BetterCollectedSmallLogo';
 
-
-
 import { MediaOutlinedIcon } from '../atoms/Icons/MediaOutlined';
 import PlayIcon from '../atoms/Icons/PlayIcon';
 import { PlusOutlined } from '../atoms/Icons/PlusOutlined';
 import { TextOutlinedIcon } from '../atoms/Icons/TextOutlined';
+import BackButton from '../molecules/FormBuilder/BackButton';
 import Form from './Form/Form';
-
 
 const Navbar = () => {
     const { activeSlide, formFields, addField, updateSlideImage } = useFormFieldsAtom();
@@ -52,7 +48,7 @@ const Navbar = () => {
     const { workspace } = useWorkspace();
     const { openDialogModal } = useDialogModal();
     const { resetResponderState } = useResponderState();
-    const {resetFormResponseAnswer} = useFormResponse();
+    const { resetFormResponseAnswer } = useFormResponse();
 
     const router = useRouter();
 
@@ -91,10 +87,10 @@ const Navbar = () => {
         );
     }
 
-    const handleClickPreview = ()=>{
-            resetResponderState();
-            resetFormResponseAnswer();
-    }
+    const handleClickPreview = () => {
+        resetResponderState();
+        resetFormResponseAnswer();
+    };
 
     return (
         <div
@@ -182,7 +178,9 @@ const Navbar = () => {
                         side={'bottom'}
                         onClickCloseIcon={handleClickPreview}
                     >
-                        <Form isPreviewMode />
+                        <PreviewWrapper>
+                            <Form isPreviewMode />
+                        </PreviewWrapper>
                     </SheetContent>
                 </Sheet>
 
@@ -211,3 +209,15 @@ const Navbar = () => {
     );
 };
 export default Navbar;
+
+const PreviewWrapper = ({ children }: { children: React.ReactNode }) => {
+    return (
+        <div className="h-full w-full bg-white">
+            <nav className="flex h-14 flex-row px-4 py-2">
+                <BackButton handleClick={() => {}} />
+            </nav>
+            
+            {children}
+        </div>
+    );
+};

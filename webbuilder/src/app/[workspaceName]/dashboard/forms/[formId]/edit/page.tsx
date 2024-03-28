@@ -51,7 +51,12 @@ export default function FormPage({ params }: { params: { formId: string } }) {
 
     useEffect(() => {
         if (standardForm.formId) {
-            setFormState({ ...standardForm, ...formState });
+            if (!standardForm.welcomePage || !standardForm.thankyouPage) {
+                const form = { ...standardForm, ...formState };
+                setFormState(form);
+            } else {
+                setFormState({ ...formState, ...standardForm });
+            }
             setFormFields(standardForm?.fields || []);
         }
     }, [standardForm.formId]);
