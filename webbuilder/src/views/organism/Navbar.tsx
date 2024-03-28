@@ -3,7 +3,11 @@
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 
+
+
 import { v4 } from 'uuid';
+
+
 
 import { templates } from '@app/app/[workspaceName]/dashboard/forms/create/page';
 import environments from '@app/configs/environments';
@@ -20,16 +24,20 @@ import { useStandardForm } from '@app/store/jotai/fetchedForm';
 import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
 import { useFormState } from '@app/store/jotai/form';
 import { useNavbarState } from '@app/store/jotai/navbar';
+import { useFormResponse } from '@app/store/jotai/responderFormResponse';
 import { useResponderState } from '@app/store/jotai/responderFormState';
 import useWorkspace from '@app/store/jotai/workspace';
 import { usePublishV2FormMutation } from '@app/store/redux/formApi';
 import BetterCollectedSmallLogo from '@app/views/atoms/Icons/BetterCollectedSmallLogo';
+
+
 
 import { MediaOutlinedIcon } from '../atoms/Icons/MediaOutlined';
 import PlayIcon from '../atoms/Icons/PlayIcon';
 import { PlusOutlined } from '../atoms/Icons/PlusOutlined';
 import { TextOutlinedIcon } from '../atoms/Icons/TextOutlined';
 import Form from './Form/Form';
+
 
 const Navbar = () => {
     const { activeSlide, formFields, addField, updateSlideImage } = useFormFieldsAtom();
@@ -44,6 +52,7 @@ const Navbar = () => {
     const { workspace } = useWorkspace();
     const { openDialogModal } = useDialogModal();
     const { resetResponderState } = useResponderState();
+    const {resetFormResponseAnswer} = useFormResponse();
 
     const router = useRouter();
 
@@ -80,6 +89,11 @@ const Navbar = () => {
             activeSlideComponent?.id === 'welcome-page' ||
             activeSlideComponent?.id === 'thank-you-page'
         );
+    }
+
+    const handleClickPreview = ()=>{
+            resetResponderState();
+            resetFormResponseAnswer();
     }
 
     return (
@@ -166,9 +180,7 @@ const Navbar = () => {
                     <SheetContent
                         className="h-full w-full p-0"
                         side={'bottom'}
-                        onClickCloseIcon={() => {
-                            resetResponderState();
-                        }}
+                        onClickCloseIcon={handleClickPreview}
                     >
                         <Form isPreviewMode />
                     </SheetContent>
