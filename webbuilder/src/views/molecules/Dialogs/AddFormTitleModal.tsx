@@ -11,7 +11,7 @@ import { useFormState } from '@app/store/jotai/form';
 import { useNavbarState } from '@app/store/jotai/navbar';
 
 export default function AddFormTitleModal() {
-    const { setFormTitle, setWelcomeTitle } = useFormState();
+    const { formState, setFormState } = useFormState();
 
     const [title, setTitle] = useState('New Form');
     const { formFields } = useFormFieldsAtom();

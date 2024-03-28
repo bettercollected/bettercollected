@@ -48,6 +48,8 @@ async function FormWrapper({
         config
     );
 
+    console.log(form);
+
     return (
         <Suspense fallback={<FullScreenLoader />}>
             <FormDispatcher form={form}>{children}</FormDispatcher>

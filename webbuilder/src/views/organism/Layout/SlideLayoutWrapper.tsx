@@ -2,7 +2,6 @@
 
 import React from 'react';
 
-import useGetPageAttributes from '@app/lib/hooks/useGetPageAttributes';
 import { FormField } from '@app/models/dtos/form';
 import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
 import { useFormState } from '@app/store/jotai/form';
@@ -20,7 +19,8 @@ export default function SlideLayoutWrapper({
     children,
     disabled = false
 }: ISlideLayoutWrapperProps) {
-    const { layout, imageUrl } = useGetPageAttributes(slide.index);
+    // const { layout, imageUrl } = useGetPageAttributes(slide.index);
+
     const { updateSlideImage } = useFormFieldsAtom();
     const { theme } = useFormState();
 
@@ -30,8 +30,8 @@ export default function SlideLayoutWrapper({
 
     return (
         <LayoutWrapper
-            layout={layout}
-            imageUrl={imageUrl}
+            layout={slide?.properties?.layout}
+            imageUrl={slide?.imageUrl}
             altImage={slide.id}
             disabled={disabled}
             updatePageImage={updateSlideImage}

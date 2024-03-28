@@ -13,8 +13,8 @@ import { useFormState } from '@app/store/jotai/form';
 interface ILayoutWrapper {
     layout?: FormSlideLayout;
     imageUrl?: string;
-    updatePageImage: (...args: any[]) => void;
-    altImage: string;
+    updatePageImage?: (...args: any[]) => void;
+    altImage?: string;
     disabled?: boolean;
     style?: React.CSSProperties;
     children: React.ReactNode | React.ReactNode[];
@@ -38,7 +38,7 @@ const LayoutWrapper = ({
     };
 
     const handleRemoveImage = () => {
-        updatePageImage('');
+        updatePageImage && updatePageImage('');
     };
 
     const handleChangeImage = () => {
@@ -65,6 +65,7 @@ const LayoutWrapper = ({
                 src={imageUrl}
                 alt={altImage + ' image'}
                 layout="fill"
+                priority
             />
 
             {(showControls ||
