@@ -50,7 +50,7 @@ const LayoutWrapper = ({
     const DisplayImageWithControls = ({ imageUrl }: { imageUrl: string }) => (
         <>
             <Image
-                objectFit="cover"
+                style={{ objectFit: 'cover' }}
                 className={cn(
                     'h-full w-full',
                     layout === FormSlideLayout.TWO_COLUMN_IMAGE_LEFT
@@ -64,7 +64,7 @@ const LayoutWrapper = ({
                 )}
                 src={imageUrl}
                 alt={altImage + ' image'}
-                layout="fill"
+                fill
                 priority
             />
 

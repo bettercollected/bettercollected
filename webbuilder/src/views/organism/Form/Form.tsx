@@ -26,8 +26,6 @@ const Form = ({ isPreviewMode = false }: { isPreviewMode?: boolean }) => {
         return (currentSlideIndex / totalSlides) * 100;
     };
 
-    console.log(getProgressValue());
-
     return (
         <div
             className={cn(
