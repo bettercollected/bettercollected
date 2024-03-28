@@ -275,6 +275,13 @@ export const useFormResponse = () => {
         setFormResponse({ ...formResponse });
     };
 
+    const resetFormResponseAnswer = () => {
+        setFormResponse({
+            formId: '',
+            answers: {}
+        });
+    };
+
     return {
         formResponse,
         setFormResponse,
@@ -293,6 +300,7 @@ export const useFormResponse = () => {
         addFieldRatingAnswer,
         addFieldLinearRatingAnswer,
         removeAnswer,
-        setInvalidFields
+        setInvalidFields,
+        resetFormResponseAnswer
     };
 };
