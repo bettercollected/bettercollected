@@ -1,5 +1,6 @@
 import { AnimatePresence, motion } from 'framer-motion';
 
+import { Progress } from '@app/shadcn/components/ui/progress';
 import { cn } from '@app/shadcn/util/lib';
 import { useStandardForm } from '@app/store/jotai/fetchedForm';
 import { useResponderState } from '@app/store/jotai/responderFormState';
@@ -14,10 +15,29 @@ const Form = ({ isPreviewMode = false }: { isPreviewMode?: boolean }) => {
 
     const { standardForm } = useStandardForm();
 
+    const getProgressValue = () => {
+        const totalSlides = (standardForm?.fields?.length || 0) + 2;
+        let currentSlideIndex = 1;
+        if (currentSlide >= 0) {
+            currentSlideIndex = currentSlide + 2;
+        }
+        if (currentSlide === -2)
+            currentSlideIndex = (standardForm.fields?.length || 0) + 2;
+        return (currentSlideIndex / totalSlides) * 100;
+    };
+
+    console.log(getProgressValue());
+
     return (
         <div
-            className={cn(isPreviewMode ? 'h-full w-full pb-20' : 'h-screen w-screen')}
+            className={cn(
+                isPreviewMode ? 'h-full w-full  pb-20' : 'h-screen w-screen',
+                'relative'
+            )}
         >
+            <div className="absolute left-0 right-0 top-0 z-10 bg-green-500">
+                <Progress value={getProgressValue()} className="h-2 rounded-none" />
+            </div>
             <AnimatePresence custom={currentSlide} mode="wait">
                 {currentSlide === -1 && (
                     <motion.div
