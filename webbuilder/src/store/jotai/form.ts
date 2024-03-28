@@ -72,7 +72,7 @@ export function useFormState() {
     const [formState, setFormState] = useAtom(initialFormState);
 
     const setFormTitle = (title: string) => {
-        setFormState({ ...formState, title });
+        setFormState({ ...formState, title: title });
     };
 
     const setWelcomeTitle = (welcomeTitle: string) => {

@@ -23,8 +23,11 @@ export default function AddFormTitleModal() {
         <form
             onSubmit={(event) => {
                 event.preventDefault();
-                setFormTitle(title);
-                setWelcomeTitle(title);
+                setFormState({
+                    ...formState,
+                    title,
+                    welcomePage: { ...formState.welcomePage, title }
+                });
                 setTimeout(() => {
                     setActiveSlideComponent({
                         id: formFields?.[0]?.id,
