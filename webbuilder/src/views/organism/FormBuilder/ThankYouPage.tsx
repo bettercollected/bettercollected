@@ -19,7 +19,7 @@ const ThankYouSlide = ({ disabled }: { disabled?: boolean }) => {
             <div
                 // TODO: Change this to apply layout from other layout
                 className={cn(
-                    'h-[${93.28 * 4}px] w-[${165.83 * 4}px] grid aspect-video h-min w-full grid-cols-1 bg-blue-100',
+                    'grid aspect-video h-full w-full grid-cols-1 bg-blue-100',
                     disabled ? 'pointer-events-none overflow-hidden' : '',
                     formState.thankyouPage &&
                         formState.thankyouPage[activeThankYouPageComponent?.index || 0]
