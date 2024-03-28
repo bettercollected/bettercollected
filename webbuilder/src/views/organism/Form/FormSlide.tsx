@@ -50,7 +50,7 @@ export function FormFieldComponent({
         case FieldTypes.TEXT:
             return (
                 <div className="h1-new w-full text-left text-[32px] font-bold">
-                    {parse(getHtmlFromJson(field?.title) ?? 'No Fields')}
+                    {parse(getHtmlFromJson(field?.title) ?? 'Add Text')}
                 </div>
             );
         case FieldTypes.NUMBER:
