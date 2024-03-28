@@ -1,11 +1,7 @@
-import Image from 'next/image';
-
-import RectangleImage from '@app/assets/image/rectangle.png';
 import { FormSlideLayout } from '@app/models/enums/form';
 import { Button } from '@app/shadcn/components/ui/button';
 import { cn } from '@app/shadcn/util/lib';
 import { useActiveThankYouPageComponent } from '@app/store/jotai/activeBuilderComponent';
-import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
 import { useFormState } from '@app/store/jotai/form';
 
 import GreetingLayoutWrapper from '../Layout/GreetingLayoutWrapper';
