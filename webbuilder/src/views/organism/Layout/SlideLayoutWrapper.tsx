@@ -19,8 +19,6 @@ export default function SlideLayoutWrapper({
     children,
     disabled = false
 }: ISlideLayoutWrapperProps) {
-    // const { layout, imageUrl } = useGetPageAttributes(slide.index);
-
     const { updateSlideImage } = useFormFieldsAtom();
     const { theme } = useFormState();
 

@@ -31,6 +31,7 @@ async function FormWrapper({
     formId: string;
     children: React.ReactNode;
 }) {
+
     const config = {
         method: 'GET'
     };
@@ -48,7 +49,6 @@ async function FormWrapper({
         config
     );
 
-    console.log(form);
 
     return (
         <Suspense fallback={<FullScreenLoader />}>
