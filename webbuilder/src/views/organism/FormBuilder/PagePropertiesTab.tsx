@@ -15,7 +15,7 @@ import {
 } from '@app/store/jotai/activeBuilderComponent';
 import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
 import { useFormState } from '@app/store/jotai/form';
-import { getHtmlFromJson } from '@app/utils/richTextEditorExtenstion/getHtmlFromJson';
+import { extractTextfromJSON, getHtmlFromJson } from '@app/utils/richTextEditorExtenstion/getHtmlFromJson';
 
 import SlideLayoutBackgroundImage from '../../atoms/Icons/SlideLayoutBackgroundImage';
 import SlideLayoutLeftImage from '../../atoms/Icons/SlideLayoutLeftImage';
@@ -310,12 +310,7 @@ export default function PagePropertiesTab({}: {}) {
                                         className="flex items-center justify-between gap-2 text-xs text-black-700"
                                     >
                                         <div className="truncate text-xs">
-                                            {parse(
-                                                getHtmlFromJson(field?.title) ??
-                                                    getPlaceholderValueForTitle(
-                                                        field.type || FieldTypes.TEXT
-                                                    )
-                                            )}
+                                            {extractTextfromJSON(field)}
                                         </div>
                                         <svg
                                             width="20"
