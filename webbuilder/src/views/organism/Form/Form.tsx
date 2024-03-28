@@ -15,7 +15,9 @@ const Form = ({ isPreviewMode = false }: { isPreviewMode?: boolean }) => {
     const { standardForm } = useStandardForm();
 
     return (
-        <div className={cn(isPreviewMode ? 'h-full w-full' : 'h-screen w-screen')}>
+        <div
+            className={cn(isPreviewMode ? 'h-full w-full pb-20' : 'h-screen w-screen')}
+        >
             <AnimatePresence custom={currentSlide} mode="wait">
                 {currentSlide === -1 && (
                     <motion.div

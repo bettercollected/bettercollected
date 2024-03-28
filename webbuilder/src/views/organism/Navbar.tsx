@@ -14,7 +14,14 @@ import { FieldTypes } from '@app/models/dtos/form';
 import { FormSlideLayout } from '@app/models/enums/form';
 import { Button } from '@app/shadcn/components/ui/button';
 import { DropdownMenu } from '@app/shadcn/components/ui/dropdown-menu';
-import { Sheet, SheetContent, SheetTrigger } from '@app/shadcn/components/ui/sheet';
+import { Separator } from '@app/shadcn/components/ui/separator';
+import {
+    Sheet,
+    SheetClose,
+    SheetContent,
+    SheetFooter,
+    SheetTrigger
+} from '@app/shadcn/components/ui/sheet';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { cn } from '@app/shadcn/util/lib';
 import { useActiveSlideComponent } from '@app/store/jotai/activeBuilderComponent';
@@ -28,7 +35,9 @@ import useWorkspace from '@app/store/jotai/workspace';
 import { usePublishV2FormMutation } from '@app/store/redux/formApi';
 import BetterCollectedSmallLogo from '@app/views/atoms/Icons/BetterCollectedSmallLogo';
 
+import { DesktopIcon } from '../atoms/Icons/DesktopIcon';
 import { MediaOutlinedIcon } from '../atoms/Icons/MediaOutlined';
+import { MobileIcon } from '../atoms/Icons/MobileIcon';
 import PlayIcon from '../atoms/Icons/PlayIcon';
 import { PlusOutlined } from '../atoms/Icons/PlusOutlined';
 import { TextOutlinedIcon } from '../atoms/Icons/TextOutlined';
@@ -47,8 +56,6 @@ const Navbar = () => {
     const { standardForm } = useStandardForm();
     const { workspace } = useWorkspace();
     const { openDialogModal } = useDialogModal();
-    const { resetResponderState } = useResponderState();
-    const { resetFormResponseAnswer } = useFormResponse();
 
     const router = useRouter();
 
@@ -86,11 +93,6 @@ const Navbar = () => {
             activeSlideComponent?.id === 'thank-you-page'
         );
     }
-
-    const handleClickPreview = () => {
-        resetResponderState();
-        resetFormResponseAnswer();
-    };
 
     return (
         <div
@@ -176,8 +178,15 @@ const Navbar = () => {
                     <SheetContent
                         className="h-full w-full p-0"
                         side={'bottom'}
-                        onClickCloseIcon={handleClickPreview}
+                        hideCloseIcon
                     >
+                        <SheetFooter>
+                            <SheetClose asChild>
+                                <div className="absolute left-4  z-50 ">
+                                    <BackButton />
+                                </div>
+                            </SheetClose>
+                        </SheetFooter>
                         <PreviewWrapper>
                             <Form isPreviewMode />
                         </PreviewWrapper>
@@ -211,13 +220,35 @@ const Navbar = () => {
 export default Navbar;
 
 const PreviewWrapper = ({ children }: { children: React.ReactNode }) => {
+    const { resetResponderState } = useResponderState();
+    const { resetFormResponseAnswer } = useFormResponse();
+    const handleClickPreview = () => {
+        resetResponderState();
+        resetFormResponseAnswer();
+    };
     return (
-        <div className="h-full w-full bg-white">
-            <nav className="flex h-14 flex-row px-4 py-2">
-                <BackButton handleClick={() => {}} />
+        <div className=" h-full w-full bg-white">
+            <nav className="flex h-14 flex-row justify-between px-4 py-2">
+                <div></div>
+                <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-1">
+                        <DesktopIcon />
+                        Desktop
+                    </div>
+                    <div className="flex items-center gap-1">
+                        <MobileIcon />
+                        Mobile
+                    </div>
+                </div>
+                <div
+                    onClick={handleClickPreview}
+                    className="flex cursor-pointer items-center rounded-lg border border-black-300 p-1 px-4"
+                >
+                    Restart
+                </div>
             </nav>
-            
-            {children}
+            <Separator />
+            <div className="h-full w-full px-32 py-10">{children}</div>
         </div>
     );
 };
