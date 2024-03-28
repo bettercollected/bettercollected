@@ -207,68 +207,70 @@ const SlideBuilder = ({
                                                                             width={24}
                                                                         />
                                                                     </div>
-                                                                    <div className="relative w-full items-center gap-2">
-                                                                        {slide
-                                                                            ?.properties
-                                                                            ?.showQuestionNumbers && (
-                                                                            <span className="text-2xl">
-                                                                                {index +
-                                                                                    1}
-                                                                                .
-                                                                            </span>
-                                                                        )}
-                                                                        <RichTextEditor
-                                                                            field={
-                                                                                field
-                                                                            }
-                                                                            onUpdate={(
-                                                                                editor: Editor
-                                                                            ) =>
-                                                                                updateTitle(
-                                                                                    field.index,
-                                                                                    slide.index,
-                                                                                    editor.getJSON()
-                                                                                )
-                                                                            }
-                                                                        />
-                                                                        {field
-                                                                            ?.validations
-                                                                            ?.required && (
-                                                                            <div className="absolute -right-6 top-0 text-red-500">
-                                                                                <RequiredIcon />
-                                                                            </div>
-                                                                        )}
-                                                                    </div>
-                                                                    {field?.description !==
-                                                                        undefined &&
-                                                                        field?.description !==
-                                                                            null && (
-                                                                            <input
-                                                                                id={`input-${disabled ? `${slide.id}${field.id}` : field.id}`}
-                                                                                placeholder={getPlaceholderValueForTitle(
-                                                                                    field.type ||
-                                                                                        FieldTypes.SHORT_TEXT
-                                                                                )}
-                                                                                className={
-                                                                                    'text-md ring-none -left-1 w-full border-0 !bg-inherit px-0 py-0 text-black-800 outline-none '
+                                                                    <div className="mb-4">
+                                                                        <div className="relative flex w-full items-center gap-2">
+                                                                            {slide
+                                                                                ?.properties
+                                                                                ?.showQuestionNumbers && (
+                                                                                <span className="text-2xl">
+                                                                                    {index +
+                                                                                        1}
+                                                                                    .
+                                                                                </span>
+                                                                            )}
+                                                                            <RichTextEditor
+                                                                                field={
+                                                                                    field
                                                                                 }
-                                                                                type="text"
-                                                                                value={
-                                                                                    field.description
-                                                                                }
-                                                                                onChange={(
-                                                                                    e: any
+                                                                                onUpdate={(
+                                                                                    editor: Editor
                                                                                 ) =>
-                                                                                    updateDescription(
+                                                                                    updateTitle(
                                                                                         field.index,
                                                                                         slide.index,
-                                                                                        e
-                                                                                            .target
-                                                                                            .value
+                                                                                        editor.getJSON()
                                                                                     )
                                                                                 }
                                                                             />
-                                                                        )}
+                                                                            {field
+                                                                                ?.validations
+                                                                                ?.required && (
+                                                                                <div className="absolute -right-6 top-0 text-red-500">
+                                                                                    <RequiredIcon />
+                                                                                </div>
+                                                                            )}
+                                                                        </div>
+                                                                        {field?.description !==
+                                                                            undefined &&
+                                                                            field?.description !==
+                                                                                null && (
+                                                                                <input
+                                                                                    id={`input-${disabled ? `${slide.id}${field.id}` : field.id}`}
+                                                                                    placeholder={getPlaceholderValueForTitle(
+                                                                                        field.type ||
+                                                                                            FieldTypes.SHORT_TEXT
+                                                                                    )}
+                                                                                    className={
+                                                                                        'text-md ring-none -left-1 mt-1 w-full border-0 !bg-inherit px-0 py-0 text-black-800 outline-none '
+                                                                                    }
+                                                                                    type="text"
+                                                                                    value={
+                                                                                        field.description
+                                                                                    }
+                                                                                    onChange={(
+                                                                                        e: any
+                                                                                    ) =>
+                                                                                        updateDescription(
+                                                                                            field.index,
+                                                                                            slide.index,
+                                                                                            e
+                                                                                                .target
+                                                                                                .value
+                                                                                        )
+                                                                                    }
+                                                                                />
+                                                                            )}
+                                                                    </div>
                                                                     {renderField(field)}
                                                                 </div>
                                                             </div>
