@@ -8,10 +8,10 @@ export default function FormSlidePreview({ slide }: { slide: FormField }) {
 
     return (
         <div
-            className="grid min-h-screen w-full grid-cols-2"
+            className="flex min-h-screen w-full items-center"
             style={{ background: standardForm.theme?.accent }}
         >
-            <div className="relative flex h-full flex-1 flex-col items-center justify-center ">
+            <div className="relative flex h-full max-w-[800px] flex-1 flex-col items-start justify-center gap-20 px-5 lg:px-20">
                 {slide?.properties?.fields?.map((field) => {
                     return (
                         <FormFieldComponent
