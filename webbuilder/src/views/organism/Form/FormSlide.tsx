@@ -163,7 +163,7 @@ export default function FormSlide({
     const onNext = () => {
         const invalidations = validateSlide(formSlide!, formResponse.answers || {});
         setInvalidFields(invalidations);
-        if (Object.values(invalidations).length === 0) {
+        if (Object.keys(invalidations).length === 0) {
             if (currentSlide + 1 === standardForm?.fields?.length) {
                 if (isPreviewMode) setCurrentSlideToThankyouPage();
                 else
@@ -177,6 +177,11 @@ export default function FormSlide({
             } else {
                 nextSlide();
             }
+        } else {
+            const firstInvalidField = formSlide?.properties?.fields?.find(
+                (field) => Object.keys(invalidations)[0] === field.id
+            );
+            setCurrentField(firstInvalidField!.index);
         }
     };
 
@@ -301,7 +306,7 @@ export default function FormSlide({
                                                                                     : `linear-gradient(360deg, transparent 0%, ${standardForm.theme?.accent} 100%)`
                                                                         }}
                                                                     />
-                                                                    <div className="absolute bottom-0 w-full">
+                                                                    <div className="absolute bottom-0 w-full overflow-hidden">
                                                                         <FormFieldComponent
                                                                             field={
                                                                                 formSlide!
