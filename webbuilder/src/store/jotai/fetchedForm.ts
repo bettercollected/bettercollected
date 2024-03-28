@@ -1,6 +1,7 @@
 import { atom, useAtom } from 'jotai';
 
 import { FormField } from '@app/models/dtos/form';
+import { FormSlideLayout } from '@app/models/enums/form';
 
 export default interface StandardForm {
     formId: string;
@@ -11,6 +12,20 @@ export default interface StandardForm {
     thankYouButtonText?: string;
     buttonText?: string;
     buttonLink?: string;
+    welcomePage?: {
+        title?: string;
+        description?: string;
+        layout?: FormSlideLayout;
+        imageUrl?: string;
+        buttonText?: string;
+    };
+    thankyouPage?: Array<{
+        message?: string;
+        buttonText?: string;
+        buttonLink?: string;
+        layout?: FormSlideLayout;
+        imageUrl?: string;
+    }>;
     theme?: {
         title: string;
         primary: string;
@@ -32,6 +47,15 @@ const fetchedFormAtom = atom<StandardForm>({
     formId: '',
     title: '',
     description: '',
+    welcomePage: {
+        title: '',
+        layout: FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND
+    },
+    thankyouPage: [
+        {
+            layout: FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND
+        }
+    ],
     theme: {
         title: '',
         primary: '',
