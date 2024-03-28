@@ -1,7 +1,8 @@
 import { v4 } from 'uuid';
 
-import { FieldTypes, StandardForm } from '@app/models/dtos/form';
+import { FieldTypes } from '@app/models/dtos/form';
 import { FormSlideLayout } from '@app/models/enums/form';
+import StandardForm from '@app/store/jotai/fetchedForm';
 
 export const defaultForm: StandardForm = {
     formId: '',
@@ -26,6 +27,15 @@ export const defaultForm: StandardForm = {
                     }
                 ]
             }
+        }
+    ],
+    welcomePage: {
+        title: '',
+        layout: FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND
+    },
+    thankyouPage: [
+        {
+            layout: FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND
         }
     ],
     theme: {
