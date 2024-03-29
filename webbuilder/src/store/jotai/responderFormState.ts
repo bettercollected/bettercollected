@@ -32,11 +32,13 @@ export const useResponderState = () => {
     };
 
     const previousSlide = () => {
+        const previousSlideNumber = responderState.currentSlide - 1;
         setResponderState({
             ...responderState,
-            currentSlide: responderState.currentSlide - 1
+            currentSlide: previousSlideNumber,
+            currentField: 0,
+            prevActiveField: -1
         });
-        setCurrentField(0);
     };
 
     const setCurrentSlideToThankyouPage = () => {
