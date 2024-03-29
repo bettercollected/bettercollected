@@ -1,11 +1,12 @@
-import environments from "@app/configs/environments";
-import { Separator } from "@app/shadcn/components/ui/separator";
-import { cn } from "@app/shadcn/util/lib";
-import { useStandardForm } from "@app/store/jotai/fetchedForm";
-import useWorkspace from "@app/store/jotai/workspace";
-import { DesktopIcon } from "@app/views/atoms/Icons/DesktopIcon";
-import { MobileIcon } from "@app/views/atoms/Icons/MobileIcon";
-import { useState } from "react";
+import { useState } from 'react';
+
+import environments from '@app/configs/environments';
+import { Separator } from '@app/shadcn/components/ui/separator';
+import { cn } from '@app/shadcn/util/lib';
+import { useStandardForm } from '@app/store/jotai/fetchedForm';
+import useWorkspace from '@app/store/jotai/workspace';
+import { DesktopIcon } from '@app/views/atoms/Icons/DesktopIcon';
+import { MobileIcon } from '@app/views/atoms/Icons/MobileIcon';
 
 const PreviewWrapper = ({
     children,
@@ -22,7 +23,7 @@ const PreviewWrapper = ({
         <div className=" h-full w-full bg-white">
             <nav className="flex h-14 flex-row justify-between px-4 py-2">
                 <div></div>
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-4 text-xs font-semibold">
                     <div
                         onClick={() => setIsDesktopView(true)}
                         className={cn(
@@ -56,13 +57,13 @@ const PreviewWrapper = ({
                 </div>
             </nav>
             <Separator />
-            <div className="flex h-full w-full items-center justify-center px-32 py-10 drop-shadow-xl">
+            <div className="flex h-full w-full items-center justify-center px-32 py-10 pb-24 drop-shadow-xl">
                 {isDesktopView ? (
                     <>{children}</>
                 ) : (
                     <iframe
                         title="responder-mobile-view"
-                        className="h-full  w-[400px] pb-20 drop-shadow-xl"
+                        className="aspect-[9/20] h-full drop-shadow-xl rounded-lg"
                         src={mobileViewPreviewUrl}
                     />
                 )}
@@ -71,4 +72,4 @@ const PreviewWrapper = ({
     );
 };
 
-export default PreviewWrapper
+export default PreviewWrapper;

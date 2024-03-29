@@ -17,7 +17,7 @@ export default function ThankyouPage({ isPreviewMode }: { isPreviewMode: boolean
             <div className=" relative flex h-full flex-col justify-center px-20">
                 <UserAvatarDropDown disabled />
 
-                <div className="px-10 lg:px-20">
+                <div className=" md:px-10  lg:px-20">
                     <div className="flex">
                         <span className="text-[40px] font-bold leading-[48px]">
                             Thank You! 🎉

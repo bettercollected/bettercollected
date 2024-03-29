@@ -1,5 +1,7 @@
 'use client';
 
+import { useSearchParams } from 'next/navigation';
+
 import Form from '@app/views/organism/Form/Form';
 
 export default function FormPage({
@@ -7,5 +9,8 @@ export default function FormPage({
 }: {
     params: { formId: string; workspaceName: string };
 }) {
-    return <Form />;
+    const searchParams = useSearchParams();
+    const isPreviewMode = searchParams.get('isPreview');
+
+    return <Form isMobileView={!!isPreviewMode} />;
 }
