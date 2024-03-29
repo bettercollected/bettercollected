@@ -76,7 +76,7 @@ const SwitchUserComponent = ({
     const router = useRouter();
     const [trigger] = useLazyLogOutQuery();
     const handleSwitchAccount = () => {
-        trigger('').then(() => router.push(responderSignInUrl));
+        responderSignInUrl && trigger('').then(() => router.push(responderSignInUrl));
     };
 
     return (
