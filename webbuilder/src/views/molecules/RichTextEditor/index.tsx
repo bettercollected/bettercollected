@@ -57,7 +57,9 @@ export function RichTextEditor({
     const getContentForEditor = () => {
         return field.title
             ? getHtmlFromJson(field.title ?? '')
-            : getPlaceholderValueForTitle(field.type || FieldTypes.SHORT_TEXT);
+            : `
+        <p style="font-weight:600; font-size:16px">${getPlaceholderValueForTitle(field.type || FieldTypes.SHORT_TEXT)}</p>
+      `;
     };
 
     return (
@@ -103,7 +105,7 @@ const TiptapMenuBar = () => {
     return (
         <button
             className={cn(
-                `absolute -top-14 mb-2 flex hidden items-center rounded-lg bg-white px-4 py-1 shadow-tooltip`,
+                `absolute -top-14 mb-2 hidden items-center rounded-lg bg-white px-4 py-1 shadow-tooltip`,
                 'group-focus-within:flex'
             )}
             tabIndex={0}
