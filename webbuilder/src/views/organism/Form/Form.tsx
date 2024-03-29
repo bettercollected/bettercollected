@@ -10,7 +10,13 @@ import FormSlide from './FormSlide';
 import ThankyouPage from './ThankyouPage';
 import WelcomePage from './WelcomePage';
 
-const Form = ({ isPreviewMode = false }: { isPreviewMode?: boolean }) => {
+const Form = ({
+    isPreviewMode = false,
+    isMobileView = false
+}: {
+    isPreviewMode?: boolean;
+    isMobileView?: boolean;
+}) => {
     const { currentSlide } = useResponderState();
 
     const { standardForm } = useStandardForm();
@@ -29,7 +35,9 @@ const Form = ({ isPreviewMode = false }: { isPreviewMode?: boolean }) => {
     return (
         <div
             className={cn(
-                isPreviewMode ? 'h-full w-full  pb-20' : 'h-screen w-screen',
+                
+                isPreviewMode || isMobileView ? 'h-full w-full  ' : 'h-screen w-screen'
+            ,
                 'relative'
             )}
         >
@@ -39,7 +47,10 @@ const Form = ({ isPreviewMode = false }: { isPreviewMode?: boolean }) => {
             <AnimatePresence custom={currentSlide} mode="wait">
                 {currentSlide === -1 && (
                     <motion.div
-                        className="relative flex h-full flex-1 flex-col items-center justify-center "
+                        className={cn(
+                            'relative flex h-full flex-1 flex-col items-center justify-center',
+                            isMobileView ? 'aspect-[9/20]' : ''
+                        )}
                         key={'welcome-page'}
                         initial={{ opacity: 0, x: -100 }}
                         animate={{ opacity: 1, x: 0 }}
@@ -58,7 +69,10 @@ const Form = ({ isPreviewMode = false }: { isPreviewMode?: boolean }) => {
 
                 {currentSlide >= 0 && (
                     <motion.div
-                        className="relative flex h-full flex-1 flex-col items-center justify-center "
+                        className={cn(
+                            'relative flex h-full flex-1 flex-col items-center justify-center',
+                            isMobileView ? 'aspect-[9/20]' : ''
+                        )}
                         key={currentSlide}
                         initial={{ opacity: 0, x: -100 }}
                         animate={{ opacity: 1, x: 0 }}
@@ -71,7 +85,10 @@ const Form = ({ isPreviewMode = false }: { isPreviewMode?: boolean }) => {
 
                 {currentSlide === -2 && (
                     <motion.div
-                        className="relative flex h-full flex-1 flex-col items-center justify-center "
+                        className={cn(
+                            'relative flex h-full flex-1 flex-col items-center justify-center',
+                            isMobileView ? 'aspect-[9/20]' : ''
+                        )}
                         key={'thank-you-page'}
                         initial={{ opacity: 0, x: -100 }}
                         animate={{ opacity: 1, x: 0 }}
