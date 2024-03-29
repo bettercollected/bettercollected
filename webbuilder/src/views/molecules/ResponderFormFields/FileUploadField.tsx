@@ -130,7 +130,7 @@ export default function FileUpload({ field }: { field: FormField }) {
     return (
         <QuestionWrapper field={field}>
             <div className="w-full space-y-3 md:max-w-[541px]">
-                {!ans?.file_metadata && (
+                {
                     <div
                         style={{
                             borderColor: isDragging ? theme?.tertiary : theme?.secondary
@@ -173,7 +173,7 @@ export default function FileUpload({ field }: { field: FormField }) {
                             </span>
                         </div>
                     </div>
-                )}
+                }
                 {fileMetaData.name && getFilePreview()}
             </div>
         </QuestionWrapper>

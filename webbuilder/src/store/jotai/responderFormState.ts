@@ -36,6 +36,7 @@ export const useResponderState = () => {
             ...responderState,
             currentSlide: responderState.currentSlide - 1
         });
+        setCurrentField(0);
     };
 
     const setCurrentSlideToThankyouPage = () => {
