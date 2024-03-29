@@ -1,6 +1,7 @@
 import { useState } from 'react';
 
 import environments from '@app/configs/environments';
+import { Button } from '@app/shadcn/components/ui/button';
 import { Separator } from '@app/shadcn/components/ui/separator';
 import { cn } from '@app/shadcn/util/lib';
 import { useStandardForm } from '@app/store/jotai/fetchedForm';
@@ -49,12 +50,9 @@ const PreviewWrapper = ({
                         Mobile
                     </div>
                 </div>
-                <div
-                    onClick={handleResetResponderState}
-                    className="flex cursor-pointer items-center rounded-lg border border-black-300 p-1 px-4"
-                >
+                <Button variant={'v2Button'} onClick={handleResetResponderState}>
                     Restart
-                </div>
+                </Button>
             </nav>
             <Separator />
             <div className="flex h-full w-full items-center justify-center px-32 py-10 pb-24 drop-shadow-xl">
