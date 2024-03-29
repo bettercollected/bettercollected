@@ -349,6 +349,9 @@ class FormService:
             and form.cover_image == latest_version.cover_image
             and form.button_text == latest_version.button_text
             and form.state == latest_version.state
+            and form.welcome_page == latest_version.welcome_page
+            and form.thankyou_page == latest_version.thankyou_page
+            and form.theme == latest_version.theme
         ):
             return False
         return True
@@ -440,9 +443,9 @@ class FormService:
         if add_action_to_form_params.parameters:
             if form.parameters is not None:
 
-                form.parameters[
-                    str(add_action_to_form_params.action_id)
-                ] = add_action_to_form_params.parameters
+                form.parameters[str(add_action_to_form_params.action_id)] = (
+                    add_action_to_form_params.parameters
+                )
             else:
                 form.parameters = {
                     str(
