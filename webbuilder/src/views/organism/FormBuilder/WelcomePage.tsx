@@ -27,7 +27,7 @@ const WelcomeSlide = ({ disabled }: { disabled?: boolean }) => {
                     <input
                         type="text"
                         placeholder="Form Title"
-                        className="border-0 px-0 text-[40px] font-bold"
+                        className="mb-4 w-min border-0 px-0 py-0 text-[40px] font-bold"
                         value={formState.welcomePage?.title}
                         onChange={(event) => {
                             setWelcomeTitle(event.target.value);
@@ -38,7 +38,7 @@ const WelcomeSlide = ({ disabled }: { disabled?: boolean }) => {
                             type="text"
                             placeholder="Add description"
                             value={formState.description}
-                            className="border-0 px-0 text-base"
+                            className="border-0 px-0 py-0 text-base"
                             onChange={(e: any) => setFormDescription(e.target.value)}
                         />
                     ) : (

@@ -97,7 +97,7 @@ const SlideBuilder = ({
                                 {...provided.droppableProps}
                                 ref={provided.innerRef}
                                 className={cn(
-                                    'grid h-full grid-cols-1 justify-center gap-20 px-20 py-60'
+                                    'grid h-full grid-cols-1 justify-center gap-20 px-5 py-60'
                                 )}
                             >
                                 {Array.isArray(slideFields) && slideFields.length ? (
@@ -181,7 +181,7 @@ const SlideBuilder = ({
                                                                 <div
                                                                     className={cn(
                                                                         'absolute -left-8 -mt-3 cursor-grab text-black-500',
-                                                                        'top-1/2',
+                                                                        'top-4',
                                                                         isScaledDown
                                                                             ? 'hidden'
                                                                             : ''
@@ -221,7 +221,7 @@ const SlideBuilder = ({
                                                                         {field
                                                                             ?.validations
                                                                             ?.required && (
-                                                                            <div className="absolute -right-6 top-0 text-red-500">
+                                                                            <div className="absolute -right-6 top-0 text-black-900">
                                                                                 <RequiredIcon />
                                                                             </div>
                                                                         )}
@@ -232,10 +232,9 @@ const SlideBuilder = ({
                                                                             null && (
                                                                             <input
                                                                                 id={`input-${disabled ? `${slide.id}${field.id}` : field.id}`}
-                                                                                placeholder={getPlaceholderValueForTitle(
-                                                                                    field.type ||
-                                                                                        FieldTypes.SHORT_TEXT
-                                                                                )}
+                                                                                placeholder={
+                                                                                    'Enter description'
+                                                                                }
                                                                                 className={
                                                                                     'text-md ring-none -left-1 mt-1 w-full border-0 !bg-inherit px-0 py-0 text-black-800 outline-none '
                                                                                 }
@@ -302,7 +301,7 @@ const FileUpload = ({
                     borderColor: slide.properties?.theme?.tertiary || theme?.tertiary
                 }}
                 className={
-                    'flex h-[200px] w-[500px] cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dotted'
+                    'flex h-[200px] w-full max-w-[500px] cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dotted'
                 }
             >
                 <FolderUploadIcon

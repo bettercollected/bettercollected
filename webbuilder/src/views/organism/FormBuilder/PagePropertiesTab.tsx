@@ -15,7 +15,10 @@ import {
 } from '@app/store/jotai/activeBuilderComponent';
 import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
 import { useFormState } from '@app/store/jotai/form';
-import { extractTextfromJSON, getHtmlFromJson } from '@app/utils/richTextEditorExtenstion/getHtmlFromJson';
+import {
+    extractTextfromJSON,
+    getHtmlFromJson
+} from '@app/utils/richTextEditorExtenstion/getHtmlFromJson';
 
 import SlideLayoutBackgroundImage from '../../atoms/Icons/SlideLayoutBackgroundImage';
 import SlideLayoutLeftImage from '../../atoms/Icons/SlideLayoutLeftImage';
@@ -202,7 +205,7 @@ export default function PagePropertiesTab({}: {}) {
                                         <>
                                             <input
                                                 type="text"
-                                                placeholder="buttonText"
+                                                placeholder="Try bettercollected"
                                                 value={
                                                     formState.thankyouPage &&
                                                     formState.thankyouPage[
@@ -242,7 +245,7 @@ export default function PagePropertiesTab({}: {}) {
                                             </div>
                                             <input
                                                 type="text"
-                                                placeholder="buttonLink"
+                                                placeholder="Enter your link here"
                                                 value={
                                                     formState.thankyouPage &&
                                                     formState.thankyouPage[
@@ -267,7 +270,7 @@ export default function PagePropertiesTab({}: {}) {
                                 <div className="text-xs text-black-700">Button</div>
                                 <input
                                     type="text"
-                                    placeholder="buttonText"
+                                    placeholder="Start"
                                     value={formState.welcomePage?.buttonText}
                                     onChange={(e: any) =>
                                         setWelcomePageButtonText(e.target.value)

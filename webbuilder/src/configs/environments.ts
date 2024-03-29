@@ -13,7 +13,7 @@ const environments = {
     NEXT_PUBLIC_V1_CLIENT_ENDPOINT_DOMAIN:
         process.env.NEXT_PUBLIC_V1_CLIENT_ENDPOINT_DOMAIN,
     NEXT_PUBLIC_V2_CLIENT_ENDPOINT_DOMAIN:
-        process.env.NEXT_PUBLIC_V2_CLIENT_ENDPOINT_DOMAIN,
+        process.env.NEXT_PUBLIC_V2_CLIENT_ENDPOINT_DOMAIN || 'forms.bettercollected.io',
 
     FORM_PRIVACY_POLICY_URL:
         process.env.FORM_PRIVACY_POLICY_URL ??

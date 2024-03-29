@@ -35,9 +35,7 @@ const Form = ({
     return (
         <div
             className={cn(
-                
-                isPreviewMode || isMobileView ? 'h-full w-full  ' : 'h-screen w-screen'
-            ,
+                isPreviewMode || isMobileView ? 'h-full w-full  ' : 'h-screen w-screen',
                 'relative'
             )}
         >
@@ -59,7 +57,7 @@ const Form = ({
                     >
                         <LayoutWrapper
                             theme={standardForm.theme}
-                            disabled={isPreviewMode}
+                            disabled
                             layout={standardForm.welcomePage?.layout}
                             imageUrl={standardForm?.welcomePage?.imageUrl}
                         >
@@ -98,7 +96,7 @@ const Form = ({
                     >
                         <LayoutWrapper
                             theme={standardForm.theme}
-                            disabled={isPreviewMode}
+                            disabled
                             layout={standardForm?.thankyouPage?.[0]?.layout}
                             imageUrl={standardForm?.thankyouPage?.[0]?.imageUrl}
                         >

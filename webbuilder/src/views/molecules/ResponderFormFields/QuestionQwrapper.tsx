@@ -22,7 +22,7 @@ export default function QuestionWrapper({
         <div className="relative flex flex-col">
             {field?.validations?.required && (
                 <div className="top- 2 absolute -right-10">
-                    <RequiredIcon className="text-red-500" />
+                    <RequiredIcon className="text-black-900" />
                 </div>
             )}
             <div className="mb-4">
