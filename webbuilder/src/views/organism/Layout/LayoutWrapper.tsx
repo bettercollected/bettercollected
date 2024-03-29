@@ -109,6 +109,7 @@ const LayoutWrapper = ({
                     disabled ? 'h-full overflow-hidden' : ''
                 )}
             >
+                
                 {children}
 
                 {/* Image with controls works for left and right image layout */}

@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 
+import { Dashboard } from '@mui/icons-material';
 import { v4 } from 'uuid';
 
 import environments from '@app/configs/environments';
@@ -100,7 +101,18 @@ const Navbar = () => {
             className="flex h-16 w-full justify-between border-b-[1px] border-b-black-300 bg-white p-4"
         >
             <div className={'flex items-center gap-6'}>
-                <div className={'mr-4 rounded-lg px-4 py-[6px] shadow'}>
+                <div
+                    className={'mr-4 cursor-pointer rounded-lg px-4 py-[6px] shadow'}
+                    onClick={() => {
+                        router.push(
+                            'https://' +
+                                environments.NEXT_PUBLIC_DASHBOARD_DOMAIN +
+                                '/' +
+                                workspace.workspaceName +
+                                '/dashboard'
+                        );
+                    }}
+                >
                     <BetterCollectedSmallLogo />
                 </div>
                 <DropdownMenu>

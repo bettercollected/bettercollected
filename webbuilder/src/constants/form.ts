@@ -15,17 +15,7 @@ export const defaultForm: StandardForm = {
             type: FieldTypes.SLIDE,
             properties: {
                 layout: FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT,
-                fields: [
-                    {
-                        id: v4(),
-                        index: 0,
-                        type: FieldTypes.SHORT_TEXT,
-                        value: 'Hi, what is your name?',
-                        properties: {
-                            placeholder: 'Your full name please'
-                        }
-                    }
-                ]
+                fields: []
             }
         }
     ],
