@@ -223,13 +223,15 @@ const Navbar = () => {
                             formId: standardForm.formId
                         });
                         if (response.data) {
-                            toast({
-                                title: 'Form Published!',
-                                description: 'Share and start collecting responses'
-                            });
-                            router.push(
-                                `${environments.NEXT_PUBLIC_HTTP_SCHEME}://${environments.NEXT_PUBLIC_DASHBOARD_DOMAIN}/${workspace.workspaceName}/dashboard/forms/${standardForm.formId}?view=FormLinks`
-                            );
+                                                    openDialogModal('FORM_PUBLISHED');
+
+                            // toast({
+                            //     title: 'Form Published!',
+                            //     description: 'Share and start collecting responses'
+                            // });
+                            // router.push(
+                            //     `${environments.NEXT_PUBLIC_HTTP_SCHEME}://${environments.NEXT_PUBLIC_DASHBOARD_DOMAIN}/${workspace.workspaceName}/dashboard/forms/${standardForm.formId}?view=FormLinks`
+                            // );
                         }
                     }}
                 >
