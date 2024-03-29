@@ -322,7 +322,7 @@ export default function PagePropertiesTab({}: {}) {
                                             fill="none"
                                             className={
                                                 field?.validations?.required
-                                                    ? 'text-pink-500'
+                                                    ? 'text-black-900'
                                                     : 'text-[#DBDBDB]'
                                             }
                                             xmlns="http://www.w3.org/2000/svg"

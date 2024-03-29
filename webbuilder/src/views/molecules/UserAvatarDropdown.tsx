@@ -29,7 +29,12 @@ export default function UserAvatarDropDown({
     return (
         <Popover open={popOverOpen} onOpenChange={setPopoverOpen}>
             <PopoverTrigger className="absolute right-10 top-4">
-                <div className="flex cursor-pointer  items-center rounded-full bg-black-400 p-1">
+                <div
+                    className={cn(
+                        'flex cursor-pointer  items-center rounded-full p-1 transition',
+                        popOverOpen ? 'bg-black-400' : 'bg-white'
+                    )}
+                >
                     <UserAvatar authState={authState} />
                     <ChevronDown
                         className={cn(

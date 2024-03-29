@@ -117,7 +117,7 @@ const LayoutWrapper = ({
                     }}
                     // TODO: Change this to apply layout from other layout
                     className={cn(
-                        'px-5 md:px-10 xl:px-20',
+                        'relative px-5 md:px-10 xl:px-20',
                         ' grid aspect-video h-full w-full grid-cols-1 bg-blue-100',
                         disabled ? 'overflow-hidden' : '',
                         layout && layout === FormSlideLayout.TWO_COLUMN_IMAGE_LEFT
@@ -183,7 +183,7 @@ const LayoutWrapper = ({
                         'test relative z-0',
                         imageUrl && !disabled
                             ? 'hover:cursor-pointer hover:!bg-black/30'
-                            : 'bg-neutral-100 shadow hover:cursor-default',
+                            : 'bg-neutral-100 hover:cursor-default',
                         layout === FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND
                             ? 'absolute inset-0 top-1/2 aspect-video h-fit -translate-y-1/2 transform !bg-transparent'
                             : '',
