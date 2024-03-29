@@ -83,7 +83,7 @@ const LayoutWrapper = ({
                         className={cn(
                             'absolute flex h-full w-full items-start justify-end gap-4 p-2',
                             layout === FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND
-                                ? '-top-[7%]'
+                                ? '-top-[50px]'
                                 : ''
                         )}
                     >
