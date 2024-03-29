@@ -14,7 +14,7 @@ export default function ThankyouPage({ isPreviewMode }: { isPreviewMode: boolean
             className="grid h-screen w-full grid-cols-1"
             style={{ background: standardForm.theme?.accent }}
         >
-            <div className=" relative flex h-full flex-col justify-center px-20">
+            <div className=" flex h-full flex-col justify-center px-20">
                 <UserAvatarDropDown disabled />
 
                 <div className=" md:px-10  lg:px-20">

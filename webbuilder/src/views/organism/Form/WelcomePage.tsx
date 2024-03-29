@@ -25,7 +25,7 @@ export default function WelcomePage({ isPreviewMode }: { isPreviewMode: boolean 
             className="grid h-full w-full grid-cols-1"
             style={{ background: standardForm.theme?.accent }}
         >
-            <div className="relative flex h-full flex-col justify-center">
+            <div className="flex h-full flex-col justify-center">
                 <UserAvatarDropDown
                     responderSignInUrl={isPreviewMode ? '' : responderSignInUrl}
                 />
