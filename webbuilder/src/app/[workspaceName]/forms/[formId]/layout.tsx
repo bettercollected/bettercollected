@@ -1,7 +1,6 @@
 import React, { Suspense } from 'react';
 
 import environments from '@app/configs/environments';
-import { store } from '@app/store/store';
 import fetchWithCookies from '@app/utils/fetchUtils';
 import FullScreenLoader from '@app/views/atoms/Loaders/FullScreenLoader';
 
@@ -14,8 +13,6 @@ export default function Layout({
     children: React.ReactNode;
     params: { formId: string; workspaceName: string };
 }) {
-    const workspaceId = store.getState().workspace.id;
-
     return (
         <FormWrapper workspaceName={params.workspaceName} formId={params.formId}>
             {children}
@@ -46,8 +43,7 @@ async function FormWrapper({
             '/workspaces/' +
             workspace.id +
             '/forms/' +
-            formId +
-            '?published=true',
+            formId,
         config
     );
 
