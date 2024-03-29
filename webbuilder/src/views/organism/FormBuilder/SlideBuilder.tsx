@@ -347,6 +347,9 @@ const InputField = ({
                 $slide={slide}
                 type="text"
                 value={field.properties?.placeholder}
+                style={{
+                    color: slide?.properties?.theme?.tertiary || theme?.tertiary
+                }}
                 placeholder={getPlaceholderValueForField(
                     field.type || FieldTypes.SHORT_TEXT
                 )}
