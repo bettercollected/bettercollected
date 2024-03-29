@@ -233,7 +233,7 @@ export default function FormSlide({
                 )}
                 <ScrollArea
                     asChild
-                    className="z-10 h-full flex-1 items-center items-center overflow-y-auto"
+                    className="z-10 h-full flex-1 items-center overflow-y-auto"
                     onWheel={(event) => {
                         onScrollDebounced(event?.deltaY > 0 ? 1 : -1);
                     }}
