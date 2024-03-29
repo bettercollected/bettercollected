@@ -4,13 +4,13 @@ import { JSONContent } from '@tiptap/react';
 import { atom, useAtom } from 'jotai';
 import { v4 } from 'uuid';
 
-
-
 import { FieldTypes, FormField } from '@app/models/dtos/form';
 import { FormSlideLayout } from '@app/models/enums/form';
-import { useActiveFieldComponent, useActiveSlideComponent } from '@app/store/jotai/activeBuilderComponent';
+import {
+    useActiveFieldComponent,
+    useActiveSlideComponent
+} from '@app/store/jotai/activeBuilderComponent';
 import { reorder } from '@app/utils/arrayUtils';
-
 
 const initialFieldsAtom = atom<FormField[]>([
     {
@@ -30,7 +30,9 @@ const initialFieldsAtom = atom<FormField[]>([
                     }
                 }
             ]
-        }
+        },
+        imageUrl:
+            'https://s3.eu-central-1.wasabisys.com/bettercollected/images/v2defaultImage.png'
     }
 ]);
 
