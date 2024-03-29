@@ -81,13 +81,13 @@ export default function FormPage({ params }: { params: { formId: string } }) {
     }, [navbarState]);
 
     return (
-        <main className="flex h-screen flex-col items-center justify-start overflow-hidden bg-black-100">
+        <main className="flex h-screen flex-col items-center justify-start overflow-hidden bg-white">
             <Navbar />
             <AutoSaveForm formId={formId} />
             <div className="flex max-h-body-content w-full flex-row items-center gap-10">
                 <LeftDrawer />
                 <div
-                    className="relative mx-10 flex h-full w-full flex-1 flex-col items-center justify-center "
+                    className="shadow-slide relative mx-10 flex w-full flex-1 flex-col items-center justify-center rounded-lg"
                     onClick={() => {
                         setActiveFieldComponent(null);
                     }}

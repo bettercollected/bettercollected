@@ -10,7 +10,7 @@ export function PlusOutlined(props: React.SVGAttributes<any>) {
             xmlns="http://www.w3.org/2000/svg"
             {...props}
         >
-            <rect width="20" height="20" rx="4" fill="#AAAAAA" />
+            <rect width="20" height="20" rx="4" fill="currentColor" />
             <path
                 d="M10 5L10 15"
                 stroke="white"

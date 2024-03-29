@@ -58,7 +58,8 @@ const Form = ({
                         transition={{ duration: 0.2 }}
                     >
                         <LayoutWrapper
-                            disabled
+                            theme={standardForm.theme}
+                            disabled={isPreviewMode}
                             layout={standardForm.welcomePage?.layout}
                             imageUrl={standardForm?.welcomePage?.imageUrl}
                         >
@@ -96,7 +97,8 @@ const Form = ({
                         transition={{ duration: 0.2 }}
                     >
                         <LayoutWrapper
-                            disabled
+                            theme={standardForm.theme}
+                            disabled={isPreviewMode}
                             layout={standardForm?.thankyouPage?.[0]?.layout}
                             imageUrl={standardForm?.thankyouPage?.[0]?.imageUrl}
                         >

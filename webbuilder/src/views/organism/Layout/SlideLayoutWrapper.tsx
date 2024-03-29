@@ -2,6 +2,7 @@
 
 import React from 'react';
 
+import { FormTheme } from '@app/constants/theme';
 import { FormField } from '@app/models/dtos/form';
 import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
 import { useFormState } from '@app/store/jotai/form';
@@ -12,15 +13,16 @@ interface ISlideLayoutWrapperProps {
     slide: FormField;
     children: React.ReactNode | React.ReactNode[];
     disabled?: boolean;
+    theme?: FormTheme;
 }
 
 export default function SlideLayoutWrapper({
     slide,
     children,
+    theme,
     disabled = false
 }: ISlideLayoutWrapperProps) {
     const { updateSlideImage } = useFormFieldsAtom();
-    const { theme } = useFormState();
 
     const style = {
         backgroundColor: slide.properties?.theme?.accent || theme?.accent
@@ -34,6 +36,7 @@ export default function SlideLayoutWrapper({
             disabled={disabled}
             updatePageImage={updateSlideImage}
             style={style}
+            theme={theme}
         >
             {children}
         </LayoutWrapper>
