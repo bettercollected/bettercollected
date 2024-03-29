@@ -24,7 +24,12 @@ const GreetingLayoutWrapper = ({
 }: IGreetingLayoutWrapper) => {
     const { activeSlideComponent } = useActiveSlideComponent();
     const { layout, imageUrl } = useGetPageAttributes(greetingIndex);
-    const { updateWelcomePageImage, updateThankYouPageImage } = useFormState();
+    const {
+        updateWelcomePageImage,
+        updateThankYouPageImage,
+        updateThankYouPageLayout,
+        updateWelcomePageLayout
+    } = useFormState();
 
     return (
         <LayoutWrapper
@@ -37,6 +42,11 @@ const GreetingLayoutWrapper = ({
                     : updateThankYouPageImage
             }
             disabled={disabled}
+            updatePageLayout={
+                activeSlideComponent?.index === -10
+                    ? updateWelcomePageLayout
+                    : updateThankYouPageLayout
+            }
             theme={theme}
         >
             {children}
