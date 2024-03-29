@@ -112,7 +112,7 @@ const LayoutWrapper = ({
                     ...style
                 }}
                 className={cn(
-                    'relative flex aspect-video h-min w-full  overflow-hidden rounded-lg bg-white lg:grid',
+                    'relative flex  aspect-video h-min w-full overflow-hidden rounded-lg !bg-transparent lg:grid',
                     layout === FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT
                         ? 'flex-col-reverse'
                         : 'flex-col',
@@ -130,8 +130,12 @@ const LayoutWrapper = ({
                     // TODO: Change this to apply layout from other layout
                     className={cn(
                         'relative px-5 md:px-10 xl:px-20',
-                        ' grid aspect-video h-full w-full grid-cols-1 bg-blue-100',
+                        ' grid aspect-video h-full w-full grid-cols-1',
                         disabled ? 'overflow-hidden' : '',
+                        layout &&
+                            layout === FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND
+                            ? 'z-10 !bg-transparent'
+                            : '',
                         layout && layout === FormSlideLayout.TWO_COLUMN_IMAGE_LEFT
                             ? 'order-1'
                             : layout &&
@@ -202,7 +206,7 @@ const LayoutWrapper = ({
                             ? 'hover:cursor-pointer hover:!bg-black/30'
                             : 'bg-neutral-100 hover:cursor-default',
                         layout === FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND
-                            ? 'absolute inset-0 top-1/2 aspect-video h-fit -translate-y-1/2 transform !bg-transparent'
+                            ? 'absolute inset-0 top-1/2 aspect-video -translate-y-1/2 transform '
                             : '',
                         disabled ? 'h-full' : ''
                     )}
