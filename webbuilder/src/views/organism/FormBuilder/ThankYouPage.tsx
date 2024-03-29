@@ -11,7 +11,7 @@ const ThankYouSlide = ({ disabled }: { disabled?: boolean }) => {
 
     return (
         <GreetingLayoutWrapper disabled={disabled} greetingIndex={-20} theme={theme}>
-            <div className={cn('grid items-center justify-center self-center px-12')}>
+            <div className={cn('flex w-full max-w-[800px] items-start self-center')}>
                 <div className="flex flex-col items-start">
                     <h1 className="text-2xl font-semibold">Thank You!</h1>
                     {formState.thankyouPage &&
@@ -39,7 +39,11 @@ const ThankYouSlide = ({ disabled }: { disabled?: boolean }) => {
                     {formState.thankyouPage &&
                     formState.thankyouPage[activeThankYouPageComponent?.index || 0]
                         .buttonText !== undefined ? (
-                        <Button size={'medium'} className="mt-4">
+                        <Button
+                            size={'medium'}
+                            className="z-10 mt-12 rounded px-8 py-3"
+                            style={{ background: theme?.secondary }}
+                        >
                             {formState.thankyouPage![
                                 activeThankYouPageComponent?.index || 0
                             ].buttonText || 'Try bettercollected'}
