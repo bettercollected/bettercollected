@@ -44,6 +44,7 @@ const SlideBuilder = ({
     const { updateTitle, updateDescription, moveFieldInASlide, deleteField } =
         useFormFieldsAtom();
     const { setActiveFieldComponent, activeFieldComponent } = useActiveFieldComponent();
+    const { theme } = useFormState();
 
     function renderField(field: FormField) {
         switch (field.type) {
@@ -78,217 +79,201 @@ const SlideBuilder = ({
     }
 
     return (
-        <SlideLayoutWrapper slide={slide} disabled={disabled}>
-            <div
-                className={cn(
-                    'z-10 grid-cols-1 overflow-hidden',
-                    slide &&
-                        slide?.properties?.layout ===
-                            FormSlideLayout.TWO_COLUMN_IMAGE_LEFT
-                        ? 'order-1'
-                        : slide &&
-                            slide?.properties?.layout ===
-                                FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT
-                          ? 'order-0'
-                          : '' // Add a default case or handle the case when layout is neither 'two-column-right' nor 'two-column-left'
-                )}
-            >
-                <ScrollArea className="h-full flex-1 overflow-y-auto">
-                    <DragDropContext
-                        onDragEnd={(result, provided) => {
-                            if (!result.destination) return;
-                            moveFieldInASlide(
-                                slide.index,
-                                result.source.index,
-                                result.destination.index
-                            );
-                        }}
-                    >
-                        <StrictModeDroppable droppableId={'fields-droppable-section'}>
-                            {(provided: DroppableProvided) => (
-                                <div
-                                    {...provided.droppableProps}
-                                    ref={provided.innerRef}
-                                    className={cn(
-                                        'grid h-full grid-cols-1 justify-center gap-20 px-20 py-60'
-                                    )}
-                                >
-                                    {Array.isArray(slideFields) &&
-                                    slideFields.length ? (
-                                        slideFields.map((field, index) => {
-                                            return (
-                                                <Draggable
-                                                    key={field.id + index}
-                                                    draggableId={`${field.id}`}
-                                                    index={index}
-                                                    disableInteractiveElementBlocking={
-                                                        disabled
-                                                    }
-                                                    isDragDisabled={disabled}
-                                                >
-                                                    {(provided) => (
+        <SlideLayoutWrapper slide={slide} disabled={disabled} theme={theme}>
+            <ScrollArea className="h-full flex-1 overflow-y-auto">
+                <DragDropContext
+                    onDragEnd={(result, provided) => {
+                        if (!result.destination) return;
+                        moveFieldInASlide(
+                            slide.index,
+                            result.source.index,
+                            result.destination.index
+                        );
+                    }}
+                >
+                    <StrictModeDroppable droppableId={'fields-droppable-section'}>
+                        {(provided: DroppableProvided) => (
+                            <div
+                                {...provided.droppableProps}
+                                ref={provided.innerRef}
+                                className={cn(
+                                    'grid h-full grid-cols-1 justify-center gap-20 px-20 py-60'
+                                )}
+                            >
+                                {Array.isArray(slideFields) && slideFields.length ? (
+                                    slideFields.map((field, index) => {
+                                        return (
+                                            <Draggable
+                                                key={field.id + index}
+                                                draggableId={`${field.id}`}
+                                                index={index}
+                                                disableInteractiveElementBlocking={
+                                                    disabled
+                                                }
+                                                isDragDisabled={disabled}
+                                            >
+                                                {(provided) => (
+                                                    <div
+                                                        className={cn(
+                                                            'relative flex flex-row items-center justify-center first:!pb-0 last:pb-20'
+                                                        )}
+                                                    >
                                                         <div
+                                                            key={index}
+                                                            tabIndex={0}
+                                                            ref={provided.innerRef}
                                                             className={cn(
-                                                                'relative flex flex-row items-center justify-center first:!pb-0 last:pb-20'
+                                                                activeFieldComponent?.id ===
+                                                                    field.id &&
+                                                                    'ring-1 ring-blue-500',
+                                                                'w-full max-w-[600px] cursor-pointer p-1'
                                                             )}
+                                                            onFocus={(event) => {
+                                                                event.preventDefault();
+                                                                event.stopPropagation();
+                                                                setActiveFieldComponent(
+                                                                    {
+                                                                        id: field.id,
+                                                                        index: index
+                                                                    }
+                                                                );
+                                                            }}
+                                                            onClick={(event) => {
+                                                                event.preventDefault();
+                                                                event.stopPropagation();
+                                                                setActiveFieldComponent(
+                                                                    {
+                                                                        id: field.id,
+                                                                        index: index
+                                                                    }
+                                                                );
+                                                            }}
+                                                            {...provided.draggableProps}
                                                         >
                                                             <div
-                                                                key={index}
-                                                                tabIndex={0}
-                                                                ref={provided.innerRef}
-                                                                className={cn(
-                                                                    activeFieldComponent?.id ===
-                                                                        field.id &&
-                                                                        'ring-1 ring-blue-500',
-                                                                    'w-full max-w-[600px] cursor-pointer p-1'
-                                                                )}
-                                                                onFocus={(event) => {
-                                                                    event.preventDefault();
-                                                                    event.stopPropagation();
-                                                                    setActiveFieldComponent(
-                                                                        {
-                                                                            id: field.id,
-                                                                            index: index
-                                                                        }
-                                                                    );
-                                                                }}
-                                                                onClick={(event) => {
-                                                                    event.preventDefault();
-                                                                    event.stopPropagation();
-                                                                    setActiveFieldComponent(
-                                                                        {
-                                                                            id: field.id,
-                                                                            index: index
-                                                                        }
-                                                                    );
-                                                                }}
-                                                                {...provided.draggableProps}
+                                                                className={
+                                                                    'relative flex flex-col items-start'
+                                                                }
                                                             >
+                                                                {!isScaledDown &&
+                                                                    activeFieldComponent &&
+                                                                    activeFieldComponent?.id ===
+                                                                        field.id && (
+                                                                        <div
+                                                                            className="absolute -top-14 right-0 cursor-pointer rounded-md bg-white p-2 shadow-bubble"
+                                                                            onClick={() => {
+                                                                                deleteField(
+                                                                                    slide.index,
+                                                                                    index
+                                                                                );
+                                                                            }}
+                                                                        >
+                                                                            <DeleteIcon
+                                                                                width={
+                                                                                    24
+                                                                                }
+                                                                                height={
+                                                                                    24
+                                                                                }
+                                                                            />
+                                                                        </div>
+                                                                    )}
                                                                 <div
-                                                                    className={
-                                                                        'relative flex flex-col items-start'
-                                                                    }
+                                                                    className={cn(
+                                                                        'absolute -left-8 -mt-3 cursor-grab text-black-500',
+                                                                        'top-1/2',
+                                                                        isScaledDown
+                                                                            ? 'hidden'
+                                                                            : ''
+                                                                    )}
+                                                                    {...provided.dragHandleProps}
                                                                 >
-                                                                    {!isScaledDown &&
-                                                                        activeFieldComponent &&
-                                                                        activeFieldComponent?.id ===
-                                                                            field.id && (
-                                                                            <div
-                                                                                className="absolute -top-14 right-0 cursor-pointer rounded-md bg-white p-2 shadow-bubble"
-                                                                                onClick={() => {
-                                                                                    deleteField(
-                                                                                        slide.index,
-                                                                                        index
-                                                                                    );
-                                                                                }}
-                                                                            >
-                                                                                <DeleteIcon
-                                                                                    width={
-                                                                                        24
-                                                                                    }
-                                                                                    height={
-                                                                                        24
-                                                                                    }
-                                                                                />
+                                                                    <GripVertical
+                                                                        height={24}
+                                                                        width={24}
+                                                                    />
+                                                                </div>
+                                                                <div className="mb-4">
+                                                                    <div className="relative flex w-full items-center gap-2">
+                                                                        {slide
+                                                                            ?.properties
+                                                                            ?.showQuestionNumbers && (
+                                                                            <span className="text-2xl">
+                                                                                {index +
+                                                                                    1}
+                                                                                .
+                                                                            </span>
+                                                                        )}
+                                                                        <RichTextEditor
+                                                                            field={
+                                                                                field
+                                                                            }
+                                                                            onUpdate={(
+                                                                                editor: Editor
+                                                                            ) =>
+                                                                                updateTitle(
+                                                                                    field.index,
+                                                                                    slide.index,
+                                                                                    editor.getJSON()
+                                                                                )
+                                                                            }
+                                                                        />
+                                                                        {field
+                                                                            ?.validations
+                                                                            ?.required && (
+                                                                            <div className="absolute -right-6 top-0 text-red-500">
+                                                                                <RequiredIcon />
                                                                             </div>
                                                                         )}
-                                                                    <div
-                                                                        className={cn(
-                                                                            'absolute -left-8 -mt-3 cursor-grab text-black-500',
-                                                                            'top-1/2',
-                                                                            isScaledDown
-                                                                                ? 'hidden'
-                                                                                : ''
-                                                                        )}
-                                                                        {...provided.dragHandleProps}
-                                                                    >
-                                                                        <GripVertical
-                                                                            height={24}
-                                                                            width={24}
-                                                                        />
                                                                     </div>
-                                                                    <div className="mb-4">
-                                                                        <div className="relative flex w-full items-center gap-2">
-                                                                            {slide
-                                                                                ?.properties
-                                                                                ?.showQuestionNumbers && (
-                                                                                <span className="text-2xl">
-                                                                                    {index +
-                                                                                        1}
-                                                                                    .
-                                                                                </span>
-                                                                            )}
-                                                                            <RichTextEditor
-                                                                                field={
-                                                                                    field
+                                                                    {field?.description !==
+                                                                        undefined &&
+                                                                        field?.description !==
+                                                                            null && (
+                                                                            <input
+                                                                                id={`input-${disabled ? `${slide.id}${field.id}` : field.id}`}
+                                                                                placeholder={getPlaceholderValueForTitle(
+                                                                                    field.type ||
+                                                                                        FieldTypes.SHORT_TEXT
+                                                                                )}
+                                                                                className={
+                                                                                    'text-md ring-none -left-1 mt-1 w-full border-0 !bg-inherit px-0 py-0 text-black-800 outline-none '
                                                                                 }
-                                                                                onUpdate={(
-                                                                                    editor: Editor
+                                                                                type="text"
+                                                                                value={
+                                                                                    field.description
+                                                                                }
+                                                                                onChange={(
+                                                                                    e: any
                                                                                 ) =>
-                                                                                    updateTitle(
+                                                                                    updateDescription(
                                                                                         field.index,
                                                                                         slide.index,
-                                                                                        editor.getJSON()
+                                                                                        e
+                                                                                            .target
+                                                                                            .value
                                                                                     )
                                                                                 }
                                                                             />
-                                                                            {field
-                                                                                ?.validations
-                                                                                ?.required && (
-                                                                                <div className="absolute -right-6 top-0 text-red-500">
-                                                                                    <RequiredIcon />
-                                                                                </div>
-                                                                            )}
-                                                                        </div>
-                                                                        {field?.description !==
-                                                                            undefined &&
-                                                                            field?.description !==
-                                                                                null && (
-                                                                                <input
-                                                                                    id={`input-${disabled ? `${slide.id}${field.id}` : field.id}`}
-                                                                                    placeholder={getPlaceholderValueForTitle(
-                                                                                        field.type ||
-                                                                                            FieldTypes.SHORT_TEXT
-                                                                                    )}
-                                                                                    className={
-                                                                                        'text-md ring-none -left-1 mt-1 w-full border-0 !bg-inherit px-0 py-0 text-black-800 outline-none '
-                                                                                    }
-                                                                                    type="text"
-                                                                                    value={
-                                                                                        field.description
-                                                                                    }
-                                                                                    onChange={(
-                                                                                        e: any
-                                                                                    ) =>
-                                                                                        updateDescription(
-                                                                                            field.index,
-                                                                                            slide.index,
-                                                                                            e
-                                                                                                .target
-                                                                                                .value
-                                                                                        )
-                                                                                    }
-                                                                                />
-                                                                            )}
-                                                                    </div>
-                                                                    {renderField(field)}
+                                                                        )}
                                                                 </div>
+                                                                {renderField(field)}
                                                             </div>
                                                         </div>
-                                                    )}
-                                                </Draggable>
-                                            );
-                                        })
-                                    ) : (
-                                        <></>
-                                    )}
-                                    {provided.placeholder}
-                                </div>
-                            )}
-                        </StrictModeDroppable>
-                    </DragDropContext>
-                </ScrollArea>
-            </div>
+                                                    </div>
+                                                )}
+                                            </Draggable>
+                                        );
+                                    })
+                                ) : (
+                                    <></>
+                                )}
+                                {provided.placeholder}
+                            </div>
+                        )}
+                    </StrictModeDroppable>
+                </DragDropContext>
+            </ScrollArea>
         </SlideLayoutWrapper>
     );
 };

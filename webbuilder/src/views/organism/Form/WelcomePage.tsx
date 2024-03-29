@@ -82,7 +82,7 @@ export default function WelcomePage({ isPreviewMode }: { isPreviewMode: boolean 
                 <div className="mt-6">
                     <Button
                         style={{ background: standardForm.theme?.secondary }}
-                        className="mt-20 rounded px-8 py-3"
+                        className="z-10 mt-20 rounded px-8 py-3"
                         size="medium"
                         onClick={() => {
                             if (

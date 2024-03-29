@@ -2,6 +2,7 @@
 
 import React from 'react';
 
+import { FormTheme } from '@app/constants/theme';
 import useGetPageAttributes from '@app/lib/hooks/useGetPageAttributes';
 import { useActiveSlideComponent } from '@app/store/jotai/activeBuilderComponent';
 import { useFormState } from '@app/store/jotai/form';
@@ -13,11 +14,12 @@ interface IGreetingLayoutWrapper {
     greetingIndex: number;
     thankYouPageIndex?: number;
     children: React.ReactNode | React.ReactNode[];
+    theme?: FormTheme;
 }
 const GreetingLayoutWrapper = ({
     disabled,
     greetingIndex,
-    thankYouPageIndex,
+    theme,
     children
 }: IGreetingLayoutWrapper) => {
     const { activeSlideComponent } = useActiveSlideComponent();
@@ -35,6 +37,7 @@ const GreetingLayoutWrapper = ({
                     : updateThankYouPageImage
             }
             disabled={disabled}
+            theme={theme}
         >
             {children}
         </LayoutWrapper>

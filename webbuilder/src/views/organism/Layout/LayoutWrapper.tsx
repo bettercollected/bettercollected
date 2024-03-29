@@ -4,6 +4,7 @@ import { useState } from 'react';
 
 import Image from 'next/image';
 
+import { FormTheme } from '@app/constants/theme';
 import { useDialogModal } from '@app/lib/hooks/useDialogModal';
 import { FormSlideLayout } from '@app/models/enums/form';
 import { Button } from '@app/shadcn/components/ui/button';
@@ -16,12 +17,14 @@ interface ILayoutWrapper {
     updatePageImage?: (...args: any[]) => void;
     altImage?: string;
     disabled?: boolean;
+    theme?: FormTheme;
     style?: React.CSSProperties;
     children: React.ReactNode | React.ReactNode[];
 }
 
 const LayoutWrapper = ({
     layout,
+    theme,
     imageUrl,
     updatePageImage,
     altImage,
@@ -31,7 +34,6 @@ const LayoutWrapper = ({
 }: ILayoutWrapper) => {
     const [showControls, setShowControls] = useState(false);
     const { openDialogModal } = useDialogModal();
-    const { theme } = useFormState();
 
     const handleGridClick = () => {
         setShowControls(!showControls);
@@ -109,9 +111,24 @@ const LayoutWrapper = ({
                     disabled ? 'h-full overflow-hidden' : ''
                 )}
             >
-                
-                {children}
-
+                <div
+                    style={{
+                        background: theme?.accent
+                    }}
+                    // TODO: Change this to apply layout from other layout
+                    className={cn(
+                        ' grid aspect-video h-full w-full grid-cols-1 bg-blue-100',
+                        disabled ? 'overflow-hidden' : '',
+                        layout && layout === FormSlideLayout.TWO_COLUMN_IMAGE_LEFT
+                            ? 'order-1'
+                            : layout &&
+                                layout === FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT
+                              ? 'order-0'
+                              : ''
+                    )}
+                >
+                    {children}
+                </div>
                 {/* Image with controls works for left and right image layout */}
                 {layout &&
                     layout !== FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND &&

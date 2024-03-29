@@ -100,7 +100,7 @@ const Navbar = () => {
             id="navbar"
             className="flex h-16 w-full justify-between border-b-[1px] border-b-black-300 bg-white p-4"
         >
-            <div className={'flex items-center gap-6'}>
+            <div className={'flex items-center gap-2'}>
                 <div
                     className={'mr-4 cursor-pointer rounded-lg px-4 py-[6px] shadow'}
                     onClick={() => {
@@ -133,9 +133,17 @@ const Navbar = () => {
                                   });
                         }}
                     >
-                        <div className="text-xs font-semibold">
-                            <PlusOutlined />
-                            Insert
+                        <div className={cn('text-xs font-semibold')}>
+                            <PlusOutlined
+                                color={navbarState.insertClicked ? 'black' : '#AAAAAA'}
+                            />
+                            <span
+                                className={cn(
+                                    navbarState.insertClicked && 'text-black-900'
+                                )}
+                            >
+                                Insert
+                            </span>
                         </div>
                     </DropdownMenu.Trigger>
                 </DropdownMenu>

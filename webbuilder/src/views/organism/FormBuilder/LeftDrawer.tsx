@@ -113,7 +113,7 @@ export default function LeftDrawer({}: {}) {
         <>
             <div
                 id="slides-preview"
-                className="flex h-body-content w-[200px] flex-col gap-5 overflow-y-auto overflow-x-hidden bg-white"
+                className="flex h-body-content w-[200px] flex-col gap-5 overflow-y-auto overflow-x-hidden border-r border-r-black-300 bg-white"
             >
                 <div className="flex w-full items-center justify-between border-b border-b-black-400 p-5">
                     <span className="h4-new font-medium text-black-700">Pages</span>
