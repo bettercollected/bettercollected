@@ -67,7 +67,7 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
     const [_, copyToClipboard] = useCopyToClipboard();
 
     const handleOnCopy = () => {
-        const link = (isCustomDomain ? customDomain : clientHost) + '/' + customUrl;
+        const link = getFormShareURL(form, workspace);
         copyToClipboard(link);
         toast(t(toastMessage.copied).toString(), {
             type: 'info'
@@ -252,13 +252,17 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                     </FormSettingsCard>
                 );
             case 'LINKS':
+                const url = getFormShareURL(form, workspace);
+                let parts = url.split('/');
+                let lastPart = parts.pop();
+                let firstPart = parts.join('/');
                 return (
                     <FormSettingsCard className={'!space-y-0 !mt-0'}>
                         <p className="w-full body4 !text-black-700 lg:max-w-[564px]">{t(formPage.linksDescription)}</p>
                         <div className={'flex flex-col gap-2 mt-1  items-start py-1 '}>
                             <Tooltip title={t('CLICK_TO_COPY')}>
                                 <p className="body4 !text-black-700 truncate cursor-pointer max-w-full" onClick={handleOnCopy}>
-                                    {isCustomDomain ? customDomain : form?.builderVersion === 'v2' ? V2FormDomain : clientHost}/<span className={'text-pink-500'}>{customUrl}</span>
+                                    {firstPart}/ <span className="text-pink-500">{lastPart}</span>
                                 </p>
                             </Tooltip>
                             <div className={'flex gap-8'}>
