@@ -261,7 +261,7 @@ export default function LeftDrawer({}: {}) {
                             exit={{ opacity: 0, x: '-100%' }}
                             transition={{ duration: 0.3 }}
                             id="fields-option"
-                            className=" absolute z-10 h-body-content w-[240px] overflow-y-auto overflow-x-hidden bg-white "
+                            className=" absolute z-10 h-body-content w-[240px] overflow-y-auto overflow-x-hidden border-r border-r-black-300 bg-white "
                         >
                             <div className="grid grid-cols-2">
                                 {Array.isArray(formFieldsList) &&
@@ -281,7 +281,7 @@ export default function LeftDrawer({}: {}) {
                                                         handleAddField(field)
                                                     }
                                                     key={index}
-                                                    className="flex h-[120px] w-[120px] cursor-grab flex-col items-center justify-center gap-1 border-[1px] border-black-300 text-black-600"
+                                                    className="flex h-[120px] w-[120px] cursor-grab flex-col items-center justify-center gap-1 border-[1px] border-black-300 text-black-600 hover:bg-black-100"
                                                 >
                                                     {field.icon}
                                                     <span className="text-xs">

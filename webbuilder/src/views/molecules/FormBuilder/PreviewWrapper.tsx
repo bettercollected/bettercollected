@@ -27,9 +27,9 @@ const PreviewWrapper = ({
                     <div
                         onClick={() => setIsDesktopView(true)}
                         className={cn(
-                            'flex cursor-pointer items-center gap-1',
+                            'flex cursor-pointer items-center gap-1 p-2 text-xs',
                             isDesktopView
-                                ? 'rounded-lg bg-black-200 p-2 text-black-800'
+                                ? 'rounded-lg bg-black-200  text-black-800'
                                 : 'text-black-500'
                         )}
                     >
@@ -39,7 +39,7 @@ const PreviewWrapper = ({
                     <div
                         onClick={() => setIsDesktopView(false)}
                         className={cn(
-                            'flex cursor-pointer items-center gap-1',
+                            'flex cursor-pointer items-center gap-1 p-2 text-xs',
                             isDesktopView
                                 ? 'text-black-500'
                                 : 'rounded-lg bg-black-200 p-2 text-black-800'
@@ -63,7 +63,7 @@ const PreviewWrapper = ({
                 ) : (
                     <iframe
                         title="responder-mobile-view"
-                        className="aspect-[9/20] h-full drop-shadow-xl rounded-lg"
+                        className="aspect-[9/20] h-full rounded-lg drop-shadow-xl"
                         src={mobileViewPreviewUrl}
                     />
                 )}
