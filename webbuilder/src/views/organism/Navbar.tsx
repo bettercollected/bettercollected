@@ -191,7 +191,7 @@ const Navbar = () => {
             <div className={'flex items-center gap-2 '}>
                 <Sheet>
                     <SheetTrigger asChild>
-                        <Button icon={<PlayIcon />} variant={'tertiary'}>
+                        <Button icon={<PlayIcon />} variant={'v2Button'}>
                             Preview
                         </Button>
                     </SheetTrigger>
@@ -223,7 +223,7 @@ const Navbar = () => {
                             formId: standardForm.formId
                         });
                         if (response.data) {
-                                                    openDialogModal('FORM_PUBLISHED');
+                            openDialogModal('FORM_PUBLISHED');
 
                             // toast({
                             //     title: 'Form Published!',

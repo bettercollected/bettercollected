@@ -27,6 +27,9 @@ const buttonVariants = cva(
                     'active:border-brand-500 active:bg-black-300 disabled:bg-black-300 disabled:text-black-500',
                 dangerGhost:
                     'bg-red-100 text-red hover:bg-red-200 focus:ring-red-500 focus-ring active:bg-red-300' +
+                    'disabled:bg-black-300 disabled:text-black-500',
+                v2Button:
+                    'border border-black-300 bg-white text-black-600 hover:bg-black-200 focus:ring-black-500 focus-ring active:bg-black-300' +
                     'disabled:bg-black-300 disabled:text-black-500'
             },
             size: {
