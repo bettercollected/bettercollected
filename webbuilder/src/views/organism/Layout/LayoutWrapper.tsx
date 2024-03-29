@@ -117,6 +117,7 @@ const LayoutWrapper = ({
                     }}
                     // TODO: Change this to apply layout from other layout
                     className={cn(
+                        'px-5 md:px-10 xl:px-20',
                         ' grid aspect-video h-full w-full grid-cols-1 bg-blue-100',
                         disabled ? 'overflow-hidden' : '',
                         layout && layout === FormSlideLayout.TWO_COLUMN_IMAGE_LEFT

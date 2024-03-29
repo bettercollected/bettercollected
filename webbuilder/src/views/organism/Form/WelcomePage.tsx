@@ -25,7 +25,7 @@ export default function WelcomePage({ isPreviewMode }: { isPreviewMode: boolean 
             className="grid h-full w-full grid-cols-1"
             style={{ background: standardForm.theme?.accent }}
         >
-            <div className="relative flex h-full flex-col justify-center px-20">
+            <div className="relative flex h-full flex-col justify-center">
                 <UserAvatarDropDown
                     responderSignInUrl={isPreviewMode ? '' : responderSignInUrl}
                 />
@@ -38,7 +38,7 @@ export default function WelcomePage({ isPreviewMode }: { isPreviewMode: boolean 
                         {standardForm?.description}
                     </div>
                 )}
-                <div className="mt-16 flex max-w-[421px] flex-col rounded-lg bg-white p-4">
+                <div className="mt-16 flex max-w-[800px] flex-col rounded-lg bg-white p-4">
                     <div className="flex items-center gap-2">
                         {standardForm?.settings?.requireVerifiedIdentity ? (
                             <>
@@ -82,7 +82,7 @@ export default function WelcomePage({ isPreviewMode }: { isPreviewMode: boolean 
                 <div className="mt-6">
                     <Button
                         style={{ background: standardForm.theme?.secondary }}
-                        className="z-10 mt-20 rounded px-8 py-3"
+                        className="z-10 mt-12 rounded px-8 py-3"
                         size="medium"
                         onClick={() => {
                             if (

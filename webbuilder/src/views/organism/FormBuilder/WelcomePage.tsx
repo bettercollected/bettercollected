@@ -13,7 +13,7 @@ const WelcomeSlide = ({ disabled }: { disabled?: boolean }) => {
         <GreetingLayoutWrapper theme={theme} disabled={disabled} greetingIndex={-10}>
             <div
                 className={cn(
-                    'grid items-center justify-center px-5 lg:px-12',
+                    'grid items-center justify-center',
                     formState.welcomePage?.layout &&
                         (formState.welcomePage?.layout ===
                             FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND ||
@@ -23,7 +23,7 @@ const WelcomeSlide = ({ disabled }: { disabled?: boolean }) => {
                         : 'grid-cols-1'
                 )}
             >
-                <div className="col-start-2 flex flex-col items-start">
+                <div className="flex flex-col items-start">
                     <input
                         type="text"
                         placeholder="Form Title"
@@ -44,7 +44,11 @@ const WelcomeSlide = ({ disabled }: { disabled?: boolean }) => {
                     ) : (
                         <></>
                     )}
-                    <Button size={'medium'} className="mt-12">
+                    <Button
+                        size={'medium'}
+                        className="z-10 mt-12 rounded px-8 py-3"
+                        style={{ background: theme?.secondary }}
+                    >
                         {formState.welcomePage?.buttonText || 'Start'}
                     </Button>
                 </div>
