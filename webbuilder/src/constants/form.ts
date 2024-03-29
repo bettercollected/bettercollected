@@ -15,8 +15,11 @@ export const defaultForm: StandardForm = {
             type: FieldTypes.SLIDE,
             properties: {
                 layout: FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT,
-                fields: []
-            }
+                fields: [
+                ]
+            },
+            imageUrl:
+                'https://s3.eu-central-1.wasabisys.com/bettercollected/images/v2defaultImage.png'
         }
     ],
     welcomePage: {

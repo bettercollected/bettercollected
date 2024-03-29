@@ -42,7 +42,9 @@ export default function LayoutsTab({ closePopover }: { closePopover: () => void 
             properties: {
                 layout: style,
                 fields: []
-            }
+            },
+            imageUrl:
+                'https://s3.eu-central-1.wasabisys.com/bettercollected/images/v2defaultImage.png'
         });
         closePopover();
     };
