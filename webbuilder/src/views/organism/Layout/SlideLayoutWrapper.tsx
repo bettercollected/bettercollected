@@ -22,7 +22,7 @@ export default function SlideLayoutWrapper({
     theme,
     disabled = false
 }: ISlideLayoutWrapperProps) {
-    const { updateSlideImage } = useFormFieldsAtom();
+    const { updateSlideImage, updateSlideLayout } = useFormFieldsAtom();
 
     const style = {
         backgroundColor: slide.properties?.theme?.accent || theme?.accent
@@ -35,6 +35,7 @@ export default function SlideLayoutWrapper({
             altImage={slide.id}
             disabled={disabled}
             updatePageImage={updateSlideImage}
+            updatePageLayout={updateSlideLayout}
             style={style}
             theme={theme}
         >

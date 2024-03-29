@@ -10,11 +10,14 @@ import { FormSlideLayout } from '@app/models/enums/form';
 import { Button } from '@app/shadcn/components/ui/button';
 import { cn } from '@app/shadcn/util/lib';
 import { useFormState } from '@app/store/jotai/form';
+import DeleteIcon from '@app/views/atoms/Icons/Delete';
+import { SwitchIcon } from '@app/views/atoms/Icons/SwitchIcon';
 
 interface ILayoutWrapper {
     layout?: FormSlideLayout;
     imageUrl?: string;
     updatePageImage?: (...args: any[]) => void;
+    updatePageLayout?: (...args: any[]) => void;
     altImage?: string;
     disabled?: boolean;
     theme?: FormTheme;
@@ -27,6 +30,7 @@ const LayoutWrapper = ({
     theme,
     imageUrl,
     updatePageImage,
+    updatePageLayout,
     altImage,
     disabled = false,
     style = {},
@@ -41,6 +45,8 @@ const LayoutWrapper = ({
 
     const handleRemoveImage = () => {
         updatePageImage && updatePageImage('');
+        updatePageLayout &&
+            updatePageLayout(FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND);
     };
 
     const handleChangeImage = () => {
@@ -61,7 +67,7 @@ const LayoutWrapper = ({
                           ? 'order-1'
                           : '',
                     layout === FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND
-                        ? 'absolute inset-0 opacity-50 backdrop-blur-lg'
+                        ? 'opacity-50 backdrop-blur-lg'
                         : 'opacity-100'
                 )}
                 src={imageUrl}
@@ -75,18 +81,24 @@ const LayoutWrapper = ({
                 !disabled && (
                     <div
                         className={cn(
-                            'absolute flex h-full w-full items-center gap-4',
+                            'absolute flex h-full w-full items-start justify-end gap-4 p-2',
                             layout === FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND
-                                ? '-top-[52%] left-0'
-                                : 'justify-center'
+                                ? '-top-[7%]'
+                                : ''
                         )}
                     >
-                        <Button variant="dangerGhost" onClick={handleRemoveImage}>
-                            Remove
-                        </Button>
-                        <Button variant="secondary" onClick={handleChangeImage}>
-                            Change
-                        </Button>
+                        <div
+                            className="cursor-pointer rounded-md bg-white p-2 shadow-bubble"
+                            onClick={handleRemoveImage}
+                        >
+                            <DeleteIcon width={24} height={24} />
+                        </div>
+                        <div
+                            className=" cursor-pointer rounded-md bg-white p-2 shadow-bubble"
+                            onClick={handleChangeImage}
+                        >
+                            <SwitchIcon />
+                        </div>
                     </div>
                 )}
         </>
@@ -148,8 +160,13 @@ const LayoutWrapper = ({
                                     ? 'hover:cursor-pointer hover:!bg-black/30'
                                     : 'bg-neutral-100 shadow hover:cursor-default'
                             )}
-                            onClick={disabled ? () => {} : handleGridClick}
-                            role="button"
+                            // onClick={disabled ? () => {} : handleGridClick}
+                            onMouseOver={
+                                disabled ? () => {} : () => setShowControls(true)
+                            }
+                            onMouseLeave={
+                                disabled ? () => {} : () => setShowControls(false)
+                            }
                             {...(disabled
                                 ? { tabIndex: -1, 'aria-disabled': true }
                                 : {})}
@@ -180,7 +197,7 @@ const LayoutWrapper = ({
             {layout && layout === FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND && (
                 <div
                     className={cn(
-                        'test relative z-0',
+                        'relative z-0',
                         imageUrl && !disabled
                             ? 'hover:cursor-pointer hover:!bg-black/30'
                             : 'bg-neutral-100 hover:cursor-default',

@@ -1,10 +1,8 @@
 'use client';
 
-import parse from 'html-react-parser';
 
 import { useDialogModal } from '@app/lib/hooks/useDialogModal';
 import useGetPageAttributes from '@app/lib/hooks/useGetPageAttributes';
-import { FieldTypes } from '@app/models/dtos/form';
 import { FormSlideLayout } from '@app/models/enums/form';
 import { Button } from '@app/shadcn/components/ui/button';
 import { Switch } from '@app/shadcn/components/ui/switch';
@@ -17,14 +15,12 @@ import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
 import { useFormState } from '@app/store/jotai/form';
 import {
     extractTextfromJSON,
-    getHtmlFromJson
 } from '@app/utils/richTextEditorExtenstion/getHtmlFromJson';
 
 import SlideLayoutBackgroundImage from '../../atoms/Icons/SlideLayoutBackgroundImage';
 import SlideLayoutLeftImage from '../../atoms/Icons/SlideLayoutLeftImage';
 import SlideLayoutNoImage from '../../atoms/Icons/SlideLayoutNoImage';
 import SlideLayoutRightImage from '../../atoms/Icons/SlideLayoutRightImage';
-import { getPlaceholderValueForTitle } from '../../molecules/RichTextEditor';
 
 export default function PagePropertiesTab({}: {}) {
     const {
@@ -45,6 +41,8 @@ export default function PagePropertiesTab({}: {}) {
         setThankYouPageButtonLink,
         updateThankYouPageLayout,
         updateWelcomePageLayout,
+        updateThankYouPageImage,
+        updateWelcomePageImage,
         setFormDescription
     } = useFormState();
 
@@ -61,10 +59,19 @@ export default function PagePropertiesTab({}: {}) {
         if (newLayout) {
             if (slideId === 'welcome-page') {
                 updateWelcomePageLayout(newLayout);
+                updateWelcomePageImage(
+                    'https://s3.eu-central-1.wasabisys.com/bettercollected/images/v2defaultImage.png'
+                );
             } else if (slideId === 'thank-you-page') {
                 updateThankYouPageLayout(newLayout);
+                updateThankYouPageImage(
+                    'https://s3.eu-central-1.wasabisys.com/bettercollected/images/v2defaultImage.png'
+                );
             } else {
                 updateSlideLayout(newLayout);
+                updateSlideImage(
+                    'https://s3.eu-central-1.wasabisys.com/bettercollected/images/v2defaultImage.png'
+                );
             }
         }
     };
@@ -128,7 +135,12 @@ export default function PagePropertiesTab({}: {}) {
                             {imageUrl ? (
                                 <Button
                                     variant="danger"
-                                    onClick={() => updateSlideImage('')}
+                                    onClick={() => {
+                                        updateSlideImage('');
+                                        updateSlideLayout(
+                                            FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND
+                                        );
+                                    }}
                                     className="!h-auto py-2"
                                 >
                                     Remove Image
