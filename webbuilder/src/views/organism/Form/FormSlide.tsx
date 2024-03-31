@@ -242,7 +242,7 @@ export default function FormSlide({
                         <AnimatePresence mode="wait">
                             <div
                                 className={cn(
-                                    'grid h-full w-full max-w-[800px] grid-cols-1 content-center items-center justify-center px-20 py-20'
+                                    'grid h-full w-full max-w-[800px] grid-cols-1 content-center items-center justify-center px-4 lg:px-20 py-20'
                                 )}
                             >
                                 {formSlide?.properties?.fields?.map((field, index) => (
