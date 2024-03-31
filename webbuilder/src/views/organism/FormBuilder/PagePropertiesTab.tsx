@@ -1,6 +1,5 @@
 'use client';
 
-
 import { useDialogModal } from '@app/lib/hooks/useDialogModal';
 import useGetPageAttributes from '@app/lib/hooks/useGetPageAttributes';
 import { FormSlideLayout } from '@app/models/enums/form';
@@ -13,9 +12,7 @@ import {
 } from '@app/store/jotai/activeBuilderComponent';
 import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
 import { useFormState } from '@app/store/jotai/form';
-import {
-    extractTextfromJSON,
-} from '@app/utils/richTextEditorExtenstion/getHtmlFromJson';
+import { extractTextfromJSON } from '@app/utils/richTextEditorExtenstion/getHtmlFromJson';
 
 import SlideLayoutBackgroundImage from '../../atoms/Icons/SlideLayoutBackgroundImage';
 import SlideLayoutLeftImage from '../../atoms/Icons/SlideLayoutLeftImage';
@@ -59,19 +56,10 @@ export default function PagePropertiesTab({}: {}) {
         if (newLayout) {
             if (slideId === 'welcome-page') {
                 updateWelcomePageLayout(newLayout);
-                updateWelcomePageImage(
-                    'https://s3.eu-central-1.wasabisys.com/bettercollected/images/v2defaultImage.png'
-                );
             } else if (slideId === 'thank-you-page') {
                 updateThankYouPageLayout(newLayout);
-                updateThankYouPageImage(
-                    'https://s3.eu-central-1.wasabisys.com/bettercollected/images/v2defaultImage.png'
-                );
             } else {
                 updateSlideLayout(newLayout);
-                updateSlideImage(
-                    'https://s3.eu-central-1.wasabisys.com/bettercollected/images/v2defaultImage.png'
-                );
             }
         }
     };

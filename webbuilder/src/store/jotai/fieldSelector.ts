@@ -209,6 +209,10 @@ export default function useFormFieldsAtom() {
     };
 
     const updateSlideLayout = (layout: FormSlideLayout) => {
+        if (!formFields[activeSlide?.index || 0].imageUrl) {
+            formFields[activeSlide?.index || 0].imageUrl =
+                'https://s3.eu-central-1.wasabisys.com/bettercollected/images/v2defaultImage.png';
+        }
         formFields[activeSlide?.index || 0].properties!.layout = layout;
         setFormFields([...formFields]);
     };

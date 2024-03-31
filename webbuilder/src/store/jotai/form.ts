@@ -3,6 +3,8 @@ import { atom, useAtom } from 'jotai';
 import { ThemeColor } from '@app/constants/theme';
 import { FormSlideLayout } from '@app/models/enums/form';
 
+import { useActiveThankYouPageComponent } from './activeBuilderComponent';
+
 export interface IFormState {
     title: string;
     // welcomeTitle?: string;
@@ -70,6 +72,7 @@ export const initialFormState = atom<IFormState>({
 
 export function useFormState() {
     const [formState, setFormState] = useAtom(initialFormState);
+    const { activeThankYouPageComponent } = useActiveThankYouPageComponent();
 
     const setFormTitle = (title: string) => {
         setFormState({ ...formState, title: title });
@@ -134,19 +137,35 @@ export function useFormState() {
     };
 
     const updateWelcomePageLayout = (layout: FormSlideLayout) => {
-        formState.welcomePage && (formState.welcomePage.layout = layout);
+        if (formState.welcomePage) {
+            !formState.welcomePage.imageUrl &&
+                (formState.welcomePage.imageUrl =
+                    'https://s3.eu-central-1.wasabisys.com/bettercollected/images/v2defaultImage.png');
+            formState.welcomePage.layout = layout;
+        }
         setFormState({
             ...formState
         });
     };
 
     const updateThankYouPageImage = (imageUrl: string) => {
-        formState.thankyouPage && (formState.thankyouPage![0].imageUrl = imageUrl);
+        formState.thankyouPage &&
+            (formState.thankyouPage![activeThankYouPageComponent?.index || 0].imageUrl =
+                imageUrl);
         setFormState({ ...formState });
     };
 
     const updateThankYouPageLayout = (layout: FormSlideLayout) => {
-        formState.thankyouPage && (formState.thankyouPage![0].layout = layout);
+        if (formState.thankyouPage) {
+            !formState.thankyouPage![activeThankYouPageComponent?.index || 0]
+                .imageUrl &&
+                (formState.thankyouPage![
+                    activeThankYouPageComponent?.index || 0
+                ].imageUrl =
+                    'https://s3.eu-central-1.wasabisys.com/bettercollected/images/v2defaultImage.png');
+            formState.thankyouPage![activeThankYouPageComponent?.index || 0].layout =
+                layout;
+        }
         setFormState({ ...formState });
     };
 

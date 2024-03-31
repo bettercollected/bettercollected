@@ -20,7 +20,11 @@ import {
 } from '@app/shadcn/components/ui/sheet';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { cn } from '@app/shadcn/util/lib';
-import { useActiveSlideComponent } from '@app/store/jotai/activeBuilderComponent';
+import {
+    useActiveFieldComponent,
+    useActiveSlideComponent,
+    useActiveThankYouPageComponent
+} from '@app/store/jotai/activeBuilderComponent';
 import { useStandardForm } from '@app/store/jotai/fetchedForm';
 import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
 import { useFormState } from '@app/store/jotai/form';
@@ -40,9 +44,18 @@ import PreviewWrapper from '../molecules/FormBuilder/PreviewWrapper';
 import Form from './Form/Form';
 
 const Navbar = () => {
-    const { activeSlide, formFields, addField, updateSlideImage } = useFormFieldsAtom();
+    const { activeSlide, formFields, addField, updateSlideImage, updateSlideLayout } =
+        useFormFieldsAtom();
     const { activeSlideComponent } = useActiveSlideComponent();
-    const { formState, setFormTitle } = useFormState();
+    const { activeThankYouPageComponent } = useActiveThankYouPageComponent();
+    const {
+        formState,
+        setFormTitle,
+        updateThankYouPageLayout,
+        updateWelcomePageLayout,
+        updateWelcomePageImage,
+        updateThankYouPageImage
+    } = useFormState();
     const { navbarState, setNavbarState } = useNavbarState();
     const { toast } = useToast();
 
@@ -93,6 +106,40 @@ const Navbar = () => {
     const handleResetResponderState = () => {
         resetResponderState();
         resetFormResponseAnswer();
+    };
+
+    function getPageImageUpdateFunction(image: string) {
+        if (activeSlideComponent?.index === -10) {
+            updateWelcomePageImage(image);
+        } else if (activeSlideComponent?.index === -20) {
+            updateThankYouPageImage(image);
+        } else {
+            updateSlideImage(image);
+        }
+    }
+
+    const handleClickMedia = () => {
+        if (
+            (activeSlide &&
+                activeSlide?.properties?.layout ==
+                    FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND) ||
+            (activeSlideComponent &&
+                (formState.welcomePage?.layout ===
+                    FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND ||
+                    formState.thankyouPage![activeThankYouPageComponent?.index || 0]
+                        .layout === FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND))
+        ) {
+            if (activeSlideComponent?.index === -10) {
+                updateWelcomePageLayout(FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT);
+            } else if (activeSlideComponent?.index === -20) {
+                updateThankYouPageLayout(FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT);
+            } else {
+                updateSlideLayout(FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT);
+            }
+        }
+        openDialogModal('UNSPLASH_IMAGE_PICKER', {
+            updatePageImage: getPageImageUpdateFunction
+        });
     };
 
     return (
@@ -147,26 +194,21 @@ const Navbar = () => {
                         </div>
                     </DropdownMenu.Trigger>
                 </DropdownMenu>
-                {activeSlide &&
+                {/* {activeSlide &&
                     activeSlide?.properties?.layout !==
-                        FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND && (
-                        <DropdownMenu>
-                            <DropdownMenu.Trigger
-                                tooltipLabel={'Add Media'}
-                                onClick={() => {
-                                    openDialogModal('UNSPLASH_IMAGE_PICKER', {
-                                        activeSlide,
-                                        updateSlideImage
-                                    });
-                                }}
-                            >
-                                <div className="text-xs font-semibold">
-                                    <MediaOutlinedIcon />
-                                    Media
-                                </div>
-                            </DropdownMenu.Trigger>
-                        </DropdownMenu>
-                    )}
+                        FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND && ( */}
+                <DropdownMenu>
+                    <DropdownMenu.Trigger
+                        tooltipLabel={'Add Media'}
+                        onClick={handleClickMedia}
+                    >
+                        <div className="text-xs font-semibold">
+                            <MediaOutlinedIcon />
+                            Media
+                        </div>
+                    </DropdownMenu.Trigger>
+                </DropdownMenu>
+                {/* )} */}
                 <DropdownMenu>
                     <DropdownMenu.Trigger
                         tooltipLabel={'Insert Text'}
