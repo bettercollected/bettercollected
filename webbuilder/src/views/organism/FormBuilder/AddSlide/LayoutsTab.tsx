@@ -5,6 +5,7 @@ import { v4 } from 'uuid';
 import { FieldTypes } from '@app/models/dtos/form';
 import { FormSlideLayout } from '@app/models/enums/form';
 import { ScrollArea } from '@app/shadcn/components/ui/scroll-area';
+import { useActiveSlideComponent } from '@app/store/jotai/activeBuilderComponent';
 import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
 import SlideLayoutBackgroundImage from '@app/views/atoms/Icons/SlideLayoutBackgroundImage';
 import SlideLayoutLeftImage from '@app/views/atoms/Icons/SlideLayoutLeftImage';
@@ -33,6 +34,7 @@ const Layout = (props: {
 
 export default function LayoutsTab({ closePopover }: { closePopover: () => void }) {
     const { formFields, addSlide } = useFormFieldsAtom();
+    const { setActiveSlideComponent } = useActiveSlideComponent();
 
     const addSlideofStyle = (style: FormSlideLayout) => {
         const fieldId = v4();
@@ -47,6 +49,7 @@ export default function LayoutsTab({ closePopover }: { closePopover: () => void 
             imageUrl:
                 'https://s3.eu-central-1.wasabisys.com/bettercollected/images/v2defaultImage.png'
         });
+        setActiveSlideComponent({ id: fieldId, index: formFields.length });
         closePopover();
     };
 

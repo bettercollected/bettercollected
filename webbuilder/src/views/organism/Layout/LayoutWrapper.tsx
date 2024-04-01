@@ -156,6 +156,7 @@ const LayoutWrapper = ({
                 {/* Image with controls works for left and right image layout */}
                 {layout &&
                     layout !== FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND &&
+                    layout !== FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND_LEFT_ALIGN &&
                     layout !== FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND && (
                         <div
                             className={cn(

@@ -8,10 +8,12 @@ import { formFieldsList } from '@app/constants/form-fields';
 import { FieldTypes } from '@app/models/dtos/form';
 import { ScrollArea } from '@app/shadcn/components/ui/scroll-area';
 import { cn } from '@app/shadcn/util/lib';
-import { useActiveSlideComponent } from '@app/store/jotai/activeBuilderComponent';
+import {
+    useActiveFieldComponent,
+    useActiveSlideComponent
+} from '@app/store/jotai/activeBuilderComponent';
 import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
 import { useNavbarState } from '@app/store/jotai/navbar';
-import DeleteIcon from '@app/views/atoms/Icons/Delete';
 
 import AddSlidePopover from './AddSlide/AddSlidePopover';
 import SlideBuilder from './SlideBuilder';
@@ -21,7 +23,8 @@ import WelcomeSlide from './WelcomePage';
 
 export default function LeftDrawer({}: {}) {
     const { activeSlideComponent, setActiveSlideComponent } = useActiveSlideComponent();
-    const { formFields, addField, deleteActiveSlide } = useFormFieldsAtom();
+    const { setActiveFieldComponent } = useActiveFieldComponent();
+    const { formFields, addField } = useFormFieldsAtom();
     const Slides = formFields;
     const { navbarState, setNavbarState } = useNavbarState();
 
@@ -104,9 +107,12 @@ export default function LeftDrawer({}: {}) {
             );
         }
         setNavbarState({ insertClicked: false });
-        window.setTimeout(function () {
-            document.getElementById(`input-${fieldId}`)?.focus();
-        }, 0);
+        setActiveFieldComponent({
+            id: fieldId,
+            index:
+                (formFields[activeSlideComponent?.index || 0]?.properties?.fields
+                    ?.length ?? 1) - 1
+        });
     };
 
     return (
