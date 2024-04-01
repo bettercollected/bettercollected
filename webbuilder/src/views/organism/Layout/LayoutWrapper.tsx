@@ -125,7 +125,10 @@ const LayoutWrapper = ({
             >
                 <div
                     style={{
-                        background: theme?.accent
+                        background:
+                            layout === FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND
+                                ? 'transparent'
+                                : theme?.accent
                     }}
                     // TODO: Change this to apply layout from other layout
                     className={cn(

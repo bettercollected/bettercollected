@@ -32,7 +32,6 @@ export default function PagePropertiesTab({}: {}) {
     const { activeThankYouPageComponent } = useActiveThankYouPageComponent();
     const {
         formState,
-        setFormState,
         setWelcomePageButtonText,
         setThankYouPageDescription,
         setThankYouPageButtonText,
@@ -128,45 +127,6 @@ export default function PagePropertiesTab({}: {}) {
                     </div>
                 </>
             }
-
-            {/* {layout && layout !== FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND && (
-                <>
-                    <div className="p2-new mb-4 mt-6 px-4 !font-medium text-black-700">
-                        Background Image
-                    </div>
-                    <div className="flex w-full items-center justify-between border-b px-4 pb-4">
-                        <div className="flex w-full flex-col gap-4">
-                            {imageUrl ? (
-                                <Button
-                                    variant="danger"
-                                    onClick={() => {
-                                        updateSlideImage('');
-                                        updateSlideLayout(
-                                            FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND
-                                        );
-                                    }}
-                                    className="!h-auto py-2"
-                                >
-                                    Remove Image
-                                </Button>
-                            ) : (
-                                <Button
-                                    variant="secondary"
-                                    onClick={() =>
-                                        openDialogModal('UNSPLASH_IMAGE_PICKER', {
-                                            activeSlide,
-                                            updateSlideImage
-                                        })
-                                    }
-                                    className="!h-auto py-2"
-                                >
-                                    Select Layout Image
-                                </Button>
-                            )}
-                        </div>
-                    </div>
-                </>
-            )} */}
             <div className="p2-new mb-4 mt-6 px-4 !font-medium text-black-700">
                 Settings
             </div>
