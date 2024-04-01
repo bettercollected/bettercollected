@@ -11,7 +11,7 @@ export default function ThankyouPage({ isPreviewMode }: { isPreviewMode: boolean
     const { standardForm } = useStandardForm();
     return (
         <div
-            className="flex h-screen w-full flex-col items-center justify-center"
+            className="flex h-full w-full flex-col items-center justify-center"
             style={{ background: standardForm.theme?.accent }}
         >
             <UserAvatarDropDown disabled />
