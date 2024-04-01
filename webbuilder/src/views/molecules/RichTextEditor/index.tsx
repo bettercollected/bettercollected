@@ -68,7 +68,18 @@ export function RichTextEditor({
                 content={getContentForEditor()}
                 extensions={Extenstions}
                 slotBefore={<TiptapMenuBar />}
-                editorProps={{ attributes: { class: 'outline-none font-medium' } }}
+                autofocus={false}
+                editorProps={{
+                    attributes: {
+                        class: 'outline-none font-medium min-w-[600px]'
+                    }
+                }}
+                onFocus={({ editor }) => {
+                    editor.commands.selectAll();
+                }}
+                onBlur={({ editor }) => {
+                    editor.commands.setTextSelection({ from: 0, to: 0 });
+                }}
                 onUpdate={({ editor }) => {
                     onUpdate(editor);
                 }}
