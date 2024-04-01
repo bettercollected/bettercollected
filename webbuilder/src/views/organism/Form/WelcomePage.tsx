@@ -31,7 +31,7 @@ export default function WelcomePage({ isPreviewMode }: { isPreviewMode: boolean 
                 />
 
                 <div className="text-[40px] font-bold leading-[48px]">
-                    {standardForm.title}
+                    {standardForm.welcomePage?.title}
                 </div>
                 {standardForm?.description && (
                     <div className="mt-4 text-black-700 ">
