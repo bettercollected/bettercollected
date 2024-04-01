@@ -113,7 +113,7 @@ const SlideBuilder = ({
                                             {(provided) => (
                                                 <div
                                                     className={cn(
-                                                        'relative flex flex-row items-center first:!pb-0 last:pb-20',
+                                                        'relative flex w-full flex-row  items-center first:!pb-0 last:pb-20',
                                                         slide.properties?.layout ===
                                                             FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND_LEFT_ALIGN
                                                             ? 'justify-start'
@@ -363,7 +363,7 @@ const YesNoField = ({
     return (
         <>
             <RadioGroup
-                className={'flex w-full flex-col gap-2'}
+                className={'flex w-min flex-col gap-2'}
                 value={field.value}
                 onChange={() => {}}
             >
