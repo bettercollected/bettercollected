@@ -12,7 +12,7 @@ const WelcomeSlide = ({ disabled }: { disabled?: boolean }) => {
         <GreetingLayoutWrapper theme={theme} disabled={disabled} greetingIndex={-10}>
             <div
                 className={cn(
-                    'flex flex-col items-center justify-center bg-transparent'
+                    'flex h-full flex-col items-center justify-center bg-transparent'
                 )}
             >
                 <div className={cn('flex w-full max-w-[800px] flex-col items-start')}>
