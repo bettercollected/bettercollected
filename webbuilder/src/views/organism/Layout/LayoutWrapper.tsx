@@ -8,6 +8,7 @@ import { FormTheme } from '@app/constants/theme';
 import { useDialogModal } from '@app/lib/hooks/useDialogModal';
 import { FormSlideLayout } from '@app/models/enums/form';
 import { Button } from '@app/shadcn/components/ui/button';
+import { ScrollArea } from '@app/shadcn/components/ui/scroll-area';
 import { cn } from '@app/shadcn/util/lib';
 import { useFormState } from '@app/store/jotai/form';
 import DeleteIcon from '@app/views/atoms/Icons/Delete';
@@ -67,7 +68,7 @@ const LayoutWrapper = ({
                           ? 'order-1'
                           : '',
                     layout === FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND
-                        ? 'opacity-50 backdrop-blur-lg'
+                        ? 'rounded-lg opacity-50 backdrop-blur-lg'
                         : 'opacity-100'
                 )}
                 src={imageUrl}
@@ -112,7 +113,7 @@ const LayoutWrapper = ({
                     ...style
                 }}
                 className={cn(
-                    'relative flex  aspect-video h-min w-full overflow-hidden rounded-lg !bg-transparent lg:grid',
+                    'relative flex aspect-video  h-min w-full flex-grow overflow-hidden rounded-lg !bg-transparent lg:grid',
                     layout === FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT
                         ? 'flex-col-reverse'
                         : 'flex-col',
@@ -123,7 +124,8 @@ const LayoutWrapper = ({
                     disabled ? 'h-full overflow-hidden' : ''
                 )}
             >
-                <div
+                <ScrollArea
+                    asChild
                     style={{
                         background:
                             layout === FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND
@@ -133,7 +135,7 @@ const LayoutWrapper = ({
                     // TODO: Change this to apply layout from other layout
                     className={cn(
                         'relative px-5 md:px-10 xl:px-20',
-                        ' grid aspect-video h-full w-full grid-cols-1',
+                        'min-h-[100%]',
                         disabled ? 'overflow-hidden' : '',
                         layout &&
                             layout === FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND
@@ -147,8 +149,10 @@ const LayoutWrapper = ({
                               : ''
                     )}
                 >
-                    {children}
-                </div>
+                    <div className="flex min-h-[100%] w-full flex-col justify-center">
+                        {children}
+                    </div>
+                </ScrollArea>
                 {/* Image with controls works for left and right image layout */}
                 {layout &&
                     layout !== FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND &&
