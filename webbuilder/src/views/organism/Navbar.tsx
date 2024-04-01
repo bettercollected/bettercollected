@@ -109,6 +109,9 @@ const Navbar = () => {
     };
 
     function getPageImageUpdateFunction(image: string) {
+        if (image) {
+            updatePagesLayout();
+        }
         if (activeSlideComponent?.index === -10) {
             updateWelcomePageImage(image);
         } else if (activeSlideComponent?.index === -20) {
@@ -118,16 +121,22 @@ const Navbar = () => {
         }
     }
 
-    const handleClickMedia = () => {
+    const NO_IMAGE_LAYOUTS = [
+        FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND,
+        FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND_LEFT_ALIGN
+    ];
+
+    function updatePagesLayout() {
         if (
-            (activeSlide &&
-                activeSlide?.properties?.layout ==
-                    FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND) ||
+            (activeSlide?.properties?.layout &&
+                NO_IMAGE_LAYOUTS.includes(activeSlide?.properties?.layout)) ||
             (activeSlideComponent &&
-                (formState.welcomePage?.layout ===
-                    FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND ||
-                    formState.thankyouPage![activeThankYouPageComponent?.index || 0]
-                        .layout === FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND))
+                ((formState.welcomePage?.layout &&
+                    NO_IMAGE_LAYOUTS.includes(formState.welcomePage?.layout)) ||
+                    NO_IMAGE_LAYOUTS.includes(
+                        formState.thankyouPage![activeThankYouPageComponent?.index || 0]?.layout ?? FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND_LEFT_ALIGN
+                    )
+                    ))
         ) {
             if (activeSlideComponent?.index === -10) {
                 updateWelcomePageLayout(FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT);
@@ -137,6 +146,9 @@ const Navbar = () => {
                 updateSlideLayout(FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT);
             }
         }
+    }
+
+    const handleClickMedia = () => {
         openDialogModal('UNSPLASH_IMAGE_PICKER', {
             updatePageImage: getPageImageUpdateFunction
         });

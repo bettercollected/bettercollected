@@ -9,6 +9,7 @@ import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
 import SlideLayoutBackgroundImage from '@app/views/atoms/Icons/SlideLayoutBackgroundImage';
 import SlideLayoutLeftImage from '@app/views/atoms/Icons/SlideLayoutLeftImage';
 import SlideLayoutNoImage from '@app/views/atoms/Icons/SlideLayoutNoImage';
+import { SlideLayoutNoImageLeftAlign } from '@app/views/atoms/Icons/SlideLayoutNoImageLeftAlign';
 import SlideLayoutRightImage from '@app/views/atoms/Icons/SlideLayoutRightImage';
 
 const Layout = (props: {
@@ -54,16 +55,30 @@ export default function LayoutsTab({ closePopover }: { closePopover: () => void 
             <div className="">
                 <div className="mb-2 text-sm font-medium">Without Image</div>
                 <div className="grid grid-cols-2 gap-4">
-                    <Layout
-                        Icon={SlideLayoutNoImage}
-                        style={FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND}
-                        name="No Image"
-                        onClick={() => {
-                            addSlideofStyle(
-                                FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND
-                            );
-                        }}
-                    />
+                    {[
+                        {
+                            style: FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND_LEFT_ALIGN,
+                            Icon: SlideLayoutNoImageLeftAlign,
+                            name: 'Left Align'
+                        },
+                        {
+                            style: FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND,
+                            Icon: SlideLayoutNoImage,
+                            name: 'Center Align'
+                        }
+                    ].map(
+                        (item: { style: FormSlideLayout; Icon: any; name: string }) => (
+                            <Layout
+                                key={item.name}
+                                Icon={item.Icon}
+                                style={item.style}
+                                name={item.name}
+                                onClick={() => {
+                                    addSlideofStyle(item.style);
+                                }}
+                            />
+                        )
+                    )}
                 </div>
             </div>
             <div className=" mt-12">

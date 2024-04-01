@@ -13,6 +13,7 @@ import {
 import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
 import { useFormState } from '@app/store/jotai/form';
 import { extractTextfromJSON } from '@app/utils/richTextEditorExtenstion/getHtmlFromJson';
+import { SlideLayoutNoImageLeftAlign } from '@app/views/atoms/Icons/SlideLayoutNoImageLeftAlign';
 
 import SlideLayoutBackgroundImage from '../../atoms/Icons/SlideLayoutBackgroundImage';
 import SlideLayoutLeftImage from '../../atoms/Icons/SlideLayoutLeftImage';
@@ -38,8 +39,6 @@ export default function PagePropertiesTab({}: {}) {
         setThankYouPageButtonLink,
         updateThankYouPageLayout,
         updateWelcomePageLayout,
-        updateThankYouPageImage,
-        updateWelcomePageImage,
         setFormDescription
     } = useFormState();
 
@@ -50,6 +49,38 @@ export default function PagePropertiesTab({}: {}) {
         else return activeSlide?.index;
     }
     const { layout, imageUrl } = useGetPageAttributes(getPageIndex() ?? -10);
+
+    const getLayoutList = () => {
+        if (
+            layout === FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND ||
+            layout === FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND_LEFT_ALIGN
+        ) {
+            return [
+                {
+                    style: FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND_LEFT_ALIGN,
+                    Icon: SlideLayoutNoImageLeftAlign
+                },
+                {
+                    style: FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND,
+                    Icon: SlideLayoutNoImage
+                }
+            ];
+        } else
+            return [
+                {
+                    style: FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT,
+                    Icon: SlideLayoutRightImage
+                },
+                {
+                    style: FormSlideLayout.TWO_COLUMN_IMAGE_LEFT,
+                    Icon: SlideLayoutLeftImage
+                },
+                {
+                    style: FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND,
+                    Icon: SlideLayoutBackgroundImage
+                }
+            ];
+    };
 
     // Function to handle layout update for a specific slide
     const handleSlideLayoutChange = (slideId?: string, newLayout?: FormSlideLayout) => {
@@ -72,48 +103,33 @@ export default function PagePropertiesTab({}: {}) {
                         Layout
                     </div>
                     <div className="grid grid-cols-2 gap-2 border-b px-4 pb-6">
-                        {[
-                            {
-                                style: FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT,
-                                Icon: SlideLayoutRightImage
-                            },
-                            {
-                                style: FormSlideLayout.TWO_COLUMN_IMAGE_LEFT,
-                                Icon: SlideLayoutLeftImage
-                            },
-                            {
-                                style: FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND,
-                                Icon: SlideLayoutBackgroundImage
-                            },
-                            {
-                                style: FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND,
-                                Icon: SlideLayoutNoImage
-                            }
-                        ].map((item: { style: FormSlideLayout; Icon: any }) => (
-                            <div
-                                key={item.style}
-                                className={cn(
-                                    'flex h-[50px] w-20 cursor-pointer items-center justify-center rounded-xl border-[1px] p-2 hover:bg-gray-200',
+                        {getLayoutList().map(
+                            (item: { style: FormSlideLayout; Icon: any }) => (
+                                <div
+                                    key={item.style}
+                                    className={cn(
+                                        'flex h-[50px] w-20 cursor-pointer items-center justify-center rounded-xl border-[1px] p-2 hover:bg-gray-200',
 
-                                    layout && layout === item.style
-                                        ? 'border-pink-500 ring-offset-1'
-                                        : 'border-gray-200'
-                                )}
-                                onClick={() =>
-                                    handleSlideLayoutChange(
-                                        activeSlideComponent?.id,
-                                        item.style
-                                    )
-                                }
-                            >
-                                {item.Icon && <item.Icon />}
-                            </div>
-                        ))}
+                                        layout && layout === item.style
+                                            ? 'border-pink-500 ring-offset-1'
+                                            : 'border-gray-200'
+                                    )}
+                                    onClick={() =>
+                                        handleSlideLayoutChange(
+                                            activeSlideComponent?.id,
+                                            item.style
+                                        )
+                                    }
+                                >
+                                    {item.Icon && <item.Icon />}
+                                </div>
+                            )
+                        )}
                     </div>
                 </>
             }
 
-            {layout && layout !== FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND && (
+            {/* {layout && layout !== FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND && (
                 <>
                     <div className="p2-new mb-4 mt-6 px-4 !font-medium text-black-700">
                         Background Image
@@ -150,7 +166,7 @@ export default function PagePropertiesTab({}: {}) {
                         </div>
                     </div>
                 </>
-            )}
+            )} */}
             <div className="p2-new mb-4 mt-6 px-4 !font-medium text-black-700">
                 Settings
             </div>
@@ -282,7 +298,7 @@ export default function PagePropertiesTab({}: {}) {
                     </div>
                 ) : (
                     <>
-                        <div className="text-xs text-black-700">Question Numbers</div>
+                        {/* <div className="text-xs text-black-700">Question Numbers</div>
                         <Switch
                             checked={
                                 activeSlide?.properties?.showQuestionNumbers || false
@@ -290,7 +306,7 @@ export default function PagePropertiesTab({}: {}) {
                             onCheckedChange={(checked) => {
                                 updateShowQuestionNumbers(activeSlide!.index, checked);
                             }}
-                        />
+                        /> */}
                     </>
                 )}
             </div>

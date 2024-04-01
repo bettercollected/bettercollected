@@ -115,7 +115,11 @@ const SlideBuilder = ({
                                                 {(provided) => (
                                                     <div
                                                         className={cn(
-                                                            'relative flex flex-row items-center justify-center first:!pb-0 last:pb-20'
+                                                            'relative flex flex-row items-center first:!pb-0 last:pb-20',
+                                                            slide.properties?.layout ===
+                                                                FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND_LEFT_ALIGN
+                                                                ? 'justify-start'
+                                                                : 'justify-center'
                                                         )}
                                                     >
                                                         <div

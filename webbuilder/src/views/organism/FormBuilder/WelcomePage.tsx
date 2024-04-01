@@ -13,14 +13,14 @@ const WelcomeSlide = ({ disabled }: { disabled?: boolean }) => {
         <GreetingLayoutWrapper theme={theme} disabled={disabled} greetingIndex={-10}>
             <div
                 className={cn(
-                    'grid items-center justify-center',
+                    'grid grid-cols-1 items-center justify-center',
                     formState.welcomePage?.layout &&
                         (formState.welcomePage?.layout ===
                             FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND ||
                             formState.welcomePage?.layout ===
                                 FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND)
-                        ? 'grid-cols-3'
-                        : 'grid-cols-1'
+                        ? 'place-items-center'
+                        : ''
                 )}
             >
                 <div className="flex flex-col items-start">
