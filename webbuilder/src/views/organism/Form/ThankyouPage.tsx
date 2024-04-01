@@ -11,13 +11,12 @@ export default function ThankyouPage({ isPreviewMode }: { isPreviewMode: boolean
     const { standardForm } = useStandardForm();
     return (
         <div
-            className="grid h-screen w-full grid-cols-1"
+            className="flex h-screen w-full flex-col items-center justify-center"
             style={{ background: standardForm.theme?.accent }}
         >
-            <div className=" flex h-full flex-col justify-center px-4  lg:px-20">
-                <UserAvatarDropDown disabled />
-
-                <div className="px-4  lg:px-20">
+            <UserAvatarDropDown disabled />
+            <div className=" flex h-full w-full max-w-[800px] flex-col justify-center">
+                <div className="">
                     <div className="flex">
                         <span className="text-[40px] font-bold leading-[48px]">
                             Thank You! 🎉
@@ -44,7 +43,7 @@ export default function ThankyouPage({ isPreviewMode }: { isPreviewMode: boolean
                             {standardForm?.buttonText || 'Try Bettercollected'}
                         </Link>
                     </Button>
-                    <div className="p2-new mt-10 rounded-lg bg-white p-4">
+                    <div className="p2-new mt-10 max-w-[400px] rounded-lg bg-white p-4">
                         <div className=" text-black-700">
                             You can view or request deletion of this response.
                         </div>

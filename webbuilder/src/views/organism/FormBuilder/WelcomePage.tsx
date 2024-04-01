@@ -1,6 +1,5 @@
 import cn from 'classnames';
 
-import { FormSlideLayout } from '@app/models/enums/form';
 import { Button } from '@app/shadcn/components/ui/button';
 import { useFormState } from '@app/store/jotai/form';
 
@@ -13,17 +12,10 @@ const WelcomeSlide = ({ disabled }: { disabled?: boolean }) => {
         <GreetingLayoutWrapper theme={theme} disabled={disabled} greetingIndex={-10}>
             <div
                 className={cn(
-                    'grid grid-cols-1 items-center justify-center',
-                    formState.welcomePage?.layout &&
-                        (formState.welcomePage?.layout ===
-                            FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND ||
-                            formState.welcomePage?.layout ===
-                                FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND)
-                        ? 'place-items-center'
-                        : ''
+                    'flex flex-col items-center justify-center bg-transparent'
                 )}
             >
-                <div className="flex flex-col items-start">
+                <div className={cn('flex w-full max-w-[800px] flex-col items-start')}>
                     <input
                         type="text"
                         placeholder="Form Title"

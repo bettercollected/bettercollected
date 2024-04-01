@@ -11,23 +11,9 @@ const ThankYouSlide = ({ disabled }: { disabled?: boolean }) => {
     const { activeThankYouPageComponent } = useActiveThankYouPageComponent();
     return (
         <GreetingLayoutWrapper disabled={disabled} greetingIndex={-20} theme={theme}>
-            <div
-                className={cn(
-                    'flex w-full max-w-[800px] items-center',
-                    formState.thankyouPage![activeThankYouPageComponent?.index || 0]
-                        ?.layout &&
-                        (formState.thankyouPage![
-                            activeThankYouPageComponent?.index || 0
-                        ]?.layout === FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND ||
-                            formState.thankyouPage![
-                                activeThankYouPageComponent?.index || 0
-                            ]?.layout === FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND)
-                        ? 'justify-center'
-                        : 'justify-start '
-                )}
-            >
-                <div className="flex flex-col items-start">
-                    <h1 className="text-2xl font-semibold">Thank You!</h1>
+            <div className={cn('flex w-full  items-start justify-center self-center')}>
+                <div className="flex w-full max-w-[800px] flex-col items-start">
+                    <h1 className="text-[40px] font-semibold">Thank You! 🎉</h1>
                     {formState.thankyouPage &&
                     formState.thankyouPage[activeThankYouPageComponent?.index || 0]
                         .message !== undefined ? (
@@ -39,7 +25,7 @@ const ThankYouSlide = ({ disabled }: { disabled?: boolean }) => {
                                     activeThankYouPageComponent?.index || 0
                                 ].message
                             }
-                            className="border-0 px-0 text-base"
+                            className="w-full border-0 px-0 text-base text-black-600"
                             onChange={(e: any) =>
                                 setThankYouPageDescription(
                                     activeThankYouPageComponent?.index || 0,

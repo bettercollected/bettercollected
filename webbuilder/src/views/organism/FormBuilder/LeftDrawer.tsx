@@ -128,8 +128,8 @@ export default function LeftDrawer({}: {}) {
                                     'border-pink-500'
                             )}
                         >
-                            <div className="p2-new mb-1 font-medium text-black-700">
-                                Welcome
+                            <div className=" mb-1 !text-[10px] font-medium text-black-700">
+                                Welcome Screen
                             </div>
                             <div
                                 className={cn(
@@ -160,7 +160,7 @@ export default function LeftDrawer({}: {}) {
                                             )}
                                         >
                                             <div className="flex w-full justify-between">
-                                                <div className="p2-new mb-1 font-medium text-black-700">
+                                                <div className="mb-1 text-[10px] font-medium text-black-700">
                                                     Page {index + 1}
                                                 </div>
                                                 <SlideOptions
@@ -192,23 +192,6 @@ export default function LeftDrawer({}: {}) {
                                                             isScaledDown
                                                         />
                                                     </div>
-
-                                                    {/* {activeSlideComponent?.id ===
-                                                        slide.id && (
-                                                        <div
-                                                            className="absolute -top-7 right-0 cursor-pointer rounded-md bg-white p-2 shadow-bubble"
-                                                            onClick={(e: any) => {
-                                                                e.preventDefault();
-                                                                e.stopPropagation();
-                                                                deleteActiveSlide();
-                                                            }}
-                                                        >
-                                                            <DeleteIcon
-                                                                width={24}
-                                                                height={24}
-                                                            />
-                                                        </div>
-                                                    )} */}
                                                 </div>
                                             </div>
                                         </div>
@@ -228,8 +211,8 @@ export default function LeftDrawer({}: {}) {
                                     'border-pink-500'
                             )}
                         >
-                            <div className="p2-new mb-1 font-medium text-black-700">
-                                End
+                            <div className="mb-1 text-[10px] font-medium text-black-700">
+                                End Screen
                             </div>
                             <div
                                 className={cn(

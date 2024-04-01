@@ -21,15 +21,12 @@ export default function WelcomePage({ isPreviewMode }: { isPreviewMode: boolean 
     const responderSignInUrl = `${environments.NEXT_PUBLIC_HTTP_SCHEME}://${environments.NEXT_PUBLIC_V1_CLIENT_ENDPOINT_DOMAIN}/login?type=responder&workspace_id=${workspace.id}&redirect_to=${environments.NEXT_PUBLIC_HTTP_SCHEME}://${environments.NEXT_PUBLIC_V2_CLIENT_ENDPOINT_DOMAIN}${pathname}`;
 
     return (
-        <div
-            className="grid h-full w-full grid-cols-1"
-            style={{ background: standardForm.theme?.accent }}
-        >
-            <div className="flex h-full flex-col justify-center">
-                <UserAvatarDropDown
-                    responderSignInUrl={isPreviewMode ? '' : responderSignInUrl}
-                />
+        <div className="flex h-full w-full flex-col items-center justify-center">
+            <UserAvatarDropDown
+                responderSignInUrl={isPreviewMode ? '' : responderSignInUrl}
+            />
 
+            <div className="flex h-full w-full max-w-[800px] flex-col justify-center">
                 <div className="text-[40px] font-bold leading-[48px]">
                     {standardForm.welcomePage?.title}
                 </div>
@@ -38,7 +35,7 @@ export default function WelcomePage({ isPreviewMode }: { isPreviewMode: boolean 
                         {standardForm?.description}
                     </div>
                 )}
-                <div className="mt-16 flex max-w-[800px] flex-col rounded-lg bg-white p-4">
+                <div className="mt-16 flex max-w-[421px] flex-col rounded-lg bg-white p-4 opacity-85">
                     <div className="flex items-center gap-2">
                         {standardForm?.settings?.requireVerifiedIdentity ? (
                             <>
