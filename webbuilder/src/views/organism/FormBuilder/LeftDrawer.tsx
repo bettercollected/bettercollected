@@ -169,7 +169,7 @@ export default function LeftDrawer({}: {}) {
                                         <div
                                             key={slide.id}
                                             className={cn(
-                                                'flex flex-col gap-2 rounded-lg border border-transparent px-2 pt-1',
+                                                'group flex flex-col gap-2 rounded-lg border border-transparent px-2 pt-1',
                                                 activeSlideComponent?.id === slide.id &&
                                                     '!border-pink-500'
                                             )}
