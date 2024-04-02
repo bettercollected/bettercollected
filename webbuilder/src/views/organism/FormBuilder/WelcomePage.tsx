@@ -24,7 +24,7 @@ const WelcomeSlide = ({ disabled }: { disabled?: boolean }) => {
                     <input
                         type="text"
                         placeholder="Form Title"
-                        className="mb-4 w-min border-0 px-0 py-0 text-[40px] font-bold"
+                        className="mb-4 w-full border-0 px-0 py-0 text-[40px] font-bold"
                         value={formState.welcomePage?.title}
                         onChange={(event) => {
                             setWelcomeTitle(event.target.value);
