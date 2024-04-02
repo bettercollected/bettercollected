@@ -238,11 +238,19 @@ export default function FormSlide({
                         onScrollDebounced(event?.deltaY > 0 ? 1 : -1);
                     }}
                 >
-                    <div className="flex h-full justify-center">
+                    <div
+                        className={cn(
+                            'flex h-full',
+                            formSlide.properties?.layout ===
+                                FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND_LEFT_ALIGN
+                                ? 'justify-start'
+                                : 'justify-center'
+                        )}
+                    >
                         <AnimatePresence mode="wait">
                             <div
                                 className={cn(
-                                    'grid h-full w-full max-w-[800px] grid-cols-1 content-center items-center justify-center px-4 lg:px-20 py-20'
+                                    'grid h-full w-full max-w-[800px] grid-cols-1 content-center items-center justify-center px-4 py-20 lg:px-20'
                                 )}
                             >
                                 {formSlide?.properties?.fields?.map((field, index) => (

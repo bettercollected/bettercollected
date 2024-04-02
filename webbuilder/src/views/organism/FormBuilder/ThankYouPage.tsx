@@ -11,7 +11,16 @@ const ThankYouSlide = ({ disabled }: { disabled?: boolean }) => {
     const { activeThankYouPageComponent } = useActiveThankYouPageComponent();
     return (
         <GreetingLayoutWrapper disabled={disabled} greetingIndex={-20} theme={theme}>
-            <div className={cn('flex w-full  items-start justify-center self-center')}>
+            <div
+                className={cn(
+                    'flex w-full  items-start',
+                    formState.thankyouPage![activeThankYouPageComponent?.index || 0]
+                        ?.layout ===
+                        FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND_LEFT_ALIGN
+                        ? 'justify-start'
+                        : ' justify-center'
+                )}
+            >
                 <div className="flex w-full max-w-[800px] flex-col items-start">
                     <h1 className="text-[40px] font-semibold">Thank You! 🎉</h1>
                     {formState.thankyouPage &&
