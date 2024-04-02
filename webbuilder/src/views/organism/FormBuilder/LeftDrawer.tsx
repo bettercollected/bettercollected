@@ -155,7 +155,9 @@ export default function LeftDrawer({}: {}) {
                                     scale: 0.086
                                 }}
                             >
-                                <WelcomeSlide disabled />
+                                <div className="pointer-events-none h-full w-full">
+                                    <WelcomeSlide disabled />
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -202,11 +204,13 @@ export default function LeftDrawer({}: {}) {
                                                         scale: 0.086
                                                     }}
                                                 >
-                                                    <SlideBuilder
-                                                        slide={slide}
-                                                        disabled
-                                                        isScaledDown
-                                                    />
+                                                    <div className="pointer-events-none h-full w-full">
+                                                        <SlideBuilder
+                                                            slide={slide}
+                                                            disabled
+                                                            isScaledDown
+                                                        />
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
@@ -246,7 +250,9 @@ export default function LeftDrawer({}: {}) {
                                     scale: 0.086
                                 }}
                             >
-                                <ThankYouSlide disabled />
+                                <div className="pointer-events-none h-full w-full">
+                                    <ThankYouSlide disabled />
+                                </div>
                             </div>
                         </div>
                     </div>
