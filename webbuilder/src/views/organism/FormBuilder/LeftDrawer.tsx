@@ -118,6 +118,7 @@ export default function LeftDrawer({}: {}) {
     return (
         <>
             <div
+                onClick={() => setActiveFieldComponent(null)}
                 id="slides-preview"
                 className="flex h-body-content w-[200px] flex-col gap-5 overflow-y-auto overflow-x-hidden border-r border-r-black-300 bg-white"
             >
