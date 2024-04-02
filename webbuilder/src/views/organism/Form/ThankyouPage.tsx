@@ -3,7 +3,9 @@ import Link from 'next/link';
 
 import DemoImage from '@app/assets/image/rectangle.png';
 import { ButtonSize } from '@app/models/enums/button';
+import { FormSlideLayout } from '@app/models/enums/form';
 import { Button } from '@app/shadcn/components/ui/button';
+import { cn } from '@app/shadcn/util/lib';
 import { useStandardForm } from '@app/store/jotai/fetchedForm';
 import UserAvatarDropDown from '@app/views/molecules/UserAvatarDropdown';
 
@@ -11,7 +13,13 @@ export default function ThankyouPage({ isPreviewMode }: { isPreviewMode: boolean
     const { standardForm } = useStandardForm();
     return (
         <div
-            className="flex h-full w-full flex-col items-center justify-center"
+            className={cn(
+                'flex h-full w-full flex-col justify-center',
+                standardForm?.thankyouPage![0]?.layout ===
+                    FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND_LEFT_ALIGN
+                    ? 'items-start'
+                    : 'items-center'
+            )}
             style={{ background: standardForm.theme?.accent }}
         >
             <UserAvatarDropDown disabled />
