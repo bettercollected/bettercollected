@@ -75,10 +75,7 @@ export function RichTextEditor({
                     }
                 }}
                 onFocus={({ editor }) => {
-                    editor.commands.selectAll();
-                }}
-                onBlur={({ editor }) => {
-                    editor.commands.setTextSelection({ from: 0, to: 0 });
+                    editor.commands.focus('all');
                 }}
                 onUpdate={({ editor }) => {
                     onUpdate(editor);
