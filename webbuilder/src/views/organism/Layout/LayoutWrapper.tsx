@@ -23,6 +23,7 @@ interface ILayoutWrapper {
     disabled?: boolean;
     theme?: FormTheme;
     style?: React.CSSProperties;
+    scrollDivId?: string;
     children: React.ReactNode | React.ReactNode[];
 }
 
@@ -35,6 +36,7 @@ const LayoutWrapper = ({
     altImage,
     disabled = false,
     style = {},
+    scrollDivId,
     children
 }: ILayoutWrapper) => {
     const [showControls, setShowControls] = useState(false);
@@ -125,6 +127,7 @@ const LayoutWrapper = ({
                 )}
             >
                 <ScrollArea
+                    id={scrollDivId}
                     asChild
                     style={{
                         background:

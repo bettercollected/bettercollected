@@ -3,10 +3,10 @@
 import { useDialogModal } from '@app/lib/hooks/useDialogModal';
 import useGetPageAttributes from '@app/lib/hooks/useGetPageAttributes';
 import { FormSlideLayout } from '@app/models/enums/form';
-import { Button } from '@app/shadcn/components/ui/button';
 import { Switch } from '@app/shadcn/components/ui/switch';
 import { cn } from '@app/shadcn/util/lib';
 import {
+    useActiveFieldComponent,
     useActiveSlideComponent,
     useActiveThankYouPageComponent
 } from '@app/store/jotai/activeBuilderComponent';
@@ -29,6 +29,7 @@ export default function PagePropertiesTab({}: {}) {
         updateSlideImage
     } = useFormFieldsAtom();
     const { activeSlideComponent } = useActiveSlideComponent();
+    const { setActiveFieldComponent } = useActiveFieldComponent();
     const { activeThankYouPageComponent } = useActiveThankYouPageComponent();
     const {
         formState,
@@ -48,6 +49,8 @@ export default function PagePropertiesTab({}: {}) {
         else return activeSlide?.index;
     }
     const { layout, imageUrl } = useGetPageAttributes(getPageIndex() ?? -10);
+
+    const { updateFieldRequired } = useFormFieldsAtom();
 
     const getLayoutList = () => {
         if (
@@ -139,7 +142,9 @@ export default function PagePropertiesTab({}: {}) {
                             <Switch
                                 checked={
                                     activeSlideComponent?.id === 'welcome-page'
-                                        ? formState.description !== undefined
+                                        ? formState?.welcomePage?.description !==
+                                              undefined &&
+                                          formState?.welcomePage?.description !== null
                                         : formState.thankyouPage &&
                                           formState.thankyouPage[
                                               activeThankYouPageComponent?.index || 0
@@ -288,7 +293,23 @@ export default function PagePropertiesTab({}: {}) {
                                         key={field.id}
                                         className="flex items-center justify-between gap-2 text-xs text-black-700"
                                     >
-                                        <div className="truncate text-xs">
+                                        <div
+                                            className="cursor-pointer truncate text-xs "
+                                            // onClick={() => {
+                                            //     setActiveFieldComponent({
+                                            //         id: field.id,
+                                            //         index: field.index
+                                            //     });
+
+                                            //     const fieldDiv =
+                                            //         document.getElementById(field.id);
+                                            //     console.log(
+                                            //         document.getElementById(
+                                            //             'scroll-div'
+                                            //         )?.scrollHeight
+                                            //     );
+                                            // }}
+                                        >
                                             {extractTextfromJSON(field)}
                                         </div>
                                         <svg
@@ -296,11 +317,19 @@ export default function PagePropertiesTab({}: {}) {
                                             height="20"
                                             viewBox="0 0 20 20"
                                             fill="none"
-                                            className={
+                                            onClick={() => {
+                                                updateFieldRequired(
+                                                    field.index,
+                                                    activeSlideComponent.index,
+                                                    !field?.validations?.required
+                                                );
+                                            }}
+                                            className={cn(
+                                                'cursor-pointer',
                                                 field?.validations?.required
                                                     ? 'text-black-900'
                                                     : 'text-[#DBDBDB]'
-                                            }
+                                            )}
                                             xmlns="http://www.w3.org/2000/svg"
                                         >
                                             <path

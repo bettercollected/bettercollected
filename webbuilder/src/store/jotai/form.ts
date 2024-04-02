@@ -7,12 +7,7 @@ import { useActiveThankYouPageComponent } from './activeBuilderComponent';
 
 export interface IFormState {
     title: string;
-    // welcomeTitle?: string;
     description?: string;
-    // thankYouMessage?: string;
-    // thankYouButtonText?: string;
-    // buttonText?: string;
-    // buttonLink?: string;
     welcomePage?: {
         title?: string;
         description?: string;
@@ -47,11 +42,6 @@ export interface IThemeState {
 export const initialFormState = atom<IFormState>({
     title: '',
     description: undefined,
-    // welcomeTitle: '',
-    // thankYouMessage: undefined,
-    // thankYouButtonText: '',
-    // buttonText: undefined,
-    // buttonLink: undefined,
     welcomePage: {
         title: '',
         layout: FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND
@@ -86,9 +76,12 @@ export function useFormState() {
     };
 
     const setFormDescription = (description?: string) => {
-        formState.description = description;
         setFormState({
-            ...formState
+            ...formState,
+            welcomePage: {
+                ...(formState?.welcomePage || {}),
+                description: description
+            }
         });
     };
 

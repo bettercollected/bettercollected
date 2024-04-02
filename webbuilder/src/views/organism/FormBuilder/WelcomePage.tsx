@@ -37,11 +37,12 @@ const WelcomeSlide = ({ disabled }: { disabled?: boolean }) => {
                             setWelcomeTitle(event.target.value);
                         }}
                     />
-                    {formState.description !== undefined ? (
+                    {formState?.welcomePage?.description !== undefined &&
+                    formState?.welcomePage?.description !== null ? (
                         <StyledInputField
                             type="text"
                             placeholder="Add description"
-                            value={formState.description}
+                            value={formState?.welcomePage?.description || ''}
                             className="border-0 px-0 py-0 text-base"
                             onChange={(e: any) => setFormDescription(e.target.value)}
                         />
