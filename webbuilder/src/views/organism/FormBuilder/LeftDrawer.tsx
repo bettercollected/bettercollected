@@ -129,7 +129,7 @@ export default function LeftDrawer({}: {}) {
                     <div className="border-b border-b-black-400 !px-2">
                         <div
                             className={cn(
-                                'mb-6 rounded-lg border border-transparent px-2 pb-2 pt-1',
+                                'mb-6 h-32 rounded-lg border border-transparent px-2 pb-2 pt-1',
                                 activeSlideComponent?.id === 'welcome-page' &&
                                     'border-pink-500'
                             )}
@@ -139,13 +139,19 @@ export default function LeftDrawer({}: {}) {
                             </div>
                             <div
                                 className={cn(
-                                    ' relative flex !aspect-video cursor-pointer items-center justify-center overflow-auto rounded-lg bg-white'
+                                    'flex !aspect-video cursor-pointer items-center justify-center overflow-auto rounded-lg bg-white shadow-slide'
                                 )}
                                 onClick={() => {
                                     setActiveSlideComponent({
                                         id: 'welcome-page',
                                         index: -10
                                     });
+                                }}
+                                style={{
+                                    height: '1080px',
+                                    width: '1920px',
+                                    transformOrigin: 'top left',
+                                    scale: 0.086
                                 }}
                             >
                                 <WelcomeSlide disabled />
@@ -160,7 +166,7 @@ export default function LeftDrawer({}: {}) {
                                         <div
                                             key={slide.id}
                                             className={cn(
-                                                'rounded-lg border border-transparent px-2 pb-2 pt-1',
+                                                'flex flex-col gap-2 rounded-lg border border-transparent px-2 pt-1',
                                                 activeSlideComponent?.id === slide.id &&
                                                     '!border-pink-500'
                                             )}
@@ -175,14 +181,12 @@ export default function LeftDrawer({}: {}) {
                                             </div>
                                             <div
                                                 key={slide.id}
-                                                className={cn(
-                                                    'relative flex items-center gap-2' //h-[93.28px] w-[165.83px]
-                                                )}
+                                                className={cn('h-[102px]')}
                                             >
                                                 <div
                                                     role="button"
                                                     className={cn(
-                                                        'flex !aspect-video cursor-pointer items-center justify-center overflow-hidden rounded-lg border'
+                                                        'flex !aspect-video cursor-pointer items-center justify-center overflow-hidden rounded-lg border shadow-slide'
                                                     )}
                                                     onClick={() => {
                                                         setActiveSlideComponent({
@@ -190,14 +194,18 @@ export default function LeftDrawer({}: {}) {
                                                             index
                                                         });
                                                     }}
+                                                    style={{
+                                                        height: '1080px',
+                                                        width: '1920px',
+                                                        transformOrigin: 'top left',
+                                                        scale: 0.086
+                                                    }}
                                                 >
-                                                    <div className={''}>
-                                                        <SlideBuilder
-                                                            slide={slide}
-                                                            disabled
-                                                            isScaledDown
-                                                        />
-                                                    </div>
+                                                    <SlideBuilder
+                                                        slide={slide}
+                                                        disabled
+                                                        isScaledDown
+                                                    />
                                                 </div>
                                             </div>
                                         </div>
@@ -212,7 +220,7 @@ export default function LeftDrawer({}: {}) {
                     <div className="border-t border-t-black-400 px-2 pt-4">
                         <div
                             className={cn(
-                                ' mb-3 rounded-lg border border-transparent px-2 pb-2 pt-1',
+                                ' mb-3 h-32 rounded-lg border border-transparent px-2 pb-2 pt-1',
                                 activeSlideComponent?.id === 'thank-you-page' &&
                                     'border-pink-500'
                             )}
@@ -229,6 +237,12 @@ export default function LeftDrawer({}: {}) {
                                         id: 'thank-you-page',
                                         index: -20
                                     });
+                                }}
+                                style={{
+                                    height: '1080px',
+                                    width: '1920px',
+                                    transformOrigin: 'top left',
+                                    scale: 0.086
                                 }}
                             >
                                 <ThankYouSlide disabled />
