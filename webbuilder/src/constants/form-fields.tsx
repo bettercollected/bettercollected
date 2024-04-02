@@ -24,19 +24,6 @@ export const formFieldsList = [
         icon: <EmailIcon className="h-10 w-10" />
     },
     {
-        name: 'Number',
-        type: FieldTypes.NUMBER,
-        icon: <NumberIcon className="h-10 w-10" />
-    },
-    {
-        name: 'File Upload',
-        type: FieldTypes.FILE_UPLOAD,
-        icon: <UploadIcon className="h-10 w-10" />
-    },
-    { name: 'Link', type: FieldTypes.LINK, icon: <LinkIcon className="h-10 w-10" /> },
-    { name: 'Yes No', type: FieldTypes.YES_NO, icon: <YesNoIcon /> },
-    { name: 'Drop Down', type: FieldTypes.DROP_DOWN, icon: <DropDownIcon /> },
-    {
         name: 'Phone Number',
         type: FieldTypes.PHONE_NUMBER,
         icon: <PhoneNumberIcon className="h-10 w-10" />
@@ -47,15 +34,31 @@ export const formFieldsList = [
         icon: <MultipleChoiceIcon />
     },
     {
-        name: 'Rating',
-        type: FieldTypes.RATING,
-        icon: <RatingIcon />
+        name: 'File Upload',
+        type: FieldTypes.FILE_UPLOAD,
+        icon: <UploadIcon className="h-10 w-10" />
     },
     {
         name: 'Calendar',
         type: FieldTypes.DATE,
         icon: <CalenderIcon className="h-10 w-10" />
     },
+    {
+        name: 'Rating',
+        type: FieldTypes.RATING,
+        icon: <RatingIcon />
+    },
+    { name: 'Drop Down', type: FieldTypes.DROP_DOWN, icon: <DropDownIcon /> },
+
+    {
+        name: 'Number',
+        type: FieldTypes.NUMBER,
+        icon: <NumberIcon className="h-10 w-10" />
+    },
+
+    { name: 'Link', type: FieldTypes.LINK, icon: <LinkIcon className="h-10 w-10" /> },
+    { name: 'Yes No', type: FieldTypes.YES_NO, icon: <YesNoIcon /> },
+
     {
         name: '1-10 Rate',
         type: FieldTypes.LINEAR_RATING,
