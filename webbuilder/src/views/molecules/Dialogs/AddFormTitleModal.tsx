@@ -48,7 +48,7 @@ export default function AddFormTitleModal() {
                 <div className="tex-black-800 text-normal font-semibold">
                     Give name to your form
                 </div>
-                <div className="p2-new text-black-700">
+                <div className="mb-2 text-xs text-black-700">
                     You can always change it later.
                 </div>
                 <Input

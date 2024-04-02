@@ -47,7 +47,7 @@ export default function FormPage({ params }: { params: { formId: string } }) {
     useEffect(() => {
         if (showModal === 'true') {
             openDialogModal('ADD_FORM_TITLE');
-            router.replace(pathname);
+            // router.replace(pathname);
         }
     }, [showModal]);
 
