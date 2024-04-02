@@ -217,6 +217,8 @@ export default function FormSlide({
 
     if (!formSlide) return <FullScreenLoader />;
 
+    console.log(formSlide.properties?.layout);
+
     return (
         <Controller>
             <SlideLayoutWrapper theme={standardForm.theme} slide={formSlide} disabled>
@@ -231,9 +233,14 @@ export default function FormSlide({
                         <span className="text-black-700">Back</span>
                     </div>
                 )}
-                <ScrollArea
-                    asChild
-                    className="z-10 h-full flex-1 items-center overflow-y-auto"
+                <div
+                    className={cn(
+                        'flex h-full flex-1 flex-col justify-center ',
+                        formSlide?.properties?.layout ===
+                            FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND_LEFT_ALIGN
+                            ? 'items-start '
+                            : 'items-center'
+                    )}
                     onWheel={(event) => {
                         onScrollDebounced(event?.deltaY > 0 ? 1 : -1);
                     }}
@@ -341,135 +348,131 @@ export default function FormSlide({
                                                 </Timeline>
                                             )}
 
-                                            {currentField + 1 === index && (
-                                                <Timeline
-                                                    target={
-                                                        <div
-                                                            id={
-                                                                formSlide!.properties!
-                                                                    .fields![
-                                                                    currentField - 1
-                                                                ]?.id
-                                                            }
-                                                            className={`relative mt-20`}
-                                                            onClick={() => {
-                                                                handleFieldChange(
-                                                                    currentField + 1
-                                                                );
-                                                            }}
-                                                        >
-                                                            <div className="relative max-h-[100px] overflow-hidden lg:max-h-[150px]">
-                                                                <div
-                                                                    className="absolute bottom-0 left-0 right-0 top-0 z-[10]"
-                                                                    style={{
-                                                                        background:
-                                                                            formSlide &&
-                                                                            formSlide
-                                                                                ?.properties
-                                                                                ?.layout ===
-                                                                                FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND
-                                                                                ? 'transparent'
-                                                                                : `linear-gradient(180deg, transparent 0%, ${standardForm.theme?.accent} 100%)`
-                                                                    }}
-                                                                />
-                                                                <FormFieldComponent
-                                                                    field={
-                                                                        formSlide!
-                                                                            .properties!
-                                                                            .fields![
-                                                                            currentField +
-                                                                                1
-                                                                        ]
-                                                                    }
-                                                                    slideIndex={
-                                                                        formSlide!.index
-                                                                    }
-                                                                />
-                                                            </div>
-                                                        </div>
-                                                    }
-                                                >
-                                                    <Tween
-                                                        from={{ opacity: 1 }}
-                                                        to={{ opacity: 0.4 }}
-                                                        duration={0}
-                                                    />
-                                                </Timeline>
-                                            )}
-                                        </>
-                                    </Scene>
-                                ))}
-
-                                {(!formSlide?.properties?.fields?.length ||
-                                    currentField + 1 ===
-                                        formSlide?.properties?.fields?.length) && (
-                                    <motion.div
-                                        initial={{ opacity: 0 }}
-                                        animate={{ opacity: 1 }}
-                                        exit={{ opacity: 0 }}
-                                        transition={{
-                                            type: 'tween'
-                                        }}
-                                    >
-                                        {(standardForm?.fields?.length || 0) - 1 ===
-                                            currentSlide && (
-                                            <div className="mt-20 flex flex-col">
-                                                {authState.id &&
-                                                    !standardForm.settings
-                                                        ?.requireVerifiedIdentity && (
-                                                        <div className="flex flex-row gap-2 text-sm ">
-                                                            <FieldInput
-                                                                checked={
-                                                                    formResponse.anonymize
-                                                                }
-                                                                onChange={(e) =>
-                                                                    setFormResponse({
-                                                                        ...formResponse,
-                                                                        anonymize:
-                                                                            e.target
-                                                                                .checked
-                                                                    })
-                                                                }
-                                                                type="checkbox"
-                                                                className="h-4 w-4 border focus:border-0 focus:outline-none"
-                                                            />
-                                                            Hide your email from Form
-                                                            Collector
-                                                        </div>
-                                                    )}
-                                                {authState.id && (
+                                        {currentField + 1 === index && (
+                                            <Timeline
+                                                target={
                                                     <div
-                                                        className={`p2-new mt-2 italic text-black-600 `}
+                                                        id={
+                                                            formSlide!.properties!
+                                                                .fields![
+                                                                currentField - 1
+                                                            ]?.id
+                                                        }
+                                                        className={`relative mt-20`}
+                                                        onClick={() => {
+                                                            handleFieldChange(
+                                                                currentField + 1
+                                                            );
+                                                        }}
                                                     >
-                                                        {authState?.id &&
-                                                        !formResponse.anonymize
-                                                            ? `You are submitting this form as ${authState?.email}`
-                                                            : 'Your identity is hidden from form creator.'}{' '}
+                                                        <div className="relative max-h-[100px] overflow-hidden lg:max-h-[150px]">
+                                                            <div
+                                                                className="absolute bottom-0 left-0 right-0 top-0 z-[10]"
+                                                                style={{
+                                                                    background:
+                                                                        formSlide &&
+                                                                        formSlide
+                                                                            ?.properties
+                                                                            ?.layout ===
+                                                                            FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND
+                                                                            ? 'transparent'
+                                                                            : `linear-gradient(180deg, transparent 0%, ${standardForm.theme?.accent} 100%)`
+                                                                }}
+                                                            />
+                                                            <FormFieldComponent
+                                                                field={
+                                                                    formSlide!
+                                                                        .properties!
+                                                                        .fields![
+                                                                        currentField + 1
+                                                                    ]
+                                                                }
+                                                                slideIndex={
+                                                                    formSlide!.index
+                                                                }
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                }
+                                            >
+                                                <Tween
+                                                    from={{ opacity: 1 }}
+                                                    to={{ opacity: 0.4 }}
+                                                    duration={0}
+                                                />
+                                            </Timeline>
+                                        )}
+                                    </>
+                                </Scene>
+                            ))}
+
+                            {(!formSlide?.properties?.fields?.length ||
+                                currentField + 1 ===
+                                    formSlide?.properties?.fields?.length) && (
+                                <motion.div
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    exit={{ opacity: 0 }}
+                                    transition={{
+                                        type: 'tween'
+                                    }}
+                                >
+                                    {(standardForm?.fields?.length || 0) - 1 ===
+                                        currentSlide && (
+                                        <div className="mt-20 flex flex-col">
+                                            {authState.id &&
+                                                !standardForm.settings
+                                                    ?.requireVerifiedIdentity && (
+                                                    <div className="flex flex-row gap-2 text-sm ">
+                                                        <FieldInput
+                                                            checked={
+                                                                formResponse.anonymize
+                                                            }
+                                                            onChange={(e) =>
+                                                                setFormResponse({
+                                                                    ...formResponse,
+                                                                    anonymize:
+                                                                        e.target.checked
+                                                                })
+                                                            }
+                                                            type="checkbox"
+                                                            className="h-4 w-4 border focus:border-0 focus:outline-none"
+                                                        />
+                                                        Hide your email from Form
+                                                        Collector
                                                     </div>
                                                 )}
-                                            </div>
-                                        )}
-                                        <Button
-                                            style={{
-                                                background:
-                                                    standardForm.theme?.secondary
-                                            }}
-                                            isLoading={isLoading}
-                                            className="mt-4 rounded px-8 py-3"
-                                            onClick={onNext}
-                                            size="medium"
-                                        >
-                                            {(standardForm?.fields?.length || 0) - 1 ===
-                                            currentSlide
-                                                ? 'Submit'
-                                                : 'Next'}
-                                        </Button>
-                                    </motion.div>
-                                )}
-                            </div>
-                        </AnimatePresence>
-                    </div>
-                </ScrollArea>
+                                            {authState.id && (
+                                                <div
+                                                    className={`p2-new mt-2 italic text-black-600 `}
+                                                >
+                                                    {authState?.id &&
+                                                    !formResponse.anonymize
+                                                        ? `You are submitting this form as ${authState?.email}`
+                                                        : 'Your identity is hidden from form creator.'}{' '}
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+                                    <Button
+                                        style={{
+                                            background: standardForm.theme?.secondary
+                                        }}
+                                        isLoading={isLoading}
+                                        className="mt-4 rounded px-8 py-3"
+                                        onClick={onNext}
+                                        size="medium"
+                                    >
+                                        {(standardForm?.fields?.length || 0) - 1 ===
+                                        currentSlide
+                                            ? 'Submit'
+                                            : 'Next'}
+                                    </Button>
+                                </motion.div>
+                            )}
+                        </div>
+                    </AnimatePresence>
+                </div>
             </SlideLayoutWrapper>
         </Controller>
     );
