@@ -4,6 +4,8 @@ import { useEffect } from 'react';
 
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
+import { motion } from 'framer-motion';
+
 import { useDialogModal } from '@app/lib/hooks/useDialogModal';
 import {
     useActiveFieldComponent,
@@ -86,8 +88,10 @@ export default function FormPage({ params }: { params: { formId: string } }) {
             <AutoSaveForm formId={formId} />
             <div className="flex max-h-body-content w-full flex-row items-center gap-10">
                 <LeftDrawer />
-                <div
-                    className="shadow-slide relative mx-10 flex w-full flex-1 flex-col items-center justify-center rounded-lg"
+                <motion.div
+                    animate={{ x: navbarState.insertClicked ? '10%' : 0 }}
+                    transition={{ ease: 'easeInOut' }}
+                    className="relative mx-10 flex w-full flex-1 flex-col items-center justify-center rounded-lg shadow-slide"
                     onClick={() => {
                         setActiveFieldComponent(null);
                     }}
@@ -99,7 +103,7 @@ export default function FormPage({ params }: { params: { formId: string } }) {
                     {activeSlideComponent?.id === 'welcome-page' && <WelcomeSlide />}
 
                     {activeSlideComponent?.id === 'thank-you-page' && <ThankYouSlide />}
-                </div>
+                </motion.div>
                 <div
                     id="slide-element-properties"
                     className="h-full w-[200px] self-stretch overflow-auto border-l-black-300 bg-white"
