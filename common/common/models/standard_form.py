@@ -26,7 +26,8 @@ class LayoutType(str, enum.Enum):
     TWO_COLUMN_IMAGE_LEFT = ("TWO_COLUMN_IMAGE_LEFT",)
     TWO_COLUMN_IMAGE_RIGHT = ("TWO_COLUMN_IMAGE_RIGHT",)
     SINGLE_COLUMN_IMAGE_BACKGROUND = ("SINGLE_COLUMN_IMAGE_BACKGROUND",)
-    SINGLE_COLUMN_NO_BACKGROUND = "SINGLE_COLUMN_NO_BACKGROUND"
+    SINGLE_COLUMN_NO_BACKGROUND = ("SINGLE_COLUMN_NO_BACKGROUND",)
+    SINGLE_COLUMN_NO_BACKGROUND_LEFT_ALIGN = "SINGLE_COLUMN_NO_BACKGROUND_LEFT_ALIGN"
 
 
 class FormBuilderTagTypes(str, enum.Enum):
@@ -377,13 +378,6 @@ class Trigger(str, Enum):
     on_open = "on_open"
 
 
-class FormSlideLayout(str, Enum):
-    TWO_COLUMN_IMAGE_LEFT = ("TWO_COLUMN_IMAGE_LEFT",)
-    TWO_COLUMN_IMAGE_RIGHT = ("TWO_COLUMN_IMAGE_RIGHT",)
-    SINGLE_COLUMN_IMAGE_BACKGROUND = ("SINGLE_COLUMN_IMAGE_BACKGROUND",)
-    SINGLE_COLUMN_NO_BACKGROUND = "SINGLE_COLUMN_NO_BACKGROUND"
-
-
 class ParameterValue(BaseModel):
     name: str = Field(None)
     value: str = Field(None)
@@ -398,7 +392,7 @@ class ActionState(BaseModel):
 class WelcomePageField(BaseModel):
     title: Optional[str]
     description: Optional[str]
-    layout: Optional[FormSlideLayout]
+    layout: Optional[LayoutType]
     imageUrl: Optional[str]
     buttonText: Optional[str]
 
@@ -407,7 +401,7 @@ class ThankYouPageField(BaseModel):
     message: Optional[str]
     buttonText: Optional[str]
     buttonLink: Optional[str]
-    layout: Optional[FormSlideLayout]
+    layout: Optional[LayoutType]
     imageUrl: Optional[str]
 
 
