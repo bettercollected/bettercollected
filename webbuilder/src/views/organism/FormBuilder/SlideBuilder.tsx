@@ -79,8 +79,12 @@ const SlideBuilder = ({
     }
 
     return (
-        <SlideLayoutWrapper slide={slide} disabled={disabled} theme={theme}>
-            {/* <ScrollArea className="h-full flex-1 overflow-y-auto"> */}
+        <SlideLayoutWrapper
+            slide={slide}
+            disabled={disabled}
+            theme={theme}
+            scrollDivId={!disabled ? 'scroll-div' : undefined}
+        >
             <DragDropContext
                 onDragEnd={(result, provided) => {
                     if (!result.destination) return;
@@ -113,6 +117,7 @@ const SlideBuilder = ({
                                             >
                                                 {(provided) => (
                                                     <div
+                                                        id={field.id}
                                                         className={cn(
                                                             'relative flex h-full w-full flex-row  items-center first:!pt-[0%] last:pb-20',
                                                             slide.properties?.layout ===
@@ -276,7 +281,6 @@ const SlideBuilder = ({
                     )}
                 </StrictModeDroppable>
             </DragDropContext>
-            {/* </ScrollArea> */}
         </SlideLayoutWrapper>
     );
 };
@@ -305,7 +309,7 @@ const FileUpload = ({
                     borderColor: slide.properties?.theme?.tertiary || theme?.tertiary
                 }}
                 className={
-                    'flex h-[200px] w-full max-w-[500px] cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dotted'
+                    'flex h-[200px] w-full max-w-[800px] cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dotted'
                 }
             >
                 <FolderUploadIcon

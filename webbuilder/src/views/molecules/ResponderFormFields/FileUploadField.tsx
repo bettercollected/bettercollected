@@ -129,7 +129,7 @@ export default function FileUpload({ field }: { field: FormField }) {
 
     return (
         <QuestionWrapper field={field}>
-            <div className="w-full space-y-3 md:max-w-[541px]">
+            <div className="w-full space-y-3 md:max-w-[800px]">
                 {
                     <div
                         style={{

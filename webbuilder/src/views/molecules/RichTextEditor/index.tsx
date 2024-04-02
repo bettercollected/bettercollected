@@ -58,7 +58,7 @@ export function RichTextEditor({
         return field.title
             ? getHtmlFromJson(field.title ?? '')
             : `
-        <p style="font-weight:600; font-size:16px">${getPlaceholderValueForTitle(field.type || FieldTypes.SHORT_TEXT)}</p>
+        <p style="font-weight:500; font-size:16px">${getPlaceholderValueForTitle(field.type || FieldTypes.SHORT_TEXT)}</p>
       `;
     };
 

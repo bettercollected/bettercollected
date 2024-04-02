@@ -70,8 +70,6 @@ export default function PropertiesDrawer({}: {}) {
                 >
                     {activeFieldComponent?.id && (
                         <>
-                            {/* <FieldTypeSelector />
-                    <Divider /> */}
                             <FieldSettings />
                         </>
                     )}
