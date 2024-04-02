@@ -134,7 +134,7 @@ const LayoutWrapper = ({
                     }}
                     // TODO: Change this to apply layout from other layout
                     className={cn(
-                        'relative px-5 md:px-10 xl:px-20',
+                        'relative px-5 md:px-8 xl:px-10 2xl:px-20',
                         'min-h-[100%]',
                         disabled ? 'overflow-hidden' : '',
                         layout &&
