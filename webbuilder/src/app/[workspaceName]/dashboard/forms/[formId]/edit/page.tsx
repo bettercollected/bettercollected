@@ -89,7 +89,7 @@ export default function FormPage({ params }: { params: { formId: string } }) {
             <div className="flex max-h-body-content w-full flex-row items-center gap-10">
                 <LeftDrawer />
                 <motion.div
-                    animate={{ x: navbarState.insertClicked ? '10%' : 0 }}
+                    animate={{ x: navbarState.insertClicked ? '5%' : 0 }}
                     transition={{ ease: 'easeInOut' }}
                     className="relative mx-10 flex w-full flex-1 flex-col items-center justify-center rounded-lg shadow-slide"
                     onClick={() => {

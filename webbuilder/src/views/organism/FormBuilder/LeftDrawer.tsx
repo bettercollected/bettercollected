@@ -266,9 +266,9 @@ export default function LeftDrawer({}: {}) {
                     navbarState.insertClicked && (
                         <motion.div
                             key="field-options"
-                            initial={{ opacity: 0, x: '-100%' }}
+                            initial={{ opacity: 1, x: '-100%' }}
                             animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, x: '-100%' }}
+                            exit={{ opacity: 1, x: '-100%' }}
                             transition={{ duration: 0.3 }}
                             id="fields-option"
                             className=" absolute z-10 h-body-content w-[240px] overflow-y-auto overflow-x-hidden border-r border-r-black-300 bg-white "
