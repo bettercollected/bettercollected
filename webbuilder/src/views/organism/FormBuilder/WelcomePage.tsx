@@ -1,10 +1,17 @@
 import cn from 'classnames';
+import styled from 'styled-components';
 
 import { FormSlideLayout } from '@app/models/enums/form';
 import { Button } from '@app/shadcn/components/ui/button';
 import { useFormState } from '@app/store/jotai/form';
 
 import GreetingLayoutWrapper from '../Layout/GreetingLayoutWrapper';
+
+const StyledInputField = styled.input`
+    &::placeholder {
+        color: #aeb9d8;
+    }
+`;
 
 const WelcomeSlide = ({ disabled }: { disabled?: boolean }) => {
     const { theme, formState, setFormDescription, setWelcomeTitle } = useFormState();
@@ -31,7 +38,7 @@ const WelcomeSlide = ({ disabled }: { disabled?: boolean }) => {
                         }}
                     />
                     {formState.description !== undefined ? (
-                        <input
+                        <StyledInputField
                             type="text"
                             placeholder="Add description"
                             value={formState.description}

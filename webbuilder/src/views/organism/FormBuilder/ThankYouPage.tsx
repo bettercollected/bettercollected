@@ -1,4 +1,5 @@
 import { FormSlideLayout } from '@app/models/enums/form';
+import { AutosizeTextarea } from '@app/shadcn/components/ui/autosize-textarea';
 import { Button } from '@app/shadcn/components/ui/button';
 import { cn } from '@app/shadcn/util/lib';
 import { useActiveThankYouPageComponent } from '@app/store/jotai/activeBuilderComponent';
@@ -26,15 +27,14 @@ const ThankYouSlide = ({ disabled }: { disabled?: boolean }) => {
                     {formState.thankyouPage &&
                     formState.thankyouPage[activeThankYouPageComponent?.index || 0]
                         .message !== undefined ? (
-                        <input
-                            type="text"
+                        <AutosizeTextarea
                             placeholder="Your response has been successfully submitted"
                             value={
                                 formState.thankyouPage![
                                     activeThankYouPageComponent?.index || 0
                                 ].message
                             }
-                            className="w-full border-0 px-0 text-base text-black-600"
+                            className="ring-none w-full border-0 px-0 text-base text-black-600 outline-none"
                             onChange={(e: any) =>
                                 setThankYouPageDescription(
                                     activeThankYouPageComponent?.index || 0,

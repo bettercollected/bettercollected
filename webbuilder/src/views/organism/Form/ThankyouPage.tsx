@@ -31,7 +31,8 @@ export default function ThankyouPage({ isPreviewMode }: { isPreviewMode: boolean
                         </span>
                     </div>
                     <div className="p2-new mt-4 text-black-700">
-                        Your response is successfully submitted anonymously.
+                        {standardForm?.thankyouPage?.[0]?.message ||
+                            'Your response is successfully submitted anonymously.'}
                     </div>
                     <Button
                         style={{ background: standardForm.theme?.secondary }}
