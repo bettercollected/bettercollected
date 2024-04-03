@@ -45,7 +45,7 @@ export const ThemeColors: Array<FormTheme> = [
     {
         title: 'Black',
         primary: '#2E2E2E',
-        secondary: '#DBDBDB',
+        secondary: '#2E2E2E',
         tertiary: '#DBDBDB',
         accent: '#FFFFFF'
     },

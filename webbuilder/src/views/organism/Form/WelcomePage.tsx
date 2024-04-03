@@ -45,7 +45,7 @@ export default function WelcomePage({ isPreviewMode }: { isPreviewMode: boolean 
                         {standardForm?.description}
                     </div>
                 )}
-                <div className="mt-16 flex max-w-[421px] flex-col rounded-lg bg-white p-4 opacity-85">
+                <div className="mt-16 flex max-w-[421px] flex-col rounded-lg bg-white bg-opacity-50 p-4">
                     <div className="flex items-center gap-2">
                         {standardForm?.settings?.requireVerifiedIdentity ? (
                             <>
