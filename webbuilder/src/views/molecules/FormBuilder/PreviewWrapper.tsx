@@ -55,13 +55,15 @@ const PreviewWrapper = ({
                 </Button>
             </nav>
             <Separator />
-            <div className="flex h-full w-full items-center justify-center px-32 py-10 pb-24 drop-shadow-xl">
+            <div className=" mx-auto h-full py-10 pb-24 drop-shadow-xl  ">
                 {isDesktopView ? (
-                    <div className="aspect-video h-full">{children}</div>
+                    <div className="mx-auto aspect-video max-h-full max-w-full">
+                        {children}
+                    </div>
                 ) : (
                     <iframe
                         title="responder-mobile-view"
-                        className="aspect-[9/20] h-full rounded-lg drop-shadow-xl"
+                        className="mx-auto aspect-[9/20] h-full rounded-lg drop-shadow-xl"
                         src={mobileViewPreviewUrl}
                     />
                 )}
