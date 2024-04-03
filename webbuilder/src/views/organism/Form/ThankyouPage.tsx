@@ -1,7 +1,5 @@
-import Image from 'next/image';
 import Link from 'next/link';
 
-import DemoImage from '@app/assets/image/rectangle.png';
 import { ButtonSize } from '@app/models/enums/button';
 import { FormSlideLayout } from '@app/models/enums/form';
 import { Button } from '@app/shadcn/components/ui/button';
@@ -34,7 +32,7 @@ export default function ThankyouPage({ isPreviewMode }: { isPreviewMode: boolean
                         {standardForm?.thankyouPage?.[0]?.message ||
                             'Your response is successfully submitted anonymously.'}
                     </div>
-                    <Button
+                    {/* <Button
                         style={{ background: standardForm.theme?.secondary }}
                         className="mt-14"
                         size={ButtonSize.Medium}
@@ -51,7 +49,7 @@ export default function ThankyouPage({ isPreviewMode }: { isPreviewMode: boolean
                         >
                             {standardForm?.buttonText || 'Try Bettercollected'}
                         </Link>
-                    </Button>
+                    </Button> */}
                     <div className="p2-new mt-10 max-w-[400px] rounded-lg bg-white p-4">
                         <div className=" text-black-700">
                             You can view or request deletion of this response.
