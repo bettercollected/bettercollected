@@ -74,6 +74,7 @@ export default function InputField({ field }: { field: FormField }) {
                 }}
             >
                 <FieldInput
+                    id={`input-field-${field.id}`}
                     type={field.type === FieldTypes.SHORT_TEXT ? 'text' : field.type}
                     placeholder={
                         field?.properties?.placeholder ||
