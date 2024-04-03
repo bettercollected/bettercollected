@@ -78,6 +78,7 @@ function DateFieldSection({ field, slide, isBuilder }: IDateField) {
         <div className="flex flex-col gap-1">
             <div className="flex flex-row items-center gap-4">
                 <FieldInput
+                    id={`input-field-${field.id}`}
                     type="number"
                     placeholder="DD"
                     className={inputClassName}
