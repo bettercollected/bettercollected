@@ -198,10 +198,10 @@ export default function LeftDrawer({}: {}) {
                                                         });
                                                     }}
                                                     style={{
-                                                        height: '1080px',
-                                                        width: '1920px',
+                                                        height: '810px',
+                                                        width: '1440px',
                                                         transformOrigin: 'top left',
-                                                        scale: 0.086
+                                                        scale: 0.115
                                                     }}
                                                 >
                                                     <div className="pointer-events-none h-full w-full">
