@@ -5,7 +5,7 @@ import cn from 'classnames';
 import { GripVertical } from 'lucide-react';
 import { DragDropContext, Draggable, DroppableProvided } from 'react-beautiful-dnd';
 
-import { FormField } from '@app/models/dtos/form';
+import { FieldTypes, FormField } from '@app/models/dtos/form';
 import { FormSlideLayout } from '@app/models/enums/form';
 import { StrictModeDroppable } from '@app/shared/hocs/StrictModeDroppable';
 import { useActiveFieldComponent } from '@app/store/jotai/activeBuilderComponent';
@@ -157,7 +157,13 @@ const SlideBuilder = ({
                                                                         width={24}
                                                                     />
                                                                 </div>
-                                                                <div className="mb-4">
+                                                                <div
+                                                                    className={cn(
+                                                                        field?.type !==
+                                                                            FieldTypes.TEXT &&
+                                                                            'mb-4'
+                                                                    )}
+                                                                >
                                                                     <div className="relative flex w-full items-center gap-2">
                                                                         {slide
                                                                             ?.properties
@@ -171,6 +177,10 @@ const SlideBuilder = ({
                                                                         <RichTextEditor
                                                                             field={
                                                                                 field
+                                                                            }
+                                                                            autofocus={
+                                                                                activeFieldComponent?.id ===
+                                                                                field.id
                                                                             }
                                                                             onUpdate={(
                                                                                 editor: Editor
