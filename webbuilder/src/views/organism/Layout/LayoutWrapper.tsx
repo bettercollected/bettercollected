@@ -115,7 +115,7 @@ const LayoutWrapper = ({
                     ...style
                 }}
                 className={cn(
-                    'relative flex aspect-video  h-min w-full flex-grow overflow-hidden rounded-lg !bg-transparent lg:grid',
+                    'relative flex aspect-video h-full w-full flex-grow overflow-hidden rounded-lg !bg-transparent lg:grid',
                     layout === FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT
                         ? 'flex-col-reverse'
                         : 'flex-col',

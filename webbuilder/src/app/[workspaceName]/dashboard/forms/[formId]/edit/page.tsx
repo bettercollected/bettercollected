@@ -91,18 +91,27 @@ export default function FormPage({ params }: { params: { formId: string } }) {
                 <motion.div
                     animate={{ x: navbarState.insertClicked ? '5%' : 0 }}
                     transition={{ ease: 'easeInOut' }}
-                    className="relative mx-10 flex w-full flex-1 flex-col items-center justify-center rounded-lg shadow-slide"
+                    className=" mx-auto h-full w-full flex-1 py-14"
                     onClick={() => {
                         setActiveFieldComponent(null);
                     }}
                 >
-                    {activeSlideComponent?.id && activeSlideComponent?.index >= 0 && (
-                        <SlideBuilder slide={formFields[activeSlideComponent?.index]} />
-                    )}
-                    {!activeSlideComponent?.id && <div>Add a slide to start</div>}
-                    {activeSlideComponent?.id === 'welcome-page' && <WelcomeSlide />}
+                    <div className="relative mx-auto aspect-video max-h-full max-w-full rounded-lg  shadow-slide">
+                        {activeSlideComponent?.id &&
+                            activeSlideComponent?.index >= 0 && (
+                                <SlideBuilder
+                                    slide={formFields[activeSlideComponent?.index]}
+                                />
+                            )}
+                        {!activeSlideComponent?.id && <div>Add a slide to start</div>}
+                        {activeSlideComponent?.id === 'welcome-page' && (
+                            <WelcomeSlide />
+                        )}
 
-                    {activeSlideComponent?.id === 'thank-you-page' && <ThankYouSlide />}
+                        {activeSlideComponent?.id === 'thank-you-page' && (
+                            <ThankYouSlide />
+                        )}
+                    </div>
                 </motion.div>
                 <div
                     id="slide-element-properties"
