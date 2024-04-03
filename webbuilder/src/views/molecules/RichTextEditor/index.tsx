@@ -49,16 +49,18 @@ export const Extenstions = [StarterKit, TextStyle, FontSize, Underline, Color];
 
 export function RichTextEditor({
     field,
-    onUpdate
+    onUpdate,
+    autofocus = false
 }: {
     field: FormField;
     onUpdate: (editor: any) => void;
+    autofocus?: boolean;
 }) {
     const getContentForEditor = () => {
         return field.title
             ? getHtmlFromJson(field.title ?? '')
             : `
-        <p style="font-weight:500; font-size:16px">${getPlaceholderValueForTitle(field.type || FieldTypes.SHORT_TEXT)}</p>
+        <p><strong>${getPlaceholderValueForTitle(field.type || FieldTypes.SHORT_TEXT)}</strong></p>
       `;
     };
 
@@ -68,14 +70,18 @@ export function RichTextEditor({
                 content={getContentForEditor()}
                 extensions={Extenstions}
                 slotBefore={<TiptapMenuBar />}
-                autofocus={false}
+                autofocus={autofocus}
                 editorProps={{
                     attributes: {
-                        class: 'outline-none font-medium min-w-[600px]'
+                        class: 'outline-none font-medium w-full max-w-full min-w-[300px]'
                     }
                 }}
                 onFocus={({ editor }) => {
-                    editor.commands.focus('all');
+                    if (
+                        editor.getHTML() ===
+                        `<p><strong>${getPlaceholderValueForTitle(field.type || FieldTypes.SHORT_TEXT)}</strong></p>`
+                    )
+                        editor.commands.focus('all');
                 }}
                 onUpdate={({ editor }) => {
                     onUpdate(editor);
