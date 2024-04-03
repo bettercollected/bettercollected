@@ -1,13 +1,12 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import _ from 'lodash';
-
-import { Star, StarBorder } from '@mui/icons-material';
 
 import { FormField } from '@app/models/dtos/form';
 import { useFormState } from '@app/store/jotai/form';
 import { useFormResponse } from '@app/store/jotai/responderFormResponse';
 import { useResponderState } from '@app/store/jotai/responderFormState';
+import { StarIcon } from '@app/views/atoms/Icons/Star';
 
 import QuestionWrapper from './QuestionQwrapper';
 
@@ -22,14 +21,14 @@ export default function RatingField({
 }) {
     const { addFieldRatingAnswer, formResponse } = useFormResponse();
     const answer = formResponse.answers && formResponse.answers[field.id]?.number;
-    const [hovered, setHovered] = useState(answer || -1);
+    const [hovered, setHovered] = useState(-1);
 
     const { nextField } = useResponderState();
 
-    useEffect(() => {
-        formResponse.answers &&
-            setHovered((formResponse?.answers[field.id]?.number ?? 0) - 1);
-    }, [formResponse.answers]);
+    // useEffect(() => {
+    //     formResponse.answers &&
+    //         setHovered((formResponse?.answers[field.id]?.number ?? 0) - 1);
+    // }, [formResponse.answers]);
     const { theme } = useFormState();
     const [mouseOver, setMouseOver] = useState(false);
     const RatingSection = () => {
@@ -44,7 +43,7 @@ export default function RatingField({
                 }}
             >
                 {_.range(field.properties?.steps || 5).map((index) => {
-                    const Component = index <= hovered ? Star : StarBorder;
+                    // const Component = index <= hovered ? Star : StarBorder;
                     return (
                         <span
                             style={{
@@ -55,7 +54,7 @@ export default function RatingField({
                             }}
                             key={index}
                             onMouseOut={() => {
-                                if (!isBuilder) setHovered((answer || 0) - 1);
+                                if (!isBuilder) setHovered(-1);
                             }}
                             onClick={() => {
                                 if (!isBuilder) {
@@ -70,9 +69,15 @@ export default function RatingField({
                                 if (!isBuilder) setHovered(index);
                             }}
                         >
-                            <Component
-                                fontSize="large"
-                                className={`pointer-events-none  `}
+                            <StarIcon
+                                fill={
+                                    index <= hovered
+                                        ? theme?.tertiary
+                                        : index <= (answer ?? 0) - 1 && hovered < 0
+                                          ? theme?.secondary
+                                          : theme?.accent
+                                }
+                                stroke={theme?.secondary}
                             />
                         </span>
                     );
