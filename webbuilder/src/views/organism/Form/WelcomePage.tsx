@@ -13,7 +13,14 @@ import { useResponderState } from '@app/store/jotai/responderFormState';
 import useWorkspace from '@app/store/jotai/workspace';
 import UserAvatarDropDown from '@app/views/molecules/UserAvatarDropdown';
 
-export default function WelcomePage({ isPreviewMode }: { isPreviewMode: boolean }) {
+
+export default function WelcomePage({
+    isPreviewMode,
+    welcomePageData
+}: {
+    isPreviewMode: boolean;
+    welcomePageData?: any;
+}) {
     const { standardForm } = useStandardForm();
     const { nextSlide } = useResponderState();
     const router = useRouter();
@@ -22,11 +29,13 @@ export default function WelcomePage({ isPreviewMode }: { isPreviewMode: boolean 
     const { authState } = useAuthAtom();
     const responderSignInUrl = `${environments.NEXT_PUBLIC_HTTP_SCHEME}://${environments.NEXT_PUBLIC_V1_CLIENT_ENDPOINT_DOMAIN}/login?type=responder&workspace_id=${workspace.id}&redirect_to=${environments.NEXT_PUBLIC_HTTP_SCHEME}://${environments.NEXT_PUBLIC_V2_CLIENT_ENDPOINT_DOMAIN}${pathname}`;
 
+    const welcomePage = welcomePageData ? welcomePageData : standardForm.welcomePage;
+
     return (
         <div
             className={cn(
                 'flex h-full w-full flex-col justify-center',
-                standardForm.welcomePage?.layout ===
+                welcomePage?.layout ===
                     FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND_LEFT_ALIGN
                     ? 'items-start'
                     : 'items-center'
@@ -38,11 +47,11 @@ export default function WelcomePage({ isPreviewMode }: { isPreviewMode: boolean 
 
             <div className="flex h-full w-full max-w-[800px] flex-col justify-center">
                 <div className="text-[40px] font-bold leading-[48px]">
-                    {standardForm.welcomePage?.title}
+                    {welcomePage?.title}
                 </div>
-                {standardForm?.description && (
+                {welcomePage?.description && (
                     <div className="mt-4 text-black-700 ">
-                        {standardForm?.description}
+                        {welcomePageData?.description}
                     </div>
                 )}
                 <div className="mt-16 flex max-w-[421px] flex-col rounded-lg bg-white bg-opacity-50 p-4">

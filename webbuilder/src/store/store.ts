@@ -6,14 +6,20 @@ import { persistStore } from 'redux-persist';
 import environments from '@app/configs/environments';
 import { RESET_STATE_ACTION_TYPE } from '@app/store/actions/resetState';
 import mutationStatusSlice from '@app/store/mutations/slice';
+import { templatesApi } from '@app/store/redux/templateApi';
 import workspaceSlice from '@app/store/redux/workspace';
 import joyrideSlice from '@app/store/tours/slice';
 
 import { formsApi } from './redux/formApi';
 
+
 // Add more middlewares here
 const loggerMiddleware = createLogger({ collapsed: true });
-const middlewares: any = [loggerMiddleware, formsApi.middleware];
+const middlewares: any = [
+    loggerMiddleware,
+    formsApi.middleware,
+    templatesApi.middleware
+];
 
 if (
     environments.IS_IN_PRODUCTION_MODE ||
@@ -26,7 +32,8 @@ const reducers = {
     [mutationStatusSlice.reducerPath]: mutationStatusSlice.reducer,
     [joyrideSlice.reducerPath]: joyrideSlice.reducer,
     [workspaceSlice.reducerPath]: workspaceSlice.reducer,
-    [formsApi.reducerPath]: formsApi.reducer
+    [formsApi.reducerPath]: formsApi.reducer,
+    [templatesApi.reducerPath]: templatesApi.reducer
 };
 
 const combinedReducer = combineReducers<typeof reducers>(reducers);

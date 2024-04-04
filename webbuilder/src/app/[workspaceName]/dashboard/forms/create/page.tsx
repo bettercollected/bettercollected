@@ -2,17 +2,24 @@
 
 import React from 'react';
 
-import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 
 import cn from 'classnames';
 import { ChevronLeft, Download, Plus, Sparkles } from 'lucide-react';
 
+import environments from '@app/configs/environments';
 import { defaultForm } from '@app/constants/form';
 import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
 import useWorkspace from '@app/store/jotai/workspace';
 import { useCreateV2FormMutation } from '@app/store/redux/formApi';
+import {
+    useCreateFormFromTemplateMutation,
+    useGetTemplatesQuery
+} from '@app/store/redux/templateApi';
 import BetterCollectedSmallLogo from '@app/views/atoms/Icons/BetterCollectedSmallLogo';
+import WelcomePage from '@app/views/organism/Form/WelcomePage';
+import LayoutWrapper from '@app/views/organism/Layout/LayoutWrapper';
+
 
 const CardVariants = {
     blue: 'text-blue-500 hover:bg-blue-100 hover:border-blue-100',
@@ -20,54 +27,15 @@ const CardVariants = {
     pink: 'text-pink-500 hover:bg-pink-100 hover:border-pink-100'
 };
 
-export const templates = [
-    {
-        title: 'Contact Form',
-        imageUrl:
-            'https://images.unsplash.com/photo-1572431672794-6c27cd42af45?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHx0b3BpYy1mZWVkfDF8NnNNVmpUTFNrZVF8fGVufDB8fHx8fA%3D%3D'
-    },
-    {
-        title: 'Party Invitation',
-        imageUrl:
-            'https://images.unsplash.com/photo-1693491012999-09a3764eab33?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHx0b3BpYy1mZWVkfDJ8NnNNVmpUTFNrZVF8fGVufDB8fHx8fA%3D%3D'
-    },
-    {
-        title: 'RSVP Form',
-        imageUrl:
-            'https://images.unsplash.com/photo-1489589947464-ac72e1abd198?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHx0b3BpYy1mZWVkfDR8NnNNVmpUTFNrZVF8fGVufDB8fHx8fA%3D%3D'
-    },
-    {
-        title: 'Interview Form',
-        imageUrl:
-            'https://images.unsplash.com/photo-1555396273-755660f19034?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHx0b3BpYy1mZWVkfDV8NnNNVmpUTFNrZVF8fGVufDB8fHx8fA%3D%3D'
-    },
-    {
-        title: 'Sign In Form',
-        imageUrl:
-            'https://images.unsplash.com/photo-1505516580118-8502b2e37c44?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHx0b3BpYy1mZWVkfDd8NnNNVmpUTFNrZVF8fGVufDB8fHx8fA%3D%3D'
-    },
-    {
-        title: 'Order Form',
-        imageUrl:
-            'https://images.unsplash.com/photo-1529697216570-f48ef8f6b2dd?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHx0b3BpYy1mZWVkfDEzfDZzTVZqVExTa2VRfHxlbnwwfHx8fHw%3D'
-    },
-    {
-        title: 'Party Invitation',
-        imageUrl:
-            'https://images.unsplash.com/photo-1490395930356-7e64acf16e23?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHx0b3BpYy1mZWVkfDIxfDZzTVZqVExTa2VRfHxlbnwwfHx8fHw%3D'
-    },
-    {
-        title: 'User Onboarding Form',
-        imageUrl:
-            'https://images.unsplash.com/photo-1486990530088-cb9ce1a840bf?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHx0b3BpYy1mZWVkfDI2fDZzTVZqVExTa2VRfHxlbnwwfHx8fHw%3D'
-    }
-];
-
 export default function CreateFormPage() {
     const [createV2Form] = useCreateV2FormMutation();
     const { resetFields } = useFormFieldsAtom();
     const { workspace } = useWorkspace();
     const router = useRouter();
+
+    const { data: templates } = useGetTemplatesQuery({ v2: true });
+
+    const [createFormFrmTemplate] = useCreateFormFromTemplateMutation();
 
     const handleCreateForm = async () => {
         resetFields();
@@ -83,6 +51,15 @@ export default function CreateFormPage() {
         }
     };
 
+    const createFormFromTemplate = async (templateId: string) => {
+        const response: any = await createFormFrmTemplate({
+            workspace_id: workspace.id,
+            template_id: templateId
+        });
+        const editFormUrl = `/${workspace.workspaceName}/dashboard/forms/${response?.data?.formId}/edit?showTitle=true`;
+        router.push(editFormUrl);
+    };
+
     return (
         <div className="min-h-screen bg-white">
             <div
@@ -90,7 +67,18 @@ export default function CreateFormPage() {
                 className="flex h-16 w-full items-center justify-start border-b-[1px] border-b-black-300 !bg-white p-4"
             >
                 <div className={'mr-4 rounded-lg px-4 py-[6px] shadow'}>
-                    <BetterCollectedSmallLogo />
+                    <BetterCollectedSmallLogo
+                        onClick={() => {
+                            router.push(
+                                environments.NEXT_PUBLIC_HTTP_SCHEME +
+                                    '://' +
+                                    environments.NEXT_PUBLIC_DASHBOARD_DOMAIN +
+                                    '/' +
+                                    workspace.workspaceName +
+                                    '/dashboard'
+                            );
+                        }}
+                    />
                 </div>
                 <div
                     className="flex cursor-pointer gap-2 text-black-700"
@@ -126,20 +114,30 @@ export default function CreateFormPage() {
                 </div>
 
                 <div className="h3-new mb-4 mt-12 text-black-800">Templates</div>
-                <div className="grid grid-cols-1 gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-4">
-                    {templates.map((template) => (
+                <div className="flex w-full flex-row flex-wrap gap-x-6 gap-y-10 ">
+                    {templates?.map((template) => (
                         <div
-                            className="flex cursor-pointer flex-col"
-                            key={template.imageUrl}
+                            className="flex cursor-pointer flex-col rounded-lg border border-transparent p-1 hover:border-pink-500"
+                            key={template?.id}
+                            onClick={() => createFormFromTemplate(template.id)}
                         >
-                            <div className="relative !aspect-video overflow-hidden rounded-md">
-                                <Image
-                                    alt={template.title}
-                                    src={template.imageUrl}
-                                    fill
-                                    sizes="100%"
-                                    style={{ objectFit: 'cover' }}
-                                />
+                            <div className="relative h-[157px] w-[281px] overflow-hidden rounded-md">
+                                <div
+                                    className="pointer-events-none h-[810px] w-[1440px] scale-[0.195]"
+                                    style={{ transformOrigin: 'top left' }}
+                                >
+                                    <LayoutWrapper
+                                        theme={template?.theme}
+                                        disabled
+                                        layout={template.welcomePage?.layout}
+                                        imageUrl={template?.welcomePage?.imageUrl}
+                                    >
+                                        <WelcomePage
+                                            isPreviewMode
+                                            welcomePageData={template?.welcomePage}
+                                        />
+                                    </LayoutWrapper>
+                                </div>
                             </div>
                             <div className="p2-new mt-2 !font-medium">
                                 {template.title}
