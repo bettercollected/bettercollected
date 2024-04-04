@@ -604,7 +604,11 @@ class WorkspaceFormService:
         duplicated_form = FormTemplateDocument() if is_template else FormDocument()
         duplicated_form.fields = form.fields
         duplicated_form.logo = form.logo
+        duplicated_form.builder_version = form.builder_version
         duplicated_form.cover_image = form.cover_image
+        duplicated_form.welcome_page = form.welcome_page
+        duplicated_form.thankyou_page = form.thankyou_page
+        duplicated_form.theme = form.theme
         duplicated_form.title = (
             form.title
             if is_template
