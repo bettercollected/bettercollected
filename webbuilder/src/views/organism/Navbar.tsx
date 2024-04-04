@@ -206,9 +206,8 @@ const Navbar = () => {
                     <DropdownMenu.Trigger
                         className={cn(
                             navbarState.insertClicked && 'bg-black-300',
-                            'rounded'
+                            'rounded '
                         )}
-                        tooltipLabel={'Insert Fields'}
                         onClick={() => {
                             isGreetingSlide()
                                 ? toast({
@@ -220,41 +219,33 @@ const Navbar = () => {
                                   });
                         }}
                     >
-                        <div className={cn('text-xs font-semibold')}>
+                        <div
+                            className={cn(
+                                'text-xs font-semibold !text-black-500 hover:bg-inherit hover:!text-black-900',
+                                navbarState.insertClicked && '!text-black-900'
+                            )}
+                        >
                             <PlusOutlined
-                                color={navbarState.insertClicked ? 'black' : '#AAAAAA'}
                             />
                             <span
-                                className={cn(
-                                    navbarState.insertClicked && 'text-black-900'
-                                )}
                             >
                                 Insert
                             </span>
                         </div>
                     </DropdownMenu.Trigger>
                 </DropdownMenu>
-                {/* {activeSlide &&
-                    activeSlide?.properties?.layout !==
-                        FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND && ( */}
+               
                 <DropdownMenu>
-                    <DropdownMenu.Trigger
-                        tooltipLabel={'Add Media'}
-                        onClick={handleClickMedia}
-                    >
-                        <div className="text-xs font-semibold">
+                    <DropdownMenu.Trigger onClick={handleClickMedia}>
+                        <div className="text-xs font-semibold !text-black-500 hover:bg-inherit hover:!text-black-900 ">
                             <MediaOutlinedIcon />
                             Media
                         </div>
                     </DropdownMenu.Trigger>
                 </DropdownMenu>
-                {/* )} */}
                 <DropdownMenu>
-                    <DropdownMenu.Trigger
-                        tooltipLabel={'Insert Text'}
-                        onClick={handleAddText}
-                    >
-                        <div className="text-xs font-semibold">
+                    <DropdownMenu.Trigger onClick={handleAddText}>
+                        <div className="text-xs font-semibold !text-black-500 hover:bg-inherit hover:!text-black-900">
                             <TextOutlinedIcon />
                             Text
                         </div>
