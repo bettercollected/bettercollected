@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 
-import Image from 'next/image';
-
 import { toast } from 'react-toastify';
+import styled from 'styled-components';
 import { v4 } from 'uuid';
 
 import { FormField } from '@app/models/dtos/form';
@@ -16,6 +15,15 @@ import DeleteIcon from '@app/views/atoms/Icons/Delete';
 import { FolderUploadIcon } from '@app/views/atoms/Icons/FolderUploadIcon';
 
 import QuestionWrapper from './QuestionQwrapper';
+
+const StyledLabel = styled.label<{ $theme: any }>(({ $theme }) => {
+    const secondaryColor = $theme?.secondary;
+    return {
+        '&:hover': {
+            borderColor: secondaryColor + '!important'
+        }
+    };
+});
 
 export default function FileUpload({ field }: { field: FormField }) {
     const { formResponse, addFieldFileAnswer } = useFormResponse();
@@ -37,7 +45,7 @@ export default function FileUpload({ field }: { field: FormField }) {
     }, [formResponse.answers]);
 
     const handleDragEnter = (event: any) => {
-        event.preventDefault();
+        // event.preventDefault();
         setIsDragging(true);
     };
 
@@ -46,7 +54,8 @@ export default function FileUpload({ field }: { field: FormField }) {
     };
 
     const handleDragOver = (event: any) => {
-        event.preventDefault();
+        // event.preventDefault();
+        setIsDragging(true);
     };
 
     const updateAndDispatchFile = (file: File) => {
@@ -131,48 +140,49 @@ export default function FileUpload({ field }: { field: FormField }) {
         <QuestionWrapper field={field}>
             <div className="w-full space-y-3 md:max-w-[800px]">
                 {
-                    <div
-                        style={{
-                            borderColor: isDragging ? theme?.tertiary : theme?.secondary
-                        }}
+                    <StyledLabel
                         tabIndex={0}
-                        className={`flex flex-col  items-center justify-center space-y-3 rounded-2xl border border-dashed py-10 focus-visible:!outline-none `}
                         onDragEnter={handleDragEnter}
                         onDragLeave={handleDragLeave}
                         onDragOver={handleDragOver}
                         onDrop={handleDrop}
+                        $theme={theme}
+                        style={{
+                            borderColor: isDragging ? theme?.secondary : theme?.tertiary
+                        }}
+                        htmlFor={`${fileMetaData.id}-file-input`}
+                        className="flex cursor-pointer items-center justify-center space-x-2  rounded-2xl border border-dashed px-3  py-2 "
                     >
-                        <label
-                            htmlFor={`${fileMetaData.id}-file-input`}
-                            className="flex cursor-pointer items-center space-x-2 rounded px-3 py-2 "
+                        <div
+                            className={`flex w-full flex-col items-center justify-center space-y-3  py-10 `}
                         >
                             <FolderUploadIcon
                                 style={{
                                     color: theme?.secondary
                                 }}
                             />
-                        </label>
-                        <input
-                            ref={inputFileRef}
-                            type="file"
-                            id={`${fileMetaData.id}-file-input`}
-                            className="hidden"
-                            onChange={handleFileInputChange}
-                        />
-                        <div
-                            style={{ color: theme?.secondary }}
-                            className="flex w-full flex-col items-center space-y-2 text-sm "
-                        >
-                            <span className="font-semibold leading-4">
-                                {isDragging
-                                    ? 'Release to drop'
-                                    : 'Choose your file or drag file'}
-                            </span>
-                            <span className="text-center text-xs leading-5">
-                                <span className="block">Max size limit: 25 MB</span>
-                            </span>
+                            <input
+                                ref={inputFileRef}
+                                type="file"
+                                id={`${fileMetaData.id}-file-input`}
+                                className="hidden"
+                                onChange={handleFileInputChange}
+                            />
+                            <div
+                                style={{ color: theme?.secondary }}
+                                className="flex w-full flex-col items-center space-y-2 text-sm "
+                            >
+                                <span className="font-semibold leading-4">
+                                    {isDragging
+                                        ? 'Release to drop'
+                                        : 'Choose your file or drag file'}
+                                </span>
+                                <span className="text-center text-xs leading-5">
+                                    <span className="block">Max size limit: 25 MB</span>
+                                </span>
+                            </div>
                         </div>
-                    </div>
+                    </StyledLabel>
                 }
                 {fileMetaData.name && getFilePreview()}
             </div>
