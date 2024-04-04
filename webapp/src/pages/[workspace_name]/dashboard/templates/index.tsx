@@ -11,14 +11,14 @@ import { getAuthUserPropsWithWorkspace } from '@app/lib/serverSideProps';
 import { useGetTemplatesQuery } from '@app/store/template/api';
 import { getServerSideAuthHeaderConfig } from '@app/utils/serverSidePropsUtils';
 
-
 const TemplatePage = (props: any) => {
     const { t } = useTranslation();
-    const { predefined_templates, workspace, notFound } = props;
-    let p = [...predefined_templates, ...predefined_templates, ...predefined_templates];
+    const { predefined_templates, workspace } = props;
+    let p = [...predefined_templates];
     if (p.length > 7) {
         p = p.slice(0, 7);
     }
+
     const { data, isLoading } = useGetTemplatesQuery(workspace?.id, { pollingInterval: 30000 });
     return (
         <SidebarLayout boxClassName=" h-full">

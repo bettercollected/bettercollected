@@ -5,7 +5,6 @@ import { IFormTemplateDto } from '@app/models/dtos/template';
 
 import { ICreateFormFromTemplate, ICreateTemplateFromForm, IGetTemplate } from './types';
 
-
 const TEMPLATE_REDUCER_PATH = 'templateApi';
 
 const FORM_TEMPLATE = 'FORM_TEMPLATE';
@@ -25,13 +24,19 @@ export const templateApi = createApi({
     }),
     endpoints: (builder) => ({
         getTemplates: builder.query<Array<IFormTemplateDto>, any>({
-            query: (data) => ({
+            query: (data) =>{
+                const params: any= {}
+                if(data?.workspace_id){
+                    params.workspace_id = data.workspace_id
+                }
+                if(data?.v2){
+                    params.v2 = data.v2
+                }
+                return ({
                 url: `/templates`,
                 method: 'GET',
-                params: {
-                    workspace_id: data ? data : ''
-                }
-            }),
+                params: params
+            })},
             providesTags: [FORM_TEMPLATE]
         }),
         getTemplateById: builder.query<IFormTemplateDto, IGetTemplate>({

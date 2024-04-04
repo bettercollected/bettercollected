@@ -16,7 +16,6 @@ import { selectWorkspace } from '@app/store/workspaces/slice';
 
 import TemplateCard from './TemplateCard';
 
-
 interface ITemplateSectionProps {
     templates?: Array<IFormTemplateDto>;
     title?: string;
@@ -55,7 +54,7 @@ const TemplateSection = ({ templates, title = '', className }: ITemplateSectionP
                     )}
                 </div>
             )}
-            <div className={`flex flex-row  w-full gap-6 ${title == 'Default' || title === 'Standaard' ? 'flex-nowrap overflow-auto' : 'flex-wrap justify-center md:justify-start'}`}>
+            <div className={`flex flex-row  w-full gap-6 ${title == 'Default' || title === 'Standard' ? 'flex-nowrap overflow-auto' : 'flex-wrap justify-center md:justify-start'}`}>
                 {templates && templates?.map((template: IFormTemplateDto, index: number) => <TemplateCard key={index} template={template} isPredefinedTemplate={isPredefinedTemplate} />)}
             </div>
 
