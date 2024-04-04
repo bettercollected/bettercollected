@@ -18,6 +18,7 @@ import { useCreateFormFromTemplateMutation, useGetTemplateByIdQuery, useImportTe
 import { useGetAllMineWorkspacesQuery } from '@app/store/workspaces/api';
 import { convertFormTemplateToStandardForm } from '@app/utils/convertDataType';
 import { checkHasAdminDomain, getRequestHost } from '@app/utils/serverSidePropsUtils';
+import environments from '@app/configs/environments';
 
 
 export default function TemplatePage(props: any) {
@@ -69,8 +70,12 @@ export default function TemplatePage(props: any) {
             const response: any = await createFormFromTemplate(request);
             if (response?.data) {
                 toast('Created Form Successfully', { type: 'success' });
-                await router.replace(`/${workspace.workspaceName}/dashboard/forms/${response?.data?.formId}/edit`);
-            } else {
+                const editFormUrl = `/${workspace.workspaceName}/dashboard/forms/${response?.data?.formId}/edit`;
+                if (response?.data?.builderVersion === 'v2') {
+                    router.push(environments.HTTP_SCHEME + environments.V2_BUILDER_DOMAIN + editFormUrl);
+                } else {
+                    router.push(editFormUrl);
+                }            } else {
                 toast('Error Occurred').toString(), { type: 'error' };
             }
         } catch (err) {
