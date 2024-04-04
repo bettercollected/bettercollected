@@ -291,7 +291,7 @@ export default function LeftDrawer({}: {}) {
                                                         handleAddField(field)
                                                     }
                                                     key={index}
-                                                    className="flex h-[120px] w-[120px] cursor-grab flex-col items-center justify-center gap-1 border-[1px] border-black-300 text-black-600 hover:bg-black-100"
+                                                    className="flex h-[120px] w-[120px] cursor-grab flex-col items-center justify-center gap-2 border-b-[1px] border-r-[1px] border-black-300 text-black-600 hover:bg-black-100 hover:text-black-900"
                                                 >
                                                     {field.icon}
                                                     <span className="text-xs">
