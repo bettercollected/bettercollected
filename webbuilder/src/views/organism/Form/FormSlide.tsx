@@ -289,10 +289,22 @@ export default function FormSlide({
                             )}
                         >
                             {formSlide?.properties?.fields?.map((field, index) => (
-                                <div
+                                <motion.div
                                     onClick={() => handleClickField(index, field.id)}
                                     key={field.id}
-                                    className={cn('relative cursor-pointer ')}
+                                    initial={{ opacity: 0, y: 0 }}
+                                    animate={{
+                                        opacity: currentField === index ? 1 : 0.4,
+                                        y: currentField === index ? 0 : -10
+                                    }}
+                                    transition={{
+                                        type: 'tween',
+                                        stiffness: 260,
+                                        ease: 'easeInOut',
+                                        damping: 20,
+                                        duration: 0.5
+                                    }}
+                                    className={cn('relative my-3 cursor-pointer')}
                                 >
                                     <div
                                         id={field.id}
@@ -301,7 +313,7 @@ export default function FormSlide({
                                             currentField === index
                                                 ? 'min-h-fit opacity-100'
                                                 : currentField - 1 === index
-                                                  ? ' my-0 h-[140px] overflow-hidden opacity-40 '
+                                                  ? ' my-0 h-[140px] overflow-hidden opacity-40'
                                                   : currentField + 1 === index
                                                     ? 'my-0 h-[140px] overflow-hidden opacity-40'
                                                     : ' my-0 h-0 overflow-hidden opacity-0 '
@@ -314,7 +326,7 @@ export default function FormSlide({
                                             slideIndex={formSlide!.index}
                                         />
                                     </div>
-                                </div>
+                                </motion.div>
                             ))}
 
                             {(!formSlide?.properties?.fields?.length ||
@@ -325,8 +337,13 @@ export default function FormSlide({
                                     animate={{ opacity: 1 }}
                                     exit={{ opacity: 0 }}
                                     transition={{
-                                        type: 'tween'
+                                        type: 'tween',
+                                        stiffness: 260,
+                                        ease: 'easeInOut',
+                                        damping: 20,
+                                        duration: 0.5
                                     }}
+                                    className="flex flex-col"
                                 >
                                     {(standardForm?.fields?.length || 0) - 1 ===
                                         currentSlide && (
