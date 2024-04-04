@@ -36,8 +36,8 @@ DropdownMenu.Trigger = function DropdownMenuTrigger({
     tooltipLabel?: string;
     onClick?: () => void;
 }) {
-    return (
-        <ToolTip label={tooltipLabel || ''}>
+    return tooltipLabel ? (
+        <ToolTip label={tooltipLabel}>
             <DropdownMenuPrimitive.Trigger
                 onClick={onClick}
                 asChild
@@ -49,6 +49,17 @@ DropdownMenu.Trigger = function DropdownMenuTrigger({
                 {children}
             </DropdownMenuPrimitive.Trigger>
         </ToolTip>
+    ) : (
+        <DropdownMenuPrimitive.Trigger
+            onClick={onClick}
+            asChild
+            className={cn(
+                'flex cursor-pointer items-center gap-2 rounded-md p-2 text-lg text-black-700 hover:bg-black-200',
+                className
+            )}
+        >
+            {children}
+        </DropdownMenuPrimitive.Trigger>
     );
 };
 

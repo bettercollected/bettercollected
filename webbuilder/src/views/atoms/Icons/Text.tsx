@@ -12,7 +12,7 @@ export function TextIcon(props: React.SVGAttributes<any>) {
         >
             <path
                 d="M23.7617 32H15.9917V29.9H18.9317V9.6H12.4217V12.89H10.3217V7.5H29.6767V12.89H27.5767V9.6H21.1367V29.9H23.7617V32Z"
-                fill="#6E6E6E"
+                fill="currentColor"
             />
         </svg>
     );
