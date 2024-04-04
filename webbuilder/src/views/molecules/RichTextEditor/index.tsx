@@ -11,6 +11,7 @@ import { cn } from '@app/shadcn/util/lib';
 import { FontSize } from '@app/utils/richTextEditorExtenstion/fontSize';
 import { getHtmlFromJson } from '@app/utils/richTextEditorExtenstion/getHtmlFromJson';
 import { ArrowDown } from '@app/views/atoms/Icons/ArrowDown';
+import RequiredIcon from '@app/views/atoms/Icons/Required';
 
 export function getPlaceholderValueForTitle(fieldType: FieldTypes) {
     switch (fieldType) {
@@ -50,11 +51,13 @@ export const Extenstions = [StarterKit, TextStyle, FontSize, Underline, Color];
 export function RichTextEditor({
     field,
     onUpdate,
-    autofocus = false
+    autofocus = false,
+    isRequired = false
 }: {
     field: FormField;
     onUpdate: (editor: any) => void;
     autofocus?: boolean;
+    isRequired?: boolean;
 }) {
     const getContentForEditor = () => {
         return field.title
@@ -65,7 +68,7 @@ export function RichTextEditor({
     };
 
     return (
-        <div className="tiptap group relative">
+        <div className="tiptap group relative flex w-full justify-between">
             <EditorProvider
                 content={getContentForEditor()}
                 extensions={Extenstions}
@@ -77,11 +80,11 @@ export function RichTextEditor({
                     }
                 }}
                 onFocus={({ editor }) => {
-                    if (
-                        editor.getHTML() ===
-                        `<p><strong>${getPlaceholderValueForTitle(field.type || FieldTypes.SHORT_TEXT)}</strong></p>`
-                    )
-                        editor.commands.focus('all');
+                    // if (
+                    //     editor.getHTML() ===
+                    //     `<p><strong>${getPlaceholderValueForTitle(field.type || FieldTypes.SHORT_TEXT)}</strong></p>`
+                    // )
+                    editor.commands.focus('all');
                 }}
                 onUpdate={({ editor }) => {
                     onUpdate(editor);
@@ -89,6 +92,11 @@ export function RichTextEditor({
             >
                 {''}
             </EditorProvider>
+            {isRequired && (
+                <div className="h-5 w-5">
+                    <RequiredIcon />
+                </div>
+            )}
         </div>
     );
 }

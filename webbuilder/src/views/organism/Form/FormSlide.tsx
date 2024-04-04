@@ -279,13 +279,13 @@ export default function FormSlide({
                                     <div
                                         id={field.id}
                                         className={cn(
-                                            'my-3 transition-all duration-500 ease-linear',
+                                            'my-5 transition-all duration-500 ease-linear',
                                             currentField === index
                                                 ? 'min-h-fit opacity-100'
                                                 : currentField - 1 === index
-                                                  ? ' my-0 h-[140px] overflow-hidden opacity-40'
+                                                  ? ' my-0 h-[120px] overflow-hidden opacity-40'
                                                   : currentField + 1 === index
-                                                    ? 'my-0 h-[140px] overflow-hidden opacity-40'
+                                                    ? 'my-0 h-[120px] overflow-hidden opacity-40'
                                                     : ' my-0 h-0 overflow-hidden opacity-0 '
                                         )}
                                     >
