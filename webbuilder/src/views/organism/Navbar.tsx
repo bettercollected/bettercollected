@@ -2,12 +2,12 @@
 
 import { useRouter } from 'next/navigation';
 
-import { Dashboard } from '@mui/icons-material';
 import { v4 } from 'uuid';
 
 import environments from '@app/configs/environments';
 import { useDialogModal } from '@app/lib/hooks/useDialogModal';
 import { FieldTypes } from '@app/models/dtos/form';
+import { ButtonVariant } from '@app/models/enums/button';
 import { FormSlideLayout } from '@app/models/enums/form';
 import { Button } from '@app/shadcn/components/ui/button';
 import { DropdownMenu } from '@app/shadcn/components/ui/dropdown-menu';
@@ -21,10 +21,10 @@ import {
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { cn } from '@app/shadcn/util/lib';
 import {
-    useActiveFieldComponent,
     useActiveSlideComponent,
     useActiveThankYouPageComponent
 } from '@app/store/jotai/activeBuilderComponent';
+import { useAuthAtom } from '@app/store/jotai/auth';
 import { useStandardForm } from '@app/store/jotai/fetchedForm';
 import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
 import { useFormState } from '@app/store/jotai/form';
@@ -32,7 +32,10 @@ import { useNavbarState } from '@app/store/jotai/navbar';
 import { useFormResponse } from '@app/store/jotai/responderFormResponse';
 import { useResponderState } from '@app/store/jotai/responderFormState';
 import useWorkspace from '@app/store/jotai/workspace';
-import { usePublishV2FormMutation } from '@app/store/redux/formApi';
+import {
+    useCreateTemplateFromFormMutation,
+    usePublishV2FormMutation
+} from '@app/store/redux/formApi';
 import BetterCollectedSmallLogo from '@app/views/atoms/Icons/BetterCollectedSmallLogo';
 
 import { MediaOutlinedIcon } from '../atoms/Icons/MediaOutlined';
@@ -60,6 +63,8 @@ const Navbar = () => {
     const { toast } = useToast();
 
     const [publishV2Form, { isLoading }] = usePublishV2FormMutation();
+    const [createTemplateFromForm, { isLoading: isCreatingTemplate }] =
+        useCreateTemplateFromFormMutation();
 
     const { standardForm } = useStandardForm();
     const { workspace } = useWorkspace();
@@ -67,13 +72,15 @@ const Navbar = () => {
 
     const router = useRouter();
 
+    const { authState } = useAuthAtom();
+
     const handleAddText = () => {
         if (activeSlideComponent === null) {
-            toast({ title: 'Add a slide to add questions', variant: 'destructive' });
+            toast({ title: 'Add a slide to add questions', variant: 'default' });
             return;
         }
         if (activeSlideComponent?.index < 0) {
-            toast({ title: 'Select a slide to add questions', variant: 'destructive' });
+            toast({ title: 'Select a slide to add questions', variant: 'default' });
             return;
         }
 
@@ -134,9 +141,10 @@ const Navbar = () => {
                 ((formState.welcomePage?.layout &&
                     NO_IMAGE_LAYOUTS.includes(formState.welcomePage?.layout)) ||
                     NO_IMAGE_LAYOUTS.includes(
-                        formState.thankyouPage![activeThankYouPageComponent?.index || 0]?.layout ?? FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND_LEFT_ALIGN
-                    )
-                    ))
+                        formState.thankyouPage![activeThankYouPageComponent?.index || 0]
+                            ?.layout ??
+                            FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND_LEFT_ALIGN
+                    )))
         ) {
             if (activeSlideComponent?.index === -10) {
                 updateWelcomePageLayout(FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT);
@@ -152,6 +160,26 @@ const Navbar = () => {
         openDialogModal('UNSPLASH_IMAGE_PICKER', {
             updatePageImage: getPageImageUpdateFunction
         });
+    };
+
+    const publishForm = async () => {
+        const response: any = await publishV2Form({
+            workspaceId: workspace.id,
+            formId: standardForm.formId
+        });
+        if (response.data) {
+            openDialogModal('FORM_PUBLISHED');
+        }
+    };
+
+    const makeTemplate = async () => {
+        const response: any = await createTemplateFromForm({
+            form_id: standardForm.formId,
+            workspace_id: workspace.id
+        });
+        if (response?.data) {
+            toast({ title: 'Temaplate Created', variant: 'default' });
+        }
     };
 
     return (
@@ -184,7 +212,7 @@ const Navbar = () => {
                         onClick={() => {
                             isGreetingSlide()
                                 ? toast({
-                                      variant: 'destructive',
+                                      variant: 'default',
                                       title: 'Add Slides or Go to Slides to add fields'
                                   })
                                 : setNavbarState({
@@ -268,27 +296,17 @@ const Navbar = () => {
                         </PreviewWrapper>
                     </SheetContent>
                 </Sheet>
+                {authState?.roles?.includes('ADMIN') && (
+                    <Button
+                        variant={ButtonVariant.Secondary}
+                        isLoading={isCreatingTemplate}
+                        onClick={makeTemplate}
+                    >
+                        Make Template
+                    </Button>
+                )}
 
-                <Button
-                    isLoading={isLoading}
-                    onClick={async () => {
-                        const response: any = await publishV2Form({
-                            workspaceId: workspace.id,
-                            formId: standardForm.formId
-                        });
-                        if (response.data) {
-                            openDialogModal('FORM_PUBLISHED');
-
-                            // toast({
-                            //     title: 'Form Published!',
-                            //     description: 'Share and start collecting responses'
-                            // });
-                            // router.push(
-                            //     `${environments.NEXT_PUBLIC_HTTP_SCHEME}://${environments.NEXT_PUBLIC_DASHBOARD_DOMAIN}/${workspace.workspaceName}/dashboard/forms/${standardForm.formId}?view=FormLinks`
-                            // );
-                        }
-                    }}
-                >
+                <Button isLoading={isLoading} onClick={publishForm}>
                     Publish
                 </Button>
             </div>

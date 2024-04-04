@@ -1,9 +1,8 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 
-
-
 import environments from '@app/configs/environments';
 
+import { ICreateTemplateFromForm, IFormTemplateDto } from './types';
 
 export const formsApi = createApi({
     reducerPath: 'formsApi',
@@ -56,7 +55,16 @@ export const formsApi = createApi({
         logOut: builder.query<any, any>({
             query: () => ({
                 url: `/auth/logout`,
-                method: 'GET',
+                method: 'GET'
+            })
+        }),
+        createTemplateFromForm: builder.mutation<
+            IFormTemplateDto,
+            ICreateTemplateFromForm
+        >({
+            query: (data: ICreateTemplateFromForm) => ({
+                url: `/workspaces/${data.workspace_id}/form/${data.form_id}/template`,
+                method: 'POST'
             })
         })
     })
@@ -68,5 +76,6 @@ export const {
     usePublishV2FormMutation,
     useGetFormResponseQuery,
     useSubmitResponseMutation,
-    useLazyLogOutQuery
+    useLazyLogOutQuery,
+    useCreateTemplateFromFormMutation
 } = formsApi;
