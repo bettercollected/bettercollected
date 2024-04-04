@@ -161,7 +161,7 @@ const SlideBuilder = ({
                                                                     className={cn(
                                                                         field?.type !==
                                                                             FieldTypes.TEXT &&
-                                                                            'mb-4'
+                                                                            'mb-4 w-full'
                                                                     )}
                                                                 >
                                                                     <div className="relative flex w-full items-center gap-2">
@@ -191,14 +191,19 @@ const SlideBuilder = ({
                                                                                     editor.getJSON()
                                                                                 )
                                                                             }
+                                                                            isRequired={
+                                                                                field
+                                                                                    ?.validations
+                                                                                    ?.required
+                                                                            }
                                                                         />
-                                                                        {field
+                                                                        {/* {field
                                                                             ?.validations
                                                                             ?.required && (
                                                                             <div className="absolute -right-6 top-0 text-black-900">
                                                                                 <RequiredIcon />
                                                                             </div>
-                                                                        )}
+                                                                        )} */}
                                                                     </div>
                                                                     <FieldDescription
                                                                         field={field}
