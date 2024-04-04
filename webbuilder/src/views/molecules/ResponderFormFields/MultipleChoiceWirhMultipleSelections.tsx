@@ -46,7 +46,7 @@ export default function MultipleChoiceWithMultipleSelection({
     return (
         <QuestionWrapper field={field}>
             <div className="w-full space-y-2 overflow-hidden border-0 p-0">
-                {field.properties?.choices?.map((choice) => {
+                {field.properties?.choices?.map((choice, index) => {
                     const isSelected = selectedValues.includes(choice.id);
                     return (
                         <Choice
@@ -55,6 +55,7 @@ export default function MultipleChoiceWithMultipleSelection({
                             theme={theme}
                             choice={choice}
                             onClick={handleClick}
+                            index={index}
                         />
                     );
                 })}

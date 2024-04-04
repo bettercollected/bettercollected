@@ -3,12 +3,12 @@ import styled from 'styled-components';
 
 import { FormTheme } from '@app/constants/theme';
 import { FieldChoice } from '@app/models/dtos/form';
-import { useFormState } from '@app/store/jotai/form';
 
 interface ChoiceProps {
     isSelected?: boolean;
     theme?: FormTheme;
     choice: FieldChoice;
+    index: number;
     onClick?: (choiceId: string) => any;
 }
 
@@ -21,7 +21,13 @@ const StyledDiv = styled.div<{ $theme: any }>(({ $theme }) => {
     };
 });
 
-export default function Choice({ isSelected, theme, choice, onClick }: ChoiceProps) {
+export default function Choice({
+    isSelected,
+    theme,
+    index,
+    choice,
+    onClick
+}: ChoiceProps) {
     return (
         <StyledDiv
             $theme={theme}
@@ -33,7 +39,8 @@ export default function Choice({ isSelected, theme, choice, onClick }: ChoicePro
             key={choice.id}
             onClick={() => onClick && onClick(choice.id || '')}
         >
-            {choice.value} {isSelected && <Check />}
+            {choice.value ? choice.value : `Item ${index + 1}`}{' '}
+            {isSelected && <Check />}
         </StyledDiv>
     );
 }
