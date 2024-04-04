@@ -3,6 +3,7 @@ import { FormField } from '@app/models/dtos/form';
 export interface IFormTemplateSettings {
     isPublic: boolean;
 }
+
 export interface IFormTemplateDto {
     previewImage: string;
     id: string;
@@ -18,6 +19,9 @@ export interface IFormTemplateDto {
     settings: IFormTemplateSettings;
     createdBy: string;
     importedFrom: string;
+    welcomePage: any;
+    thankyouPage: any;
+    theme: any;
 }
 
 export enum TemplateCategory {
@@ -27,4 +31,9 @@ export enum TemplateCategory {
 export interface ICreateTemplateFromForm {
     workspace_id: string;
     form_id: string;
+}
+
+export interface ICreateFormFromTemplate {
+    workspace_id: string;
+    template_id: string;
 }

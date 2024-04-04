@@ -32,10 +32,8 @@ import { useNavbarState } from '@app/store/jotai/navbar';
 import { useFormResponse } from '@app/store/jotai/responderFormResponse';
 import { useResponderState } from '@app/store/jotai/responderFormState';
 import useWorkspace from '@app/store/jotai/workspace';
-import {
-    useCreateTemplateFromFormMutation,
-    usePublishV2FormMutation
-} from '@app/store/redux/formApi';
+import { usePublishV2FormMutation } from '@app/store/redux/formApi';
+import { useCreateTemplateFromFormMutation } from '@app/store/redux/templateApi';
 import BetterCollectedSmallLogo from '@app/views/atoms/Icons/BetterCollectedSmallLogo';
 
 import { MediaOutlinedIcon } from '../atoms/Icons/MediaOutlined';
@@ -45,6 +43,7 @@ import { TextOutlinedIcon } from '../atoms/Icons/TextOutlined';
 import BackButton from '../molecules/FormBuilder/BackButton';
 import PreviewWrapper from '../molecules/FormBuilder/PreviewWrapper';
 import Form from './Form/Form';
+
 
 const Navbar = () => {
     const { activeSlide, formFields, addField, updateSlideImage, updateSlideLayout } =
@@ -108,6 +107,7 @@ const Navbar = () => {
             activeSlideComponent?.id === 'thank-you-page'
         );
     }
+
     const { resetResponderState } = useResponderState();
     const { resetFormResponseAnswer } = useFormResponse();
     const handleResetResponderState = () => {
@@ -192,7 +192,8 @@ const Navbar = () => {
                     className={'mr-4 cursor-pointer rounded-lg px-4 py-[6px] shadow'}
                     onClick={() => {
                         router.push(
-                            'https://' +
+                            environments.NEXT_PUBLIC_HTTP_SCHEME +
+                                '://' +
                                 environments.NEXT_PUBLIC_DASHBOARD_DOMAIN +
                                 '/' +
                                 workspace.workspaceName +
