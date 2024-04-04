@@ -15,7 +15,6 @@ import { IFormTemplateDto } from '@app/models/dtos/template';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 
-
 interface ITemplateCardProps {
     template: IFormTemplateDto;
     isPredefinedTemplate: boolean;
@@ -28,6 +27,7 @@ const TemplateCard = ({ template, isPredefinedTemplate }: ITemplateCardProps) =>
     const { t } = useTranslation();
 
     const { openBottomSheetModal } = useBottomSheetModal();
+
     const handleClickCard = () => {
         router.push(`/${workspace.workspaceName}/templates/${template.id}`);
     };
@@ -42,16 +42,21 @@ const TemplateCard = ({ template, isPredefinedTemplate }: ITemplateCardProps) =>
                 className={`h-[170px]  md:h-[192px] cursor-pointer relative border-black-200 border overflow-hidden rounded hover:shadow-hover ${!template.previewImage && 'flex justify-center items-center bg-gradient-to-b from-blue-400 to-blue-800 '}`}
                 onClick={handleClickCard}
             >
-                {template?.previewImage ? (
-                    <Image alt={template.title} src={template.previewImage} layout={'fill'} />
-                ) : (
-                    <CircularProgress
-                        sx={{
-                            color: '#F2F7FF'
-                        }}
-                        size={24}
-                    />
+                {template?.builderVersion !== 'v2' && (
+                    <>
+                        {template?.previewImage ? (
+                            <Image alt={template.title} src={template.previewImage} layout={'fill'} />
+                        ) : (
+                            <CircularProgress
+                                sx={{
+                                    color: '#F2F7FF'
+                                }}
+                                size={24}
+                            />
+                        )}
+                    </>
                 )}
+                {template?.builderVersion === 'v2' && <div className="text-8xl font-bold text-white">V2</div>}
             </div>
             <div className="w-full flex justify-between items-start">
                 <div className="flex flex-col gap-[5px]">
@@ -80,12 +85,14 @@ const TemplateCard = ({ template, isPredefinedTemplate }: ITemplateCardProps) =>
                             </div>
                         }
                     >
-                        <MenuItem onClick={handleClickEditCard} className="body4">
-                            <ListItemIcon>
-                                <EditIcon width={20} height={20} className="text-black-600" strokeWidth={2} />
-                            </ListItemIcon>
-                            <span>{t('BUTTON.EDIT')}</span>
-                        </MenuItem>
+                        {template?.builderVersion !== 'v2' && (
+                            <MenuItem onClick={handleClickEditCard} className="body4">
+                                <ListItemIcon>
+                                    <EditIcon width={20} height={20} className="text-black-600" strokeWidth={2} />
+                                </ListItemIcon>
+                                <span>{t('BUTTON.EDIT')}</span>
+                            </MenuItem>
+                        )}
                         <MenuItem
                             onClick={() =>
                                 openBottomSheetModal('TEMPLATE_SETTINGS_FULL_MODAL_VIEW', {

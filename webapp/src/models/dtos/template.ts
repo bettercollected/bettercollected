@@ -20,4 +20,7 @@ export interface IFormTemplateDto {
     settings: IFormTemplateSettings;
     createdBy: string;
     importedFrom: string;
+    builderVersion?: string;
+    welcomePage?: any;
+    thankyouPage?: any;
 }

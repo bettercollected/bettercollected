@@ -2,6 +2,7 @@ import { IFormTemplateDto } from '@app/models/dtos/template';
 
 export const convertFormTemplateToStandardForm = (template: IFormTemplateDto) => {
     return {
+        builderVersion: template?.builderVersion,
         formId: '',
         title: template.title,
         description: template.description,
