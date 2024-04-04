@@ -14,7 +14,7 @@ import { YesNoIcon } from '@app/views/atoms/Icons/YesNoIcon';
 
 export const formFieldsList = [
     {
-        name: 'Short Input',
+        name: 'Text',
         type: FieldTypes.SHORT_TEXT,
         icon: <TextIcon className="h-10 w-10" />
     },
@@ -33,8 +33,9 @@ export const formFieldsList = [
         type: FieldTypes.MULTIPLE_CHOICE,
         icon: <MultipleChoiceIcon />
     },
+
     {
-        name: 'File Upload',
+        name: 'Upload',
         type: FieldTypes.FILE_UPLOAD,
         icon: <UploadIcon className="h-10 w-10" />
     },
@@ -55,9 +56,8 @@ export const formFieldsList = [
         type: FieldTypes.NUMBER,
         icon: <NumberIcon className="h-10 w-10" />
     },
-
     { name: 'Link', type: FieldTypes.LINK, icon: <LinkIcon className="h-10 w-10" /> },
-    { name: 'Yes No', type: FieldTypes.YES_NO, icon: <YesNoIcon /> },
+    { name: 'Yes/No', type: FieldTypes.YES_NO, icon: <YesNoIcon /> },
 
     {
         name: '1-10 Rate',
