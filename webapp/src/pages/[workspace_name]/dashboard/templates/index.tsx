@@ -10,6 +10,8 @@ import environments from '@app/configs/environments';
 import { getAuthUserPropsWithWorkspace } from '@app/lib/serverSideProps';
 import { useGetTemplatesQuery } from '@app/store/template/api';
 import { getServerSideAuthHeaderConfig } from '@app/utils/serverSidePropsUtils';
+import { useAppSelector } from '@app/store/hooks';
+import { selectAuth } from '@app/store/auth/slice';
 
 const TemplatePage = (props: any) => {
     const { t } = useTranslation();
@@ -19,12 +21,22 @@ const TemplatePage = (props: any) => {
         p = p.slice(0, 7);
     }
 
-    const { data, isLoading } = useGetTemplatesQuery(workspace?.id, { pollingInterval: 30000 });
+    const { data, isLoading } = useGetTemplatesQuery({
+        workspace_id: workspace?.id
+    }, { pollingInterval: 30000 });
+
+    const auth = useAppSelector(selectAuth);
+    const { data: v2Forms } = useGetTemplatesQuery({ workspace_id: workspace.id, v2: true });
     return (
         <SidebarLayout boxClassName=" h-full">
-            <NextSeo title={t('TEMPLATE.TEMPLATES') + ' | ' + workspace.workspaceName} noindex={false} nofollow={false} />
-            {predefined_templates && Array.isArray(predefined_templates) && predefined_templates.length > 0 && <TemplateSection title={t('TEMPLATE.DEFAULT')} templates={p} className={'h-[400px]'} />}
-            <TemplateSection title={t('TEMPLATE.YOUR_WORKSPACE')} templates={data} />
+            <NextSeo title={t('TEMPLATE.TEMPLATES') + ' | ' + workspace.workspaceName} noindex={false}
+                     nofollow={false} />
+            {predefined_templates && Array.isArray(predefined_templates) && predefined_templates.length > 0 &&
+                <TemplateSection title={t('TEMPLATE.DEFAULT')}  templates={p} className={'h-[400px]'} />}
+            {auth?.roles?.includes('ADMIN') &&
+                <TemplateSection title={t('TEMPLATE.YOUR_WORKSPACE') + " v2"} showButtons={false} templates={v2Forms} />
+            }
+            <TemplateSection title={t('TEMPLATE.YOUR_WORKSPACE') }  templates={data} />
         </SidebarLayout>
     );
 };

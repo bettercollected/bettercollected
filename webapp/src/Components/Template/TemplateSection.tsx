@@ -19,10 +19,11 @@ import TemplateCard from './TemplateCard';
 interface ITemplateSectionProps {
     templates?: Array<IFormTemplateDto>;
     title?: string;
+    showButtons?: boolean;
     className?: string;
 }
 
-const TemplateSection = ({ templates, title = '', className }: ITemplateSectionProps) => {
+const TemplateSection = ({ templates, title = '', className, showButtons = true }: ITemplateSectionProps) => {
     const workspace = useAppSelector(selectWorkspace);
     const { openModal } = useModal();
     const { t } = useTranslation();
@@ -31,31 +32,39 @@ const TemplateSection = ({ templates, title = '', className }: ITemplateSectionP
         isPredefinedTemplate = true;
     }
     return (
-        <div className={`flex flex-col gap-6 p-10 px-4 md:px-10 w-full ${title == 'Default' && 'bg-white'} ${className}`}>
+        <div
+            className={`flex flex-col gap-6 p-10 px-4 md:px-10 w-full ${title == 'Default' && 'bg-white'} ${className}`}>
             {templates && templates.length > 0 && (
-                <div className={`flex  md:flex-row justify-between ' ${title == 'Default' ? 'flex-row' : 'flex-col gap-2'}`}>
+                <div
+                    className={`flex  md:flex-row justify-between ' ${title == 'Default' ? 'flex-row' : 'flex-col gap-2'}`}>
                     <h1 className={'text-xl font-semibold text-black-800'}>{title}</h1>
-                    {title === '' ? (
-                        <></>
-                    ) : isPredefinedTemplate ? (
-                        <Link href={`/${workspace.workspaceName}/dashboard/templates/all`}>
-                            <div className={'flex flex-row gap-2 items-center text-blue-500 cursor-pointer'}>
-                                <VisibilityOutlinedIcon />
-                                <p className={'text-sm font-medium text-blue-500'}>{t('TEMPLATE.SHOW_ALL')}</p>
+                    {showButtons && <>
+                        {title === '' ? (
+                            <></>
+                        ) : isPredefinedTemplate ? (
+                            <Link href={`/${workspace.workspaceName}/dashboard/templates/all`}>
+                                <div className={'flex flex-row gap-2 items-center text-blue-500 cursor-pointer'}>
+                                    <VisibilityOutlinedIcon />
+                                    <p className={'text-sm font-medium text-blue-500'}>{t('TEMPLATE.SHOW_ALL')}</p>
+                                </div>
+                            </Link>
+                        ) : (
+                            <div className={'flex flex-row gap-4'}>
+                                <AppButton variant={ButtonVariant.Secondary}
+                                           onClick={() => openModal('IMPORT_TEMPLATE_MODAL_VIEW')}>
+                                    {t('TEMPLATE.BUTTONS.IMPORT_TEMPLATE')}
+                                </AppButton>
+                                <CreateTemplateButton />
                             </div>
-                        </Link>
-                    ) : (
-                        <div className={'flex flex-row gap-4'}>
-                            <AppButton variant={ButtonVariant.Secondary} onClick={() => openModal('IMPORT_TEMPLATE_MODAL_VIEW')}>
-                                {t('TEMPLATE.BUTTONS.IMPORT_TEMPLATE')}
-                            </AppButton>
-                            <CreateTemplateButton />
-                        </div>
-                    )}
+                        )}
+                    </>}
                 </div>
             )}
-            <div className={`flex flex-row  w-full gap-6 ${title == 'Default' || title === 'Standard' ? 'flex-nowrap overflow-auto' : 'flex-wrap justify-center md:justify-start'}`}>
-                {templates && templates?.map((template: IFormTemplateDto, index: number) => <TemplateCard key={index} template={template} isPredefinedTemplate={isPredefinedTemplate} />)}
+            <div
+                className={`flex flex-row  w-full gap-6 ${title == 'Default' || title === 'Standard' ? 'flex-nowrap overflow-auto' : 'flex-wrap justify-center md:justify-start'}`}>
+                {templates && templates?.map((template: IFormTemplateDto, index: number) => <TemplateCard key={index}
+                                                                                                          template={template}
+                                                                                                          isPredefinedTemplate={isPredefinedTemplate} />)}
             </div>
 
             {!templates ||
@@ -66,7 +75,8 @@ const TemplateSection = ({ templates, title = '', className }: ITemplateSectionP
                         <div className="p2-new text-black-700">{t('TEMPLATE.NOT_FOUND.DESC')}</div>
                         <div className="flex gap-4 mt-10">
                             <div className={'flex flex-row gap-4'}>
-                                <AppButton variant={ButtonVariant.Secondary} onClick={() => openModal('IMPORT_TEMPLATE_MODAL_VIEW')}>
+                                <AppButton variant={ButtonVariant.Secondary}
+                                           onClick={() => openModal('IMPORT_TEMPLATE_MODAL_VIEW')}>
                                     {t('TEMPLATE.BUTTONS.IMPORT_TEMPLATE')}
                                 </AppButton>
                                 <CreateTemplateButton />
