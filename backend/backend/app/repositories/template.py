@@ -1,9 +1,9 @@
 from http import HTTPStatus
+from typing import Optional
 
 from beanie import PydanticObjectId
 from common.constants import MESSAGE_NOT_FOUND
 from common.models.user import User
-
 from backend.app.exceptions import HTTPException
 from backend.app.models.template import StandardFormTemplate, StandardTemplateSetting
 from backend.app.schemas.template import FormTemplateDocument
@@ -12,6 +12,7 @@ from backend.app.schemas.template import FormTemplateDocument
 class FormTemplateRepository:
     async def get_templates_with_creator(
         self,
+        v2: Optional[bool],
         workspace_id: PydanticObjectId,
         template_id: PydanticObjectId = None,
         predefined_workspace: bool = False,
@@ -21,10 +22,28 @@ class FormTemplateRepository:
             query["settings"] = {"is_public": True}
         if template_id:
             query["template_id"] = template_id
+
         return (
             await FormTemplateDocument.find(query)
             .aggregate(
                 [
+                    {
+                        "$match": {
+                            "$or": (
+                                [{"builder_version": "v2"}]
+                                if v2
+                                else [
+                                    {
+                                        "$or": [
+                                            {"builder_version": {"$ne": "v2"}},
+                                            {"builder_version": {"$exists": False}},
+                                            {"builder_version": None},
+                                        ]
+                                    }
+                                ]
+                            )
+                        }
+                    },
                     {"$set": {"id": "$_id"}},
                     {
                         "$lookup": {
