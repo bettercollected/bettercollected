@@ -50,6 +50,12 @@ export default function LayoutsTab({ closePopover }: { closePopover: () => void 
                 'https://s3.eu-central-1.wasabisys.com/bettercollected/images/v2defaultImage.png'
         });
         setActiveSlideComponent({ id: fieldId, index: formFields.length });
+        window.setTimeout(function () {
+            const element = document.getElementById(fieldId);
+            element?.scrollIntoView({
+                behavior: 'smooth'
+            });
+        }, 500);
         closePopover();
     };
 

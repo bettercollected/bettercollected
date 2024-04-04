@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 
 import { motion } from 'framer-motion';
 
@@ -24,11 +24,10 @@ import WelcomeSlide from '@app/views/organism/FormBuilder/WelcomePage';
 import Navbar from '@app/views/organism/Navbar';
 
 export default function FormPage({ params }: { params: { formId: string } }) {
-    const router = useRouter();
     const { formFields, setFormFields } = useFormFieldsAtom();
     const { setFormState, formState } = useFormState();
 
-    const { activeSlideComponent, setActiveSlideComponent } = useActiveSlideComponent();
+    const { activeSlideComponent } = useActiveSlideComponent();
 
     const { setActiveFieldComponent } = useActiveFieldComponent();
 
@@ -40,7 +39,6 @@ export default function FormPage({ params }: { params: { formId: string } }) {
     const { openDialogModal } = useDialogModal();
 
     const { standardForm } = useStandardForm();
-    const pathname = usePathname();
 
     const formId = params.formId;
 

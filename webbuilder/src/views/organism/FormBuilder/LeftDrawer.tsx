@@ -113,6 +113,12 @@ export default function LeftDrawer({}: {}) {
                 (formFields[activeSlideComponent?.index || 0]?.properties?.fields
                     ?.length ?? 1) - 1
         });
+        window.setTimeout(function () {
+            const element = document.getElementById(`scroll-field-${fieldId}`);
+            element?.scrollIntoView({
+                behavior: 'smooth'
+            });
+        }, 500);
     };
 
     return (
@@ -168,6 +174,7 @@ export default function LeftDrawer({}: {}) {
                                     return (
                                         <div
                                             key={slide.id}
+                                            id={slide.id}
                                             className={cn(
                                                 'group flex flex-col gap-2 rounded-lg border border-transparent px-2 pt-1',
                                                 activeSlideComponent?.id === slide.id &&
