@@ -226,36 +226,6 @@ export default function FormSlide({
 
     if (!formSlide) return <FullScreenLoader />;
 
-    // const checkPreviousFieldIsTextField = (index: number) => {
-    //     if (index === 0) return false;
-    //     return formSlide.properties?.fields![index - 1].type === FieldTypes.TEXT;
-    // };
-
-    // const findTextField = (field: FormField) => {
-    //     if (field.index !== 0) {
-    //         const previousField = formSlide?.properties?.fields![field.index - 1];
-    //         if (previousField?.type === FieldTypes.TEXT) return;
-    //     }
-
-    //     return getTextField(field);
-    // };
-
-    // function getTextField(field: FormField): any {
-    //     const nextField = formSlide?.properties?.fields![field.index + 1];
-    //     return (
-    //         <>
-    //             <div className="h1-new w-full text-left text-[32px] font-bold">
-    //                 {parse(getHtmlFromJson(field?.title) ?? 'Add Text')}
-    //             </div>
-    //             {nextField?.type === FieldTypes.TEXT && getTextField(nextField)}
-    //             <FormFieldComponent
-    //                 field={formSlide!.properties!.fields![field.index + 1]}
-    //                 slideIndex={formSlide!.index}
-    //             />
-    //         </>
-    //     );
-    // }
-
     return (
         <Controller>
             <SlideLayoutWrapper theme={standardForm.theme} slide={formSlide} disabled>
@@ -272,7 +242,7 @@ export default function FormSlide({
                 )}
                 <div
                     className={cn(
-                        'flex h-full flex-1 flex-col justify-center ',
+                        'flex h-full flex-1 flex-col justify-center overflow-hidden ',
                         formSlide?.properties?.layout ===
                             FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND_LEFT_ALIGN
                             ? 'items-start '
