@@ -5,7 +5,7 @@ from beanie import PydanticObjectId
 from classy_fastapi import Routable, post, get, patch, delete
 from fastapi import Depends, UploadFile, Form
 from gunicorn.config import User
-
+from typing import Optional
 from backend.app.container import container
 from backend.app.models.dataclasses.user_tokens import UserTokens
 from backend.app.models.dtos.minified_form import FormDtoCamelModel
@@ -53,10 +53,13 @@ class FormTemplateRouter(Routable):
     @get("/templates", response_model=List[StandardFormTemplateResponseCamelModel])
     async def get_templates(
         self,
-        workspace_id: PydanticObjectId = None,
+        v2: Optional[bool] = False,
+        workspace_id: Optional[PydanticObjectId] = None,
         user: User = Depends(get_logged_user),
     ):
-        response = await self.form_template_service.get_templates(workspace_id, user)
+        response = await self.form_template_service.get_templates(
+            v2, workspace_id, user
+        )
         return response
 
     @get("/templates/{template_id}", response_model=StandardFormTemplateCamelModel)
