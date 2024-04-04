@@ -1,6 +1,7 @@
 import { Fragment } from 'react';
 
 import { RadioGroup } from '@headlessui/react';
+import styled from 'styled-components';
 
 import { FormField } from '@app/models/dtos/form';
 import { useFormTheme } from '@app/store/jotai/fetchedForm';
@@ -9,6 +10,15 @@ import { useResponderState } from '@app/store/jotai/responderFormState';
 import { Check } from '@app/views/atoms/Icons/Check';
 
 import QuestionWrapper from './QuestionQwrapper';
+
+const StyledDiv = styled.div<{ $theme: any }>(({ $theme }) => {
+    const secondaryColor = $theme?.secondary;
+    return {
+        '&:hover': {
+            borderColor: secondaryColor + '!important'
+        }
+    };
+});
 
 const YesNoField = ({ field }: { field: FormField }) => {
     const { addFieldBooleanAnswer, formResponse } = useFormResponse();
@@ -47,7 +57,8 @@ const YesNoField = ({ field }: { field: FormField }) => {
                             >
                                 {({ active, checked }) => {
                                     return (
-                                        <div
+                                        <StyledDiv
+                                            $theme={theme}
                                             style={{
                                                 borderColor: theme?.tertiary,
                                                 background:
@@ -55,11 +66,11 @@ const YesNoField = ({ field }: { field: FormField }) => {
                                                         ? theme?.tertiary
                                                         : ''
                                             }}
-                                            className={`flex cursor-pointer justify-between rounded-xl border p-2 px-4 hover:!border-black-900`}
+                                            className={`flex cursor-pointer justify-between rounded-xl border p-2 px-4`}
                                         >
                                             {choice.value}
                                             {checked && <Check />}
-                                        </div>
+                                        </StyledDiv>
                                     );
                                 }}
                             </RadioGroup.Option>
