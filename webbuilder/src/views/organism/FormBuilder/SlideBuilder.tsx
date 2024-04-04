@@ -51,14 +51,14 @@ const SlideBuilder = ({
                     );
                 }}
             >
-                <StrictModeDroppable droppableId={'fields-droppable-section'}>
+                <StrictModeDroppable droppableId={'fields-droppable-section '}>
                     {(provided: DroppableProvided) => (
                         <div
                             {...provided.droppableProps}
                             ref={provided.innerRef}
                             className={cn('relative w-full flex-1 ')}
                         >
-                            <div className="absolute top-[40%] flex w-full flex-col gap-20 px-6">
+                            <div className="absolute top-[40%] flex w-full flex-col gap-20 px-6 pb-20">
                                 {Array.isArray(slideFields) && slideFields.length ? (
                                     slideFields.map((field, index) => {
                                         return (
@@ -73,7 +73,11 @@ const SlideBuilder = ({
                                             >
                                                 {(provided) => (
                                                     <div
-                                                        id={field.id}
+                                                        id={
+                                                            disabled
+                                                                ? field.id
+                                                                : `scroll-field-${field.id}`
+                                                        }
                                                         className={cn(
                                                             'relative flex h-full w-full flex-row  items-center first:!pt-[0%] last:pb-20',
                                                             slide.properties?.layout ===

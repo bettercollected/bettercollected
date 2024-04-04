@@ -97,7 +97,10 @@ const Navbar = () => {
             activeSlideComponent?.index || 0
         );
         window.setTimeout(function () {
-            document.getElementById(`input-${fieldId}`)?.focus();
+            const element = document.getElementById(`scroll-field-${fieldId}`);
+            element?.scrollIntoView({
+                behavior: 'smooth'
+            });
         }, 0);
     };
 
@@ -226,16 +229,12 @@ const Navbar = () => {
                                 navbarState.insertClicked && '!text-black-900'
                             )}
                         >
-                            <PlusOutlined
-                            />
-                            <span
-                            >
-                                Insert
-                            </span>
+                            <PlusOutlined />
+                            <span>Insert</span>
                         </div>
                     </DropdownMenu.Trigger>
                 </DropdownMenu>
-               
+
                 <DropdownMenu>
                     <DropdownMenu.Trigger onClick={handleClickMedia}>
                         <div className="text-xs font-semibold !text-black-500 hover:bg-inherit hover:!text-black-900 ">
