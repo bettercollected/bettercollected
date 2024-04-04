@@ -4,6 +4,8 @@ import { useTranslation } from 'next-i18next';
 import { NextSeo } from 'next-seo';
 import { useRouter } from 'next/router';
 
+import { template } from 'lodash';
+
 import EditIcon from '@Components/Common/Icons/Common/Edit';
 import EllipsisOption from '@Components/Common/Icons/Common/EllipsisOption';
 import SettingsIcon from '@Components/Common/Icons/Common/Settings';
@@ -16,17 +18,18 @@ import EditTemplateButton from '@Components/Template/EditTemplateButton';
 import { ListItemIcon, MenuItem } from '@mui/material';
 import { toast } from 'react-toastify';
 
+import FormRenderer from '@app/components/form/renderer/form-renderer';
 import { ArrowUp } from '@app/components/icons/arrow-up';
 import { ChevronForward } from '@app/components/icons/chevron-forward';
+import environments from '@app/configs/environments';
 import Layout from '@app/layouts/_layout';
 import { useIsMobile } from '@app/lib/hooks/use-breakpoint';
 import { getAuthUserPropsWithWorkspace } from '@app/lib/serverSideProps';
 import { useCreateFormFromTemplateMutation, useGetTemplateByIdQuery, useImportTemplateMutation } from '@app/store/template/api';
 import { convertFormTemplateToStandardForm } from '@app/utils/convertDataType';
 
-
 const SingleTemplate = (props: any) => {
-    const { workspace, notFound, templateId } = props;
+    const { workspace, templateId } = props;
     const router = useRouter();
     const { openBottomSheetModal } = useBottomSheetModal();
     const { t } = useTranslation();
@@ -67,7 +70,12 @@ const SingleTemplate = (props: any) => {
             const response: any = await createFormFromTemplate(request);
             if (response?.data) {
                 toast('Created Form Successfully', { type: 'success' });
-                await router.replace(`/${workspace.workspaceName}/dashboard/forms/${response?.data?.formId}/edit`);
+                const editFormUrl = `/${workspace.workspaceName}/dashboard/forms/${response?.data?.formId}/edit`;
+                if (response?.data?.builderVersion === 'v2') {
+                    router.push(environments.HTTP_SCHEME + environments.V2_BUILDER_DOMAIN + editFormUrl);
+                } else {
+                    router.push(editFormUrl);
+                }
             } else {
                 toast('Error Occurred').toString(), { type: 'error' };
             }
@@ -105,7 +113,7 @@ const SingleTemplate = (props: any) => {
                                     {t('TEMPLATE.BUTTONS.IMPORT_TEMPLATE')}
                                 </AppButton>
                             )}
-                            <EditTemplateButton templateId={templateId} />
+                            {data?.builderVersion !== 'v2' && <EditTemplateButton templateId={templateId} />}
                             <AppButton onClick={handleUseTemplate}> {t('TEMPLATE.BUTTONS.USE_TEMPLATE')}</AppButton>
                         </>
                     ) : (
@@ -143,7 +151,7 @@ const SingleTemplate = (props: any) => {
                     )}
                 </div>
             </div>
-            {data && <BetterCollectedForm form={convertFormTemplateToStandardForm(data)} />}
+            {data && <FormRenderer isDisabled form={convertFormTemplateToStandardForm(data)} />}
         </Layout>
     );
 };
