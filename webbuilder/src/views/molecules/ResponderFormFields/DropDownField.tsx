@@ -46,10 +46,9 @@ export default function DropDownField({
     const handleClick = (choiceId: string) => {
         addFieldChoiceAnswer(field.id, choiceId);
         setIsOpen(false);
-                    nextField();
+        nextField();
 
-        setTimeout(() => {
-        }, 200);
+        setTimeout(() => {}, 200);
     };
 
     const getTextStyle = () => {
@@ -78,10 +77,11 @@ export default function DropDownField({
                     </div>
                 </CollapsibleTrigger>
                 <CollapsibleContent className="space-y-2">
-                    {field.properties?.choices?.map((choice) => {
+                    {field.properties?.choices?.map((choice, index) => {
                         return (
                             <Choice
                                 key={choice.id}
+                                index={index}
                                 isSelected={choice.id === choiceValue}
                                 theme={theme}
                                 choice={choice}
