@@ -277,7 +277,16 @@ export default function FormSlide({
                                             damping: 20,
                                             duration: 0.5
                                         }}
-                                        className={cn('relative my-3 cursor-pointer')}
+                                        className={cn(
+                                        'relative my-3 cursor-pointer',
+                                        currentField === index
+                                            ? 'min-h-fit opacity-100'
+                                            : currentField - 1 === index
+                                              ? ''
+                                              : currentField + 1 === index
+                                                ? ''
+                                                : ' my-0 h-0'
+                                    )}
                                     >
                                         <div
                                             id={field.id}

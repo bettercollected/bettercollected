@@ -36,9 +36,16 @@ export default function DropDownField({
             return null;
         }
         const selectedChoiceId = formResponse?.answers[field.id]?.choice?.value;
-        return field?.properties?.choices?.find(
+        const choice = field?.properties?.choices?.find(
             (choice) => choice.id === selectedChoiceId
-        )?.value;
+        );
+        const choiceIndex = field?.properties?.choices?.findIndex(
+            (choice) => choice.id === selectedChoiceId
+        );
+        function getChoiceValue() {
+            return choice?.value ? choice?.value : `Item ${(choiceIndex ?? 0) + 1}`;
+        }
+        return selectedChoiceId ? getChoiceValue() : '';
     };
 
     const choiceValue = getSelectedValue();
@@ -46,9 +53,9 @@ export default function DropDownField({
     const handleClick = (choiceId: string) => {
         addFieldChoiceAnswer(field.id, choiceId);
         setIsOpen(false);
-        nextField();
-
-        setTimeout(() => {}, 200);
+        setTimeout(() => {
+            nextField();
+        }, 200);
     };
 
     const getTextStyle = () => {
