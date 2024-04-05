@@ -44,7 +44,6 @@ import BackButton from '../molecules/FormBuilder/BackButton';
 import PreviewWrapper from '../molecules/FormBuilder/PreviewWrapper';
 import Form from './Form/Form';
 
-
 const Navbar = () => {
     const { activeSlide, formFields, addField, updateSlideImage, updateSlideLayout } =
         useFormFieldsAtom();
@@ -99,7 +98,8 @@ const Navbar = () => {
         window.setTimeout(function () {
             const element = document.getElementById(`scroll-field-${fieldId}`);
             element?.scrollIntoView({
-                behavior: 'smooth'
+                behavior: 'smooth',
+                block: 'end'
             });
         }, 0);
     };

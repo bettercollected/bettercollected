@@ -116,7 +116,8 @@ export default function LeftDrawer({}: {}) {
         window.setTimeout(function () {
             const element = document.getElementById(`scroll-field-${fieldId}`);
             element?.scrollIntoView({
-                behavior: 'smooth'
+                behavior: 'smooth',
+                block: 'end'
             });
         }, 500);
     };
