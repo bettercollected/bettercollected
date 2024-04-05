@@ -61,7 +61,7 @@ export default function AddSlidePopover() {
                                 asChild
                                 className="p-0"
                             >
-                                <div className="!z-[1000] w-[384px] rounded-lg bg-white shadow-lg">
+                                <div className="!z-[1000] max-h-[640px] w-[390px] rounded-lg bg-white shadow-lg">
                                     <Tabs
                                         defaultValue="layout"
                                         className="h-full w-full"
