@@ -2,10 +2,12 @@ import { atom, useAtom } from 'jotai';
 
 interface INavbar {
     insertClicked: boolean;
+    multiplePages: boolean;
 }
 
 const initialNavbarState = atom<INavbar>({
-    insertClicked: false
+    insertClicked: false,
+    multiplePages: true
 });
 
 export function useNavbarState() {

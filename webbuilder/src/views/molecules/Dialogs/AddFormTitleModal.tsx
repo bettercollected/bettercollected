@@ -16,7 +16,7 @@ export default function AddFormTitleModal() {
     const [title, setTitle] = useState('New Form');
     const { formFields } = useFormFieldsAtom();
     const { setActiveSlideComponent } = useActiveSlideComponent();
-    const { setNavbarState } = useNavbarState();
+    const { navbarState, setNavbarState } = useNavbarState();
 
     const { closeDialogModal } = useDialogModal();
     return (
@@ -33,9 +33,7 @@ export default function AddFormTitleModal() {
                         id: formFields?.[0]?.id,
                         index: 0
                     });
-                    setNavbarState({
-                        insertClicked: true
-                    });
+                    setNavbarState({ ...navbarState, insertClicked: true });
                 }, 200);
 
                 closeDialogModal();

@@ -219,6 +219,7 @@ const Navbar = () => {
                                       title: 'Add Slides or Go to Slides to add fields'
                                   })
                                 : setNavbarState({
+                                      ...navbarState,
                                       insertClicked: true
                                   });
                         }}
