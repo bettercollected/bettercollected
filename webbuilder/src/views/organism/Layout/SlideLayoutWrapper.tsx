@@ -26,14 +26,14 @@ export default function SlideLayoutWrapper({
     const { updateSlideImage, updateSlideLayout } = useFormFieldsAtom();
 
     const style = {
-        backgroundColor: slide.properties?.theme?.accent || theme?.accent
+        backgroundColor: slide?.properties?.theme?.accent || theme?.accent
     };
 
     return (
         <LayoutWrapper
             layout={slide?.properties?.layout}
             imageUrl={slide?.imageUrl}
-            altImage={slide.id}
+            altImage={slide?.id}
             disabled={disabled}
             updatePageImage={updateSlideImage}
             updatePageLayout={updateSlideLayout}

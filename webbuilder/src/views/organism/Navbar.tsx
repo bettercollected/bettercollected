@@ -213,15 +213,10 @@ const Navbar = () => {
                             'rounded '
                         )}
                         onClick={() => {
-                            isGreetingSlide()
-                                ? toast({
-                                      variant: 'default',
-                                      title: 'Add Slides or Go to Slides to add fields'
-                                  })
-                                : setNavbarState({
-                                      ...navbarState,
-                                      insertClicked: true
-                                  });
+                            setNavbarState({
+                                ...navbarState,
+                                insertClicked: true
+                            });
                         }}
                     >
                         <div
