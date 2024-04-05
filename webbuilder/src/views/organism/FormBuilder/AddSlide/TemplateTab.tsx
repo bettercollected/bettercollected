@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 
 import { ChevronLeft } from 'lucide-react';
 
+import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
 import { useFormState } from '@app/store/jotai/form';
 import { useGetTemplatesQuery } from '@app/store/redux/templateApi';
 import { IFormTemplateDto } from '@app/store/redux/types';
@@ -15,6 +16,7 @@ export default function TemplateTab({ closePopover }: { closePopover: () => void
         IFormTemplateDto | undefined
     >();
 
+    const { addSlideFormTemplate } = useFormFieldsAtom();
     const { theme } = useFormState();
     const { data: templates } = useGetTemplatesQuery({ v2: true });
 
@@ -37,6 +39,10 @@ export default function TemplateTab({ closePopover }: { closePopover: () => void
                     <div className="flex w-full flex-row flex-wrap gap-2 ">
                         {selectedTemplate?.fields?.map((slide) => (
                             <div
+                                onClick={() => {
+                                    addSlideFormTemplate(slide);
+                                    closePopover();
+                                }}
                                 className="flex cursor-pointer flex-col  rounded-lg border border-transparent p-1 hover:border-pink-500"
                                 key={slide?.id}
                             >

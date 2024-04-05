@@ -12,6 +12,7 @@ import {
 } from '@app/store/jotai/activeBuilderComponent';
 import { reorder } from '@app/utils/arrayUtils';
 
+
 const initialFieldsAtom = atom<FormField[]>([
     {
         id: v4(),
@@ -44,6 +45,38 @@ export default function useFormFieldsAtom() {
 
     const addSlide = (field: FormField) => {
         setFormFields([...formFields, field]);
+    };
+
+    const addSlideFormTemplate = (slide: FormField, index?: number) => {
+        const formSlide = {
+            ...slide,
+            id: v4()
+        };
+        let spliceIndex;
+        if (
+            (activeSlideComponent?.index || activeSlideComponent?.index === 0) &&
+            activeSlideComponent?.index >= 0
+        ) {
+            spliceIndex = activeSlideComponent?.index + 1;
+        } else {
+            spliceIndex = formFields.length;
+        }
+
+        formFields.splice(spliceIndex, 0, formSlide);
+
+        const updatedFormFields = formFields.map((field, index) => ({
+            ...field,
+            index: index
+        }));
+        setFormFields([...updatedFormFields]);
+        setActiveSlideComponent({ index: spliceIndex, id: formSlide.id });
+        window.setTimeout(function () {
+            const element = document.getElementById(formSlide.id);
+            element?.scrollIntoView({
+                behavior: 'smooth',
+                block: 'end'
+            });
+        }, 500);
     };
 
     const deleteSlide = (slideIndex: number) => {
@@ -329,6 +362,7 @@ export default function useFormFieldsAtom() {
         deleteField,
         deleteActiveSlide,
         resetFields,
-        addMedia
+        addMedia,
+        addSlideFormTemplate
     };
 }
