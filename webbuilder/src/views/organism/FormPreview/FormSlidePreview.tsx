@@ -1,17 +1,26 @@
+import { FormTheme } from '@app/constants/theme';
 import { FormField } from '@app/models/dtos/form';
 import { useStandardForm } from '@app/store/jotai/fetchedForm';
+import SlideLayoutWrapper from '@app/views/organism/Layout/SlideLayoutWrapper';
 
 import { FormFieldComponent } from '../Form/FormSlide';
 
-export default function FormSlidePreview({ slide }: { slide: FormField }) {
+
+export default function FormSlidePreview({
+    slide,
+    theme
+}: {
+    slide: FormField;
+    theme?: FormTheme;
+}) {
     const { standardForm } = useStandardForm();
 
+    const slideTheme = theme ? theme : standardForm.theme;
+    console.log(slide);
+
     return (
-        <div
-            className="flex min-h-screen w-full items-center"
-            style={{ background: standardForm.theme?.accent }}
-        >
-            <div className="relative flex h-full max-w-[800px] flex-1 flex-col items-start justify-center gap-20 px-5 lg:px-20">
+        <SlideLayoutWrapper slide={slide} theme={slideTheme} disabled>
+            <div className="relative my-10 flex h-full max-w-[800px] flex-1 flex-col items-start justify-center gap-20 px-5 lg:my-20 lg:px-20">
                 {slide?.properties?.fields?.map((field) => {
                     return (
                         <FormFieldComponent
@@ -22,6 +31,6 @@ export default function FormSlidePreview({ slide }: { slide: FormField }) {
                     );
                 })}
             </div>
-        </div>
+        </SlideLayoutWrapper>
     );
 }

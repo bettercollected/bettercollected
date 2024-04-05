@@ -32,7 +32,9 @@ const environments = {
     UNSPLASH_ACCESS_KEY:
         process.env.UNSPLASH_ACCESS_KEY ??
         'cjNqTgaSqmYzOZETsWrivtF1ayn4PGzy_NPWZDkZG_A',
-    NEXT_PUBLIC_UNSPLASH_ACCESS_KEY: process.env.NEXT_PUBLIC_UNSPLASH_ACCESS_KEY,
+    NEXT_PUBLIC_UNSPLASH_ACCESS_KEY:
+        process.env.NEXT_PUBLIC_UNSPLASH_ACCESS_KEY ||
+        '___NEXT_PUBLIC_UNSPLASH_ACCESS_KEY___',
     UNSPLASH_SECRET_KEY: process.env.UNSPLASH_SECRET_KEY,
     UNSPLASH_API_URL: process.env.UNSPLASH_API_URL ?? 'https://api.unsplash.com/',
 

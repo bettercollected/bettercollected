@@ -18,6 +18,7 @@ import SlideLayoutWrapper from '../Layout/SlideLayoutWrapper';
 import FieldDescription from './Fields/FieldDescrption';
 import renderField from './Fields/renderField';
 
+
 const SlideBuilder = ({
     slide,
     isScaledDown = false,
@@ -62,7 +63,7 @@ const SlideBuilder = ({
                                     slideFields.map((field, index) => {
                                         return (
                                             <Draggable
-                                                key={field.id + index}
+                                                key={field.id}
                                                 draggableId={`${field.id}`}
                                                 index={index}
                                                 disableInteractiveElementBlocking={

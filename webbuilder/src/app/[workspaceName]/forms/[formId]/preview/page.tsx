@@ -7,10 +7,10 @@ import { useStandardForm } from '@app/store/jotai/fetchedForm';
 import { useFormResponse } from '@app/store/jotai/responderFormResponse';
 import useWorkspace from '@app/store/jotai/workspace';
 import { useGetFormResponseQuery } from '@app/store/redux/formApi';
-import FormSlide from '@app/views/organism/Form/FormSlide';
 import ThankyouPage from '@app/views/organism/Form/ThankyouPage';
 import WelcomePage from '@app/views/organism/Form/WelcomePage';
 import FormSlidePreview from '@app/views/organism/FormPreview/FormSlidePreview';
+
 
 export default function ResponsePage({
     searchParams
@@ -50,7 +50,7 @@ export default function ResponsePage({
                     {standardForm?.fields?.map((slide, index) => {
                         return (
                             <div className="p-4" key={index}>
-                                <div className="h-full min-h-screen w-full overflow-hidden rounded-xl border border-black-400 ">
+                                <div className="min-w-screen aspect-video h-full w-full overflow-hidden rounded-xl border border-black-400 ">
                                     <FormSlidePreview slide={slide} />
                                 </div>
                             </div>
