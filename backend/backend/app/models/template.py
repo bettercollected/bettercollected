@@ -10,6 +10,7 @@ from common.models.standard_form import (
 from fastapi_camelcase import CamelModel
 from pydantic import BaseModel
 
+from backend.app.models.dtos.response_dtos import StandardFormFieldCamelModel
 from backend.app.models.enum.template import TemplateCategory
 
 
@@ -44,6 +45,7 @@ class StandardFormTemplate(BaseModel):
 
 class StandardFormTemplateResponse(StandardFormTemplate):
     imported_from: Optional[str]
+    fields: Optional[List[StandardFormFieldCamelModel]]
 
 
 class StandardFormTemplateResponseCamelModel(CamelModel, StandardFormTemplateResponse):

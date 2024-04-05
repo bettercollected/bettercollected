@@ -57,10 +57,13 @@ class FormTemplateRouter(Routable):
         workspace_id: Optional[PydanticObjectId] = None,
         user: User = Depends(get_logged_user),
     ):
-        response = await self.form_template_service.get_templates(
+        form_templates = await self.form_template_service.get_templates(
             v2, workspace_id, user
         )
-        return response
+        return [
+            StandardFormTemplateResponseCamelModel(**form_template)
+            for form_template in form_templates
+        ]
 
     @get("/templates/{template_id}", response_model=StandardFormTemplateCamelModel)
     async def get_template_by_id(
