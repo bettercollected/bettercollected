@@ -16,6 +16,7 @@ import {
     TabsList,
     TabsTrigger
 } from '@app/shadcn/components/ui/tabs';
+import TemplateTab from '@app/views/organism/FormBuilder/AddSlide/TemplateTab';
 
 import LayoutsTab from './LayoutsTab';
 
@@ -90,7 +91,7 @@ export default function AddSlidePopover() {
                                             <LayoutsTab closePopover={closePopover} />
                                         </TabsContent>
                                         <TabsContent value="template" className="p-4">
-                                            This will be Template Tab
+                                            <TemplateTab closePopover={closePopover} />
                                         </TabsContent>
                                         {/*<TabsContent value="pages" className="p-4">*/}
                                         {/*    This will be Pages Tab*/}

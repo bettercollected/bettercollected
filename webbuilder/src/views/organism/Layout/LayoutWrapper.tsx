@@ -10,9 +10,9 @@ import { FormSlideLayout } from '@app/models/enums/form';
 import { Button } from '@app/shadcn/components/ui/button';
 import { ScrollArea } from '@app/shadcn/components/ui/scroll-area';
 import { cn } from '@app/shadcn/util/lib';
-import { useFormState } from '@app/store/jotai/form';
 import DeleteIcon from '@app/views/atoms/Icons/Delete';
 import { SwitchIcon } from '@app/views/atoms/Icons/SwitchIcon';
+
 
 interface ILayoutWrapper {
     layout?: FormSlideLayout;
@@ -57,56 +57,57 @@ const LayoutWrapper = ({
             updatePageImage
         });
     };
+    const DisplayImageWithControls = ({ imageUrl }: { imageUrl: string }) => {
+        return (
+            <>
+                <Image
+                    style={{ objectFit: 'cover' }}
+                    className={cn(
+                        'h-full w-full',
+                        layout === FormSlideLayout.TWO_COLUMN_IMAGE_LEFT
+                            ? 'order-0'
+                            : layout === FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT
+                              ? 'order-1'
+                              : '',
+                        layout === FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND
+                            ? 'rounded-lg opacity-50 backdrop-blur-lg'
+                            : 'opacity-100'
+                    )}
+                    src={imageUrl}
+                    alt={altImage + ' image'}
+                    fill
+                    priority
+                />
 
-    const DisplayImageWithControls = ({ imageUrl }: { imageUrl: string }) => (
-        <>
-            <Image
-                style={{ objectFit: 'cover' }}
-                className={cn(
-                    'h-full w-full',
-                    layout === FormSlideLayout.TWO_COLUMN_IMAGE_LEFT
-                        ? 'order-0'
-                        : layout === FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT
-                          ? 'order-1'
-                          : '',
-                    layout === FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND
-                        ? 'rounded-lg opacity-50 backdrop-blur-lg'
-                        : 'opacity-100'
-                )}
-                src={imageUrl}
-                alt={altImage + ' image'}
-                fill
-                priority
-            />
-
-            {(showControls ||
-                layout === FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND) &&
-                !disabled && (
-                    <div
-                        className={cn(
-                            'absolute flex h-full w-full items-start justify-end gap-4 p-2',
-                            layout === FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND
-                                ? '-top-[50px]'
-                                : ''
-                        )}
-                    >
+                {(showControls ||
+                    layout === FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND) &&
+                    !disabled && (
                         <div
-                            className="cursor-pointer rounded-md bg-white p-2 shadow-bubble"
-                            onClick={handleRemoveImage}
+                            className={cn(
+                                'absolute flex h-full w-full items-start justify-end gap-4 p-2',
+                                layout ===
+                                    FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND
+                                    ? '-top-[50px]'
+                                    : ''
+                            )}
                         >
-                            <DeleteIcon width={24} height={24} />
+                            <div
+                                className="cursor-pointer rounded-md bg-white p-2 shadow-bubble"
+                                onClick={handleRemoveImage}
+                            >
+                                <DeleteIcon width={24} height={24} />
+                            </div>
+                            <div
+                                className=" cursor-pointer rounded-md bg-white p-2 shadow-bubble"
+                                onClick={handleChangeImage}
+                            >
+                                <SwitchIcon />
+                            </div>
                         </div>
-                        <div
-                            className=" cursor-pointer rounded-md bg-white p-2 shadow-bubble"
-                            onClick={handleChangeImage}
-                        >
-                            <SwitchIcon />
-                        </div>
-                    </div>
-                )}
-        </>
-    );
-
+                    )}
+            </>
+        );
+    };
     return (
         <>
             <div
