@@ -56,7 +56,7 @@ export default function CreateFormPage() {
             workspace_id: workspace.id,
             template_id: templateId
         });
-        const editFormUrl = `/${workspace.workspaceName}/dashboard/forms/${response?.data?.formId}/edit?showTitle=true`;
+        const editFormUrl = `/${workspace.workspaceName}/dashboard/forms/${response?.data?.formId}/edit`;
         router.push(editFormUrl);
     };
 
@@ -66,7 +66,7 @@ export default function CreateFormPage() {
                 id="navbar"
                 className="flex h-16 w-full items-center justify-start border-b-[1px] border-b-black-300 !bg-white p-4"
             >
-                <div className={'mr-4 rounded-lg px-4 py-[6px] shadow'}>
+                <div className={'mr-4 cursor-pointer rounded-lg px-4 py-[6px] shadow'}>
                     <BetterCollectedSmallLogo
                         onClick={() => {
                             router.push(

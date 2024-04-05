@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Divider } from '@mui/material';
 import { AnimatePresence, motion } from 'framer-motion';
 
-import { ButtonSize, ButtonVariant } from '@app/models/enums/button';
+import { ButtonSize } from '@app/models/enums/button';
 import { Button } from '@app/shadcn/components/ui/button';
 import {
     Popover,
@@ -18,6 +18,7 @@ import {
 } from '@app/shadcn/components/ui/tabs';
 
 import LayoutsTab from './LayoutsTab';
+
 
 export default function AddSlidePopover() {
     const [open, setOpen] = useState(false);
@@ -77,12 +78,12 @@ export default function AddSlidePopover() {
                                             >
                                                 Template
                                             </TabsTrigger>
-                                            <TabsTrigger
-                                                value="pages"
-                                                className="w-full"
-                                            >
-                                                Pages
-                                            </TabsTrigger>
+                                            {/*<TabsTrigger*/}
+                                            {/*    value="pages"*/}
+                                            {/*    className="w-full"*/}
+                                            {/*>*/}
+                                            {/*    Pages*/}
+                                            {/*</TabsTrigger>*/}
                                         </TabsList>
                                         <Divider />
                                         <TabsContent value="layout" className="p-4">
@@ -91,9 +92,9 @@ export default function AddSlidePopover() {
                                         <TabsContent value="template" className="p-4">
                                             This will be Template Tab
                                         </TabsContent>
-                                        <TabsContent value="pages" className="p-4">
-                                            This will be Pages Tab
-                                        </TabsContent>
+                                        {/*<TabsContent value="pages" className="p-4">*/}
+                                        {/*    This will be Pages Tab*/}
+                                        {/*</TabsContent>*/}
                                     </Tabs>
                                 </div>
                             </PopoverContent>
