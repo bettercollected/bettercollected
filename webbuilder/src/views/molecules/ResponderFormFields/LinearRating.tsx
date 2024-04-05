@@ -8,6 +8,7 @@ import { FormField } from '@app/models/dtos/form';
 import { useFormTheme } from '@app/store/jotai/fetchedForm';
 import { useFormState } from '@app/store/jotai/form';
 import { useFormResponse } from '@app/store/jotai/responderFormResponse';
+import { useResponderState } from '@app/store/jotai/responderFormState';
 
 import QuestionWrapper from './QuestionQwrapper';
 
@@ -40,9 +41,11 @@ const LinearRatingSection = ({
     const theme = useFormTheme();
     const { formResponse, addFieldLinearRatingAnswer } = useFormResponse();
     const [ratingAnswer, setRatingAnswer] = useState(-1);
+    const { nextField } = useResponderState();
+
     useEffect(() => {
         formResponse.answers &&
-            setRatingAnswer((formResponse.answers[field.id]?.number??0)-1);
+            setRatingAnswer((formResponse.answers[field.id]?.number ?? 0) - 1);
     }, [formResponse.answers]);
     const secondaryColor = theme?.secondary;
     return (
@@ -59,7 +62,10 @@ const LinearRatingSection = ({
                         key={index}
                         onClick={() => {
                             if (!isBuilder) {
-                                addFieldLinearRatingAnswer(field.id, index+1);
+                                addFieldLinearRatingAnswer(field.id, index + 1);
+                                setTimeout(() => {
+                                    nextField();
+                                }, 200);
                             }
                         }}
                         className="flex h-12 w-12  cursor-pointer items-center justify-center rounded-sm border-[1px]"
