@@ -1,10 +1,6 @@
 import React from 'react';
 
-
-
 import { v4 } from 'uuid';
-
-
 
 import { FieldTypes } from '@app/models/dtos/form';
 import { FormSlideLayout } from '@app/models/enums/form';
