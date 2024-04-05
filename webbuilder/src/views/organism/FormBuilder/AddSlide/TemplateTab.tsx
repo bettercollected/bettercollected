@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 
 import { ChevronLeft } from 'lucide-react';
 
+import { useFormState } from '@app/store/jotai/form';
 import { useGetTemplatesQuery } from '@app/store/redux/templateApi';
 import { IFormTemplateDto } from '@app/store/redux/types';
 import WelcomePage from '@app/views/organism/Form/WelcomePage';
@@ -13,6 +14,8 @@ export default function TemplateTab({ closePopover }: { closePopover: () => void
     const [selectedTemplate, setSelectedTemplate] = useState<
         IFormTemplateDto | undefined
     >();
+
+    const { theme } = useFormState();
     const { data: templates } = useGetTemplatesQuery({ v2: true });
 
     return (
@@ -37,15 +40,12 @@ export default function TemplateTab({ closePopover }: { closePopover: () => void
                                 className="flex cursor-pointer flex-col  rounded-lg border border-transparent p-1 hover:border-pink-500"
                                 key={slide?.id}
                             >
-                                <div className="relative h-[94px] w-[160px] overflow-hidden rounded-md">
+                                <div className="relative aspect-video w-[160px] overflow-hidden rounded-md border border-black-300">
                                     <div
-                                        className="pointer-events-none h-[810px] w-[1440px] scale-[0.116666667]"
+                                        className="pointer-events-none h-[720px] w-[1280px] scale-[0.125]"
                                         style={{ transformOrigin: 'top left' }}
                                     >
-                                        <FormSlidePreview
-                                            slide={slide}
-                                            theme={selectedTemplate.theme}
-                                        />
+                                        <FormSlidePreview slide={slide} theme={theme} />
                                     </div>
                                 </div>
                             </div>
@@ -65,13 +65,13 @@ export default function TemplateTab({ closePopover }: { closePopover: () => void
                                     setSelectedTemplate(template);
                                 }}
                             >
-                                <div className="relative h-[94px] w-[168px] overflow-hidden rounded-md">
+                                <div className="relative h-[94px] w-[168px] overflow-hidden rounded-md border border-black-300">
                                     <div
                                         className="pointer-events-none h-[810px] w-[1440px] scale-[0.116666667]"
                                         style={{ transformOrigin: 'top left' }}
                                     >
                                         <LayoutWrapper
-                                            theme={template?.theme}
+                                            theme={theme}
                                             disabled
                                             layout={template.welcomePage?.layout}
                                             imageUrl={template?.welcomePage?.imageUrl}
