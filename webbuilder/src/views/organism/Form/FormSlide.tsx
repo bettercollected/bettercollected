@@ -38,6 +38,7 @@ import YesNoField from '@app/views/molecules/ResponderFormFields/YesNoField';
 
 import SlideLayoutWrapper from '../Layout/SlideLayoutWrapper';
 
+
 export function FormFieldComponent({
     field,
     slideIndex
@@ -88,12 +89,15 @@ export function FormFieldComponent({
 
 export default function FormSlide({
     index,
+    formSlideData,
     isPreviewMode = false
 }: {
     index: number;
     isPreviewMode: boolean;
+    formSlideData?: any;
 }) {
-    const formSlide = useFormSlide(index);
+    const formSlideFromState = useFormSlide(index);
+    const formSlide = formSlideData ? formSlideData : formSlideFromState;
 
     const {
         currentSlide,
@@ -109,10 +113,6 @@ export default function FormSlide({
     const [submitResponse, { isLoading }] = useSubmitResponseMutation();
     const { files } = useFormAtom();
     const { authState } = useAuthAtom();
-
-    const handleFieldChange = (newCurrentField: number) => {
-        setCurrentField(newCurrentField);
-    };
 
     const onScroll = useCallback(
         (direction: number) => {
@@ -182,7 +182,7 @@ export default function FormSlide({
             }
         } else {
             const firstInvalidField = formSlide?.properties?.fields?.find(
-                (field) => Object.keys(invalidations)[0] === field.id
+                (field: FormField) => Object.keys(invalidations)[0] === field.id
             );
             setCurrentField(firstInvalidField!.index);
         }
@@ -258,46 +258,52 @@ export default function FormSlide({
                                 'grid h-full w-full max-w-[800px] grid-cols-1 content-center items-center justify-center overflow-hidden px-4 py-20 lg:px-20'
                             )}
                         >
-                            {formSlide?.properties?.fields?.map((field, index) => (
-                                <motion.div
-                                    onClick={() => handleClickField(index, field.id)}
-                                    key={field.id}
-                                    initial={{ opacity: 0, y: 0 }}
-                                    animate={{
-                                        opacity: currentField === index ? 1 : 0.4,
-                                        y: currentField === index ? 0 : -10
-                                    }}
-                                    transition={{
-                                        type: 'tween',
-                                        stiffness: 260,
-                                        ease: 'easeInOut',
-                                        damping: 20,
-                                        duration: 0.5
-                                    }}
-                                    className={cn('relative my-3 cursor-pointer')}
-                                >
-                                    <div
-                                        id={field.id}
-                                        className={cn(
-                                            'my-5 transition-all duration-500 ease-linear',
-                                            currentField === index
-                                                ? 'min-h-fit opacity-100'
-                                                : currentField - 1 === index
-                                                  ? ' my-0 h-[120px] overflow-hidden opacity-40'
-                                                  : currentField + 1 === index
-                                                    ? 'my-0 h-[120px] overflow-hidden opacity-40'
-                                                    : ' my-0 h-0 overflow-hidden opacity-0 '
-                                        )}
+                            {formSlide?.properties?.fields?.map(
+                                (field: FormField, index: number) => (
+                                    <motion.div
+                                        onClick={() =>
+                                            handleClickField(index, field.id)
+                                        }
+                                        key={field.id}
+                                        initial={{ opacity: 0, y: 0 }}
+                                        animate={{
+                                            opacity: currentField === index ? 1 : 0.4,
+                                            y: currentField === index ? 0 : -10
+                                        }}
+                                        transition={{
+                                            type: 'tween',
+                                            stiffness: 260,
+                                            ease: 'easeInOut',
+                                            damping: 20,
+                                            duration: 0.5
+                                        }}
+                                        className={cn('relative my-3 cursor-pointer')}
                                     >
-                                        <FormFieldComponent
-                                            field={
-                                                formSlide!.properties!.fields![index]
-                                            }
-                                            slideIndex={formSlide!.index}
-                                        />
-                                    </div>
-                                </motion.div>
-                            ))}
+                                        <div
+                                            id={field.id}
+                                            className={cn(
+                                                'my-5 transition-all duration-500 ease-linear',
+                                                currentField === index
+                                                    ? 'min-h-fit opacity-100'
+                                                    : currentField - 1 === index
+                                                      ? ' my-0 h-[120px] overflow-hidden opacity-40'
+                                                      : currentField + 1 === index
+                                                        ? 'my-0 h-[120px] overflow-hidden opacity-40'
+                                                        : ' my-0 h-0 overflow-hidden opacity-0 '
+                                            )}
+                                        >
+                                            <FormFieldComponent
+                                                field={
+                                                    formSlide!.properties!.fields![
+                                                        index
+                                                    ]
+                                                }
+                                                slideIndex={formSlide!.index}
+                                            />
+                                        </div>
+                                    </motion.div>
+                                )
+                            )}
 
                             {(!formSlide?.properties?.fields?.length ||
                                 currentField + 1 ===
