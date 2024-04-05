@@ -111,7 +111,7 @@ export default function useFormFieldsAtom() {
 
     const addField = (slideField: FormField, slideIndex: number) => {
         const slide = formFields[slideIndex];
-        slide.properties?.fields!.push(slideField);
+        slide?.properties?.fields!.push(slideField);
         const updatedSlides = [...formFields];
         setFormFields(updatedSlides);
     };
@@ -337,6 +337,61 @@ export default function useFormFieldsAtom() {
         setFormFields([]);
     };
 
+    const getNewField = (
+        field: { name: string; type: FieldTypes; icon: any },
+        fieldId: string,
+        slideIndex: number
+    ) => {
+        const fieldIndex = formFields[slideIndex]?.properties?.fields?.length
+            ? formFields[slideIndex]?.properties?.fields?.length!
+            : 0;
+        if (
+            field.type === FieldTypes.YES_NO ||
+            field.type === FieldTypes.DROP_DOWN ||
+            field.type === FieldTypes.MULTIPLE_CHOICE
+        ) {
+            const firstChoiceId = v4();
+            const secondChoiceId = v4();
+            return {
+                id: fieldId,
+                index: fieldIndex,
+                type: field.type,
+                properties: {
+                    fields: [],
+                    choices: [
+                        {
+                            id: firstChoiceId,
+                            value: field.type === FieldTypes.YES_NO ? 'Yes' : ''
+                        },
+                        {
+                            id: secondChoiceId,
+                            value: field.type === FieldTypes.YES_NO ? 'No' : ''
+                        }
+                    ]
+                }
+            };
+        } else if (
+            field.type === FieldTypes.RATING ||
+            field.type === FieldTypes.LINEAR_RATING
+        ) {
+            return {
+                id: fieldId,
+                index: fieldIndex,
+                type: field.type,
+                properties: {
+                    fields: [],
+                    steps: field.type === FieldTypes.RATING ? 5 : 10
+                }
+            };
+        } else {
+            return {
+                id: fieldId,
+                index: fieldIndex,
+                type: field.type
+            };
+        }
+    };
+
     return {
         formFields,
         setFormFields,
@@ -363,6 +418,7 @@ export default function useFormFieldsAtom() {
         deleteActiveSlide,
         resetFields,
         addMedia,
+        getNewField,
         addSlideFormTemplate
     };
 }
