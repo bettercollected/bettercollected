@@ -1,6 +1,10 @@
 import React from 'react';
 
+
+
 import { v4 } from 'uuid';
+
+
 
 import { FieldTypes } from '@app/models/dtos/form';
 import { FormSlideLayout } from '@app/models/enums/form';
@@ -12,6 +16,7 @@ import SlideLayoutLeftImage from '@app/views/atoms/Icons/SlideLayoutLeftImage';
 import SlideLayoutNoImage from '@app/views/atoms/Icons/SlideLayoutNoImage';
 import { SlideLayoutNoImageLeftAlign } from '@app/views/atoms/Icons/SlideLayoutNoImageLeftAlign';
 import SlideLayoutRightImage from '@app/views/atoms/Icons/SlideLayoutRightImage';
+
 
 const Layout = (props: {
     Icon: any;
@@ -53,7 +58,8 @@ export default function LayoutsTab({ closePopover }: { closePopover: () => void 
         window.setTimeout(function () {
             const element = document.getElementById(fieldId);
             element?.scrollIntoView({
-                behavior: 'smooth'
+                behavior: 'smooth',
+                block: 'end'
             });
         }, 500);
         closePopover();
