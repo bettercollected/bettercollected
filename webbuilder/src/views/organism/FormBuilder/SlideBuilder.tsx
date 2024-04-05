@@ -11,7 +11,6 @@ import { StrictModeDroppable } from '@app/shared/hocs/StrictModeDroppable';
 import { useActiveFieldComponent } from '@app/store/jotai/activeBuilderComponent';
 import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
 import { useFormState } from '@app/store/jotai/form';
-import RequiredIcon from '@app/views/atoms/Icons/Required';
 
 import DeleteIcon from '../../atoms/Icons/Delete';
 import { RichTextEditor } from '../../molecules/RichTextEditor';

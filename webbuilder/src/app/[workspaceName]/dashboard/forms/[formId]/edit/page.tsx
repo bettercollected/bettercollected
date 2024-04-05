@@ -67,7 +67,7 @@ export default function FormPage({ params }: { params: { formId: string } }) {
         var clickedElement = event.target as HTMLDivElement;
 
         if (!divA?.contains(clickedElement)) {
-            setNavbarState({ insertClicked: false });
+            setNavbarState({ ...navbarState, insertClicked: false });
         }
     }
 
