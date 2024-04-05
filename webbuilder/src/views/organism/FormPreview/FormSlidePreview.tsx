@@ -16,8 +16,6 @@ export default function FormSlidePreview({
     const { standardForm } = useStandardForm();
 
     const slideTheme = theme ? theme : standardForm.theme;
-    console.log(slide);
-
     return (
         <SlideLayoutWrapper slide={slide} theme={slideTheme} disabled>
             <div className="relative my-10 flex h-full max-w-[800px] flex-1 flex-col items-start justify-center gap-20 px-5 lg:my-20 lg:px-20">
