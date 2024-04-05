@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 
-import { useSearchParams } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
 import { motion } from 'framer-motion';
 
@@ -31,6 +31,9 @@ export default function FormPage({ params }: { params: { formId: string } }) {
     const { activeSlideComponent } = useActiveSlideComponent();
 
     const { setActiveFieldComponent } = useActiveFieldComponent();
+
+    const pathname = usePathname();
+    const router = useRouter();
 
     const { navbarState, setNavbarState } = useNavbarState();
 
