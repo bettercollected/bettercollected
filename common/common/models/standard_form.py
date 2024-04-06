@@ -414,6 +414,7 @@ class StandardForm(BaseModel):
     cover_image: Optional[str]
     description: Optional[str]
     button_text: Optional[str]
+    is_multi_page: Optional[bool]
     fields: Optional[List[StandardFormField]]
     consent: Optional[List[Consent]]
     state: Optional[State] = Field(State())
