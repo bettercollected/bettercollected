@@ -5,10 +5,10 @@ import React from 'react';
 import { useRouter } from 'next/navigation';
 
 import cn from 'classnames';
-import { ChevronLeft, Download, Plus, Sparkles } from 'lucide-react';
+import { Download, Plus, Sparkles } from 'lucide-react';
 
-import environments from '@app/configs/environments';
 import { defaultForm } from '@app/constants/form';
+import { Sheet, SheetContent, SheetTrigger } from '@app/shadcn/components/ui/sheet';
 import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
 import useWorkspace from '@app/store/jotai/workspace';
 import { useCreateV2FormMutation } from '@app/store/redux/formApi';
@@ -16,10 +16,10 @@ import {
     useCreateFormFromTemplateMutation,
     useGetTemplatesQuery
 } from '@app/store/redux/templateApi';
-import BetterCollectedSmallLogo from '@app/views/atoms/Icons/BetterCollectedSmallLogo';
+import FormTypeSelectionComponent from '@app/views/molecules/FormBuilder/FormTypeSelectionComponent';
+import NavBar from '@app/views/molecules/FormBuilder/Navbar';
 import WelcomePage from '@app/views/organism/Form/WelcomePage';
 import LayoutWrapper from '@app/views/organism/Layout/LayoutWrapper';
-
 
 const CardVariants = {
     blue: 'text-blue-500 hover:bg-blue-100 hover:border-blue-100',
@@ -37,9 +37,10 @@ export default function CreateFormPage() {
 
     const [createFormFrmTemplate] = useCreateFormFromTemplateMutation();
 
-    const handleCreateForm = async () => {
+    const handleCreateForm = async (type: string) => {
+        const isMultiPage = type === 'Modern Form';
         resetFields();
-        const formBody = { ...defaultForm, builderVersion: 'v2' };
+        const formBody = { ...defaultForm, builderVersion: 'v2', isMultiPage };
         const formData = new FormData();
         formData.append('form_body', JSON.stringify(formBody));
         const apiRequestBody: any = { workspaceId: workspace.id, body: formData };
@@ -62,43 +63,33 @@ export default function CreateFormPage() {
 
     return (
         <div className="min-h-screen bg-white">
-            <div
-                id="navbar"
-                className="flex h-16 w-full items-center justify-start border-b-[1px] border-b-black-300 !bg-white p-4"
-            >
-                <div className={'mr-4 cursor-pointer rounded-lg px-4 py-[6px] shadow'}>
-                    <BetterCollectedSmallLogo
-                        onClick={() => {
-                            router.push(
-                                environments.NEXT_PUBLIC_HTTP_SCHEME +
-                                    '://' +
-                                    environments.NEXT_PUBLIC_DASHBOARD_DOMAIN +
-                                    '/' +
-                                    workspace.workspaceName +
-                                    '/dashboard'
-                            );
-                        }}
-                    />
-                </div>
-                <div
-                    className="flex cursor-pointer gap-2 text-black-700"
-                    onClick={() => {
-                        router.back();
-                    }}
-                >
-                    <ChevronLeft />
-                    Back
-                </div>
-            </div>
+            <NavBar />
             <div className="m-auto flex max-w-[1200px] flex-col px-5 md:px-10">
                 <div className="h3-new mb-4 mt-6 text-black-800">New Form</div>
                 <div className="flex flex-wrap gap-6">
-                    <Card
-                        variant={'blue'}
-                        icon={<Plus size={24} className="text-blue-500" />}
-                        content={'Create New Form'}
-                        onClick={handleCreateForm}
-                    />
+                    <Sheet>
+                        <SheetTrigger asChild>
+                            <Card
+                                variant={'blue'}
+                                icon={<Plus size={24} className="text-blue-500" />}
+                                content={'Create New Form'}
+                                onClick={() => {}}
+                            />
+                        </SheetTrigger>
+                        <SheetContent
+                            className=" h-full w-full p-0 shadow-v2 drop-shadow-2xl"
+                            side={'top'}
+                            hideCloseIcon
+                        >
+                            <div className="h-full w-full bg-white ">
+                                <NavBar isModal />
+                                <FormTypeSelectionComponent
+                                    handleCreateForm={handleCreateForm}
+                                />
+                            </div>
+                        </SheetContent>
+                    </Sheet>
+
                     <Card
                         variant={'orange'}
                         icon={<Download size={24} className="text-orange-500" />}

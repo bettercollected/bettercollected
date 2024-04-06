@@ -23,7 +23,6 @@ import ThankYouSlide from '@app/views/organism/FormBuilder/ThankYouPage';
 import WelcomeSlide from '@app/views/organism/FormBuilder/WelcomePage';
 import Navbar from '@app/views/organism/Navbar';
 
-
 export default function FormPage({ params }: { params: { formId: string } }) {
     const { formFields, setFormFields } = useFormFieldsAtom();
     const { setFormState, formState } = useFormState();
@@ -62,6 +61,10 @@ export default function FormPage({ params }: { params: { formId: string } }) {
                 setFormState({ ...formState, ...standardForm });
             }
             setFormFields(standardForm?.fields || []);
+            setNavbarState({
+                ...navbarState,
+                multiplePages: !!standardForm.isMultiPage
+            });
         }
     }, [standardForm.formId]);
 

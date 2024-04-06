@@ -287,7 +287,7 @@ export default function LeftDrawer({}: {}) {
                                     Multi-Page Form
                                 </h1>
                                 <span className="text-xs text-black-600">
-                                    Whenever your insert elements add new page
+                                    Whenever your insert elements add in new page
                                 </span>
                             </div>
                         </div>

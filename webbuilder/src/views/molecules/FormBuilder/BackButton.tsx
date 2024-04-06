@@ -20,7 +20,7 @@ export default function BackButton({
             onClick={handleBackClick}
         >
             <Back />
-            <span className="text-sm font-normal">Back</span>
+            <span className=" font-normal">Back</span>
         </div>
     );
 }
