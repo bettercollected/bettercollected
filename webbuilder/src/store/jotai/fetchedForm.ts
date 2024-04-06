@@ -12,6 +12,7 @@ export default interface StandardForm {
     thankYouButtonText?: string;
     buttonText?: string;
     buttonLink?: string;
+    isMultiPage?:boolean;
     welcomePage?: {
         title?: string;
         description?: string;

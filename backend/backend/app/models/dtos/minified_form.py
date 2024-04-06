@@ -32,6 +32,7 @@ class FormDtoCamelModel(CamelModel):
     button_text: Optional[str]
     settings: Optional[WorkspaceFormSettingsCamelModal]
     is_published: Optional[bool]
+    is_multi_page: Optional[bool]
     created_at: Optional[dt.datetime]
     published_at: Optional[dt.datetime]
     consent: Optional[List[ConsentCamelModel]]
