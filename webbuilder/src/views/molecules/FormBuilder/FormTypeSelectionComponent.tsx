@@ -42,7 +42,13 @@ const FormTypeSelectionComponent = ({
             </div>
             <div className="flex flex-row gap-12">
                 {FormTypes.map((item: IFormTypes) => {
-                    return <FormTypeCard item={item} handleClick={handleCreateForm} />;
+                    return (
+                        <FormTypeCard
+                            key={item.type}
+                            item={item}
+                            handleClick={handleCreateForm}
+                        />
+                    );
                 })}
             </div>
         </div>
@@ -63,10 +69,7 @@ const FormTypeCard = ({
             onClick={() => handleClick(item.type)}
             className="flex w-[375px] cursor-pointer flex-col rounded-2xl border border-black-200 hover:scale-[1.01]"
         >
-            <div
-                className=" rounded-t-2xl p-4"
-                style={{ background: item.theme }}
-            >
+            <div className=" rounded-t-2xl p-4" style={{ background: item.theme }}>
                 <div
                     className="w-fit rounded-3xl bg-white px-2 py-1"
                     style={{ color: item.theme }}
