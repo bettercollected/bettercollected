@@ -38,7 +38,7 @@ const GenerateQRModalView = ({form}: IGenerateQR) => {
         const onDownload = async () => {
             try {
                 const canvasElement = document.getElementById("form-qr-code");
-                const canvas = canvasElement && await html2canvas(canvasElement);
+                const canvas = canvasElement && (await html2canvas(canvasElement));
                 const dataUrl = canvas && canvas.toDataURL('image/png');
                 const link = document.createElement('a');
                 link.href = dataUrl || '';
@@ -57,7 +57,7 @@ const GenerateQRModalView = ({form}: IGenerateQR) => {
         const handleCopyImageToClipboard = async () => {
                 try {
                     const canvasElement = document.getElementById("form-qr-code");
-                    const canvas = canvasElement && await html2canvas(canvasElement);
+                    const canvas = canvasElement && (await html2canvas(canvasElement));
                     canvas && canvas.toBlob((blob) => {
                         if (blob) {
                             const item = new ClipboardItem({'image/png': blob});

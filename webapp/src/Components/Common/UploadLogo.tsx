@@ -1,7 +1,7 @@
 import React, { useRef, useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
-import Image from 'next/image';
+import Image from "next/legacy/image";
 
 import AppButton from '@Components/Common/Input/Button/AppButton';
 import cn from 'classnames';

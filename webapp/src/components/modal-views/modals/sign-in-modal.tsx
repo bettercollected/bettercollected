@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
-import Image from 'next/image';
+import Image from "next/legacy/image";
 
 import OtpCodeComponent from '@Components/Login/otp-code-component';
 import OtpEmailInput from '@Components/Login/otp-email-input';
