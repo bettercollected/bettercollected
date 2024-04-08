@@ -12,7 +12,7 @@ export default function FourOhFour() {
                 <span className="h4-new text-black-800">Page Not Found</span>
                 <span className="p2-new text-black-700 text-center">We’re sorry, we couldn’t find the page.</span>
             </div>
-            <Link href="/">
+            <Link href="/" legacyBehavior>
                 <AppButton variant={ButtonVariant.Tertiary}>Go back home</AppButton>
             </Link>
         </HeaderImageWrapper>
