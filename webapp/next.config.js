@@ -37,7 +37,7 @@ const nextConfig = {
     compress: true,
     distDir: process.env.NODE_ENV === 'development' ? '.next-dev' : '.next',
     reactStrictMode: true,
-    swcMinify: false,
+    swcMinify: true,
     i18n,
     optimizeFonts: true,
     compiler: {

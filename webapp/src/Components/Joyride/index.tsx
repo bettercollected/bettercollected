@@ -38,64 +38,91 @@ export interface IJoyrideProps {
 }
 
 export default function Joyride({
-    steps,
-    id,
-    placement = 'bottom-end',
-    floaterProps = { styles: { arrow: { length: 10, spread: 10 } } },
-    continuous = true,
-    showProgress = true,
-    spotlightClicks = true,
-    showSkipButton = true,
-    showCloseButton = true,
-    scrollToFirstStep = false,
-    firstStepClicked = false,
-    hideBackButton = false,
-    disableOverlay = false,
-    disableCloseOnEsc = false,
-    disableOverlayClose = false,
-    hideCloseButton = false,
-    scrollOffset = 68,
-    styles = {
-        tooltip: {
-            borderRadius: 4,
-            willChange: 'auto'
-        },
-        tooltipTitle: {
-            textAlign: 'start'
-        },
-        tooltipContent: {
-            padding: '16px 0 0 0',
-            textAlign: 'start'
-        },
-        buttonSkip: {
-            paddingLeft: 0,
-            paddingRight: 0,
-            borderRadius: 4
-        },
-        buttonBack: {
-            color: '#495057',
-            borderRadius: 4
-        },
-        buttonClose: {
-            color: '#495057',
-            borderRadius: 4
-        },
-        buttonNext: {
-            backgroundColor: '#0764EB',
-            borderRadius: 4
-        },
-        overlay: {
-            backgroundColor: 'rgba(0, 0, 0, 0.3)'
-        },
-        beacon: {
-            zIndex: 2100
-        },
-        options: {
-            beaconSize: 20,
-            zIndex: 2200
-        }
-    }
-}: IJoyrideProps) {
+                                    steps,
+                                    id,
+                                    placement = 'bottom-end',
+                                    floaterProps = { styles: { arrow: { length: 10, spread: 10 } } },
+                                    continuous = true,
+                                    showProgress = true,
+                                    spotlightClicks = true,
+                                    showSkipButton = true,
+                                    showCloseButton = true,
+                                    scrollToFirstStep = false,
+                                    firstStepClicked = false,
+                                    hideBackButton = false,
+                                    disableOverlay = false,
+                                    disableCloseOnEsc = false,
+                                    disableOverlayClose = false,
+                                    hideCloseButton = false,
+                                    scrollOffset = 68,
+                                    styles = {
+                                        tooltip: {
+                                            borderRadius: 4,
+                                            willChange: 'auto'
+                                        },
+                                        tooltipTitle: {
+                                            textAlign: 'start'
+                                        },
+                                        tooltipContent: {
+                                            padding: '16px 0 0 0',
+                                            textAlign: 'start'
+                                        },
+                                        buttonSkip: {
+                                            paddingLeft: 0,
+                                            paddingRight: 0,
+                                            borderRadius: 4
+                                        },
+                                        buttonBack: {
+                                            color: '#495057',
+                                            borderRadius: 4
+                                        },
+                                        buttonClose: {
+                                            color: '#495057',
+                                            borderRadius: 4
+                                        },
+                                        buttonNext: {
+                                            backgroundColor: '#0764EB',
+                                            borderRadius: 4
+                                        },
+                                        overlay: {
+                                            backgroundColor: 'rgba(0, 0, 0, 0.3)'
+                                        },
+                                        beacon: {
+                                            zIndex: 2100
+                                        },
+                                        options: {
+                                            beaconSize: 20,
+                                            zIndex: 2200
+                                        },
+                                        beaconInner: {
+                                            height: '100%'
+                                        },
+                                        beaconOuter: {
+                                            height: '100%'
+                                        },
+                                        overlayLegacy: {
+                                            height: '100%'
+                                        },
+                                        overlayLegacyCenter: {
+                                            height: '100%'
+                                        },
+                                        spotlight: {
+                                            height: '100%'
+                                        },
+                                        spotlightLegacy: {
+                                            height: '100%'
+                                        },
+                                        tooltipContainer: {
+                                            height: '100%'
+                                        },
+                                        tooltipFooter: {
+                                            height: '100%'
+                                        },
+                                        tooltipFooterSpacer: {
+                                            height: '100%'
+                                        }
+                                    }
+                                }: IJoyrideProps) {
     //@ts-ignore
     const dispatch = useAppDispatch();
     const reduxState = useAppSelector((state) => state.joyride.joyrides[id]);
@@ -138,7 +165,8 @@ export default function Joyride({
             });
         }
 
-        return () => {};
+        return () => {
+        };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [firstStepClicked]);
 
@@ -170,6 +198,7 @@ export default function Joyride({
     if (showCloseButton) floaterProps.showCloseButton = true;
 
     return (
+    // @ts-ignore
         <JR
             run={run}
             scrollToFirstStep={scrollToFirstStep}
