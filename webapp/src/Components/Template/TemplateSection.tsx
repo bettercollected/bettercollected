@@ -42,7 +42,9 @@ const TemplateSection = ({ templates, title = '', className, showButtons = true 
                         {title === '' ? (
                             <></>
                         ) : isPredefinedTemplate ? (
-                            <Link href={`/${workspace.workspaceName}/dashboard/templates/all`}>
+                            <Link
+                                href={`/${workspace.workspaceName}/dashboard/templates/all`}
+                                legacyBehavior>
                                 <div className={'flex flex-row gap-2 items-center text-blue-500 cursor-pointer'}>
                                     <VisibilityOutlinedIcon />
                                     <p className={'text-sm font-medium text-blue-500'}>{t('TEMPLATE.SHOW_ALL')}</p>
