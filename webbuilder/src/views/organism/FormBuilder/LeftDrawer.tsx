@@ -103,36 +103,38 @@ function LeftDrawer({
                     <AddSlidePopover />
                 </div>
                 <div className=" flex flex-1 flex-col justify-between overflow-auto">
-                    <div className="border-b border-b-black-400 !px-2">
+                    <div className="overflow-hidden border-b border-b-black-400 !px-2">
                         <div
                             className={cn(
-                                'mb-6 h-32 rounded-lg border border-transparent px-2 pb-2 pt-1',
+                                'mb-6 flex h-[46px] cursor-pointer flex-row-reverse items-center justify-around rounded-lg border border-transparent px-2',
                                 activeSlideComponent?.id === 'welcome-page' &&
                                     'border-pink-500'
                             )}
+                            onClick={() => {
+                                setActiveSlideComponent({
+                                    id: 'welcome-page',
+                                    index: -10
+                                });
+                            }}
                         >
-                            <div className=" mb-1 !text-[10px] font-medium text-black-700">
+                            <div className=" mb-1 !text-[10px] font-medium text-black-900">
                                 Welcome Screen
                             </div>
-                            <div
-                                className={cn(
-                                    'flex !aspect-video cursor-pointer items-center justify-center overflow-auto rounded-lg bg-white shadow-slide'
-                                )}
-                                onClick={() => {
-                                    setActiveSlideComponent({
-                                        id: 'welcome-page',
-                                        index: -10
-                                    });
-                                }}
-                                style={{
-                                    height: '1080px',
-                                    width: '1920px',
-                                    transformOrigin: 'top left',
-                                    scale: 0.086
-                                }}
-                            >
-                                <div className="pointer-events-none h-full w-full">
-                                    <WelcomeSlide disabled />
+                            <div className="h-[30px] w-[54px] overflow-hidden rounded-lg">
+                                <div
+                                    className={cn(
+                                        'flex !aspect-video flex-1 cursor-pointer items-center justify-center overflow-hidden rounded-lg bg-white shadow-slide'
+                                    )}
+                                    style={{
+                                        height: '1080px',
+                                        width: '1920px',
+                                        transformOrigin: 'top left',
+                                        scale: 0.02815
+                                    }}
+                                >
+                                    <div className="pointer-events-none h-full w-full">
+                                        <WelcomeSlide disabled />
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -202,33 +204,35 @@ function LeftDrawer({
                     <div className="border-t border-t-black-400 px-2 pt-4">
                         <div
                             className={cn(
-                                ' mb-3 h-32 rounded-lg border border-transparent px-2 pb-2 pt-1',
+                                'mb-6 flex h-[46px] cursor-pointer flex-row-reverse items-center justify-around rounded-lg border border-transparent px-2',
                                 activeSlideComponent?.id === 'thank-you-page' &&
                                     'border-pink-500'
                             )}
+                            onClick={() => {
+                                setActiveSlideComponent({
+                                    id: 'thank-you-page',
+                                    index: -20
+                                });
+                            }}
                         >
-                            <div className="mb-1 text-[10px] font-medium text-black-700">
-                                End Screen
+                            <div className=" mb-1 !text-[10px] font-medium text-black-900">
+                                Thankyou Page
                             </div>
-                            <div
-                                className={cn(
-                                    ' relative flex !aspect-video cursor-pointer items-center justify-center overflow-clip rounded-lg border bg-white'
-                                )}
-                                onClick={() => {
-                                    setActiveSlideComponent({
-                                        id: 'thank-you-page',
-                                        index: -20
-                                    });
-                                }}
-                                style={{
-                                    height: '1080px',
-                                    width: '1920px',
-                                    transformOrigin: 'top left',
-                                    scale: 0.086
-                                }}
-                            >
-                                <div className="pointer-events-none h-full w-full">
-                                    <ThankYouSlide disabled />
+                            <div className="h-[30px] w-[54px] overflow-hidden rounded-lg">
+                                <div
+                                    className={cn(
+                                        'flex !aspect-video flex-1 cursor-pointer items-center justify-center overflow-hidden rounded-lg bg-white shadow-slide'
+                                    )}
+                                    style={{
+                                        height: '1080px',
+                                        width: '1920px',
+                                        transformOrigin: 'top left',
+                                        scale: 0.02815
+                                    }}
+                                >
+                                    <div className="pointer-events-none h-full w-full">
+                                        <ThankYouSlide disabled />
+                                    </div>
                                 </div>
                             </div>
                         </div>
