@@ -37,7 +37,7 @@ export const FontSize = Extension.create<FontSizeOptions>({
                 attributes: {
                     fontSize: {
                         default: {
-                            style: `font-size: 16px; font-weight:600`
+                            style: `font-size: 16px; font-weight:600; line-height:24px`
                         },
                         parseHTML: (element) =>
                             element.style.fontSize.replace(/['"]+/g, ''),
@@ -47,7 +47,7 @@ export const FontSize = Extension.create<FontSizeOptions>({
                             }
 
                             return {
-                                style: `font-size: ${attributes.fontSize}${attributes.fontSize.includes('px') ? '' : 'px'}`
+                                style: `font-size: ${attributes.fontSize}${attributes.fontSize.includes('px') ? '' : 'px'}; line-height: calc(1.5 * ${attributes.fontSize}${attributes.fontSize.includes('px') ? '' : 'px'})`
                             };
                         }
                     }

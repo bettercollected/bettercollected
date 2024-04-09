@@ -199,13 +199,6 @@ const SlideBuilder = ({
                                                                                     ?.required
                                                                             }
                                                                         />
-                                                                        {/* {field
-                                                                            ?.validations
-                                                                            ?.required && (
-                                                                            <div className="absolute -right-6 top-0 text-black-900">
-                                                                                <RequiredIcon />
-                                                                            </div>
-                                                                        )} */}
                                                                     </div>
                                                                     <FieldDescription
                                                                         field={field}

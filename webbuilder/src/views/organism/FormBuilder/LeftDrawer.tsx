@@ -25,7 +25,7 @@ import SlideOptions from './SlideOptions';
 import ThankYouSlide from './ThankYouPage';
 import WelcomeSlide from './WelcomePage';
 
-function LeftDrawerComponent({
+function LeftDrawer({
     formFields,
     activeSlideComponent
 }: {
@@ -305,12 +305,5 @@ function LeftDrawerComponent({
         </>
     );
 }
-
-const LeftDrawer = memo(LeftDrawerComponent, (prevProps, nextProps) => {
-    return (
-        prevProps.formFields.length === nextProps.formFields.length &&
-        prevProps.activeSlideComponent.id === nextProps.activeSlideComponent.id
-    );
-});
 
 export default LeftDrawer;
