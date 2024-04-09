@@ -2,6 +2,7 @@ import cn from 'classnames';
 import styled from 'styled-components';
 
 import { FormSlideLayout } from '@app/models/enums/form';
+import { AutosizeTextarea } from '@app/shadcn/components/ui/autosize-textarea';
 import { Button } from '@app/shadcn/components/ui/button';
 import { useFormState } from '@app/store/jotai/form';
 
@@ -39,13 +40,16 @@ const WelcomeSlide = ({ disabled }: { disabled?: boolean }) => {
                     />
                     {formState?.welcomePage?.description !== undefined &&
                     formState?.welcomePage?.description !== null ? (
-                        <StyledInputField
-                            type="text"
-                            placeholder="Add description"
-                            value={formState?.welcomePage?.description || ''}
-                            className="border-0 px-0 py-0 text-base"
-                            onChange={(e: any) => setFormDescription(e.target.value)}
-                        />
+                        <>
+                            <AutosizeTextarea
+                                placeholder="Add description"
+                                value={formState?.welcomePage?.description || ''}
+                                className="ring-none w-full border-0 px-0 text-base text-black-600 outline-none"
+                                onChange={(e: any) =>
+                                    setFormDescription(e.target.value)
+                                }
+                            />
+                        </>
                     ) : (
                         <></>
                     )}
