@@ -1,11 +1,13 @@
-import { ReactNode } from 'react';
+import { ReactNode, memo } from 'react';
+
+import { Fascinate } from 'next/font/google';
 
 import { AnimatePresence, motion } from 'framer-motion';
 import { toast } from 'react-toastify';
 import { v4 } from 'uuid';
 
 import { formFieldsList } from '@app/constants/form-fields';
-import { FieldTypes } from '@app/models/dtos/form';
+import { FieldTypes, FormField } from '@app/models/dtos/form';
 import { FormSlideLayout } from '@app/models/enums/form';
 import { Checkbox } from '@app/shadcn/components/ui/checkbox';
 import { ScrollArea } from '@app/shadcn/components/ui/scroll-area';
@@ -23,10 +25,16 @@ import SlideOptions from './SlideOptions';
 import ThankYouSlide from './ThankYouPage';
 import WelcomeSlide from './WelcomePage';
 
-export default function LeftDrawer({}: {}) {
-    const { activeSlideComponent, setActiveSlideComponent } = useActiveSlideComponent();
+function LeftDrawerComponent({
+    formFields,
+    activeSlideComponent
+}: {
+    formFields: Array<FormField>;
+    activeSlideComponent: any;
+}) {
+    const { setActiveSlideComponent } = useActiveSlideComponent();
     const { setActiveFieldComponent } = useActiveFieldComponent();
-    const { formFields, addField, addSlide, getNewField } = useFormFieldsAtom();
+    const { addField, addSlide, getNewField } = useFormFieldsAtom();
     const Slides = formFields;
     const { navbarState, setNavbarState } = useNavbarState();
     const fieldId = v4();
@@ -239,7 +247,7 @@ export default function LeftDrawer({}: {}) {
                         className="absolute z-10"
                     >
                         <ScrollArea className="h-body-content w-[240px] overflow-y-auto overflow-x-hidden border-r border-r-black-300 bg-white ">
-                            <div className="grid grid-cols-2">
+                            <div className="mb-24 grid grid-cols-2">
                                 {Array.isArray(formFieldsList) &&
                                     formFieldsList.length &&
                                     formFieldsList.map(
@@ -297,3 +305,12 @@ export default function LeftDrawer({}: {}) {
         </>
     );
 }
+
+const LeftDrawer = memo(LeftDrawerComponent, (prevProps, nextProps) => {
+    return (
+        prevProps.formFields.length === nextProps.formFields.length &&
+        prevProps.activeSlideComponent.id === nextProps.activeSlideComponent.id
+    );
+});
+
+export default LeftDrawer;

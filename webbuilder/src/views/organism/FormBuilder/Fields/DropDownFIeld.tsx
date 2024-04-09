@@ -73,7 +73,7 @@ const DropDownField = ({
                                         e.target.value
                                     )
                                 }
-                                className={`flex justify-between rounded-xl border p-2 px-4`}
+                                className={`flex justify-between rounded-xl border p-2 px-4 text-base`}
                             />
                         );
                     })}
