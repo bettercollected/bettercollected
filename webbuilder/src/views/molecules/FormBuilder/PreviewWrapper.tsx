@@ -20,6 +20,7 @@ const PreviewWrapper = ({
     const [isDesktopView, setIsDesktopView] = useState(true);
     const { standardForm } = useStandardForm();
     const { workspace } = useWorkspace();
+
     const mobileViewPreviewUrl = `${environments.NEXT_PUBLIC_HTTP_SCHEME}://${environments.NEXT_PUBLIC_V2_CLIENT_ENDPOINT_DOMAIN}/${workspace.workspaceName}/forms/${standardForm.formId}?isPreview=true`;
     return (
         <div className=" h-full w-full bg-white">
@@ -62,9 +63,9 @@ const PreviewWrapper = ({
                 </Button>
             </nav>
             <Separator />
-            <div className=" mx-auto h-full py-10 pb-24 drop-shadow-xl  ">
+            <div className=" mx-10 h-full py-10 pb-24 drop-shadow-xl  ">
                 {isDesktopView ? (
-                    <div className="mx-auto aspect-video max-h-full max-w-full">
+                    <div className="mx-auto aspect-video !max-h-full !max-w-full">
                         {children}
                     </div>
                 ) : (
