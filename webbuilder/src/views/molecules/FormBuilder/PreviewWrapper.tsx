@@ -16,6 +16,7 @@ const PreviewWrapper = ({
     children: React.ReactNode;
     handleResetResponderState: () => void;
 }) => {
+    const [key, setKey] = useState(1);
     const [isDesktopView, setIsDesktopView] = useState(true);
     const { standardForm } = useStandardForm();
     const { workspace } = useWorkspace();
@@ -50,7 +51,13 @@ const PreviewWrapper = ({
                         Mobile
                     </div>
                 </div>
-                <Button variant={'v2Button'} onClick={handleResetResponderState}>
+                <Button
+                    variant={'v2Button'}
+                    onClick={() => {
+                        setKey(key + 1);
+                        handleResetResponderState();
+                    }}
+                >
                     Restart
                 </Button>
             </nav>
@@ -62,6 +69,7 @@ const PreviewWrapper = ({
                     </div>
                 ) : (
                     <iframe
+                        key={key.toString()}
                         title="responder-mobile-view"
                         className="mx-auto aspect-[9/20] h-full rounded-lg drop-shadow-xl"
                         src={mobileViewPreviewUrl}
