@@ -33,9 +33,7 @@ export default function AddFormTitleModal() {
                         id: formFields?.[0]?.id,
                         index: 0
                     });
-                    setNavbarState({ ...navbarState, insertClicked: true });
-                }, 200);
-
+                }, 100);
                 closeDialogModal();
             }}
         >
