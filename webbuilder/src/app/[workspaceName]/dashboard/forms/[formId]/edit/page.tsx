@@ -141,27 +141,31 @@ export default function FormPage({ params }: { params: { formId: string } }) {
                         setActiveFieldComponent(null);
                     }}
                 >
-                    <div
-                        className="aspect-video overflow-hidden"
-                        style={scaledDivStyle}
-                    >
-                        <div className=" mx-auto h-full w-full rounded-lg  shadow-slide">
-                            {activeSlideComponent?.id &&
-                                activeSlideComponent?.index >= 0 && (
-                                    <SlideBuilder
-                                        slide={formFields[activeSlideComponent?.index]}
-                                    />
+                    <div>
+                        <div
+                            className="aspect-video overflow-hidden"
+                            style={scaledDivStyle}
+                        >
+                            <div className=" mx-auto h-full w-full rounded-lg  shadow-slide">
+                                {activeSlideComponent?.id &&
+                                    activeSlideComponent?.index >= 0 && (
+                                        <SlideBuilder
+                                            slide={
+                                                formFields[activeSlideComponent?.index]
+                                            }
+                                        />
+                                    )}
+                                {!activeSlideComponent?.id && (
+                                    <div>Add a slide to start</div>
                                 )}
-                            {!activeSlideComponent?.id && (
-                                <div>Add a slide to start</div>
-                            )}
-                            {activeSlideComponent?.id === 'welcome-page' && (
-                                <WelcomeSlide />
-                            )}
+                                {activeSlideComponent?.id === 'welcome-page' && (
+                                    <WelcomeSlide />
+                                )}
 
-                            {activeSlideComponent?.id === 'thank-you-page' && (
-                                <ThankYouSlide />
-                            )}
+                                {activeSlideComponent?.id === 'thank-you-page' && (
+                                    <ThankYouSlide />
+                                )}
+                            </div>
                         </div>
                     </div>
                 </motion.div>
