@@ -38,7 +38,6 @@ import YesNoField from '@app/views/molecules/ResponderFormFields/YesNoField';
 
 import SlideLayoutWrapper from '../Layout/SlideLayoutWrapper';
 
-
 export function FormFieldComponent({
     field,
     slideIndex
@@ -48,11 +47,8 @@ export function FormFieldComponent({
 }) {
     switch (field.type) {
         case FieldTypes.TEXT:
-            return (
-                <div className="h1-new w-full text-left text-[32px] font-bold">
-                    {parse(getHtmlFromJson(field?.title) ?? 'Add Text')}
-                </div>
-            );
+            return <QuestionWrapper field={field} />;
+
         case FieldTypes.NUMBER:
         case FieldTypes.EMAIL:
         case FieldTypes.SHORT_TEXT:
@@ -278,15 +274,15 @@ export default function FormSlide({
                                             duration: 0.5
                                         }}
                                         className={cn(
-                                        'relative my-3 cursor-pointer',
-                                        currentField === index
-                                            ? 'min-h-fit opacity-100'
-                                            : currentField - 1 === index
-                                              ? ''
-                                              : currentField + 1 === index
-                                                ? ''
-                                                : ' my-0 h-0'
-                                    )}
+                                            'relative my-3 cursor-pointer',
+                                            currentField === index
+                                                ? 'min-h-fit opacity-100'
+                                                : currentField - 1 === index
+                                                  ? ''
+                                                  : currentField + 1 === index
+                                                    ? ''
+                                                    : ' my-0 h-0'
+                                        )}
                                     >
                                         <div
                                             id={field.id}
