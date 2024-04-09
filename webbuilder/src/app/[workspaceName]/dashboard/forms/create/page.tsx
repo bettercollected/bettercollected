@@ -71,7 +71,7 @@ export default function CreateFormPage() {
                         <SheetTrigger asChild>
                             <Card
                                 variant={'blue'}
-                                icon={<Plus size={24} className="text-blue-500" />}
+                                icon={<Plus size={40} className="text-blue-500" />}
                                 content={'Create New Form'}
                                 onClick={() => {}}
                             />
@@ -92,13 +92,13 @@ export default function CreateFormPage() {
 
                     <Card
                         variant={'orange'}
-                        icon={<Download size={24} className="text-orange-500" />}
+                        icon={<Download size={40} className="text-orange-500" />}
                         content={'Import Form'}
                         onClick={() => {}}
                     />
                     <Card
                         variant={'pink'}
-                        icon={<Sparkles size={24} className="text-pink-500" />}
+                        icon={<Sparkles size={40} className="text-pink-500" />}
                         content={'Start with AI'}
                         onClick={() => {}}
                     />
@@ -125,6 +125,7 @@ export default function CreateFormPage() {
                                     >
                                         <WelcomePage
                                             isPreviewMode
+                                            theme={template?.theme}
                                             welcomePageData={template?.welcomePage}
                                         />
                                     </LayoutWrapper>
@@ -152,7 +153,7 @@ const Card = ({ icon, content, onClick, variant }: CardWrapperProps) => {
     return (
         <div
             className={cn(
-                'flex h-[117px] w-full cursor-pointer flex-col items-center justify-center rounded-md border border-black-300 bg-white sm:w-[220px]',
+                'flex h-[117px] w-full cursor-pointer flex-col items-center justify-center rounded-lg border border-black-300 bg-white sm:w-[220px]',
                 CardVariants[variant]
             )}
             onClick={onClick}

@@ -4,6 +4,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { Globe, Lock } from 'lucide-react';
 
 import environments from '@app/configs/environments';
+import { FormTheme } from '@app/constants/theme';
 import { FormSlideLayout } from '@app/models/enums/form';
 import { Button } from '@app/shadcn/components/ui/button';
 import { cn } from '@app/shadcn/util/lib';
@@ -13,14 +14,15 @@ import { useResponderState } from '@app/store/jotai/responderFormState';
 import useWorkspace from '@app/store/jotai/workspace';
 import UserAvatarDropDown from '@app/views/molecules/UserAvatarDropdown';
 
-
 export default function WelcomePage({
     isPreviewMode,
-    welcomePageData
-}: {
+    welcomePageData,
+    theme
+}: Readonly<{
     isPreviewMode: boolean;
     welcomePageData?: any;
-}) {
+    theme?: FormTheme;
+}>) {
     const { standardForm } = useStandardForm();
     const { nextSlide } = useResponderState();
     const router = useRouter();
@@ -29,7 +31,8 @@ export default function WelcomePage({
     const { authState } = useAuthAtom();
     const responderSignInUrl = `${environments.NEXT_PUBLIC_HTTP_SCHEME}://${environments.NEXT_PUBLIC_V1_CLIENT_ENDPOINT_DOMAIN}/login?type=responder&workspace_id=${workspace.id}&redirect_to=${environments.NEXT_PUBLIC_HTTP_SCHEME}://${environments.NEXT_PUBLIC_V2_CLIENT_ENDPOINT_DOMAIN}${pathname}`;
 
-    const welcomePage = welcomePageData ? welcomePageData : standardForm.welcomePage;
+    const welcomePage = welcomePageData || standardForm.welcomePage;
+    const formTheme = theme || standardForm?.theme;
 
     return (
         <div
@@ -97,7 +100,7 @@ export default function WelcomePage({
                 </div>
                 <div className="mt-6">
                     <Button
-                        style={{ background: standardForm.theme?.secondary }}
+                        style={{ background: formTheme?.secondary }}
                         className="z-10 mt-12 rounded px-8 py-3"
                         size="medium"
                         onClick={() => {

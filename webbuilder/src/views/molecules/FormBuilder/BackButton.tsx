@@ -1,5 +1,5 @@
 import { cn } from '@app/shadcn/util/lib';
-import Back from '@app/views/atoms/Icons/Back';
+import BackChevron from '@app/views/atoms/Icons/BackChevron';
 
 export default function BackButton({
     handleClick,
@@ -19,7 +19,7 @@ export default function BackButton({
             )}
             onClick={handleBackClick}
         >
-            <Back />
+            <BackChevron/>
             <span className=" font-normal">Back</span>
         </div>
     );
