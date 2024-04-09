@@ -18,7 +18,6 @@ import SlideLayoutWrapper from '../Layout/SlideLayoutWrapper';
 import FieldDescription from './Fields/FieldDescrption';
 import renderField from './Fields/renderField';
 
-
 const SlideBuilder = ({
     slide,
     isScaledDown = false,
@@ -29,8 +28,7 @@ const SlideBuilder = ({
     disabled?: boolean;
 }) => {
     const slideFields = slide?.properties?.fields;
-    const { updateTitle, updateDescription, moveFieldInASlide, deleteField } =
-        useFormFieldsAtom();
+    const { updateTitle, moveFieldInASlide, deleteField } = useFormFieldsAtom();
     const { setActiveFieldComponent, activeFieldComponent } = useActiveFieldComponent();
     const { theme } = useFormState();
 
@@ -148,7 +146,7 @@ const SlideBuilder = ({
                                                                     )}
                                                                 <div
                                                                     className={cn(
-                                                                        'absolute -left-8 -mt-3 cursor-grab text-black-500',
+                                                                        'absolute -left-8 -mt-3 cursor-grab text-black-600',
                                                                         'top-4',
                                                                         isScaledDown
                                                                             ? 'hidden'

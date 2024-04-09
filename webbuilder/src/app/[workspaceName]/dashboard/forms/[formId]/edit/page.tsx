@@ -129,7 +129,10 @@ export default function FormPage({ params }: { params: { formId: string } }) {
             <Navbar />
             <AutoSaveForm formId={formId} />
             <div className="flex max-h-body-content w-full flex-row items-center gap-10">
-                <LeftDrawer />
+                <LeftDrawer
+                    formFields={formFields}
+                    activeSlideComponent={activeSlideComponent}
+                />
                 <motion.div
                     animate={{ x: navbarState.insertClicked ? '5%' : 0 }}
                     transition={{ ease: 'easeInOut' }}
