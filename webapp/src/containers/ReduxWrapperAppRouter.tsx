@@ -1,3 +1,6 @@
+'use client';
+
+import BaseModalContainer from '@Components/Modals/Containers/BaseModalContainer';
 import { persistor, store } from '@app/store/store';
 import FullScreenLoader from '@app/views/atoms/Loaders/FullScreenLoader';
 import { Provider } from 'react-redux';
@@ -7,6 +10,7 @@ export default function ReduxWrapperAppRouter({ children }: any) {
     return (
         <Provider store={store}>
             <PersistGate loading={<FullScreenLoader />} persistor={persistor}>
+                <BaseModalContainer />
                 {children}
             </PersistGate>
         </Provider>
