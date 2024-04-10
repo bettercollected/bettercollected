@@ -24,6 +24,7 @@ from common.models.standard_form import Theme
 class FormDtoCamelModel(CamelModel):
     builder_version: Optional[str]
     form_id: Optional[str]
+    imported_form_id: Optional[str]
     logo: Optional[str]
     cover_image: Optional[str]
     title: Optional[str]
