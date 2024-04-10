@@ -52,6 +52,7 @@ export function FormFieldComponent({
         case FieldTypes.NUMBER:
         case FieldTypes.EMAIL:
         case FieldTypes.SHORT_TEXT:
+        case FieldTypes.LONG_TEXT:
         case FieldTypes.LINK:
             return <InputField field={field} />;
         case FieldTypes.MULTIPLE_CHOICE:
@@ -78,6 +79,8 @@ export function FormFieldComponent({
             return <DateField field={field} />;
         case FieldTypes.LINEAR_RATING:
             return <LinearRatingField field={field} />;
+        case FieldTypes.MATRIX:
+            return;
         default:
             return <QuestionWrapper field={field} />;
     }
