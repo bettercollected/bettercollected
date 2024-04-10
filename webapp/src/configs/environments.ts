@@ -21,7 +21,7 @@ const environments = {
     CLIENT_DOMAIN: publicRuntimeConfig.CLIENT_DOMAIN || 'localhost:3001',
     ADMIN_DOMAIN: publicRuntimeConfig.ADMIN_DOMAIN || 'localhost:3000',
     // api host configs
-    API_ENDPOINT_HOST: publicRuntimeConfig.API_ENDPOINT_HOST || process.env.API_ENDPOINT_HOST,
+    API_ENDPOINT_HOST: publicRuntimeConfig.API_ENDPOINT_HOST || process.env.API_ENDPOINT_HOST || 'https://bettercollected.io/api/v1',
     INTERNAL_DOCKER_API_ENDPOINT_HOST: serverRuntimeConfig.INTERNAL_DOCKER_API_ENDPOINT_HOST,
 
     METATAG_TITLE: publicRuntimeConfig.METATAG_TITLE,
@@ -30,7 +30,7 @@ const environments = {
     PRIVACY_POLICY_URL: publicRuntimeConfig.PRIVACY_POLICY_URL || 'https://bettercollected.com/privacy-policy',
     TERMS_OF_SERVICE_URL: publicRuntimeConfig.TERMS_OF_SERVICE_URL || 'https://bettercollected.com/terms-of-service',
 
-    // run-time configg
+    // run-time config
     GA_MEASUREMENT_ID: publicRuntimeConfig.GA_MEASUREMENT_ID,
     MICROSOFT_CLARITY_TRACKING_CODE: publicRuntimeConfig.MICROSOFT_CLARITY_TRACKING_CODE,
     SENTRY_DSN: publicRuntimeConfig.SENTRY_DSN,
@@ -90,9 +90,25 @@ const environments = {
     // Enable Price Suggestion
     ENABLE_SUGGEST_PRICE: publicRuntimeConfig.ENABLE_SUGGEST_PRICE && (publicRuntimeConfig.ENABLE_SUGGEST_PRICE === 'true' || publicRuntimeConfig.ENABLE_SUGGEST_PRICE === true),
 
-
     IS_REDUX_LOGGER_DISABLED: true,
     AUTH_ENABLED: true,
+
+    ///Form Webbuilder
+    NEXT_PUBLIC_API_ENDPOINT_HOST: process.env.NEXT_PUBLIC_API_ENDPOINT_HOST,
+    NEXT_PUBLIC_V1_CLIENT_ENDPOINT_DOMAIN: process.env.NEXT_PUBLIC_V1_CLIENT_ENDPOINT_DOMAIN,
+    NEXT_PUBLIC_V2_CLIENT_ENDPOINT_DOMAIN: process.env.NEXT_PUBLIC_V2_CLIENT_ENDPOINT_DOMAIN || 'forms.bettercollected.io',
+    FORM_PRIVACY_POLICY_URL: process.env.FORM_PRIVACY_POLICY_URL ?? 'https://bettercollected.com/privacy-policy',
+
+    // run-time config
+    UNSPLASH_APPLICATION_ID: process.env.UNSPLASH_APPLICATION_ID,
+    UNSPLASH_ACCESS_KEY: process.env.UNSPLASH_ACCESS_KEY ?? 'cjNqTgaSqmYzOZETsWrivtF1ayn4PGzy_NPWZDkZG_A',
+    NEXT_PUBLIC_UNSPLASH_ACCESS_KEY: process.env.NEXT_PUBLIC_UNSPLASH_ACCESS_KEY || '___NEXT_PUBLIC_UNSPLASH_ACCESS_KEY___',
+    UNSPLASH_SECRET_KEY: process.env.UNSPLASH_SECRET_KEY,
+    UNSPLASH_API_URL: process.env.UNSPLASH_API_URL ?? 'https://api.unsplash.com/',
+
+    // internal configs
+    NEXT_PUBLIC_DASHBOARD_DOMAIN: process.env.NEXT_PUBLIC_DASHBOARD_DOMAIN ?? '',
+    NEXT_PUBLIC_HTTP_SCHEME: process.env.NEXT_PUBLIC_HTTP_SCHEME ?? 'https'
 };
 
 export default environments;

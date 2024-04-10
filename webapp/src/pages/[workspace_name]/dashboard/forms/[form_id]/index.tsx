@@ -50,7 +50,6 @@ export default function FormPage(props: any) {
     const { t } = useTranslation();
     const dispatch = useAppDispatch();
     const reduxStoreForm = useAppSelector(selectForm);
-    const locale = props._nextI18Next.initialLocale === 'en' ? '' : `${props._nextI18Next.initialLocale}/`;
     const breakpoint = useBreakpoint();
     const router = useRouter();
     const { openModal } = useModal();
@@ -85,11 +84,11 @@ export default function FormPage(props: any) {
     const breadcrumbsItem: Array<BreadcrumbsItem> = [
         {
             title: t(breadcrumbsItems.dashboard),
-            url: `/${locale}${props?.workspace?.workspaceName}/dashboard`
+            url: `/${props?.workspace?.workspaceName}/dashboard`
         },
         {
             title: t(breadcrumbsItems.forms),
-            url: `/${locale}${props?.workspace?.workspaceName}/dashboard/forms`
+            url: `/${props?.workspace?.workspaceName}/dashboard/forms`
         },
         {
             title: router.query ? router.query.view?.toString() ?? 'Preview' : 'Preview',
