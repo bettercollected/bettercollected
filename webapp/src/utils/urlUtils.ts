@@ -1,4 +1,4 @@
-import { StandardForm } from '@app/models/dtos/form';
+import { StandardFormDto } from '@app/models/dtos/form';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 
 export function isValidRelativeURL(url: string): boolean {
@@ -9,6 +9,6 @@ export function isValidRelativeURL(url: string): boolean {
     return relativeURLPattern.test(url) && !url.includes('//');
 }
 
-export function getFormEditURL(workspace: WorkspaceDto, form: StandardForm): string {
-    return '';
+export function getEditFormURL(workspace: WorkspaceDto, form: StandardFormDto): string {
+    return form?.builderVersion === 'v2' ? `/${workspace.workspaceName}/dashboard/forms/${form.formId}/edit` : `/${workspace.workspaceName}/dashboard/forms/${form.formId}/v1/edit`;
 }
