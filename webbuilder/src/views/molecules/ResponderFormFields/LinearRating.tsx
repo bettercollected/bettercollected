@@ -51,8 +51,8 @@ const LinearRatingSection = ({
     return (
         <div className="flex flex-row flex-wrap gap-1">
             {_.range(
-                field.properties?.startFrom ?? 0,
-                field.properties?.steps || 10
+                field.properties?.startFrom ?? 1,
+                (field.properties?.steps || 10) + 1
             ).map((index) => {
                 return (
                     <StyledDiv
@@ -73,7 +73,7 @@ const LinearRatingSection = ({
                         }}
                         className="flex h-12 w-12  cursor-pointer items-center justify-center rounded-sm border-[1px]"
                     >
-                        <span>{index + 1}</span>
+                        <span>{index}</span>
                     </StyledDiv>
                 );
             })}
