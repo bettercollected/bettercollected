@@ -1,10 +1,4 @@
-/** @type {import('next').NextConfig} */
-
 const runtimeCaching = require('next-pwa/cache');
-
-const withPlugins = require('next-compose-plugins');
-
-const { withSentryConfig } = require('@sentry/nextjs');
 
 const { i18n } = require('./next-i18next.config');
 
@@ -37,14 +31,13 @@ const nextConfig = {
     compress: true,
     distDir: process.env.NODE_ENV === 'development' ? '.next-dev' : '.next',
     reactStrictMode: true,
-    swcMinify: false,
+    swcMinify: true,
     i18n,
     optimizeFonts: true,
     compiler: {
         emotion: true,
         removeConsole: false
     },
-
     async headers() {
         return [
             {
@@ -66,27 +59,30 @@ const nextConfig = {
             }
         ];
     },
-    // Optional build-time configuration options
-    sentry: {
-        // See the sections below for information on the following options:
-        //   'Configure Source Maps':
-        //     - disableServerWebpackPlugin
-        //     - disableClientWebpackPlugin
-        //     - hideSourceMaps
-        //     - widenClientFileUpload
-        //   'Configure Legacy Browser Support':
-        //     - transpileClientSDK
-        //   'Configure Serverside Auto-instrumentation':
-        //     - autoInstrumentServerFunctions
-        //     - excludeServerRoutes
-        //   'Configure Tunneling to avoid Ad-Blockers':
-        //     - tunnelRoute
-    },
     images: {
         minimumCacheTTL: 600,
         formats: ['image/avif', 'image/webp'],
-        domains: [...googleImageDomains, 'images.typeform.com', 'lh5.googleusercontent.com', 'lh3.googleusercontent.com', 's3.eu-west-1.wasabisys.com', 's3.eu-central-1.wasabisys.com', 'sireto.com']
+        domains: [...googleImageDomains, 'images.typeform.com', 'lh5.googleusercontent.com', 'lh3.googleusercontent.com', 's3.eu-west-1.wasabisys.com', 's3.eu-central-1.wasabisys.com', 'sireto.com', 'images.unsplash.com']
     },
+
+    env: {
+        BASE_DEPLOY_PATH: process.env.BASE_DEPLOY_PATH ?? '',
+        ELASTIC_APM_SERVER_URL: process.env.ELASTIC_APM_HOST,
+        ELASTIC_APM_SERVICE_NAME: process.env.ELASTIC_APM_SERVICE_NAME,
+        ELASTIC_APM_ENVIRONMENT: process.env.ELASTIC_APM_ENVIRONMENT,
+        ENABLE_BRAND_COLORS: process.env.ENABLE_BRAND_COLORS,
+        ENABLE_JOYRIDE_TOURS: process.env.ENABLE_JOYRIDE_TOURS,
+        FORM_PRIVACY_POLICY_URL: process.env.FORM_PRIVACY_POLICY_URL,
+        GA_MEASUREMENT_ID: process.env.GA_MEASUREMENT_ID,
+        MICROSOFT_CLARITY_TRACKING_CODE: process.env.MICROSOFT_CLARITY_TRACKING_CODE,
+        NEXT_PUBLIC_NODE_ENV: process.env.NEXT_PUBLIC_NODE_ENV ?? 'production',
+        NEXT_PUBLIC_HTTP_SCHEME: process.env.NEXT_PUBLIC_HTTP_SCHEME ?? 'https',
+        UNSPLASH_APPLICATION_ID: process.env.UNSPLASH_APPLICATION_ID,
+        UNSPLASH_ACCESS_KEY: process.env.UNSPLASH_ACCESS_KEY,
+        UNSPLASH_SECRET_KEY: process.env.UNSPLASH_SECRET_KEY,
+        UNSPLASH_API_URL: process.env.UNSPLASH_API_URL ?? 'https://api.unsplash.com/'
+    },
+
     serverRuntimeConfig: {
         // Use this environment separately if you are running your webapp through docker compose
         INTERNAL_DOCKER_API_ENDPOINT_HOST: process.env.INTERNAL_DOCKER_API_ENDPOINT_HOST || process.env.API_ENDPOINT_HOST
@@ -184,33 +180,6 @@ if (process.env.BASE_DEPLOY_PATH) {
     nextConfig['basePath'] = process.env.BASE_DEPLOY_PATH;
 }
 
-const sentryWebpackPluginOptions = {
-    // Additional config options for the Sentry Webpack plugin. Keep in mind that
-    // the following options are set automatically, and overriding them is not
-    // recommended:
-    //   release, url, authToken, configFile, stripPrefix,
-    //   urlPrefix, include, ignore
-
-    dryRun: process.env.NODE_ENV !== 'production',
-    silent: true, // Suppresses all logs
-    attachStacktrace: true,
-    release: process.env.SENTRY_RELEASE,
-    url: process.env.SENTRY_URL,
-    org: process.env.SENTRY_ORG,
-    project: process.env.SENTRY_PROJECT,
-    authToken: process.env.SENTRY_AUTH_TOKEN,
-    sourcemaps: {
-        // Specify the directory containing build artifacts
-        assets: './**',
-        // Don't upload the source maps of dependencies
-        ignore: ['./node_modules/**']
-    },
-    debug: process.env.NEXT_PUBLIC_NODE_ENV !== 'production'
-
-    // For all available options, see:
-    // https://github.com/getsentry/sentry-webpack-plugin#options.
-};
-
 const nextConfigWithPWA = withPWA({
     ...nextConfig,
     ...(process.env.NODE_ENV === 'production' && {
@@ -223,9 +192,4 @@ const nextConfigWithPWA = withPWA({
     })
 });
 
-const nextConfigWithSentryIfEnabled =
-    !!process.env.SENTRY_DSN && !!process.env.SENTRY_URL && !!process.env.SENTRY_ORG && !!process.env.SENTRY_PROJECT && !!process.env.SENTRY_RELEASE
-        ? withSentryConfig({ ...nextConfigWithPWA, devtool: 'source-map' }, sentryWebpackPluginOptions)
-        : nextConfigWithPWA;
-
-module.exports = nextConfigWithSentryIfEnabled;
+module.exports = nextConfigWithPWA;

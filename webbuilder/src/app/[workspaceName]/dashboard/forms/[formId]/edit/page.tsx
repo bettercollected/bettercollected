@@ -1,10 +1,11 @@
 'use client';
 
-import { useEffect } from 'react';
+import { CSSProperties, useEffect, useMemo, useState } from 'react';
 
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
 import { motion } from 'framer-motion';
+import { useDebounceCallback } from 'usehooks-ts';
 
 import { useDialogModal } from '@app/lib/hooks/useDialogModal';
 import {
@@ -44,6 +45,42 @@ export default function FormPage({ params }: { params: { formId: string } }) {
     const { standardForm } = useStandardForm();
 
     const formId = params.formId;
+
+    const getScaledDivStyles = () => {
+        if (typeof window !== 'undefined') {
+            const windowHeight = window.innerHeight;
+            const windowWidth = window.innerWidth;
+            const slideViewportWidth = windowWidth - 480;
+            const slideViewportHeight = windowHeight - 192;
+            const aspectRatio = 16 / 9;
+            if (slideViewportWidth / aspectRatio > slideViewportHeight) {
+                return {
+                    height: '100vh',
+                    scale: slideViewportHeight / windowHeight,
+                    transformOrigin: 'top left'
+                };
+            }
+            return {
+                width: '100vw',
+                scale: slideViewportWidth / windowWidth,
+                transformOrigin: 'top left'
+            };
+        }
+        return undefined;
+    };
+    const [scaledDivStyle, setScaledDivStyle] = useState(getScaledDivStyles());
+
+    useEffect(() => {
+        const handleResize = () => {
+            setScaledDivStyle(getScaledDivStyles());
+        };
+
+        window.addEventListener('resize', handleResize, false);
+
+        return () => {
+            window.removeEventListener('resize', handleResize);
+        };
+    }, []);
 
     useEffect(() => {
         if (showModal === 'true') {
@@ -92,30 +129,44 @@ export default function FormPage({ params }: { params: { formId: string } }) {
             <Navbar />
             <AutoSaveForm formId={formId} />
             <div className="flex max-h-body-content w-full flex-row items-center gap-10">
-                <LeftDrawer />
+                <LeftDrawer
+                    formFields={formFields}
+                    activeSlideComponent={activeSlideComponent}
+                />
                 <motion.div
                     animate={{ x: navbarState.insertClicked ? '5%' : 0 }}
                     transition={{ ease: 'easeInOut' }}
-                    className=" mx-auto h-full w-full flex-1 py-14"
+                    className="relative max-h-full max-w-full flex-1 overflow-hidden py-14"
                     onClick={() => {
                         setActiveFieldComponent(null);
                     }}
                 >
-                    <div className="relative mx-auto aspect-video max-h-full max-w-full rounded-lg  shadow-slide">
-                        {activeSlideComponent?.id &&
-                            activeSlideComponent?.index >= 0 && (
-                                <SlideBuilder
-                                    slide={formFields[activeSlideComponent?.index]}
-                                />
-                            )}
-                        {!activeSlideComponent?.id && <div>Add a slide to start</div>}
-                        {activeSlideComponent?.id === 'welcome-page' && (
-                            <WelcomeSlide />
-                        )}
+                    <div>
+                        <div
+                            className="aspect-video overflow-hidden"
+                            style={scaledDivStyle}
+                        >
+                            <div className=" mx-auto h-full w-full rounded-lg  shadow-slide">
+                                {activeSlideComponent?.id &&
+                                    activeSlideComponent?.index >= 0 && (
+                                        <SlideBuilder
+                                            slide={
+                                                formFields[activeSlideComponent?.index]
+                                            }
+                                        />
+                                    )}
+                                {!activeSlideComponent?.id && (
+                                    <div>Add a slide to start</div>
+                                )}
+                                {activeSlideComponent?.id === 'welcome-page' && (
+                                    <WelcomeSlide />
+                                )}
 
-                        {activeSlideComponent?.id === 'thank-you-page' && (
-                            <ThankYouSlide />
-                        )}
+                                {activeSlideComponent?.id === 'thank-you-page' && (
+                                    <ThankYouSlide />
+                                )}
+                            </div>
+                        </div>
                     </div>
                 </motion.div>
                 <div

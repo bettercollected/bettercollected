@@ -1,6 +1,6 @@
 import React, { FormEvent, useState } from 'react';
 
-import Image from 'next/image';
+import Image from "next/legacy/image";
 import { useRouter } from 'next/router';
 
 import InfoIcon from '@Components/Common/Icons/FormBuilder/infoIcon';
@@ -41,7 +41,7 @@ const SearchBySubmissionNumber = ({ className }: { className?: string }) => {
     return (
         <form onSubmit={handleSubmit} className={className}>
             <div className="w-full flex flex-col items-center justify-center max-w-[367px] xl:w-[367px] px-6 py-8 bg-white rounded-xl">
-                <Image src={'/images/search_submission.png'} height={62} width={77} />
+                <Image src={'/images/search_submission.png'} alt="Seacch by sub number" height={62} width={77} />
 
                 <div className="mt-4">
                     <div className="h4-new font-medium text-center text-new-black-800">Search by submission number</div>
