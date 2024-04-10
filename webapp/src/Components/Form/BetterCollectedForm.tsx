@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
-import Image from "next/legacy/image";
+import Image from 'next/legacy/image';
 import { useRouter } from 'next/router';
 
 import Divider from '@Components/Common/DataDisplay/Divider';
@@ -284,12 +284,12 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
     return (
         <div className="w-full bg-white">
             {updatedForm?.coverImage && (
-                <div className={`relative z-0 w-full flex aspect-banner-mobile lg:aspect-banner-desktop`}>
+                <div className={`aspect-banner-mobile lg:aspect-banner-desktop relative z-0 flex w-full`}>
                     <Image layout="fill" objectFit="cover" src={updatedForm.coverImage} alt="test" className="brightness-75" />
                 </div>
             )}
             <form
-                className="w-full max-w-[700px] mx-auto px-10 pb-10 bg-white flex rounded-lg flex-col items-start "
+                className="mx-auto flex w-full max-w-[700px] flex-col items-start rounded-lg bg-white px-10 pb-10 "
                 onKeyDown={(event: any) => {
                     if (!event.shiftKey && event.key === 'Enter') {
                         event.preventDefault();
@@ -298,12 +298,12 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
                 onSubmit={onSubmitForm}
             >
                 {updatedForm?.logo && (
-                    <div className={`relative ${updatedForm?.coverImage ? '-top-12' : 'mt-[60px]'} rounded-lg w-[100px] h-[100px] flex flex-col justify-center items-center gap-3 cursor-pointer hover:shadow-logoCard`}>
-                        <Image height={100} width={100} objectFit="cover" src={updatedForm.logo} alt="logo" className="rounded-lg hover:bg-black-100" />
+                    <div className={`relative ${updatedForm?.coverImage ? '-top-12' : 'mt-[60px]'} hover:shadow-logoCard flex h-[100px] w-[100px] cursor-pointer flex-col items-center justify-center gap-3 rounded-lg`}>
+                        <Image height={100} width={100} objectFit="cover" src={updatedForm.logo} alt="logo" className="hover:bg-black-100 rounded-lg" />
                     </div>
                 )}
                 <div className={`mb-6 ${updatedForm?.coverImage && updatedForm?.logo ? '' : 'mt-12'} w-full`}>
-                    <div className="text-[32px] mb-2 font-bold text-black-800 flex w-full items-center justify-between">
+                    <div className="text-black-800 mb-2 flex w-full items-center justify-between text-[32px] font-bold">
                         <span>{updatedForm?.title || 'Untitled'}</span>
                         {enabled && (
                             <MenuDropdown
@@ -314,27 +314,27 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
                                 menuContent={auth.id ? <AuthAccountProfileImage size={40} image={auth?.profileImage} name={getFullNameFromUser(auth) ?? ''} /> : <LoggedOutAccountIcon />}
                             >
                                 {auth.id && (
-                                    <div className="px-4 py-2 relative">
+                                    <div className="relative px-4 py-2">
                                         <div className="flex gap-2">
                                             <AuthAccountProfileImage size={40} image={auth?.profileImage} name={getFullNameFromUser(auth) ?? ''} />
-                                            <div className="flex flex-col gap-2 text-start justify-center !text-black-700 pr-1">
+                                            <div className="!text-black-700 flex flex-col justify-center gap-2 pr-1 text-start">
                                                 <span className="body6 !leading-none">{getFullNameFromUser(auth)?.trim() || auth?.email || ''}</span>
                                                 <span className="body5 !leading-none">{auth?.email} </span>
                                             </div>
                                         </div>
-                                        <div className="pl-11 mt-2  p4-new">
-                                            <span className="text-blue-500 cursor-pointer" onClick={onClickSwitchAccount}>
+                                        <div className="p4-new mt-2  pl-11">
+                                            <span className="cursor-pointer text-blue-500" onClick={onClickSwitchAccount}>
                                                 Switch Account
                                             </span>
                                         </div>
-                                        <div className="absolute text-black-600 top-0 right-2">
+                                        <div className="text-black-600 absolute right-2 top-0">
                                             <Close />
                                         </div>
 
                                         {!form?.settings?.requireVerifiedIdentity && (
                                             <>
                                                 <Divider className="text-black-200 mt-4" />
-                                                <div className="mt-2 py-2 px-4  flex  gap-2 text-black-800 hover:bg-new-blue-100 rounded cursor-pointer active:bg-blue-100" onClick={handleLogout}>
+                                                <div className="text-black-800 hover:bg-new-blue-100 mt-2  flex  cursor-pointer gap-2 rounded px-4 py-2 active:bg-blue-100" onClick={handleLogout}>
                                                     <Logout width={24} height={24} />
                                                     <span className="font-medium">Log Out</span>
                                                 </div>
@@ -346,7 +346,7 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
                                     <div className="px-4 py-2">
                                         <div className="p2-new text-black-600 mb-2">Do you wish to track your form response for future reference?</div>
                                         <div
-                                            className="p2-new text-blue-500 cursor-pointer hover:underline"
+                                            className="p2-new cursor-pointer text-blue-500 hover:underline"
                                             onClick={() => {
                                                 router.push({
                                                     pathname: '/login',
@@ -366,10 +366,10 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
                         )}
                     </div>
 
-                    {updatedForm?.description && <div className="text-[16px] font-normal text-black-700">{updatedForm?.description}</div>}
+                    {updatedForm?.description && <div className="text-black-700 text-[16px] font-normal">{updatedForm?.description}</div>}
                 </div>
 
-                <div className="flex flex-col w-full gap-2">
+                <div className="flex w-full flex-col gap-2">
                     {updatedForm?.fields?.map((field: StandardFormFieldDto) => (
                         <div key={field?.id} className="relative w-full" id={field?.id}>
                             {!field?.properties?.hidden && renderFormField(field, enabled, response?.answers[field.id] || answers[field.id], updatedForm?.fields)}
@@ -377,7 +377,7 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
                         </div>
                     ))}
                     <div className={'mt-10'}>
-                        {!isResponseValid && <div className="text-red-500 mb-2 text-sm">*Invalid answers in one or more fields. Check and correct the highlighted entries.</div>}
+                        {!isResponseValid && <div className="mb-2 text-sm text-red-500">*Invalid answers in one or more fields. Check and correct the highlighted entries.</div>}
                         <AppButton variant={ButtonVariant.Secondary} type="submit" disabled={!enabled}>
                             {updatedForm?.buttonText || 'Submit'}
                         </AppButton>

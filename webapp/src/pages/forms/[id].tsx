@@ -34,7 +34,7 @@ import { checkHasCustomDomain, getServerSideAuthHeaderConfig } from '@app/utils/
 import { validateFormOpen } from '@app/utils/validationUtils';
 
 export default function SingleFormPage(props: any) {
-    const { back, slug, hasCustomDomain, workspace, form: fetched_form, error: fetched_form_error } = props;
+    const { back, slug, hasCustomDomain, workspace, form: fetched_form } = props;
 
     const { data, isLoading, error } = useGetWorkspaceFormQuery({
         workspace_id: workspace.id,
