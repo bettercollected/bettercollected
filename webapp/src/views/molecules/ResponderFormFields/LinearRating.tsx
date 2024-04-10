@@ -29,28 +29,19 @@ const StyledDiv = styled.div<{
     };
 });
 
-const LinearRatingSection = ({
-    field,
-    slide,
-    isBuilder = false
-}: {
-    field: FormField;
-    slide?: FormField;
-    isBuilder?: boolean;
-}) => {
+const LinearRatingSection = ({ field, slide, isBuilder = false }: { field: FormField; slide?: FormField; isBuilder?: boolean }) => {
     const theme = useFormTheme();
     const { formResponse, addFieldLinearRatingAnswer } = useFormResponse();
     const [ratingAnswer, setRatingAnswer] = useState(-1);
     const { nextField } = useResponderState();
 
     useEffect(() => {
-        formResponse.answers &&
-            setRatingAnswer((formResponse.answers[field.id]?.number ?? 0) - 1);
+        formResponse.answers && setRatingAnswer((formResponse.answers[field.id]?.number ?? 0) - 1);
     }, [formResponse.answers]);
     const secondaryColor = theme?.secondary;
     return (
         <div className="flex flex-row flex-wrap gap-1">
-            {_.range(field.properties?.steps || 10).map((index) => {
+            {_.range(field.properties?.startFrom ?? 1, (field.properties?.steps || 10) + 1).map((index) => {
                 return (
                     <StyledDiv
                         $slide={slide}
@@ -70,7 +61,7 @@ const LinearRatingSection = ({
                         }}
                         className="flex h-12 w-12  cursor-pointer items-center justify-center rounded-sm border-[1px]"
                     >
-                        <span>{index + 1}</span>
+                        <span>{index}</span>
                     </StyledDiv>
                 );
             })}
@@ -78,28 +69,12 @@ const LinearRatingSection = ({
     );
 };
 
-const LinearRatingField = ({
-    field,
-    slide,
-    isBuilder = false
-}: {
-    field: FormField;
-    slide?: FormField;
-    isBuilder?: boolean;
-}) => {
+const LinearRatingField = ({ field, slide, isBuilder = false }: { field: FormField; slide?: FormField; isBuilder?: boolean }) => {
     return isBuilder ? (
-        <LinearRatingSection
-            field={field}
-            slide={slide}
-            isBuilder={isBuilder}
-        ></LinearRatingSection>
+        <LinearRatingSection field={field} slide={slide} isBuilder={isBuilder}></LinearRatingSection>
     ) : (
         <QuestionWrapper field={field}>
-            <LinearRatingSection
-                field={field}
-                slide={slide}
-                isBuilder={isBuilder}
-            ></LinearRatingSection>
+            <LinearRatingSection field={field} slide={slide} isBuilder={isBuilder}></LinearRatingSection>
         </QuestionWrapper>
     );
 };
