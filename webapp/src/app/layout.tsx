@@ -13,12 +13,11 @@ import 'vanilla-cookieconsent/dist/cookieconsent.css';
 import '@app/assets/css/globals.css';
 import { DialogModalContainer } from '@app/lib/hooks/useDialogModal';
 import { Toaster } from '@app/shadcn/components/ui/toaster';
+import { cn } from '@app/shadcn/util/lib';
 import AuthProvider from '@app/shared/hocs/AuthProvider';
 import ReduxProvider from '@app/shared/hocs/ReduxProvider';
 import ThemeProvider from '@app/shared/hocs/ThemeProvider';
-import CookieConsent from '@app/views/atoms/CookieConsent';
 import NextNProgress from '@app/views/atoms/NextNProgress';
-import { cn } from '@app/shadcn/util/lib';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -36,7 +35,6 @@ export default function RootLayout({
         <html lang="en">
             <body className={cn('max-h-screen overflow-hidden', inter.className)}>
                 <ThemeProvider>
-                    <CookieConsent />
                     <NextNProgress
                         color="#0764EB"
                         startPosition={0}

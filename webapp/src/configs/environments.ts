@@ -21,7 +21,7 @@ const environments = {
     CLIENT_DOMAIN: publicRuntimeConfig.CLIENT_DOMAIN || 'localhost:3001',
     ADMIN_DOMAIN: publicRuntimeConfig.ADMIN_DOMAIN || 'localhost:3000',
     // api host configs
-    API_ENDPOINT_HOST: publicRuntimeConfig.API_ENDPOINT_HOST,
+    API_ENDPOINT_HOST: publicRuntimeConfig.API_ENDPOINT_HOST || process.env.API_ENDPOINT_HOST,
     INTERNAL_DOCKER_API_ENDPOINT_HOST: serverRuntimeConfig.INTERNAL_DOCKER_API_ENDPOINT_HOST,
 
     METATAG_TITLE: publicRuntimeConfig.METATAG_TITLE,
@@ -88,7 +88,11 @@ const environments = {
     APP_SUMO_PRODUCT_URL: publicRuntimeConfig.APP_SUMO_PRODUCT_URL ?? 'https://appsumo.com/products/bettercollected',
 
     // Enable Price Suggestion
-    ENABLE_SUGGEST_PRICE: publicRuntimeConfig.ENABLE_SUGGEST_PRICE && (publicRuntimeConfig.ENABLE_SUGGEST_PRICE === 'true' || publicRuntimeConfig.ENABLE_SUGGEST_PRICE === true)
+    ENABLE_SUGGEST_PRICE: publicRuntimeConfig.ENABLE_SUGGEST_PRICE && (publicRuntimeConfig.ENABLE_SUGGEST_PRICE === 'true' || publicRuntimeConfig.ENABLE_SUGGEST_PRICE === true),
+
+
+    IS_REDUX_LOGGER_DISABLED: true,
+    AUTH_ENABLED: true,
 };
 
 export default environments;

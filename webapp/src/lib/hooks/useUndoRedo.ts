@@ -1,6 +1,6 @@
 import { useLayoutEffect, useState } from 'react';
 
-import eventBus from '@app/lib/eventBus';
+import eventBus from '@app/lib/event-bus';
 import EventBusEventType from '@app/models/enums/eventBusEnum';
 
 export default function useUndoRedo() {

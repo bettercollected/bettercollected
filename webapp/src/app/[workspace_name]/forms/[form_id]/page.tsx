@@ -10,7 +10,7 @@ export default function FormPage({
     params: { formId: string; workspaceName: string };
 }) {
     const searchParams = useSearchParams();
-    const isPreviewMode = searchParams.get('isPreview');
+    const isPreviewMode = searchParams?.get('isPreview');
 
     return <Form isMobileView={!!isPreviewMode} />;
 }

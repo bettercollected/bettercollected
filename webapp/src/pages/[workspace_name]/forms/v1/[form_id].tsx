@@ -1,4 +1,3 @@
-import React from 'react';
 
 import environments from '@app/configs/environments';
 import { getGlobalServerSidePropsByWorkspaceName } from '@app/lib/serverSideProps';
@@ -8,7 +7,7 @@ import { checkHasClientDomain, getRequestHost, getServerSideAuthHeaderConfig } f
 export default SingleFormPage;
 
 export async function getServerSideProps(_context: any) {
-    const slug = _context.params.id;
+    const slug = _context.params.form_id;
     let back = false;
     const query = _context.query;
 
@@ -35,7 +34,6 @@ export async function getServerSideProps(_context: any) {
     }
     let form = null;
     const config = getServerSideAuthHeaderConfig(_context);
-    const { id } = _context.query;
     try {
         const formResponse = await fetch(`${environments.INTERNAL_DOCKER_API_ENDPOINT_HOST}/workspaces/${globalProps.workspace?.id}/forms/${id}`, config);
         form = (await formResponse?.json().catch((e: any) => e)) ?? null;

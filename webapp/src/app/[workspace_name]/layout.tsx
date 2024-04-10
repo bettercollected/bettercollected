@@ -11,9 +11,9 @@ import { WorkspaceDispatcher } from './_dispatcher/WorkspaceDispatcher';
 export default function WorkspaceLayout({
     children,
     params
-}: Readonly<{ children: React.ReactNode; params: { workspaceName: string } }>) {
+}: Readonly<{ children: React.ReactNode; params: { workspace_name: string } }>) {
     return (
-        <WorkspaceWrapper workspaceName={params.workspaceName}>
+        <WorkspaceWrapper workspaceName={params.workspace_name}>
             {children}
         </WorkspaceWrapper>
     );
