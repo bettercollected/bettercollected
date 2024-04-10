@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 
-import { useTranslation } from 'next-i18next';
 import Image from 'next/legacy/image';
 import { useRouter } from 'next/navigation';
 
@@ -103,7 +102,6 @@ interface IBetterCollectedFormProps {
 
 export default function BetterCollectedForm({ form, enabled = false, response, isCustomDomain = false, isPreview = false, closeModal, isDisabled = false, isTemplate = false }: IBetterCollectedFormProps) {
     const router = useRouter();
-    const { t } = useTranslation();
 
     const auth = useAppSelector(selectAuth);
     const formId = useAppSelector((state) => state.fillForm.id);
