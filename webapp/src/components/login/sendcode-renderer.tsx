@@ -63,7 +63,7 @@ export default function SendCode({ updateEmail, isLoading, postSendOtp, isCustom
                                 <ConnectWithProviderButton
                                     key={provider.providerName}
                                     type={provider.providerName === 'typeform' ? 'typeform' : 'dark'}
-                                    url={`${environments.API_ENDPOINT_HOST}/auth/${provider.providerName}/basic`}
+                                    url={`${environments.NEXT_PUBLIC_API_ENDPOINT_HOST}/auth/${provider.providerName}/basic`}
                                     text={`Sign in with ${capitalize(provider.providerName)}`}
                                     creator={false}
                                 />

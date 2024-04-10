@@ -5,12 +5,9 @@ import environments from '@app/configs/environments';
 export const formsApi = createApi({
     reducerPath: 'formsApi',
     baseQuery: fetchBaseQuery({
-        baseUrl: environments.API_ENDPOINT_HOST,
+        baseUrl: environments.NEXT_PUBLIC_API_ENDPOINT_HOST,
         prepareHeaders(headers) {
-            headers.set(
-                'Access-Control-Allow-Origin',
-                environments.API_ENDPOINT_HOST || ''
-            );
+            headers.set('Access-Control-Allow-Origin', environments.NEXT_PUBLIC_API_ENDPOINT_HOST || '');
             return headers;
         },
         credentials: 'include'
@@ -59,11 +56,4 @@ export const formsApi = createApi({
     })
 });
 
-export const {
-    useCreateV2FormMutation,
-    usePatchV2FormMutation,
-    usePublishV2FormMutation,
-    useGetFormResponseQuery,
-    useSubmitResponseMutation,
-    useLazyLogOutQuery
-} = formsApi;
+export const { useCreateV2FormMutation, usePatchV2FormMutation, usePublishV2FormMutation, useGetFormResponseQuery, useSubmitResponseMutation, useLazyLogOutQuery } = formsApi;
