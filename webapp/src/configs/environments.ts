@@ -94,7 +94,7 @@ const environments = {
     AUTH_ENABLED: true,
 
     ///Form Webbuilder
-    NEXT_PUBLIC_API_ENDPOINT_HOST: process.env.NEXT_PUBLIC_API_ENDPOINT_HOST,
+    NEXT_PUBLIC_API_ENDPOINT_HOST: process.env.NEXT_PUBLIC_API_ENDPOINT_HOST|| "https://bettercollected.io/api/v1",
     NEXT_PUBLIC_V1_CLIENT_ENDPOINT_DOMAIN: process.env.NEXT_PUBLIC_V1_CLIENT_ENDPOINT_DOMAIN,
     NEXT_PUBLIC_V2_CLIENT_ENDPOINT_DOMAIN: process.env.NEXT_PUBLIC_V2_CLIENT_ENDPOINT_DOMAIN || 'forms.bettercollected.io',
     FORM_PRIVACY_POLICY_URL: process.env.FORM_PRIVACY_POLICY_URL ?? 'https://bettercollected.com/privacy-policy',
