@@ -6,10 +6,13 @@ import { Parameters } from '@app/models/dtos/actions';
 import { IConsentField } from '@app/store/consent/types';
 import { IFormFieldValidation } from '@app/store/form-builder/types';
 
+
+
 import { ResponseRetentionType } from '../enums/consentEnum';
 import { FormSlideLayout } from '../enums/form';
 import { FileMetadata } from '../types/fileTypes';
 import { ResponderGroupDto } from './groups';
+
 
 export interface StandardFormFieldDto {
     id: string;
@@ -36,6 +39,7 @@ export interface StandardFormFieldDto {
 
 export interface StandardFormDto {
     formId: string;
+    importedFormId:string;
     title: string;
     description?: string | null | undefined;
     buttonText?: string;
