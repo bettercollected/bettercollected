@@ -30,6 +30,7 @@ import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { JOYRIDE_CLASS } from '@app/store/tours/types';
 import getFormShareURL from '@app/utils/formUtils';
 import { validateFormOpen } from '@app/utils/validationUtils';
+import { getEditFormURL } from '@app/utils/urlUtils';
 
 interface IWorkspaceFormCardProps {
     form: StandardFormDto;
@@ -156,12 +157,7 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, group, worksp
                                 onClick={(event: any) => {
                                     event.preventDefault();
                                     event.stopPropagation();
-                                    const editFormUrl = form?.builderVersion === 'v2' ? `/${workspace.workspaceName}/dashboard/forms/${form.formId}/edit` : `/${workspace.workspaceName}/dashboard/forms/${form.formId}/v1/edit`;
-                                    if (form?.builderVersion === 'v2') {
-                                        router.push(environments.HTTP_SCHEME + environments.V2_BUILDER_DOMAIN + editFormUrl);
-                                    } else {
-                                        router.push(editFormUrl);
-                                    }
+                                    router.push(getEditFormURL(workspace, form));
                                 }}
                                 variant={ButtonVariant.Ghost}
                                 size={ButtonSize.Small}

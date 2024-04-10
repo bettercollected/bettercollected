@@ -135,8 +135,9 @@ export interface AnswerDto {
 
 export interface StandardForm {
     formId: string;
+    builderVersion?: string;
     title: string;
-    description?: string;
+    description?: string | null;
     buttonText?: string;
     version?: number;
     settings?: {
