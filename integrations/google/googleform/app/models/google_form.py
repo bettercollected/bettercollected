@@ -23,10 +23,20 @@ class GoogleQuestionDto(BaseModel):
     timeQuestion: Optional[Any]
 
 
+class GoogleMediaProperties(BaseModel):
+    width: Optional[int]
+
+
+class GoogleImage(BaseModel):
+    contentUri: Optional[str]
+    properties: Optional[GoogleMediaProperties] = GoogleMediaProperties()
+
+
 class GoogleFormItemQuestionDto(BaseModel):
     """Data transfer object for Google Forms question items."""
 
     question: Optional[GoogleQuestionDto]
+    image: Optional[GoogleImage]
 
 
 class GoogleOptionValue(BaseModel):
@@ -57,6 +67,7 @@ class GoogleFormQuestionGroupItem(BaseModel):
 
     questions: List[GoogleGroupQuestion] = []
     grid: Optional[GoogleGrid] = GoogleGrid()
+    image: Optional[GoogleImage]
 
 
 class GoogleInfoDto(BaseModel):
@@ -65,15 +76,6 @@ class GoogleInfoDto(BaseModel):
     title: Optional[str]
     description: Optional[str]
     documentTitle: Optional[str]
-
-
-class GoogleMediaProperties(BaseModel):
-    width: Optional[int]
-
-
-class GoogleImage(BaseModel):
-    contentUri: Optional[str]
-    properties: Optional[GoogleMediaProperties] = GoogleMediaProperties()
 
 
 class GoogleImageItem(BaseModel):
@@ -100,6 +102,7 @@ class GoogleFormItemsDto(BaseModel):
     pageBreakItem: Optional[Any]
     questionItem: Optional[GoogleFormItemQuestionDto]
     questionGroupItem: Optional[GoogleFormQuestionGroupItem]
+    textItem: Optional[Any]
 
 
 class GoogleFormDto(BaseModel):
