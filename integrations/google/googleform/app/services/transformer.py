@@ -1,5 +1,6 @@
 from typing import Any, Dict, List
 
+from beanie import PydanticObjectId
 from common.enums.form_provider import FormProvider
 from common.models.standard_form import (
     EmbedProvider,
@@ -15,6 +16,10 @@ from common.models.standard_form import (
     StandardFormResponse,
     StandardFormResponseAnswer,
     StandardFormSettings,
+    LayoutType,
+    WelcomePageField,
+    ThankYouPageField,
+    Theme,
 )
 from common.services.transformer_service import (
     FormTransformerService,
@@ -29,18 +34,31 @@ from googleform.app.models.google_form_response import (
 
 from loguru import logger
 
+default_image_url = (
+    "https://s3.eu-central-1.wasabisys.com/bettercollected/images/v2defaultImage.png"
+)
+
 
 class GoogleFormTransformerService(FormTransformerService):
-    def _transform_field(self, item: GoogleFormItemsDto) -> StandardFormField:
+    def _transform_field(self, index, item: GoogleFormItemsDto) -> StandardFormField:
+        slide = StandardFormField()
+        slide.id = str(PydanticObjectId())
+        slide.index = index
+        slide.type = StandardFormFieldType.SLIDE
+        slide.image_url = default_image_url
+        slide.properties.layout = LayoutType.TWO_COLUMN_IMAGE_RIGHT
         field = StandardFormField()
         field.title = item.title
         field.description = item.description
+        field.index = 0
 
         if item.questionItem and item.questionItem.question:
             # Return rest of the field if it does not match the above conditions
             field.id = item.questionItem.question.questionId
             field.validations.required = item.questionItem.question.required
             question = item.questionItem.question
+            if item.questionItem.image:
+                slide.image_url = item.questionItem.image.contentUri
             if question.textQuestion and question.textQuestion.get("paragraph"):
                 field.type = StandardFormFieldType.LONG_TEXT
             elif question.choiceQuestion:
@@ -48,7 +66,9 @@ class GoogleFormTransformerService(FormTransformerService):
                     field.type = StandardFormFieldType.MULTIPLE_CHOICE
                     field.properties.allow_multiple_selection = False
                     field.properties.choices = [
-                        StandardChoice(label=option.get("value"))
+                        StandardChoice(
+                            value=option.get("value"), id=str(PydanticObjectId())
+                        )
                         for option in question.choiceQuestion.options
                         if option.get("value")
                     ]
@@ -56,7 +76,9 @@ class GoogleFormTransformerService(FormTransformerService):
                     field.type = StandardFormFieldType.MULTIPLE_CHOICE
                     field.properties.allow_multiple_selection = True
                     field.properties.choices = [
-                        StandardChoice(label=option.get("value"))
+                        StandardChoice(
+                            value=option.get("value"), id=str(PydanticObjectId())
+                        )
                         for option in question.choiceQuestion.options
                         if option.get("value")
                     ]
@@ -64,14 +86,16 @@ class GoogleFormTransformerService(FormTransformerService):
                     field.type = StandardFormFieldType.DROPDOWN
                     field.properties.allow_multiple_selection = False
                     field.properties.choices = [
-                        StandardChoice(label=option.get("value"))
+                        StandardChoice(
+                            value=option.get("value"), id=str(PydanticObjectId())
+                        )
                         for option in question.choiceQuestion.options
                         if option.get("value")
                     ]
             elif question.fileUploadQuestion:
                 field.type = StandardFormFieldType.FILE_UPLOAD
             elif question.scaleQuestion:
-                field.type = StandardFormFieldType.OPINION_SCALE
+                field.type = StandardFormFieldType.LINEAR_RATING
                 field.properties.start_form = question.scaleQuestion.get("low", 0)
                 field.properties.steps = question.scaleQuestion.get("high", 0)
             elif question.dateQuestion:
@@ -82,6 +106,9 @@ class GoogleFormTransformerService(FormTransformerService):
                 field.type = StandardFormFieldType.SHORT_TEXT
 
         elif item.questionGroupItem:
+            if item.questionGroupItem.image:
+                slide.image_url = item.questionGroupItem.image.contentUri
+
             field.type = StandardFormFieldType.MATRIX
             field.properties.fields = [
                 StandardFormField(
@@ -100,32 +127,89 @@ class GoogleFormTransformerService(FormTransformerService):
             ]
 
         elif item.imageItem:
+            slide.image_url = item.imageItem.image.contentUri
             field.attachment = StandardFieldAttachment(
                 type=StandardAttachmentType.IMAGE, href=item.imageItem.image.contentUri
             )
+
         elif item.videoItem:
             field.attachment = StandardFieldAttachment(
                 type=StandardAttachmentType.VIDEO,
                 href=item.videoItem.video.youtubeUri,
                 embed_provider=EmbedProvider.YOUTUBE,
             )
-        return field
+
+        slide.properties.fields = [field]
+        return slide
 
     def _transform_fields(self, fields: List[GoogleFormItemsDto]):
-        transform_fields = list(map(self._transform_field, fields))
+        index = 0
+        temp_text_fields: List[GoogleFormItemsDto] = []
+        temp_text_field_index = 0
+        transform_fields = []
+        for field in fields:
+            if field.textItem is not None or field.pageBreakItem is not None:
+                if index < (len(fields) - 1):
+                    text_field = StandardFormField()
+                    text_field.title = field.title
+                    text_field.id = field.itemId
+                    text_field.type = StandardFormFieldType.TEXT
+                    text_field.index = len(temp_text_fields)
+                    temp_text_fields.append(text_field)
+                    temp_text_field_index = index
+                continue
+            slide = self._transform_field(index, field)
+            if len(temp_text_fields) > 0:
+                slide.properties.fields[0].index = len(temp_text_fields)
+                slide.properties.fields = temp_text_fields + slide.properties.fields
+                temp_text_fields = []
+            transform_fields.append(slide)
+            index += 1
+        if len(temp_text_fields) > 0:
+            slide = self._transform_field(index, fields[temp_text_field_index])
+            transform_fields.append(slide)
         return transform_fields
+
+    def _transform_welcome_page(self, welcome_page_title):
+        return WelcomePageField(
+            title=welcome_page_title,
+            layout=LayoutType.TWO_COLUMN_IMAGE_RIGHT,
+            imageUrl=default_image_url,
+        )
+
+    def _transform_thank_you_page(self):
+        return [
+            ThankYouPageField(
+                layout=LayoutType.TWO_COLUMN_IMAGE_RIGHT, imageUrl=default_image_url
+            )
+        ]
+
+    def _transform_theme(self):
+        return Theme(
+            title="Default",
+            primary="#2E2E2E",
+            secondary="#0764EB",
+            tertiary="#A2C5F8",
+            accent="#F2F7FF",
+        )
 
     def transform_form(self, form: Dict[str, Any]) -> StandardForm:
         try:
             googleform = GoogleFormDto(**form)
             standard_form = StandardForm(
-                form_id=googleform.formId,
-                title=googleform.info.title
-                or googleform.info.documentTitle
-                or "Untitled",
+                builder_version="v2",
+                form_id=str(PydanticObjectId()),
+                imported_form_id=googleform.formId,
+                title=googleform.info.documentTitle or "Untitled",
                 description=googleform.info.description,
                 fields=self._transform_fields(googleform.items),
                 settings=self._transform_form_settings(googleform),
+                is_multi_page=True,
+                welcome_page=(
+                    self._transform_welcome_page(googleform.info.title or "Untitled")
+                ),
+                thankyou_page=(self._transform_thank_you_page()),
+                theme=(self._transform_theme()),
             )
             return standard_form
         except Exception as error:
@@ -194,7 +278,7 @@ class GoogleFormTransformerService(FormTransformerService):
     @staticmethod
     def _transform_form_settings(googleform: GoogleFormDto):
         setting = StandardFormSettings()
-        setting.provider = FormProvider.GOOGLE
+        setting.provider = "self"
         setting.custom_url = googleform.formId
         setting.embed_url = googleform.responderUri
         setting.is_public = True
