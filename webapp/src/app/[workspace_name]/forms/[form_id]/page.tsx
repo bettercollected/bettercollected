@@ -17,7 +17,7 @@ export default function FormPage({ params }: { params: { formId: string; workspa
     return (
         <ReduxWrapperAppRouter>
             {standardForm?.builderVersion === 'v2' && <Form isMobileView={!!isPreviewMode} />}
-            {standardForm?.builderVersion !== 'v2' && <SingleFormPage form={standardForm} workspace={workspace} />}
+            {standardForm?.builderVersion !== 'v2' && <SingleFormPage slug={standardForm?.settings?.customUrl} form={standardForm} workspace={workspace} />}
         </ReduxWrapperAppRouter>
     );
 }

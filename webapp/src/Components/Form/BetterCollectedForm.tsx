@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
 import Image from 'next/legacy/image';
-import { useRouter } from 'next/router';
+import { useRouter } from 'next/navigation';
 
 import Divider from '@Components/Common/DataDisplay/Divider';
 import LoggedOutAccountIcon from '@Components/Common/Icons/Common/LoggedOutAccountIcon';
@@ -262,14 +262,12 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
 
     const onClickSwitchAccount = async () => {
         trigger().then(async () => {
-            router.push({
-                pathname: '/login',
-                query: {
-                    type: 'responder',
-                    workspace_id: workspace.id,
-                    redirect_to: router.asPath
-                }
-            });
+            const workspaceId = workspace.id !== null ? encodeURIComponent(workspace.id) : '';
+            const redirectPath = window.location.href !== null ? encodeURIComponent(window.location.href) : '';
+
+            const href = `/login?type=responder${workspaceId !== '' ? `&workspace_id=${workspaceId}` : ''}${redirectPath !== '' ? `&redirect_to=${redirectPath}` : ''}`;
+
+            router.push(href);
         });
     };
 
@@ -348,14 +346,12 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
                                         <div
                                             className="p2-new cursor-pointer text-blue-500 hover:underline"
                                             onClick={() => {
-                                                router.push({
-                                                    pathname: '/login',
-                                                    query: {
-                                                        type: 'responder',
-                                                        workspace_id: workspace.id,
-                                                        redirect_to: router.asPath
-                                                    }
-                                                });
+                                                const workspaceId = workspace.id !== null ? encodeURIComponent(workspace.id) : '';
+                                                const redirectPath = window.location.href !== null ? encodeURIComponent(window.location.href) : '';
+
+                                                const href = `/login?type=responder${workspaceId !== '' ? `&workspace_id=${workspaceId}` : ''}${redirectPath !== '' ? `&redirect_to=${redirectPath}` : ''}`;
+
+                                                router.push(href);
                                             }}
                                         >
                                             Sign In and start tracking
