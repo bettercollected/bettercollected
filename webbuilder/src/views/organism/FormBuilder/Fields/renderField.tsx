@@ -13,6 +13,7 @@ function renderField(field: FormField, slide: FormField, disabled: boolean) {
         case FieldTypes.EMAIL:
         case FieldTypes.NUMBER:
         case FieldTypes.SHORT_TEXT:
+        case FieldTypes.LONG_TEXT:
         case FieldTypes.LINK:
         case FieldTypes.PHONE_NUMBER:
             return <InputField field={field} slide={slide} disabled={disabled} />;
