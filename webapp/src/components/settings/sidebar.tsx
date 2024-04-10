@@ -23,7 +23,7 @@ const MenuItem = ({ children, active = false, href, className = '' }: IMenuItemP
     const router = useRouter();
 
     return (
-        <Link href={href}>
+        <Link href={href} legacyBehavior>
             <div className={`w-full body4 cursor-pointer py-5 px-4 ${router.asPath === href ? 'bg-brand-200' : ''}` + ' ' + className}>{children}</div>
         </Link>
     );
@@ -37,9 +37,11 @@ export function SettingsSidebar() {
         <div className="flex py-6 space-y-6 flex-col">
             <BackButton />
             <div className="paragraph text-black-800">
-                <Link href={`/${workspace.workspaceName}/dashboard`}>{t(localesCommon.dashboard)}</Link>
+                <Link href={`/${workspace.workspaceName}/dashboard`} legacyBehavior>{t(localesCommon.dashboard)}</Link>
                 <ChevronRight />
-                <Link href={`${environments.HTTP_SCHEME}/${environments.CLIENT_DOMAIN}/${workspace.workspaceName}`}>{t(workspaceConstant.default)}</Link>
+                <Link
+                    href={`${environments.HTTP_SCHEME}/${environments.CLIENT_DOMAIN}/${workspace.workspaceName}`}
+                    legacyBehavior>{t(workspaceConstant.default)}</Link>
                 <ChevronRight />
                 <span>{t(localesCommon.manage)}</span>
             </div>

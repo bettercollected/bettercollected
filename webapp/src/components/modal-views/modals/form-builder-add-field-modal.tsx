@@ -1,4 +1,8 @@
-import { allowedAdvancedTags, allowedLayoutTags, allowedQuestionAndAnswerTags } from '@Components/FormBuilder/BuilderBlock/FormBuilderTagSelector';
+import {
+    allowedAdvancedTags,
+    allowedLayoutTags,
+    allowedQuestionAndAnswerTags
+} from '@Components/FormBuilder/BuilderBlock/FormBuilderTagSelector';
 import useFormBuilderButtonState from '@Components/FormBuilder/bottomAtom';
 import { batch } from 'react-redux';
 import { v4 } from 'uuid';
@@ -7,7 +11,12 @@ import { Close } from '@app/components/icons/close';
 import { useModal } from '@app/components/modal-views/context';
 import useBuilderTranslation from '@app/lib/hooks/use-builder-translation';
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
-import { resetBuilderMenuState, setAddNewField, setBuilderState, setDeleteField } from '@app/store/form-builder/actions';
+import {
+    resetBuilderMenuState,
+    setAddNewField,
+    setBuilderState,
+    setDeleteField
+} from '@app/store/form-builder/actions';
 import { selectBuilderState } from '@app/store/form-builder/selectors';
 import { IBuilderState } from '@app/store/form-builder/types';
 import { useAppAsyncDispatch, useAppDispatch, useAppSelector } from '@app/store/hooks';
@@ -86,7 +95,7 @@ export default function FormBuilderAddFieldModal({ index }: { index?: number }) 
                 }}
             />
             {Fields.map((fieldType, index) => (
-                <div key={t(fieldType.title)} className="flex flex-col">
+                <div key={fieldType.title} className="flex flex-col">
                     <div className="h5 !text-black-800 mb-6">{t(fieldType.title)}</div>
                     <div className="grid gap-x-12 gap-y-2 grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
                         {fieldType.items.map((tag: any, index: number) => (

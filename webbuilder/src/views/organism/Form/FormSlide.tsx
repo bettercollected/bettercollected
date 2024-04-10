@@ -47,11 +47,8 @@ export function FormFieldComponent({
 }) {
     switch (field.type) {
         case FieldTypes.TEXT:
-            return (
-                <div className="h1-new w-full text-left text-[32px] font-bold">
-                    {parse(getHtmlFromJson(field?.title) ?? 'Add Text')}
-                </div>
-            );
+            return <QuestionWrapper field={field} />;
+
         case FieldTypes.NUMBER:
         case FieldTypes.EMAIL:
         case FieldTypes.SHORT_TEXT:
