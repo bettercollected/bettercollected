@@ -68,7 +68,15 @@ const nextConfig = {
     images: {
         minimumCacheTTL: 600,
         formats: ['image/avif', 'image/webp'],
-        domains: imageDomainsWithOnlyHostname
+        domains: imageDomainsWithOnlyHostname,
+        remotePatterns: [
+            {
+                protocol: 'https',
+                hostname: '*.googleusercontent.com',
+                port: '',
+                pathname: '**'
+            }
+        ]
     },
 
     env: {
