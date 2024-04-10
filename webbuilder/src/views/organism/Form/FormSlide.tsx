@@ -38,7 +38,6 @@ import YesNoField from '@app/views/molecules/ResponderFormFields/YesNoField';
 
 import SlideLayoutWrapper from '../Layout/SlideLayoutWrapper';
 
-
 export function FormFieldComponent({
     field,
     slideIndex
@@ -56,6 +55,7 @@ export function FormFieldComponent({
         case FieldTypes.NUMBER:
         case FieldTypes.EMAIL:
         case FieldTypes.SHORT_TEXT:
+        case FieldTypes.LONG_TEXT:
         case FieldTypes.LINK:
             return <InputField field={field} />;
         case FieldTypes.MULTIPLE_CHOICE:
@@ -82,6 +82,8 @@ export function FormFieldComponent({
             return <DateField field={field} />;
         case FieldTypes.LINEAR_RATING:
             return <LinearRatingField field={field} />;
+        case FieldTypes.MATRIX:
+            return;
         default:
             return <QuestionWrapper field={field} />;
     }
@@ -278,15 +280,15 @@ export default function FormSlide({
                                             duration: 0.5
                                         }}
                                         className={cn(
-                                        'relative my-3 cursor-pointer',
-                                        currentField === index
-                                            ? 'min-h-fit opacity-100'
-                                            : currentField - 1 === index
-                                              ? ''
-                                              : currentField + 1 === index
-                                                ? ''
-                                                : ' my-0 h-0'
-                                    )}
+                                            'relative my-3 cursor-pointer',
+                                            currentField === index
+                                                ? 'min-h-fit opacity-100'
+                                                : currentField - 1 === index
+                                                  ? ''
+                                                  : currentField + 1 === index
+                                                    ? ''
+                                                    : ' my-0 h-0'
+                                        )}
                                     >
                                         <div
                                             id={field.id}

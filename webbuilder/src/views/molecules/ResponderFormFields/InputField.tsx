@@ -33,6 +33,7 @@ export default function InputField({ field }: { field: FormField }) {
                 addFieldEmailAnswer(field.id, e.target.value);
                 break;
             case FieldTypes.SHORT_TEXT:
+            case FieldTypes.LONG_TEXT:
                 addFieldTextAnswer(field.id, e.target.value);
                 break;
             default:
@@ -57,6 +58,7 @@ export default function InputField({ field }: { field: FormField }) {
                     ''
                 );
             case FieldTypes.SHORT_TEXT:
+            case FieldTypes.LONG_TEXT:
                 return (
                     (formResponse.answers && formResponse.answers[field.id]?.text) || ''
                 );
@@ -64,6 +66,8 @@ export default function InputField({ field }: { field: FormField }) {
                 break;
         }
     };
+
+    const TextFields = [FieldTypes.LONG_TEXT, FieldTypes.SHORT_TEXT];
 
     return (
         <QuestionWrapper field={field}>
@@ -75,13 +79,18 @@ export default function InputField({ field }: { field: FormField }) {
             >
                 <FieldInput
                     id={`input-field-${field.id}`}
-                    type={field.type === FieldTypes.SHORT_TEXT ? 'text' : field.type}
+                    type={
+                        TextFields.includes(field.type ?? FieldTypes.SHORT_TEXT)
+                            ? 'text'
+                            : field.type
+                    }
                     placeholder={
                         field?.properties?.placeholder ||
                         getPlaceholderValueForField(field.type)
                     }
                     autoFocus={currentField === field.index}
                     className="mt-4"
+                    multiple={field.type === FieldTypes.LONG_TEXT}
                     value={getFieldValue()}
                     onChange={(e: any) => handleChange(e)}
                 />

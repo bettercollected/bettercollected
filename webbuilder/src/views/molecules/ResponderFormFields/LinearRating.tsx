@@ -50,7 +50,10 @@ const LinearRatingSection = ({
     const secondaryColor = theme?.secondary;
     return (
         <div className="flex flex-row flex-wrap gap-1">
-            {_.range(field.properties?.steps || 10).map((index) => {
+            {_.range(
+                field.properties?.startFrom ?? 0,
+                field.properties?.steps || 10
+            ).map((index) => {
                 return (
                     <StyledDiv
                         $slide={slide}
