@@ -408,6 +408,7 @@ class ThankYouPageField(BaseModel):
 class StandardForm(BaseModel):
     builder_version: Optional[str]
     form_id: Optional[str]
+    imported_form_id: Optional[str]
     type: Optional[str]
     title: Optional[str]
     logo: Optional[str]
