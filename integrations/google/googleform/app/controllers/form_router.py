@@ -79,7 +79,7 @@ class GoogleFormRouter(Routable):
             task = asyncio.get_event_loop().run_in_executor(
                 self.executor,
                 self.google_service.get_form_response_list,
-                standard_form.form_id,
+                standard_form.imported_form_id,
                 credential.credentials.dict(),
             )
             form_responses = await task
