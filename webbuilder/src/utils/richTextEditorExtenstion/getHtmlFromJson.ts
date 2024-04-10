@@ -6,11 +6,14 @@ import {
     getPlaceholderValueForTitle
 } from '@app/views/molecules/RichTextEditor';
 
-export function getHtmlFromJson(jsonValue: JSONContent | undefined) {
-    if (!jsonValue) {
+export function getHtmlFromJson(value: JSONContent | undefined) {
+    if (!value) {
         return null;
     }
-    return generateHTML(jsonValue, Extenstions);
+    if (typeof value === 'string') {
+        return `<p>${value}</p>`;
+    }
+    return generateHTML(value, Extenstions);
 }
 
 export function extractTextfromJSON(field: FormField): string {
