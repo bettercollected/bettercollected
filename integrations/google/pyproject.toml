@@ -5,7 +5,6 @@ description = ""
 authors = ["Bibishan Pandey <bibishan.b.pandey@gmail.com>"]
 license = "no"
 readme = "README.md"
-repository = ""
 classifiers = [
     "Intended Audience :: Developers",
     "Natural Language :: English",
