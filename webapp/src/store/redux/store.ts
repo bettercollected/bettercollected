@@ -10,8 +10,7 @@ import { templatesApi } from '@app/store/redux/templateApi';
 import workspaceSlice from '@app/store/redux/workspace';
 import joyrideSlice from '@app/store/tours/slice';
 
-import { formsApi } from './redux/formApi';
-
+import {formsApi} from "./formApi"
 
 // Add more middlewares here
 const loggerMiddleware = createLogger({ collapsed: true });
@@ -56,12 +55,7 @@ export const store = configureStore({
     // [joyrideSlice.reducerPath.toString()]: joyrideSlice.initialState
     // },
     devTools: !environments.IS_IN_PRODUCTION_MODE,
-    enhancers: (getDefaultEnhancers) =>
-        getDefaultEnhancers().concat(
-            environments.IS_IN_PRODUCTION_MODE || environments.IS_REDUX_LOGGER_DISABLED
-                ? []
-                : []
-        )
+    enhancers: []
 });
 
 export const persistor = persistStore(store);

@@ -1,11 +1,10 @@
 'use client';
 
-import { CSSProperties, useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
 import { motion } from 'framer-motion';
-import { useDebounceCallback } from 'usehooks-ts';
 
 import { useDialogModal } from '@app/lib/hooks/useDialogModal';
 import {
@@ -38,7 +37,7 @@ export default function FormPage({ params }: { params: { formId: string } }) {
     const { navbarState, setNavbarState } = useNavbarState();
 
     const searchParams = useSearchParams();
-    const showModal = searchParams.get('showTitle');
+    const showModal = searchParams?.get('showTitle');
 
     const { openDialogModal } = useDialogModal();
 
@@ -85,6 +84,7 @@ export default function FormPage({ params }: { params: { formId: string } }) {
     useEffect(() => {
         if (showModal === 'true') {
             openDialogModal('ADD_FORM_TITLE');
+            if(pathname)
             router.replace(pathname);
         }
     }, [showModal]);

@@ -1,9 +1,9 @@
 import React from 'react';
 
 import cn from 'classnames';
-import { ReactMarkdown } from 'react-markdown/lib/react-markdown';
 import rehypeRaw from 'rehype-raw';
 import remarkGfm from 'remark-gfm';
+import ReactMarkdown from "react-markdown"
 
 interface IMarkdownText {
     text: string;
