@@ -7,10 +7,7 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 
 import { useDialogModal } from '@app/lib/hooks/useDialogModal';
-import {
-    useActiveFieldComponent,
-    useActiveSlideComponent
-} from '@app/store/jotai/activeBuilderComponent';
+import { useActiveFieldComponent, useActiveSlideComponent } from '@app/store/jotai/activeBuilderComponent';
 import { useStandardForm } from '@app/store/jotai/fetchedForm';
 import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
 import { useFormState } from '@app/store/jotai/form';
@@ -23,7 +20,7 @@ import ThankYouSlide from '@app/views/organism/FormBuilder/ThankYouPage';
 import WelcomeSlide from '@app/views/organism/FormBuilder/WelcomePage';
 import Navbar from '@app/views/organism/Navbar';
 
-export default function FormPage({ params }: { params: { formId: string } }) {
+export default function FormPage({ params }: { params: { form_id: string } }) {
     const { formFields, setFormFields } = useFormFieldsAtom();
     const { setFormState, formState } = useFormState();
 
@@ -43,7 +40,7 @@ export default function FormPage({ params }: { params: { formId: string } }) {
 
     const { standardForm } = useStandardForm();
 
-    const formId = params.formId;
+    const formId = params.form_id;
 
     const getScaledDivStyles = () => {
         if (typeof window !== 'undefined') {
@@ -84,8 +81,7 @@ export default function FormPage({ params }: { params: { formId: string } }) {
     useEffect(() => {
         if (showModal === 'true') {
             openDialogModal('ADD_FORM_TITLE');
-            if(pathname)
-            router.replace(pathname);
+            if (pathname) router.replace(pathname);
         }
     }, [showModal]);
 
@@ -128,11 +124,8 @@ export default function FormPage({ params }: { params: { formId: string } }) {
         <main className="flex h-screen flex-col items-center justify-start overflow-hidden bg-white">
             <Navbar />
             <AutoSaveForm formId={formId} />
-            <div className="flex max-h-body-content w-full flex-row items-center gap-10">
-                <LeftDrawer
-                    formFields={formFields}
-                    activeSlideComponent={activeSlideComponent}
-                />
+            <div className="max-h-body-content flex w-full flex-row items-center gap-10">
+                <LeftDrawer formFields={formFields} activeSlideComponent={activeSlideComponent} />
                 <motion.div
                     animate={{ x: navbarState.insertClicked ? '5%' : 0 }}
                     transition={{ ease: 'easeInOut' }}
@@ -142,37 +135,18 @@ export default function FormPage({ params }: { params: { formId: string } }) {
                     }}
                 >
                     <div>
-                        <div
-                            className="aspect-video overflow-hidden"
-                            style={scaledDivStyle}
-                        >
-                            <div className=" mx-auto h-full w-full rounded-lg  shadow-slide">
-                                {activeSlideComponent?.id &&
-                                    activeSlideComponent?.index >= 0 && (
-                                        <SlideBuilder
-                                            slide={
-                                                formFields[activeSlideComponent?.index]
-                                            }
-                                        />
-                                    )}
-                                {!activeSlideComponent?.id && (
-                                    <div>Add a slide to start</div>
-                                )}
-                                {activeSlideComponent?.id === 'welcome-page' && (
-                                    <WelcomeSlide />
-                                )}
+                        <div className="aspect-video overflow-hidden" style={scaledDivStyle}>
+                            <div className=" shadow-slide mx-auto h-full w-full  rounded-lg">
+                                {activeSlideComponent?.id && activeSlideComponent?.index >= 0 && <SlideBuilder slide={formFields[activeSlideComponent?.index]} />}
+                                {!activeSlideComponent?.id && <div>Add a slide to start</div>}
+                                {activeSlideComponent?.id === 'welcome-page' && <WelcomeSlide />}
 
-                                {activeSlideComponent?.id === 'thank-you-page' && (
-                                    <ThankYouSlide />
-                                )}
+                                {activeSlideComponent?.id === 'thank-you-page' && <ThankYouSlide />}
                             </div>
                         </div>
                     </div>
                 </motion.div>
-                <div
-                    id="slide-element-properties"
-                    className="h-full w-[200px] self-stretch overflow-auto border-l-black-300 bg-white"
-                >
+                <div id="slide-element-properties" className="border-l-black-300 h-full w-[200px] self-stretch overflow-auto bg-white">
                     <PropertiesDrawer />
                 </div>
             </div>

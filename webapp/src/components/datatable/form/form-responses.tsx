@@ -20,7 +20,6 @@ import { useAppSelector } from '@app/store/hooks';
 import { useGetFormsSubmissionsQuery } from '@app/store/workspaces/api';
 import { IGetFormSubmissionsQuery } from '@app/store/workspaces/types';
 
-
 export default function FormResponsesTable({ props }: any) {
     const { t } = useTranslation();
     const form = useAppSelector(selectForm);
@@ -56,7 +55,7 @@ export default function FormResponsesTable({ props }: any) {
 
     if (isLoading)
         return (
-            <div className=" w-full py-10 flex justify-center">
+            <div className=" flex w-full justify-center py-10">
                 <Loader />
             </div>
         );
@@ -67,11 +66,11 @@ export default function FormResponsesTable({ props }: any) {
     };
 
     return (
-        <div className={!isSubmission ? '' : 'md:px-32 px-2'}>
-            <div className="mb-12 flex flex-col lg:flex-row gap-2 lg:justify-between">
-                <div className="flex flex-col lg:gap-2 md:w-[660px]">
+        <div>
+            <div className={`mb-12 flex flex-col gap-2 lg:flex-row lg:justify-between ${!isSubmission ? '' : 'px-2 md:px-32'}`}>
+                <div className="flex flex-col md:w-[660px] lg:gap-2">
                     <p className="body1">{isSubmission ? `${t(formConstant.responders)}` : `${t(formConstant.deletionRequests)}`}</p>
-                    <p className="text-sm font-normal text-black-700 ">{isSubmission ? t(formPage.responsesDescription) : t(formPage.deletionRequestDescription)}</p>
+                    <p className="text-black-700 text-sm font-normal ">{isSubmission ? t(formPage.responsesDescription) : t(formPage.deletionRequestDescription)}</p>
                     {environments.ENABLE_EXPORT_CSV && form?.settings?.provider === 'self' && isSubmission && (
                         <AppButton
                             variant={ButtonVariant.Tertiary}
@@ -80,16 +79,16 @@ export default function FormResponsesTable({ props }: any) {
                                     formId: form.formId
                                 })
                             }
-                            className={'w-1/4 mt-1'}
+                            className={'mt-1 w-1/4'}
                         >
                             Export as CSV{' '}
                         </AppButton>
                     )}
                 </div>
-                <div className="w-full md:w-[282px] flex items-end flex-col gap-4">
+                <div className="flex w-full flex-col items-end gap-4 md:w-[282px]">
                     <SearchInput handleSearch={handleSearch} placeholder={t(formPage.searchByEmail)} className="!bg-black-300" />
                     {form?.settings?.provider === 'self' && !requestForDeletion && (
-                        <div className="flex bg-gray-100  rounded-lg cursor-pointer overflow-hidden w-fit">
+                        <div className="flex w-fit  cursor-pointer overflow-hidden rounded-lg bg-gray-100">
                             <div
                                 className={`p-3 ${showTabularResponses ? 'bg-black-300' : ''}`}
                                 onClick={() => {
