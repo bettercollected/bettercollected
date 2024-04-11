@@ -62,7 +62,15 @@ const nextConfig = {
     images: {
         minimumCacheTTL: 600,
         formats: ['image/avif', 'image/webp'],
-        domains: [...googleImageDomains, 'images.typeform.com', 'lh5.googleusercontent.com', 'lh3.googleusercontent.com', 's3.eu-west-1.wasabisys.com', 's3.eu-central-1.wasabisys.com', 'sireto.com', 'images.unsplash.com']
+        domains: [...googleImageDomains, 'images.typeform.com', 'lh5.googleusercontent.com', 'lh3.googleusercontent.com', 's3.eu-west-1.wasabisys.com', 's3.eu-central-1.wasabisys.com', 'sireto.com', 'images.unsplash.com'],
+        remotePatterns: [
+            {
+                protocol: 'https',
+                hostname: '*.googleusercontent.com',
+                port: '',
+                pathname: '**'
+            }
+        ]
     },
 
     env: {

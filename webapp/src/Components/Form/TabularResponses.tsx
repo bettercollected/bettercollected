@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/router';
@@ -11,14 +11,14 @@ import { toast } from 'react-toastify';
 
 import { dataTableCustomStyles } from '@app/components/datatable/form/datatable-styles';
 import globalConstants from '@app/constants/global';
-import { StandardFormDto, StandardFormResponseDto } from '@app/models/dtos/form';
+import { FieldTypes, StandardFormDto, StandardFormFieldDto, StandardFormResponseDto } from '@app/models/dtos/form';
 import { FormBuilderTagNames, LabelFormBuilderTagNames } from '@app/models/enums/formBuilder';
 import { useAppSelector } from '@app/store/hooks';
 import { useGetFormsSubmissionsQuery } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { IGetFormSubmissionsQuery } from '@app/store/workspaces/types';
 import { downloadFile } from '@app/utils/fileUtils';
-import { convertPlaceholderToDisplayValue } from '@app/utils/formBuilderBlockUtils';
+import { convertPlaceholderToDisplayValue, getAnswerForField } from '@app/utils/formBuilderBlockUtils';
 
 const customTableStyles = {
     ...dataTableCustomStyles,
@@ -83,59 +83,22 @@ export default function TabularResponses({ form }: TabularResponsesProps) {
         }
     };
 
-    const getAnswerForField = (response: StandardFormResponseDto, inputField: any) => {
-        const answer = response.answers[inputField.fieldId];
-        switch (inputField.type) {
-            case FormBuilderTagNames.INPUT_RATING:
-            case FormBuilderTagNames.INPUT_NUMBER:
-                return answer?.number;
-            case FormBuilderTagNames.INPUT_SHORT_TEXT:
-            case FormBuilderTagNames.INPUT_LONG_TEXT:
-                return answer?.text;
-            case FormBuilderTagNames.INPUT_LINK:
-                return answer?.url;
-            case FormBuilderTagNames.INPUT_EMAIL:
-                return answer?.email;
-            case FormBuilderTagNames.INPUT_DATE:
-                return answer?.date;
-            case FormBuilderTagNames.INPUT_MULTIPLE_CHOICE:
-            case FormBuilderTagNames.INPUT_DROPDOWN:
-                const compareValue = !answer?.choice?.value?.match('^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$');
-                if (compareValue) {
-                    return inputField?.properties?.choices.find((choice: any) => choice.value === answer?.choice?.value)?.value;
-                }
-                return inputField?.properties?.choices?.find((choice: any) => choice.id === answer?.choice?.value)?.value;
-            case FormBuilderTagNames.INPUT_CHECKBOXES:
-                const choicesAnswers = answer?.choices?.values;
-                const compareIds = Array.isArray(choicesAnswers) && choicesAnswers.length > 0 && choicesAnswers?.every((choice: any) => choice.match('^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'));
-                if (!compareIds) {
-                    const choices = inputField?.properties?.choices?.filter((choice: any) => answer?.choices?.values?.includes(choice.value));
-                    return choices?.map((choice: any) => choice.value)?.join(', ');
-                }
-                const choices = inputField?.properties?.choices?.filter((choice: any) => answer?.choices?.values?.includes(choice.id));
-                return choices?.map((choice: any) => choice.value)?.join(', ');
-            case FormBuilderTagNames.INPUT_PHONE_NUMBER:
-                return answer?.phone_number;
+    const getResponseForFileUploadField = (response: StandardFormResponseDto, field: StandardFormFieldDto) => {
+        const answer = response.answers[field.id];
 
-            case FormBuilderTagNames.INPUT_RANKING:
-                return answer?.choices?.values?.map((choice: any) => choice?.value)?.join(', ');
-            case FormBuilderTagNames.INPUT_FILE_UPLOAD:
-                return (
-                    <span className="p1 flex w-full justify-between items-center rounded bg-blue-200 py-2 px-3 cursor-pointer" onClick={downloadFormFile}>
-                        <span className="flex-1 truncate mr-5">{answer?.file_metadata?.name}</span>
-                        <span className="text-sm">{answer?.file_metadata?.size} MB</span>
-                    </span>
-                );
-            default:
-                return '';
-        }
+        return (
+            <span className="p1 flex w-full cursor-pointer items-center justify-between rounded bg-blue-200 px-3 py-2" onClick={downloadFormFile}>
+                <span className="mr-5 flex-1 truncate">{answer?.file_metadata?.name}</span>
+                <span className="text-sm">{answer?.file_metadata?.size} MB</span>
+            </span>
+        );
     };
 
-    const getAnswerField = (response: StandardFormResponseDto, inputField: any) => {
+    const getAnswerField = (response: StandardFormResponseDto, field: any) => {
         return (
             <>
                 <Typography className={cn('!text-black-900 body3 ')} noWrap>
-                    {getAnswerForField(response, inputField)}
+                    {field.type === FieldTypes.FILE_UPLOAD || field.type === FormBuilderTagNames.INPUT_FILE_UPLOAD ? getResponseForFileUploadField(response, field) : getAnswerForField(response, field)}
                 </Typography>
             </>
         );
@@ -160,6 +123,35 @@ export default function TabularResponses({ form }: TabularResponsesProps) {
         </div>
     );
 
+    const IgnoredResponsesFieldType = [FieldTypes.TEXT, null];
+
+    function getFormFields() {
+        if (form.builderVersion === 'v2') {
+            const fields = form.fields.map((slide) => {
+                return slide?.properties?.fields?.filter((field: StandardFormFieldDto) => !IgnoredResponsesFieldType.includes(field.type));
+            });
+            return fields.flat();
+        } else {
+            return getFilteredInputFields();
+        }
+    }
+
+    function getTitleForHeader(field: StandardFormFieldDto) {
+        if (form.builderVersion === 'v2') {
+            return field.title;
+        } else {
+            convertPlaceholderToDisplayValue(
+                form?.fields.map((field: any, index: number) => {
+                    return {
+                        ...field,
+                        position: index
+                    };
+                }) ?? [],
+                field?.value || ''
+            );
+        }
+    }
+
     const columns: any = [
         {
             name: t('FORM.RESPONDER'),
@@ -176,18 +168,10 @@ export default function TabularResponses({ form }: TabularResponsesProps) {
                 paddingRight: '16px'
             }
         },
-        ...getFilteredInputFields().map((inputField: any) => {
+        ...getFormFields().map((field: any) => {
             return {
-                name: convertPlaceholderToDisplayValue(
-                    form?.fields.map((field: any, index: number) => {
-                        return {
-                            ...field,
-                            position: index
-                        };
-                    }) ?? [],
-                    inputField?.value || ''
-                ),
-                selector: (response: StandardFormResponseDto) => getAnswerField(response, inputField),
+                name: getTitleForHeader(field),
+                selector: (response: StandardFormResponseDto) => getAnswerField(response, field),
                 style: {
                     color: 'rgba(0,0,0,.54)',
                     paddingLeft: '16px',
@@ -204,6 +188,7 @@ export default function TabularResponses({ form }: TabularResponsesProps) {
         setPage(page);
     };
     const { data, isLoading } = useGetFormsSubmissionsQuery(query, { skip: !workspace.id });
+    console.log('form responses : ', data, form);
 
     return (
         <>

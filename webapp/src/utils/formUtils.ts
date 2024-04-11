@@ -3,7 +3,6 @@ import { StandardFormDto } from '@app/models/dtos/form';
 import { FieldTypes } from '@app/models/dtos/form';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 
-
 export default function getFormShareURL(form: StandardFormDto, workspace: WorkspaceDto, defaultLink: boolean = false) {
     const slug = form?.settings?.customUrl || form?.importedFormId;
     const scheme = environments.HTTP_SCHEME;

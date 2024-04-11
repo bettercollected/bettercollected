@@ -112,7 +112,7 @@ export default function OtpEmailInput(props: OtpEmailInputPropType) {
                     <div className="flex gap-[20px] mt-10 w-full">
                         <div className="flex flex-col sm:flex-row gap-4 lg:gap-6 w-full  justify-center items-center">
                             {providers.map((provider: string) => (
-                                <ConnectWithProviderButton key={provider} type={'dark'} url={`${environments.API_ENDPOINT_HOST}/auth/${provider}/basic`} text={`Sign in with ${capitalize(provider)}`} creator={isCreator} fromProPlan={fromProPlan} />
+                                <ConnectWithProviderButton key={provider} type={'dark'} url={`${environments.NEXT_PUBLIC_API_ENDPOINT_HOST}/auth/${provider}/basic`} text={`Sign in with ${capitalize(provider)}`} creator={isCreator} fromProPlan={fromProPlan} />
                             ))}
                         </div>
                     </div>

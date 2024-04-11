@@ -7,12 +7,13 @@ export default interface StandardForm {
     formId: string;
     title: string;
     description?: string;
+    builderVersion?: string;
     fields?: Array<FormField>;
     thankYouMessage?: string;
     thankYouButtonText?: string;
     buttonText?: string;
     buttonLink?: string;
-    isMultiPage?:boolean;
+    isMultiPage?: boolean;
     welcomePage?: {
         title?: string;
         description?: string;
@@ -75,11 +76,7 @@ export const useStandardForm = () => {
 export const useFormSlide = (slideIndex: number) => {
     const [standardForm] = useAtom(fetchedFormAtom);
     const getFormSlide = () => {
-        if (
-            !standardForm.fields ||
-            !standardForm?.fields?.length ||
-            slideIndex > standardForm?.fields?.length
-        ) {
+        if (!standardForm.fields || !standardForm?.fields?.length || slideIndex > standardForm?.fields?.length) {
             return;
         }
         return standardForm.fields[slideIndex];

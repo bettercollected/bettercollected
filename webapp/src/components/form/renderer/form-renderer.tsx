@@ -22,6 +22,8 @@ import { StandardFormFieldDto } from '@app/models/dtos/form';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import getFormShareURL from '@app/utils/formUtils';
+import Form from '@app/views/organism/Form/Form';
+import ResponsePage from '@app/app/[workspace_name]/forms/[form_id]/preview/page';
 
 const StyledTextField = styled.div`
     textarea:disabled {
@@ -112,7 +114,7 @@ export default function FormRenderer({ form, response, enabled, isDisabled = fal
 
                     return (
                         <div key={idx} className={`grid grid-flow-col grid-cols-${gridColumnCount + 1} gap-4`}>
-                            <p className="font-semibold w-fit">{grq?.title}</p>
+                            <p className="w-fit font-semibold">{grq?.title}</p>
                             {gridColumnOptions.map((gcp: any, idx: any) => {
                                 const handleCheckedAnswer = (gcp: any) => {
                                     return ansChoices.includes(gcp?.label);
@@ -139,7 +141,7 @@ export default function FormRenderer({ form, response, enabled, isDisabled = fal
             <div className="w-full">
                 {description && <div>{description}</div>}
                 {strippedLink && (
-                    <div className="relative w-full aspect-video">
+                    <div className="relative aspect-video w-full">
                         <iframe src={embedUrl} width="100%" className="aspect-video" frameBorder="0" marginHeight={0} marginWidth={0}>
                             <Loader />
                         </iframe>
@@ -183,7 +185,7 @@ export default function FormRenderer({ form, response, enabled, isDisabled = fal
                 for (let i = 0; i < steps; i++) {
                     if (i >= start_form)
                         numberBoxes.push(
-                            <span key={i} className={`border border-gray-900 rounded mx-1 px-2 py-1 ${selected_answer !== undefined && selected_answer === i ? 'bg-gray-900 text-gray-200' : 'bg-gray-200 text-gray-900'}`}>
+                            <span key={i} className={`mx-1 rounded border border-gray-900 px-2 py-1 ${selected_answer !== undefined && selected_answer === i ? 'bg-gray-900 text-gray-200' : 'bg-gray-200 text-gray-900'}`}>
                                 {i}
                             </span>
                         );
@@ -196,7 +198,7 @@ export default function FormRenderer({ form, response, enabled, isDisabled = fal
                         <>
                             {ans?.choices?.values?.map((answer: any, idx: number) => {
                                 return (
-                                    <div key={idx} className="p-3 mt-3 mb-3 rounded-md border-[1px] border-gray-300">
+                                    <div key={idx} className="mb-3 mt-3 rounded-md border-[1px] border-gray-300 p-3">
                                         <span className="ml-2">
                                             {idx + 1}. {answer}
                                         </span>
@@ -215,7 +217,7 @@ export default function FormRenderer({ form, response, enabled, isDisabled = fal
                         <>
                             {choices.map((choice: any, idx: number) => {
                                 return (
-                                    <div key={idx} className="p-3 mt-3 mb-3 rounded">
+                                    <div key={idx} className="mb-3 mt-3 rounded p-3">
                                         <SelectDropdown value={''} className="h-6" disabled>
                                             {choicesArray.map((dd: number) => (
                                                 <MenuItem key={dd} value={''}>
@@ -297,7 +299,7 @@ export default function FormRenderer({ form, response, enabled, isDisabled = fal
         return (
             <div className="mt-2">
                 <p className="text-gray-400">Couldn&apos;t display. Unsupported media type.</p>
-                <a className="text-blue-500 mt-1" rel="noreferrer" target="_blank" href={href}>
+                <a className="mt-1 text-blue-500" rel="noreferrer" target="_blank" href={href}>
                     Click here to see video attachment.
                 </a>
             </div>
@@ -334,27 +336,28 @@ export default function FormRenderer({ form, response, enabled, isDisabled = fal
     const previewURL = responseId ? `${formShareURL}/preview?responseId=${responseId}` : `${formShareURL}/preview`;
 
     return (
-        <div data-testid="form-renderer" className="relative  w-full flex justify-center  md:px-0">
+        <div data-testid="form-renderer" className="relative  flex w-full justify-center  md:px-0">
             {form?.settings?.provider === 'self' ? (
                 <>
                     {form?.builderVersion === 'v2' ? (
-                        <div className="w-full aspect-video bg-blue-200">
-                            <iframe src={previewURL} className="h-full w-full overflow-y-auto"></iframe>{' '}
+                        <div className="aspect-video w-full bg-blue-200">
+                            {/* <iframe src={previewURL} className="h-full w-full overflow-y-auto"></iframe>{' '} */}
+                            <ResponsePage searchParams={{ responseId: responseId ? responseId : '' }} />
                         </div>
                     ) : (
                         <BetterCollectedForm form={form} response={response} enabled={enabled} isDisabled={isDisabled} />
                     )}
                 </>
             ) : (
-                <div className="flex flex-col gap-4 max-w-[700px] w-full !bg-white rounded">
-                    <div className="p-6 bg-white rounded-lg flex flex-col gap-4">
-                        <h1 className="font-semibold h4">{form?.title}</h1>
+                <div className="flex w-full max-w-[700px] flex-col gap-4 rounded !bg-white">
+                    <div className="flex flex-col gap-4 rounded-lg bg-white p-6">
+                        <h1 className="h4 font-semibold">{form?.title}</h1>
                         {/* {form?.description && <MarkdownText description={form?.description} contentStripLength={1000} markdownClassName="body4" textClassName="body4" />} */}
                     </div>
                     {form?.fields?.map((question: StandardFormFieldDto, idx: number) => {
                         return (
-                            <div key={question?.id + idx} className={`px-6 py-3 bg-white relative rounded-lg`}>
-                                {question?.validations?.required && <div className="absolute top-5 right-5 text-red-500">*</div>}
+                            <div key={question?.id + idx} className={`relative rounded-lg bg-white px-6 py-3`}>
+                                {question?.validations?.required && <div className="absolute right-5 top-5 text-red-500">*</div>}
                                 {renderQuestionField(question, response?.answers)}
                             </div>
                         );

@@ -72,7 +72,7 @@ class StandardFieldPropertyCamelModel(CamelModel):
     button_text: Optional[str]
     placeholder: Optional[str]
     steps: Optional[int]
-    start_form: Optional[int]
+    start_from: Optional[int]
     rating_shape: Optional[str]
     labels: Optional[Dict[str, str]]
     date_format: Optional[str]

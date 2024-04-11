@@ -94,7 +94,7 @@ export default function AuthAccountMenuDropdown({ isClientDomain, fullWidth, hid
                     </ActiveLink>
                 )}
                 {user.stripeCustomerId && (
-                    <ActiveLink href={`${environments.API_ENDPOINT_HOST}/stripe/session/create/portal`} referrerPolicy="no-referrer">
+                    <ActiveLink href={`${environments.NEXT_PUBLIC_API_ENDPOINT_HOST}/stripe/session/create/portal`} referrerPolicy="no-referrer">
                         <MenuItem sx={{ paddingX: '20px', paddingY: '10px', height: '36px' }} className="body4 hover:bg-brand-100">
                             <ListItemIcon className="text-black-900">
                                 <Billing width={20} height={20} />

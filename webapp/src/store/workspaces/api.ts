@@ -1,5 +1,7 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 
+
+
 import environments from '@app/configs/environments';
 import { StandardFormDto, StandardFormResponseDto, WorkspaceResponderDto } from '@app/models/dtos/form';
 import { ResponderGroupDto } from '@app/models/dtos/groups';
@@ -7,6 +9,7 @@ import { Page } from '@app/models/dtos/page';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { WorkspaceStatsDto } from '@app/models/dtos/workspaceStatsDto';
 import { IGetAllSubmissionsQuery, IGetFormSubmissionsQuery, IGetWorkspaceFormQuery, IGetWorkspaceSubmissionQuery, IPatchFormSettingsRequest, ISearchWorkspaceFormsQuery } from '@app/store/workspaces/types';
+
 
 export const WORKSPACES_REDUCER_PATH = 'workspacesApi';
 
@@ -35,9 +38,9 @@ export const workspacesApi = createApi({
     refetchOnFocus: true,
     keepUnusedDataFor: 0,
     baseQuery: fetchBaseQuery({
-        baseUrl: environments.API_ENDPOINT_HOST,
+        baseUrl: environments.NEXT_PUBLIC_API_ENDPOINT_HOST,
         prepareHeaders(headers) {
-            headers.set('Access-Control-Allow-Origin', environments.API_ENDPOINT_HOST);
+            headers.set('Access-Control-Allow-Origin', environments.NEXT_PUBLIC_API_ENDPOINT_HOST);
             return headers;
         },
         credentials: 'include'
@@ -303,7 +306,7 @@ export const workspacesApi = createApi({
                 method: 'DELETE',
                 credentials: 'include',
                 headers: {
-                    'Access-control-allow-origin': environments.API_ENDPOINT_HOST
+                    'Access-control-allow-origin': environments.NEXT_PUBLIC_API_ENDPOINT_HOST
                 }
             }),
             invalidatesTags: [SUBMISSION_TAG, WORKSPACE_TAGS]
@@ -314,7 +317,7 @@ export const workspacesApi = createApi({
                 method: 'DELETE',
                 credentials: 'include',
                 headers: {
-                    'Access-control-allow-origin': environments.API_ENDPOINT_HOST
+                    'Access-control-allow-origin': environments.NEXT_PUBLIC_API_ENDPOINT_HOST
                 }
             }),
             invalidatesTags: [SUBMISSION_TAG, WORKSPACE_TAGS]
@@ -361,7 +364,7 @@ export const workspacesApi = createApi({
                 body: request,
                 credentials: 'include',
                 headers: {
-                    'Access-control-allow-origin': environments.API_ENDPOINT_HOST
+                    'Access-control-allow-origin': environments.NEXT_PUBLIC_API_ENDPOINT_HOST
                 }
             })
         }),
@@ -372,7 +375,7 @@ export const workspacesApi = createApi({
                 body: request.body,
                 credentials: 'include',
                 headers: {
-                    'Access-control-allow-origin': environments.API_ENDPOINT_HOST
+                    'Access-control-allow-origin': environments.NEXT_PUBLIC_API_ENDPOINT_HOST
                 }
             }),
             invalidatesTags: [WORKSPACE_TAGS]
@@ -384,7 +387,7 @@ export const workspacesApi = createApi({
                 body: request.body,
                 credentials: 'include',
                 headers: {
-                    'Access-control-allow-origin': environments.API_ENDPOINT_HOST
+                    'Access-control-allow-origin': environments.NEXT_PUBLIC_API_ENDPOINT_HOST
                 }
             })
         }),
@@ -395,7 +398,7 @@ export const workspacesApi = createApi({
                 body: request.body,
                 credentials: 'include',
                 headers: {
-                    'Access-control-allow-origin': environments.API_ENDPOINT_HOST
+                    'Access-control-allow-origin': environments.NEXT_PUBLIC_API_ENDPOINT_HOST
                 }
             })
         }),

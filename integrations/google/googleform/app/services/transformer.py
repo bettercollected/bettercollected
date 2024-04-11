@@ -140,13 +140,14 @@ class GoogleFormTransformerService(FormTransformerService):
             )
 
         slide.properties.fields = [field]
-        return slide
+        return slide, field
 
     def _transform_fields(self, fields: List[GoogleFormItemsDto]):
         index = 0
         temp_text_fields: List[GoogleFormItemsDto] = []
         temp_text_field_index = 0
         transform_fields = []
+        slide_and_field_list = []
         for field in fields:
             if field.textItem is not None or field.pageBreakItem is not None:
                 if index < (len(fields) - 1):
@@ -158,7 +159,10 @@ class GoogleFormTransformerService(FormTransformerService):
                     temp_text_fields.append(text_field)
                     temp_text_field_index = index
                 continue
-            slide = self._transform_field(index, field)
+            slide, updated_field = self._transform_field(index, field)
+            slide_and_field_list.append(slide.id)
+            slide_and_field_list.append(updated_field.id)
+            # slide_and_field_list.append(updated_field.type if updated_field.type else "")
             if len(temp_text_fields) > 0:
                 slide.properties.fields[0].index = len(temp_text_fields)
                 slide.properties.fields = temp_text_fields + slide.properties.fields
@@ -166,9 +170,37 @@ class GoogleFormTransformerService(FormTransformerService):
             transform_fields.append(slide)
             index += 1
         if len(temp_text_fields) > 0:
-            slide = self._transform_field(index, fields[temp_text_field_index])
+            slide, updated_field = self._transform_field(
+                index, fields[temp_text_field_index]
+            )
             transform_fields.append(slide)
-        return transform_fields
+            slide_and_field_list.append(slide.id)
+            slide_and_field_list.append(updated_field.id)
+            # slide_and_field_list.append(updated_field.type if updated_field.type else "")
+        return transform_fields, slide_and_field_list
+
+    def _transform_welcome_page(self, welcome_page_title):
+        return WelcomePageField(
+            title=welcome_page_title,
+            layout=LayoutType.TWO_COLUMN_IMAGE_RIGHT,
+            imageUrl=default_image_url,
+        )
+
+    def _transform_thank_you_page(self):
+        return [
+            ThankYouPageField(
+                layout=LayoutType.TWO_COLUMN_IMAGE_RIGHT, imageUrl=default_image_url
+            )
+        ]
+
+    def _transform_theme(self):
+        return Theme(
+            title="Default",
+            primary="#2E2E2E",
+            secondary="#0764EB",
+            tertiary="#A2C5F8",
+            accent="#F2F7FF",
+        )
 
     def _transform_welcome_page(self, welcome_page_title):
         return WelcomePageField(
@@ -196,13 +228,14 @@ class GoogleFormTransformerService(FormTransformerService):
     def transform_form(self, form: Dict[str, Any]) -> StandardForm:
         try:
             googleform = GoogleFormDto(**form)
+            slides, slide_and_field_list = self._transform_fields(googleform.items)
             standard_form = StandardForm(
                 builder_version="v2",
                 form_id=str(PydanticObjectId()),
                 imported_form_id=googleform.formId,
                 title=googleform.info.documentTitle or "Untitled",
                 description=googleform.info.description,
-                fields=self._transform_fields(googleform.items),
+                fields=slides,
                 settings=self._transform_form_settings(googleform),
                 is_multi_page=True,
                 welcome_page=(
@@ -211,7 +244,7 @@ class GoogleFormTransformerService(FormTransformerService):
                 thankyou_page=(self._transform_thank_you_page()),
                 theme=(self._transform_theme()),
             )
-            return standard_form
+            return standard_form, slide_and_field_list
         except Exception as error:
             logger.error(f"Error transforming single form: {error}")
             raise HTTPException(
@@ -219,15 +252,24 @@ class GoogleFormTransformerService(FormTransformerService):
             )
 
     def transform_form_responses(
-        self, responses: List[Dict[str, Any]]
+        self,
+        responses: List[Dict[str, Any]],
+        standard_form: StandardForm,
+        slide_and_field_list: List[Any],
     ) -> List[StandardFormResponse]:
         standard_form_responses = [
-            self.transform_single_form_response(response) for response in responses
+            self.transform_single_form_response(
+                response, standard_form, slide_and_field_list
+            )
+            for response in responses
         ]
         return standard_form_responses
 
     def transform_single_form_response(
-        self, google_response_data: Dict[str, Any]
+        self,
+        google_response_data: Dict[str, Any],
+        standard_form: StandardForm,
+        slide_and_field_list: List[Any],
     ) -> StandardFormResponse:
         try:
             google_response = GoogleFormResponseDto(**google_response_data)
@@ -237,7 +279,9 @@ class GoogleFormTransformerService(FormTransformerService):
                 respondent_email=google_response.respondentEmail,
                 created_at=google_response.createTime,
                 updated_at=google_response.lastSubmittedTime,
-                answers=self._transform_answers(google_response.answers),
+                answers=self._transform_answers(
+                    google_response.answers, standard_form, slide_and_field_list
+                ),
             )
             if google_response.respondentEmail is not None:
                 response.dataOwnerIdentifier = google_response.respondentEmail
@@ -248,30 +292,79 @@ class GoogleFormTransformerService(FormTransformerService):
                 status_code=500, content=f"Google data transformation failed. {error}"
             )
 
-    def _transform_answers(self, answers: Dict[str, GoogleAnswer]):
+    def _transform_answers(
+        self,
+        answers: Dict[str, GoogleAnswer],
+        standard_form: StandardForm,
+        slide_and_field_list: List[Any],
+    ):
         standard_answers = {}
         if answers is None:
             return standard_answers
         for question_id, answer in answers.items():
-            standard_answers[question_id] = self._transform_answer(answer)
+            standard_answers[question_id] = self._transform_answer(
+                answer,
+                [
+                    field
+                    for field in standard_form.fields
+                    if field.id
+                    == slide_and_field_list[slide_and_field_list.index(question_id) - 1]
+                ],
+            )
         return standard_answers
 
-    def _transform_answer(self, answer: GoogleAnswer) -> StandardFormResponseAnswer:
+    def _transform_answer(
+        self,
+        answer: GoogleAnswer,
+        standard_field: List[StandardFormField],
+    ) -> StandardFormResponseAnswer:
         standard_answer = StandardFormResponseAnswer()
-
+        field = standard_field[0].properties.fields[-1]
         if answer.textAnswers and len(answer.textAnswers.answers) > 0:
-            if len(answer.textAnswers.answers) > 1:
-                standard_answer.choices = StandardChoicesAnswer(
-                    values=[choice.value for choice in answer.textAnswers.answers]
-                )
-            elif answer.textAnswers.answers:
+            if field.type == StandardFormFieldType.MULTIPLE_CHOICE:
+                choice_answers = answer.textAnswers.answers
+                if len(choice_answers) > 1:
+                    choice_ids = []
+                    for answer in choice_answers:
+                        choice_ids.append(
+                            [
+                                choice.id
+                                for choice in field.properties.choices
+                                if choice.value == answer.value
+                            ][0]
+                        )
+                    standard_answer.choices = StandardChoicesAnswer(values=choice_ids)
+                else:
+                    choice_id = [
+                        choice.id
+                        for choice in field.properties.choices
+                        if choice.value == choice_answers[0].value
+                    ][0]
+                    standard_answer.choice = StandardChoiceAnswer(value=choice_id)
+            elif field.type == StandardFormFieldType.LINEAR_RATING:
+                standard_answer.number = answer.textAnswers.answers[0].value
+            elif (
+                field.type == StandardFormFieldType.SHORT_TEXT
+                or field.type == StandardFormFieldType.LONG_TEXT
+            ):
                 standard_answer.text = answer.textAnswers.answers[0].value
-                standard_answer.choice = StandardChoiceAnswer(
-                    value=answer.textAnswers.answers[0].value
-                )
-                standard_answer.choices = StandardChoicesAnswer(
-                    values=[choice.value for choice in answer.textAnswers.answers]
-                )
+            elif field.type == StandardFormFieldType.DATE:
+                standard_answer.date = answer.textAnswers.answers[0].value
+            elif field.type == StandardFormFieldType.DROPDOWN:
+                choice_id = [
+                    choice.id
+                    for choice in field.properties.choices
+                    if choice.value == answer.textAnswers.answers[0].value
+                ][0]
+                standard_answer.choice = StandardChoiceAnswer(value=choice_id)
+            # elif answer.textAnswers.answers:
+            #     standard_answer.text = answer.textAnswers.answers[0].value
+            #     standard_answer.choice = StandardChoiceAnswer(
+            #         value=answer.textAnswers.answers[0].value
+            #     )
+            #     standard_answer.choices = StandardChoicesAnswer(
+            #         values=[choice.value for choice in answer.textAnswers.answers]
+            #     )
 
         return standard_answer
 

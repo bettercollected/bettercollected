@@ -178,7 +178,7 @@ export default function Settingsprivacy({ className = '', childClassName = '' }:
                             disabled={!editMode.privacy_policy_editMode}
                             value={policies.privacy_policy_url}
                             name="privacy_policy_url"
-                            placeholder={`Enter URL (e.g. ${environments.API_ENDPOINT_HOST}/legal/privacy-policy-2022.pdf )`}
+                            placeholder={`Enter URL (e.g. ${environments.NEXT_PUBLIC_API_ENDPOINT_HOST}/legal/privacy-policy-2022.pdf )`}
                         />
                     </StyledTextField>
                     {!editMode.privacy_policy_editMode ? (
@@ -207,7 +207,7 @@ export default function Settingsprivacy({ className = '', childClassName = '' }:
                             disabled={!editMode.terms_of_service_editMode}
                             value={policies.terms_of_service_url}
                             name="terms_of_service_url"
-                            placeholder={`Enter url (e.g. ${environments.API_ENDPOINT_HOST}/legal/terms-and-conditions-2022.pdf )`}
+                            placeholder={`Enter url (e.g. ${environments.NEXT_PUBLIC_API_ENDPOINT_HOST}/legal/terms-and-conditions-2022.pdf )`}
                         />
                     </StyledTextField>
                     {!editMode.terms_of_service_editMode ? (
