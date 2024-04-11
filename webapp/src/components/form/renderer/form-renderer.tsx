@@ -24,6 +24,7 @@ import { selectWorkspace } from '@app/store/workspaces/slice';
 import getFormShareURL from '@app/utils/formUtils';
 import Form from '@app/views/organism/Form/Form';
 import ResponsePage from '@app/app/[workspace_name]/forms/[form_id]/preview/page';
+import { extractTextfromJSON } from '@app/utils/richTextEditorExtenstion/getHtmlFromJson';
 
 const StyledTextField = styled.div`
     textarea:disabled {
@@ -155,7 +156,7 @@ export default function FormRenderer({ form, response, enabled, isDisabled = fal
         const questionType: QUESTION_TYPE = question.type;
         switch (questionType) {
             case QUESTION_TYPE.DATE:
-                const date_format = question.properties?.date_format ?? 'MM/DD/YYYY';
+                const date_format = question.properties?.dateFormat ?? 'MM/DD/YYYY';
                 const answer = ans?.date ?? '';
                 return (
                     <LocalizationProvider dateAdapter={AdapterDayjs}>
@@ -168,18 +169,18 @@ export default function FormRenderer({ form, response, enabled, isDisabled = fal
                 const choiceAnswer = ans?.choice?.value ?? ans?.choices?.values;
                 return (
                     <StyledTextField>
-                        {question.properties.choices?.map((option: any, idx: number) => (
+                        {question?.properties?.choices?.map((option: any, idx: number) => (
                             <div key={idx} className="flex items-center gap-3">
                                 {option?.attachment?.href && <img width={80} height={80} src={option?.attachment?.href} />}
-                                <FormControlLabel control={question.properties?.allow_multiple_selection ? <Checkbox checked={choiceAnswer?.includes(option?.label)} /> : <Radio checked={option?.label == choiceAnswer} />} label={option?.label} />
+                                <FormControlLabel control={question.properties?.allowMultipleSelection ? <Checkbox checked={choiceAnswer?.includes(option?.label)} /> : <Radio checked={option?.label == choiceAnswer} />} label={option?.label} />
                             </div>
                         ))}
                     </StyledTextField>
                 );
             case QUESTION_TYPE.OPINION_SCALE:
                 const selected_answer: any = ans?.number;
-                const start_form = question?.properties?.start_form;
-                let steps = question?.properties?.steps;
+                const start_form = question?.properties?.startFrom ?? 0;
+                let steps = question?.properties?.steps ?? 0;
                 steps = start_form != 0 ? steps + 1 : steps;
                 const numberBoxes = [];
                 for (let i = 0; i < steps; i++) {
@@ -234,7 +235,7 @@ export default function FormRenderer({ form, response, enabled, isDisabled = fal
                 }
 
             case QUESTION_TYPE.RATING:
-                return <Rating name="size-large" size="large" defaultValue={ans?.number || 0} precision={1} max={!!question.properties.steps ? parseInt(question.properties.steps) : 3} readOnly />;
+                return <Rating name="size-large" size="large" defaultValue={ans?.number || 0} precision={1} max={!!question?.properties?.steps ? parseInt((question?.properties?.steps).toString()) : 3} readOnly />;
 
             case QUESTION_TYPE.DROP_DOWN:
                 let dropdownOptions: any = [];
@@ -265,7 +266,7 @@ export default function FormRenderer({ form, response, enabled, isDisabled = fal
             case QUESTION_TYPE.GROUP:
                 return (
                     <>
-                        {question.properties.fields.map((question: any, idx: number) => (
+                        {question?.properties?.fields?.map((question: any, idx: number) => (
                             <div className="my-5" key={idx}>
                                 {renderQuestionField(question, response)}
                             </div>
@@ -324,7 +325,7 @@ export default function FormRenderer({ form, response, enabled, isDisabled = fal
 
     const renderQuestionField = (question: StandardFormFieldDto, response?: any) => (
         <div className="flex flex-col gap-3">
-            <h1 className="body1 !text-black-900">{question.title}</h1>
+            <h1 className="body1 !text-black-900">{extractTextfromJSON(question)}</h1>
             {/* {question?.description && <MarkdownText description={question.description} contentStripLength={1000} markdownClassName="body4" textClassName="body4" />} */}
             {question.attachment?.type && renderQuestionAttachment(question.attachment)}
             {renderQuestionTypeField(question, response ? response[question.id || ''] : undefined, response)}
