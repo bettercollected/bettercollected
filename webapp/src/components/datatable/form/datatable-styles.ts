@@ -45,7 +45,8 @@ export const dataTableCustomStyles = {
             paddingLeft: '0',
             paddingRight: '0',
             height: '40px !important',
-            minHeight: '40px'
+            minHeight: '40px',
+            backgroundColor: ''
         }
     },
     pagination: {
