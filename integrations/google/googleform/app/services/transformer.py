@@ -96,7 +96,7 @@ class GoogleFormTransformerService(FormTransformerService):
                 field.type = StandardFormFieldType.FILE_UPLOAD
             elif question.scaleQuestion:
                 field.type = StandardFormFieldType.LINEAR_RATING
-                field.properties.start_from = question.scaleQuestion.get("low", 0)
+                field.properties.start_form = question.scaleQuestion.get("low", 0)
                 field.properties.steps = question.scaleQuestion.get("high", 0)
             elif question.dateQuestion:
                 field.type = StandardFormFieldType.DATE
@@ -178,6 +178,29 @@ class GoogleFormTransformerService(FormTransformerService):
             slide_and_field_list.append(updated_field.id)
             # slide_and_field_list.append(updated_field.type if updated_field.type else "")
         return transform_fields, slide_and_field_list
+
+    def _transform_welcome_page(self, welcome_page_title):
+        return WelcomePageField(
+            title=welcome_page_title,
+            layout=LayoutType.TWO_COLUMN_IMAGE_RIGHT,
+            imageUrl=default_image_url,
+        )
+
+    def _transform_thank_you_page(self):
+        return [
+            ThankYouPageField(
+                layout=LayoutType.TWO_COLUMN_IMAGE_RIGHT, imageUrl=default_image_url
+            )
+        ]
+
+    def _transform_theme(self):
+        return Theme(
+            title="Default",
+            primary="#2E2E2E",
+            secondary="#0764EB",
+            tertiary="#A2C5F8",
+            accent="#F2F7FF",
+        )
 
     def _transform_welcome_page(self, welcome_page_title):
         return WelcomePageField(
