@@ -53,7 +53,7 @@ const LinearRatingSection = ({ field, slide, isBuilder = false }: { field: FormF
                         key={index}
                         onClick={() => {
                             if (!isBuilder) {
-                                addFieldLinearRatingAnswer(field.id, index + 1);
+                                addFieldLinearRatingAnswer(field.id, index );
                                 setTimeout(() => {
                                     nextField();
                                 }, 200);

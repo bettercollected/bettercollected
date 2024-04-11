@@ -1,3 +1,5 @@
+import { BorderLeft, BorderRight } from '@mui/icons-material';
+
 export const dataTableCustomStyles = {
     table: {
         style: {
@@ -8,40 +10,42 @@ export const dataTableCustomStyles = {
     headRow: {
         style: {
             border: 'none',
-            background: 'transparent',
+            backgroundColor: '#EEEEEE',
             fontSize: '14px',
-            color: '#343A40'
+            color: '#2E2E2E !important',
+            height: '50px !important'
         }
     },
     headCells: {
         style: {
-            border: 'none',
-            color: '#343A40',
+            borderRight: '1px solid #DBDBDB',
+            color: '#2E2E2E !important',
             fontSize: '14px',
-            paddingLeft: '16px',
-            paddingRight: '16px'
+            paddingTop: '5px',
+            paddingBottom: '5px',
+            paddingLeft: '8px',
+            paddingRight: '8px'
         }
     },
     cells: {
         style: {
             padding: '0',
             fontSize: '18px',
-            color: '#343A40 !important'
-            // paddingLeft: '16px',
-            // paddingRight: '16px'
+            color: '#2E2E2E !important',
+            borderRight: '1px solid #DBDBDB'
+            // paddingLeft: '6px',
+            // paddingRight: '6px'
         }
     },
     rows: {
         style: {
-            backgroundColor: '#F7F8FA',
-            // marginBottom: '16px',
-            border: 'none',
+            color: '#6E6E6E',
             outlineWidth: '0',
             borderRadius: '4px',
             paddingLeft: '0',
             paddingRight: '0',
-            paddingTop: '16px',
-            paddingBottom: '16px'
+            height: '40px !important',
+            minHeight: '40px'
         }
     },
     pagination: {

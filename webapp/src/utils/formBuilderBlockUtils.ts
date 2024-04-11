@@ -141,9 +141,11 @@ export function getAnswerForField(response: StandardFormResponseDto, field: Stan
         case FieldTypes.DATE:
         case FormBuilderTagNames.INPUT_DATE:
             return answer?.date;
+        case FieldTypes.YES_NO:
+            return answer?.boolean === true ? 'Yes' : answer?.boolean === false ? 'No' : '';
+
         case FieldTypes.MULTIPLE_CHOICE:
         case FieldTypes.DROP_DOWN:
-        case FieldTypes.YES_NO:
             if (field.properties?.allowMultipleSelection) {
                 const choices = field?.properties?.choices?.filter((choice: any) => answer?.choices?.values?.includes(choice.id));
                 return choices?.map((choice: any) => choice.value)?.join(', ');

@@ -19,6 +19,8 @@ import { selectWorkspace } from '@app/store/workspaces/slice';
 import { IGetFormSubmissionsQuery } from '@app/store/workspaces/types';
 import { downloadFile } from '@app/utils/fileUtils';
 import { convertPlaceholderToDisplayValue, getAnswerForField } from '@app/utils/formBuilderBlockUtils';
+import { extractTextfromJSON } from '@app/utils/richTextEditorExtenstion/getHtmlFromJson';
+import classNames from 'classnames';
 
 const customTableStyles = {
     ...dataTableCustomStyles,
@@ -87,7 +89,7 @@ export default function TabularResponses({ form }: TabularResponsesProps) {
         const answer = response.answers[field.id];
 
         return (
-            <span className="p1 flex w-full cursor-pointer items-center justify-between rounded bg-blue-200 px-3 py-2" onClick={downloadFormFile}>
+            <span className="p1 flex w-full cursor-pointer items-center justify-between rounded bg-blue-200 px-3 py-2" onClick={() => downloadFormFile(answer)}>
                 <span className="mr-5 flex-1 truncate">{answer?.file_metadata?.name}</span>
                 <span className="text-sm">{answer?.file_metadata?.size} MB</span>
             </span>
@@ -97,7 +99,7 @@ export default function TabularResponses({ form }: TabularResponsesProps) {
     const getAnswerField = (response: StandardFormResponseDto, field: any) => {
         return (
             <>
-                <Typography className={cn('!text-black-900 body3 ')} noWrap>
+                <Typography className={cn('!text-black-900 body3 w-[180px] truncate')} noWrap>
                     {field.type === FieldTypes.FILE_UPLOAD || field.type === FormBuilderTagNames.INPUT_FILE_UPLOAD ? getResponseForFileUploadField(response, field) : getAnswerForField(response, field)}
                 </Typography>
             </>
@@ -117,7 +119,7 @@ export default function TabularResponses({ form }: TabularResponsesProps) {
 
     const responseDataOwnerField = (response: StandardFormResponseDto) => (
         <div aria-hidden className="w-fit">
-            <Typography className={cn('!text-black-900 body3 ')} noWrap>
+            <Typography className={cn('!text-black-900 body3 w-[180px] truncate')} noWrap>
                 {response?.dataOwnerIdentifier || 'Anonymous'}
             </Typography>
         </div>
@@ -138,7 +140,7 @@ export default function TabularResponses({ form }: TabularResponsesProps) {
 
     function getTitleForHeader(field: StandardFormFieldDto) {
         if (form.builderVersion === 'v2') {
-            return field.title;
+            return extractTextfromJSON(field);
         } else {
             convertPlaceholderToDisplayValue(
                 form?.fields.map((field: any, index: number) => {
@@ -154,31 +156,32 @@ export default function TabularResponses({ form }: TabularResponsesProps) {
 
     const columns: any = [
         {
-            name: t('FORM.RESPONDER'),
+            name: t('FORM.RESPONDER') + ' ID',
             cell: (response: StandardFormResponseDto) => responseDataOwnerField(response),
             style: {
                 color: 'rgba(0,0,0,.54)',
-                paddingLeft: '16px',
+                paddingLeft: '8px',
                 height: 'auto',
-                background: '#F7F8FA',
+                background: '#FFFFFF',
                 opacity: 100,
-                zIndex: 100,
-                width: '400px !important',
+                width: '200px !important',
                 overflow: 'hidden ',
-                paddingRight: '16px'
+                paddingRight: '8px',
+                textOverFlow: 'ellipsis'
             }
         },
         ...getFormFields().map((field: any) => {
             return {
                 name: getTitleForHeader(field),
+                className: '!bg-red-100',
                 selector: (response: StandardFormResponseDto) => getAnswerField(response, field),
                 style: {
                     color: 'rgba(0,0,0,.54)',
-                    paddingLeft: '16px',
+                    paddingLeft: '8px',
                     height: 'auto',
-                    width: '400px !important',
+                    width: '200px !important',
                     overflow: 'hidden ',
-                    paddingRight: '16px'
+                    paddingRight: '8px'
                 }
             };
         })
@@ -188,11 +191,10 @@ export default function TabularResponses({ form }: TabularResponsesProps) {
         setPage(page);
     };
     const { data, isLoading } = useGetFormsSubmissionsQuery(query, { skip: !workspace.id });
-    console.log('form responses : ', data, form);
 
     return (
         <>
-            {Array.isArray(data?.items) && <DataTable onRowClicked={onRowClicked} columns={columns} customStyles={customTableStyles} data={data?.items || []} />}
+            {Array.isArray(data?.items) && <DataTable onRowClicked={onRowClicked} columns={columns} selectableRows customStyles={customTableStyles} data={data?.items || []} />}
             {Array.isArray(data?.items) && (data?.total || 0) > globalConstants.pageSize && (
                 <div className="mt-8 flex justify-center">
                     <StyledPagination shape="rounded" count={data?.pages || 0} page={page} onChange={handlePageChange} />
