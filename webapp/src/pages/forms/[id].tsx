@@ -32,7 +32,6 @@ import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { useGetWorkspaceFormQuery } from '@app/store/workspaces/api';
 import { checkHasCustomDomain, getServerSideAuthHeaderConfig } from '@app/utils/serverSidePropsUtils';
 import { validateFormOpen } from '@app/utils/validationUtils';
-import { selectWorkspace } from '@app/store/workspaces/slice';
 
 export default function SingleFormPage(props: any) {
     const { back, slug, hasCustomDomain, workspace, form: fetched_form } = props;
