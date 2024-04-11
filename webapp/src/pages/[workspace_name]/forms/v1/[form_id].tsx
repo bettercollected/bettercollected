@@ -1,7 +1,6 @@
-
 import environments from '@app/configs/environments';
 import { getGlobalServerSidePropsByWorkspaceName } from '@app/lib/serverSideProps';
-import SingleFormPage from '@app/pages/forms/[id]';
+import SingleFormPage from '@app/pages/forms/v1/[id]';
 import { checkHasClientDomain, getRequestHost, getServerSideAuthHeaderConfig } from '@app/utils/serverSidePropsUtils';
 
 export default SingleFormPage;
@@ -35,7 +34,7 @@ export async function getServerSideProps(_context: any) {
     let form = null;
     const config = getServerSideAuthHeaderConfig(_context);
     try {
-        const formResponse = await fetch(`${environments.INTERNAL_DOCKER_API_ENDPOINT_HOST}/workspaces/${globalProps.workspace?.id}/forms/${id}`, config);
+        const formResponse = await fetch(`${environments.INTERNAL_DOCKER_API_ENDPOINT_HOST}/workspaces/${globalProps.workspace?.id}/forms/${slug}`, config);
         form = (await formResponse?.json().catch((e: any) => e)) ?? null;
         if (!form) {
             return {

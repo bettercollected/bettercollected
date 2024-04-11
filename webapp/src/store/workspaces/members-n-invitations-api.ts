@@ -4,7 +4,6 @@ import environments from '@app/configs/environments';
 import { WorkspaceInvitationDto, WorkspaceMembersDto } from '@app/models/dtos/WorkspaceMembersDto';
 import { Page } from '@app/models/dtos/page';
 
-
 export const WORKSPACE_INVITATIONS_PATH = 'membersNInvitationsApi';
 
 const WORKSPACE_INVITATIONS_TAG = 'WORKSPACE_INVITATIONS_TAG';
@@ -17,9 +16,9 @@ export const membersNInvitationsApi = createApi({
     refetchOnFocus: true,
     keepUnusedDataFor: 0,
     baseQuery: fetchBaseQuery({
-        baseUrl: environments.API_ENDPOINT_HOST + '/workspaces',
+        baseUrl: environments.NEXT_PUBLIC_API_ENDPOINT_HOST + '/workspaces',
         prepareHeaders(headers) {
-            headers.set('Access-Control-Allow-Origin', environments.API_ENDPOINT_HOST);
+            headers.set('Access-Control-Allow-Origin', environments.NEXT_PUBLIC_API_ENDPOINT_HOST);
             return headers;
         },
         credentials: 'include'

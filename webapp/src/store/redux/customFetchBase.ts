@@ -1,9 +1,4 @@
-import {
-    BaseQueryFn,
-    FetchArgs,
-    FetchBaseQueryError,
-    fetchBaseQuery
-} from '@reduxjs/toolkit/query';
+import { BaseQueryFn, FetchArgs, FetchBaseQueryError, fetchBaseQuery } from '@reduxjs/toolkit/query';
 import { Mutex } from 'async-mutex';
 
 import environments from '@app/configs/environments';
@@ -12,14 +7,10 @@ import environments from '@app/configs/environments';
 const mutex = new Mutex();
 
 const baseQuery = fetchBaseQuery({
-    baseUrl: environments.API_ENDPOINT_HOST
+    baseUrl: environments.NEXT_PUBLIC_API_ENDPOINT_HOST
 });
 
-const customFetchBase: BaseQueryFn<
-    string | FetchArgs,
-    unknown,
-    FetchBaseQueryError
-> = async (args, api, extraOptions) => {
+const customFetchBase: BaseQueryFn<string | FetchArgs, unknown, FetchBaseQueryError> = async (args, api, extraOptions) => {
     // wait until the mutex is available without locking it
     await mutex.waitForUnlock();
     let result = await baseQuery(
@@ -37,11 +28,7 @@ const customFetchBase: BaseQueryFn<
             const release = await mutex.acquire();
 
             try {
-                const refreshResult = await baseQuery(
-                    { credentials: 'include', url: 'auth/refresh_token' },
-                    api,
-                    extraOptions
-                );
+                const refreshResult = await baseQuery({ credentials: 'include', url: 'auth/refresh_token' }, api, extraOptions);
 
                 if (refreshResult.data) {
                     // Retry the initial query

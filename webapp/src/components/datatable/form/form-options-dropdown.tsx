@@ -32,6 +32,7 @@ import { useAppDispatch } from '@app/store/hooks';
 import { useDuplicateFormMutation, useGetAllRespondersGroupQuery, usePatchFormSettingsMutation } from '@app/store/workspaces/api';
 import getFormShareURL from '@app/utils/formUtils';
 import { validateFormOpen } from '@app/utils/validationUtils';
+import { getEditFormURL } from '@app/utils/urlUtils';
 
 interface IFormOptionsDropdownMenuProps {
     workspace: WorkspaceDto;
@@ -98,7 +99,6 @@ export default function FormOptionsDropdownMenu({ workspace, form, hasCustomDoma
             });
     };
 
-
     const handleDuplicateFrom = () => {
         duplicateForm({ workspaceId: workspace.id, formId: form.formId })
             .then()
@@ -131,10 +131,8 @@ export default function FormOptionsDropdownMenu({ workspace, form, hasCustomDoma
         </ActiveLink>
     );
 
-    const editFormUrl = `/${workspace.workspaceName}/dashboard/forms/${form.formId}/edit`;
-
     const menuItemEdit = (
-        <ActiveLink key={'edit'} href={form?.builderVersion !== 'v2' ? editFormUrl : environments.HTTP_SCHEME + environments.V2_BUILDER_DOMAIN + editFormUrl}>
+        <ActiveLink key={'edit'} href={getEditFormURL(workspace, form)}>
             <MenuItem sx={{ paddingX: '20px', paddingY: '10px', height: '36px' }} className="body4 hover:bg-brand-100">
                 <ListItemIcon>
                     <EditIcon width={20} height={20} className="text-black-600" />

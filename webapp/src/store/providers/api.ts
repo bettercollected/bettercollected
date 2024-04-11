@@ -1,7 +1,11 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/dist/query/react';
 
+
+
 import environments from '@app/configs/environments';
 import { IntegrationFormProviders } from '@app/models/dtos/provider';
+
+
 
 import { PROVIDER_TAG_TYPES } from './types';
 
@@ -14,7 +18,7 @@ export const providerApi = createApi({
     refetchOnMountOrArgChange: true,
     keepUnusedDataFor: 0,
     baseQuery: fetchBaseQuery({
-        baseUrl: environments.API_ENDPOINT_HOST,
+        baseUrl: environments.NEXT_PUBLIC_API_ENDPOINT_HOST,
         credentials: 'include',
         prepareHeaders: (headers) => {
             return headers;

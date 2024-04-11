@@ -74,7 +74,7 @@ class GoogleFormRouter(Routable):
             credential.email
         )
         transformer = GoogleFormTransformerService()
-        standard_form = transformer.transform_form(form_import)
+        standard_form,field_types = transformer.transform_form(form_import)
         if convert_responses:
             task = asyncio.get_event_loop().run_in_executor(
                 self.executor,
@@ -83,7 +83,9 @@ class GoogleFormRouter(Routable):
                 credential.credentials.dict(),
             )
             form_responses = await task
-            standard_responses = transformer.transform_form_responses(form_responses)
+            standard_responses = transformer.transform_form_responses(
+                form_responses, standard_form, field_types
+            )
             return FormImportResponse(form=standard_form, responses=standard_responses)
         return standard_form
 

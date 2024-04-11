@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 
-import { useRouter } from 'next/router';
+import { useRouter } from 'next/navigation';
 
 import { UserStatus } from '@app/models/dtos/UserStatus';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
@@ -40,7 +40,7 @@ export default function AuthStatusDispatcher({ workspace, children, isCustomDoma
         }
         if (is401) {
             dispatch(setAuth({ ...initialAuthState, isLoading: false, is401 }));
-            if (isAdminDomain()) router.replace(router.asPath);
+            if (isAdminDomain()) router.replace(window.location.href);
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isLoading, is401, workspace]);

@@ -13,13 +13,34 @@ import { FormSlideLayout } from '../enums/form';
 import { FileMetadata } from '../types/fileTypes';
 import { ResponderGroupDto } from './groups';
 
+export interface StandardFormFieldProperties {
+    hidden?: boolean;
+    fields?: Array<StandardFormFieldDto>;
+    placeholder?: string;
+    choices?: Array<FieldChoice>;
+    steps?: number;
+    startFrom?: number;
+    ratingShape?: string;
+    dateFormat?: string;
+    showQuestionNumbers?: boolean;
+    allowMultipleSelection?: boolean;
+    allowOtherChoice?: boolean;
+    layout?: FormSlideLayout;
+    theme?: {
+        title: string;
+        primary: string;
+        secondary: string;
+        tertiary: string;
+        accent: string;
+    };
+}
 
 export interface StandardFormFieldDto {
     id: string;
     questionId?: string;
     formId?: string;
     validations?: IFormFieldValidation;
-    properties?: any;
+    properties?: StandardFormFieldProperties;
     value?: string;
     attachment?: any;
     title: string;
@@ -39,7 +60,7 @@ export interface StandardFormFieldDto {
 
 export interface StandardFormDto {
     formId: string;
-    importedFormId:string;
+    importedFormId?: string;
     title: string;
     description?: string | null | undefined;
     buttonText?: string;
@@ -138,8 +159,9 @@ export interface AnswerDto {
 
 export interface StandardForm {
     formId: string;
+    builderVersion?: string;
     title: string;
-    description?: string;
+    description?: string | null;
     buttonText?: string;
     version?: number;
     settings?: {

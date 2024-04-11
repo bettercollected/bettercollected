@@ -1,7 +1,11 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 
+
+
 // Import from the correct path
 import environments from '@app/configs/environments';
+
+
 
 import { IConsentField } from './types';
 
@@ -15,7 +19,7 @@ export const consentApi = createApi({
     refetchOnMountOrArgChange: true,
     keepUnusedDataFor: 0,
     baseQuery: fetchBaseQuery({
-        baseUrl: environments.API_ENDPOINT_HOST,
+        baseUrl: environments.NEXT_PUBLIC_API_ENDPOINT_HOST,
         credentials: 'include',
         prepareHeaders: (headers) => {
             return headers;

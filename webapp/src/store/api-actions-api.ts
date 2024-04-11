@@ -1,5 +1,7 @@
-import { createApi } from '@reduxjs/toolkit/query/react';
 import { fetchBaseQuery } from '@reduxjs/toolkit/query';
+import { createApi } from '@reduxjs/toolkit/query/react';
+
+
 
 import environments from '@app/configs/environments';
 import { Action } from '@app/models/dtos/actions';
@@ -12,9 +14,9 @@ export const apiActionsApi = createApi({
     refetchOnFocus: true,
     keepUnusedDataFor: 0,
     baseQuery: fetchBaseQuery({
-        baseUrl: environments.API_ENDPOINT_HOST,
+        baseUrl: environments.NEXT_PUBLIC_API_ENDPOINT_HOST,
         prepareHeaders(headers) {
-            headers.set('Access-Control-Allow-Origin', environments.API_ENDPOINT_HOST);
+            headers.set('Access-Control-Allow-Origin', environments.NEXT_PUBLIC_API_ENDPOINT_HOST);
             return headers;
         },
         credentials: 'include'

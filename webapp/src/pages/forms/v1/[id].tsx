@@ -1,8 +1,10 @@
+'use client';
+
 import React, { useEffect, useRef } from 'react';
 
 import { useTranslation } from 'next-i18next';
 import { NextSeo } from 'next-seo';
-import { useRouter } from 'next/router';
+import { useRouter } from 'next/navigation';
 
 import SmallLogo from '@Components/Common/Icons/Common/SmallLogo';
 import AppButton from '@Components/Common/Input/Button/AppButton';
@@ -32,7 +34,7 @@ import { checkHasCustomDomain, getServerSideAuthHeaderConfig } from '@app/utils/
 import { validateFormOpen } from '@app/utils/validationUtils';
 
 export default function SingleFormPage(props: any) {
-    const { back, slug, hasCustomDomain, workspace, form: fetched_form, error: fetched_form_error } = props;
+    const { back, slug, hasCustomDomain, workspace, form: fetched_form } = props;
 
     const { data, isLoading, error } = useGetWorkspaceFormQuery({
         workspace_id: workspace.id,
@@ -86,10 +88,10 @@ export default function SingleFormPage(props: any) {
     if (data && isFormClosed)
         return (
             <HeaderImageWrapper>
-                <div className="px-5  flex flex-col items-center">
-                    <div className="h2-new text-black-800 font-bold mt-[60px] ">This Form Is Closed</div>
+                <div className="flex  flex-col items-center px-5">
+                    <div className="h2-new text-black-800 mt-[60px] font-bold ">This Form Is Closed</div>
                     <div className="h4-new text-black-800 mt-4 text-center">The form &quot;{form?.title || 'Untitled'}&quot; is no longer accepting responses.</div>
-                    <div className="p2-new mt-2 text-black-700 text-sm text-center">Try contacting the owner of the form if you think that this is a mistake.</div>
+                    <div className="p2-new text-black-700 mt-2 text-center text-sm">Try contacting the owner of the form if you think that this is a mistake.</div>
                 </div>
                 {showBranding && <PoweredBy />}
             </HeaderImageWrapper>
@@ -115,17 +117,17 @@ export default function SingleFormPage(props: any) {
     if (error) {
         return (
             <HeaderImageWrapper className="my-16 gap-4">
-                <div className="flex flex-col gap-2 items-center">
+                <div className="flex flex-col items-center gap-2">
                     <span className="h4-new text-black-800">Error loading form!!</span>
                     <span className="p2-new text-black-700 text-center">Either the form does not exist or you do not have access to this form.</span>
                 </div>
                 <div
-                    className={`px-3 py-2 flex gap-2 cursor-pointer mt-10 bg-white items-center rounded-md border-gray-200 border-[2px]`}
+                    className={`mt-10 flex cursor-pointer items-center gap-2 rounded-md border-[2px] border-gray-200 bg-white px-3 py-2`}
                     onClick={() => {
                         router.push('https://bettercollected.com');
                     }}
                 >
-                    <SmallLogo className="w-6 h-6" />
+                    <SmallLogo className="h-6 w-6" />
                     <span className="body3 text-black-700">Try bettercollected</span>
                 </div>
             </HeaderImageWrapper>
@@ -149,20 +151,21 @@ export default function SingleFormPage(props: any) {
     const goToForms = () => {
         let pathName = '/';
         if (!hasCustomDomain) {
-            pathName = `/${router.query.workspace_name}`;
+            pathName = `/${workspace.workspaceName}`;
         }
 
-        router
-            .push(
-                {
-                    pathname: pathName,
-                    query: { view: 'forms' }
-                },
-                undefined,
-                { scroll: true, shallow: true }
-            )
-            .then((r) => r)
-            .catch((e) => e);
+        const obj = {
+            pathname: pathName,
+            query: { view: 'forms' }
+        };
+
+        // Convert object to URLSearchParams
+        const params = new URLSearchParams(obj.query);
+
+        // Create URL string
+        const href = obj.pathname + '?' + params.toString();
+
+        router.push(href, { scroll: true });
     };
 
     if (form?.settings?.provider && form.settings?.provider === 'google' && form?.fields && hasFileUpload(form?.fields)) {
@@ -193,30 +196,30 @@ export default function SingleFormPage(props: any) {
                         ]
                     }}
                 />
-                <div className="relative !bg-white !min-h-screen">
+                <div className="relative !min-h-screen !bg-white">
                     {back && (
-                        <div className="flex cursor-pointer mt-5 items-center gap-2 px-5 lg:px-20 w-auto z-10 hover:!-translate-y-0 focus:-translate-y-0" onClick={() => goToForms()}>
+                        <div className="z-10 mt-5 flex w-auto cursor-pointer items-center gap-2 px-5 hover:!-translate-y-0 focus:-translate-y-0 lg:px-20" onClick={() => goToForms()}>
                             <ChevronLeft height={24} width={24} />
                             <span className="sh1">{t(localesCommon.forms)}</span>
                         </div>
                     )}
-                    <div className="absolute left-0 right-0 top-16 bottom-0 !p-0 w-full items-start justify-between rounded-lg bg-white">
-                        <div className="flex flex-col items-center gap-8 justify-between p-10">
-                            <div className="py-6 px-3 max-w-xs text-center">
-                                <svg aria-hidden="true" className="mx-auto mb-4 text-yellow-500 w-14 h-14 dark:text-gray-200" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <div className="absolute bottom-0 left-0 right-0 top-16 w-full items-start justify-between rounded-lg bg-white !p-0">
+                        <div className="flex flex-col items-center justify-between gap-8 p-10">
+                            <div className="max-w-xs px-3 py-6 text-center">
+                                <svg aria-hidden="true" className="mx-auto mb-4 h-14 w-14 text-yellow-500 dark:text-gray-200" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                                 </svg>
                                 <h3 className="mb-5 text-lg font-bold text-gray-700 dark:text-gray-400">{form?.title}</h3>
                                 <p className="mb-5 text-sm font-normal text-gray-500 dark:text-gray-400">{form?.description}</p>
 
-                                <div className="px-4 py-10 mb-4 text-sm text-yellow-800 rounded-lg bg-yellow-50 dark:bg-gray-800 dark:text-yellow-300" role="alert">
+                                <div className="mb-4 rounded-lg bg-yellow-50 px-4 py-10 text-sm text-yellow-800 dark:bg-gray-800 dark:text-yellow-300" role="alert">
                                     <span className="font-medium">Warning!</span> This form consists file upload. You may need to open it in a new tab to fill it out.
                                 </div>
                                 <ActiveLink
                                     href={responderUri}
                                     data-modal-hide="popup-modal"
                                     type="button"
-                                    className="text-white bg-blue-500 hover:bg-blue-400 focus:ring-4 focus:outline-none focus:ring-red-300 dark:focus:ring-red-800 font-medium rounded-lg text-sm inline-flex items-center px-5 py-2.5 text-center mr-2"
+                                    className="mr-2 inline-flex items-center rounded-lg bg-blue-500 px-5 py-2.5 text-center text-sm font-medium text-white hover:bg-blue-400 focus:outline-none focus:ring-4 focus:ring-red-300 dark:focus:ring-red-800"
                                 >
                                     Fill out the form
                                 </ActiveLink>
@@ -251,8 +254,8 @@ export default function SingleFormPage(props: any) {
                         ]
                     }}
                 />
-                <div className="!min-h-screen relative">
-                    <div className="absolute left-0 right-0 top-0 bottom-0 !p-0 !m-0'">
+                <div className="relative !min-h-screen">
+                    <div className="!m-0' absolute bottom-0 left-0 right-0 top-0 !p-0">
                         {form?.settings?.provider === 'google' && !!responderUri && (
                             <iframe ref={iframeRef} src={`${responderUri}?embedded=true`} width="100%" height="100%" frameBorder="0">
                                 <Loader />
@@ -266,7 +269,7 @@ export default function SingleFormPage(props: any) {
 
     const isFormDisabled = environments.ENABLE_COLLECT_EMAILS && form?.settings?.requireVerifiedIdentity && !auth.email;
     return (
-        <Layout showNavbar={false} isCustomDomain={hasCustomDomain} isClientDomain={!hasCustomDomain} showAuthAccount={true} className="relative !bg-white !min-h-screen">
+        <Layout showNavbar={false} isCustomDomain={hasCustomDomain} isClientDomain={!hasCustomDomain} showAuthAccount={true} className="relative !min-h-screen !bg-white">
             <NextSeo
                 title={title}
                 description={description}
@@ -287,10 +290,10 @@ export default function SingleFormPage(props: any) {
                     ]
                 }}
             />
-            <div className={`absolute left-0 right-0 top-0 bottom-0 !bg-white !p-0 !m-0 ${showBranding ? '!mb-6' : ''}`}>
+            <div className={`absolute bottom-0 left-0 right-0 top-0 !m-0 !bg-white !p-0 ${showBranding ? '!mb-6' : ''}`}>
                 {form?.settings?.provider === 'typeform' && <Widget id={form?.formId} style={{ height: '100vh' }} className="my-form" />}
                 {form?.settings?.provider === 'self' && (
-                    <div className="flex !bg-white justify-center overflow-auto h-full w-full pb-6">
+                    <div className="flex h-full w-full justify-center overflow-auto !bg-white pb-6">
                         <BetterCollectedForm form={form} enabled={!isFormDisabled} isCustomDomain={hasCustomDomain} />
                     </div>
                 )}

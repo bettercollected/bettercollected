@@ -1,9 +1,14 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 
+
+
 import environments from '@app/configs/environments';
 import { IFormTemplateDto } from '@app/models/dtos/template';
 
+
+
 import { ICreateFormFromTemplate, ICreateTemplateFromForm, IGetTemplate } from './types';
+
 
 const TEMPLATE_REDUCER_PATH = 'templateApi';
 
@@ -16,7 +21,7 @@ export const templateApi = createApi({
     refetchOnMountOrArgChange: true,
     tagTypes: ['FORM_TEMPLATE'],
     baseQuery: fetchBaseQuery({
-        baseUrl: environments.API_ENDPOINT_HOST,
+        baseUrl: environments.NEXT_PUBLIC_API_ENDPOINT_HOST,
         credentials: 'include',
         prepareHeaders: (headers) => {
             return headers;
@@ -24,19 +29,20 @@ export const templateApi = createApi({
     }),
     endpoints: (builder) => ({
         getTemplates: builder.query<Array<IFormTemplateDto>, any>({
-            query: (data) =>{
-                const params: any= {}
-                if(data?.workspace_id){
-                    params.workspace_id = data.workspace_id
+            query: (data) => {
+                const params: any = {};
+                if (data?.workspace_id) {
+                    params.workspace_id = data.workspace_id;
                 }
-                if(data?.v2){
-                    params.v2 = data.v2
+                if (data?.v2) {
+                    params.v2 = data.v2;
                 }
-                return ({
-                url: `/templates`,
-                method: 'GET',
-                params: params
-            })},
+                return {
+                    url: `/templates`,
+                    method: 'GET',
+                    params: params
+                };
+            },
             providesTags: [FORM_TEMPLATE]
         }),
         getTemplateById: builder.query<IFormTemplateDto, IGetTemplate>({

@@ -20,7 +20,6 @@ import { convertFormTemplateToStandardForm } from '@app/utils/convertDataType';
 import { checkHasAdminDomain, getRequestHost } from '@app/utils/serverSidePropsUtils';
 import environments from '@app/configs/environments';
 
-
 export default function TemplatePage(props: any) {
     const { templateId } = props;
     const { data } = useGetTemplateByIdQuery({
@@ -75,7 +74,8 @@ export default function TemplatePage(props: any) {
                     router.push(environments.HTTP_SCHEME + environments.V2_BUILDER_DOMAIN + editFormUrl);
                 } else {
                     router.push(editFormUrl);
-                }            } else {
+                }
+            } else {
                 toast('Error Occurred').toString(), { type: 'error' };
             }
         } catch (err) {
@@ -85,7 +85,7 @@ export default function TemplatePage(props: any) {
 
     return (
         <Layout showNavbar className="bg-white !px-0">
-            <div className={'py-3 px-5 flex justify-end'}>
+            <div className={'flex justify-end px-5 py-3'}>
                 <div className={'flex flex-row gap-4'}>
                     {!isError && auth ? (
                         <>
@@ -126,7 +126,7 @@ const ButtonActionWrapper = ({ children, handleAction, workspaces }: any) => {
             )}
             {!hasSingleWorkspace && (
                 <MenuDropdown id="workspaceSelector" className="hover:bg-transparent" menuTitle="Select a workspace" showExpandMore={false} menuContent={<div className="pointer-events-none ">{children}</div>}>
-                    <div className="font-bold px-4 py-2 text-sm text-black-700">Select a workspace</div>
+                    <div className="text-black-700 px-4 py-2 text-sm font-bold">Select a workspace</div>
                     <div>
                         {workspaces?.map((workspace: WorkspaceDto) => (
                             <MenuItem

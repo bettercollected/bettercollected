@@ -10,13 +10,9 @@ import { useGetFormResponseQuery } from '@app/store/redux/formApi';
 import ThankyouPage from '@app/views/organism/Form/ThankyouPage';
 import WelcomePage from '@app/views/organism/Form/WelcomePage';
 import FormSlidePreview from '@app/views/organism/FormPreview/FormSlidePreview';
+import { StandardForm } from '@app/models/dtos/form';
 
-
-export default function ResponsePage({
-    searchParams
-}: {
-    searchParams: { responseId?: string };
-}) {
+export default function ResponsePage({ searchParams }: { searchParams: { responseId?: string } }) {
     const { standardForm } = useStandardForm();
     const { setFormResponse } = useFormResponse();
     const { workspace } = useWorkspace();
@@ -38,26 +34,28 @@ export default function ResponsePage({
             });
         }
     }, [data?.response?.responseId]);
+
+    console.log('Asds : ', standardForm);
     return (
         <div className="h-screen w-screen">
             <ScrollArea className="overfloe-y-auto  flex h-full w-full flex-col">
                 <div className="pointer-events-none">
                     <div className="p-4">
-                        <div className="min-h-screen w-full overflow-hidden rounded-xl border border-black-400">
+                        <div className="border-black-400 min-h-screen w-full overflow-hidden rounded-xl border">
                             <WelcomePage isPreviewMode />
                         </div>
                     </div>
                     {standardForm?.fields?.map((slide, index) => {
                         return (
                             <div className="p-4" key={index}>
-                                <div className="min-w-screen aspect-video h-full w-full overflow-hidden rounded-xl border border-black-400 ">
+                                <div className="min-w-screen border-black-400 aspect-video h-full w-full overflow-hidden rounded-xl border ">
                                     <FormSlidePreview slide={slide} />
                                 </div>
                             </div>
                         );
                     })}
                     <div className="p-4">
-                        <div className="min-h-screen w-full overflow-hidden rounded-xl border border-black-400 ">
+                        <div className="border-black-400 min-h-screen w-full overflow-hidden rounded-xl border ">
                             <ThankyouPage isPreviewMode />
                         </div>
                     </div>
@@ -66,3 +64,31 @@ export default function ResponsePage({
         </div>
     );
 }
+
+// const PreviewComponent = ({ standardForm }: { standardForm :StandardForm}) => {
+//     return (
+//         <ScrollArea className="overfloe-y-auto  flex h-full w-full flex-col">
+//             <div className="pointer-events-none">
+//                 <div className="p-4">
+//                     <div className="border-black-400 min-h-screen w-full overflow-hidden rounded-xl border">
+//                         <WelcomePage isPreviewMode />
+//                     </div>
+//                 </div>
+//                 {standardForm?.fields?.map((slide, index) => {
+//                     return (
+//                         <div className="p-4" key={index}>
+//                             <div className="min-w-screen border-black-400 aspect-video h-full w-full overflow-hidden rounded-xl border ">
+//                                 <FormSlidePreview slide={slide} />
+//                             </div>
+//                         </div>
+//                     );
+//                 })}
+//                 <div className="p-4">
+//                     <div className="border-black-400 min-h-screen w-full overflow-hidden rounded-xl border ">
+//                         <ThankyouPage isPreviewMode />
+//                     </div>
+//                 </div>
+//             </div>
+//         </ScrollArea>
+//     );
+// };

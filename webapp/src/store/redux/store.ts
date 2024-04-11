@@ -10,22 +10,13 @@ import { templatesApi } from '@app/store/redux/templateApi';
 import workspaceSlice from '@app/store/redux/workspace';
 import joyrideSlice from '@app/store/tours/slice';
 
-import {formsApi} from "./formApi"
+import { formsApi } from './formApi';
 
 // Add more middlewares here
 const loggerMiddleware = createLogger({ collapsed: true });
-const middlewares: any = [
-    loggerMiddleware,
-    formsApi.middleware,
-    templatesApi.middleware
-];
+const middlewares: any = [loggerMiddleware, formsApi.middleware, templatesApi.middleware];
 
-if (
-    environments.IS_IN_PRODUCTION_MODE ||
-    environments.IS_REDUX_LOGGER_DISABLED ||
-    environments.NEXT_PUBLIC_NODE_ENV === 'production'
-)
-    middlewares.splice(0, 1);
+if (environments.IS_IN_PRODUCTION_MODE || environments.IS_REDUX_LOGGER_DISABLED || environments.NEXT_PUBLIC_NODE_ENV === 'production') middlewares.splice(0, 1);
 
 const reducers = {
     [mutationStatusSlice.reducerPath]: mutationStatusSlice.reducer,
