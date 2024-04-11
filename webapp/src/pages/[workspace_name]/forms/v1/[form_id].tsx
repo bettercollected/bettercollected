@@ -1,6 +1,6 @@
 import environments from '@app/configs/environments';
 import { getGlobalServerSidePropsByWorkspaceName } from '@app/lib/serverSideProps';
-import SingleFormPage from '@app/pages/forms/[id]';
+import SingleFormPage from '@app/pages/forms/v1/[id]';
 import { checkHasClientDomain, getRequestHost, getServerSideAuthHeaderConfig } from '@app/utils/serverSidePropsUtils';
 
 export default SingleFormPage;

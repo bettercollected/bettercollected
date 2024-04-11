@@ -5,7 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import Form from '@app/views/organism/Form/Form';
 import ReduxWrapperAppRouter from '@app/containers/ReduxWrapperAppRouter';
 import { useStandardForm } from '@app/store/jotai/fetchedForm';
-import SingleFormPage from '@app/pages/forms/[id]';
+import SingleFormPage from '@app/pages/forms/v1/[id]';
 import useWorkspace from '@app/store/jotai/workspace';
 import environments from '@app/configs/environments';
 
