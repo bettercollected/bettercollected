@@ -16,8 +16,6 @@ export interface WorkspaceDto {
     };
     privacyPolicy?: string;
     termsOfService?: string;
-    privacy_policy_url: string;
-    terms_of_service_url: string;
     mailSettings?: string | null;
     id: string;
     isPro?: boolean;
