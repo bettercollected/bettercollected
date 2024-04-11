@@ -26,12 +26,12 @@ interface IWorkspaceFormsTabContentProps {
 export const StyledTextField = styled.div`
     .MuiFormControl-root {
         background: white;
-        border-radius: 4px;
+        border-radius: 8px;
         outline: none;
     }
 
     .MuiOutlinedInput-notchedOutline {
-        border-radius: 4px;
+        border-radius: 8px;
         border: 1px solid #ced4da;
     }
 
@@ -97,7 +97,7 @@ export default function WorkspaceFormsTabContent({ workspace, isFormCreator = fa
 
     if (isLoading)
         return (
-            <div data-testid="loader" className="w-full min-h-[30vh] flex flex-col items-center justify-center text-darkGrey">
+            <div data-testid="loader" className="text-darkGrey flex min-h-[30vh] w-full flex-col items-center justify-center">
                 <Loader />
             </div>
         );
@@ -112,7 +112,7 @@ export default function WorkspaceFormsTabContent({ workspace, isFormCreator = fa
 
     return (
         <SearchByUUIDWrapper>
-            <div className="gap-6 flex flex-col w-full">
+            <div className="flex w-full flex-col gap-6">
                 {pinnedForms?.items?.length !== 0 && <FormCards title={t(formConstant.pinnedforms)} showPinned={false} isFormCreator={isFormCreator} showVisibility={false} workspace={workspace} formsArray={pinnedForms?.items || []} />}
                 {pinnedForms?.items?.length !== 0 && <Divider />}
                 <div className={`w-full md:w-[282px]`}>

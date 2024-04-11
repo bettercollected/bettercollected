@@ -43,7 +43,7 @@ export interface StandardFormFieldDto {
     properties?: StandardFormFieldProperties;
     value?: string;
     attachment?: any;
-    title: string;
+    title: string | JSONContent;
     description?: string | null;
     type:
         | {
@@ -189,7 +189,7 @@ export interface FormField {
     id: string;
     properties?: FormFieldProperties;
     validations?: FieldValidations;
-    title?: JSONContent;
+    title?: JSONContent | string;
     description?: string;
     type?: FieldTypes;
     value?: string;
