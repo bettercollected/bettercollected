@@ -137,6 +137,10 @@ export default function FormPage(props: any) {
         await router.push(`/${props.workspace.workspaceName}/dashboard/forms`);
     };
 
+    if (!form?.id) {
+        return <></>;
+    }
+
     return (
         <Layout isCustomDomain={false} isClientDomain={false} showNavbar={true} hideMenu={false} showAuthAccount={true} className="flex w-full flex-col !bg-white !p-0">
             <NextSeo title={form.title} noindex={true} nofollow={true} />
