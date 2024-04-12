@@ -22,8 +22,8 @@ const QRGenerator = ({ form }: { form: StandardFormDto }) => {
                     scale: 8,
                     width: isMobile ? 220 : 260,
                     color: {
-                        light: '#DBDBDB',
-                        dark: '#0764EB'
+                        light: '#FFFFFF',
+                        dark: '#000000'
                     }
                 }}
             />
