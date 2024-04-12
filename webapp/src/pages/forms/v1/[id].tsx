@@ -36,18 +36,21 @@ import { validateFormOpen } from '@app/utils/validationUtils';
 export default function SingleFormPage(props: any) {
     const { back, slug, hasCustomDomain, workspace, form: fetched_form } = props;
 
-    const { data, isLoading, error } = useGetWorkspaceFormQuery({
-        workspace_id: workspace.id,
-        custom_url: slug,
-        published: true
-    });
+    const { data, isLoading, error } = useGetWorkspaceFormQuery(
+        {
+            workspace_id: workspace.id,
+            custom_url: slug,
+            published: true
+        },
+        { skip: !fetched_form.formId }
+    );
 
     const dispatch = useAppDispatch();
 
     const auth = useAppSelector(selectAuth);
 
     const router = useRouter();
-    const form: StandardFormDto | undefined = data;
+    const form: StandardFormDto | undefined = fetched_form?.formId ? fetched_form : data;
 
     const title = fetched_form?.title ?? workspace?.title;
     const description = fetched_form?.description?.slice(0, 100) ?? '';
