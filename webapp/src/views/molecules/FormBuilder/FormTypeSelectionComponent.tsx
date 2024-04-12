@@ -25,30 +25,16 @@ const FormTypes: IFormTypes[] = [
     }
 ];
 
-const FormTypeSelectionComponent = ({
-    handleCreateForm
-}: {
-    handleCreateForm: (type: any) => void;
-}) => {
+const FormTypeSelectionComponent = ({ handleCreateForm }: { handleCreateForm: (type: any) => void }) => {
     return (
         <div className="flex flex-col items-center gap-20 py-12">
             <div className="flex flex-col items-center gap-1">
-                <span className="text-2xl font-semibold text-black-800">
-                    Select Form Type
-                </span>
-                <span className="text-sm font-normal text-black-600">
-                    Select form type according to your need.
-                </span>
+                <span className="text-black-800 text-2xl font-semibold">Select Form Type</span>
+                <span className="text-black-600 text-sm font-normal">Select form type according to your need.</span>
             </div>
             <div className="flex flex-row gap-12">
                 {FormTypes.map((item: IFormTypes) => {
-                    return (
-                        <FormTypeCard
-                            key={item.type}
-                            item={item}
-                            handleClick={handleCreateForm}
-                        />
-                    );
+                    return <FormTypeCard key={item.type} item={item} handleClick={handleCreateForm} />;
                 })}
             </div>
         </div>
@@ -57,32 +43,18 @@ const FormTypeSelectionComponent = ({
 
 export default FormTypeSelectionComponent;
 
-const FormTypeCard = ({
-    item,
-    handleClick
-}: {
-    item: IFormTypes;
-    handleClick: (type: string) => void;
-}) => {
+const FormTypeCard = ({ item, handleClick }: { item: IFormTypes; handleClick: (type: string) => void }) => {
     return (
-        <div
-            onClick={() => handleClick(item.type)}
-            className="flex w-[375px] cursor-pointer flex-col rounded-2xl border border-black-200 hover:scale-[1.01]"
-        >
+        <div onClick={() => handleClick(item.type)} className="border-black-200 hover:shadow-input flex w-[375px] cursor-pointer flex-col rounded-2xl border ">
             <div className=" rounded-t-2xl p-4" style={{ background: item.theme }}>
-                <div
-                    className="w-fit rounded-3xl bg-white px-2 py-1"
-                    style={{ color: item.theme }}
-                >
+                <div className="w-fit rounded-3xl bg-white px-2 py-1 text-xs" style={{ color: item.theme }}>
                     {item.type}
                 </div>
                 <div className="flex justify-center">{item.icon}</div>
             </div>
             <div className="flex flex-col gap-1 rounded-b-2xl bg-white px-8 py-4">
-                <span className="font-medium text-black-800">{item.title}</span>
-                <span className="text-sm font-normal text-black-600">
-                    {item.description}
-                </span>
+                <span className="text-black-800 font-medium">{item.title}</span>
+                <span className="text-black-600 text-sm font-normal">{item.description}</span>
             </div>
         </div>
     );
