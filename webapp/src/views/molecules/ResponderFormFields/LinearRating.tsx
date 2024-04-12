@@ -32,28 +32,30 @@ const StyledDiv = styled.div<{
 const LinearRatingSection = ({ field, slide, isBuilder = false }: { field: FormField; slide?: FormField; isBuilder?: boolean }) => {
     const theme = useFormTheme();
     const { formResponse, addFieldLinearRatingAnswer } = useFormResponse();
+    const answer = formResponse.answers && formResponse.answers[field.id]?.number;
     const [ratingAnswer, setRatingAnswer] = useState(-1);
     const { nextField } = useResponderState();
 
-    useEffect(() => {
-        formResponse.answers && setRatingAnswer((formResponse.answers[field.id]?.number ?? 0) - 1);
-    }, [formResponse.answers]);
+    // useEffect(() => {
+    //     formResponse.answers && setRatingAnswer((formResponse.answers[field.id]?.number ?? 0) - 1);
+    // }, [formResponse.answers]);
     const secondaryColor = theme?.secondary;
+
     return (
         <div className="flex flex-row flex-wrap gap-1">
-            {_.range(field.properties?.startFrom ?? 1, (field.properties?.steps || 10) + 1).map((index) => {
+            {_.range(field.properties?.startFrom ?? 1, +(field.properties?.steps ?? 10) + 1, 1).map((index) => {
                 return (
                     <StyledDiv
                         $slide={slide}
                         isBuilder={isBuilder}
                         style={{
-                            background: ratingAnswer === index ? secondaryColor : '',
-                            color: ratingAnswer === index ? '#ffffff' : ''
+                            background: answer === index ? secondaryColor : '',
+                            color: answer === index ? '#ffffff' : ''
                         }}
                         key={index}
                         onClick={() => {
                             if (!isBuilder) {
-                                addFieldLinearRatingAnswer(field.id, index );
+                                addFieldLinearRatingAnswer(field.id, index);
                                 setTimeout(() => {
                                     nextField();
                                 }, 200);
