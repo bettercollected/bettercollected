@@ -137,7 +137,7 @@ export default function FormPage(props: any) {
         await router.push(`/${props.workspace.workspaceName}/dashboard/forms`);
     };
 
-    if (!form?.id) {
+    if (!form?.formId) {
         return <></>;
     }
 
