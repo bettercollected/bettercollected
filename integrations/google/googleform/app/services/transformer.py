@@ -96,7 +96,7 @@ class GoogleFormTransformerService(FormTransformerService):
                 field.type = StandardFormFieldType.FILE_UPLOAD
             elif question.scaleQuestion:
                 field.type = StandardFormFieldType.LINEAR_RATING
-                field.properties.start_form = question.scaleQuestion.get("low", 0)
+                field.properties.start_from = question.scaleQuestion.get("low", 0)
                 field.properties.steps = question.scaleQuestion.get("high", 0)
             elif question.dateQuestion:
                 field.type = StandardFormFieldType.DATE
