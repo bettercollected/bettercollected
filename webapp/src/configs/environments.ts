@@ -107,7 +107,7 @@ const environments = {
     UNSPLASH_API_URL: process.env.UNSPLASH_API_URL ?? 'https://api.unsplash.com/',
 
     // internal configs
-    NEXT_PUBLIC_DASHBOARD_DOMAIN: process.env.NEXT_PUBLIC_DASHBOARD_DOMAIN ?? '',
+    NEXT_PUBLIC_DASHBOARD_DOMAIN: process.env.NEXT_PUBLIC_DASHBOARD_DOMAIN ?? 'admin.bettercollected.io',
     NEXT_PUBLIC_HTTP_SCHEME: process.env.NEXT_PUBLIC_HTTP_SCHEME ?? 'https'
 };
 
