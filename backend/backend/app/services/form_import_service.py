@@ -39,8 +39,7 @@ class FormImportService:
         form_data = FormImportResponse.parse_obj(response_data)
         if not (form_data.form or form_data.responses):
             return None
-        standard_form = form_data.form
-        await self.form_service.save_form(standard_form)
+        standard_form = await self.form_service.save_form(form_data.form)
         responses = form_data.responses
         updated_responses_id = []
         for response in responses:
