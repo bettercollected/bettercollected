@@ -10,12 +10,9 @@ import { Dialog, DialogContent } from '@app/shadcn/components/ui/dialog';
 import AddFormTitleModal from '@app/views/molecules/Dialogs/AddFormTitleModal';
 import FormPublishedModal from '@app/views/molecules/Dialogs/FormPublishedModal';
 import UnsplashImagePicker from '@app/views/molecules/UnsplashImagePicker';
+import { cn } from '@app/shadcn/util/lib';
 
-export type DIALOG_MODALS =
-    | 'ADD_FORM_TITLE'
-    | 'UNSPLASH_IMAGE_PICKER'
-    | 'FORM_PUBLISHED'
-    | '';
+export type DIALOG_MODALS = 'ADD_FORM_TITLE' | 'UNSPLASH_IMAGE_PICKER' | 'FORM_PUBLISHED' | '';
 
 export interface ModalState {
     isOpen: boolean;
@@ -58,6 +55,15 @@ const getModalToRender = (view?: DIALOG_MODALS, props?: any) => {
     }
 };
 
+const getClassName = (view?: DIALOG_MODALS) => {
+    switch (view) {
+        case 'FORM_PUBLISHED':
+            return 'md:!min-w-[760px]';
+        default:
+            return <></>;
+    }
+};
+
 export function DialogModalContainer() {
     const { isOpen, view, closeDialogModal, props } = useDialogModal();
 
@@ -75,22 +81,12 @@ export function DialogModalContainer() {
                 closeDialogModal();
             }}
         >
-            <DialogContent className="!bg-white !p-0">
-                <div className="">{getModalToRender(view, props)}</div>
-            </DialogContent>
+            <DialogContent className={cn('!bg-white !p-0', getClassName(view))}>{getModalToRender(view, props)}</DialogContent>
         </Dialog>
     );
 }
 
-export function DialogModalTrigger({
-    view,
-    children,
-    ...props
-}: {
-    view: DIALOG_MODALS;
-    children: React.ReactNode;
-    [key: string]: any;
-}) {
+export function DialogModalTrigger({ view, children, ...props }: { view: DIALOG_MODALS; children: React.ReactNode; [key: string]: any }) {
     const { openDialogModal } = useDialogModal();
     return (
         <div
