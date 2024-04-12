@@ -3,7 +3,7 @@ import { BorderLeft, BorderRight } from '@mui/icons-material';
 export const dataTableCustomStyles = {
     table: {
         style: {
-            border: 'none',
+            border: '1px solid #DBDBDB',
             background: 'transparent'
         }
     },
@@ -32,7 +32,9 @@ export const dataTableCustomStyles = {
             padding: '0',
             fontSize: '18px',
             color: '#2E2E2E !important',
-            borderRight: '1px solid #DBDBDB'
+            borderRight: '1px solid #DBDBDB',
+            paddingTop: '10px',
+            paddingBottom: '10px'
             // paddingLeft: '6px',
             // paddingRight: '6px'
         }
@@ -44,8 +46,8 @@ export const dataTableCustomStyles = {
             borderRadius: '4px',
             paddingLeft: '0',
             paddingRight: '0',
-            height: '40px !important',
-            minHeight: '40px',
+            height: '48px !important',
+            minHeight: '48px',
             backgroundColor: ''
         }
     },

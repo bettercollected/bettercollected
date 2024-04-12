@@ -141,10 +141,10 @@ export default function FormPage(props: any) {
         <Layout isCustomDomain={false} isClientDomain={false} showNavbar={true} hideMenu={false} showAuthAccount={true} className="flex w-full flex-col !bg-white !p-0">
             <NextSeo title={form.title} noindex={true} nofollow={true} />
             <div className="my-2  w-full ">
-                <div className="flex w-full items-center gap-1 px-5">
+                {/* <div className="flex w-full items-center gap-1 px-5">
                     <ChevronForward onClick={handleBackClick} className=" h-6 w-6 rotate-180 cursor-pointer p-[2px] " />
                     <BreadcrumbsRenderer items={breadcrumbsItem} />
-                </div>
+                </div> */}
                 <div className="mt-12 flex flex-col gap-1">
                     <FormPageLayer className=" px-4 md:px-10 lg:px-28 ">
                         <div className="flex justify-between">

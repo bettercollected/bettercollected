@@ -1,24 +1,21 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
 
-import AppButton from '@Components/Common/Input/Button/AppButton';
-import { ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
 import SearchInput from '@Components/Common/Search/SearchInput';
 import TabularResponses from '@Components/Form/TabularResponses';
-import { FormatListBulleted, ViewList } from '@mui/icons-material';
 
 import ResponsesTable from '@app/components/datatable/responses';
 import { useModal } from '@app/components/modal-views/context';
 import Loader from '@app/components/ui/loader';
 import environments from '@app/configs/environments';
 import globalConstants from '@app/constants/global';
-import { formConstant } from '@app/constants/locales/form';
-import { formPage } from '@app/constants/locales/form-page';
+import { Button } from '@app/shadcn/components/ui/button';
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { useGetFormsSubmissionsQuery } from '@app/store/workspaces/api';
 import { IGetFormSubmissionsQuery } from '@app/store/workspaces/types';
+import { DownloadIcon } from 'lucide-react';
 
 export default function FormResponsesTable({ props }: any) {
     const { t } = useTranslation();
@@ -67,45 +64,26 @@ export default function FormResponsesTable({ props }: any) {
 
     return (
         <div>
-            <div className={`mb-12 flex flex-col gap-2 lg:flex-row lg:justify-between ${!isSubmission ? '' : 'px-2 md:px-32'}`}>
-                <div className="flex flex-col md:w-[660px] lg:gap-2">
-                    <p className="body1">{isSubmission ? `${t(formConstant.responders)}` : `${t(formConstant.deletionRequests)}`}</p>
-                    <p className="text-black-700 text-sm font-normal ">{isSubmission ? t(formPage.responsesDescription) : t(formPage.deletionRequestDescription)}</p>
+            <div className={`mb-12 flex flex-col gap-2 lg:flex-row lg:justify-between ${!isSubmission ? '' : 'px-2 md:px-28'}`}>
+                <div className="flex flex-row justify-between w-full">
+                    <div className="flex w-full flex-row items-center gap-4 ">
+                        <SearchInput handleSearch={handleSearch} placeholder={'Search Responses'} className="!bg-black-300 md:w-[282px]" />
+                        <Button variant="v2Button">Filter</Button>
+                        <Button variant="v2Button">Sort</Button>
+                    </div>
                     {environments.ENABLE_EXPORT_CSV && form?.settings?.provider === 'self' && isSubmission && (
-                        <AppButton
-                            variant={ButtonVariant.Tertiary}
+                        <Button
+                            variant="v2Button"
+                            icon={<DownloadIcon className="h-4 w-4" />}
                             onClick={() =>
                                 openModal('EXPORT_RESPONSES', {
                                     formId: form.formId
                                 })
                             }
-                            className={'mt-1 w-1/4'}
+                            className={''}
                         >
-                            Export as CSV{' '}
-                        </AppButton>
-                    )}
-                </div>
-                <div className="flex w-full flex-col items-end gap-4 md:w-[282px]">
-                    <SearchInput handleSearch={handleSearch} placeholder={t(formPage.searchByEmail)} className="!bg-black-300" />
-                    {form?.settings?.provider === 'self' && !requestForDeletion && (
-                        <div className="flex w-fit  cursor-pointer overflow-hidden rounded-lg bg-gray-100">
-                            <div
-                                className={`p-3 ${showTabularResponses ? 'bg-black-300' : ''}`}
-                                onClick={() => {
-                                    setShowTabularView(true);
-                                }}
-                            >
-                                <ViewList height={24} width={24} />
-                            </div>
-                            <div
-                                className={`p-3 ${!showTabularResponses ? 'bg-black-300' : ''}`}
-                                onClick={() => {
-                                    setShowTabularView(false);
-                                }}
-                            >
-                                <FormatListBulleted height={24} width={24} />
-                            </div>
-                        </div>
+                            Export CSV
+                        </Button>
                     )}
                 </div>
             </div>
