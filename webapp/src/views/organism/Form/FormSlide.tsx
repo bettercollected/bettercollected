@@ -94,6 +94,8 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false 
                 return;
             }
             // setCurrentField(currentField + direction);
+            const currentFieldtype = formSlide?.properties?.fields && formSlide?.properties?.fields[currentField].type;
+            if (currentFieldtype === FieldTypes.DATE) return;
 
             const fieldId = formSlide?.properties?.fields && formSlide?.properties?.fields[currentField + direction].id;
             fieldId && handleClickField(currentField + direction, fieldId);

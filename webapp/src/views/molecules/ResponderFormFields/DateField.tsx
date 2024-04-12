@@ -1,17 +1,16 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 import { FormField } from '@app/models/dtos/form';
 import { FieldInput } from '@app/shadcn/components/ui/input';
 import { useFormState } from '@app/store/jotai/form';
 import { useFormResponse } from '@app/store/jotai/responderFormResponse';
 import { useResponderState } from '@app/store/jotai/responderFormState';
-import {
-    getFormattedDate,
-    getUnformattedDate,
-    validateDate
-} from '@app/utils/dateUtils';
+import { getFormattedDate, getUnformattedDate, validateDate } from '@app/utils/dateUtils';
 
 import QuestionWrapper from './QuestionQwrapper';
+import { useDebounceCallback } from 'usehooks-ts';
+import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
+import { useActiveFieldComponent, useActiveSlideComponent } from '@app/store/jotai/activeBuilderComponent';
 
 interface IDateField {
     field: FormField;
@@ -23,11 +22,9 @@ type dateType = 'day' | 'month' | 'year' | '';
 function DateFieldSection({ field, slide, isBuilder }: IDateField) {
     const { theme } = useFormState();
     const { formResponse, addFieldDateAnswer } = useFormResponse();
-    const [date, setDate] = useState({
-        day: '',
-        month: '',
-        year: ''
-    });
+    const answer = (formResponse.answers && formResponse.answers[field.id]?.date) || '';
+    const { nextField } = useResponderState();
+
     const [errorMessage, setErrorMessage] = useState('');
 
     useEffect(() => {
@@ -35,32 +32,46 @@ function DateFieldSection({ field, slide, isBuilder }: IDateField) {
         return () => clearTimeout(timeout);
     }, [errorMessage]);
 
-    useEffect(() => {
-        const formResponseDate =
-            formResponse.answers && formResponse.answers[field.id]?.date;
-        if (formResponseDate) {
-            const unFormattedDate = getUnformattedDate(formResponseDate);
-            setDate({
-                day: unFormattedDate?.[0] ?? '',
-                month: unFormattedDate?.[1] ?? '',
-                year: unFormattedDate?.[2] ?? ''
-            });
-        }
-    }, [formResponse.answers]);
+    const onChangeOfDateField = useCallback(
+        (type: dateType) => {
+            if (type === 'year') {
+                return;
+            }
+            function getNextType() {
+                switch (type) {
+                    case 'day':
+                        return 'month';
+                    case 'month':
+                        return 'year';
+                    case 'year':
+                        '';
+                }
+            }
+            const fieldId = isBuilder ? getNextType() : `${getNextType()}-${field.id}`;
+            window.setTimeout(() => {
+                fieldId && document.getElementById(fieldId)?.focus();
+            }, 0);
+        },
+        [formResponse.answers]
+    );
+
+    const onChangeDateFieldDebounced = useDebounceCallback(onChangeOfDateField, 2000);
 
     function handleDateChange(e: any, type: dateType) {
+        e.preventDefault();
         const errorMsg = validateDate(e.target.value, type);
         if (errorMsg) {
             setErrorMessage(errorMsg);
         } else {
-            setDate((prevDate) => {
-                const newDate = {
-                    ...prevDate,
-                    [type]: e.target.value
-                };
-                addFieldDateAnswer(field.id, getFormattedDate(newDate));
-                return newDate;
-            });
+            addFieldDateAnswer(field.id, getFormattedDate(e.target.value, answer, type));
+            onChangeDateFieldDebounced(type);
+            if (type === 'year') {
+                window.setTimeout(() => {
+                    const nextFieldId = slide?.properties?.fields![field.index].id;
+                    nextField();
+                    document.getElementById(`input-field-${nextFieldId}`)?.focus();
+                }, 2000);
+            }
         }
     }
 
@@ -68,7 +79,7 @@ function DateFieldSection({ field, slide, isBuilder }: IDateField) {
         const errorMsg = validateDate(e.target.value, type);
         if (errorMsg) {
             setErrorMessage(errorMsg);
-            setDate({ ...date, year: '' });
+            addFieldDateAnswer(field.id, getFormattedDate('', answer, 'year'));
         }
     }
 
@@ -77,50 +88,32 @@ function DateFieldSection({ field, slide, isBuilder }: IDateField) {
     return (
         <div className="flex flex-col gap-1">
             <div className="flex flex-row items-center gap-4">
-                <FieldInput
-                    id={`input-field-${field.id}`}
-                    type="number"
-                    placeholder="DD"
-                    className={inputClassName}
-                    value={date.day}
-                    onChange={(e) => handleDateChange(e, 'day')}
-                    disabled={isBuilder}
-                />
+                <FieldInput id={isBuilder ? 'day' : `day-${field.id}`} type="number" placeholder="DD" className={inputClassName} value={getUnformattedDate(answer)[0]} onChange={(e) => handleDateChange(e, 'day')} disabled={isBuilder} />
                 <div
                     style={{
-                        background:
-                            slide?.properties?.theme?.secondary || theme?.secondary
+                        background: slide?.properties?.theme?.secondary || theme?.secondary
+                    }}
+                    className="h-0.5 w-2"
+                />
+                <FieldInput id={isBuilder ? 'month' : `month-${field.id}`} type="number" placeholder="MM" className={inputClassName} value={getUnformattedDate(answer)[1]} onChange={(e) => handleDateChange(e, 'month')} disabled={isBuilder} />
+                <div
+                    style={{
+                        background: slide?.properties?.theme?.secondary || theme?.secondary
                     }}
                     className="h-0.5 w-2"
                 />
                 <FieldInput
-                    type="number"
-                    placeholder="MM"
-                    className={inputClassName}
-                    value={date.month}
-                    onChange={(e) => handleDateChange(e, 'month')}
-                    disabled={isBuilder}
-                />
-                <div
-                    style={{
-                        background:
-                            slide?.properties?.theme?.secondary || theme?.secondary
-                    }}
-                    className="h-0.5 w-2"
-                />
-                <FieldInput
+                    id={isBuilder ? 'year' : `year-${field.id}`}
                     type="number"
                     placeholder="YYYY"
-                    value={date.year}
+                    value={getUnformattedDate(answer)[2]}
                     className={`${inputClassName} w-24`}
                     onChange={(e) => handleDateChange(e, 'year')}
                     onBlur={(e) => handleBlurValidation(e, '')}
                     disabled={isBuilder}
                 />
             </div>
-            {errorMessage && (
-                <span className="text-sm text-red-500 ">{errorMessage}</span>
-            )}
+            {errorMessage && <span className="text-sm text-red-500 ">{errorMessage}</span>}
         </div>
     );
 }
