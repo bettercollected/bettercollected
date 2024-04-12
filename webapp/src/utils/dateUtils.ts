@@ -41,6 +41,16 @@ export function getUnformattedDate(date: string): Array<string> {
     return date.split('-');
 }
 
-export function getFormattedDate(date: { day: string; month: string; year: string }): string {
-    return `${date.day}-${date.month}-${date.year}`;
+export function getFormattedDate(value: string, date: string, type: dateType): string {
+    const dateValue = date.split('-');
+    switch (type) {
+        case 'day':
+            return `${value}-${dateValue[1]}-${dateValue[2]}`;
+        case 'month':
+            return `${dateValue[0]}-${value}-${dateValue[2]}`;
+        case 'year':
+            return `${dateValue[0]}-${dateValue[1]}-${value}`;
+        default:
+            return ``;
+    }
 }
