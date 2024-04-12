@@ -323,7 +323,7 @@ class GoogleFormTransformerService(FormTransformerService):
         if answer.textAnswers and len(answer.textAnswers.answers) > 0:
             if field.type == StandardFormFieldType.MULTIPLE_CHOICE:
                 choice_answers = answer.textAnswers.answers
-                if len(choice_answers) > 1:
+                if field.properties.allow_multiple_selection:
                     choice_ids = []
                     for answer in choice_answers:
                         choice_ids.append(
