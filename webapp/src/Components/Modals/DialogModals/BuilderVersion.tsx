@@ -30,7 +30,7 @@ export default function BuilderVersionSelectorModal() {
         const response: any = await postCreateForm(apiObj);
 
         if (response?.data) {
-            router.push(`/${workspace?.workspaceName}/dashboard/forms/${response?.data?.formId}/edit`);
+            router.push(`/${workspace?.workspaceName}/dashboard/forms/v1/${response?.data?.formId}/edit`);
             dispatch(setBuilderState({ isFormDirty: false }));
         }
     };
