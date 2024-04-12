@@ -36,13 +36,13 @@ export default function BuilderVersionSelectorModal() {
     };
 
     const createV2Form = () => {
-        router.push(`${environments.HTTP_SCHEME}${environments.V2_BUILDER_DOMAIN}/${workspace?.workspaceName}/dashboard/forms/create`);
+        router.push(`${environments.HTTP_SCHEME}${environments.V2_BUILDER_DOMAIN}/${workspace?.workspaceName}/dashboard/form/create`);
     };
 
     return (
         <HeaderModalWrapper headerTitle="Form type">
             <div className="flex flex-row gap-6">
-                <div onClick={createV1Form} className="flex flex-col hover:bg-black-100 cursor-pointer pb-4 w-[130px] rounded-lg">
+                <div onClick={createV1Form} className="hover:bg-black-100 flex w-[130px] cursor-pointer flex-col rounded-lg pb-4">
                     <div>
                         <svg width="133" height="130" viewBox="0 0 133 130" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <rect x="26.5" y="15.5" width="79" height="99" rx="7.5" fill="white" />
@@ -58,9 +58,9 @@ export default function BuilderVersionSelectorModal() {
                             <rect x="41.5" y="23.5" width="14" height="14" rx="3.5" fill="#D9D9D9" stroke="white" />
                         </svg>
                     </div>
-                    <div className="text-center p2-new text-black-700">Single Page</div>
+                    <div className="p2-new text-black-700 text-center">Single Page</div>
                 </div>
-                <div onClick={createV2Form} className="flex flex-col hover:bg-black-100 cursor-pointer pb-4 w-[130px] items-center rounded-lg">
+                <div onClick={createV2Form} className="hover:bg-black-100 flex w-[130px] cursor-pointer flex-col items-center rounded-lg pb-4">
                     <div>
                         <svg width="115" height="130" viewBox="0 0 115 130" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <rect x="12.5" y="28.5" width="79" height="65" rx="7.5" fill="white" />
@@ -79,7 +79,7 @@ export default function BuilderVersionSelectorModal() {
                             <rect x="29" y="77" width="30" height="5" rx="2.5" fill="#D9D9D9" />
                         </svg>
                     </div>
-                    <div className="text-center p2-new text-black-700">Slide</div>
+                    <div className="p2-new text-black-700 text-center">Slide</div>
                 </div>
             </div>
         </HeaderModalWrapper>
