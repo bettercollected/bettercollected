@@ -1,4 +1,3 @@
-
 import { useTranslation } from 'next-i18next';
 
 import Divider from '@Components/Common/DataDisplay/Divider';
@@ -90,15 +89,13 @@ const GenerateQRModalView = ({ form }: IGenerateQR) => {
             <Divider />
             <div className={'flex flex-col items-center justify-center gap-4 p-4 pt-6 md:p-10'}>
                 <QRGenerator form={currentForm} />
-                <span className="p4-new w-[266px] text-center">
-                    Scan this QR code to get access to the form or{' '}
-                    <span className="text-brand-500" onClick={onDownload}>
-                        Download QR code
-                    </span>
-                </span>
+                <span className="p4-new w-[266px] text-center">Scan this QR code to get access to the form or </span>
                 <div className={'flex gap-2 '}>
+                    <Button variant={'v2Button'} onClick={onDownload}>
+                        Download
+                    </Button>
                     <Button variant={'v2Button'} onClick={handleCopyImageToClipboard}>
-                        Copy QR
+                        Copy 
                     </Button>
                 </div>
             </div>
