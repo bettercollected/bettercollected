@@ -143,6 +143,7 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false 
                             setCurrentSlideToThankyouPage();
                         })
                         .catch((e) => {
+                            debugger;
                             toast('Error Submitting Response');
                         });
             } else {

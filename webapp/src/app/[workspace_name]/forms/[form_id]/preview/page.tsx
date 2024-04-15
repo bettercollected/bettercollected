@@ -35,7 +35,6 @@ export default function ResponsePage({ searchParams }: { searchParams: { respons
         }
     }, [data?.response?.responseId]);
 
-    console.log('Asds : ', standardForm);
     return (
         <div className="h-screen w-screen">
             <ScrollArea className="overfloe-y-auto  flex h-full w-full flex-col">
