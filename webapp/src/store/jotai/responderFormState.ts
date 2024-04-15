@@ -6,10 +6,12 @@ export interface ResponderFormState {
     currentSlide: number;
     prevActiveField: number;
     currentField: number;
+    prevActiveSlide: number;
 }
 
 const initialresponderState: ResponderFormState = {
     prevActiveField: -1,
+    prevActiveSlide: -1,
     currentField: 0,
     currentSlide: -1
 };
@@ -27,8 +29,19 @@ export const useResponderState = () => {
             ...responderState,
             currentSlide: nextSlideNumber,
             currentField: 0,
-            prevActiveField: -1
+            prevActiveField: -1,
+            prevActiveSlide: responderState.currentSlide
         });
+
+        setTimeout(() => {
+            setResponderState({
+                ...responderState,
+                currentSlide: nextSlideNumber,
+                currentField: 0,
+                prevActiveField: -1,
+                prevActiveSlide: responderState.currentSlide + 1
+            });
+        }, 500);
     };
 
     const previousSlide = () => {
@@ -37,8 +50,18 @@ export const useResponderState = () => {
             ...responderState,
             currentSlide: previousSlideNumber,
             currentField: 0,
-            prevActiveField: -1
+            prevActiveField: -1,
+            prevActiveSlide: responderState.currentSlide
         });
+        setTimeout(() => {
+            setResponderState({
+                ...responderState,
+                currentSlide: previousSlideNumber,
+                currentField: 0,
+                prevActiveField: -1,
+                prevActiveSlide: responderState.currentSlide - 1
+            });
+        }, 500);
     };
 
     const setCurrentSlideToThankyouPage = () => {
@@ -57,11 +80,7 @@ export const useResponderState = () => {
     };
 
     const nextField = () => {
-        if (
-            standardForm?.fields?.[responderState.currentSlide]?.properties?.fields
-                ?.length !==
-            responderState.currentField + 1
-        )
+        if (standardForm?.fields?.[responderState.currentSlide]?.properties?.fields?.length !== responderState.currentField + 1)
             setResponderState({
                 ...responderState,
                 currentField: responderState.currentField + 1,
@@ -78,6 +97,7 @@ export const useResponderState = () => {
         currentSlide: responderState.currentSlide,
         currentField: responderState.currentField,
         prevActiveField: responderState.prevActiveField,
+        prevActiveSlide: responderState.prevActiveSlide,
         resetResponderState,
         nextSlide,
         setCurrentField,
