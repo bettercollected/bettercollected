@@ -7,6 +7,27 @@ import DropDownField from './DropDownFIeld';
 import FileUpload from './FileUploadField';
 import InputField from './InputField';
 import YesNoField from './YesNoField';
+import Image from 'next/image';
+
+const renderImage = (field: FormField) => {
+    return field.imageUrl ? (
+        <div className="relative">
+            <div className=" aspect-video h-[168px] w-full">
+                <Image style={{ objectFit: 'cover' }} src={field.imageUrl} alt={field.id + ' image'} fill priority />
+            </div>
+        </div>
+    ) : (
+        <></>
+    );
+};
+function renderFieldWrapper(field: FormField, slide: FormField, disabled: boolean) {
+    return (
+        <div className="relative h-full w-full space-y-2">
+            {renderImage(field)}
+            {renderField(field, slide, disabled)}
+        </div>
+    );
+}
 
 function renderField(field: FormField, slide: FormField, disabled: boolean) {
     switch (field.type) {
@@ -32,9 +53,26 @@ function renderField(field: FormField, slide: FormField, disabled: boolean) {
             return <DateField field={field} slide={slide} isBuilder={true} />;
         case FieldTypes.LINEAR_RATING:
             return <LinearRatingField field={field} slide={slide} isBuilder={true} />;
+        case FieldTypes.IMAGE_CONTENT:
+            return <ImageField field={field} />;
+        case FieldTypes.VIDEO_CONTENT:
+            return <VideoField field={field} />;
         default:
             return null;
     }
 }
 
-export default renderField;
+const ImageField = ({ field }: { field: FormField }) => {
+    return (
+        <div className="h-40 w-full">
+            <Image style={{ objectFit: 'cover' }} fill src={field?.attachment?.href ?? ''} alt={field.id + ' image'} />
+        </div>
+    );
+};
+
+const VideoField = ({ field }: { field: FormField }) => {
+    const videoUrl = 'https://' + field.attachment?.href?.replace('watch', 'embed');
+    return <iframe src={videoUrl} width="100%" className="aspect-video"></iframe>;
+};
+
+export default renderFieldWrapper;
