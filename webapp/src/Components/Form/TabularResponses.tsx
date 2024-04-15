@@ -145,7 +145,7 @@ export default function TabularResponses({ form }: TabularResponsesProps) {
         </div>
     );
 
-    const IgnoredResponsesFieldType = [FieldTypes.TEXT, null];
+    const IgnoredResponsesFieldType = [FieldTypes.TEXT, null, FieldTypes.IMAGE_CONTENT, FieldTypes.VIDEO_CONTENT];
 
     function getFormFields() {
         if (form.builderVersion === 'v2') {

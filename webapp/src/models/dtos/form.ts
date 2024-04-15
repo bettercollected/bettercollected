@@ -159,6 +159,29 @@ export interface AnswerDto {
     };
 }
 
+interface AttachmentProperties {
+    description?: string;
+}
+
+enum AttachmentType {
+    IMAGE = 'image',
+    VIDEO = 'video'
+}
+
+enum EmbedProvider {
+    YOUTUBE = 'youtube',
+    VIEMO = 'vimeo',
+    NO_EMBED = 'no_embed'
+}
+
+export interface FieldAttachment {
+    type?: AttachmentType;
+    href?: string;
+    scale: number;
+    properties?: AttachmentProperties;
+    embed_provider?: EmbedProvider;
+}
+
 export interface StandardForm {
     formId: string;
     builderVersion?: string;
@@ -196,6 +219,7 @@ export interface FormField {
     type?: FieldTypes;
     value?: string;
     imageUrl?: string;
+    attachment?: FieldAttachment;
 }
 
 interface FieldValidations {
