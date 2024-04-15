@@ -1,3 +1,4 @@
+'use client';
 import dynamic from 'next/dynamic';
 
 import { useBottomSheetModal } from '@Components/Modals/Contexts/BottomSheetModalContext';
