@@ -16,7 +16,7 @@ import DeleteIcon from '../../atoms/Icons/Delete';
 import { RichTextEditor } from '../../molecules/RichTextEditor';
 import SlideLayoutWrapper from '../Layout/SlideLayoutWrapper';
 import FieldDescription from './Fields/FieldDescrption';
-import renderField from './Fields/renderField';
+import renderFieldWrapper from './Fields/renderField';
 
 const SlideBuilder = ({ slide, isScaledDown = false, disabled = false }: { slide: FormField; isScaledDown?: boolean; disabled?: boolean }) => {
     const slideFields = slide?.properties?.fields;
@@ -38,7 +38,6 @@ const SlideBuilder = ({ slide, isScaledDown = false, disabled = false }: { slide
                             <div className="absolute top-[40%] flex w-full flex-col gap-20 px-6 pb-20">
                                 {Array.isArray(slideFields) && slideFields.length ? (
                                     slideFields.map((field, index) => {
-                                        console.log('hello : ', field);
                                         if (!field.id) {
                                         }
                                         return (
@@ -100,7 +99,7 @@ const SlideBuilder = ({ slide, isScaledDown = false, disabled = false }: { slide
                                                                     </div>
                                                                     <FieldDescription field={field} disabled={disabled} />
                                                                 </div>
-                                                                {renderField(field, slide, disabled)}
+                                                                {renderFieldWrapper(field, slide, disabled)}
                                                             </div>
                                                         </div>
                                                     </div>
