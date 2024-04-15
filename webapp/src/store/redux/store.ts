@@ -11,10 +11,11 @@ import workspaceSlice from '@app/store/redux/workspace';
 import joyrideSlice from '@app/store/tours/slice';
 
 import { formsApi } from './formApi';
+import { importApi } from './importApi';
 
 // Add more middlewares here
 const loggerMiddleware = createLogger({ collapsed: true });
-const middlewares: any = [loggerMiddleware, formsApi.middleware, templatesApi.middleware];
+const middlewares: any = [loggerMiddleware, formsApi.middleware, templatesApi.middleware, importApi.middleware];
 
 if (environments.IS_IN_PRODUCTION_MODE || environments.IS_REDUX_LOGGER_DISABLED || environments.NEXT_PUBLIC_NODE_ENV === 'production') middlewares.splice(0, 1);
 
@@ -23,7 +24,8 @@ const reducers = {
     [joyrideSlice.reducerPath]: joyrideSlice.reducer,
     [workspaceSlice.reducerPath]: workspaceSlice.reducer,
     [formsApi.reducerPath]: formsApi.reducer,
-    [templatesApi.reducerPath]: templatesApi.reducer
+    [templatesApi.reducerPath]: templatesApi.reducer,
+    [importApi.reducerPath]: importApi.reducer
 };
 
 const combinedReducer = combineReducers<typeof reducers>(reducers);

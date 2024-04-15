@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
 
@@ -10,32 +10,30 @@ import useDrivePicker from '@fyelci/react-google-drive-picker';
 import { toast } from 'react-toastify';
 
 import ImportErrorView from '@app/components/form-integrations/import-error-view';
-import { Close } from '@app/components/icons/close';
 import { useModal } from '@app/components/modal-views/context';
 import FullScreenLoader from '@app/components/ui/fullscreen-loader';
 import environments from '@app/configs/environments';
 import { toastMessage } from '@app/constants/locales/toast-message';
-import { resetSingleForm, selectForm, setForm } from '@app/store/forms/slice';
-import { useAppDispatch, useAppSelector } from '@app/store/hooks';
-import { useImportFormMutation, useLazyGetSingleFormFromProviderQuery, useVerifyFormTokenMutation } from '@app/store/workspaces/api';
-import { selectWorkspace } from '@app/store/workspaces/slice';
-import { fireworks } from '@app/utils/confetti';
+import { StandardFormDto } from '@app/models/dtos/form';
+import { initFormState } from '@app/store/forms/slice';
 
+import useWorkspace from '@app/store/jotai/workspace';
+import { useImportFormMutation, useLazyGetSingleFormFromProviderQuery, useVerifyFormTokenMutation } from '@app/store/redux/importApi';
+import { fireworks } from '@app/utils/confetti';
+import { useRouter } from 'next/navigation';
+import { getEditFormURL } from '@app/utils/urlUtils';
 
 export default function ImportFormModal() {
+    const router = useRouter();
     const { closeModal } = useModal();
 
-    const workspace = useAppSelector(selectWorkspace);
-    const { t } = useTranslation();
+    const { workspace } = useWorkspace();
 
     const [verifyToken, { isLoading, data, error }] = useVerifyFormTokenMutation();
 
     const [openPicker] = useDrivePicker();
 
-    const dispatch = useAppDispatch();
-
-    const form = useAppSelector(selectForm);
-
+    const [form, setForm] = useState<StandardFormDto>(initFormState);
     const [formTitle, setFormTitle] = useState('');
 
     const [importForm, importFormResult] = useImportFormMutation();
@@ -43,10 +41,6 @@ export default function ImportFormModal() {
 
     useEffect(() => {
         verifyToken({ provider: 'google' });
-
-        return () => {
-            dispatch(resetSingleForm());
-        };
     }, []);
 
     const handleImportForm = async (formId: string) => {
@@ -54,7 +48,7 @@ export default function ImportFormModal() {
         const form: any = { ...singleForm?.data, provider: 'google' };
         delete form['clientFormItems'];
         if (singleForm.error) {
-            toast.success(t(toastMessage.couldNotImportedForm).toString());
+            toast.success('Error fetching form');
             return;
         }
         const response: any = await importForm({
@@ -63,8 +57,8 @@ export default function ImportFormModal() {
             workspaceId: workspace.id
         });
         if (response.data) {
-            toast.success(t(toastMessage.formImportedSuccessfully).toString());
-            dispatch(setForm(response.data));
+            toast.success('Form Imported Successfully');
+            setForm(response.data);
             fireworks();
         }
     };
@@ -82,8 +76,10 @@ export default function ImportFormModal() {
     }
     const openGoogleFilePicker = () => {
         openPicker({
-            clientId: environments.GOOGLE_CLIENT_ID,
-            developerKey: environments.GOOGLE_PICKER_API_KEY,
+            // @ts-ignore
+            clientId: window.PUBLIC_CONFIG?.GOOGLE_CLIENT_ID,
+            // @ts-ignore
+            developerKey: window.PUBLIC_CONFIG?.GOOGLE_PICKER_API_KEY,
             // viewId: 'FORMS',
             token: data,
             disableDefaultView: true,
@@ -108,20 +104,18 @@ export default function ImportFormModal() {
         }
     }, [data]);
 
+    useEffect(() => {
+        if (form?.formId) {
+            router.push(getEditFormURL(workspace, form));
+        }
+    }, [form]);
+
     if (isLoading) return <FullScreenLoader />;
 
     if (error) return <ImportErrorView provider={'google'} unauthorizedScopes={(error as any)?.data?.unauthorizedScopes} />;
 
     return (
-        <div className="bg-white w-full relative   rounded-md  flex flex-col items-center start">
-            {!singleFormFromProviderResult?.isLoading && !importFormResult.isLoading && (
-                <Close
-                    className="absolute p-1 w-6 h-6 hover:bg-gray-100 top-2 right-2"
-                    onClick={() => {
-                        closeModal();
-                    }}
-                />
-            )}
+        <div className="start relative flex   w-full  flex-col items-center rounded-md bg-white">
             {formTitle && !form?.formId && <ImportFormLoading loadingText={singleFormFromProviderResult.isLoading ? 'Fetching Form' : 'Importing'} formTitle={formTitle} />}
             {!form?.formId && !formTitle && (
                 <AppButton
@@ -134,7 +128,7 @@ export default function ImportFormModal() {
                     Open Google File Picker
                 </AppButton>
             )}
-            {form?.formId && <ImportSuccessfulComponent />}
+            {form?.formId && <ImportSuccessfulComponent form={form} />}
         </div>
     );
 }
