@@ -5,10 +5,12 @@ import { useSearchParams } from 'next/navigation';
 import environments from '@app/configs/environments';
 import ReduxWrapperAppRouter from '@app/containers/ReduxWrapperAppRouter';
 import SingleFormPage from '@app/pages/forms/v1/[id]';
+import { useStandardForm } from '@app/store/jotai/fetchedForm';
 import useWorkspace from '@app/store/jotai/workspace';
 import { useGetWorkspaceFormQuery } from '@app/store/workspaces/api';
 import FullScreenLoader from '@app/views/atoms/Loaders/FullScreenLoader';
 import Form from '@app/views/organism/Form/Form';
+import { useEffect } from 'react';
 
 export default function FormPage({ params }: { params: { form_id: string; workspace_name: string } }) {
     const slug = params.form_id;
@@ -24,6 +26,7 @@ const FetchFormWrapper = ({ slug }: { slug: string }) => {
     const searchParams = useSearchParams();
     const isPreviewMode = searchParams?.get('isPreview');
     const { workspace } = useWorkspace();
+    const { setStandardForm } = useStandardForm();
 
     const { data, isLoading, error } = useGetWorkspaceFormQuery(
         {
@@ -33,6 +36,11 @@ const FetchFormWrapper = ({ slug }: { slug: string }) => {
         },
         { skip: !workspace.id }
     );
+
+    useEffect(() => {
+        // @ts-ignore
+        if (data?.formId) setStandardForm(data);
+    }, [data]);
 
     const hasCustomDomain = window.location.host !== environments.NEXT_PUBLIC_V1_CLIENT_ENDPOINT_DOMAIN;
 

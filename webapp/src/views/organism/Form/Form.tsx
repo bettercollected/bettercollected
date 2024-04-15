@@ -33,7 +33,7 @@ const Form = ({ isPreviewMode = false, isMobileView = false }: { isPreviewMode?:
             <AnimatePresence custom={currentSlide}>
                 {currentSlide === -1 && (
                     <motion.div
-                        className={cn('absolute flex h-full flex-1 flex-col items-center justify-center', isMobileView ? 'aspect-[9/20]' : '')}
+                        className={cn('absolute flex h-full w-full flex-1 flex-col items-center justify-center', isMobileView ? 'aspect-[9/20]' : '')}
                         key={'welcome-page'}
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
@@ -52,7 +52,7 @@ const Form = ({ isPreviewMode = false, isMobileView = false }: { isPreviewMode?:
                     <motion.div
                         className={cn('absolute z-10 flex h-full w-full flex-1 flex-col items-center justify-center', isMobileView ? 'aspect-[9/20]' : '')}
                         key={currentSlide}
-                        initial={{ opacity: 1, x: currentSlide >= previousSlide ? '100%' : '-100%' }}
+                        initial={{ opacity: 1, x: currentSlide > previousSlide ? '100%' : '-100%' }}
                         animate={{ opacity: 1, x: 0 }}
                         exit={{ opacity: 1, x: 0 }}
                         transition={{ duration: 0.5, ease: 'anticipate' }}

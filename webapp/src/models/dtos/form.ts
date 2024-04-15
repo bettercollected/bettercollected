@@ -163,7 +163,7 @@ export interface StandardForm {
     formId: string;
     builderVersion?: string;
     title: string;
-    description?: string | null;
+    description?: string | null | undefined;
     buttonText?: string;
     version?: number;
     settings?: {
@@ -192,7 +192,7 @@ export interface FormField {
     properties?: FormFieldProperties;
     validations?: FieldValidations;
     title?: JSONContent | string;
-    description?: string;
+    description?: string | null;
     type?: FieldTypes;
     value?: string;
     imageUrl?: string;

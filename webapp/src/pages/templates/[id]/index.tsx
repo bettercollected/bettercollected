@@ -36,7 +36,6 @@ export default function TemplatePage(props: any) {
     const [createFormFromTemplate] = useCreateFormFromTemplateMutation();
 
     const { data: myWorkspaces, isLoading: myWorkspaceLoading, refetch } = useGetAllMineWorkspacesQuery();
-    console.log(auth);
 
     useEffect(() => {
         refetch();

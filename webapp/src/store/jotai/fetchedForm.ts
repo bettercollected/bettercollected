@@ -6,7 +6,7 @@ import { FormSlideLayout } from '@app/models/enums/form';
 export default interface StandardForm {
     formId: string;
     title: string;
-    description?: string;
+    description?: string | null;
     builderVersion?: string;
     fields?: Array<FormField>;
     thankYouMessage?: string;

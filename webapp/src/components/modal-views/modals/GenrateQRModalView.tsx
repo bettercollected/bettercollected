@@ -60,7 +60,6 @@ const GenerateQRModalView = ({ form }: IGenerateQR) => {
                 canvas.toBlob((blob) => {
                     if (blob) {
                         const item = new ClipboardItem({ 'image/png': blob });
-                        console.log('canvas : ', item);
                         navigator.clipboard.write([item]);
                     }
                 }, 'image/png');

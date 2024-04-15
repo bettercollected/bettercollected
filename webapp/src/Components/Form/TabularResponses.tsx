@@ -218,7 +218,6 @@ export default function TabularResponses({ form }: TabularResponsesProps) {
         setPage(page);
     };
     const { data, isLoading } = useGetFormsSubmissionsQuery(query, { skip: !workspace.id });
-    console.log('sssss : ', form, data);
 
     return (
         <>

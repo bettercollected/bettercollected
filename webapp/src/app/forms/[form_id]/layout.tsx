@@ -8,7 +8,6 @@ const getWorkspaceByDomain = async (domain: string) => {
     const workspaceResponse = await fetch(process.env.API_ENDPOINT_HOST + '/workspaces?custom_domain=' + domain);
 
     const workspace = await workspaceResponse.json();
-    console.log(workspace);
     return workspace;
 };
 
