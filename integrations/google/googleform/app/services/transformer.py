@@ -40,17 +40,12 @@ default_image_url = (
 
 
 class GoogleFormTransformerService(FormTransformerService):
-    def _transform_field(self, index, item: GoogleFormItemsDto) -> StandardFormField:
-        slide = StandardFormField()
-        slide.id = str(PydanticObjectId())
-        slide.index = index
-        slide.type = StandardFormFieldType.SLIDE
-        slide.image_url = default_image_url
-        slide.properties.layout = LayoutType.TWO_COLUMN_IMAGE_RIGHT
+    def _transform_field(
+        self, slide: StandardFormField, item: GoogleFormItemsDto
+    ) -> StandardFormField:
         field = StandardFormField()
         field.title = item.title
         field.description = item.description
-        field.index = 0
 
         if item.questionItem and item.questionItem.question:
             # Return rest of the field if it does not match the above conditions
@@ -58,7 +53,7 @@ class GoogleFormTransformerService(FormTransformerService):
             field.validations.required = item.questionItem.question.required
             question = item.questionItem.question
             if item.questionItem.image:
-                slide.image_url = item.questionItem.image.contentUri
+                field.image_url = item.questionItem.image.contentUri
             if question.textQuestion and question.textQuestion.get("paragraph"):
                 field.type = StandardFormFieldType.LONG_TEXT
             elif question.choiceQuestion:
@@ -107,7 +102,7 @@ class GoogleFormTransformerService(FormTransformerService):
 
         elif item.questionGroupItem:
             if item.questionGroupItem.image:
-                slide.image_url = item.questionGroupItem.image.contentUri
+                field.image_url = item.questionGroupItem.image.contentUri
 
             field.type = StandardFormFieldType.MATRIX
             field.properties.fields = [
@@ -127,57 +122,69 @@ class GoogleFormTransformerService(FormTransformerService):
             ]
 
         elif item.imageItem:
-            slide.image_url = item.imageItem.image.contentUri
+            field.id = item.itemId
+            field.type = StandardFormFieldType.IMAGE_CONTENT
             field.attachment = StandardFieldAttachment(
                 type=StandardAttachmentType.IMAGE, href=item.imageItem.image.contentUri
             )
 
         elif item.videoItem:
+            field.id = item.itemId
+            field.type = StandardFormFieldType.VIDEO_CONTENT
             field.attachment = StandardFieldAttachment(
                 type=StandardAttachmentType.VIDEO,
                 href=item.videoItem.video.youtubeUri,
                 embed_provider=EmbedProvider.YOUTUBE,
             )
 
-        slide.properties.fields = [field]
+        elif item.textItem is not None:
+            field.id = item.itemId
+            field.type = StandardFormFieldType.TEXT
+
+        field_index = len(slide.properties.fields)
+        field.index = field_index
+        slide.properties.fields.append(field)
+
         return slide, field
 
+    def create_new_slide(self, index: int):
+        slide = StandardFormField()
+        slide.id = str(PydanticObjectId())
+        slide.index = index
+        slide.type = StandardFormFieldType.SLIDE
+        slide.image_url = default_image_url
+        slide.properties.layout = LayoutType.TWO_COLUMN_IMAGE_RIGHT
+        slide.properties.fields = []
+        return slide
+
+    def create_new_slide_with_text_field(
+        self, google_field: GoogleFormItemsDto, index: int
+    ):
+        text_field = StandardFormField()
+        text_field.title = google_field.title
+        text_field.id = google_field.itemId
+        text_field.type = StandardFormFieldType.TEXT
+        text_field.index = 0
+        new_slide = self.create_new_slide(index)
+        new_slide.properties.fields.append(text_field)
+        return new_slide
+
     def _transform_fields(self, fields: List[GoogleFormItemsDto]):
-        index = 0
-        temp_text_fields: List[GoogleFormItemsDto] = []
-        temp_text_field_index = 0
         transform_fields = []
-        slide_and_field_list = []
-        for field in fields:
-            if field.textItem is not None or field.pageBreakItem is not None:
-                if index < (len(fields) - 1):
-                    text_field = StandardFormField()
-                    text_field.title = field.title
-                    text_field.id = field.itemId
-                    text_field.type = StandardFormFieldType.TEXT
-                    text_field.index = len(temp_text_fields)
-                    temp_text_fields.append(text_field)
-                    temp_text_field_index = index
+        field_id_and_field_list = []
+        active_slide = self.create_new_slide(0)
+        for google_field in fields:
+            if google_field.pageBreakItem is not None:
+                transform_fields.append(active_slide)
+                active_slide = self.create_new_slide_with_text_field(
+                    google_field, len(transform_fields)
+                )
                 continue
-            slide, updated_field = self._transform_field(index, field)
-            slide_and_field_list.append(slide.id)
-            slide_and_field_list.append(updated_field.id)
-            # slide_and_field_list.append(updated_field.type if updated_field.type else "")
-            if len(temp_text_fields) > 0:
-                slide.properties.fields[0].index = len(temp_text_fields)
-                slide.properties.fields = temp_text_fields + slide.properties.fields
-                temp_text_fields = []
-            transform_fields.append(slide)
-            index += 1
-        if len(temp_text_fields) > 0:
-            slide, updated_field = self._transform_field(
-                index, fields[temp_text_field_index]
-            )
-            transform_fields.append(slide)
-            slide_and_field_list.append(slide.id)
-            slide_and_field_list.append(updated_field.id)
-            # slide_and_field_list.append(updated_field.type if updated_field.type else "")
-        return transform_fields, slide_and_field_list
+            active_slide, field = self._transform_field(active_slide, google_field)
+            field_id_and_field_list.append(field.id)
+            field_id_and_field_list.append(field)
+        transform_fields.append(active_slide)
+        return transform_fields, field_id_and_field_list
 
     def _transform_welcome_page(self, welcome_page_title):
         return WelcomePageField(
@@ -228,7 +235,7 @@ class GoogleFormTransformerService(FormTransformerService):
     def transform_form(self, form: Dict[str, Any]) -> StandardForm:
         try:
             googleform = GoogleFormDto(**form)
-            slides, slide_and_field_list = self._transform_fields(googleform.items)
+            slides, field_id_and_field_list = self._transform_fields(googleform.items)
             standard_form = StandardForm(
                 builder_version="v2",
                 form_id=str(PydanticObjectId()),
@@ -244,7 +251,7 @@ class GoogleFormTransformerService(FormTransformerService):
                 thankyou_page=(self._transform_thank_you_page()),
                 theme=(self._transform_theme()),
             )
-            return standard_form, slide_and_field_list
+            return standard_form, field_id_and_field_list
         except Exception as error:
             logger.error(f"Error transforming single form: {error}")
             raise HTTPException(
@@ -255,11 +262,11 @@ class GoogleFormTransformerService(FormTransformerService):
         self,
         responses: List[Dict[str, Any]],
         standard_form: StandardForm,
-        slide_and_field_list: List[Any],
+        field_id_and_field_list: List[Any],
     ) -> List[StandardFormResponse]:
         standard_form_responses = [
             self.transform_single_form_response(
-                response, standard_form, slide_and_field_list
+                response, standard_form, field_id_and_field_list
             )
             for response in responses
         ]
@@ -269,7 +276,7 @@ class GoogleFormTransformerService(FormTransformerService):
         self,
         google_response_data: Dict[str, Any],
         standard_form: StandardForm,
-        slide_and_field_list: List[Any],
+        field_id_and_field_list: List[Any],
     ) -> StandardFormResponse:
         try:
             google_response = GoogleFormResponseDto(**google_response_data)
@@ -280,7 +287,7 @@ class GoogleFormTransformerService(FormTransformerService):
                 created_at=google_response.createTime,
                 updated_at=google_response.lastSubmittedTime,
                 answers=self._transform_answers(
-                    google_response.answers, standard_form, slide_and_field_list
+                    google_response.answers, standard_form, field_id_and_field_list
                 ),
             )
             if google_response.respondentEmail is not None:
@@ -296,7 +303,7 @@ class GoogleFormTransformerService(FormTransformerService):
         self,
         answers: Dict[str, GoogleAnswer],
         standard_form: StandardForm,
-        slide_and_field_list: List[Any],
+        field_id_and_field_list: List[Any],
     ):
         standard_answers = {}
         if answers is None:
@@ -304,22 +311,16 @@ class GoogleFormTransformerService(FormTransformerService):
         for question_id, answer in answers.items():
             standard_answers[question_id] = self._transform_answer(
                 answer,
-                [
-                    field
-                    for field in standard_form.fields
-                    if field.id
-                    == slide_and_field_list[slide_and_field_list.index(question_id) - 1]
-                ],
+                field_id_and_field_list[field_id_and_field_list.index(question_id) + 1],
             )
         return standard_answers
 
     def _transform_answer(
         self,
         answer: GoogleAnswer,
-        standard_field: List[StandardFormField],
+        field: StandardFormField,
     ) -> StandardFormResponseAnswer:
         standard_answer = StandardFormResponseAnswer()
-        field = standard_field[0].properties.fields[-1]
         if answer.textAnswers and len(answer.textAnswers.answers) > 0:
             if field.type == StandardFormFieldType.MULTIPLE_CHOICE:
                 choice_answers = answer.textAnswers.answers
@@ -357,14 +358,6 @@ class GoogleFormTransformerService(FormTransformerService):
                     if choice.value == answer.textAnswers.answers[0].value
                 ][0]
                 standard_answer.choice = StandardChoiceAnswer(value=choice_id)
-            # elif answer.textAnswers.answers:
-            #     standard_answer.text = answer.textAnswers.answers[0].value
-            #     standard_answer.choice = StandardChoiceAnswer(
-            #         value=answer.textAnswers.answers[0].value
-            #     )
-            #     standard_answer.choices = StandardChoicesAnswer(
-            #         values=[choice.value for choice in answer.textAnswers.answers]
-            #     )
 
         return standard_answer
 
