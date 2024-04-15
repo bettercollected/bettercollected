@@ -15,23 +15,30 @@ export const defaultForm: StandardForm = {
             type: FieldTypes.SLIDE,
             properties: {
                 layout: FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT,
-                fields: []
+                fields: [
+                    {
+                        id: v4(),
+                        index: 0,
+                        type: FieldTypes.SHORT_TEXT,
+                        value: 'Hi, what is your name?',
+                        properties: {
+                            placeholder: 'Your full name please'
+                        }
+                    }
+                ]
             },
-            imageUrl:
-                'https://s3.eu-central-1.wasabisys.com/bettercollected/images/v2defaultImage.png'
+            imageUrl: 'https://s3.eu-central-1.wasabisys.com/bettercollected/images/v2defaultImage.png'
         }
     ],
     welcomePage: {
         title: '',
         layout: FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT,
-        imageUrl:
-            'https://s3.eu-central-1.wasabisys.com/bettercollected/images/v2defaultImage.png'
+        imageUrl: 'https://s3.eu-central-1.wasabisys.com/bettercollected/images/v2defaultImage.png'
     },
     thankyouPage: [
         {
             layout: FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT,
-            imageUrl:
-                'https://s3.eu-central-1.wasabisys.com/bettercollected/images/v2defaultImage.png'
+            imageUrl: 'https://s3.eu-central-1.wasabisys.com/bettercollected/images/v2defaultImage.png'
         }
     ],
     theme: {
