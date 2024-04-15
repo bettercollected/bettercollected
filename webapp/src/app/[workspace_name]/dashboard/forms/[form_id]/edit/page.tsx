@@ -46,7 +46,7 @@ export default function FormPage({ params }: { params: { form_id: string } }) {
         if (typeof window !== 'undefined') {
             const windowHeight = window.innerHeight;
             const windowWidth = window.innerWidth;
-            const slideViewportWidth = windowWidth - 480;
+            const slideViewportWidth = windowWidth - 520;
             const slideViewportHeight = windowHeight - 192;
             const aspectRatio = 16 / 9;
             if (slideViewportWidth / aspectRatio > slideViewportHeight) {
@@ -121,22 +121,22 @@ export default function FormPage({ params }: { params: { form_id: string } }) {
     }, [navbarState]);
 
     return (
-        <main className="flex h-screen flex-col items-center justify-start overflow-hidden bg-white">
+        <main className=" flex h-screen flex-col items-center justify-start overflow-hidden bg-white">
             <Navbar />
             <AutoSaveForm formId={formId} />
-            <div className="max-h-body-content flex w-full flex-row items-center gap-10">
+            <div className="max-h-body-content  flex w-full flex-row items-center gap-10">
                 <LeftDrawer formFields={formFields} activeSlideComponent={activeSlideComponent} />
                 <motion.div
                     animate={{ x: navbarState.insertClicked ? '5%' : 0 }}
                     transition={{ ease: 'easeInOut' }}
-                    className="relative max-h-full max-w-full flex-1 overflow-hidden py-14"
+                    className=" relative max-h-full max-w-full flex-1 overflow-hidden px-5 py-14"
                     onClick={() => {
                         setActiveFieldComponent(null);
                     }}
                 >
                     <div>
-                        <div className="aspect-video overflow-hidden" style={scaledDivStyle}>
-                            <div className=" shadow-slide mx-auto h-full w-full  rounded-lg">
+                        <div className="!shadow-slide aspect-video overflow-hidden" style={scaledDivStyle}>
+                            <div className="   mx-auto h-full w-full  rounded-lg">
                                 {activeSlideComponent?.id && activeSlideComponent?.index >= 0 && <SlideBuilder slide={formFields[activeSlideComponent?.index]} />}
                                 {!activeSlideComponent?.id && <div>Add a slide to start</div>}
                                 {activeSlideComponent?.id === 'welcome-page' && <WelcomeSlide />}

@@ -935,7 +935,7 @@ export default {
             fit: 'fit-content',
             'design-content': 'calc(100vh - 185px)',
             'body-content': 'calc(100vh - 64px)',
-            'pages-container': 'calc(100% - 168px)'
+            'pages-container': 'calc(100% - 124px)'
         }),
         maxWidth: ({ theme, breakpoints }) => ({
             ...theme('spacing'),
