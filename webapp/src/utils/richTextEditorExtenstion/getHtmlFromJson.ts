@@ -8,7 +8,7 @@ export function getHtmlFromJson(value: JSONContent | string | undefined) {
         return null;
     }
     if (typeof value === 'string') {
-        return `<p>${value}</p>`;
+        return `<p><strong>${value}</strong></p>`;
     }
     return generateHTML(value, Extenstions);
 }
