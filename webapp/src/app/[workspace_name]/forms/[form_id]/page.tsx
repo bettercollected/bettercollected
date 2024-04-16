@@ -24,7 +24,6 @@ export default function FormPage({ params }: { params: { form_id: string; worksp
 
 const FetchFormWrapper = ({ slug }: { slug: string }) => {
     const searchParams = useSearchParams();
-    const isPreviewMode = searchParams?.get('isPreview');
     const { workspace } = useWorkspace();
     const { setStandardForm } = useStandardForm();
 
@@ -49,9 +48,9 @@ const FetchFormWrapper = ({ slug }: { slug: string }) => {
     }
 
     return (
-        <>
-            {data?.builderVersion === 'v2' && <Form isMobileView={!!isPreviewMode} />}
+        <div className="h-screen w-screen">
+            {data?.builderVersion === 'v2' && <Form isPreviewMode />}
             {data?.builderVersion !== 'v2' && <SingleFormPage hasCustomDomain={hasCustomDomain} slug={slug} form={data} workspace={workspace} />}
-        </>
+        </div>
     );
 };
