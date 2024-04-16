@@ -44,11 +44,11 @@ export function getUnformattedDate(date: string): Array<string> {
 export function getFormattedDate(value: string, date: string, type: dateType): string {
     const dateValue = date.split('-');
     switch (type) {
-        case 'day':
+        case 'year':
             return `${value}-${dateValue[1]}-${dateValue[2]}`;
         case 'month':
             return `${dateValue[0]}-${value}-${dateValue[2]}`;
-        case 'year':
+        case 'day':
             return `${dateValue[0]}-${dateValue[1]}-${value}`;
         default:
             return ``;

@@ -8,8 +8,10 @@ import FileUpload from './FileUploadField';
 import InputField from './InputField';
 import YesNoField from './YesNoField';
 import Image from 'next/image';
+import ImageField from './Imagefield';
+import VideoField from './VideoField';
 
-const renderImage = (field: FormField) => {
+export const renderImage = (field: FormField) => {
     return field.imageUrl ? (
         <div className="relative">
             <div className=" aspect-video h-[168px] w-full">
@@ -20,6 +22,7 @@ const renderImage = (field: FormField) => {
         <></>
     );
 };
+
 function renderFieldWrapper(field: FormField, slide: FormField, disabled: boolean) {
     return (
         <div className="relative h-full w-full space-y-2">
@@ -54,25 +57,12 @@ function renderField(field: FormField, slide: FormField, disabled: boolean) {
         case FieldTypes.LINEAR_RATING:
             return <LinearRatingField field={field} slide={slide} isBuilder={true} />;
         case FieldTypes.IMAGE_CONTENT:
-            return <ImageField field={field} />;
+            return <ImageField isBuilder field={field} />;
         case FieldTypes.VIDEO_CONTENT:
-            return <VideoField field={field} />;
+            return <VideoField isBuilder field={field} />;
         default:
             return null;
     }
 }
-
-const ImageField = ({ field }: { field: FormField }) => {
-    return (
-        <div className="h-40 w-full">
-            <Image style={{ objectFit: 'cover' }} fill src={field?.attachment?.href ?? ''} alt={field.id + ' image'} />
-        </div>
-    );
-};
-
-const VideoField = ({ field }: { field: FormField }) => {
-    const videoUrl = 'https://' + field.attachment?.href?.replace('watch', 'embed');
-    return <iframe src={videoUrl} width="100%" className="aspect-video"></iframe>;
-};
 
 export default renderFieldWrapper;
