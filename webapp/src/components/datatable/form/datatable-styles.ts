@@ -3,8 +3,9 @@ import { BorderLeft, BorderRight } from '@mui/icons-material';
 export const dataTableCustomStyles = {
     table: {
         style: {
-            border: '1px solid #DBDBDB',
-            background: 'transparent'
+            borderTop: '1px solid #DBDBDB',
+            borderBottom: '1px solid #DBDBDB',
+            // borderRight: '1px solid #DBDBDB',
         }
     },
     headRow: {
@@ -35,8 +36,6 @@ export const dataTableCustomStyles = {
             borderRight: '1px solid #DBDBDB',
             paddingTop: '10px',
             paddingBottom: '10px'
-            // paddingLeft: '6px',
-            // paddingRight: '6px'
         }
     },
     rows: {
