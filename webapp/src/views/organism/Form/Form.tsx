@@ -24,9 +24,7 @@ const Form = ({ isPreviewMode = false, isMobileView = false }: { isPreviewMode?:
         if (currentSlide === -2) currentSlideIndex = (standardForm.fields?.length || 0) + 2;
         return (currentSlideIndex / totalSlides) * 100;
     };
-
-    console.log('Progress Value', getProgressValue());
-
+    
     return (
         <div className={cn(isPreviewMode || isMobileView ? 'h-full w-full  ' : 'h-screen w-screen', 'relative h-full w-full')}>
             <div className="absolute left-0 right-0 top-0 !z-[80] bg-green-500">

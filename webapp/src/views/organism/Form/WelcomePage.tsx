@@ -8,10 +8,11 @@ import { FormTheme } from '@app/constants/theme';
 import { FormSlideLayout } from '@app/models/enums/form';
 import { Button } from '@app/shadcn/components/ui/button';
 import { cn } from '@app/shadcn/util/lib';
+import { useAppSelector } from '@app/store/hooks';
 import { useAuthAtom } from '@app/store/jotai/auth';
 import { useStandardForm } from '@app/store/jotai/fetchedForm';
 import { useResponderState } from '@app/store/jotai/responderFormState';
-import useWorkspace from '@app/store/jotai/workspace';
+import { selectWorkspace } from '@app/store/workspaces/slice';
 import UserAvatarDropDown from '@app/views/molecules/UserAvatarDropdown';
 
 export default function WelcomePage({
@@ -27,7 +28,7 @@ export default function WelcomePage({
     const { nextSlide } = useResponderState();
     const router = useRouter();
     const pathname = usePathname();
-    const { workspace } = useWorkspace();
+    const workspace = useAppSelector(selectWorkspace);
     const { authState } = useAuthAtom();
     const responderSignInUrl = `${environments.NEXT_PUBLIC_HTTP_SCHEME}://${environments.NEXT_PUBLIC_V1_CLIENT_ENDPOINT_DOMAIN}/login?type=responder&workspace_id=${workspace.id}&redirect_to=${environments.NEXT_PUBLIC_HTTP_SCHEME}://${environments.NEXT_PUBLIC_V2_CLIENT_ENDPOINT_DOMAIN}${pathname}`;
 
@@ -35,28 +36,12 @@ export default function WelcomePage({
     const formTheme = theme || standardForm?.theme;
 
     return (
-        <div
-            className={cn(
-                'flex h-full w-full flex-col justify-center',
-                welcomePage?.layout ===
-                    FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND_LEFT_ALIGN
-                    ? 'items-start'
-                    : 'items-center'
-            )}
-        >
-            <UserAvatarDropDown
-                responderSignInUrl={isPreviewMode ? '' : responderSignInUrl}
-            />
+        <div className={cn('flex h-full w-full flex-col justify-center', welcomePage?.layout === FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND_LEFT_ALIGN ? 'items-start' : 'items-center')}>
+            <UserAvatarDropDown responderSignInUrl={isPreviewMode ? '' : responderSignInUrl} />
 
             <div className="flex h-full w-full max-w-[800px] flex-col justify-center">
-                <div className="text-[40px] font-bold leading-[48px]">
-                    {welcomePage?.title}
-                </div>
-                {welcomePage?.description && (
-                    <div className="mt-4 text-black-700 ">
-                        {welcomePageData?.description}
-                    </div>
-                )}
+                <div className="text-[40px] font-bold leading-[48px]">{welcomePage?.title}</div>
+                {welcomePage?.description && <div className="text-black-700 mt-4 ">{welcomePageData?.description}</div>}
                 <div className="mt-16 flex max-w-[421px] flex-col rounded-lg bg-white bg-opacity-50 p-4">
                     <div className="flex items-center gap-2">
                         {standardForm?.settings?.requireVerifiedIdentity ? (
@@ -75,21 +60,14 @@ export default function WelcomePage({
                             </>
                         )}
                     </div>
-                    <div className="mt-2 text-xs text-black-700">
+                    <div className="text-black-700 mt-2 text-xs">
                         {standardForm?.settings?.requireVerifiedIdentity ? (
-                            <>
-                                The form you are trying to access is limited to certain
-                                groups. Please verify your account to get access.
-                            </>
+                            <>The form you are trying to access is limited to certain groups. Please verify your account to get access.</>
                         ) : (
                             <>
-                                The form you are trying to access is public, but you can
-                                always sign in to view your response later.{' '}
+                                The form you are trying to access is public, but you can always sign in to view your response later.{' '}
                                 <span>
-                                    <Link
-                                        href={isPreviewMode ? '' : '/login'}
-                                        className="text-blue-500 "
-                                    >
+                                    <Link href={isPreviewMode ? '' : '/login'} className="text-blue-500 ">
                                         {' '}
                                         Verify Account
                                     </Link>
@@ -104,10 +82,7 @@ export default function WelcomePage({
                         className="z-10 mt-12 rounded px-8 py-3"
                         size="medium"
                         onClick={() => {
-                            if (
-                                !authState.id &&
-                                standardForm?.settings?.requireVerifiedIdentity
-                            ) {
+                            if (!authState.id && standardForm?.settings?.requireVerifiedIdentity) {
                                 router.push(responderSignInUrl);
                             } else {
                                 nextSlide();
@@ -115,10 +90,7 @@ export default function WelcomePage({
                             }
                         }}
                     >
-                        {standardForm?.settings?.requireVerifiedIdentity &&
-                        !authState.id
-                            ? 'Verify and Start'
-                            : 'Start'}
+                        {standardForm?.settings?.requireVerifiedIdentity && !authState.id ? 'Verify and Start' : 'Start'}
                     </Button>
                 </div>
             </div>

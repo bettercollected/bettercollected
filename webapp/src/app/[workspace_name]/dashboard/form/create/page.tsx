@@ -5,21 +5,22 @@ import React from 'react';
 import { useRouter } from 'next/navigation';
 
 import cn from 'classnames';
-import { Download, Plus, Sparkles } from 'lucide-react';
+import { Plus, Sparkles } from 'lucide-react';
 
+import { useModal } from '@app/components/modal-views/context';
 import { defaultForm } from '@app/constants/form';
 import { Sheet, SheetContent, SheetTrigger } from '@app/shadcn/components/ui/sheet';
+import { useAppSelector } from '@app/store/hooks';
 import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
-import useWorkspace from '@app/store/jotai/workspace';
 import { useCreateV2FormMutation } from '@app/store/redux/formApi';
 import { useCreateFormFromTemplateMutation, useGetTemplatesQuery } from '@app/store/redux/templateApi';
+import { selectWorkspace } from '@app/store/workspaces/slice';
+import { GoogleFormIcon } from '@app/views/atoms/Icons/GoogleForm';
 import FormTypeSelectionComponent from '@app/views/molecules/FormBuilder/FormTypeSelectionComponent';
 import NavBar from '@app/views/molecules/FormBuilder/Navbar';
 import WelcomePage from '@app/views/organism/Form/WelcomePage';
 import LayoutWrapper from '@app/views/organism/Layout/LayoutWrapper';
-import { GoogleFormIcon } from '@app/views/atoms/Icons/GoogleForm';
 import useDrivePicker from '@fyelci/react-google-drive-picker';
-import { useModal } from '@app/components/modal-views/context';
 
 const CardVariants = {
     blue: 'text-blue-500 hover:bg-blue-100 transition hover:border-blue-100',
@@ -30,7 +31,7 @@ const CardVariants = {
 export default function CreateFormPage() {
     const [createV2Form] = useCreateV2FormMutation();
     const { resetFields } = useFormFieldsAtom();
-    const { workspace } = useWorkspace();
+    const workspace = useAppSelector(selectWorkspace);
     const router = useRouter();
     const [openPicker] = useDrivePicker();
     const { openModal } = useModal();
