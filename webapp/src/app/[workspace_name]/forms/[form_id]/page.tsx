@@ -1,10 +1,9 @@
 'use client';
 
-import { useSearchParams } from 'next/navigation';
-
 import environments from '@app/configs/environments';
 import ReduxWrapperAppRouter from '@app/containers/ReduxWrapperAppRouter';
 import SingleFormPage from '@app/pages/forms/v1/[id]';
+import { useAppSelector } from '@app/store/hooks';
 import { useStandardForm } from '@app/store/jotai/fetchedForm';
 import { useGetWorkspaceFormQuery } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
@@ -23,7 +22,6 @@ export default function FormPage({ params }: { params: { form_id: string; worksp
 }
 
 const FetchFormWrapper = ({ slug }: { slug: string }) => {
-    const searchParams = useSearchParams();
     const workspace = useAppSelector(selectWorkspace);
     const { setStandardForm } = useStandardForm();
 
