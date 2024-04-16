@@ -13,7 +13,6 @@ import { cn } from '@app/shadcn/util/lib';
 import DeleteIcon from '@app/views/atoms/Icons/Delete';
 import { SwitchIcon } from '@app/views/atoms/Icons/SwitchIcon';
 
-
 interface ILayoutWrapper {
     layout?: FormSlideLayout;
     imageUrl?: string;
@@ -27,18 +26,7 @@ interface ILayoutWrapper {
     children: React.ReactNode | React.ReactNode[];
 }
 
-const LayoutWrapper = ({
-    layout,
-    theme,
-    imageUrl,
-    updatePageImage,
-    updatePageLayout,
-    altImage,
-    disabled = false,
-    style = {},
-    scrollDivId,
-    children
-}: ILayoutWrapper) => {
+const LayoutWrapper = ({ layout, theme, imageUrl, updatePageImage, updatePageLayout, altImage, disabled = false, style = {}, scrollDivId, children }: ILayoutWrapper) => {
     const [showControls, setShowControls] = useState(false);
     const { openDialogModal } = useDialogModal();
 
@@ -48,8 +36,7 @@ const LayoutWrapper = ({
 
     const handleRemoveImage = () => {
         updatePageImage && updatePageImage('');
-        updatePageLayout &&
-            updatePageLayout(FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND);
+        updatePageLayout && updatePageLayout(FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND);
     };
 
     const handleChangeImage = () => {
@@ -64,14 +51,8 @@ const LayoutWrapper = ({
                     style={{ objectFit: 'cover' }}
                     className={cn(
                         'h-full w-full',
-                        layout === FormSlideLayout.TWO_COLUMN_IMAGE_LEFT
-                            ? 'order-0'
-                            : layout === FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT
-                              ? 'order-1'
-                              : '',
-                        layout === FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND
-                            ? 'rounded-lg opacity-50 backdrop-blur-lg'
-                            : 'opacity-100'
+                        layout === FormSlideLayout.TWO_COLUMN_IMAGE_LEFT ? 'order-0' : layout === FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT ? 'order-1' : '',
+                        layout === FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND ? 'rounded-lg opacity-50 backdrop-blur-lg' : 'opacity-100'
                     )}
                     src={imageUrl}
                     alt={altImage + ' image'}
@@ -79,32 +60,16 @@ const LayoutWrapper = ({
                     priority
                 />
 
-                {(showControls ||
-                    layout === FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND) &&
-                    !disabled && (
-                        <div
-                            className={cn(
-                                'absolute flex h-full w-full items-start justify-end gap-4 p-2',
-                                layout ===
-                                    FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND
-                                    ? '-top-[50px]'
-                                    : ''
-                            )}
-                        >
-                            <div
-                                className="cursor-pointer rounded-md bg-white p-2 shadow-bubble"
-                                onClick={handleRemoveImage}
-                            >
-                                <DeleteIcon width={24} height={24} />
-                            </div>
-                            <div
-                                className=" cursor-pointer rounded-md bg-white p-2 shadow-bubble"
-                                onClick={handleChangeImage}
-                            >
-                                <SwitchIcon />
-                            </div>
+                {(showControls || layout === FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND) && !disabled && (
+                    <div className={cn('absolute flex h-full w-full items-start justify-end gap-4 p-2', layout === FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND ? '-top-[50px]' : '')}>
+                        <div className="shadow-bubble cursor-pointer rounded-md bg-white p-2" onClick={handleRemoveImage}>
+                            <DeleteIcon width={24} height={24} />
                         </div>
-                    )}
+                        <div className=" shadow-bubble cursor-pointer rounded-md bg-white p-2" onClick={handleChangeImage}>
+                            <SwitchIcon />
+                        </div>
+                    </div>
+                )}
             </>
         );
     };
@@ -116,14 +81,9 @@ const LayoutWrapper = ({
                     ...style
                 }}
                 className={cn(
-                    'relative flex aspect-video h-full w-full flex-grow overflow-hidden rounded-lg !bg-transparent lg:grid',
-                    layout === FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT
-                        ? 'flex-col-reverse'
-                        : 'flex-col',
-                    layout === FormSlideLayout.TWO_COLUMN_IMAGE_LEFT ||
-                        layout === FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT
-                        ? 'lg:grid-cols-2'
-                        : 'lg:grid-cols-1',
+                    'relative flex  h-full w-full flex-grow overflow-hidden rounded-lg !bg-transparent lg:grid',
+                    layout === FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT ? 'flex-col-reverse' : 'flex-col',
+                    layout === FormSlideLayout.TWO_COLUMN_IMAGE_LEFT || layout === FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT ? 'lg:grid-cols-2' : 'lg:grid-cols-1',
                     disabled ? 'h-full overflow-hidden' : ''
                 )}
             >
@@ -131,82 +91,45 @@ const LayoutWrapper = ({
                     id={scrollDivId}
                     asChild
                     style={{
-                        background:
-                            layout === FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND
-                                ? 'transparent'
-                                : theme?.accent
+                        background: layout === FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND ? 'transparent' : theme?.accent
                     }}
                     // TODO: Change this to apply layout from other layout
                     className={cn(
                         'relative px-5 md:px-8 xl:px-10 2xl:px-20',
                         'min-h-[100%]',
                         disabled ? 'overflow-hidden' : '',
-                        layout &&
-                            layout === FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND
-                            ? 'z-10 !bg-transparent'
-                            : '',
-                        layout && layout === FormSlideLayout.TWO_COLUMN_IMAGE_LEFT
-                            ? 'order-1'
-                            : layout &&
-                                layout === FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT
-                              ? 'order-0'
-                              : ''
+                        layout && layout === FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND ? 'z-10 !bg-transparent' : '',
+                        layout && layout === FormSlideLayout.TWO_COLUMN_IMAGE_LEFT ? 'order-1' : layout && layout === FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT ? 'order-0' : ''
                     )}
                 >
-                    <div className="flex min-h-[100%] w-full flex-col justify-center">
-                        {children}
-                    </div>
+                    <div className="flex min-h-[100%] w-full flex-col justify-center">{children}</div>
                 </ScrollArea>
                 {/* Image with controls works for left and right image layout */}
-                {layout &&
-                    layout !== FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND &&
-                    layout !== FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND_LEFT_ALIGN &&
-                    layout !== FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND && (
-                        <div
-                            className={cn(
-                                'relative h-[30%] lg:h-auto ',
-                                (layout &&
-                                    layout === FormSlideLayout.TWO_COLUMN_IMAGE_LEFT) ||
-                                    (layout &&
-                                        layout ===
-                                            FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT)
-                                    ? 'grid-cols-1'
-                                    : '',
-                                imageUrl && !disabled
-                                    ? 'hover:cursor-pointer hover:!bg-black/30'
-                                    : 'bg-neutral-100 shadow hover:cursor-default'
-                            )}
-                            // onClick={disabled ? () => {} : handleGridClick}
-                            onMouseOver={
-                                disabled ? () => {} : () => setShowControls(true)
-                            }
-                            onMouseLeave={
-                                disabled ? () => {} : () => setShowControls(false)
-                            }
-                            {...(disabled
-                                ? { tabIndex: -1, 'aria-disabled': true }
-                                : {})}
-                        >
-                            {imageUrl ? (
-                                <DisplayImageWithControls imageUrl={imageUrl} />
-                            ) : (
-                                !disabled && (
-                                    <div
-                                        className={cn(
-                                            'flex h-full items-center justify-center text-lg font-semibold'
-                                        )}
-                                    >
-                                        <Button
-                                            variant="secondary"
-                                            onClick={handleChangeImage}
-                                        >
-                                            Select Layout Image
-                                        </Button>
-                                    </div>
-                                )
-                            )}
-                        </div>
-                    )}
+                {layout && layout !== FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND && layout !== FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND_LEFT_ALIGN && layout !== FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND && (
+                    <div
+                        className={cn(
+                            'relative h-[30%] lg:h-auto ',
+                            (layout && layout === FormSlideLayout.TWO_COLUMN_IMAGE_LEFT) || (layout && layout === FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT) ? 'grid-cols-1' : '',
+                            imageUrl && !disabled ? 'hover:cursor-pointer hover:!bg-black/30' : 'bg-neutral-100 shadow hover:cursor-default'
+                        )}
+                        // onClick={disabled ? () => {} : handleGridClick}
+                        onMouseOver={disabled ? () => {} : () => setShowControls(true)}
+                        onMouseLeave={disabled ? () => {} : () => setShowControls(false)}
+                        {...(disabled ? { tabIndex: -1, 'aria-disabled': true } : {})}
+                    >
+                        {imageUrl ? (
+                            <DisplayImageWithControls imageUrl={imageUrl} />
+                        ) : (
+                            !disabled && (
+                                <div className={cn('flex h-full items-center justify-center text-lg font-semibold')}>
+                                    <Button variant="secondary" onClick={handleChangeImage}>
+                                        Select Layout Image
+                                    </Button>
+                                </div>
+                            )
+                        )}
+                    </div>
+                )}
             </div>
 
             {/* Layout logic for background image or no background image */}
@@ -214,12 +137,8 @@ const LayoutWrapper = ({
                 <div
                     className={cn(
                         'relative z-0',
-                        imageUrl && !disabled
-                            ? 'hover:cursor-pointer hover:!bg-black/30'
-                            : 'bg-neutral-100 hover:cursor-default',
-                        layout === FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND
-                            ? 'absolute inset-0 top-1/2 aspect-video -translate-y-1/2 transform '
-                            : '',
+                        imageUrl && !disabled ? 'hover:cursor-pointer hover:!bg-black/30' : 'bg-neutral-100 hover:cursor-default',
+                        layout === FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND ? 'absolute inset-0' : '',
                         disabled ? 'h-full' : ''
                     )}
                     onClick={disabled ? () => {} : handleGridClick}
@@ -231,15 +150,7 @@ const LayoutWrapper = ({
                         <DisplayImageWithControls imageUrl={imageUrl} />
                     ) : (
                         !disabled && (
-                            <div
-                                className={cn(
-                                    'flex h-full items-center justify-center text-lg font-semibold',
-                                    layout ===
-                                        FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND
-                                        ? 'absolute -top-[52%] left-0'
-                                        : ''
-                                )}
-                            >
+                            <div className={cn('flex h-full items-center justify-center text-lg font-semibold', layout === FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND ? 'absolute -top-[52%] left-0' : '')}>
                                 <Button variant="secondary" onClick={handleChangeImage}>
                                     Select Layout Image
                                 </Button>

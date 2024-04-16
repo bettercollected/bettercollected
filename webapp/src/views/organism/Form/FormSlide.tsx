@@ -94,6 +94,9 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false 
 
     const onScroll = useCallback(
         (direction: number) => {
+            if (!formSlide?.properties?.fields?.length) {
+                return;
+            }
             if (direction === -1 && currentField === 0) {
                 return;
             }
@@ -271,7 +274,7 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false 
                                     }}
                                     className="flex flex-col"
                                 >
-                                    {(standardForm?.fields?.length || 0) - 1 === currentSlide && (
+                                    {(standardForm?.fields?.length || 0) - 1 === currentSlide && currentSlide === index && (
                                         <div className="mt-20 flex flex-col">
                                             {authState.id && !standardForm.settings?.requireVerifiedIdentity && (
                                                 <div className="flex flex-row gap-2 text-sm ">
@@ -303,7 +306,7 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false 
                                         onClick={onNext}
                                         size="medium"
                                     >
-                                        {(standardForm?.fields?.length || 0) - 1 === currentSlide ? 'Submit' : 'Next'}
+                                        {(standardForm?.fields?.length || 0) - 1 === currentSlide && currentSlide === index ? 'Submit' : 'Next'}
                                     </Button>
                                 </motion.div>
                             )}
