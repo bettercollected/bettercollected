@@ -7,7 +7,7 @@ import { useActiveThankYouPageComponent } from './activeBuilderComponent';
 
 export interface IFormState {
     title: string;
-    description?: string;
+    description?: string | null;
     welcomePage?: {
         title?: string;
         description?: string;
@@ -85,12 +85,8 @@ export function useFormState() {
         });
     };
 
-    const setThankYouPageDescription = (
-        thankyouPageIndex: number,
-        description?: string
-    ) => {
-        formState.thankyouPage &&
-            (formState.thankyouPage[thankyouPageIndex].message = description);
+    const setThankYouPageDescription = (thankyouPageIndex: number, description?: string) => {
+        formState.thankyouPage && (formState.thankyouPage[thankyouPageIndex].message = description);
         setFormState({ ...formState });
     };
 
@@ -100,8 +96,7 @@ export function useFormState() {
     };
 
     const setThankYouPageButtonLink = (thankyouPageIndex: number, btnLink?: string) => {
-        formState.thankyouPage &&
-            (formState.thankyouPage[thankyouPageIndex].buttonLink = btnLink);
+        formState.thankyouPage && (formState.thankyouPage[thankyouPageIndex].buttonLink = btnLink);
         setFormState({ ...formState });
     };
 
@@ -112,13 +107,7 @@ export function useFormState() {
         });
     };
 
-    const updateFormTheme = (theme: {
-        title: string;
-        primary: string;
-        secondary: string;
-        tertiary: string;
-        accent: string;
-    }) => {
+    const updateFormTheme = (theme: { title: string; primary: string; secondary: string; tertiary: string; accent: string }) => {
         setFormState({ ...formState, theme });
     };
 
@@ -131,9 +120,7 @@ export function useFormState() {
 
     const updateWelcomePageLayout = (layout: FormSlideLayout) => {
         if (formState.welcomePage) {
-            !formState.welcomePage.imageUrl &&
-                (formState.welcomePage.imageUrl =
-                    'https://s3.eu-central-1.wasabisys.com/bettercollected/images/v2defaultImage.png');
+            !formState.welcomePage.imageUrl && (formState.welcomePage.imageUrl = 'https://s3.eu-central-1.wasabisys.com/bettercollected/images/v2defaultImage.png');
             formState.welcomePage.layout = layout;
         }
         setFormState({
@@ -142,22 +129,14 @@ export function useFormState() {
     };
 
     const updateThankYouPageImage = (imageUrl: string) => {
-        formState.thankyouPage &&
-            (formState.thankyouPage![activeThankYouPageComponent?.index || 0].imageUrl =
-                imageUrl);
+        formState.thankyouPage && (formState.thankyouPage![activeThankYouPageComponent?.index || 0].imageUrl = imageUrl);
         setFormState({ ...formState });
     };
 
     const updateThankYouPageLayout = (layout: FormSlideLayout) => {
         if (formState.thankyouPage) {
-            !formState.thankyouPage![activeThankYouPageComponent?.index || 0]
-                .imageUrl &&
-                (formState.thankyouPage![
-                    activeThankYouPageComponent?.index || 0
-                ].imageUrl =
-                    'https://s3.eu-central-1.wasabisys.com/bettercollected/images/v2defaultImage.png');
-            formState.thankyouPage![activeThankYouPageComponent?.index || 0].layout =
-                layout;
+            !formState.thankyouPage![activeThankYouPageComponent?.index || 0].imageUrl && (formState.thankyouPage![activeThankYouPageComponent?.index || 0].imageUrl = 'https://s3.eu-central-1.wasabisys.com/bettercollected/images/v2defaultImage.png');
+            formState.thankyouPage![activeThankYouPageComponent?.index || 0].layout = layout;
         }
         setFormState({ ...formState });
     };
