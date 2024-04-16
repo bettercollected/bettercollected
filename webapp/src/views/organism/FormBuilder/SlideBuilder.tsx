@@ -38,8 +38,6 @@ const SlideBuilder = ({ slide, isScaledDown = false, disabled = false }: { slide
                             <div className="absolute top-[40%] flex w-full flex-col gap-20 px-6 pb-20">
                                 {Array.isArray(slideFields) && slideFields.length ? (
                                     slideFields.map((field, index) => {
-                                        if (!field.id) {
-                                        }
                                         return (
                                             <Draggable key={field.id} draggableId={`${field.id}`} index={index} disableInteractiveElementBlocking={disabled} isDragDisabled={disabled}>
                                                 {(provided) => (

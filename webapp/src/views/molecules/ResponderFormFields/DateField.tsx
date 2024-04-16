@@ -88,7 +88,7 @@ function DateFieldSection({ field, slide, isBuilder }: IDateField) {
     return (
         <div className="flex flex-col gap-1">
             <div className="flex flex-row items-center gap-4">
-                <FieldInput id={isBuilder ? 'day' : `day-${field.id}`} type="number" placeholder="DD" className={inputClassName} value={getUnformattedDate(answer)[0]} onChange={(e) => handleDateChange(e, 'day')} disabled={isBuilder} />
+                <FieldInput id={isBuilder ? 'day' : `day-${field.id}`} type="number" placeholder="DD" className={inputClassName} value={getUnformattedDate(answer)[2]} onChange={(e) => handleDateChange(e, 'day')} disabled={isBuilder} />
                 <div
                     style={{
                         background: slide?.properties?.theme?.secondary || theme?.secondary
@@ -106,7 +106,7 @@ function DateFieldSection({ field, slide, isBuilder }: IDateField) {
                     id={isBuilder ? 'year' : `year-${field.id}`}
                     type="number"
                     placeholder="YYYY"
-                    value={getUnformattedDate(answer)[2]}
+                    value={getUnformattedDate(answer)[0]}
                     className={`${inputClassName} w-24`}
                     onChange={(e) => handleDateChange(e, 'year')}
                     onBlur={(e) => handleBlurValidation(e, '')}

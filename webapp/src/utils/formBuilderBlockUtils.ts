@@ -174,6 +174,9 @@ export function getAnswerForField(response: StandardFormResponseDto, field: Stan
             return answer?.phone_number;
         case FormBuilderTagNames.INPUT_RANKING:
             return answer?.choices?.values?.map((choice: any) => choice?.value)?.join(', ');
+        case FormBuilderTagNames.INPUT_FILE_UPLOAD:
+        case FieldTypes.FILE_UPLOAD:
+            return answer?.file_metadata?.name;
         default:
             return '';
     }

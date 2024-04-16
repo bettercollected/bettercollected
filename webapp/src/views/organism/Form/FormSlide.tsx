@@ -35,6 +35,8 @@ import RatingField from '@app/views/molecules/ResponderFormFields/RatingField';
 import YesNoField from '@app/views/molecules/ResponderFormFields/YesNoField';
 
 import SlideLayoutWrapper from '../Layout/SlideLayoutWrapper';
+import ImageField from '../FormBuilder/Fields/Imagefield';
+import VideoField from '../FormBuilder/Fields/VideoField';
 
 export function FormFieldComponent({ field, slideIndex }: { field: FormField; slideIndex: number }) {
     switch (field.type) {
@@ -66,6 +68,10 @@ export function FormFieldComponent({ field, slideIndex }: { field: FormField; sl
             return <DateField field={field} />;
         case FieldTypes.LINEAR_RATING:
             return <LinearRatingField field={field} />;
+        case FieldTypes.IMAGE_CONTENT:
+            return <ImageField field={field} />;
+        case FieldTypes.VIDEO_CONTENT:
+            return <VideoField field={field} />;
         case FieldTypes.MATRIX:
             return;
         default:
@@ -94,8 +100,8 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false 
                 return;
             }
             // setCurrentField(currentField + direction);
-            const currentFieldtype = formSlide?.properties?.fields && formSlide?.properties?.fields[currentField].type;
-            if (currentFieldtype === FieldTypes.DATE) return;
+            // const currentFieldtype = formSlide?.properties?.fields && formSlide?.properties?.fields[currentField].type;
+            // if (currentFieldtype === FieldTypes.DATE) return;
 
             const fieldId = formSlide?.properties?.fields && formSlide?.properties?.fields[currentField + direction].id;
             fieldId && handleClickField(currentField + direction, fieldId);
