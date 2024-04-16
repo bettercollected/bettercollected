@@ -3,7 +3,6 @@
 import { useSearchParams } from 'next/navigation';
 
 import environments from '@app/configs/environments';
-import ReduxWrapperAppRouter from '@app/containers/ReduxWrapperAppRouter';
 import SingleFormPage from '@app/pages/forms/v1/[id]';
 import { useStandardForm } from '@app/store/jotai/fetchedForm';
 import useWorkspace from '@app/store/jotai/workspace';
@@ -11,6 +10,7 @@ import { useGetWorkspaceFormQuery } from '@app/store/workspaces/api';
 import FullScreenLoader from '@app/views/atoms/Loaders/FullScreenLoader';
 import Form from '@app/views/organism/Form/Form';
 import { useEffect } from 'react';
+import ReduxWrapperAppRouter from '@app/containers/ReduxWrapperAppRouter';
 
 export default function FormPage({ params }: { params: { form_id: string; workspace_name: string } }) {
     const slug = params.form_id;

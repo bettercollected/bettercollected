@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 
 import { appWithTranslation } from 'next-i18next';
 import { NextSeo } from 'next-seo';

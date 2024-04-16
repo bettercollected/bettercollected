@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 
-import { useTranslation } from 'next-i18next';
 
 import AppButton from '@Components/Common/Input/Button/AppButton';
 import { ButtonSize, ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
@@ -12,16 +11,14 @@ import { toast } from 'react-toastify';
 import ImportErrorView from '@app/components/form-integrations/import-error-view';
 import { useModal } from '@app/components/modal-views/context';
 import FullScreenLoader from '@app/components/ui/fullscreen-loader';
-import environments from '@app/configs/environments';
-import { toastMessage } from '@app/constants/locales/toast-message';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { initFormState } from '@app/store/forms/slice';
 
 import useWorkspace from '@app/store/jotai/workspace';
 import { useImportFormMutation, useLazyGetSingleFormFromProviderQuery, useVerifyFormTokenMutation } from '@app/store/redux/importApi';
 import { fireworks } from '@app/utils/confetti';
-import { useRouter } from 'next/navigation';
 import { getEditFormURL } from '@app/utils/urlUtils';
+import { useRouter } from 'next/navigation';
 
 export default function ImportFormModal() {
     const router = useRouter();
@@ -50,12 +47,17 @@ export default function ImportFormModal() {
         if (singleForm.error) {
             toast.success('Error fetching form');
             return;
+            closeModal();
         }
         const response: any = await importForm({
             body: { form, response_data_owner: '' },
             provider: 'google',
             workspaceId: workspace.id
         });
+        if (response.error) {
+            toast.error('Something went wrong!!');
+            closeModal();
+        }
         if (response.data) {
             toast.success('Form Imported Successfully');
             setForm(response.data);

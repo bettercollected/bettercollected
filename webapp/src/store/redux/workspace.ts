@@ -1,5 +1,5 @@
 import { createSlice } from '@reduxjs/toolkit';
-import persistReducer from 'redux-persist/es/persistReducer';
+import { persistReducer } from 'redux-persist';
 import storage from 'redux-persist/lib/storage';
 
 export interface WorkspaceState {
@@ -33,7 +33,7 @@ const initialState: WorkspaceState = {
 };
 
 export const slice = createSlice({
-    name: 'workspace',
+    name: 'workspaceV2',
     initialState,
     reducers: {
         setWorkspace: (state, action) => {

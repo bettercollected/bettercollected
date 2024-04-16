@@ -42,7 +42,7 @@ export default function SingleFormPage(props: any) {
             custom_url: slug,
             published: true
         },
-        { skip: !fetched_form.formId }
+        { skip: !fetched_form?.formId }
     );
 
     const dispatch = useAppDispatch();

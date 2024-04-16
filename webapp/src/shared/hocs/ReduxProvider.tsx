@@ -1,9 +1,9 @@
 'use client';
 
 import { Provider } from 'react-redux';
-import { PersistGate } from 'redux-persist/integration/react';
 
-import { persistor, store } from '@app/store/redux/store';
+import { persistor, store } from '@app/store/store';
+import { PersistGate } from 'redux-persist/integration/react';
 import FullScreenLoader from '@app/views/atoms/Loaders/FullScreenLoader';
 
 export default function ReduxProvider({

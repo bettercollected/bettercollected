@@ -23,11 +23,29 @@ import { priceSuggestionApi } from './price-suggestion/api';
 import { consentApi } from './consent/api';
 import consentSlice from './consent/consentSlice';
 import mutationStatusSlice from './mutations/slice';
+import workspaceSliceAppRouter from '@app/store/redux/workspace';
 
+import { templatesApi } from '@app/store/redux/templateApi';
 
+import { formsApi } from '@app/store/redux/formApi';
+import { importApi } from '@app/store/redux/importApi';
 // Add more middlewares here
 // const middlewares = [loggerMiddleware, authApi.middleware, membersNInvitationsApi.middleware, plansApi.middleware, providerApi.middleware, workspacesApi.middleware];
-const middlewares = [priceSuggestionApi.middleware, authApi.middleware, membersNInvitationsApi.middleware, plansApi.middleware, providerApi.middleware, workspacesApi.middleware, consentApi.middleware, templateApi.middleware, apiActionsApi.middleware, couponCodeApi.middleware];
+const middlewares = [
+    priceSuggestionApi.middleware,
+    authApi.middleware,
+    membersNInvitationsApi.middleware,
+    plansApi.middleware,
+    providerApi.middleware,
+    workspacesApi.middleware,
+    consentApi.middleware,
+    templateApi.middleware,
+    apiActionsApi.middleware,
+    couponCodeApi.middleware,
+    formsApi.middleware,
+    templatesApi.middleware,
+    importApi.middleware
+];
 
 // if (environments.IS_IN_PRODUCTION_MODE) middlewares.splice(0, 1);
 
@@ -49,7 +67,12 @@ const reducers = {
     [consentApi.reducerPath]: consentApi.reducer,
     [templateApi.reducerPath]: templateApi.reducer,
     [couponCodeApi.reducerPath]: couponCodeApi.reducer,
-    [priceSuggestionApi.reducerPath]: priceSuggestionApi.reducer
+    [priceSuggestionApi.reducerPath]: priceSuggestionApi.reducer,
+    [mutationStatusSlice.reducerPath]: mutationStatusSlice.reducer,
+    [workspaceSliceAppRouter.reducerPath]: workspaceSliceAppRouter.reducer,
+    [formsApi.reducerPath]: formsApi.reducer,
+    [templatesApi.reducerPath]: templatesApi.reducer,
+    [importApi.reducerPath]: importApi.reducer
 };
 
 const combinedReducer = combineReducers<typeof reducers>(reducers);
