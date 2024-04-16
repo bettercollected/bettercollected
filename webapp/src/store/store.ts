@@ -19,11 +19,10 @@ import { membersNInvitationsApi } from '@app/store/workspaces/members-n-invitati
 import workspaceSlice from '@app/store/workspaces/slice';
 
 import { apiActionsApi } from './api-actions-api';
-import { priceSuggestionApi } from './price-suggestion/api';
 import { consentApi } from './consent/api';
 import consentSlice from './consent/consentSlice';
 import mutationStatusSlice from './mutations/slice';
-import workspaceSliceAppRouter from '@app/store/redux/workspace';
+import { priceSuggestionApi } from './price-suggestion/api';
 
 import { templatesApi } from '@app/store/redux/templateApi';
 
@@ -69,7 +68,6 @@ const reducers = {
     [couponCodeApi.reducerPath]: couponCodeApi.reducer,
     [priceSuggestionApi.reducerPath]: priceSuggestionApi.reducer,
     [mutationStatusSlice.reducerPath]: mutationStatusSlice.reducer,
-    [workspaceSliceAppRouter.reducerPath]: workspaceSliceAppRouter.reducer,
     [formsApi.reducerPath]: formsApi.reducer,
     [templatesApi.reducerPath]: templatesApi.reducer,
     [importApi.reducerPath]: importApi.reducer
