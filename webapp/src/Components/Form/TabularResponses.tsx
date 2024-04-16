@@ -10,6 +10,7 @@ import DataTable from 'react-data-table-component';
 import { toast } from 'react-toastify';
 
 import { dataTableCustomStyles } from '@app/components/datatable/form/datatable-styles';
+import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
 import globalConstants from '@app/constants/global';
 import { FieldTypes, StandardFormDto, StandardFormFieldDto, StandardFormResponseDto } from '@app/models/dtos/form';
 import { LabelFormBuilderTagNames } from '@app/models/enums/formBuilder';
@@ -21,11 +22,7 @@ import { utcToLocalDateTIme } from '@app/utils/dateUtils';
 import { downloadFile } from '@app/utils/fileUtils';
 import { convertPlaceholderToDisplayValue, getAnswerForField } from '@app/utils/formBuilderBlockUtils';
 import { extractTextfromJSON } from '@app/utils/richTextEditorExtenstion/getHtmlFromJson';
-import { Expand } from 'lucide-react';
 import { ExpandIcon } from '@app/views/atoms/Icons/ExpandIcon';
-import { Sheet, SheetContent, SheetTrigger } from '@app/shadcn/components/ui/sheet';
-import { useDialogModal } from '@app/lib/hooks/useDialogModal';
-import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
 
 const customTableStyles = {
     ...dataTableCustomStyles,
@@ -236,10 +233,14 @@ export default function TabularResponses({ form }: TabularResponsesProps) {
     return (
         <>
             {Array.isArray(data?.items) && (
-                <div className="gap- flex flex-row">
-                    <div className="flex-1">
-                        <DataTable onRowClicked={onClickExpandSingleResponse} columns={columnsForResponderDetail} selectableRows customStyles={customTableStylesForResponderDetails} data={data?.items || []} />
-                    </div>
+                <div className="flex flex-row">
+                    {data?.items.length ? (
+                        <div className="flex-1">
+                            <DataTable onRowClicked={onClickExpandSingleResponse} columns={columnsForResponderDetail} selectableRows customStyles={customTableStylesForResponderDetails} data={data?.items || []} />
+                        </div>
+                    ) : (
+                        <></>
+                    )}
                     <DataTable onRowClicked={onRowClicked} columns={columnForResponseData} customStyles={customTableStyles} data={data?.items || []} />
                 </div>
             )}
