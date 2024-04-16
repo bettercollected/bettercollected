@@ -201,6 +201,8 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false 
         document.getElementById(`input-field-${fieldId}`)?.focus();
     };
 
+    console.log(formResponse);
+
     if (!formSlide) return <FullScreenLoader />;
 
     return (
@@ -277,23 +279,23 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false 
                                     {(standardForm?.fields?.length || 0) - 1 === currentSlide && currentSlide === index && (
                                         <div className="mt-20 flex flex-col">
                                             {authState.id && !standardForm.settings?.requireVerifiedIdentity && (
-                                                <div className="flex flex-row gap-2 text-sm ">
+                                                <div className="flex flex-row gap-2 ">
                                                     <FieldInput
-                                                        checked={formResponse.anonymize}
-                                                        onChange={(e: any) =>
+                                                        checked={!formResponse.anonymize}
+                                                        onChange={(e: any) => {
                                                             setFormResponse({
                                                                 ...formResponse,
-                                                                anonymize: e.target.checked
-                                                            })
-                                                        }
+                                                                anonymize: !e.target.checked
+                                                            });
+                                                        }}
                                                         type="checkbox"
                                                         className="h-4 w-4 border focus:border-0 focus:outline-none"
                                                     />
-                                                    Hide your email from Form Collector
+                                                    <div className="flex flex-col ">
+                                                        <span className="text-black-800 text-xs font-medium">Show your identity(email) to form collector</span>
+                                                        <span className={`p4-new text-black-600 `}>{authState?.email} </span>
+                                                    </div>
                                                 </div>
-                                            )}
-                                            {authState.id && (
-                                                <div className={`p2-new text-black-600 mt-2 italic `}>{authState?.id && !formResponse.anonymize ? `You are submitting this form as ${authState?.email}` : 'Your identity is hidden from form creator.'} </div>
                                             )}
                                         </div>
                                     )}

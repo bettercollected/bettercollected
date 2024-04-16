@@ -62,7 +62,8 @@ export interface FormResponse {
 
 const initialFormResponse: FormResponse = {
     formId: '',
-    answers: {}
+    answers: {},
+    anonymize: false
 };
 
 const formResponseAtom = atom<FormResponse>(initialFormResponse);
@@ -136,9 +137,7 @@ export const useFormResponse = () => {
                 [fieldId]: {
                     type: AnswerType.CHOICES,
                     choices: {
-                        ...(formResponse?.answers
-                            ? formResponse?.answers[fieldId]?.choices
-                            : {}),
+                        ...(formResponse?.answers ? formResponse?.answers[fieldId]?.choices : {}),
                         other
                     }
                 }
