@@ -25,12 +25,14 @@ const Form = ({ isPreviewMode = false, isMobileView = false }: { isPreviewMode?:
         return (currentSlideIndex / totalSlides) * 100;
     };
 
+    console.log('Progress Value', getProgressValue());
+
     return (
-        <div className={cn(isPreviewMode || isMobileView ? 'h-full w-full  ' : 'h-screen w-screen', 'relative')}>
+        <div className={cn(isPreviewMode || isMobileView ? 'h-full w-full  ' : 'h-screen w-screen', 'relative h-full w-full')}>
             <div className="absolute left-0 right-0 top-0 !z-[80] bg-green-500">
                 <Progress value={getProgressValue()} className="h-2 rounded-none" />
             </div>
-            <AnimatePresence custom={currentSlide}>
+            <AnimatePresence>
                 {currentSlide === -1 && (
                     <motion.div
                         className={cn('absolute flex h-full w-full flex-1 flex-col items-center justify-center', isMobileView ? 'aspect-[9/20]' : '')}
@@ -55,7 +57,7 @@ const Form = ({ isPreviewMode = false, isMobileView = false }: { isPreviewMode?:
                         initial={{ opacity: 1, x: currentSlide > previousSlide ? '100%' : '-100%' }}
                         animate={{ opacity: 1, x: 0 }}
                         exit={{ opacity: 1, x: 0 }}
-                        transition={{ duration: 0.5, ease: 'anticipate' }}
+                        transition={{ duration: 0.5, ease: 'linear' }}
                     >
                         <div className="relative h-full w-full">
                             <FormSlide index={currentSlide} isPreviewMode={isPreviewMode} />
@@ -68,7 +70,7 @@ const Form = ({ isPreviewMode = false, isMobileView = false }: { isPreviewMode?:
                         key={'thank-you-page'}
                         initial={{ opacity: 1, x: '100%' }}
                         animate={{ opacity: 1, x: 0 }}
-                        transition={{ duration: 0.5, ease: 'anticipate' }}
+                        transition={{ duration: 0.5, ease: 'linear' }}
                     >
                         <div className="relative h-full w-full">
                             <LayoutWrapper theme={standardForm.theme} disabled layout={standardForm?.thankyouPage?.[0]?.layout} imageUrl={standardForm?.thankyouPage?.[0]?.imageUrl}>
