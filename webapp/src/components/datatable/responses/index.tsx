@@ -25,7 +25,6 @@ import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { utcToLocalDateTIme } from '@app/utils/dateUtils';
 
-
 const responseTableStyles = {
     ...dataTableCustomStyles,
     rows: {
@@ -103,7 +102,7 @@ const ResponsesTable = ({ requestForDeletion, submissions, formId, page, setPage
     const DeletedOn = ({ status, response }: { status: string; response: StandardFormResponseDto }) => {
         return (
             <div className="flex items-center gap-10 md:gap-20 xl:gap-40">
-                <span className="text-sm font-medium text-black-700">{status.toLowerCase() === 'pending' ? t('NOT_DELETED_YET') : utcToLocalDateTIme(response.updatedAt)}</span>
+                <span className="text-black-700 text-sm font-medium">{status.toLowerCase() === 'pending' ? t('NOT_DELETED_YET') : utcToLocalDateTIme(response.updatedAt)}</span>
             </div>
         );
     };
@@ -112,7 +111,7 @@ const ResponsesTable = ({ requestForDeletion, submissions, formId, page, setPage
         return status.toLowerCase() === 'pending' && (response.provider === 'self' || response.formImportedBy === user.id) ? (
             <Typography noWrap>
                 <AnchorLink target={response.provider !== 'self' ? '_blank' : '_self'} href={getResponseUrl(response)}>
-                    <AppButton postFixIcon={<ChevronForward className={'h-6 w-6 text-brand-500'} />} variant={ButtonVariant.Ghost} className="!p-0">
+                    <AppButton postFixIcon={<ChevronForward className={'text-brand-500 h-6 w-6'} />} variant={ButtonVariant.Ghost} className="!p-0">
                         {t(localesCommon.goToResponse)}
                     </AppButton>
                 </AnchorLink>
@@ -126,13 +125,13 @@ const ResponsesTable = ({ requestForDeletion, submissions, formId, page, setPage
         {
             name: requestForDeletion ? t(formConstant.requestedBy) : t(formConstant.responder),
             selector: (response: StandardFormResponseDto) => responseDataOwnerField(response),
-            grow: 2,
+            // grow: 2,
             style: {
                 color: 'rgba(77, 77, 77, 1)',
-                paddingLeft: '16px',
+                paddingLeft: '8px',
                 fontSize: '14px',
                 lineheight: '21px',
-                paddingRight: '16px',
+                paddingRight: '8px',
                 fontWeight: '500'
             }
         },
@@ -141,10 +140,10 @@ const ResponsesTable = ({ requestForDeletion, submissions, formId, page, setPage
             selector: (row: StandardFormResponseDto) => (!!row?.createdAt ? `${utcToLocalDateTIme(row.createdAt)}` : ''),
             style: {
                 color: 'rgba(77, 77, 77, 1)',
-                paddingLeft: '16px',
+                paddingLeft: '8px',
                 fontSize: '14px',
                 lineheight: '21px',
-                paddingRight: '16px',
+                paddingRight: '8px',
                 fontWeight: '500'
             }
         }
@@ -160,8 +159,8 @@ const ResponsesTable = ({ requestForDeletion, submissions, formId, page, setPage
                     }),
                 style: {
                     color: 'rgba(0,0,0,.54)',
-                    paddingLeft: '16px',
-                    paddingRight: '16px'
+                    paddingLeft: '8px',
+                    paddingRight: '8px'
                 }
             },
             {
@@ -173,8 +172,8 @@ const ResponsesTable = ({ requestForDeletion, submissions, formId, page, setPage
                     }),
                 style: {
                     color: 'rgba(0,0,0,.54)',
-                    paddingLeft: '16px',
-                    paddingRight: '16px'
+                    paddingLeft: '8px',
+                    paddingRight: '8px'
                 }
             },
             {
@@ -186,8 +185,8 @@ const ResponsesTable = ({ requestForDeletion, submissions, formId, page, setPage
                     }),
                 style: {
                     color: 'rgba(0,0,0,.54)',
-                    paddingLeft: '16px',
-                    paddingRight: '16px'
+                    paddingLeft: '8px',
+                    paddingRight: '8px'
                 }
             }
         ];
@@ -202,8 +201,8 @@ const ResponsesTable = ({ requestForDeletion, submissions, formId, page, setPage
                     color: '#202124',
                     fontSize: '14px',
                     fontWeight: 500,
-                    paddingLeft: '16px',
-                    paddingRight: '16px'
+                    paddingLeft: '8px',
+                    paddingRight: '8px'
                 }
             }
         ];
@@ -215,7 +214,7 @@ const ResponsesTable = ({ requestForDeletion, submissions, formId, page, setPage
             return (
                 <>
                     <DataTable
-                        className="p-0 mt-2 h-full !overflow-auto"
+                        // className="p-0 mt-2 h-full !overflow-auto"
                         columns={dataTableResponseColumns}
                         data={submissions.items || []}
                         customStyles={requestForDeletion ? dataTableCustomStyles : responseTableStyles}

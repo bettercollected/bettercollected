@@ -34,8 +34,8 @@ export const dataTableCustomStyles = {
             fontSize: '18px',
             color: '#2E2E2E !important',
             borderRight: '1px solid #DBDBDB',
-            paddingTop: '10px',
-            paddingBottom: '10px'
+            paddingTop: '8px',
+            paddingBottom: '8px'
         }
     },
     rows: {

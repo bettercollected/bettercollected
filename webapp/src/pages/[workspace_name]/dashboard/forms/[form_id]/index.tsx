@@ -214,14 +214,14 @@ export default function FormPage(props: any) {
                                 <TabPanel className="focus:outline-none" key="Responses">
                                     <FormResponses />
                                 </TabPanel>
+                                <TabPanel className="focus:outline-none" key="Deletion Requests">
+                                    <FormResponsesTable props={{ workspace, requestForDeletion: true }} />
+                                </TabPanel>
                             </>
                         )}
                         <FormPageLayer className="px-2 md:px-32">
                             {form?.isPublished ? (
                                 <>
-                                    <TabPanel className="focus:outline-none" key="Deletion Requests">
-                                        <FormResponsesTable props={{ workspace, requestForDeletion: true }} />
-                                    </TabPanel>
                                     <TabPanel className="focus:outline-none" key="FormVisibility">
                                         <FormVisibilities />
                                     </TabPanel>

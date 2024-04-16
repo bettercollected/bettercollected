@@ -64,12 +64,12 @@ export default function FormResponsesTable({ props }: any) {
 
     return (
         <div>
-            <div className={`mb-12 flex flex-col gap-2 lg:flex-row lg:justify-between ${!isSubmission ? '' : 'px-2 md:px-28'}`}>
-                <div className="flex flex-row justify-between w-full">
+            <div className={`mb-12 flex flex-col gap-2 px-2 md:px-28 lg:flex-row lg:justify-between`}>
+                <div className="flex w-full flex-row justify-between">
                     <div className="flex w-full flex-row items-center gap-4 ">
                         <SearchInput handleSearch={handleSearch} placeholder={'Search Responses'} className="!bg-black-300 md:w-[282px]" />
-                        <Button variant="v2Button">Filter</Button>
-                        <Button variant="v2Button">Sort</Button>
+                        {/* <Button variant="v2Button">Filter</Button>
+                        <Button variant="v2Button">Sort</Button> */}
                     </div>
                     {environments.ENABLE_EXPORT_CSV && form?.settings?.provider === 'self' && isSubmission && (
                         <Button
@@ -88,9 +88,7 @@ export default function FormResponsesTable({ props }: any) {
                 </div>
             </div>
 
-            {data && showTabularResponses && <TabularResponses form={form} />}
-
-            {data && !showTabularResponses && <ResponsesTable formId={form.formId} requestForDeletion={requestForDeletion} page={page} setPage={setPage} submissions={data} />}
+            {data && requestForDeletion ? <ResponsesTable formId={form.formId} requestForDeletion={requestForDeletion} page={page} setPage={setPage} submissions={data} /> : <TabularResponses form={form} />}
         </div>
     );
 }
