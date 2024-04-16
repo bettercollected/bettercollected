@@ -10,6 +10,7 @@ import 'swiper/css';
 import 'swiper/css/navigation';
 import 'vanilla-cookieconsent/dist/cookieconsent.css';
 
+import BaseModalContainer from '@Components/Modals/Containers/BaseModalContainer';
 import '@app/assets/css/globals.css';
 import { DialogModalContainer } from '@app/lib/hooks/useDialogModal';
 import { Toaster } from '@app/shadcn/components/ui/toaster';
@@ -18,8 +19,6 @@ import AuthProvider from '@app/shared/hocs/AuthProvider';
 import ReduxProvider from '@app/shared/hocs/ReduxProvider';
 import ThemeProvider from '@app/shared/hocs/ThemeProvider';
 import NextNProgress from '@app/views/atoms/NextNProgress';
-import BaseModalContainer from '@Components/Modals/Containers/BaseModalContainer';
-import Head from 'next/head';
 import Script from 'next/script';
 
 const inter = Inter({ subsets: ['latin'] });

@@ -1,11 +1,7 @@
-import { fetchBaseQuery } from '@reduxjs/toolkit/query';
-import { createApi } from '@reduxjs/toolkit/query/react';
-
-
+import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 
 import environments from '@app/configs/environments';
 import { Action } from '@app/models/dtos/actions';
-
 
 export const apiActionsApi = createApi({
     reducerPath: 'api-actions',
