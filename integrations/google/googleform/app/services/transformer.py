@@ -101,6 +101,7 @@ class GoogleFormTransformerService(FormTransformerService):
                 field.type = StandardFormFieldType.SHORT_TEXT
 
         elif item.questionGroupItem:
+            field.id = item.itemId
             if item.questionGroupItem.image:
                 field.image_url = item.questionGroupItem.image.contentUri
 
@@ -171,7 +172,7 @@ class GoogleFormTransformerService(FormTransformerService):
 
     def _transform_fields(self, fields: List[GoogleFormItemsDto]):
         transform_fields = []
-        field_id_and_field_list = []
+        field_id_and_fields_map = {}
         active_slide = self.create_new_slide(0)
         for google_field in fields:
             if google_field.pageBreakItem is not None:
@@ -181,10 +182,9 @@ class GoogleFormTransformerService(FormTransformerService):
                 )
                 continue
             active_slide, field = self._transform_field(active_slide, google_field)
-            field_id_and_field_list.append(field.id)
-            field_id_and_field_list.append(field)
+            field_id_and_fields_map[field.id] = field
         transform_fields.append(active_slide)
-        return transform_fields, field_id_and_field_list
+        return transform_fields, field_id_and_fields_map
 
     def _transform_welcome_page(self, welcome_page_title):
         return WelcomePageField(
@@ -235,7 +235,7 @@ class GoogleFormTransformerService(FormTransformerService):
     def transform_form(self, form: Dict[str, Any]) -> StandardForm:
         try:
             googleform = GoogleFormDto(**form)
-            slides, field_id_and_field_list = self._transform_fields(googleform.items)
+            slides, field_id_and_fields_map = self._transform_fields(googleform.items)
             standard_form = StandardForm(
                 builder_version="v2",
                 form_id=str(PydanticObjectId()),
@@ -251,7 +251,7 @@ class GoogleFormTransformerService(FormTransformerService):
                 thankyou_page=(self._transform_thank_you_page()),
                 theme=(self._transform_theme()),
             )
-            return standard_form, field_id_and_field_list
+            return standard_form, field_id_and_fields_map
         except Exception as error:
             logger.error(f"Error transforming single form: {error}")
             raise HTTPException(
@@ -261,13 +261,10 @@ class GoogleFormTransformerService(FormTransformerService):
     def transform_form_responses(
         self,
         responses: List[Dict[str, Any]],
-        standard_form: StandardForm,
-        field_id_and_field_list: List[Any],
+        field_id_and_fields_map: List[Any],
     ) -> List[StandardFormResponse]:
         standard_form_responses = [
-            self.transform_single_form_response(
-                response, standard_form, field_id_and_field_list
-            )
+            self.transform_single_form_response(response, field_id_and_fields_map)
             for response in responses
         ]
         return standard_form_responses
@@ -275,8 +272,7 @@ class GoogleFormTransformerService(FormTransformerService):
     def transform_single_form_response(
         self,
         google_response_data: Dict[str, Any],
-        standard_form: StandardForm,
-        field_id_and_field_list: List[Any],
+        field_id_and_fields_map: List[Any],
     ) -> StandardFormResponse:
         try:
             google_response = GoogleFormResponseDto(**google_response_data)
@@ -287,7 +283,7 @@ class GoogleFormTransformerService(FormTransformerService):
                 created_at=google_response.createTime,
                 updated_at=google_response.lastSubmittedTime,
                 answers=self._transform_answers(
-                    google_response.answers, standard_form, field_id_and_field_list
+                    google_response.answers, field_id_and_fields_map
                 ),
             )
             if google_response.respondentEmail is not None:
@@ -302,17 +298,17 @@ class GoogleFormTransformerService(FormTransformerService):
     def _transform_answers(
         self,
         answers: Dict[str, GoogleAnswer],
-        standard_form: StandardForm,
-        field_id_and_field_list: List[Any],
+        field_id_and_fields_map: Dict[str, StandardFormField],
     ):
         standard_answers = {}
         if answers is None:
             return standard_answers
         for question_id, answer in answers.items():
-            standard_answers[question_id] = self._transform_answer(
-                answer,
-                field_id_and_field_list[field_id_and_field_list.index(question_id) + 1],
-            )
+            if field_id_and_fields_map.get(question_id, None) is not None:
+                standard_answers[question_id] = self._transform_answer(
+                    answer,
+                    field_id_and_fields_map.get(question_id),
+                )
         return standard_answers
 
     def _transform_answer(
