@@ -14,8 +14,9 @@ import FullScreenLoader from '@app/components/ui/fullscreen-loader';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { initFormState } from '@app/store/forms/slice';
 
-import useWorkspace from '@app/store/jotai/workspace';
+import { useAppSelector } from '@app/store/hooks';
 import { useImportFormMutation, useLazyGetSingleFormFromProviderQuery, useVerifyFormTokenMutation } from '@app/store/redux/importApi';
+import { selectWorkspace } from '@app/store/workspaces/slice';
 import { fireworks } from '@app/utils/confetti';
 import { getEditFormURL } from '@app/utils/urlUtils';
 import { useRouter } from 'next/navigation';
@@ -24,7 +25,7 @@ export default function ImportFormModal() {
     const router = useRouter();
     const { closeModal } = useModal();
 
-    const { workspace } = useWorkspace();
+    const workspace = useAppSelector(selectWorkspace);
 
     const [verifyToken, { isLoading, data, error }] = useVerifyFormTokenMutation();
 

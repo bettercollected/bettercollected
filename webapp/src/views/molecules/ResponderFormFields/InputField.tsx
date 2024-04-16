@@ -64,7 +64,7 @@ export default function InputField({ field }: { field: FormField }) {
                     id={`input-field-${field.id}`}
                     type={TextFields.includes(field.type ?? FieldTypes.SHORT_TEXT) ? 'text' : field.type}
                     placeholder={field?.properties?.placeholder || getPlaceholderValueForField(field.type)}
-                    autoFocus={currentField === field.index}
+                    // autoFocus={currentField === field.index}
                     className="mt-4"
                     multiple={field.type === FieldTypes.LONG_TEXT}
                     value={getFieldValue()}

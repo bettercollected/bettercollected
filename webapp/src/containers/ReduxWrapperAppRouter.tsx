@@ -2,10 +2,11 @@
 
 import AuthStatusDispatcher from '@Components/HOCs/AuthStatusDispatcher';
 import ServerSideWorkspaceDispatcher from '@Components/HOCs/ServerSideWorkspaceDispatcher';
-import useWorkspace from '@app/store/jotai/workspace';
+import { useAppSelector } from '@app/store/hooks';
+import { selectWorkspace } from '@app/store/workspaces/slice';
 
 export default function ReduxWrapperAppRouter({ children }: any) {
-    const { workspace } = useWorkspace();
+    const workspace = useAppSelector(selectWorkspace);
     return (
         <ServerSideWorkspaceDispatcher workspace={workspace}>
             <AuthStatusDispatcher workspace={workspace}>{children}</AuthStatusDispatcher>

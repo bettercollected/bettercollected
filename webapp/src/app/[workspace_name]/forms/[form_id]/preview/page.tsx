@@ -3,19 +3,19 @@
 import { useEffect } from 'react';
 
 import { ScrollArea } from '@app/shadcn/components/ui/scroll-area';
+import { useAppSelector } from '@app/store/hooks';
 import { useStandardForm } from '@app/store/jotai/fetchedForm';
 import { useFormResponse } from '@app/store/jotai/responderFormResponse';
-import useWorkspace from '@app/store/jotai/workspace';
 import { useGetFormResponseQuery } from '@app/store/redux/formApi';
+import { selectWorkspace } from '@app/store/workspaces/slice';
 import ThankyouPage from '@app/views/organism/Form/ThankyouPage';
 import WelcomePage from '@app/views/organism/Form/WelcomePage';
 import FormSlidePreview from '@app/views/organism/FormPreview/FormSlidePreview';
-import { StandardForm } from '@app/models/dtos/form';
 
 export default function ResponsePage({ searchParams }: { searchParams: { responseId?: string } }) {
     const { standardForm } = useStandardForm();
     const { setFormResponse } = useFormResponse();
-    const { workspace } = useWorkspace();
+    const workspace = useAppSelector(selectWorkspace);
     const { data } = useGetFormResponseQuery(
         {
             workspaceId: workspace.id,

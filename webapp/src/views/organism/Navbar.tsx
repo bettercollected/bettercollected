@@ -11,19 +11,10 @@ import { ButtonVariant } from '@app/models/enums/button';
 import { FormSlideLayout } from '@app/models/enums/form';
 import { Button } from '@app/shadcn/components/ui/button';
 import { DropdownMenu } from '@app/shadcn/components/ui/dropdown-menu';
-import {
-    Sheet,
-    SheetClose,
-    SheetContent,
-    SheetFooter,
-    SheetTrigger
-} from '@app/shadcn/components/ui/sheet';
+import { Sheet, SheetClose, SheetContent, SheetFooter, SheetTrigger } from '@app/shadcn/components/ui/sheet';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { cn } from '@app/shadcn/util/lib';
-import {
-    useActiveSlideComponent,
-    useActiveThankYouPageComponent
-} from '@app/store/jotai/activeBuilderComponent';
+import { useActiveSlideComponent, useActiveThankYouPageComponent } from '@app/store/jotai/activeBuilderComponent';
 import { useAuthAtom } from '@app/store/jotai/auth';
 import { useStandardForm } from '@app/store/jotai/fetchedForm';
 import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
@@ -31,11 +22,12 @@ import { useFormState } from '@app/store/jotai/form';
 import { useNavbarState } from '@app/store/jotai/navbar';
 import { useFormResponse } from '@app/store/jotai/responderFormResponse';
 import { useResponderState } from '@app/store/jotai/responderFormState';
-import useWorkspace from '@app/store/jotai/workspace';
 import { usePublishV2FormMutation } from '@app/store/redux/formApi';
 import { useCreateTemplateFromFormMutation } from '@app/store/redux/templateApi';
 import BetterCollectedSmallLogo from '@app/views/atoms/Icons/BetterCollectedSmallLogo';
 
+import { useAppSelector } from '@app/store/hooks';
+import { selectWorkspace } from '@app/store/workspaces/slice';
 import { MediaOutlinedIcon } from '../atoms/Icons/MediaOutlined';
 import PlayIcon from '../atoms/Icons/PlayIcon';
 import { PlusOutlined } from '../atoms/Icons/PlusOutlined';
@@ -45,27 +37,18 @@ import PreviewWrapper from '../molecules/FormBuilder/PreviewWrapper';
 import Form from './Form/Form';
 
 const Navbar = () => {
-    const { activeSlide, formFields, addField, updateSlideImage, updateSlideLayout } =
-        useFormFieldsAtom();
+    const { activeSlide, formFields, addField, updateSlideImage, updateSlideLayout } = useFormFieldsAtom();
     const { activeSlideComponent } = useActiveSlideComponent();
     const { activeThankYouPageComponent } = useActiveThankYouPageComponent();
-    const {
-        formState,
-        setFormTitle,
-        updateThankYouPageLayout,
-        updateWelcomePageLayout,
-        updateWelcomePageImage,
-        updateThankYouPageImage
-    } = useFormState();
+    const { formState, setFormTitle, updateThankYouPageLayout, updateWelcomePageLayout, updateWelcomePageImage, updateThankYouPageImage } = useFormState();
     const { navbarState, setNavbarState } = useNavbarState();
     const { toast } = useToast();
 
     const [publishV2Form, { isLoading }] = usePublishV2FormMutation();
-    const [createTemplateFromForm, { isLoading: isCreatingTemplate }] =
-        useCreateTemplateFromFormMutation();
+    const [createTemplateFromForm, { isLoading: isCreatingTemplate }] = useCreateTemplateFromFormMutation();
 
     const { standardForm } = useStandardForm();
-    const { workspace } = useWorkspace();
+    const workspace = useAppSelector(selectWorkspace);
     const { openDialogModal } = useDialogModal();
 
     const router = useRouter();
@@ -86,11 +69,7 @@ const Navbar = () => {
         addField(
             {
                 id: fieldId,
-                index: formFields[activeSlideComponent!.index]?.properties?.fields
-                    ?.length
-                    ? formFields[activeSlideComponent!.index]?.properties?.fields
-                          ?.length!
-                    : 0,
+                index: formFields[activeSlideComponent!.index]?.properties?.fields?.length ? formFields[activeSlideComponent!.index]?.properties?.fields?.length! : 0,
                 type: FieldTypes.TEXT
             },
             activeSlideComponent?.index || 0
@@ -105,10 +84,7 @@ const Navbar = () => {
     };
 
     function isGreetingSlide() {
-        return (
-            activeSlideComponent?.id === 'welcome-page' ||
-            activeSlideComponent?.id === 'thank-you-page'
-        );
+        return activeSlideComponent?.id === 'welcome-page' || activeSlideComponent?.id === 'thank-you-page';
     }
 
     const { resetResponderState } = useResponderState();
@@ -131,23 +107,14 @@ const Navbar = () => {
         }
     }
 
-    const NO_IMAGE_LAYOUTS = [
-        FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND,
-        FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND_LEFT_ALIGN
-    ];
+    const NO_IMAGE_LAYOUTS = [FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND, FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND_LEFT_ALIGN];
 
     function updatePagesLayout() {
         if (
-            (activeSlide?.properties?.layout &&
-                NO_IMAGE_LAYOUTS.includes(activeSlide?.properties?.layout)) ||
+            (activeSlide?.properties?.layout && NO_IMAGE_LAYOUTS.includes(activeSlide?.properties?.layout)) ||
             (activeSlideComponent &&
-                ((formState.welcomePage?.layout &&
-                    NO_IMAGE_LAYOUTS.includes(formState.welcomePage?.layout)) ||
-                    NO_IMAGE_LAYOUTS.includes(
-                        formState.thankyouPage![activeThankYouPageComponent?.index || 0]
-                            ?.layout ??
-                            FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND_LEFT_ALIGN
-                    )))
+                ((formState.welcomePage?.layout && NO_IMAGE_LAYOUTS.includes(formState.welcomePage?.layout)) ||
+                    NO_IMAGE_LAYOUTS.includes(formState.thankyouPage![activeThankYouPageComponent?.index || 0]?.layout ?? FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND_LEFT_ALIGN)))
         ) {
             if (activeSlideComponent?.index === -10) {
                 updateWelcomePageLayout(FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT);
@@ -186,32 +153,19 @@ const Navbar = () => {
     };
 
     return (
-        <div
-            id="navbar"
-            className="flex h-16 w-full justify-between border-b-[1px] border-b-black-300 bg-white p-4"
-        >
+        <div id="navbar" className="border-b-black-300 flex h-16 w-full justify-between border-b-[1px] bg-white p-4">
             <div className={'flex items-center gap-2'}>
                 <div
                     className={'mr-4 cursor-pointer rounded-lg px-4 py-[6px] shadow'}
                     onClick={() => {
-                        router.push(
-                            environments.NEXT_PUBLIC_HTTP_SCHEME +
-                                '://' +
-                                environments.NEXT_PUBLIC_DASHBOARD_DOMAIN +
-                                '/' +
-                                workspace.workspaceName +
-                                '/dashboard'
-                        );
+                        router.push(environments.NEXT_PUBLIC_HTTP_SCHEME + '://' + environments.NEXT_PUBLIC_DASHBOARD_DOMAIN + '/' + workspace.workspaceName + '/dashboard');
                     }}
                 >
                     <BetterCollectedSmallLogo />
                 </div>
                 <DropdownMenu>
                     <DropdownMenu.Trigger
-                        className={cn(
-                            navbarState.insertClicked && 'bg-black-300',
-                            'rounded '
-                        )}
+                        className={cn(navbarState.insertClicked && 'bg-black-300', 'rounded ')}
                         onClick={() => {
                             setNavbarState({
                                 ...navbarState,
@@ -219,12 +173,7 @@ const Navbar = () => {
                             });
                         }}
                     >
-                        <div
-                            className={cn(
-                                'text-xs font-semibold !text-black-500 hover:bg-inherit hover:!text-black-900',
-                                navbarState.insertClicked && '!text-black-900'
-                            )}
-                        >
+                        <div className={cn('!text-black-500 hover:!text-black-900 text-xs font-semibold hover:bg-inherit', navbarState.insertClicked && '!text-black-900')}>
                             <PlusOutlined />
                             <span>Insert</span>
                         </div>
@@ -233,7 +182,7 @@ const Navbar = () => {
 
                 <DropdownMenu>
                     <DropdownMenu.Trigger onClick={handleClickMedia}>
-                        <div className="text-xs font-semibold !text-black-500 hover:bg-inherit hover:!text-black-900 ">
+                        <div className="!text-black-500 hover:!text-black-900 text-xs font-semibold hover:bg-inherit ">
                             <MediaOutlinedIcon />
                             Media
                         </div>
@@ -241,7 +190,7 @@ const Navbar = () => {
                 </DropdownMenu>
                 <DropdownMenu>
                     <DropdownMenu.Trigger onClick={handleAddText}>
-                        <div className="text-xs font-semibold !text-black-500 hover:bg-inherit hover:!text-black-900">
+                        <div className="!text-black-500 hover:!text-black-900 text-xs font-semibold hover:bg-inherit">
                             <TextOutlinedIcon />
                             Text
                         </div>
@@ -264,11 +213,7 @@ const Navbar = () => {
                             Preview
                         </Button>
                     </SheetTrigger>
-                    <SheetContent
-                        className="h-full w-full p-0"
-                        side={'bottom'}
-                        hideCloseIcon
-                    >
+                    <SheetContent className="h-full w-full p-0" side={'bottom'} hideCloseIcon>
                         <SheetFooter>
                             <SheetClose asChild onClick={handleResetResponderState}>
                                 <div className="absolute left-4  z-50 ">
@@ -276,19 +221,13 @@ const Navbar = () => {
                                 </div>
                             </SheetClose>
                         </SheetFooter>
-                        <PreviewWrapper
-                            handleResetResponderState={handleResetResponderState}
-                        >
+                        <PreviewWrapper handleResetResponderState={handleResetResponderState}>
                             <Form isPreviewMode />
                         </PreviewWrapper>
                     </SheetContent>
                 </Sheet>
                 {authState?.roles?.includes('ADMIN') && (
-                    <Button
-                        variant={ButtonVariant.Secondary}
-                        isLoading={isCreatingTemplate}
-                        onClick={makeTemplate}
-                    >
+                    <Button variant={ButtonVariant.Secondary} isLoading={isCreatingTemplate} onClick={makeTemplate}>
                         Make Template
                     </Button>
                 )}

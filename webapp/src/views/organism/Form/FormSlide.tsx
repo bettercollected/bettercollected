@@ -18,7 +18,6 @@ import { useFormSlide, useStandardForm } from '@app/store/jotai/fetchedForm';
 import useFormAtom from '@app/store/jotai/formFile';
 import { useFormResponse } from '@app/store/jotai/responderFormResponse';
 import { useResponderState } from '@app/store/jotai/responderFormState';
-import useWorkspace from '@app/store/jotai/workspace';
 import { useSubmitResponseMutation } from '@app/store/redux/formApi';
 import { validateSlide } from '@app/utils/validationUtils';
 import FullScreenLoader from '@app/views/atoms/Loaders/FullScreenLoader';
@@ -34,9 +33,11 @@ import QuestionWrapper from '@app/views/molecules/ResponderFormFields/QuestionQw
 import RatingField from '@app/views/molecules/ResponderFormFields/RatingField';
 import YesNoField from '@app/views/molecules/ResponderFormFields/YesNoField';
 
-import SlideLayoutWrapper from '../Layout/SlideLayoutWrapper';
+import { useAppSelector } from '@app/store/hooks';
+import { selectWorkspace } from '@app/store/workspaces/slice';
 import ImageField from '../FormBuilder/Fields/Imagefield';
 import VideoField from '../FormBuilder/Fields/VideoField';
+import SlideLayoutWrapper from '../Layout/SlideLayoutWrapper';
 
 export function FormFieldComponent({ field, slideIndex }: { field: FormField; slideIndex: number }) {
     switch (field.type) {
@@ -86,7 +87,7 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false 
     const { currentSlide, setCurrentSlideToThankyouPage, nextSlide, previousSlide, currentField, setCurrentField } = useResponderState();
     const { standardForm } = useStandardForm();
     const { formResponse, setInvalidFields, setFormResponse } = useFormResponse();
-    const { workspace } = useWorkspace();
+    const workspace = useAppSelector(selectWorkspace);
     const [submitResponse, { isLoading }] = useSubmitResponseMutation();
     const { files } = useFormAtom();
     const { authState } = useAuthAtom();

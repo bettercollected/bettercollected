@@ -3,25 +3,27 @@ import { toast } from 'react-toastify';
 import environments from '@app/configs/environments';
 import { ButtonSize } from '@app/models/enums/button';
 import { Button } from '@app/shadcn/components/ui/button';
+import { useAppSelector } from '@app/store/hooks';
 import { useStandardForm } from '@app/store/jotai/fetchedForm';
-import useWorkspace from '@app/store/jotai/workspace';
+import { selectWorkspace } from '@app/store/workspaces/slice';
 import GreenCheckedCircle from '@app/views/atoms/Icons/GreenCheckedCircle';
 
 export default function FormPublishedModal(props: any) {
-    const { workspace } = useWorkspace();
+    const workspace = useAppSelector(selectWorkspace);
     const { standardForm } = useStandardForm();
     return (
         <div className="w-full">
             <div className="border-b-black-300 text-black-700 border-b p-4 text-xs">Form Published</div>
             <div className="flex w-full flex-col items-center gap-6 px-5 py-6">
-              <GreenCheckedCircle/>
+                <GreenCheckedCircle />
                 <div className="flex flex-col items-center gap-1">
                     <div className="flex items-center gap-2 text-[32px]">
                         🎉
                         <span className="h2-new font-bold">Your form has been published</span>
                     </div>
                     <span className="p4-new text-black-700">Anyone with the link can fill your form</span>
-                GreenCheckedCircle</div>
+                    GreenCheckedCircle
+                </div>
                 <div className="flex items-center  gap-2">
                     <div className="text-black-700 p4-new bg-black-100 rounded-md px-3 py-2">
                         https://forms.bettercollected.io/{workspace.workspaceName}

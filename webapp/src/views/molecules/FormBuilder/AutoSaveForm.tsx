@@ -4,16 +4,17 @@ import { useEffect, useMemo } from 'react';
 
 import { useDebounceValue } from 'usehooks-ts';
 
+import { useAppSelector } from '@app/store/hooks';
 import { useStandardForm } from '@app/store/jotai/fetchedForm';
 import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
 import { useFormState } from '@app/store/jotai/form';
-import useWorkspace from '@app/store/jotai/workspace';
 import { usePatchV2FormMutation } from '@app/store/redux/formApi';
+import { selectWorkspace } from '@app/store/workspaces/slice';
 
 export default function AutoSaveForm({ formId }: { formId: string }) {
     const { formFields } = useFormFieldsAtom();
     const { formState } = useFormState();
-    const { workspace } = useWorkspace();
+    const workspace = useAppSelector(selectWorkspace);
     const { setStandardForm } = useStandardForm();
     const [patchV2Form, { isLoading }] = usePatchV2FormMutation();
 

@@ -36,7 +36,6 @@ function renderModalContent(view: FULL_SCREEN_MODALS, modalProps: any) {
             return <CreateConsentFullModalView {...modalProps} />;
         case 'CONSENT_FULL_MODAL_VIEW':
             return <ConsentFullModalView {...modalProps} />;
-
         default:
             return <></>;
     }
