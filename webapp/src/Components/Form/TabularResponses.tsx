@@ -23,8 +23,22 @@ import { convertPlaceholderToDisplayValue, getAnswerForField } from '@app/utils/
 import { extractTextfromJSON } from '@app/utils/richTextEditorExtenstion/getHtmlFromJson';
 import { Expand } from 'lucide-react';
 import { ExpandIcon } from '@app/views/atoms/Icons/ExpandIcon';
+import { Sheet, SheetContent, SheetTrigger } from '@app/shadcn/components/ui/sheet';
+import { useDialogModal } from '@app/lib/hooks/useDialogModal';
+import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
 
 const customTableStyles = {
+    ...dataTableCustomStyles,
+    rows: {
+        ...dataTableCustomStyles.rows,
+        style: {
+            ...dataTableCustomStyles.rows.style,
+            cursor: 'pointer'
+        }
+    }
+};
+
+const customTableStylesForResponderDetails = {
     ...dataTableCustomStyles,
     table: {
         ...dataTableCustomStyles.table,
@@ -32,13 +46,6 @@ const customTableStyles = {
             ...dataTableCustomStyles.table.style,
             borderRight: '1px solid #DBDBDB',
             boxShadow: '2px 0px 4px 0px rgba(0, 0, 0, 0.15)'
-        }
-    },
-    rows: {
-        ...dataTableCustomStyles.rows,
-        style: {
-            ...dataTableCustomStyles.rows.style,
-            cursor: 'pointer'
         }
     }
 };
@@ -49,6 +56,7 @@ interface TabularResponsesProps {
 
 export default function TabularResponses({ form }: TabularResponsesProps) {
     const router = useRouter();
+    const { openModal } = useFullScreenModal();
     const workspace = useAppSelector(selectWorkspace);
     const [page, setPage] = useState(1);
 
@@ -156,17 +164,28 @@ export default function TabularResponses({ form }: TabularResponsesProps) {
         return <span className="p3-new !text-black-800 truncate md:w-[250px]">{title}</span>;
     }
 
+    function getColumnForExpandIcon(response: StandardFormResponseDto) {
+        return (
+            <ExpandIcon
+                onClick={() => {
+                    openModal('VIEW_RESPONSE', { response: response, formFields: getFormFields() });
+                }}
+            />
+        );
+    }
+
     const columnsForResponderDetail: any = [
         {
             name: '',
-            cell: () => <ExpandIcon />,
+            cell: (response: StandardFormResponseDto) => getColumnForExpandIcon(response),
             style: {
                 color: 'rgba(0,0,0,.54)',
                 paddingLeft: '8px',
                 height: 'auto',
                 overflow: 'hidden ',
                 paddingRight: '8px',
-                textOverFlow: 'ellipsis'
+                textOverFlow: 'ellipsis',
+                cursor: 'pointer'
             },
             width: '40px',
             minWidth: '0px'
@@ -182,7 +201,8 @@ export default function TabularResponses({ form }: TabularResponsesProps) {
                 paddingRight: '8px',
                 textOverFlow: 'ellipsis'
             },
-            width: '156px'
+            width: '156px',
+            ignoreRowClick: true
         }
     ];
 
@@ -209,12 +229,16 @@ export default function TabularResponses({ form }: TabularResponsesProps) {
     };
     const { data, isLoading } = useGetFormsSubmissionsQuery(query, { skip: !workspace.id });
 
+    const onClickExpandSingleResponse = (response: StandardFormResponseDto) => {
+        openModal('VIEW_RESPONSE', { response: response, formFields: getFormFields() });
+    };
+
     return (
         <>
             {Array.isArray(data?.items) && (
                 <div className="gap- flex flex-row">
-                    <div className=" w-[400px] flex-1">
-                        <DataTable onRowClicked={onRowClicked} columns={columnsForResponderDetail} selectableRows customStyles={customTableStyles} data={data?.items || []} />
+                    <div className="flex-1">
+                        <DataTable onRowClicked={onClickExpandSingleResponse} columns={columnsForResponderDetail} selectableRows customStyles={customTableStylesForResponderDetails} data={data?.items || []} />
                     </div>
                     <DataTable onRowClicked={onRowClicked} columns={columnForResponseData} customStyles={customTableStyles} data={data?.items || []} />
                 </div>

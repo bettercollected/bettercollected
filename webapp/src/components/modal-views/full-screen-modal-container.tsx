@@ -19,6 +19,7 @@ import CropImageModalView from './modals/crop-image-modal-view';
 import FormBuilderPreviewModal from './modals/form-builder-preview-modal';
 import { usePathname } from 'next/navigation';
 import { log } from 'console';
+import ViewResponseFullModalView from './full-screen-modals/view-response-full-modal-view';
 
 function renderModalContent(view: FULL_SCREEN_MODALS, modalProps: any) {
     switch (view) {
@@ -36,6 +37,8 @@ function renderModalContent(view: FULL_SCREEN_MODALS, modalProps: any) {
             return <CreateConsentFullModalView {...modalProps} />;
         case 'CONSENT_FULL_MODAL_VIEW':
             return <ConsentFullModalView {...modalProps} />;
+        case 'VIEW_RESPONSE':
+            return <ViewResponseFullModalView {...modalProps} />;
         default:
             return <></>;
     }
