@@ -23,7 +23,6 @@ export default function FormPublishedModal(props: any) {
                         <span className="h2-new font-bold">Your form has been published</span>
                     </div>
                     <span className="p4-new text-black-700">Anyone with the link can fill your form</span>
-                    GreenCheckedCircle
                 </div>
                 <div className="flex items-center  gap-2">
                     <div className="text-black-700 p4-new bg-black-100 rounded-md px-3 py-2">

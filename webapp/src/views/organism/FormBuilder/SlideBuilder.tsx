@@ -85,7 +85,7 @@ const SlideBuilder = ({ slide, isScaledDown = false, disabled = false }: { slide
                                                                 <div className={cn('text-black-600 absolute -left-8 -mt-3 cursor-grab', 'top-4', isScaledDown ? 'hidden' : '')} {...provided.dragHandleProps}>
                                                                     <GripVertical height={24} width={24} />
                                                                 </div>
-                                                                <div className={cn(field?.type !== FieldTypes.TEXT && 'mb-4 w-full')}>
+                                                                <div className={cn(field?.type !== FieldTypes.TEXT && 'mb-2 w-full')}>
                                                                     <div className="relative flex w-full items-center gap-2">
                                                                         {slide?.properties?.showQuestionNumbers && <span className="text-2xl">{index + 1}.</span>}
                                                                         <RichTextEditor
