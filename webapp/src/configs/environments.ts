@@ -1,3 +1,4 @@
+import { getPublicConfig } from '@app/app/api/config/route';
 import getConfig from 'next/config';
 
 const config = getConfig();
@@ -21,7 +22,7 @@ const environments = {
     CLIENT_DOMAIN: publicRuntimeConfig.CLIENT_DOMAIN || 'localhost:3001',
     ADMIN_DOMAIN: publicRuntimeConfig.ADMIN_DOMAIN || 'localhost:3000',
     // api host configs
-    API_ENDPOINT_HOST: publicRuntimeConfig.API_ENDPOINT_HOST || process.env.API_ENDPOINT_HOST || 'https://bettercollected.io/api/v1',
+    API_ENDPOINT_HOST: getPublicConfig('API_ENDPOINT_HOST'),
     INTERNAL_DOCKER_API_ENDPOINT_HOST: serverRuntimeConfig.INTERNAL_DOCKER_API_ENDPOINT_HOST,
 
     METATAG_TITLE: publicRuntimeConfig.METATAG_TITLE,
@@ -94,7 +95,6 @@ const environments = {
     AUTH_ENABLED: false,
 
     ///Form Webbuilder
-    NEXT_PUBLIC_API_ENDPOINT_HOST: process.env.NEXT_PUBLIC_API_ENDPOINT_HOST || 'https://bettercollected.io/api/v1',
     NEXT_PUBLIC_V1_CLIENT_ENDPOINT_DOMAIN: process.env.NEXT_PUBLIC_V1_CLIENT_ENDPOINT_DOMAIN || 'forms.bettercollected.io',
     NEXT_PUBLIC_V2_CLIENT_ENDPOINT_DOMAIN: process.env.NEXT_PUBLIC_V2_CLIENT_ENDPOINT_DOMAIN || 'forms.bettercollected.io',
     FORM_PRIVACY_POLICY_URL: process.env.FORM_PRIVACY_POLICY_URL ?? 'https://bettercollected.com/privacy-policy',

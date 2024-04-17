@@ -35,9 +35,9 @@ export const workspacesApi = createApi({
     refetchOnFocus: true,
     keepUnusedDataFor: 0,
     baseQuery: fetchBaseQuery({
-        baseUrl: environments.NEXT_PUBLIC_API_ENDPOINT_HOST,
+        baseUrl: environments.API_ENDPOINT_HOST,
         prepareHeaders(headers) {
-            headers.set('Access-Control-Allow-Origin', environments.NEXT_PUBLIC_API_ENDPOINT_HOST);
+            headers.set('Access-Control-Allow-Origin', environments.API_ENDPOINT_HOST);
             return headers;
         },
         credentials: 'include'
@@ -303,7 +303,7 @@ export const workspacesApi = createApi({
                 method: 'DELETE',
                 credentials: 'include',
                 headers: {
-                    'Access-control-allow-origin': environments.NEXT_PUBLIC_API_ENDPOINT_HOST
+                    'Access-control-allow-origin': environments.API_ENDPOINT_HOST
                 }
             }),
             invalidatesTags: [SUBMISSION_TAG, WORKSPACE_TAGS]
@@ -314,7 +314,7 @@ export const workspacesApi = createApi({
                 method: 'DELETE',
                 credentials: 'include',
                 headers: {
-                    'Access-control-allow-origin': environments.NEXT_PUBLIC_API_ENDPOINT_HOST
+                    'Access-control-allow-origin': environments.API_ENDPOINT_HOST
                 }
             }),
             invalidatesTags: [SUBMISSION_TAG, WORKSPACE_TAGS]
@@ -361,7 +361,7 @@ export const workspacesApi = createApi({
                 body: request,
                 credentials: 'include',
                 headers: {
-                    'Access-control-allow-origin': environments.NEXT_PUBLIC_API_ENDPOINT_HOST
+                    'Access-control-allow-origin': environments.API_ENDPOINT_HOST
                 }
             })
         }),
@@ -372,7 +372,7 @@ export const workspacesApi = createApi({
                 body: request.body,
                 credentials: 'include',
                 headers: {
-                    'Access-control-allow-origin': environments.NEXT_PUBLIC_API_ENDPOINT_HOST
+                    'Access-control-allow-origin': environments.API_ENDPOINT_HOST
                 }
             }),
             invalidatesTags: [WORKSPACE_TAGS]
@@ -384,7 +384,7 @@ export const workspacesApi = createApi({
                 body: request.body,
                 credentials: 'include',
                 headers: {
-                    'Access-control-allow-origin': environments.NEXT_PUBLIC_API_ENDPOINT_HOST
+                    'Access-control-allow-origin': environments.API_ENDPOINT_HOST
                 }
             })
         }),
@@ -395,7 +395,7 @@ export const workspacesApi = createApi({
                 body: request.body,
                 credentials: 'include',
                 headers: {
-                    'Access-control-allow-origin': environments.NEXT_PUBLIC_API_ENDPOINT_HOST
+                    'Access-control-allow-origin': environments.API_ENDPOINT_HOST
                 }
             })
         }),

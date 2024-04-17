@@ -147,7 +147,7 @@ export default function ImportErrorView({ provider, closable = true, unauthorize
                 />
             </div>
             <div className="w-[230px]">
-                <ConnectWithProviderButton disabled={!isConsentGiven} type={defaultContent.type} url={`${environments.NEXT_PUBLIC_API_ENDPOINT_HOST}/auth/${provider}/oauth`} text={`Authorize ${_.capitalize(provider)}`} creator />
+                <ConnectWithProviderButton disabled={!isConsentGiven} type={defaultContent.type} url={`${environments.API_ENDPOINT_HOST}/auth/${provider}/oauth`} text={`Authorize ${_.capitalize(provider)}`} creator />
             </div>
         </div>
     );
