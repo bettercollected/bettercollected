@@ -49,9 +49,9 @@ export interface StandardFormFieldDto {
     description?: string | null;
     type:
         | {
-              type: string;
-              options: Array<any>;
-          }
+        type: string;
+        options: Array<any>;
+    }
         | any;
     isMediaContent?: boolean;
     mediaContent?: boolean;
@@ -332,3 +332,5 @@ export enum FieldTypes {
     MEDIA_INPUT = 'media_input',
     MATRIX_ROW_INPUT = 'matrix_row_input'
 }
+
+export const V2InputFields = [FieldTypes.DATE, FieldTypes.YES_NO, FieldTypes.MULTIPLE_CHOICE,FieldTypes.RATING,FieldTypes.LINEAR_RATING,FieldTypes.NUMBER,FieldTypes.SHORT_TEXT,FieldTypes.EMAIL,FieldTypes.PHONE_NUMBER,FieldTypes.DROP_DOWN]

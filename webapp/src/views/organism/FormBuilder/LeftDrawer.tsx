@@ -7,7 +7,7 @@ import { toast } from 'react-toastify';
 import { v4 } from 'uuid';
 
 import { formFieldsList } from '@app/constants/form-fields';
-import { FieldTypes, FormField } from '@app/models/dtos/form';
+import { FieldTypes, FormField, V2InputFields } from '@app/models/dtos/form';
 import { FormSlideLayout } from '@app/models/enums/form';
 import { Checkbox } from '@app/shadcn/components/ui/checkbox';
 import { ScrollArea } from '@app/shadcn/components/ui/scroll-area';
@@ -30,6 +30,11 @@ function LeftDrawer({ formFields, activeSlideComponent }: { formFields: Array<Fo
     const { navbarState, setNavbarState } = useNavbarState();
     const fieldId = v4();
 
+    function checkIfInputFieldExistsInSlide(slide: FormField) {
+        if (!slide.properties?.fields?.length) return false;
+        return slide.properties?.fields?.some((field) => field.type && V2InputFields.includes(field.type));
+    }
+
     const handleAddField = (field: any) => {
         if (activeSlideComponent === null) {
             toast('Add a slide to add fields');
@@ -37,8 +42,9 @@ function LeftDrawer({ formFields, activeSlideComponent }: { formFields: Array<Fo
         }
         const slideIndex = activeSlideComponent.index < 0 ? formFields.length - 1 : activeSlideComponent.index;
         const slide = formFields[slideIndex];
-        const slideId = navbarState.multiplePages ? v4() : slide.id;
-        if (navbarState.multiplePages || formFields.length === 0) {
+        const slideId = checkIfInputFieldExistsInSlide(slide) && navbarState.multiplePages  ? v4() : slide.id;
+
+        if ((checkIfInputFieldExistsInSlide(slide) && navbarState.multiplePages )|| formFields.length === 0) {
             addSlide({
                 id: slideId,
                 index: formFields.length,
