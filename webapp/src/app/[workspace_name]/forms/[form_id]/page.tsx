@@ -47,7 +47,7 @@ const FetchFormWrapper = ({ slug }: { slug: string }) => {
 
     return (
         <div className="h-screen w-screen">
-            {data?.builderVersion === 'v2' && <Form isPreviewMode />}
+            {data?.builderVersion === 'v2' && <Form />}
             {data?.builderVersion !== 'v2' && <SingleFormPage hasCustomDomain={hasCustomDomain} slug={slug} form={data} workspace={workspace} />}
         </div>
     );
