@@ -141,23 +141,28 @@ b {
 }
 
 /* width */
-::-webkit-scrollbar {
-    width: 10px;
-    height: 10px;
+div::-webkit-scrollbar {
+    width: 0px;
+    height: 0px;
+}
+
+div:hover::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
 }
 
 /* Track */
-::-webkit-scrollbar-track {
-    background: #f1f1f1;
+div::-webkit-scrollbar-track {
+    background: transparent !important;
 }
 
 /* Handle */
-::-webkit-scrollbar-thumb {
+div::-webkit-scrollbar-thumb {
     background: #aaaaaa;
     border-radius: 5px;
 }
 
 /* Handle on hover */
-::-webkit-scrollbar-thumb:hover {
+div::-webkit-scrollbar-thumb:hover {
     background: #858585;
 }
