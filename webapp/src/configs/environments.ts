@@ -105,8 +105,9 @@ const environments = {
     UNSPLASH_SECRET_KEY: process.env.UNSPLASH_SECRET_KEY,
     UNSPLASH_API_URL: process.env.UNSPLASH_API_URL ?? 'https://api.unsplash.com/',
 
-    DASHBOARD_DOMAIN: getPublicConfig('DASHBOARD_DOMAIN') ?? 'admin.bettercollected.io',
 
+    // REfactored Environment Variables
+    DASHBOARD_DOMAIN: getPublicConfig('DASHBOARD_DOMAIN') ?? 'admin.bettercollected.io',
     HTTP_SCHEME: getPublicConfig('HTTP_SCHEME')
 };
 
