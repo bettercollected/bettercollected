@@ -1,24 +1,19 @@
 import { FormField } from '@app/models/dtos/form';
 import { FieldInput } from '@app/shadcn/components/ui/input';
-import { useFormTheme, useStandardForm } from '@app/store/jotai/fetchedForm';
+import { useFormTheme } from '@app/store/jotai/fetchedForm';
 import { useFormResponse } from '@app/store/jotai/responderFormResponse';
 import Choice from '@app/views/atoms/ResponderFormFields/Choice';
 
+import { selectForm } from '@app/store/forms/slice';
+import { useAppSelector } from '@app/store/hooks';
 import QuestionWrapper from './QuestionQwrapper';
 
-export default function MultipleChoiceWithMultipleSelection({
-    field,
-    slideIndex
-}: {
-    field: FormField;
-    slideIndex: number;
-}) {
-    const { addFieldChoicesAnswer, addOtherChoicesAnswer, formResponse } =
-        useFormResponse();
+export default function MultipleChoiceWithMultipleSelection({ field, slideIndex }: { field: FormField; slideIndex: number }) {
+    const { addFieldChoicesAnswer, addOtherChoicesAnswer, formResponse } = useFormResponse();
 
     const theme = useFormTheme();
 
-    const { standardForm } = useStandardForm();
+    const standardForm = useAppSelector(selectForm);
     const currentSlide = standardForm.fields![slideIndex];
 
     const getSelectedValues = () => {
@@ -48,27 +43,14 @@ export default function MultipleChoiceWithMultipleSelection({
             <div className="w-full space-y-2 overflow-hidden border-0 p-0">
                 {field.properties?.choices?.map((choice, index) => {
                     const isSelected = selectedValues.includes(choice.id);
-                    return (
-                        <Choice
-                            key={choice.id}
-                            isSelected={isSelected}
-                            theme={theme}
-                            choice={choice}
-                            onClick={handleClick}
-                            index={index}
-                        />
-                    );
+                    return <Choice key={choice.id} isSelected={isSelected} theme={theme} choice={choice} onClick={handleClick} index={index} />;
                 })}
                 {field?.properties?.allowOtherChoice && (
                     <FieldInput
                         $slide={currentSlide}
                         type="text"
                         $formTheme={theme}
-                        textColor={
-                            currentSlide.properties?.theme?.secondary ||
-                            theme?.secondary ||
-                            'text-black-500'
-                        }
+                        textColor={currentSlide.properties?.theme?.secondary || theme?.secondary || 'text-black-500'}
                         value={otherOption}
                         placeholder={`Other`}
                         onChange={(e: any) => {

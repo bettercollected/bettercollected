@@ -7,8 +7,9 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 
 import { useDialogModal } from '@app/lib/hooks/useDialogModal';
+import { selectForm } from '@app/store/forms/slice';
+import { useAppSelector } from '@app/store/hooks';
 import { useActiveFieldComponent, useActiveSlideComponent } from '@app/store/jotai/activeBuilderComponent';
-import { useStandardForm } from '@app/store/jotai/fetchedForm';
 import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
 import { useFormState } from '@app/store/jotai/form';
 import { useNavbarState } from '@app/store/jotai/navbar';
@@ -19,6 +20,8 @@ import SlideBuilder from '@app/views/organism/FormBuilder/SlideBuilder';
 import ThankYouSlide from '@app/views/organism/FormBuilder/ThankYouPage';
 import WelcomeSlide from '@app/views/organism/FormBuilder/WelcomePage';
 import Navbar from '@app/views/organism/Navbar';
+import { deepCopy } from '@app/utils/objectUtils';
+import WelcomePage from '@app/views/organism/Form/WelcomePage';
 
 export default function FormPage({ params }: { params: { form_id: string } }) {
     const { formFields, setFormFields } = useFormFieldsAtom();
@@ -38,7 +41,7 @@ export default function FormPage({ params }: { params: { form_id: string } }) {
 
     const { openDialogModal } = useDialogModal();
 
-    const { standardForm } = useStandardForm();
+    const standardForm = useAppSelector(selectForm);
 
     const formId = params.form_id;
 
@@ -91,9 +94,13 @@ export default function FormPage({ params }: { params: { form_id: string } }) {
                 const form = { ...standardForm, ...formState };
                 setFormState(form);
             } else {
-                setFormState({ ...formState, ...standardForm });
+                const copiedThankyouPage = deepCopy(standardForm?.thankyouPage || formState.thankyouPage);
+                const copiedWelcomePage = deepCopy(standardForm?.welcomePage || formState.welcomePage);
+                const form = { ...formState, thankyouPage: copiedThankyouPage, welcomePage: copiedWelcomePage };
+                setFormState(form);
             }
-            setFormFields(standardForm?.fields || []);
+            const deepCopiedFormFields = deepCopy(standardForm?.fields || []);
+            setFormFields(deepCopiedFormFields);
             setNavbarState({
                 ...navbarState,
                 multiplePages: !!standardForm.isMultiPage

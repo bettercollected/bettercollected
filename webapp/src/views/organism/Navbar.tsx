@@ -16,7 +16,6 @@ import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { cn } from '@app/shadcn/util/lib';
 import { useActiveSlideComponent, useActiveThankYouPageComponent } from '@app/store/jotai/activeBuilderComponent';
 import { useAuthAtom } from '@app/store/jotai/auth';
-import { useStandardForm } from '@app/store/jotai/fetchedForm';
 import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
 import { useFormState } from '@app/store/jotai/form';
 import { useNavbarState } from '@app/store/jotai/navbar';
@@ -26,6 +25,7 @@ import { usePublishV2FormMutation } from '@app/store/redux/formApi';
 import { useCreateTemplateFromFormMutation } from '@app/store/redux/templateApi';
 import BetterCollectedSmallLogo from '@app/views/atoms/Icons/BetterCollectedSmallLogo';
 
+import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { MediaOutlinedIcon } from '../atoms/Icons/MediaOutlined';
@@ -47,7 +47,7 @@ const Navbar = () => {
     const [publishV2Form, { isLoading }] = usePublishV2FormMutation();
     const [createTemplateFromForm, { isLoading: isCreatingTemplate }] = useCreateTemplateFromFormMutation();
 
-    const { standardForm } = useStandardForm();
+    const standardForm = useAppSelector(selectForm);
     const workspace = useAppSelector(selectWorkspace);
     const { openDialogModal } = useDialogModal();
 

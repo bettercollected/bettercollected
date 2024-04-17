@@ -1,6 +1,7 @@
 import { atom, useAtom } from 'jotai';
 
-import { useStandardForm } from './fetchedForm';
+import { selectForm } from '../forms/slice';
+import { useAppSelector } from '../hooks';
 
 export interface ResponderFormState {
     currentSlide: number;
@@ -21,7 +22,7 @@ const responderFormStateAtom = atom<ResponderFormState>(initialresponderState);
 export const useResponderState = () => {
     const [responderState, setResponderState] = useAtom(responderFormStateAtom);
 
-    const { standardForm } = useStandardForm();
+    const standardForm = useAppSelector(selectForm);
 
     const nextSlide = () => {
         const nextSlideNumber = responderState.currentSlide + 1;

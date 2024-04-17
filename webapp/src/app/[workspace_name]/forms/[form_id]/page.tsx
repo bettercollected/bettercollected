@@ -3,7 +3,8 @@
 import environments from '@app/configs/environments';
 import ReduxWrapperAppRouter from '@app/containers/ReduxWrapperAppRouter';
 import SingleFormPage from '@app/pages/forms/v1/[id]';
-import { useAppSelector } from '@app/store/hooks';
+import { setForm } from '@app/store/forms/slice';
+import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { useStandardForm } from '@app/store/jotai/fetchedForm';
 import { useGetWorkspaceFormQuery } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
@@ -24,6 +25,7 @@ export default function FormPage({ params }: { params: { form_id: string; worksp
 const FetchFormWrapper = ({ slug }: { slug: string }) => {
     const workspace = useAppSelector(selectWorkspace);
     const { setStandardForm } = useStandardForm();
+    const dispatch = useAppDispatch();
 
     const { data, isLoading, error } = useGetWorkspaceFormQuery(
         {
@@ -35,8 +37,10 @@ const FetchFormWrapper = ({ slug }: { slug: string }) => {
     );
 
     useEffect(() => {
-        // @ts-ignore
-        if (data?.formId) setStandardForm(data);
+        if (data?.formId) {
+            setStandardForm(data);
+            dispatch(setForm(data));
+        }
     }, [data]);
 
     const hasCustomDomain = window.location.host !== environments.NEXT_PUBLIC_V1_CLIENT_ENDPOINT_DOMAIN;

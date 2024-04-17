@@ -8,9 +8,9 @@ import { FormTheme } from '@app/constants/theme';
 import { FormSlideLayout } from '@app/models/enums/form';
 import { Button } from '@app/shadcn/components/ui/button';
 import { cn } from '@app/shadcn/util/lib';
+import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { useAuthAtom } from '@app/store/jotai/auth';
-import { useStandardForm } from '@app/store/jotai/fetchedForm';
 import { useResponderState } from '@app/store/jotai/responderFormState';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import UserAvatarDropDown from '@app/views/molecules/UserAvatarDropdown';
@@ -24,7 +24,7 @@ export default function WelcomePage({
     welcomePageData?: any;
     theme?: FormTheme;
 }>) {
-    const { standardForm } = useStandardForm();
+    const standardForm = useAppSelector(selectForm);
     const { nextSlide } = useResponderState();
     const router = useRouter();
     const pathname = usePathname();

@@ -58,6 +58,9 @@ export interface StandardFormFieldDto {
     isGroupQuestion?: boolean;
     groupQuestion?: any;
     answer?: any;
+
+    index: number;
+    imageUrl?: string;
 }
 
 export interface StandardFormDto {
@@ -72,6 +75,21 @@ export interface StandardFormDto {
     deletionRequests?: number;
     groups: Array<ResponderGroupDto>;
     builderVersion?: string;
+    isMultiPage?: boolean;
+    welcomePage?: {
+        title?: string;
+        description?: string;
+        layout?: FormSlideLayout;
+        imageUrl?: string;
+        buttonText?: string;
+    };
+    thankyouPage?: Array<{
+        message?: string;
+        buttonText?: string;
+        buttonLink?: string;
+        layout?: FormSlideLayout;
+        imageUrl?: string;
+    }>;
     settings?: {
         pinned: boolean;
         embedUrl?: string;
@@ -104,6 +122,7 @@ export interface StandardFormDto {
     actions?: any;
     parameters?: Record<any, Array<Parameters>>;
     secrets?: Record<any, Array<Parameters>>;
+    theme?: FormTheme;
 }
 
 export interface StandardFormResponseDto {
@@ -188,6 +207,7 @@ export interface StandardForm {
     title: string;
     description?: string | null | undefined;
     buttonText?: string;
+    buttonLink?: string;
     version?: number;
     settings?: {
         pinned: boolean;
@@ -205,6 +225,21 @@ export interface StandardForm {
         requireVerifiedIdentity?: boolean;
         showSubmissionNumber?: boolean;
     };
+    isMultiPage?: boolean;
+    welcomePage?: {
+        title?: string;
+        description?: string;
+        layout?: FormSlideLayout;
+        imageUrl?: string;
+        buttonText?: string;
+    };
+    thankyouPage?: Array<{
+        message?: string;
+        buttonText?: string;
+        buttonLink?: string;
+        layout?: FormSlideLayout;
+        imageUrl?: string;
+    }>;
     fields: Array<FormField>;
     theme?: FormTheme;
 }
@@ -228,7 +263,7 @@ interface FieldValidations {
     minLength?: number;
     minValue?: number;
     mazValue?: number;
-    regex?: number;
+    regex?: string;
     minChoice?: number;
     maxChoices?: number;
 }

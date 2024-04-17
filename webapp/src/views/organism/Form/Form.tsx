@@ -2,9 +2,10 @@ import { AnimatePresence, motion } from 'framer-motion';
 
 import { Progress } from '@app/shadcn/components/ui/progress';
 import { cn } from '@app/shadcn/util/lib';
-import { useStandardForm } from '@app/store/jotai/fetchedForm';
 import { useResponderState } from '@app/store/jotai/responderFormState';
 
+import { selectForm } from '@app/store/forms/slice';
+import { useAppSelector } from '@app/store/hooks';
 import LayoutWrapper from '../Layout/LayoutWrapper';
 import FormSlide from './FormSlide';
 import ThankyouPage from './ThankyouPage';
@@ -13,7 +14,7 @@ import WelcomePage from './WelcomePage';
 const Form = ({ isPreviewMode = false, isMobileView = false }: { isPreviewMode?: boolean; isMobileView?: boolean }) => {
     const { currentSlide, prevActiveSlide: previousSlide } = useResponderState();
 
-    const { standardForm } = useStandardForm();
+    const standardForm = useAppSelector(selectForm);
 
     const getProgressValue = () => {
         const totalSlides = (standardForm?.fields?.length || 0) + 2;
