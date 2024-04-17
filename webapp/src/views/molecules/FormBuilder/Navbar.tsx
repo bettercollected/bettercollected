@@ -18,7 +18,7 @@ const NavBar = ({ isModal = false }: { isModal?: boolean }) => {
             <div className={'mr-4 cursor-pointer rounded-lg px-4 py-[6px] shadow'}>
                 <BetterCollectedSmallLogo
                     onClick={() => {
-                        router.push(environments.NEXT_PUBLIC_HTTP_SCHEME + '://' + environments.NEXT_PUBLIC_DASHBOARD_DOMAIN + '/' + workspace.workspaceName + '/dashboard');
+                        router.push(environments.HTTP_SCHEME + environments.DASHBOARD_DOMAIN + '/' + workspace.workspaceName + '/dashboard');
                     }}
                 />
             </div>

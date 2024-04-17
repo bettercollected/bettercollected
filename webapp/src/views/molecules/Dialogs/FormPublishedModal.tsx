@@ -33,7 +33,7 @@ export default function FormPublishedModal(props: any) {
                     <Button
                         variant={'v2Button'}
                         onClick={() => {
-                            navigator.clipboard.writeText(`${environments.NEXT_PUBLIC_HTTP_SCHEME}://${environments.NEXT_PUBLIC_V2_CLIENT_ENDPOINT_DOMAIN}/${workspace.workspaceName}/forms/${standardForm.formId}`);
+                            navigator.clipboard.writeText(`${environments.HTTP_SCHEME}${environments.NEXT_PUBLIC_V2_CLIENT_ENDPOINT_DOMAIN}/${workspace.workspaceName}/forms/${standardForm.formId}`);
                             toast('Copied!');
                         }}
                     >
@@ -44,13 +44,13 @@ export default function FormPublishedModal(props: any) {
                     <span className="h5-new">What’s Next?</span>
                     <span className="p4-new break-words text-center">
                         Add your custom domain, add integration or change form privacy,{' '}
-                        <a href={`${environments.NEXT_PUBLIC_HTTP_SCHEME}://${environments.NEXT_PUBLIC_DASHBOARD_DOMAIN}/${workspace.workspaceName}/dashboard/forms/${standardForm.formId}?view=FormLinks`} className="text-blue-500">
+                        <a href={`${environments.HTTP_SCHEME}${environments.DASHBOARD_DOMAIN}/${workspace.workspaceName}/dashboard/forms/${standardForm.formId}?view=FormLinks`} className="text-blue-500">
                             Go to form settings
                         </a>
                     </span>
                 </div>
                 <div className="mb-5 mt-5">
-                    <a href={`${environments.NEXT_PUBLIC_HTTP_SCHEME}://${environments.NEXT_PUBLIC_DASHBOARD_DOMAIN}/${workspace.workspaceName}/dashboard`}>
+                    <a href={`${environments.HTTP_SCHEME}${environments.DASHBOARD_DOMAIN}/${workspace.workspaceName}/dashboard`}>
                         <Button size={ButtonSize.Medium}>Done! Go to dashboard</Button>
                     </a>
                 </div>
