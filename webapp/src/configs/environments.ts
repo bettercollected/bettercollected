@@ -18,7 +18,6 @@ const BASE_DEPLOY_PATH = process.env.BASE_DEPLOY_PATH ?? '';
 const environments = {
     // build-time configs
     BASE_DEPLOY_PATH,
-    HTTP_SCHEME: publicRuntimeConfig.HTTP_SCHEME || 'https://',
     CLIENT_DOMAIN: publicRuntimeConfig.CLIENT_DOMAIN || 'localhost:3001',
     ADMIN_DOMAIN: publicRuntimeConfig.ADMIN_DOMAIN || 'localhost:3000',
     // api host configs
@@ -106,9 +105,9 @@ const environments = {
     UNSPLASH_SECRET_KEY: process.env.UNSPLASH_SECRET_KEY,
     UNSPLASH_API_URL: process.env.UNSPLASH_API_URL ?? 'https://api.unsplash.com/',
 
-    // internal configs
-    NEXT_PUBLIC_DASHBOARD_DOMAIN: process.env.NEXT_PUBLIC_DASHBOARD_DOMAIN ?? 'admin.bettercollected.io',
-    NEXT_PUBLIC_HTTP_SCHEME: process.env.NEXT_PUBLIC_HTTP_SCHEME ?? 'https'
+    DASHBOARD_DOMAIN: getPublicConfig('DASHBOARD_DOMAIN') ?? 'admin.bettercollected.io',
+
+    HTTP_SCHEME: getPublicConfig('HTTP_SCHEME')
 };
 
 export default environments;

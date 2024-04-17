@@ -30,7 +30,7 @@ export default function WelcomePage({
     const pathname = usePathname();
     const workspace = useAppSelector(selectWorkspace);
     const auth = useAppSelector(selectAuth);
-    const responderSignInUrl = `${environments.NEXT_PUBLIC_HTTP_SCHEME}://${environments.NEXT_PUBLIC_V1_CLIENT_ENDPOINT_DOMAIN}/login?type=responder&workspace_id=${workspace.id}&redirect_to=${environments.NEXT_PUBLIC_HTTP_SCHEME}://${environments.NEXT_PUBLIC_V2_CLIENT_ENDPOINT_DOMAIN}${pathname}`;
+    const responderSignInUrl = `${environments.HTTP_SCHEME}${environments.NEXT_PUBLIC_V1_CLIENT_ENDPOINT_DOMAIN}/login?type=responder&workspace_id=${workspace.id}&redirect_to=${environments.HTTP_SCHEME}${environments.NEXT_PUBLIC_V2_CLIENT_ENDPOINT_DOMAIN}${pathname}`;
 
     const welcomePage = welcomePageData || standardForm.welcomePage;
     const formTheme = theme || standardForm?.theme;
