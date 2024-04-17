@@ -163,10 +163,10 @@ export default function Settingsprivacy({ className = '', childClassName = '' }:
     };
 
     return (
-        <div className={`lg:w-2/3 mb-10 ${className}`}>
+        <div className={`mb-10 lg:w-2/3 ${className}`}>
             <CardContainer className={childClassName}>
                 <CardTitle title={t(localesCommon.linkToPrivacyPolicy)} tooltipDesc={privacyPolicyTooltip} />
-                <div className="flex items-center h-24 justify-between">
+                <div className="flex h-24 items-center justify-between">
                     <StyledTextField>
                         <TextField
                             inputRef={privacyPolicyInputRef}
@@ -178,16 +178,16 @@ export default function Settingsprivacy({ className = '', childClassName = '' }:
                             disabled={!editMode.privacy_policy_editMode}
                             value={policies.privacy_policy_url}
                             name="privacy_policy_url"
-                            placeholder={`Enter URL (e.g. ${environments.NEXT_PUBLIC_API_ENDPOINT_HOST}/legal/privacy-policy-2022.pdf )`}
+                            placeholder={`Enter URL (e.g. ${environments.API_ENDPOINT_HOST}/legal/privacy-policy-2022.pdf )`}
                         />
                     </StyledTextField>
                     {!editMode.privacy_policy_editMode ? (
                         <IconContainer>
-                            <ModeEditIcon data-testid="privacy-policy-edit-button" className="!w-5 !h-5 text-white" onClick={() => setEditMode({ ...editMode, privacy_policy_editMode: true })} />
+                            <ModeEditIcon data-testid="privacy-policy-edit-button" className="!h-5 !w-5 text-white" onClick={() => setEditMode({ ...editMode, privacy_policy_editMode: true })} />
                         </IconContainer>
                     ) : (
                         <IconContainer>
-                            <SaveIcon data-testid="privacy-policy-save-button" className="!w-5 !h-5 text-white" onClick={handleSavePrivacyPolicy} />
+                            <SaveIcon data-testid="privacy-policy-save-button" className="!h-5 !w-5 text-white" onClick={handleSavePrivacyPolicy} />
                         </IconContainer>
                     )}
                 </div>
@@ -195,7 +195,7 @@ export default function Settingsprivacy({ className = '', childClassName = '' }:
 
             <CardContainer className={childClassName}>
                 <CardTitle title="Link to Terms of service" tooltipDesc={termsOfServiceTooltip} />
-                <div className="flex items-center h-24 justify-between">
+                <div className="flex h-24 items-center justify-between">
                     <StyledTextField>
                         <TextField
                             inputRef={termsOfServiceInputRef}
@@ -207,16 +207,16 @@ export default function Settingsprivacy({ className = '', childClassName = '' }:
                             disabled={!editMode.terms_of_service_editMode}
                             value={policies.terms_of_service_url}
                             name="terms_of_service_url"
-                            placeholder={`Enter url (e.g. ${environments.NEXT_PUBLIC_API_ENDPOINT_HOST}/legal/terms-and-conditions-2022.pdf )`}
+                            placeholder={`Enter url (e.g. ${environments.API_ENDPOINT_HOST}/legal/terms-and-conditions-2022.pdf )`}
                         />
                     </StyledTextField>
                     {!editMode.terms_of_service_editMode ? (
                         <IconContainer>
-                            <ModeEditIcon className="!w-5 !h-5 text-white" onClick={() => setEditMode({ ...editMode, terms_of_service_editMode: true })} />
+                            <ModeEditIcon className="!h-5 !w-5 text-white" onClick={() => setEditMode({ ...editMode, terms_of_service_editMode: true })} />
                         </IconContainer>
                     ) : (
                         <IconContainer>
-                            <SaveIcon className="!w-5 !h-5 text-white" onClick={handleSaveTermsOfService} />
+                            <SaveIcon className="!h-5 !w-5 text-white" onClick={handleSaveTermsOfService} />
                         </IconContainer>
                     )}
                 </div>

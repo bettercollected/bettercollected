@@ -10,9 +10,9 @@ export const apiActionsApi = createApi({
     refetchOnFocus: true,
     keepUnusedDataFor: 0,
     baseQuery: fetchBaseQuery({
-        baseUrl: environments.NEXT_PUBLIC_API_ENDPOINT_HOST,
+        baseUrl: environments.API_ENDPOINT_HOST,
         prepareHeaders(headers) {
-            headers.set('Access-Control-Allow-Origin', environments.NEXT_PUBLIC_API_ENDPOINT_HOST);
+            headers.set('Access-Control-Allow-Origin', environments.API_ENDPOINT_HOST);
             return headers;
         },
         credentials: 'include'

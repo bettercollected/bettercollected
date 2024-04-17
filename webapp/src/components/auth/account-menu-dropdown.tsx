@@ -55,7 +55,7 @@ export default function AuthAccountMenuDropdown({ isClientDomain, fullWidth, hid
         openModal('LOGOUT_VIEW', { workspace, isClientDomain: isClientDomain });
     };
 
-    if (user?.isLoading) return <div className="w-9 sm:w-32 h-9 rounded-[4px] animate-pulse bg-black-300" />;
+    if (user?.isLoading) return <div className="bg-black-300 h-9 w-9 animate-pulse rounded-[4px] sm:w-32" />;
     if ((!user?.isLoading && !user?.id) || hideMenu) return null;
 
     const profileName = user?.firstName || user?.lastName ? _.capitalize(user?.firstName) + ' ' + _.capitalize(user?.lastName) : null;
@@ -69,7 +69,7 @@ export default function AuthAccountMenuDropdown({ isClientDomain, fullWidth, hid
 
     return (
         <MenuDropdown className={className} id="account-menu" menuTitle={t(profileMenu.accountSettings)} fullWidth={fullWidth} menuContent={newMenuContent} showExpandMore={showExpandMore ?? ['xs', '2xs', 'sm'].indexOf(screenSize) === -1}>
-            <ListItem className="py-3 px-5 flex items-center hover:bg-brand-100" alignItems="flex-start">
+            <ListItem className="hover:bg-brand-100 flex items-center px-5 py-3" alignItems="flex-start">
                 <ListItemIcon sx={{ margin: 0 }}>
                     <AuthAccountProfileImage size={40} image={user?.profileImage} name={profileName ?? ''} />
                 </ListItemIcon>
@@ -94,7 +94,7 @@ export default function AuthAccountMenuDropdown({ isClientDomain, fullWidth, hid
                     </ActiveLink>
                 )}
                 {user.stripeCustomerId && (
-                    <ActiveLink href={`${environments.NEXT_PUBLIC_API_ENDPOINT_HOST}/stripe/session/create/portal`} referrerPolicy="no-referrer">
+                    <ActiveLink href={`${environments.API_ENDPOINT_HOST}/stripe/session/create/portal`} referrerPolicy="no-referrer">
                         <MenuItem sx={{ paddingX: '20px', paddingY: '10px', height: '36px' }} className="body4 hover:bg-brand-100">
                             <ListItemIcon className="text-black-900">
                                 <Billing width={20} height={20} />
@@ -114,7 +114,7 @@ export default function AuthAccountMenuDropdown({ isClientDomain, fullWidth, hid
             </ActiveLink>
 
             {/* <Divider className="my-2" /> */}
-            <MenuItem onClick={handleLogout} sx={{ paddingX: '20px', paddingY: '10px', height: '36px' }} className="body4 hover:bg-red-100 !text-red-500">
+            <MenuItem onClick={handleLogout} sx={{ paddingX: '20px', paddingY: '10px', height: '36px' }} className="body4 !text-red-500 hover:bg-red-100">
                 <ListItemIcon>
                     <Logout width={20} height={20} />
                 </ListItemIcon>

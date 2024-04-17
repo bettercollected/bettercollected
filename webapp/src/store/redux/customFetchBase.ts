@@ -7,7 +7,7 @@ import environments from '@app/configs/environments';
 const mutex = new Mutex();
 
 const baseQuery = fetchBaseQuery({
-    baseUrl: environments.NEXT_PUBLIC_API_ENDPOINT_HOST
+    baseUrl: environments.API_ENDPOINT_HOST
 });
 
 const customFetchBase: BaseQueryFn<string | FetchArgs, unknown, FetchBaseQueryError> = async (args, api, extraOptions) => {

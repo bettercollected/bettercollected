@@ -12,9 +12,9 @@ export const plansApi = createApi({
     refetchOnFocus: true,
     keepUnusedDataFor: 0,
     baseQuery: fetchBaseQuery({
-        baseUrl: environments.NEXT_PUBLIC_API_ENDPOINT_HOST + '/stripe',
+        baseUrl: environments.API_ENDPOINT_HOST + '/stripe',
         prepareHeaders(headers) {
-            headers.set('Access-Control-Allow-Origin', environments.NEXT_PUBLIC_API_ENDPOINT_HOST);
+            headers.set('Access-Control-Allow-Origin', environments.API_ENDPOINT_HOST);
             return headers;
         },
         credentials: 'include'

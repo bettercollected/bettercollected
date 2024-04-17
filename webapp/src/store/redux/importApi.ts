@@ -16,9 +16,9 @@ interface ImportFormQueryInterface {
 export const importApi = createApi({
     reducerPath: IMPORT_FORM_REDUCER_PATH,
     baseQuery: fetchBaseQuery({
-        baseUrl: environments.NEXT_PUBLIC_API_ENDPOINT_HOST,
+        baseUrl: environments.API_ENDPOINT_HOST,
         prepareHeaders(headers) {
-            headers.set('Access-Control-Allow-Origin', environments.NEXT_PUBLIC_API_ENDPOINT_HOST);
+            headers.set('Access-Control-Allow-Origin', environments.API_ENDPOINT_HOST);
             return headers;
         },
         credentials: 'include'

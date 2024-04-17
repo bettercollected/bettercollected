@@ -13,7 +13,7 @@ export const authApi = createApi({
     refetchOnMountOrArgChange: true,
     keepUnusedDataFor: 0,
     baseQuery: fetchBaseQuery({
-        baseUrl: environments.NEXT_PUBLIC_API_ENDPOINT_HOST,
+        baseUrl: environments.API_ENDPOINT_HOST,
         credentials: 'include',
         prepareHeaders: (headers) => {
             return headers;
