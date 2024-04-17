@@ -25,12 +25,12 @@ const ViewResponseFullModalView = ({ response, formFields }: IViewResponseFullMo
                 <Close onClick={closeModal} />
             </div>
             <Separator />
-            <div className="flex min-h-fit max-w-full flex-col gap-8 overflow-y-auto p-4 pr-6 pt-6">
+            <div className="min-h-fit w-full flex flex-col gap-8 overflow-y-auto p-4 pt-6 ">
                 {formFields.map((field) => {
                     return (
                         <div className="flex flex-col gap-1" key={field.id}>
                             <span className="p4-new text-black-500">{extractTextfromJSON(field)}</span>
-                            <span className="p2-new text-black-700 break-all">{getAnswerForField(response, field) || '- -'}</span>
+                            <span className="p2-new text-black-700">{getAnswerForField(response, field) || '- -'}</span>
                         </div>
                     );
                 })}

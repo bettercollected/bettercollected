@@ -341,7 +341,7 @@ export default function FormRenderer({ form, response, enabled, isDisabled = fal
             {form?.settings?.provider === 'self' ? (
                 <>
                     {form?.builderVersion === 'v2' ? (
-                        <div className="aspect-video w-full bg-blue-200">
+                        <div className="h-full  w-full bg-white">
                             {/* <iframe src={previewURL} className="h-full w-full overflow-y-auto"></iframe>{' '} */}
                             <ResponsePage searchParams={{ responseId: responseId ? responseId : '' }} />
                         </div>
