@@ -5,6 +5,7 @@ import { StandardFormFieldDto, StandardFormResponseDto } from '@app/models/dtos/
 import { getAnswerForField } from '@app/utils/formBuilderBlockUtils';
 import { extractTextfromJSON } from '@app/utils/richTextEditorExtenstion/getHtmlFromJson';
 import { utcToLocalDateTIme } from '@app/utils/dateUtils';
+import { motion } from 'framer-motion';
 
 export interface IViewResponseFullModalView {
     response: StandardFormResponseDto;
@@ -15,7 +16,7 @@ const ViewResponseFullModalView = ({ response, formFields }: IViewResponseFullMo
     const { closeModal } = useFullScreenModal();
 
     return (
-        <div className="h-response-view absolute bottom-0 right-0 flex w-[420px] flex-col overflow-hidden rounded-tl-xl !bg-white">
+        <motion.div initial={{ x: '100%', opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ ease: 'easeInOut', duration: 0.5 }} className="h-response-view absolute bottom-0 right-0 flex w-[420px] flex-col overflow-hidden rounded-tl-xl !bg-white">
             <div className="flex flex-row justify-between p-4">
                 <div className="flex flex-col">
                     <span className="p3-new text-black-800">Response</span>
@@ -24,17 +25,17 @@ const ViewResponseFullModalView = ({ response, formFields }: IViewResponseFullMo
                 <Close onClick={closeModal} />
             </div>
             <Separator />
-            <div className="flex flex-col gap-8 p-4 pt-6">
+            <div className="min-h-calc-68 flex flex-col gap-8 overflow-y-auto p-4 pt-6 ">
                 {formFields.map((field) => {
                     return (
-                        <div className="flex flex-col gap-1">
+                        <div className="flex flex-col gap-1" key={field.id}>
                             <span className="p4-new text-black-500">{extractTextfromJSON(field)}</span>
-                            <span className="p2-new text-black-700">{getAnswerForField(response, field)||'- -'}</span>
+                            <span className="p2-new text-black-700">{getAnswerForField(response, field) || '- -'}</span>
                         </div>
                     );
                 })}
             </div>
-        </div>
+        </motion.div>
     );
 };
 

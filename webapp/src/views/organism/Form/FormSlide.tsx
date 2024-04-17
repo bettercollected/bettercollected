@@ -130,7 +130,6 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false 
             formData.append('file_field_ids', fileObj.fieldId);
             formData.append('file_ids', fileObj.fileId);
         });
-
         const response: any = await submitResponse({
             workspaceId: workspace.id,
             formId: standardForm?.formId,
@@ -200,8 +199,6 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false 
 
         document.getElementById(`input-field-${fieldId}`)?.focus();
     };
-
-    console.log(formResponse);
 
     if (!formSlide) return <FullScreenLoader />;
 
