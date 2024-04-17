@@ -3,14 +3,15 @@ import { toast } from 'react-toastify';
 import environments from '@app/configs/environments';
 import { ButtonSize } from '@app/models/enums/button';
 import { Button } from '@app/shadcn/components/ui/button';
+import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
-import { useStandardForm } from '@app/store/jotai/fetchedForm';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import GreenCheckedCircle from '@app/views/atoms/Icons/GreenCheckedCircle';
 
 export default function FormPublishedModal(props: any) {
     const workspace = useAppSelector(selectWorkspace);
-    const { standardForm } = useStandardForm();
+
+    const standardForm = useAppSelector(selectForm);
     return (
         <div className="w-full">
             <div className="border-b-black-300 text-black-700 border-b p-4 text-xs">Form Published</div>

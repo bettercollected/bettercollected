@@ -4,8 +4,8 @@ import environments from '@app/configs/environments';
 import { Button } from '@app/shadcn/components/ui/button';
 import { Separator } from '@app/shadcn/components/ui/separator';
 import { cn } from '@app/shadcn/util/lib';
+import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
-import { useStandardForm } from '@app/store/jotai/fetchedForm';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { DesktopIcon } from '@app/views/atoms/Icons/DesktopIcon';
 import { MobileIcon } from '@app/views/atoms/Icons/MobileIcon';
@@ -19,7 +19,8 @@ const PreviewWrapper = ({
 }) => {
     const [key, setKey] = useState(1);
     const [isDesktopView, setIsDesktopView] = useState(true);
-    const { standardForm } = useStandardForm();
+
+    const standardForm = useAppSelector(selectForm)
     const workspace = useAppSelector(selectWorkspace);
 
     const mobileViewPreviewUrl = `${environments.NEXT_PUBLIC_HTTP_SCHEME}://${environments.NEXT_PUBLIC_V2_CLIENT_ENDPOINT_DOMAIN}/${workspace.workspaceName}/forms/${standardForm.formId}?isPreview=true`;

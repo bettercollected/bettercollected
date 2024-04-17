@@ -1,15 +1,9 @@
 'use client';
 
 import * as React from 'react';
-import { useState } from 'react';
 
 import { FormField } from '@app/models/dtos/form';
-import {
-    Collapsible,
-    CollapsibleContent,
-    CollapsibleTrigger
-} from '@app/shadcn/components/ui/collapsible';
-import { useStandardForm } from '@app/store/jotai/fetchedForm';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@app/shadcn/components/ui/collapsible';
 import { useFormState } from '@app/store/jotai/form';
 import { useFormResponse } from '@app/store/jotai/responderFormResponse';
 import { useResponderState } from '@app/store/jotai/responderFormState';
@@ -18,13 +12,7 @@ import Choice from '@app/views/atoms/ResponderFormFields/Choice';
 
 import QuestionWrapper from './QuestionQwrapper';
 
-export default function DropDownField({
-    field,
-    slideIndex
-}: {
-    field: FormField;
-    slideIndex: number;
-}) {
+export default function DropDownField({ field, slideIndex }: { field: FormField; slideIndex: number }) {
     const [isOpen, setIsOpen] = React.useState(false);
     const { theme } = useFormState();
     const { addFieldChoiceAnswer, formResponse } = useFormResponse();
@@ -36,12 +24,8 @@ export default function DropDownField({
             return null;
         }
         const selectedChoiceId = formResponse?.answers[field.id]?.choice?.value;
-        const choice = field?.properties?.choices?.find(
-            (choice) => choice.id === selectedChoiceId
-        );
-        const choiceIndex = field?.properties?.choices?.findIndex(
-            (choice) => choice.id === selectedChoiceId
-        );
+        const choice = field?.properties?.choices?.find((choice) => choice.id === selectedChoiceId);
+        const choiceIndex = field?.properties?.choices?.findIndex((choice) => choice.id === selectedChoiceId);
         function getChoiceValue() {
             return choice?.value ? choice?.value : `Item ${(choiceIndex ?? 0) + 1}`;
         }
@@ -72,29 +56,14 @@ export default function DropDownField({
         <QuestionWrapper field={field}>
             <Collapsible open={isOpen} onOpenChange={setIsOpen} className=" space-y-2">
                 <CollapsibleTrigger asChild>
-                    <div
-                        style={getTextStyle()}
-                        className="flex cursor-pointer items-center justify-between space-x-4 border-b-[1px] text-3xl"
-                    >
+                    <div style={getTextStyle()} className="flex cursor-pointer items-center justify-between space-x-4 border-b-[1px] text-3xl">
                         {choiceValue ? choiceValue : 'Select an Option'}
-                        <ChevronDown
-                            className={`duration-400 h-6 w-7 transition ${isOpen ? 'rotate-180' : ''}`}
-                            style={{ color: theme?.secondary }}
-                        />
+                        <ChevronDown className={`duration-400 h-6 w-7 transition ${isOpen ? 'rotate-180' : ''}`} style={{ color: theme?.secondary }} />
                     </div>
                 </CollapsibleTrigger>
                 <CollapsibleContent className="space-y-2">
                     {field.properties?.choices?.map((choice, index) => {
-                        return (
-                            <Choice
-                                key={choice.id}
-                                index={index}
-                                isSelected={choice.id === choiceValue}
-                                theme={theme}
-                                choice={choice}
-                                onClick={handleClick}
-                            />
-                        );
+                        return <Choice key={choice.id} index={index} isSelected={choice.id === choiceValue} theme={theme} choice={choice} onClick={handleClick} />;
                     })}
                 </CollapsibleContent>
             </Collapsible>

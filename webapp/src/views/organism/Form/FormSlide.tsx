@@ -14,7 +14,7 @@ import { Button } from '@app/shadcn/components/ui/button';
 import { FieldInput } from '@app/shadcn/components/ui/input';
 import { cn } from '@app/shadcn/util/lib';
 import { useAuthAtom } from '@app/store/jotai/auth';
-import { useFormSlide, useStandardForm } from '@app/store/jotai/fetchedForm';
+import { useFormSlide } from '@app/store/jotai/fetchedForm';
 import useFormAtom from '@app/store/jotai/formFile';
 import { useFormResponse } from '@app/store/jotai/responderFormResponse';
 import { useResponderState } from '@app/store/jotai/responderFormState';
@@ -33,6 +33,7 @@ import QuestionWrapper from '@app/views/molecules/ResponderFormFields/QuestionQw
 import RatingField from '@app/views/molecules/ResponderFormFields/RatingField';
 import YesNoField from '@app/views/molecules/ResponderFormFields/YesNoField';
 
+import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import ImageField from '../FormBuilder/Fields/Imagefield';
@@ -85,7 +86,8 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false 
     const formSlide = formSlideData ? formSlideData : formSlideFromState;
 
     const { currentSlide, setCurrentSlideToThankyouPage, nextSlide, previousSlide, currentField, setCurrentField } = useResponderState();
-    const { standardForm } = useStandardForm();
+
+    const standardForm = useAppSelector(selectForm);
     const { formResponse, setInvalidFields, setFormResponse } = useFormResponse();
     const workspace = useAppSelector(selectWorkspace);
     const [submitResponse, { isLoading }] = useSubmitResponseMutation();
