@@ -6,12 +6,8 @@ import { v4 } from 'uuid';
 
 import { FieldTypes, FormField } from '@app/models/dtos/form';
 import { FormSlideLayout } from '@app/models/enums/form';
-import {
-    useActiveFieldComponent,
-    useActiveSlideComponent
-} from '@app/store/jotai/activeBuilderComponent';
+import { useActiveFieldComponent, useActiveSlideComponent } from '@app/store/jotai/activeBuilderComponent';
 import { reorder } from '@app/utils/arrayUtils';
-
 
 const initialFieldsAtom = atom<FormField[]>([
     {
@@ -32,8 +28,7 @@ const initialFieldsAtom = atom<FormField[]>([
                 }
             ]
         },
-        imageUrl:
-            'https://s3.eu-central-1.wasabisys.com/bettercollected/images/v2defaultImage.png'
+        imageUrl: 'https://s3.eu-central-1.wasabisys.com/bettercollected/images/v2defaultImage.png'
     }
 ]);
 
@@ -53,10 +48,7 @@ export default function useFormFieldsAtom() {
             id: v4()
         };
         let spliceIndex;
-        if (
-            (activeSlideComponent?.index || activeSlideComponent?.index === 0) &&
-            activeSlideComponent?.index >= 0
-        ) {
+        if ((activeSlideComponent?.index || activeSlideComponent?.index === 0) && activeSlideComponent?.index >= 0) {
             spliceIndex = activeSlideComponent?.index + 1;
         } else {
             spliceIndex = formFields.length;
@@ -95,16 +87,14 @@ export default function useFormFieldsAtom() {
     };
 
     const getActiveSlide = () => {
-        if (activeSlideComponent?.index !== undefined)
-            return formFields[activeSlideComponent!.index];
+        if (activeSlideComponent?.index !== undefined) return formFields[activeSlideComponent!.index];
         return;
     };
 
     const activeSlide = getActiveSlide();
 
     const getActiveField = () => {
-        if (activeFieldComponent?.index !== undefined)
-            return activeSlide?.properties?.fields![activeFieldComponent.index];
+        if (activeFieldComponent?.index !== undefined) return activeSlide?.properties?.fields![activeFieldComponent.index];
         return;
     };
     const activeField = getActiveField();
@@ -116,11 +106,7 @@ export default function useFormFieldsAtom() {
         setFormFields(updatedSlides);
     };
 
-    const updateTitle = (
-        fieldIndex: number,
-        slideIndex: number,
-        titleText: JSONContent
-    ) => {
+    const updateTitle = (fieldIndex: number, slideIndex: number, titleText: JSONContent) => {
         const slide = formFields[slideIndex];
         slide.properties!.fields![fieldIndex] = {
             ...(slide.properties!.fields![fieldIndex] || {}),
@@ -136,48 +122,29 @@ export default function useFormFieldsAtom() {
         setFormFields(updatedSlides);
     };
 
-    const updateDescription = (
-        fieldIndex: number,
-        slideIndex: number,
-        description: string | undefined
-    ) => {
+    const updateDescription = (fieldIndex: number, slideIndex: number, description: string | undefined) => {
         const slide = formFields[slideIndex];
         slide.properties!.fields![fieldIndex].description = description;
         const updatedSlides = [...formFields];
         setFormFields(updatedSlides);
     };
 
-    const updateFieldPlaceholder = (
-        fieldIndex: number,
-        slideIndex: number,
-        placeholderText: string
-    ) => {
+    const updateFieldPlaceholder = (fieldIndex: number, slideIndex: number, placeholderText: string) => {
         const slide = formFields[slideIndex];
-        slide.properties!.fields![fieldIndex]['properties'] = slide.properties!.fields![
-            fieldIndex
-        ].properties || { fields: [] };
-        slide.properties!.fields![fieldIndex]!.properties!.placeholder =
-            placeholderText;
+        slide.properties!.fields![fieldIndex]['properties'] = slide.properties!.fields![fieldIndex].properties || { fields: [] };
+        slide.properties!.fields![fieldIndex]!.properties!.placeholder = placeholderText;
         const updatedSlides = [...formFields];
         setFormFields(updatedSlides);
     };
 
-    const updateChoiceFieldValue = (
-        fieldIndex: number,
-        slideIndex: number,
-        choiceId: string,
-        choiceValue: string
-    ) => {
+    const updateChoiceFieldValue = (fieldIndex: number, slideIndex: number, choiceId: string, choiceValue: string) => {
         const slide = formFields[slideIndex];
-        slide.properties!.fields![fieldIndex]!.properties!.choices =
-            slide.properties!.fields![fieldIndex]?.properties?.choices?.map(
-                (choice) => {
-                    if (choice.id === choiceId) {
-                        choice.value = choiceValue;
-                        return choice;
-                    } else return choice;
-                }
-            );
+        slide.properties!.fields![fieldIndex]!.properties!.choices = slide.properties!.fields![fieldIndex]?.properties?.choices?.map((choice) => {
+            if (choice.id === choiceId) {
+                choice.value = choiceValue;
+                return choice;
+            } else return choice;
+        });
         const updatedSlides = [...formFields];
         setFormFields(updatedSlides);
     };
@@ -192,11 +159,7 @@ export default function useFormFieldsAtom() {
         setFormFields(updatedSlides);
     };
 
-    const updateFieldRequired = (
-        fieldIndex: number,
-        slideIndex: number,
-        required: boolean
-    ) => {
+    const updateFieldRequired = (fieldIndex: number, slideIndex: number, required: boolean) => {
         formFields[slideIndex].properties!.fields![fieldIndex].validations = {
             ...formFields[slideIndex].properties!.fields![fieldIndex].validations,
             required: required
@@ -204,11 +167,7 @@ export default function useFormFieldsAtom() {
         setFormFields([...formFields]);
     };
 
-    const updateFieldValidation = (
-        fieldIndex: number,
-        slideIndex: number,
-        validation: any
-    ) => {
+    const updateFieldValidation = (fieldIndex: number, slideIndex: number, validation: any) => {
         formFields[slideIndex].properties!.fields![fieldIndex].validations = {
             ...formFields[slideIndex].properties!.fields![fieldIndex].validations,
             ...validation
@@ -224,13 +183,7 @@ export default function useFormFieldsAtom() {
         setFormFields([...formFields]);
     };
 
-    const updateSlideTheme = (color: {
-        title: string;
-        primary: string;
-        secondary: string;
-        tertiary: string;
-        accent: string;
-    }) => {
+    const updateSlideTheme = (color: { title: string; primary: string; secondary: string; tertiary: string; accent: string }) => {
         formFields[activeSlide?.index || 0].properties!.theme = {
             title: color.title,
             primary: color.primary,
@@ -243,8 +196,7 @@ export default function useFormFieldsAtom() {
 
     const updateSlideLayout = (layout: FormSlideLayout) => {
         if (!formFields[activeSlide?.index || 0].imageUrl) {
-            formFields[activeSlide?.index || 0].imageUrl =
-                'https://s3.eu-central-1.wasabisys.com/bettercollected/images/v2defaultImage.png';
+            formFields[activeSlide?.index || 0].imageUrl = 'https://s3.eu-central-1.wasabisys.com/bettercollected/images/v2defaultImage.png';
         }
         formFields[activeSlide?.index || 0].properties!.layout = layout;
         setFormFields([...formFields]);
@@ -255,28 +207,14 @@ export default function useFormFieldsAtom() {
         setFormFields([...formFields]);
     };
 
-    const moveFieldInASlide = (
-        slideIndex: number,
-        sourceIndex: number,
-        destinationIndex: number
-    ) => {
-        formFields![slideIndex]!.properties!.fields = reorder(
-            formFields![slideIndex]!.properties!.fields!,
-            sourceIndex,
-            destinationIndex
-        );
+    const moveFieldInASlide = (slideIndex: number, sourceIndex: number, destinationIndex: number) => {
+        formFields![slideIndex]!.properties!.fields = reorder(formFields![slideIndex]!.properties!.fields!, sourceIndex, destinationIndex);
         setFormFields([...formFields]);
     };
 
-    const updateFieldProperty = (
-        fieldIndex: number,
-        slideIndex: number,
-        property: string,
-        value: any
-    ) => {
+    const updateFieldProperty = (fieldIndex: number, slideIndex: number, property: string, value: any) => {
         formFields![slideIndex]!.properties!.fields![fieldIndex].properties = {
-            ...(formFields![slideIndex]!.properties!.fields![fieldIndex].properties ||
-                {}),
+            ...(formFields![slideIndex]!.properties!.fields![fieldIndex].properties || {}),
             [property]: value
         };
         setFormFields([...formFields]);
@@ -284,9 +222,7 @@ export default function useFormFieldsAtom() {
 
     const deleteField = (slideIndex: number, fieldIndex: number) => {
         formFields![slideIndex]!.properties!.fields!.splice(fieldIndex, 1);
-        formFields![slideIndex!].properties!.fields = formFields![
-            slideIndex!
-        ].properties!.fields?.map((field, index) => ({ ...field, index }));
+        formFields![slideIndex!].properties!.fields = formFields![slideIndex!].properties!.fields?.map((field, index) => ({ ...field, index }));
         setFormFields([...formFields]);
         setTimeout(() => {
             setActiveFieldComponent(null);
@@ -318,16 +254,10 @@ export default function useFormFieldsAtom() {
         setFormFields([...formFields]);
     };
 
-    const updateRatingSteps = (
-        slideIndex: number,
-        fieldIndex: number,
-        steps: number,
-        type?: FieldTypes
-    ) => {
+    const updateRatingSteps = (slideIndex: number, fieldIndex: number, steps: number, type?: FieldTypes) => {
         formFields![slideIndex]!.properties!.fields![fieldIndex].type = type;
         formFields![slideIndex]!.properties!.fields![fieldIndex].properties = {
-            ...(formFields![slideIndex]!.properties!.fields![fieldIndex].properties ||
-                {}),
+            ...(formFields![slideIndex]!.properties!.fields![fieldIndex].properties || {}),
             steps: steps
         };
         setFormFields([...formFields]);
@@ -337,19 +267,9 @@ export default function useFormFieldsAtom() {
         setFormFields([]);
     };
 
-    const getNewField = (
-        field: { name: string; type: FieldTypes; icon: any },
-        fieldId: string,
-        slideIndex: number
-    ) => {
-        const fieldIndex = formFields[slideIndex]?.properties?.fields?.length
-            ? formFields[slideIndex]?.properties?.fields?.length!
-            : 0;
-        if (
-            field.type === FieldTypes.YES_NO ||
-            field.type === FieldTypes.DROP_DOWN ||
-            field.type === FieldTypes.MULTIPLE_CHOICE
-        ) {
+    const getNewField = (field: { name: string; type: FieldTypes; icon: any }, fieldId: string, slideIndex: number) => {
+        const fieldIndex = formFields[slideIndex]?.properties?.fields?.length ? formFields[slideIndex]?.properties?.fields?.length! : 0;
+        if (field.type === FieldTypes.YES_NO || field.type === FieldTypes.DROP_DOWN || field.type === FieldTypes.MULTIPLE_CHOICE) {
             const firstChoiceId = v4();
             const secondChoiceId = v4();
             return {
@@ -370,10 +290,7 @@ export default function useFormFieldsAtom() {
                     ]
                 }
             };
-        } else if (
-            field.type === FieldTypes.RATING ||
-            field.type === FieldTypes.LINEAR_RATING
-        ) {
+        } else if (field.type === FieldTypes.RATING || field.type === FieldTypes.LINEAR_RATING) {
             return {
                 id: fieldId,
                 index: fieldIndex,

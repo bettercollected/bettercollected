@@ -31,8 +31,8 @@ function LeftDrawer({ formFields, activeSlideComponent }: { formFields: Array<Fo
     const fieldId = v4();
 
     function checkIfInputFieldExistsInSlide(slide: FormField) {
-        if (!slide.properties?.fields?.length) return false;
-        return slide.properties?.fields?.some((field) => field.type && V2InputFields.includes(field.type));
+        if (!slide?.properties?.fields?.length) return false;
+        return slide?.properties?.fields?.some((field) => field.type && V2InputFields.includes(field.type));
     }
 
     const handleAddField = (field: any) => {
@@ -42,16 +42,15 @@ function LeftDrawer({ formFields, activeSlideComponent }: { formFields: Array<Fo
         }
         const slideIndex = activeSlideComponent.index < 0 ? formFields.length - 1 : activeSlideComponent.index;
         const slide = formFields[slideIndex];
-        const slideId = checkIfInputFieldExistsInSlide(slide) && navbarState.multiplePages  ? v4() : slide.id;
-
-        if ((checkIfInputFieldExistsInSlide(slide) && navbarState.multiplePages )|| formFields.length === 0) {
+        const slideId = checkIfInputFieldExistsInSlide(slide) && navbarState.multiplePages ? v4() : slide.id;
+        if ((checkIfInputFieldExistsInSlide(slide) && navbarState.multiplePages) || formFields.length === 0) {
             addSlide({
                 id: slideId,
                 index: formFields.length,
                 type: FieldTypes.SLIDE,
                 properties: {
                     layout: FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT,
-                    fields: [getNewField(field, fieldId, slideIndex + 1)]
+                    fields: [getNewField(field, fieldId, formFields.length)]
                 },
                 imageUrl: 'https://s3.eu-central-1.wasabisys.com/bettercollected/images/v2defaultImage.png'
             });

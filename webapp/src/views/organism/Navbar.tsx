@@ -211,7 +211,7 @@ const Navbar = () => {
                                 <LogicOutlinedIcon />
                                 Logic
                             </div>
-                            <span className={'rounded-xl bg-pink-500 p-1 text-[10px] font-medium leading-normal text-white'}>Soon</span>
+                            <span className={'bg-new-pink rounded-xl p-1 px-2 text-[10px] font-medium leading-normal text-white'}>Soon</span>
                         </div>
                     </DropdownMenu.Trigger>
                 </DropdownMenu>
