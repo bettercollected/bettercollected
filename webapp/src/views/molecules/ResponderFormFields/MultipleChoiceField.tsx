@@ -27,6 +27,8 @@ const MultipleChoiceField = ({ field, slideIndex }: { field: FormField; slideInd
 
     const otherOption = formResponse?.answers?.[field.id]?.choice?.other || '';
 
+    console.log('otherOption', otherOption);
+
     const handleClick = (item: string) => {
         addFieldChoiceAnswer(field.id, item);
         setTimeout(() => {
@@ -52,7 +54,7 @@ const MultipleChoiceField = ({ field, slideIndex }: { field: FormField; slideInd
                         onChange={(e: any) => {
                             addOtherChoiceAnswer(field.id, e.target.value);
                         }}
-                        className={`flex justify-between rounded-xl border p-2 px-4`}
+                        className={`flex justify-between rounded-xl border p-2 px-4 text-base`}
                     />
                 )}
             </div>

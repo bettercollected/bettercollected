@@ -41,6 +41,14 @@ export default function MultipleChoiceWithMultipleSelection({ field, slideIndex 
     return (
         <QuestionWrapper field={field}>
             <div className="w-full space-y-2 overflow-hidden border-0 p-0">
+                <h1
+                    style={{
+                        color: currentSlide.properties?.theme?.secondary || theme?.secondary
+                    }}
+                    className="-mt-1 mb-1 font-medium"
+                >
+                    Choose as many as you like
+                </h1>
                 {field.properties?.choices?.map((choice, index) => {
                     const isSelected = selectedValues.includes(choice.id);
                     return <Choice key={choice.id} isSelected={isSelected} theme={theme} choice={choice} onClick={handleClick} index={index} />;
@@ -52,11 +60,11 @@ export default function MultipleChoiceWithMultipleSelection({ field, slideIndex 
                         $formTheme={theme}
                         textColor={currentSlide.properties?.theme?.secondary || theme?.secondary || 'text-black-500'}
                         value={otherOption}
-                        placeholder={`Other`}
+                        placeholder={`Other Choice`}
                         onChange={(e: any) => {
                             addOtherChoicesAnswer(field.id, e.target.value);
                         }}
-                        className={`flex justify-between rounded-xl border p-2 px-4`}
+                        className={`flex justify-between rounded-xl border p-2 px-4 text-base `}
                     />
                 )}
             </div>

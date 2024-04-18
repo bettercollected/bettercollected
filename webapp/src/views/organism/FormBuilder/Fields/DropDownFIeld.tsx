@@ -5,15 +5,7 @@ import { useFormState } from '@app/store/jotai/form';
 import { ArrowDown } from '@app/views/atoms/Icons/ArrowDown';
 import { PlusIcon } from '@app/views/atoms/Icons/Plus';
 
-const DropDownField = ({
-    field,
-    slide,
-    disabled
-}: {
-    field: FormField;
-    slide: FormField;
-    disabled: boolean;
-}) => {
+const DropDownField = ({ field, slide, disabled }: { field: FormField; slide: FormField; disabled: boolean }) => {
     const { updateChoiceFieldValue, addChoiceField } = useFormFieldsAtom();
     const { theme } = useFormState();
     return (
@@ -21,8 +13,7 @@ const DropDownField = ({
             {field.type === FieldTypes.DROP_DOWN ? (
                 <div
                     style={{
-                        borderColor:
-                            slide.properties?.theme?.tertiary || theme?.tertiary,
+                        borderColor: slide.properties?.theme?.tertiary || theme?.tertiary,
                         color: slide.properties?.theme?.tertiary || theme?.tertiary
                     }}
                     className="mb-2 flex w-full items-center justify-between border-0 border-b-[1px] py-2 text-3xl "
@@ -30,8 +21,7 @@ const DropDownField = ({
                     <h1>Select an option</h1>
                     <ArrowDown
                         style={{
-                            color:
-                                slide.properties?.theme?.secondary || theme?.secondary
+                            color: slide.properties?.theme?.secondary || theme?.secondary
                         }}
                     />
                 </div>
@@ -40,8 +30,7 @@ const DropDownField = ({
                 field.properties.allowMultipleSelection && (
                     <h1
                         style={{
-                            color:
-                                slide.properties?.theme?.secondary || theme?.secondary
+                            color: slide.properties?.theme?.secondary || theme?.secondary
                         }}
                         className="-mt-1 mb-1 font-medium"
                     >
@@ -57,22 +46,11 @@ const DropDownField = ({
                                 $slide={slide}
                                 type="text"
                                 $formTheme={theme}
-                                textColor={
-                                    slide.properties?.theme?.secondary ||
-                                    theme?.secondary ||
-                                    'text-black-500'
-                                }
+                                textColor={slide.properties?.theme?.secondary || theme?.secondary || 'text-black-500'}
                                 value={choice.value}
                                 key={index}
                                 placeholder={`Item ${index + 1}`}
-                                onChange={(e: any) =>
-                                    updateChoiceFieldValue(
-                                        field.index,
-                                        slide.index,
-                                        choice.id,
-                                        e.target.value
-                                    )
-                                }
+                                onChange={(e: any) => updateChoiceFieldValue(field.index, slide.index, choice.id, e.target.value)}
                                 className={`flex justify-between rounded-xl border p-2 px-4 text-base`}
                             />
                         );
@@ -82,10 +60,9 @@ const DropDownField = ({
                 <div
                     style={{
                         color: slide.properties?.theme?.tertiary || theme?.tertiary,
-                        borderColor:
-                            slide.properties?.theme?.tertiary || theme?.tertiary
+                        borderColor: slide.properties?.theme?.tertiary || theme?.tertiary
                     }}
-                    className={`mt-2 flex w-full justify-between rounded-xl border p-2 py-1 text-[32px]`}
+                    className={'flex justify-between rounded-xl border p-2 px-4 text-base'}
                 >
                     Other
                 </div>
