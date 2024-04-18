@@ -165,7 +165,7 @@ export default function TabularResponses({ form }: TabularResponsesProps) {
         return (
             <ExpandIcon
                 onClick={() => {
-                    openModal('VIEW_RESPONSE', { response: response, formFields: getFormFields() });
+                    openModal('VIEW_RESPONSE', { response: response, formFields: getFormFields(), formId: form.formId, workspaceId: workspace.id});
                 }}
             />
         );
@@ -227,7 +227,7 @@ export default function TabularResponses({ form }: TabularResponsesProps) {
     const { data, isLoading } = useGetFormsSubmissionsQuery(query, { skip: !workspace.id });
 
     const onClickExpandSingleResponse = (response: StandardFormResponseDto) => {
-        openModal('VIEW_RESPONSE', { response: response, formFields: getFormFields() });
+        openModal('VIEW_RESPONSE', { response: response, formFields: getFormFields(), formId: form.formId ,workspaceId:workspace.id });
     };
 
     return (

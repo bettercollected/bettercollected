@@ -39,7 +39,7 @@ const Form = ({ isPreviewMode = false, isMobileView = false }: { isPreviewMode?:
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 1 }}
-                        transition={{ duration: 0.5 }}
+                        transition={{ duration: 0.3 }}
                     >
                         <div className="relative h-full w-full">
                             <LayoutWrapper theme={standardForm.theme} disabled layout={standardForm.welcomePage?.layout} imageUrl={standardForm?.welcomePage?.imageUrl}>
@@ -56,7 +56,7 @@ const Form = ({ isPreviewMode = false, isMobileView = false }: { isPreviewMode?:
                         initial={{ opacity: 1, x: currentSlide > previousSlide ? '100%' : '-100%' }}
                         animate={{ opacity: 1, x: 0 }}
                         exit={{ opacity: 1, x: 0 }}
-                        transition={{ duration: 0.5, ease: 'linear' }}
+                        transition={{ duration: 0.3, ease: 'linear' }}
                     >
                         <div className="relative h-full w-full">
                             <FormSlide index={currentSlide} isPreviewMode={isPreviewMode} />
@@ -69,7 +69,7 @@ const Form = ({ isPreviewMode = false, isMobileView = false }: { isPreviewMode?:
                         key={'thank-you-page'}
                         initial={{ opacity: 1, x: '100%' }}
                         animate={{ opacity: 1, x: 0 }}
-                        transition={{ duration: 0.5, ease: 'linear' }}
+                        transition={{ duration: 0.3, ease: 'linear' }}
                     >
                         <div className="relative h-full w-full">
                             <LayoutWrapper theme={standardForm.theme} disabled layout={standardForm?.thankyouPage?.[0]?.layout} imageUrl={standardForm?.thankyouPage?.[0]?.imageUrl}>
