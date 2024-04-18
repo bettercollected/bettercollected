@@ -10,26 +10,21 @@ export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> 
     textColor?: string;
 }
 
-const ShadCNInput = React.forwardRef<HTMLInputElement, InputProps>(
-    ({ className, type, textColor, ...props }, ref) => {
-        const { theme } = useFormState();
+const ShadCNInput = React.forwardRef<HTMLInputElement, InputProps>(({ className, type, textColor, ...props }, ref) => {
+    const { theme } = useFormState();
 
-        return (
-            <input
-                style={{
-                    color: theme?.secondary
-                }}
-                type={type}
-                className={cn(
-                    `w-full border-0 border-b-[1px] px-0 py-2 text-[32px] disabled:cursor-not-allowed disabled:opacity-50`,
-                    className
-                )}
-                ref={ref}
-                {...props}
-            />
-        );
-    }
-);
+    return (
+        <input
+            style={{
+                color: theme?.secondary
+            }}
+            type={type}
+            className={cn(`w-full border-0 border-b-[1px] px-0 py-2 text-[32px] disabled:cursor-not-allowed disabled:opacity-50`, className)}
+            ref={ref}
+            {...props}
+        />
+    );
+});
 ShadCNInput.displayName = 'ShadCNInput';
 
 const FieldInput = styled(ShadCNInput)<{
@@ -38,6 +33,7 @@ const FieldInput = styled(ShadCNInput)<{
 }>(({ $slide, $formTheme }) => {
     const { theme } = useFormState();
     const themeColor = theme?.tertiary;
+    const secondaryColor = theme?.secondary;
     return {
         background: 'inherit',
         borderColor: themeColor,
@@ -45,7 +41,7 @@ const FieldInput = styled(ShadCNInput)<{
             color: `${themeColor} !important`
         },
         '&:focus': {
-            borderColor: themeColor
+            borderColor: secondaryColor
         }
     };
 });

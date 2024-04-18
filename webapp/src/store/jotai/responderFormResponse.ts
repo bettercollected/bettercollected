@@ -107,6 +107,7 @@ export const useFormResponse = () => {
                 [fieldId]: {
                     type: AnswerType.CHOICES,
                     choices: {
+                        ...formResponse.answers[fieldId]?.choices,
                         values: choices
                     }
                 }
