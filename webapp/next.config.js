@@ -45,7 +45,7 @@ const nextConfig = {
                 headers: [
                     {
                         key: 'X-Frame-Options',
-                        value: 'DENY'
+                        value: `ALLOW-FROM https://${process.env.NEXT_PUBLIC_DASHBOARD_DOMAIN}`
                     },
                     {
                         key: 'X-Content-Type-Options',
