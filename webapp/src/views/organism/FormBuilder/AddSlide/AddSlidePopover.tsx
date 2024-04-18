@@ -39,7 +39,7 @@ export default function AddSlidePopover() {
                 >
                     <PopoverTrigger>
                         <Button
-                            variant={'v2Button'}
+                            variant={'v2GhostButton'}
                             // className="!p-2"
                             size={ButtonSize.Small}
                         >
