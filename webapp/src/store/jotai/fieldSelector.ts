@@ -159,6 +159,13 @@ export default function useFormFieldsAtom() {
         setFormFields(updatedSlides);
     };
 
+    const removeChoiceField = (fieldIndex: number, slideIndex: number, choiceId: string) => {
+        const field = formFields[slideIndex].properties!.fields![fieldIndex];
+        field.properties && (field.properties.choices = field?.properties?.choices?.filter((choice) => choice.id != choiceId));
+        const updatedSlides = [...formFields];
+        setFormFields(updatedSlides);
+    };
+
     const updateFieldRequired = (fieldIndex: number, slideIndex: number, required: boolean) => {
         formFields[slideIndex].properties!.fields![fieldIndex].validations = {
             ...formFields[slideIndex].properties!.fields![fieldIndex].validations,
@@ -336,6 +343,7 @@ export default function useFormFieldsAtom() {
         resetFields,
         addMedia,
         getNewField,
-        addSlideFormTemplate
+        addSlideFormTemplate,
+        removeChoiceField
     };
 }

@@ -4,10 +4,12 @@ import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
 import { useFormState } from '@app/store/jotai/form';
 import { ArrowDown } from '@app/views/atoms/Icons/ArrowDown';
 import { PlusIcon } from '@app/views/atoms/Icons/Plus';
+import { useState } from 'react';
 
 const DropDownField = ({ field, slide, disabled }: { field: FormField; slide: FormField; disabled: boolean }) => {
-    const { updateChoiceFieldValue, addChoiceField } = useFormFieldsAtom();
+    const { updateChoiceFieldValue, addChoiceField, removeChoiceField } = useFormFieldsAtom();
     const { theme } = useFormState();
+    const [backspaceCount, setBackspaceCount] = useState(0);
     return (
         <>
             {field.type === FieldTypes.DROP_DOWN ? (
@@ -43,6 +45,17 @@ const DropDownField = ({ field, slide, disabled }: { field: FormField; slide: Fo
                     field.properties?.choices?.map((choice, index) => {
                         return (
                             <FieldInput
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Backspace') {
+                                        setBackspaceCount(backspaceCount + 1);
+                                    }
+                                    if (e.key === 'Backspace' && backspaceCount == 1 && !choice.value) {
+                                        console.log(choice.id);
+                                        removeChoiceField(field.index, slide.index, choice.id);
+                                        setBackspaceCount(0);
+                                    }
+                                }}
+                                onFocus={() => setBackspaceCount(0)}
                                 $slide={slide}
                                 type="text"
                                 $formTheme={theme}
