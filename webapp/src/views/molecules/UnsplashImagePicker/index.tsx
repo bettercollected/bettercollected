@@ -18,11 +18,7 @@ interface IUnsplashImagePickerProps {
     [key: string]: any;
 }
 
-export default function UnsplashImagePicker({
-    initialPhotoSearchQuery = '',
-    onPhotoSelect = (_: any) => {},
-    ...props
-}: IUnsplashImagePickerProps) {
+export default function UnsplashImagePicker({ initialPhotoSearchQuery = '', onPhotoSelect = (_: any) => {}, ...props }: IUnsplashImagePickerProps) {
     const [pics, setPics] = React.useState<any[]>([]);
     const [total, setTotal] = React.useState<number | undefined>();
     const [query, setQuery] = React.useState('');
@@ -36,10 +32,7 @@ export default function UnsplashImagePicker({
     const updatePageImage = props?.updatePageImage ?? (() => {});
 
     const unsplash = createApi({
-        accessKey:
-            environments.UNSPLASH_ACCESS_KEY ||
-            process.env.NEXT_PUBLIC_UNSPLASH_ACCESS_KEY ||
-            ''
+        accessKey: environments.UNSPLASH_ACCESS_KEY || ''
     });
 
     React.useEffect(() => {

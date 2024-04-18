@@ -83,11 +83,7 @@ const nextConfig = {
         FORM_PRIVACY_POLICY_URL: process.env.FORM_PRIVACY_POLICY_URL,
         GA_MEASUREMENT_ID: process.env.GA_MEASUREMENT_ID,
         MICROSOFT_CLARITY_TRACKING_CODE: process.env.MICROSOFT_CLARITY_TRACKING_CODE,
-        NEXT_PUBLIC_NODE_ENV: process.env.NEXT_PUBLIC_NODE_ENV ?? 'production',
-        UNSPLASH_APPLICATION_ID: process.env.UNSPLASH_APPLICATION_ID,
-        UNSPLASH_ACCESS_KEY: process.env.UNSPLASH_ACCESS_KEY,
-        UNSPLASH_SECRET_KEY: process.env.UNSPLASH_SECRET_KEY,
-        UNSPLASH_API_URL: process.env.UNSPLASH_API_URL ?? 'https://api.unsplash.com/'
+        NEXT_PUBLIC_NODE_ENV: process.env.NEXT_PUBLIC_NODE_ENV ?? 'production'
     },
 
     serverRuntimeConfig: {
