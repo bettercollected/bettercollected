@@ -41,7 +41,7 @@ export default function FormPage({ params }: { params: { form_id: string } }) {
 
     const { openDialogModal } = useDialogModal();
 
-    const standardForm = useAppSelector(selectForm);
+    const standardForm: any = useAppSelector(selectForm);
 
     const formId = params.form_id;
 

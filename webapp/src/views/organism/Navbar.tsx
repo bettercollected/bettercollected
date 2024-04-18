@@ -36,7 +36,7 @@ import BackButton from '../molecules/FormBuilder/BackButton';
 import PreviewWrapper from '../molecules/FormBuilder/PreviewWrapper';
 import Form from './Form/Form';
 import { Logic } from '@app/components/icons/logic';
-import {LogicOutlinedIcon} from "@app/views/atoms/Icons/LogicOutlinedIcon";
+import { LogicOutlinedIcon } from '@app/views/atoms/Icons/LogicOutlinedIcon';
 
 const Navbar = () => {
     const { activeSlide, formFields, addField, updateSlideImage, updateSlideLayout } = useFormFieldsAtom();
@@ -175,37 +175,43 @@ const Navbar = () => {
                             });
                         }}
                     >
-                        <div className={cn('!text-black-500 hover:!text-black-900 text-xs font-semibold hover:bg-inherit', navbarState.insertClicked && '!text-black-900')}>
-                            <PlusOutlined />
-                            <span>Insert</span>
+                        <div className={'flex items-center hover:bg-inherit'}>
+                            <div className={cn('!text-black-500 hover:!text-black-900 flex flex-row items-center gap-1 text-xs font-semibold hover:bg-inherit', navbarState.insertClicked && '!text-black-900')}>
+                                <PlusOutlined />
+                                <span>Insert</span>
+                            </div>
                         </div>
                     </DropdownMenu.Trigger>
                 </DropdownMenu>
 
                 <DropdownMenu>
                     <DropdownMenu.Trigger onClick={handleClickMedia}>
-                        <div className="!text-black-500 hover:!text-black-900 text-xs font-semibold hover:bg-inherit ">
-                            <MediaOutlinedIcon />
-                            Media
+                        <div className={'flex items-center hover:bg-inherit'}>
+                            <div className="!text-black-500 hover:!text-black-900 flex flex-row items-center gap-1 text-xs font-semibold ">
+                                <MediaOutlinedIcon />
+                                Media
+                            </div>
                         </div>
                     </DropdownMenu.Trigger>
                 </DropdownMenu>
                 <DropdownMenu>
                     <DropdownMenu.Trigger onClick={handleAddText}>
-                        <div className="!text-black-500 hover:!text-black-900 text-xs font-semibold hover:bg-inherit">
-                            <TextOutlinedIcon />
-                            Text
+                        <div className={'flex items-center hover:bg-inherit'}>
+                            <div className="!text-black-500 hover:!text-black-900 flex flex-row items-center gap-1 text-xs font-semibold ">
+                                <TextOutlinedIcon />
+                                <span>Text</span>
+                            </div>
                         </div>
                     </DropdownMenu.Trigger>
                 </DropdownMenu>
                 <DropdownMenu>
-                    <DropdownMenu.Trigger onClick={()=>{}}>
-                        <div className={'flex gap-[6px] items-center hover:bg-inherit'}>
-                            <div className="flex flex-row items-center gap-1 !text-black-500 hover:!text-black-900 text-xs font-semibold ">
+                    <DropdownMenu.Trigger onClick={() => {}}>
+                        <div className={'flex items-center hover:bg-inherit'}>
+                            <div className="!text-black-500 hover:!text-black-900 flex flex-row items-center gap-1 text-xs font-semibold ">
                                 <LogicOutlinedIcon />
                                 Logic
                             </div>
-                            <span className={'p-1 leading-normal rounded-xl font-medium text-[10px] bg-pink-500 text-white'}>Soon</span>
+                            <span className={'rounded-xl bg-pink-500 p-1 text-[10px] font-medium leading-normal text-white'}>Soon</span>
                         </div>
                     </DropdownMenu.Trigger>
                 </DropdownMenu>

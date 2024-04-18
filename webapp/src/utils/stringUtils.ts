@@ -50,3 +50,8 @@ export const trimTooltipTitle = (title?: string, limit: number = 20) => {
 export const getLastItem = (arr: string) => {
     return arr.charAt(arr.length - 1);
 };
+
+export function IsValidString<T>(value: T): boolean {
+    if (value === undefined || value === null) return false;
+    else return true;
+}
