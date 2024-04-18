@@ -8,13 +8,12 @@ import { FormTheme } from '@app/constants/theme';
 import { FormSlideLayout } from '@app/models/enums/form';
 import { Button } from '@app/shadcn/components/ui/button';
 import { cn } from '@app/shadcn/util/lib';
+import { selectAuth } from '@app/store/auth/slice';
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
-import { useAuthAtom } from '@app/store/jotai/auth';
 import { useResponderState } from '@app/store/jotai/responderFormState';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import UserAvatarDropDown from '@app/views/molecules/UserAvatarDropdown';
-import { selectAuth } from '@app/store/auth/slice';
 
 export default function WelcomePage({
     isPreviewMode,
@@ -35,14 +34,13 @@ export default function WelcomePage({
 
     const welcomePage = welcomePageData || standardForm.welcomePage;
     const formTheme = theme || standardForm?.theme;
-
     return (
         <div className={cn('flex h-full w-full flex-col justify-center', welcomePage?.layout === FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND_LEFT_ALIGN ? 'items-start' : 'items-center')}>
             <UserAvatarDropDown responderSignInUrl={isPreviewMode ? '' : responderSignInUrl} />
 
             <div className="flex h-full w-full max-w-[800px] flex-col justify-center">
                 <div className="text-[40px] font-bold leading-[48px]">{welcomePage?.title}</div>
-                {welcomePage?.description && <div className="text-black-700 mt-4 ">{welcomePageData?.description}</div>}
+                {welcomePage?.description && <div className="text-black-700 mt-4 ">{welcomePage?.description}</div>}
                 {!auth.id && !isPreviewMode && (
                     <div className="mt-16 flex max-w-[421px] flex-col rounded-lg bg-white bg-opacity-50 p-4">
                         <div className="flex items-center gap-2">

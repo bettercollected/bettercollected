@@ -103,7 +103,7 @@ function LeftDrawer({ formFields, activeSlideComponent }: { formFields: Array<Fo
                             }}
                         >
                             {activeSlideComponent.id === 'welcome-page' && <div className="absolute bottom-0 left-0 top-0 h-full w-1" style={{ background: 'blue' }}></div>}
-                            <div className=" text-black-900 mb-1 !text-[10px] font-medium">Welcome Screen</div>
+                            <div className=" text-black-900 mb-1 !text-[10px] font-medium">Welcome Page</div>
                             <div className="h-[30px] w-[54px] overflow-hidden rounded-lg">
                                 <div
                                     className={cn('shadow-slide flex !aspect-video flex-1 cursor-pointer items-center justify-center overflow-hidden rounded bg-white')}
@@ -175,7 +175,7 @@ function LeftDrawer({ formFields, activeSlideComponent }: { formFields: Array<Fo
                                 });
                             }}
                         >
-                            <div className=" text-black-900 mb-1 !text-[10px] font-medium">Thankyou Page</div>
+                            <div className=" text-black-900 mb-1 !text-[10px] font-medium">Thank You Page</div>
                             <div className="h-[30px] w-[54px] overflow-hidden rounded-lg">
                                 <div
                                     className={cn('shadow-slide flex !aspect-video flex-1 cursor-pointer items-center justify-center overflow-hidden rounded bg-white')}
