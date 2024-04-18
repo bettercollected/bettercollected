@@ -189,7 +189,7 @@ const Navbar = () => {
                         <div className={'flex items-center hover:bg-inherit'}>
                             <div className="!text-black-500 hover:!text-black-900 flex flex-row items-center gap-1 text-xs font-semibold ">
                                 <MediaOutlinedIcon />
-                                Media
+                                Layout Image
                             </div>
                         </div>
                     </DropdownMenu.Trigger>

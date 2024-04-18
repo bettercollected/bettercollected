@@ -96,7 +96,7 @@ export default function FormPage({ params }: { params: { form_id: string } }) {
             } else {
                 const copiedThankyouPage = deepCopy(standardForm?.thankyouPage || formState.thankyouPage);
                 const copiedWelcomePage = deepCopy(standardForm?.welcomePage || formState.welcomePage);
-                const form = { ...formState, thankyouPage: copiedThankyouPage, welcomePage: copiedWelcomePage };
+                const form = { ...formState, title: standardForm.title, thankyouPage: copiedThankyouPage, welcomePage: copiedWelcomePage };
                 setFormState(form);
             }
             const deepCopiedFormFields = deepCopy(standardForm?.fields || []);
