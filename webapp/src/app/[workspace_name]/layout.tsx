@@ -2,7 +2,6 @@ import React, { Suspense } from 'react';
 
 import { notFound } from 'next/navigation';
 
-import { store } from '@app/store/store';
 import FullScreenLoader from '@app/views/atoms/Loaders/FullScreenLoader';
 
 import { WorkspaceDispatcher } from './_dispatcher/WorkspaceDispatcher';
@@ -15,6 +14,7 @@ const getWorkspaceByName = async (workspaceName: string) => {
     const workspaceResponse = await fetch(process.env.API_ENDPOINT_HOST + '/workspaces?workspace_name=' + workspaceName);
 
     const workspace = await workspaceResponse.json();
+
     return workspace;
 };
 

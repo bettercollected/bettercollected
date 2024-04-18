@@ -13,6 +13,7 @@ import { useActiveFieldComponent, useActiveSlideComponent } from '@app/store/jot
 import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
 import { useFormState } from '@app/store/jotai/form';
 import { useNavbarState } from '@app/store/jotai/navbar';
+import { deepCopy } from '@app/utils/objectUtils';
 import AutoSaveForm from '@app/views/molecules/FormBuilder/AutoSaveForm';
 import LeftDrawer from '@app/views/organism/FormBuilder/LeftDrawer';
 import PropertiesDrawer from '@app/views/organism/FormBuilder/PropertiesDrawer';
@@ -20,8 +21,6 @@ import SlideBuilder from '@app/views/organism/FormBuilder/SlideBuilder';
 import ThankYouSlide from '@app/views/organism/FormBuilder/ThankYouPage';
 import WelcomeSlide from '@app/views/organism/FormBuilder/WelcomePage';
 import Navbar from '@app/views/organism/Navbar';
-import { deepCopy } from '@app/utils/objectUtils';
-import WelcomePage from '@app/views/organism/Form/WelcomePage';
 
 export default function FormPage({ params }: { params: { form_id: string } }) {
     const { formFields, setFormFields } = useFormFieldsAtom();
