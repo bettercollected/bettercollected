@@ -8,14 +8,13 @@ import UserAvatarDropDown from '@app/views/molecules/UserAvatarDropdown';
 import { Button } from '@app/shadcn/components/ui/button';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import environments from '@app/configs/environments';
-import { selectAuthStatus } from '@app/store/auth/selectors';
 import { selectAuth } from '@app/store/auth/slice';
 
 export default function ThankyouPage({ isPreviewMode }: { isPreviewMode: boolean }) {
     const standardForm = useAppSelector(selectForm);
     const workspace = useAppSelector(selectWorkspace);
     const auth = useAppSelector(selectAuth);
-    const submissionUrl = environments.NEXT_PUBLIC_HTTP_SCHEME + '://' + environments.FORM_DOMAIN + '/' + workspace.workspaceName;
+    const submissionUrl = environments.HTTP_SCHEME + '://' + environments.FORM_DOMAIN + '/' + workspace.workspaceName;
     return (
         <div
             className={cn('flex h-full w-full flex-col justify-center', standardForm?.thankyouPage![0]?.layout === FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND_LEFT_ALIGN ? 'items-start' : 'items-center')}
