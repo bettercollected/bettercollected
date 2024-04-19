@@ -146,12 +146,7 @@ export function getAnswerForField(response: StandardFormResponseDto, field: Stan
 
         case FieldTypes.MULTIPLE_CHOICE:
         case FieldTypes.DROP_DOWN:
-            if (field.properties?.allowMultipleSelection) {
-                const choices = field?.properties?.choices?.filter((choice: any) => answer?.choices?.values?.includes(choice.id));
-                return choices?.map((choice: any) => choice.value)?.join(', ');
-            } else {
-                return field?.properties?.choices?.find((choice: any) => choice.id === answer?.choice?.value)?.value;
-            }
+            return getChoicesValue(field, answer);
 
         case FormBuilderTagNames.INPUT_MULTIPLE_CHOICE:
         case FormBuilderTagNames.INPUT_DROPDOWN:
@@ -179,5 +174,32 @@ export function getAnswerForField(response: StandardFormResponseDto, field: Stan
             return answer?.file_metadata?.name;
         default:
             return '';
+    }
+}
+
+function getChoicesValue(field: StandardFormFieldDto, answer: any) {
+    const choices = field.properties?.allowMultipleSelection
+        ? field?.properties?.choices?.filter((choice: any) => answer?.choices?.values?.includes(choice.id))
+        : field?.properties?.choices?.filter((choice: any) => answer?.choice?.value?.includes(choice.id));
+    const otherValue = getMultipleChoiceOtherValue(answer, field.properties?.allowMultipleSelection);
+    const choicesValue = choices?.map((choice: any) => {
+        if (choice.value) {
+            return choice.value;
+        } else {
+            const choiceIndex = field?.properties?.choices?.findIndex((item: any) => item.id === choice.id);
+            return choiceIndex == -1 ? '' : 'Item ' + (+choiceIndex! + 1);
+        }
+    });
+    if (otherValue && choicesValue) {
+        return [...choicesValue, otherValue]?.join(',');
+    }
+    return choicesValue?.join(',');
+}
+
+function getMultipleChoiceOtherValue(answer: any, multipleSelection: boolean = false): string {
+    if (multipleSelection) {
+        return answer?.choices?.other ? answer.choices?.other : '';
+    } else {
+        return answer?.choice?.other ? answer.choice?.other : '';
     }
 }
