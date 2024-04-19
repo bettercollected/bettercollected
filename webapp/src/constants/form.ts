@@ -1,10 +1,9 @@
 import { v4 } from 'uuid';
 
-import { FieldTypes } from '@app/models/dtos/form';
+import { FieldTypes, StandardFormDto } from '@app/models/dtos/form';
 import { FormSlideLayout } from '@app/models/enums/form';
-import StandardForm from '@app/store/jotai/fetchedForm';
 
-export const defaultForm: StandardForm = {
+export const defaultForm: StandardFormDto = {
     formId: '',
     description: '',
     title: '',

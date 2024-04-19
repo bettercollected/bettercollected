@@ -1,10 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 
 import _ from 'lodash';
 
 import styled from 'styled-components';
 
-import { FormField } from '@app/models/dtos/form';
+import { StandardFormFieldDto } from '@app/models/dtos/form';
 import { useFormTheme } from '@app/store/jotai/fetchedForm';
 import { useFormState } from '@app/store/jotai/form';
 import { useFormResponse } from '@app/store/jotai/responderFormResponse';
@@ -13,7 +13,7 @@ import { useResponderState } from '@app/store/jotai/responderFormState';
 import QuestionWrapper from './QuestionQwrapper';
 
 const StyledDiv = styled.div<{
-    $slide?: FormField;
+    $slide?: StandardFormFieldDto;
     isBuilder: boolean;
 }>(({ $slide, isBuilder = false }) => {
     const { theme } = useFormState();
@@ -29,7 +29,7 @@ const StyledDiv = styled.div<{
     };
 });
 
-const LinearRatingSection = ({ field, slide, isBuilder = false }: { field: FormField; slide?: FormField; isBuilder?: boolean }) => {
+const LinearRatingSection = ({ field, slide, isBuilder = false }: { field: StandardFormFieldDto; slide?: StandardFormFieldDto; isBuilder?: boolean }) => {
     const theme = useFormTheme();
     const { formResponse, addFieldLinearRatingAnswer } = useFormResponse();
     const answer = formResponse.answers && formResponse.answers[field.id]?.number;
@@ -71,7 +71,7 @@ const LinearRatingSection = ({ field, slide, isBuilder = false }: { field: FormF
     );
 };
 
-const LinearRatingField = ({ field, slide, isBuilder = false }: { field: FormField; slide?: FormField; isBuilder?: boolean }) => {
+const LinearRatingField = ({ field, slide, isBuilder = false }: { field: StandardFormFieldDto; slide?: StandardFormFieldDto; isBuilder?: boolean }) => {
     return isBuilder ? (
         <LinearRatingSection field={field} slide={slide} isBuilder={isBuilder}></LinearRatingSection>
     ) : (

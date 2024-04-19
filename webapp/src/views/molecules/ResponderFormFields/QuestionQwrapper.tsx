@@ -1,6 +1,6 @@
 import parse from 'html-react-parser';
 
-import { FieldTypes, FormField } from '@app/models/dtos/form';
+import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import { useFormResponse } from '@app/store/jotai/responderFormResponse';
 import { getHtmlFromJson } from '@app/utils/richTextEditorExtenstion/getHtmlFromJson';
 import RequiredIcon from '@app/views/atoms/Icons/Required';
@@ -8,7 +8,7 @@ import RequiredIcon from '@app/views/atoms/Icons/Required';
 import { getPlaceholderValueForTitle } from '../RichTextEditor';
 import { renderImage } from '@app/views/organism/FormBuilder/Fields/renderField';
 
-export default function QuestionWrapper({ field, children }: { field: FormField; children?: React.ReactNode }) {
+export default function QuestionWrapper({ field, children }: { field: StandardFormFieldDto; children?: React.ReactNode }) {
     const { formResponse } = useFormResponse();
 
     const { invalidFields } = formResponse;

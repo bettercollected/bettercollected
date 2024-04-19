@@ -6,7 +6,7 @@ import { createApi } from 'unsplash-js';
 
 import environments from '@app/configs/environments';
 import { useDialogModal } from '@app/lib/hooks/useDialogModal';
-import { FormField } from '@app/models/dtos/form';
+import { StandardFormFieldDto } from '@app/models/dtos/form';
 import { Unsplash } from '@app/views/atoms/Icons/Brands/Unsplash';
 
 import PhotoList from './PhotoList';
@@ -15,6 +15,7 @@ import SearchBar from './PhotoSearch';
 interface IUnsplashImagePickerProps {
     initialPhotoSearchQuery?: string;
     onPhotoSelect?: (photo: any) => void;
+
     [key: string]: any;
 }
 
@@ -28,7 +29,7 @@ export default function UnsplashImagePicker({ initialPhotoSearchQuery = '', onPh
 
     const { closeDialogModal } = useDialogModal();
 
-    const activeSlide: FormField = props?.activeSlide;
+    const activeSlide: StandardFormFieldDto = props?.activeSlide;
     const updatePageImage = props?.updatePageImage ?? (() => {});
 
     const unsplash = createApi({

@@ -1,10 +1,8 @@
-import { useState } from 'react';
-
 import PhoneInput from 'react-phone-input-2';
 import 'react-phone-input-2/lib/style.css';
 import styled from 'styled-components';
 
-import { FormField } from '@app/models/dtos/form';
+import { StandardFormFieldDto } from '@app/models/dtos/form';
 import { useFormTheme } from '@app/store/jotai/fetchedForm';
 import { useFormState } from '@app/store/jotai/form';
 import { useFormResponse } from '@app/store/jotai/responderFormResponse';
@@ -57,7 +55,7 @@ const CustomPhoneInputField = styled(PhoneInput)(() => {
     };
 });
 
-export default function PhoneNumberField({ field }: { field: FormField }) {
+export default function PhoneNumberField({ field }: { field: StandardFormFieldDto }) {
     const theme = useFormTheme();
     const { addFieldPhoneNumberAnswer, removeAnswer, formResponse } = useFormResponse();
     const handleChange = (phone: string) => {
@@ -78,11 +76,7 @@ export default function PhoneNumberField({ field }: { field: FormField }) {
                 }}
             >
                 <CustomPhoneInputField
-                    value={
-                        (formResponse.answers &&
-                            formResponse.answers[field.id]?.phone_number) ||
-                        ''
-                    }
+                    value={(formResponse.answers && formResponse.answers[field.id]?.phone_number) || ''}
                     onChange={(e) => handleChange(e)}
                     country={'np'}
                     buttonStyle={{
@@ -96,10 +90,7 @@ export default function PhoneNumberField({ field }: { field: FormField }) {
                         border: '0px',
                         borderBottom: `1px solid ${theme?.tertiary}`
                     }}
-                    placeholder={
-                        field?.properties?.placeholder ||
-                        getPlaceholderValueForField(field.type)
-                    }
+                    placeholder={field?.properties?.placeholder || getPlaceholderValueForField(field.type)}
                     inputProps={{
                         className: 'bg-opacity-50 mx-14 border-0 border-b-[1px]',
                         id: `input-field-${field.id}`

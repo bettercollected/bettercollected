@@ -1,4 +1,4 @@
-import { FieldTypes, FormField } from '@app/models/dtos/form';
+import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import { FieldInput } from '@app/shadcn/components/ui/input';
 import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
 import { useFormState } from '@app/store/jotai/form';
@@ -6,7 +6,7 @@ import { ArrowDown } from '@app/views/atoms/Icons/ArrowDown';
 import { PlusIcon } from '@app/views/atoms/Icons/Plus';
 import { useState } from 'react';
 
-const DropDownField = ({ field, slide, disabled }: { field: FormField; slide: FormField; disabled: boolean }) => {
+const DropDownField = ({ field, slide, disabled }: { field: StandardFormFieldDto; slide: StandardFormFieldDto; disabled: boolean }) => {
     const { updateChoiceFieldValue, addChoiceField, removeChoiceField } = useFormFieldsAtom();
     const { theme } = useFormState();
     const [backspaceCount, setBackspaceCount] = useState(0);

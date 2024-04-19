@@ -1,6 +1,6 @@
-import { JSONContent, generateHTML } from '@tiptap/react';
+import { generateHTML, JSONContent } from '@tiptap/react';
 
-import { FieldTypes, FormField, StandardFormFieldDto } from '@app/models/dtos/form';
+import { FieldTypes, StandardFormFieldDto, StandardFormFieldDto } from '@app/models/dtos/form';
 import { Extenstions, getPlaceholderValueForTitle } from '@app/views/molecules/RichTextEditor';
 
 export function getHtmlFromJson(value: JSONContent | string | undefined) {
@@ -13,7 +13,7 @@ export function getHtmlFromJson(value: JSONContent | string | undefined) {
     return generateHTML(value, Extenstions);
 }
 
-export function extractTextfromJSON(field: FormField | StandardFormFieldDto): string {
+export function extractTextfromJSON(field: StandardFormFieldDto | StandardFormFieldDto): string {
     const htmlValue = getHtmlFromJson(field.title) ?? getPlaceholderValueForTitle(field.type || FieldTypes.TEXT);
     // .replace(/<[^>]+>/g, ' ')
     return htmlValue.replace(/<\/?[^>]+(>|$)/g, '');

@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 
-import { FormField } from '@app/models/dtos/form';
+import { StandardFormFieldDto } from '@app/models/dtos/form';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@app/shadcn/components/ui/collapsible';
 import { useFormState } from '@app/store/jotai/form';
 import { useFormResponse } from '@app/store/jotai/responderFormResponse';
@@ -12,7 +12,7 @@ import Choice from '@app/views/atoms/ResponderFormFields/Choice';
 
 import QuestionWrapper from './QuestionQwrapper';
 
-export default function DropDownField({ field, slideIndex }: { field: FormField; slideIndex: number }) {
+export default function DropDownField({ field, slideIndex }: { field: StandardFormFieldDto; slideIndex: number }) {
     const [isOpen, setIsOpen] = React.useState(false);
     const { theme } = useFormState();
     const { addFieldChoiceAnswer, formResponse } = useFormResponse();
@@ -26,9 +26,11 @@ export default function DropDownField({ field, slideIndex }: { field: FormField;
         const selectedChoiceId = formResponse?.answers[field.id]?.choice?.value;
         const choice = field?.properties?.choices?.find((choice) => choice.id === selectedChoiceId);
         const choiceIndex = field?.properties?.choices?.findIndex((choice) => choice.id === selectedChoiceId);
+
         function getChoiceValue() {
             return choice?.value ? choice?.value : `Item ${(choiceIndex ?? 0) + 1}`;
         }
+
         return selectedChoiceId ? getChoiceValue() : '';
     };
 

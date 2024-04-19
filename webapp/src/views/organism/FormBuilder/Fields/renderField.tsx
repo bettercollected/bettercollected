@@ -1,4 +1,4 @@
-import { FieldTypes, FormField } from '@app/models/dtos/form';
+import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import DateField from '@app/views/molecules/ResponderFormFields/DateField';
 import LinearRatingField from '@app/views/molecules/ResponderFormFields/LinearRating';
 import RatingField from '@app/views/molecules/ResponderFormFields/RatingField';
@@ -11,7 +11,7 @@ import Image from 'next/image';
 import ImageField from './Imagefield';
 import VideoField from './VideoField';
 
-export const renderImage = (field: FormField) => {
+export const renderImage = (field: StandardFormFieldDto) => {
     return field.imageUrl ? (
         <div className="relative">
             <div className=" aspect-video h-[168px] w-full">
@@ -23,7 +23,7 @@ export const renderImage = (field: FormField) => {
     );
 };
 
-function renderFieldWrapper(field: FormField, slide: FormField, disabled: boolean) {
+function renderFieldWrapper(field: StandardFormFieldDto, slide: StandardFormFieldDto, disabled: boolean) {
     return (
         <div className="relative h-full w-full space-y-2">
             {renderImage(field)}
@@ -32,7 +32,7 @@ function renderFieldWrapper(field: FormField, slide: FormField, disabled: boolea
     );
 }
 
-function renderField(field: FormField, slide: FormField, disabled: boolean) {
+function renderField(field: StandardFormFieldDto, slide: StandardFormFieldDto, disabled: boolean) {
     switch (field.type) {
         case FieldTypes.EMAIL:
         case FieldTypes.NUMBER:
