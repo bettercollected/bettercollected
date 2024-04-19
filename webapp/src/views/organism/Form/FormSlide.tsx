@@ -39,6 +39,7 @@ import { selectWorkspace } from '@app/store/workspaces/slice';
 import ImageField from '../FormBuilder/Fields/Imagefield';
 import VideoField from '../FormBuilder/Fields/VideoField';
 import SlideLayoutWrapper from '../Layout/SlideLayoutWrapper';
+import next from 'next';
 
 export function FormFieldComponent({ field, slideIndex }: { field: FormField; slideIndex: number }) {
     switch (field.type) {
@@ -93,6 +94,8 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false 
     const [submitResponse, { isLoading }] = useSubmitResponseMutation();
     const { files } = useFormAtom();
     const { authState } = useAuthAtom();
+
+    console.log('asdasd ', currentField, formSlideFromState);
 
     const onScroll = useCallback(
         (direction: number) => {
@@ -175,6 +178,14 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false 
 
             switch (event.key) {
                 case ENTER:
+                    if (currentField + 1 === formSlideFromState?.properties?.fields?.length) {
+                        onNext();
+                        break;
+                    } else {
+                        event.preventDefault();
+                        onScrollDebounced(1);
+                        break;
+                    }
                 case TAB:
                 case ARROW_DOWN:
                     event.preventDefault();
