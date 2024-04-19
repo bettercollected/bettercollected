@@ -1,10 +1,7 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 
-
-
 import environments from '@app/configs/environments';
 import { ICreateFormFromTemplate, ICreateTemplateFromForm, IFormTemplateDto } from '@app/store/redux/types';
-
 
 const FORM_TEMPLATE = 'FORM_TEMPLATE';
 

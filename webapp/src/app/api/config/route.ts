@@ -11,12 +11,16 @@ const config = {
 export type PublicConfigType = typeof config;
 
 // @ts-ignore
-export const getPublicConfig = (name: string) => (typeof window === 'undefined' ? config[name] : window.PUBLIC_CONFIG[name]);
+export const getPublicConfig = (name: string) => (typeof window === 'undefined' ? config[name] : window.PUBLIC_CONFIG?.[name]);
 
 export async function GET(res: any) {
-    return new Response(`window.PUBLIC_CONFIG = ${JSON.stringify(config)}`, {
-        headers: {
-            'content-type': 'application/javascript'
+    return new Response(
+        `window.PUBLIC_CONFIG = ${JSON.stringify(config)}
+    `,
+        {
+            headers: {
+                'content-type': 'application/javascript'
+            }
         }
-    });
+    );
 }

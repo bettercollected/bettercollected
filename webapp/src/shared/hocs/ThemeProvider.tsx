@@ -2,11 +2,12 @@
 
 import { ThemeProvider as NextThemeProvider } from 'next-themes';
 
-import { CacheProvider, EmotionCache, css } from '@emotion/react';
+import { CacheProvider, css, EmotionCache } from '@emotion/react';
 import { CssBaseline, GlobalStyles } from '@mui/material';
 
 import createEmotionCache from '@app/configs/createEmotionCache';
 import MuiThemeProvider from '@app/layouts/_muiThemeProvider';
+import React from 'react';
 
 const clientSideEmotionCache = createEmotionCache();
 
@@ -18,12 +19,7 @@ export default function ThemeProvider({
     emotionCache?: EmotionCache;
 }>) {
     return (
-        <NextThemeProvider
-            attribute="class"
-            enableSystem={true}
-            forcedTheme="light"
-            defaultTheme="light"
-        >
+        <NextThemeProvider attribute="class" enableSystem={true} forcedTheme="light" defaultTheme="light">
             <CacheProvider value={emotionCache}>
                 <MuiThemeProvider>
                     {/* CssBaseline kickstart an elegant, consistent, and simple baseline to build upon. */}
