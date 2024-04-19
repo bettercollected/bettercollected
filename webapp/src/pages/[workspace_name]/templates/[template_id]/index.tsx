@@ -72,7 +72,7 @@ const SingleTemplate = (props: any) => {
                 toast('Created Form Successfully', { type: 'success' });
                 const editFormUrl = `/${workspace.workspaceName}/dashboard/forms/${response?.data?.formId}/edit`;
                 if (response?.data?.builderVersion === 'v2') {
-                    router.push(environments.HTTP_SCHEME + environments.V2_BUILDER_DOMAIN + editFormUrl);
+                    router.push(environments.HTTP_SCHEME + environments.DASHBOARD_DOMAIN + editFormUrl);
                 } else {
                     router.push(editFormUrl);
                 }
@@ -96,10 +96,10 @@ const SingleTemplate = (props: any) => {
     return (
         <Layout showNavbar className={'bg-white !px-0'} childClassName={'!h-screen'}>
             <NextSeo title={data?.title + ' | ' + workspace.workspaceName} noindex={false} nofollow={false} />
-            <div className={'py-3 px-5 flex justify-between items-center'}>
-                <div className="flex items-center gap-1 pt-0 md:pt-2 cursor-pointer" onClick={handleClickBack}>
-                    <ChevronForward className=" rotate-180 h-6 w-6  p-[2px]" />
-                    <p className={'text-sm text-black-700 font-normal'}>{t('BUTTON.BACK')}</p>
+            <div className={'flex items-center justify-between px-5 py-3'}>
+                <div className="flex cursor-pointer items-center gap-1 pt-0 md:pt-2" onClick={handleClickBack}>
+                    <ChevronForward className=" h-6 w-6 rotate-180  p-[2px]" />
+                    <p className={'text-black-700 text-sm font-normal'}>{t('BUTTON.BACK')}</p>
                 </div>
                 <div className={'flex flex-row gap-1 md:gap-4'}>
                     {!isMobile ? (

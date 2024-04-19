@@ -57,8 +57,6 @@ const environments = {
 
     // V2 builder
     ENABLE_V2_BUILDER: (publicRuntimeConfig.ENABLE_V2_BUILDER && (publicRuntimeConfig.ENABLE_V2_BUILDER === 'true' || publicRuntimeConfig.ENABLE_V2_BUILDER === true)) ?? false,
-    V2_BUILDER_DOMAIN: publicRuntimeConfig.V2_BUILDER_DOMAIN || '',
-    V2_FORM_DOMAIN: publicRuntimeConfig.V2_FORM_DOMAIN,
 
     // internal configs
     IS_IN_PRODUCTION_MODE,
@@ -94,8 +92,6 @@ const environments = {
     AUTH_ENABLED: false,
 
     ///Form Webbuilder
-    NEXT_PUBLIC_V1_CLIENT_ENDPOINT_DOMAIN: process.env.NEXT_PUBLIC_V1_CLIENT_ENDPOINT_DOMAIN || 'forms.bettercollected.io',
-    NEXT_PUBLIC_V2_CLIENT_ENDPOINT_DOMAIN: process.env.NEXT_PUBLIC_V2_CLIENT_ENDPOINT_DOMAIN || 'forms.bettercollected.io',
     FORM_PRIVACY_POLICY_URL: process.env.FORM_PRIVACY_POLICY_URL ?? 'https://bettercollected.com/privacy-policy',
 
     // run-time config
@@ -103,6 +99,7 @@ const environments = {
 
     // REfactored Environment Variables
     DASHBOARD_DOMAIN: getPublicConfig('DASHBOARD_DOMAIN') ?? 'admin.bettercollected.io',
+    FORM_DOMAIN: getPublicConfig('FORM_DOMAIN'),
     HTTP_SCHEME: getPublicConfig('HTTP_SCHEME')
 };
 

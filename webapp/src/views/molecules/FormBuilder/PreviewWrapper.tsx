@@ -17,7 +17,7 @@ const PreviewWrapper = ({ children, handleResetResponderState }: { children: Rea
     const standardForm = useAppSelector(selectForm);
     const workspace = useAppSelector(selectWorkspace);
 
-    const mobileViewPreviewUrl = `${environments.HTTP_SCHEME}${environments.NEXT_PUBLIC_V2_CLIENT_ENDPOINT_DOMAIN}/${workspace.workspaceName}/forms/${standardForm.formId}?isPreview=true`;
+    const mobileViewPreviewUrl = `${environments.HTTP_SCHEME}${environments.FORM_DOMAIN}/${workspace.workspaceName}/forms/${standardForm.formId}?isPreview=true`;
     return (
         <div className=" h-full w-full bg-white">
             <nav className="flex h-14 flex-row justify-between px-4 py-2">
