@@ -27,6 +27,12 @@ import { useIsMobile } from '@app/lib/hooks/use-breakpoint';
 import { getAuthUserPropsWithWorkspace } from '@app/lib/serverSideProps';
 import { useCreateFormFromTemplateMutation, useGetTemplateByIdQuery, useImportTemplateMutation } from '@app/store/template/api';
 import { convertFormTemplateToStandardForm } from '@app/utils/convertDataType';
+import { StandardFormDto } from '@app/models/dtos/form';
+import { IFormTemplateDto } from '@app/models/dtos/template';
+import LayoutWrapper from '@app/views/organism/Layout/LayoutWrapper';
+import WelcomePage from '@app/views/organism/Form/WelcomePage';
+import FormSlidePreview from '@app/views/organism/FormPreview/FormSlidePreview';
+import SlideBuilder from '@app/views/organism/FormBuilder/SlideBuilder';
 
 const SingleTemplate = (props: any) => {
     const { workspace, templateId } = props;
@@ -104,21 +110,24 @@ const SingleTemplate = (props: any) => {
                 <div className={'flex flex-row gap-1 md:gap-4'}>
                     {!isMobile ? (
                         <>
-                            {data?.workspaceId === workspace.id ? (
-                                <AppButton icon={<SettingsIcon className={'text-brand-500'} />} variant={ButtonVariant.Ghost} onClick={handleClickSetting}>
-                                    {t('SETTINGS')}
-                                </AppButton>
-                            ) : (
-                                <AppButton variant={ButtonVariant.Secondary} onClick={handleImportTemplate}>
-                                    {t('TEMPLATE.BUTTONS.IMPORT_TEMPLATE')}
-                                </AppButton>
-                            )}
-                            {data?.builderVersion !== 'v2' && <EditTemplateButton templateId={templateId} />}
-                            <AppButton onClick={handleUseTemplate}> {t('TEMPLATE.BUTTONS.USE_TEMPLATE')}</AppButton>
+                            {
+                                data?.workspaceId === workspace.id && (
+                                    <AppButton icon={<SettingsIcon className={'text-brand-500'} />} variant={ButtonVariant.Ghost} onClick={handleClickSetting}>
+                                        {t('SETTINGS')}
+                                    </AppButton>
+                                )
+                                // : (
+                                //     <AppButton variant={ButtonVariant.Secondary} onClick={handleImportTemplate}>
+                                //         {t('TEMPLATE.BUTTONS.IMPORT_TEMPLATE')}
+                                //     </AppButton>
+                                // )
+                            }
+                            {/* {data?.builderVersion !== 'v2' && <EditTemplateButton templateId={templateId} />}
+                            <AppButton onClick={handleUseTemplate}> {t('TEMPLATE.BUTTONS.USE_TEMPLATE')}</AppButton> */}
                         </>
                     ) : (
                         <>
-                            <AppButton onClick={handleUseTemplate}> {t('TEMPLATE.BUTTONS.USE_TEMPLATE')}</AppButton>
+                            {/* <AppButton onClick={handleUseTemplate}> {t('TEMPLATE.BUTTONS.USE_TEMPLATE')}</AppButton> */}
                             <MenuDropdown
                                 width={180}
                                 showExpandMore={false}
@@ -136,23 +145,43 @@ const SingleTemplate = (props: any) => {
                                     </div>
                                 }
                             >
-                                <MenuItem onClick={handleEditTemplate} className="body4">
+                                {/* <MenuItem onClick={handleEditTemplate} className="body4">
                                     <ListItemIcon>
                                         <EditIcon />
                                     </ListItemIcon>
                                     <span>{t('BUTTON.EDIT')}</span>
-                                </MenuItem>
-                                <MenuItem onClick={data?.workspaceId === workspace.id ? handleClickSetting : handleImportTemplate} className="body4">
-                                    <ListItemIcon>{data?.workspaceId === workspace.id ? <SettingsIcon /> : <ArrowUp height={16} width={16} />}</ListItemIcon>
-                                    <span>{data?.workspaceId === workspace.id ? t('SETTINGS') : t('TEMPLATE.BUTTONS.IMPORT_TEMPLATE')}</span>
-                                </MenuItem>
+                                </MenuItem> */}
+                                {data?.workspaceId === workspace.id && (
+                                    <MenuItem onClick={data?.workspaceId === workspace.id ? handleClickSetting : handleImportTemplate} className="body4">
+                                        <ListItemIcon>{data?.workspaceId === workspace.id ? <SettingsIcon /> : <ArrowUp height={16} width={16} />}</ListItemIcon>
+                                        <span>{data?.workspaceId === workspace.id ? t('SETTINGS') : t('TEMPLATE.BUTTONS.IMPORT_TEMPLATE')}</span>
+                                    </MenuItem>
+                                )}
                             </MenuDropdown>
                         </>
                     )}
                 </div>
             </div>
-            {data && <FormRenderer isDisabled form={convertFormTemplateToStandardForm(data)} />}
+            {data && (data.builderVersion === 'v2' ? <TemplatePreview template={data} /> : <FormRenderer isDisabled form={convertFormTemplateToStandardForm(data)} />)}
         </Layout>
+    );
+};
+
+const TemplatePreview = ({ template }: { template: IFormTemplateDto }) => {
+    return (
+        <div className="flex !h-full w-full flex-row overflow-hidden  md:px-20">
+            <div className="flex flex-wrap items-start justify-center md:justify-start  gap-2">
+                {template?.fields?.map((slide) => (
+                    <div className="mb-2 flex w-min cursor-pointer flex-col  rounded-lg border border-transparent p-1 hover:border-pink-500" key={slide?.id}>
+                        <div className="border-black-300 relative aspect-video w-[250px] md:w-[500px] overflow-hidden rounded-md border">
+                            <div className="pointer-events-none h-[720px] w-[1280px] scale-[0.1953] md:scale-[0.39]" style={{ transformOrigin: 'top left' }}>
+                                <FormSlidePreview slide={slide} theme={template.theme} />
+                            </div>
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </div>
     );
 };
 

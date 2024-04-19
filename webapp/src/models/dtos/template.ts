@@ -23,4 +23,5 @@ export interface IFormTemplateDto {
     builderVersion?: string;
     welcomePage?: any;
     thankyouPage?: any;
+    theme?: any;
 }
