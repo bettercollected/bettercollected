@@ -43,7 +43,7 @@ const FetchFormWrapper = ({ slug }: { slug: string }) => {
         }
     }, [data]);
 
-    const hasCustomDomain = window.location.host !== environments.NEXT_PUBLIC_V1_CLIENT_ENDPOINT_DOMAIN;
+    const hasCustomDomain = window.location.host !== environments.FORM_DOMAIN;
 
     if (isLoading || error) {
         return <FullScreenLoader />;

@@ -126,11 +126,6 @@ const nextConfig = {
         ENABLE_COLLECT_EMAILS: process.env.ENABLE_COLLECT_EMAILS || false,
         ENABLE_RESPONSE_EDITING: process.env.ENABLE_RESPONSE_EDITING || false,
 
-        // V2 builder
-        ENABLE_V2_BUILDER: process.env.ENABLE_V2_BUILDER || false,
-        V2_BUILDER_DOMAIN: process.env.V2_BUILDER_DOMAIN || '',
-        V2_FORM_DOMAIN: process.env.V2_FORM_DOMAIN || '',
-
         // Enable Suggest price allowing user to get pro feature for free
         ENABLE_SUGGEST_PRICE: process.env.ENABLE_SUGGEST_PRICE,
 

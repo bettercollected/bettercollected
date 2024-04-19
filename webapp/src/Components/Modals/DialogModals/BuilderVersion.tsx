@@ -36,7 +36,7 @@ export default function BuilderVersionSelectorModal() {
     };
 
     const createV2Form = () => {
-        router.push(`${environments.HTTP_SCHEME}${environments.V2_BUILDER_DOMAIN}/${workspace?.workspaceName}/dashboard/form/create`);
+        router.push(`${environments.HTTP_SCHEME}${environments.DASHBOARD_DOMAIN}/${workspace?.workspaceName}/dashboard/form/create`);
     };
 
     return (

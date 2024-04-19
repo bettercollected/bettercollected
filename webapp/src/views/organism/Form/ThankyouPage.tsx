@@ -15,7 +15,7 @@ export default function ThankyouPage({ isPreviewMode }: { isPreviewMode: boolean
     const standardForm = useAppSelector(selectForm);
     const workspace = useAppSelector(selectWorkspace);
     const auth = useAppSelector(selectAuth);
-    const submissionUrl = environments.NEXT_PUBLIC_HTTP_SCHEME + '://' + environments.NEXT_PUBLIC_V2_CLIENT_ENDPOINT_DOMAIN + '/' + workspace.workspaceName;
+    const submissionUrl = environments.NEXT_PUBLIC_HTTP_SCHEME + '://' + environments.FORM_DOMAIN + '/' + workspace.workspaceName;
     return (
         <div
             className={cn('flex h-full w-full flex-col justify-center', standardForm?.thankyouPage![0]?.layout === FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND_LEFT_ALIGN ? 'items-start' : 'items-center')}

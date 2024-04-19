@@ -70,7 +70,7 @@ export default function TemplatePage(props: any) {
                 toast('Created Form Successfully', { type: 'success' });
                 const editFormUrl = `/${workspace.workspaceName}/dashboard/forms/${response?.data?.formId}/edit`;
                 if (response?.data?.builderVersion === 'v2') {
-                    router.push(environments.HTTP_SCHEME + environments.V2_BUILDER_DOMAIN + editFormUrl);
+                    router.push(environments.HTTP_SCHEME + environments.DASHBOARD_DOMAIN + editFormUrl);
                 } else {
                     router.push(editFormUrl);
                 }

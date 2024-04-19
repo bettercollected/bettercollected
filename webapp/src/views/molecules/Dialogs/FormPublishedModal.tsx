@@ -26,14 +26,15 @@ export default function FormPublishedModal(props: any) {
                 </div>
                 <div className="flex items-center  gap-2">
                     <div className="text-black-700 p4-new bg-black-100 rounded-md px-3 py-2">
-                        https://forms.bettercollected.io/{workspace.workspaceName}
+                        {environments.HTTP_SCHEME}
+                        {environments.FORM_DOMAIN}/{workspace.workspaceName}
                         /forms/
                         <span className="text-pink-500">{standardForm.settings?.customUrl}</span>
                     </div>
                     <Button
                         variant={'v2Button'}
                         onClick={() => {
-                            navigator.clipboard.writeText(`${environments.HTTP_SCHEME}${environments.NEXT_PUBLIC_V2_CLIENT_ENDPOINT_DOMAIN}/${workspace.workspaceName}/forms/${standardForm.formId}`);
+                            navigator.clipboard.writeText(`${environments.HTTP_SCHEME}${environments.FORM_DOMAIN}/${workspace.workspaceName}/forms/${standardForm.formId}`);
                             toast('Copied!');
                         }}
                     >
