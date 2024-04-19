@@ -2,7 +2,7 @@ import * as React from 'react';
 
 import styled from 'styled-components';
 
-import { FormField } from '@app/models/dtos/form';
+import { StandardFormFieldDto } from '@app/models/dtos/form';
 import { cn } from '@app/shadcn/util/lib';
 import { IThemeState, useFormState } from '@app/store/jotai/form';
 
@@ -28,7 +28,7 @@ const ShadCNInput = React.forwardRef<HTMLInputElement, InputProps>(({ className,
 ShadCNInput.displayName = 'ShadCNInput';
 
 const FieldInput = styled(ShadCNInput)<{
-    $slide?: FormField;
+    $slide?: StandardFormFieldDto;
     $formTheme?: IThemeState;
 }>(({ $slide, $formTheme }) => {
     const { theme } = useFormState();

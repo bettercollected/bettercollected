@@ -1,4 +1,4 @@
-import { FormField } from '@app/models/dtos/form';
+import { StandardFormFieldDto } from '@app/models/dtos/form';
 
 export interface IFormTemplateSettings {
     isPublic: boolean;
@@ -15,7 +15,7 @@ export interface IFormTemplateDto {
     coverImage: string;
     category: TemplateCategory;
     buttonText: string;
-    fields: Array<FormField>;
+    fields: Array<StandardFormFieldDto>;
     settings: IFormTemplateSettings;
     createdBy: string;
     importedFrom: string;

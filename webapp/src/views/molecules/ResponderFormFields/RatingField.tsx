@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 
 import _ from 'lodash';
 
-import { FormField } from '@app/models/dtos/form';
+import { StandardFormFieldDto } from '@app/models/dtos/form';
 import { useFormState } from '@app/store/jotai/form';
 import { useFormResponse } from '@app/store/jotai/responderFormResponse';
 import { useResponderState } from '@app/store/jotai/responderFormState';
@@ -10,15 +10,7 @@ import { StarIcon } from '@app/views/atoms/Icons/Star';
 
 import QuestionWrapper from './QuestionQwrapper';
 
-export default function RatingField({
-    field,
-    slide,
-    isBuilder = false
-}: {
-    field: FormField;
-    slide?: FormField;
-    isBuilder?: boolean;
-}) {
+export default function RatingField({ field, slide, isBuilder = false }: { field: StandardFormFieldDto; slide?: StandardFormFieldDto; isBuilder?: boolean }) {
     const { addFieldRatingAnswer, formResponse } = useFormResponse();
     const answer = formResponse.answers && formResponse.answers[field.id]?.number;
     const [hovered, setHovered] = useState(-1);
@@ -47,10 +39,7 @@ export default function RatingField({
                     return (
                         <span
                             style={{
-                                color:
-                                    mouseOver || isBuilder
-                                        ? theme?.tertiary
-                                        : theme?.secondary
+                                color: mouseOver || isBuilder ? theme?.tertiary : theme?.secondary
                             }}
                             key={index}
                             onMouseOut={() => {
@@ -69,16 +58,7 @@ export default function RatingField({
                                 if (!isBuilder) setHovered(index);
                             }}
                         >
-                            <StarIcon
-                                fill={
-                                    index <= hovered
-                                        ? theme?.tertiary
-                                        : index <= (answer ?? 0) - 1 && hovered < 0
-                                          ? theme?.secondary
-                                          : theme?.accent
-                                }
-                                stroke={theme?.secondary}
-                            />
+                            <StarIcon fill={index <= hovered ? theme?.tertiary : index <= (answer ?? 0) - 1 && hovered < 0 ? theme?.secondary : theme?.accent} stroke={theme?.secondary} />
                         </span>
                     );
                 })}

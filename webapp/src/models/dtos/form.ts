@@ -45,20 +45,19 @@ export interface StandardFormFieldDto {
     properties?: StandardFormFieldProperties;
     value?: string;
     attachment?: any;
-    title: string | JSONContent;
+    title?: string | JSONContent;
     description?: string | null;
     type:
         | {
-        type: string;
-        options: Array<any>;
-    }
+              type: string;
+              options: Array<any>;
+          }
         | any;
     isMediaContent?: boolean;
     mediaContent?: boolean;
     isGroupQuestion?: boolean;
     groupQuestion?: any;
     answer?: any;
-
     index: number;
     imageUrl?: string;
 }
@@ -73,7 +72,7 @@ export interface StandardFormDto {
     provider?: string;
     responses?: number;
     deletionRequests?: number;
-    groups: Array<ResponderGroupDto>;
+    groups?: Array<ResponderGroupDto>;
     builderVersion?: string;
     isMultiPage?: boolean;
     welcomePage?: {
@@ -111,7 +110,7 @@ export interface StandardFormDto {
     };
     isPublished?: boolean;
     importerDetails?: UserStatus;
-    consent: Array<IConsentField>;
+    consent?: Array<IConsentField>;
     fields: Array<StandardFormFieldDto>;
     createdTime?: string | Date;
     modifiedTime?: string | Date;
@@ -193,103 +192,6 @@ enum EmbedProvider {
     NO_EMBED = 'no_embed'
 }
 
-export interface FieldAttachment {
-    type?: AttachmentType;
-    href?: string;
-    scale: number;
-    properties?: AttachmentProperties;
-    embed_provider?: EmbedProvider;
-}
-
-export interface StandardForm {
-    formId: string;
-    builderVersion?: string;
-    title: string;
-    description?: string | null | undefined;
-    buttonText?: string;
-    buttonLink?: string;
-    version?: number;
-    settings?: {
-        pinned: boolean;
-        embedUrl?: string;
-        customUrl: string;
-        responseDataOwnerField?: string;
-        private?: boolean;
-        provider: string;
-        isPublished?: boolean;
-        privacyPolicyUrl?: string;
-        responseExpiration?: string;
-        disableBranding: boolean;
-        hidden: boolean;
-        formCloseDate?: string;
-        requireVerifiedIdentity?: boolean;
-        showSubmissionNumber?: boolean;
-    };
-    isMultiPage?: boolean;
-    welcomePage?: {
-        title?: string;
-        description?: string;
-        layout?: FormSlideLayout;
-        imageUrl?: string;
-        buttonText?: string;
-    };
-    thankyouPage?: Array<{
-        message?: string;
-        buttonText?: string;
-        buttonLink?: string;
-        layout?: FormSlideLayout;
-        imageUrl?: string;
-    }>;
-    fields: Array<FormField>;
-    theme?: FormTheme;
-}
-
-export interface FormField {
-    index: number;
-    id: string;
-    properties?: FormFieldProperties;
-    validations?: FieldValidations;
-    title?: JSONContent | string;
-    description?: string | null;
-    type?: FieldTypes;
-    value?: string;
-    imageUrl?: string;
-    attachment?: FieldAttachment;
-}
-
-interface FieldValidations {
-    required?: boolean;
-    maxLength?: number;
-    minLength?: number;
-    minValue?: number;
-    mazValue?: number;
-    regex?: string;
-    minChoice?: number;
-    maxChoices?: number;
-}
-
-export interface FormFieldProperties {
-    hidden?: boolean;
-    fields?: Array<FormField>;
-    placeholder?: string;
-    choices?: Array<FieldChoice>;
-    steps?: number;
-    startFrom?: number;
-    ratingShape?: string;
-    dateFormat?: string;
-    showQuestionNumbers?: boolean;
-    allowMultipleSelection?: boolean;
-    allowOtherChoice?: boolean;
-    layout?: FormSlideLayout;
-    theme?: {
-        title: string;
-        primary: string;
-        secondary: string;
-        tertiary: string;
-        accent: string;
-    };
-}
-
 export interface FieldChoice {
     id: string;
     value?: string;
@@ -333,4 +235,4 @@ export enum FieldTypes {
     MATRIX_ROW_INPUT = 'matrix_row_input'
 }
 
-export const V2InputFields = [FieldTypes.DATE, FieldTypes.YES_NO, FieldTypes.MULTIPLE_CHOICE,FieldTypes.RATING,FieldTypes.LINEAR_RATING,FieldTypes.NUMBER,FieldTypes.SHORT_TEXT,FieldTypes.EMAIL,FieldTypes.PHONE_NUMBER,FieldTypes.DROP_DOWN]
+export const V2InputFields = [FieldTypes.DATE, FieldTypes.YES_NO, FieldTypes.MULTIPLE_CHOICE, FieldTypes.RATING, FieldTypes.LINEAR_RATING, FieldTypes.NUMBER, FieldTypes.SHORT_TEXT, FieldTypes.EMAIL, FieldTypes.PHONE_NUMBER, FieldTypes.DROP_DOWN];

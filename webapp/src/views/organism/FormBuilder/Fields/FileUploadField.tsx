@@ -1,16 +1,8 @@
-import { FormField } from '@app/models/dtos/form';
+import { StandardFormFieldDto } from '@app/models/dtos/form';
 import { useFormState } from '@app/store/jotai/form';
 import { FolderUploadIcon } from '@app/views/atoms/Icons/FolderUploadIcon';
 
-const FileUpload = ({
-    field,
-    slide,
-    disabled
-}: {
-    field: FormField;
-    slide: FormField;
-    disabled: boolean;
-}) => {
+const FileUpload = ({ field, slide, disabled }: { field: StandardFormFieldDto; slide: StandardFormFieldDto; disabled: boolean }) => {
     const { theme } = useFormState();
 
     const handleFileInputChange = (event: any) => {
@@ -24,31 +16,19 @@ const FileUpload = ({
                 style={{
                     borderColor: slide.properties?.theme?.tertiary || theme?.tertiary
                 }}
-                className={
-                    'flex h-[200px] w-full max-w-[800px] cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dotted'
-                }
+                className={'flex h-[200px] w-full max-w-[800px] cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dotted'}
             >
                 <FolderUploadIcon
                     style={{
                         color: slide.properties?.theme?.secondary || theme?.secondary
                     }}
                 />
-                <div
-                    style={{ color: theme?.secondary }}
-                    className={'flex flex-col items-center gap-1'}
-                >
-                    <span className={'text-base font-semibold'}>
-                        Choose your file or drag file
-                    </span>
+                <div style={{ color: theme?.secondary }} className={'flex flex-col items-center gap-1'}>
+                    <span className={'text-base font-semibold'}>Choose your file or drag file</span>
                     <span className={'text-[12px]'}>Max size limit: 25 MB</span>
                 </div>
             </label>
-            <input
-                type="file"
-                id="form-builder-file-upload"
-                className={'invisible'}
-                onChange={handleFileInputChange}
-            />
+            <input type="file" id="form-builder-file-upload" className={'invisible'} onChange={handleFileInputChange} />
         </>
     );
 };

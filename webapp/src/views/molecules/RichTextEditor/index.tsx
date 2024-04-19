@@ -1,12 +1,10 @@
-import { useState } from 'react';
-
 import Color from '@tiptap/extension-color';
 import TextStyle from '@tiptap/extension-text-style';
 import Underline from '@tiptap/extension-underline';
-import { Editor, EditorProvider, useCurrentEditor, useEditor } from '@tiptap/react';
+import { Editor, EditorProvider, useCurrentEditor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 
-import { FieldTypes, FormField } from '@app/models/dtos/form';
+import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import { cn } from '@app/shadcn/util/lib';
 import { FontSize } from '@app/utils/richTextEditorExtenstion/fontSize';
 import { getHtmlFromJson } from '@app/utils/richTextEditorExtenstion/getHtmlFromJson';
@@ -48,7 +46,7 @@ export function getPlaceholderValueForTitle(fieldType: FieldTypes) {
 
 export const Extenstions = [StarterKit, TextStyle, FontSize, Underline, Color];
 
-export function RichTextEditor({ field, onUpdate, autofocus = false, isRequired = false }: { field: FormField; onUpdate: (editor: any) => void; autofocus?: boolean; isRequired?: boolean }) {
+export function RichTextEditor({ field, onUpdate, autofocus = false, isRequired = false }: { field: StandardFormFieldDto; onUpdate: (editor: any) => void; autofocus?: boolean; isRequired?: boolean }) {
     const getContentForEditor = () => {
         return field.title
             ? getHtmlFromJson(field.title ?? '')

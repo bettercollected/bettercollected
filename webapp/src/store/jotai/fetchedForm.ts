@@ -1,51 +1,9 @@
 import { atom, useAtom } from 'jotai';
 
-import { FormField } from '@app/models/dtos/form';
+import { StandardFormDto } from '@app/models/dtos/form';
 import { FormSlideLayout } from '@app/models/enums/form';
 
-export default interface StandardForm {
-    formId: string;
-    title: string;
-    description?: string | null;
-    builderVersion?: string;
-    fields?: Array<FormField>;
-    thankYouMessage?: string;
-    thankYouButtonText?: string;
-    buttonText?: string;
-    buttonLink?: string;
-    isMultiPage?: boolean;
-    welcomePage?: {
-        title?: string;
-        description?: string;
-        layout?: FormSlideLayout;
-        imageUrl?: string;
-        buttonText?: string;
-    };
-    thankyouPage?: Array<{
-        message?: string;
-        buttonText?: string;
-        buttonLink?: string;
-        layout?: FormSlideLayout;
-        imageUrl?: string;
-    }>;
-    theme?: {
-        title: string;
-        primary: string;
-        secondary: string;
-        tertiary: string;
-        accent: string;
-    };
-    settings?: {
-        pinned?: boolean;
-        customUrl?: string;
-        private?: boolean;
-        hidden?: boolean;
-        requireVerifiedIdentity?: boolean;
-        disableBrnding?: boolean;
-    };
-}
-
-const fetchedFormAtom = atom<StandardForm>({
+const fetchedFormAtom = atom<StandardFormDto>({
     formId: '',
     title: '',
     description: '',
@@ -58,6 +16,7 @@ const fetchedFormAtom = atom<StandardForm>({
             layout: FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND
         }
     ],
+    fields: [],
     theme: {
         title: '',
         primary: '',

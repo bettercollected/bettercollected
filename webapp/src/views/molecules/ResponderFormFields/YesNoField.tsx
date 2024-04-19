@@ -3,7 +3,7 @@ import { Fragment } from 'react';
 import { RadioGroup } from '@headlessui/react';
 import styled from 'styled-components';
 
-import { FormField } from '@app/models/dtos/form';
+import { StandardFormFieldDto } from '@app/models/dtos/form';
 import { useFormTheme } from '@app/store/jotai/fetchedForm';
 import { useFormResponse } from '@app/store/jotai/responderFormResponse';
 import { useResponderState } from '@app/store/jotai/responderFormState';
@@ -20,18 +20,14 @@ const StyledDiv = styled.div<{ $theme: any }>(({ $theme }) => {
     };
 });
 
-const YesNoField = ({ field }: { field: FormField }) => {
+const YesNoField = ({ field }: { field: StandardFormFieldDto }) => {
     const { addFieldBooleanAnswer, formResponse } = useFormResponse();
     const theme = useFormTheme();
 
     const { nextField } = useResponderState();
 
     const getValue = () => {
-        if (
-            formResponse?.answers?.[field.id]?.boolean !== null ||
-            formResponse?.answers?.[field.id]?.boolean !== undefined
-        )
-            return formResponse?.answers?.[field.id]?.boolean;
+        if (formResponse?.answers?.[field.id]?.boolean !== null || formResponse?.answers?.[field.id]?.boolean !== undefined) return formResponse?.answers?.[field.id]?.boolean;
         else return null;
     };
 
@@ -50,21 +46,14 @@ const YesNoField = ({ field }: { field: FormField }) => {
                 {field &&
                     field.properties?.choices?.map((choice, index) => {
                         return (
-                            <RadioGroup.Option
-                                value={choice.value === 'Yes'}
-                                key={index}
-                                as={Fragment}
-                            >
+                            <RadioGroup.Option value={choice.value === 'Yes'} key={index} as={Fragment}>
                                 {({ active, checked }) => {
                                     return (
                                         <StyledDiv
                                             $theme={theme}
                                             style={{
                                                 borderColor: theme?.tertiary,
-                                                background:
-                                                    active || checked
-                                                        ? theme?.tertiary
-                                                        : ''
+                                                background: active || checked ? theme?.tertiary : ''
                                             }}
                                             className={`flex cursor-pointer justify-between rounded-xl border p-2 px-4`}
                                         >

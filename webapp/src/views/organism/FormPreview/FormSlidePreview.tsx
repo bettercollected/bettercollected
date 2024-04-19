@@ -1,12 +1,12 @@
 import { FormTheme } from '@app/constants/theme';
-import { FormField } from '@app/models/dtos/form';
+import { StandardFormFieldDto } from '@app/models/dtos/form';
 import SlideLayoutWrapper from '@app/views/organism/Layout/SlideLayoutWrapper';
 
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { FormFieldComponent } from '../Form/FormSlide';
 
-export default function FormSlidePreview({ slide, theme }: { slide: FormField; theme?: FormTheme }) {
+export default function FormSlidePreview({ slide, theme }: { slide: StandardFormFieldDto; theme?: FormTheme }) {
     const standardForm = useAppSelector(selectForm);
 
     const slideTheme = theme ? theme : standardForm.theme;

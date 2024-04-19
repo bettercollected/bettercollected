@@ -1,13 +1,11 @@
-import { ReactNode, memo } from 'react';
-
-import { Fascinate } from 'next/font/google';
+import { ReactNode } from 'react';
 
 import { AnimatePresence, motion } from 'framer-motion';
 import { toast } from 'react-toastify';
 import { v4 } from 'uuid';
 
 import { formFieldsList } from '@app/constants/form-fields';
-import { FieldTypes, FormField, V2InputFields } from '@app/models/dtos/form';
+import { FieldTypes, StandardFormFieldDto, V2InputFields } from '@app/models/dtos/form';
 import { FormSlideLayout } from '@app/models/enums/form';
 import { Checkbox } from '@app/shadcn/components/ui/checkbox';
 import { ScrollArea } from '@app/shadcn/components/ui/scroll-area';
@@ -22,7 +20,7 @@ import SlideOptions from './SlideOptions';
 import ThankYouSlide from './ThankYouPage';
 import WelcomeSlide from './WelcomePage';
 
-function LeftDrawer({ formFields, activeSlideComponent }: { formFields: Array<FormField>; activeSlideComponent: any }) {
+function LeftDrawer({ formFields, activeSlideComponent }: { formFields: Array<StandardFormFieldDto>; activeSlideComponent: any }) {
     const { setActiveSlideComponent } = useActiveSlideComponent();
     const { setActiveFieldComponent } = useActiveFieldComponent();
     const { addField, addSlide, getNewField } = useFormFieldsAtom();
@@ -30,7 +28,7 @@ function LeftDrawer({ formFields, activeSlideComponent }: { formFields: Array<Fo
     const { navbarState, setNavbarState } = useNavbarState();
     const fieldId = v4();
 
-    function checkIfInputFieldExistsInSlide(slide: FormField) {
+    function checkIfInputFieldExistsInSlide(slide: StandardFormFieldDto) {
         if (!slide?.properties?.fields?.length) return false;
         return slide?.properties?.fields?.some((field) => field.type && V2InputFields.includes(field.type));
     }

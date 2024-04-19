@@ -1,4 +1,4 @@
-import { FieldTypes, FormField } from '@app/models/dtos/form';
+import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import { FieldInput } from '@app/shadcn/components/ui/input';
 import { useFormResponse } from '@app/store/jotai/responderFormResponse';
 import { useResponderState } from '@app/store/jotai/responderFormState';
@@ -6,7 +6,7 @@ import { getPlaceholderValueForField } from '@app/utils/formUtils';
 
 import QuestionWrapper from './QuestionQwrapper';
 
-export default function InputField({ field }: { field: FormField }) {
+export default function InputField({ field }: { field: StandardFormFieldDto }) {
     const { formResponse, addFieldTextAnswer, addFieldEmailAnswer, addFieldNumberAnswer, addFieldURLAnswer, removeAnswer } = useFormResponse();
 
     const { nextField, currentField } = useResponderState();

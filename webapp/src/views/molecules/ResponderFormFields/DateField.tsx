@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 
-import { FormField } from '@app/models/dtos/form';
+import { StandardFormFieldDto } from '@app/models/dtos/form';
 import { FieldInput } from '@app/shadcn/components/ui/input';
 import { useFormState } from '@app/store/jotai/form';
 import { useFormResponse } from '@app/store/jotai/responderFormResponse';
@@ -9,14 +9,13 @@ import { getFormattedDate, getUnformattedDate, validateDate } from '@app/utils/d
 
 import QuestionWrapper from './QuestionQwrapper';
 import { useDebounceCallback } from 'usehooks-ts';
-import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
-import { useActiveFieldComponent, useActiveSlideComponent } from '@app/store/jotai/activeBuilderComponent';
 
 interface IDateField {
-    field: FormField;
-    slide?: FormField;
+    field: StandardFormFieldDto;
+    slide?: StandardFormFieldDto;
     isBuilder?: boolean;
 }
+
 type dateType = 'day' | 'month' | 'year' | '';
 
 function DateFieldSection({ field, slide, isBuilder }: IDateField) {
@@ -37,6 +36,7 @@ function DateFieldSection({ field, slide, isBuilder }: IDateField) {
             if (type === 'year') {
                 return;
             }
+
             function getNextType() {
                 switch (type) {
                     case 'day':
@@ -47,6 +47,7 @@ function DateFieldSection({ field, slide, isBuilder }: IDateField) {
                         '';
                 }
             }
+
             const fieldId = isBuilder ? getNextType() : `${getNextType()}-${field.id}`;
             window.setTimeout(() => {
                 fieldId && document.getElementById(fieldId)?.focus();

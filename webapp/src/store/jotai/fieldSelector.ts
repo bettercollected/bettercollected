@@ -4,12 +4,12 @@ import { JSONContent } from '@tiptap/react';
 import { atom, useAtom } from 'jotai';
 import { v4 } from 'uuid';
 
-import { FieldTypes, FormField } from '@app/models/dtos/form';
+import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import { FormSlideLayout } from '@app/models/enums/form';
 import { useActiveFieldComponent, useActiveSlideComponent } from '@app/store/jotai/activeBuilderComponent';
 import { reorder } from '@app/utils/arrayUtils';
 
-const initialFieldsAtom = atom<FormField[]>([
+const initialFieldsAtom = atom<StandardFormFieldDto[]>([
     {
         id: v4(),
         index: 0,
@@ -38,11 +38,11 @@ export default function useFormFieldsAtom() {
     const { activeSlideComponent, setActiveSlideComponent } = useActiveSlideComponent();
     const { activeFieldComponent, setActiveFieldComponent } = useActiveFieldComponent();
 
-    const addSlide = (field: FormField) => {
+    const addSlide = (field: StandardFormFieldDto) => {
         setFormFields([...formFields, field]);
     };
 
-    const addSlideFormTemplate = (slide: FormField, index?: number) => {
+    const addSlideFormTemplate = (slide: StandardFormFieldDto, index?: number) => {
         const formSlide = {
             ...slide,
             id: v4()
@@ -73,7 +73,7 @@ export default function useFormFieldsAtom() {
 
     const deleteSlide = (slideIndex: number) => {
         formFields.splice(slideIndex, 1);
-        const updatedFormFields = formFields?.map((slide: FormField, index) => {
+        const updatedFormFields = formFields?.map((slide: StandardFormFieldDto, index) => {
             slide.index = index;
             return slide;
         });
@@ -99,7 +99,7 @@ export default function useFormFieldsAtom() {
     };
     const activeField = getActiveField();
 
-    const addField = (slideField: FormField, slideIndex: number) => {
+    const addField = (slideField: StandardFormFieldDto, slideIndex: number) => {
         const slide = formFields[slideIndex];
         slide?.properties?.fields!.push(slideField);
         const updatedSlides = [...formFields];
@@ -229,7 +229,10 @@ export default function useFormFieldsAtom() {
 
     const deleteField = (slideIndex: number, fieldIndex: number) => {
         formFields![slideIndex]!.properties!.fields!.splice(fieldIndex, 1);
-        formFields![slideIndex!].properties!.fields = formFields![slideIndex!].properties!.fields?.map((field, index) => ({ ...field, index }));
+        formFields![slideIndex!].properties!.fields = formFields![slideIndex!].properties!.fields?.map((field, index) => ({
+            ...field,
+            index
+        }));
         setFormFields([...formFields]);
         setTimeout(() => {
             setActiveFieldComponent(null);

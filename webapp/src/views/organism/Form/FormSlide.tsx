@@ -8,7 +8,7 @@ import { Controller } from 'react-scrollmagic';
 import { toast } from 'react-toastify';
 import { useDebounceCallback } from 'usehooks-ts';
 
-import { FieldTypes, FormField } from '@app/models/dtos/form';
+import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import { FormSlideLayout } from '@app/models/enums/form';
 import { Button } from '@app/shadcn/components/ui/button';
 import { FieldInput } from '@app/shadcn/components/ui/input';
@@ -41,7 +41,7 @@ import VideoField from '../FormBuilder/Fields/VideoField';
 import SlideLayoutWrapper from '../Layout/SlideLayoutWrapper';
 import next from 'next';
 
-export function FormFieldComponent({ field, slideIndex }: { field: FormField; slideIndex: number }) {
+export function FormFieldComponent({ field, slideIndex }: { field: StandardFormFieldDto; slideIndex: number }) {
     switch (field.type) {
         case FieldTypes.TEXT:
             return <QuestionWrapper field={field} />;
@@ -164,7 +164,7 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false 
                 nextSlide();
             }
         } else {
-            const firstInvalidField = formSlide?.properties?.fields?.find((field: FormField) => Object.keys(invalidations)[0] === field.id);
+            const firstInvalidField = formSlide?.properties?.fields?.find((field: StandardFormFieldDto) => Object.keys(invalidations)[0] === field.id);
             setCurrentField(firstInvalidField!.index);
         }
     };
@@ -236,7 +236,7 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false 
                 >
                     <AnimatePresence mode="wait">
                         <div className={cn('grid h-full w-full max-w-[800px] grid-cols-1 content-center items-center justify-center overflow-hidden px-4 py-20 lg:px-20')}>
-                            {formSlide?.properties?.fields?.map((field: FormField, index: number) => (
+                            {formSlide?.properties?.fields?.map((field: StandardFormFieldDto, index: number) => (
                                 <motion.div
                                     onClick={() => handleClickField(index, field.id)}
                                     key={field.id}
