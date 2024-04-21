@@ -73,6 +73,7 @@ const LayoutWrapper = ({ layout, theme, imageUrl, updatePageImage, updatePageLay
             </>
         );
     };
+    console.log(layout);
     return (
         <>
             <div
@@ -82,7 +83,7 @@ const LayoutWrapper = ({ layout, theme, imageUrl, updatePageImage, updatePageLay
                 }}
                 className={cn(
                     'relative flex  h-full w-full flex-grow overflow-hidden rounded-lg !bg-transparent lg:grid',
-                    layout === FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT ? 'flex-col-reverse' : 'flex-col',
+                    layout === FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT ? 'flex-col-reverse justify-end' : 'flex-col justify-end',
                     layout === FormSlideLayout.TWO_COLUMN_IMAGE_LEFT || layout === FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT ? 'lg:grid-cols-2' : 'lg:grid-cols-1',
                     disabled ? 'h-full overflow-hidden' : ''
                 )}
@@ -96,7 +97,7 @@ const LayoutWrapper = ({ layout, theme, imageUrl, updatePageImage, updatePageLay
                     // TODO: Change this to apply layout from other layout
                     className={cn(
                         'relative px-5 md:px-8 xl:px-10 2xl:px-20',
-                        'min-h-[100%]',
+                        'flex-grow lg:min-h-[100%]',
                         disabled ? 'overflow-hidden' : '',
                         layout && layout === FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND ? 'z-10 !bg-transparent' : '',
                         layout && layout === FormSlideLayout.TWO_COLUMN_IMAGE_LEFT ? 'order-1' : layout && layout === FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT ? 'order-0' : ''
