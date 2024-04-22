@@ -102,7 +102,7 @@ class TemporalService:
                 "save_template_preview",
                 arg=params,
                 id="save_preview_image_" + str(template_id),
-                task_queue=settings.temporal_settings.worker_queue,
+                task_queue=settings.temporal_settings.template_preview_queue,
                 retry_policy=RetryPolicy(maximum_attempts=4),
             )
             return "Workflow Started"
