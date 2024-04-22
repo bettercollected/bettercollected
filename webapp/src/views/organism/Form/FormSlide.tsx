@@ -36,6 +36,7 @@ import { selectWorkspace } from '@app/store/workspaces/slice';
 import ImageField from '../FormBuilder/Fields/Imagefield';
 import VideoField from '../FormBuilder/Fields/VideoField';
 import SlideLayoutWrapper from '../Layout/SlideLayoutWrapper';
+import { scrollToDivById } from '@app/utils/scrollUtils';
 
 export function FormFieldComponent({ field, slideIndex }: { field: StandardFormFieldDto; slideIndex: number }) {
     switch (field.type) {
@@ -136,7 +137,9 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false 
             }
         } else {
             const firstInvalidField = formSlide?.properties?.fields?.find((field: StandardFormFieldDto) => Object.keys(invalidations)[0] === field.id);
-            document?.getElementById(firstInvalidField.id)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            if (firstInvalidField) {
+                scrollToDivById(firstInvalidField.id);
+            }
         }
     };
 
@@ -144,7 +147,7 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false 
 
     return (
         <Controller>
-            <SlideLayoutWrapper theme={standardForm.theme} slide={formSlide} disabled>
+            <SlideLayoutWrapper scrollDivId={'questions-container'} theme={standardForm.theme} slide={formSlide} disabled>
                 {currentSlide > 0 && (
                     <div
                         className="absolute left-5 top-8 z-[100] flex cursor-pointer gap-2 lg:left-20"
@@ -155,49 +158,10 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false 
                         <ChevronLeft className="text-black-700" /> <span className="text-black-700">Back</span>
                     </div>
                 )}
-                <div
-                    id="questions-container1"
-                    className={cn('flex h-full flex-1 flex-col justify-center overflow-hidden ', formSlide?.properties?.layout === FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND_LEFT_ALIGN ? 'items-start ' : 'items-center')}
-                    onWheel={(event) => {
-                        // onScrollDebounced(event?.deltaY > 0 ? 1 : -1);
-                    }}
-                >
+                <div className={cn('flex h-full flex-1 flex-col justify-center overflow-hidden ', formSlide?.properties?.layout === FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND_LEFT_ALIGN ? 'items-start ' : 'items-center')}>
                     <AnimatePresence mode="wait">
-                        <div id="questions-container" className={cn('grid h-full w-full max-w-[800px] grid-cols-1 content-center items-center justify-center gap-20 overflow-hidden px-4 py-[60%] lg:px-20')}>
+                        <div className={cn('grid h-full w-full max-w-[800px] grid-cols-1 content-center items-center justify-center gap-20 overflow-hidden px-4 py-[60%] lg:px-20')}>
                             {formSlide?.properties?.fields?.map((field: StandardFormFieldDto, index: number) => (
-                                // <motion.div
-                                //     onClick={() => handleClickField(index, field.id)}
-                                //     key={field.id}
-                                //     initial={{ opacity: 0, y: 0 }}
-                                //     animate={{
-                                //         opacity: currentField === index ? 1 : 0.4,
-                                //         y: currentField === index ? 0 : -10
-                                //     }}
-                                //     transition={{
-                                //         type: 'tween',
-                                //         stiffness: 260,
-                                //         ease: 'easeInOut',
-                                //         damping: 20,
-                                //         duration: 0.5
-                                //     }}
-                                //     className={cn('relative my-3 cursor-pointer', currentField === index ? 'min-h-fit opacity-100' : currentField - 1 === index ? '' : currentField + 1 === index ? '' : ' my-0 h-0')}
-                                // >
-                                //     <div
-                                //         id={field.id}
-                                //         className={cn(
-                                //             'my-5 transition-all duration-500 ease-linear',
-                                //             currentField === index
-                                //                 ? 'min-h-fit opacity-100'
-                                //                 : currentField - 1 === index
-                                //                 ? ' my-0 h-[120px] overflow-hidden opacity-40'
-                                //                 : currentField + 1 === index
-                                //                 ? 'my-0 h-[120px] overflow-hidden opacity-40'
-                                //                 : ' my-0 h-0 overflow-hidden opacity-0 '
-                                //         )}
-                                //     >
-                                //         <FormFieldComponent field={formSlide!.properties!.fields![index]} slideIndex={formSlide!.index} />
-                                //     </div>
-                                // </motion.div>
                                 <FormFieldComponent key={field.id} field={formSlide!.properties!.fields![index]} slideIndex={formSlide!.index} />
                             ))}
                             <div>
@@ -236,24 +200,6 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false 
                                     {(standardForm?.fields?.length || 0) - 1 === currentSlide && currentSlide === index ? 'Submit' : 'Next'}
                                 </Button>
                             </div>
-
-                            {/*{(!formSlide?.properties?.fields?.length || currentField + 1 === formSlide?.properties?.fields?.length) && (*/}
-                            {/*    <motion.div*/}
-                            {/*        initial={{ opacity: 0 }}*/}
-                            {/*        animate={{ opacity: 1 }}*/}
-                            {/*        exit={{ opacity: 0 }}*/}
-                            {/*        transition={{*/}
-                            {/*            type: 'tween',*/}
-                            {/*            stiffness: 260,*/}
-                            {/*            ease: 'easeInOut',*/}
-                            {/*            damping: 20,*/}
-                            {/*            duration: 0.5*/}
-                            {/*        }}*/}
-                            {/*        className="flex flex-col"*/}
-                            {/*    >*/}
-                            {/*       */}
-                            {/*    </motion.div>*/}
-                            {/*)}*/}
                         </div>
                     </AnimatePresence>
                 </div>

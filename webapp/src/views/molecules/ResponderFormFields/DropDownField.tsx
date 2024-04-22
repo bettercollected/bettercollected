@@ -11,13 +11,17 @@ import { ChevronDown } from '@app/views/atoms/Icons/ChevronDown';
 import Choice from '@app/views/atoms/ResponderFormFields/Choice';
 
 import QuestionWrapper from './QuestionQwrapper';
+import { scrollToDivById } from '@app/utils/scrollUtils';
+import { useAppSelector } from '@app/store/hooks';
+import { selectForm } from '@app/store/forms/slice';
 
 export default function DropDownField({ field, slideIndex }: { field: StandardFormFieldDto; slideIndex: number }) {
     const [isOpen, setIsOpen] = React.useState(false);
     const { theme } = useFormState();
     const { addFieldChoiceAnswer, formResponse } = useFormResponse();
 
-    const { nextField } = useResponderState();
+    const form = useAppSelector(selectForm);
+    const { currentSlide } = useResponderState();
 
     const getSelectedValue = () => {
         if (!formResponse.answers) {
@@ -40,7 +44,7 @@ export default function DropDownField({ field, slideIndex }: { field: StandardFo
         addFieldChoiceAnswer(field.id, choiceId);
         setIsOpen(false);
         setTimeout(() => {
-            nextField();
+            if (form?.fields?.[currentSlide]?.properties?.fields?.length !== field.index + 1) scrollToDivById(form?.fields?.[currentSlide]?.properties?.fields?.[field.index + 1]?.id);
         }, 200);
     };
 

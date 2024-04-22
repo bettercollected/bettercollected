@@ -71,7 +71,7 @@ function DateFieldSection({ field, slide, isBuilder }: IDateField) {
                     const nextFieldId = slide?.properties?.fields![field.index].id;
                     nextField();
                     document.getElementById(`input-field-${nextFieldId}`)?.focus();
-                }, 2000);
+                }, 200);
             }
         }
     }
@@ -88,7 +88,7 @@ function DateFieldSection({ field, slide, isBuilder }: IDateField) {
 
     return (
         <div className="flex flex-col gap-1">
-            <div className="flex flex-row items-center gap-4">
+            <div className="flex flex-row items-center gap-4" id={`input-field-${field.id}`}>
                 <FieldInput id={isBuilder ? 'day' : `day-${field.id}`} type="number" placeholder="DD" className={inputClassName} value={getUnformattedDate(answer)[2]} onChange={(e) => handleDateChange(e, 'day')} disabled={isBuilder} />
                 <div
                     style={{

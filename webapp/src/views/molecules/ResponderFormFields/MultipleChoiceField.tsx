@@ -2,12 +2,12 @@ import { StandardFormFieldDto } from '@app/models/dtos/form';
 import { FieldInput } from '@app/shadcn/components/ui/input';
 import { useFormTheme } from '@app/store/jotai/fetchedForm';
 import { useFormResponse } from '@app/store/jotai/responderFormResponse';
-import { useResponderState } from '@app/store/jotai/responderFormState';
 import Choice from '@app/views/atoms/ResponderFormFields/Choice';
 
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
 import QuestionWrapper from './QuestionQwrapper';
+import { scrollToDivById } from '@app/utils/scrollUtils';
 
 const MultipleChoiceField = ({ field, slideIndex }: { field: StandardFormFieldDto; slideIndex: number }) => {
     const { addFieldChoiceAnswer, addOtherChoiceAnswer, formResponse } = useFormResponse();
@@ -15,8 +15,6 @@ const MultipleChoiceField = ({ field, slideIndex }: { field: StandardFormFieldDt
 
     const standardForm = useAppSelector(selectForm);
     const currentSlide = standardForm.fields![slideIndex];
-
-    const { nextField } = useResponderState();
 
     const getSelectedValue = () => {
         if (!formResponse.answers) {
@@ -30,7 +28,7 @@ const MultipleChoiceField = ({ field, slideIndex }: { field: StandardFormFieldDt
     const handleClick = (item: string) => {
         addFieldChoiceAnswer(field.id, item);
         setTimeout(() => {
-            nextField();
+            if (standardForm?.fields?.[slideIndex]?.properties?.fields?.length !== field.index + 1) scrollToDivById(standardForm?.fields?.[slideIndex]?.properties?.fields?.[field.index + 1]?.id);
         }, 200);
     };
 

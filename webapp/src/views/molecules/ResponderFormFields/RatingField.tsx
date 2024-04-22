@@ -9,18 +9,18 @@ import { useResponderState } from '@app/store/jotai/responderFormState';
 import { StarIcon } from '@app/views/atoms/Icons/Star';
 
 import QuestionWrapper from './QuestionQwrapper';
+import { useAppSelector } from '@app/store/hooks';
+import { selectForm } from '@app/store/forms/slice';
+import { scrollToDivById } from '@app/utils/scrollUtils';
 
 export default function RatingField({ field, slide, isBuilder = false }: { field: StandardFormFieldDto; slide?: StandardFormFieldDto; isBuilder?: boolean }) {
     const { addFieldRatingAnswer, formResponse } = useFormResponse();
     const answer = formResponse.answers && formResponse.answers[field.id]?.number;
     const [hovered, setHovered] = useState(-1);
 
-    const { nextField } = useResponderState();
+    const form = useAppSelector(selectForm);
+    const { currentSlide } = useResponderState();
 
-    // useEffect(() => {
-    //     formResponse.answers &&
-    //         setHovered((formResponse?.answers[field.id]?.number ?? 0) - 1);
-    // }, [formResponse.answers]);
     const { theme } = useFormState();
     const [mouseOver, setMouseOver] = useState(false);
     const RatingSection = () => {
@@ -49,7 +49,7 @@ export default function RatingField({ field, slide, isBuilder = false }: { field
                                 if (!isBuilder) {
                                     addFieldRatingAnswer(field.id, index + 1);
                                     setTimeout(() => {
-                                        nextField();
+                                        if (form?.fields?.[currentSlide]?.properties?.fields?.length !== field.index + 1) scrollToDivById(form?.fields?.[currentSlide]?.properties?.fields?.[field.index + 1]?.id);
                                     }, 200);
                                 }
                             }}
