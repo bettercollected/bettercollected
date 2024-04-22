@@ -1,17 +1,16 @@
 'use client';
 
+import Loader from '@app/components/ui/loader';
 import environments from '@app/configs/environments';
 import ReduxWrapperAppRouter from '@app/containers/ReduxWrapperAppRouter';
 import SingleFormPage from '@app/pages/forms/v1/[id]';
 import { setForm } from '@app/store/forms/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
-import { useStandardForm } from '@app/store/jotai/fetchedForm';
 import { useGetWorkspaceFormQuery } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import FullScreenLoader from '@app/views/atoms/Loaders/FullScreenLoader';
 import Form from '@app/views/organism/Form/Form';
-import React, { useEffect, useRef } from 'react';
-import Loader from '@app/components/ui/loader';
+import { useEffect, useRef } from 'react';
 
 export default function FormPage({ params }: { params: { form_id: string; workspace_name: string } }) {
     const slug = params.form_id;
@@ -25,7 +24,6 @@ export default function FormPage({ params }: { params: { form_id: string; worksp
 
 const FetchFormWrapper = ({ slug }: { slug: string }) => {
     const workspace = useAppSelector(selectWorkspace);
-    const { setStandardForm } = useStandardForm();
     const dispatch = useAppDispatch();
     const iframeRef = useRef(null);
 
@@ -40,7 +38,6 @@ const FetchFormWrapper = ({ slug }: { slug: string }) => {
 
     useEffect(() => {
         if (data?.formId) {
-            setStandardForm(data);
             dispatch(setForm(data));
         }
     }, [data]);
