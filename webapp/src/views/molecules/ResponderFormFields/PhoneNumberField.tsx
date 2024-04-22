@@ -10,6 +10,9 @@ import { useResponderState } from '@app/store/jotai/responderFormState';
 import { getPlaceholderValueForField } from '@app/utils/formUtils';
 
 import QuestionWrapper from './QuestionQwrapper';
+import { useAppSelector } from '@app/store/hooks';
+import { selectForm } from '@app/store/forms/slice';
+import { scrollToDivById } from '@app/utils/scrollUtils';
 
 const CustomPhoneInputField = styled(PhoneInput)(() => {
     const { theme } = useFormState();
@@ -65,14 +68,15 @@ export default function PhoneNumberField({ field }: { field: StandardFormFieldDt
         }
         addFieldPhoneNumberAnswer(field.id, phone);
     };
-    const { nextField } = useResponderState();
+    const form = useAppSelector(selectForm);
+    const { currentSlide } = useResponderState();
 
     return (
         <QuestionWrapper field={field}>
             <form
                 onSubmit={(event) => {
                     event.preventDefault();
-                    nextField();
+                    if (form?.fields?.[currentSlide]?.properties?.fields?.length !== field.index + 1) scrollToDivById(form?.fields?.[currentSlide]?.properties?.fields?.[field.index + 1]?.id);
                 }}
             >
                 <CustomPhoneInputField

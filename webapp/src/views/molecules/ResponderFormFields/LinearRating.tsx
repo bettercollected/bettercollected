@@ -1,5 +1,3 @@
-import { useState } from 'react';
-
 import _ from 'lodash';
 
 import styled from 'styled-components';
@@ -11,6 +9,9 @@ import { useFormResponse } from '@app/store/jotai/responderFormResponse';
 import { useResponderState } from '@app/store/jotai/responderFormState';
 
 import QuestionWrapper from './QuestionQwrapper';
+import { useAppSelector } from '@app/store/hooks';
+import { selectForm } from '@app/store/forms/slice';
+import { scrollToDivById } from '@app/utils/scrollUtils';
 
 const StyledDiv = styled.div<{
     $slide?: StandardFormFieldDto;
@@ -33,12 +34,9 @@ const LinearRatingSection = ({ field, slide, isBuilder = false }: { field: Stand
     const theme = useFormTheme();
     const { formResponse, addFieldLinearRatingAnswer } = useFormResponse();
     const answer = formResponse.answers && formResponse.answers[field.id]?.number;
-    const [ratingAnswer, setRatingAnswer] = useState(-1);
-    const { nextField } = useResponderState();
+    const form = useAppSelector(selectForm);
+    const { currentSlide } = useResponderState();
 
-    // useEffect(() => {
-    //     formResponse.answers && setRatingAnswer((formResponse.answers[field.id]?.number ?? 0) - 1);
-    // }, [formResponse.answers]);
     const secondaryColor = theme?.secondary;
 
     return (
@@ -57,7 +55,7 @@ const LinearRatingSection = ({ field, slide, isBuilder = false }: { field: Stand
                             if (!isBuilder) {
                                 addFieldLinearRatingAnswer(field.id, index);
                                 setTimeout(() => {
-                                    nextField();
+                                    if (form?.fields?.[currentSlide]?.properties?.fields?.length !== field.index + 1) scrollToDivById(form?.fields?.[currentSlide]?.properties?.fields?.[field.index + 1]?.id);
                                 }, 200);
                             }
                         }}

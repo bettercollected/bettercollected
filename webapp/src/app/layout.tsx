@@ -35,7 +35,7 @@ export default function RootLayout({
     return (
         <html lang="en">
             <body className={cn('max-h-screen overflow-hidden', inter.className)}>
-                <script src="/api/config" async></script>
+                <script src="/api/config" async={true}></script>
                 <ThemeProvider>
                     <NextNProgress color="#0764EB" startPosition={0} stopDelayMs={400} height={2} options={{ easing: 'ease' }} />
                     <ToastContainer position="bottom-center" autoClose={5000} hideProgressBar newestOnTop closeOnClick rtl={false} pauseOnFocusLoss={false} draggable pauseOnHover={false} theme="dark" />

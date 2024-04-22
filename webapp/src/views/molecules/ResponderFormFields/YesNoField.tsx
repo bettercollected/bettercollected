@@ -10,6 +10,9 @@ import { useResponderState } from '@app/store/jotai/responderFormState';
 import { Check } from '@app/views/atoms/Icons/Check';
 
 import QuestionWrapper from './QuestionQwrapper';
+import { useAppSelector } from '@app/store/hooks';
+import { selectForm } from '@app/store/forms/slice';
+import { scrollToDivById } from '@app/utils/scrollUtils';
 
 const StyledDiv = styled.div<{ $theme: any }>(({ $theme }) => {
     const secondaryColor = $theme?.secondary;
@@ -24,7 +27,8 @@ const YesNoField = ({ field }: { field: StandardFormFieldDto }) => {
     const { addFieldBooleanAnswer, formResponse } = useFormResponse();
     const theme = useFormTheme();
 
-    const { nextField } = useResponderState();
+    const form = useAppSelector(selectForm);
+    const { currentSlide } = useResponderState();
 
     const getValue = () => {
         if (formResponse?.answers?.[field.id]?.boolean !== null || formResponse?.answers?.[field.id]?.boolean !== undefined) return formResponse?.answers?.[field.id]?.boolean;
@@ -39,7 +43,7 @@ const YesNoField = ({ field }: { field: StandardFormFieldDto }) => {
                 onChange={(value) => {
                     addFieldBooleanAnswer(field.id, !!value);
                     setTimeout(() => {
-                        nextField();
+                        if (form?.fields?.[currentSlide]?.properties?.fields?.length !== field.index + 1) scrollToDivById(form?.fields?.[currentSlide]?.properties?.fields?.[field.index + 1]?.id);
                     }, 200);
                 }}
             >

@@ -15,6 +15,9 @@ import DeleteIcon from '@app/views/atoms/Icons/Delete';
 import { FolderUploadIcon } from '@app/views/atoms/Icons/FolderUploadIcon';
 
 import QuestionWrapper from './QuestionQwrapper';
+import { scrollToDivById } from '@app/utils/scrollUtils';
+import { useAppSelector } from '@app/store/hooks';
+import { selectForm } from '@app/store/forms/slice';
 
 const StyledLabel = styled.label<{ $theme: any }>(({ $theme }) => {
     const secondaryColor = $theme?.secondary;
@@ -28,7 +31,9 @@ const StyledLabel = styled.label<{ $theme: any }>(({ $theme }) => {
 export default function FileUpload({ field }: { field: StandardFormFieldDto }) {
     const { formResponse, addFieldFileAnswer } = useFormResponse();
     const { theme } = useFormState();
-    const { nextField } = useResponderState();
+
+    const form = useAppSelector(selectForm);
+    const { currentSlide } = useResponderState();
 
     const [isDragging, setIsDragging] = useState(false);
     const inputFileRef = useRef<HTMLInputElement | null>(null);
@@ -63,7 +68,7 @@ export default function FileUpload({ field }: { field: StandardFormFieldDto }) {
         addFile(field.id, fMetaData.id, fMetaData.name!, file);
         addFieldFileAnswer(field.id, { ...fMetaData });
         setTimeout(() => {
-            nextField();
+            if (form?.fields?.[currentSlide]?.properties?.fields?.length !== field.index + 1) scrollToDivById(form?.fields?.[currentSlide]?.properties?.fields?.[field.index + 1]?.id);
         }, 200);
     };
 
