@@ -1,7 +1,6 @@
 import Document, { DocumentContext, DocumentInitialProps, Head, Html, Main, NextScript } from 'next/document';
 
 import environments from '@app/configs/environments';
-import Script from 'next/script';
 
 class MyDocument extends Document {
     static async getInitialProps(ctx: DocumentContext): Promise<DocumentInitialProps> {
@@ -13,7 +12,7 @@ class MyDocument extends Document {
             <Html lang="en-US" dir="ltr" className="light">
                 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" />
                 <Head>
-                    <script src="/api/config" defer />
+                    <script src="/api/config" async />
                     {this.props.styles}
                     {embedScript()}
                     {embedMicrosoftClarityScript()}

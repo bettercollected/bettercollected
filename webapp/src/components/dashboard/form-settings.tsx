@@ -244,8 +244,8 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                                         </div>
                                     }
                                 />
-                                <span className="body4 !text-black-700 ml-8">{!(form?.groups.length === 0) ? t(formPage.visibilityGroups1) : t(formPage.visibilityGroups0)}</span>
-                                {currentVisibility === 'Group' && <FormGroups groups={form?.groups} />}
+                                <span className="body4 !text-black-700 ml-8">{!(form?.groups?.length === 0) ? t(formPage.visibilityGroups1) : t(formPage.visibilityGroups0)}</span>
+                                {currentVisibility === 'Group' && <FormGroups groups={form?.groups || []} />}
                             </div>
                             <Divider />
                         </RadioGroup>
