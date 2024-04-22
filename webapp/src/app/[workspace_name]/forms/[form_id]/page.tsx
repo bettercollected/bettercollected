@@ -10,7 +10,8 @@ import { useGetWorkspaceFormQuery } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import FullScreenLoader from '@app/views/atoms/Loaders/FullScreenLoader';
 import Form from '@app/views/organism/Form/Form';
-import { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
+import Loader from '@app/components/ui/loader';
 
 export default function FormPage({ params }: { params: { form_id: string; workspace_name: string } }) {
     const slug = params.form_id;
@@ -26,6 +27,7 @@ const FetchFormWrapper = ({ slug }: { slug: string }) => {
     const workspace = useAppSelector(selectWorkspace);
     const { setStandardForm } = useStandardForm();
     const dispatch = useAppDispatch();
+    const iframeRef = useRef(null);
 
     const { data, isLoading, error } = useGetWorkspaceFormQuery(
         {
@@ -47,6 +49,21 @@ const FetchFormWrapper = ({ slug }: { slug: string }) => {
 
     if (isLoading || error) {
         return <FullScreenLoader />;
+    }
+    const responderUri = data?.settings?.embedUrl || '';
+
+    if (data?.importedFormId && data.settings?.showOriginalForm) {
+        return (
+            <>
+                <div className="relative !min-h-screen">
+                    <div className="!m-0' absolute bottom-0 left-0 right-0 top-0 !p-0">
+                        <iframe ref={iframeRef} src={`${responderUri}?embedded=true`} width="100%" height="100%">
+                            <Loader />
+                        </iframe>
+                    </div>
+                </div>
+            </>
+        );
     }
 
     return (
