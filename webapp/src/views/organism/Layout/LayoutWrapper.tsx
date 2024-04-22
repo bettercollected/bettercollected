@@ -73,7 +73,6 @@ const LayoutWrapper = ({ layout, theme, imageUrl, updatePageImage, updatePageLay
             </>
         );
     };
-    console.log(layout);
     return (
         <>
             <div

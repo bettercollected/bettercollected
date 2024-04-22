@@ -14,7 +14,7 @@ export default function QuestionWrapper({ field, children }: { field: StandardFo
     const { invalidFields } = formResponse;
 
     return (
-        <div className="relative flex flex-col gap-1">
+        <div className="relative flex flex-col gap-1" id={field.id}>
             {field?.validations?.required && (
                 <div className="top- 2 absolute -right-10">
                     <RequiredIcon className="text-black-900" />

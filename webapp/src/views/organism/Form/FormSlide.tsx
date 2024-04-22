@@ -1,12 +1,9 @@
 'use client';
 
-import { useCallback, useEffect } from 'react';
-
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence } from 'framer-motion';
 import { ChevronLeft } from 'lucide-react';
 import { Controller } from 'react-scrollmagic';
 import { toast } from 'react-toastify';
-import { useDebounceCallback } from 'usehooks-ts';
 
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import { FormSlideLayout } from '@app/models/enums/form';
@@ -39,7 +36,6 @@ import { selectWorkspace } from '@app/store/workspaces/slice';
 import ImageField from '../FormBuilder/Fields/Imagefield';
 import VideoField from '../FormBuilder/Fields/VideoField';
 import SlideLayoutWrapper from '../Layout/SlideLayoutWrapper';
-import next from 'next';
 
 export function FormFieldComponent({ field, slideIndex }: { field: StandardFormFieldDto; slideIndex: number }) {
     switch (field.type) {
@@ -86,7 +82,7 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false 
     const formSlideFromState = useFormSlide(index);
     const formSlide = formSlideData ? formSlideData : formSlideFromState;
 
-    const { currentSlide, setCurrentSlideToThankyouPage, nextSlide, previousSlide, currentField, setCurrentField } = useResponderState();
+    const { currentSlide, setCurrentSlideToThankyouPage, nextSlide, previousSlide } = useResponderState();
 
     const standardForm = useAppSelector(selectForm);
     const { formResponse, setInvalidFields, setFormResponse } = useFormResponse();
@@ -94,31 +90,6 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false 
     const [submitResponse, { isLoading }] = useSubmitResponseMutation();
     const { files } = useFormAtom();
     const { authState } = useAuthAtom();
-
-    console.log('asdasd ', currentField, formSlideFromState);
-
-    const onScroll = useCallback(
-        (direction: number) => {
-            if (!formSlide?.properties?.fields?.length) {
-                return;
-            }
-            if (direction === -1 && currentField === 0) {
-                return;
-            }
-            if (direction === 1 && currentField === (formSlide?.properties?.fields?.length || 0) - 1) {
-                return;
-            }
-            // setCurrentField(currentField + direction);
-            // const currentFieldtype = formSlide?.properties?.fields && formSlide?.properties?.fields[currentField].type;
-            // if (currentFieldtype === FieldTypes.DATE) return;
-
-            const fieldId = formSlide?.properties?.fields && formSlide?.properties?.fields[currentField + direction].id;
-            fieldId && handleClickField(currentField + direction, fieldId);
-        },
-        [currentField]
-    );
-
-    const onScrollDebounced = useDebounceCallback(onScroll, 200);
 
     const submitFormResponse = async () => {
         const formData = new FormData();
@@ -165,52 +136,8 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false 
             }
         } else {
             const firstInvalidField = formSlide?.properties?.fields?.find((field: StandardFormFieldDto) => Object.keys(invalidations)[0] === field.id);
-            setCurrentField(firstInvalidField!.index);
+            document?.getElementById(firstInvalidField.id)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
-    };
-
-    useEffect(() => {
-        const handleKeyDown = (event: KeyboardEvent) => {
-            const ARROW_DOWN = 'ArrowDown';
-            const ARROW_UP = 'ArrowUp';
-            const ENTER = 'Enter';
-            const TAB = 'Tab';
-
-            switch (event.key) {
-                case ENTER:
-                    if (currentField + 1 === formSlideFromState?.properties?.fields?.length) {
-                        onNext();
-                        break;
-                    } else {
-                        event.preventDefault();
-                        onScrollDebounced(1);
-                        break;
-                    }
-                case TAB:
-                case ARROW_DOWN:
-                    event.preventDefault();
-                    onScrollDebounced(1);
-                    break;
-                case ARROW_UP:
-                    event.preventDefault();
-                    onScrollDebounced(-1);
-                    break;
-                default:
-                    break;
-            }
-        };
-
-        window.addEventListener('keydown', handleKeyDown);
-
-        return () => {
-            window.removeEventListener('keydown', handleKeyDown);
-        };
-    }, [onScrollDebounced, currentField]);
-
-    const handleClickField = (index: number, fieldId: string) => {
-        setCurrentField(index);
-
-        document.getElementById(`input-field-${fieldId}`)?.focus();
     };
 
     if (!formSlide) return <FullScreenLoader />;
@@ -229,99 +156,104 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false 
                     </div>
                 )}
                 <div
+                    id="questions-container1"
                     className={cn('flex h-full flex-1 flex-col justify-center overflow-hidden ', formSlide?.properties?.layout === FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND_LEFT_ALIGN ? 'items-start ' : 'items-center')}
                     onWheel={(event) => {
-                        onScrollDebounced(event?.deltaY > 0 ? 1 : -1);
+                        // onScrollDebounced(event?.deltaY > 0 ? 1 : -1);
                     }}
                 >
                     <AnimatePresence mode="wait">
-                        <div className={cn('grid h-full w-full max-w-[800px] grid-cols-1 content-center items-center justify-center overflow-hidden px-4 py-20 lg:px-20')}>
+                        <div id="questions-container" className={cn('grid h-full w-full max-w-[800px] grid-cols-1 content-center items-center justify-center gap-20 overflow-hidden px-4 py-[60%] lg:px-20')}>
                             {formSlide?.properties?.fields?.map((field: StandardFormFieldDto, index: number) => (
-                                <motion.div
-                                    onClick={() => handleClickField(index, field.id)}
-                                    key={field.id}
-                                    initial={{ opacity: 0, y: 0 }}
-                                    animate={{
-                                        opacity: currentField === index ? 1 : 0.4,
-                                        y: currentField === index ? 0 : -10
-                                    }}
-                                    transition={{
-                                        type: 'tween',
-                                        stiffness: 260,
-                                        ease: 'easeInOut',
-                                        damping: 20,
-                                        duration: 0.5
-                                    }}
-                                    className={cn('relative my-3 cursor-pointer', currentField === index ? 'min-h-fit opacity-100' : currentField - 1 === index ? '' : currentField + 1 === index ? '' : ' my-0 h-0')}
-                                >
-                                    <div
-                                        id={field.id}
-                                        className={cn(
-                                            'my-5 transition-all duration-500 ease-linear',
-                                            currentField === index
-                                                ? 'min-h-fit opacity-100'
-                                                : currentField - 1 === index
-                                                ? ' my-0 h-[120px] overflow-hidden opacity-40'
-                                                : currentField + 1 === index
-                                                ? 'my-0 h-[120px] overflow-hidden opacity-40'
-                                                : ' my-0 h-0 overflow-hidden opacity-0 '
-                                        )}
-                                    >
-                                        <FormFieldComponent field={formSlide!.properties!.fields![index]} slideIndex={formSlide!.index} />
-                                    </div>
-                                </motion.div>
+                                // <motion.div
+                                //     onClick={() => handleClickField(index, field.id)}
+                                //     key={field.id}
+                                //     initial={{ opacity: 0, y: 0 }}
+                                //     animate={{
+                                //         opacity: currentField === index ? 1 : 0.4,
+                                //         y: currentField === index ? 0 : -10
+                                //     }}
+                                //     transition={{
+                                //         type: 'tween',
+                                //         stiffness: 260,
+                                //         ease: 'easeInOut',
+                                //         damping: 20,
+                                //         duration: 0.5
+                                //     }}
+                                //     className={cn('relative my-3 cursor-pointer', currentField === index ? 'min-h-fit opacity-100' : currentField - 1 === index ? '' : currentField + 1 === index ? '' : ' my-0 h-0')}
+                                // >
+                                //     <div
+                                //         id={field.id}
+                                //         className={cn(
+                                //             'my-5 transition-all duration-500 ease-linear',
+                                //             currentField === index
+                                //                 ? 'min-h-fit opacity-100'
+                                //                 : currentField - 1 === index
+                                //                 ? ' my-0 h-[120px] overflow-hidden opacity-40'
+                                //                 : currentField + 1 === index
+                                //                 ? 'my-0 h-[120px] overflow-hidden opacity-40'
+                                //                 : ' my-0 h-0 overflow-hidden opacity-0 '
+                                //         )}
+                                //     >
+                                //         <FormFieldComponent field={formSlide!.properties!.fields![index]} slideIndex={formSlide!.index} />
+                                //     </div>
+                                // </motion.div>
+                                <FormFieldComponent key={field.id} field={formSlide!.properties!.fields![index]} slideIndex={formSlide!.index} />
                             ))}
-
-                            {(!formSlide?.properties?.fields?.length || currentField + 1 === formSlide?.properties?.fields?.length) && (
-                                <motion.div
-                                    initial={{ opacity: 0 }}
-                                    animate={{ opacity: 1 }}
-                                    exit={{ opacity: 0 }}
-                                    transition={{
-                                        type: 'tween',
-                                        stiffness: 260,
-                                        ease: 'easeInOut',
-                                        damping: 20,
-                                        duration: 0.5
-                                    }}
-                                    className="flex flex-col"
-                                >
-                                    {(standardForm?.fields?.length || 0) - 1 === currentSlide && currentSlide === index && (
-                                        <div className="mt-20 flex flex-col">
-                                            {authState.id && !standardForm.settings?.requireVerifiedIdentity && (
-                                                <div className="flex flex-row gap-2 ">
-                                                    <FieldInput
-                                                        checked={!formResponse.anonymize}
-                                                        onChange={(e: any) => {
-                                                            setFormResponse({
-                                                                ...formResponse,
-                                                                anonymize: !e.target.checked
-                                                            });
-                                                        }}
-                                                        type="checkbox"
-                                                        className="h-4 w-4 border focus:border-0 focus:outline-none"
-                                                    />
-                                                    <div className="flex flex-col ">
-                                                        <span className="text-black-800 text-xs font-medium">Show your identity(email) to form collector</span>
-                                                        <span className={`p4-new text-black-600 `}>{authState?.email} </span>
-                                                    </div>
+                            <div>
+                                {(standardForm?.fields?.length || 0) - 1 === currentSlide && currentSlide === index && (
+                                    <div className="mt-20 flex flex-col">
+                                        {authState.id && !standardForm.settings?.requireVerifiedIdentity && (
+                                            <div className="flex flex-row gap-2 ">
+                                                <FieldInput
+                                                    checked={!formResponse.anonymize}
+                                                    onChange={(e: any) => {
+                                                        setFormResponse({
+                                                            ...formResponse,
+                                                            anonymize: !e.target.checked
+                                                        });
+                                                    }}
+                                                    type="checkbox"
+                                                    className="h-4 w-4 border focus:border-0 focus:outline-none"
+                                                />
+                                                <div className="flex flex-col ">
+                                                    <span className="text-black-800 text-xs font-medium">Show your identity(email) to form collector</span>
+                                                    <span className={`p4-new text-black-600 `}>{authState?.email} </span>
                                                 </div>
-                                            )}
-                                        </div>
-                                    )}
-                                    <Button
-                                        style={{
-                                            background: standardForm.theme?.secondary
-                                        }}
-                                        isLoading={isLoading}
-                                        className="mt-4 rounded px-8 py-3"
-                                        onClick={onNext}
-                                        size="medium"
-                                    >
-                                        {(standardForm?.fields?.length || 0) - 1 === currentSlide && currentSlide === index ? 'Submit' : 'Next'}
-                                    </Button>
-                                </motion.div>
-                            )}
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                                <Button
+                                    style={{
+                                        background: standardForm.theme?.secondary
+                                    }}
+                                    isLoading={isLoading}
+                                    className="mt-4 rounded px-8 py-3"
+                                    onClick={onNext}
+                                    size="medium"
+                                >
+                                    {(standardForm?.fields?.length || 0) - 1 === currentSlide && currentSlide === index ? 'Submit' : 'Next'}
+                                </Button>
+                            </div>
+
+                            {/*{(!formSlide?.properties?.fields?.length || currentField + 1 === formSlide?.properties?.fields?.length) && (*/}
+                            {/*    <motion.div*/}
+                            {/*        initial={{ opacity: 0 }}*/}
+                            {/*        animate={{ opacity: 1 }}*/}
+                            {/*        exit={{ opacity: 0 }}*/}
+                            {/*        transition={{*/}
+                            {/*            type: 'tween',*/}
+                            {/*            stiffness: 260,*/}
+                            {/*            ease: 'easeInOut',*/}
+                            {/*            damping: 20,*/}
+                            {/*            duration: 0.5*/}
+                            {/*        }}*/}
+                            {/*        className="flex flex-col"*/}
+                            {/*    >*/}
+                            {/*       */}
+                            {/*    </motion.div>*/}
+                            {/*)}*/}
                         </div>
                     </AnimatePresence>
                 </div>
