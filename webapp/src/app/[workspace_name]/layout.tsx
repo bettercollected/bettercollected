@@ -6,6 +6,12 @@ import FullScreenLoader from '@app/views/atoms/Loaders/FullScreenLoader';
 
 import { WorkspaceDispatcher } from './_dispatcher/WorkspaceDispatcher';
 
+export async function generateMetadata({ params }: { params: { workspace_name: string } }) {
+    return {
+        title: 'Create | ' + params.workspace_name
+    };
+}
+
 export default function WorkspaceLayout({ children, params }: Readonly<{ children: React.ReactNode; params: { workspace_name: string } }>) {
     return <WorkspaceWrapper workspaceName={params.workspace_name}>{children}</WorkspaceWrapper>;
 }
