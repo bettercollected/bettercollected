@@ -5,6 +5,7 @@ from beanie import Indexed
 from common.configs.mongo_document import MongoDocument
 from common.enums.plan import Plans
 
+
 from auth.app.services.database_service import entity
 
 
@@ -14,7 +15,7 @@ class UserDocument(MongoDocument):
     last_name: Optional[str]
     profile_image: Optional[str]
     email: Indexed(str, unique=True)
-    roles: Optional[List[str]]
+    roles: Optional[List[str]] = []
     otp_code: Optional[str]
     otp_expiry: Optional[int]
     otp_code_for: Optional[str]
