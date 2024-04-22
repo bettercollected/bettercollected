@@ -289,6 +289,10 @@ class FormService:
             workspace_form.settings.allow_editing_response = (
                 settings.allow_editing_response
             )
+
+        if settings.show_original_form is not None:
+            workspace_form.settings.show_original_form = settings.show_original_form
+
         if settings.custom_url is not None:
             await self.user_tags_service.add_user_tag(
                 user_id=user.id, tag=UserTagType.CUSTOM_SLUG
@@ -447,9 +451,9 @@ class FormService:
         if add_action_to_form_params.parameters:
             if form.parameters is not None:
 
-                form.parameters[str(add_action_to_form_params.action_id)] = (
-                    add_action_to_form_params.parameters
-                )
+                form.parameters[
+                    str(add_action_to_form_params.action_id)
+                ] = add_action_to_form_params.parameters
             else:
                 form.parameters = {
                     str(
