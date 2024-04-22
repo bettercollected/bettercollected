@@ -4,6 +4,32 @@ import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
 import React, { Suspense } from 'react';
 
+export async function generateMetadata() {
+    const domain = headers().get('host') || '';
+    const workspaceResponse = await fetch(process.env.API_ENDPOINT_HOST + '/workspaces?custom_domain=' + domain);
+    const workspace = await workspaceResponse.json();
+
+    return {
+        title: workspace.title,
+        description: `${workspace.title}'s form`,
+
+        openGraph: {
+            title: workspace.title,
+            description: workspace.description,
+            siteName: 'admin.bettercollected.com',
+            images: [
+                {
+                    url: workspace.bannerImage,
+                    width: 800,
+                    height: 600
+                }
+            ],
+            locale: 'en_US',
+            type: 'website'
+        }
+    };
+}
+
 const getWorkspaceByDomain = async (domain: string) => {
     const workspaceResponse = await fetch(process.env.API_ENDPOINT_HOST + '/workspaces?custom_domain=' + domain);
 
