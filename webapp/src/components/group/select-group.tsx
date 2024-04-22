@@ -22,7 +22,6 @@ import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { useGetAllRespondersGroupQuery, usePatchFormSettingsMutation } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 
-
 const SelectGroup = () => {
     const workspace = useAppSelector(selectWorkspace);
     const form = useAppSelector(selectForm);
@@ -34,7 +33,7 @@ const SelectGroup = () => {
 
     const { openBottomSheetModal } = useBottomSheetModal();
     const { addFormOnGroup } = useGroupForm();
-    const [selectedGroup, setSelectedGroup] = useState<Array<ResponderGroupDto>>(form?.groups);
+    const [selectedGroup, setSelectedGroup] = useState<Array<ResponderGroupDto>>(form?.groups || []);
     const patchSettings = async (body: any, f: StandardFormDto) => {
         const response: any = await patchFormSettings({
             workspaceId: workspace.id,
@@ -93,13 +92,13 @@ const SelectGroup = () => {
     const MembersColumn = (row: ResponderGroupDto) => {
         if (row.regex) {
             return (
-                <div className={'flex flex-row text-sm font-normal text-black-700'}>
-                    <GroupIcon className={'mr-2'} /> {row?.emails?.length} members + <span className={'text-pink-500 pl-2'}>{row.regex}</span>
+                <div className={'text-black-700 flex flex-row text-sm font-normal'}>
+                    <GroupIcon className={'mr-2'} /> {row?.emails?.length} members + <span className={'pl-2 text-pink-500'}>{row.regex}</span>
                 </div>
             );
         } else {
             return (
-                <div className={'flex flex-row text-sm font-normal text-black-700'}>
+                <div className={'text-black-700 flex flex-row text-sm font-normal'}>
                     <GroupIcon className={'mr-2'} /> {row?.emails?.length} members
                 </div>
             );
@@ -109,8 +108,8 @@ const SelectGroup = () => {
     const GroupsColumn = (row: ResponderGroupDto) => {
         return (
             <div>
-                <h1 className={'text-base font-semibold text-black-800'}>{row.name}</h1>
-                <p className={'text-sm font-normal text-black-700'}>{row.description}</p>
+                <h1 className={'text-black-800 text-base font-semibold'}>{row.name}</h1>
+                <p className={'text-black-700 text-sm font-normal'}>{row.description}</p>
             </div>
         );
     };
@@ -156,17 +155,17 @@ const SelectGroup = () => {
 
     // @ts-ignore
     return (
-        <div className={'flex flex-col gap-12 w-full'}>
+        <div className={'flex w-full flex-col gap-12'}>
             <div className={'flex flex-row justify-between'}>
-                <div className={'flex flex-col md:w-[660px] gap-3'}>
+                <div className={'flex flex-col gap-3 md:w-[660px]'}>
                     <h1 className={'h2-new !text-black-800'}>Select Group</h1>
-                    <p className={'text-sm font-normal text-black-700'}>Only members of the specific groups be able to see the form. You can also create groups with whom you want to share this form.</p>
+                    <p className={'text-black-700 text-sm font-normal'}>Only members of the specific groups be able to see the form. You can also create groups with whom you want to share this form.</p>
                 </div>
                 <AppButton variant={ButtonVariant.Secondary} onClick={() => openBottomSheetModal('CREATE_GROUP')} icon={<GroupIcon className={'text-white'} />} size={ButtonSize.Medium}>
                     Create New Group
                 </AppButton>
             </div>
-            <DataTable className="p-0 mt-2 h-full !overflow-auto" columns={groupColumns} data={data || []} customStyles={dataTableCustomStyles} highlightOnHover={false} pointerOnHover={false} />
+            <DataTable className="mt-2 h-full !overflow-auto p-0" columns={groupColumns} data={data || []} customStyles={dataTableCustomStyles} highlightOnHover={false} pointerOnHover={false} />
             <div className={'flex flex-row'}>
                 <AppButton className="" onClick={handleOnSave} icon={<SaveIcon className={'text-white'} />} size={ButtonSize.Medium}>
                     Save Changes

@@ -2,11 +2,11 @@ import _ from 'lodash';
 
 import moment from 'moment/moment';
 
-import { formConstant } from '@app/constants/locales/form';
-import { AnswerDto, StandardFormFieldDto, StandardFormDto, StandardFormFieldDto } from '@app/models/dtos/form';
-import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
-import { FormValidationError } from '@app/store/fill-form/type';
-import { ActionType, Comparison, Condition, ConditionalActions, LogicalOperator } from '@app/store/form-builder/types';
+import {formConstant} from '@app/constants/locales/form';
+import {AnswerDto, StandardFormDto, StandardFormFieldDto} from '@app/models/dtos/form';
+import {FormBuilderTagNames} from '@app/models/enums/formBuilder';
+import {FormValidationError} from '@app/store/fill-form/type';
+import {ActionType, Comparison, Condition, ConditionalActions, LogicalOperator} from '@app/store/form-builder/types';
 
 /**
  * Validation method to check if the given value is undefined or not.
