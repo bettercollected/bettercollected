@@ -26,24 +26,6 @@ const fetchedFormAtom = atom<StandardFormDto>({
     }
 });
 
-export const useStandardForm = () => {
-    const [standardForm, setStandardForm] = useAtom(fetchedFormAtom);
-
-    return { standardForm, setStandardForm };
-};
-
-export const useFormSlide = (slideIndex: number) => {
-    const [standardForm] = useAtom(fetchedFormAtom);
-    const getFormSlide = () => {
-        if (!standardForm.fields || !standardForm?.fields?.length || slideIndex > standardForm?.fields?.length) {
-            return;
-        }
-        return standardForm.fields[slideIndex];
-    };
-
-    return getFormSlide();
-};
-
 export const useFormTheme = () => {
     const [{ theme }] = useAtom(fetchedFormAtom);
     return theme;
