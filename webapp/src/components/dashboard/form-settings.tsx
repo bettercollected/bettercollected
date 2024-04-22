@@ -123,6 +123,10 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
             });
     };
 
+    const onShowOriginalFormChange = (event: any, f: StandardFormDto = form) => {
+        patchSettings({ showOriginalForm: !f?.settings?.showOriginalForm }, f);
+    };
+
     const onShowSubmissionNumberChange = (event: any, f: StandardFormDto = form) => {
         patchSettings({ showSubmissionNumber: !f?.settings?.showSubmissionNumber }, f)
             .then()
@@ -302,6 +306,28 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
             case 'DEFAULT':
                 return (
                     <div className=" mb-10 flex flex-col gap-7 ">
+                        {form?.importedFormId && (
+                            <FormSettingsCard>
+                                <div className=" flex w-full flex-col items-start">
+                                    {/*<div className="h5-new !text-black-800">{t('FORM_PAGE.SETTINGS.DEFAULT.COLLECT_EMAILS.TITLE')}</div>*/}
+                                    <div className="h5-new !text-black-800">Show Original Form</div>
+                                    <Divider className={'my-2 w-full'} />
+                                    <div className="flex w-full flex-row items-center justify-between md:gap-4">
+                                        <div className="body4 !text-black-700 w-3/4 flex-1">Original Google Form in Embed mode is shown if this is enabled.</div>
+                                        {/*<div className="body4 !text-black-700 w-3/4">{t('FORM_PAGE.SETTINGS.DEFAULT.COLLECT_EMAILS.DESCRIPTION')}</div>*/}
+                                        <Switch
+                                            data-testid="pinned-switch"
+                                            checked={!!form?.settings?.showOriginalForm}
+                                            onClick={(e) => {
+                                                onShowOriginalFormChange(e, form);
+                                            }}
+                                        />
+                                    </div>
+                                    <Divider className={'my-2 w-full'} />
+                                </div>
+                            </FormSettingsCard>
+                        )}
+
                         {environments.ENABLE_COLLECT_EMAILS && form?.settings?.provider === 'self' && (
                             <FormSettingsCard>
                                 <div className=" flex w-full flex-col items-start">
@@ -323,7 +349,6 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                                 </div>
                             </FormSettingsCard>
                         )}
-
                         {form?.settings?.provider === 'self' && (
                             <FormSettingsCard>
                                 <div className=" flex w-full flex-col items-start">
@@ -343,7 +368,6 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                                 </div>
                             </FormSettingsCard>
                         )}
-
                         {environments.ENABLE_RESPONSE_EDITING && form?.settings?.provider === 'self' && form?.settings?.requireVerifiedIdentity && (
                             <FormSettingsCard>
                                 <div className=" flex w-full flex-col items-start">
@@ -397,7 +421,6 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                                 </FormSettingsCard>
                             </>
                         )}
-
                         {form?.settings?.provider === 'self' && (
                             <FormSettingsCard>
                                 <div className="flex w-full flex-col items-start">

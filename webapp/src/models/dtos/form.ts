@@ -107,6 +107,7 @@ export interface StandardFormDto {
         requireVerifiedIdentity?: boolean;
         showSubmissionNumber?: boolean;
         allowEditingResponse?: boolean;
+        showOriginalForm?: boolean;
     };
     isPublished?: boolean;
     importerDetails?: UserStatus;
