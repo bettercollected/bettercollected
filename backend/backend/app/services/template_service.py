@@ -6,6 +6,7 @@ from common.constants import MESSAGE_NOT_FOUND
 from common.models.standard_form import StandardForm
 from fastapi import UploadFile
 from gunicorn.config import User
+from typing import Optional
 
 from backend.app.exceptions import HTTPException
 from backend.app.models.dataclasses.user_tokens import UserTokens
@@ -34,7 +35,9 @@ class FormTemplateService:
         self._aws_service = aws_service
         self.temporal_service = temporal_service
 
-    async def get_templates(self, workspace_id: PydanticObjectId, user: User):
+    async def get_templates(
+        self, v2: Optional[bool], workspace_id: PydanticObjectId, user: User
+    ):
         predefined_workspace = False
         if not workspace_id:
             workspace_id = settings.default_workspace_settings.WORKSPACE_ID
@@ -44,7 +47,7 @@ class FormTemplateService:
                 workspace_id=workspace_id, user=user
             )
         return await self.form_template_repo.get_templates_with_creator(
-            workspace_id=workspace_id, predefined_workspace=predefined_workspace
+            workspace_id=workspace_id, predefined_workspace=predefined_workspace, v2=v2
         )
 
     async def get_template_by_id(

@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 
 import { useTranslation } from 'next-i18next';
-import Image, { StaticImageData } from 'next/image';
+import Image, { StaticImageData } from "next/legacy/image";
 import { useRouter } from 'next/router';
 
 import AppButton from '@Components/Common/Input/Button/AppButton';

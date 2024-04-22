@@ -64,6 +64,7 @@ workspace_settings = {
     "allowEditingResponse": None,
     "showSubmissionNumber": None,
     "requireVerifiedIdentity": None,
+    "showOriginalForm": None,
 }
 
 workspace_tag = {"title": "BetterCollected-Team"}

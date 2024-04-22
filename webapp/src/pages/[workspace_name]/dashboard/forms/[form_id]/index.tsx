@@ -35,9 +35,9 @@ import Error from '@app/pages/_error';
 import { resetSingleForm, selectForm, setForm } from '@app/store/forms/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
-import { getFormUrl } from '@app/utils/urlUtils';
+import getFormShareURL from '@app/utils/formUtils';
 import { validateFormOpen } from '@app/utils/validationUtils';
-
+import { getEditFormURL } from '@app/utils/urlUtils';
 
 const FormResponses = dynamic(() => import('@app/components/form/responses'));
 const FormResponsesTable = dynamic(() => import('@app/components/datatable/form/form-responses'));
@@ -51,7 +51,6 @@ export default function FormPage(props: any) {
     const { t } = useTranslation();
     const dispatch = useAppDispatch();
     const reduxStoreForm = useAppSelector(selectForm);
-    const locale = props._nextI18Next.initialLocale === 'en' ? '' : `${props._nextI18Next.initialLocale}/`;
     const breakpoint = useBreakpoint();
     const router = useRouter();
     const { openModal } = useModal();
@@ -86,11 +85,11 @@ export default function FormPage(props: any) {
     const breadcrumbsItem: Array<BreadcrumbsItem> = [
         {
             title: t(breadcrumbsItems.dashboard),
-            url: `/${locale}${props?.workspace?.workspaceName}/dashboard`
+            url: `/${props?.workspace?.workspaceName}/dashboard`
         },
         {
             title: t(breadcrumbsItems.forms),
-            url: `/${locale}${props?.workspace?.workspaceName}/dashboard/forms`
+            url: `/${props?.workspace?.workspaceName}/dashboard/forms`
         },
         {
             title: router.query ? router.query.view?.toString() ?? 'Preview' : 'Preview',
@@ -138,16 +137,20 @@ export default function FormPage(props: any) {
         await router.push(`/${props.workspace.workspaceName}/dashboard/forms`);
     };
 
+    if (!form?.formId) {
+        return <></>;
+    }
+
     return (
-        <Layout isCustomDomain={false} isClientDomain={false} showNavbar={true} hideMenu={false} showAuthAccount={true} className="!p-0 !bg-white flex flex-col w-full">
+        <Layout isCustomDomain={false} isClientDomain={false} showNavbar={true} hideMenu={false} showAuthAccount={true} className="flex w-full flex-col !bg-white !p-0">
             <NextSeo title={form.title} noindex={true} nofollow={true} />
-            <div className="w-full  my-2 ">
-                <div className="flex w-full items-center gap-1 px-5">
-                    <ChevronForward onClick={handleBackClick} className=" cursor-pointer rotate-180 h-6 w-6 p-[2px] " />
+            <div className="my-2  w-full ">
+                {/* <div className="flex w-full items-center gap-1 px-5">
+                    <ChevronForward onClick={handleBackClick} className=" h-6 w-6 rotate-180 cursor-pointer p-[2px] " />
                     <BreadcrumbsRenderer items={breadcrumbsItem} />
-                </div>
-                <div className="flex flex-col gap-1 mt-12">
-                    <FormPageLayer className=" lg:px-28 md:px-10 px-4 ">
+                </div> */}
+                <div className="mt-12 flex flex-col gap-1">
+                    <FormPageLayer className=" px-4 md:px-10 lg:px-28 ">
                         <div className="flex justify-between">
                             <h1 className="h2-new !text-pink">{form?.title}</h1>
                             <div className="flex gap-4">
@@ -157,10 +160,10 @@ export default function FormPage(props: any) {
                                         variant={['sm', 'md', 'lg', 'xl', '2xl'].indexOf(breakpoint) !== -1 ? ButtonVariant.Secondary : ButtonVariant.Ghost}
                                         className="!px-0 sm:!px-5"
                                         onClick={() => {
-                                            router.push(`/${workspace.workspaceName}/dashboard/forms/${form.formId}/edit`);
+                                            router.push(getEditFormURL(workspace, form));
                                         }}
                                     >
-                                        <span className="sm:block hidden">{t(formPage.editForm)}</span>
+                                        <span className="hidden sm:block">{t(formPage.editForm)}</span>
                                     </AppButton>
                                 )}
                                 {form?.isPublished && isFormOpen && (
@@ -172,38 +175,38 @@ export default function FormPage(props: any) {
                                             disabled={workspaceForm?.settings?.hidden}
                                             onClick={() =>
                                                 openModal('SHARE_VIEW', {
-                                                    url: getFormUrl(workspaceForm, workspace),
+                                                    url: getFormShareURL(workspaceForm, workspace),
                                                     title: t(formConstant.shareThisForm)
                                                 })
                                             }
                                         >
-                                            <span className="sm:block hidden">{t(formPage.shareForm)}</span>
+                                            <span className="hidden sm:block">{t(formPage.shareForm)}</span>
                                         </AppButton>
                                     </PrivateFormButtonWrapper>
                                 )}
                             </div>
                         </div>
-                        <div className="flex gap-1 flex-row items-center">
+                        <div className="flex flex-row items-center gap-1">
                             <FormProviderIcon provider={form?.settings?.provider} />
                         </div>
                         <Divider className="mt-6 hidden md:flex" />
                     </FormPageLayer>
                     <Divider className="mt-6 flex md:hidden" />
 
-                    <ParamTab showInfo={true} className=" lg:px-28 md:px-10 " tabMenu={paramTabs}>
-                        <FormPageLayer className="w-full">
+                    <ParamTab showInfo={true} className="md:px-10 lg:px-28" tabMenu={paramTabs}>
+                        <FormPageLayer className="px-4 md:px-10 lg:px-28">
                             <TabPanel className="focus:outline-none" key="Preview">
                                 <FormPreview />
                             </TabPanel>
                         </FormPageLayer>
-                        <FormPageLayer className="md:px-32 px-2">
+                        <FormPageLayer className="px-2 md:px-32">
                             <TabPanel className="focus:outline-none" key="Settings">
                                 <FormSettings />
                             </TabPanel>
                         </FormPageLayer>
                         {form?.isPublished && (
                             <>
-                                {form?.settings?.provider === 'self' && (
+                                {form?.settings?.provider === 'self' && environments.ENABLE_ACTIONS && (
                                     <TabPanel className="focus:outline-none" key="Integrations">
                                         <FormIntegrations />
                                     </TabPanel>
@@ -211,14 +214,14 @@ export default function FormPage(props: any) {
                                 <TabPanel className="focus:outline-none" key="Responses">
                                     <FormResponses />
                                 </TabPanel>
+                                <TabPanel className="focus:outline-none" key="Deletion Requests">
+                                    <FormResponsesTable props={{ workspace, requestForDeletion: true }} />
+                                </TabPanel>
                             </>
                         )}
-                        <FormPageLayer className="md:px-32 px-2">
+                        <FormPageLayer className="px-2 md:px-32">
                             {form?.isPublished ? (
                                 <>
-                                    <TabPanel className="focus:outline-none" key="Deletion Requests">
-                                        <FormResponsesTable props={{ workspace, requestForDeletion: true }} />
-                                    </TabPanel>
                                     <TabPanel className="focus:outline-none" key="FormVisibility">
                                         <FormVisibilities />
                                     </TabPanel>

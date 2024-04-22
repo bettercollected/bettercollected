@@ -1,4 +1,4 @@
-import { CallBackProps, CommonProps, Props as JoyRideState, StoreHelpers } from 'react-joyride';
+import { CallBackProps, Props as JoyRideState, StoreHelpers } from 'react-joyride';
 
 export interface JoyrideState extends JoyRideState {
     id: string;
@@ -6,7 +6,7 @@ export interface JoyrideState extends JoyRideState {
     lifecycle: string;
 }
 
-export interface JoyrideStateWithoutSteps extends CommonProps {
+export interface JoyrideStateWithoutSteps {
     id: string;
     finished: boolean;
     lifecycle: string;

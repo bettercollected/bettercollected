@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
-import Image from 'next/image';
+import Image from "next/legacy/image";
 
 import _ from 'lodash';
 

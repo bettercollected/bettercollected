@@ -36,6 +36,7 @@ import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { usePatchFormSettingsMutation } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { utcToLocalDateTIme } from '@app/utils/dateUtils';
+import getFormShareURL from '@app/utils/formUtils';
 import { validateFormOpen } from '@app/utils/validationUtils';
 
 import Globe from '../icons/flags/globe';
@@ -59,14 +60,14 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
     const fullScreenModal = useFullScreenModal();
     const isCustomDomain = workspace?.isPro && !!workspace.customDomain;
     const customUrl = form?.settings?.customUrl || '';
-    const clientHost = `${environments.CLIENT_DOMAIN.includes('localhost') ? 'http' : 'https'}://${environments.CLIENT_DOMAIN}/${workspace.workspaceName}/forms`;
-    const customDomain = `${environments.CLIENT_DOMAIN.includes('localhost') ? 'http' : 'https'}://${workspace.customDomain}/forms`;
-    const clientHostUrl = `${clientHost}/${customUrl}`;
-    const customDomainUrl = `${customDomain}/${customUrl}`;
+    const clientHost = `${environments.HTTP_SCHEME}${environments.CLIENT_DOMAIN}/${workspace.workspaceName}/forms`;
+    const customDomain = `${environments.HTTP_SCHEME}${workspace.customDomain}/forms`;
+    const V2FormDomain = `${environments.HTTP_SCHEME}${environments.FORM_DOMAIN}`;
+
     const [_, copyToClipboard] = useCopyToClipboard();
 
     const handleOnCopy = () => {
-        const link = (isCustomDomain ? customDomain : clientHost) + '/' + customUrl;
+        const link = getFormShareURL(form, workspace);
         copyToClipboard(link);
         toast(t(toastMessage.copied).toString(), {
             type: 'info'
@@ -120,6 +121,10 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
             .catch((e) => {
                 toast(e.data, { type: 'error', toastId: 'errorToast' });
             });
+    };
+
+    const onShowOriginalFormChange = (event: any, f: StandardFormDto = form) => {
+        patchSettings({ showOriginalForm: !f?.settings?.showOriginalForm }, f);
     };
 
     const onShowSubmissionNumberChange = (event: any, f: StandardFormDto = form) => {
@@ -207,13 +212,13 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                                     value="Public"
                                     control={<Radio />}
                                     label={
-                                        <div className="flex body6 !text-black-800 items-center gap-[6px]">
+                                        <div className="body6 !text-black-800 flex items-center gap-[6px]">
                                             <Globe className="h-[18px] w-[18px]" />
                                             {t(formConstant.settings.visibility.public)}
                                         </div>
                                     }
                                 />
-                                <span className="ml-8 body4 !text-black-700">{t(formPage.visibilityPublic)}</span>
+                                <span className="body4 !text-black-700 ml-8">{t(formPage.visibilityPublic)}</span>
                             </div>
                             <Divider />
                             <div className="flex flex-col">
@@ -222,13 +227,13 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                                     value="Private"
                                     control={<Radio />}
                                     label={
-                                        <div className="flex body6 !text-black-800 items-center gap-[6px]">
+                                        <div className="body6 !text-black-800 flex items-center gap-[6px]">
                                             <LockIcon className="h-[18px] w-[18px]" />
                                             {t(formConstant.settings.visibility.private)}
                                         </div>
                                     }
                                 />
-                                <span className="ml-8 body4 !text-black-700">{t(formPage.visibilityPrivate)}</span>
+                                <span className="body4 !text-black-700 ml-8">{t(formPage.visibilityPrivate)}</span>
                             </div>
                             <Divider />
                             <div className="flex flex-col">
@@ -237,27 +242,31 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                                     value="Group"
                                     control={<Radio />}
                                     label={
-                                        <div className="flex body6 !text-black-800 items-center gap-[6px]">
+                                        <div className="body6 !text-black-800 flex items-center gap-[6px]">
                                             <GroupIcon className="h-[18px] w-[18px]" />
                                             {t(formPage.visibilityGroupsTitle)}
                                         </div>
                                     }
                                 />
-                                <span className="ml-8 body4 !text-black-700">{!(form?.groups.length === 0) ? t(formPage.visibilityGroups1) : t(formPage.visibilityGroups0)}</span>
-                                {currentVisibility === 'Group' && <FormGroups groups={form?.groups} />}
+                                <span className="body4 !text-black-700 ml-8">{!(form?.groups?.length === 0) ? t(formPage.visibilityGroups1) : t(formPage.visibilityGroups0)}</span>
+                                {currentVisibility === 'Group' && <FormGroups groups={form?.groups || []} />}
                             </div>
                             <Divider />
                         </RadioGroup>
                     </FormSettingsCard>
                 );
             case 'LINKS':
+                const url = getFormShareURL(form, workspace);
+                let parts = url.split('/');
+                let lastPart = parts.pop();
+                let firstPart = parts.join('/');
                 return (
-                    <FormSettingsCard className={'!space-y-0 !mt-0'}>
-                        <p className="w-full body4 !text-black-700 lg:max-w-[564px]">{t(formPage.linksDescription)}</p>
-                        <div className={'flex flex-col gap-2 mt-1  items-start py-1 '}>
+                    <FormSettingsCard className={'!mt-0 !space-y-0'}>
+                        <p className="body4 !text-black-700 w-full lg:max-w-[564px]">{t(formPage.linksDescription)}</p>
+                        <div className={'mt-1 flex flex-col items-start  gap-2 py-1 '}>
                             <Tooltip title={t('CLICK_TO_COPY')}>
-                                <p className="body4 !text-black-700 truncate cursor-pointer max-w-full" onClick={handleOnCopy}>
-                                    {isCustomDomain ? customDomain : clientHost}/<span className={'text-pink-500'}>{customUrl}</span>
+                                <p className="body4 !text-black-700 max-w-full cursor-pointer truncate" onClick={handleOnCopy}>
+                                    {firstPart}/ <span className="text-pink-500">{lastPart}</span>
                                 </p>
                             </Tooltip>
                             <div className={'flex gap-8'}>
@@ -266,7 +275,7 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                                     icon={<EditIcon className="h-4 w-4" />}
                                     onClick={() => {
                                         openBottomSheetModal('FORM_CREATE_SLUG_VIEW', {
-                                            link: isCustomDomain ? customDomain : clientHost,
+                                            link: isCustomDomain ? customDomain : form?.builderVersion === 'v2' ? V2FormDomain : clientHost,
                                             customSlug: customUrl
                                         });
                                     }}
@@ -289,22 +298,44 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                             </div>
                         </div>
                         <div className="flex flex-col gap-16 pt-10">
-                            {isCustomDomain && <FormLinkUpdateView isCustomDomain={isCustomDomain} link={customDomainUrl} isProUser={!isAdmin || workspace?.isPro} isPrivate={form?.settings?.hidden} />}
-                            <FormLinkUpdateView isCustomDomain={false} link={clientHostUrl} isDisable={!isProPlan && !isAdmin} isProUser={!isAdmin || workspace?.isPro} isPrivate={form?.settings?.hidden} />
+                            {isCustomDomain && <FormLinkUpdateView isCustomDomain={isCustomDomain} link={getFormShareURL(form, workspace)} isProUser={!isAdmin || workspace?.isPro} isPrivate={form?.settings?.hidden} />}
+                            <FormLinkUpdateView isCustomDomain={false} link={getFormShareURL(form, workspace, true)} isDisable={!isProPlan && !isAdmin} isProUser={!isAdmin || workspace?.isPro} isPrivate={form?.settings?.hidden} />
                         </div>
                     </FormSettingsCard>
                 );
             case 'DEFAULT':
                 return (
-                    <div className=" flex flex-col gap-7 mb-10 ">
+                    <div className=" mb-10 flex flex-col gap-7 ">
+                        {form?.importedFormId && (
+                            <FormSettingsCard>
+                                <div className=" flex w-full flex-col items-start">
+                                    {/*<div className="h5-new !text-black-800">{t('FORM_PAGE.SETTINGS.DEFAULT.COLLECT_EMAILS.TITLE')}</div>*/}
+                                    <div className="h5-new !text-black-800">Show Original Form</div>
+                                    <Divider className={'my-2 w-full'} />
+                                    <div className="flex w-full flex-row items-center justify-between md:gap-4">
+                                        <div className="body4 !text-black-700 w-3/4 flex-1">Original Google Form in Embed mode is shown if this is enabled.</div>
+                                        {/*<div className="body4 !text-black-700 w-3/4">{t('FORM_PAGE.SETTINGS.DEFAULT.COLLECT_EMAILS.DESCRIPTION')}</div>*/}
+                                        <Switch
+                                            data-testid="pinned-switch"
+                                            checked={!!form?.settings?.showOriginalForm}
+                                            onClick={(e) => {
+                                                onShowOriginalFormChange(e, form);
+                                            }}
+                                        />
+                                    </div>
+                                    <Divider className={'my-2 w-full'} />
+                                </div>
+                            </FormSettingsCard>
+                        )}
+
                         {environments.ENABLE_COLLECT_EMAILS && form?.settings?.provider === 'self' && (
                             <FormSettingsCard>
-                                <div className=" flex flex-col items-start w-full">
+                                <div className=" flex w-full flex-col items-start">
                                     {/*<div className="h5-new !text-black-800">{t('FORM_PAGE.SETTINGS.DEFAULT.COLLECT_EMAILS.TITLE')}</div>*/}
                                     <div className="h5-new !text-black-800">Require Verified Identity</div>
-                                    <Divider className={'w-full my-2'} />
-                                    <div className="flex flex-row md:gap-4 justify-between w-full items-center">
-                                        <div className="body4 !text-black-700 flex-1 w-3/4">If this is enabled the user needs to verify his email identity before filling this form</div>
+                                    <Divider className={'my-2 w-full'} />
+                                    <div className="flex w-full flex-row items-center justify-between md:gap-4">
+                                        <div className="body4 !text-black-700 w-3/4 flex-1">If this is enabled the user needs to verify his email identity before filling this form</div>
                                         {/*<div className="body4 !text-black-700 w-3/4">{t('FORM_PAGE.SETTINGS.DEFAULT.COLLECT_EMAILS.DESCRIPTION')}</div>*/}
                                         <Switch
                                             data-testid="pinned-switch"
@@ -314,17 +345,16 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                                             }}
                                         />
                                     </div>
-                                    <Divider className={'w-full my-2'} />
+                                    <Divider className={'my-2 w-full'} />
                                 </div>
                             </FormSettingsCard>
                         )}
-
                         {form?.settings?.provider === 'self' && (
                             <FormSettingsCard>
-                                <div className=" flex flex-col items-start w-full">
+                                <div className=" flex w-full flex-col items-start">
                                     <div className="h5-new !text-black-800">Show Submission Number</div>
-                                    <Divider className={'w-full my-2'} />
-                                    <div className="flex flex-row md:gap-4 w-full justify-between items-center">
+                                    <Divider className={'my-2 w-full'} />
+                                    <div className="flex w-full flex-row items-center justify-between md:gap-4">
                                         <div className="body4 !text-black-700 w-3/4">When this is enabled the responder will br shown a submission ID which the user can use to view his response and also request for deletion of his response</div>
                                         <Switch
                                             data-testid="pinned-switch"
@@ -334,17 +364,16 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                                             }}
                                         />
                                     </div>
-                                    <Divider className={'w-full my-2'} />
+                                    <Divider className={'my-2 w-full'} />
                                 </div>
                             </FormSettingsCard>
                         )}
-
                         {environments.ENABLE_RESPONSE_EDITING && form?.settings?.provider === 'self' && form?.settings?.requireVerifiedIdentity && (
                             <FormSettingsCard>
-                                <div className=" flex flex-col items-start w-full">
+                                <div className=" flex w-full flex-col items-start">
                                     <div className="h5-new !text-black-800">Allow Response Editing</div>
-                                    <Divider className={'w-full my-2'} />
-                                    <div className="flex flex-row md:gap-4 w-full justify-between items-center">
+                                    <Divider className={'my-2 w-full'} />
+                                    <div className="flex w-full flex-row items-center justify-between md:gap-4">
                                         <div className="body4 !text-black-700 w-3/4">The verified responder can change their response if this is enabled</div>
                                         <Switch
                                             data-testid="pinned-switch"
@@ -354,7 +383,7 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                                             }}
                                         />
                                     </div>
-                                    <Divider className={'w-full my-2'} />
+                                    <Divider className={'my-2 w-full'} />
                                 </div>
                             </FormSettingsCard>
                         )}
@@ -362,44 +391,43 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                             <>
                                 {!form?.settings?.private && (
                                     <FormSettingsCard>
-                                        <div className=" flex flex-col items-start w-full">
+                                        <div className=" flex w-full flex-col items-start">
                                             <div className="h5-new !text-black-800">{t(formPage.pinFormTitle)}</div>
-                                            <Divider className={'w-full my-2'} />
-                                            <div className="flex flex-row md:gap-4 justify-between items-center">
+                                            <Divider className={'my-2 w-full'} />
+                                            <div className="flex flex-row items-center justify-between md:gap-4">
                                                 <div className="body4 !text-black-700 w-3/4">{t(formPage.pinFormDescription)}</div>
                                                 <Switch data-testid="pinned-switch" checked={!!form?.settings?.pinned} onClick={(e) => onPinnedChange(e, form)} />
                                             </div>
-                                            <Divider className={'w-full my-2'} />
+                                            <Divider className={'my-2 w-full'} />
                                         </div>
                                     </FormSettingsCard>
                                 )}
                                 <FormSettingsCard className={cn('', !isProPlan && isAdmin && '')}>
-                                    <div className=" flex items-start flex-col w-full">
-                                        <div className="h5-new !text-black-800 flex flex-row gap-4 justify-between">
+                                    <div className=" flex w-full flex-col items-start">
+                                        <div className="h5-new !text-black-800 flex flex-row justify-between gap-4">
                                             <h1>{t(formPage.brandingTitle)}</h1>
-                                            <div className="flex items-center rounded h-5 sm:h-6 p-1 sm:p-[6px] text-[10px] sm:body5 uppercase !leading-none !font-semibold !text-white bg-brand-500">
+                                            <div className="sm:body5 bg-brand-500 flex h-5 items-center rounded p-1 text-[10px] !font-semibold uppercase !leading-none !text-white sm:h-6 sm:p-[6px]">
                                                 <Pro width={12} height={12} />
                                                 <span className="leading-none">{t(formPage.pro)}</span>
                                             </div>
                                         </div>
-                                        <Divider className={'w-full my-2'} />
-                                        <div className="flex flex-row w-full md:gap-4 justify-between items-center">
+                                        <Divider className={'my-2 w-full'} />
+                                        <div className="flex w-full flex-row items-center justify-between md:gap-4">
                                             <div className="body4 !text-black-700 w-3/4">{t(formPage.brandingDescription)}</div>
                                             <Switch disabled={!isProPlan} data-testid="disable-branding-switch" checked={!form?.settings?.disableBranding} onClick={(e) => onDisableBrandingChange(e, form)} />
                                         </div>
-                                        <Divider className={'w-full my-2'} />
+                                        <Divider className={'my-2 w-full'} />
                                     </div>
                                 </FormSettingsCard>
                             </>
                         )}
-
                         {form?.settings?.provider === 'self' && (
                             <FormSettingsCard>
-                                <div className="flex flex-col items-start w-full">
+                                <div className="flex w-full flex-col items-start">
                                     <div className="body1">{t(formPage.formPurposeTitle)}</div>
-                                    <Divider className={'w-full my-2'} />
-                                    <div className=" w-full flex flex-row justify-between items-center gap-4">
-                                        <div className="text-sm !text-black-700">{t(formPage.formPurposeDescription)}</div>
+                                    <Divider className={'my-2 w-full'} />
+                                    <div className=" flex w-full flex-row items-center justify-between gap-4">
+                                        <div className="!text-black-700 text-sm">{t(formPage.formPurposeDescription)}</div>
                                         <AppButton
                                             variant={ButtonVariant.Ghost}
                                             className="h5-new !text-new-blue-500 w-60 cursor-pointer"
@@ -413,19 +441,19 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                                             {t(formPage.formPurposeSeeDetails)}
                                         </AppButton>
                                     </div>
-                                    <Divider className={'w-full my-2'} />
+                                    <Divider className={'my-2 w-full'} />
                                 </div>
                             </FormSettingsCard>
                         )}
                         {form?.settings?.provider === 'self' && form?.isPublished && (
                             <FormSettingsCard>
-                                <div className="flex flex-col items-start w-full">
+                                <div className="flex w-full flex-col items-start">
                                     <div className="body1">{t(formPage.closeForm)}</div>
-                                    <Divider className={'w-full my-2'} />
+                                    <Divider className={'my-2 w-full'} />
                                     {(!form?.settings?.formCloseDate || moment.utc(form?.settings?.formCloseDate).isBefore(moment.utc())) && (
                                         <>
-                                            <div className=" w-full flex flex-row justify-between items-center gap-4">
-                                                <div className="text-sm !text-black-700">{t(formPage.closeFormDescription)}</div>
+                                            <div className=" flex w-full flex-row items-center justify-between gap-4">
+                                                <div className="!text-black-700 text-sm">{t(formPage.closeFormDescription)}</div>
                                                 <Switch
                                                     data-testid="close-form-switch"
                                                     // checked={false}
@@ -457,7 +485,7 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                                     )}
 
                                     {form?.settings?.formCloseDate && moment(form?.settings?.formCloseDate).isAfter(moment.utc()) && (
-                                        <div className="my-2 flex justify-between p-5 bg-black-200 w-full rounded-md">
+                                        <div className="bg-black-200 my-2 flex w-full justify-between rounded-md p-5">
                                             <div>
                                                 {t(formPage.automaticallyCloseOn)} {utcToLocalDateTIme(form?.settings?.formCloseDate)}
                                             </div>
@@ -468,7 +496,7 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                                             </div>
                                         </div>
                                     )}
-                                    <Divider className={'w-full my-2'} />
+                                    <Divider className={'my-2 w-full'} />
                                 </div>
                             </FormSettingsCard>
                         )}
@@ -497,13 +525,13 @@ const FormGroups = ({ groups }: { groups: ResponderGroupDto[] }) => {
     const { t } = useTranslation();
 
     return (
-        <div className={'flex flex-col gap-0.5 mt-2'}>
+        <div className={'mt-2 flex flex-col gap-0.5'}>
             {groups.map((group: ResponderGroupDto) => {
                 return (
-                    <div key={group.id} className={'flex flex-row bg-black-200 px-6 py-[18px]'}>
+                    <div key={group.id} className={'bg-black-200 flex flex-row px-6 py-[18px]'}>
                         <div className={'w-full md:w-[400px]'}>
-                            <h1 className={'text-base font-semibold text-black-800'}>{group.name}</h1>
-                            <p className={'text-sm font-normal text-black-700'}>{group.description}</p>
+                            <h1 className={'text-black-800 text-base font-semibold'}>{group.name}</h1>
+                            <p className={'text-black-700 text-sm font-normal'}>{group.description}</p>
                         </div>
                     </div>
                 );

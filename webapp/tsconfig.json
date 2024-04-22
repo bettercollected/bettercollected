@@ -2,10 +2,12 @@
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {
-      "@Components/*": ["./src/Components/*"],
+      "@Components/*": [
+        "./src/Components/*"
+      ],
       "@app/*": [
         "./src/*"
-      ],
+      ]
     },
     "target": "es5",
     "lib": [
@@ -16,29 +18,32 @@
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
-    "forceConsistentCasingInFileNames": true,
     "noEmit": true,
     "esModuleInterop": true,
     "module": "esnext",
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
     "jsx": "preserve",
-    "incremental": true
+    "incremental": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ]
   },
   "include": [
     "next-env.d.ts",
     "**/*.ts",
     "**/*.tsx",
-    "**/*.ts",
-    "**/*.tsx",
-    "**/*.js",
-    "**/*.jsx",
+    ".next/types/**/*.ts",
+    ".next-dev/types/**/*.ts",
     "src/**/*.js",
     "src/**/*.jsx",
     "src/**/*.ts",
-    "src/**/*.tsx"
-, "src/Components/Consent/ConsentModalTopBar.tsx"  ],
+    "src/**/*.tsx",
+    "src/Components/Consent/ConsentModalTopBar.tsx"
+  ],
   "exclude": [
     "node_modules",
     "build",

@@ -109,8 +109,8 @@ export default function OtpEmailInput(props: OtpEmailInputPropType) {
             </div>
             {providers.length > 0 && (
                 <>
-                    <div className="flex gap-[20px] mt-10 w-full">
-                        <div className="flex flex-col sm:flex-row gap-4 lg:gap-6 w-full  justify-center items-center">
+                    <div className="mt-10 flex w-full gap-[20px]">
+                        <div className="flex w-full flex-col items-center justify-center gap-4  sm:flex-row lg:gap-6">
                             {providers.map((provider: string) => (
                                 <ConnectWithProviderButton key={provider} type={'dark'} url={`${environments.API_ENDPOINT_HOST}/auth/${provider}/basic`} text={`Sign in with ${capitalize(provider)}`} creator={isCreator} fromProPlan={fromProPlan} />
                             ))}
@@ -123,9 +123,9 @@ export default function OtpEmailInput(props: OtpEmailInputPropType) {
                     )}
                 </>
             )}
-            <p className="text-base font-semibold mb-3 mt-[44px] text-black-900">{constants.emailInputLabel}</p>
+            <p className="text-black-900 mb-3 mt-[44px] text-base font-semibold">{constants.emailInputLabel}</p>
             <AppTextField autoFocus type={'email'} required={true} placeholder={constants.enterYourEmail} value={email} onChange={handleEmailInput} />
-            <AppButton type={'submit'} variant={ButtonVariant.Primary} isLoading={isCreator ? creatorResponse.isLoading : isLoading} className={`w-full mt-6 ${isModal ? 'mb-10' : ''}`} size={ButtonSize.Medium}>
+            <AppButton type={'submit'} variant={ButtonVariant.Primary} isLoading={isCreator ? creatorResponse.isLoading : isLoading} className={`mt-6 w-full ${isModal ? 'mb-10' : ''}`} size={ButtonSize.Medium}>
                 {constants.sendCodeButton}
             </AppButton>
         </form>
