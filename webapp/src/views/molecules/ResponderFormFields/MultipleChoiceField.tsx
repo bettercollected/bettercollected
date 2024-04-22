@@ -27,8 +27,6 @@ const MultipleChoiceField = ({ field, slideIndex }: { field: StandardFormFieldDt
 
     const otherOption = formResponse?.answers?.[field.id]?.choice?.other || '';
 
-    console.log('otherOption', otherOption);
-
     const handleClick = (item: string) => {
         addFieldChoiceAnswer(field.id, item);
         setTimeout(() => {

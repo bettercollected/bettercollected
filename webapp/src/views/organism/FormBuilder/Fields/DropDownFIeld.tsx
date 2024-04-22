@@ -50,7 +50,6 @@ const DropDownField = ({ field, slide, disabled }: { field: StandardFormFieldDto
                                         setBackspaceCount(backspaceCount + 1);
                                     }
                                     if (e.key === 'Backspace' && backspaceCount == 1 && !choice.value) {
-                                        console.log(choice.id);
                                         removeChoiceField(field.index, slide.index, choice.id);
                                         setBackspaceCount(0);
                                     }

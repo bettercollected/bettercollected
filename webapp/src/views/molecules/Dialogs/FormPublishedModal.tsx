@@ -7,11 +7,13 @@ import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import GreenCheckedCircle from '@app/views/atoms/Icons/GreenCheckedCircle';
+import getFormShareURL from '@app/utils/formUtils';
 
 export default function FormPublishedModal(props: any) {
     const workspace = useAppSelector(selectWorkspace);
 
     const standardForm = useAppSelector(selectForm);
+
     return (
         <div className="w-full">
             <div className="border-b-black-300 text-black-700 border-b p-4 text-xs">Form Published</div>
@@ -34,7 +36,7 @@ export default function FormPublishedModal(props: any) {
                     <Button
                         variant={'v2Button'}
                         onClick={() => {
-                            navigator.clipboard.writeText(`${environments.HTTP_SCHEME}${environments.FORM_DOMAIN}/${workspace.workspaceName}/forms/${standardForm.formId}`);
+                            navigator.clipboard.writeText(getFormShareURL(standardForm, workspace));
                             toast('Copied!');
                         }}
                     >
