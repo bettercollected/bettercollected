@@ -5,20 +5,19 @@ import { useEffect, useMemo } from 'react';
 import { useDebounceValue } from 'usehooks-ts';
 
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
-import { useStandardForm } from '@app/store/jotai/fetchedForm';
 import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
 import { useFormState } from '@app/store/jotai/form';
 import { usePatchV2FormMutation } from '@app/store/redux/formApi';
 import { selectWorkspace } from '@app/store/workspaces/slice';
-import { setForm } from '@app/store/forms/slice';
+import { selectForm, setForm } from '@app/store/forms/slice';
 
 export default function AutoSaveForm({ formId }: { formId: string }) {
     const { formFields } = useFormFieldsAtom();
     const { formState } = useFormState();
     const workspace = useAppSelector(selectWorkspace);
-    const { setStandardForm } = useStandardForm();
 
     const dispatch = useAppDispatch();
+    const form = useAppSelector(selectForm);
     const [patchV2Form] = usePatchV2FormMutation();
 
     const combinedFormState = useMemo(
@@ -40,8 +39,7 @@ export default function AutoSaveForm({ formId }: { formId: string }) {
         };
         const response: any = await patchV2Form(requestData);
         if (response.data) {
-            setStandardForm(response.data);
-            dispatch(setForm(response.data));
+            dispatch(setForm({ ...response.data, settings: form.settings }));
         }
     };
 

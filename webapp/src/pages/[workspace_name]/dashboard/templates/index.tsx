@@ -20,7 +20,6 @@ const TemplatePage = (props: any) => {
     if (p.length > 7) {
         p = p.slice(0, 7);
     }
-    console.log('A', p);
     const { data, isLoading } = useGetTemplatesQuery(
         {
             workspace_id: workspace?.id
