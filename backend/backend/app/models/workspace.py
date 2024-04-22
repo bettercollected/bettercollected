@@ -50,6 +50,7 @@ class WorkspaceFormSettings(BaseModel):
     require_verified_identity: Optional[bool]
     show_submission_number: Optional[bool]
     allow_editing_response: Optional[bool]
+    show_original_form: Optional[bool]
 
 
 class WorkspaceResponseDto(WorkspaceRequestDto, CamelModel):
