@@ -225,21 +225,25 @@ class FormService:
         return minified_form
 
     async def save_form(self, form: StandardForm):
-        existing_form = await FormDocument.find_one({"form_id": form.form_id})
+        existing_form = await FormDocument.find_one(
+            {"imported_form_id": form.imported_form_id}
+        )
         form_document = FormDocument(**form.dict())
         if existing_form:
             form_document.id = existing_form.id
+            form_document.form_id = existing_form.form_id
             form_document.created_at = (
                 existing_form.created_at
                 if existing_form.created_at
                 else datetime.utcnow()
             )
         existing_form_version = await FormVersionsDocument.find_one(
-            {"form_id": form.form_id}
+            {"imported_form_id": form.imported_form_id}
         )
         form_version_document = FormVersionsDocument(**form.dict(), version=1)
         if existing_form_version:
             form_version_document.id = existing_form_version.id
+            form_version_document.form_id = existing_form_version.form_id
             form_version_document.created_at = (
                 existing_form_version.created_at
                 if existing_form_version.created_at
@@ -285,6 +289,10 @@ class FormService:
             workspace_form.settings.allow_editing_response = (
                 settings.allow_editing_response
             )
+
+        if settings.show_original_form is not None:
+            workspace_form.settings.show_original_form = settings.show_original_form
+
         if settings.custom_url is not None:
             await self.user_tags_service.add_user_tag(
                 user_id=user.id, tag=UserTagType.CUSTOM_SLUG
@@ -349,6 +357,9 @@ class FormService:
             and form.cover_image == latest_version.cover_image
             and form.button_text == latest_version.button_text
             and form.state == latest_version.state
+            and form.welcome_page == latest_version.welcome_page
+            and form.thankyou_page == latest_version.thankyou_page
+            and form.theme == latest_version.theme
         ):
             return False
         return True

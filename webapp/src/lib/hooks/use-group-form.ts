@@ -73,7 +73,6 @@ export function useGroupForm() {
             // closeModal();
             // fullScreenModal.closeModal();
         } catch (error) {
-            console.log(error);
             toast(t(toastMessage.somethingWentWrong).toString(), { toastId: ToastId.ERROR_TOAST, type: 'error' });
         }
     };

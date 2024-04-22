@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-import Image from 'next/image';
+import Image from "next/legacy/image";
 
 import AppButton from '@Components/Common/Input/Button/AppButton';
 import { Close } from '@mui/icons-material';

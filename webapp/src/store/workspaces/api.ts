@@ -231,7 +231,7 @@ export const workspacesApi = createApi({
                 },
                 method: 'GET'
             }),
-            providesTags: [WORKSPACE_TAGS]
+            providesTags: [WORKSPACE_TAGS, SUBMISSION_TAG]
         }),
         getWorkspaceSubmissions: builder.query<Page<StandardFormResponseDto>, IGetAllSubmissionsQuery>({
             query: (query) => ({

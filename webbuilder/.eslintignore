@@ -1,0 +1,16 @@
+.github
+.next
+.next-dev
+.vercel
+.husky
+.vscode
+
+node_modules
+build
+public
+
+.eslintrc.json
+package.json
+package-lock.json
+tsconfig.json
+yarn.lock

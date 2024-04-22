@@ -3,7 +3,7 @@ import { persistReducer } from 'redux-persist';
 import storage from 'redux-persist/lib/storage';
 
 import { RootState } from '@app/store/store';
-
+import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 
 export interface BrandColor {
     primary_color: string;

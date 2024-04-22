@@ -1,3 +1,4 @@
+"use client";
 import React from 'react';
 
 import { useTranslation } from 'next-i18next';
@@ -19,8 +20,6 @@ import { selectWorkspace } from '@app/store/workspaces/slice';
 
 export default function CreatorDashboard({ hasCustomDomain, ...props }: { workspace: WorkspaceDto; hasCustomDomain: boolean }) {
     const { t } = useTranslation();
-
-    const { t: builderTranslation } = useTranslation('builder');
 
     const workspace = useAppSelector(selectWorkspace);
 

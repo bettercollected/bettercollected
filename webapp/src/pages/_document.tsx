@@ -2,7 +2,6 @@ import Document, { DocumentContext, DocumentInitialProps, Head, Html, Main, Next
 
 import environments from '@app/configs/environments';
 
-
 class MyDocument extends Document {
     static async getInitialProps(ctx: DocumentContext): Promise<DocumentInitialProps> {
         return Document.getInitialProps(ctx);
@@ -13,6 +12,7 @@ class MyDocument extends Document {
             <Html lang="en-US" dir="ltr" className="light">
                 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" />
                 <Head>
+                    <script src="/api/config" async />
                     {this.props.styles}
                     {embedScript()}
                     {embedMicrosoftClarityScript()}
@@ -55,7 +55,7 @@ function embedScript() {
     const htmlStr = 'elasticApm.init(' + JSON.stringify(config) + ')';
     return environments.APM_ENABLED ? (
         <>
-            <script src="https://unpkg.com/@elastic/apm-rum@5.12.0/dist/bundles/elastic-apm-rum.umd.min.js" crossOrigin="true" />
+            <script src="https://unpkg.com/@elastic/apm-rum@5.12.0/dist/bundles/elastic-apm-rum.umd.min.js" crossOrigin={'anonymous'} />
             <script dangerouslySetInnerHTML={{ __html: htmlStr }} />
         </>
     ) : (

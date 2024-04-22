@@ -1,9 +1,9 @@
 import React from 'react';
 
 import cn from 'classnames';
-import { ReactMarkdown } from 'react-markdown/lib/react-markdown';
 import rehypeRaw from 'rehype-raw';
 import remarkGfm from 'remark-gfm';
+import ReactMarkdown from "react-markdown"
 
 interface IMarkdownText {
     text: string;
@@ -22,6 +22,7 @@ const MarkdownText = ({ text, className, markDownClassName }: IMarkdownText) => 
         <div className={cn('w-full', className)}>
             <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
+                // @ts-ignore
                 rehypePlugins={[rehypeRaw]}
                 className={`text-red-900 mt-4 font-inter space-y-4 text-base w-full ${markDownClassName}`}
                 components={{
@@ -36,7 +37,8 @@ const MarkdownText = ({ text, className, markDownClassName }: IMarkdownText) => 
                     ol: (props) => <ol className="list-decimal pl-6 mb-4" {...props} />,
                     li: (props) => <li className="mb-2" {...props} />,
                     input: (props) => <input type="checkbox" className="mr-2" {...props} />,
-                    blockquote: (props) => <blockquote style={{ width: '100%' }} className="border-l-4 pl-4 border-gray-300 italic my-4 p-1 !w-full" {...props} />,
+                    blockquote: (props) => <blockquote style={{ width: '100%' }}
+                                                       className="border-l-4 pl-4 border-gray-300 italic my-4 p-1 !w-full" {...props} />,
                     pre: (props) => <pre className="mb-4" {...props} />
                 }}
             >

@@ -10,7 +10,12 @@ from common.configs.crypto import Crypto
 from common.constants import MESSAGE_NOT_FOUND, MESSAGE_FORBIDDEN
 from common.enums.plan import Plans
 from common.models.form_import import FormImportRequestBody
-from common.models.standard_form import StandardForm, StandardFormResponse, Trigger
+from common.models.standard_form import (
+    StandardForm,
+    StandardFormResponse,
+    Trigger,
+    StandardFormSettings,
+)
 from common.models.user import User
 from fastapi import UploadFile
 from starlette.requests import Request
@@ -170,9 +175,9 @@ class WorkspaceFormService:
                     private=not standard_form.settings.is_public,
                 ),
             )
-        await self.temporal_service.add_scheduled_job_for_importing_form(
-            workspace_id=workspace_id, form_id=standard_form.form_id
-        )
+        # await self.temporal_service.add_scheduled_job_for_importing_form(
+        #     workspace_id=workspace_id, form_id=standard_form.form_id
+        # )
 
         await event_logger_service.send_event(
             event_type=UserEventType.FORM_IMPORTED, user_id=user.id, email=user.sub
@@ -332,19 +337,25 @@ class WorkspaceFormService:
                 key=form.form_id + f"_cover{os.path.splitext(cover_image.filename)[1]}",
             )
             form.cover_image = cover_image_url
-
         saved_form = await self.form_service.create_form(form=form)
+        settings = (
+            form.settings
+            if form.settings
+            else StandardFormSettings(
+                privacy_policy_url="",
+                response_expiration="",
+                response_expiration_type=None,
+                response_data_owner_field="",
+            )
+        )
+
         workspace_form_settings = WorkspaceFormSettings(
             custom_url=form.form_id,
             provider="self",
-            privacy_policy_url=form.settings.privacy_policy_url,
-            response_expiration=form.settings.response_expiration,
-            response_expiration_type=form.settings.response_expiration_type
-            if form.settings
-            else "",
-            response_data_owner_field=form.settings.response_data_owner_field
-            if form.settings
-            else "",
+            privacy_policy_url=settings.privacy_policy_url,
+            response_expiration=settings.response_expiration,
+            response_expiration_type=settings.response_expiration_type,
+            response_data_owner_field=(settings.response_data_owner_field),
         )
         await self.workspace_form_repository.save_workspace_form(
             workspace_id=workspace_id,
@@ -422,12 +433,15 @@ class WorkspaceFormService:
             )
         return await self.form_service.update_form(form_id=form_id, form=form)
 
-    async def upload_files_to_s3_and_update_url(self, form_files, response):
+    async def upload_files_to_s3_and_update_url(
+        self, form_files, response: StandardFormResponseCamelModel
+    ):
         for form_file in form_files:
             await self._aws_service.upload_file_to_s3(
                 form_file.file.file, str(form_file.file_id), private=True
             )
-            response.answers[form_file.field_id].file_metadata.url = ""
+            # TODO handle this for both builder versions
+            # response.answers[form_file.field_id]["file_metadata"]["url"] = ""
         return response
 
     async def patch_response(
@@ -590,7 +604,11 @@ class WorkspaceFormService:
         duplicated_form = FormTemplateDocument() if is_template else FormDocument()
         duplicated_form.fields = form.fields
         duplicated_form.logo = form.logo
+        duplicated_form.builder_version = form.builder_version
         duplicated_form.cover_image = form.cover_image
+        duplicated_form.welcome_page = form.welcome_page
+        duplicated_form.thankyou_page = form.thankyou_page
+        duplicated_form.theme = form.theme
         duplicated_form.title = (
             form.title
             if is_template

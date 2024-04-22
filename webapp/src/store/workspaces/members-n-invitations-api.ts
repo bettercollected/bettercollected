@@ -4,7 +4,6 @@ import environments from '@app/configs/environments';
 import { WorkspaceInvitationDto, WorkspaceMembersDto } from '@app/models/dtos/WorkspaceMembersDto';
 import { Page } from '@app/models/dtos/page';
 
-
 export const WORKSPACE_INVITATIONS_PATH = 'membersNInvitationsApi';
 
 const WORKSPACE_INVITATIONS_TAG = 'WORKSPACE_INVITATIONS_TAG';
