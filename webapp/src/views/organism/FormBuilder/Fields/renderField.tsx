@@ -10,10 +10,33 @@ import YesNoField from './YesNoField';
 import Image from 'next/image';
 import ImageField from './Imagefield';
 import VideoField from './VideoField';
+import DeleteIcon from '@app/views/atoms/Icons/Delete';
+import { SwitchIcon } from '@app/views/atoms/Icons/SwitchIcon';
+import { cn } from '@app/shadcn/util/lib';
+import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
+import { useDialogModal } from '@app/lib/hooks/useDialogModal';
 
-export const renderImage = (field: StandardFormFieldDto) => {
+export const renderImage = (field: StandardFormFieldDto, isBuilder: boolean = false) => {
+    const { updateFieldImage } = useFormFieldsAtom();
+    const { openDialogModal } = useDialogModal();
+    const handleRemoveImage = () => {
+        updateFieldImage('');
+    };
+    const handleChangeImage = () => {
+        openDialogModal('UNSPLASH_IMAGE_PICKER', {
+            updatePageImage: updateFieldImage
+        });
+    };
     return field.imageUrl ? (
-        <div className="relative my-2 max-h-[168px] w-full">
+        <div className={`relative my-2 max-h-[168px] w-full ${isBuilder ? 'group' : ''}`}>
+            <div className={cn('absolute hidden h-full w-full items-start justify-start gap-4 p-2 group-hover:flex')}>
+                <div className="shadow-bubble cursor-pointer rounded-md bg-white p-2" onClick={handleRemoveImage}>
+                    <DeleteIcon width={16} height={16} />
+                </div>
+                <div className=" shadow-bubble cursor-pointer rounded-md bg-white p-2" onClick={handleChangeImage}>
+                    <SwitchIcon width={16} height={16} />
+                </div>
+            </div>
             <Image style={{ objectFit: 'contain', width: 'fit-content', maxHeight: '168px' }} sizes="100vw" src={field.imageUrl} alt={field.id + ' image'} height={0} width={0} priority />
         </div>
     ) : (
@@ -24,7 +47,7 @@ export const renderImage = (field: StandardFormFieldDto) => {
 function renderFieldWrapper(field: StandardFormFieldDto, slide: StandardFormFieldDto, disabled: boolean) {
     return (
         <div className="relative h-full w-full space-y-2">
-            {renderImage(field)}
+            {renderImage(field, true)}
             {renderField(field, slide, disabled)}
         </div>
     );

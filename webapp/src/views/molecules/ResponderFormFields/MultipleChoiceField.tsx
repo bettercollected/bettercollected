@@ -13,7 +13,6 @@ const MultipleChoiceField = ({ field, slideIndex }: { field: StandardFormFieldDt
     const { addFieldChoiceAnswer, addOtherChoiceAnswer, formResponse } = useFormResponse();
     const { theme } = useFormState();
 
-    console.log(theme);
     const standardForm = useAppSelector(selectForm);
     const currentSlide = standardForm.fields![slideIndex];
 
