@@ -21,7 +21,7 @@ const environments = {
     CLIENT_DOMAIN: publicRuntimeConfig.CLIENT_DOMAIN || 'localhost:3001',
     ADMIN_DOMAIN: publicRuntimeConfig.ADMIN_DOMAIN || 'localhost:3000',
     // api host configs
-    API_ENDPOINT_HOST: getPublicConfig('API_ENDPOINT_HOST'),
+    API_ENDPOINT_HOST: getPublicConfig('API_ENDPOINT_HOST') || process.env.NEXT_PUBLIC_API_ENDPOINT_HOST || 'https://bettercollected.io/api/v1',
     INTERNAL_DOCKER_API_ENDPOINT_HOST: serverRuntimeConfig.INTERNAL_DOCKER_API_ENDPOINT_HOST,
 
     METATAG_TITLE: publicRuntimeConfig.METATAG_TITLE,
