@@ -29,6 +29,9 @@ xunit-*.xml
 # virtual
 venv/
 .venv/
+csv-worker/
+.vscode/
+
 
 # vagrant
 .vagrant/
