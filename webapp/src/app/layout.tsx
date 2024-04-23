@@ -19,7 +19,6 @@ import AuthProvider from '@app/shared/hocs/AuthProvider';
 import ReduxProvider from '@app/shared/hocs/ReduxProvider';
 import ThemeProvider from '@app/shared/hocs/ThemeProvider';
 import NextNProgress from '@app/views/atoms/NextNProgress';
-import Script from 'next/script';
 
 const inter = Inter({ subsets: ['latin'] });
 

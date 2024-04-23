@@ -7,12 +7,12 @@ import FullScreenLoader from '@app/views/atoms/Loaders/FullScreenLoader';
 import { FormDispatcher } from './_dispatcher/FormDispatcher';
 
 export async function generateMetadata({ params }: { params: { workspace_name: string; form_id: string } }) {
-    const workspaceResponse = await fetch(process.env.API_ENDPOINT_HOST + '/workspaces?workspace_name=' + params.workspace_name);
+    const workspaceResponse = await fetch(process.env.INTERNAL_DOCKER_API_ENDPOINT_HOST + '/workspaces?workspace_name=' + params.workspace_name);
     const workspace = await workspaceResponse.json();
     const config = {
         method: 'GET'
     };
-    const form = await fetchWithCookies(environments.API_ENDPOINT_HOST + '/workspaces/' + workspace.id + '/forms/' + params.form_id + '?published=true', config);
+    const form = await fetchWithCookies(environments.INTERNAL_DOCKER_API_ENDPOINT_HOST + '/workspaces/' + workspace.id + '/forms/' + params.form_id + '?published=true', config);
     return {
         title: {
             default: params.workspace_name,
