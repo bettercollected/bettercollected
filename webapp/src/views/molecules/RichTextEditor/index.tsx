@@ -64,7 +64,8 @@ export function RichTextEditor({ field, onUpdate, autofocus = false, isRequired 
                 autofocus={autofocus}
                 editorProps={{
                     attributes: {
-                        class: 'outline-none font-medium w-full max-w-full min-w-[300px]'
+                        class: 'outline-none font-medium w-full max-w-full min-w-[300px]',
+                        style: 'word-break: break-word'
                     }
                 }}
                 onFocus={({ editor }) => {
