@@ -105,7 +105,6 @@ jobs:
                     - temporal/worker
                     - temporal/actions-executor
                     - temporal/csv-worker
-                    - webbuilder
         runs-on: ubuntu-latest
         steps:
             - name: Checkout code with submodules
