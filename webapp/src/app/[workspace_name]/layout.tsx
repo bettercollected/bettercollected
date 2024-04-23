@@ -18,8 +18,9 @@ export default function WorkspaceLayout({ children, params }: Readonly<{ childre
 }
 
 const getWorkspaceByName = async (workspaceName: string) => {
-    
     const workspaceResponse = await fetch(environments.INTERNAL_DOCKER_API_ENDPOINT_HOST + '/workspaces?workspace_name=' + workspaceName);
+
+    console.log(environments.INTERNAL_DOCKER_API_ENDPOINT_HOST);
 
     const workspace = await workspaceResponse.json();
 
