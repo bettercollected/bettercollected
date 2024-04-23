@@ -6,7 +6,7 @@ import React, { Suspense } from 'react';
 
 export async function generateMetadata() {
     const domain = headers().get('host') || '';
-    const workspaceResponse = await fetch(process.env.API_ENDPOINT_HOST + '/workspaces?custom_domain=' + domain);
+    const workspaceResponse = await fetch(process.env.INTERNAL_DOCKER_API_ENDPOINT_HOST + '/workspaces?custom_domain=' + domain);
     const workspace = await workspaceResponse.json();
 
     return {
@@ -31,7 +31,7 @@ export async function generateMetadata() {
 }
 
 const getWorkspaceByDomain = async (domain: string) => {
-    const workspaceResponse = await fetch(process.env.API_ENDPOINT_HOST + '/workspaces?custom_domain=' + domain);
+    const workspaceResponse = await fetch(process.env.INTERNAL_DOCKER_API_ENDPOINT_HOST + '/workspaces?custom_domain=' + domain);
 
     const workspace = await workspaceResponse.json();
     return workspace;

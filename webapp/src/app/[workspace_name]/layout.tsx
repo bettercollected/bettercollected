@@ -5,6 +5,7 @@ import { notFound } from 'next/navigation';
 import FullScreenLoader from '@app/views/atoms/Loaders/FullScreenLoader';
 
 import { WorkspaceDispatcher } from './_dispatcher/WorkspaceDispatcher';
+import environments from '@app/configs/environments';
 
 export async function generateMetadata({ params }: { params: { workspace_name: string } }) {
     return {
@@ -17,7 +18,7 @@ export default function WorkspaceLayout({ children, params }: Readonly<{ childre
 }
 
 const getWorkspaceByName = async (workspaceName: string) => {
-    const workspaceResponse = await fetch(process.env.API_ENDPOINT_HOST + '/workspaces?workspace_name=' + workspaceName);
+    const workspaceResponse = await fetch(environments.INTERNAL_DOCKER_API_ENDPOINT_HOST + '/workspaces?workspace_name=' + workspaceName);
 
     const workspace = await workspaceResponse.json();
 
