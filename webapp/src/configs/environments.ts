@@ -22,7 +22,7 @@ const environments = {
     CLIENT_DOMAIN: publicRuntimeConfig.CLIENT_DOMAIN || 'localhost:3001',
     ADMIN_DOMAIN: publicRuntimeConfig.ADMIN_DOMAIN || 'localhost:3000',
     // api host configs
-    API_ENDPOINT_HOST: getPublicConfig('API_ENDPOINT_HOST') || process.env.NEXT_PUBLIC_API_ENDPOINT_HOST || 'https://bettercollected.io/api/v1',
+    API_ENDPOINT_HOST: process.env.NEXT_PUBLIC_API_ENDPOINT_HOST || getPublicConfig('API_ENDPOINT_HOST') || 'https://bettercollected.io/api/v1',
     INTERNAL_DOCKER_API_ENDPOINT_HOST: process.env.INTERNAL_DOCKER_API_ENDPOINT_HOST,
 
     METATAG_TITLE: publicRuntimeConfig.METATAG_TITLE,
@@ -99,9 +99,9 @@ const environments = {
     UNSPLASH_ACCESS_KEY: getPublicConfig('UNSPLASH_ACCESS_KEY') || process.env.NEXT_PUBLIC_UNSPLASH_ACCESS_KEY,
 
     // REfactored Environment Variables
-    DASHBOARD_DOMAIN: (getPublicConfig('DASHBOARD_DOMAIN') || process.env.NEXT_PUBLIC_DASHBOARD_DOMAIN) ?? 'admin.bettercollected.io',
-    FORM_DOMAIN: (getPublicConfig('FORM_DOMAIN') || process.env.NEXT_PUBLIC_FORM_DOMAIN) ?? 'forms.bettercollected.io',
-    HTTP_SCHEME: getPublicConfig('HTTP_SCHEME') || process.env.NEXT_PUBLIC_HTTP_SCHEME || 'https://',
+    DASHBOARD_DOMAIN: process.env.NEXT_PUBLIC_DASHBOARD_DOMAIN || getPublicConfig('DASHBOARD_DOMAIN') || 'admin.bettercollected.io',
+    FORM_DOMAIN: process.env.NEXT_PUBLIC_FORM_DOMAIN || getPublicConfig('FORM_DOMAIN') || 'forms.bettercollected.io',
+    HTTP_SCHEME: process.env.NEXT_PUBLIC_HTTP_SCHEME || getPublicConfig('HTTP_SCHEME') || 'https://',
 
     //V2 formbuilder
     DEFAULT_FIELD_IMAGE_URL: publicRuntimeConfig.NEXT_PUBLIC_DEFAULT_FIELD_IMAGE_URL ?? 'https://s3.eu-central-1.wasabisys.com/bettercollected/images/Default_field_image.png'
