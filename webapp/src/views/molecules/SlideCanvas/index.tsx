@@ -8,10 +8,6 @@ import './Canvas.css';
 import SlideDraggableWrapper from './SlideDraggableWrapper';
 
 const SlideCanvas = () => {
-    // const scale = useScaling();
-
-    // console.log('scale', scale);
-
     return (
         <div id="canvas" className="canvas-grid container my-5">
             <SlideDraggableWrapper>

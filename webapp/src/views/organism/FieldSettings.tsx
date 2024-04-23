@@ -2,12 +2,10 @@
 
 import { useEffect, useState } from 'react';
 
+import environments from '@app/configs/environments';
 import { FieldTypes } from '@app/models/dtos/form';
-import { FieldInput } from '@app/shadcn/components/ui/input';
 import { Switch } from '@app/shadcn/components/ui/switch';
 import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
-import { IsValidString } from '@app/utils/stringUtils';
-import environments from '@app/configs/environments';
 
 export default function FieldSettings() {
     const { updateFieldRequired, activeSlide, activeField, updateDescription, updateFieldProperty, updateRatingSteps, updateFieldImage } = useFormFieldsAtom();
@@ -66,7 +64,7 @@ export default function FieldSettings() {
                     <Switch
                         checked={!!activeField?.imageUrl}
                         onCheckedChange={(checked) => {
-                            updateFieldImage(activeField!.index, activeSlide!.index, getImageValue(checked));
+                            updateFieldImage(getImageValue(checked));
                         }}
                     />
                 </div>

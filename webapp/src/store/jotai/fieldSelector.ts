@@ -122,9 +122,8 @@ export default function useFormFieldsAtom() {
         setFormFields(updatedSlides);
     };
 
-    const updateFieldImage = (fieldIndex: number, slideIndex: number, imageUrl: string) => {
-        const field = formFields[slideIndex].properties!.fields![fieldIndex];
-        field.imageUrl = imageUrl;
+    const updateFieldImage = (imageUrl: string) => {
+        formFields[activeSlide?.index || 0]!.properties!.fields![activeField?.index || 0]!.imageUrl = imageUrl;
         const updatedSlides = [...formFields];
         setFormFields(updatedSlides);
     };
