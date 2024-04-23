@@ -136,7 +136,7 @@ jobs:
                   if [[ "${{ github.ref }}" =~ ^refs/tags/ ]]; then
                     API_ENDPOINT_HOST=${{ vars.PROD_API }}
                   fi
-                  NEXT_PUBIC_API_ENDPOINT_HOST=${API_ENDPOINT_HOST} docker build -f ${{ matrix.service }}/Dockerfile -t bettercollected/${SERVICE_TAG}:${{ github.sha }} .
+                  docker build --build-arg NEXT_PUBIC_API_ENDPOINT_HOST=${API_ENDPOINT_HOST} -f ${{ matrix.service }}/Dockerfile -t bettercollected/${SERVICE_TAG}:${{ github.sha }} .
                   docker push bettercollected/${SERVICE_TAG}:${{ github.sha }}
 
             - name: Add Nightly, Latest and Release Tags

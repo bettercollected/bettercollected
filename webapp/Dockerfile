@@ -13,6 +13,7 @@ RUN yarn install --prod --frozen-lockfile
 FROM prod as builder
 ARG BASE_DEPLOY_PATH
 ARG NEXT_PUBLIC_NODE_ENV="production"
+ARG NEXT_PUBLIC_API_ENDPOINT_HOST
 ARG SENTRY_DSN
 ARG SENTRY_RELEASE
 ARG SENTRY_URL
@@ -22,7 +23,7 @@ ARG SENTRY_AUTH_TOKEN
 ARG SENTRY_LOG_LEVEL="debug"
 RUN yarn install --frozen-lockfile
 COPY --chown=node:node ./webapp .
-RUN  BASE_DEPLOY_PATH=${BASE_DEPLOY_PATH} SENTRY_DSN=${SENTRY_DSN} SENTRY_RELEASE=${SENTRY_RELEASE} SENTRY_URL=${SENTRY_URL} SENTRY_ORG=${SENTRY_ORG} SENTRY_PROJECT=${SENTRY_PROJECT} SENTRY_AUTH_TOKEN=${SENTRY_AUTH_TOKEN} SENTRY_LOG_LEVEL=${SENTRY_LOG_LEVEL} NEXT_PUBLIC_NODE_ENV=${NEXT_PUBLIC_NODE_ENV} yarn build
+RUN  NEXT_PUBLIC_API_ENDPOINT_HOST=${NEXT_PUBLIC_API_ENDPOINT_HOST} BASE_DEPLOY_PATH=${BASE_DEPLOY_PATH} SENTRY_DSN=${SENTRY_DSN} SENTRY_RELEASE=${SENTRY_RELEASE} SENTRY_URL=${SENTRY_URL} SENTRY_ORG=${SENTRY_ORG} SENTRY_PROJECT=${SENTRY_PROJECT} SENTRY_AUTH_TOKEN=${SENTRY_AUTH_TOKEN} SENTRY_LOG_LEVEL=${SENTRY_LOG_LEVEL} NEXT_PUBLIC_NODE_ENV=${NEXT_PUBLIC_NODE_ENV} yarn build
 RUN rm -rf ./.next/cache/* && mkdir moveTarget && mv entrypoint.sh .sentryclirc sentry.client.config.js sentry.edge.config.js sentry.server.config.js sentry.properties next.config.js next-i18next.config.js package.json next-sitemap.config.js public ./moveTarget
 # Production image, copy all the files and run next
 
