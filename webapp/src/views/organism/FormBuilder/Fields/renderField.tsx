@@ -13,10 +13,8 @@ import VideoField from './VideoField';
 
 export const renderImage = (field: StandardFormFieldDto) => {
     return field.imageUrl ? (
-        <div className="relative">
-            <div className=" aspect-video h-[168px] w-full">
-                <Image style={{ objectFit: 'cover' }} src={field.imageUrl} alt={field.id + ' image'} fill priority />
-            </div>
+        <div className="relative my-2 max-h-[168px] w-full">
+            <Image style={{ objectFit: 'contain', width: 'fit-content', maxHeight: '168px' }} sizes="100vw" src={field.imageUrl} alt={field.id + ' image'} height={0} width={0} priority />
         </div>
     ) : (
         <></>

@@ -122,6 +122,13 @@ export default function useFormFieldsAtom() {
         setFormFields(updatedSlides);
     };
 
+    const updateFieldImage = (fieldIndex: number, slideIndex: number, imageUrl: string) => {
+        const field = formFields[slideIndex].properties!.fields![fieldIndex];
+        field.imageUrl = imageUrl;
+        const updatedSlides = [...formFields];
+        setFormFields(updatedSlides);
+    };
+
     const updateDescription = (fieldIndex: number, slideIndex: number, description: string | undefined) => {
         const slide = formFields[slideIndex];
         slide.properties!.fields![fieldIndex].description = description;
@@ -347,6 +354,7 @@ export default function useFormFieldsAtom() {
         addMedia,
         getNewField,
         addSlideFormTemplate,
-        removeChoiceField
+        removeChoiceField,
+        updateFieldImage
     };
 }
