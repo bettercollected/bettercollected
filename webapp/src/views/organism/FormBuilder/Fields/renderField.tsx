@@ -16,7 +16,7 @@ import { cn } from '@app/shadcn/util/lib';
 import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
 import { useDialogModal } from '@app/lib/hooks/useDialogModal';
 
-export const renderImage = (field: StandardFormFieldDto, isBuilder: boolean = false) => {
+export const RenderImage = (field: StandardFormFieldDto, isBuilder: boolean = false) => {
     const { updateFieldImage } = useFormFieldsAtom();
     const { openDialogModal } = useDialogModal();
     const handleRemoveImage = () => {
@@ -47,7 +47,7 @@ export const renderImage = (field: StandardFormFieldDto, isBuilder: boolean = fa
 function renderFieldWrapper(field: StandardFormFieldDto, slide: StandardFormFieldDto, disabled: boolean) {
     return (
         <div className="relative h-full w-full space-y-2">
-            {renderImage(field, true)}
+            {RenderImage(field, true)}
             {renderField(field, slide, disabled)}
         </div>
     );
