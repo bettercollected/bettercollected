@@ -66,6 +66,15 @@ export default function FormPage({ params }: { params: { form_id: string } }) {
         }
         return undefined;
     };
+
+    const getScaledDivWidth = () => {
+        const styles = getScaledDivStyles();
+        if (styles?.width) {
+            return window.innerWidth - 520;
+        }
+        return ((window?.innerHeight - 192) * 16) / 9;
+    };
+
     const [scaledDivStyle, setScaledDivStyle] = useState(getScaledDivStyles());
 
     useEffect(() => {
@@ -140,12 +149,16 @@ export default function FormPage({ params }: { params: { form_id: string } }) {
                 <motion.div
                     animate={{ x: navbarState.insertClicked ? '5%' : 0 }}
                     transition={{ ease: 'easeInOut' }}
-                    className=" relative max-h-full max-w-full flex-1 overflow-hidden px-5 py-14"
+                    className=" relative flex max-h-full max-w-full flex-1 justify-center overflow-hidden px-5 py-14"
                     onClick={() => {
                         setActiveFieldComponent(null);
                     }}
                 >
-                    <div>
+                    <div
+                        style={{
+                            width: getScaledDivWidth()
+                        }}
+                    >
                         <div className="!shadow-slide aspect-video overflow-hidden" style={scaledDivStyle}>
                             <div className="   mx-auto h-full w-full  rounded-lg">
                                 {activeSlideComponent?.id && activeSlideComponent?.index >= 0 && <SlideBuilder slide={formFields[activeSlideComponent?.index]} />}
