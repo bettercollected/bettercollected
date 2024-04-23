@@ -7,7 +7,7 @@ import fetchWithCookies from '@app/utils/fetchUtils';
 import FullScreenLoader from '@app/views/atoms/Loaders/FullScreenLoader';
 
 export async function generateMetadata({ params }: { params: { workspace_name: string; form_id: string } }) {
-    const workspaceResponse = await fetch(process.env.INTERNAL_DOCKER_API_ENDPOINT_HOST + '/workspaces?workspace_name=' + params.workspace_name);
+    const workspaceResponse = await fetch(environments.INTERNAL_DOCKER_API_ENDPOINT_HOST + '/workspaces?workspace_name=' + params.workspace_name);
     const workspace = await workspaceResponse.json();
 
     const config = {
@@ -38,7 +38,7 @@ async function FormWrapper({ workspaceName, formId, children }: { workspaceName:
         method: 'GET'
     };
 
-    const workspaceResponse = await fetch(process.env.INTERNAL_DOCKER_API_ENDPOINT_HOST + '/workspaces?workspace_name=' + workspaceName);
+    const workspaceResponse = await fetch(environments.INTERNAL_DOCKER_API_ENDPOINT_HOST + '/workspaces?workspace_name=' + workspaceName);
     const workspace = await workspaceResponse.json();
 
     const form = await fetchWithCookies(environments.INTERNAL_DOCKER_API_ENDPOINT_HOST + '/workspaces/' + workspace.id + '/forms/' + formId, config);
