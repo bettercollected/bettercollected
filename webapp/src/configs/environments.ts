@@ -100,7 +100,10 @@ const environments = {
     // REfactored Environment Variables
     DASHBOARD_DOMAIN: getPublicConfig('DASHBOARD_DOMAIN') ?? 'admin.bettercollected.io',
     FORM_DOMAIN: getPublicConfig('FORM_DOMAIN'),
-    HTTP_SCHEME: getPublicConfig('HTTP_SCHEME')
+    HTTP_SCHEME: getPublicConfig('HTTP_SCHEME'),
+
+    //V2 formbuilder
+    DEFAULT_FIELD_IMAGE_URL: publicRuntimeConfig.NEXT_PUBLIC_DEFAULT_FIELD_IMAGE_URL ?? 'https://s3.eu-central-1.wasabisys.com/bettercollected/images/Default_field_image.png'
 };
 
 export default environments;

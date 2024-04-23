@@ -6,16 +6,11 @@ import { FieldTypes } from '@app/models/dtos/form';
 import { FieldInput } from '@app/shadcn/components/ui/input';
 import { Switch } from '@app/shadcn/components/ui/switch';
 import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
+import { IsValidString } from '@app/utils/stringUtils';
+import environments from '@app/configs/environments';
 
 export default function FieldSettings() {
-    const {
-        updateFieldRequired,
-        activeSlide,
-        activeField,
-        updateDescription,
-        updateFieldProperty,
-        updateRatingSteps
-    } = useFormFieldsAtom();
+    const { updateFieldRequired, activeSlide, activeField, updateDescription, updateFieldProperty, updateRatingSteps, updateFieldImage } = useFormFieldsAtom();
 
     const [errorMsg, setErrorMsg] = useState('');
     const [stepValue, setStepValue] = useState(activeField?.properties?.steps);
@@ -29,88 +24,77 @@ export default function FieldSettings() {
         if (e.target.value <= 0 || e.target.value >= 50) {
             setErrorMsg('Value cant be less than 1 or greater than 50.');
         } else {
-            updateRatingSteps(
-                activeSlide!.index,
-                activeField!.index,
-                e.target.value,
-                activeField?.type
-            );
+            updateRatingSteps(activeSlide!.index, activeField!.index, e.target.value, activeField?.type);
         }
         setStepValue(e.target.value);
     };
 
+    const NonImageFieldType = [FieldTypes.TEXT, null, FieldTypes.IMAGE_CONTENT, FieldTypes.VIDEO_CONTENT];
+
+    function getImageValue(checked: boolean): string {
+        if (checked) {
+            return activeField?.imageUrl ? activeField!.imageUrl : environments.DEFAULT_FIELD_IMAGE_URL;
+        } else return '';
+    }
+
     return (
         <div className="flex flex-col gap-4 px-4 py-6">
-            <div className="p2-new !font-medium text-black-700">Settings</div>
+            <div className="p2-new text-black-700 !font-medium">Settings</div>
             <div className="flex w-full items-center justify-between">
-                <div className="text-xs text-black-700">Description</div>
+                <div className="text-black-700 text-xs">Description</div>
                 <Switch
-                    checked={
-                        activeField?.description !== undefined &&
-                        activeField?.description !== null
-                    }
+                    checked={activeField?.description !== undefined && activeField?.description !== null}
                     onCheckedChange={(checked) => {
-                        updateDescription(
-                            activeField!.index,
-                            activeSlide!.index,
-                            checked ? '' : undefined
-                        );
+                        updateDescription(activeField!.index, activeSlide!.index, checked ? '' : undefined);
                     }}
                 />
             </div>
             {activeField?.type !== FieldTypes.TEXT && (
                 <div className="flex w-full items-center justify-between">
-                    <div className="text-xs text-black-700">Required</div>
+                    <div className="text-black-700 text-xs">Required</div>
                     <Switch
                         checked={activeField?.validations?.required || false}
                         onCheckedChange={(checked) => {
-                            updateFieldRequired(
-                                activeField!.index,
-                                activeSlide!.index,
-                                checked
-                            );
+                            updateFieldRequired(activeField!.index, activeSlide!.index, checked);
                         }}
                     />
                 </div>
             )}
+            {!NonImageFieldType.includes(activeField?.type) && (
+                <div className="flex w-full items-center justify-between">
+                    <div className="text-black-700 text-xs">Field Image</div>
+                    <Switch
+                        checked={!!activeField?.imageUrl}
+                        onCheckedChange={(checked) => {
+                            updateFieldImage(activeField!.index, activeSlide!.index, getImageValue(checked));
+                        }}
+                    />
+                </div>
+            )}
+
             {activeField?.type === FieldTypes.MULTIPLE_CHOICE && (
                 <>
                     <div className="flex w-full items-center justify-between">
-                        <div className="text-xs text-black-700">
-                            &quot;Other&quot; Option
-                        </div>
+                        <div className="text-black-700 text-xs">&quot;Other&quot; Option</div>
                         <Switch
                             checked={activeField?.properties?.allowOtherChoice || false}
                             onCheckedChange={(checked) => {
-                                updateFieldProperty(
-                                    activeField!.index,
-                                    activeSlide!.index,
-                                    'allowOtherChoice',
-                                    checked
-                                );
+                                updateFieldProperty(activeField!.index, activeSlide!.index, 'allowOtherChoice', checked);
                             }}
                         />
                     </div>
                     <div className="flex w-full items-center justify-between">
-                        <div className="text-xs text-black-700">Multiple Selection</div>
+                        <div className="text-black-700 text-xs">Multiple Selection</div>
                         <Switch
-                            checked={
-                                activeField?.properties?.allowMultipleSelection || false
-                            }
+                            checked={activeField?.properties?.allowMultipleSelection || false}
                             onCheckedChange={(checked) => {
-                                updateFieldProperty(
-                                    activeField!.index,
-                                    activeSlide!.index,
-                                    'allowMultipleSelection',
-                                    checked
-                                );
+                                updateFieldProperty(activeField!.index, activeSlide!.index, 'allowMultipleSelection', checked);
                             }}
                         />
                     </div>
                 </>
             )}
-            {(activeField?.type === FieldTypes.LINEAR_RATING ||
-                activeField?.type === FieldTypes.RATING) && (
+            {(activeField?.type === FieldTypes.LINEAR_RATING || activeField?.type === FieldTypes.RATING) && (
                 <div className="flex flex-col gap-2">
                     <div className="flex flex-row items-center justify-between text-xs">
                         <span>Steps : </span>
@@ -120,12 +104,10 @@ export default function FieldSettings() {
                             value={stepValue}
                             onChange={(e) => handleStepsChange(e)}
                             placeholder="steps"
-                            className="h-8 w-14 rounded border p-0 px-2 text-center text-sm focus:border-black-900"
+                            className="focus:border-black-900 h-8 w-14 rounded border p-0 px-2 text-center text-sm"
                         />
                     </div>
-                    {errorMsg && (
-                        <span className="text-xs text-red-500">{errorMsg}</span>
-                    )}
+                    {errorMsg && <span className="text-xs text-red-500">{errorMsg}</span>}
                 </div>
             )}
         </div>
