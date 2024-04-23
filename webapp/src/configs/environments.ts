@@ -1,4 +1,5 @@
 import { getPublicConfig } from '@app/app/api/config/route';
+import { formsApi } from '@app/store/redux/formApi';
 import getConfig from 'next/config';
 
 const config = getConfig();
@@ -95,12 +96,12 @@ const environments = {
     FORM_PRIVACY_POLICY_URL: process.env.FORM_PRIVACY_POLICY_URL ?? 'https://bettercollected.com/privacy-policy',
 
     // run-time config
-    UNSPLASH_ACCESS_KEY: getPublicConfig('UNSPLASH_ACCESS_KEY'),
+    UNSPLASH_ACCESS_KEY: getPublicConfig('UNSPLASH_ACCESS_KEY') || process.env.NEXT_PUBLIC_UNSPLASH_ACCESS_KEY,
 
     // REfactored Environment Variables
-    DASHBOARD_DOMAIN: getPublicConfig('DASHBOARD_DOMAIN') ?? 'admin.bettercollected.io',
-    FORM_DOMAIN: getPublicConfig('FORM_DOMAIN'),
-    HTTP_SCHEME: getPublicConfig('HTTP_SCHEME'),
+    DASHBOARD_DOMAIN: (getPublicConfig('DASHBOARD_DOMAIN') || process.env.NEXT_PUBLIC_DASHBOARD_DOMAIN) ?? 'admin.bettercollected.io',
+    FORM_DOMAIN: (getPublicConfig('FORM_DOMAIN') || process.env.NEXT_PUBLIC_FORM_DOMAIN) ?? 'forms.bettercollected.io',
+    HTTP_SCHEME: getPublicConfig('HTTP_SCHEME') || process.env.NEXT_PUBLIC_HTTP_SCHEME || 'https://',
 
     //V2 formbuilder
     DEFAULT_FIELD_IMAGE_URL: publicRuntimeConfig.NEXT_PUBLIC_DEFAULT_FIELD_IMAGE_URL ?? 'https://s3.eu-central-1.wasabisys.com/bettercollected/images/Default_field_image.png'
