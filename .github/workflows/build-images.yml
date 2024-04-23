@@ -60,14 +60,7 @@ jobs:
         strategy:
             matrix:
                 service:
-                    - auth
-                    - backend
-                    - integrations/google
-                    - integrations/typeform
                     - webapp
-                    - temporal/worker
-                    - temporal/actions-executor
-                    - temporal/csv-worker
 
         runs-on: ubuntu-latest
         steps:
@@ -185,7 +178,6 @@ jobs:
                     - temporal/worker
                     - temporal/actions-executor
                     - temporal/csv-worker
-                    - webbuilder
 
         runs-on: ubuntu-latest
         steps:
