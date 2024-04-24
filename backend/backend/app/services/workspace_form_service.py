@@ -32,6 +32,7 @@ from backend.app.models.dtos.response_dtos import (
 from backend.app.models.workspace import WorkspaceFormSettings, WorkspaceRequestDto
 from backend.app.repositories.workspace_form_repository import WorkspaceFormRepository
 from backend.app.schedulers.form_schedular import FormSchedular
+from backend.app.schemas.form_versions import FormVersionsDocument
 from backend.app.schemas.standard_form import FormDocument
 from backend.app.schemas.template import FormTemplateDocument
 from backend.app.schemas.workspace import WorkspaceDocument
@@ -224,6 +225,7 @@ class WorkspaceFormService:
         workspace_form = await self.workspace_form_repository.delete_form_in_workspace(
             workspace_id=workspace_id, form_id=form_id
         )
+
         if len(workspace_ids) > 1:
             return "Form deleted from workspace."
         if workspace_form.settings.provider != "self":
@@ -231,12 +233,18 @@ class WorkspaceFormService:
                 workspace_id, form_id
             )
 
+        form = await self.form_service.get_form_document_by_id(form_id)
+        if form and form.imported_form_id:
+            await FormVersionsDocument.find(
+                {"imported_form_id": form.imported_form_id}
+            ).delete()
         await self.form_service.delete_form(form_id=form_id)
         await self.form_response_service.delete_form_responses(form_id=form_id)
         await self.form_response_service.delete_deletion_requests(form_id=form_id)
         await self.responder_groups_service.responder_groups_repo.delete_workspace_form_groups(
             form_id=form_id
         )
+
         return "Form deleted from workspace."
 
     async def get_form_ids_in_workspace(self, workspace_id: PydanticObjectId):
