@@ -127,7 +127,7 @@ class FormResponseService:
             )
         return form_responses
 
-    async def get_all_workspace_form_submissions(
+    async def get_workspace_form_all_submissions(
         self, form_id: str, workspace_id: PydanticObjectId
     ):
         form_responses = await FormResponseDocument.find({"form_id": form_id}).to_list()
