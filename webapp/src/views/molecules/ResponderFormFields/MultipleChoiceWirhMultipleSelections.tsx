@@ -1,17 +1,17 @@
 import { StandardFormFieldDto } from '@app/models/dtos/form';
 import { FieldInput } from '@app/shadcn/components/ui/input';
-import { useFormTheme } from '@app/store/jotai/fetchedForm';
 import { useFormResponse } from '@app/store/jotai/responderFormResponse';
 import Choice from '@app/views/atoms/ResponderFormFields/Choice';
 
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
+import { useFormState } from '@app/store/jotai/form';
 import QuestionWrapper from './QuestionQwrapper';
 
 export default function MultipleChoiceWithMultipleSelection({ field, slideIndex }: { field: StandardFormFieldDto; slideIndex: number }) {
     const { addFieldChoicesAnswer, addOtherChoicesAnswer, formResponse } = useFormResponse();
 
-    const theme = useFormTheme();
+    const { theme } = useFormState();
 
     const standardForm = useAppSelector(selectForm);
     const currentSlide = standardForm.fields![slideIndex];

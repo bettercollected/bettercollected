@@ -207,10 +207,6 @@ export default function PagePropertiesTab({}: {}) {
 
                                             //     const fieldDiv =
                                             //         document.getElementById(field.id);
-                                            //     console.log(
-                                            //         document.getElementById(
-                                            //             'scroll-div'
-                                            //         )?.scrollHeight
                                             //     );
                                             // }}
                                         >

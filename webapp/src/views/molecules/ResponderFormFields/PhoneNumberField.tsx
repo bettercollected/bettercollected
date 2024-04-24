@@ -3,16 +3,15 @@ import 'react-phone-input-2/lib/style.css';
 import styled from 'styled-components';
 
 import { StandardFormFieldDto } from '@app/models/dtos/form';
-import { useFormTheme } from '@app/store/jotai/fetchedForm';
 import { useFormState } from '@app/store/jotai/form';
 import { useFormResponse } from '@app/store/jotai/responderFormResponse';
 import { useResponderState } from '@app/store/jotai/responderFormState';
 import { getPlaceholderValueForField } from '@app/utils/formUtils';
 
-import QuestionWrapper from './QuestionQwrapper';
-import { useAppSelector } from '@app/store/hooks';
 import { selectForm } from '@app/store/forms/slice';
+import { useAppSelector } from '@app/store/hooks';
 import { scrollToDivById } from '@app/utils/scrollUtils';
+import QuestionWrapper from './QuestionQwrapper';
 
 const CustomPhoneInputField = styled(PhoneInput)(() => {
     const { theme } = useFormState();
@@ -59,7 +58,7 @@ const CustomPhoneInputField = styled(PhoneInput)(() => {
 });
 
 export default function PhoneNumberField({ field }: { field: StandardFormFieldDto }) {
-    const theme = useFormTheme();
+    const { theme } = useFormState();
     const { addFieldPhoneNumberAnswer, removeAnswer, formResponse } = useFormResponse();
     const handleChange = (phone: string) => {
         if (!phone) {

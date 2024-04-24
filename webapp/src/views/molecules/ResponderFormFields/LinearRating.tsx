@@ -3,15 +3,14 @@ import _ from 'lodash';
 import styled from 'styled-components';
 
 import { StandardFormFieldDto } from '@app/models/dtos/form';
-import { useFormTheme } from '@app/store/jotai/fetchedForm';
 import { useFormState } from '@app/store/jotai/form';
 import { useFormResponse } from '@app/store/jotai/responderFormResponse';
 import { useResponderState } from '@app/store/jotai/responderFormState';
 
-import QuestionWrapper from './QuestionQwrapper';
-import { useAppSelector } from '@app/store/hooks';
 import { selectForm } from '@app/store/forms/slice';
+import { useAppSelector } from '@app/store/hooks';
 import { scrollToDivById } from '@app/utils/scrollUtils';
+import QuestionWrapper from './QuestionQwrapper';
 
 const StyledDiv = styled.div<{
     $slide?: StandardFormFieldDto;
@@ -31,7 +30,7 @@ const StyledDiv = styled.div<{
 });
 
 const LinearRatingSection = ({ field, slide, isBuilder = false }: { field: StandardFormFieldDto; slide?: StandardFormFieldDto; isBuilder?: boolean }) => {
-    const theme = useFormTheme();
+    const { theme } = useFormState();
     const { formResponse, addFieldLinearRatingAnswer } = useFormResponse();
     const answer = formResponse.answers && formResponse.answers[field.id]?.number;
     const form = useAppSelector(selectForm);
