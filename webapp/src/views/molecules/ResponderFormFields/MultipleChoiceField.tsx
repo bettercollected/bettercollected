@@ -1,17 +1,17 @@
 import { StandardFormFieldDto } from '@app/models/dtos/form';
 import { FieldInput } from '@app/shadcn/components/ui/input';
-import { useFormTheme } from '@app/store/jotai/fetchedForm';
 import { useFormResponse } from '@app/store/jotai/responderFormResponse';
 import Choice from '@app/views/atoms/ResponderFormFields/Choice';
 
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
-import QuestionWrapper from './QuestionQwrapper';
+import { useFormState } from '@app/store/jotai/form';
 import { scrollToDivById } from '@app/utils/scrollUtils';
+import QuestionWrapper from './QuestionQwrapper';
 
 const MultipleChoiceField = ({ field, slideIndex }: { field: StandardFormFieldDto; slideIndex: number }) => {
     const { addFieldChoiceAnswer, addOtherChoiceAnswer, formResponse } = useFormResponse();
-    const theme = useFormTheme();
+    const { theme } = useFormState();
 
     const standardForm = useAppSelector(selectForm);
     const currentSlide = standardForm.fields![slideIndex];
