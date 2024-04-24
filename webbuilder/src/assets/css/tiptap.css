@@ -1,7 +1,0 @@
-.tiptap .is-editor-empty:first-child::before {
-    color: attr(data-placeholder-color);
-    content: attr(data-placeholder);
-    float: left;
-    height: 0;
-    pointer-events: none;
-}
