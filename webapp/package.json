@@ -109,6 +109,7 @@
     "react-contenteditable": "^3.3.7",
     "react-cookie": "^4.1.1",
     "react-country-dropdown": "^1.1.0",
+    "react-csv": "^2.2.2",
     "react-data-table-component": "^7.5.3",
     "react-dom": "^18.2.0",
     "react-ga4": "^1.4.1",
