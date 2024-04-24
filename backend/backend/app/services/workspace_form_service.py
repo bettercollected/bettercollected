@@ -714,7 +714,7 @@ class WorkspaceFormService:
         await self.workspace_user_service.check_user_has_access_in_workspace(
             workspace_id=workspace_id, user=user
         )
-        responses = await self.form_response_service.get_all_workspace_form_submissions(
+        responses = await self.form_response_service.get_workspace_form_all_submissions(
             workspace_id=workspace_id,
             form_id=form_id,
         )
