@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, List
 
 from beanie import PydanticObjectId
 from classy_fastapi import delete, get
@@ -53,6 +53,20 @@ class WorkspaceResponsesRouter(CustomRoutable):
     ):
         responses = await self._form_response_service.get_workspace_form_submissions(
             workspace_id, request_for_deletion, form_id, filter_query, sort, user
+        )
+        return responses
+
+    @get(
+        "/forms/{form_id}/all-submissions",
+        response_model=List[StandardFormResponseCamelModel],
+    )
+    async def get_workspace_form_all_submissions(
+        self, workspace_id: PydanticObjectId, form_id: str
+    ):
+        responses = (
+            await self._form_response_service.get_workspace_form_all_submissions(
+                form_id, workspace_id
+            )
         )
         return responses
 
