@@ -1,5 +1,5 @@
 import environments from '@app/configs/environments';
-import { StandardFormDto } from '@app/models/dtos/form';
+import { StandardFormDto, StandardFormFieldDto } from '@app/models/dtos/form';
 import { FieldTypes } from '@app/models/dtos/form';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 
@@ -35,3 +35,12 @@ export function getPlaceholderValueForField(fieldType?: FieldTypes) {
             return 'No Field Selected';
     }
 }
+
+const IgnoredResponsesFieldType = [FieldTypes.TEXT, null, FieldTypes.IMAGE_CONTENT, FieldTypes.VIDEO_CONTENT];
+
+export const getFieldsFromV2Form = (form: StandardFormDto) => {
+    const fields = form.fields.map((slide) => {
+        return slide?.properties?.fields?.filter((field: StandardFormFieldDto) => !IgnoredResponsesFieldType.includes(field.type));
+    });
+    return fields.flat();
+};
