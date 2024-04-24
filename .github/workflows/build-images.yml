@@ -1,17 +1,16 @@
 name: Build Docker Images
 
 on:
-    push:
-        branches:
-            - develop
-            - master
-            - feature/slide-formbuilder
-        tags:
-            - "*"
-    pull_request:
-        branches:
-            - master
-            - develop
+  push:
+    branches:
+      - develop
+      - master
+    tags:
+      - "*"
+  pull_request:
+    branches:
+      - master
+      - develop
 
 jobs:
     test:
