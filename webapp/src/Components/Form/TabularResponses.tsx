@@ -23,6 +23,7 @@ import { downloadFile } from '@app/utils/fileUtils';
 import { convertPlaceholderToDisplayValue, getAnswerForField } from '@app/utils/formBuilderBlockUtils';
 import { extractTextfromJSON } from '@app/utils/richTextEditorExtenstion/getHtmlFromJson';
 import { ExpandIcon } from '@app/views/atoms/Icons/ExpandIcon';
+import { getFieldsFromV2Form } from '@app/utils/formUtils';
 
 const customTableStyles = {
     ...dataTableCustomStyles,
@@ -130,14 +131,9 @@ export default function TabularResponses({ form }: TabularResponsesProps) {
         </div>
     );
 
-    const IgnoredResponsesFieldType = [FieldTypes.TEXT, null, FieldTypes.IMAGE_CONTENT, FieldTypes.VIDEO_CONTENT];
-
     function getFormFields() {
         if (form.builderVersion === 'v2') {
-            const fields = form.fields.map((slide) => {
-                return slide?.properties?.fields?.filter((field: StandardFormFieldDto) => !IgnoredResponsesFieldType.includes(field.type));
-            });
-            return fields.flat();
+            return getFieldsFromV2Form(form);
         } else {
             return getFilteredInputFields();
         }

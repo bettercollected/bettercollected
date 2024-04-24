@@ -15572,6 +15572,11 @@ react-country-dropdown@^1.1.0:
   resolved "https://registry.yarnpkg.com/react-country-dropdown/-/react-country-dropdown-1.1.0.tgz#52a054127c1524b3ffef6bfaab940124e2b21cc8"
   integrity sha512-zFWVVEebhBd/aQI9SEkEiWEHDOPiAE7faeWPF321kmsqTvFvGQdluUwDMXpLZOjBJJTDYoQuUH51yhX5MLoquw==
 
+react-csv@^2.2.2:
+  version "2.2.2"
+  resolved "https://registry.yarnpkg.com/react-csv/-/react-csv-2.2.2.tgz#5bbf0d72a846412221a14880f294da9d6def9bfb"
+  integrity sha512-RG5hOcZKZFigIGE8LxIEV/OgS1vigFQT4EkaHeKgyuCbUAu9Nbd/1RYq++bJcJJ9VOqO/n9TZRADsXNDR4VEpw==
+
 react-data-table-component@^7.5.3:
   version "7.6.2"
   resolved "https://registry.yarnpkg.com/react-data-table-component/-/react-data-table-component-7.6.2.tgz#298e3f9c27d42fb5ae06c2af6b13663c15577faf"
