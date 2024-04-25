@@ -8,6 +8,7 @@ export interface ResponderFormState {
     prevActiveField: number;
     currentField: number;
     prevActiveSlide: number;
+    responderId?: string;
 }
 
 const initialresponderState: ResponderFormState = {
@@ -99,11 +100,13 @@ export const useResponderState = () => {
         currentField: responderState.currentField,
         prevActiveField: responderState.prevActiveField,
         prevActiveSlide: responderState.prevActiveSlide,
+        responderId: responderState.responderId,
         resetResponderState,
         nextSlide,
         setCurrentField,
         previousSlide,
         nextField,
-        setCurrentSlideToThankyouPage
+        setCurrentSlideToThankyouPage,
+        setResponderState
     };
 };

@@ -19,9 +19,9 @@ export const defaultForm: StandardFormDto = {
                         id: v4(),
                         index: 0,
                         type: FieldTypes.SHORT_TEXT,
-                        value: 'Hi, what is your name?',
+                        title: 'Enter Question',
                         properties: {
-                            placeholder: 'Your full name please'
+                            placeholder: 'Answer'
                         }
                     }
                 ]
