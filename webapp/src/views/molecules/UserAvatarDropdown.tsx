@@ -32,7 +32,7 @@ export default function UserAvatarDropDown({
                 <div
                     className={cn(
                         'flex cursor-pointer  items-center rounded-full p-1 transition',
-                        popOverOpen ? 'bg-black-400' : 'bg-white'
+                        popOverOpen ? 'bg-black-400' : 'bg-white/50'
                     )}
                 >
                     <UserAvatar authState={authState} />

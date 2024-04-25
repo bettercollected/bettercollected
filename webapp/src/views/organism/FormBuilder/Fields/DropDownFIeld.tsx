@@ -34,7 +34,7 @@ const DropDownField = ({ field, slide, disabled }: { field: StandardFormFieldDto
                         style={{
                             color: slide.properties?.theme?.secondary || theme?.secondary
                         }}
-                        className="-mt-1 mb-1 font-medium"
+                        className="mb-1 mt-2 text-[12px] font-medium"
                     >
                         Choose as many as you like
                     </h1>
