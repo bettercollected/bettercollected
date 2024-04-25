@@ -83,7 +83,7 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false 
     const formSlideFromState = standardForm.fields[index];
     const formSlide = formSlideData ? formSlideData : formSlideFromState;
 
-    const { currentSlide, setCurrentSlideToThankyouPage, nextSlide, previousSlide } = useResponderState();
+    const { currentSlide, setCurrentSlideToThankyouPage, nextSlide, previousSlide, setResponderState, responderState } = useResponderState();
 
     const { formResponse, setInvalidFields, setFormResponse } = useFormResponse();
     const workspace = useAppSelector(selectWorkspace);
@@ -114,6 +114,7 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false 
         if (!response.data) {
             throw new Error(response?.error);
         }
+        return response.data;
     };
 
     const onNext = () => {
@@ -124,8 +125,12 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false 
                 if (isPreviewMode) setCurrentSlideToThankyouPage();
                 else
                     submitFormResponse()
-                        .then(() => {
-                            setCurrentSlideToThankyouPage();
+                        .then((responderId) => {
+                            setResponderState({
+                                ...responderState,
+                                currentSlide: -2,
+                                responderId
+                            });
                         })
                         .catch((e) => {
                             debugger;
@@ -159,7 +164,7 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false 
                 )}
                 <div className={cn('flex h-full flex-1 flex-col justify-center overflow-hidden ', formSlide?.properties?.layout === FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND_LEFT_ALIGN ? 'items-start ' : 'items-center')}>
                     <AnimatePresence mode="wait">
-                        <div className={cn('grid h-full w-full max-w-[800px] grid-cols-1 content-center items-center justify-center gap-20 overflow-hidden px-4 py-[60%] lg:px-20')}>
+                        <div className={cn('grid h-full w-full max-w-[800px] grid-cols-1 content-center items-center justify-center gap-20 overflow-hidden px-4 py-[60%]', isPreviewMode ? '' : 'lg:px-10')}>
                             {formSlide?.properties?.fields?.map((field: StandardFormFieldDto, index: number) => (
                                 <FormFieldComponent key={field.id} field={formSlide!.properties!.fields![index]} slideIndex={formSlide!.index} />
                             ))}
