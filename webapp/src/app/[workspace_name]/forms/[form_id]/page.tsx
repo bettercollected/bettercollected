@@ -6,6 +6,7 @@ import ReduxWrapperAppRouter from '@app/containers/ReduxWrapperAppRouter';
 import SingleFormPage from '@app/pages/forms/v1/[id]';
 import { setForm } from '@app/store/forms/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
+import { useFormState } from '@app/store/jotai/form';
 import { useGetWorkspaceFormQuery } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import FullScreenLoader from '@app/views/atoms/Loaders/FullScreenLoader';
@@ -26,6 +27,7 @@ const FetchFormWrapper = ({ slug }: { slug: string }) => {
     const workspace = useAppSelector(selectWorkspace);
     const dispatch = useAppDispatch();
     const iframeRef = useRef(null);
+    const { updateFormTheme } = useFormState();
 
     const { data, isLoading, error } = useGetWorkspaceFormQuery(
         {
@@ -39,6 +41,7 @@ const FetchFormWrapper = ({ slug }: { slug: string }) => {
     useEffect(() => {
         if (data?.formId) {
             dispatch(setForm(data));
+            data.theme && updateFormTheme(data.theme);
         }
     }, [data]);
 
