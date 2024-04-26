@@ -4,6 +4,7 @@ import DropDownIcon from '@app/views/atoms/Icons/DropDownIcon';
 import EmailIcon from '@app/views/atoms/Icons/EmailIcon';
 import { LinearRatingIcon } from '@app/views/atoms/Icons/LinearRating';
 import { LinkIcon } from '@app/views/atoms/Icons/Link';
+import MatrixIcon from '@app/views/atoms/Icons/MartixIcon';
 import MultipleChoiceIcon from '@app/views/atoms/Icons/MultipleChoiceIcon';
 import { NumberIcon } from '@app/views/atoms/Icons/NumberIcon';
 import PhoneNumberIcon from '@app/views/atoms/Icons/PhoneNumberIcon';
@@ -55,6 +56,11 @@ export const formFieldsList = [
         name: 'Number',
         type: FieldTypes.NUMBER,
         icon: <NumberIcon className="h-10 w-10" />
+    },
+    {
+        name: 'Matrix',
+        type: FieldTypes.MATRIX,
+        icon: <MatrixIcon />
     },
     { name: 'Link', type: FieldTypes.LINK, icon: <LinkIcon className="h-10 w-10" /> },
     { name: 'Yes/No', type: FieldTypes.YES_NO, icon: <YesNoIcon /> },

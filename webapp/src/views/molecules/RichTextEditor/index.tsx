@@ -39,6 +39,8 @@ export function getPlaceholderValueForTitle(fieldType: FieldTypes) {
             return 'Select a date';
         case FieldTypes.LINEAR_RATING:
             return 'Rate from 1 to 10';
+        case FieldTypes.MATRIX:
+            return 'Matrix Field';
         default:
             return 'No Field Selected';
     }

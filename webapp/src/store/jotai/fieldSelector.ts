@@ -8,6 +8,8 @@ import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import { FormSlideLayout } from '@app/models/enums/form';
 import { useActiveFieldComponent, useActiveSlideComponent } from '@app/store/jotai/activeBuilderComponent';
 import { reorder } from '@app/utils/arrayUtils';
+import { uuidv4 } from '@mswjs/interceptors/lib/utils/uuid';
+import { property } from 'lodash';
 
 const initialFieldsAtom = atom<StandardFormFieldDto[]>([
     {
@@ -316,6 +318,52 @@ export default function useFormFieldsAtom() {
                     steps: field.type === FieldTypes.RATING ? 5 : 10
                 }
             };
+        } else if (field.type === FieldTypes.MATRIX) {
+            return {
+                id: fieldId,
+                index: fieldIndex,
+                type: field.type,
+                properties: {
+                    fields: [
+                        {
+                            id: v4(),
+                            title: 'Row 1',
+                            index: 0,
+                            type: FieldTypes.MULTIPLE_CHOICE,
+                            properties: {
+                                choices: [
+                                    {
+                                        id: v4(),
+                                        value: 'Column 1'
+                                    },
+                                    {
+                                        id: v4(),
+                                        value: 'Column 2'
+                                    }
+                                ]
+                            }
+                        },
+                        {
+                            id: v4(),
+                            title: 'Row 2',
+                            index: 1,
+                            type: FieldTypes.MULTIPLE_CHOICE,
+                            properties: {
+                                choices: [
+                                    {
+                                        id: v4(),
+                                        value: 'Column 1'
+                                    },
+                                    {
+                                        id: v4(),
+                                        value: 'Column 2'
+                                    }
+                                ]
+                            }
+                        }
+                    ]
+                }
+            };
         } else {
             return {
                 id: fieldId,
@@ -323,6 +371,60 @@ export default function useFormFieldsAtom() {
                 type: field.type
             };
         }
+    };
+
+    const updateRowTitle = (rowIndex: number, title: string) => {
+        formFields![activeSlideComponent!.index]!.properties!.fields![activeFieldComponent!.index]!.properties!.fields![rowIndex]!.title = title;
+        setFormFields([...formFields]);
+    };
+
+    const updateColumnTitle = (columnIndex: number, title: string) => {
+        const updatedRows = formFields![activeSlideComponent!.index]!.properties!.fields![activeFieldComponent!.index]!.properties!.fields?.map((field) => {
+            field.properties!.choices![columnIndex]!.value = title;
+            return field;
+        });
+        formFields![activeSlideComponent!.index]!.properties!.fields![activeFieldComponent!.index]!.properties!.fields = [...(updatedRows || [])];
+        setFormFields([...formFields]);
+    };
+
+    const addColumn = () => {
+        const updatedRows = formFields![activeSlideComponent!.index]!.properties!.fields![activeFieldComponent!.index]!.properties!.fields?.map((field) => {
+            field.properties!.choices?.push({
+                id: v4(),
+                value: 'Column ' + (field.properties!.choices?.length + 1)
+            });
+            return field;
+        });
+        formFields![activeSlideComponent!.index]!.properties!.fields![activeFieldComponent!.index]!.properties!.fields = [...(updatedRows || [])];
+        setFormFields([...formFields]);
+    };
+
+    const addRow = () => {
+        formFields![activeSlideComponent!.index]!.properties!.fields![activeFieldComponent!.index]!.properties!.fields?.push({
+            id: v4(),
+            title: 'Row ' + (formFields![activeSlideComponent!.index]!.properties!.fields![activeFieldComponent!.index]!.properties!.fields?.length || 0 + 1),
+            type: FieldTypes.MULTIPLE_CHOICE,
+            index: formFields![activeSlideComponent!.index]!.properties!.fields![activeFieldComponent!.index]!.properties!.fields!.length + 1,
+            properties: { ...formFields![activeSlideComponent!.index]!.properties!.fields![activeFieldComponent!.index]!.properties!.fields![0]!.properties }
+        });
+        setFormFields([...formFields]);
+    };
+
+    const deleteColumn = (columnIndex: number) => {
+        const updatedRows = formFields![activeSlideComponent!.index]!.properties!.fields![activeFieldComponent!.index]!.properties!.fields!.map((field) => {
+            const updatedChoices = field!.properties!.choices!.filter((choice, index) => index !== columnIndex);
+            field!.properties!.choices = updatedChoices;
+            return field;
+        });
+
+        formFields![activeSlideComponent!.index]!.properties!.fields![activeFieldComponent!.index]!.properties!.fields = updatedRows;
+        setFormFields([...formFields]);
+    };
+
+    const deleteRow = (rowIndex: number) => {
+        const updatedRows = formFields![activeSlideComponent!.index]!.properties!.fields![activeFieldComponent!.index]!.properties!.fields!.filter((field, index) => index !== rowIndex);
+        formFields![activeSlideComponent!.index]!.properties!.fields![activeFieldComponent!.index].properties!.fields = updatedRows;
+        setFormFields([...formFields]);
     };
 
     return {
@@ -354,6 +456,12 @@ export default function useFormFieldsAtom() {
         getNewField,
         addSlideFormTemplate,
         removeChoiceField,
-        updateFieldImage
+        updateFieldImage,
+        updateRowTitle,
+        updateColumnTitle,
+        addRow,
+        addColumn,
+        deleteRow,
+        deleteColumn
     };
 }
