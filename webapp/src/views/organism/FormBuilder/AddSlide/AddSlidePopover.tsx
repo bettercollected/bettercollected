@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@app/shadcn/components
 import TemplateTab from '@app/views/organism/FormBuilder/AddSlide/TemplateTab';
 
 import LayoutsTab from './LayoutsTab';
-import PlusIcon from '@Components/Common/Icons/Common/Plus';
+import { PlusIcon } from '@app/views/atoms/Icons/PlusIcon';
 
 export default function AddSlidePopover() {
     const [open, setOpen] = useState(false);
