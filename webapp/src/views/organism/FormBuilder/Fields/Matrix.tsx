@@ -4,6 +4,8 @@ import { Input } from '@app/shadcn/components/ui/input';
 import { cn } from '@app/shadcn/util/lib';
 import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
 import { useFormState } from '@app/store/jotai/form';
+import { useFormResponse } from '@app/store/jotai/responderFormResponse';
+import { useResponderState } from '@app/store/jotai/responderFormState';
 import { Close } from '@app/views/atoms/Icons/Close';
 import * as CheckboxPrimitive from '@radix-ui/react-checkbox';
 import * as RadioGroupPrimitive from '@radix-ui/react-radio-group';
@@ -18,6 +20,8 @@ interface IMatrixFieldProps {
 
 function MatrixFieldComponent({ field, disabled }: IMatrixFieldProps) {
     const { theme } = useFormState();
+
+    const { addFieldChoicesAnswer, addFieldChoiceAnswer, formResponse } = useFormResponse();
 
     const borderColor = theme?.secondary;
     const bgColor = theme?.tertiary;
@@ -74,6 +78,10 @@ function MatrixFieldComponent({ field, disabled }: IMatrixFieldProps) {
                         style={{
                             gridTemplateColumns: `repeat(${(field?.properties?.fields?.[0]?.properties?.choices?.length || 0) + 1} ,minmax(0,1fr))`
                         }}
+                        onValueChange={(value) => {
+                            addFieldChoiceAnswer(row.id, value);
+                        }}
+                        value={formResponse?.answers[row.id]?.choice?.value}
                         key={row?.id}
                     >
                         <div
@@ -111,7 +119,25 @@ function MatrixFieldComponent({ field, disabled }: IMatrixFieldProps) {
                                     className="flex h-full  flex-col items-center justify-center border-[1px] border-gray-200"
                                     key={index}
                                 >
-                                    {field.properties?.allowMultipleSelection ? <MatrixCheckbox theme={theme} disabled={disabled} /> : <RadioGroupItem value={choice.id} theme={theme} className="h-full" disabled={disabled} />}
+                                    {field.properties?.allowMultipleSelection ? (
+                                        <MatrixCheckbox
+                                            checked={formResponse.answers[row.id]?.choices?.values?.includes(choice?.id)}
+                                            onCheckedChange={(checked) => {
+                                                let choices;
+                                                if (checked) {
+                                                    choices = formResponse.answers[row.id]?.choices?.values || [];
+                                                    choices.push(choice.id);
+                                                } else {
+                                                    choices = (formResponse.answers[row.id]?.choices?.values || []).filter((choiceId) => choiceId !== choice.id);
+                                                }
+                                                addFieldChoicesAnswer(row.id, choices);
+                                            }}
+                                            theme={theme}
+                                            disabled={disabled}
+                                        />
+                                    ) : (
+                                        <RadioGroupItem value={choice.id} theme={theme} className="h-full" disabled={disabled} />
+                                    )}
                                 </div>
                             );
                         })}
@@ -193,7 +219,7 @@ const RadioGroupItem = React.forwardRef<React.ElementRef<typeof RadioGroupPrimit
         <RadioGroupPrimitive.Item
             ref={ref}
             className={cn(
-                'text-primary border-primary ring-offset-background focus-visible:ring-ring aspect-square !h-4 !w-4 rounded-full !border focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50',
+                'text-primary border-primary ring-offset-background focus-visible:ring-ring flex aspect-square !h-4 !w-4 flex-col items-center justify-center rounded-full !border focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50',
                 className
             )}
             {...props}
@@ -207,7 +233,7 @@ const RadioGroupItem = React.forwardRef<React.ElementRef<typeof RadioGroupPrimit
                 }}
                 className={cn('flex items-center justify-center')}
             >
-                <Circle className="h-2.5 w-2.5 fill-current text-current" />
+                <Circle className="!h-3 !w-3 fill-current text-current" />
             </RadioGroupPrimitive.Indicator>
         </RadioGroupPrimitive.Item>
     );
