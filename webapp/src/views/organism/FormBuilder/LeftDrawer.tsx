@@ -203,6 +203,7 @@ function LeftDrawer({ formFields, activeSlideComponent }: { formFields: Array<St
                                         id="multi-page"
                                         checked={navbarState.multiplePages}
                                         name="multi-page"
+                                        className="h-5 w-5 focus:ring-0 focus:ring-offset-0"
                                         onClick={(e: any) =>
                                             setNavbarState({
                                                 ...navbarState,
@@ -228,6 +229,7 @@ function LeftDrawer({ formFields, activeSlideComponent }: { formFields: Array<St
                                         checked={!navbarState.multiplePages}
                                         name="multi-page"
                                         value={'False'}
+                                        className="h-5 w-5 focus:ring-0 focus:ring-offset-0"
                                     />
                                     <label htmlFor="single-page" className="p4-new text-black-700 cursor-pointer">
                                         Insert in current page
