@@ -6,9 +6,9 @@ export default function BackButton({ handleClick, className }: { handleClick?: (
         handleClick && (await handleClick());
     };
     return (
-        <div className={cn('text-black-600 hover:text-brand-500 flex cursor-pointer items-center gap-[2px] py-4 hover:underline', className)} onClick={handleBackClick}>
-            <BackChevron />
-            <span className=" font-normal">Back</span>
+        <div className={cn('hover:bg-black-200 text-black-600 hover:text-black-800 flex cursor-pointer items-center gap-[2px] rounded-lg p-1 py-[6px]', className)} onClick={handleBackClick}>
+            <BackChevron className='h-5 w-5' />
+            <span className="p3-new font-normal">Back</span>
         </div>
     );
 }
