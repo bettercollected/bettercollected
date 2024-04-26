@@ -106,6 +106,7 @@ class GoogleFormTransformerService(FormTransformerService):
                 field.image_url = item.questionGroupItem.image.contentUri
 
             field.type = StandardFormFieldType.MATRIX
+            field.properties.allow_multiple_selection = item.questionGroupItem.grid.columns.type == "CHECKBOX"
             field.properties.fields = [
                 StandardFormField(
                     id=question.questionId,
@@ -114,7 +115,7 @@ class GoogleFormTransformerService(FormTransformerService):
                         allow_multiple_selection=item.questionGroupItem.grid.columns.type
                         == "CHECKBOX",
                         choices=[
-                            StandardChoice(label=option.value)
+                            StandardChoice(label=option.value, id=str(PydanticObjectId()), value=option.value)
                             for option in item.questionGroupItem.grid.columns.options
                         ],
                     ),

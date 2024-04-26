@@ -36,12 +36,12 @@ import { scrollToDivById } from '@app/utils/scrollUtils';
 import ImageField from '../FormBuilder/Fields/Imagefield';
 import VideoField from '../FormBuilder/Fields/VideoField';
 import SlideLayoutWrapper from '../Layout/SlideLayoutWrapper';
+import MatrixField from '../FormBuilder/Fields/Matrix';
 
 export function FormFieldComponent({ field, slideIndex }: { field: StandardFormFieldDto; slideIndex: number }) {
     switch (field.type) {
         case FieldTypes.TEXT:
             return <QuestionWrapper field={field} />;
-
         case FieldTypes.NUMBER:
         case FieldTypes.EMAIL:
         case FieldTypes.SHORT_TEXT:
@@ -72,7 +72,11 @@ export function FormFieldComponent({ field, slideIndex }: { field: StandardFormF
         case FieldTypes.VIDEO_CONTENT:
             return <VideoField field={field} />;
         case FieldTypes.MATRIX:
-            return;
+            return (
+                <QuestionWrapper field={field}>
+                    <MatrixField field={field} />
+                </QuestionWrapper>
+            );
         default:
             return <QuestionWrapper field={field} />;
     }
