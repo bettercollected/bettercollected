@@ -47,7 +47,7 @@ const getModalToRender = (view?: DIALOG_MODALS, props?: any) => {
         case 'ADD_FORM_TITLE':
             return <AddFormTitleModal />;
         case 'UNSPLASH_IMAGE_PICKER':
-            return <UnsplashImagePicker {...props} />;
+            return <UnsplashImagePicker initialPhotoSearchQuery="Form" {...props} />;
         case 'FORM_PUBLISHED':
             return <FormPublishedModal {...props} />;
         default:

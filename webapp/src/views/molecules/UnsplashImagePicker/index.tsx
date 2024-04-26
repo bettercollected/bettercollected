@@ -11,6 +11,8 @@ import { Unsplash } from '@app/views/atoms/Icons/Brands/Unsplash';
 
 import PhotoList from './PhotoList';
 import SearchBar from './PhotoSearch';
+import FullScreenLoader from '@app/views/atoms/Loaders/FullScreenLoader';
+import CircularProgressBar from '@app/views/atoms/Loaders/CircularLoadingAnimation';
 
 interface IUnsplashImagePickerProps {
     initialPhotoSearchQuery?: string;
@@ -24,6 +26,7 @@ export default function UnsplashImagePicker({ initialPhotoSearchQuery = '', onPh
     const [total, setTotal] = React.useState<number | undefined>();
     const [query, setQuery] = React.useState('');
     const [isLoading, setIsLoading] = React.useState(false);
+    const [initialLoading, setInitialLoading] = React.useState(false);
     const [isLoadingMore, setIsLoadingMore] = React.useState(false);
     const [page, setPage] = React.useState(1);
 
@@ -38,10 +41,11 @@ export default function UnsplashImagePicker({ initialPhotoSearchQuery = '', onPh
 
     React.useEffect(() => {
         if (initialPhotoSearchQuery !== '') {
-            setQuery(initialPhotoSearchQuery);
+            // setQuery(initialPhotoSearchQuery);
+            setInitialLoading(true);
             fetchPhotos(1, initialPhotoSearchQuery);
         }
-    }, []);
+    }, [initialPhotoSearchQuery]);
 
     const fetchPhotos = (page: number, text: string, reset = false) => {
         if (isLoading || isLoadingMore) {
@@ -52,6 +56,7 @@ export default function UnsplashImagePicker({ initialPhotoSearchQuery = '', onPh
         } else {
             setIsLoadingMore(true);
         }
+
         setPage(page);
         unsplash.search
             .getPhotos({
@@ -72,50 +77,57 @@ export default function UnsplashImagePicker({ initialPhotoSearchQuery = '', onPh
                 }
                 setIsLoading(false);
                 setIsLoadingMore(false);
+                setInitialLoading(false);
             });
     };
 
     return (
-        <div className="ImagePicker items-center rounded bg-white">
-            <div className="bg-white ">
-                <div className="Picker relative h-full rounded">
-                    <div className="flex items-center gap-4 bg-white px-4 pt-4 text-lg font-bold">
-                        <Unsplash /> Unsplash
-                    </div>
-                    <div className="bg-white p-4 shadow">
-                        <SearchBar
-                            onSearch={(query: string) => {
-                                setPics([]);
-                                fetchPhotos(1, query, true);
+        <div className="ImagePicker items-center  rounded bg-white">
+            {initialLoading ? (
+                <div className="flex h-full w-full justify-center">
+                    <CircularProgressBar />
+                </div>
+            ) : (
+                <div className="bg-white ">
+                    <div className="Picker relative h-full rounded">
+                        <div className="flex items-center gap-4 bg-white px-4 pt-4 text-lg font-bold">
+                            <Unsplash /> Unsplash
+                        </div>
+                        <div className="bg-white p-4 shadow">
+                            <SearchBar
+                                onSearch={(query: string) => {
+                                    setPics([]);
+                                    fetchPhotos(1, query, true);
+                                }}
+                                query={query}
+                                setQuery={setQuery}
+                            />
+                        </div>
+
+                        <PhotoList
+                            total={total}
+                            photoList={pics}
+                            isLoading={isLoading}
+                            isLoadingMore={isLoadingMore}
+                            loadMore={() => {
+                                fetchPhotos(page + 1, query);
                             }}
-                            query={query}
-                            setQuery={setQuery}
+                            onPhotoSelect={async (photo: any) => {
+                                try {
+                                    // let blob = await fetch(photo.urls.regular).then((r) => r.blob())
+                                    // let image = await URL.createObjectURL(blob)
+                                    if (photo) {
+                                        updatePageImage(photo.urls.full);
+                                        closeDialogModal();
+                                    }
+                                } catch (error) {
+                                    console.log(error);
+                                }
+                            }}
                         />
                     </div>
-
-                    <PhotoList
-                        total={total}
-                        photoList={pics}
-                        isLoading={isLoading}
-                        isLoadingMore={isLoadingMore}
-                        loadMore={() => {
-                            fetchPhotos(page + 1, query);
-                        }}
-                        onPhotoSelect={async (photo: any) => {
-                            try {
-                                // let blob = await fetch(photo.urls.regular).then((r) => r.blob())
-                                // let image = await URL.createObjectURL(blob)
-                                if (photo) {
-                                    updatePageImage(photo.urls.full);
-                                    closeDialogModal();
-                                }
-                            } catch (error) {
-                                console.log(error);
-                            }
-                        }}
-                    />
                 </div>
-            </div>
+            )}
         </div>
     );
 }
