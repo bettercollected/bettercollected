@@ -29,7 +29,7 @@ const Form = ({ isPreviewMode = false, isMobileView = false }: { isPreviewMode?:
     return (
         <div className={cn(isPreviewMode || isMobileView ? 'h-full w-full  ' : 'h-screen w-screen', 'relative h-full w-full')}>
             <div className="absolute left-0 right-0 top-0 !z-[80] bg-green-500">
-                <Progress value={getProgressValue()} className="h-2 rounded-none" />
+                <Progress indicatorColor={standardForm.theme?.secondary} value={getProgressValue()} className="h-1 rounded-none" />
             </div>
             <AnimatePresence>
                 {currentSlide === -1 && (
