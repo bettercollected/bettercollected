@@ -21,26 +21,20 @@ const StyledDiv = styled.div<{ $theme: any }>(({ $theme }) => {
     };
 });
 
-export default function Choice({
-    isSelected,
-    theme,
-    index,
-    choice,
-    onClick
-}: ChoiceProps) {
+export default function Choice({ isSelected, theme, index, choice, onClick }: ChoiceProps) {
     return (
         <StyledDiv
             $theme={theme}
             style={{
                 background: isSelected ? theme?.tertiary : '',
-                borderColor: theme?.tertiary
+                borderColor: theme?.tertiary,
+                color: theme?.secondary
             }}
             className="flex cursor-pointer justify-between rounded-xl border p-2 px-4 "
             key={choice.id}
             onClick={() => onClick && onClick(choice.id || '')}
         >
-            {choice.value ? choice.value : `Item ${index + 1}`}{' '}
-            {isSelected && <Check />}
+            {choice.value ? choice.value : `Item ${index + 1}`} {isSelected && <Check />}
         </StyledDiv>
     );
 }
