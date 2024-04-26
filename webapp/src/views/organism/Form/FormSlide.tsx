@@ -36,6 +36,7 @@ import { scrollToDivById } from '@app/utils/scrollUtils';
 import ImageField from '../FormBuilder/Fields/Imagefield';
 import VideoField from '../FormBuilder/Fields/VideoField';
 import SlideLayoutWrapper from '../Layout/SlideLayoutWrapper';
+import BackButton from '@app/views/molecules/FormBuilder/BackButton';
 import MatrixField from '../FormBuilder/Fields/Matrix';
 
 export function FormFieldComponent({ field, slideIndex }: { field: StandardFormFieldDto; slideIndex: number }) {
@@ -157,14 +158,12 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false 
         <Controller>
             <SlideLayoutWrapper scrollDivId={'questions-container'} theme={standardForm.theme} slide={formSlide} disabled>
                 {currentSlide > 0 && (
-                    <div
-                        className="absolute left-5 top-8 z-[100] flex cursor-pointer gap-2 lg:left-20"
-                        onClick={() => {
+                    <BackButton
+                        handleClick={() => {
                             previousSlide();
                         }}
-                    >
-                        <ChevronLeft className="text-black-700" /> <span className="text-black-700">Back</span>
-                    </div>
+                        className="relative top-8 z-[100] w-fit "
+                    />
                 )}
                 <div className={cn('flex h-full flex-1 flex-col justify-center overflow-hidden ', formSlide?.properties?.layout === FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND_LEFT_ALIGN ? 'items-start ' : 'items-center')}>
                     <AnimatePresence mode="wait">
