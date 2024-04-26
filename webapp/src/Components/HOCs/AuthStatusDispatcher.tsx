@@ -21,7 +21,7 @@ export default function AuthStatusDispatcher({ workspace, children, isCustomDoma
     const [is401, setIs401] = useState(false);
 
     const { data, isLoading } = useGetStatusQuery(undefined, {
-        pollingInterval: 10000,
+        pollingInterval: 30000,
         selectFromResult: ({ data, isLoading, isError }) => {
             if (isError) setIs401(true);
             if (data) {

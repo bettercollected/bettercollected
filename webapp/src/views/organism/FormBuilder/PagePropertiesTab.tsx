@@ -1,37 +1,34 @@
 'use client';
 
-import { useDialogModal } from '@app/lib/hooks/useDialogModal';
 import useGetPageAttributes from '@app/lib/hooks/useGetPageAttributes';
 import { FormSlideLayout } from '@app/models/enums/form';
 import { Switch } from '@app/shadcn/components/ui/switch';
 import { cn } from '@app/shadcn/util/lib';
-import { useActiveFieldComponent, useActiveSlideComponent, useActiveThankYouPageComponent } from '@app/store/jotai/activeBuilderComponent';
+import { useActiveSlideComponent, useActiveThankYouPageComponent } from '@app/store/jotai/activeBuilderComponent';
 import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
 import { useFormState } from '@app/store/jotai/form';
 import { extractTextfromJSON } from '@app/utils/richTextEditorExtenstion/getHtmlFromJson';
 import RequiredIcon from '@app/views/atoms/Icons/Required';
 import { SlideLayoutNoImageLeftAlign } from '@app/views/atoms/Icons/SlideLayoutNoImageLeftAlign';
 
+import { IsValidString } from '@app/utils/stringUtils';
 import SlideLayoutBackgroundImage from '../../atoms/Icons/SlideLayoutBackgroundImage';
 import SlideLayoutLeftImage from '../../atoms/Icons/SlideLayoutLeftImage';
 import SlideLayoutNoImage from '../../atoms/Icons/SlideLayoutNoImage';
 import SlideLayoutRightImage from '../../atoms/Icons/SlideLayoutRightImage';
-import { IsValidString } from '@app/utils/stringUtils';
 
 export default function PagePropertiesTab({}: {}) {
-    const { formFields, updateShowQuestionNumbers, activeSlide, updateSlideLayout, updateSlideImage } = useFormFieldsAtom();
+    const { formFields, activeSlide, updateSlideLayout, updateSlideImage } = useFormFieldsAtom();
     const { activeSlideComponent } = useActiveSlideComponent();
-    const { setActiveFieldComponent } = useActiveFieldComponent();
     const { activeThankYouPageComponent } = useActiveThankYouPageComponent();
     const { formState, setWelcomePageButtonText, setThankYouPageDescription, setThankYouPageButtonText, setThankYouPageButtonLink, updateThankYouPageLayout, updateWelcomePageLayout, setFormDescription } = useFormState();
 
-    const { openDialogModal } = useDialogModal();
     function getPageIndex() {
         if (activeSlideComponent?.id === 'welcome-page') return -10;
         else if (activeSlideComponent?.id === 'thank-you-page') return -20;
         else return activeSlide?.index;
     }
-    const { layout, imageUrl } = useGetPageAttributes(getPageIndex() ?? -10);
+    const { layout } = useGetPageAttributes(getPageIndex() ?? -10);
 
     const { updateFieldRequired } = useFormFieldsAtom();
 
