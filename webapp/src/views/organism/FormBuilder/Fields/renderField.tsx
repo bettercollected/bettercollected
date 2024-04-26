@@ -3,18 +3,19 @@ import DateField from '@app/views/molecules/ResponderFormFields/DateField';
 import LinearRatingField from '@app/views/molecules/ResponderFormFields/LinearRating';
 import RatingField from '@app/views/molecules/ResponderFormFields/RatingField';
 
-import DropDownField from './DropDownFIeld';
-import FileUpload from './FileUploadField';
-import InputField from './InputField';
-import YesNoField from './YesNoField';
-import Image from 'next/image';
-import ImageField from './Imagefield';
-import VideoField from './VideoField';
-import DeleteIcon from '@app/views/atoms/Icons/Delete';
-import { SwitchIcon } from '@app/views/atoms/Icons/SwitchIcon';
+import { useDialogModal } from '@app/lib/hooks/useDialogModal';
 import { cn } from '@app/shadcn/util/lib';
 import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
-import { useDialogModal } from '@app/lib/hooks/useDialogModal';
+import DeleteIcon from '@app/views/atoms/Icons/Delete';
+import { SwitchIcon } from '@app/views/atoms/Icons/SwitchIcon';
+import Image from 'next/image';
+import DropDownField from './DropDownFIeld';
+import FileUpload from './FileUploadField';
+import ImageField from './Imagefield';
+import InputField from './InputField';
+import MatrixFieldBuilderWrapper from './MatrixFieldBuilderWrapper';
+import VideoField from './VideoField';
+import YesNoField from './YesNoField';
 
 export const RenderImage = (field: StandardFormFieldDto, isBuilder: boolean = false) => {
     const { updateFieldImage } = useFormFieldsAtom();
@@ -81,6 +82,8 @@ function renderField(field: StandardFormFieldDto, slide: StandardFormFieldDto, d
             return <ImageField isBuilder field={field} />;
         case FieldTypes.VIDEO_CONTENT:
             return <VideoField isBuilder field={field} />;
+        case FieldTypes.MATRIX:
+            return <MatrixFieldBuilderWrapper field={field} />;
         default:
             return null;
     }

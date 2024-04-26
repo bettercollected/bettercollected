@@ -17,6 +17,7 @@ import { RichTextEditor } from '../../molecules/RichTextEditor';
 import SlideLayoutWrapper from '../Layout/SlideLayoutWrapper';
 import FieldDescription from './Fields/FieldDescrption';
 import renderFieldWrapper from './Fields/renderField';
+import { FieldType } from '@app/store/form-builder/types';
 
 const SlideBuilder = ({ slide, isScaledDown = false, disabled = false }: { slide: StandardFormFieldDto; isScaledDown?: boolean; disabled?: boolean }) => {
     const slideFields = slide?.properties?.fields;
@@ -90,7 +91,7 @@ const SlideBuilder = ({ slide, isScaledDown = false, disabled = false }: { slide
                                                                         {slide?.properties?.showQuestionNumbers && <span className="text-2xl">{index + 1}.</span>}
                                                                         <RichTextEditor
                                                                             field={field}
-                                                                            autofocus={activeFieldComponent?.id === field.id}
+                                                                            autofocus={field?.type !== FieldType.MATRIX && activeFieldComponent?.id === field.id}
                                                                             onUpdate={(editor: Editor) => updateTitle(field.index, slide.index, editor.getJSON())}
                                                                             isRequired={field?.validations?.required}
                                                                         />

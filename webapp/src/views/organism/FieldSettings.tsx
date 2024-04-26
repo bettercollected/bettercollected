@@ -70,17 +70,22 @@ export default function FieldSettings() {
                 </div>
             )}
 
-            {activeField?.type === FieldTypes.MULTIPLE_CHOICE && (
+            {(activeField?.type === FieldTypes.MULTIPLE_CHOICE || activeField?.type === FieldTypes.MATRIX) && (
                 <>
-                    <div className="flex w-full items-center justify-between">
-                        <div className="text-black-700 text-xs">&quot;Other&quot; Option</div>
-                        <Switch
-                            checked={activeField?.properties?.allowOtherChoice || false}
-                            onCheckedChange={(checked) => {
-                                updateFieldProperty(activeField!.index, activeSlide!.index, 'allowOtherChoice', checked);
-                            }}
-                        />
-                    </div>
+                    {activeField?.type !== FieldTypes.MATRIX && (
+                        <>
+                            <div className="flex w-full items-center justify-between">
+                                <div className="text-black-700 text-xs">&quot;Other&quot; Option</div>
+                                <Switch
+                                    checked={activeField?.properties?.allowOtherChoice || false}
+                                    onCheckedChange={(checked) => {
+                                        updateFieldProperty(activeField!.index, activeSlide!.index, 'allowOtherChoice', checked);
+                                    }}
+                                />
+                            </div>
+                        </>
+                    )}
+
                     <div className="flex w-full items-center justify-between">
                         <div className="text-black-700 text-xs">Multiple Selection</div>
                         <Switch
