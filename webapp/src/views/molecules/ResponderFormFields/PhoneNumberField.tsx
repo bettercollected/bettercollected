@@ -95,7 +95,7 @@ export default function PhoneNumberField({ field }: { field: StandardFormFieldDt
                     }}
                     placeholder={field?.properties?.placeholder || getPlaceholderValueForField(field.type)}
                     inputProps={{
-                        className: 'bg-opacity-50 mx-14 border-0 border-b-[1px]',
+                        className: 'bg-opacity-50 mx-14 border-0 border-b-[1px] w-full',
                         id: `input-field-${field.id}`
                     }}
                 />

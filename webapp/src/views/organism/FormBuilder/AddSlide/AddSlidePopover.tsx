@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@app/shadcn/components
 import TemplateTab from '@app/views/organism/FormBuilder/AddSlide/TemplateTab';
 
 import LayoutsTab from './LayoutsTab';
-import PlusIcon from '@Components/Common/Icons/Common/Plus';
+import { PlusIcon } from '@app/views/atoms/Icons/PlusIcon';
 
 export default function AddSlidePopover() {
     const [open, setOpen] = useState(false);
@@ -29,7 +29,7 @@ export default function AddSlidePopover() {
                     }}
                 >
                     <PopoverTrigger>
-                        <Button variant={'v2GhostButton'} size={ButtonSize.Small} icon={<PlusIcon className="text-black-900 h-5 w-5" strokeWidth={'1.5'} />}></Button>
+                        <Button variant={'v2GhostButton'} className="text-black-300 hover:text-black-800" size={ButtonSize.Small} icon={<PlusIcon className=" h-5 w-5" strokeWidth={'1.5'} />}></Button>
                     </PopoverTrigger>
                     {open && (
                         <motion.div className="!z-10" key="addSlide" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
