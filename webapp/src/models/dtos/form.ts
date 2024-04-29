@@ -236,4 +236,16 @@ export enum FieldTypes {
     MATRIX_ROW_INPUT = 'matrix_row_input'
 }
 
-export const V2InputFields = [FieldTypes.DATE, FieldTypes.YES_NO, FieldTypes.MULTIPLE_CHOICE, FieldTypes.RATING, FieldTypes.LINEAR_RATING, FieldTypes.NUMBER, FieldTypes.SHORT_TEXT, FieldTypes.EMAIL, FieldTypes.PHONE_NUMBER, FieldTypes.DROP_DOWN];
+export const V2InputFields = [
+    FieldTypes.DATE,
+    FieldTypes.YES_NO,
+    FieldTypes.MULTIPLE_CHOICE,
+    FieldTypes.RATING,
+    FieldTypes.LINEAR_RATING,
+    FieldTypes.NUMBER,
+    FieldTypes.SHORT_TEXT,
+    FieldTypes.EMAIL,
+    FieldTypes.PHONE_NUMBER,
+    FieldTypes.DROP_DOWN,
+    FieldTypes.MATRIX
+];

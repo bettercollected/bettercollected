@@ -421,6 +421,24 @@ export default function useFormFieldsAtom() {
         setFormFields([...formFields]);
     };
 
+    const updateAllowMultipleSelectionMatrixField = (allowMultipleSelectionMatrixField: boolean) => {
+        const updatedRows = formFields![activeSlideComponent!.index]!.properties!.fields![activeFieldComponent!.index]!.properties!.fields!.map((field: StandardFormFieldDto) => {
+            return {
+                ...field,
+                properties: {
+                    ...(field?.properties || {}),
+                    allowMultipleSelection: allowMultipleSelectionMatrixField
+                }
+            };
+        });
+        formFields![activeSlideComponent!.index]!.properties!.fields![activeFieldComponent!.index]!.properties!.fields = updatedRows;
+        formFields![activeSlideComponent!.index]!.properties!.fields![activeFieldComponent!.index]!.properties = {
+            ...(formFields?.[activeSlideComponent!.index]?.properties?.fields?.[activeFieldComponent!.index]?.properties || {}),
+            allowMultipleSelection: allowMultipleSelectionMatrixField
+        };
+        setFormFields([...formFields]);
+    };
+
     const deleteRow = (rowIndex: number) => {
         const updatedRows = formFields![activeSlideComponent!.index]!.properties!.fields![activeFieldComponent!.index]!.properties!.fields!.filter((field, index) => index !== rowIndex);
         formFields![activeSlideComponent!.index]!.properties!.fields![activeFieldComponent!.index].properties!.fields = updatedRows;
@@ -442,6 +460,7 @@ export default function useFormFieldsAtom() {
         updateFieldValidation,
         updateFieldProperty,
         updateShowQuestionNumbers,
+        updateAllowMultipleSelectionMatrixField,
         updateSlideTheme,
         updateSlideLayout,
         updateSlideImage,
