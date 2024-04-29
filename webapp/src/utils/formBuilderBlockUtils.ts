@@ -182,6 +182,7 @@ function getChoicesValue(field: StandardFormFieldDto, answer: any) {
         ? field?.properties?.choices?.filter((choice: any) => answer?.choices?.values?.includes(choice.id))
         : field?.properties?.choices?.filter((choice: any) => answer?.choice?.value?.includes(choice.id));
     const otherValue = getMultipleChoiceOtherValue(answer, field.properties?.allowMultipleSelection);
+    console.log(field, choices);
     const choicesValue = choices?.map((choice: any) => {
         if (choice.value) {
             return choice.value;

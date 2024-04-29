@@ -157,7 +157,7 @@ const MatrixHeaderInput = ({ value, onChange, disabled }: { value: string; onCha
     }, [debouncedInputValue]);
 
     useEffect(() => {
-        setInputVal(value);
+        if (value !== inputVal) setInputVal(value);
     }, [value]);
 
     return (

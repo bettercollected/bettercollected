@@ -2,6 +2,7 @@ import environments from '@app/configs/environments';
 import { StandardFormDto, StandardFormFieldDto } from '@app/models/dtos/form';
 import { FieldTypes } from '@app/models/dtos/form';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
+import { extractTextfromJSON } from './richTextEditorExtenstion/getHtmlFromJson';
 
 export default function getFormShareURL(form: StandardFormDto, workspace: WorkspaceDto, defaultLink: boolean = false) {
     const slug = form?.settings?.customUrl || form?.importedFormId;
@@ -40,7 +41,20 @@ const IgnoredResponsesFieldType = [FieldTypes.TEXT, null, FieldTypes.IMAGE_CONTE
 
 export const getFieldsFromV2Form = (form: StandardFormDto) => {
     const fields = form.fields.map((slide) => {
-        return slide?.properties?.fields?.filter((field: StandardFormFieldDto) => !IgnoredResponsesFieldType.includes(field.type));
+        const filteredFields = slide?.properties?.fields?.filter((field: StandardFormFieldDto) => !IgnoredResponsesFieldType.includes(field.type));
+        const filteredFieldsWithMatrix = filteredFields?.map((field: StandardFormFieldDto) => {
+            if (field?.type !== FieldTypes.MATRIX) {
+                return field;
+            }
+            const matrixRows = field?.properties?.fields?.map((row: StandardFormFieldDto) => {
+                return {
+                    ...row,
+                    title: `${extractTextfromJSON(field)}[${row.title}]`
+                };
+            });
+            return matrixRows;
+        });
+        return filteredFieldsWithMatrix;
     });
-    return fields.flat();
+    return fields.flat(2);
 };
