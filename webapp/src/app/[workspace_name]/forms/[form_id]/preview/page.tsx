@@ -1,14 +1,14 @@
 'use client';
 
-import { useEffect } from 'react';
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { useFormResponse } from '@app/store/jotai/responderFormResponse';
 import { useGetFormResponseQuery } from '@app/store/redux/formApi';
 import { selectWorkspace } from '@app/store/workspaces/slice';
-import { extractTextfromJSON } from '@app/utils/richTextEditorExtenstion/getHtmlFromJson';
 import { getAnswerForField } from '@app/utils/formBuilderBlockUtils';
-import { FieldTypes } from '@app/models/dtos/form';
+import { getFieldsFromV2Form } from '@app/utils/formUtils';
+import { extractTextfromJSON } from '@app/utils/richTextEditorExtenstion/getHtmlFromJson';
+import { useEffect } from 'react';
 
 export default function ResponsePage({ searchParams }: { searchParams: { responseId?: string } }) {
     const standardForm = useAppSelector(selectForm);
@@ -33,17 +33,11 @@ export default function ResponsePage({ searchParams }: { searchParams: { respons
         }
     }, [data?.response?.responseId]);
 
-    const IgnoredResponsesFieldType = [FieldTypes.TEXT, null, FieldTypes.IMAGE_CONTENT, FieldTypes.VIDEO_CONTENT];
-
     function getFormFields() {
-        const fields = data?.form.fields?.map((slide: any) => {
-            return slide?.properties?.fields?.filter((field: any) => !IgnoredResponsesFieldType.includes(field.type));
-        });
-        if (fields) {
-            return fields.flat();
-        } else {
-            return [];
+        if (data?.form) {
+            return getFieldsFromV2Form(data.form);
         }
+        return [];
     }
 
     return (
@@ -59,29 +53,6 @@ export default function ResponsePage({ searchParams }: { searchParams: { respons
                     );
                 })}
             </div>
-            {/*<ScrollArea className="overfloe-y-auto  flex h-full w-full flex-col">*/}
-            {/*    <div className="pointer-events-none">*/}
-            {/*        <div className="p-4">*/}
-            {/*            <div className="border-black-400 min-h-screen w-full overflow-hidden rounded-xl border">*/}
-            {/*                <WelcomePage isPreviewMode />*/}
-            {/*            </div>*/}
-            {/*        </div>*/}
-            {/*        {standardForm?.fields?.map((slide, index) => {*/}
-            {/*            return (*/}
-            {/*                <div className="p-4" key={index}>*/}
-            {/*                    <div className="min-w-screen border-black-400 aspect-video h-full w-full overflow-hidden rounded-xl border ">*/}
-            {/*                        <FormSlidePreview slide={slide} />*/}
-            {/*                    </div>*/}
-            {/*                </div>*/}
-            {/*            );*/}
-            {/*        })}*/}
-            {/*        <div className="p-4">*/}
-            {/*            <div className="border-black-400 min-h-screen w-full overflow-hidden rounded-xl border ">*/}
-            {/*                <ThankyouPage isPreviewMode />*/}
-            {/*            </div>*/}
-            {/*        </div>*/}
-            {/*    </div>*/}
-            {/*</ScrollArea>*/}
         </div>
     );
 }
