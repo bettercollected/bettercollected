@@ -8,7 +8,7 @@ import { Switch } from '@app/shadcn/components/ui/switch';
 import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
 
 export default function FieldSettings() {
-    const { updateFieldRequired, activeSlide, activeField, updateDescription, updateFieldProperty, updateRatingSteps, updateFieldImage } = useFormFieldsAtom();
+    const { updateFieldRequired, activeSlide, activeField, updateDescription, updateFieldProperty, updateRatingSteps, updateFieldImage, updateAllowMultipleSelectionMatrixField } = useFormFieldsAtom();
 
     const [errorMsg, setErrorMsg] = useState('');
     const [stepValue, setStepValue] = useState(activeField?.properties?.steps);
@@ -91,7 +91,11 @@ export default function FieldSettings() {
                         <Switch
                             checked={activeField?.properties?.allowMultipleSelection || false}
                             onCheckedChange={(checked) => {
-                                updateFieldProperty(activeField!.index, activeSlide!.index, 'allowMultipleSelection', checked);
+                                if (activeField?.type === FieldTypes.MATRIX) {
+                                    updateAllowMultipleSelectionMatrixField(checked);
+                                } else {
+                                    updateFieldProperty(activeField!.index, activeSlide!.index, 'allowMultipleSelection', checked);
+                                }
                             }}
                         />
                     </div>
