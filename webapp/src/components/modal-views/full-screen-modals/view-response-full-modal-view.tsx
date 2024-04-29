@@ -36,17 +36,23 @@ const ViewResponseFullModalView = ({ response, formFields, formId, workspaceId }
                 </div>
             </div>
             <Separator />
-            <div className="flex min-h-fit w-full flex-col gap-8 overflow-y-auto p-4 pt-6 ">
-                {formFields.map((field) => {
-                    return (
-                        <div className="flex flex-col gap-1" key={field.id}>
-                            <span className="p4-new text-black-500">{extractTextfromJSON(field)}</span>
-                            <span className="p2-new text-black-700">{getAnswerForField(response, field) || '- -'}</span>
-                        </div>
-                    );
-                })}
-            </div>
+            <IndividualFormResponse formFields={formFields} response={response} />
         </motion.div>
+    );
+};
+
+const IndividualFormResponse = ({ formFields, response }: { formFields: Array<StandardFormFieldDto>; response: StandardFormResponseDto }) => {
+    return (
+        <div className="flex min-h-fit w-full flex-col gap-8 overflow-y-auto p-4 pt-6 ">
+            {formFields.map((field) => {
+                return (
+                    <div className="flex flex-col gap-1" key={field.id}>
+                        <span className="p4-new text-black-500">{extractTextfromJSON(field)}</span>
+                        <span className="p2-new text-black-700">{getAnswerForField(response, field) || '- -'}</span>
+                    </div>
+                );
+            })}
+        </div>
     );
 };
 
@@ -59,7 +65,6 @@ const EllipsisSection = ({ formId, workspaceId, responseId }: { formId: string; 
         if (response?.data) {
             toast('Response Deleted', { type: 'success' });
             closeModal();
-            
         } else {
             toast('Error Deleting Response', { type: 'error' });
         }
