@@ -4,7 +4,6 @@ import { useRouter } from 'next/navigation';
 
 import { v4 } from 'uuid';
 
-import environments from '@app/configs/environments';
 import { useDialogModal } from '@app/lib/hooks/useDialogModal';
 import { FieldTypes } from '@app/models/dtos/form';
 import { ButtonVariant } from '@app/models/enums/button';
@@ -21,22 +20,21 @@ import { useFormState } from '@app/store/jotai/form';
 import { useNavbarState } from '@app/store/jotai/navbar';
 import { useFormResponse } from '@app/store/jotai/responderFormResponse';
 import { useResponderState } from '@app/store/jotai/responderFormState';
-import { usePublishV2FormMutation } from '@app/store/redux/formApi';
 import { useCreateTemplateFromFormMutation } from '@app/store/redux/templateApi';
 import BetterCollectedSmallLogo from '@app/views/atoms/Icons/BetterCollectedSmallLogo';
 
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
+import { LogicOutlinedIcon } from '@app/views/atoms/Icons/LogicOutlinedIcon';
 import { MediaOutlinedIcon } from '../atoms/Icons/MediaOutlined';
 import PlayIcon from '../atoms/Icons/PlayIcon';
 import { PlusOutlined } from '../atoms/Icons/PlusOutlined';
 import { TextOutlinedIcon } from '../atoms/Icons/TextOutlined';
 import BackButton from '../molecules/FormBuilder/BackButton';
 import PreviewWrapper from '../molecules/FormBuilder/PreviewWrapper';
+import PublishButton from '../molecules/FormBuilder/PublishButton';
 import Form from './Form/Form';
-import { Logic } from '@app/components/icons/logic';
-import { LogicOutlinedIcon } from '@app/views/atoms/Icons/LogicOutlinedIcon';
 
 const Navbar = () => {
     const { activeSlide, formFields, addField, updateSlideImage, updateSlideLayout } = useFormFieldsAtom();
@@ -46,7 +44,6 @@ const Navbar = () => {
     const { navbarState, setNavbarState } = useNavbarState();
     const { toast } = useToast();
 
-    const [publishV2Form, { isLoading }] = usePublishV2FormMutation();
     const [createTemplateFromForm, { isLoading: isCreatingTemplate }] = useCreateTemplateFromFormMutation();
 
     const standardForm = useAppSelector(selectForm);
@@ -132,16 +129,6 @@ const Navbar = () => {
         openDialogModal('UNSPLASH_IMAGE_PICKER', {
             updatePageImage: getPageImageUpdateFunction
         });
-    };
-
-    const publishForm = async () => {
-        const response: any = await publishV2Form({
-            workspaceId: workspace.id,
-            formId: standardForm.formId
-        });
-        if (response.data) {
-            openDialogModal('FORM_PUBLISHED');
-        }
     };
 
     const makeTemplate = async () => {
@@ -251,9 +238,7 @@ const Navbar = () => {
                     </Button>
                 )}
 
-                <Button isLoading={isLoading} onClick={publishForm}>
-                    Publish
-                </Button>
+                <PublishButton />
             </div>
         </div>
     );
