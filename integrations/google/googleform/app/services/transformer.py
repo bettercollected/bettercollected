@@ -24,6 +24,7 @@ from common.models.standard_form import (
 from common.services.transformer_service import (
     FormTransformerService,
 )
+from loguru import logger
 
 from googleform.app.exceptions import HTTPException
 from googleform.app.models.google_form import GoogleFormDto, GoogleFormItemsDto
@@ -31,8 +32,6 @@ from googleform.app.models.google_form_response import (
     GoogleAnswer,
     GoogleFormResponseDto,
 )
-
-from loguru import logger
 
 default_image_url = (
     "https://s3.eu-central-1.wasabisys.com/bettercollected/images/v2defaultImage.png"
@@ -111,6 +110,7 @@ class GoogleFormTransformerService(FormTransformerService):
                 StandardFormField(
                     id=question.questionId,
                     title=question.rowQuestion.title,
+                    type=StandardFormFieldType.MULTIPLE_CHOICE,
                     properties=StandardFieldProperty(
                         allow_multiple_selection=item.questionGroupItem.grid.columns.type
                         == "CHECKBOX",
@@ -183,7 +183,11 @@ class GoogleFormTransformerService(FormTransformerService):
                 )
                 continue
             active_slide, field = self._transform_field(active_slide, google_field)
-            field_id_and_fields_map[field.id] = field
+            if field.type == StandardFormFieldType.MATRIX:
+                for row in field.properties.fields:
+                    field_id_and_fields_map[row.id] = row
+            else:
+                field_id_and_fields_map[field.id] = field
         transform_fields.append(active_slide)
         return transform_fields, field_id_and_fields_map
 
@@ -355,6 +359,7 @@ class GoogleFormTransformerService(FormTransformerService):
                     if choice.value == answer.textAnswers.answers[0].value
                 ][0]
                 standard_answer.choice = StandardChoiceAnswer(value=choice_id)
+
 
         return standard_answer
 
