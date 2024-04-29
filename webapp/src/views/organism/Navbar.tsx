@@ -41,7 +41,7 @@ const Navbar = () => {
     const { activeSlideComponent } = useActiveSlideComponent();
     const { activeThankYouPageComponent } = useActiveThankYouPageComponent();
     const { formState, setFormTitle, updateThankYouPageLayout, updateWelcomePageLayout, updateWelcomePageImage, updateThankYouPageImage } = useFormState();
-    const { navbarState, setNavbarState } = useNavbarState();
+    const { navbarState } = useNavbarState();
     const { toast } = useToast();
 
     const [createTemplateFromForm, { isLoading: isCreatingTemplate }] = useCreateTemplateFromFormMutation();
@@ -81,10 +81,6 @@ const Navbar = () => {
             });
         }, 0);
     };
-
-    function isGreetingSlide() {
-        return activeSlideComponent?.id === 'welcome-page' || activeSlideComponent?.id === 'thank-you-page';
-    }
 
     const { resetResponderState } = useResponderState();
     const { resetFormResponseAnswer } = useFormResponse();
@@ -153,15 +149,7 @@ const Navbar = () => {
                     <BetterCollectedSmallLogo />
                 </div>
                 <DropdownMenu>
-                    <DropdownMenu.Trigger
-                        className={cn(navbarState.insertClicked && 'bg-black-300', 'rounded ')}
-                        onClick={() => {
-                            setNavbarState({
-                                ...navbarState,
-                                insertClicked: true
-                            });
-                        }}
-                    >
+                    <DropdownMenu.Trigger className={cn(navbarState.insertClicked && 'bg-black-300', 'rounded ')} onClick={() => openDialogModal('INSERT_FIELD', { formFields: formFields, activeSlideComponent: activeSlideComponent })}>
                         <div className={'flex items-center hover:bg-inherit'}>
                             <div className={cn('!text-black-500 hover:!text-black-900 flex flex-row items-center gap-1 text-xs font-semibold hover:bg-inherit', navbarState.insertClicked && '!text-black-900')}>
                                 <PlusOutlined />
