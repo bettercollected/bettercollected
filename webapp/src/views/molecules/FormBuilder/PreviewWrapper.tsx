@@ -9,6 +9,7 @@ import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { DesktopIcon } from '@app/views/atoms/Icons/DesktopIcon';
 import { MobileIcon } from '@app/views/atoms/Icons/MobileIcon';
+import PublishButton from './PublishButton';
 
 const PreviewWrapper = ({ children, handleResetResponderState }: { children: React.ReactNode; handleResetResponderState: () => void }) => {
     const [key, setKey] = useState(1);
@@ -32,15 +33,18 @@ const PreviewWrapper = ({ children, handleResetResponderState }: { children: Rea
                         Mobile
                     </div>
                 </div>
-                <Button
-                    variant={'v2Button'}
-                    onClick={() => {
-                        setKey(key + 1);
-                        handleResetResponderState();
-                    }}
-                >
-                    Restart
-                </Button>
+                <div className="flex gap-1">
+                    <PublishButton />
+                    <Button
+                        variant={'v2Button'}
+                        onClick={() => {
+                            setKey(key + 1);
+                            handleResetResponderState();
+                        }}
+                    >
+                        Restart
+                    </Button>
+                </div>
             </nav>
             <Separator />
             <div className=" mx-10 h-full py-10 pb-24 drop-shadow-xl  ">
