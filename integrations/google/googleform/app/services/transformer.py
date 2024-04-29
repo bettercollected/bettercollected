@@ -328,20 +328,22 @@ class GoogleFormTransformerService(FormTransformerService):
                 if field.properties.allow_multiple_selection:
                     choice_ids = []
                     for answer in choice_answers:
-                        choice_ids.append(
-                            [
-                                choice.id
-                                for choice in field.properties.choices
-                                if choice.value == answer.value
-                            ][0]
-                        )
+                        matching_choices = [choice.id for choice in field.properties.choices if
+                                            choice.value == answer.value]
+                        if matching_choices:
+                            choice_ids.append(matching_choices[0])
+
                     standard_answer.choices = StandardChoicesAnswer(values=choice_ids)
                 else:
-                    choice_id = [
-                        choice.id
-                        for choice in field.properties.choices
-                        if choice.value == choice_answers[0].value
-                    ][0]
+                    matching_choices = [choice.id for choice in field.properties.choices if
+                                        choice.value == choice_answers[0].value]
+                    if matching_choices:
+                        choice_id = matching_choices[0]
+                    else:
+                        # Handle the case where no matching choice is found
+                        # For example, set choice_id to None or raise an exception
+                        choice_id = None  # or raise Exception("No matching choice found")
+
                     standard_answer.choice = StandardChoiceAnswer(value=choice_id)
             elif field.type == StandardFormFieldType.LINEAR_RATING:
                 standard_answer.number = answer.textAnswers.answers[0].value
