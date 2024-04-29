@@ -11,6 +11,7 @@ from fastapi_pagination import Page
 
 from backend.app.constants.consents import default_consent_responses
 from backend.app.exceptions import HTTPException
+from backend.app.models.dtos.minified_form import FormDtoCamelModel
 from backend.app.models.dtos.response_dtos import (
     StandardFormCamelModel,
     StandardFormResponseCamelModel,
@@ -178,7 +179,7 @@ class FormResponseService:
             response.consent = default_consent_responses
         if deletion_request is not None:
             response.deletion_status = deletion_request.status
-        form = StandardFormCamelModel(**form.dict())
+        form = FormDtoCamelModel(**form.dict())
         form.settings = workspace_form.settings
         response.form_title = form.title
         decrypted_response = self.decrypt_form_response(
