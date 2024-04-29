@@ -17,57 +17,66 @@ export const formFieldsList = [
     {
         name: 'Text',
         type: FieldTypes.SHORT_TEXT,
-        icon: <TextIcon className="h-10 w-10" />
+        icon: <TextIcon className="h-10 w-10" style={{ color: '#00B0D0' }} />,
+        background: '#E6F9FB'
     },
     {
         name: 'Email',
         type: FieldTypes.EMAIL,
-        icon: <EmailIcon className="h-10 w-10" />
+        icon: <EmailIcon className="h-10 w-10" style={{ color: '#796AC7' }} />,
+        background: '#F5F3FF'
     },
     {
         name: 'Phone Number',
         type: FieldTypes.PHONE_NUMBER,
-        icon: <PhoneNumberIcon className="h-10 w-10" />
+        icon: <PhoneNumberIcon className="h-10 w-10" style={{ color: '#5194C1' }} />,
+        background: '#E4F3FD'
     },
     {
         name: 'Multiple Choice',
         type: FieldTypes.MULTIPLE_CHOICE,
-        icon: <MultipleChoiceIcon />
+        icon: <MultipleChoiceIcon style={{ color: '#C2A149' }} />,
+        background: '#FFF9EB'
     },
 
     {
         name: 'Upload',
         type: FieldTypes.FILE_UPLOAD,
-        icon: <UploadIcon className="h-10 w-10" />
+        icon: <UploadIcon className="h-10 w-10" style={{ color: '#00B0D0' }} />,
+        background: '#E6F9FB'
     },
     {
         name: 'Calendar',
         type: FieldTypes.DATE,
-        icon: <CalenderIcon className="h-10 w-10" />
+        icon: <CalenderIcon className="h-10 w-10" style={{ color: '#589758' }} />,
+        background: '#F0FFF0'
     },
     {
         name: 'Rating',
         type: FieldTypes.RATING,
-        icon: <RatingIcon />
+        icon: <RatingIcon style={{ color: '#BC6182' }} />,
+        background: '#FFEFF5'
     },
-    { name: 'Drop Down', type: FieldTypes.DROP_DOWN, icon: <DropDownIcon /> },
+    { name: 'Drop Down', type: FieldTypes.DROP_DOWN, icon: <DropDownIcon style={{ color: '#4D4D4D' }} />, background: '#F6F6F6' },
 
+    { name: 'Yes/No', type: FieldTypes.YES_NO, icon: <YesNoIcon style={{ color: '#796AC7' }} />, background: '#F5F3FF' },
     {
-        name: 'Number',
-        type: FieldTypes.NUMBER,
-        icon: <NumberIcon className="h-10 w-10" />
+        name: '1-10 Rate',
+        type: FieldTypes.LINEAR_RATING,
+        icon: <LinearRatingIcon className="h-10 w-10" style={{ color: '#796AC7' }} />,
+        background: '#F5F3FF'
     },
     {
         name: 'Matrix',
         type: FieldTypes.MATRIX,
-        icon: <MatrixIcon />
+        icon: <MatrixIcon style={{ color: '#00B0D0' }} />,
+        background: '#E6F9FB'
     },
-    { name: 'Link', type: FieldTypes.LINK, icon: <LinkIcon className="h-10 w-10" /> },
-    { name: 'Yes/No', type: FieldTypes.YES_NO, icon: <YesNoIcon /> },
-
     {
-        name: '1-10 Rate',
-        type: FieldTypes.LINEAR_RATING,
-        icon: <LinearRatingIcon className="h-10 w-10" />
-    }
+        name: 'Number',
+        type: FieldTypes.NUMBER,
+        icon: <NumberIcon className="h-10 w-10" style={{ color: '#C2A149' }} />,
+        background: '#FFF9EB'
+    },
+    { name: 'Link', type: FieldTypes.LINK, icon: <LinkIcon className="h-10 w-10" />, background: '#F6F6F6' }
 ];
