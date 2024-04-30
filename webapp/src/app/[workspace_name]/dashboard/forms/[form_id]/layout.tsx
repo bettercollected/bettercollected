@@ -19,7 +19,7 @@ export async function generateMetadata({ params }: { params: { workspace_name: s
             default: params.workspace_name,
             absolute: 'Edit | ' + form.title
         },
-        description: form.welcomePage.description
+        description: form?.welcomePage?.description
     };
 }
 
