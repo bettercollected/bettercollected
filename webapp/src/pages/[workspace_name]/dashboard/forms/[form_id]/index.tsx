@@ -16,8 +16,6 @@ import { ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
 import { Group, IntegrationInstructions, Share } from '@mui/icons-material';
 
 import FormIntegrations from '@app/components/form/integrations';
-import BreadcrumbsRenderer from '@app/components/form/renderer/breadcrumbs-renderer';
-import { ChevronForward } from '@app/components/icons/chevron-forward';
 import { HistoryIcon } from '@app/components/icons/history';
 import { TrashIcon } from '@app/components/icons/trash';
 import { useModal } from '@app/components/modal-views/context';
@@ -36,8 +34,8 @@ import { resetSingleForm, selectForm, setForm } from '@app/store/forms/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import getFormShareURL from '@app/utils/formUtils';
-import { validateFormOpen } from '@app/utils/validationUtils';
 import { getEditFormURL } from '@app/utils/urlUtils';
+import { validateFormOpen } from '@app/utils/validationUtils';
 
 const FormResponses = dynamic(() => import('@app/components/form/responses'));
 const FormResponsesTable = dynamic(() => import('@app/components/datatable/form/form-responses'));
@@ -48,6 +46,7 @@ const FormPreview = dynamic(() => import('@app/components/form/preview'));
 
 export default function FormPage(props: any) {
     const { form }: { form: StandardFormDto } = props;
+    console.log('hello : ', form);
     const { t } = useTranslation();
     const dispatch = useAppDispatch();
     const reduxStoreForm = useAppSelector(selectForm);
