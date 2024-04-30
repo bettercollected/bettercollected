@@ -35,6 +35,7 @@ import BackButton from '../molecules/FormBuilder/BackButton';
 import PreviewWrapper from '../molecules/FormBuilder/PreviewWrapper';
 import PublishButton from '../molecules/FormBuilder/PublishButton';
 import Form from './Form/Form';
+import { HeadingOutlinedIcon } from '../atoms/Icons/HeadingOutlinedIcon';
 
 const Navbar = () => {
     const { activeSlide, formFields, addField, updateSlideImage, updateSlideLayout } = useFormFieldsAtom();
@@ -148,6 +149,17 @@ const Navbar = () => {
                 >
                     <BetterCollectedSmallLogo />
                 </div>
+                <input
+                    type="text"
+                    placeholder="Form Title"
+                    value={formState.title}
+                    onChange={(event) => {
+                        setFormTitle(event.target.value);
+                    }}
+                    className="border-0"
+                />
+            </div>
+            <div className={'flex items-center gap-2'}>
                 <DropdownMenu>
                     <DropdownMenu.Trigger className={cn(navbarState.insertClicked && 'bg-black-300', 'rounded ')} onClick={() => openDialogModal('INSERT_FIELD', { formFields: formFields, activeSlideComponent: activeSlideComponent })}>
                         <div className={'flex items-center hover:bg-inherit'}>
@@ -158,7 +170,16 @@ const Navbar = () => {
                         </div>
                     </DropdownMenu.Trigger>
                 </DropdownMenu>
-
+                <DropdownMenu>
+                    <DropdownMenu.Trigger onClick={handleAddText}>
+                        <div className={'flex items-center hover:bg-inherit'}>
+                            <div className="!text-black-500 hover:!text-black-900 flex flex-row items-center gap-1 text-xs font-semibold ">
+                                <HeadingOutlinedIcon />
+                                <span>Heading</span>
+                            </div>
+                        </div>
+                    </DropdownMenu.Trigger>
+                </DropdownMenu>
                 <DropdownMenu>
                     <DropdownMenu.Trigger onClick={handleClickMedia}>
                         <div className={'flex items-center hover:bg-inherit'}>
@@ -169,16 +190,7 @@ const Navbar = () => {
                         </div>
                     </DropdownMenu.Trigger>
                 </DropdownMenu>
-                <DropdownMenu>
-                    <DropdownMenu.Trigger onClick={handleAddText}>
-                        <div className={'flex items-center hover:bg-inherit'}>
-                            <div className="!text-black-500 hover:!text-black-900 flex flex-row items-center gap-1 text-xs font-semibold ">
-                                <TextOutlinedIcon />
-                                <span>Text</span>
-                            </div>
-                        </div>
-                    </DropdownMenu.Trigger>
-                </DropdownMenu>
+
                 <DropdownMenu>
                     <DropdownMenu.Trigger onClick={() => {}}>
                         <div className={'flex items-center hover:bg-inherit'}>
@@ -191,15 +203,7 @@ const Navbar = () => {
                     </DropdownMenu.Trigger>
                 </DropdownMenu>
             </div>
-            <input
-                type="text"
-                placeholder="Form Title"
-                value={formState.title}
-                onChange={(event) => {
-                    setFormTitle(event.target.value);
-                }}
-                className="border-0"
-            />
+
             <div className={'flex items-center gap-2 '}>
                 <Sheet>
                     <SheetTrigger asChild>

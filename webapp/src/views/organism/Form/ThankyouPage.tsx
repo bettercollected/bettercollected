@@ -68,10 +68,12 @@ export default function ThankyouPage({ isPreviewMode }: { isPreviewMode: boolean
                         </div>
                     </div>
                 )}
-                <div className="bottom-8 mt-4 flex flex-row gap-2 lg:absolute lg:m-0 ">
-                    <span className="body3 text-black-700">Powered by:</span>
-                    <Logo showProTag={false} isLink={false} isCustomDomain className="h-[14px] w-fit" />
-                </div>
+                <Link href={isPreviewMode ? '#' : 'https://bettercollected.com/'} target={isPreviewMode ? '' : 'blank'}>
+                    <div className="bottom-8 mt-4 flex cursor-pointer flex-row gap-2 lg:absolute lg:m-0">
+                        <span className="body3 text-black-700">Powered by:</span>
+                        <Logo showProTag={false} isLink={false} isCustomDomain className="h-[14px] w-fit" />
+                    </div>
+                </Link>
                 {/* </div> */}
             </div>
         </div>
