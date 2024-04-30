@@ -155,7 +155,7 @@ export async function getServerSidePropsForDashboardFormPage(_context: any) {
     let form = null;
     const config = getServerSideAuthHeaderConfig(_context);
     try {
-        const formResponse = await fetch(`${environments.INTERNAL_DOCKER_API_ENDPOINT_HOST}/workspaces/${globalProps.workspace?.id}/forms/${form_id}`, config);
+        const formResponse = await fetch(`${environments.INTERNAL_DOCKER_API_ENDPOINT_HOST}/workspaces/${globalProps.workspace?.id}/forms/${form_id}?published=true`, config);
         form = (await formResponse?.json().catch((e: any) => e)) ?? null;
         if (!form) {
             return {

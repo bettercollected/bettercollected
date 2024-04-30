@@ -41,7 +41,7 @@ const InsertFieldComponent = ({ formFields, activeSlideComponent }: { formFields
     }, []);
 
     const handleAddField = (field: any) => {
-        const slideId = !currentPage ? v4() : slide.id;
+        const slideId = currentPage && slide !== undefined ? slide.id : v4();
         if (activeSlideComponent === null) {
             toast('Add a slide to add fields');
             return;

@@ -124,7 +124,7 @@ export default function TabularResponses({ form }: TabularResponsesProps) {
 
     const responseDataOwnerField = (response: StandardFormResponseDto) => (
         <div aria-hidden className="flex w-fit flex-col gap-1 ">
-            <Typography className={cn('!text-black-800 p2-new w-[140px] truncate')} noWrap>
+            <Typography className={cn('!text-black-800 p2-new w-fit truncate')} noWrap>
                 {response?.dataOwnerIdentifier || '- -'}
             </Typography>
             <span className="text-black-600 text-[10px] font-normal">{utcToLocalDateTIme(response?.createdAt)}</span>
@@ -194,7 +194,7 @@ export default function TabularResponses({ form }: TabularResponsesProps) {
                 paddingRight: '8px',
                 textOverFlow: 'ellipsis'
             },
-            width: '156px',
+            // width: 'fit-content',
             ignoreRowClick: true
         }
     ];
