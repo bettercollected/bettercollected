@@ -132,6 +132,35 @@ class FormRepository:
             {"$unwind": "$workspace_form"},
             {"$match": {"workspace_form.workspace_id": workspace_id}},
             {"$set": {"settings": "$workspace_form.settings", "is_published": True}},
+            {
+                "$lookup": {
+                    "from": "form_responses",
+                    "localField": "form_id",
+                    "foreignField": "form_id",
+                    "as": "responses",
+                }
+            },
+            {
+                "$set": {
+                    "responses": {
+                        "$filter": {
+                            "input": "$responses",
+                            "as": "item",
+                            "cond": {"$ne": [{"$type": "$$item.answers"}, "missing"]},
+                        }
+                    }
+                }
+            },
+            {"$set": {"responses": {"$size": "$responses"}}},
+            {
+                "$lookup": {
+                    "from": "responses_deletion_requests",
+                    "localField": "form_id",
+                    "foreignField": "form_id",
+                    "as": "responses_deletion_requests",
+                }
+            },
+            {"$set": {"deletion_requests": {"$size": "$responses_deletion_requests"}}},
         ]
         aggregation_pipeline.extend(create_filter_pipeline(sort=sort))
         form_versions_query = FormVersionsDocument.find(
