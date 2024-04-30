@@ -43,7 +43,7 @@ CMD ["./entrypoint.sh"]
 
 # You only need to copy next.config.js if you are NOT using the default configuration
 # COPY --from=builder /app/next.config.js ./
-COPY --from=prod    /app/node_modules ./node_modules
-COPY --from=builder  /app/moveTarget/   ./
-COPY --from=builder  /app/.next ./.next
+COPY --from=prod --chown=node:node    /app/node_modules ./node_modules
+COPY --from=builder --chown=node:node /app/moveTarget/   ./
+COPY --from=builder --chown=node:node /app/.next ./.next
 VOLUME /home/node/.next/cache
