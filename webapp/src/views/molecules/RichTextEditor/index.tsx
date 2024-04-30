@@ -10,6 +10,7 @@ import { FontSize } from '@app/utils/richTextEditorExtenstion/fontSize';
 import { getHtmlFromJson } from '@app/utils/richTextEditorExtenstion/getHtmlFromJson';
 import { ArrowDown } from '@app/views/atoms/Icons/ArrowDown';
 import RequiredIcon from '@app/views/atoms/Icons/Required';
+import { useEffect, useState } from 'react';
 
 export function getPlaceholderValueForTitle(fieldType: FieldTypes) {
     switch (fieldType) {
@@ -79,6 +80,11 @@ export function RichTextEditor({ field, onUpdate, autofocus = false, isRequired 
                 }}
                 onUpdate={({ editor }) => {
                     onUpdate(editor);
+                    console.log(editor.getHTML(), editor?.isActive('bold'));
+                    // editor?.isActive('bold') && editor?.chain().focus().setBold().run();
+                    if (editor.getText() === '') {
+                        editor?.chain().focus().setBold().run();
+                    }
                 }}
             >
                 {''}
@@ -103,7 +109,6 @@ const TiptapMenuBar = () => {
     const editorRef = useCurrentEditor();
     const FontSizes = [8, 10, 12, 14, 16, 18, 20, 24, 28, 32, 40, 48, 64];
     const editor = editorRef.editor;
-
     if (!editor) {
         return null;
     }
