@@ -143,8 +143,8 @@ const InsertFieldComponent = ({ formFields, activeSlideComponent }: { formFields
                         </label>
                     </div>
                 </div>
-                <ScrollArea className="h-full  overflow-y-auto  overflow-x-hidden p-6 md:h-[600px]">
-                    <div className="flex h-full w-full flex-wrap justify-start gap-[1px]">
+                <ScrollArea className="h-full  overflow-y-auto  overflow-x-hidden p-6 pb-0 md:h-[600px]">
+                    <div className="flex h-full w-full flex-wrap justify-center gap-[1px] md:justify-start">
                         {Array.isArray(formFieldsList) &&
                             formFieldsList.length &&
                             formFieldsList.map(
