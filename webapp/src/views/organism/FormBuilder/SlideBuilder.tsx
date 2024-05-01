@@ -21,7 +21,7 @@ import { FieldType } from '@app/store/form-builder/types';
 
 const SlideBuilder = ({ slide, isScaledDown = false, disabled = false }: { slide: StandardFormFieldDto; isScaledDown?: boolean; disabled?: boolean }) => {
     const slideFields = slide?.properties?.fields;
-    const { updateTitle, moveFieldInASlide, deleteField } = useFormFieldsAtom();
+    const { moveFieldInASlide, deleteField } = useFormFieldsAtom();
     const { setActiveFieldComponent, activeFieldComponent } = useActiveFieldComponent();
     const { theme } = useFormState();
 
