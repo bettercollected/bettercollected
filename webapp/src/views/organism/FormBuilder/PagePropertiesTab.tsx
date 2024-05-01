@@ -4,7 +4,7 @@ import useGetPageAttributes from '@app/lib/hooks/useGetPageAttributes';
 import { FormSlideLayout } from '@app/models/enums/form';
 import { Switch } from '@app/shadcn/components/ui/switch';
 import { cn } from '@app/shadcn/util/lib';
-import { useActiveSlideComponent, useActiveThankYouPageComponent } from '@app/store/jotai/activeBuilderComponent';
+import { useActiveFieldComponent, useActiveSlideComponent, useActiveThankYouPageComponent } from '@app/store/jotai/activeBuilderComponent';
 import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
 import { useFormState } from '@app/store/jotai/form';
 import { extractTextfromJSON } from '@app/utils/richTextEditorExtenstion/getHtmlFromJson';
@@ -20,6 +20,7 @@ import SlideLayoutRightImage from '../../atoms/Icons/SlideLayoutRightImage';
 export default function PagePropertiesTab({}: {}) {
     const { formFields, activeSlide, updateSlideLayout, updateSlideImage } = useFormFieldsAtom();
     const { activeSlideComponent } = useActiveSlideComponent();
+    const { setActiveFieldComponent } = useActiveFieldComponent();
     const { activeThankYouPageComponent } = useActiveThankYouPageComponent();
     const { formState, setWelcomePageButtonText, setThankYouPageDescription, setThankYouPageButtonText, setThankYouPageButtonLink, updateThankYouPageLayout, updateWelcomePageLayout, setFormDescription } = useFormState();
 
@@ -196,16 +197,18 @@ export default function PagePropertiesTab({}: {}) {
                                     <div key={field.id} className="text-black-700 flex items-center justify-between gap-2 text-xs">
                                         <div
                                             className="cursor-pointer truncate text-xs "
-                                            // onClick={() => {
-                                            //     setActiveFieldComponent({
-                                            //         id: field.id,
-                                            //         index: field.index
-                                            //     });
-
-                                            //     const fieldDiv =
-                                            //         document.getElementById(field.id);
-                                            //     );
-                                            // }}
+                                            onClick={() => {
+                                                setActiveFieldComponent({
+                                                    id: field.id,
+                                                    index: field.index
+                                                });
+                                                const fieldElement = document.getElementById(`scroll-field-${field.id}`);
+                                                fieldElement?.scrollIntoView({
+                                                    behavior: 'smooth',
+                                                    block: 'end',
+                                                    inline: 'center'
+                                                });
+                                            }}
                                         >
                                             {extractTextfromJSON(field)}
                                         </div>
