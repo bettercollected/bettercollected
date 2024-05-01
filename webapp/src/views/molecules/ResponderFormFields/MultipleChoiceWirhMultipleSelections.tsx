@@ -55,10 +55,7 @@ export default function MultipleChoiceWithMultipleSelection({ field, slideIndex 
                 })}
                 {field?.properties?.allowOtherChoice && (
                     <FieldInput
-                        $slide={currentSlide}
                         type="text"
-                        $formTheme={theme}
-                        textColor={currentSlide.properties?.theme?.secondary || theme?.secondary || 'text-black-500'}
                         value={otherOption}
                         placeholder={`Other Choice`}
                         onChange={(e: any) => {

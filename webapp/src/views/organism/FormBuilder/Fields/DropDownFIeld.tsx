@@ -1,5 +1,5 @@
+import FieldInputWrapper from '@Components/HOCs/FieldInputWrapper';
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
-import { FieldInput } from '@app/shadcn/components/ui/input';
 import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
 import { useFormState } from '@app/store/jotai/form';
 import { ArrowDown } from '@app/views/atoms/Icons/ArrowDown';
@@ -44,7 +44,7 @@ const DropDownField = ({ field, slide, disabled }: { field: StandardFormFieldDto
                 {field &&
                     field.properties?.choices?.map((choice, index) => {
                         return (
-                            <FieldInput
+                            <FieldInputWrapper
                                 onKeyDown={(e) => {
                                     if (e.key === 'Backspace') {
                                         setBackspaceCount(backspaceCount + 1);
@@ -55,14 +55,10 @@ const DropDownField = ({ field, slide, disabled }: { field: StandardFormFieldDto
                                     }
                                 }}
                                 onFocus={() => setBackspaceCount(0)}
-                                $slide={slide}
-                                type="text"
-                                $formTheme={theme}
-                                textColor={slide.properties?.theme?.secondary || theme?.secondary || 'text-black-500'}
                                 value={choice.value}
                                 key={index}
                                 placeholder={`Item ${index + 1}`}
-                                onChange={(e: any) => updateChoiceFieldValue(field.index, slide.index, choice.id, e.target.value)}
+                                onChange={(value: any) => updateChoiceFieldValue(field.index, slide.index, choice.id, value)}
                                 className={`flex justify-between rounded-xl border p-2 px-4 text-base`}
                             />
                         );
