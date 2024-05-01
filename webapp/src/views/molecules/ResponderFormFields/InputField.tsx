@@ -8,30 +8,31 @@ import { useAppSelector } from '@app/store/hooks';
 import { selectForm } from '@app/store/forms/slice';
 import { useResponderState } from '@app/store/jotai/responderFormState';
 import { scrollToDivById } from '@app/utils/scrollUtils';
+import FieldInputWrapper from '@Components/HOCs/FieldInputWrapper';
 
 export default function InputField({ field }: { field: StandardFormFieldDto }) {
     const { formResponse, addFieldTextAnswer, addFieldEmailAnswer, addFieldNumberAnswer, addFieldURLAnswer, removeAnswer } = useFormResponse();
 
     const form: StandardFormDto = useAppSelector(selectForm);
     const { currentSlide } = useResponderState();
-    const handleChange = (e: any) => {
-        if (!e.target.value) {
+    const handleChange = (value: any) => {
+        if (!value) {
             removeAnswer(field.id);
             return;
         }
         switch (field.type) {
             case FieldTypes.LINK:
-                addFieldURLAnswer(field.id, e.target.value);
+                addFieldURLAnswer(field.id, value);
                 break;
             case FieldTypes.NUMBER:
-                addFieldNumberAnswer(field.id, e.target.value);
+                addFieldNumberAnswer(field.id, value);
                 break;
             case FieldTypes.EMAIL:
-                addFieldEmailAnswer(field.id, e.target.value);
+                addFieldEmailAnswer(field.id, value);
                 break;
             case FieldTypes.SHORT_TEXT:
             case FieldTypes.LONG_TEXT:
-                addFieldTextAnswer(field.id, e.target.value);
+                addFieldTextAnswer(field.id, value);
                 break;
             default:
                 break;
@@ -64,14 +65,13 @@ export default function InputField({ field }: { field: StandardFormFieldDto }) {
                     if (form?.fields?.[currentSlide]?.properties?.fields?.length !== field.index + 1) scrollToDivById(form?.fields?.[currentSlide]?.properties?.fields?.[field.index + 1]?.id);
                 }}
             >
-                <FieldInput
+                <FieldInputWrapper
                     id={`input-field-${field.id}`}
                     type={TextFields.includes(field.type ?? FieldTypes.SHORT_TEXT) ? 'text' : field.type}
                     placeholder={field?.properties?.placeholder || getPlaceholderValueForField(field.type)}
-                    className=""
                     multiple={field.type === FieldTypes.LONG_TEXT}
                     value={getFieldValue()}
-                    onChange={(e: any) => handleChange(e)}
+                    onChange={(value: any) => handleChange(value)}
                 />
             </form>
         </QuestionWrapper>
