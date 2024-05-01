@@ -89,12 +89,7 @@ const SlideBuilder = ({ slide, isScaledDown = false, disabled = false }: { slide
                                                                 <div className={cn(field?.type !== FieldTypes.TEXT && 'mb-2 w-full')}>
                                                                     <div className="relative flex w-full items-center gap-2">
                                                                         {slide?.properties?.showQuestionNumbers && <span className="text-2xl">{index + 1}.</span>}
-                                                                        <RichTextEditor
-                                                                            field={field}
-                                                                            autofocus={field?.type !== FieldType.MATRIX && activeFieldComponent?.id === field.id}
-                                                                            onUpdate={(editor: Editor) => updateTitle(field.index, slide.index, editor.getJSON())}
-                                                                            isRequired={field?.validations?.required}
-                                                                        />
+                                                                        <RichTextEditor field={field} slide={slide} autofocus={field?.type !== FieldType.MATRIX && activeFieldComponent?.id === field.id} isRequired={field?.validations?.required} />
                                                                     </div>
                                                                     <FieldDescription field={field} disabled={disabled} />
                                                                 </div>

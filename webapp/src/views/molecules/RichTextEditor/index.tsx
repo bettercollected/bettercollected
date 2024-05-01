@@ -1,7 +1,7 @@
 import Color from '@tiptap/extension-color';
 import TextStyle from '@tiptap/extension-text-style';
 import Underline from '@tiptap/extension-underline';
-import { Editor, EditorProvider, useCurrentEditor } from '@tiptap/react';
+import { Editor, EditorProvider, JSONContent, useCurrentEditor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
@@ -11,6 +11,8 @@ import { getHtmlFromJson } from '@app/utils/richTextEditorExtenstion/getHtmlFrom
 import { ArrowDown } from '@app/views/atoms/Icons/ArrowDown';
 import RequiredIcon from '@app/views/atoms/Icons/Required';
 import { useEffect, useState } from 'react';
+import { useDebounceValue } from 'usehooks-ts';
+import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
 
 export function getPlaceholderValueForTitle(fieldType: FieldTypes) {
     switch (fieldType) {
@@ -49,7 +51,9 @@ export function getPlaceholderValueForTitle(fieldType: FieldTypes) {
 
 export const Extenstions = [StarterKit, TextStyle, FontSize, Underline, Color];
 
-export function RichTextEditor({ field, onUpdate, autofocus = false, isRequired = false }: { field: StandardFormFieldDto; onUpdate: (editor: any) => void; autofocus?: boolean; isRequired?: boolean }) {
+export function RichTextEditor({ field, slide, autofocus = false, isRequired = false }: { field: StandardFormFieldDto; slide: StandardFormFieldDto; autofocus?: boolean; isRequired?: boolean }) {
+    const { updateTitle } = useFormFieldsAtom();
+
     const getContentForEditor = () => {
         return field.title
             ? getHtmlFromJson(field.title ?? '')
@@ -57,6 +61,15 @@ export function RichTextEditor({ field, onUpdate, autofocus = false, isRequired 
         <p><strong>${getPlaceholderValueForTitle(field.type || FieldTypes.SHORT_TEXT)}</strong></p>
       `;
     };
+
+    const [jsonVal, setJSONVal] = useState<JSONContent | null>(null);
+
+    const [debouncedInputValue] = useDebounceValue(jsonVal, 300);
+    useEffect(() => {
+        if (debouncedInputValue) {
+            updateTitle(field.index, slide.index, debouncedInputValue);
+        }
+    }, [debouncedInputValue]);
 
     return (
         <div className="tiptap group relative flex w-full justify-between">
@@ -72,16 +85,10 @@ export function RichTextEditor({ field, onUpdate, autofocus = false, isRequired 
                     }
                 }}
                 onFocus={({ editor }) => {
-                    // if (
-                    //     editor.getHTML() ===
-                    //     `<p><strong>${getPlaceholderValueForTitle(field.type || FieldTypes.SHORT_TEXT)}</strong></p>`
-                    // )
                     editor.commands.focus('all');
                 }}
                 onUpdate={({ editor }) => {
-                    onUpdate(editor);
-                    console.log(editor.getHTML(), editor?.isActive('bold'));
-                    // editor?.isActive('bold') && editor?.chain().focus().setBold().run();
+                    setJSONVal(editor.getJSON());
                     if (editor.getText() === '') {
                         editor?.chain().focus().setBold().run();
                     }
