@@ -167,7 +167,13 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false 
                 )}
                 <div className={cn('flex h-full flex-1 flex-col justify-center overflow-hidden ', formSlide?.properties?.layout === FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND_LEFT_ALIGN ? 'items-start ' : 'items-center')}>
                     <AnimatePresence mode="wait">
-                        <div className={cn('grid h-full w-full max-w-[800px] grid-cols-1 content-center items-center justify-center gap-20 overflow-hidden px-4 py-[60%]', isPreviewMode ? '' : 'lg:px-10')}>
+                        <div
+                            className={cn(
+                                'grid h-full w-full max-w-[800px] grid-cols-1 content-center items-center justify-center gap-20 overflow-hidden px-4 py-[10vh]',
+                                // formSlide?.properties?.layout?.includes('SINGLE_COLUMN') ? 'py-[20%] ' : 'items-center',
+                                isPreviewMode ? '' : 'lg:px-10'
+                            )}
+                        >
                             {formSlide?.properties?.fields?.map((field: StandardFormFieldDto, index: number) => (
                                 <FormFieldComponent key={field.id} field={formSlide!.properties!.fields![index]} slideIndex={formSlide!.index} />
                             ))}
