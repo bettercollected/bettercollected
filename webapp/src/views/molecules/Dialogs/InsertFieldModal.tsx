@@ -12,6 +12,15 @@ import { useActiveFieldComponent, useActiveSlideComponent } from '@app/store/jot
 import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
 import { useNavbarState } from '@app/store/jotai/navbar';
 import { useDialogModal } from '@app/lib/hooks/useDialogModal';
+import styled from 'styled-components';
+
+const StyledDiv = styled.div<{ $hoverColor: string }>(({ $hoverColor }) => {
+    return {
+        '&:hover': {
+            background: $hoverColor + '!important'
+        }
+    };
+});
 
 const InsertFieldComponent = ({ formFields, activeSlideComponent }: { formFields: any; activeSlideComponent: any }) => {
     const { setActiveSlideComponent } = useActiveSlideComponent();
@@ -134,8 +143,8 @@ const InsertFieldComponent = ({ formFields, activeSlideComponent }: { formFields
                         </label>
                     </div>
                 </div>
-                <ScrollArea className="h-full  overflow-y-auto  overflow-x-hidden p-6 md:h-[600px]">
-                    <div className="flex h-full w-full flex-wrap justify-start gap-[1px]">
+                <ScrollArea className="h-full  overflow-y-auto  overflow-x-hidden p-6 pb-0 md:h-[600px]">
+                    <div className="flex h-full w-full flex-wrap justify-center gap-[1px] md:justify-start">
                         {Array.isArray(formFieldsList) &&
                             formFieldsList.length &&
                             formFieldsList.map(
@@ -145,19 +154,21 @@ const InsertFieldComponent = ({ formFields, activeSlideComponent }: { formFields
                                         type: FieldTypes;
                                         icon: ReactNode;
                                         background: string;
+                                        hoverBackgroundColor: string;
                                     },
                                     index: number
                                 ) => {
                                     return (
-                                        <div
+                                        <StyledDiv
+                                            $hoverColor={field.hoverBackgroundColor}
                                             onClick={() => handleAddField(field)}
                                             key={index}
                                             style={{ background: field.background }}
-                                            className="text-black-600 hover:text-black-900 flex h-[100px] w-[100px] cursor-grab flex-col items-center justify-center gap-2 hover:saturate-200 md:h-[120px] md:w-[120px] "
+                                            className="text-black-600 hover:text-black-900 flex h-[100px] w-[100px] cursor-grab flex-col items-center justify-center gap-2 md:h-[120px] md:w-[120px] "
                                         >
                                             {field.icon}
                                             <span className="text-xs"> {field.name}</span>
-                                        </div>
+                                        </StyledDiv>
                                     );
                                 }
                             )}
