@@ -88,6 +88,7 @@ const LayoutWrapper = ({ layout, theme, imageUrl, updatePageImage, updatePageLay
                 )}
             >
                 <ScrollArea
+                    thumbBg={theme?.tertiary}
                     id={scrollDivId}
                     asChild
                     style={{
