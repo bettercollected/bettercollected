@@ -41,10 +41,7 @@ const MultipleChoiceField = ({ field, slideIndex }: { field: StandardFormFieldDt
                 })}
                 {field?.properties?.allowOtherChoice && (
                     <FieldInput
-                        $slide={currentSlide}
                         type="text"
-                        $formTheme={theme}
-                        textColor={currentSlide.properties?.theme?.secondary || theme?.secondary || 'text-black-500'}
                         value={otherOption}
                         placeholder={`Other`}
                         onChange={(e: any) => {

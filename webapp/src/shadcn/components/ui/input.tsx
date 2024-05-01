@@ -10,7 +10,7 @@ export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> 
     textColor?: string;
 }
 
-const ShadCNInput = React.forwardRef<HTMLInputElement, InputProps>(({ className, type, textColor, ...props }, ref) => {
+const ShadCNInput = React.forwardRef<HTMLInputElement, InputProps>(({ className, type, ...props }, ref) => {
     const { theme } = useFormState();
 
     return (
@@ -30,7 +30,7 @@ ShadCNInput.displayName = 'ShadCNInput';
 const FieldInput = styled(ShadCNInput)<{
     $slide?: StandardFormFieldDto;
     $formTheme?: IThemeState;
-}>(({ $slide, $formTheme }) => {
+}>(({}) => {
     const { theme } = useFormState();
     const themeColor = theme?.tertiary;
     const secondaryColor = theme?.secondary;

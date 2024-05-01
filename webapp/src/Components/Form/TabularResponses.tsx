@@ -194,7 +194,6 @@ export default function TabularResponses({ form }: TabularResponsesProps) {
                 paddingRight: '8px',
                 textOverFlow: 'ellipsis'
             },
-            // width: 'fit-content',
             ignoreRowClick: true
         }
     ];

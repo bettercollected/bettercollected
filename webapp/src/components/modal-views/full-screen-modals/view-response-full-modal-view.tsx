@@ -24,7 +24,12 @@ const ViewResponseFullModalView = ({ response, formFields, formId, workspaceId }
     const { closeModal } = useFullScreenModal();
 
     return (
-        <motion.div initial={{ x: '100%', opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ ease: 'easeInOut', duration: 0.5 }} className="h-response-view absolute bottom-0 right-0 flex w-[420px] flex-col overflow-hidden rounded-tl-xl !bg-white">
+        <motion.div
+            initial={{ x: '100%', opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            transition={{ ease: 'easeInOut', duration: 0.5 }}
+            className="h-response-view absolute bottom-0 right-0 flex w-full flex-col overflow-hidden rounded-tl-xl !bg-white md:w-[420px]"
+        >
             <div className="flex flex-row justify-between p-4">
                 <div className="flex flex-col">
                     <span className="p3-new text-black-800">Response</span>
@@ -72,7 +77,9 @@ const EllipsisSection = ({ formId, workspaceId, responseId }: { formId: string; 
     return (
         <Popover>
             <PopoverTrigger>
-                <EllipsisOption className={cn(' hidden cursor-pointer')} width={16} height={16} />
+                <div className="hover:bg-black-200 flex h-fit w-fit items-center justify-center rounded-md p-2">
+                    <EllipsisOption className={cn('hidden cursor-pointer')} width={16} height={16} />
+                </div>
             </PopoverTrigger>
             <PopoverContent side="left" align="start" className=" !z-[10000]  w-[150px] bg-white p-0 shadow-lg">
                 <div className=" p2 !my-2  flex cursor-pointer items-center gap-2 px-4 py-2 !text-red-500 hover:bg-red-50" onClick={handleDelete}>
