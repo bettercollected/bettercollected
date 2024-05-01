@@ -41,7 +41,6 @@ export default function UnsplashImagePicker({ initialPhotoSearchQuery = '', onPh
 
     React.useEffect(() => {
         if (initialPhotoSearchQuery !== '') {
-            // setQuery(initialPhotoSearchQuery);
             setInitialLoading(true);
             fetchPhotos(1, initialPhotoSearchQuery);
         }
@@ -85,7 +84,7 @@ export default function UnsplashImagePicker({ initialPhotoSearchQuery = '', onPh
         <div className="ImagePicker items-center  rounded bg-white">
             {initialLoading ? (
                 <div className="flex h-full w-full justify-center">
-                    <CircularProgressBar />
+                    <CircularProgressBar className="h-10 w-10" />
                 </div>
             ) : (
                 <div className="bg-white ">
@@ -110,7 +109,7 @@ export default function UnsplashImagePicker({ initialPhotoSearchQuery = '', onPh
                             isLoading={isLoading}
                             isLoadingMore={isLoadingMore}
                             loadMore={() => {
-                                fetchPhotos(page + 1, query);
+                                query ? fetchPhotos(page + 1, query) : fetchPhotos(page + 1, 'forms');
                             }}
                             onPhotoSelect={async (photo: any) => {
                                 try {
