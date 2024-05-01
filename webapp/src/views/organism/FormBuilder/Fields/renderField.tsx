@@ -17,7 +17,7 @@ import MatrixFieldBuilderWrapper from './MatrixFieldBuilderWrapper';
 import VideoField from './VideoField';
 import YesNoField from './YesNoField';
 
-export const RenderImage = (field: StandardFormFieldDto, isBuilder: boolean = false) => {
+export const RenderImage = ({ field, isBuilder = false }: { field: StandardFormFieldDto; isBuilder?: boolean }) => {
     const { updateFieldImage } = useFormFieldsAtom();
     const { openDialogModal } = useDialogModal();
     const handleRemoveImage = () => {
@@ -28,7 +28,7 @@ export const RenderImage = (field: StandardFormFieldDto, isBuilder: boolean = fa
             updatePageImage: updateFieldImage
         });
     };
-    return field.imageUrl ? (
+    return field?.imageUrl ? (
         <div className={`relative my-4 max-h-[168px] w-full ${isBuilder ? 'group' : ''}`}>
             <div className={cn('absolute hidden h-full w-full items-start justify-start gap-4 p-2 group-hover:flex')}>
                 <div className="shadow-bubble cursor-pointer rounded-md bg-white p-2" onClick={handleRemoveImage}>
@@ -48,7 +48,7 @@ export const RenderImage = (field: StandardFormFieldDto, isBuilder: boolean = fa
 function renderFieldWrapper(field: StandardFormFieldDto, slide: StandardFormFieldDto, disabled: boolean) {
     return (
         <div className="relative h-full w-full space-y-2">
-            {RenderImage(field, true)}
+            <RenderImage field={field} isBuilder />
             {renderField(field, slide, disabled)}
         </div>
     );

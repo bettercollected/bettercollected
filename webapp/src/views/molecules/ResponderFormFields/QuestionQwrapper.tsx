@@ -24,7 +24,7 @@ export default function QuestionWrapper({ field, children }: { field: StandardFo
                 <div className="font-semibold">{parse(getHtmlFromJson(field?.title) ?? getPlaceholderValueForTitle(field?.type || FieldTypes.TEXT))}</div>
                 {field?.description && <div className="text-black-700 mt-1">{field?.description}</div>}
             </div>
-            {RenderImage(field)}
+            <RenderImage field={field} />
             {children}
             {invalidFields && invalidFields[field.id] && invalidFields[field.id].length && <div className="mt-2 text-red-500">*Field Required</div>}
         </div>

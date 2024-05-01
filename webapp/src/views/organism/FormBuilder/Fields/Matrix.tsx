@@ -1,11 +1,9 @@
 import { FormTheme } from '@app/constants/theme';
 import { StandardFormFieldDto } from '@app/models/dtos/form';
-import { Input } from '@app/shadcn/components/ui/input';
 import { cn } from '@app/shadcn/util/lib';
 import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
 import { useFormState } from '@app/store/jotai/form';
 import { useFormResponse } from '@app/store/jotai/responderFormResponse';
-import { useResponderState } from '@app/store/jotai/responderFormState';
 import { Close } from '@app/views/atoms/Icons/Close';
 import { TextareaAutosize } from '@mui/material';
 import * as CheckboxPrimitive from '@radix-ui/react-checkbox';
