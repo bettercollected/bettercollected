@@ -33,8 +33,7 @@ const PreviewWrapper = ({ children, handleResetResponderState }: { children: Rea
                         Mobile
                     </div>
                 </div>
-                <div className="flex gap-1">
-                    <PublishButton />
+                <div className="flex gap-2">
                     <Button
                         variant={'v2Button'}
                         onClick={() => {
@@ -44,6 +43,7 @@ const PreviewWrapper = ({ children, handleResetResponderState }: { children: Rea
                     >
                         Restart
                     </Button>
+                    <PublishButton />
                 </div>
             </nav>
             <Separator />
