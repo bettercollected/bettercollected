@@ -34,7 +34,7 @@ export const FieldInputWrapper = ({ id, slide, value, onChange, disabled, classN
                 type={type}
                 value={inputVal}
                 style={{
-                    color: slide?.properties?.theme?.tertiary || theme?.tertiary
+                    color: slide?.properties?.theme?.secondary || theme?.secondary
                 }}
                 onChange={(e: any) => setInputVal(e.target.value)}
                 className={className}

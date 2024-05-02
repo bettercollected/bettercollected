@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import environments from '@app/configs/environments';
 import { Button } from '@app/shadcn/components/ui/button';
@@ -10,13 +10,21 @@ import { selectWorkspace } from '@app/store/workspaces/slice';
 import { DesktopIcon } from '@app/views/atoms/Icons/DesktopIcon';
 import { MobileIcon } from '@app/views/atoms/Icons/MobileIcon';
 import PublishButton from './PublishButton';
+import { Skeleton } from '@app/shadcn/components/ui/skeleton';
 
 const PreviewWrapper = ({ children, handleResetResponderState }: { children: React.ReactNode; handleResetResponderState: () => void }) => {
     const [key, setKey] = useState(1);
     const [isDesktopView, setIsDesktopView] = useState(true);
+    const [isIframeLoaded, setIFrameLoaded] = useState(false);
 
     const standardForm = useAppSelector(selectForm);
     const workspace = useAppSelector(selectWorkspace);
+
+    useEffect(() => {
+        setIFrameLoaded(false);
+    }, [isDesktopView]);
+
+    console.log(isDesktopView, isIframeLoaded);
 
     const mobileViewPreviewUrl = `${environments.HTTP_SCHEME}${environments.FORM_DOMAIN}/${workspace.workspaceName}/forms/${standardForm.formId}?isPreview=true`;
     return (
@@ -39,6 +47,7 @@ const PreviewWrapper = ({ children, handleResetResponderState }: { children: Rea
                         onClick={() => {
                             setKey(key + 1);
                             handleResetResponderState();
+                            setIFrameLoaded(false);
                         }}
                     >
                         Restart
@@ -51,8 +60,17 @@ const PreviewWrapper = ({ children, handleResetResponderState }: { children: Rea
                 {isDesktopView ? (
                     <div className="mx-auto aspect-video !max-h-full !max-w-full">{children}</div>
                 ) : (
-                    <iframe key={key.toString()} title="responder-mobile-view" className="mx-auto aspect-[9/20] h-full rounded-lg drop-shadow-xl" src={mobileViewPreviewUrl} />
+                    <iframe
+                        onLoad={() => {
+                            setIFrameLoaded(true);
+                        }}
+                        key={key.toString()}
+                        title="responder-mobile-view"
+                        className="mx-auto aspect-[9/16] h-full rounded-lg drop-shadow-xl"
+                        src={mobileViewPreviewUrl}
+                    />
                 )}
+                {!isDesktopView && !isIframeLoaded && <Skeleton className="mx-auto aspect-[9/16] h-full rounded-lg drop-shadow-xl" />}
             </div>
         </div>
     );
