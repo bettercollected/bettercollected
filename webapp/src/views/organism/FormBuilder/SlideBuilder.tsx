@@ -49,7 +49,7 @@ const SlideBuilder = ({ slide, isScaledDown = false, disabled = false }: { slide
                                                         key={index}
                                                         tabIndex={0}
                                                         ref={provided.innerRef}
-                                                        className={cn(activeFieldComponent?.id === field.id && 'ring-1 ring-blue-500', 'w-full max-w-[800px] cursor-pointer p-1')}
+                                                        className={cn(activeFieldComponent?.id === field.id && 'ring-1 ring-blue-500', 'w-full max-w-[800px] cursor-pointer p-1 outline-none')}
                                                         onFocus={(event) => {
                                                             event.preventDefault();
                                                             event.stopPropagation();
