@@ -203,7 +203,8 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false 
                                 )}
                                 <Button
                                     style={{
-                                        background: standardForm.theme?.secondary
+                                        background: standardForm.theme?.secondary,
+                                        color: 'white'
                                     }}
                                     isLoading={isLoading}
                                     className="mt-4 rounded px-8 py-3"
