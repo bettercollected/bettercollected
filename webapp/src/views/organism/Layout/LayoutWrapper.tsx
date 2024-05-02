@@ -61,11 +61,11 @@ const LayoutWrapper = ({ layout, theme, imageUrl, updatePageImage, updatePageLay
                 />
 
                 {(showControls || layout === FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND) && !disabled && (
-                    <div className={cn('absolute flex h-full w-full items-start justify-end gap-4 p-2', layout === FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND ? '-top-[50px]' : '')}>
-                        <div className="shadow-bubble cursor-pointer rounded-md bg-white p-2" onClick={handleRemoveImage}>
+                    <div className={cn('absolute flex h-full w-full items-start justify-end gap-4 p-2', layout === FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND ? '' : '')}>
+                        <div className="shadow-bubble z-10 cursor-pointer rounded-md bg-white p-2" onClick={handleRemoveImage}>
                             <DeleteIcon width={24} height={24} />
                         </div>
-                        <div className=" shadow-bubble cursor-pointer rounded-md bg-white p-2" onClick={handleChangeImage}>
+                        <div className=" shadow-bubble z-10 cursor-pointer rounded-md bg-white p-2" onClick={handleChangeImage}>
                             <SwitchIcon />
                         </div>
                     </div>
@@ -137,7 +137,7 @@ const LayoutWrapper = ({ layout, theme, imageUrl, updatePageImage, updatePageLay
             {layout && layout === FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND && (
                 <div
                     className={cn(
-                        'relative z-0',
+                        'relative',
                         imageUrl && !disabled ? 'hover:cursor-pointer hover:!bg-black/30' : 'bg-neutral-100 hover:cursor-default',
                         layout === FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND ? 'absolute inset-0' : '',
                         disabled ? 'h-full' : ''

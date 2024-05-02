@@ -142,13 +142,9 @@ b {
 
 /* width */
 div::-webkit-scrollbar {
-    width: 0px;
-    height: 0px;
-}
-
-div:hover::-webkit-scrollbar {
     width: 8px;
     height: 8px;
+    margin-bottom: 20px;
 }
 
 /* Track */
@@ -158,8 +154,12 @@ div::-webkit-scrollbar-track {
 
 /* Handle */
 div::-webkit-scrollbar-thumb {
-    background: #aaaaaa;
+    background: 'transparent';
     border-radius: 5px;
+}
+
+div:hover::-webkit-scrollbar-thumb {
+    background: #bababa;
 }
 
 /* Handle on hover */
