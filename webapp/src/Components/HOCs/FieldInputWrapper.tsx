@@ -11,7 +11,7 @@ interface IFieldInputWrapper extends React.InputHTMLAttributes<HTMLInputElement>
     disabled?: boolean;
 }
 
-export const FieldInputWrapper = ({ id, slide, value, onChange, disabled, className, type = 'text', multiple, placeholder }: IFieldInputWrapper) => {
+export const FieldInputWrapper = ({ id, slide, value, onChange, type = 'text', ...props }: IFieldInputWrapper) => {
     const { theme } = useFormState();
     const [inputVal, setInputVal] = useState(value);
     const [debouncedInputValue] = useDebounceValue(inputVal, 300);
@@ -30,16 +30,13 @@ export const FieldInputWrapper = ({ id, slide, value, onChange, disabled, classN
         <>
             <FieldInput
                 id={id}
-                disabled={disabled}
                 type={type}
                 value={inputVal}
                 style={{
                     color: slide?.properties?.theme?.secondary || theme?.secondary
                 }}
                 onChange={(e: any) => setInputVal(e.target.value)}
-                className={className}
-                multiple={multiple}
-                placeholder={placeholder}
+                {...props}
             />
         </>
     );

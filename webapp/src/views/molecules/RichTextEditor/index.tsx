@@ -10,7 +10,7 @@ import { FontSize } from '@app/utils/richTextEditorExtenstion/fontSize';
 import { getHtmlFromJson } from '@app/utils/richTextEditorExtenstion/getHtmlFromJson';
 import { ArrowDown } from '@app/views/atoms/Icons/ArrowDown';
 import RequiredIcon from '@app/views/atoms/Icons/Required';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useDebounceValue } from 'usehooks-ts';
 import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
 
@@ -51,6 +51,15 @@ export function getPlaceholderValueForTitle(fieldType: FieldTypes) {
 
 export const Extenstions = [StarterKit, TextStyle, FontSize, Underline, Color];
 
+function usePreviousState(value: any) {
+    const ref = useRef(value);
+    useEffect(() => {
+        ref.current = value;
+    }, [value]);
+
+    return ref.current;
+}
+
 export function RichTextEditor({ field, slide, autofocus = false, isRequired = false }: { field: StandardFormFieldDto; slide: StandardFormFieldDto; autofocus?: boolean; isRequired?: boolean }) {
     const { updateTitle } = useFormFieldsAtom();
 
@@ -63,6 +72,9 @@ export function RichTextEditor({ field, slide, autofocus = false, isRequired = f
     };
 
     const [jsonVal, setJSONVal] = useState<JSONContent | null>(null);
+
+    const [isBold, setIsBold] = useState(false);
+    const previousState = usePreviousState(isBold);
 
     const [debouncedInputValue] = useDebounceValue(jsonVal, 300);
     useEffect(() => {
@@ -89,8 +101,9 @@ export function RichTextEditor({ field, slide, autofocus = false, isRequired = f
                 }}
                 onUpdate={({ editor }) => {
                     setJSONVal(editor.getJSON());
+                    setIsBold(editor?.isActive('bold'));
                     if (editor.getText() === '') {
-                        editor?.chain().focus().setBold().run();
+                        previousState ? editor?.chain().focus().setBold().run() : editor?.chain().focus().unsetBold().run();
                     }
                 }}
             >

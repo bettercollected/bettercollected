@@ -1,4 +1,5 @@
 import FieldInputWrapper from '@Components/HOCs/FieldInputWrapper';
+import { Close } from '@app/components/icons/close';
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
 import { useFormState } from '@app/store/jotai/form';
@@ -44,23 +45,26 @@ const DropDownField = ({ field, slide, disabled }: { field: StandardFormFieldDto
                 {field &&
                     field.properties?.choices?.map((choice, index) => {
                         return (
-                            <FieldInputWrapper
-                                onKeyDown={(e) => {
-                                    if (e.key === 'Backspace') {
-                                        setBackspaceCount(backspaceCount + 1);
-                                    }
-                                    if (e.key === 'Backspace' && backspaceCount == 1 && !choice.value) {
-                                        removeChoiceField(field.index, slide.index, choice.id);
-                                        setBackspaceCount(0);
-                                    }
-                                }}
-                                onFocus={() => setBackspaceCount(0)}
-                                value={choice.value}
-                                key={index}
-                                placeholder={`Item ${index + 1}`}
-                                onChange={(value: any) => updateChoiceFieldValue(field.index, slide.index, choice.id, value)}
-                                className={`flex justify-between rounded-xl border p-2 px-4 text-base`}
-                            />
+                            <div className="group relative">
+                                <FieldInputWrapper
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Backspace') {
+                                            setBackspaceCount(backspaceCount + 1);
+                                        }
+                                        if (e.key === 'Backspace' && backspaceCount == 1 && !choice.value) {
+                                            removeChoiceField(field.index, slide.index, choice.id);
+                                            setBackspaceCount(0);
+                                        }
+                                    }}
+                                    onFocus={() => setBackspaceCount(0)}
+                                    value={choice.value}
+                                    key={index}
+                                    placeholder={`Item ${index + 1}`}
+                                    onChange={(value: any) => updateChoiceFieldValue(field.index, slide.index, choice.id, value)}
+                                    className={`flex justify-between rounded-xl border p-2 px-4 text-base`}
+                                />
+                                <Close style={{ color: theme?.secondary }} onClick={() => removeChoiceField(field.index, slide.index, choice.id)} className="invisible absolute right-3 top-1/4 h-5 w-5 group-hover:visible" />
+                            </div>
                         );
                     })}
             </div>
