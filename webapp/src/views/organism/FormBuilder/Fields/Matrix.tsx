@@ -28,7 +28,7 @@ function MatrixFieldComponent({ field, disabled }: IMatrixFieldProps) {
     const { updateRowTitle, updateColumnTitle, activeField, deleteColumn, deleteRow } = useFormFieldsAtom();
 
     return (
-        <div className="flex flex-col overflow-x-auto">
+        <div className="flex flex-col overflow-x-auto pb-2">
             <div
                 className="grid "
                 style={{
