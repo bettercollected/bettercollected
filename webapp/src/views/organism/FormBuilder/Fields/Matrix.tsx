@@ -40,11 +40,11 @@ function MatrixFieldComponent({ field, disabled }: IMatrixFieldProps) {
                     field?.properties?.fields?.[0]?.properties?.choices?.map((choice, index) => {
                         return (
                             <div
-                                className={cn('w-ful relative flex flex-col items-center  border-[1px]  p-3', index === 0 && 'rounded-tl-lg', field?.properties?.fields?.[0]?.properties?.choices?.length === index + 1 && 'rounded-tr-lg')}
+                                className={cn('relative flex w-full flex-col items-center border-[1px]  bg-opacity-20  p-3', index === 0 && 'rounded-tl-lg', field?.properties?.fields?.[0]?.properties?.choices?.length === index + 1 && 'rounded-tr-lg')}
                                 key={choice?.id}
                                 style={{
                                     borderColor: borderColor,
-                                    background: bgColor,
+                                    background: bgColor + '55',
                                     color: borderColor
                                 }}
                             >
@@ -91,7 +91,7 @@ function MatrixFieldComponent({ field, disabled }: IMatrixFieldProps) {
                         <div
                             style={{
                                 borderColor: borderColor,
-                                background: bgColor,
+                                background: bgColor + '55',
                                 color: borderColor
                             }}
                             className={cn('relative flex w-full flex-col items-center border-[1px] p-2 px-4', index === 0 && 'rounded-tl-lg', field?.properties?.fields?.length === index + 1 && 'rounded-bl-lg')}
