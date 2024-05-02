@@ -2,7 +2,7 @@ import { FormTheme } from '@app/constants/theme';
 import { StandardFormFieldDto } from '@app/models/dtos/form';
 import { cn } from '@app/shadcn/util/lib';
 import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
-import { useFormState } from '@app/store/jotai/form';
+import { IThemeState, useFormState } from '@app/store/jotai/form';
 import { useFormResponse } from '@app/store/jotai/responderFormResponse';
 import { Close } from '@app/views/atoms/Icons/Close';
 import { TextareaAutosize } from '@mui/material';
@@ -10,6 +10,7 @@ import * as CheckboxPrimitive from '@radix-ui/react-checkbox';
 import * as RadioGroupPrimitive from '@radix-ui/react-radio-group';
 import { Check, Circle } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
+import styled from 'styled-components';
 import { useDebounceValue } from 'usehooks-ts';
 
 interface IMatrixFieldProps {
@@ -32,7 +33,7 @@ function MatrixFieldComponent({ field, disabled }: IMatrixFieldProps) {
             <div
                 className="grid "
                 style={{
-                    gridTemplateColumns: `repeat(${(field?.properties?.fields?.[0]?.properties?.choices?.length || 0) + 1} ,minmax(150px,1fr))`
+                    gridTemplateColumns: `repeat(${(field?.properties?.fields?.[0]?.properties?.choices?.length || 0) + 1} ,minmax(120px,1fr))`
                 }}
             >
                 <div></div>
@@ -41,9 +42,9 @@ function MatrixFieldComponent({ field, disabled }: IMatrixFieldProps) {
                         return (
                             <div
                                 className={cn(
-                                    'relative flex w-full flex-col items-center justify-center border-[1px]  bg-opacity-20  p-3',
-                                    index === 0 && 'rounded-tl-lg',
-                                    field?.properties?.fields?.[0]?.properties?.choices?.length === index + 1 && 'rounded-tr-lg'
+                                    'relative flex max-h-[150px] w-full flex-col items-center justify-center overflow-auto border-[1px] border-t-[2px]  bg-opacity-20  p-3',
+                                    index === 0 && 'rounded-tl-lg border-l-[2px]',
+                                    field?.properties?.fields?.[0]?.properties?.choices?.length === index + 1 && 'rounded-tr-lg border-r-[2px]'
                                 )}
                                 key={choice?.id}
                                 style={{
@@ -55,13 +56,14 @@ function MatrixFieldComponent({ field, disabled }: IMatrixFieldProps) {
                                 {disabled ? (
                                     <MatrixHeaderInput
                                         disabled={!disabled}
-                                        value={choice?.value ?? `Column ${index}`}
+                                        value={choice?.value ?? `Column ${index + 1}`}
+                                        placeholder={`Column ${index + 1}`}
                                         onChange={(value: string) => {
                                             if (field.id === activeField?.id) updateColumnTitle(index, value);
                                         }}
                                     />
                                 ) : (
-                                    <div className="py-2 text-center">{choice?.value ?? `Column ${index}`}</div>
+                                    <div className="py-2 text-center text-sm">{choice?.value || `Column ${index + 1}`}</div>
                                 )}
 
                                 {disabled && activeField?.id === field.id && (
@@ -79,12 +81,12 @@ function MatrixFieldComponent({ field, disabled }: IMatrixFieldProps) {
                     })}
             </div>
 
-            {field?.properties?.fields?.map((row: any, index) => {
+            {field?.properties?.fields?.map((row: StandardFormFieldDto, index) => {
                 return (
                     <RadioGroup
                         className="grid"
                         style={{
-                            gridTemplateColumns: `repeat(${(field?.properties?.fields?.[0]?.properties?.choices?.length || 0) + 1} ,minmax(150px,1fr))`
+                            gridTemplateColumns: `repeat(${(field?.properties?.fields?.[0]?.properties?.choices?.length || 0) + 1} ,minmax(120px,1fr))`
                         }}
                         onValueChange={(value) => {
                             addFieldChoiceAnswer(row.id, value);
@@ -98,18 +100,23 @@ function MatrixFieldComponent({ field, disabled }: IMatrixFieldProps) {
                                 background: bgColor + '55',
                                 color: borderColor
                             }}
-                            className={cn('relative flex w-full flex-col items-center justify-center border-[1px] p-2 px-4', index === 0 && 'rounded-tl-lg', field?.properties?.fields?.length === index + 1 && 'rounded-bl-lg')}
+                            className={cn(
+                                'relative flex max-h-[150px] w-full flex-col items-center justify-center overflow-clip border-[1px] border-l-[2px] p-2 px-4',
+                                index === 0 && 'rounded-tl-lg border-t-[2px]',
+                                field?.properties?.fields?.length === index + 1 && 'rounded-bl-lg border-b-[2px]'
+                            )}
                         >
                             {disabled ? (
                                 <MatrixHeaderInput
                                     disabled={!disabled}
-                                    value={row?.title?.toString() ?? `Row ${index}`}
+                                    value={row?.title?.toString() ?? `Row ${index + 1}`}
+                                    placeholder={`Row ${index + 1}`}
                                     onChange={(value: string) => {
                                         if (activeField?.id === field.id) updateRowTitle(index, value);
                                     }}
                                 />
                             ) : (
-                                <div className="py-2 text-center">{row?.title?.toString() ?? `Row ${index}`}</div>
+                                <div className="py-2 text-center text-sm">{row?.title?.toString() || `Row ${index + 1}`}</div>
                             )}
                             {disabled && activeField?.id === field.id && (field?.properties?.fields?.length || -1) > 1 && (
                                 <div
@@ -128,7 +135,11 @@ function MatrixFieldComponent({ field, disabled }: IMatrixFieldProps) {
                                     style={{
                                         borderColor: borderColor
                                     }}
-                                    className="flex h-full  flex-col items-center justify-center border-[1px] border-gray-200"
+                                    className={cn(
+                                        'flex h-full  flex-col items-center justify-center border-[1px] border-gray-200',
+                                        index + 1 === row?.properties?.choices?.length && 'border-r-[2px]',
+                                        row!.index + 1 === field?.properties?.fields?.length && 'border-b-[2px]'
+                                    )}
                                     key={index}
                                 >
                                     {field.properties?.allowMultipleSelection ? (
@@ -160,7 +171,7 @@ function MatrixFieldComponent({ field, disabled }: IMatrixFieldProps) {
     );
 }
 
-const MatrixHeaderInput = ({ value, onChange, disabled }: { value: string; onChange?: (value: string) => void; disabled?: boolean }) => {
+const MatrixHeaderInput = ({ value, onChange, disabled, placeholder }: { value: string; onChange?: (value: string) => void; disabled?: boolean; placeholder?: string }) => {
     const [inputVal, setInputVal] = useState(value);
 
     const [debouncedInputValue] = useDebounceValue(inputVal, 300);
@@ -173,10 +184,9 @@ const MatrixHeaderInput = ({ value, onChange, disabled }: { value: string; onCha
     }, [value]);
 
     return (
-        <TextareaAutosize
-            style={{ resize: 'none', width: 'inherit' }}
+        <StyledMatrixHeaderInput
             className={cn('ring-none focus:ring-none items-center border-none bg-transparent text-center text-sm outline-none focus:border-none focus:outline-none focus-visible:outline-none active:outline-none', disabled && 'pointer-events-none')}
-            placeholder="Header"
+            placeholder={placeholder || 'Header'}
             value={inputVal}
             onChange={(event) => {
                 if (!disabled) setInputVal(event.target.value);
@@ -184,6 +194,22 @@ const MatrixHeaderInput = ({ value, onChange, disabled }: { value: string; onCha
         />
     );
 };
+const StyledMatrixHeaderInput = styled(TextareaAutosize)<{ $theme?: IThemeState }>(() => {
+    const { theme } = useFormState();
+    const themeColor = theme?.tertiary;
+    const secondaryColor = theme?.secondary;
+    return {
+        resize: 'none',
+        overflow: 'auto',
+        width: '100%',
+        '&::placeholder': {
+            color: secondaryColor
+        },
+        '&:focus::placeholder': {
+            color: themeColor
+        }
+    };
+});
 
 type MatrixCheckboxProps = React.ComponentPropsWithoutRef<typeof CheckboxPrimitive.Root> & {
     className?: string;

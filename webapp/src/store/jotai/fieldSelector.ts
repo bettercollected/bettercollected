@@ -327,36 +327,36 @@ export default function useFormFieldsAtom() {
                     fields: [
                         {
                             id: v4(),
-                            title: 'Row 1',
+                            title: '',
                             index: 0,
                             type: FieldTypes.MULTIPLE_CHOICE,
                             properties: {
                                 choices: [
                                     {
                                         id: v4(),
-                                        value: 'Column 1'
+                                        value: ''
                                     },
                                     {
                                         id: v4(),
-                                        value: 'Column 2'
+                                        value: ''
                                     }
                                 ]
                             }
                         },
                         {
                             id: v4(),
-                            title: 'Row 2',
+                            title: '',
                             index: 1,
                             type: FieldTypes.MULTIPLE_CHOICE,
                             properties: {
                                 choices: [
                                     {
                                         id: v4(),
-                                        value: 'Column 1'
+                                        value: ''
                                     },
                                     {
                                         id: v4(),
-                                        value: 'Column 2'
+                                        value: ''
                                     }
                                 ]
                             }
@@ -391,7 +391,7 @@ export default function useFormFieldsAtom() {
         const updatedRows = formFields![activeSlideComponent!.index]!.properties!.fields![activeFieldComponent!.index]!.properties!.fields?.map((field) => {
             field.properties!.choices?.push({
                 id: v4(),
-                value: 'Column ' + (field.properties!.choices?.length + 1)
+                value: ''
             });
             return field;
         });
@@ -402,7 +402,7 @@ export default function useFormFieldsAtom() {
     const addRow = () => {
         formFields![activeSlideComponent!.index]!.properties!.fields![activeFieldComponent!.index]!.properties!.fields?.push({
             id: v4(),
-            title: 'Row ' + (formFields![activeSlideComponent!.index]!.properties!.fields![activeFieldComponent!.index]!.properties!.fields?.length || 0 + 1),
+            title: '',
             type: FieldTypes.MULTIPLE_CHOICE,
             index: formFields![activeSlideComponent!.index]!.properties!.fields![activeFieldComponent!.index]!.properties!.fields!.length + 1,
             properties: { ...formFields![activeSlideComponent!.index]!.properties!.fields![activeFieldComponent!.index]!.properties!.fields![0]!.properties }
