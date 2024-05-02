@@ -149,7 +149,7 @@ export default function FormPage({ params }: { params: { form_id: string } }) {
                 <motion.div
                     animate={{ x: navbarState.insertClicked ? '5%' : 0 }}
                     transition={{ ease: 'easeInOut' }}
-                    className=" relative flex max-h-full max-w-full flex-1 justify-center overflow-hidden px-5 py-14"
+                    className=" relative flex max-h-full max-w-full flex-1 justify-center overflow-x-hidden px-5 py-14"
                     onClick={() => {
                         setActiveFieldComponent(null);
                     }}

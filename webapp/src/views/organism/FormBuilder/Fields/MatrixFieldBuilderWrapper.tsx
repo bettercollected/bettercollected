@@ -7,13 +7,15 @@ export default function MatrixFieldBuilderWrapper({ field }: { field: StandardFo
     const { addRow, addColumn, activeField } = useFormFieldsAtom();
     return (
         <div className="flex flex-col gap-4">
-            <div
-                className={cn('text-brand-500 flex w-full cursor-pointer justify-end ', field.id !== activeField?.id && 'invisible')}
-                onClick={() => {
-                    addColumn();
-                }}
-            >
-                Add Column
+            <div className={cn('text-brand-500 flex w-full  justify-end ', field.id !== activeField?.id && 'invisible')}>
+                <span
+                    className="cursor-pointer"
+                    onClick={() => {
+                        addColumn();
+                    }}
+                >
+                    Add Column
+                </span>
             </div>
             <MatrixField field={field} disabled />
             <div
