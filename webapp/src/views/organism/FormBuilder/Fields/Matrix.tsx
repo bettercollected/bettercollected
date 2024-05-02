@@ -63,7 +63,7 @@ function MatrixFieldComponent({ field, disabled }: IMatrixFieldProps) {
                                         }}
                                     />
                                 ) : (
-                                    <div className="py-2 text-center text-sm">{choice?.value || `Column ${index + 1}`}</div>
+                                    <div className="max-h-full max-w-full text-clip break-all px-4 py-2 text-center text-sm">{choice?.value || `Column ${index + 1}`}</div>
                                 )}
 
                                 {disabled && activeField?.id === field.id && (
@@ -101,7 +101,7 @@ function MatrixFieldComponent({ field, disabled }: IMatrixFieldProps) {
                                 color: borderColor
                             }}
                             className={cn(
-                                'relative flex max-h-[150px] w-full flex-col items-center justify-center overflow-clip border-[1px] border-l-[2px] p-2 px-4',
+                                'relative flex max-h-[150px] w-full flex-col items-center justify-center overflow-auto border-[1px] border-l-[2px] p-2 px-4',
                                 index === 0 && 'rounded-tl-lg border-t-[2px]',
                                 field?.properties?.fields?.length === index + 1 && 'rounded-bl-lg border-b-[2px]'
                             )}
@@ -116,7 +116,7 @@ function MatrixFieldComponent({ field, disabled }: IMatrixFieldProps) {
                                     }}
                                 />
                             ) : (
-                                <div className="py-2 text-center text-sm">{row?.title?.toString() || `Row ${index + 1}`}</div>
+                                <div className="max-h-full max-w-full text-clip break-all px-4 py-2 text-center text-sm">{row?.title?.toString() || `Row ${index + 1}`}</div>
                             )}
                             {disabled && activeField?.id === field.id && (field?.properties?.fields?.length || -1) > 1 && (
                                 <div
