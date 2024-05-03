@@ -77,6 +77,8 @@ export function RichTextEditor({ field, slide, autofocus = false, isRequired = f
     const previousState = usePreviousState(isBold);
 
     const [debouncedInputValue] = useDebounceValue(jsonVal, 300);
+
+
     useEffect(() => {
         if (debouncedInputValue) {
             updateTitle(field.index, slide.index, debouncedInputValue);
