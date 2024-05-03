@@ -20,7 +20,6 @@ import { selectBuilderState } from '@app/store/form-builder/selectors';
 import { resetSingleForm, setForm } from '@app/store/forms/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 
-
 export default function EditFromPage(props: any) {
     const {
         form,
@@ -53,7 +52,7 @@ export default function EditFromPage(props: any) {
             <HistoryKeyListener>
                 <FormBuilderKeyListener>
                     <NextSeo title={title || t(metaDataTitle.editForm)} noindex={true} nofollow={true} />
-                    <Layout isCustomDomain={false} isClientDomain={false} showNavbar={true} hideMenu={false} showAuthAccount={true} className="!p-0 !bg-white flex flex-col !min-h-calc-68">
+                    <Layout isCustomDomain={false} isClientDomain={false} showNavbar={true} hideMenu={false} showAuthAccount={true} className="!min-h-calc-68 flex flex-col !bg-white !p-0">
                         <FormBuilder workspace={workspace} _nextI18Next={_nextI18Next} />
                     </Layout>
                 </FormBuilderKeyListener>
