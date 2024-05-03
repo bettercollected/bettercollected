@@ -1,35 +1,38 @@
 'use client';
 
 import cn from 'classnames';
-import { GripVertical } from 'lucide-react';
-import { DragDropContext, Draggable, DroppableProvided } from 'react-beautiful-dnd';
+import {DragDropContext, Draggable, DroppableProvided} from 'react-beautiful-dnd';
 
-import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
-import { FormSlideLayout } from '@app/models/enums/form';
-import { StrictModeDroppable } from '@app/shared/hocs/StrictModeDroppable';
-import { useActiveFieldComponent, useActiveSlideComponent } from '@app/store/jotai/activeBuilderComponent';
+import {FieldTypes, StandardFormFieldDto} from '@app/models/dtos/form';
+import {FormSlideLayout} from '@app/models/enums/form';
+import {StrictModeDroppable} from '@app/shared/hocs/StrictModeDroppable';
+import {useActiveFieldComponent, useActiveSlideComponent} from '@app/store/jotai/activeBuilderComponent';
 import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
-import { useFormState } from '@app/store/jotai/form';
-
-import { FieldType } from '@app/store/form-builder/types';
-import { useNavbarState } from '@app/store/jotai/navbar';
-import { AnimatePresence, motion } from 'framer-motion';
+import {useFormState} from '@app/store/jotai/form';
+import {useNavbarState} from '@app/store/jotai/navbar';
+import {AnimatePresence, motion} from 'framer-motion';
 import DeleteIcon from '../../atoms/Icons/Delete';
-import { RichTextEditor } from '../../molecules/RichTextEditor';
+import {RichTextEditor} from '../../molecules/RichTextEditor';
 import SlideLayoutWrapper from '../Layout/SlideLayoutWrapper';
 import FieldDescription from './Fields/FieldDescrption';
 import renderFieldWrapper from './Fields/renderField';
+import MoveUpDown from '@app/views/molecules/FormBuilder/MoveUpDown';
 
-const SlideBuilder = ({ slide, isScaledDown = false, disabled = false }: { slide: StandardFormFieldDto; isScaledDown?: boolean; disabled?: boolean }) => {
+const SlideBuilder = ({slide, isScaledDown = false, disabled = false}: {
+    slide: StandardFormFieldDto;
+    isScaledDown?: boolean;
+    disabled?: boolean
+}) => {
     const slideFields = slide?.properties?.fields;
-    const { moveFieldInASlide, deleteField } = useFormFieldsAtom();
-    const { setActiveFieldComponent, activeFieldComponent } = useActiveFieldComponent();
-    const { activeSlideComponent } = useActiveSlideComponent();
-    const { theme } = useFormState();
-    const { navbarState, setNavbarState } = useNavbarState();
+    const {moveFieldInASlide, deleteField} = useFormFieldsAtom();
+    const {setActiveFieldComponent, activeFieldComponent} = useActiveFieldComponent();
+    const {activeSlideComponent} = useActiveSlideComponent();
+    const {theme} = useFormState();
+    const {navbarState, setNavbarState} = useNavbarState();
 
     return (
-        <SlideLayoutWrapper slide={slide} disabled={disabled} theme={theme} scrollDivId={!disabled ? 'scroll-div' : undefined}>
+        <SlideLayoutWrapper slide={slide} disabled={disabled} theme={theme}
+                            scrollDivId={!disabled ? 'scroll-div' : undefined}>
             <DragDropContext
                 onDragEnd={(result, provided) => {
                     if (!result.destination) return;
@@ -38,18 +41,21 @@ const SlideBuilder = ({ slide, isScaledDown = false, disabled = false }: { slide
             >
                 <StrictModeDroppable droppableId={'fields-droppable-section '}>
                     {(provided: DroppableProvided) => (
-                        <div {...provided.droppableProps} ref={provided.innerRef} className=" flex  h-full w-full flex-col justify-center gap-20 px-6 py-[10vh] ">
-                            <div className="absolute top-[40%] flex w-full flex-col gap-20 px-6 pb-20">
+                        <div {...provided.droppableProps} ref={provided.innerRef}
+                             className="flex h-full w-full flex-col justify-center gap-20 px-6 py-[10vh] ">
+                            <div className="flex w-full h-full flex-col gap-20 px-6 pb-20">
                                 <AnimatePresence>
                                     {Array.isArray(slideFields) && slideFields.length ? (
                                         slideFields.map((field, index) => {
                                             return (
-                                                <Draggable key={field.id} draggableId={`${field.id}`} index={index} disableInteractiveElementBlocking={disabled} isDragDisabled={disabled}>
+                                                <Draggable key={field.id} draggableId={`${field.id}`} index={index}
+                                                           disableInteractiveElementBlocking={disabled}
+                                                           isDragDisabled={disabled}>
                                                     {(provided) => (
                                                         <motion.div
-                                                            initial={{ x: navbarState.insertClicked && activeSlideComponent?.id === slide.id ? '-100%' : 0 }}
-                                                            animate={{ x: 0 }}
-                                                            transition={{ duration: 0.8 }}
+                                                            initial={{x: navbarState.insertClicked && activeSlideComponent?.id === slide.id ? '-100%' : 0}}
+                                                            animate={{x: 0}}
+                                                            transition={{duration: 0.8}}
                                                             id={disabled ? field.id : `scroll-field-${field.id}`}
                                                             className={cn(
                                                                 'relative flex h-full w-full flex-row  items-center first:!pt-[0%] last:pb-20',
@@ -87,18 +93,31 @@ const SlideBuilder = ({ slide, isScaledDown = false, disabled = false }: { slide
                                                                                 deleteField(slide.index, index);
                                                                             }}
                                                                         >
-                                                                            <DeleteIcon width={24} height={24} />
+                                                                            <DeleteIcon width={24} height={24}/>
                                                                         </div>
                                                                     )}
-                                                                    <div className={cn('text-black-600 absolute -left-8 -mt-3 cursor-grab', 'top-4', isScaledDown ? 'hidden' : '')} {...provided.dragHandleProps}>
-                                                                        <GripVertical height={24} width={24} />
-                                                                    </div>
-                                                                    <div className={cn(field?.type !== FieldTypes.TEXT && 'mb-2 w-full')}>
-                                                                        <div className="relative flex w-full items-center gap-2">
-                                                                            {slide?.properties?.showQuestionNumbers && <span className="text-2xl">{index + 1}.</span>}
-                                                                            <RichTextEditor field={field} slide={slide} autofocus={field?.type !== FieldType.MATRIX && activeFieldComponent?.id === field.id} isRequired={field?.validations?.required} />
+                                                                    <div {...provided.dragHandleProps}/>
+                                                                    {
+                                                                        activeFieldComponent?.id === field.id &&
+                                                                        <div
+                                                                            className={cn('text-black-600 absolute -left-10 -mt-3 cursor-grab', 'top-4', isScaledDown ? 'hidden' : '')}>
+                                                                            <MoveUpDown slideIndex={slide.index}
+                                                                                        field={field}/>
                                                                         </div>
-                                                                        <FieldDescription field={field} disabled={disabled} />
+                                                                    }
+                                                                    <div
+                                                                        className={cn(field?.type !== FieldTypes.TEXT && 'mb-2 w-full')}>
+                                                                        <div
+                                                                            className="relative flex w-full items-center gap-2">
+                                                                            {slide?.properties?.showQuestionNumbers &&
+                                                                                <span
+                                                                                    className="text-2xl">{index + 1}.</span>}
+                                                                            <RichTextEditor field={field} slide={slide}
+                                                                                // autofocus={field?.type !== FieldType.MATRIX && activeFieldComponent?.id === field.id}
+                                                                                            isRequired={field?.validations?.required}/>
+                                                                        </div>
+                                                                        <FieldDescription field={field}
+                                                                                          disabled={disabled}/>
                                                                     </div>
                                                                     {renderFieldWrapper(field, slide, disabled)}
                                                                 </div>
