@@ -26,7 +26,7 @@ export default function Choice({ isSelected, theme, index, choice, onClick }: Ch
         <StyledDiv
             $theme={theme}
             style={{
-                background: isSelected ? theme?.tertiary : '',
+                background: isSelected ? theme?.tertiary + '55' : '',
                 borderColor: theme?.tertiary,
                 color: theme?.secondary
             }}
