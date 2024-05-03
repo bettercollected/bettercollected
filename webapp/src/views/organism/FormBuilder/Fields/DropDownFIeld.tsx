@@ -45,7 +45,7 @@ const DropDownField = ({ field, slide, disabled }: { field: StandardFormFieldDto
                 {field &&
                     field.properties?.choices?.map((choice, index) => {
                         return (
-                            <div className="group relative">
+                            <div className="group relative" key={index}>
                                 <FieldInputWrapper
                                     onKeyDown={(e) => {
                                         if (e.key === 'Backspace') {
@@ -58,7 +58,6 @@ const DropDownField = ({ field, slide, disabled }: { field: StandardFormFieldDto
                                     }}
                                     onFocus={() => setBackspaceCount(0)}
                                     value={choice.value}
-                                    key={index}
                                     placeholder={`Item ${index + 1}`}
                                     onChange={(value: any) => updateChoiceFieldValue(field.index, slide.index, choice.id, value)}
                                     className={`flex justify-between rounded-xl border p-2 px-4 text-base`}
