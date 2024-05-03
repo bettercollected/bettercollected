@@ -1,7 +1,6 @@
 'use client';
 
 import { AnimatePresence } from 'framer-motion';
-import { ChevronLeft } from 'lucide-react';
 import { Controller } from 'react-scrollmagic';
 import { toast } from 'react-toastify';
 
@@ -33,11 +32,11 @@ import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { scrollToDivById } from '@app/utils/scrollUtils';
+import BackButton from '@app/views/molecules/FormBuilder/BackButton';
 import ImageField from '../FormBuilder/Fields/Imagefield';
+import MatrixField from '../FormBuilder/Fields/Matrix';
 import VideoField from '../FormBuilder/Fields/VideoField';
 import SlideLayoutWrapper from '../Layout/SlideLayoutWrapper';
-import BackButton from '@app/views/molecules/FormBuilder/BackButton';
-import MatrixField from '../FormBuilder/Fields/Matrix';
 
 export function FormFieldComponent({ field, slideIndex }: { field: StandardFormFieldDto; slideIndex: number }) {
     switch (field.type) {
@@ -88,7 +87,7 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false 
     const formSlideFromState = standardForm.fields[index];
     const formSlide = formSlideData ? formSlideData : formSlideFromState;
 
-    const { currentSlide, setCurrentSlideToThankyouPage, nextSlide, previousSlide, setResponderState, responderState } = useResponderState();
+    const { currentSlide, setCurrentSlideToThankyouPage, nextSlide, previousSlide, setResponderState, responderState, setCurrentSlideToWelcomePage } = useResponderState();
 
     const { formResponse, setInvalidFields, setFormResponse } = useFormResponse();
     const workspace = useAppSelector(selectWorkspace);
@@ -157,14 +156,13 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false 
     return (
         <Controller>
             <SlideLayoutWrapper scrollDivId={'questions-container'} theme={standardForm.theme} slide={formSlide} disabled>
-                {currentSlide > 0 && (
-                    <BackButton
-                        handleClick={() => {
-                            previousSlide();
-                        }}
-                        className="relative top-8 z-[100] w-fit "
-                    />
-                )}
+                <BackButton
+                    handleClick={() => {
+                        currentSlide > 0 ? previousSlide() : setCurrentSlideToWelcomePage();
+                    }}
+                    className="relative top-8 z-[100] w-fit "
+                />
+
                 <div className={cn('flex h-full flex-1 flex-col justify-center overflow-hidden ', formSlide?.properties?.layout === FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND_LEFT_ALIGN ? 'items-start ' : 'items-center')}>
                     <AnimatePresence mode="wait">
                         <div
