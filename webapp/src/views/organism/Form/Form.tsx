@@ -27,18 +27,20 @@ const Form = ({ isPreviewMode = false }: { isPreviewMode?: boolean; }) => {
     };
 
     return (
-        <div className={cn(isPreviewMode  ? 'h-full w-full  ' : 'h-screen w-screen', 'relative h-full w-full')}>
-            <div className="absolute left-0 right-0 top-0 !z-[80] bg-green-500">
-                <Progress indicatorColor={standardForm.theme?.secondary} value={getProgressValue()} className="h-1 rounded-none" />
-            </div>
-            <AnimatePresence>
+        <div className={cn(isPreviewMode ? 'h-full w-full  ' : 'h-screen w-screen', 'relative h-full w-full')}>
+            {currentSlide !== -1 && (
+                <div className="absolute left-0 right-0 top-0 !z-[80] bg-green-500">
+                    <Progress indicatorColor={standardForm.theme?.secondary} value={getProgressValue()} className="h-1 rounded-none" />
+                </div>
+            )}
+            <AnimatePresence mode="sync">
                 {currentSlide === -1 && (
                     <motion.div
-                        className={cn('absolute flex h-full w-full flex-1 flex-col items-center justify-center')}
+                        className={cn('absolute z-10 flex h-full w-full flex-1 flex-col items-center justify-center')}
                         key={'welcome-page'}
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 1 }}
+                        initial={{ opacity: 1, x: currentSlide === previousSlide ? 0 : '-100%' }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 1, x: 0 }}
                         transition={{ duration: 0.3 }}
                     >
                         <div className="relative h-full w-full">

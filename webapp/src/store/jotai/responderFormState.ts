@@ -73,6 +73,13 @@ export const useResponderState = () => {
         });
     };
 
+    const setCurrentSlideToWelcomePage = () => {
+        setResponderState({
+            ...responderState,
+            currentSlide: -1
+        });
+    };
+
     const setCurrentField = (currentField: number) => {
         setResponderState({
             ...responderState,
@@ -107,6 +114,7 @@ export const useResponderState = () => {
         previousSlide,
         nextField,
         setCurrentSlideToThankyouPage,
-        setResponderState
+        setResponderState,
+        setCurrentSlideToWelcomePage
     };
 };
