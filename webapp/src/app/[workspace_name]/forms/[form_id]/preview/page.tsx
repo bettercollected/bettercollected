@@ -1,58 +1,41 @@
 'use client';
 
-import { selectForm } from '@app/store/forms/slice';
-import { useAppSelector } from '@app/store/hooks';
-import { useFormResponse } from '@app/store/jotai/responderFormResponse';
-import { useGetFormResponseQuery } from '@app/store/redux/formApi';
-import { selectWorkspace } from '@app/store/workspaces/slice';
-import { getAnswerForField } from '@app/utils/formBuilderBlockUtils';
-import { getFieldsFromV2Form } from '@app/utils/formUtils';
-import { extractTextfromJSON } from '@app/utils/richTextEditorExtenstion/getHtmlFromJson';
-import { useEffect } from 'react';
+import {useAppDispatch, useAppSelector} from '@app/store/hooks';
+import {selectWorkspace} from '@app/store/workspaces/slice';
+import {useGetWorkspaceFormQuery} from "@app/store/workspaces/api";
+import Form from "@app/views/organism/Form/Form";
+import FullScreenLoader from "@app/views/atoms/Loaders/FullScreenLoader";
+import {useEffect} from "react";
+import {setForm} from "@app/store/forms/slice";
+import {useFormState} from "@app/store/jotai/form";
 
-export default function ResponsePage({ searchParams }: { searchParams: { responseId?: string } }) {
-    const standardForm = useAppSelector(selectForm);
-    const { setFormResponse } = useFormResponse();
+export default function FormPreview({params}: { params: { form_id: string } }) {
+
+    const dispatch = useAppDispatch();
+    const {updateFormTheme} = useFormState();
+
     const workspace = useAppSelector(selectWorkspace);
-    const { data } = useGetFormResponseQuery(
+    const {data} = useGetWorkspaceFormQuery(
         {
-            workspaceId: workspace.id,
-            responseId: searchParams?.responseId
+            workspace_id: workspace.id,
+            custom_url: params.form_id,
         },
-        {
-            skip: !(workspace.id && searchParams?.responseId)
-        }
+        {skip: !workspace.id}
     );
+
 
     useEffect(() => {
-        if (data?.response?.responseId) {
-            setFormResponse({
-                formId: standardForm.formId,
-                answers: data?.response?.answers
-            });
+        if (data?.formId) {
+            dispatch(setForm(data));
+            data.theme && updateFormTheme(data.theme);
         }
-    }, [data?.response?.responseId]);
+    }, [data]);
 
-    function getFormFields() {
-        if (data?.form) {
-            return getFieldsFromV2Form(data.form);
-        }
-        return [];
+    if (!data?.formId) {
+        return <FullScreenLoader/>
     }
+    return <div className="h-screen w-screen">
+        <Form isPreviewMode/>
+    </div>
 
-    return (
-        <div className="h-full w-full md:px-28">
-            <div className="flex h-full flex-col gap-8 overflow-y-auto p-4 pt-6 ">
-                <span>Response: </span>
-                {getFormFields().map((field: any) => {
-                    return (
-                        <div className="flex flex-col gap-1" key={field.id}>
-                            <span className="p4-new text-black-500">{extractTextfromJSON(field)}</span>
-                            <span className="p2-new text-black-700">{getAnswerForField(data?.response, field) || '- -'}</span>
-                        </div>
-                    );
-                })}
-            </div>
-        </div>
-    );
 }

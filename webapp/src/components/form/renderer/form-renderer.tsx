@@ -21,10 +21,11 @@ import Loader from '@app/components/ui/loader';
 import { StandardFormFieldDto } from '@app/models/dtos/form';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
-import getFormShareURL from '@app/utils/formUtils';
+import getFormShareURL, {getFieldsFromV2Form} from '@app/utils/formUtils';
 import Form from '@app/views/organism/Form/Form';
 import ResponsePage from '@app/app/[workspace_name]/forms/[form_id]/preview/page';
 import { extractTextfromJSON } from '@app/utils/richTextEditorExtenstion/getHtmlFromJson';
+import {IndividualFormResponse} from "@app/components/modal-views/full-screen-modals/view-response-full-modal-view";
 
 const StyledTextField = styled.div`
     textarea:disabled {
@@ -332,18 +333,13 @@ export default function FormRenderer({ form, response, enabled, isDisabled = fal
         </div>
     );
 
-    const formShareURL = getFormShareURL(form, workspace);
-    const responseId = response?.responseId;
-    const previewURL = responseId ? `${formShareURL}/preview?responseId=${responseId}` : `${formShareURL}/preview`;
-
     return (
         <div data-testid="form-renderer" className="relative  flex w-full justify-center  md:px-0">
             {form?.settings?.provider === 'self' ? (
                 <>
                     {form?.builderVersion === 'v2' ? (
-                        <div className="h-full  w-full bg-white">
-                            {/* <iframe src={previewURL} className="h-full w-full overflow-y-auto"></iframe>{' '} */}
-                            <ResponsePage searchParams={{ responseId: responseId ? responseId : '' }} />
+                        <div className="h-full  w-full bg-white  px-5 md:px-10 lg:px-28">
+                            <IndividualFormResponse response={response} formFields={getFieldsFromV2Form(form)||[]}/>
                         </div>
                     ) : (
                         <BetterCollectedForm form={form} response={response} enabled={enabled} isDisabled={isDisabled} />

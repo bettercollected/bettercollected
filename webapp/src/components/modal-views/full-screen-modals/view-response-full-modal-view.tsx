@@ -46,7 +46,7 @@ const ViewResponseFullModalView = ({ response, formFields, formId, workspaceId }
     );
 };
 
-const IndividualFormResponse = ({ formFields, response }: { formFields: Array<StandardFormFieldDto>; response: StandardFormResponseDto }) => {
+export const IndividualFormResponse = ({ formFields, response }: { formFields: Array<StandardFormFieldDto>; response: StandardFormResponseDto }) => {
     return (
         <div className="flex min-h-fit w-full flex-col gap-8 overflow-y-auto p-4 pt-6 ">
             {formFields.map((field) => {
