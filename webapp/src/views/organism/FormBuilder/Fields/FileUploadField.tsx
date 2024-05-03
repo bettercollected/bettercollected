@@ -28,7 +28,7 @@ const FileUpload = ({ field, slide, disabled }: { field: StandardFormFieldDto; s
                     <span className={'text-[12px]'}>Max size limit: 25 MB</span>
                 </div>
             </label>
-            <input type="file" id="form-builder-file-upload" className={'invisible'} onChange={handleFileInputChange} />
+            <input type="file" id="form-builder-file-upload" className={'hidden'} onChange={handleFileInputChange} />
         </>
     );
 };

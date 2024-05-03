@@ -27,7 +27,7 @@ const PreviewWrapper = ({children, handleResetResponderState}: {
         setIFrameLoaded(false);
     }, [isDesktopView]);
 
-    console.log(isDesktopView, isIframeLoaded);
+   
 
     const mobileViewPreviewUrl = `${environments.HTTP_SCHEME}${environments.FORM_DOMAIN}/${workspace.workspaceName}/forms/${standardForm.formId}/preview`;
     return (
