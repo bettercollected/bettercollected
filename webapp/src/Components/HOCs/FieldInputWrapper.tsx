@@ -2,6 +2,7 @@ import { StandardFormFieldDto } from '@app/models/dtos/form';
 import { FieldInput } from '@app/shadcn/components/ui/input';
 import { useFormState } from '@app/store/jotai/form';
 import { useEffect, useState } from 'react';
+import { CSSProperties } from 'styled-components';
 import { useDebounceValue } from 'usehooks-ts';
 
 interface IFieldInputWrapper extends React.InputHTMLAttributes<HTMLInputElement> {
@@ -9,10 +10,10 @@ interface IFieldInputWrapper extends React.InputHTMLAttributes<HTMLInputElement>
     value?: string | number | undefined;
     onChange: any;
     disabled?: boolean;
+    style?: CSSProperties;
 }
 
-export const FieldInputWrapper = ({ id, slide, value, onChange, disabled, className, type = 'text', multiple, placeholder }: IFieldInputWrapper) => {
-    const { theme } = useFormState();
+export const FieldInputWrapper = ({ id, slide, value, onChange, type = 'text', style, ...props }: IFieldInputWrapper) => {
     const [inputVal, setInputVal] = useState(value);
     const [debouncedInputValue] = useDebounceValue(inputVal, 300);
 
@@ -28,19 +29,7 @@ export const FieldInputWrapper = ({ id, slide, value, onChange, disabled, classN
 
     return (
         <>
-            <FieldInput
-                id={id}
-                disabled={disabled}
-                type={type}
-                value={inputVal}
-                style={{
-                    color: slide?.properties?.theme?.secondary || theme?.secondary
-                }}
-                onChange={(e: any) => setInputVal(e.target.value)}
-                className={className}
-                multiple={multiple}
-                placeholder={placeholder}
-            />
+            <FieldInput id={id} type={type} value={inputVal} onChange={(e: any) => setInputVal(e.target.value)} style={style} {...props} />
         </>
     );
 };

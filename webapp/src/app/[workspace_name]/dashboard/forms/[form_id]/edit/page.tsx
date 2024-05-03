@@ -130,15 +130,15 @@ export default function FormPage({ params }: { params: { form_id: string } }) {
         }
     }
 
-    useEffect(() => {
-        if (navbarState.insertClicked) {
-            document.addEventListener('click', handleClickOutsideFieldOption);
-        }
+    // useEffect(() => {
+    //     if (navbarState.insertClicked) {
+    //         document.addEventListener('click', handleClickOutsideFieldOption);
+    //     }
 
-        return () => {
-            document.removeEventListener('click', handleClickOutsideFieldOption);
-        };
-    }, [navbarState]);
+    //     return () => {
+    //         document.removeEventListener('click', handleClickOutsideFieldOption);
+    //     };
+    // }, [navbarState]);
 
     return (
         <main className=" flex h-screen flex-col items-center justify-start overflow-hidden bg-white">
@@ -146,9 +146,7 @@ export default function FormPage({ params }: { params: { form_id: string } }) {
             <AutoSaveForm formId={formId} />
             <div className="max-h-body-content  flex w-full flex-row items-center gap-10">
                 <LeftDrawer formFields={formFields} activeSlideComponent={activeSlideComponent} />
-                <motion.div
-                    animate={{ x: navbarState.insertClicked ? '5%' : 0 }}
-                    transition={{ ease: 'easeInOut' }}
+                <div
                     className=" relative flex max-h-full max-w-full flex-1 justify-center overflow-x-hidden px-5 py-14"
                     onClick={() => {
                         setActiveFieldComponent(null);
@@ -169,7 +167,7 @@ export default function FormPage({ params }: { params: { form_id: string } }) {
                             </div>
                         </div>
                     </div>
-                </motion.div>
+                </div>
                 <div id="slide-element-properties" className="border-l-black-300 h-full w-[200px] self-stretch overflow-auto bg-white">
                     <PropertiesDrawer />
                 </div>

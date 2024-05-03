@@ -161,9 +161,9 @@ const Navbar = () => {
             </div>
             <div className={'flex items-center gap-2'}>
                 <DropdownMenu>
-                    <DropdownMenu.Trigger className={cn(navbarState.insertClicked && 'bg-black-300', 'rounded ')} onClick={() => openDialogModal('INSERT_FIELD', { formFields: formFields, activeSlideComponent: activeSlideComponent })}>
+                    <DropdownMenu.Trigger onClick={() => openDialogModal('INSERT_FIELD', { formFields: formFields, activeSlideComponent: activeSlideComponent })}>
                         <div className={'flex items-center hover:bg-inherit'}>
-                            <div className={cn('!text-black-500 hover:!text-black-900 flex flex-row items-center gap-1 text-xs font-semibold hover:bg-inherit', navbarState.insertClicked && '!text-black-900')}>
+                            <div className="!text-black-500 hover:!text-black-900 flex flex-row items-center gap-1 text-xs font-semibold ">
                                 <PlusOutlined />
                                 <span>Insert</span>
                             </div>
