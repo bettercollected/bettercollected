@@ -18,7 +18,7 @@ export async function generateMetadata({ params }: { params: { workspace_name: s
             default: params.workspace_name,
             absolute: form.title
         },
-        description: form.welcomePage.description || `This is ${params.workspace_name}'s form`,
+        description: form.welcomePage?.description || `This is ${params.workspace_name}'s form`,
         openGraph: {
             title: form.title,
             description: form.description,
