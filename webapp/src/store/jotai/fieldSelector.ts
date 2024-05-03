@@ -1,15 +1,13 @@
 'use client';
 
-import { JSONContent } from '@tiptap/react';
-import { atom, useAtom } from 'jotai';
-import { v4 } from 'uuid';
+import {JSONContent} from '@tiptap/react';
+import {atom, useAtom} from 'jotai';
+import {v4} from 'uuid';
 
-import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
-import { FormSlideLayout } from '@app/models/enums/form';
-import { useActiveFieldComponent, useActiveSlideComponent } from '@app/store/jotai/activeBuilderComponent';
-import { reorder } from '@app/utils/arrayUtils';
-import { uuidv4 } from '@mswjs/interceptors/lib/utils/uuid';
-import { property } from 'lodash';
+import {FieldTypes, StandardFormFieldDto} from '@app/models/dtos/form';
+import {FormSlideLayout} from '@app/models/enums/form';
+import {useActiveFieldComponent, useActiveSlideComponent} from '@app/store/jotai/activeBuilderComponent';
+import {reorder} from '@app/utils/arrayUtils';
 
 const initialFieldsAtom = atom<StandardFormFieldDto[]>([
     {
@@ -37,8 +35,8 @@ const initialFieldsAtom = atom<StandardFormFieldDto[]>([
 export default function useFormFieldsAtom() {
     const [formFields, setFormFields] = useAtom(initialFieldsAtom);
 
-    const { activeSlideComponent, setActiveSlideComponent } = useActiveSlideComponent();
-    const { activeFieldComponent, setActiveFieldComponent } = useActiveFieldComponent();
+    const {activeSlideComponent, setActiveSlideComponent} = useActiveSlideComponent();
+    const {activeFieldComponent, setActiveFieldComponent} = useActiveFieldComponent();
 
     const addSlide = (field: StandardFormFieldDto) => {
         setFormFields([...formFields, field]);
@@ -63,7 +61,7 @@ export default function useFormFieldsAtom() {
             index: index
         }));
         setFormFields([...updatedFormFields]);
-        setActiveSlideComponent({ index: spliceIndex, id: formSlide.id });
+        setActiveSlideComponent({index: spliceIndex, id: formSlide.id});
         window.setTimeout(function () {
             const element = document.getElementById(formSlide.id);
             element?.scrollIntoView({
@@ -139,7 +137,7 @@ export default function useFormFieldsAtom() {
 
     const updateFieldPlaceholder = (fieldIndex: number, slideIndex: number, placeholderText: string) => {
         const slide = formFields[slideIndex];
-        slide.properties!.fields![fieldIndex]['properties'] = slide.properties!.fields![fieldIndex].properties || { fields: [] };
+        slide.properties!.fields![fieldIndex]['properties'] = slide.properties!.fields![fieldIndex].properties || {fields: []};
         slide.properties!.fields![fieldIndex]!.properties!.placeholder = placeholderText;
         const updatedSlides = [...formFields];
         setFormFields(updatedSlides);
@@ -198,7 +196,13 @@ export default function useFormFieldsAtom() {
         setFormFields([...formFields]);
     };
 
-    const updateSlideTheme = (color: { title: string; primary: string; secondary: string; tertiary: string; accent: string }) => {
+    const updateSlideTheme = (color: {
+        title: string;
+        primary: string;
+        secondary: string;
+        tertiary: string;
+        accent: string
+    }) => {
         formFields[activeSlide?.index || 0].properties!.theme = {
             title: color.title,
             primary: color.primary,
@@ -223,7 +227,9 @@ export default function useFormFieldsAtom() {
     };
 
     const moveFieldInASlide = (slideIndex: number, sourceIndex: number, destinationIndex: number) => {
+        if (destinationIndex < 0 || (activeSlide?.properties?.fields?.length || -1) < destinationIndex) return
         formFields![slideIndex]!.properties!.fields = reorder(formFields![slideIndex]!.properties!.fields!, sourceIndex, destinationIndex);
+        setActiveFieldComponent(null)
         setFormFields([...formFields]);
     };
 
@@ -405,7 +411,7 @@ export default function useFormFieldsAtom() {
             title: '',
             type: FieldTypes.MULTIPLE_CHOICE,
             index: formFields![activeSlideComponent!.index]!.properties!.fields![activeFieldComponent!.index]!.properties!.fields!.length + 1,
-            properties: { ...formFields![activeSlideComponent!.index]!.properties!.fields![activeFieldComponent!.index]!.properties!.fields![0]!.properties }
+            properties: {...formFields![activeSlideComponent!.index]!.properties!.fields![activeFieldComponent!.index]!.properties!.fields![0]!.properties}
         });
         setFormFields([...formFields]);
     };
