@@ -24,6 +24,7 @@ function PhotoSearch({ setQuery, query, onSearch }: Props) {
                     name="search"
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
+                    autoFocus={true}
                 />
             </label>
             <Button variant="secondary" type="submit">

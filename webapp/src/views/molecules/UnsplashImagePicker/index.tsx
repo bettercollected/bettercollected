@@ -6,13 +6,11 @@ import { createApi } from 'unsplash-js';
 
 import environments from '@app/configs/environments';
 import { useDialogModal } from '@app/lib/hooks/useDialogModal';
-import { StandardFormFieldDto } from '@app/models/dtos/form';
 import { Unsplash } from '@app/views/atoms/Icons/Brands/Unsplash';
 
+import CircularProgressBar from '@app/views/atoms/Loaders/CircularLoadingAnimation';
 import PhotoList from './PhotoList';
 import SearchBar from './PhotoSearch';
-import FullScreenLoader from '@app/views/atoms/Loaders/FullScreenLoader';
-import CircularProgressBar from '@app/views/atoms/Loaders/CircularLoadingAnimation';
 
 interface IUnsplashImagePickerProps {
     initialPhotoSearchQuery?: string;
@@ -32,7 +30,6 @@ export default function UnsplashImagePicker({ initialPhotoSearchQuery = '', onPh
 
     const { closeDialogModal } = useDialogModal();
 
-    const activeSlide: StandardFormFieldDto = props?.activeSlide;
     const updatePageImage = props?.updatePageImage ?? (() => {});
 
     const unsplash = createApi({
@@ -41,12 +38,17 @@ export default function UnsplashImagePicker({ initialPhotoSearchQuery = '', onPh
 
     React.useEffect(() => {
         if (initialPhotoSearchQuery !== '') {
+            const unsplashPhotos = localStorage.getItem('unsplash_photos');
+            var parsedPhotos;
+            if (unsplashPhotos) {
+                parsedPhotos = JSON.parse(unsplashPhotos);
+            }
             setInitialLoading(true);
-            fetchPhotos(1, initialPhotoSearchQuery);
+            fetchPhotos(1, initialPhotoSearchQuery, false, parsedPhotos);
         }
     }, [initialPhotoSearchQuery]);
 
-    const fetchPhotos = (page: number, text: string, reset = false) => {
+    const fetchPhotos = (page: number, text: string, reset = false, existingSelectedPhotos = []) => {
         if (isLoading || isLoadingMore) {
             return;
         }
@@ -69,7 +71,7 @@ export default function UnsplashImagePicker({ initialPhotoSearchQuery = '', onPh
                 if (newPics) {
                     let mergedPics = newPics;
                     if (!reset) {
-                        mergedPics = [...pics, ...newPics];
+                        mergedPics = [...existingSelectedPhotos, ...pics, ...newPics];
                     }
                     setPics(mergedPics);
                     setTotal(response.response.total);
@@ -78,7 +80,14 @@ export default function UnsplashImagePicker({ initialPhotoSearchQuery = '', onPh
                 setIsLoadingMore(false);
                 setInitialLoading(false);
             });
+        console.log('initial', pics);
     };
+
+    function setPhotoInLocalStorage(photo: any) {
+        const photoList = JSON.parse(localStorage.getItem('unsplash_photos') || '[]');
+        photoList.push(photo);
+        localStorage.setItem('unsplash_photos', JSON.stringify(photoList));
+    }
 
     return (
         <div className="ImagePicker items-center  rounded bg-white">
@@ -118,6 +127,7 @@ export default function UnsplashImagePicker({ initialPhotoSearchQuery = '', onPh
                                     if (photo) {
                                         updatePageImage(photo.urls.full);
                                         closeDialogModal();
+                                        setPhotoInLocalStorage(photo);
                                     }
                                 } catch (error) {
                                     console.log(error);
