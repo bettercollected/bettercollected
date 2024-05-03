@@ -62,6 +62,7 @@ const DropDownField = ({ field, slide, disabled }: { field: StandardFormFieldDto
                                     placeholder={`Item ${index + 1}`}
                                     onChange={(value: any) => updateChoiceFieldValue(field.index, slide.index, choice.id, value)}
                                     className={`flex justify-between rounded-xl border p-2 px-4 text-base`}
+                                    style={{ color: slide.properties?.theme?.secondary || theme?.secondary }}
                                 />
                                 <Close style={{ color: theme?.secondary }} onClick={() => removeChoiceField(field.index, slide.index, choice.id)} className="invisible absolute right-3 top-1/4 h-5 w-5 group-hover:visible" />
                             </div>

@@ -56,6 +56,7 @@ export default function InputField({ field }: { field: StandardFormFieldDto }) {
     };
 
     const TextFields = [FieldTypes.LONG_TEXT, FieldTypes.SHORT_TEXT];
+    const theme = form?.theme || form.fields[currentSlide]?.properties?.theme;
 
     return (
         <QuestionWrapper field={field}>
@@ -72,6 +73,7 @@ export default function InputField({ field }: { field: StandardFormFieldDto }) {
                     multiple={field.type === FieldTypes.LONG_TEXT}
                     value={getFieldValue()}
                     onChange={(value: any) => handleChange(value)}
+                    style={{ color: theme?.secondary }}
                 />
             </form>
         </QuestionWrapper>

@@ -7,16 +7,8 @@ import { AnimatePresence, motion } from 'framer-motion';
 
 import { formFieldsList } from '@app/constants/form-fields';
 import { FieldTypes } from '@app/models/dtos/form';
-import {
-    Tabs,
-    TabsContent,
-    TabsList,
-    TabsTrigger
-} from '@app/shadcn/components/ui/tabs';
-import {
-    useActiveFieldComponent,
-    useActiveSlideComponent
-} from '@app/store/jotai/activeBuilderComponent';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@app/shadcn/components/ui/tabs';
+import { useActiveFieldComponent, useActiveSlideComponent } from '@app/store/jotai/activeBuilderComponent';
 import { useNavbarState } from '@app/store/jotai/navbar';
 import FieldSettings from '@app/views/organism/FieldSettings';
 import PageDesignTab from '@app/views/organism/FormBuilder/PageDesignTab';
@@ -27,7 +19,7 @@ const FieldTypeSelector = () => {
 
     return (
         <div className="flex flex-col gap-4 px-4 py-6">
-            <div className="p2-new !font-medium text-black-700">Type</div>
+            <div className="p2-new text-black-700 !font-medium">Type</div>
             <div>
                 <Select
                     fullWidth
@@ -38,12 +30,8 @@ const FieldTypeSelector = () => {
                 >
                     {formFieldsList.map((fieldType) => {
                         return (
-                            <MenuItem
-                                className="flex gap-2"
-                                key={fieldType.name}
-                                value={fieldType.type}
-                            >
-                                <span className="h-4 w-4 rounded-md bg-black-300" />
+                            <MenuItem className="flex gap-2" key={fieldType.name} value={fieldType.type}>
+                                <span className="bg-black-300 h-4 w-4 rounded-md" />
                                 {fieldType.name}
                             </MenuItem>
                         );
@@ -59,42 +47,42 @@ export default function PropertiesDrawer({}: {}) {
     const { activeFieldComponent } = useActiveFieldComponent();
     const { navbarState } = useNavbarState();
     return (
-        <AnimatePresence>
-            {!navbarState.insertClicked && (
-                <motion.div
-                    className="flex h-full flex-col border-l "
-                    initial={{ x: '100%', opacity: 0 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ ease: 'easeInOut' }}
-                    exit={{ x: '100%' }}
-                >
-                    {activeFieldComponent?.id && (
-                        <>
-                            <FieldSettings />
-                        </>
-                    )}
-                    {!activeFieldComponent?.id && activeSlideComponent?.id && (
-                        <>
-                            <Tabs defaultValue="page" className="h-full w-full ">
-                                <TabsList className="my-2 w-full px-2 ">
-                                    <TabsTrigger value="page" className="w-full">
-                                        Page
-                                    </TabsTrigger>
-                                    <TabsTrigger value="design" className="w-full">
-                                        Design
-                                    </TabsTrigger>
-                                </TabsList>
-                                <TabsContent value="page" className="border-b">
-                                    <PagePropertiesTab />
-                                </TabsContent>
-                                <TabsContent value="design">
-                                    <PageDesignTab />
-                                </TabsContent>
-                            </Tabs>
-                        </>
-                    )}
-                </motion.div>
+        // <AnimatePresence>
+        //     {!navbarState.insertClicked && (
+        <div
+            className="flex h-full flex-col border-l "
+            // initial={{ x: '100%', opacity: 0 }}
+            // animate={{ opacity: 1, x: 0 }}
+            // transition={{ ease: 'easeInOut' }}
+            // exit={{ x: '100%' }}
+        >
+            {activeFieldComponent?.id && (
+                <>
+                    <FieldSettings />
+                </>
             )}
-        </AnimatePresence>
+            {!activeFieldComponent?.id && activeSlideComponent?.id && (
+                <>
+                    <Tabs defaultValue="page" className="h-full w-full ">
+                        <TabsList className="my-2 w-full px-2 ">
+                            <TabsTrigger value="page" className="w-full">
+                                Page
+                            </TabsTrigger>
+                            <TabsTrigger value="design" className="w-full">
+                                Design
+                            </TabsTrigger>
+                        </TabsList>
+                        <TabsContent value="page" className="border-b">
+                            <PagePropertiesTab />
+                        </TabsContent>
+                        <TabsContent value="design">
+                            <PageDesignTab />
+                        </TabsContent>
+                    </Tabs>
+                </>
+            )}
+        </div>
+        //     )}
+        // </AnimatePresence>
     );
 }
