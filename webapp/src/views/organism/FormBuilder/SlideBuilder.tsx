@@ -19,6 +19,7 @@ import { RichTextEditor } from '../../molecules/RichTextEditor';
 import SlideLayoutWrapper from '../Layout/SlideLayoutWrapper';
 import FieldDescription from './Fields/FieldDescrption';
 import renderFieldWrapper from './Fields/renderField';
+import MoveUpDown from '@app/views/molecules/FormBuilder/MoveUpDown';
 
 const SlideBuilder = ({ slide, isScaledDown = false, disabled = false }: { slide: StandardFormFieldDto; isScaledDown?: boolean; disabled?: boolean }) => {
     const slideFields = slide?.properties?.fields;
@@ -91,7 +92,8 @@ const SlideBuilder = ({ slide, isScaledDown = false, disabled = false }: { slide
                                                                         </div>
                                                                     )}
                                                                     <div className={cn('text-black-600 absolute -left-8 -mt-3 cursor-grab', 'top-4', isScaledDown ? 'hidden' : '')} {...provided.dragHandleProps}>
-                                                                        <GripVertical height={24} width={24} />
+                                                                        {/* <GripVertical height={24} width={24} /> */}
+                                                                        <MoveUpDown />
                                                                     </div>
                                                                     <div className={cn(field?.type !== FieldTypes.TEXT && 'mb-2 w-full')}>
                                                                         <div className="relative flex w-full items-center gap-2">
