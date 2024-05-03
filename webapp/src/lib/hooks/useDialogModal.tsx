@@ -63,7 +63,7 @@ const getClassName = (view?: DIALOG_MODALS) => {
         case 'FORM_PUBLISHED':
             return 'md:!min-w-[760px]';
         case 'INSERT_FIELD':
-            return 'md:!w-[412px]';
+            return 'md:!w-[414px]';
         default:
             return <></>;
     }
