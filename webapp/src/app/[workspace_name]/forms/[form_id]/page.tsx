@@ -13,6 +13,7 @@ import FullScreenLoader from '@app/views/atoms/Loaders/FullScreenLoader';
 import Form from '@app/views/organism/Form/Form';
 import {useEffect, useRef} from 'react';
 import {useRouter} from "next/navigation";
+import {FieldTypes, StandardFormFieldDto} from "@app/models/dtos/form";
 
 export default function FormPage({params}: { params: { form_id: string; workspace_name: string } }) {
     const slug = params.form_id;
@@ -62,8 +63,15 @@ const FetchFormWrapper = ({slug}: { slug: string }) => {
     const hasFileUpload = (fields: Array<any>) => {
         let isUploadField = false;
         if (fields && Array.isArray(fields) && fields.length > 0) {
-            fields.forEach((field: any) => {
-                if (field && field?.type && field.type === 'file_upload') {
+            fields.forEach((field: StandardFormFieldDto) => {
+                if (field.type === FieldTypes.SLIDE) {
+                    field?.properties?.fields?.forEach((field:StandardFormFieldDto)=>{
+                        if (field && field?.type && field.type === FieldTypes.FILE_UPLOAD) {
+                            isUploadField = true;
+                        }
+                    })
+                }
+                if (field && field?.type && field.type === FieldTypes.FILE_UPLOAD) {
                     isUploadField = true;
                 }
             });
