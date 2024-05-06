@@ -7,6 +7,8 @@ import { Button } from '@app/shadcn/components/ui/button';
 import { useFormState } from '@app/store/jotai/form';
 
 import GreetingLayoutWrapper from '../Layout/GreetingLayoutWrapper';
+import { useEffect, useState } from 'react';
+import { useDebounceValue } from 'usehooks-ts';
 
 const StyledInputField = styled.input`
     &::placeholder {
@@ -16,6 +18,14 @@ const StyledInputField = styled.input`
 
 const WelcomeSlide = ({ disabled }: { disabled?: boolean }) => {
     const { theme, formState, setFormDescription, setWelcomeTitle } = useFormState();
+    const [description, setDescription] = useState('');
+    const [debouncedDescription] = useDebounceValue(description, 300);
+    useEffect(() => {
+        formState?.welcomePage?.description && setDescription(formState?.welcomePage?.description);
+    }, [formState?.welcomePage?.description]);
+    useEffect(() => {
+        setFormDescription(debouncedDescription);
+    }, [debouncedDescription]);
 
     return (
         <GreetingLayoutWrapper theme={theme} disabled={disabled} greetingIndex={-10}>
@@ -31,12 +41,7 @@ const WelcomeSlide = ({ disabled }: { disabled?: boolean }) => {
                     />
                     {formState?.welcomePage?.description !== undefined && formState?.welcomePage?.description !== null ? (
                         <>
-                            <AutosizeTextarea
-                                placeholder="Add description"
-                                value={formState?.welcomePage?.description || ''}
-                                className="ring-none text-black-600 mb-4 w-full border-0 px-0 text-base outline-none"
-                                onChange={(e: any) => setFormDescription(e.target.value)}
-                            />
+                            <AutosizeTextarea placeholder="Add description" value={description} className="ring-none text-black-600 mb-4 w-full border-0 px-0 text-base outline-none" onChange={(e: any) => setDescription(e.target.value)} />
                         </>
                     ) : (
                         <></>
