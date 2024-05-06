@@ -33,9 +33,9 @@ export default function AddSlidePopover() {
                             <PlusIcon className=" h-5 w-5" strokeWidth={'1.5'} />
                         </div>
                     </PopoverTrigger>
-                    {open && (
-                        <motion.div className="!z-10" key="addSlide" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
-                            <PopoverContent side="right" align="start" asChild className="p-0">
+                    <PopoverContent side="right" align="start" asChild className="p-0">
+                        {open && (
+                            <motion.div key="addSlide" initial={{ opacity: 0, x: '-10%' }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.2 }}>
                                 <div className="!z-[1000] max-h-[640px] w-[390px] rounded-lg bg-white shadow-lg">
                                     <Tabs defaultValue="layout" className="h-full w-full">
                                         <TabsList className=" flex h-auto w-full gap-2 p-4">
@@ -45,12 +45,6 @@ export default function AddSlidePopover() {
                                             <TabsTrigger value="template" className="w-full">
                                                 Template
                                             </TabsTrigger>
-                                            {/*<TabsTrigger*/}
-                                            {/*    value="pages"*/}
-                                            {/*    className="w-full"*/}
-                                            {/*>*/}
-                                            {/*    Pages*/}
-                                            {/*</TabsTrigger>*/}
                                         </TabsList>
                                         <Divider />
                                         <TabsContent value="layout" className="p-4">
@@ -59,14 +53,11 @@ export default function AddSlidePopover() {
                                         <TabsContent value="template" className="p-4">
                                             <TemplateTab closePopover={closePopover} />
                                         </TabsContent>
-                                        {/*<TabsContent value="pages" className="p-4">*/}
-                                        {/*    This will be Pages Tab*/}
-                                        {/*</TabsContent>*/}
                                     </Tabs>
                                 </div>
-                            </PopoverContent>
-                        </motion.div>
-                    )}
+                            </motion.div>
+                        )}
+                    </PopoverContent>
                 </Popover>
             </AnimatePresence>
         </div>
