@@ -12,7 +12,6 @@ import { Button } from '@app/shadcn/components/ui/button';
 import { DropdownMenu } from '@app/shadcn/components/ui/dropdown-menu';
 import { Sheet, SheetClose, SheetContent, SheetFooter, SheetTrigger } from '@app/shadcn/components/ui/sheet';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
-import { cn } from '@app/shadcn/util/lib';
 import { useActiveSlideComponent, useActiveThankYouPageComponent } from '@app/store/jotai/activeBuilderComponent';
 import { useAuthAtom } from '@app/store/jotai/auth';
 import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
@@ -21,21 +20,20 @@ import { useNavbarState } from '@app/store/jotai/navbar';
 import { useFormResponse } from '@app/store/jotai/responderFormResponse';
 import { useResponderState } from '@app/store/jotai/responderFormState';
 import { useCreateTemplateFromFormMutation } from '@app/store/redux/templateApi';
-import BetterCollectedSmallLogo from '@app/views/atoms/Icons/BetterCollectedSmallLogo';
 
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { LogicOutlinedIcon } from '@app/views/atoms/Icons/LogicOutlinedIcon';
+import { HeadingOutlinedIcon } from '../atoms/Icons/HeadingOutlinedIcon';
 import { MediaOutlinedIcon } from '../atoms/Icons/MediaOutlined';
 import PlayIcon from '../atoms/Icons/PlayIcon';
 import { PlusOutlined } from '../atoms/Icons/PlusOutlined';
-import { TextOutlinedIcon } from '../atoms/Icons/TextOutlined';
 import BackButton from '../molecules/FormBuilder/BackButton';
 import PreviewWrapper from '../molecules/FormBuilder/PreviewWrapper';
 import PublishButton from '../molecules/FormBuilder/PublishButton';
 import Form from './Form/Form';
-import { HeadingOutlinedIcon } from '../atoms/Icons/HeadingOutlinedIcon';
+import { NewBetterCollectedSmallLogo } from '@app/views/atoms/Icons/BetterCollectedSmallLogo';
 
 const Navbar = () => {
     const { activeSlide, formFields, addField, updateSlideImage, updateSlideLayout } = useFormFieldsAtom();
@@ -142,12 +140,12 @@ const Navbar = () => {
         <div id="navbar" className="border-b-black-300 flex h-16 w-full justify-between border-b-[1px] bg-white p-4">
             <div className={'flex items-center gap-2'}>
                 <div
-                    className={'mr-4 cursor-pointer rounded-lg px-4 py-[6px] shadow'}
+                    className={'bg-brand-500 active:bg-brand-600 mr-4 cursor-pointer rounded-[5px] p-[6px] text-white shadow'}
                     onClick={() => {
                         router.push('/' + workspace.workspaceName + '/dashboard');
                     }}
                 >
-                    <BetterCollectedSmallLogo />
+                    <NewBetterCollectedSmallLogo />
                 </div>
                 <input
                     type="text"

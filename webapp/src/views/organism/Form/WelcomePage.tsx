@@ -40,7 +40,11 @@ export default function WelcomePage({
 
             <div className="flex h-full w-full max-w-[800px] flex-col justify-center">
                 <div className="text-[40px] font-bold leading-[48px]">{welcomePage?.title}</div>
-                {welcomePage?.description && <div className="text-black-700 mt-4 ">{welcomePage?.description}</div>}
+                {welcomePage?.description && (
+                    <div className="text-black-700 mt-4 " style={{ whiteSpace: 'pre-line' }}>
+                        {welcomePage?.description}
+                    </div>
+                )}
                 {!auth.id && !isPreviewMode && (
                     <div className="mt-16 flex max-w-[421px] flex-col rounded-lg bg-white bg-opacity-50 p-4">
                         <div className="flex items-center gap-2">

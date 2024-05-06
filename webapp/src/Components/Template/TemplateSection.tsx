@@ -61,7 +61,7 @@ const TemplateSection = ({ templates, title = '', className, showButtons = true 
                     )}
                 </div>
             )}
-            <div className={`flex w-full flex-col  gap-6 md:flex-row ${title == 'Default' || title === 'Standard' ? 'flex-nowrap overflow-auto' : 'flex-wrap justify-center md:justify-start'}`}>
+            <div className={`flex w-full flex-col  flex-wrap gap-6 md:flex-row ${title == 'Default' || title === 'Standard' ? ' overflow-x-auto' : ' justify-center md:justify-start'}`}>
                 {templates && templates?.map((template: IFormTemplateDto, index: number) => <TemplateCard key={index} template={template} isPredefinedTemplate={isPredefinedTemplate} />)}
             </div>
 
