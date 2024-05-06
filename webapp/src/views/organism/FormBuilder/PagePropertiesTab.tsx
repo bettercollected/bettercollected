@@ -131,7 +131,7 @@ export default function PagePropertiesTab({}: {}) {
                                                 <input
                                                     type="text"
                                                     placeholder="Try bettercollected"
-                                                    value={formState.thankyouPage && formState.thankyouPage[activeThankYouPageComponent?.index || 0].buttonText}
+                                                    value={(formState.thankyouPage && formState.thankyouPage[activeThankYouPageComponent?.index || 0].buttonText) ?? ''}
                                                     onChange={(e: any) => setThankYouPageButtonText(activeThankYouPageComponent?.index || 0, e.target.value)}
                                                     className="borer-[1px] border-black-300 focus:border-black-300 active:border-black-300 rounded-lg p-2 text-xs"
                                                 />
@@ -170,17 +170,7 @@ export default function PagePropertiesTab({}: {}) {
                                 )}
                             </div>
                         ) : (
-                            <>
-                                {/* <div className="text-xs text-black-700">Question Numbers</div>
-                        <Switch
-                            checked={
-                                activeSlide?.properties?.showQuestionNumbers || false
-                            }
-                            onCheckedChange={(checked) => {
-                                updateShowQuestionNumbers(activeSlide!.index, checked);
-                            }}
-                        /> */}
-                            </>
+                            <></>
                         )}
                     </div>
                 </>
