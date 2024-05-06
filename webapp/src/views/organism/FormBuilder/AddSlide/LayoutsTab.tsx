@@ -12,23 +12,16 @@ import SlideLayoutLeftImage from '@app/views/atoms/Icons/SlideLayoutLeftImage';
 import SlideLayoutNoImage from '@app/views/atoms/Icons/SlideLayoutNoImage';
 import { SlideLayoutNoImageLeftAlign } from '@app/views/atoms/Icons/SlideLayoutNoImageLeftAlign';
 import SlideLayoutRightImage from '@app/views/atoms/Icons/SlideLayoutRightImage';
+import Image from 'next/image';
 
-
-const Layout = (props: {
-    Icon: any;
-    name: string;
-    style?: FormSlideLayout;
-    onClick?: (event?: React.MouseEvent<HTMLDivElement, MouseEvent>) => void;
-}) => {
+const Layout = (props: { Icon: any; name: string; image: string; style?: FormSlideLayout; onClick?: (event?: React.MouseEvent<HTMLDivElement, MouseEvent>) => void }) => {
     return (
-        <div
-            className="cursor-pointer rounded-lg border border-transparent p-1 hover:border-pink-500"
-            onClick={props.onClick}
-        >
-            <div className="mb-1 overflow-hidden rounded-xl border border-black-300 p-1 ">
-                <props.Icon className="h-full w-full p-1" />
+        <div className="cursor-pointer rounded-lg border border-transparent" onClick={props.onClick}>
+            <div className="border-black-300 relative mb-1 overflow-hidden rounded-xl border ">
+                <Image src={props.image} width={168} height={94} alt={props.name} />
+                <div className="absolute inset-0 z-10 bg-transparent transition-all hover:bg-[#00000026]"></div>
             </div>
-            <div className="text-xs text-black-600">{props.name}</div>
+            <div className="text-black-600 text-xs">{props.name}</div>
         </div>
     );
 };
@@ -37,7 +30,7 @@ export default function LayoutsTab({ closePopover }: { closePopover: () => void 
     const { formFields, addSlide } = useFormFieldsAtom();
     const { setActiveSlideComponent } = useActiveSlideComponent();
 
-    const addSlideofStyle = (style: FormSlideLayout) => {
+    const addSlideOfStyle = (style: FormSlideLayout, blank: boolean = false) => {
         const fieldId = v4();
         addSlide({
             id: fieldId,
@@ -45,10 +38,23 @@ export default function LayoutsTab({ closePopover }: { closePopover: () => void 
             type: FieldTypes.SLIDE,
             properties: {
                 layout: style,
-                fields: []
+                fields: [
+                    ...(blank
+                        ? []
+                        : [
+                              {
+                                  id: v4(),
+                                  index: 0,
+                                  type: FieldTypes.SHORT_TEXT,
+                                  value: 'Hi, what is your name?',
+                                  properties: {
+                                      placeholder: 'Your full name please'
+                                  }
+                              }
+                          ])
+                ]
             },
-            imageUrl:
-                'https://s3.eu-central-1.wasabisys.com/bettercollected/images/v2defaultImage.png'
+            imageUrl: 'https://s3.eu-central-1.wasabisys.com/bettercollected/images/v2defaultImage.png'
         });
         setActiveSlideComponent({ id: fieldId, index: formFields.length });
         window.setTimeout(function () {
@@ -62,34 +68,47 @@ export default function LayoutsTab({ closePopover }: { closePopover: () => void 
     };
 
     return (
-        <ScrollArea className="z-10 w-full overflow-auto pr-2">
+        <ScrollArea className="z-10 h-[495px] w-full overflow-auto pr-2">
             <div className="">
+                <div className="mb-2 text-sm font-medium">Blank</div>
+                <div
+                    className="hover:bg-black-200 border-black-200 w-fit cursor-pointer rounded-lg border px-[70px] py-8 transition-all"
+                    onClick={() => {
+                        addSlideOfStyle(FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND_LEFT_ALIGN, true);
+                    }}
+                >
+                    <BlankLayout />
+                </div>
+                <div className="text-black-600 mt-2 text-xs">Blank</div>
+            </div>
+            <div className="mt-12">
                 <div className="mb-2 text-sm font-medium">Without Image</div>
                 <div className="grid grid-cols-2 gap-4">
                     {[
                         {
                             style: FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND_LEFT_ALIGN,
                             Icon: SlideLayoutNoImageLeftAlign,
-                            name: 'Left Align'
+                            name: 'Left Align',
+                            image: '/images/left.png'
                         },
                         {
                             style: FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND,
                             Icon: SlideLayoutNoImage,
-                            name: 'Center Align'
+                            name: 'Center Align',
+                            image: '/images/center.png'
                         }
-                    ].map(
-                        (item: { style: FormSlideLayout; Icon: any; name: string }) => (
-                            <Layout
-                                key={item.name}
-                                Icon={item.Icon}
-                                style={item.style}
-                                name={item.name}
-                                onClick={() => {
-                                    addSlideofStyle(item.style);
-                                }}
-                            />
-                        )
-                    )}
+                    ].map((item: { style: FormSlideLayout; Icon: any; name: string; image: string }) => (
+                        <Layout
+                            key={item.name}
+                            Icon={item.Icon}
+                            style={item.style}
+                            image={item.image}
+                            name={item.name}
+                            onClick={() => {
+                                addSlideOfStyle(item.style);
+                            }}
+                        />
+                    ))}
                 </div>
             </div>
             <div className=" mt-12">
@@ -99,31 +118,33 @@ export default function LayoutsTab({ closePopover }: { closePopover: () => void 
                         {
                             style: FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT,
                             Icon: SlideLayoutRightImage,
-                            name: 'Right Image'
+                            name: 'Right Image',
+                            image: '/images/right-image.png'
                         },
                         {
                             style: FormSlideLayout.TWO_COLUMN_IMAGE_LEFT,
                             Icon: SlideLayoutLeftImage,
-                            name: 'Left Image'
+                            name: 'Left Image',
+                            image: '/images/left-image.png'
                         },
                         {
                             style: FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND,
                             Icon: SlideLayoutBackgroundImage,
-                            name: 'Fill Image'
+                            name: 'Fill Image',
+                            image: '/images/image.png'
                         }
-                    ].map(
-                        (item: { style: FormSlideLayout; Icon: any; name: string }) => (
-                            <Layout
-                                key={item.name}
-                                Icon={item.Icon}
-                                style={item.style}
-                                name={item.name}
-                                onClick={() => {
-                                    addSlideofStyle(item.style);
-                                }}
-                            />
-                        )
-                    )}
+                    ].map((item: { style: FormSlideLayout; Icon: any; name: string; image: string }) => (
+                        <Layout
+                            key={item.name}
+                            Icon={item.Icon}
+                            style={item.style}
+                            image={item.image}
+                            name={item.name}
+                            onClick={() => {
+                                addSlideOfStyle(item.style);
+                            }}
+                        />
+                    ))}
                 </div>
             </div>
         </ScrollArea>
@@ -132,105 +153,9 @@ export default function LayoutsTab({ closePopover }: { closePopover: () => void 
 
 const BlankLayout = () => {
     return (
-        <svg
-            width="168"
-            height="94"
-            viewBox="0 0 168 94"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-        >
-            <g filter="url(#filter0_d_6436_17752)">
-                <g clip-path="url(#clip0_6436_17752)">
-                    <g filter="url(#filter1_d_6436_17752)">
-                        <rect width="168" height="94.778" rx="1.36864" fill="white" />
-                    </g>
-                    <rect x="83" y="34" width="2" height="27" rx="1" fill="#FE3678" />
-                    <rect
-                        x="70.5"
-                        y="48.5"
-                        width="2"
-                        height="27"
-                        rx="1"
-                        transform="rotate(-90 70.5 48.5)"
-                        fill="#FE3678"
-                    />
-                </g>
-            </g>
-            <defs>
-                <filter
-                    id="filter0_d_6436_17752"
-                    x="-1.02648"
-                    y="-1.02648"
-                    width="170.053"
-                    height="96.053"
-                    filterUnits="userSpaceOnUse"
-                    colorInterpolationFilters="sRGB"
-                >
-                    <feFlood floodOpacity="0" result="BackgroundImageFix" />
-                    <feColorMatrix
-                        in="SourceAlpha"
-                        type="matrix"
-                        values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0"
-                        result="hardAlpha"
-                    />
-                    <feOffset />
-                    <feGaussianBlur stdDeviation="0.513238" />
-                    <feComposite in2="hardAlpha" operator="out" />
-                    <feColorMatrix
-                        type="matrix"
-                        values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.15 0"
-                    />
-                    <feBlend
-                        mode="normal"
-                        in2="BackgroundImageFix"
-                        result="effect1_dropShadow_6436_17752"
-                    />
-                    <feBlend
-                        mode="normal"
-                        in="SourceGraphic"
-                        in2="effect1_dropShadow_6436_17752"
-                        result="shape"
-                    />
-                </filter>
-                <filter
-                    id="filter1_d_6436_17752"
-                    x="-1.02648"
-                    y="-1.02648"
-                    width="170.053"
-                    height="96.831"
-                    filterUnits="userSpaceOnUse"
-                    colorInterpolationFilters="sRGB"
-                >
-                    <feFlood floodOpacity="0" result="BackgroundImageFix" />
-                    <feColorMatrix
-                        in="SourceAlpha"
-                        type="matrix"
-                        values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0"
-                        result="hardAlpha"
-                    />
-                    <feOffset />
-                    <feGaussianBlur stdDeviation="0.513238" />
-                    <feComposite in2="hardAlpha" operator="out" />
-                    <feColorMatrix
-                        type="matrix"
-                        values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.15 0"
-                    />
-                    <feBlend
-                        mode="normal"
-                        in2="BackgroundImageFix"
-                        result="effect1_dropShadow_6436_17752"
-                    />
-                    <feBlend
-                        mode="normal"
-                        in="SourceGraphic"
-                        in2="effect1_dropShadow_6436_17752"
-                        result="shape"
-                    />
-                </filter>
-                <clipPath id="clip0_6436_17752">
-                    <rect width="168" height="94" rx="1.36864" fill="white" />
-                </clipPath>
-            </defs>
+        <svg width="28" height="27" viewBox="0 0 28 27" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="13" width="2" height="27" rx="1" fill="#FE3678" />
+            <rect x="0.5" y="14.5" width="2" height="27" rx="1" transform="rotate(-90 0.5 14.5)" fill="#FE3678" />
         </svg>
     );
 };
