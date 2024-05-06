@@ -229,8 +229,10 @@ export default function useFormFieldsAtom() {
     const moveFieldInASlide = (slideIndex: number, sourceIndex: number, destinationIndex: number) => {
         if (destinationIndex < 0 || (activeSlide?.properties?.fields?.length || -1) < destinationIndex) return
         formFields![slideIndex]!.properties!.fields = reorder(formFields![slideIndex]!.properties!.fields!, sourceIndex, destinationIndex);
-        setActiveFieldComponent(null)
         setFormFields([...formFields]);
+        setTimeout(()=>{
+        setActiveFieldComponent({index: destinationIndex, id: activeFieldComponent!.id})
+        },0)
     };
 
     const updateFieldProperty = (fieldIndex: number, slideIndex: number, property: string, value: any) => {

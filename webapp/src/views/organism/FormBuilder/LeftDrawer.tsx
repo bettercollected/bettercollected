@@ -9,6 +9,7 @@ import SlideBuilder from './SlideBuilder';
 import SlideOptions from './SlideOptions';
 import ThankYouSlide from './ThankYouPage';
 import WelcomeSlide from './WelcomePage';
+import { AnimatePresence } from 'framer-motion';
 
 function LeftDrawer({ formFields, activeSlideComponent }: { formFields: Array<StandardFormFieldDto>; activeSlideComponent: any }) {
     const { setActiveFieldComponent } = useActiveFieldComponent();
