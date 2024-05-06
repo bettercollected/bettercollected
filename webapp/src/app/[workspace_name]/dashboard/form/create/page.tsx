@@ -5,7 +5,6 @@ import React from 'react';
 import { useRouter } from 'next/navigation';
 
 import cn from 'classnames';
-import { Sparkles } from 'lucide-react';
 
 import { useModal } from '@app/components/modal-views/context';
 import { defaultForm } from '@app/constants/form';
@@ -21,12 +20,11 @@ import NavBar from '@app/views/molecules/FormBuilder/Navbar';
 import WelcomePage from '@app/views/organism/Form/WelcomePage';
 import LayoutWrapper from '@app/views/organism/Layout/LayoutWrapper';
 import useDrivePicker from '@fyelci/react-google-drive-picker';
-import { Plus } from '@app/components/icons/plus';
 
 const CardVariants = {
     blue: 'text-blue-500 hover:bg-blue-100 transition hover:border-blue-100',
     purple: 'text-purple-500 hover:bg-purple-100 transition  hover:border-purple-100',
-    pink: 'text-pink-500 hover:bg-pink-100 hover:border-pink-100'
+    pink: 'text-pink-500 !cursor-auto'
 };
 
 export default function CreateFormPage() {
@@ -66,46 +64,48 @@ export default function CreateFormPage() {
     return (
         <div className="min-h-screen bg-white">
             <NavBar />
-            <div className="m-auto flex max-w-[1200px] flex-col px-5 md:px-10">
-                <div className="h3-new text-black-800 mb-4 mt-6">New Form</div>
-                <div className="flex flex-wrap gap-6">
-                    <Sheet>
-                        <SheetTrigger asChild>
-                            <Card variant={'blue'} icon={<PlusIcon />} content={'Create New Form'} onClick={() => {}} />
-                        </SheetTrigger>
-                        <SheetContent className=" shadow-v2 h-full w-full p-0 drop-shadow-2xl" side={'top'} hideCloseIcon>
-                            <div className="h-full w-full bg-white ">
-                                <NavBar isModal />
-                                <FormTypeSelectionComponent handleCreateForm={handleCreateForm} />
-                            </div>
-                        </SheetContent>
-                    </Sheet>
-
-                    <Card
-                        variant={'purple'}
-                        icon={<GoogleFormIcon width={30} height={30} className="mb-2 text-purple-500" />}
-                        content={'Import Google Form'}
-                        onClick={() => {
-                            openModal('IMPORT_FORMS', { nonClosable: true });
-                        }}
-                    />
-                    <Card variant={'pink'} icon={<AIIcon />} content={'Start with AI'} onClick={() => {}} addSoon />
-                </div>
-
-                <div className="h3-new text-black-800 mb-4 mt-12">Templates</div>
-                <div className="flex w-full flex-row flex-wrap gap-x-6 gap-y-10 ">
-                    {templates?.map((template) => (
-                        <div className="flex cursor-pointer flex-col rounded-lg border border-transparent p-1 hover:border-pink-500" key={template?.id} onClick={() => createFormFromTemplate(template.id)}>
-                            <div className="relative h-[157px] w-[281px] overflow-hidden rounded-md">
-                                <div className="pointer-events-none h-[810px] w-[1440px] scale-[0.195]" style={{ transformOrigin: 'top left' }}>
-                                    <LayoutWrapper theme={template?.theme} disabled layout={template.welcomePage?.layout} imageUrl={template?.welcomePage?.imageUrl}>
-                                        <WelcomePage isPreviewMode theme={template?.theme} welcomePageData={template?.welcomePage} />
-                                    </LayoutWrapper>
+            <div className="px-auto flex h-full justify-center ">
+                <div className=" flex max-w-[1330px] flex-col px-5 md:px-10">
+                    <div className="h3-new text-black-800 mb-4 mt-6">New Form</div>
+                    <div className="flex flex-wrap gap-6">
+                        <Sheet>
+                            <SheetTrigger asChild>
+                                <Card variant={'blue'} icon={<PlusIcon />} content={'Create New Form'} onClick={() => {}} />
+                            </SheetTrigger>
+                            <SheetContent className=" shadow-v2 h-full w-full p-0 drop-shadow-2xl" side={'top'} hideCloseIcon>
+                                <div className="h-full w-full bg-white ">
+                                    <NavBar isModal />
+                                    <FormTypeSelectionComponent handleCreateForm={handleCreateForm} />
                                 </div>
+                            </SheetContent>
+                        </Sheet>
+
+                        <Card
+                            variant={'purple'}
+                            icon={<GoogleFormIcon width={30} height={30} className="mb-2 text-purple-500" />}
+                            content={'Import Google Form'}
+                            onClick={() => {
+                                openModal('IMPORT_FORMS', { nonClosable: true });
+                            }}
+                        />
+                        <Card variant={'pink'} icon={<AIIcon />} content={'Start with AI'} onClick={() => {}} addSoon />
+                    </div>
+
+                    <div className="h3-new text-black-800 mb-4 mt-12">Templates</div>
+                    <div className="flex w-full flex-row flex-wrap gap-x-6 gap-y-10  ">
+                        {templates?.map((template) => (
+                            <div className="flex cursor-pointer flex-col rounded-lg border border-transparent p-1 hover:border-pink-500" key={template?.id} onClick={() => createFormFromTemplate(template.id)}>
+                                <div className="relative h-[157px] w-[281px] overflow-hidden rounded-md">
+                                    <div className="pointer-events-none h-[810px] w-[1440px] scale-[0.195]" style={{ transformOrigin: 'top left' }}>
+                                        <LayoutWrapper theme={template?.theme} disabled layout={template.welcomePage?.layout} imageUrl={template?.welcomePage?.imageUrl}>
+                                            <WelcomePage isPreviewMode theme={template?.theme} welcomePageData={template?.welcomePage} />
+                                        </LayoutWrapper>
+                                    </div>
+                                </div>
+                                <div className="p2-new mt-2 !font-medium">{template.title}</div>
                             </div>
-                            <div className="p2-new mt-2 !font-medium">{template.title}</div>
-                        </div>
-                    ))}
+                        ))}
+                    </div>
                 </div>
             </div>
         </div>
