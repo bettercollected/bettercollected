@@ -123,6 +123,7 @@ export interface StandardFormDto {
     parameters?: Record<any, Array<Parameters>>;
     secrets?: Record<any, Array<Parameters>>;
     theme?: FormTheme;
+    unauthorized?: boolean;
 }
 
 export interface StandardFormResponseDto {
