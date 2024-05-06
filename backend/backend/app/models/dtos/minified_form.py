@@ -51,3 +51,4 @@ class FormDtoCamelModel(CamelModel):
     theme: Optional[Theme]
     welcome_page: Optional[WelcomePageField]
     thankyou_page: Optional[List[ThankYouPageField]]
+    unauthorized: Optional[bool]
