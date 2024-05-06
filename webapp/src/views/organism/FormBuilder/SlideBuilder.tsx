@@ -36,7 +36,7 @@ const SlideBuilder = ({ slide, isScaledDown = false, disabled = false }: { slide
                                         key={field.id}
                                         initial={{ x: navbarState.insertClicked && activeSlideComponent?.id === slide.id ? '-100%' : 0 }}
                                         animate={{ x: 0 }}
-                                        transition={{ duration: 0.8 }}
+                                        transition={{ duration: 0.5 }}
                                         id={disabled ? field.id : `scroll-field-${field.id}`}
                                         className={cn('relative flex h-full w-full flex-row  items-center first:!pt-[0%]', slide.properties?.layout === FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND_LEFT_ALIGN ? 'justify-start' : 'justify-center')}
                                     >
