@@ -18,7 +18,7 @@ import MoveUpDown from '@app/views/molecules/FormBuilder/MoveUpDown';
 
 const SlideBuilder = ({ slide, isScaledDown = false, disabled = false }: { slide: StandardFormFieldDto; isScaledDown?: boolean; disabled?: boolean }) => {
     const slideFields = slide?.properties?.fields;
-    const { moveFieldInASlide, deleteField } = useFormFieldsAtom();
+    const { deleteField } = useFormFieldsAtom();
     const { setActiveFieldComponent, activeFieldComponent } = useActiveFieldComponent();
     const { activeSlideComponent } = useActiveSlideComponent();
     const { theme } = useFormState();

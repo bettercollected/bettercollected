@@ -9,6 +9,7 @@ import { getFormattedDate, getUnformattedDate, validateDate } from '@app/utils/d
 
 import QuestionWrapper from './QuestionQwrapper';
 import { useDebounceCallback } from 'usehooks-ts';
+import { cn } from '@app/shadcn/util/lib';
 
 interface IDateField {
     field: StandardFormFieldDto;
@@ -89,14 +90,21 @@ function DateFieldSection({ field, slide, isBuilder }: IDateField) {
     return (
         <div className="flex flex-col gap-1">
             <div className="flex flex-row items-center gap-4" id={`input-field-${field.id}`}>
-                <FieldInput id={isBuilder ? 'day' : `day-${field.id}`} type="number" placeholder="DD" className={inputClassName} value={getUnformattedDate(answer)[2]} onChange={(e) => handleDateChange(e, 'day')} disabled={isBuilder} />
+                <FieldInput id={isBuilder ? 'day' : `day-${field.id}`} type="number" placeholder="DD" className={cn(inputClassName, isBuilder && 'pointer-events-none')} value={getUnformattedDate(answer)[2]} onChange={(e) => handleDateChange(e, 'day')} />
                 <div
                     style={{
                         background: slide?.properties?.theme?.secondary || theme?.secondary
                     }}
                     className="h-0.5 w-2"
                 />
-                <FieldInput id={isBuilder ? 'month' : `month-${field.id}`} type="number" placeholder="MM" className={inputClassName} value={getUnformattedDate(answer)[1]} onChange={(e) => handleDateChange(e, 'month')} disabled={isBuilder} />
+                <FieldInput
+                    id={isBuilder ? 'month' : `month-${field.id}`}
+                    type="number"
+                    placeholder="MM"
+                    className={cn(inputClassName, isBuilder && 'pointer-events-none')}
+                    value={getUnformattedDate(answer)[1]}
+                    onChange={(e) => handleDateChange(e, 'month')}
+                />
                 <div
                     style={{
                         background: slide?.properties?.theme?.secondary || theme?.secondary
@@ -108,10 +116,9 @@ function DateFieldSection({ field, slide, isBuilder }: IDateField) {
                     type="number"
                     placeholder="YYYY"
                     value={getUnformattedDate(answer)[0]}
-                    className={`${inputClassName} w-24`}
+                    className={cn(inputClassName, isBuilder && 'pointer-events-none', 'w-24')}
                     onChange={(e) => handleDateChange(e, 'year')}
                     onBlur={(e) => handleBlurValidation(e, '')}
-                    disabled={isBuilder}
                 />
             </div>
             {errorMessage && <span className="text-sm text-red-500 ">{errorMessage}</span>}
