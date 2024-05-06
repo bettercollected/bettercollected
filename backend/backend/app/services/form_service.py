@@ -165,19 +165,29 @@ class FormService:
         is_admin = await self._workspace_user_repo.has_user_access_in_workspace(
             workspace_id=workspace_id, user=user
         )
-        if not user:
-            workspace_form = await self._workspace_form_repo.get_workspace_form_with_custom_slug_form_id(
+        workspace_form = (
+            await self._workspace_form_repo.get_workspace_form_with_custom_slug_form_id(
                 workspace_id=workspace_id, custom_url=form_id
             )
+        )
+        if not user:
             if not workspace_form:
                 raise HTTPException(
                     status_code=404, content="Form not found in Workspace"
                 )
-            if workspace_form.settings.private or workspace_form.settings.hidden:
-                raise HTTPException(
-                    status_code=HTTPStatus.UNAUTHORIZED,
-                    content="Private Form Login to continue",
+            if (
+                workspace_form.settings.private or workspace_form.settings.hidden
+            ) and published:
+                form = await self._form_repo.get_latest_version_of_form(
+                    form_id=PydanticObjectId(form_id)
                 )
+                return {
+                    "formId": form.form_id,
+                    "builderVersion": form.builder_version,
+                    "welcomePage": form.welcome_page,
+                    "theme": form.theme,
+                    "settings": workspace_form.settings,
+                }
         workspace_form_ids = await self._workspace_form_repo.get_form_ids_in_workspace(
             workspace_id=workspace_id,
             is_not_admin=not is_admin,
@@ -187,25 +197,43 @@ class FormService:
             },
         )
         if published:
-            form = await self._form_repo.get_published_forms_in_workspace(
+            authorized_form = await self._form_repo.get_published_forms_in_workspace(
                 workspace_id=workspace_id,
                 form_id_list=workspace_form_ids,
             ).to_list()
+            if not authorized_form:
+                form = await self._form_repo.get_latest_version_of_form(
+                    form_id=PydanticObjectId(form_id)
+                )
+                if not form:
+                    raise HTTPException(
+                        status_code=HTTPStatus.NOT_FOUND, content="Form Not Found"
+                    )
+                else:
+                    return {
+                        "formId": form.form_id,
+                        "builderVersion": form.builder_version,
+                        "welcomePage": form.welcome_page,
+                        "theme": form.theme,
+                        "settings": workspace_form.settings,
+                        "unauthorized": True,
+                    }
+            else:
+                return authorized_form[0]
+
         else:
             form = await self._form_repo.get_forms_in_workspace_query(
                 workspace_id=workspace_id,
                 form_id_list=workspace_form_ids,
                 is_admin=is_admin,
             ).to_list()
-
         if not form:
             raise HTTPException(
                 status_code=HTTPStatus.NOT_FOUND, content="Form Not Found"
             )
         else:
             form = form[0]
-        if not published:
-            form = await self.add_user_details_to_form(form)
+        form = await self.add_user_details_to_form(form)
         return form
 
     async def add_user_details_to_form(self, form):
