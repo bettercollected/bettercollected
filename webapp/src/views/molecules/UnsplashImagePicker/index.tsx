@@ -44,7 +44,7 @@ export default function UnsplashImagePicker({ initialPhotoSearchQuery = '', onPh
                 parsedPhotos = JSON.parse(unsplashPhotos);
             }
             setInitialLoading(true);
-            fetchPhotos(1, initialPhotoSearchQuery, false, parsedPhotos);
+            fetchPhotos(1, initialPhotoSearchQuery, false, parsedPhotos.reverse());
         }
     }, [initialPhotoSearchQuery]);
 
@@ -80,13 +80,15 @@ export default function UnsplashImagePicker({ initialPhotoSearchQuery = '', onPh
                 setIsLoadingMore(false);
                 setInitialLoading(false);
             });
-        console.log('initial', pics);
     };
 
     function setPhotoInLocalStorage(photo: any) {
         const photoList = JSON.parse(localStorage.getItem('unsplash_photos') || '[]');
-        photoList.push(photo);
-        localStorage.setItem('unsplash_photos', JSON.stringify(photoList));
+        const existingPhoto = photoList.some((item: any) => item.id === photo.id);
+        if (!existingPhoto) {
+            photoList.push(photo);
+            localStorage.setItem('unsplash_photos', JSON.stringify(photoList));
+        }
     }
 
     return (
