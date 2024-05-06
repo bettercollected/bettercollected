@@ -1,9 +1,6 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 
-import { Globe, Lock } from 'lucide-react';
-
-import environments from '@app/configs/environments';
 import { FormTheme } from '@app/constants/theme';
 import { FormSlideLayout } from '@app/models/enums/form';
 import { Button } from '@app/shadcn/components/ui/button';
@@ -14,6 +11,8 @@ import { useAppSelector } from '@app/store/hooks';
 import { useResponderState } from '@app/store/jotai/responderFormState';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import UserAvatarDropDown from '@app/views/molecules/UserAvatarDropdown';
+import LockIcon from '@Components/Common/Icons/lock';
+import { ButtonSize } from '@Components/Common/Input/Button/AppButtonProps';
 
 export default function WelcomePage({
     isPreviewMode,
@@ -30,66 +29,82 @@ export default function WelcomePage({
     const pathname = usePathname();
     const workspace = useAppSelector(selectWorkspace);
     const auth = useAppSelector(selectAuth);
-    const responderSignInUrl = `${environments.HTTP_SCHEME}${environments.FORM_DOMAIN}/login?type=responder&workspace_id=${workspace.id}&redirect_to=${environments.HTTP_SCHEME}${environments.FORM_DOMAIN}${pathname}`;
+    const responderSignInUrl = `/login?type=responder&workspace_id=${workspace.id}&redirect_to=${pathname}`;
 
     const welcomePage = welcomePageData || standardForm.welcomePage;
     const formTheme = theme || standardForm?.theme;
+
     return (
         <div className={cn('flex h-full w-full flex-col justify-center', welcomePage?.layout === FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND_LEFT_ALIGN ? 'items-start' : 'items-center')}>
             <UserAvatarDropDown responderSignInUrl={isPreviewMode ? '' : responderSignInUrl} />
 
             <div className="flex h-full w-full max-w-[800px] flex-col justify-center">
-                <div className="text-[40px] font-bold leading-[48px]">{welcomePage?.title}</div>
-                {welcomePage?.description && (
-                    <div className="text-black-700 mt-4 " style={{ whiteSpace: 'pre-line' }}>
-                        {welcomePage?.description}
-                    </div>
-                )}
-                {!auth.id && !isPreviewMode && (
-                    <div className="mt-16 flex max-w-[421px] flex-col rounded-lg bg-white bg-opacity-50 p-4">
-                        <div className="flex items-center gap-2">
-                            {standardForm?.settings?.requireVerifiedIdentity ? (
-                                <>
-                                    <div className="rounded-full bg-red-100 p-[5px]">
-                                        <Lock color="#EA400E" />
-                                    </div>
-                                    <span>This form is private</span>
-                                </>
-                            ) : (
-                                <>
-                                    <div className="rounded-full bg-green-100 p-[5px]">
-                                        <Globe color="#2DBB7F" />
-                                    </div>
-                                    <span>This form is public</span>
-                                </>
-                            )}
+                <div className="mb-12">
+                    <div className="text-[40px] font-bold leading-[48px]">{welcomePage?.title}</div>
+                    {welcomePage?.description && (
+                        <div className="text-black-700 mt-4 " style={{ whiteSpace: 'pre-line' }}>
+                            {welcomePage?.description}
                         </div>
-                        <div className="text-black-700 mt-2 text-xs">
-                            {standardForm?.settings?.requireVerifiedIdentity ? (
-                                <>The form you are trying to access is limited to certain groups. Please verify your account to get access.</>
-                            ) : (
-                                <>
-                                    The form you are trying to access is public, but you can always sign in to view your response later.{' '}
+                    )}
+                </div>
+
+                {!standardForm?.settings?.private && !auth.id && (
+                    <>
+                        {standardForm?.settings?.requireVerifiedIdentity ? (
+                            <>
+                                To fill this form you need to verify your identity.
+                                <span>
+                                    <Link href={isPreviewMode ? '' : responderSignInUrl} className="text-black-800 font-medium underline">
+                                        Verify Now
+                                    </Link>
+                                </span>
+                            </>
+                        ) : (
+                            <>
+                                To view your response later{' '}
+                                <span>
+                                    <Link href={isPreviewMode ? '' : responderSignInUrl} className="text-black-800 font-medium underline">
+                                        Verify Email
+                                    </Link>
+                                </span>
+                            </>
+                        )}
+                    </>
+                )}
+
+                {standardForm?.settings?.private && (
+                    <>
+                        {!auth.id ? (
+                            <div className="flex flex-col gap-2">
+                                <div className="flex items-center gap-4">
+                                    <div className="bg-black-900 rounded-full p-2 text-white">
+                                        <LockIcon width={24} height={24} className="text-white" />
+                                    </div>
+                                    <span>Private Form</span>
+                                </div>
+                                <div className="text-black-700 flex max-w-[339px] flex-wrap gap-1 text-xs">
+                                    This form is limited to certain people only. Please verify your identity to get access.
                                     <span>
-                                        <Link href={isPreviewMode ? '' : '/login'} className="text-blue-500 ">
-                                            {' '}
-                                            Verify Account
+                                        <Link href={isPreviewMode ? '' : responderSignInUrl} className="text-black-800 font-medium underline">
+                                            <Button className="mt-4 px-6" size={ButtonSize.Medium}>
+                                                {' '}
+                                                Verify now
+                                            </Button>
                                         </Link>
-                                    </span>
-                                </>
-                            )}
-                        </div>
-                    </div>
+                                    </span>{' '}
+                                </div>
+                            </div>
+                        ) : (
+                            <>{standardForm?.unauthorized && <>You do not have access to this form. Switch to a different account with access to continue. If this is a mistake contact the owner of this form.</>}</>
+                        )}
+                    </>
                 )}
-                {standardForm.settings?.private || standardForm.settings?.hidden ? (
-                    <div className="mt-16 flex max-w-[421px] flex-col rounded-lg bg-white bg-opacity-50 p-4">
-                        <span>This form is private and only allowed for certain Groups.</span>
-                    </div>
-                ) : (
-                    <div className="mt-6">
+
+                {((!standardForm?.settings?.private && !standardForm?.settings?.requireVerifiedIdentity) || (standardForm?.settings?.private && auth.id && !standardForm?.unauthorized)) && (
+                    <div>
                         <Button
                             style={{ background: formTheme?.secondary }}
-                            className="z-10 mt-12 rounded px-8 py-3"
+                            className="z-10 rounded px-8 py-3"
                             size="medium"
                             onClick={() => {
                                 if (!auth.id && standardForm?.settings?.requireVerifiedIdentity) {
@@ -100,7 +115,7 @@ export default function WelcomePage({
                                 }
                             }}
                         >
-                            {standardForm?.settings?.requireVerifiedIdentity && !auth.id ? 'Verify and Start' : 'Start'}
+                            {standardForm?.settings?.requireVerifiedIdentity && !auth.id ? 'Verify and Start' : standardForm?.welcomePage?.buttonText || 'Start'}
                         </Button>
                     </div>
                 )}
