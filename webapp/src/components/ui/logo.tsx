@@ -1,9 +1,5 @@
-import React from 'react';
-
-import { useRouter } from 'next/navigation';
-
-import BetterCollectedLogo from '@Components/Common/Icons/Common/BetterCollectedLogo';
-import Pro from '@Components/Common/Icons/Dashboard/Pro';
+import NewLogo from '@app/assets/images/new_logo.png';
+import Image from 'next/image';
 
 import AnchorLink from '@app/components/ui/links/anchor-link';
 import { selectAuth } from '@app/store/auth/slice';
@@ -35,12 +31,13 @@ const Logo = ({ className, isLink = true, isClientDomain = false, isCustomDomain
 
     const logo = (
         <div className="flex items-center gap-2 ">
-            <BetterCollectedLogo className={className} />
+            {/* <BetterCollectedLogo className={className} /> */}
+            <Image src={NewLogo} alt="new-logo" width={185} height={19} priority />
             {isProAndIsWorkspaceAdmin && showProTag && (
-                <div className="sm:body5 bg-brand-500 flex h-5 items-center gap-[2px] rounded p-1 text-[10px] !font-semibold uppercase !leading-none !text-white sm:h-6 sm:p-[6px]">
-                    <Pro width={12} height={12} />
-                    <span className="leading-none">Pro</span>
-                </div>
+                <ProLogo />
+                // <div className="sm:body5 bg-brand-500 flex h-5 items-center gap-[2px] rounded p-1 text-[10px] !font-semibold uppercase !leading-none !text-white sm:h-6 sm:p-[6px]">
+                //     <span className="leading-none">Pro</span>
+                // </div>
             )}
         </div>
     );
@@ -59,3 +56,11 @@ Logo.defaultProps = {
     showProTag: true
 };
 export default Logo;
+
+const ProLogo = () => {
+    return (
+        <div className="font-comfortaa flex items-center rounded-[18px] bg-green-200 p-[5px] text-[13px] font-bold leading-none text-white" style={{ background: 'linear-gradient(to right, #FFB843, #FFA004)' }}>
+            Pro
+        </div>
+    );
+};
