@@ -1,6 +1,8 @@
 import os
 from pathlib import Path
 
+from concurrent.futures.thread import ThreadPoolExecutor
+
 from apscheduler.jobstores.mongodb import MongoDBJobStore
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from common.configs.crypto import Crypto
@@ -144,10 +146,6 @@ class AppContainer(containers.DeclarativeContainer):
     job_store = providers.Singleton(MongoDBJobStore, host=settings.mongo_settings.URI)
 
     job_stores = providers.Dict(default=job_store)
-
-    # executors = providers.Dict(
-    #     default=ThreadPoolExecutor(100)
-    # )
 
     schedular = providers.Singleton(
         AsyncIOScheduler,
