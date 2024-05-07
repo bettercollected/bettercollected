@@ -34,7 +34,7 @@ const SlideBuilder = ({ slide, isScaledDown = false, disabled = false }: { slide
                                 return (
                                     <motion.div
                                         key={field.id}
-                                        initial={{ x: navbarState.insertClicked && activeSlideComponent?.id === slide.id ? '-100%' : 0 }}
+                                        initial={{ x: navbarState.insertClicked && activeSlideComponent?.id === slide.id ? '-10%' : 0 }}
                                         animate={{ x: 0 }}
                                         transition={{ duration: 0.5 }}
                                         id={disabled ? field.id : `scroll-field-${field.id}`}
