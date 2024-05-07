@@ -29,9 +29,9 @@ function MatrixFieldComponent({ field, disabled }: IMatrixFieldProps) {
     const { updateRowTitle, updateColumnTitle, activeField, deleteColumn, deleteRow } = useFormFieldsAtom();
 
     return (
-        <div className="flex flex-col overflow-x-auto pb-2">
+        <div className="flex w-full flex-col overflow-x-auto pb-2">
             <div
-                className="grid "
+                className="grid"
                 style={{
                     gridTemplateColumns: `repeat(${(field?.properties?.fields?.[0]?.properties?.choices?.length || 0) + 1} ,minmax(120px,1fr))`
                 }}
@@ -84,7 +84,7 @@ function MatrixFieldComponent({ field, disabled }: IMatrixFieldProps) {
             {field?.properties?.fields?.map((row: StandardFormFieldDto, index) => {
                 return (
                     <RadioGroup
-                        className="grid"
+                        className="grid w-fit"
                         style={{
                             gridTemplateColumns: `repeat(${(field?.properties?.fields?.[0]?.properties?.choices?.length || 0) + 1} ,minmax(120px,1fr))`
                         }}
@@ -94,40 +94,43 @@ function MatrixFieldComponent({ field, disabled }: IMatrixFieldProps) {
                         value={formResponse?.answers[row.id]?.choice?.value}
                         key={row?.id}
                     >
-                        <div
-                            style={{
-                                borderColor: borderColor,
-                                background: bgColor + '55',
-                                color: borderColor
-                            }}
-                            className={cn(
-                                'relative flex max-h-[150px] w-full flex-col items-center justify-center overflow-auto border-[1px] border-l-[2px] p-2 px-4',
-                                index === 0 && 'rounded-tl-lg border-t-[2px]',
-                                field?.properties?.fields?.length === index + 1 && 'rounded-bl-lg border-b-[2px]'
-                            )}
-                        >
-                            {disabled ? (
-                                <MatrixHeaderInput
-                                    disabled={!disabled}
-                                    value={row?.title?.toString() ?? `Row ${index + 1}`}
-                                    placeholder={`Row ${index + 1}`}
-                                    onChange={(value: string) => {
-                                        if (activeField?.id === field.id) updateRowTitle(index, value);
-                                    }}
-                                />
-                            ) : (
-                                <div className="max-h-full max-w-full text-clip break-all px-4 py-2 text-center text-sm">{row?.title?.toString() || `Row ${index + 1}`}</div>
-                            )}
-                            {disabled && activeField?.id === field.id && (field?.properties?.fields?.length || -1) > 1 && (
-                                <div
-                                    className="cross-top absolute left-1 rounded-full bg-white p-1 opacity-50"
-                                    onClick={() => {
-                                        deleteRow(index);
-                                    }}
-                                >
-                                    <Close className="h-4 w-4" />
-                                </div>
-                            )}
+                        <div className="sticky left-0" style={{ background: theme?.accent }}>
+                            <div
+                                style={{
+                                    borderColor: borderColor,
+                                    background: bgColor + '55',
+                                    color: borderColor,
+                                    opacity: 1
+                                }}
+                                className={cn(
+                                    'relative z-[40000] flex max-h-[150px] w-full flex-col items-center justify-center overflow-auto border-[1px] border-l-[2px] p-2 px-4',
+                                    index === 0 && 'rounded-tl-lg border-t-[2px]',
+                                    field?.properties?.fields?.length === index + 1 && 'rounded-bl-lg border-b-[2px]'
+                                )}
+                            >
+                                {disabled ? (
+                                    <MatrixHeaderInput
+                                        disabled={!disabled}
+                                        value={row?.title?.toString() ?? `Row ${index + 1}`}
+                                        placeholder={`Row ${index + 1}`}
+                                        onChange={(value: string) => {
+                                            if (activeField?.id === field.id) updateRowTitle(index, value);
+                                        }}
+                                    />
+                                ) : (
+                                    <div className="max-h-full max-w-full text-clip break-all px-4 py-2 text-center text-sm">{row?.title?.toString() || `Row ${index + 1}`}</div>
+                                )}
+                                {disabled && activeField?.id === field.id && (field?.properties?.fields?.length || -1) > 1 && (
+                                    <div
+                                        className="cross-top absolute left-1 rounded-full bg-white p-1 opacity-50"
+                                        onClick={() => {
+                                            deleteRow(index);
+                                        }}
+                                    >
+                                        <Close className="h-4 w-4" />
+                                    </div>
+                                )}
+                            </div>
                         </div>
                         {row?.properties?.choices?.map((choice: any, index: number) => {
                             return (
@@ -222,7 +225,7 @@ const MatrixCheckbox = React.forwardRef<React.ElementRef<typeof CheckboxPrimitiv
         style={{
             borderColor: theme?.secondary
         }}
-        className={cn('h-5 w-5 rounded border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50', className)}
+        className={cn('h-5 w-5 rounded border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed', className)}
         {...props}
     >
         <CheckboxPrimitive.Indicator
@@ -257,7 +260,7 @@ const RadioGroupItem = React.forwardRef<React.ElementRef<typeof RadioGroupPrimit
         <RadioGroupPrimitive.Item
             ref={ref}
             className={cn(
-                'text-primary border-primary ring-offset-background focus-visible:ring-ring flex aspect-square !h-7 !w-7 flex-col items-center justify-center rounded-full !border focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50',
+                'text-primary border-primary ring-offset-background focus-visible:ring-ring flex aspect-square !h-7 !w-7 flex-col items-center justify-center rounded-full !border focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed',
                 className
             )}
             {...props}

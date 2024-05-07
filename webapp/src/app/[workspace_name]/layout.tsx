@@ -14,12 +14,15 @@ export async function generateMetadata({ params }: { params: { workspace_name: s
 }
 
 export default function WorkspaceLayout({ children, params }: Readonly<{ children: React.ReactNode; params: { workspace_name: string } }>) {
-    return <WorkspaceWrapper workspaceName={params.workspace_name}>{children}</WorkspaceWrapper>;
+    return (
+        <>
+            <WorkspaceWrapper workspaceName={params.workspace_name}>{children}</WorkspaceWrapper>
+        </>
+    );
 }
 
 const getWorkspaceByName = async (workspaceName: string) => {
     const workspaceResponse = await fetch(environments.INTERNAL_DOCKER_API_ENDPOINT_HOST + '/workspaces?workspace_name=' + workspaceName);
-
 
     const workspace = await workspaceResponse.json();
 
