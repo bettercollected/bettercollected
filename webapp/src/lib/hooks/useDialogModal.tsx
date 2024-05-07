@@ -7,15 +7,14 @@ import { usePathname } from 'next/navigation';
 import { atom, useAtom } from 'jotai';
 
 import { Dialog, DialogContent } from '@app/shadcn/components/ui/dialog';
+import { cn } from '@app/shadcn/util/lib';
+import { selectForm } from '@app/store/forms/slice';
+import { useAppSelector } from '@app/store/hooks';
 import AddFormTitleModal from '@app/views/molecules/Dialogs/AddFormTitleModal';
 import FormPublishedModal from '@app/views/molecules/Dialogs/FormPublishedModal';
 import UnsplashImagePicker from '@app/views/molecules/UnsplashImagePicker';
-import { cn } from '@app/shadcn/util/lib';
-import InsertFieldComponent from '@app/views/molecules/Dialogs/InsertFieldModal';
-import { useAppSelector } from '@app/store/hooks';
-import { selectForm } from '@app/store/forms/slice';
 
-export type DIALOG_MODALS = 'ADD_FORM_TITLE' | 'UNSPLASH_IMAGE_PICKER' | 'FORM_PUBLISHED' | 'INSERT_FIELD' | '';
+export type DIALOG_MODALS = 'ADD_FORM_TITLE' | 'UNSPLASH_IMAGE_PICKER' | 'FORM_PUBLISHED' | '';
 
 export interface ModalState {
     isOpen: boolean;
@@ -74,8 +73,6 @@ const GetModalToRender = (view?: DIALOG_MODALS, props?: any) => {
             return <UnsplashImagePicker initialPhotoSearchQuery={unsplashDefaultImageValue(form?.theme?.title || 'Minimal')} {...props} />;
         case 'FORM_PUBLISHED':
             return <FormPublishedModal {...props} />;
-        case 'INSERT_FIELD':
-            return <InsertFieldComponent {...props} />;
         default:
             return <></>;
     }
@@ -85,8 +82,6 @@ const getClassName = (view?: DIALOG_MODALS) => {
     switch (view) {
         case 'FORM_PUBLISHED':
             return 'md:!min-w-[760px]';
-        case 'INSERT_FIELD':
-            return 'md:!w-[414px]';
         default:
             return <></>;
     }

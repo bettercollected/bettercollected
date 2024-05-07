@@ -3,20 +3,20 @@
 import { useRouter } from 'next/navigation';
 
 import { v4 } from 'uuid';
+import { AnimatePresence, motion } from 'framer-motion';
 
 import { useDialogModal } from '@app/lib/hooks/useDialogModal';
 import { FieldTypes } from '@app/models/dtos/form';
 import { ButtonVariant } from '@app/models/enums/button';
 import { FormSlideLayout } from '@app/models/enums/form';
 import { Button } from '@app/shadcn/components/ui/button';
-import { DropdownMenu } from '@app/shadcn/components/ui/dropdown-menu';
+import { DropdownMenu, DropdownMenuContent } from '@app/shadcn/components/ui/dropdown-menu';
 import { Sheet, SheetClose, SheetContent, SheetFooter, SheetTrigger } from '@app/shadcn/components/ui/sheet';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { useActiveSlideComponent, useActiveThankYouPageComponent } from '@app/store/jotai/activeBuilderComponent';
 import { useAuthAtom } from '@app/store/jotai/auth';
 import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
 import { useFormState } from '@app/store/jotai/form';
-import { useNavbarState } from '@app/store/jotai/navbar';
 import { useFormResponse } from '@app/store/jotai/responderFormResponse';
 import { useResponderState } from '@app/store/jotai/responderFormState';
 import { useCreateTemplateFromFormMutation } from '@app/store/redux/templateApi';
@@ -24,24 +24,27 @@ import { useCreateTemplateFromFormMutation } from '@app/store/redux/templateApi'
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
+import { NewBetterCollectedSmallLogo } from '@app/views/atoms/Icons/BetterCollectedSmallLogo';
 import { LogicOutlinedIcon } from '@app/views/atoms/Icons/LogicOutlinedIcon';
+import { useState } from 'react';
 import { HeadingOutlinedIcon } from '../atoms/Icons/HeadingOutlinedIcon';
 import { MediaOutlinedIcon } from '../atoms/Icons/MediaOutlined';
 import PlayIcon from '../atoms/Icons/PlayIcon';
 import { PlusOutlined } from '../atoms/Icons/PlusOutlined';
+import InsertFieldComponent from '../molecules/Dialogs/InsertFieldModal';
 import BackButton from '../molecules/FormBuilder/BackButton';
 import PreviewWrapper from '../molecules/FormBuilder/PreviewWrapper';
 import PublishButton from '../molecules/FormBuilder/PublishButton';
 import Form from './Form/Form';
-import { NewBetterCollectedSmallLogo } from '@app/views/atoms/Icons/BetterCollectedSmallLogo';
 
 const Navbar = () => {
     const { activeSlide, formFields, addField, updateSlideImage, updateSlideLayout } = useFormFieldsAtom();
     const { activeSlideComponent } = useActiveSlideComponent();
     const { activeThankYouPageComponent } = useActiveThankYouPageComponent();
     const { formState, setFormTitle, updateThankYouPageLayout, updateWelcomePageLayout, updateWelcomePageImage, updateThankYouPageImage } = useFormState();
-    const { navbarState } = useNavbarState();
     const { toast } = useToast();
+
+    const [insertDropdownOpen, setInsertDropdownOpen] = useState(false);
 
     const [createTemplateFromForm, { isLoading: isCreatingTemplate }] = useCreateTemplateFromFormMutation();
 
@@ -137,7 +140,7 @@ const Navbar = () => {
     };
 
     return (
-        <div id="navbar" className="border-b-black-300 flex h-16 w-full justify-between border-b-[1px] bg-white p-4">
+        <div id="navbar" className="border-b-black-300 flex h-16 w-full justify-between border-b-[1px] p-4">
             <div className={'flex items-center gap-2'}>
                 <div
                     className={'bg-brand-500 active:bg-brand-600 mr-4 cursor-pointer rounded-[5px] p-[6px] text-white shadow'}
@@ -158,8 +161,13 @@ const Navbar = () => {
                 />
             </div>
             <div className={'flex items-center gap-2'}>
-                <DropdownMenu>
-                    <DropdownMenu.Trigger onClick={() => openDialogModal('INSERT_FIELD', { formFields: formFields, activeSlideComponent: activeSlideComponent })}>
+                <DropdownMenu
+                    open={insertDropdownOpen}
+                    onOpenChange={(open) => {
+                        setInsertDropdownOpen(open);
+                    }}
+                >
+                    <DropdownMenu.Trigger>
                         <div className={'flex items-center hover:bg-inherit'}>
                             <div className="!text-black-500 hover:!text-black-900 flex flex-row items-center gap-1 text-xs font-semibold ">
                                 <PlusOutlined />
@@ -167,6 +175,28 @@ const Navbar = () => {
                             </div>
                         </div>
                     </DropdownMenu.Trigger>
+                    <AnimatePresence key="insert-dropdown" initial={false} mode="wait">
+                        {insertDropdownOpen && (
+                            <DropdownMenuContent key="insert-dropdown" className=" w-[410px] border-none p-0">
+                                <motion.div
+                                    key="insert-dropdown"
+                                    className="shadow-bubble border"
+                                    initial={{ opacity: 0, height: '350px', overflow: 'hidden' }}
+                                    animate={{ opacity: 1, height: '554px' }}
+                                    exit={{ opacity: 0, height: '350px', overflow: 'hidden' }}
+                                    transition={{ duration: 0.2 }}
+                                >
+                                    <InsertFieldComponent
+                                        formFields={formFields}
+                                        activeSlideComponent={activeSlideComponent}
+                                        closeDropdown={() => {
+                                            setInsertDropdownOpen(false);
+                                        }}
+                                    />
+                                </motion.div>
+                            </DropdownMenuContent>
+                        )}
+                    </AnimatePresence>
                 </DropdownMenu>
                 <DropdownMenu>
                     <DropdownMenu.Trigger onClick={handleAddText}>
