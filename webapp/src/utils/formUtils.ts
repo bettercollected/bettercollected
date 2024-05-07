@@ -39,7 +39,7 @@ export function getPlaceholderValueForField(fieldType?: FieldTypes) {
 
 const IgnoredResponsesFieldType = [FieldTypes.TEXT, null, FieldTypes.IMAGE_CONTENT, FieldTypes.VIDEO_CONTENT];
 
-export const getFieldsFromV2Form  = (form: StandardFormDto): StandardFormFieldDto[] => {
+export const getFieldsFromV2Form = (form: StandardFormDto): StandardFormFieldDto[] => {
     const fields = form.fields.map((slide) => {
         const filteredFields = slide?.properties?.fields?.filter((field: StandardFormFieldDto) => !IgnoredResponsesFieldType.includes(field.type));
         const filteredFieldsWithMatrix = filteredFields?.map((field: StandardFormFieldDto) => {
@@ -49,12 +49,12 @@ export const getFieldsFromV2Form  = (form: StandardFormDto): StandardFormFieldDt
             const matrixRows = field?.properties?.fields?.map((row: StandardFormFieldDto) => {
                 return {
                     ...row,
-                    title: `${extractTextfromJSON(field)}[${row.title}]`
+                    title: `${extractTextfromJSON(field)}[${row.title || `Row ${row.index + 1}`}]`
                 };
             });
             return matrixRows;
         });
         return filteredFieldsWithMatrix;
     });
-    return fields.flat(2)?.filter((field:any)=>  typeof field !== "undefined") as StandardFormFieldDto[];
+    return fields.flat(2)?.filter((field: any) => typeof field !== 'undefined') as StandardFormFieldDto[];
 };

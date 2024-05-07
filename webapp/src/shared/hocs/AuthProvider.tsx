@@ -14,7 +14,7 @@ export default async function AuthProvider({ children }: { children: React.React
     const auth = await fetchAuthState();
     return (
         <Suspense fallback={<FullScreenLoader />}>
-            <AuthDispatcher auth={auth}>{children}</AuthDispatcher>;
+            <AuthDispatcher auth={auth}>{children}</AuthDispatcher>
         </Suspense>
     );
 }

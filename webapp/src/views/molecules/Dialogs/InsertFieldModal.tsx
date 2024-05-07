@@ -82,9 +82,9 @@ const InsertFieldComponent = ({ formFields, activeSlideComponent }: { formFields
                 const fieldElement = document.getElementById(`scroll-field-${fieldId}`);
                 fieldElement?.scrollIntoView({
                     behavior: 'smooth',
-                    block: 'end'
+                    inline: 'center'
                 });
-            }, 500);
+            }, 0);
         }
         setNavbarState({ ...navbarState, insertClicked: false });
         setActiveFieldComponent({
