@@ -38,11 +38,9 @@ export default function UnsplashImagePicker({ initialPhotoSearchQuery = '', onPh
 
     React.useEffect(() => {
         if (initialPhotoSearchQuery !== '') {
-            const unsplashPhotos = localStorage.getItem('unsplash_photos');
+            const unsplashPhotos = localStorage.getItem('unsplash_photos') ?? '[]';
             var parsedPhotos;
-            if (unsplashPhotos) {
-                parsedPhotos = JSON.parse(unsplashPhotos);
-            }
+            parsedPhotos = JSON.parse(unsplashPhotos);
             setInitialLoading(true);
             fetchPhotos(1, initialPhotoSearchQuery, false, parsedPhotos.reverse());
         }
