@@ -64,7 +64,7 @@ export const useDialogModal = () => {
     };
 };
 
-const getModalToRender = (view?: DIALOG_MODALS, props?: any) => {
+const GetModalToRender = (view?: DIALOG_MODALS, props?: any) => {
     const form = useAppSelector(selectForm);
 
     switch (view) {
@@ -109,7 +109,7 @@ export function DialogModalContainer() {
                 closeDialogModal();
             }}
         >
-            <DialogContent className={cn('!bg-white !p-0', getClassName(view))}>{getModalToRender(view, props)}</DialogContent>
+            <DialogContent className={cn('!bg-white !p-0', getClassName(view))}>{GetModalToRender(view, props)}</DialogContent>
         </Dialog>
     );
 }
