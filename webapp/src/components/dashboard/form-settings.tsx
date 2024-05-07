@@ -42,6 +42,7 @@ import { validateFormOpen } from '@app/utils/validationUtils';
 import Globe from '../icons/flags/globe';
 import { useFullScreenModal } from '../modal-views/full-screen-modal-context';
 import FormLinkUpdateView from '../ui/form-link-update-view';
+import { ProLogo } from '../ui/logo';
 
 interface IFormSettingsTabProps {
     view?: FormSettingsTabView;
@@ -406,10 +407,7 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                                     <div className=" flex w-full flex-col items-start">
                                         <div className="h5-new !text-black-800 flex flex-row justify-between gap-4">
                                             <h1>{t(formPage.brandingTitle)}</h1>
-                                            <div className="sm:body5 bg-brand-500 flex h-5 items-center rounded p-1 text-[10px] !font-semibold uppercase !leading-none !text-white sm:h-6 sm:p-[6px]">
-                                                <Pro width={12} height={12} />
-                                                <span className="leading-none">{t(formPage.pro)}</span>
-                                            </div>
+                                            <ProLogo />
                                         </div>
                                         <Divider className={'my-2 w-full'} />
                                         <div className="flex w-full flex-row items-center justify-between md:gap-4">

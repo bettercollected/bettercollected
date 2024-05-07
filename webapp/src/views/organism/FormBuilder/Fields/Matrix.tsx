@@ -84,7 +84,7 @@ function MatrixFieldComponent({ field, disabled }: IMatrixFieldProps) {
             {field?.properties?.fields?.map((row: StandardFormFieldDto, index) => {
                 return (
                     <RadioGroup
-                        className="grid w-fit"
+                        className="grid w-fit min-w-full"
                         style={{
                             gridTemplateColumns: `repeat(${(field?.properties?.fields?.[0]?.properties?.choices?.length || 0) + 1} ,minmax(120px,1fr))`
                         }}

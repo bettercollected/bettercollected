@@ -13,7 +13,7 @@ const PricingPlan = () => {
     return (
         <>
             <NextSeo title={t(pricingPlan.pageTitle)} noindex={false} nofollow={false} />
-            <div className="relative h-full overflow-auto !bg-white ">
+            <div className="relative min-h-screen flex items-center overflow-auto !bg-white ">
                 <UpgradeToProContainer isModal={false} />;
             </div>
         </>

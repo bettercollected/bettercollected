@@ -12,6 +12,8 @@ import FormPublishedModal from '@app/views/molecules/Dialogs/FormPublishedModal'
 import UnsplashImagePicker from '@app/views/molecules/UnsplashImagePicker';
 import { cn } from '@app/shadcn/util/lib';
 import InsertFieldComponent from '@app/views/molecules/Dialogs/InsertFieldModal';
+import { useAppSelector } from '@app/store/hooks';
+import { selectForm } from '@app/store/forms/slice';
 
 export type DIALOG_MODALS = 'ADD_FORM_TITLE' | 'UNSPLASH_IMAGE_PICKER' | 'FORM_PUBLISHED' | 'INSERT_FIELD' | '';
 
@@ -19,6 +21,25 @@ export interface ModalState {
     isOpen: boolean;
     view?: DIALOG_MODALS | '';
     props?: any;
+}
+
+function unsplashDefaultImageValue(type: string) {
+    switch (type) {
+        case 'Black':
+            return 'Minimal White';
+        case 'Purple':
+            return 'Minimal Purple';
+        case 'Red':
+            return 'Minimal Red';
+        case 'Orange':
+            return 'Minimal Orange';
+        case 'Blue':
+            return 'Minimal Blue';
+        case 'Green':
+            return 'Minimal Green';
+        default:
+            return 'Minimal';
+    }
 }
 
 const dialogModalAtom = atom<ModalState>({ isOpen: false });
@@ -43,12 +64,14 @@ export const useDialogModal = () => {
     };
 };
 
-const getModalToRender = (view?: DIALOG_MODALS, props?: any) => {
+const GetModalToRender = (view?: DIALOG_MODALS, props?: any) => {
+    const form = useAppSelector(selectForm);
+
     switch (view) {
         case 'ADD_FORM_TITLE':
             return <AddFormTitleModal />;
         case 'UNSPLASH_IMAGE_PICKER':
-            return <UnsplashImagePicker initialPhotoSearchQuery="Minimal" {...props} />;
+            return <UnsplashImagePicker initialPhotoSearchQuery={unsplashDefaultImageValue(form?.theme?.title || 'Minimal')} {...props} />;
         case 'FORM_PUBLISHED':
             return <FormPublishedModal {...props} />;
         case 'INSERT_FIELD':
@@ -86,7 +109,7 @@ export function DialogModalContainer() {
                 closeDialogModal();
             }}
         >
-            <DialogContent className={cn('!bg-white !p-0', getClassName(view))}>{getModalToRender(view, props)}</DialogContent>
+            <DialogContent className={cn('!bg-white !p-0', getClassName(view))}>{GetModalToRender(view, props)}</DialogContent>
         </Dialog>
     );
 }

@@ -32,6 +32,7 @@ const WelcomeSlide = ({ disabled }: { disabled?: boolean }) => {
             <div className={cn('flex h-full flex-col justify-center bg-transparent', formState.welcomePage?.layout === FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND_LEFT_ALIGN ? ' items-start' : ' items-center')}>
                 <div className={cn('flex w-full max-w-[800px] flex-col items-start')}>
                     <AutosizeTextarea
+                        style={{ resize: 'none' }}
                         placeholder="Form Title"
                         className=" w-full border-0 px-0 py-0 text-[40px] font-bold leading-[60px]"
                         value={formState.welcomePage?.title}
@@ -41,7 +42,13 @@ const WelcomeSlide = ({ disabled }: { disabled?: boolean }) => {
                     />
                     {formState?.welcomePage?.description !== undefined && formState?.welcomePage?.description !== null ? (
                         <>
-                            <AutosizeTextarea placeholder="Add description" value={description} className="ring-none text-black-600 mb-4 w-full border-0 px-0 text-base outline-none" onChange={(e: any) => setDescription(e.target.value)} />
+                            <AutosizeTextarea
+                                placeholder="Add description"
+                                style={{ resize: 'none' }}
+                                value={description}
+                                className="ring-none text-black-600 mb-4 w-full border-0 px-0 text-base outline-none"
+                                onChange={(e: any) => setDescription(e.target.value)}
+                            />
                         </>
                     ) : (
                         <></>

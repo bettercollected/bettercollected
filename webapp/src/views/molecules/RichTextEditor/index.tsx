@@ -73,11 +73,10 @@ export function RichTextEditor({ field, slide, autofocus = false, isRequired = f
 
     const [jsonVal, setJSONVal] = useState<JSONContent | null>(null);
 
-    const [isBold, setIsBold] = useState(false);
+    const [isBold, setIsBold] = useState(true);
     const previousState = usePreviousState(isBold);
 
     const [debouncedInputValue] = useDebounceValue(jsonVal, 300);
-
 
     useEffect(() => {
         if (debouncedInputValue) {
