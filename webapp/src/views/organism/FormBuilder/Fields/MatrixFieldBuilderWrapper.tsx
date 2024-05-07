@@ -20,14 +20,15 @@ export default function MatrixFieldBuilderWrapper({ field }: { field: StandardFo
                 </span>
             </div>
             <MatrixField field={field} disabled />
-            <div
-                style={{ color: theme?.secondary }}
-                className={cn('text-brand-500 flex w-full cursor-pointer justify-start ', field.id !== activeField?.id && 'invisible')}
-                onClick={() => {
-                    addRow();
-                }}
-            >
-                Add Row
+            <div style={{ color: theme?.secondary }} className={cn('text-brand-500 flex w-full justify-start ', field.id !== activeField?.id && 'invisible')}>
+                <span
+                    className="cursor-pointer"
+                    onClick={() => {
+                        addRow();
+                    }}
+                >
+                    Add Row
+                </span>
             </div>
         </div>
     );
