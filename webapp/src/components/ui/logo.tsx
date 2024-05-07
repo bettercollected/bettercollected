@@ -5,6 +5,7 @@ import AnchorLink from '@app/components/ui/links/anchor-link';
 import { selectAuth } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
+import BetterCollectedLogo from '@app/views/atoms/Icons/BetterCollectedLogo';
 
 interface ILogo {
     className?: string;
@@ -31,14 +32,8 @@ const Logo = ({ className, isLink = true, isClientDomain = false, isCustomDomain
 
     const logo = (
         <div className="flex items-center gap-2 ">
-            {/* <BetterCollectedLogo className={className} /> */}
-            <Image src={NewLogo} alt="new-logo" width={185} height={19} priority />
-            {isProAndIsWorkspaceAdmin && showProTag && (
-                <ProLogo />
-                // <div className="sm:body5 bg-brand-500 flex h-5 items-center gap-[2px] rounded p-1 text-[10px] !font-semibold uppercase !leading-none !text-white sm:h-6 sm:p-[6px]">
-                //     <span className="leading-none">Pro</span>
-                // </div>
-            )}
+            <BetterCollectedLogo />
+            {isProAndIsWorkspaceAdmin && showProTag && <ProLogo />}
         </div>
     );
 
@@ -57,10 +52,10 @@ Logo.defaultProps = {
 };
 export default Logo;
 
-const ProLogo = () => {
+export const ProLogo = () => {
     return (
-        <div className="font-comfortaa flex items-center rounded-[18px] bg-green-200 p-[5px] text-[13px] font-bold leading-none text-white" style={{ background: 'linear-gradient(to right, #FFB843, #FFA004)' }}>
-            Pro
+        <div className="font-comfortaa flex h-fit flex-row  items-center rounded-[18px] bg-green-200 px-[5px] pb-[3px] pt-[5px] text-[13px] font-bold leading-[13px] text-white" style={{ background: 'linear-gradient(to right, #FFB843, #FFA004)' }}>
+            <span>Pro</span>
         </div>
     );
 };

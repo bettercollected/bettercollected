@@ -8,6 +8,8 @@ import environments from '@app/configs/environments';
 import { useDialogModal } from '@app/lib/hooks/useDialogModal';
 import { Unsplash } from '@app/views/atoms/Icons/Brands/Unsplash';
 
+import { selectForm } from '@app/store/forms/slice';
+import { useAppSelector } from '@app/store/hooks';
 import CircularProgressBar from '@app/views/atoms/Loaders/CircularLoadingAnimation';
 import PhotoList from './PhotoList';
 import SearchBar from './PhotoSearch';
@@ -27,6 +29,7 @@ export default function UnsplashImagePicker({ initialPhotoSearchQuery = '', onPh
     const [initialLoading, setInitialLoading] = React.useState(false);
     const [isLoadingMore, setIsLoadingMore] = React.useState(false);
     const [page, setPage] = React.useState(1);
+    const form = useAppSelector(selectForm);
 
     const { closeDialogModal } = useDialogModal();
 
@@ -38,13 +41,11 @@ export default function UnsplashImagePicker({ initialPhotoSearchQuery = '', onPh
 
     React.useEffect(() => {
         if (initialPhotoSearchQuery !== '') {
-            const unsplashPhotos = localStorage.getItem('unsplash_photos');
-            var parsedPhotos;
-            if (unsplashPhotos) {
-                parsedPhotos = JSON.parse(unsplashPhotos);
-            }
+            const unsplashPhotos = localStorage.getItem('unsplash_photos') ?? '{}';
+            var parsedPhotos = JSON.parse(unsplashPhotos);
+            const existingPhotosList = Object.keys(parsedPhotos).length ? parsedPhotos[form.formId] || [] : [];
             setInitialLoading(true);
-            fetchPhotos(1, initialPhotoSearchQuery, false, parsedPhotos.reverse());
+            fetchPhotos(1, initialPhotoSearchQuery, false, existingPhotosList.reverse());
         }
     }, [initialPhotoSearchQuery]);
 
@@ -83,10 +84,12 @@ export default function UnsplashImagePicker({ initialPhotoSearchQuery = '', onPh
     };
 
     function setPhotoInLocalStorage(photo: any) {
-        const photoList = JSON.parse(localStorage.getItem('unsplash_photos') || '[]');
-        const existingPhoto = photoList.some((item: any) => item.id === photo.id);
+        const photoList = JSON.parse(localStorage.getItem('unsplash_photos') || '{}');
+        const currentFormPhotoList = Object.keys(photoList).length ? photoList[form.formId] || [] : [];
+        const existingPhoto = currentFormPhotoList.some((item: any) => item.id === photo.id);
         if (!existingPhoto) {
-            photoList.push(photo);
+            currentFormPhotoList.push(photo);
+            photoList[form.formId] = currentFormPhotoList;
             localStorage.setItem('unsplash_photos', JSON.stringify(photoList));
         }
     }

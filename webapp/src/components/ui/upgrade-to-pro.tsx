@@ -9,7 +9,7 @@ import ProPlanHoc from '@app/components/hoc/pro-plan-hoc';
 import { buttonConstant } from '@app/constants/locales/button';
 import { Features } from '@app/constants/locales/feature';
 import { pricingPlan } from '@app/constants/locales/pricingplan';
-
+import { ProLogo } from './logo';
 
 export default function UpgradeToPro() {
     const { t } = useTranslation();
@@ -22,11 +22,8 @@ export default function UpgradeToPro() {
                     <AppButton className={'ml-2'}>{t(buttonConstant.upgrade)}</AppButton>
                 </ProPlanHoc>
             </div>
-            <div className="absolute !top-2 !right-5">
-                <div className="flex items-center rounded h-5 sm:h-6 p-1 sm:p-[6px] text-[10px] sm:body5 uppercase !leading-none !font-semibold !text-white bg-brand-500">
-                    <Pro width={12} height={12} />
-                    <span className="leading-none">Pro</span>
-                </div>
+            <div className="absolute !right-5 !top-2">
+                <ProLogo />
             </div>
         </div>
     );
