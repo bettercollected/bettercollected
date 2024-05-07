@@ -14,7 +14,7 @@ import { useModal } from '@app/components/modal-views/context';
 import environments from '@app/configs/environments';
 import { useRedeemCouponCodeMutation } from '@app/store/coupon-code/api';
 import { fireworks } from '@app/utils/confetti';
-
+import { ProLogo } from '@app/components/ui/logo';
 
 export default function RedeemCouponCodeModal({ showSuccess = false }: { showSuccess?: boolean }) {
     const [error, setError] = useState('');
@@ -42,14 +42,11 @@ export default function RedeemCouponCodeModal({ showSuccess = false }: { showSuc
     };
 
     return (
-        <div className="relative bg-white rounded-md lg:min-w-[600px] pt-8 px-5 flex flex-col items-center pb-10 justify-center">
+        <div className="relative flex flex-col items-center justify-center rounded-md bg-white px-5 pb-10 pt-8 lg:min-w-[600px]">
             <CloseModal />
-            <div className="flex items-center pointer-events-none">
-                <BetterCollectedLogo className="w-40 h-4" />
-                <div className="flex items-center rounded ml-1 gap-[2px] h-5 sm:h-6 p-1 sm:p-[6px] text-[10px] sm:body5 uppercase !leading-none !font-semibold !text-white bg-brand-500">
-                    <Pro width={12} height={12} />
-                    <span className="leading-none">Pro</span>
-                </div>
+            <div className="pointer-events-none flex items-center">
+                <BetterCollectedLogo className="h-4 w-40" />
+                <ProLogo />
             </div>
             {showSuccess ? (
                 <>
@@ -68,15 +65,15 @@ export default function RedeemCouponCodeModal({ showSuccess = false }: { showSuc
                 </>
             ) : (
                 <>
-                    <div className="mt-12 h3-new mb-2">Lifetime PRO deal</div>
-                    <div className="p3-new text-black-700 max-w-[424px] text-sm text-center mb-8">
+                    <div className="h3-new mb-2 mt-12">Lifetime PRO deal</div>
+                    <div className="p3-new text-black-700 mb-8 max-w-[424px] text-center text-sm">
                         Redeem your AppSumo coupon code for lifetime access to BetterCollected PRO or visit AppSumo to{' '}
                         <a href={environments.APP_SUMO_PRODUCT_URL} target="_blank" rel="noreferrer" className="text-brand-500 cursor-pointer">
                             get the code
                         </a>
                         .
                     </div>
-                    <div className="flex flex-col gap-2 mb-12">
+                    <div className="mb-12 flex flex-col gap-2">
                         <div>PRO includes:</div>
                         <div className="flex items-center gap-2">
                             <CircularCheck height={20} width={20} color="#B8D5FF" />
@@ -101,7 +98,7 @@ export default function RedeemCouponCodeModal({ showSuccess = false }: { showSuc
                                 }}
                                 placeholder="Enter your coupon code"
                             />
-                            <div className="h-[18px] mt-2 text-left text-sm text-red-500">{error && error}</div>
+                            <div className="mt-2 h-[18px] text-left text-sm text-red-500">{error && error}</div>
                         </div>
                         <AppButton type="submit" className="min-w-[120px]" isLoading={isLoading} size={ButtonSize.Medium}>
                             {' '}

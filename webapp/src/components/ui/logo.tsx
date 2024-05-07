@@ -52,7 +52,7 @@ Logo.defaultProps = {
 };
 export default Logo;
 
-const ProLogo = () => {
+export const ProLogo = () => {
     return (
         <div className="font-comfortaa flex h-fit flex-row  items-center rounded-[18px] bg-green-200 px-[5px] pb-[3px] pt-[5px] text-[13px] font-bold leading-[13px] text-white" style={{ background: 'linear-gradient(to right, #FFB843, #FFA004)' }}>
             <span>Pro</span>
