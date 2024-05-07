@@ -22,13 +22,12 @@ const StyledDiv = styled.div<{ $hoverColor: string }>(({ $hoverColor }) => {
     };
 });
 
-const InsertFieldComponent = ({ formFields, activeSlideComponent }: { formFields: any; activeSlideComponent: any }) => {
+const InsertFieldComponent = ({ formFields, activeSlideComponent, closeDropdown }: { formFields: any; activeSlideComponent: any; closeDropdown: () => void }) => {
     const { setActiveSlideComponent } = useActiveSlideComponent();
     const { setActiveFieldComponent } = useActiveFieldComponent();
     const { addField, addSlide, getNewField } = useFormFieldsAtom();
     const { navbarState, setNavbarState } = useNavbarState();
     const fieldId = v4();
-    const { closeDialogModal } = useDialogModal();
 
     function checkIfInputFieldExistsInSlide(slide: StandardFormFieldDto) {
         if (!slide?.properties?.fields?.length) return false;
@@ -86,15 +85,13 @@ const InsertFieldComponent = ({ formFields, activeSlideComponent }: { formFields
                 });
             }, 0);
         }
-        setNavbarState({ ...navbarState, insertClicked: false });
         setActiveFieldComponent({
             id: fieldId,
             index: (formFields[slideIndex]?.properties?.fields?.length ?? 1) - 1
         });
-        closeDialogModal();
     };
     return (
-        <div id="fields-option" className="w-full">
+        <div id="fields-option" className="h-[552px] w-[410px] bg-white">
             <div className="border-b-black-300 text-black-700 border-b p-4  text-xs">Insert Field</div>
             <div className="border-r-black-300 w-full bg-white">
                 <div className=" border-black-300 bg-new-white-200 flex w-full justify-center gap-6 border-b-[1px] p-4">
@@ -141,8 +138,8 @@ const InsertFieldComponent = ({ formFields, activeSlideComponent }: { formFields
                         </label>
                     </div>
                 </div>
-                <ScrollArea className="h-full  overflow-y-auto  overflow-x-hidden p-6 pb-0 md:h-[600px]">
-                    <div className="flex h-full w-full flex-wrap justify-center gap-[1px]">
+                <ScrollArea className="h-[462px] w-full overflow-y-auto">
+                    <div className="flex h-full w-full flex-wrap justify-center gap-[1px] py-6">
                         {Array.isArray(formFieldsList) &&
                             formFieldsList.length &&
                             formFieldsList.map(
@@ -160,6 +157,7 @@ const InsertFieldComponent = ({ formFields, activeSlideComponent }: { formFields
                                         <StyledDiv
                                             $hoverColor={field.hoverBackgroundColor}
                                             onClick={() => {
+                                                closeDropdown();
                                                 handleAddField(field);
                                                 setNavbarState({ ...navbarState, insertClicked: true });
                                                 setTimeout(() => {
