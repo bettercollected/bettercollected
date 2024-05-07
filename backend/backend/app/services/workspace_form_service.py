@@ -176,9 +176,6 @@ class WorkspaceFormService:
                     private=not standard_form.settings.is_public,
                 ),
             )
-        # await self.temporal_service.add_scheduled_job_for_importing_form(
-        #     workspace_id=workspace_id, form_id=standard_form.form_id
-        # )
 
         await event_logger_service.send_event(
             event_type=UserEventType.FORM_IMPORTED, user_id=user.id, email=user.sub
