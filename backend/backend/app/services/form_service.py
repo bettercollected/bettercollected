@@ -179,7 +179,7 @@ class FormService:
                 workspace_form.settings.private or workspace_form.settings.hidden
             ) and published:
                 form = await self._form_repo.get_latest_version_of_form(
-                    form_id=PydanticObjectId(form_id)
+                    form_id=PydanticObjectId(workspace_form.form_id)
                 )
                 return {
                     "formId": form.form_id,
@@ -203,7 +203,7 @@ class FormService:
             ).to_list()
             if not authorized_form:
                 form = await self._form_repo.get_latest_version_of_form(
-                    form_id=PydanticObjectId(form_id)
+                    form_id=PydanticObjectId(workspace_form.form_id)
                 )
                 if not form:
                     raise HTTPException(
