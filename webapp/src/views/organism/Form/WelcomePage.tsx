@@ -60,14 +60,14 @@ export default function WelcomePage({
                                 </span>
                             </>
                         ) : (
-                            <>
+                            <div className="mb-2 flex flex-wrap gap-1">
                                 To view your response later{' '}
                                 <span>
                                     <Link href={isPreviewMode ? '' : responderSignInUrl} className="text-black-800 font-medium underline">
                                         Verify Email
                                     </Link>
                                 </span>
-                            </>
+                            </div>
                         )}
                     </>
                 )}
