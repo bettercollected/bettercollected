@@ -130,12 +130,11 @@ export default function FormPage({ params }: { params: { form_id: string } }) {
         }
     }
 
-
     return (
         <main className=" flex h-screen flex-col items-center justify-start overflow-hidden bg-white">
             <Navbar />
             <AutoSaveForm formId={formId} />
-            <div className="max-h-body-content  flex w-full flex-row items-center gap-10">
+            <div className="max-h-body-content  flex w-full flex-row items-center">
                 <LeftDrawer formFields={formFields} activeSlideComponent={activeSlideComponent} />
                 <div
                     className=" relative flex max-h-full max-w-full flex-1 justify-center overflow-x-hidden px-5 py-14"

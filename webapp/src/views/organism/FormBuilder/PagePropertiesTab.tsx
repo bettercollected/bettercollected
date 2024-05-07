@@ -195,7 +195,6 @@ export default function PagePropertiesTab({}: {}) {
                                                 const fieldElement = document.getElementById(`scroll-field-${field.id}`);
                                                 fieldElement?.scrollIntoView({
                                                     behavior: 'smooth',
-                                                    block: 'end',
                                                     inline: 'center'
                                                 });
                                             }}
