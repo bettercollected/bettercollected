@@ -24,8 +24,6 @@ export async function generateMetadata({ params }: { params: { workspace_name: s
 }
 
 export default function Layout({ children, params }: { children: React.ReactNode; params: { form_id: string; workspace_name: string } }) {
-    const workspaceId = store.getState().workspace.id;
-
     return (
         <FormWrapper workspaceName={params.workspace_name} formId={params.form_id}>
             {children}

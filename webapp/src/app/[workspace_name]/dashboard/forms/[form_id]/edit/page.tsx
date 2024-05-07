@@ -130,15 +130,6 @@ export default function FormPage({ params }: { params: { form_id: string } }) {
         }
     }
 
-    // useEffect(() => {
-    //     if (navbarState.insertClicked) {
-    //         document.addEventListener('click', handleClickOutsideFieldOption);
-    //     }
-
-    //     return () => {
-    //         document.removeEventListener('click', handleClickOutsideFieldOption);
-    //     };
-    // }, [navbarState]);
 
     return (
         <main className=" flex h-screen flex-col items-center justify-start overflow-hidden bg-white">
