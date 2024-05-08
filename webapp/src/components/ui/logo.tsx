@@ -29,7 +29,7 @@ const Logo = ({ className, isLink = true, isClientDomain = false, isCustomDomain
 
     const logo = (
         <div className="flex items-center gap-2 ">
-            <BetterCollectedLogo className="h-full w-full" />
+            <BetterCollectedLogo className="h-[19px]" />
             {isProAndIsWorkspaceAdmin && showProTag && <ProLogo />}
         </div>
     );
