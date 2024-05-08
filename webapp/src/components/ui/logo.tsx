@@ -1,6 +1,3 @@
-import NewLogo from '@app/assets/images/new_logo.png';
-import Image from 'next/image';
-
 import AnchorLink from '@app/components/ui/links/anchor-link';
 import { selectAuth } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
@@ -32,7 +29,7 @@ const Logo = ({ className, isLink = true, isClientDomain = false, isCustomDomain
 
     const logo = (
         <div className="flex items-center gap-2 ">
-            <BetterCollectedLogo />
+            <BetterCollectedLogo className="h-[19px]" />
             {isProAndIsWorkspaceAdmin && showProTag && <ProLogo />}
         </div>
     );

@@ -8,7 +8,6 @@ import { Input } from '@app/shadcn/components/ui/input';
 import { useActiveSlideComponent } from '@app/store/jotai/activeBuilderComponent';
 import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
 import { useFormState } from '@app/store/jotai/form';
-import { useNavbarState } from '@app/store/jotai/navbar';
 
 export default function AddFormTitleModal() {
     const { formState, setFormState } = useFormState();
@@ -16,7 +15,6 @@ export default function AddFormTitleModal() {
     const [title, setTitle] = useState('New Form');
     const { formFields } = useFormFieldsAtom();
     const { setActiveSlideComponent } = useActiveSlideComponent();
-    const { navbarState, setNavbarState } = useNavbarState();
 
     const { closeDialogModal } = useDialogModal();
     return (
@@ -33,20 +31,14 @@ export default function AddFormTitleModal() {
                         id: formFields?.[0]?.id,
                         index: 0
                     });
-                }, 100);
+                }, 300);
                 closeDialogModal();
             }}
         >
-            <div className="p2-new border-b border-b-black-300 p-4 ">
-                Create New Form
-            </div>
+            <div className="p2-new border-b-black-300 border-b p-4 ">Create New Form</div>
             <div className="px-10 py-6">
-                <div className="tex-black-800 text-normal font-semibold">
-                    Give name to your form
-                </div>
-                <div className="mb-2 text-xs text-black-700">
-                    You can always change it later.
-                </div>
+                <div className="tex-black-800 text-normal font-semibold">Give name to your form</div>
+                <div className="text-black-700 mb-2 text-xs">You can always change it later.</div>
                 <Input
                     type="text"
                     value={title}

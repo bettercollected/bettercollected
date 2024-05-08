@@ -2,19 +2,18 @@ import React, { useState } from 'react';
 
 import { useRouter } from 'next/router';
 
-import BetterCollectedLogo from '@Components/Common/Icons/Common/BetterCollectedLogo';
 import CircularCheck from '@Components/Common/Icons/Common/CircularCheck';
-import Pro from '@Components/Common/Icons/Dashboard/Pro';
 import AppTextField from '@Components/Common/Input/AppTextField';
 import AppButton from '@Components/Common/Input/Button/AppButton';
 import { ButtonSize } from '@Components/Common/Input/Button/AppButtonProps';
 import CloseModal from '@Components/Modals/CloseModal';
 
 import { useModal } from '@app/components/modal-views/context';
+import { ProLogo } from '@app/components/ui/logo';
 import environments from '@app/configs/environments';
 import { useRedeemCouponCodeMutation } from '@app/store/coupon-code/api';
 import { fireworks } from '@app/utils/confetti';
-import { ProLogo } from '@app/components/ui/logo';
+import BetterCollectedLogo from '@app/views/atoms/Icons/BetterCollectedLogo';
 
 export default function RedeemCouponCodeModal({ showSuccess = false }: { showSuccess?: boolean }) {
     const [error, setError] = useState('');
@@ -45,7 +44,7 @@ export default function RedeemCouponCodeModal({ showSuccess = false }: { showSuc
         <div className="relative flex flex-col items-center justify-center rounded-md bg-white px-5 pb-10 pt-8 lg:min-w-[600px]">
             <CloseModal />
             <div className="pointer-events-none flex items-center">
-                <BetterCollectedLogo className="h-4 w-40" />
+                <BetterCollectedLogo className="h-[19px]" />
                 <ProLogo />
             </div>
             {showSuccess ? (
