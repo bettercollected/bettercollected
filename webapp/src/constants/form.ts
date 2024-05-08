@@ -25,19 +25,16 @@ export const defaultForm: StandardFormDto = {
                         }
                     }
                 ]
-            },
-            imageUrl: 'https://s3.eu-central-1.wasabisys.com/bettercollected/images/v2defaultImage.png'
+            }
         }
     ],
     welcomePage: {
         title: '',
-        layout: FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT,
-        imageUrl: 'https://s3.eu-central-1.wasabisys.com/bettercollected/images/v2defaultImage.png'
+        layout: FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT
     },
     thankyouPage: [
         {
-            layout: FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT,
-            imageUrl: 'https://s3.eu-central-1.wasabisys.com/bettercollected/images/v2defaultImage.png'
+            layout: FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT
         }
     ],
     theme: {
