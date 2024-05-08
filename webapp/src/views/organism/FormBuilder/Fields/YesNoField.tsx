@@ -15,7 +15,8 @@ const YesNoField = ({ field, slide, disabled }: { field: StandardFormFieldDto; s
                             <RadioGroup.Option value={choice.value} key={index}>
                                 <div
                                     style={{
-                                        borderColor: slide.properties?.theme?.tertiary || theme?.tertiary
+                                        borderColor: slide.properties?.theme?.tertiary || theme?.tertiary,
+                                        color: theme?.secondary
                                     }}
                                     className={`flex justify-between rounded-xl border p-2 px-4`}
                                 >
