@@ -19,6 +19,9 @@ const CustomPhoneInputField = styled(PhoneInput)(() => {
     const accentColor = theme?.accent;
 
     return {
+        '&.react-tel-input ::placeholder': {
+            color: `${tertiaryColor} !important`
+        },
         '&.react-tel-input .flag-dropdown.open .selected-flag': {
             background: accentColor,
             '&:hover': {
@@ -26,10 +29,10 @@ const CustomPhoneInputField = styled(PhoneInput)(() => {
             }
         },
         '&.react-tel-input .flag-dropdown .selected-flag': {
-            background: accentColor
-            // '&:hover': {
-            //     background: tertiaryColor
-            // }
+            background: accentColor,
+            width: '40px',
+            height: '40px',
+            scale: 2
         },
         '&.react-tel-input .country-list .country': {
             background: accentColor,
@@ -91,11 +94,12 @@ export default function PhoneNumberField({ field }: { field: StandardFormFieldDt
                     dropdownStyle={{ background: theme?.accent }}
                     inputStyle={{
                         border: '0px',
-                        borderBottom: `1px solid ${theme?.tertiary}`
+                        borderBottom: `1px solid ${theme?.tertiary}`,
+                        color: theme?.secondary
                     }}
                     placeholder={field?.properties?.placeholder || getPlaceholderValueForField(field.type)}
                     inputProps={{
-                        className: 'bg-opacity-50 mx-14 border-0 border-b-[1px] w-full focus:w-[93%]',
+                        className: 'text-[32px] bg-opacity-50 mx-14 border-0 border-b-[1px] w-[93%] ',
                         id: `input-field-${field.id}`
                     }}
                 />
