@@ -15,7 +15,7 @@ interface IFieldInputWrapper extends React.InputHTMLAttributes<HTMLInputElement>
     isOptionsInput?: boolean;
 }
 
-export const FieldInputWrapper = ({ id, slide, value, onChange, type = 'text', style, isOptionsInput, ...props }: IFieldInputWrapper) => {
+export const FieldInputWrapper = ({ id, slide, value, onChange, type = 'text', style, isOptionsInput = false, ...props }: IFieldInputWrapper) => {
     const [inputVal, setInputVal] = useState(value);
     const [debouncedInputValue] = useDebounceValue(inputVal, 300);
 

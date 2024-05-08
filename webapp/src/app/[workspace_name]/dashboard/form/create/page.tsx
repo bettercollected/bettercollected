@@ -20,6 +20,7 @@ import NavBar from '@app/views/molecules/FormBuilder/Navbar';
 import WelcomePage from '@app/views/organism/Form/WelcomePage';
 import LayoutWrapper from '@app/views/organism/Layout/LayoutWrapper';
 import useDrivePicker from '@fyelci/react-google-drive-picker';
+import { getDefaultImageFromUnsplash } from '@app/lib/getDefaultImageFromUnsplash';
 
 const CardVariants = {
     blue: 'text-blue-500 hover:bg-blue-100 transition hover:border-blue-100',
@@ -42,7 +43,15 @@ export default function CreateFormPage() {
     const handleCreateForm = async (type: string) => {
         const isMultiPage = type === 'Modern Form';
         resetFields();
-        const formBody = { ...defaultForm, builderVersion: 'v2', isMultiPage };
+        const imageResponse = await getDefaultImageFromUnsplash('minimal');
+        const newPics = imageResponse?.response?.results;
+        const randomIndexes = Array.from({ length: 3 }, () => Math.floor(Math.random() * 10));
+        const pic = newPics?.filter((item: any, index: number) => randomIndexes.includes(index));
+        const updatedForm = { ...defaultForm };
+        updatedForm.fields[0].imageUrl = (pic && pic[1]?.urls?.full) || 'https://s3.eu-central-1.wasabisys.com/bettercollected/images/v2defaultImage.png';
+        updatedForm.welcomePage!.imageUrl = (pic && pic[0]?.urls?.full) || 'https://s3.eu-central-1.wasabisys.com/bettercollected/images/v2defaultImage.png';
+        updatedForm.thankyouPage![0].imageUrl = (pic && pic[2]?.urls?.full) || 'https://s3.eu-central-1.wasabisys.com/bettercollected/images/v2defaultImage.png';
+        const formBody = { ...updatedForm, builderVersion: 'v2', isMultiPage };
         const formData = new FormData();
         formData.append('form_body', JSON.stringify(formBody));
         const apiRequestBody: any = { workspaceId: workspace.id, body: formData };

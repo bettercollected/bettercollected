@@ -27,8 +27,8 @@ export default function AddSlidePopover() {
                     }}
                 >
                     <PopoverTrigger>
-                        <div className="text-black-300 hover:text-black-800 hover:bg-black-200 flex h-6 w-6 items-center justify-center rounded-sm">
-                            <PlusIcon className=" h-5 w-5" strokeWidth={'1.5'} />
+                        <div className="text-black-300  hover:bg-black-200 flex h-6 w-6 items-center justify-center rounded-sm">
+                            <PlusIcon className=" text-black-600 hover:text-black-800 h-5 w-5 " strokeWidth={'1.5'} />
                         </div>
                     </PopoverTrigger>
                     <PopoverContent side="right" align="start" asChild className="w-[391px] p-0">

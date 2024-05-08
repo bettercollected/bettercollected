@@ -39,7 +39,7 @@ const YesNoField = ({ field }: { field: StandardFormFieldDto }) => {
         <QuestionWrapper field={field}>
             <RadioGroup
                 value={getValue()}
-                className={'flex w-full flex-col gap-2'}
+                className={'flex w-min flex-col gap-2'}
                 onChange={(value) => {
                     addFieldBooleanAnswer(field.id, !!value);
                     setTimeout(() => {
@@ -57,7 +57,8 @@ const YesNoField = ({ field }: { field: StandardFormFieldDto }) => {
                                             $theme={theme}
                                             style={{
                                                 borderColor: theme?.tertiary,
-                                                background: active || checked ? theme?.tertiary : ''
+                                                background: active || checked ? theme?.tertiary : '',
+                                                color: theme?.secondary
                                             }}
                                             className={`flex cursor-pointer justify-between rounded-xl border p-2 px-4`}
                                         >

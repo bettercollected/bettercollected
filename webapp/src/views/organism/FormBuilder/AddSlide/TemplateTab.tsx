@@ -11,11 +11,8 @@ import WelcomePage from '@app/views/organism/Form/WelcomePage';
 import FormSlidePreview from '@app/views/organism/FormPreview/FormSlidePreview';
 import LayoutWrapper from '@app/views/organism/Layout/LayoutWrapper';
 
-
 export default function TemplateTab({ closePopover }: { closePopover: () => void }) {
-    const [selectedTemplate, setSelectedTemplate] = useState<
-        IFormTemplateDto | undefined
-    >();
+    const [selectedTemplate, setSelectedTemplate] = useState<IFormTemplateDto | undefined>();
 
     const { addSlideFormTemplate } = useFormFieldsAtom();
     const { theme } = useFormState();
@@ -28,14 +25,12 @@ export default function TemplateTab({ closePopover }: { closePopover: () => void
                     <div className="mb-2 flex items-center gap-2">
                         <ChevronLeft
                             size={24}
-                            className="cursor-pointer hover:bg-black-100"
+                            className="hover:bg-black-100 cursor-pointer"
                             onClick={() => {
                                 setSelectedTemplate(undefined);
                             }}
                         />
-                        <span className="text-xs font-medium ">
-                            {selectedTemplate?.title || 'Untitled'}
-                        </span>
+                        <span className="text-xs font-medium ">{selectedTemplate?.title || 'Untitled'}</span>
                     </div>
                     <ScrollArea className="h-[495px] overflow-auto">
                         <div className="flex !h-full w-full flex-row flex-wrap gap-2 overflow-auto">
@@ -48,15 +43,9 @@ export default function TemplateTab({ closePopover }: { closePopover: () => void
                                     className="mb-2 flex w-min cursor-pointer flex-col  rounded-lg border border-transparent p-1 hover:border-pink-500"
                                     key={slide?.id}
                                 >
-                                    <div className="relative aspect-video w-[160px] overflow-hidden rounded-md border border-black-300">
-                                        <div
-                                            className="pointer-events-none h-[720px] w-[1280px] scale-[0.125]"
-                                            style={{ transformOrigin: 'top left' }}
-                                        >
-                                            <FormSlidePreview
-                                                slide={slide}
-                                                theme={theme}
-                                            />
+                                    <div className="border-black-300 relative aspect-video w-[160px] overflow-hidden rounded-md border">
+                                        <div className="pointer-events-none h-[720px] w-[1280px] scale-[0.125]" style={{ transformOrigin: 'top left' }}>
+                                            <FormSlidePreview slide={slide} theme={theme} />
                                         </div>
                                     </div>
                                 </div>
@@ -67,44 +56,25 @@ export default function TemplateTab({ closePopover }: { closePopover: () => void
             )}
             {!selectedTemplate && (
                 <>
-                    <div className="mb-2 flex h-6 items-center text-xs font-medium">
-                        Templates
-                    </div>
+                    <div className="mb-2 flex h-6 items-center text-xs font-medium">Templates</div>
                     <ScrollArea className="h-[495px] overflow-auto">
                         <div className="flex w-full flex-row flex-wrap ">
                             {templates?.map((template) => (
                                 <div
-                                    className="mb-2 flex cursor-pointer flex-col rounded-lg border border-transparent p-1 hover:border-pink-500"
+                                    className="hover:bg-black-200 border-black-200 mb-2 flex w-fit cursor-pointer flex-col gap-1 rounded-lg border border-transparent p-1 transition-all"
                                     key={template?.id}
                                     onClick={() => {
                                         setSelectedTemplate(template);
                                     }}
                                 >
-                                    <div className="relative aspect-video w-[160px] overflow-hidden rounded-md border border-black-300">
-                                        <div
-                                            className="pointer-events-none h-[810px] w-[1440px] scale-[0.116666667]"
-                                            style={{ transformOrigin: 'top left' }}
-                                        >
-                                            <LayoutWrapper
-                                                theme={theme}
-                                                disabled
-                                                layout={template.welcomePage?.layout}
-                                                imageUrl={
-                                                    template?.welcomePage?.imageUrl
-                                                }
-                                            >
-                                                <WelcomePage
-                                                    isPreviewMode
-                                                    welcomePageData={
-                                                        template?.welcomePage
-                                                    }
-                                                />
+                                    <div className="border-black-300 relative aspect-video w-[160px] overflow-hidden rounded-md border">
+                                        <div className="pointer-events-none h-[810px] w-[1440px] scale-[0.116666667]" style={{ transformOrigin: 'top left' }}>
+                                            <LayoutWrapper theme={theme} disabled layout={template.welcomePage?.layout} imageUrl={template?.welcomePage?.imageUrl}>
+                                                <WelcomePage isPreviewMode welcomePageData={template?.welcomePage} />
                                             </LayoutWrapper>
                                         </div>
                                     </div>
-                                    <div className="p2-new mt-2 !font-medium">
-                                        {template.title}
-                                    </div>
+                                    <div className="text-black-600 text-[10px] font-medium ">{template.title}</div>
                                 </div>
                             ))}
                         </div>
