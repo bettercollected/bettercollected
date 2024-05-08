@@ -53,7 +53,7 @@ export default function FormPublishedModal(props: any) {
                     </span>
                 </div>
                 <div className="mb-5 mt-5">
-                    <a href={`${environments.HTTP_SCHEME}${environments.DASHBOARD_DOMAIN}/${workspace.workspaceName}/dashboard`}>
+                    <a href={`${environments.HTTP_SCHEME}${environments.DASHBOARD_DOMAIN}/${workspace.workspaceName}/dashboard/forms`}>
                         <Button size={ButtonSize.Medium}>Done! Go to dashboard</Button>
                     </a>
                 </div>
