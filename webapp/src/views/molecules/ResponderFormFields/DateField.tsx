@@ -90,7 +90,14 @@ function DateFieldSection({ field, slide, isBuilder }: IDateField) {
     return (
         <div className="flex flex-col gap-1">
             <div className="flex flex-row items-center gap-4" id={`input-field-${field.id}`}>
-                <FieldInput id={isBuilder ? 'day' : `day-${field.id}`} type="number" placeholder="DD" className={cn(inputClassName, isBuilder && 'pointer-events-none')} value={getUnformattedDate(answer)[2]} onChange={(e) => handleDateChange(e, 'day')} />
+                <FieldInput
+                    id={isBuilder ? 'day' : `day-${field.id}`}
+                    type="number"
+                    placeholder="DD"
+                    className={cn(inputClassName, isBuilder && 'pointer-events-none')}
+                    value={isBuilder ? '' : getUnformattedDate(answer)[2]}
+                    onChange={(e) => handleDateChange(e, 'day')}
+                />
                 <div
                     style={{
                         background: slide?.properties?.theme?.secondary || theme?.secondary
@@ -102,7 +109,7 @@ function DateFieldSection({ field, slide, isBuilder }: IDateField) {
                     type="number"
                     placeholder="MM"
                     className={cn(inputClassName, isBuilder && 'pointer-events-none')}
-                    value={getUnformattedDate(answer)[1]}
+                    value={isBuilder ? '' : getUnformattedDate(answer)[1]}
                     onChange={(e) => handleDateChange(e, 'month')}
                 />
                 <div
@@ -115,7 +122,7 @@ function DateFieldSection({ field, slide, isBuilder }: IDateField) {
                     id={isBuilder ? 'year' : `year-${field.id}`}
                     type="number"
                     placeholder="YYYY"
-                    value={getUnformattedDate(answer)[0]}
+                    value={isBuilder ? '' : getUnformattedDate(answer)[0]}
                     className={cn(inputClassName, isBuilder && 'pointer-events-none', 'w-24')}
                     onChange={(e) => handleDateChange(e, 'year')}
                     onBlur={(e) => handleBlurValidation(e, '')}
