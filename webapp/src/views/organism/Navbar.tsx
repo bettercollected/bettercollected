@@ -141,14 +141,14 @@ const Navbar = () => {
 
     return (
         <div id="navbar" className="border-b-black-300 flex h-16 w-full justify-between border-b-[1px] p-4">
-            <div className={'flex items-center gap-2'}>
+            <div className={'flex items-center gap-[2px]'}>
                 <div
-                    className={'bg-brand-500 active:bg-brand-600 mr-4 cursor-pointer rounded-[5px] p-[6px] text-white shadow'}
+                    className={'bg-brand-500 active:bg-brand-600 cursor-pointer rounded-[5px] p-[6px] text-white shadow'}
                     onClick={() => {
-                        router.push('/' + workspace.workspaceName + '/dashboard');
+                        router.push('/' + workspace.workspaceName + '/dashboard/forms');
                     }}
                 >
-                    <NewBetterCollectedSmallLogo />
+                    <NewBetterCollectedSmallLogo width={17} height={19} />
                 </div>
                 <input
                     type="text"
