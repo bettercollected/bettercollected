@@ -242,8 +242,8 @@ const Navbar = () => {
                     <SheetContent className="h-full w-full p-0" side={'bottom'} hideCloseIcon>
                         <SheetFooter>
                             <SheetClose asChild onClick={handleResetResponderState}>
-                                <div className="absolute left-4 top-3  z-50 ">
-                                    <BackButton />
+                                <div className="absolute left-4 top-3 z-50 ">
+                                    <BackButton hideForSmallScreen />
                                 </div>
                             </SheetClose>
                         </SheetFooter>
@@ -264,3 +264,4 @@ const Navbar = () => {
     );
 };
 export default Navbar;
+
