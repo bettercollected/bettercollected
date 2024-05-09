@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 
 import { atom, useAtom } from 'jotai';
 
+import ShareView from '@app/components/ui/share-view';
 import { Dialog, DialogContent } from '@app/shadcn/components/ui/dialog';
 import { cn } from '@app/shadcn/util/lib';
 import { selectForm } from '@app/store/forms/slice';
@@ -14,7 +15,7 @@ import AddFormTitleModal from '@app/views/molecules/Dialogs/AddFormTitleModal';
 import FormPublishedModal from '@app/views/molecules/Dialogs/FormPublishedModal';
 import UnsplashImagePicker from '@app/views/molecules/UnsplashImagePicker';
 
-export type DIALOG_MODALS = 'ADD_FORM_TITLE' | 'UNSPLASH_IMAGE_PICKER' | 'FORM_PUBLISHED' | '';
+export type DIALOG_MODALS = 'ADD_FORM_TITLE' | 'UNSPLASH_IMAGE_PICKER' | 'FORM_PUBLISHED' | 'SHARE_FORM_MODAL' | '';
 
 export interface ModalState {
     isOpen: boolean;
@@ -73,6 +74,8 @@ const GetModalToRender = (view?: DIALOG_MODALS, props?: any) => {
             return <UnsplashImagePicker initialPhotoSearchQuery={unsplashDefaultImageValue(form?.theme?.title || 'Minimal')} {...props} />;
         case 'FORM_PUBLISHED':
             return <FormPublishedModal {...props} />;
+        case 'SHARE_FORM_MODAL':
+            return <ShareView {...props} />;
         default:
             return <></>;
     }
@@ -82,10 +85,18 @@ const getClassName = (view?: DIALOG_MODALS) => {
     switch (view) {
         case 'FORM_PUBLISHED':
             return 'md:!min-w-[760px]';
+        case 'SHARE_FORM_MODAL':
+            return 'md:!min-w-fit';
         default:
             return <></>;
     }
 };
+
+function shouldHideCloseIcon(view?: DIALOG_MODALS) {
+    const ViewWithHideCloseIcon = ['SHAREE_FORM_MODAL'];
+    if (ViewWithHideCloseIcon.includes(view || 'SHARE_FORM_MODAL')) return true;
+    else return false;
+}
 
 export function DialogModalContainer() {
     const { isOpen, view, closeDialogModal, props } = useDialogModal();
@@ -104,7 +115,23 @@ export function DialogModalContainer() {
                 closeDialogModal();
             }}
         >
-            <DialogContent className={cn('!bg-white !p-0', getClassName(view))}>{GetModalToRender(view, props)}</DialogContent>
+            <DialogContent onClickCloseIcon={closeDialogModal} className={cn('!bg-white !p-0', getClassName(view))}>
+                {GetModalToRender(view, props)}
+                {shouldHideCloseIcon(view) && (
+                    <div
+                        onClick={(e: any) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            closeDialogModal();
+                        }}
+                        className="hover:bg-black-200 absolute right-4 top-3 rounded-md  disabled:pointer-events-none"
+                    >
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M19 5L5 19M5.00001 5L19 19" stroke="#6E6E6E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                    </div>
+                )}
+            </DialogContent>
         </Dialog>
     );
 }
