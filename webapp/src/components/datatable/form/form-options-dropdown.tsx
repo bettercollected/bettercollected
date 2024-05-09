@@ -33,6 +33,7 @@ import { useDuplicateFormMutation, useGetAllRespondersGroupQuery, usePatchFormSe
 import getFormShareURL from '@app/utils/formUtils';
 import { validateFormOpen } from '@app/utils/validationUtils';
 import { getEditFormURL } from '@app/utils/urlUtils';
+import { useIsMobile } from '@app/lib/hooks/use-breakpoint';
 
 interface IFormOptionsDropdownMenuProps {
     workspace: WorkspaceDto;
@@ -61,6 +62,7 @@ export default function FormOptionsDropdownMenu({ workspace, form, hasCustomDoma
     const { t } = useTranslation();
 
     const isCustomDomain = !!workspace.customDomain;
+    const isMobile = useIsMobile();
 
     const clientHost = `${environments.CLIENT_DOMAIN.includes('localhost') ? 'http' : 'https'}://${environments.CLIENT_DOMAIN}/${workspace.workspaceName}/forms`;
     const customDomain = `${environments.CLIENT_DOMAIN.includes('localhost') ? 'http' : 'https'}://${workspace.customDomain}/forms`;
@@ -227,7 +229,7 @@ export default function FormOptionsDropdownMenu({ workspace, form, hasCustomDoma
                         menuItemPinSettings
                     ))}
                 {menuItemOpen}
-                {currentActiveForm?.form?.settings?.provider === 'self' && form?.builderVersion === 'v2' && environments.ENABLE_FORM_BUILDER && menuItemEdit}
+                {currentActiveForm?.form?.settings?.provider === 'self' && form?.builderVersion === 'v2' && environments.ENABLE_FORM_BUILDER && !isMobile && menuItemEdit}
                 {form?.isPublished && !form?.settings?.hidden && isFormOpen && menuItemCopy}
                 {form?.isPublished && !form?.settings?.hidden && isFormOpen && menuItemCustomizeLink}
                 {form?.isPublished && menuItemAddToGroup}

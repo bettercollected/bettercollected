@@ -18,7 +18,8 @@ export type FULL_SCREEN_MODALS =
     | 'WORKSPACE_SETTINGS'
     | 'CREATE_GROUP'
     | 'DELETE_ACCOUNT'
-    | 'VIEW_RESPONSE';
+    | 'VIEW_RESPONSE'
+    | 'PREVIEW_MODAL';
 
 const modalAtom = atom<{
     isOpen: boolean;

@@ -90,7 +90,7 @@ const LayoutWrapper = ({ layout, theme, imageUrl, updatePageImage, updatePageLay
                 }}
                 className={cn(
                     showDesktopLayout ? 'grid' : 'flex lg:grid',
-                    'relative  h-full w-full flex-grow overflow-hidden rounded-lg !bg-transparent',
+                    'relative  h-full w-full flex-grow overflow-hidden !bg-transparent lg:rounded-lg',
                     layout === FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT ? 'flex-col-reverse justify-end' : 'flex-col justify-end',
                     layout === FormSlideLayout.TWO_COLUMN_IMAGE_LEFT || layout === FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT ? 'grid-cols-2' : 'grid-cols-1',
                     disabled ? 'h-full overflow-hidden' : ''

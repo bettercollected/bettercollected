@@ -763,7 +763,8 @@ export default {
             fit: 'fit-content',
             'body-content': 'calc(100vh - 64px)',
             'design-content': 'calc(100vh - 165px)',
-            'pages-container': 'calc(100% - 332px)'
+            'pages-container': 'calc(100% - 332px)',
+            'preview-page': 'calc(100vh - 109px)',
         }),
         hueRotate: {
             0: '0deg',

@@ -13,192 +13,193 @@ on:
       - develop
 
 jobs:
-    test:
-        runs-on: ubuntu-latest
-        steps:
-            - name: Checkout code with submodules
-              uses: actions/checkout@v2
-              with:
-                  submodules: "recursive"
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code with submodules
+        uses: actions/checkout@v2
+        with:
+          submodules: "recursive"
 
-            - name: Set up Python
-              uses: actions/setup-python@v3
-              with:
-                  python-version: 3.10.12
+      - name: Set up Python
+        uses: actions/setup-python@v3
+        with:
+          python-version: 3.10.12
 
-            - uses: actions/cache@v3
-              with:
-                  path: ~/.cache/pip
-                  key: ${{ runner.os }}-pip
-                  restore-keys: ${{ runner.os }}-pip
+      - uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip
+          restore-keys: ${{ runner.os }}-pip
 
-            - name: Install Poetry
-              uses: snok/install-poetry@v1
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
 
-            - name: Install dependencies
-              run: |
-                  poetry --version
-                  poetry install --no-interaction
-              working-directory: backend
+      - name: Install dependencies
+        run: |
+          poetry --version
+          poetry install --no-interaction
+        working-directory: backend
 
-            - name: Run test cases on backend
-              id: test-backend
-              env:
-                  AUTH_AES_HEX_KEY: L5HuSlk0ijI3xzaccuy2x1jnzHNjtTw3zW53tjGHZG0=
-                  AUTH_JWT_SECRET: c3c66ff889b1deabc35ebb3cf07374f1fd934f0f0185eec076b5bcd874de86d5
-                  SCHEDULAR_ENABLED: "False"
-                  API_ENABLE_FORM_CREATION: "True"
-                  MASTER_ENCRYPTION_KEYSET: "ewogICAgICAgICAgImtleSI6IFt7CiAgICAgICAgICAgICAgImtleURhdGEiOiB7CiAgICAgICAgICAgICAgICAgICJrZXlNYXRlcmlhbFR5cGUiOgogICAgICAgICAgICAgICAgICAgICAgIlNZTU1FVFJJQyIsCiAgICAgICAgICAgICAgICAgICJ0eXBlVXJsIjoKICAgICAgICAgICAgICAgICAgICAgICJ0eXBlLmdvb2dsZWFwaXMuY29tL2dvb2dsZS5jcnlwdG8udGluay5BZXNHY21LZXkiLAogICAgICAgICAgICAgICAgICAidmFsdWUiOgogICAgICAgICAgICAgICAgICAgICAgIkdpQld5VWZHZ1lrM1JUUmhqL0xJVXpTdWRJV2x5akNmdENPeXBUcjBqQ05TTGc9PSIKICAgICAgICAgICAgICB9LAogICAgICAgICAgICAgICJrZXlJZCI6IDI5NDQwNjUwNCwKICAgICAgICAgICAgICAib3V0cHV0UHJlZml4VHlwZSI6ICJUSU5LIiwKICAgICAgICAgICAgICAic3RhdHVzIjogIkVOQUJMRUQiCiAgICAgICAgICB9XSwKICAgICAgICAgICJwcmltYXJ5S2V5SWQiOiAyOTQ0MDY1MDQKICAgICAgfQ=="
-              run: |
-                  poetry run pytest --github-report
-              working-directory: backend
+      - name: Run test cases on backend
+        id: test-backend
+        env:
+          AUTH_AES_HEX_KEY: L5HuSlk0ijI3xzaccuy2x1jnzHNjtTw3zW53tjGHZG0=
+          AUTH_JWT_SECRET: c3c66ff889b1deabc35ebb3cf07374f1fd934f0f0185eec076b5bcd874de86d5
+          SCHEDULAR_ENABLED: "False"
+          API_ENABLE_FORM_CREATION: "True"
+          MASTER_ENCRYPTION_KEYSET: "ewogICAgICAgICAgImtleSI6IFt7CiAgICAgICAgICAgICAgImtleURhdGEiOiB7CiAgICAgICAgICAgICAgICAgICJrZXlNYXRlcmlhbFR5cGUiOgogICAgICAgICAgICAgICAgICAgICAgIlNZTU1FVFJJQyIsCiAgICAgICAgICAgICAgICAgICJ0eXBlVXJsIjoKICAgICAgICAgICAgICAgICAgICAgICJ0eXBlLmdvb2dsZWFwaXMuY29tL2dvb2dsZS5jcnlwdG8udGluay5BZXNHY21LZXkiLAogICAgICAgICAgICAgICAgICAidmFsdWUiOgogICAgICAgICAgICAgICAgICAgICAgIkdpQld5VWZHZ1lrM1JUUmhqL0xJVXpTdWRJV2x5akNmdENPeXBUcjBqQ05TTGc9PSIKICAgICAgICAgICAgICB9LAogICAgICAgICAgICAgICJrZXlJZCI6IDI5NDQwNjUwNCwKICAgICAgICAgICAgICAib3V0cHV0UHJlZml4VHlwZSI6ICJUSU5LIiwKICAgICAgICAgICAgICAic3RhdHVzIjogIkVOQUJMRUQiCiAgICAgICAgICB9XSwKICAgICAgICAgICJwcmltYXJ5S2V5SWQiOiAyOTQ0MDY1MDQKICAgICAgfQ=="
+        run: |
+          poetry run pytest --github-report
+        working-directory: backend
 
-    build_on_pr:
-        if: github.event_name == 'pull_request'
-        needs: test
-        strategy:
-            matrix:
-                service:
-                    - webapp
+  build_on_pr:
+    if: github.event_name == 'pull_request'
+    needs: test
+    strategy:
+      matrix:
+        service:
+          - webapp
 
-        runs-on: ubuntu-latest
-        steps:
-            - name: Checkout code with submodules
-              uses: actions/checkout@v2
-              with:
-                  submodules: "recursive"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code with submodules
+        uses: actions/checkout@v2
+        with:
+          submodules: "recursive"
 
-            - name: Set up Docker
-              uses: docker/login-action@v1
-              with:
-                  registry: docker.io
-                  username: ${{ secrets.DOCKER_USERNAME }}
-                  password: ${{ secrets.DOCKER_TOKEN }}
+      - name: Set up Docker
+        uses: docker/login-action@v1
+        with:
+          registry: docker.io
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_TOKEN }}
 
-            - name: Build and Push Docker image
-              id: docker_build
-              env:
-                  SERVICE_TAG: ${{ matrix.service }}
-              run: |
-                  SERVICE_TAG=${SERVICE_TAG//\//-}
-                  docker build -f ${{ matrix.service }}/Dockerfile -t bettercollected/${SERVICE_TAG}:${{ github.sha }} .
+      - name: Build and Push Docker image
+        id: docker_build
+        env:
+          SERVICE_TAG: ${{ matrix.service }}
+        run: |
+          SERVICE_TAG=${SERVICE_TAG//\//-}
+          docker build -f ${{ matrix.service }}/Dockerfile -t bettercollected/${SERVICE_TAG}:${{ github.sha }} .
 
-    build_and_push:
-        if: github.event_name != 'pull_request'
-        needs: test
-        strategy:
-            matrix:
-                service:
-                    - auth
-                    - backend
-                    - integrations/google
-                    - integrations/typeform
-                    - webapp
-                    - temporal/worker
-                    - temporal/actions-executor
-                    - temporal/csv-worker
-        runs-on: ubuntu-latest
-        steps:
-            - name: Checkout code with submodules
-              uses: actions/checkout@v2
+  build_and_push:
+    if: github.event_name != 'pull_request'
+    needs: test
+    strategy:
+      matrix:
+        service:
+          - auth
+          - backend
+          - integrations/google
+          - integrations/typeform
+          - webapp
+          - temporal/worker
+          - temporal/actions-executor
+          - temporal/csv-worker
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code with submodules
+        uses: actions/checkout@v2
 
-            - name: Set up Docker
-              uses: docker/login-action@v1
-              with:
-                  registry: docker.io
-                  username: ${{ secrets.DOCKER_USERNAME }}
-                  password: ${{ secrets.DOCKER_TOKEN }}
+      - name: Set up Docker
+        uses: docker/login-action@v1
+        with:
+          registry: docker.io
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_TOKEN }}
 
-            - name: Build and Push Docker image
-              id: docker_build
-              env:
-                  SERVICE_TAG: ${{ matrix.service }}
-              run: |
-                  SERVICE_TAG=${SERVICE_TAG//\//-}
-                  NEXT_PUBLIC_UNSPLASH_ACCESS_KEY=${{ vars.UNSPLASH_ACCESS_KEY }}
-                  if [[ "${{ github.ref }}" = "refs/heads/develop" ]]; then
-                    API_ENDPOINT_HOST=${{ vars.DEVELOP_API }}
-                    DASHBOARD_DOMAIN=${{ vars.DEVELOP_DASHBOARD }}
-                    FORM_DOMAIN=${{ vars.DEVELOP_CLIENT }}
-                  fi
-                  if [[ "${{ github.ref }}" = "refs/heads/master" ]]; then
-                    API_ENDPOINT_HOST=${{ vars.STAGING_API }}
-                    DASHBOARD_DOMAIN=${{ vars.STAGING_DASHBOARD }}
-                    FORM_DOMAIN=${{ vars.STAGING_CLIENT }}
-                  fi
-                  if [[ "${{ github.ref }}" = "refs/heads/feature/slide-formbuilder" ]]; then
-                    API_ENDPOINT_HOST=${{ vars.BUILDER_API }}
-                    DASHBOARD_DOMAIN=${{ vars.BUILDER_DASHBOARD }}
-                    FORM_DOMAIN=${{ vars.BUILDER_CLIENT }}
-                  fi
-                  if [[ "${{ github.ref }}" =~ ^refs/tags/ ]]; then
-                    API_ENDPOINT_HOST=${{ vars.PROD_API }}
-                    DASHBOARD_DOMAIN=${{ vars.PROD_DASHBOARD }}
-                    FORM_DOMAIN=${{ vars.PROD_CLIENT }}
-                  fi
-                  docker build --build-arg NEXT_PUBIC_API_ENDPOINT_HOST="${API_ENDPOINT_HOST}" --build-arg NEXT_PUBLIC_UNSPLASH_ACCESS_KEY=${NEXT_PUBLIC_UNSPLASH_ACCESS_KEY} --build-arg NEXT_PUBLIC_DASHBOARD_DOMAIN=${DASHBOARD_DOMAIN} --build-arg NEXT_PUBLIC_FORM_DOMAIN=${FORM_DOMAIN} -f ${{ matrix.service }}/Dockerfile -t bettercollected/${SERVICE_TAG}:${{ github.sha }} .
-                  docker push bettercollected/${SERVICE_TAG}:${{ github.sha }}
+      - name: Build and Push Docker image
+        id: docker_build
+        env:
+          SERVICE_TAG: ${{ matrix.service }}
+        run: |
+          SERVICE_TAG=${SERVICE_TAG//\//-}
+          NEXT_PUBLIC_UNSPLASH_ACCESS_KEY=${{ vars.UNSPLASH_ACCESS_KEY }}
+          if [[ "${{ github.ref }}" = "refs/heads/develop" ]]; then
+            API_ENDPOINT_HOST=${{ vars.DEVELOP_API }}
+            DASHBOARD_DOMAIN=${{ vars.DEVELOP_DASHBOARD }}
+            FORM_DOMAIN=${{ vars.DEVELOP_CLIENT }}
+          fi
+          if [[ "${{ github.ref }}" = "refs/heads/master" ]]; then
+            API_ENDPOINT_HOST=${{ vars.STAGING_API }}
+            DASHBOARD_DOMAIN=${{ vars.STAGING_DASHBOARD }}
+            FORM_DOMAIN=${{ vars.STAGING_CLIENT }}
+          fi
+          if [[ "${{ github.ref }}" = "refs/heads/feature/slide-formbuilder" ]]; then
+            API_ENDPOINT_HOST=${{ vars.BUILDER_API }}
+            DASHBOARD_DOMAIN=${{ vars.BUILDER_DASHBOARD }}
+            FORM_DOMAIN=${{ vars.BUILDER_CLIENT }}
+          fi
+          if [[ "${{ github.ref }}" =~ ^refs/tags/ ]]; then
+            API_ENDPOINT_HOST=${{ vars.PROD_API }}
+            DASHBOARD_DOMAIN=${{ vars.PROD_DASHBOARD }}
+            FORM_DOMAIN=${{ vars.PROD_CLIENT }}
+          fi
+          echo API_ENDPOINT_HOST /n DASHBOARD_DOMAIN /n FORM_DOMAIN
+          docker build --build-arg NEXT_PUBIC_API_ENDPOINT_HOST="${API_ENDPOINT_HOST}" --build-arg NEXT_PUBLIC_UNSPLASH_ACCESS_KEY=${NEXT_PUBLIC_UNSPLASH_ACCESS_KEY} --build-arg NEXT_PUBLIC_DASHBOARD_DOMAIN=${DASHBOARD_DOMAIN} --build-arg NEXT_PUBLIC_FORM_DOMAIN=${FORM_DOMAIN} -f ${{ matrix.service }}/Dockerfile -t bettercollected/${SERVICE_TAG}:${{ github.sha }} .
+          docker push bettercollected/${SERVICE_TAG}:${{ github.sha }}
 
-            - name: Add Nightly, Latest and Release Tags
-              env:
-                  SERVICE_TAG: ${{ matrix.service }}
-              run: |
-                  SERVICE_TAG=${SERVICE_TAG//\//-}
-                  if [[ "${{ github.ref }}" = "refs/heads/develop" ]]; then
-                    docker tag bettercollected/${SERVICE_TAG}:${{ github.sha }} bettercollected/${SERVICE_TAG}:nightly
-                    docker push bettercollected/${SERVICE_TAG}:nightly
-                  fi
-                  if [[ "${{ github.ref }}" = "refs/heads/master" ]]; then
-                    docker tag bettercollected/${SERVICE_TAG}:${{ github.sha }} bettercollected/${SERVICE_TAG}:latest
-                    docker push bettercollected/${SERVICE_TAG}:latest
-                  fi
-                  if [[ "${{ github.ref }}" = "refs/heads/feature/slide-formbuilder" ]]; then
-                    docker tag bettercollected/${SERVICE_TAG}:${{ github.sha }} bettercollected/${SERVICE_TAG}:builder
-                    docker push bettercollected/${SERVICE_TAG}:builder
-                  fi
-                  if [[ "${{ github.ref }}" =~ ^refs/tags/ ]]; then
-                    docker tag bettercollected/${SERVICE_TAG}:${{ github.sha }} bettercollected/${SERVICE_TAG}:release
-                    docker tag bettercollected/${SERVICE_TAG}:${{ github.sha }} bettercollected/${SERVICE_TAG}:${{ github.ref_name }}
-                    docker push bettercollected/${SERVICE_TAG}:release
-                    docker push bettercollected/${SERVICE_TAG}:${{ github.ref_name }}
-                  fi
+      - name: Add Nightly, Latest and Release Tags
+        env:
+          SERVICE_TAG: ${{ matrix.service }}
+        run: |
+          SERVICE_TAG=${SERVICE_TAG//\//-}
+          if [[ "${{ github.ref }}" = "refs/heads/develop" ]]; then
+            docker tag bettercollected/${SERVICE_TAG}:${{ github.sha }} bettercollected/${SERVICE_TAG}:nightly
+            docker push bettercollected/${SERVICE_TAG}:nightly
+          fi
+          if [[ "${{ github.ref }}" = "refs/heads/master" ]]; then
+            docker tag bettercollected/${SERVICE_TAG}:${{ github.sha }} bettercollected/${SERVICE_TAG}:latest
+            docker push bettercollected/${SERVICE_TAG}:latest
+          fi
+          if [[ "${{ github.ref }}" = "refs/heads/feature/slide-formbuilder" ]]; then
+            docker tag bettercollected/${SERVICE_TAG}:${{ github.sha }} bettercollected/${SERVICE_TAG}:builder
+            docker push bettercollected/${SERVICE_TAG}:builder
+          fi
+          if [[ "${{ github.ref }}" =~ ^refs/tags/ ]]; then
+            docker tag bettercollected/${SERVICE_TAG}:${{ github.sha }} bettercollected/${SERVICE_TAG}:release
+            docker tag bettercollected/${SERVICE_TAG}:${{ github.sha }} bettercollected/${SERVICE_TAG}:${{ github.ref_name }}
+            docker push bettercollected/${SERVICE_TAG}:release
+            docker push bettercollected/${SERVICE_TAG}:${{ github.ref_name }}
+          fi
 
-    deploy_services:
-        if: github.event_name != 'pull_request'
-        needs: build_and_push
-        strategy:
-            matrix:
-                service:
-                    - auth
-                    - backend
-                    - integrations/google
-                    - integrations/typeform
-                    - webapp
-                    - temporal/worker
-                    - temporal/actions-executor
-                    - temporal/csv-worker
+  deploy_services:
+    if: github.event_name != 'pull_request'
+    needs: build_and_push
+    strategy:
+      matrix:
+        service:
+          - auth
+          - backend
+          - integrations/google
+          - integrations/typeform
+          - webapp
+          - temporal/worker
+          - temporal/actions-executor
+          - temporal/csv-worker
 
-        runs-on: ubuntu-latest
-        steps:
-            - name: Deploy built Image
-              id: docker_deploy
-              uses: appleboy/ssh-action@v0.1.10
-              with:
-                  host: ${{ secrets.SIRETO_BASTION_HOST }}
-                  username: ${{ secrets.SIRETO_BASTION_USERNAME }}
-                  key: ${{ secrets.SIRETO_BASTION_SSH_KEY }}
-                  port: ${{ secrets.SIRETO_BASTION_PORT }}
-                  script: |
-                      SERVICE_TAG=$(echo ${{ matrix.service }} | tr '/' '-')
-                      if [[ "${{ github.ref }}" = "refs/heads/develop" ]]; then
-                        DOCKER_STACK=${{ vars.DEVELOP_STACK }}
-                        DOCKER_HOST=${{ vars.DEVELOP_HOST }} docker service update --image  bettercollected/${SERVICE_TAG}:${{ github.sha }} ${DOCKER_STACK}_${SERVICE_TAG}
-                      fi
-                      if [[ "${{ github.ref }}" = "refs/tags/"* ]]; then
-                        DOCKER_STACK=${{ vars.PROD_STACK }}
-                        DOCKER_HOST=${{ vars.PROD_HOST }} docker service update --image  bettercollected/${SERVICE_TAG}:${{ github.ref_name }} ${DOCKER_STACK}_${SERVICE_TAG}
-                      fi
-                      if [[ "${{ github.ref }}" = "refs/heads/feature/slide-formbuilder" ]]; then
-                        DOCKER_STACK=${{ vars.BUILDER_STACK }}
-                        DOCKER_HOST=${{ vars.BUILDER_HOST }} docker service update --image  bettercollected/${SERVICE_TAG}:${{ github.sha }} ${DOCKER_STACK}_${SERVICE_TAG}
-                      fi
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy built Image
+        id: docker_deploy
+        uses: appleboy/ssh-action@v0.1.10
+        with:
+          host: ${{ secrets.SIRETO_BASTION_HOST }}
+          username: ${{ secrets.SIRETO_BASTION_USERNAME }}
+          key: ${{ secrets.SIRETO_BASTION_SSH_KEY }}
+          port: ${{ secrets.SIRETO_BASTION_PORT }}
+          script: |
+            SERVICE_TAG=$(echo ${{ matrix.service }} | tr '/' '-')
+            if [[ "${{ github.ref }}" = "refs/heads/develop" ]]; then
+              DOCKER_STACK=${{ vars.DEVELOP_STACK }}
+              DOCKER_HOST=${{ vars.DEVELOP_HOST }} docker service update --image  bettercollected/${SERVICE_TAG}:${{ github.sha }} ${DOCKER_STACK}_${SERVICE_TAG}
+            fi
+            if [[ "${{ github.ref }}" = "refs/tags/"* ]]; then
+              DOCKER_STACK=${{ vars.PROD_STACK }}
+              DOCKER_HOST=${{ vars.PROD_HOST }} docker service update --image  bettercollected/${SERVICE_TAG}:${{ github.ref_name }} ${DOCKER_STACK}_${SERVICE_TAG}
+            fi
+            if [[ "${{ github.ref }}" = "refs/heads/feature/slide-formbuilder" ]]; then
+              DOCKER_STACK=${{ vars.BUILDER_STACK }}
+              DOCKER_HOST=${{ vars.BUILDER_HOST }} docker service update --image  bettercollected/${SERVICE_TAG}:${{ github.sha }} ${DOCKER_STACK}_${SERVICE_TAG}
+            fi
