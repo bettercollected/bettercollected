@@ -127,10 +127,8 @@ export default function UnsplashImagePicker({ initialPhotoSearchQuery = '', onPh
                             }}
                             onPhotoSelect={async (photo: any) => {
                                 try {
-                                    // let blob = await fetch(photo.urls.regular).then((r) => r.blob())
-                                    // let image = await URL.createObjectURL(blob)
                                     if (photo) {
-                                        updatePageImage(photo.urls.full);
+                                        updatePageImage(photo.urls.raw);
                                         closeDialogModal();
                                         setPhotoInLocalStorage(photo);
                                     }
