@@ -37,6 +37,11 @@ const PreviewWrapper = ({ children, handleResetResponderState }: { children: Rea
     const mobileViewPreviewUrl = `${environments.HTTP_SCHEME}${environments.FORM_DOMAIN}/${workspace.workspaceName}/forms/${standardForm.formId}/preview`;
     return (
         <div className=" h-full w-full bg-white">
+            {isMobile && (
+                <div className="bg-black-900 xs:px-16 flex h-[52px] w-full items-center justify-center px-4 py-2">
+                    <span className="text-sm text-white">Please use the desktop version to edit this form. Mobile editing will be available soon!</span>
+                </div>
+            )}
             <nav className="flex h-14 flex-row justify-between px-4 py-2" style={{ background: isMobile ? standardForm.theme?.accent : 'inherit' }}>
                 <div></div>
                 <div className=" hidden items-center gap-4 text-xs font-semibold lg:flex">
@@ -82,7 +87,7 @@ const PreviewWrapper = ({ children, handleResetResponderState }: { children: Rea
             <Separator />
             <div className=" h-full drop-shadow-xl lg:mx-10 lg:py-10 lg:pb-24 ">
                 {isDesktopView ? (
-                    <div className="aspect-video h-screen max-w-full lg:mx-auto lg:!max-h-full ">{children}</div>
+                    <div className={`aspect-video max-w-full lg:mx-auto lg:!max-h-full ${isMobile ? 'h-preview-page' : 'h-screen'}`}>{children}</div>
                 ) : (
                     <div className="relative mx-auto aspect-[9/16] h-full rounded-lg drop-shadow-xl">
                         <iframe

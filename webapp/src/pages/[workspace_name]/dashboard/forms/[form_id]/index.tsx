@@ -225,7 +225,7 @@ export default function FormPage(props: any) {
                                         </Button>
                                     </PrivateFormButtonWrapper>
                                 ) : (
-                                    <PublishButton />
+                                    <PublishButton refresh />
                                 )}
                             </div>
                         </div>
