@@ -24,9 +24,10 @@ interface ILayoutWrapper {
     style?: React.CSSProperties;
     scrollDivId?: string;
     children: React.ReactNode | React.ReactNode[];
+    showDesktopLayout?: boolean;
 }
 
-const LayoutWrapper = ({ layout, theme, imageUrl, updatePageImage, updatePageLayout, altImage, disabled = false, style = {}, scrollDivId, children }: ILayoutWrapper) => {
+const LayoutWrapper = ({ layout, theme, imageUrl, updatePageImage, updatePageLayout, altImage, disabled = false, style = {}, scrollDivId, children, showDesktopLayout = false }: ILayoutWrapper) => {
     const [showControls, setShowControls] = useState(false);
     const { openDialogModal } = useDialogModal();
 
@@ -81,9 +82,10 @@ const LayoutWrapper = ({ layout, theme, imageUrl, updatePageImage, updatePageLay
                     ...style
                 }}
                 className={cn(
-                    'relative flex  h-full w-full flex-grow overflow-hidden rounded-lg !bg-transparent lg:grid',
+                    showDesktopLayout ? 'grid' : 'flex lg:grid',
+                    'relative  h-full w-full flex-grow overflow-hidden rounded-lg !bg-transparent',
                     layout === FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT ? 'flex-col-reverse justify-end' : 'flex-col justify-end',
-                    layout === FormSlideLayout.TWO_COLUMN_IMAGE_LEFT || layout === FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT ? 'lg:grid-cols-2' : 'lg:grid-cols-1',
+                    layout === FormSlideLayout.TWO_COLUMN_IMAGE_LEFT || layout === FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT ? 'grid-cols-2' : 'grid-cols-1',
                     disabled ? 'h-full overflow-hidden' : ''
                 )}
             >
@@ -109,7 +111,8 @@ const LayoutWrapper = ({ layout, theme, imageUrl, updatePageImage, updatePageLay
                 {layout && layout !== FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND && layout !== FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND_LEFT_ALIGN && layout !== FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND && (
                     <div
                         className={cn(
-                            'relative h-[30%] lg:h-auto ',
+                            'relative',
+                            showDesktopLayout ? 'h-auto ' : ' h-[30%] lg:h-auto',
                             (layout && layout === FormSlideLayout.TWO_COLUMN_IMAGE_LEFT) || (layout && layout === FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT) ? 'grid-cols-1' : '',
                             imageUrl && !disabled ? 'hover:cursor-pointer hover:!bg-black/30' : 'bg-neutral-100 shadow hover:cursor-default'
                         )}

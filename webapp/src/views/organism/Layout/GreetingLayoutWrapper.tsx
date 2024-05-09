@@ -16,37 +16,20 @@ interface IGreetingLayoutWrapper {
     children: React.ReactNode | React.ReactNode[];
     theme?: FormTheme;
 }
-const GreetingLayoutWrapper = ({
-    disabled,
-    greetingIndex,
-    theme,
-    children
-}: IGreetingLayoutWrapper) => {
+const GreetingLayoutWrapper = ({ disabled, greetingIndex, theme, children }: IGreetingLayoutWrapper) => {
     const { activeSlideComponent } = useActiveSlideComponent();
     const { layout, imageUrl } = useGetPageAttributes(greetingIndex);
-    const {
-        updateWelcomePageImage,
-        updateThankYouPageImage,
-        updateThankYouPageLayout,
-        updateWelcomePageLayout
-    } = useFormState();
+    const { updateWelcomePageImage, updateThankYouPageImage, updateThankYouPageLayout, updateWelcomePageLayout } = useFormState();
 
     return (
         <LayoutWrapper
+            showDesktopLayout
             layout={layout}
             imageUrl={imageUrl}
             altImage={activeSlideComponent?.id || ''}
-            updatePageImage={
-                activeSlideComponent?.index === -10
-                    ? updateWelcomePageImage
-                    : updateThankYouPageImage
-            }
+            updatePageImage={activeSlideComponent?.index === -10 ? updateWelcomePageImage : updateThankYouPageImage}
             disabled={disabled}
-            updatePageLayout={
-                activeSlideComponent?.index === -10
-                    ? updateWelcomePageLayout
-                    : updateThankYouPageLayout
-            }
+            updatePageLayout={activeSlideComponent?.index === -10 ? updateWelcomePageLayout : updateThankYouPageLayout}
             theme={theme}
         >
             {children}
