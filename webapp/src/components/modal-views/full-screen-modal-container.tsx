@@ -1,4 +1,4 @@
-import { Fragment, useCallback, useEffect } from 'react';
+import { Fragment, useCallback } from 'react';
 
 import { Button } from '@mui/material';
 
@@ -15,11 +15,10 @@ import { useAppDispatch } from '@app/store/hooks';
 
 import ConsentFullModalView from './full-screen-modals/consent-full-modal-view';
 import CreateConsentFullModalView from './full-screen-modals/create-consent-full-modal-view';
+import ViewResponseFullModalView from './full-screen-modals/view-response-full-modal-view';
 import CropImageModalView from './modals/crop-image-modal-view';
 import FormBuilderPreviewModal from './modals/form-builder-preview-modal';
-import { usePathname } from 'next/navigation';
-import { log } from 'console';
-import ViewResponseFullModalView from './full-screen-modals/view-response-full-modal-view';
+import { PreviewFullModalView } from './full-screen-modals/v2preview-modal';
 
 function renderModalContent(view: FULL_SCREEN_MODALS, modalProps: any) {
     switch (view) {
@@ -39,6 +38,8 @@ function renderModalContent(view: FULL_SCREEN_MODALS, modalProps: any) {
             return <ConsentFullModalView {...modalProps} />;
         case 'VIEW_RESPONSE':
             return <ViewResponseFullModalView {...modalProps} />;
+        case 'PREVIEW_MODAL':
+            return <PreviewFullModalView {...modalProps} />;
         default:
             return <></>;
     }
