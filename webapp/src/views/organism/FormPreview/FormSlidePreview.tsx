@@ -17,7 +17,7 @@ export default function FormSlidePreview({ slide, theme }: { slide: StandardForm
     const slideTheme = theme ? theme : standardForm.theme;
     return (
         <SlideLayoutWrapper showDesktopLayout slide={slide} theme={slideTheme} disabled>
-            <div className="relative my-10 flex h-full max-w-[800px] flex-1 flex-col items-start justify-center gap-20 px-5 lg:my-20 lg:px-20">
+            <div className="relative my-10 grid h-full w-full max-w-[800px] flex-1 grid-cols-1 content-center gap-20 px-5 lg:my-20 lg:px-20">
                 {slide?.properties?.fields?.map((field) => {
                     return <FormFieldComponent key={field.id} field={field} slideIndex={slide!.index} />;
                 })}
