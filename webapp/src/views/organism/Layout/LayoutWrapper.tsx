@@ -57,9 +57,13 @@ const LayoutWrapper = ({ layout, theme, imageUrl, updatePageImage, updatePageLay
                     )}
                     src={imageUrl}
                     alt={altImage + ' image'}
-                    loader={({ src, width, quality }) => {
-                        return src + `&q=${quality || '0.5'}&w=${width}&cs=tinysrgb&auto=format&dpr=1`;
-                    }}
+                    loader={
+                        imageUrl.includes('images.unsplash.com')
+                            ? ({ src, width, quality }) => {
+                                  return src + `&q=${quality || '0.5'}&w=${width}&cs=tinysrgb&auto=format&dpr=1`;
+                              }
+                            : undefined
+                    }
                     fill
                     priority
                 />
