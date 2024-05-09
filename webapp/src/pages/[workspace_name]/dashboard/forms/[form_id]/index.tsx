@@ -16,6 +16,7 @@ import { ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
 import { Group, IntegrationInstructions, Share } from '@mui/icons-material';
 
 import FormIntegrations from '@app/components/form/integrations';
+import { ChevronForward } from '@app/components/icons/chevron-forward';
 import { HistoryIcon } from '@app/components/icons/history';
 import { TrashIcon } from '@app/components/icons/trash';
 import { useModal } from '@app/components/modal-views/context';
@@ -26,16 +27,26 @@ import { localesCommon } from '@app/constants/locales/common';
 import { formConstant } from '@app/constants/locales/form';
 import { formPage } from '@app/constants/locales/form-page';
 import Layout from '@app/layouts/_layout';
-import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
+import { useBreakpoint, useIsMobile } from '@app/lib/hooks/use-breakpoint';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { BreadcrumbsItem } from '@app/models/props/breadcrumbs-item';
 import Error from '@app/pages/_error';
+import { Button } from '@app/shadcn/components/ui/button';
+import { Sheet, SheetClose, SheetContent, SheetFooter, SheetTrigger } from '@app/shadcn/components/ui/sheet';
 import { resetSingleForm, selectForm, setForm } from '@app/store/forms/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
+import { useFormResponse } from '@app/store/jotai/responderFormResponse';
+import { useResponderState } from '@app/store/jotai/responderFormState';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import getFormShareURL from '@app/utils/formUtils';
 import { getEditFormURL } from '@app/utils/urlUtils';
 import { validateFormOpen } from '@app/utils/validationUtils';
+import PlayIcon from '@app/views/atoms/Icons/PlayIcon';
+import BackButton from '@app/views/molecules/FormBuilder/BackButton';
+import PreviewWrapper from '@app/views/molecules/FormBuilder/PreviewWrapper';
+import PublishButton from '@app/views/molecules/FormBuilder/PublishButton';
+import Form from '@app/views/organism/Form/Form';
+import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
 
 const FormResponses = dynamic(() => import('@app/components/form/responses'));
 const FormResponsesTable = dynamic(() => import('@app/components/datatable/form/form-responses'));
@@ -52,8 +63,11 @@ export default function FormPage(props: any) {
     const breakpoint = useBreakpoint();
     const router = useRouter();
     const { openModal } = useModal();
+    const { openModal: openFullScreenModal } = useFullScreenModal();
     const workspace = useAppSelector(selectWorkspace);
     const workspaceForm = useAppSelector(selectForm);
+
+    const isMobile = useIsMobile();
     const paramTabs = [
         {
             icon: <Preview className="h-5 w-5" />,
@@ -146,8 +160,11 @@ export default function FormPage(props: any) {
                 <div className="mt-12 flex flex-col gap-1">
                     <FormPageLayer className=" px-4 md:px-10 lg:px-28 ">
                         <div className="flex justify-between">
-                            <h1 className="h2-new !text-pink">{form?.title}</h1>
-                            <div className="flex gap-4">
+                            <div className="flex flex-row items-center gap-1">
+                                {isMobile && <ChevronForward onClick={handleBackClick} className=" h-6 w-6 rotate-180 cursor-pointer p-[2px] " />}
+                                {isMobile ? <h1 className="hp3-new">{form?.title}</h1> : <h1 className="h2-new text-pink ">{form?.title}</h1>}
+                            </div>
+                            <div className="hidden gap-4 lg:flex">
                                 {form?.settings?.provider === 'self' && form?.builderVersion === 'v2' && (
                                     <AppButton
                                         icon={<EditIcon className="h-6 w-6" />}
@@ -177,6 +194,38 @@ export default function FormPage(props: any) {
                                             <span className="hidden sm:block">{t(formPage.shareForm)}</span>
                                         </AppButton>
                                     </PrivateFormButtonWrapper>
+                                )}
+                            </div>
+                            <div className="flex gap-4 lg:hidden">
+                                <Button
+                                    icon={<PlayIcon />}
+                                    onClick={() => {
+                                        openFullScreenModal('PREVIEW_MODAL');
+                                    }}
+                                    variant={'v2Button'}
+                                >
+                                    Preview
+                                </Button>
+
+                                {form?.isPublished ? (
+                                    <PrivateFormButtonWrapper isPrivate={workspaceForm?.settings?.hidden}>
+                                        <Button
+                                            variant={'primary'}
+                                            icon={<Share />}
+                                            className="!px-0 sm:!px-5"
+                                            disabled={workspaceForm?.settings?.hidden}
+                                            onClick={() =>
+                                                openModal('SHARE_VIEW', {
+                                                    url: getFormShareURL(workspaceForm, workspace),
+                                                    title: t(formConstant.shareThisForm)
+                                                })
+                                            }
+                                        >
+                                            <span className="hidden sm:block">{'Share'}</span>
+                                        </Button>
+                                    </PrivateFormButtonWrapper>
+                                ) : (
+                                    <PublishButton refresh />
                                 )}
                             </div>
                         </div>

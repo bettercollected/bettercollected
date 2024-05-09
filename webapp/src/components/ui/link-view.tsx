@@ -12,7 +12,6 @@ import { toast } from 'react-toastify';
 import { buttonConstant } from '@app/constants/locales/button';
 import { useCopyToClipboard } from '@app/lib/hooks/use-copy-to-clipboard';
 
-
 interface ILinkViewProps {
     url: string;
     toastMessage: string;
@@ -22,12 +21,11 @@ interface ILinkViewProps {
 
 export default function LinkView({ url, toastMessage, className, buttonClassName }: ILinkViewProps) {
     const [_, copyToClipboard] = useCopyToClipboard();
-    const { t } = useTranslation();
     return (
         <div className={cn('gap-2', className)}>
-            <div className="text-black-900 h-[46px] space-x-4 max-w-[444px]   w-full body4 items-center rounded p-4 flex bg-brand-100">
+            <div className="text-black-900 body4 bg-brand-100 flex   h-[46px] w-full max-w-[444px] items-center space-x-4 rounded p-4">
                 <Tooltip title={url}>
-                    <Typography className="truncate body4 md:min-w-[200px] w-full ">{url}</Typography>
+                    <Typography className="body4 w-full truncate md:min-w-[200px] ">{url}</Typography>
                 </Tooltip>
             </div>
             <div className="flex w-full justify-end">
@@ -40,7 +38,7 @@ export default function LinkView({ url, toastMessage, className, buttonClassName
                         });
                     }}
                 >
-                    {t(buttonConstant.copyLink)}
+                    {'Copy Link'}
                 </AppButton>
             </div>
         </div>
