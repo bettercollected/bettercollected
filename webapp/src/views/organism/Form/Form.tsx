@@ -11,7 +11,7 @@ import FormSlide from './FormSlide';
 import ThankyouPage from './ThankyouPage';
 import WelcomePage from './WelcomePage';
 
-const Form = ({ isPreviewMode = false }: { isPreviewMode?: boolean; }) => {
+const Form = ({ isPreviewMode = false, showDesktopLayout }: { isPreviewMode?: boolean; showDesktopLayout?: boolean }) => {
     const { currentSlide, prevActiveSlide: previousSlide } = useResponderState();
 
     const standardForm = useAppSelector(selectForm);
@@ -44,7 +44,7 @@ const Form = ({ isPreviewMode = false }: { isPreviewMode?: boolean; }) => {
                         transition={{ duration: 0.3 }}
                     >
                         <div className="relative h-full w-full">
-                            <LayoutWrapper theme={standardForm.theme} disabled layout={standardForm.welcomePage?.layout} imageUrl={standardForm?.welcomePage?.imageUrl}>
+                            <LayoutWrapper showDesktopLayout={showDesktopLayout} theme={standardForm.theme} disabled layout={standardForm.welcomePage?.layout} imageUrl={standardForm?.welcomePage?.imageUrl}>
                                 <WelcomePage isPreviewMode={isPreviewMode} />
                             </LayoutWrapper>
                         </div>
@@ -61,7 +61,7 @@ const Form = ({ isPreviewMode = false }: { isPreviewMode?: boolean; }) => {
                         transition={{ duration: 0.3, ease: 'linear' }}
                     >
                         <div className="relative h-full w-full">
-                            <FormSlide index={currentSlide} isPreviewMode={isPreviewMode} />
+                            <FormSlide showDesktopLayout={showDesktopLayout} index={currentSlide} isPreviewMode={isPreviewMode} />
                         </div>
                     </motion.div>
                 )}
@@ -74,7 +74,7 @@ const Form = ({ isPreviewMode = false }: { isPreviewMode?: boolean; }) => {
                         transition={{ duration: 0.3, ease: 'linear' }}
                     >
                         <div className="relative h-full w-full">
-                            <LayoutWrapper theme={standardForm.theme} disabled layout={standardForm?.thankyouPage?.[0]?.layout} imageUrl={standardForm?.thankyouPage?.[0]?.imageUrl}>
+                            <LayoutWrapper showDesktopLayout={showDesktopLayout} theme={standardForm.theme} disabled layout={standardForm?.thankyouPage?.[0]?.layout} imageUrl={standardForm?.thankyouPage?.[0]?.imageUrl}>
                                 <ThankyouPage isPreviewMode={isPreviewMode} />
                             </LayoutWrapper>
                         </div>

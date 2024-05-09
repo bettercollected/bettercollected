@@ -14,9 +14,10 @@ interface ISlideLayoutWrapperProps {
     disabled?: boolean;
     theme?: FormTheme;
     scrollDivId?: string;
+    showDesktopLayout?: boolean;
 }
 
-export default function SlideLayoutWrapper({ slide, children, theme, disabled = false, scrollDivId }: ISlideLayoutWrapperProps) {
+export default function SlideLayoutWrapper({ slide, children, theme, disabled = false, scrollDivId, showDesktopLayout }: ISlideLayoutWrapperProps) {
     const { updateSlideImage, updateSlideLayout } = useFormFieldsAtom();
 
     const style = {
@@ -24,7 +25,18 @@ export default function SlideLayoutWrapper({ slide, children, theme, disabled = 
     };
 
     return (
-        <LayoutWrapper layout={slide?.properties?.layout} imageUrl={slide?.imageUrl} altImage={slide?.id} disabled={disabled} updatePageImage={updateSlideImage} updatePageLayout={updateSlideLayout} style={style} theme={theme} scrollDivId={scrollDivId}>
+        <LayoutWrapper
+            showDesktopLayout={showDesktopLayout}
+            layout={slide?.properties?.layout}
+            imageUrl={slide?.imageUrl}
+            altImage={slide?.id}
+            disabled={disabled}
+            updatePageImage={updateSlideImage}
+            updatePageLayout={updateSlideLayout}
+            style={style}
+            theme={theme}
+            scrollDivId={scrollDivId}
+        >
             {children}
         </LayoutWrapper>
     );
