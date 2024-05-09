@@ -22,10 +22,10 @@ const SlideBuilder = ({ slide, isScaledDown = false, disabled = false }: { slide
     const { setActiveFieldComponent, activeFieldComponent } = useActiveFieldComponent();
     const { activeSlideComponent } = useActiveSlideComponent();
     const { theme } = useFormState();
-    const { navbarState, setNavbarState } = useNavbarState();
+    const { navbarState } = useNavbarState();
 
     return (
-        <SlideLayoutWrapper slide={slide} disabled={disabled} theme={theme} scrollDivId={!disabled ? 'scroll-div' : undefined}>
+        <SlideLayoutWrapper showDesktopLayout slide={slide} disabled={disabled} theme={theme} scrollDivId={!disabled ? 'scroll-div' : undefined}>
             <div className="flex h-full w-full flex-col justify-center gap-20 px-6 py-[10vh] ">
                 <div className="flex h-full w-full flex-col gap-20 px-6">
                     <AnimatePresence>
