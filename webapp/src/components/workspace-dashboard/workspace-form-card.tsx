@@ -53,12 +53,6 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, group, worksp
         router.prefetch(`/${workspace?.workspaceName}/dashboard/forms/${form.formId}?view=Responses`);
     }, [router]);
 
-    const handleResponseClick = (event: any) => {
-        event.preventDefault();
-        event.stopPropagation();
-        router.push(`/${workspace?.workspaceName}/dashboard/forms/${form.formId}?view=Responses`);
-    };
-
     const handleShareClick = (event: any) => {
         event.preventDefault();
         event.stopPropagation();
@@ -152,7 +146,7 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, group, worksp
                                 {t('BUTTON.SHARE')}
                             </AppButton>
                         )}
-                        {form?.settings?.provider === 'self' && (
+                        {form?.settings?.provider === 'self' && form?.builderVersion === 'v2' && (
                             <AppButton
                                 onClick={(event: any) => {
                                     event.preventDefault();

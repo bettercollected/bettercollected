@@ -227,7 +227,7 @@ export default function FormOptionsDropdownMenu({ workspace, form, hasCustomDoma
                         menuItemPinSettings
                     ))}
                 {menuItemOpen}
-                {currentActiveForm?.form?.settings?.provider === 'self' && environments.ENABLE_FORM_BUILDER && menuItemEdit}
+                {currentActiveForm?.form?.settings?.provider === 'self' && form?.builderVersion === 'v2' && environments.ENABLE_FORM_BUILDER && menuItemEdit}
                 {form?.isPublished && !form?.settings?.hidden && isFormOpen && menuItemCopy}
                 {form?.isPublished && !form?.settings?.hidden && isFormOpen && menuItemCustomizeLink}
                 {form?.isPublished && menuItemAddToGroup}

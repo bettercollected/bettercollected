@@ -46,7 +46,6 @@ const FormPreview = dynamic(() => import('@app/components/form/preview'));
 
 export default function FormPage(props: any) {
     const { form }: { form: StandardFormDto } = props;
-    console.log('hello : ', form);
     const { t } = useTranslation();
     const dispatch = useAppDispatch();
     const reduxStoreForm = useAppSelector(selectForm);
@@ -144,16 +143,12 @@ export default function FormPage(props: any) {
         <Layout isCustomDomain={false} isClientDomain={false} showNavbar={true} hideMenu={false} showAuthAccount={true} className="flex w-full flex-col !bg-white !p-0">
             <NextSeo title={form.title} noindex={true} nofollow={true} />
             <div className="my-2  w-full ">
-                {/* <div className="flex w-full items-center gap-1 px-5">
-                    <ChevronForward onClick={handleBackClick} className=" h-6 w-6 rotate-180 cursor-pointer p-[2px] " />
-                    <BreadcrumbsRenderer items={breadcrumbsItem} />
-                </div> */}
                 <div className="mt-12 flex flex-col gap-1">
                     <FormPageLayer className=" px-4 md:px-10 lg:px-28 ">
                         <div className="flex justify-between">
                             <h1 className="h2-new !text-pink">{form?.title}</h1>
                             <div className="flex gap-4">
-                                {form?.settings?.provider === 'self' && (
+                                {form?.settings?.provider === 'self' && form?.builderVersion === 'v2' && (
                                     <AppButton
                                         icon={<EditIcon className="h-6 w-6" />}
                                         variant={['sm', 'md', 'lg', 'xl', '2xl'].indexOf(breakpoint) !== -1 ? ButtonVariant.Secondary : ButtonVariant.Ghost}
