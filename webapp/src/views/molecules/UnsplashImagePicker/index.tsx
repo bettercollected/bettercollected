@@ -2,9 +2,6 @@
 
 import React from 'react';
 
-import { createApi } from 'unsplash-js';
-
-import environments from '@app/configs/environments';
 import { useDialogModal } from '@app/lib/hooks/useDialogModal';
 import { Unsplash } from '@app/views/atoms/Icons/Brands/Unsplash';
 
@@ -35,10 +32,6 @@ export default function UnsplashImagePicker({ initialPhotoSearchQuery = '', onPh
 
     const updatePageImage = props?.updatePageImage ?? (() => {});
 
-    const unsplash = createApi({
-        accessKey: environments.UNSPLASH_ACCESS_KEY || ''
-    });
-
     React.useEffect(() => {
         if (initialPhotoSearchQuery !== '') {
             const unsplashPhotos = localStorage.getItem('unsplash_photos') ?? '{}';
@@ -60,27 +53,22 @@ export default function UnsplashImagePicker({ initialPhotoSearchQuery = '', onPh
         }
 
         setPage(page);
-        unsplash.search
-            .getPhotos({
-                page: page,
-                perPage: 30,
-                query: text,
-                orientation: 'landscape'
-            })
-            .then((response: any) => {
-                const newPics = response?.response?.results;
+        fetch(new URL('/api/unsplash', window.location.origin) + '?' + new URLSearchParams({ page: page.toString(), query: text })).then((response: any) => {
+            response.json().then((response: any) => {
+                const newPics = response?.results;
                 if (newPics) {
                     let mergedPics = newPics;
                     if (!reset) {
                         mergedPics = [...existingSelectedPhotos, ...pics, ...newPics];
                     }
                     setPics(mergedPics);
-                    setTotal(response.response.total);
+                    setTotal(response.total);
                 }
                 setIsLoading(false);
                 setIsLoadingMore(false);
                 setInitialLoading(false);
             });
+        });
     };
 
     function setPhotoInLocalStorage(photo: any) {
