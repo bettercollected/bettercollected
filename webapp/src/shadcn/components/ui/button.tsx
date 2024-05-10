@@ -6,7 +6,7 @@ import { type VariantProps, cva } from 'class-variance-authority';
 
 import { cn } from '@app/shadcn/util/lib';
 
-const buttonVariants = cva('rounded-lg gap-2 min-w-fit flex justify-center items-center px-4', {
+const buttonVariants = cva('rounded-lg gap-2 min-w-fit flex justify-center items-center px-2 sm:px-4', {
     variants: {
         variant: {
             primary: 'bg-brand-500 text-white hover:bg-brand-600 active:bg-brand-800 focus:ring ' + 'disabled:bg-black-300 disabled:text-black-500',
