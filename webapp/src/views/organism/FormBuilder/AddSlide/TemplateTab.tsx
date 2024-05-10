@@ -34,20 +34,22 @@ export default function TemplateTab({ closePopover }: { closePopover: () => void
                     </div>
                     <ScrollArea className="h-[495px] overflow-auto">
                         <div className="flex !h-full w-full flex-row flex-wrap gap-2 overflow-auto">
-                            {selectedTemplate?.fields?.map((slide) => (
+                            {selectedTemplate?.fields?.map((slide, index) => (
                                 <div
                                     onClick={() => {
                                         addSlideFormTemplate(slide);
                                         closePopover();
                                     }}
-                                    className="mb-2 flex w-min cursor-pointer flex-col  rounded-lg border border-transparent p-1 hover:border-pink-500"
+                                    className="mb-2 flex w-min cursor-pointer flex-col  rounded-lg border border-transparent p-1"
                                     key={slide?.id}
                                 >
                                     <div className="border-black-300 relative aspect-video w-[160px] overflow-hidden rounded-md border">
                                         <div className="pointer-events-none h-[720px] w-[1280px] scale-[0.125]" style={{ transformOrigin: 'top left' }}>
                                             <FormSlidePreview slide={slide} theme={theme} />
                                         </div>
+                                        <div className="absolute inset-0 z-10 bg-transparent transition-all hover:bg-[#00000026]"></div>
                                     </div>
+                                    <span className="text-black-600 text-[10px]">Page {index + 1}</span>
                                 </div>
                             ))}
                         </div>
@@ -61,7 +63,7 @@ export default function TemplateTab({ closePopover }: { closePopover: () => void
                         <div className="flex w-full flex-row flex-wrap ">
                             {templates?.map((template) => (
                                 <div
-                                    className="hover:bg-black-200 border-black-200 mb-2 flex w-fit cursor-pointer flex-col gap-1 rounded-lg border border-transparent p-1 transition-all"
+                                    className=" border-black-200 mb-2 flex w-fit cursor-pointer flex-col gap-1 rounded-lg border border-transparent p-1 transition-all"
                                     key={template?.id}
                                     onClick={() => {
                                         setSelectedTemplate(template);
@@ -73,6 +75,7 @@ export default function TemplateTab({ closePopover }: { closePopover: () => void
                                                 <WelcomePage isPreviewMode welcomePageData={template?.welcomePage} />
                                             </LayoutWrapper>
                                         </div>
+                                        <div className="absolute inset-0 z-10 bg-transparent transition-all hover:bg-[#00000026]"></div>
                                     </div>
                                     <div className="text-black-600 text-[10px] font-medium ">{template.title}</div>
                                 </div>

@@ -17,8 +17,14 @@ import Image from 'next/image';
 const Layout = (props: { Icon: any; name: string; image: string; style?: FormSlideLayout; onClick?: (event?: React.MouseEvent<HTMLDivElement, MouseEvent>) => void }) => {
     return (
         <div className="cursor-pointer rounded-lg border border-transparent" onClick={props.onClick}>
-            <div className="border-black-300 relative mb-1 overflow-hidden rounded-xl border ">
-                <Image src={props.image} width={168} height={94} alt={props.name} />
+            <div
+                className="border-black-300 relative mb-1 overflow-hidden rounded-xl border "
+                style={{
+                    width: '168px',
+                    height: '94px'
+                }}
+            >
+                <Image src={props.image} alt={props.name} fill sizes="(min-width 100px) 100%" />
                 <div className="absolute inset-0 z-10 bg-transparent transition-all hover:bg-[#00000026]"></div>
             </div>
             <div className="text-black-600 text-xs">{props.name}</div>
@@ -68,7 +74,7 @@ export default function LayoutsTab({ closePopover }: { closePopover: () => void 
     };
 
     return (
-        <ScrollArea className="z-10 h-[495px] w-full overflow-auto pr-2">
+        <ScrollArea className="z-10 h-[495px] w-full overflow-auto pr-4">
             <div className="">
                 <div className="mb-2 text-sm font-medium">Blank</div>
                 <div
@@ -89,7 +95,7 @@ export default function LayoutsTab({ closePopover }: { closePopover: () => void 
                             style: FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND_LEFT_ALIGN,
                             Icon: SlideLayoutNoImageLeftAlign,
                             name: 'Left Align',
-                            image: '/images/left.png'
+                            image: '/images/Left.png'
                         },
                         {
                             style: FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND,
