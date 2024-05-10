@@ -40,7 +40,7 @@ export default function CreateFormButton({ variant }: { variant?: ButtonVariant 
             const response: any = await postCreateForm(apiObj);
 
             if (response?.data) {
-                router.push(`/${workspace?.workspaceName}/dashboard/forms/${response?.data?.formId}/edit`);
+                router.push(`/${workspace?.workspaceName}/dashboard/forms/${response?.data?.formId}/v1/edit`);
                 dispatch(setBuilderState({ isFormDirty: false }));
             }
         }
