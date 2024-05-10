@@ -25,7 +25,6 @@ from common.services.transformer_service import (
     FormTransformerService,
 )
 from loguru import logger
-from constants import DEFAULT_IMAGE_LAYOUT_URL
 
 from googleform.app.exceptions import HTTPException
 from googleform.app.models.google_form import GoogleFormDto, GoogleFormItemsDto
@@ -34,9 +33,12 @@ from googleform.app.models.google_form_response import (
     GoogleFormResponseDto,
 )
 
+default_image_url = (
+    "https://s3.eu-central-1.wasabisys.com/bettercollected/images/v2_layout_image.webp"
+)
+
 
 class GoogleFormTransformerService(FormTransformerService):
-    default_image_url = DEFAULT_IMAGE_LAYOUT_URL
 
     def _transform_field(
         self, slide: StandardFormField, item: GoogleFormItemsDto
