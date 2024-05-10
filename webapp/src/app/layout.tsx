@@ -34,6 +34,9 @@ export default function RootLayout({
 }>) {
     return (
         <html lang="en">
+            <head>
+                <script src="/api/config" defer></script>
+            </head>
             <body className={cn('max-h-screen overflow-hidden', inter.className)}>
                 <ThemeProvider>
                     <NextNProgress color="#0764EB" startPosition={0} stopDelayMs={400} height={2} options={{ easing: 'ease' }} />
