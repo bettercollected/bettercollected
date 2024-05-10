@@ -13,6 +13,7 @@ import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
 import { useNavbarState } from '@app/store/jotai/navbar';
 import { useDialogModal } from '@app/lib/hooks/useDialogModal';
 import styled from 'styled-components';
+import globalConstants from '@app/constants/global';
 
 const StyledDiv = styled.div<{ $hoverColor: string }>(({ $hoverColor }) => {
     return {
@@ -61,7 +62,7 @@ const InsertFieldComponent = ({ formFields, activeSlideComponent, closeDropdown 
                     layout: FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT,
                     fields: [getNewField(field, fieldId, formFields.length)]
                 },
-                imageUrl: 'https://s3.eu-central-1.wasabisys.com/bettercollected/images/v2defaultImage.png'
+                imageUrl: globalConstants.defaultImage
             });
             setActiveSlideComponent({ id: slideId, index: formFields.length });
             window.setTimeout(function () {

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 
-import environments from '@app/configs/environments';
+import globalConstants from '@app/constants/global';
 import { FieldTypes } from '@app/models/dtos/form';
 import { Switch } from '@app/shadcn/components/ui/switch';
 import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
@@ -31,7 +31,7 @@ export default function FieldSettings() {
 
     function getImageValue(checked: boolean): string {
         if (checked) {
-            return activeField?.imageUrl ? activeField!.imageUrl : environments.DEFAULT_FIELD_IMAGE_URL;
+            return activeField?.imageUrl ? activeField!.imageUrl : globalConstants.defaultFieldImage;
         } else return '';
     }
 
