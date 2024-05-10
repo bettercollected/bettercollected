@@ -1,10 +1,4 @@
-/** @type {import('next').NextConfig} */
-
 const runtimeCaching = require('next-pwa/cache');
-
-const withPlugins = require('next-compose-plugins');
-
-const { withSentryConfig } = require('@sentry/nextjs');
 
 const { i18n } = require('./next-i18next.config');
 
@@ -37,14 +31,13 @@ const nextConfig = {
     compress: true,
     distDir: process.env.NODE_ENV === 'development' ? '.next-dev' : '.next',
     reactStrictMode: true,
-    swcMinify: false,
+    swcMinify: true,
     i18n,
     optimizeFonts: true,
     compiler: {
         emotion: true,
         removeConsole: false
     },
-
     async headers() {
         return [
             {
@@ -52,7 +45,7 @@ const nextConfig = {
                 headers: [
                     {
                         key: 'X-Frame-Options',
-                        value: 'DENY'
+                        value: `ALLOW-FROM https://${process.env.NEXT_PUBLIC_DASHBOARD_DOMAIN}`
                     },
                     {
                         key: 'X-Content-Type-Options',
@@ -66,27 +59,33 @@ const nextConfig = {
             }
         ];
     },
-    // Optional build-time configuration options
-    sentry: {
-        // See the sections below for information on the following options:
-        //   'Configure Source Maps':
-        //     - disableServerWebpackPlugin
-        //     - disableClientWebpackPlugin
-        //     - hideSourceMaps
-        //     - widenClientFileUpload
-        //   'Configure Legacy Browser Support':
-        //     - transpileClientSDK
-        //   'Configure Serverside Auto-instrumentation':
-        //     - autoInstrumentServerFunctions
-        //     - excludeServerRoutes
-        //   'Configure Tunneling to avoid Ad-Blockers':
-        //     - tunnelRoute
-    },
     images: {
         minimumCacheTTL: 600,
         formats: ['image/avif', 'image/webp'],
-        domains: [...googleImageDomains, 'images.typeform.com', 'lh5.googleusercontent.com', 'lh3.googleusercontent.com', 's3.eu-west-1.wasabisys.com', 's3.eu-central-1.wasabisys.com', 'sireto.com']
+        domains: [...googleImageDomains, 'images.typeform.com', 'lh5.googleusercontent.com', 'lh3.googleusercontent.com', 's3.eu-west-1.wasabisys.com', 's3.eu-central-1.wasabisys.com', 'sireto.com', 'images.unsplash.com'],
+        remotePatterns: [
+            {
+                protocol: 'https',
+                hostname: '*.googleusercontent.com',
+                port: '',
+                pathname: '**'
+            }
+        ]
     },
+
+    env: {
+        BASE_DEPLOY_PATH: process.env.BASE_DEPLOY_PATH ?? '',
+        ELASTIC_APM_SERVER_URL: process.env.ELASTIC_APM_HOST,
+        ELASTIC_APM_SERVICE_NAME: process.env.ELASTIC_APM_SERVICE_NAME,
+        ELASTIC_APM_ENVIRONMENT: process.env.ELASTIC_APM_ENVIRONMENT,
+        ENABLE_BRAND_COLORS: process.env.ENABLE_BRAND_COLORS,
+        ENABLE_JOYRIDE_TOURS: process.env.ENABLE_JOYRIDE_TOURS,
+        FORM_PRIVACY_POLICY_URL: process.env.FORM_PRIVACY_POLICY_URL,
+        GA_MEASUREMENT_ID: process.env.GA_MEASUREMENT_ID,
+        MICROSOFT_CLARITY_TRACKING_CODE: process.env.MICROSOFT_CLARITY_TRACKING_CODE,
+        NEXT_PUBLIC_NODE_ENV: process.env.NEXT_PUBLIC_NODE_ENV ?? 'production'
+    },
+
     serverRuntimeConfig: {
         // Use this environment separately if you are running your webapp through docker compose
         INTERNAL_DOCKER_API_ENDPOINT_HOST: process.env.INTERNAL_DOCKER_API_ENDPOINT_HOST || process.env.API_ENDPOINT_HOST
@@ -126,6 +125,9 @@ const nextConfig = {
         ENABLE_FORM_QR: process.env.ENABLE_FORM_QR || false,
         ENABLE_COLLECT_EMAILS: process.env.ENABLE_COLLECT_EMAILS || false,
         ENABLE_RESPONSE_EDITING: process.env.ENABLE_RESPONSE_EDITING || false,
+
+        // Enable Suggest price allowing user to get pro feature for free
+        ENABLE_SUGGEST_PRICE: process.env.ENABLE_SUGGEST_PRICE,
 
         MAX_WORKSPACES: process.env.MAX_WORKSPACES || 5,
 
@@ -167,12 +169,7 @@ const nextConfig = {
         CHATWOOT_WEBSITE_TOKEN: process.env.CHATWOOT_WEBSITE_TOKEN,
 
         // App Sumo
-        APP_SUMO_PRODUCT_URL: process.env.APP_SUMO_PRODUCT_URL,
-
-        // Enable Suggest price allowing user to get pro feature for free
-        ENABLE_SUGGEST_PRICE: process.env.ENABLE_SUGGEST_PRICE,
-
-        CUSTOM_DOMAIN_IP: process.env.CUSTOM_DOMAIN_IP
+        APP_SUMO_PRODUCT_URL: process.env.APP_SUMO_PRODUCT_URL
     }
 };
 
@@ -180,33 +177,6 @@ if (process.env.BASE_DEPLOY_PATH) {
     nextConfig['assetPrefix'] = process.env.BASE_DEPLOY_PATH;
     nextConfig['basePath'] = process.env.BASE_DEPLOY_PATH;
 }
-
-const sentryWebpackPluginOptions = {
-    // Additional config options for the Sentry Webpack plugin. Keep in mind that
-    // the following options are set automatically, and overriding them is not
-    // recommended:
-    //   release, url, authToken, configFile, stripPrefix,
-    //   urlPrefix, include, ignore
-
-    dryRun: process.env.NODE_ENV !== 'production',
-    silent: true, // Suppresses all logs
-    attachStacktrace: true,
-    release: process.env.SENTRY_RELEASE,
-    url: process.env.SENTRY_URL,
-    org: process.env.SENTRY_ORG,
-    project: process.env.SENTRY_PROJECT,
-    authToken: process.env.SENTRY_AUTH_TOKEN,
-    sourcemaps: {
-        // Specify the directory containing build artifacts
-        assets: './**',
-        // Don't upload the source maps of dependencies
-        ignore: ['./node_modules/**']
-    },
-    debug: process.env.NEXT_PUBLIC_NODE_ENV !== 'production'
-
-    // For all available options, see:
-    // https://github.com/getsentry/sentry-webpack-plugin#options.
-};
 
 const nextConfigWithPWA = withPWA({
     ...nextConfig,
@@ -220,9 +190,4 @@ const nextConfigWithPWA = withPWA({
     })
 });
 
-const nextConfigWithSentryIfEnabled =
-    !!process.env.SENTRY_DSN && !!process.env.SENTRY_URL && !!process.env.SENTRY_ORG && !!process.env.SENTRY_PROJECT && !!process.env.SENTRY_RELEASE
-        ? withSentryConfig({ ...nextConfigWithPWA, devtool: 'source-map' }, sentryWebpackPluginOptions)
-        : nextConfigWithPWA;
-
-module.exports = nextConfigWithSentryIfEnabled;
+module.exports = nextConfigWithPWA;

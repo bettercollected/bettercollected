@@ -12,7 +12,6 @@ import Layout from '@app/layouts/_layout';
 import { getAuthUserPropsWithWorkspace } from '@app/lib/serverSideProps';
 import { getServerSideAuthHeaderConfig } from '@app/utils/serverSidePropsUtils';
 
-
 const TemplateAllPages = (props: any) => {
     const { predefined_templates, workspace, notFound } = props;
     const { t } = useTranslation();
@@ -20,20 +19,20 @@ const TemplateAllPages = (props: any) => {
     if (notFound) {
         return <div>Not Found</div>;
     }
-    const d = [...predefined_templates, ...predefined_templates, ...predefined_templates, ...predefined_templates];
+    const d = [...predefined_templates];
     const handleClickBack = () => {
         router.back();
     };
     return (
         <Layout showNavbar className={'bg-white !px-0'}>
             <NextSeo title={t('TEMPLATE.ALL_TEMPLATES') + ' | ' + workspace.workspaceName} noindex={false} nofollow={false} />
-            <div className="flex w-full items-center gap-1 px-2 md:px-5 pt-2 cursor-pointer" onClick={handleClickBack}>
-                <ChevronForward className=" rotate-180 h-6 w-6 p-[2px] " />
-                <p className={'text-sm text-black-700 font-normal'}>{t('BUTTON.BACK')}</p>
+            <div className="flex w-full cursor-pointer items-center gap-1 px-2 pt-2 md:px-5" onClick={handleClickBack}>
+                <ChevronForward className=" h-6 w-6 rotate-180 p-[2px] " />
+                <p className={'text-black-700 text-sm font-normal'}>{t('BUTTON.BACK')}</p>
             </div>
-            <div className={'flex flex-col mt-4 px-2 md:px-12'}>
-                <h1 className={'text-xl font-semibold text-black-800'}>{t('TEMPLATE.ALL_TEMPLATES')}</h1>
-                <TemplateSection templates={d} className={'md:pl-[130px] md:pr:[80px]'} />
+            <div className={'mt-4 flex flex-col px-2 md:px-12'}>
+                <h1 className={'text-black-800 text-xl font-semibold'}>{t('TEMPLATE.ALL_TEMPLATES')}</h1>
+                <TemplateSection templates={d} className={'md:pr:[80px] md:pl-[130px]'} />
             </div>
         </Layout>
     );

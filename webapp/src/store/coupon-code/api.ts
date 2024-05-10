@@ -1,5 +1,7 @@
-import { createApi } from '@reduxjs/toolkit/dist/query/react';
+import { createApi } from '@reduxjs/toolkit/query/react';
 import { fetchBaseQuery } from '@reduxjs/toolkit/query';
+
+
 
 import environments from '@app/configs/environments';
 

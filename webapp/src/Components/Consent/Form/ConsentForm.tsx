@@ -17,7 +17,6 @@ import { validateConsents } from '@app/utils/validations/consent/consentValidati
 
 import ConsentField from './ConsentField';
 
-
 interface ConsentBuilderProps extends OnlyClassNameInterface {
     onFormSubmit: any;
     form: StandardFormDto;
@@ -39,11 +38,11 @@ export default function ConsentForm({ className, onFormSubmit, form, isDisabled 
         <>
             <div className="space-y-5">
                 <div className="h3-new">{`Who Can Access Your Data?`}</div>
-                <div className="border-y border-new-black-300 py-5 space-y-2">
+                <div className="border-new-black-300 space-y-2 border-y py-5">
                     <div className="h6-new">
                         {workspace.workspaceName} with {data?.length} members
                     </div>
-                    <ul className="space-y-3 list-disc !px-5">
+                    <ul className="list-disc space-y-3 !px-5">
                         <li className="p2">We will only collect and use your data as described in privacy policy.</li>
                         <li className="p2">We will not sell or share your data with any other third parties without your consent.</li>
                         <li className="p2">We will take all reasonable steps to protect your data from unauthorized access, use, or disclosure.</li>
@@ -88,7 +87,7 @@ export default function ConsentForm({ className, onFormSubmit, form, isDisabled 
     };
     const onSubmit = async (event: any) => {
         event.preventDefault();
-        if (validateConsents(consentAnswers, form.consent)) {
+        if (validateConsents(consentAnswers, form?.consent || [])) {
             setError(false);
             openModal('CONSENT_CONFIRMATION_MODAL_VIEW', {
                 onFormSubmit,
@@ -102,7 +101,7 @@ export default function ConsentForm({ className, onFormSubmit, form, isDisabled 
 
     return (
         <form className={cn(className)} onSubmit={onSubmit}>
-            <div className="space-y-20 xs:space-y-[70px]">
+            <div className="xs:space-y-[70px] space-y-20">
                 <div className="space-y-4">
                     <div className="h4">Form Purpose and Data Usage</div>
                     <div className="p2 !text-new-black-800 ">{`We want to make sure you're fully informed about how your data will be used before you proceed with our form.`}</div>

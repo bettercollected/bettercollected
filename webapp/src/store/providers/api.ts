@@ -1,10 +1,9 @@
-import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/dist/query/react';
+import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 
 import environments from '@app/configs/environments';
 import { IntegrationFormProviders } from '@app/models/dtos/provider';
 
 import { PROVIDER_TAG_TYPES } from './types';
-
 
 export const PROVIDER_REDUCER_PATH = 'providerApi';
 export const providerApi = createApi({

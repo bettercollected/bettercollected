@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
 
-import Image from 'next/image';
+import Image from "next/legacy/image";
 
 import useFormBuilderAtom from '@Components/FormBuilder/builderAtom';
 import cn from 'classnames';

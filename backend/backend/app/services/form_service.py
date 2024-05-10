@@ -165,19 +165,29 @@ class FormService:
         is_admin = await self._workspace_user_repo.has_user_access_in_workspace(
             workspace_id=workspace_id, user=user
         )
-        if not user:
-            workspace_form = await self._workspace_form_repo.get_workspace_form_with_custom_slug_form_id(
+        workspace_form = (
+            await self._workspace_form_repo.get_workspace_form_with_custom_slug_form_id(
                 workspace_id=workspace_id, custom_url=form_id
             )
+        )
+        if not user:
             if not workspace_form:
                 raise HTTPException(
                     status_code=404, content="Form not found in Workspace"
                 )
-            if workspace_form.settings.private or workspace_form.settings.hidden:
-                raise HTTPException(
-                    status_code=HTTPStatus.UNAUTHORIZED,
-                    content="Private Form Login to continue",
+            if (
+                workspace_form.settings.private or workspace_form.settings.hidden
+            ) and published:
+                form = await self._form_repo.get_latest_version_of_form(
+                    form_id=PydanticObjectId(workspace_form.form_id)
                 )
+                return {
+                    "formId": form.form_id,
+                    "builderVersion": form.builder_version,
+                    "welcomePage": form.welcome_page,
+                    "theme": form.theme,
+                    "settings": workspace_form.settings,
+                }
         workspace_form_ids = await self._workspace_form_repo.get_form_ids_in_workspace(
             workspace_id=workspace_id,
             is_not_admin=not is_admin,
@@ -187,25 +197,43 @@ class FormService:
             },
         )
         if published:
-            form = await self._form_repo.get_published_forms_in_workspace(
+            authorized_form = await self._form_repo.get_published_forms_in_workspace(
                 workspace_id=workspace_id,
                 form_id_list=workspace_form_ids,
             ).to_list()
+            if not authorized_form:
+                form = await self._form_repo.get_latest_version_of_form(
+                    form_id=PydanticObjectId(workspace_form.form_id)
+                )
+                if not form:
+                    raise HTTPException(
+                        status_code=HTTPStatus.NOT_FOUND, content="Form Not Found"
+                    )
+                else:
+                    return {
+                        "formId": form.form_id,
+                        "builderVersion": form.builder_version,
+                        "welcomePage": form.welcome_page,
+                        "theme": form.theme,
+                        "settings": workspace_form.settings,
+                        "unauthorized": True,
+                    }
+            else:
+                return authorized_form[0]
+
         else:
             form = await self._form_repo.get_forms_in_workspace_query(
                 workspace_id=workspace_id,
                 form_id_list=workspace_form_ids,
                 is_admin=is_admin,
             ).to_list()
-
         if not form:
             raise HTTPException(
                 status_code=HTTPStatus.NOT_FOUND, content="Form Not Found"
             )
         else:
             form = form[0]
-        if not published:
-            form = await self.add_user_details_to_form(form)
+        form = await self.add_user_details_to_form(form)
         return form
 
     async def add_user_details_to_form(self, form):
@@ -225,21 +253,25 @@ class FormService:
         return minified_form
 
     async def save_form(self, form: StandardForm):
-        existing_form = await FormDocument.find_one({"form_id": form.form_id})
+        existing_form = await FormDocument.find_one(
+            {"imported_form_id": form.imported_form_id}
+        )
         form_document = FormDocument(**form.dict())
         if existing_form:
             form_document.id = existing_form.id
+            form_document.form_id = existing_form.form_id
             form_document.created_at = (
                 existing_form.created_at
                 if existing_form.created_at
                 else datetime.utcnow()
             )
         existing_form_version = await FormVersionsDocument.find_one(
-            {"form_id": form.form_id}
+            {"imported_form_id": form.imported_form_id}
         )
         form_version_document = FormVersionsDocument(**form.dict(), version=1)
         if existing_form_version:
             form_version_document.id = existing_form_version.id
+            form_version_document.form_id = existing_form_version.form_id
             form_version_document.created_at = (
                 existing_form_version.created_at
                 if existing_form_version.created_at
@@ -285,6 +317,10 @@ class FormService:
             workspace_form.settings.allow_editing_response = (
                 settings.allow_editing_response
             )
+
+        if settings.show_original_form is not None:
+            workspace_form.settings.show_original_form = settings.show_original_form
+
         if settings.custom_url is not None:
             await self.user_tags_service.add_user_tag(
                 user_id=user.id, tag=UserTagType.CUSTOM_SLUG
@@ -349,6 +385,9 @@ class FormService:
             and form.cover_image == latest_version.cover_image
             and form.button_text == latest_version.button_text
             and form.state == latest_version.state
+            and form.welcome_page == latest_version.welcome_page
+            and form.thankyou_page == latest_version.thankyou_page
+            and form.theme == latest_version.theme
         ):
             return False
         return True

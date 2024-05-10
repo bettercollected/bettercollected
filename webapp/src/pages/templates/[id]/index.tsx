@@ -18,7 +18,7 @@ import { useCreateFormFromTemplateMutation, useGetTemplateByIdQuery, useImportTe
 import { useGetAllMineWorkspacesQuery } from '@app/store/workspaces/api';
 import { convertFormTemplateToStandardForm } from '@app/utils/convertDataType';
 import { checkHasAdminDomain, getRequestHost } from '@app/utils/serverSidePropsUtils';
-
+import environments from '@app/configs/environments';
 
 export default function TemplatePage(props: any) {
     const { templateId } = props;
@@ -36,7 +36,6 @@ export default function TemplatePage(props: any) {
     const [createFormFromTemplate] = useCreateFormFromTemplateMutation();
 
     const { data: myWorkspaces, isLoading: myWorkspaceLoading, refetch } = useGetAllMineWorkspacesQuery();
-    console.log(auth);
 
     useEffect(() => {
         refetch();
@@ -69,7 +68,12 @@ export default function TemplatePage(props: any) {
             const response: any = await createFormFromTemplate(request);
             if (response?.data) {
                 toast('Created Form Successfully', { type: 'success' });
-                await router.replace(`/${workspace.workspaceName}/dashboard/forms/${response?.data?.formId}/edit`);
+                const editFormUrl = `/${workspace.workspaceName}/dashboard/forms/${response?.data?.formId}/edit`;
+                if (response?.data?.builderVersion === 'v2') {
+                    router.push(environments.HTTP_SCHEME + environments.DASHBOARD_DOMAIN + editFormUrl);
+                } else {
+                    router.push(editFormUrl);
+                }
             } else {
                 toast('Error Occurred').toString(), { type: 'error' };
             }
@@ -80,7 +84,7 @@ export default function TemplatePage(props: any) {
 
     return (
         <Layout showNavbar className="bg-white !px-0">
-            <div className={'py-3 px-5 flex justify-end'}>
+            <div className={'flex justify-end px-5 py-3'}>
                 <div className={'flex flex-row gap-4'}>
                     {!isError && auth ? (
                         <>
@@ -121,7 +125,7 @@ const ButtonActionWrapper = ({ children, handleAction, workspaces }: any) => {
             )}
             {!hasSingleWorkspace && (
                 <MenuDropdown id="workspaceSelector" className="hover:bg-transparent" menuTitle="Select a workspace" showExpandMore={false} menuContent={<div className="pointer-events-none ">{children}</div>}>
-                    <div className="font-bold px-4 py-2 text-sm text-black-700">Select a workspace</div>
+                    <div className="text-black-700 px-4 py-2 text-sm font-bold">Select a workspace</div>
                     <div>
                         {workspaces?.map((workspace: WorkspaceDto) => (
                             <MenuItem

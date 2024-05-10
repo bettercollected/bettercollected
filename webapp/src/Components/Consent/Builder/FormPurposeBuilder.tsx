@@ -11,7 +11,6 @@ import { IConsentField } from '@app/store/consent/types';
 import ConsentAddInput from './ConsentAddInput';
 import ConsentBuilderField from './ConsentBuilderField';
 
-
 interface FormPurposeBuilderProps {
     form?: StandardFormDto;
     isPreview: boolean;
@@ -32,17 +31,17 @@ export default function FormPurposeBuilder({ form, isPreview, options, consents 
         openModal('CONSENT_PURPOSE_MODAL_VIEW', modalProps);
     };
 
-    const isFormPurposeAvailable = form?.consent.filter((consent) => consent.category === ConsentCategoryType.PurposeOfTheForm).length !== 0;
+    const isFormPurposeAvailable = form?.consent?.filter((consent) => consent.category === ConsentCategoryType.PurposeOfTheForm).length !== 0;
     if (!isFormPurposeAvailable) return <></>;
 
     return (
         <div>
-            <div className="h3-new pb-5 xs:pb-[17px]">Purpose Of This Form</div>
+            <div className="h3-new xs:pb-[17px] pb-5">Purpose Of This Form</div>
             {consents?.map((consent, idx) => (
                 <ConsentBuilderField key={consent.consentId} disabled={isPreview || consent.consentId === 'consent_data_collection'} className={`${idx === 0 && 'border-y'}`} consent={consent} onClick={handleModalOpen} />
             ))}
             {!isPreview && (
-                <ConsentAddInput className="mt-5 xs:mt-[17px]" title={formPurpose.title} placeholder="Select or Add Purpose" hint={formPurpose.hint} options={options} dropdownTitle="Purpose Of The Form" showCreateNewOptionButton onSelect={handleSelect} />
+                <ConsentAddInput className="xs:mt-[17px] mt-5" title={formPurpose.title} placeholder="Select or Add Purpose" hint={formPurpose.hint} options={options} dropdownTitle="Purpose Of The Form" showCreateNewOptionButton onSelect={handleSelect} />
             )}
         </div>
     );

@@ -19,7 +19,7 @@ import { toolTipConstant } from '@app/constants/locales/tooltip';
 import { upgradeConst } from '@app/constants/locales/upgrade';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { IDrawerProps } from '@app/models/props/navbar';
-import { selectIsAdmin, selectIsProPlan } from '@app/store/auth/slice';
+import { selectAuth, selectIsAdmin, selectIsProPlan } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { JOYRIDE_CLASS } from '@app/store/tours/types';
 import { useGetWorkspaceStatsQuery } from '@app/store/workspaces/api';

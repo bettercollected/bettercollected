@@ -16,7 +16,6 @@ import { ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
 import { Group, IntegrationInstructions, Share } from '@mui/icons-material';
 
 import FormIntegrations from '@app/components/form/integrations';
-import BreadcrumbsRenderer from '@app/components/form/renderer/breadcrumbs-renderer';
 import { ChevronForward } from '@app/components/icons/chevron-forward';
 import { HistoryIcon } from '@app/components/icons/history';
 import { TrashIcon } from '@app/components/icons/trash';
@@ -28,16 +27,26 @@ import { localesCommon } from '@app/constants/locales/common';
 import { formConstant } from '@app/constants/locales/form';
 import { formPage } from '@app/constants/locales/form-page';
 import Layout from '@app/layouts/_layout';
-import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
+import { useBreakpoint, useIsMobile } from '@app/lib/hooks/use-breakpoint';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { BreadcrumbsItem } from '@app/models/props/breadcrumbs-item';
 import Error from '@app/pages/_error';
+import { Button } from '@app/shadcn/components/ui/button';
+import { Sheet, SheetClose, SheetContent, SheetFooter, SheetTrigger } from '@app/shadcn/components/ui/sheet';
 import { resetSingleForm, selectForm, setForm } from '@app/store/forms/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
+import { useFormResponse } from '@app/store/jotai/responderFormResponse';
+import { useResponderState } from '@app/store/jotai/responderFormState';
 import { selectWorkspace } from '@app/store/workspaces/slice';
-import { getFormUrl } from '@app/utils/urlUtils';
+import getFormShareURL from '@app/utils/formUtils';
+import { getEditFormURL } from '@app/utils/urlUtils';
 import { validateFormOpen } from '@app/utils/validationUtils';
-
+import PlayIcon from '@app/views/atoms/Icons/PlayIcon';
+import BackButton from '@app/views/molecules/FormBuilder/BackButton';
+import PreviewWrapper from '@app/views/molecules/FormBuilder/PreviewWrapper';
+import PublishButton from '@app/views/molecules/FormBuilder/PublishButton';
+import Form from '@app/views/organism/Form/Form';
+import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
 
 const FormResponses = dynamic(() => import('@app/components/form/responses'));
 const FormResponsesTable = dynamic(() => import('@app/components/datatable/form/form-responses'));
@@ -51,12 +60,14 @@ export default function FormPage(props: any) {
     const { t } = useTranslation();
     const dispatch = useAppDispatch();
     const reduxStoreForm = useAppSelector(selectForm);
-    const locale = props._nextI18Next.initialLocale === 'en' ? '' : `${props._nextI18Next.initialLocale}/`;
     const breakpoint = useBreakpoint();
     const router = useRouter();
     const { openModal } = useModal();
+    const { openModal: openFullScreenModal } = useFullScreenModal();
     const workspace = useAppSelector(selectWorkspace);
     const workspaceForm = useAppSelector(selectForm);
+
+    const isMobile = useIsMobile();
     const paramTabs = [
         {
             icon: <Preview className="h-5 w-5" />,
@@ -86,11 +97,11 @@ export default function FormPage(props: any) {
     const breadcrumbsItem: Array<BreadcrumbsItem> = [
         {
             title: t(breadcrumbsItems.dashboard),
-            url: `/${locale}${props?.workspace?.workspaceName}/dashboard`
+            url: `/${props?.workspace?.workspaceName}/dashboard`
         },
         {
             title: t(breadcrumbsItems.forms),
-            url: `/${locale}${props?.workspace?.workspaceName}/dashboard/forms`
+            url: `/${props?.workspace?.workspaceName}/dashboard/forms`
         },
         {
             title: router.query ? router.query.view?.toString() ?? 'Preview' : 'Preview',
@@ -138,29 +149,32 @@ export default function FormPage(props: any) {
         await router.push(`/${props.workspace.workspaceName}/dashboard/forms`);
     };
 
+    if (!form?.formId) {
+        return <></>;
+    }
+
     return (
-        <Layout isCustomDomain={false} isClientDomain={false} showNavbar={true} hideMenu={false} showAuthAccount={true} className="!p-0 !bg-white flex flex-col w-full">
+        <Layout isCustomDomain={false} isClientDomain={false} showNavbar={true} hideMenu={false} showAuthAccount={true} className="flex w-full flex-col !bg-white !p-0">
             <NextSeo title={form.title} noindex={true} nofollow={true} />
-            <div className="w-full  my-2 ">
-                <div className="flex w-full items-center gap-1 px-5">
-                    <ChevronForward onClick={handleBackClick} className=" cursor-pointer rotate-180 h-6 w-6 p-[2px] " />
-                    <BreadcrumbsRenderer items={breadcrumbsItem} />
-                </div>
-                <div className="flex flex-col gap-1 mt-12">
-                    <FormPageLayer className=" lg:px-28 md:px-10 px-4 ">
+            <div className="my-2  w-full ">
+                <div className="mt-6 flex flex-col gap-1 sm:mt-12">
+                    <FormPageLayer className=" px-4 md:px-10 lg:px-28 ">
                         <div className="flex justify-between">
-                            <h1 className="h2-new !text-pink">{form?.title}</h1>
-                            <div className="flex gap-4">
-                                {form?.settings?.provider === 'self' && (
+                            <div className="flex flex-row items-center gap-1" onClick={handleBackClick}>
+                                {isMobile && <ChevronForward className=" h-6 w-6 rotate-180 cursor-pointer p-[2px] " />}
+                                {isMobile ? <h1 className="hp3-new">{form?.title}</h1> : <h1 className="h2-new text-pink ">{form?.title}</h1>}
+                            </div>
+                            <div className="hidden gap-4 lg:flex">
+                                {form?.settings?.provider === 'self' && form?.builderVersion === 'v2' && (
                                     <AppButton
                                         icon={<EditIcon className="h-6 w-6" />}
                                         variant={['sm', 'md', 'lg', 'xl', '2xl'].indexOf(breakpoint) !== -1 ? ButtonVariant.Secondary : ButtonVariant.Ghost}
                                         className="!px-0 sm:!px-5"
                                         onClick={() => {
-                                            router.push(`/${workspace.workspaceName}/dashboard/forms/${form.formId}/edit`);
+                                            router.push(getEditFormURL(workspace, form));
                                         }}
                                     >
-                                        <span className="sm:block hidden">{t(formPage.editForm)}</span>
+                                        <span className="hidden sm:block">{t(formPage.editForm)}</span>
                                     </AppButton>
                                 )}
                                 {form?.isPublished && isFormOpen && (
@@ -172,38 +186,72 @@ export default function FormPage(props: any) {
                                             disabled={workspaceForm?.settings?.hidden}
                                             onClick={() =>
                                                 openModal('SHARE_VIEW', {
-                                                    url: getFormUrl(workspaceForm, workspace),
+                                                    url: getFormShareURL(workspaceForm, workspace),
                                                     title: t(formConstant.shareThisForm)
                                                 })
                                             }
                                         >
-                                            <span className="sm:block hidden">{t(formPage.shareForm)}</span>
+                                            <span className="hidden sm:block">{t(formPage.shareForm)}</span>
                                         </AppButton>
                                     </PrivateFormButtonWrapper>
                                 )}
                             </div>
+                            <div className="flex gap-2 lg:hidden">
+                                <Button
+                                    icon={<PlayIcon />}
+                                    onClick={() => {
+                                        openFullScreenModal('PREVIEW_MODAL');
+                                    }}
+                                    className="text-[10px"
+                                    variant={'v2Button'}
+                                >
+                                    Preview
+                                </Button>
+
+                                {form?.isPublished ? (
+                                    <PrivateFormButtonWrapper isPrivate={workspaceForm?.settings?.hidden}>
+                                        <Button
+                                            variant={'primary'}
+                                            icon={<Share />}
+                                            disabled={workspaceForm?.settings?.hidden}
+                                            onClick={() =>
+                                                openModal('SHARE_VIEW', {
+                                                    url: getFormShareURL(workspaceForm, workspace),
+                                                    title: t(formConstant.shareThisForm)
+                                                })
+                                            }
+                                        >
+                                            <span className="">{'Share'}</span>
+                                        </Button>
+                                    </PrivateFormButtonWrapper>
+                                ) : (
+                                    <PublishButton refresh />
+                                )}
+                            </div>
                         </div>
-                        <div className="flex gap-1 flex-row items-center">
-                            <FormProviderIcon provider={form?.settings?.provider} />
-                        </div>
+                        {!isMobile && (
+                            <div className="flex flex-row items-center gap-1">
+                                <FormProviderIcon provider={form?.settings?.provider} />
+                            </div>
+                        )}
                         <Divider className="mt-6 hidden md:flex" />
                     </FormPageLayer>
                     <Divider className="mt-6 flex md:hidden" />
 
-                    <ParamTab showInfo={true} className=" lg:px-28 md:px-10 " tabMenu={paramTabs}>
-                        <FormPageLayer className="w-full">
+                    <ParamTab showInfo={true} className="md:px-10 lg:px-28" tabMenu={paramTabs}>
+                        <FormPageLayer className="px-4 md:px-10 lg:px-28">
                             <TabPanel className="focus:outline-none" key="Preview">
                                 <FormPreview />
                             </TabPanel>
                         </FormPageLayer>
-                        <FormPageLayer className="md:px-32 px-2">
+                        <FormPageLayer className="px-2 md:px-32">
                             <TabPanel className="focus:outline-none" key="Settings">
                                 <FormSettings />
                             </TabPanel>
                         </FormPageLayer>
                         {form?.isPublished && (
                             <>
-                                {form?.settings?.provider === 'self' && (
+                                {form?.settings?.provider === 'self' && environments.ENABLE_ACTIONS && (
                                     <TabPanel className="focus:outline-none" key="Integrations">
                                         <FormIntegrations />
                                     </TabPanel>
@@ -211,14 +259,14 @@ export default function FormPage(props: any) {
                                 <TabPanel className="focus:outline-none" key="Responses">
                                     <FormResponses />
                                 </TabPanel>
+                                <TabPanel className="focus:outline-none" key="Deletion Requests">
+                                    <FormResponsesTable props={{ workspace, requestForDeletion: true }} />
+                                </TabPanel>
                             </>
                         )}
-                        <FormPageLayer className="md:px-32 px-2">
+                        <FormPageLayer className="px-2 md:px-32">
                             {form?.isPublished ? (
                                 <>
-                                    <TabPanel className="focus:outline-none" key="Deletion Requests">
-                                        <FormResponsesTable props={{ workspace, requestForDeletion: true }} />
-                                    </TabPanel>
                                     <TabPanel className="focus:outline-none" key="FormVisibility">
                                         <FormVisibilities />
                                     </TabPanel>

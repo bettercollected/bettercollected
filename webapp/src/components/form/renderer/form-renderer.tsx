@@ -19,7 +19,13 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import SelectDropdown from '@app/components/dropdown/select';
 import Loader from '@app/components/ui/loader';
 import { StandardFormFieldDto } from '@app/models/dtos/form';
-
+import { useAppSelector } from '@app/store/hooks';
+import { selectWorkspace } from '@app/store/workspaces/slice';
+import getFormShareURL, {getFieldsFromV2Form} from '@app/utils/formUtils';
+import Form from '@app/views/organism/Form/Form';
+import ResponsePage from '@app/app/[workspace_name]/forms/[form_id]/preview/page';
+import { extractTextfromJSON } from '@app/utils/richTextEditorExtenstion/getHtmlFromJson';
+import {IndividualFormResponse} from "@app/components/modal-views/full-screen-modals/view-response-full-modal-view";
 
 const StyledTextField = styled.div`
     textarea:disabled {
@@ -80,13 +86,14 @@ FormRenderer.defaultProps = {
 };
 
 export default function FormRenderer({ form, response, enabled, isDisabled = false }: FormRendererProps) {
+    const workspace = useAppSelector(selectWorkspace);
+
     const renderGridRowColumns = (question: any) => {
         const gridRowQuestions = question.properties?.fields;
         const gridColumnOptions = question.properties?.fields[0].properties.choices;
         const Component = gridRowQuestions[0].properties.allow_multiple_selection ? Checkbox : Radio;
 
         const gridColumnCount = gridColumnOptions && Array.isArray(gridColumnOptions) ? gridColumnOptions.length : 0;
-        const gridAnswers = question.answer ? question.answer : [];
 
         return (
             <div className="" data-testid="form-renderer">
@@ -109,7 +116,7 @@ export default function FormRenderer({ form, response, enabled, isDisabled = fal
 
                     return (
                         <div key={idx} className={`grid grid-flow-col grid-cols-${gridColumnCount + 1} gap-4`}>
-                            <p className="font-semibold w-fit">{grq?.title}</p>
+                            <p className="w-fit font-semibold">{grq?.title}</p>
                             {gridColumnOptions.map((gcp: any, idx: any) => {
                                 const handleCheckedAnswer = (gcp: any) => {
                                     return ansChoices.includes(gcp?.label);
@@ -136,7 +143,7 @@ export default function FormRenderer({ form, response, enabled, isDisabled = fal
             <div className="w-full">
                 {description && <div>{description}</div>}
                 {strippedLink && (
-                    <div className="relative w-full aspect-video">
+                    <div className="relative aspect-video w-full">
                         <iframe src={embedUrl} width="100%" className="aspect-video" frameBorder="0" marginHeight={0} marginWidth={0}>
                             <Loader />
                         </iframe>
@@ -150,7 +157,7 @@ export default function FormRenderer({ form, response, enabled, isDisabled = fal
         const questionType: QUESTION_TYPE = question.type;
         switch (questionType) {
             case QUESTION_TYPE.DATE:
-                const date_format = question.properties?.date_format ?? 'MM/DD/YYYY';
+                const date_format = question.properties?.dateFormat ?? 'MM/DD/YYYY';
                 const answer = ans?.date ?? '';
                 return (
                     <LocalizationProvider dateAdapter={AdapterDayjs}>
@@ -163,24 +170,24 @@ export default function FormRenderer({ form, response, enabled, isDisabled = fal
                 const choiceAnswer = ans?.choice?.value ?? ans?.choices?.values;
                 return (
                     <StyledTextField>
-                        {question.properties.choices?.map((option: any, idx: number) => (
+                        {question?.properties?.choices?.map((option: any, idx: number) => (
                             <div key={idx} className="flex items-center gap-3">
                                 {option?.attachment?.href && <img width={80} height={80} src={option?.attachment?.href} />}
-                                <FormControlLabel control={question.properties?.allow_multiple_selection ? <Checkbox checked={choiceAnswer?.includes(option?.label)} /> : <Radio checked={option?.label == choiceAnswer} />} label={option?.label} />
+                                <FormControlLabel control={question.properties?.allowMultipleSelection ? <Checkbox checked={choiceAnswer?.includes(option?.label)} /> : <Radio checked={option?.label == choiceAnswer} />} label={option?.label} />
                             </div>
                         ))}
                     </StyledTextField>
                 );
             case QUESTION_TYPE.OPINION_SCALE:
                 const selected_answer: any = ans?.number;
-                const start_form = question?.properties?.start_form;
-                let steps = question?.properties?.steps;
+                const start_form = question?.properties?.startFrom ?? 0;
+                let steps = question?.properties?.steps ?? 0;
                 steps = start_form != 0 ? steps + 1 : steps;
                 const numberBoxes = [];
                 for (let i = 0; i < steps; i++) {
                     if (i >= start_form)
                         numberBoxes.push(
-                            <span key={i} className={`border border-gray-900 rounded mx-1 px-2 py-1 ${selected_answer !== undefined && selected_answer === i ? 'bg-gray-900 text-gray-200' : 'bg-gray-200 text-gray-900'}`}>
+                            <span key={i} className={`mx-1 rounded border border-gray-900 px-2 py-1 ${selected_answer !== undefined && selected_answer === i ? 'bg-gray-900 text-gray-200' : 'bg-gray-200 text-gray-900'}`}>
                                 {i}
                             </span>
                         );
@@ -193,7 +200,7 @@ export default function FormRenderer({ form, response, enabled, isDisabled = fal
                         <>
                             {ans?.choices?.values?.map((answer: any, idx: number) => {
                                 return (
-                                    <div key={idx} className="p-3 mt-3 mb-3 rounded-md border-[1px] border-gray-300">
+                                    <div key={idx} className="mb-3 mt-3 rounded-md border-[1px] border-gray-300 p-3">
                                         <span className="ml-2">
                                             {idx + 1}. {answer}
                                         </span>
@@ -212,7 +219,7 @@ export default function FormRenderer({ form, response, enabled, isDisabled = fal
                         <>
                             {choices.map((choice: any, idx: number) => {
                                 return (
-                                    <div key={idx} className="p-3 mt-3 mb-3 rounded">
+                                    <div key={idx} className="mb-3 mt-3 rounded p-3">
                                         <SelectDropdown value={''} className="h-6" disabled>
                                             {choicesArray.map((dd: number) => (
                                                 <MenuItem key={dd} value={''}>
@@ -229,7 +236,7 @@ export default function FormRenderer({ form, response, enabled, isDisabled = fal
                 }
 
             case QUESTION_TYPE.RATING:
-                return <Rating name="size-large" size="large" defaultValue={ans?.number || 0} precision={1} max={!!question.properties.steps ? parseInt(question.properties.steps) : 3} readOnly />;
+                return <Rating name="size-large" size="large" defaultValue={ans?.number || 0} precision={1} max={!!question?.properties?.steps ? parseInt((question?.properties?.steps).toString()) : 3} readOnly />;
 
             case QUESTION_TYPE.DROP_DOWN:
                 let dropdownOptions: any = [];
@@ -260,7 +267,7 @@ export default function FormRenderer({ form, response, enabled, isDisabled = fal
             case QUESTION_TYPE.GROUP:
                 return (
                     <>
-                        {question.properties.fields.map((question: any, idx: number) => (
+                        {question?.properties?.fields?.map((question: any, idx: number) => (
                             <div className="my-5" key={idx}>
                                 {renderQuestionField(question, response)}
                             </div>
@@ -294,7 +301,7 @@ export default function FormRenderer({ form, response, enabled, isDisabled = fal
         return (
             <div className="mt-2">
                 <p className="text-gray-400">Couldn&apos;t display. Unsupported media type.</p>
-                <a className="text-blue-500 mt-1" rel="noreferrer" target="_blank" href={href}>
+                <a className="mt-1 text-blue-500" rel="noreferrer" target="_blank" href={href}>
                     Click here to see video attachment.
                 </a>
             </div>
@@ -319,7 +326,7 @@ export default function FormRenderer({ form, response, enabled, isDisabled = fal
 
     const renderQuestionField = (question: StandardFormFieldDto, response?: any) => (
         <div className="flex flex-col gap-3">
-            <h1 className="body1 !text-black-900">{question.title}</h1>
+            <h1 className="body1 !text-black-900">{extractTextfromJSON(question)}</h1>
             {/* {question?.description && <MarkdownText description={question.description} contentStripLength={1000} markdownClassName="body4" textClassName="body4" />} */}
             {question.attachment?.type && renderQuestionAttachment(question.attachment)}
             {renderQuestionTypeField(question, response ? response[question.id || ''] : undefined, response)}
@@ -327,19 +334,27 @@ export default function FormRenderer({ form, response, enabled, isDisabled = fal
     );
 
     return (
-        <div data-testid="form-renderer" className="relative  w-full flex justify-center  md:px-0">
+        <div data-testid="form-renderer" className="relative  flex w-full justify-center  md:px-0">
             {form?.settings?.provider === 'self' ? (
-                <BetterCollectedForm form={form} response={response} enabled={enabled} isDisabled={isDisabled} />
+                <>
+                    {form?.builderVersion === 'v2' ? (
+                        <div className="h-full  w-full bg-white  px-5 md:px-10 lg:px-28">
+                            <IndividualFormResponse response={response} formFields={getFieldsFromV2Form(form)||[]}/>
+                        </div>
+                    ) : (
+                        <BetterCollectedForm form={form} response={response} enabled={enabled} isDisabled={isDisabled} />
+                    )}
+                </>
             ) : (
-                <div className="flex flex-col gap-4 max-w-[700px] w-full !bg-white rounded">
-                    <div className="p-6 bg-white rounded-lg flex flex-col gap-4">
-                        <h1 className="font-semibold h4">{form?.title}</h1>
+                <div className="flex w-full max-w-[700px] flex-col gap-4 rounded !bg-white">
+                    <div className="flex flex-col gap-4 rounded-lg bg-white p-6">
+                        <h1 className="h4 font-semibold">{form?.title}</h1>
                         {/* {form?.description && <MarkdownText description={form?.description} contentStripLength={1000} markdownClassName="body4" textClassName="body4" />} */}
                     </div>
                     {form?.fields?.map((question: StandardFormFieldDto, idx: number) => {
                         return (
-                            <div key={question?.id + idx} className={`px-6 py-3 bg-white relative rounded-lg`}>
-                                {question?.validations?.required && <div className="absolute top-5 right-5 text-red-500">*</div>}
+                            <div key={question?.id + idx} className={`relative rounded-lg bg-white px-6 py-3`}>
+                                {question?.validations?.required && <div className="absolute right-5 top-5 text-red-500">*</div>}
                                 {renderQuestionField(question, response?.answers)}
                             </div>
                         );

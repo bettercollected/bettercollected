@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
 
-import Image from 'next/image';
+import Image from "next/legacy/image";
 
 import { uuidv4 } from '@mswjs/interceptors/lib/utils/uuid';
 import { toast } from 'react-toastify';
