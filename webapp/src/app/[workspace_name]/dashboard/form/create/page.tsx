@@ -58,9 +58,9 @@ export default function CreateFormPage({ searchParams }: { searchParams: { modal
         const randomIndexes = Array.from({ length: 3 }, () => Math.floor(Math.random() * 10));
         const pic = newPics?.filter((item: any, index: number) => randomIndexes.includes(index));
         const updatedForm = { ...defaultForm };
-        updatedForm.fields[0].imageUrl = (pic && pic[1]?.urls?.full) || 'https://s3.eu-central-1.wasabisys.com/bettercollected/images/v2defaultImage.png';
-        updatedForm.welcomePage!.imageUrl = (pic && pic[0]?.urls?.full) || 'https://s3.eu-central-1.wasabisys.com/bettercollected/images/v2defaultImage.png';
-        updatedForm.thankyouPage![0].imageUrl = (pic && pic[2]?.urls?.full) || 'https://s3.eu-central-1.wasabisys.com/bettercollected/images/v2defaultImage.png';
+        updatedForm.fields[0].imageUrl = (pic && pic[1]?.urls?.full) || 'https://s3.eu-central-1.wasabisys.com/bettercollected/images/v2_layout_image.webp';
+        updatedForm.welcomePage!.imageUrl = (pic && pic[0]?.urls?.full) || 'https://s3.eu-central-1.wasabisys.com/bettercollected/images/v2_layout_image.webp';
+        updatedForm.thankyouPage![0].imageUrl = (pic && pic[2]?.urls?.full) || 'https://s3.eu-central-1.wasabisys.com/bettercollected/images/v2_layout_image.webp';
         const formBody = { ...updatedForm, builderVersion: 'v2', isMultiPage };
         const formData = new FormData();
         formData.append('form_body', JSON.stringify(formBody));
