@@ -29,7 +29,7 @@ const CardVariants = {
     pink: 'text-pink-500 !cursor-auto'
 };
 
-export default function CreateFormPage() {
+export default function CreateFormPage({ searchParams }: { searchParams: { modal?: string } }) {
     const [createV2Form] = useCreateV2FormMutation();
     const { resetFields } = useFormFieldsAtom();
     const workspace = useAppSelector(selectWorkspace);
@@ -38,8 +38,7 @@ export default function CreateFormPage() {
     const { openModal } = useModal();
     const isMobile = useIsMobile();
 
-    const searchParams = useSearchParams();
-    const showModal = searchParams?.get('modal');
+    const showModal = searchParams.modal;
 
     useEffect(() => {
         if (showModal === 'true') {
