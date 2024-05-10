@@ -38,16 +38,6 @@ function EmptyFormsView() {
                     </div> */}
                 </div>
             </div>
-
-            <div className="aspect-video w-full md:max-w-[500px] lg:max-w-[800px]">
-                <iframe
-                    className="h-full w-full"
-                    src="https://www.youtube.com/embed/HJwQSRWHO84?si=BomJWCspTynq3Lga"
-                    title="YouTube video player"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                    allowFullScreen
-                ></iframe>
-            </div>
         </div>
     );
 }
