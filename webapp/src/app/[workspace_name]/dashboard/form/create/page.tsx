@@ -84,7 +84,7 @@ export default function CreateFormPage({ searchParams }: { searchParams: { modal
         <div className="min-h-screen bg-white">
             <NavBar />
             <div className="px-auto flex h-full flex-col justify-center lg:flex-row ">
-                <div className=" flex max-w-[1330px] flex-col px-5 md:px-10">
+                <div className=" flex w-full max-w-[1330px] flex-col px-5 md:px-10">
                     <div className="h3-new text-black-800 mb-4 mt-6">New Form</div>
                     <div className="flex w-full flex-col flex-wrap gap-6 lg:flex-row">
                         {isMobile ? (
