@@ -40,21 +40,21 @@ export default function SendCode({ updateEmail, isLoading, postSendOtp, isCustom
     };
 
     return (
-        <form onSubmit={handleClick} className="relative flex flex-col items-center gap-8 justify-between p-10">
+        <form onSubmit={handleClick} className="relative flex flex-col items-center justify-between gap-8 p-10">
             <div>
                 <h2 className="sh1 text-center">{t(localesCommon.enterEmail)}</h2>
-                <p className="!text-black-600 mt-2 body4 text-center leading-none">{t(otpRenderer.sendMessage)}</p>
+                <p className="!text-black-600 body4 mt-2 text-center leading-none">{t(otpRenderer.sendMessage)}</p>
             </div>
             <FormInput inputFieldType="email" value={emailInput} placeholder={t(localesCommon.enterEmail)} onChange={handleChangeOnInput} handleValidation={handleValidation} />
             {/* <BetterInput type="email" className="mt-8" value={emailInput} placeholder={'Enter your email'} onChange={handleChangeOnInput} /> */}
             <div>
-                <AppButton data-testid="get-in-button" type="submit" disabled={!emailValid} isLoading={isLoading} className={`w-60 mx-auto !rounded-[1px] !h-[50px]`} onClick={handleClick}>
+                <AppButton data-testid="get-in-button" type="submit" disabled={!emailValid} isLoading={isLoading} className={`mx-auto !h-[50px] w-60 !rounded-[1px]`} onClick={handleClick}>
                     {t(buttonConstant.getIn)}
                 </AppButton>
-                <div className="flex py-5 items-center justify-center">
-                    <div className="border-t w-5 border-gray-200"></div>
-                    <span className="flex-shrink text-xs mx-4 text-gray-400">{t(localesCommon.or)}</span>
-                    <div className="border-t w-5 border-gray-200"></div>
+                <div className="flex items-center justify-center py-5">
+                    <div className="w-5 border-t border-gray-200"></div>
+                    <span className="mx-4 flex-shrink text-xs text-gray-400">{t(localesCommon.or)}</span>
+                    <div className="w-5 border-t border-gray-200"></div>
                 </div>
                 <FormProviderContext.Consumer>
                     {(formProviders: Array<IntegrationFormProviders>) => (

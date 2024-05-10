@@ -6,7 +6,7 @@ import Tooltip from '@Components/Common/DataDisplay/Tooltip';
 import { ButtonSize } from '@Components/Common/Input/Button/AppButtonProps';
 import ModalButton from '@Components/Common/Input/Button/ModalButton';
 import { CheckCircle } from '@mui/icons-material';
-import { Autocomplete, Box, TextField, createFilterOptions } from '@mui/material';
+import { Autocomplete, Box, createFilterOptions, TextField } from '@mui/material';
 import cn from 'classnames';
 
 import { Close } from '@app/components/icons/close';
@@ -20,7 +20,6 @@ import { ResponderGroupDto } from '@app/models/dtos/groups';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { isFormAlreadyInGroup } from '@app/utils/groupUtils';
-
 
 interface IAddGroupOnFormProps {
     responderGroups?: Array<ResponderGroupDto>;
@@ -36,17 +35,17 @@ export default function AddGroupOnForm({ responderGroups, form }: IAddGroupOnFor
     const handleAddForm = () => {
         if (responderGroups)
             addFormOnGroup({
-                groups: form.groups,
-                groupsForUpdate: [...form.groups, selectedGroup],
+                groups: form?.groups || [],
+                groupsForUpdate: [...(form?.groups || []), selectedGroup],
                 form,
                 workspaceId: workspace.id
             });
     };
     return (
-        <div className="p-10 relative bg-white md:w-[658px] rounded-[8px]">
-            <Close onClick={closeModal} className="absolute top-2 right-2 cursor-pointer p-2 h-8 w-8" />
+        <div className="relative rounded-[8px] bg-white p-10 md:w-[658px]">
+            <Close onClick={closeModal} className="absolute right-2 top-2 h-8 w-8 cursor-pointer p-2" />
             <h4 className="h4">{t(formConstant.addgroup.title, { form: form.title })}</h4>
-            <p className="mt-2 mb-8 body4  !text-black-700">{t(formConstant.addgroup.description)}</p>
+            <p className="body4 !text-black-700 mb-8  mt-2">{t(formConstant.addgroup.description)}</p>
             {responderGroups && (
                 <Autocomplete
                     disablePortal
@@ -77,8 +76,8 @@ export default function AddGroupOnForm({ responderGroups, form }: IAddGroupOnFor
                                 key={option.id}
                             >
                                 <div>
-                                    <Box component="li" {...props} className={cn(' MuiAutocomplete-option !py-2', isFormAlreadyInGroup(form.groups, option.id) && 'cursor-not-allowed pointer-events-none opacity-30')}>
-                                        <div className="flex justify-between w-full items-center">
+                                    <Box component="li" {...props} className={cn(' MuiAutocomplete-option !py-2', isFormAlreadyInGroup(form.groups, option.id) && 'pointer-events-none cursor-not-allowed opacity-30')}>
+                                        <div className="flex w-full items-center justify-between">
                                             {option.name}
                                             {isFormAlreadyInGroup(form.groups, option.id) && <CheckCircle className="h-6 w-6" />}
                                         </div>

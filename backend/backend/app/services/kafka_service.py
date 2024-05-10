@@ -1,4 +1,6 @@
+import asyncio
 import json
+from concurrent.futures import ThreadPoolExecutor
 
 import httpx
 import loguru
@@ -24,6 +26,9 @@ def value_serializer(model_instance):
         return None
 
 
+executor = ThreadPoolExecutor(max_workers=10)
+
+
 class KafkaService:
     def __init__(self):
         if settings.kafka_settings.enabled:
@@ -46,7 +51,7 @@ class KafkaService:
         except KafkaConnectionError as e:
             loguru.logger.info("Could not connect to Kafka service")
 
-    async def send_event(
+    async def send_kafka_event(
         self, event_type: UserEventType, user_id: str, email: EmailStr
     ):
         event_message = UserEventDto(
@@ -54,9 +59,7 @@ class KafkaService:
         )
         if settings.kafka_settings.enabled:
             try:
-                await self.producer.send_and_wait(
-                    settings.kafka_settings.topic, event_message
-                )
+                await self.producer.send(settings.kafka_settings.topic, event_message)
             except Exception as e:
                 loguru.logger.warning(
                     "Could not send event to kafka, Event Message: "
@@ -93,6 +96,13 @@ class KafkaService:
                     "Could not send event to Webhook, Event Message: "
                     + str(event_message.dict())
                 )
+
+        loguru.logger.info("Event Handled Successfully", event_type, user_id)
+
+    async def send_event(
+        self, event_type: UserEventType, user_id: str, email: EmailStr
+    ):
+        asyncio.ensure_future(self.send_kafka_event(event_type, user_id, email))
 
 
 def get_enthusiastic_text(event_type):

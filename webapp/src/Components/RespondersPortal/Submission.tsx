@@ -144,25 +144,25 @@ export default function Submission({ hasCustomDomain, data, handleRequestForDele
                                         <Divider />
                                     </div>
                                 )}
-                                {form?.form?.settings?.provider === 'self' && (
-                                    <div className="flex flex-col gap-4 max-w-[800px]">
-                                        <span className="h3-new">Form Purpose and Data Usage</span>
-                                        <div className="py-4 border-y-[1px] border-black-300 flex flex-col md:flex-row w-full items-start md:items-center space-between">
-                                            <span className="p2-new text-black-700"> View the permissions you&apos;ve granted for data usage, third-party integrations, data retention dates, and see who can access your data</span>
-                                            <AppButton
-                                                onClick={() => {
-                                                    fullScreenModal.openModal('CONSENT_FULL_MODAL_VIEW', {
-                                                        isDisabled: true,
-                                                        form: form.response
-                                                    });
-                                                }}
-                                                variant={ButtonVariant.Ghost}
-                                            >
-                                                See Details
-                                            </AppButton>
-                                        </div>
-                                    </div>
-                                )}
+                                {/*{form?.form?.settings?.provider === 'self' && (*/}
+                                {/*    <div className="flex flex-col gap-4 max-w-[800px]">*/}
+                                {/*        <span className="h3-new">Form Purpose and Data Usage</span>*/}
+                                {/*        <div className="py-4 border-y-[1px] border-black-300 flex flex-col md:flex-row w-full items-start md:items-center space-between">*/}
+                                {/*            <span className="p2-new text-black-700"> View the permissions you&apos;ve granted for data usage, third-party integrations, data retention dates, and see who can access your data</span>*/}
+                                {/*            <AppButton*/}
+                                {/*                onClick={() => {*/}
+                                {/*                    fullScreenModal.openModal('CONSENT_FULL_MODAL_VIEW', {*/}
+                                {/*                        isDisabled: true,*/}
+                                {/*                        form: form.response*/}
+                                {/*                    });*/}
+                                {/*                }}*/}
+                                {/*                variant={ButtonVariant.Ghost}*/}
+                                {/*            >*/}
+                                {/*                See Details*/}
+                                {/*            </AppButton>*/}
+                                {/*        </div>*/}
+                                {/*    </div>*/}
+                                {/*)}*/}
                                 {!form?.response?.deletionStatus ? (
                                     <div>
                                         <Tooltip title={deletionStatus ? t(toolTipConstant.alreadyRequestedForDeletion) : t(toolTipConstant.requestForDeletion)}>

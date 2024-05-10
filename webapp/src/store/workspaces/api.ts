@@ -231,7 +231,13 @@ export const workspacesApi = createApi({
                 },
                 method: 'GET'
             }),
-            providesTags: [WORKSPACE_TAGS]
+            providesTags: [WORKSPACE_TAGS, SUBMISSION_TAG]
+        }),
+        getFormAllSubmissions: builder.query<Array<StandardFormResponseDto>, IGetFormSubmissionsQuery>({
+            query: (query) => ({
+                url: `/workspaces/${query.workspaceId}/forms/${query.formId}/all-submissions`,
+                method: 'GET'
+            })
         }),
         getWorkspaceSubmissions: builder.query<Page<StandardFormResponseDto>, IGetAllSubmissionsQuery>({
             query: (query) => ({
@@ -552,5 +558,7 @@ export const {
     useLazyExportCSVResponsesQuery,
     useGetWorkspaceSubmissionByUUIDQuery,
     useLazyGetWorkspaceSubmissionByUUIDQuery,
-    useRequestWorkspaceSubmissionDeletionByUUIDMutation
+    useRequestWorkspaceSubmissionDeletionByUUIDMutation,
+    useGetFormAllSubmissionsQuery,
+    useLazyGetFormAllSubmissionsQuery
 } = workspacesApi;

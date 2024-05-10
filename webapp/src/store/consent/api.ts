@@ -1,7 +1,11 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 
+
+
 // Import from the correct path
 import environments from '@app/configs/environments';
+
+
 
 import { IConsentField } from './types';
 

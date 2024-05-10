@@ -10,6 +10,7 @@ interface INextNProgressProps {
     stopDelayMs: number;
     height: number;
     options: any;
+    children?:any
 }
 
 NProgress.configure({ showSpinner: false });

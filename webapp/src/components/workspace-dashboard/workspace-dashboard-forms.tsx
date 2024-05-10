@@ -20,26 +20,28 @@ import { useAppSelector } from '@app/store/hooks';
 import { JOYRIDE_CLASS } from '@app/store/tours/types';
 import { useGetWorkspaceFormsQuery, useLazySearchWorkspaceFormsQuery } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
+import NewFormButton from '@app/views/atoms/NewFormButton';
 
 function EmptyFormsView() {
     const { t } = useTranslation();
     return (
         <div className="flex flex-col items-center gap-[72px]">
-            <div className="flex mt-8 flex-col gap-2 w-full items-center">
+            <div className="mt-8 flex w-full flex-col items-center gap-2">
                 <EmptyFormIcon />
-                <div className="mt-4 h4-new text-black-800 !leading-normal">{t('HAVE_NOT_IMPORTED_OR_CREATED')}</div>
+                <div className="h4-new text-black-800 mt-4 !leading-normal">{t('HAVE_NOT_IMPORTED_OR_CREATED')}</div>
                 <div className="p2-new text-black-700 !leading-normal">{t('CREATE_OR_IMPORT')}</div>
-                <div className="flex gap-4 mt-4">
-                    <div className={'flex flex-row gap-4'}>
+                <div className="mt-4 flex gap-4">
+                    <NewFormButton />
+                    {/* <div className={'flex flex-row gap-4'}>
                         <ImportFormsButton />
                         <CreateFormButton />
-                    </div>
+                    </div> */}
                 </div>
             </div>
 
-            <div className="w-full aspect-video md:max-w-[500px] lg:max-w-[800px]">
+            <div className="aspect-video w-full md:max-w-[500px] lg:max-w-[800px]">
                 <iframe
-                    className="w-full h-full"
+                    className="h-full w-full"
                     src="https://www.youtube.com/embed/HJwQSRWHO84?si=BomJWCspTynq3Lga"
                     title="YouTube video player"
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
@@ -99,7 +101,7 @@ export default function WorkspaceDashboardForms({ title, showButtons, hasCustomD
 
     if (workspaceForms.isLoading) {
         return (
-            <div className=" w-full py-10 flex justify-center">
+            <div className=" flex w-full justify-center py-10">
                 <Loader />
             </div>
         );
@@ -112,11 +114,11 @@ export default function WorkspaceDashboardForms({ title, showButtons, hasCustomD
         });
     };
     return (
-        <div className="w-full mb-10 flex flex-col gap-5 h-fit">
+        <div className="mb-10 flex h-fit w-full flex-col gap-5">
             {workspaceForms?.data?.total > 0 ? (
                 <>
-                    <div className="flex flex-col gap-6 mb-5 md:flex-row md:items-center md:justify-between">
-                        <div className="sh1 flex flex-row gap-6 items-center">
+                    <div className="mb-5 flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+                        <div className="sh1 flex flex-row items-center gap-6">
                             <div className={'flex flex-row gap-1'}>
                                 <h1>{title || t(localesCommon.forms)}</h1>
                                 {showPagination && <h2>{`(${showSearchedResults ? searchedForms?.length || 0 : workspaceForms?.data?.total || 0})`}</h2>}
@@ -124,10 +126,11 @@ export default function WorkspaceDashboardForms({ title, showButtons, hasCustomD
                             <SearchInput placeholder={'Search Form'} handleSearch={handleSearch} />
                         </div>
                         {showButtons && (
-                            <div className="flex gap-3">
-                                <ImportFormsButton className={JOYRIDE_CLASS.WORKSPACE_ADMIN_DASHBOARD_STATS_IMPORT_FORM_BUTTON} />
-                                <CreateFormButton />
-                            </div>
+                            <NewFormButton />
+                            // <div className="flex gap-3">
+                            //     <ImportFormsButton className={JOYRIDE_CLASS.WORKSPACE_ADMIN_DASHBOARD_STATS_IMPORT_FORM_BUTTON} />
+                            //     <CreateFormButton />
+                            // </div>
                         )}
                     </div>
                     <WorkspaceDashboardFormsCard showPinned={true} showEmpty={showSearchedResults} workspaceForms={showSearchedResults ? searchedForms : workspaceForms?.data?.items} workspace={workspace} hasCustomDomain={hasCustomDomain} />

@@ -1,9 +1,8 @@
 import { Fragment, useCallback, useEffect } from 'react';
 
-import { useRouter } from 'next/router';
-
 import Button from '@Components/Common/Input/Button';
 import AddActionToFormModal from '@Components/Modals/DialogModals/AddActionToFormModal';
+import BuilderVersionSelectorModal from '@Components/Modals/DialogModals/BuilderVersion';
 import ExportResponsesModal from '@Components/Modals/DialogModals/ExportResponsesModal';
 import ImportFormModal from '@Components/Modals/DialogModals/ImportFormModal';
 import OauthErrorModal from '@Components/Modals/DialogModals/OauthErrorModal';
@@ -37,6 +36,7 @@ import { Transition } from '@app/components/ui/transition';
 import { resetBuilderMenuState } from '@app/store/form-builder/actions';
 import { useAppDispatch } from '@app/store/hooks';
 
+import { usePathname } from 'next/navigation';
 import AddFormOnGroup from './modals/add-form-group-modal';
 import AddGroupOnForm from './modals/add-group-form-modal';
 import AddMembersModal from './modals/add-members-modal';
@@ -134,14 +134,14 @@ function renderModalContent(view: MODAL_VIEW, modalProps: any) {
             return <SignInToFillFormModal {...modalProps} />;
         case 'SEARCH_BY_SUBMISSION_NUMBER':
             return <SearchBySubmissionNumberModal {...modalProps} />;
-
+        case 'BUILDER_SELECTOR':
+            return <BuilderVersionSelectorModal {...modalProps} />;
         default:
             return <></>;
     }
 }
 
 export default function ModalContainer() {
-    const router = useRouter();
     const { view, isOpen, closeModal, modalProps } = useModal();
 
     const dispatch = useAppDispatch();
@@ -151,22 +151,10 @@ export default function ModalContainer() {
         if (!modalProps?.nonClosable) closeModal();
     }, [closeModal]);
 
-    const closeModalOnRouteChange = () => {
-        dispatch(resetBuilderMenuState());
-        closeModal();
-    };
-
-    useEffect(() => {
-        // close search modal when route change
-        router.events.on('routeChangeStart', closeModalOnRouteChange);
-        return () => {
-            router.events.off('routeChangeStart', closeModalOnRouteChange);
-        };
-    }, [closeModalHandler, router.events]);
 
     return (
         <Transition appear show={isOpen} as={Fragment}>
-            <Dialog as="div" className="fixed inset-0 z-[2500] h-full w-full overflow-y-auto overflow-x-hidden p-4 text-center sm:p-6 lg:p-8 xl:p-10 3xl:p-12" onClose={closeModalHandler}>
+            <Dialog as="div" className="3xl:p-12 fixed inset-0 z-[2500] h-full w-full overflow-y-auto overflow-x-hidden p-4 text-center sm:p-6 lg:p-8 xl:p-10" onClose={closeModalHandler}>
                 <Transition.Child as={Fragment} enter="ease-out duration-300" enterFrom="opacity-0" enterTo="opacity-100" leave="ease-in duration-200" leaveFrom="opacity-100" leaveTo="opacity-0">
                     <Dialog.Overlay className="fixed inset-0 z-40 cursor-pointer bg-gray-700 bg-opacity-60 backdrop-blur" />
                 </Transition.Child>
@@ -186,7 +174,7 @@ export default function ModalContainer() {
                 </div>
 
                 <Transition.Child as={Fragment} enter="ease-out duration-300" enterFrom="opacity-0 scale-105" enterTo="opacity-100 scale-100" leave="ease-in duration-200" leaveFrom="opacity-100 scale-100" leaveTo="opacity-0 scale-105">
-                    <div data-testid="modal-view" className="relative z-50 inline-block w-full text-left align-middle md:w-fit max-h-[95vh]">
+                    <div data-testid="modal-view" className="relative z-50 inline-block max-h-[95vh] w-full text-left align-middle md:w-fit">
                         {
                             //@ts-ignore
                             view && renderModalContent(view, modalProps)

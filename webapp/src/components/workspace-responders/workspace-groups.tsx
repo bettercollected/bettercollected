@@ -43,7 +43,6 @@ export default function WorkspaceGroups({ workspace }: { workspace: WorkspaceDto
 
     const handleDeleteGroup = async (group: ResponderGroupDto) => {
         try {
-            console.log(group);
             await trigger({
                 workspaceId: workspace.id,
                 groupId: group.id

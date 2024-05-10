@@ -12,7 +12,6 @@ import { StyledTextField } from '@app/components/dashboard/workspace-forms-tab-c
 import { SearchIcon } from '@app/components/icons/search';
 import { placeHolder } from '@app/constants/locales/placeholder';
 
-
 interface ISearchInputProps {
     handleSearch: (event: any) => void;
     className?: string;
@@ -37,6 +36,7 @@ export default function SearchInput({ handleSearch, className, placeholder }: IS
                     height: '40px',
                     padding: 0,
                     '& .MuiOutlinedInput-root': {
+                        borderRadius: '8px',
                         '&.Mui-focused fieldset': {
                             borderColor: '#B8E8FF',
                             boxShadow: '0px 0px 12px 0px rgba(7, 100, 235, 0.45)'

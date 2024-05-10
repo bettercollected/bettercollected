@@ -18,6 +18,7 @@ import { useCopyToClipboard } from '@app/lib/hooks/use-copy-to-clipboard';
 import { selectIsAdmin, selectIsProPlan } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
+import { ProLogo } from '@app/components/ui/logo';
 
 export default function ManageURLs() {
     const { t } = useTranslation();
@@ -34,7 +35,7 @@ export default function ManageURLs() {
         <div className="mt-10 max-w-[788px]">
             <div>
                 <div className="h3-new mb-2">{t('WORKSPACE.SETTINGS.URLS.TITLE')}</div>
-                <div className="flex flex-col md:flex-row gap-6">
+                <div className="flex flex-col gap-6 md:flex-row">
                     <span className="p2-new text-black-700">{t('WORKSPACE.SETTINGS.URLS.DESCRIPTION')}</span>
                     <AppButton
                         icon={<EditIcon />}
@@ -49,7 +50,7 @@ export default function ManageURLs() {
             </div>
             <div className="mt-[72px]">
                 <div className="h4-new mb-2">{t('WORKSPACE.SETTINGS.URLS.DEFAULT')}</div>
-                <div className="p2-new flex gap-4 items-center">
+                <div className="p2-new flex items-center gap-4">
                     <span>
                         {environments.HTTP_SCHEME}
                         {environments.CLIENT_DOMAIN}/<span className="text-pink">{workspace.workspaceName}</span>
@@ -72,14 +73,10 @@ export default function ManageURLs() {
             <div className="mt-12">
                 <div className="h4-new flex items-center gap-2">
                     {t('CUSTOM_DOMAIN')}
-
-                    <div className="flex items-center rounded gap-[2px] h-5 sm:h-6 p-1 sm:p-[6px] text-[10px] sm:body5 uppercase !leading-none !font-semibold !text-white bg-brand-500">
-                        <Pro width={12} height={12} />
-                        <span className="leading-none">Pro</span>
-                    </div>
+                    <ProLogo />
                 </div>
                 {isAdmin && !workspace?.customDomain && (
-                    <div className="border-y border-y-black-200 py-4 flex flex-col gap-4 mt-4">
+                    <div className="border-y-black-200 mt-4 flex flex-col gap-4 border-y py-4">
                         <span className="p2-new text-black-700">Add a domain purchased through a web hosting service.</span>
                         <div>
                             <AppButton
@@ -100,7 +97,7 @@ export default function ManageURLs() {
                 )}
 
                 {workspace?.customDomain && (
-                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 p2-new border-y border-y-black-200 py-4 mt-4">
+                    <div className="p2-new border-y-black-200 mt-4 flex flex-col items-start justify-between gap-4 border-y py-4 md:flex-row md:items-center">
                         <div>
                             {environments.HTTP_SCHEME}
                             <span className="text-pink">{workspace?.customDomain}</span>

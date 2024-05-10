@@ -30,8 +30,10 @@ import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { setFormSettings } from '@app/store/forms/slice';
 import { useAppDispatch } from '@app/store/hooks';
 import { useDuplicateFormMutation, useGetAllRespondersGroupQuery, usePatchFormSettingsMutation } from '@app/store/workspaces/api';
+import getFormShareURL from '@app/utils/formUtils';
 import { validateFormOpen } from '@app/utils/validationUtils';
-
+import { getEditFormURL } from '@app/utils/urlUtils';
+import { useIsMobile } from '@app/lib/hooks/use-breakpoint';
 
 interface IFormOptionsDropdownMenuProps {
     workspace: WorkspaceDto;
@@ -60,27 +62,18 @@ export default function FormOptionsDropdownMenu({ workspace, form, hasCustomDoma
     const { t } = useTranslation();
 
     const isCustomDomain = !!workspace.customDomain;
+    const isMobile = useIsMobile();
 
     const clientHost = `${environments.CLIENT_DOMAIN.includes('localhost') ? 'http' : 'https'}://${environments.CLIENT_DOMAIN}/${workspace.workspaceName}/forms`;
     const customDomain = `${environments.CLIENT_DOMAIN.includes('localhost') ? 'http' : 'https'}://${workspace.customDomain}/forms`;
 
     const isFormOpen = validateFormOpen(form?.settings?.formCloseDate);
-    const handleShareUrl = () => {
-        const slug = form.settings?.customUrl;
-        let shareUrl = '';
-        if (window && typeof window !== 'undefined') {
-            const scheme = `${environments.CLIENT_DOMAIN.includes('localhost') ? 'http' : 'https'}://`;
-            const domainHost = hasCustomDomain ? `${workspace.customDomain}/forms/${slug}` : `${environments.CLIENT_DOMAIN}/${workspace.workspaceName}/forms/${slug}`;
-            shareUrl = scheme + domainHost;
-        }
-        return shareUrl;
-    };
 
     const handleClick = (event: React.MouseEvent<HTMLElement>, f: StandardFormDto) => {
         event.preventDefault();
         event.stopPropagation();
         setAnchorEl(event.currentTarget);
-        const shareUrl = handleShareUrl();
+        const shareUrl = getFormShareURL(form, workspace);
         setCurrentActiveForm({ form: f, shareUrl });
     };
 
@@ -104,16 +97,6 @@ export default function FormOptionsDropdownMenu({ workspace, form, hasCustomDoma
         patchSettings({ pinned: !f?.settings?.pinned }, f)
             .then((res) => {})
             .catch((e) => {
-                toast(e.data, { type: 'error', toastId: 'errorToast' });
-            });
-    };
-
-    const onPrivateChanged = (event: any, f?: StandardFormDto) => {
-        if (!f) return toast(t(toastMessage.formSettingUpdateError).toString(), { type: 'error', toastId: 'errorToast' });
-        const patchBody = { private: !f?.settings?.private, pinned: false };
-        patchSettings(patchBody, f)
-            .then((res) => {})
-            .catch((e: any) => {
                 toast(e.data, { type: 'error', toastId: 'errorToast' });
             });
     };
@@ -151,7 +134,7 @@ export default function FormOptionsDropdownMenu({ workspace, form, hasCustomDoma
     );
 
     const menuItemEdit = (
-        <ActiveLink key={'edit'} href={`/${workspace.workspaceName}/dashboard/forms/${form.formId}/edit`}>
+        <ActiveLink key={'edit'} href={getEditFormURL(workspace, form)}>
             <MenuItem sx={{ paddingX: '20px', paddingY: '10px', height: '36px' }} className="body4 hover:bg-brand-100">
                 <ListItemIcon>
                     <EditIcon width={20} height={20} className="text-black-600" />
@@ -246,18 +229,11 @@ export default function FormOptionsDropdownMenu({ workspace, form, hasCustomDoma
                         menuItemPinSettings
                     ))}
                 {menuItemOpen}
-                {currentActiveForm?.form?.settings?.provider === 'self' && environments.ENABLE_FORM_BUILDER && menuItemEdit}
+                {currentActiveForm?.form?.settings?.provider === 'self' && form?.builderVersion === 'v2' && environments.ENABLE_FORM_BUILDER && !isMobile && menuItemEdit}
                 {form?.isPublished && !form?.settings?.hidden && isFormOpen && menuItemCopy}
                 {form?.isPublished && !form?.settings?.hidden && isFormOpen && menuItemCustomizeLink}
                 {form?.isPublished && menuItemAddToGroup}
                 {form?.isPublished && !form?.settings?.hidden && isFormOpen && environments.ENABLE_FORM_QR && menuItemGenerateQR}
-                {/*{form?.isPublished && (*/}
-                {/*    <MenuItem sx={{ paddingX: '20px', paddingY: '10px', height: '36px' }} className="body4 hover:bg-brand-100" onClick={(e) => onPrivateChanged(e, currentActiveForm?.form)}>*/}
-                {/*        <ListItemIcon>{!currentActiveForm?.form?.settings?.private ? <PrivateIcon width={20} height={20} /> : <PublicIcon width={20} height={20} />}</ListItemIcon>*/}
-                {/*        <span>{t(!currentActiveForm?.form?.settings?.hidden ? formConstant.menu.makeFormPrivate : formConstant.menu.makeFormPublic)}</span>*/}
-                {/*    </MenuItem>*/}
-                {/*)}*/}
-
                 {form?.settings?.provider === 'self' && (
                     <MenuItem sx={{ paddingX: '20px', paddingY: '10px', height: '36px' }} className="body4 hover:bg-brand-100" onClick={handleDuplicateFrom}>
                         <ListItemIcon>
