@@ -1,8 +1,8 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
 
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 import cn from 'classnames';
 
@@ -29,7 +29,7 @@ const CardVariants = {
     pink: 'text-pink-500 !cursor-auto'
 };
 
-export default function CreateFormPage() {
+export default function CreateFormPage({ searchParams }: { searchParams: { modal?: string } }) {
     const [createV2Form] = useCreateV2FormMutation();
     const { resetFields } = useFormFieldsAtom();
     const workspace = useAppSelector(selectWorkspace);
@@ -37,6 +37,14 @@ export default function CreateFormPage() {
     const [openPicker] = useDrivePicker();
     const { openModal } = useModal();
     const isMobile = useIsMobile();
+
+    const showModal = searchParams.modal;
+
+    useEffect(() => {
+        if (showModal === 'true') {
+            openModal('IMPORT_FORMS', { nonClosable: true });
+        }
+    }, [showModal]);
 
     const { data: templates } = useGetTemplatesQuery({ v2: true });
 
