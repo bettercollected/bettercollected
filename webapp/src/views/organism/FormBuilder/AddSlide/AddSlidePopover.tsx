@@ -41,7 +41,7 @@ export default function AddSlidePopover() {
                                             <TabsTrigger value="template">Template</TabsTrigger>
                                         </TabsList>
                                         <Divider />
-                                        <TabsContent value="layout" className="p-4 !pr-2">
+                                        <TabsContent value="layout" className="p-4 !pr-0">
                                             <LayoutsTab closePopover={closePopover} />
                                         </TabsContent>
                                         <TabsContent value="template" className="p-4">
