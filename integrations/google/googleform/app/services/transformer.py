@@ -25,6 +25,7 @@ from common.services.transformer_service import (
     FormTransformerService,
 )
 from loguru import logger
+from constants import DEFAULT_IMAGE_LAYOUT_URL
 
 from googleform.app.exceptions import HTTPException
 from googleform.app.models.google_form import GoogleFormDto, GoogleFormItemsDto
@@ -33,12 +34,10 @@ from googleform.app.models.google_form_response import (
     GoogleFormResponseDto,
 )
 
-default_image_url = (
-    "https://s3.eu-central-1.wasabisys.com/bettercollected/images/v2defaultImage.png"
-)
-
 
 class GoogleFormTransformerService(FormTransformerService):
+    default_image_url = DEFAULT_IMAGE_LAYOUT_URL
+
     def _transform_field(
         self, slide: StandardFormField, item: GoogleFormItemsDto
     ) -> StandardFormField:
@@ -105,7 +104,9 @@ class GoogleFormTransformerService(FormTransformerService):
                 field.image_url = item.questionGroupItem.image.contentUri
 
             field.type = StandardFormFieldType.MATRIX
-            field.properties.allow_multiple_selection = item.questionGroupItem.grid.columns.type == "CHECKBOX"
+            field.properties.allow_multiple_selection = (
+                item.questionGroupItem.grid.columns.type == "CHECKBOX"
+            )
             field.properties.fields = [
                 StandardFormField(
                     id=question.questionId,
@@ -115,7 +116,11 @@ class GoogleFormTransformerService(FormTransformerService):
                         allow_multiple_selection=item.questionGroupItem.grid.columns.type
                         == "CHECKBOX",
                         choices=[
-                            StandardChoice(label=option.value, id=str(PydanticObjectId()), value=option.value)
+                            StandardChoice(
+                                label=option.value,
+                                id=str(PydanticObjectId()),
+                                value=option.value,
+                            )
                             for option in item.questionGroupItem.grid.columns.options
                         ],
                     ),
@@ -328,21 +333,29 @@ class GoogleFormTransformerService(FormTransformerService):
                 if field.properties.allow_multiple_selection:
                     choice_ids = []
                     for answer in choice_answers:
-                        matching_choices = [choice.id for choice in field.properties.choices if
-                                            choice.value == answer.value]
+                        matching_choices = [
+                            choice.id
+                            for choice in field.properties.choices
+                            if choice.value == answer.value
+                        ]
                         if matching_choices:
                             choice_ids.append(matching_choices[0])
 
                     standard_answer.choices = StandardChoicesAnswer(values=choice_ids)
                 else:
-                    matching_choices = [choice.id for choice in field.properties.choices if
-                                        choice.value == choice_answers[0].value]
+                    matching_choices = [
+                        choice.id
+                        for choice in field.properties.choices
+                        if choice.value == choice_answers[0].value
+                    ]
                     if matching_choices:
                         choice_id = matching_choices[0]
                     else:
                         # Handle the case where no matching choice is found
                         # For example, set choice_id to None or raise an exception
-                        choice_id = None  # or raise Exception("No matching choice found")
+                        choice_id = (
+                            None  # or raise Exception("No matching choice found")
+                        )
 
                     standard_answer.choice = StandardChoiceAnswer(value=choice_id)
             elif field.type == StandardFormFieldType.LINEAR_RATING:
@@ -361,7 +374,6 @@ class GoogleFormTransformerService(FormTransformerService):
                     if choice.value == answer.textAnswers.answers[0].value
                 ][0]
                 standard_answer.choice = StandardChoiceAnswer(value=choice_id)
-
 
         return standard_answer
 
