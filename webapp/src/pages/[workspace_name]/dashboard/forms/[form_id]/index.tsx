@@ -197,16 +197,18 @@ export default function FormPage(props: any) {
                                 )}
                             </div>
                             <div className="flex gap-2 lg:hidden">
-                                <Button
-                                    icon={<PlayIcon />}
-                                    onClick={() => {
-                                        openFullScreenModal('PREVIEW_MODAL');
-                                    }}
-                                    className="text-[10px"
-                                    variant={'v2Button'}
-                                >
-                                    Preview
-                                </Button>
+                                {form.builderVersion === 'v2' && (
+                                    <Button
+                                        icon={<PlayIcon />}
+                                        onClick={() => {
+                                            openFullScreenModal('PREVIEW_MODAL');
+                                        }}
+                                        className="text-[10px"
+                                        variant={'v2Button'}
+                                    >
+                                        Preview
+                                    </Button>
+                                )}
 
                                 {form?.isPublished ? (
                                     <PrivateFormButtonWrapper isPrivate={workspaceForm?.settings?.hidden}>
