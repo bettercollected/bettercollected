@@ -13,6 +13,7 @@ import SlideLayoutNoImage from '@app/views/atoms/Icons/SlideLayoutNoImage';
 import { SlideLayoutNoImageLeftAlign } from '@app/views/atoms/Icons/SlideLayoutNoImageLeftAlign';
 import SlideLayoutRightImage from '@app/views/atoms/Icons/SlideLayoutRightImage';
 import Image from 'next/image';
+import globalConstants from '@app/constants/global';
 
 const Layout = (props: { Icon: any; name: string; image: string; style?: FormSlideLayout; onClick?: (event?: React.MouseEvent<HTMLDivElement, MouseEvent>) => void }) => {
     return (
@@ -60,7 +61,7 @@ export default function LayoutsTab({ closePopover }: { closePopover: () => void 
                           ])
                 ]
             },
-            imageUrl: 'https://s3.eu-central-1.wasabisys.com/bettercollected/images/v2defaultImage.png'
+            imageUrl: globalConstants.defaultImage
         });
         setActiveSlideComponent({ id: fieldId, index: formFields.length });
         window.setTimeout(function () {
