@@ -157,11 +157,11 @@ export default function FormPage(props: any) {
         <Layout isCustomDomain={false} isClientDomain={false} showNavbar={true} hideMenu={false} showAuthAccount={true} className="flex w-full flex-col !bg-white !p-0">
             <NextSeo title={form.title} noindex={true} nofollow={true} />
             <div className="my-2  w-full ">
-                <div className="mt-12 flex flex-col gap-1">
+                <div className="mt-6 flex flex-col gap-1 sm:mt-12">
                     <FormPageLayer className=" px-4 md:px-10 lg:px-28 ">
                         <div className="flex justify-between">
-                            <div className="flex flex-row items-center gap-1">
-                                {isMobile && <ChevronForward onClick={handleBackClick} className=" h-6 w-6 rotate-180 cursor-pointer p-[2px] " />}
+                            <div className="flex flex-row items-center gap-1" onClick={handleBackClick}>
+                                {isMobile && <ChevronForward className=" h-6 w-6 rotate-180 cursor-pointer p-[2px] " />}
                                 {isMobile ? <h1 className="hp3-new">{form?.title}</h1> : <h1 className="h2-new text-pink ">{form?.title}</h1>}
                             </div>
                             <div className="hidden gap-4 lg:flex">
@@ -196,12 +196,13 @@ export default function FormPage(props: any) {
                                     </PrivateFormButtonWrapper>
                                 )}
                             </div>
-                            <div className="flex gap-4 lg:hidden">
+                            <div className="flex gap-2 lg:hidden">
                                 <Button
                                     icon={<PlayIcon />}
                                     onClick={() => {
                                         openFullScreenModal('PREVIEW_MODAL');
                                     }}
+                                    className="text-[10px"
                                     variant={'v2Button'}
                                 >
                                     Preview
@@ -212,7 +213,6 @@ export default function FormPage(props: any) {
                                         <Button
                                             variant={'primary'}
                                             icon={<Share />}
-                                            className="!px-0 sm:!px-5"
                                             disabled={workspaceForm?.settings?.hidden}
                                             onClick={() =>
                                                 openModal('SHARE_VIEW', {
@@ -221,7 +221,7 @@ export default function FormPage(props: any) {
                                                 })
                                             }
                                         >
-                                            <span className="hidden sm:block">{'Share'}</span>
+                                            <span className="">{'Share'}</span>
                                         </Button>
                                     </PrivateFormButtonWrapper>
                                 ) : (
@@ -229,9 +229,11 @@ export default function FormPage(props: any) {
                                 )}
                             </div>
                         </div>
-                        <div className="flex flex-row items-center gap-1">
-                            <FormProviderIcon provider={form?.settings?.provider} />
-                        </div>
+                        {!isMobile && (
+                            <div className="flex flex-row items-center gap-1">
+                                <FormProviderIcon provider={form?.settings?.provider} />
+                            </div>
+                        )}
                         <Divider className="mt-6 hidden md:flex" />
                     </FormPageLayer>
                     <Divider className="mt-6 flex md:hidden" />
