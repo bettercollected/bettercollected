@@ -169,10 +169,7 @@ const nextConfig = {
         CHATWOOT_WEBSITE_TOKEN: process.env.CHATWOOT_WEBSITE_TOKEN,
 
         // App Sumo
-        APP_SUMO_PRODUCT_URL: process.env.APP_SUMO_PRODUCT_URL,
-
-        //V2 FormBuilder
-        NEXT_PUBLIC_DEFAULT_FIELD_IMAGE_URL: process.env.NEXT_PUBLIC_DEFAULT_FIELD_IMAGE_URL
+        APP_SUMO_PRODUCT_URL: process.env.APP_SUMO_PRODUCT_URL
     }
 };
 
