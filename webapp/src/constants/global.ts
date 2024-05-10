@@ -23,7 +23,9 @@ const globalConstants = {
     imageTypes: ['image/jpg', 'image/jpeg', 'image/png', 'image/gif', 'image/svg+xml'],
     modelTypes: ['model/gltf-binary', 'model/gltf+json', '.glb'],
     audioTypes: ['audio/mpeg', 'audio/mp3', 'audio/mp4', 'audio/ogg'],
-    pageSize: 15
+    pageSize: 15,
+    defaultImage: 'https://s3.eu-central-1.wasabisys.com/bettercollected/images/v2_layout_image.webp',
+    defaultFieldImage: 'https://s3.eu-central-1.wasabisys.com/bettercollected/images/Default_field_image.png'
 };
 
 export default globalConstants;

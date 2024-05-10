@@ -8,6 +8,7 @@ import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import { FormSlideLayout } from '@app/models/enums/form';
 import { useActiveFieldComponent, useActiveSlideComponent } from '@app/store/jotai/activeBuilderComponent';
 import { reorder } from '@app/utils/arrayUtils';
+import globalConstants from '@app/constants/global';
 
 const initialFieldsAtom = atom<StandardFormFieldDto[]>([
     {
@@ -28,7 +29,7 @@ const initialFieldsAtom = atom<StandardFormFieldDto[]>([
                 }
             ]
         },
-        imageUrl: 'https://s3.eu-central-1.wasabisys.com/bettercollected/images/v2defaultImage.png'
+        imageUrl: globalConstants.defaultImage
     }
 ]);
 

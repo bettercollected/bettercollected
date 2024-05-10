@@ -36,10 +36,10 @@ const PreviewWrapper = ({ children, handleResetResponderState }: { children: Rea
 
     const mobileViewPreviewUrl = `${environments.HTTP_SCHEME}${environments.FORM_DOMAIN}/${workspace.workspaceName}/forms/${standardForm.formId}/preview`;
     return (
-        <div className=" h-full w-full bg-white">
+        <div className=" h-screen w-full bg-white">
             {isMobile && (
                 <div className="bg-black-900 xs:px-16 flex h-[52px] w-full items-center justify-center px-4 py-2">
-                    <span className="text-sm text-white">Please use the desktop version to edit this form. Mobile editing will be available soon!</span>
+                    <span className="text-xs text-white sm:text-sm">Please use the desktop version to edit this form. Mobile editing will be available soon!</span>
                 </div>
             )}
             <nav className="flex h-14 flex-row justify-between px-4 py-2" style={{ background: isMobile ? standardForm.theme?.accent : 'inherit' }}>
