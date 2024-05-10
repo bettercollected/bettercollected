@@ -53,6 +53,6 @@ async function WorkspaceWrapper({ domain, children }: { domain: string; children
 }
 
 export default function Layout({ children }: { children: React.ReactNode }) {
-    const domain = headers().get('host') || '';
+    const domain = headers().get('x-forwarded-host') || headers().get('host') || '';
     return <WorkspaceWrapper domain={domain}>{children}</WorkspaceWrapper>;
 }
