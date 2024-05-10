@@ -43,6 +43,13 @@ export default function ImportErrorView({ provider, closable = true, unauthorize
 
     const googlePermissions: Array<IPermission> = [
         {
+            type: 'non-sensitive',
+            isPermissionGiven: false,
+            name: 'Permission to search and pick Google Forms from Drive',
+            description: 'To be able to show Google File Picker, we require permissions to search your Google Drive for Google Forms.',
+            scope: 'https://www.googleapis.com/auth/drive.file'
+        },
+        {
             type: 'sensitive',
             isPermissionGiven: false,
             name: 'Permissions to import your Google Forms',
@@ -57,16 +64,6 @@ export default function ImportErrorView({ provider, closable = true, unauthorize
             scope: 'https://www.googleapis.com/auth/forms.responses.readonly'
         }
     ];
-
-    if (environments.ENABLE_IMPORT_WITH_PICKER) {
-        googlePermissions.splice(0, 0, {
-            type: 'non-sensitive',
-            isPermissionGiven: false,
-            name: 'Permission to search and pick Google Forms from Drive',
-            description: 'To be able to show Google File Picker, we require permissions to search your Google Drive for Google Forms.',
-            scope: 'https://www.googleapis.com/auth/drive.file'
-        });
-    }
     const typeformPermissions: Array<IPermission> = [
         {
             type: 'sensitive',
@@ -92,11 +89,11 @@ export default function ImportErrorView({ provider, closable = true, unauthorize
     };
 
     return (
-        <div className="text-sm relative flex items-center justify-center flex-col space-y-5 w-full md:max-w-[560px] rounded-md shadow-md bg-white py-10">
+        <div className="relative flex w-full flex-col items-center justify-center space-y-5 rounded-md bg-white py-10 text-sm shadow-md md:max-w-[560px]">
             {closable && <CloseModal />}
-            <div className="flex flex-col !mt-0 items-center justify-between">
+            <div className="!mt-0 flex flex-col items-center justify-between">
                 <CheckedCircle />
-                <h2 className="text-black-900 font-semibold mt-6 text-lg md:text-xl whitespace-pre-wrap text-center">{defaultContent.permissionText}</h2>
+                <h2 className="text-black-900 mt-6 whitespace-pre-wrap text-center text-lg font-semibold md:text-xl">{defaultContent.permissionText}</h2>
             </div>
 
             <div className="w-full border-b-[1px]">
@@ -104,21 +101,21 @@ export default function ImportErrorView({ provider, closable = true, unauthorize
                     <Disclosure key={permission.name} defaultOpen={false}>
                         {({ open }) => (
                             <>
-                                <Disclosure.Button className="flex items-center w-full justify-between px-8 py-3 border-t-[1px] text-left body6 font-medium text-black-800 focus:outline-none focus-visible:ring focus-visible:ring-blue-500 focus-visible:ring-opacity-75">
+                                <Disclosure.Button className="body6 text-black-800 flex w-full items-center justify-between border-t-[1px] px-8 py-3 text-left font-medium focus:outline-none focus-visible:ring focus-visible:ring-blue-500 focus-visible:ring-opacity-75">
                                     <span>
-                                        {unauthorizedScopes && unauthorizedScopes.length > 0 && <span className={`text-lg mr-2 ${unauthorizedScopes?.includes(permission.scope || '') ? 'text-black-400' : 'text-green-500'}`}>✔</span>}
+                                        {unauthorizedScopes && unauthorizedScopes.length > 0 && <span className={`mr-2 text-lg ${unauthorizedScopes?.includes(permission.scope || '') ? 'text-black-400' : 'text-green-500'}`}>✔</span>}
                                         {permission.name}
                                     </span>
                                     <ChevronDown className={`${open ? 'rotate-180 transform' : ''} h-3 w-3 text-blue-900`} />
                                 </Disclosure.Button>
-                                <Disclosure.Panel className="body4 pb-2 -mt-2 pr-8 text-gray-500 w-full">{<div className="px-8">{permission?.description}</div>}</Disclosure.Panel>
+                                <Disclosure.Panel className="body4 -mt-2 w-full pb-2 pr-8 text-gray-500">{<div className="px-8">{permission?.description}</div>}</Disclosure.Panel>
                             </>
                         )}
                     </Disclosure>
                 ))}
             </div>
             {provider === 'google' && (
-                <p className="text-black-800 text-[12px] px-8 leading-5 text-left">
+                <p className="text-black-800 px-8 text-left text-[12px] leading-5">
                     Better Collected Platform&apos;s use and transfer to any other app of information received from Google APIs will adhere to{' '}
                     <a target="_blank" rel="noreferrer" className="text-blue-500 hover:text-blue-400" href="https://developers.google.com/terms/api-services-user-data-policy">
                         Google API Services User Data Policy
@@ -126,7 +123,7 @@ export default function ImportErrorView({ provider, closable = true, unauthorize
                     , including the Limited Use requirements.
                 </p>
             )}
-            <div className="flex w-full !mt-3 px-8">
+            <div className="!mt-3 flex w-full px-8">
                 <FormControlLabel
                     checked={isConsentGiven}
                     onChange={handleUserConsent}
