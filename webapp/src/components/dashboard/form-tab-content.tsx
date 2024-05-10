@@ -52,7 +52,7 @@ export const FormTabContent = ({ form }: { form: StandardFormDto }) => {
         );
     }
     return (
-        <div className="flex w-full items-center rounded bg-white ">
+        <div className="max-w-screen flex w-full items-center overflow-x-auto rounded bg-white ">
             <FormRenderer form={form} enabled={false} isDisabled={true} />
         </div>
     );
