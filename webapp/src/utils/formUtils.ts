@@ -5,7 +5,7 @@ import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { extractTextfromJSON } from './richTextEditorExtenstion/getHtmlFromJson';
 
 export default function getFormShareURL(form: StandardFormDto, workspace: WorkspaceDto, defaultLink: boolean = false) {
-    const slug = form?.settings?.customUrl || form?.importedFormId;
+    const slug = form?.settings?.customUrl || form?.formId;
     const scheme = environments.HTTP_SCHEME;
     let domain = '';
 
