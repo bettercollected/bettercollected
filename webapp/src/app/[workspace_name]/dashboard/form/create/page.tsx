@@ -1,8 +1,8 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
 
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 import cn from 'classnames';
 
@@ -37,6 +37,15 @@ export default function CreateFormPage() {
     const [openPicker] = useDrivePicker();
     const { openModal } = useModal();
     const isMobile = useIsMobile();
+
+    const searchParams = useSearchParams();
+    const showModal = searchParams?.get('modal');
+
+    useEffect(() => {
+        if (showModal === 'true') {
+            openModal('IMPORT_FORMS', { nonClosable: true });
+        }
+    }, [showModal]);
 
     const { data: templates } = useGetTemplatesQuery({ v2: true });
 
