@@ -14,6 +14,7 @@ import Form from '@app/views/organism/Form/Form';
 import { useTranslation } from 'next-i18next';
 import { useModal } from '../context';
 import { useFullScreenModal } from '../full-screen-modal-context';
+import PublishButton from '@app/views/molecules/FormBuilder/PublishButton';
 
 export const PreviewFullModalView = () => {
     const { t } = useTranslation();
@@ -42,20 +43,23 @@ export const PreviewFullModalView = () => {
                 <nav className="flex h-14 flex-row justify-between px-4 py-2" style={{ background: isMobile ? standardForm.theme?.accent : 'inherit' }}>
                     <div></div>
                     <div className="flex gap-2 lg:hidden">
-                        <Button
-                            variant={'primary'}
-                            icon={<ShareIcon className="h-4 w-4" />}
-                            className=""
-                            disabled={standardForm?.settings?.hidden}
-                            onClick={() =>
-                                openModal('SHARE_VIEW', {
-                                    url: getFormShareURL(standardForm, workspace),
-                                    title: t(formConstant.shareThisForm)
-                                })
-                            }
-                        >
-                            <span className="text-xs font-medium">Share</span>
-                        </Button>
+                        {standardForm?.isPublished ? (
+                            <Button
+                                variant={'primary'}
+                                icon={<ShareIcon className="h-4 w-4" />}
+                                disabled={standardForm?.settings?.hidden}
+                                onClick={() =>
+                                    openModal('SHARE_VIEW', {
+                                        url: getFormShareURL(standardForm, workspace),
+                                        title: t(formConstant.shareThisForm)
+                                    })
+                                }
+                            >
+                                <span className="text-xs font-medium">Share</span>
+                            </Button>
+                        ) : (
+                            <PublishButton refresh />
+                        )}
                     </div>
                 </nav>
                 <Separator />
