@@ -120,6 +120,7 @@ export function convertPlaceholderToDisplayValue(fields: Array<IFormFieldState>,
 
 export function getAnswerForField(response: StandardFormResponseDto, field: StandardFormFieldDto) {
     const answer = response.answers[field.id];
+
     switch (field.type) {
         case FormBuilderTagNames.INPUT_RATING:
         case FormBuilderTagNames.INPUT_NUMBER:

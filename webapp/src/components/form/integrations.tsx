@@ -14,7 +14,6 @@ import { selectForm, setForm } from '@app/store/forms/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 
-
 export default function FormIntegrations() {
     const { data } = useGetAllIntegrationsQuery({});
     const [removeActionFromForm] = useRemoveActionFromFormMutation();
@@ -42,13 +41,13 @@ export default function FormIntegrations() {
     return (
         <div className="md:px-10 lg:px-28">
             {addedActions && addedActions.length > 0 && (
-                <div className="flex flex-col gap-[2px] mb-10">
+                <div className="mb-10 flex flex-col gap-[2px]">
                     <div className="h3-new text-black-800 mb-5">Integrations added to form</div>
                     {data?.map((integration, index) => (
                         <>
                             {addedActions.includes(integration.id) && (
-                                <div key={`${integration?.id}_${index}`} className="flex items-center bg-black-100 py-4 px-5 rounded justify-between w-full">
-                                    <div className="flex items-start justify-center flex-col gap-2">
+                                <div key={`${integration?.id}_${index}`} className="bg-black-100 flex w-full items-center justify-between rounded px-5 py-4">
+                                    <div className="flex flex-col items-start justify-center gap-2">
                                         <div className="h4-new">{integration?.title || 'Untitled Integration'}</div>
                                         {integration?.description && <div className="p2-new text-black-700">{integration.description}</div>}
                                         {integration?.parameters && getIntegrationIsAdded(integration) && (
@@ -56,15 +55,15 @@ export default function FormIntegrations() {
                                                 {integration?.parameters?.map(
                                                     (parameter) =>
                                                         parameter?.required && (
-                                                            <div key={parameter.name} className="flex items-center text-sm p2-new gap-2 mt-4">
-                                                                <div className="font-bold text-sm">{parameter.name}</div>:<div className="text-black-700">{form?.parameters?.[integration.id]?.find((param: any) => param.name === parameter.name)?.value}</div>
+                                                            <div key={parameter.name} className="p2-new mt-4 flex items-center gap-2 text-sm">
+                                                                <div className="text-sm font-bold">{parameter.name}</div>:<div className="text-black-700">{form?.parameters?.[integration.id]?.find((param: any) => param.name === parameter.name)?.value}</div>
                                                             </div>
                                                         )
                                                 )}
                                             </div>
                                         )}
                                     </div>
-                                    <div className="flex gap-4 items-center">
+                                    <div className="flex items-center gap-4">
                                         <MuiSwitch
                                             checked={getIntegrationEnabled(integration)}
                                             onChange={async (event, checked) => {
@@ -110,13 +109,13 @@ export default function FormIntegrations() {
                 </div>
             )}
             {data && Array.isArray(data) && data?.length !== addedActions?.length && (
-                <div className="w-full flex flex-col gap-[2px]">
+                <div className="flex w-full flex-col gap-[2px]">
                     <div className="h3-new mb-8">Integrations</div>
                     {data?.map((integration, index) => (
                         <>
                             {(!addedActions || !addedActions.includes(integration.id)) && (
-                                <div key={`${integration?.id}_${index}`} className="flex items-center bg-black-100 py-4 px-5 rounded justify-between w-full">
-                                    <div className="flex items-start justify-center flex-col gap-2">
+                                <div key={`${integration?.id}_${index}`} className="bg-black-100 flex w-full items-center justify-between rounded px-5 py-4">
+                                    <div className="flex flex-col items-start justify-center gap-2">
                                         <div className="h4-new">{integration?.title || 'Untitled Integration'}</div>
                                         {integration?.description && <div className="p2-new text-black-700">{integration.description}</div>}
                                     </div>
