@@ -42,6 +42,7 @@ from backend.app.services.form_import_service import FormImportService
 from backend.app.services.form_plugin_provider_service import FormPluginProviderService
 from backend.app.services.form_response_service import FormResponseService
 from backend.app.services.form_service import FormService
+from backend.app.services.openai_service import OpenAIService
 from backend.app.services.plugin_proxy_service import PluginProxyService
 from backend.app.services.price_suggestion import PriceSuggestionService
 from backend.app.services.responder_groups_service import ResponderGroupsService
@@ -208,6 +209,11 @@ class AppContainer(containers.DeclarativeContainer):
         form_response_service=form_response_service,
         responder_groups_service=responder_groups_service,
         user_tags_service=user_tags_service,
+    )
+
+    openai_service: OpenAIService = providers.Singleton(
+        OpenAIService,
+        workspace_service=workspace_service,
     )
 
     auth_service: AuthService = providers.Singleton(
