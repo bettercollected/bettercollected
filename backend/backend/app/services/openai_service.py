@@ -75,7 +75,7 @@ class OpenAIService:
 
         try:
             response = await client.chat.completions.create(
-                model="gpt-4-turbo",
+                model="gpt-3.5-turbo",
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": create_form_ai.prompt},
@@ -115,27 +115,33 @@ class OpenAIService:
 
     def convert_fields(self, openai_fields: List[Dict[str, Any]]):
         fields = []
-        for field in openai_fields:
+        for index, field in enumerate(openai_fields):
             slide_fields = []
             if not field.get("type") == "group":
-                slide_fields.append(self.convert_single_field(field))
+                slide_fields.append(self.convert_single_field(field, 0))
             else:
-                for openai_group_field in field.get("properties", {}).get("fields", []):
-                    slide_fields.append(self.convert_single_field(openai_group_field))
+                for fieldIndex, openai_group_field in enumerate(
+                    field.get("properties", {}).get("fields", [])
+                ):
+                    slide_fields.append(
+                        self.convert_single_field(openai_group_field, fieldIndex)
+                    )
             fields.append(
                 {
                     "id": str(uuid.uuid4()),
                     "type": StandardFormFieldType.SLIDE,
+                    "index": index,
                     "properties": {"fields": slide_fields},
                 }
             )
         return fields
 
-    def convert_single_field(self, openai_field: Dict[str, Any]):
+    def convert_single_field(self, openai_field: Dict[str, Any], index: int):
         return {
             "type": openai_field.get("type"),
             "title": openai_field.get("title"),
             "id": str(uuid.uuid4()),
+            "index": index,
             "description": openai_field.get("description"),
             "properties": {
                 "placeholder": openai_field.get("properties", {}).get(
