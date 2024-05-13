@@ -18,6 +18,7 @@ from backend.app.decorators.user_tag_decorators import user_tag
 from backend.app.exceptions import HTTPException
 from backend.app.models.dtos.action_dto import AddActionToFormDto, UpdateActionInFormDto
 from backend.app.models.dtos.minified_form import FormDtoCamelModel
+from backend.app.models.dtos.request_dtos import CreateFormWithAI
 from backend.app.models.dtos.response_dtos import (
     WorkspaceFormPatchResponse,
     StandardFormCamelModel,
@@ -31,6 +32,7 @@ from backend.app.models.enum.user_tag_enum import UserTagType
 from backend.app.models.filter_queries.sort import SortRequest
 from backend.app.router import router
 from backend.app.services.form_service import FormService
+from backend.app.services.openai_service import OpenAIService
 from backend.app.services.temporal_service import TemporalService
 from backend.app.services.user_service import get_logged_user, get_user_if_logged_in
 from backend.app.services.workspace_form_service import WorkspaceFormService
@@ -53,6 +55,7 @@ class WorkspaceFormsRouter(Routable):
         form_service: FormService = container.form_service(),
         temporal_service: TemporalService = container.temporal_service(),
         workspace_form_service: WorkspaceFormService = container.workspace_form_service(),
+        open_ai_service=container.openai_service(),
         *args,
         **kwargs
     ):
@@ -60,6 +63,7 @@ class WorkspaceFormsRouter(Routable):
         self._form_service = form_service
         self._temporal_service = temporal_service
         self.workspace_form_service = workspace_form_service
+        self.open_ai_service: OpenAIService = open_ai_service
 
     @get("", response_model=Page[FormDtoCamelModel])
     async def get_workspace_forms(
@@ -110,6 +114,14 @@ class WorkspaceFormsRouter(Routable):
             cover_image=cover_image,
         )
         return FormDtoCamelModel(**response.dict())
+
+    @post("/ai")
+    async def create_form_with_ai(
+        self, workspace_id: PydanticObjectId, create_form: CreateFormWithAI
+    ):
+        return await self.open_ai_service.create_form_with_ai(
+            workspace_id=workspace_id, create_form_ai=create_form
+        )
 
     @post("/search")
     async def search_forms_in_workspace(
@@ -165,7 +177,7 @@ class WorkspaceFormsRouter(Routable):
             raise HTTPException(status_code=HTTPStatus.NOT_FOUND)
 
         form = json.loads(form_body)
-        
+
         minified_form = FormDtoCamelModel(**form)
         # Camel model is converted to basic modal so that camel case is not stored in db
         response = await self.workspace_form_service.update_form(
