@@ -18,6 +18,7 @@ from backend.app.repositories.form_plugin_provider_repository import (
 )
 from backend.app.repositories.form_repository import FormRepository
 from backend.app.repositories.form_response_repository import FormResponseRepository
+from backend.app.repositories.media_library_repository import MediaLibraryRepository
 from backend.app.repositories.responder_groups_repository import (
     ResponderGroupsRepository,
 )
@@ -42,6 +43,7 @@ from backend.app.services.form_import_service import FormImportService
 from backend.app.services.form_plugin_provider_service import FormPluginProviderService
 from backend.app.services.form_response_service import FormResponseService
 from backend.app.services.form_service import FormService
+from backend.app.services.media_library_service import MediaLibraryService
 from backend.app.services.openai_service import OpenAIService
 from backend.app.services.plugin_proxy_service import PluginProxyService
 from backend.app.services.price_suggestion import PriceSuggestionService
@@ -293,6 +295,14 @@ class AppContainer(containers.DeclarativeContainer):
         PriceSuggestionService,
         auth_service=auth_service,
         workspace_service=workspace_service,
+    )
+
+    media_library_repo = providers.Singleton(MediaLibraryRepository)
+
+    media_library_service = providers.Singleton(
+        MediaLibraryService,
+        media_library_repo=media_library_repo,
+        aws_service=aws_service,
     )
 
 
