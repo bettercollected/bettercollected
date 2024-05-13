@@ -117,10 +117,13 @@ class WorkspaceFormsRouter(Routable):
 
     @post("/ai")
     async def create_form_with_ai(
-        self, workspace_id: PydanticObjectId, create_form: CreateFormWithAI
+        self,
+        workspace_id: PydanticObjectId,
+        create_form: CreateFormWithAI,
+        user=Depends(get_logged_user),
     ):
         return await self.open_ai_service.create_form_with_ai(
-            workspace_id=workspace_id, create_form_ai=create_form
+            workspace_id=workspace_id, create_form_ai=create_form, user=user
         )
 
     @post("/search")
