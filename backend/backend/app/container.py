@@ -214,6 +214,7 @@ class AppContainer(containers.DeclarativeContainer):
     openai_service: OpenAIService = providers.Singleton(
         OpenAIService,
         workspace_service=workspace_service,
+        workspace_form_service=workspace_form_service,
     )
 
     auth_service: AuthService = providers.Singleton(
