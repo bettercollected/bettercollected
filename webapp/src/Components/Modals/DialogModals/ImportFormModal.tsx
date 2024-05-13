@@ -19,6 +19,7 @@ import { selectWorkspace } from '@app/store/workspaces/slice';
 import { fireworks } from '@app/utils/confetti';
 import { getEditFormURL } from '@app/utils/urlUtils';
 import { useRouter } from 'next/navigation';
+import { useIsMobile } from '@app/lib/hooks/use-breakpoint';
 
 export default function ImportFormModal() {
     const router = useRouter();
@@ -32,6 +33,7 @@ export default function ImportFormModal() {
 
     const [form, setForm] = useState<StandardFormDto>(initFormState);
     const [formTitle, setFormTitle] = useState('');
+    const isMobile = useIsMobile();
 
     const [importForm, importFormResult] = useImportFormMutation();
     const [singleFormFromProviderTrigger, singleFormFromProviderResult] = useLazyGetSingleFormFromProviderQuery();
@@ -108,7 +110,7 @@ export default function ImportFormModal() {
 
     useEffect(() => {
         if (form?.formId) {
-            router.push(getEditFormURL(workspace, form));
+            isMobile ? router.push(`/${workspace.workspaceName}/dashboard/forms/${form.formId}?view=Preview`) : router.push(getEditFormURL(workspace, form));
         }
     }, [form]);
 

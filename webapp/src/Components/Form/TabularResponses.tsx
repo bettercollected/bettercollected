@@ -12,7 +12,7 @@ import { toast } from 'react-toastify';
 import { dataTableCustomStyles } from '@app/components/datatable/form/datatable-styles';
 import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
 import globalConstants from '@app/constants/global';
-import { FieldTypes, StandardFormDto, StandardFormFieldDto, StandardFormResponseDto } from '@app/models/dtos/form';
+import { StandardFormDto, StandardFormFieldDto, StandardFormResponseDto } from '@app/models/dtos/form';
 import { LabelFormBuilderTagNames } from '@app/models/enums/formBuilder';
 import { useAppSelector } from '@app/store/hooks';
 import { useGetFormsSubmissionsQuery } from '@app/store/workspaces/api';
@@ -21,9 +21,9 @@ import { IGetFormSubmissionsQuery } from '@app/store/workspaces/types';
 import { utcToLocalDateTIme } from '@app/utils/dateUtils';
 import { downloadFile } from '@app/utils/fileUtils';
 import { convertPlaceholderToDisplayValue, getAnswerForField } from '@app/utils/formBuilderBlockUtils';
+import { getFieldsFromV2Form } from '@app/utils/formUtils';
 import { extractTextfromJSON } from '@app/utils/richTextEditorExtenstion/getHtmlFromJson';
 import { ExpandIcon } from '@app/views/atoms/Icons/ExpandIcon';
-import { getFieldsFromV2Form } from '@app/utils/formUtils';
 
 const customTableStyles = {
     ...dataTableCustomStyles,
@@ -77,7 +77,8 @@ export default function TabularResponses({ form }: TabularResponsesProps) {
         form?.fields.forEach((field, index) => {
             if (field.type.includes('input_')) {
                 const x: any = {
-                    fieldId: field.id
+                    fieldId: field.id,
+                    id: field.id
                 };
                 const previousField = form?.fields[index - 1] || undefined;
                 let text = field?.properties?.placeholder;
