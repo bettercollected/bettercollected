@@ -96,7 +96,7 @@ export default function TabularResponses({ form }: TabularResponsesProps) {
 
     const getFilteredInputFields = () => {
         if (form?.settings?.provider === 'google') {
-            return form?.fields;
+            return form?.fields.filter((field) => field.type !== null);
         } else {
             return getFilteredV1InputFields();
         }
@@ -152,6 +152,9 @@ export default function TabularResponses({ form }: TabularResponsesProps) {
         let title: string = '';
         if (form.builderVersion === 'v2') {
             title = extractTextfromJSON(field);
+        } else if (form.builderVersion !== 'v2' && form.settings?.provider === 'google') {
+            // @ts-ignore
+            title = field.title || '';
         } else {
             title = convertPlaceholderToDisplayValue(
                 form?.fields.map((field: any, index: number) => {
