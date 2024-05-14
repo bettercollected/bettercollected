@@ -14,8 +14,9 @@ import { useAppSelector } from '@app/store/hooks';
 import AddFormTitleModal from '@app/views/molecules/Dialogs/AddFormTitleModal';
 import FormPublishedModal from '@app/views/molecules/Dialogs/FormPublishedModal';
 import UnsplashImagePicker from '@app/views/molecules/UnsplashImagePicker';
+import StartWithAi from "@app/views/molecules/Dialogs/StartWithAIModal";
 
-export type DIALOG_MODALS = 'ADD_FORM_TITLE' | 'UNSPLASH_IMAGE_PICKER' | 'FORM_PUBLISHED' | 'SHARE_FORM_MODAL' | '';
+export type DIALOG_MODALS = 'ADD_FORM_TITLE' | 'UNSPLASH_IMAGE_PICKER' | 'FORM_PUBLISHED' | 'SHARE_FORM_MODAL' | 'START_WITH_AI' | '';
 
 export interface ModalState {
     isOpen: boolean;
@@ -76,6 +77,8 @@ const GetModalToRender = (view?: DIALOG_MODALS, props?: any) => {
             return <FormPublishedModal {...props} />;
         case 'SHARE_FORM_MODAL':
             return <ShareView {...props} />;
+        case 'START_WITH_AI':
+            return <StartWithAi />;
         default:
             return <></>;
     }
@@ -93,7 +96,7 @@ const getClassName = (view?: DIALOG_MODALS) => {
 };
 
 function shouldHideCloseIcon(view?: DIALOG_MODALS) {
-    const ViewWithHideCloseIcon = ['SHAREE_FORM_MODAL'];
+    const ViewWithHideCloseIcon = [''];
     if (ViewWithHideCloseIcon.includes(view || 'SHARE_FORM_MODAL')) return true;
     else return false;
 }
