@@ -27,10 +27,7 @@ client = AsyncOpenAI(api_key=settings.open_ai.API_KEY)
 system_prompt = """
 Generate a json for a form with the following schema:
 
-{
-    title: string;
-    description: string;
-    fields: Array<{
+interface Field {
         title: string;
         description: string;
         type: 'short_text' | 'email' | 'phone_number' | 'date' | 'matrix' | 'multiple_choice' | 'file_upload' | 'rating' | 'dropdown' | 'yes_no' | 'linear_scale' | 'number' | 'link' | 'group';
@@ -38,12 +35,18 @@ Generate a json for a form with the following schema:
             placeholder?: string;
             required?: boolean;
             allowOther?: boolean;
+            fields?: Array<Field>
             choices: Array<string>;
             allowMultiple?: boolean;
             steps?: number;
             startFrom?: number;
         };
-    }>;
+    }
+
+interface Form {
+    title: string;
+    description: string;
+    fields: Array<Field>;
 }
 
 Group the fields whenever the fields fall under same category.
