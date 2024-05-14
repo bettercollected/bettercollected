@@ -1,10 +1,15 @@
-import React, {FormEvent} from 'react';
+import React, {FormEvent, useState} from 'react';
 import {Button} from "@app/shadcn/components/ui/button";
 import styled from "styled-components";
 import {ButtonSize} from "@Components/Common/Input/Button/AppButtonProps";
 import {Collapsible, CollapsibleContent, CollapsibleTrigger} from "@app/shadcn/components/ui/collapsible";
 import {ChevronDown} from "@app/views/atoms/Icons/ChevronDown";
 import {cn} from "@app/shadcn/util/lib";
+import {useCreateFormWithAIMutation} from "@app/store/redux/formApi";
+import {useAppSelector} from "@app/store/hooks";
+import {selectWorkspace} from "@app/store/workspaces/slice";
+import {useRouter} from "next-nprogress-bar";
+import CircularLoadingAnimation from "@app/views/atoms/Loaders/CircularLoadingAnimation";
 
 const GenerateButton = styled(Button)`
     background: linear-gradient(89.94deg, #00A9FE 1.64%, #8F6AFF 99.95%);
@@ -30,7 +35,7 @@ const GenerateButton = styled(Button)`
 const GradiantBorderDiv = styled.div`
     position: relative;
     padding: 1px;
-    
+
     &::before {
         border-radius: 8px;
         content: "";
@@ -54,11 +59,39 @@ const examples = [
 export default function StartWithAi() {
     const [prompt, setPrompt] = React.useState('');
     const [isOpen, setIsOpen] = React.useState(false);
+    const workspace = useAppSelector(selectWorkspace)
+    const [generateWithAI, {isLoading}] = useCreateFormWithAIMutation()
+    const [isGenerationStarted, setIsGenerationStarted] = useState(false)
 
-    const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    const router = useRouter()
+    const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
+        setIsGenerationStarted(true)
+        const response: any = await generateWithAI({
+            workspaceId: workspace.id,
+            body: {
+                prompt
+            }
+        })
+        if (response.data)
+            router.replace(`/${workspace?.workspaceName}/dashboard/forms/${response?.data?.form_id}/edit`)
+        if (response.error)
+            setIsGenerationStarted(false)
     };
 
+    if (isGenerationStarted) {
+        return <div className="py-10 flex flex-col items-center justify-center">
+            <div>
+                <CircularLoadingAnimation className="my-0"/>
+            </div>
+            <div className="mt-10 font-semibold">
+                Generating Form
+            </div>
+            <div className="text-black-700 text-xs mt-2">
+                This may take some time, but it&apos;s worth the wait
+            </div>
+        </div>
+    }
 
     return (
         <form onSubmit={handleSubmit}>
