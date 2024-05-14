@@ -72,7 +72,7 @@ export default function TabularResponses({ form }: TabularResponsesProps) {
         setQuery({ ...query, page: page });
     }, [page]);
 
-    const getFilteredInputFields = () => {
+    const getFilteredV1InputFields = () => {
         const filteredFields: Array<any> = [];
         form?.fields.forEach((field, index) => {
             if (field.type.includes('input_')) {
@@ -92,6 +92,14 @@ export default function TabularResponses({ form }: TabularResponsesProps) {
             }
         });
         return filteredFields;
+    };
+
+    const getFilteredInputFields = () => {
+        if (form?.settings?.provider === 'google') {
+            return form?.fields;
+        } else {
+            return getFilteredV1InputFields();
+        }
     };
 
     const downloadFormFile = async (ans: any) => {
