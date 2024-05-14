@@ -8,6 +8,7 @@ import { CssBaseline, GlobalStyles } from '@mui/material';
 import createEmotionCache from '@app/configs/createEmotionCache';
 import MuiThemeProvider from '@app/layouts/_muiThemeProvider';
 import React from 'react';
+import { AppProgressBar as ProgressBar } from 'next-nprogress-bar';
 
 const clientSideEmotionCache = createEmotionCache();
 
@@ -44,6 +45,7 @@ export default function ThemeProvider({
                         `}
                     />
                     {children}
+                    <ProgressBar height="4px" color="#0764EB" options={{ showSpinner: false }} shallowRouting />
                 </MuiThemeProvider>
             </CacheProvider>
         </NextThemeProvider>

@@ -125,7 +125,6 @@ const ResponsesTable = ({ requestForDeletion, submissions, formId, page, setPage
         {
             name: requestForDeletion ? t(formConstant.requestedBy) : t(formConstant.responder),
             selector: (response: StandardFormResponseDto) => responseDataOwnerField(response),
-            // grow: 2,
             style: {
                 color: 'rgba(77, 77, 77, 1)',
                 paddingLeft: '8px',
