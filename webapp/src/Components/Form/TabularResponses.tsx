@@ -72,7 +72,7 @@ export default function TabularResponses({ form }: TabularResponsesProps) {
         setQuery({ ...query, page: page });
     }, [page]);
 
-    const getFilteredInputFields = () => {
+    const getFilteredV1InputFields = () => {
         const filteredFields: Array<any> = [];
         form?.fields.forEach((field, index) => {
             if (field.type.includes('input_')) {
@@ -92,6 +92,14 @@ export default function TabularResponses({ form }: TabularResponsesProps) {
             }
         });
         return filteredFields;
+    };
+
+    const getFilteredInputFields = () => {
+        if (form?.settings?.provider === 'google') {
+            return form?.fields.filter((field) => field.type !== null);
+        } else {
+            return getFilteredV1InputFields();
+        }
     };
 
     const downloadFormFile = async (ans: any) => {
@@ -144,6 +152,9 @@ export default function TabularResponses({ form }: TabularResponsesProps) {
         let title: string = '';
         if (form.builderVersion === 'v2') {
             title = extractTextfromJSON(field);
+        } else if (form.builderVersion !== 'v2' && form.settings?.provider === 'google') {
+            // @ts-ignore
+            title = field.title || '';
         } else {
             title = convertPlaceholderToDisplayValue(
                 form?.fields.map((field: any, index: number) => {

@@ -63,7 +63,7 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
     const customUrl = form?.settings?.customUrl || '';
     const clientHost = `${environments.HTTP_SCHEME}${environments.CLIENT_DOMAIN}/${workspace.workspaceName}/forms`;
     const customDomain = `${environments.HTTP_SCHEME}${workspace.customDomain}/forms`;
-    const V2FormDomain = `${environments.HTTP_SCHEME}${environments.FORM_DOMAIN}`;
+    const V2FormDomain = `${environments.HTTP_SCHEME}${environments.FORM_DOMAIN}/${workspace.workspaceName}/forms`;
 
     const [_, copyToClipboard] = useCopyToClipboard();
 
