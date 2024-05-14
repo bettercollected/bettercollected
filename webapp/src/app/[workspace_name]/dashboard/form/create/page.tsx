@@ -2,13 +2,14 @@
 
 import React, { useEffect } from 'react';
 
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next-nprogress-bar';
 
 import cn from 'classnames';
 
 import { useModal } from '@app/components/modal-views/context';
 import { defaultForm } from '@app/constants/form';
 import { getDefaultImageFromUnsplash } from '@app/lib/getDefaultImageFromUnsplash';
+import { useIsMobile } from '@app/lib/hooks/use-breakpoint';
 import { Sheet, SheetContent, SheetTrigger } from '@app/shadcn/components/ui/sheet';
 import { useAppSelector } from '@app/store/hooks';
 import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
@@ -21,7 +22,6 @@ import NavBar from '@app/views/molecules/FormBuilder/Navbar';
 import WelcomePage from '@app/views/organism/Form/WelcomePage';
 import LayoutWrapper from '@app/views/organism/Layout/LayoutWrapper';
 import useDrivePicker from '@fyelci/react-google-drive-picker';
-import { useIsMobile } from '@app/lib/hooks/use-breakpoint';
 
 const CardVariants = {
     blue: 'text-blue-500 hover:bg-blue-100 transition hover:border-blue-100',

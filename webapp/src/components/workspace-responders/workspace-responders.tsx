@@ -56,7 +56,7 @@ export default function WorkspaceResponses({ workspace }: { workspace: Workspace
 
     const AddButton = (onClick?: () => void) => (
         <Tooltip title={!onClick ? t(localesCommon.noGroupFound) : ''}>
-            <div onClick={onClick} className={cn('flex gap-1 items-center  text-black-600', !onClick && 'cursor-not-allowed opacity-30')}>
+            <div onClick={onClick} className={cn('text-black-600 flex items-center  gap-1', !onClick && 'cursor-not-allowed opacity-30')}>
                 <Plus className="h-4 w-4 " />
                 <p className="body5 !text-black-600">{t(buttonConstant.add)}</p>
             </div>
@@ -75,10 +75,10 @@ export default function WorkspaceResponses({ workspace }: { workspace: Workspace
                                     handleDelete: () => removeMemberFromGroup({ email, group, workspaceId: workspace.id })
                                 })
                             }
-                            className={cn('p-1 cursor-pointer w-fit group rounded flex items-center gap-2 leading-none bg-brand-200 body5 !text-brand-500', !isAdmin && 'pointer-events-none')}
+                            className={cn('bg-brand-200 body5 !text-brand-500 group flex w-fit cursor-pointer items-center gap-2 rounded p-1 leading-none', !isAdmin && 'pointer-events-none')}
                         >
                             <span className="body5 text-black-8000">{group.name}</span>
-                            {isAdmin && <Close className="h-2 group-hover:block hidden w-2 " />}
+                            {isAdmin && <Close className="hidden h-2 w-2 group-hover:block " />}
                         </div>
                     );
                 return null;
@@ -88,11 +88,11 @@ export default function WorkspaceResponses({ workspace }: { workspace: Workspace
             {responderGroupsQuery.data && responderGroupsQuery.data?.length > 0 && isAdmin && (
                 <MenuDropdown showExpandMore={false} className="cursor-pointer" width={180} id="group-option" menuTitle={''} menuContent={AddButton(() => {})}>
                     {responderGroupsQuery.data?.map((group: ResponderGroupDto) => (
-                        <MenuItem disabled={isEmailInGroup(group, email)} onClick={() => addMembersOnGroup({ email, group, workspaceId: workspace.id })} key={group.id} className="flex justify-between py-3 hover:bg-black-200">
+                        <MenuItem disabled={isEmailInGroup(group, email)} onClick={() => addMembersOnGroup({ email, group, workspaceId: workspace.id })} key={group.id} className="hover:bg-black-200 flex justify-between py-3">
                             <Typography className="body4" noWrap>
                                 {group.name}
                             </Typography>
-                            {isEmailInGroup(group, email) && <CheckCircle className="h-5 w-5 text-brand-500" />}
+                            {isEmailInGroup(group, email) && <CheckCircle className="text-brand-500 h-5 w-5" />}
                         </MenuItem>
                     ))}
                 </MenuDropdown>
@@ -104,13 +104,14 @@ export default function WorkspaceResponses({ workspace }: { workspace: Workspace
         {
             name: t(formConstant.responder),
             selector: (responder: WorkspaceResponderDto) => responder.email,
-            grow: 2,
+            minWidth: '300px',
             style: {
                 color: '#202124',
                 fontSize: '14px',
                 fontWeight: 500,
                 paddingLeft: '16px',
-                paddingRight: '16px'
+                paddingRight: '16px',
+                overflow: 'auto hidden'
             }
         },
         {
@@ -154,7 +155,7 @@ export default function WorkspaceResponses({ workspace }: { workspace: Workspace
         if (data?.items && data?.items.length > 0)
             return (
                 <>
-                    <DataTable className="p-0 mt-4 !overflow-auto" columns={dataTableResponseColumns} data={data?.items || []} customStyles={customStyles} highlightOnHover={false} pointerOnHover={false} />
+                    <DataTable className="mt-4 !overflow-auto p-0" columns={dataTableResponseColumns} data={data?.items || []} customStyles={customStyles} highlightOnHover={false} pointerOnHover={false} />
                     {Array.isArray(data?.items) && data?.total > globalConstants.pageSize && (
                         <div className="mt-8 flex justify-center">
                             <StyledPagination shape="rounded" count={data?.pages || 0} page={query.page || 1} onChange={handlePageChange} />
@@ -167,19 +168,19 @@ export default function WorkspaceResponses({ workspace }: { workspace: Workspace
 
     if (isLoading && responderGroupsQuery.isLoading) {
         return (
-            <div className=" w-full py-10 flex justify-center">
+            <div className=" flex w-full justify-center py-10">
                 <Loader />
             </div>
         );
     }
     return (
         <>
-            <div className="flex flex-col md:flex-row items-start gap-6 justify-between">
+            <div className="flex flex-col items-start justify-between gap-6 md:flex-row">
                 <div>
                     <p className="h3-new font-semibold">
                         {t(workspaceConstant.allResponders)} {data && ' (' + data.total + ')'}{' '}
                     </p>
-                    <div className="p2-new text-black-700 max-w-[400px] mt-2">Below, you will find a list of responders who have filled forms of your workspace.</div>
+                    <div className="p2-new text-black-700 mt-2 max-w-[400px]">Below, you will find a list of responders who have filled forms of your workspace.</div>
                 </div>
                 <div className="w-full md:w-[282px]">
                     <SearchInput handleSearch={handleSearch} />
