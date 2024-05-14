@@ -72,6 +72,13 @@ export default function UnsplashImagePicker({ initialPhotoSearchQuery = '', onPh
         });
     };
 
+    const triggerUnsplashDownloadEndpoint = (photo: any) => {
+        fetch('/api/unsplash/download', {
+            method: 'POST',
+            body: JSON.stringify(photo)
+        });
+    };
+
     function setPhotoInLocalStorage(photo: any) {
         const photoList = JSON.parse(localStorage.getItem('unsplash_photos') || '{}');
         const currentFormPhotoList = Object.keys(photoList).length ? photoList[form.formId] || [] : [];
@@ -118,8 +125,9 @@ export default function UnsplashImagePicker({ initialPhotoSearchQuery = '', onPh
                                 try {
                                     if (photo) {
                                         updatePageImage(photo.urls.raw);
-                                        closeDialogModal();
                                         setPhotoInLocalStorage(photo);
+                                        triggerUnsplashDownloadEndpoint(photo);
+                                        closeDialogModal();
                                     }
                                 } catch (error) {
                                     console.log(error);
