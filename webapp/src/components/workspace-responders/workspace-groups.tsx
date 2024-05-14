@@ -62,7 +62,6 @@ export default function WorkspaceGroups({ workspace }: { workspace: WorkspaceDto
         {
             name: t('GROUP.DEFAULT'),
             selector: (group: ResponderGroupDto) => group.name,
-            grow: 2,
             style: {
                 color: '#202124',
                 fontSize: '14px',
@@ -74,7 +73,6 @@ export default function WorkspaceGroups({ workspace }: { workspace: WorkspaceDto
         {
             name: t('GROUP.MEMBERS.DEFAULT'),
             selector: (group: ResponderGroupDto) => group.emails?.length ?? 0,
-            grow: 2,
             style: {
                 color: '#202124',
                 fontSize: '14px',
@@ -86,7 +84,6 @@ export default function WorkspaceGroups({ workspace }: { workspace: WorkspaceDto
         {
             name: t('FORMS'),
             selector: (group: ResponderGroupDto) => group.forms.length,
-            grow: 2,
             style: {
                 color: '#202124',
                 fontSize: '14px',
@@ -97,6 +94,7 @@ export default function WorkspaceGroups({ workspace }: { workspace: WorkspaceDto
         },
         {
             name: '',
+            width: '60px',
             style: {
                 justifyContent: 'end',
                 display: 'flex',
@@ -125,14 +123,14 @@ export default function WorkspaceGroups({ workspace }: { workspace: WorkspaceDto
     const Group = () => (
         <div>
             <div className="flex justify-between">
-                <div className="flex justify-between w-full mb-8 items-center ">
+                <div className="mb-8 flex w-full items-center justify-between ">
                     <div className="flex flex-col">
-                        <div className="flex justify-between flex-col xs:flex-row">
+                        <div className="xs:flex-row flex flex-col justify-between">
                             <p className="h3-new font-semibold">
                                 {t(groupConstant.groups)} {data && ' (' + data.length + ')'}{' '}
                             </p>
                         </div>
-                        <p className="mt-2 body4 text-black-700">{t(groupConstant.description)}</p>
+                        <p className="body4 text-black-700 mt-2">{t(groupConstant.description)}</p>
                     </div>
                     {isAdmin && (
                         <AppButton
@@ -165,7 +163,7 @@ export default function WorkspaceGroups({ workspace }: { workspace: WorkspaceDto
     );
     if (isLoading)
         return (
-            <div className=" w-full py-10 flex justify-center">
+            <div className=" flex w-full justify-center py-10">
                 <Loader />
             </div>
         );

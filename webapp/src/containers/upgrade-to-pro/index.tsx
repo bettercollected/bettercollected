@@ -72,40 +72,10 @@ export default function UpgradeToProContainer({ featureText, isModal = true }: I
                     <ProLogo />
                 </div>
             </div>
-
-            {/* {!environments.ENABLE_SUGGEST_PRICE ? (
-                <>
-                    <div className="h2-new text-black-900 mb-4 max-w-[370px] text-center font-semibold">{featureText || t(upgradeConst.features.default.slogan)}</div>
-                    <div className="p2-new text-black-600 mb-6 text-center">{t(pricingPlan.description)}</div>
-                    {isLoading && <Loader variant="blink" />}
-
-                    {data &&
-                        Array.isArray(data) &&
-                        data.map((plan: any) => (
-                            <PlanCard
-                                activePlan={activePlan}
-                                plan={plan}
-                                key={plan.price_id}
-                                onClick={() => {
-                                    setActivePlan(plan);
-                                }}
-                            />
-                        ))}
-
-                    {data && (
-                        <ActiveLink className="mt-10" href={url}>
-                            <ModalButton>{t(buttonConstant.continue)}</ModalButton>
-                        </ActiveLink>
-                    )}
-                </>
-            ) : ( */}
             <>
                 <div className="h2-new mb-2 text-center">Suggest a monthly price for PRO</div>
                 <div className="p2-new text-black-700 max-w-[426px] text-center">We&apos;re committed to putting our users first, making online form building accessible to all. Share your thoughts on what our Pro features are worth to you.</div>
-                <div
-                    className="mtimport { useRouter } from 'next/router';
--10 flex flex-wrap gap-2"
-                >
+                <div className="mt-10 flex flex-wrap gap-2">
                     {prices.map((price, index) => {
                         return (
                             <div
@@ -127,7 +97,6 @@ export default function UpgradeToProContainer({ featureText, isModal = true }: I
                         <div className="bg-black-100 text-black-500 flex h-full w-full items-center justify-center rounded-l-lg px-2">$</div>
                         <input
                             type="number"
-                            contentEditable
                             value={customPrice || ''}
                             onFocus={() => {
                                 setActiveSuggestion(null);
