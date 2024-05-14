@@ -16,6 +16,7 @@ from common.models.user import User
 from openai import AsyncOpenAI
 from openai.types.chat.completion_create_params import ResponseFormat
 
+from backend.app.constants.themes import themes
 from backend.app.exceptions import HTTPException
 from backend.app.models.dtos.request_dtos import CreateFormWithAI
 from backend.app.services.workspace_form_service import WorkspaceFormService
@@ -102,6 +103,7 @@ class OpenAIService:
         standard_form = StandardForm()
         standard_form.builder_version = "v2"
         standard_form.title = openai_form.get("title")
+        standard_form.theme = themes.get("Black")
         standard_form.welcome_page = WelcomePageField(
             title=openai_form.get("title"),
             description=openai_form.get("description"),
@@ -123,11 +125,48 @@ class OpenAIService:
             if not field.get("type") == "group":
                 slide_fields.append(self.convert_single_field(field, 0))
             else:
+                if field.get("title") is not None:
+                    slide_fields.append(
+                        {
+                            "id": str(uuid.uuid4()),
+                            "type": StandardFormFieldType.TEXT,
+                            "index": 0,
+                            "title": {
+                                "type": "doc",
+                                "content": [
+                                    {
+                                        "type": "paragraph",
+                                        "content": [
+                                            {
+                                                "text": field.get("title"),
+                                                "marks": [
+                                                    {"type": "bold"},
+                                                    {
+                                                        "type": "textStyle",
+                                                        "attrs": {
+                                                            "fontSize": "32",
+                                                            "color": None,
+                                                        },
+                                                    },
+                                                ],
+                                                "type": "text",
+                                            }
+                                        ],
+                                    }
+                                ],
+                            },
+                        }
+                    )
                 for fieldIndex, openai_group_field in enumerate(
                     field.get("properties", {}).get("fields", [])
                 ):
                     slide_fields.append(
-                        self.convert_single_field(openai_group_field, fieldIndex)
+                        self.convert_single_field(
+                            openai_group_field,
+                            fieldIndex + 1
+                            if field.get("title") is not None
+                            else fieldIndex,
+                        )
                     )
             fields.append(
                 {
