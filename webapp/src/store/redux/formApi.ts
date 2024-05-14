@@ -52,8 +52,15 @@ export const formsApi = createApi({
                 url: `/auth/logout`,
                 method: 'GET'
             })
+        }),
+        createFormWithAI: builder.mutation<any,any>({
+            query: (request) => ({
+                url: `/workspaces/${request.workspaceId}/forms/ai`,
+                method: 'POST',
+                body: request.body
+            })
         })
     })
 });
 
-export const { useCreateV2FormMutation, usePatchV2FormMutation, usePublishV2FormMutation, useGetFormResponseQuery, useSubmitResponseMutation, useLazyLogOutQuery } = formsApi;
+export const { useCreateV2FormMutation, usePatchV2FormMutation, usePublishV2FormMutation, useGetFormResponseQuery, useSubmitResponseMutation, useLazyLogOutQuery, useCreateFormWithAIMutation } = formsApi;
