@@ -10,6 +10,7 @@ import { useAppSelector } from '@app/store/hooks';
 import CircularProgressBar from '@app/views/atoms/Loaders/CircularLoadingAnimation';
 import PhotoList from './PhotoList';
 import SearchBar from './PhotoSearch';
+import Link from 'next/link';
 
 interface IUnsplashImagePickerProps {
     initialPhotoSearchQuery?: string;
@@ -71,6 +72,13 @@ export default function UnsplashImagePicker({ initialPhotoSearchQuery = '', onPh
         });
     };
 
+    const triggerUnsplashDownloadEndpoint = (photo: any) => {
+        fetch('/api/unsplash/download', {
+            method: 'POST',
+            body: JSON.stringify(photo)
+        });
+    };
+
     function setPhotoInLocalStorage(photo: any) {
         const photoList = JSON.parse(localStorage.getItem('unsplash_photos') || '{}');
         const currentFormPhotoList = Object.keys(photoList).length ? photoList[form.formId] || [] : [];
@@ -91,9 +99,9 @@ export default function UnsplashImagePicker({ initialPhotoSearchQuery = '', onPh
             ) : (
                 <div className="bg-white ">
                     <div className="Picker relative h-full rounded">
-                        <div className="flex items-center gap-4 bg-white px-4 pt-4 text-lg font-bold">
+                        <Link href="https://unsplash.com/?utm_source=bettercollected&utm_medium=referral" target="_blank" referrerPolicy="no-referrer" className="flex items-center gap-4 bg-white px-4 pt-4 text-lg font-bold">
                             <Unsplash /> Unsplash
-                        </div>
+                        </Link>
                         <div className="bg-white p-4 shadow">
                             <SearchBar
                                 onSearch={(query: string) => {
@@ -117,8 +125,9 @@ export default function UnsplashImagePicker({ initialPhotoSearchQuery = '', onPh
                                 try {
                                     if (photo) {
                                         updatePageImage(photo.urls.raw);
-                                        closeDialogModal();
                                         setPhotoInLocalStorage(photo);
+                                        triggerUnsplashDownloadEndpoint(photo);
+                                        closeDialogModal();
                                     }
                                 } catch (error) {
                                     console.log(error);

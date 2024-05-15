@@ -18,7 +18,8 @@ import { Page } from '@app/models/dtos/page';
 import { useAppSelector } from '@app/store/hooks';
 import { useInviteToWorkspaceMutation } from '@app/store/workspaces/members-n-invitations-api';
 import { utcToLocalDate, utcToLocalTime } from '@app/utils/dateUtils';
-
+import { min } from 'lodash';
+import { overflow } from 'html2canvas/dist/types/css/property-descriptors/overflow';
 
 interface IInvitationTableProps {
     data: Page<WorkspaceInvitationDto>;
@@ -35,7 +36,7 @@ export default function InvitationsTable({ data }: IInvitationTableProps) {
     }, [data]);
 
     const EmptyPendingRequest = () => (
-        <div className="my-16 flex flex-col gap-6 items-center">
+        <div className="my-16 flex flex-col items-center gap-6">
             <InfoCircle className="h-8 w-8" />
             <p className="body2"> {t(members.pendingRequests.empty)}</p>
         </div>
@@ -57,11 +58,11 @@ export default function InvitationsTable({ data }: IInvitationTableProps) {
 
     const Status = ({ status, email }: { status: string; email: string }) => {
         return (
-            <div className="flex gap-5 items-center">
+            <div className="flex items-center gap-5">
                 <StatusBadge status={status} />
                 {status.toLowerCase() === 'expired' && (
                     <Typography noWrap>
-                        <span className="body4 cursor-pointer !text-brand-500" onClick={() => handleInvitation({ email })}>
+                        <span className="body4 !text-brand-500 cursor-pointer" onClick={() => handleInvitation({ email })}>
                             Resend Invitation
                         </span>
                     </Typography>
@@ -73,14 +74,14 @@ export default function InvitationsTable({ data }: IInvitationTableProps) {
         {
             name: t(members.member),
             selector: (invitation: WorkspaceInvitationDto) => invitation.email,
-            grow: 2,
+            minWidth: '300px',
             style: {
                 color: '#202124',
                 fontSize: '16px',
                 fontWeight: 500,
-                marginLeft: '-5px',
                 paddingLeft: '16px',
-                paddingRight: '16px'
+                paddingRight: '16px',
+                overflow: 'auto'
             }
         },
         {
@@ -124,7 +125,7 @@ export default function InvitationsTable({ data }: IInvitationTableProps) {
     if (invitations && invitations.length > 0)
         return (
             <>
-                <DataTable className="p-0 mt-2 !overflow-auto" columns={dataTableResponseColumns} data={invitations || []} customStyles={dataTableCustomStyles} highlightOnHover={false} pointerOnHover={false} />
+                <DataTable className="mt-2 !overflow-auto p-0" columns={dataTableResponseColumns} data={invitations || []} customStyles={dataTableCustomStyles} highlightOnHover={false} pointerOnHover={false} />
             </>
         );
     return EmptyPendingRequest();

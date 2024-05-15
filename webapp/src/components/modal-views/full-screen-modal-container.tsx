@@ -54,10 +54,6 @@ export default function FullScreenModalContainer() {
         if (!modalProps?.nonClosable) closeModal();
     }, [closeModal]);
 
-    const closeModalOnRouteChange = () => {
-        dispatch(resetBuilderMenuState());
-        closeModal();
-    };
 
     return (
         <>
