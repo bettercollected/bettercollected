@@ -113,9 +113,12 @@ export default {
             minHeight: {
                 'calc-68': 'calc(100vh - 68px)'
             },
+            maxHeight:{
+                'media-library': 'calc(100vh - 56px)',
+            },
             height: {
                 'bottom-sheet-container': 'calc(100vh - 160px)',
-                'response-view': 'calc(100vh - 200px)'
+                'response-view': 'calc(100vh - 200px)',
             },
             borderWidth: {
                 3: '3px'
