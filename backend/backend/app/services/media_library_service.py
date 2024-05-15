@@ -18,9 +18,11 @@ class MediaLibraryService:
         self._media_library_repo = media_library_repo
         self._aws_service = aws_service
 
-    async def get_medias_in_workspace_by_workspace_id(self, workspace_id: str):
+    async def get_medias_in_workspace_by_workspace_id(
+        self, workspace_id: str, media_query: str
+    ):
         return await self._media_library_repo.get_media_library_by_worksapce_id(
-            workspace_id
+            workspace_id, media_query
         )
 
     async def delete_media_from_library_of_workspace(

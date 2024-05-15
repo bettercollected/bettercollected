@@ -5,8 +5,20 @@ from backend.app.schemas.media_library import MediaLibraryDocument
 
 class MediaLibraryRepository:
 
-    async def get_media_library_by_worksapce_id(self, workspace_id: str):
-        return await MediaLibraryDocument.find({"workspace_id": workspace_id}).to_list()
+    async def get_media_library_by_worksapce_id(
+        self, workspace_id: str, media_query: str
+    ):
+        if media_query is not None:
+            return await MediaLibraryDocument.find(
+                {
+                    "workspace_id": workspace_id,
+                    "media_name": {"$regex": media_query, "$options": "i"},
+                }
+            ).to_list()
+        else:
+            return await MediaLibraryDocument.find(
+                {"workspace_id": workspace_id}
+            ).to_list()
 
     async def get_single_media_from_workspace_library(
         self, workspace_id: str, media_id: PydanticObjectId
