@@ -19,6 +19,7 @@ from openai.types.chat.completion_create_params import ResponseFormat
 from backend.app.constants.themes import themes
 from backend.app.exceptions import HTTPException
 from backend.app.models.dtos.request_dtos import CreateFormWithAI
+from backend.app.schemas.create_form_prompts import CreateFormPrompt
 from backend.app.services.workspace_form_service import WorkspaceFormService
 from backend.app.services.workspace_service import WorkspaceService
 from backend.config import settings
@@ -81,7 +82,7 @@ class OpenAIService:
 
         try:
             response = await client.chat.completions.create(
-                model="gpt-3.5-turbo",
+                model=settings.open_ai.MODAL,
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": create_form_ai.prompt},
@@ -89,11 +90,19 @@ class OpenAIService:
                 response_format=ResponseFormat(type="json_object"),
             )
             openai_form = json.loads(response.choices[0].message.content)
-            return await self.workspace_form_service.create_form(
+            form = await self.workspace_form_service.create_form(
                 workspace_id=workspace_id,
                 form=self.convert_openai_form_to_standard_form(openai_form=openai_form),
                 user=user,
             )
+            create_form_prompt = CreateFormPrompt(
+                prompt=create_form_ai.prompt,
+                openai_response=openai_form,
+                created_form=form.dict(),
+                form_id=PydanticObjectId(form.form_id),
+            )
+            await create_form_prompt.save()
+            return form
         except Exception as e:
             print(e)
             raise HTTPException(
@@ -188,14 +197,15 @@ class OpenAIService:
             "index": index,
             "description": openai_field.get("description"),
             "properties": self.convert_properties(
-                openai_properties=openai_field.get("properties", {})
+                openai_properties=openai_field.get("properties", {}),
+                type=openai_field.get("type"),
             ),
             "validations": {
                 "required": openai_field.get("properties", {}).get("required", False)
             },
         }
 
-    def convert_properties(self, openai_properties: Dict[str, Any]):
+    def convert_properties(self, openai_properties: Dict[str, Any], type: str = None):
         properties = {}
         if openai_properties.get("placeholder") is not None:
             properties["placeholder"] = openai_properties.get("placeholder")
@@ -211,5 +221,10 @@ class OpenAIService:
             properties["choices"] = [
                 {"id": str(uuid.uuid4()), "label": choice, "value": choice}
                 for choice in openai_properties.get("choices")
+            ]
+        if type is not None and type == StandardFormFieldType.YES_NO:
+            properties["choices"] = [
+                {"id": str(uuid.uuid4()), "label": "Yes", "value": "Yes"},
+                {"id": str(uuid.uuid4()), "label": "No", "value": "No"},
             ]
         return properties
