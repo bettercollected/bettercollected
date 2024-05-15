@@ -11,7 +11,7 @@ interface Props {
     loadMore: () => void;
 }
 function PhotoList({ isLoading = false, isLoadingMore = false, photoList, total, onPhotoSelect, loadMore }: Props) {
-    const listHeight = '700px'; // 'calc(100 - 125px)'
+    const listHeight = '405px'; // 'calc(100 - 125px)'
     const ref = React.useMemo(() => React.createRef<HTMLDivElement>(), []);
 
     const onScroll = () => {
@@ -26,15 +26,15 @@ function PhotoList({ isLoading = false, isLoadingMore = false, photoList, total,
     };
 
     return (
-        <div className="Body">
+        <div className="Body h-full w-full">
             {isLoading ? (
-                <div className="flex h-96 items-center justify-center">
+                <div className="flex h-full w-full items-center justify-center">
                     <Loader />
                 </div>
             ) : (
                 <div>
                     {Array.isArray(photoList) && photoList.length > 0 && (
-                        <div className="PhotoList grid grid-cols-1 gap-2 overflow-y-auto p-4 pb-12 sm:grid-cols-2 md:grid-cols-3" style={{ maxHeight: listHeight }} ref={ref} onScroll={onScroll}>
+                        <div className="PhotoList grid grid-cols-1 gap-2 overflow-y-auto pb-12 sm:grid-cols-2 md:grid-cols-3" style={{ maxHeight: listHeight }} ref={ref} onScroll={onScroll}>
                             {photoList.map((photo: any) => {
                                 return <UnsplashPhotoCard key={photo.id} photo={photo} onPhotoSelect={onPhotoSelect} />;
                             })}
@@ -52,7 +52,7 @@ function PhotoList({ isLoading = false, isLoadingMore = false, photoList, total,
         </div>
     );
 }
-function Loader() {
+export function Loader() {
     return (
         <svg className="text-blue -ml-1 mr-3 h-5 w-5 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
