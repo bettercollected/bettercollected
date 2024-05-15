@@ -31,7 +31,7 @@ Generate a json for a form with the following schema:
 interface Field {
         title: string;
         description: string;
-        type: 'short_text' | 'email' | 'phone_number' | 'date' | 'matrix' | 'multiple_choice' | 'file_upload' | 'rating' | 'dropdown' | 'yes_no' | 'linear_scale' | 'number' | 'link' | 'group';
+        type: 'short_text' | 'email' | 'phone_number' | 'date' | 'multiple_choice' | 'file_upload' | 'rating' | 'dropdown' | 'yes_no' | 'linear_scale' | 'number' | 'link' | 'group';
         properties?: {
             placeholder?: string;
             required?: boolean;
@@ -51,6 +51,8 @@ interface Form {
 }
 
 Group the fields whenever the fields fall under same category.
+
+Note: steps is the no of stars to be shown.
 """
 
 
@@ -185,12 +187,29 @@ class OpenAIService:
             "id": str(uuid.uuid4()),
             "index": index,
             "description": openai_field.get("description"),
-            "properties": {
-                "placeholder": openai_field.get("properties", {}).get(
-                    "placeholder", ""
-                ),
-            },
+            "properties": self.convert_properties(
+                openai_properties=openai_field.get("properties", {})
+            ),
             "validations": {
                 "required": openai_field.get("properties", {}).get("required", False)
             },
         }
+
+    def convert_properties(self, openai_properties: Dict[str, Any]):
+        properties = {}
+        if openai_properties.get("placeholder") is not None:
+            properties["placeholder"] = openai_properties.get("placeholder")
+        if openai_properties.get("allowOther"):
+            properties["allow_other_choice"] = True
+        if openai_properties.get("allowMultiple"):
+            properties["allow_multiple_selection"] = True
+        if openai_properties.get("steps") is not None:
+            properties["steps"] = openai_properties.get("steps")
+        if openai_properties.get("startFrom") is not None:
+            properties["start_from"] = openai_properties.get("startFrom")
+        if openai_properties.get("choices") is not None:
+            properties["choices"] = [
+                {"id": str(uuid.uuid4()), "label": choice, "value": choice}
+                for choice in openai_properties.get("choices")
+            ]
+        return properties
