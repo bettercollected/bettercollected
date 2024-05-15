@@ -90,6 +90,8 @@ const getClassName = (view?: DIALOG_MODALS) => {
             return 'md:!min-w-[760px]';
         case 'SHARE_FORM_MODAL':
             return 'md:!min-w-fit';
+        case 'UNSPLASH_IMAGE_PICKER':
+            return 'md:min-w-[418px] md:max-w-[418px] md:max-h-[552px] md:min-h-[552px] !rounded-lg';
         default:
             return <></>;
     }
