@@ -25,17 +25,18 @@ class MediaLibrary(Routable):
             container.media_library_service()
         )
 
-    @get("/", response_model=List[MediaLibraryCamelModel])
+    @get("", response_model=List[MediaLibraryCamelModel])
     async def get_workspace_media(
         self,
         workspace_id: str,
+        media_query: str = None,
         user: User = Depends(get_logged_user),
     ):
         return await self.media_library_service.get_medias_in_workspace_by_workspace_id(
-            workspace_id
+            workspace_id, media_query
         )
 
-    @post("/", response_model=MediaLibraryCamelModel)
+    @post("", response_model=MediaLibraryCamelModel)
     async def post_media_in_workspace(
         self,
         workspace_id: str,
