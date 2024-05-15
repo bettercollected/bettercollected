@@ -155,7 +155,7 @@ div::-webkit-scrollbar-track {
 
 /* Handle */
 div::-webkit-scrollbar-thumb {
-    background: 'transparent';
+    background: transparent;
     border-radius: 5px;
 }
 
@@ -166,4 +166,14 @@ div:hover::-webkit-scrollbar-thumb {
 /* Handle on hover */
 div::-webkit-scrollbar-thumb:hover {
     background: #858585;
+}
+
+.prompt-input-wrapper {
+    &:hover {
+        background-image: linear-gradient(135.6deg, #FE3678 0%, #0764EB 98.97%) !important;
+    }
+
+    &:focus-within {
+        background-image: linear-gradient(135.6deg, #FE3678 0%, #0764EB 98.97%) !important;
+    }
 }
