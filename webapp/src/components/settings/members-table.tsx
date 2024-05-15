@@ -1,5 +1,3 @@
-import React from 'react';
-
 import { useTranslation } from 'next-i18next';
 
 import _ from 'lodash';
@@ -13,32 +11,25 @@ import { members } from '@app/constants/locales/members';
 import { useAppSelector } from '@app/store/hooks';
 import { utcToLocalDate, utcToLocalTime } from '@app/utils/dateUtils';
 
-
 const customDataTableStyles = { ...dataTableCustomStyles };
 
 customDataTableStyles.rows.style.backgroundColor = 'white';
 export default function MembersTable({ data }: any) {
     const workspace = useAppSelector((state) => state.workspace);
-
-    // const [members, setMembers] = useState<Array<any>>([]);
     const { t } = useTranslation();
-
-    // useEffect(() => {
-    //     if (data && Array.isArray(data)) setMembers(data);
-    // }, [data]);
 
     const dataTableResponseColumns: any = [
         {
             selector: (member: any) => <UserDetails user={member} />,
             name: t(members.member),
-            grow: 2,
+            minWidth: '300px',
             style: {
                 color: '#202124',
                 fontSize: '14px',
                 fontWeight: 500,
-                marginLeft: '-5px',
                 paddingLeft: '16px',
-                paddingRight: '16px'
+                paddingRight: '16px',
+                overflow: 'auto hidden'
             }
         },
 
@@ -76,7 +67,7 @@ export default function MembersTable({ data }: any) {
 
     return (
         <>
-            <DataTable className="p-0 mt-2 !overflow-auto" columns={dataTableResponseColumns} data={data || []} customStyles={customDataTableStyles} highlightOnHover={false} pointerOnHover={false} />
+            <DataTable className="mt-2 !overflow-auto p-0" columns={dataTableResponseColumns} data={data || []} customStyles={customDataTableStyles} highlightOnHover={false} pointerOnHover={false} />
         </>
     );
 }
