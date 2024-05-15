@@ -65,7 +65,7 @@ export default function UpgradeToProContainer({ featureText, isModal = true }: I
         }
     };
     return (
-        <div className="container mx-auto  flex h-full w-full flex-col items-center justify-center pb-10">
+        <div className="container mx-auto flex h-full w-full flex-col items-center justify-center px-5 pb-10">
             <div className={`w-fit ${!isModal ? 'cursor-pointer' : ''}`} onClick={onClickProTag}>
                 <div className="pointer-events-none flex items-center pb-10">
                     <Logo />
@@ -75,10 +75,11 @@ export default function UpgradeToProContainer({ featureText, isModal = true }: I
             <>
                 <div className="h2-new mb-2 text-center">Suggest a monthly price for PRO</div>
                 <div className="p2-new text-black-700 max-w-[426px] text-center">We&apos;re committed to putting our users first, making online form building accessible to all. Share your thoughts on what our Pro features are worth to you.</div>
-                <div className="mt-10 flex flex-wrap gap-2">
+                <div className="mt-10 flex flex-wrap justify-center gap-2">
                     {prices.map((price, index) => {
                         return (
                             <div
+                                tabIndex={0}
                                 key={`${price}`}
                                 onClick={() => {
                                     setActiveSuggestion(price);
@@ -93,7 +94,7 @@ export default function UpgradeToProContainer({ featureText, isModal = true }: I
                             </div>
                         );
                     })}
-                    <div className={cn('focus-within:shadow-suggestion-price flex h-10 rounded-lg border border-blue-100', customPrice && 'shadow-suggestion-price')}>
+                    <div className={cn('focus-within:shadow-suggestion-price hidden h-10 rounded-lg border border-blue-100 lg:flex', customPrice && 'shadow-suggestion-price')}>
                         <div className="bg-black-100 text-black-500 flex h-full w-full items-center justify-center rounded-l-lg px-2">$</div>
                         <input
                             type="number"
