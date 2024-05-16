@@ -31,7 +31,7 @@ const environments = {
 
     // run-time config
     GA_MEASUREMENT_ID: publicRuntimeConfig.GA_MEASUREMENT_ID,
-    MICROSOFT_CLARITY_TRACKING_CODE: publicRuntimeConfig.MICROSOFT_CLARITY_TRACKING_CODE,
+    MICROSOFT_CLARITY_TRACKING_CODE: process.env.NEXT_PUBLIC_MICROSOFT_CLARITY_TRACKING_CODE || publicRuntimeConfig.MICROSOFT_CLARITY_TRACKING_CODE,
     SENTRY_DSN: publicRuntimeConfig.SENTRY_DSN,
     SENTRY_URL: publicRuntimeConfig.SENTRY_URL,
     SENTRY_ORG: publicRuntimeConfig.SENTRY_ORG,
@@ -101,8 +101,7 @@ const environments = {
     // REfactored Environment Variables
     DASHBOARD_DOMAIN: process.env.NEXT_PUBLIC_DASHBOARD_DOMAIN || 'admin.bettercollected.com',
     FORM_DOMAIN: process.env.NEXT_PUBLIC_FORM_DOMAIN || 'forms.bettercollected.com',
-    HTTP_SCHEME: process.env.NEXT_PUBLIC_HTTP_SCHEME || 'https://',
-
+    HTTP_SCHEME: process.env.NEXT_PUBLIC_HTTP_SCHEME || 'https://'
 };
 
 export default environments;
