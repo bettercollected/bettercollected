@@ -88,13 +88,13 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, group, worksp
             <div className="group flex w-full items-center justify-between rounded px-5 py-4">
                 <div className=" flex w-full flex-col gap-2">
                     <div className="flex flex-1 items-center justify-between gap-4">
-                        <div className="form-title flex gap-2">
+                        <div className="form-title gap-2">
                             <Tooltip title="">
-                                <Typography className="h4-new">{form?.title || t(localesCommon.untitled)}</Typography>
+                                <Typography className="h4-new mr-1 inline">{form?.title || t(localesCommon.untitled)}</Typography>
                             </Tooltip>
-                            {!isResponderPortal && !form?.isPublished && <div className="text-black-600 right-2 rounded bg-gray-100 px-2 py-1 text-xs font-semibold">{t('FORM.DRAFT')}</div>}
-                            {!isResponderPortal && form?.isPublished && !isFormOpen && <div className="text-black-600 right-2 rounded bg-gray-100 px-2 py-1 text-xs font-semibold">{t('FORM.CLOSED')}</div>}
-                            {!isResponderPortal && form?.builderVersion === 'v2' && <div className="text-black-600 right-2 rounded bg-gray-100 px-2 py-1 text-xs font-semibold">V2</div>}
+                            {!isResponderPortal && !form?.isPublished && <div className="text-black-600 right-2 mx-1 inline-block rounded bg-gray-100 px-2 py-1 text-xs font-semibold">{t('FORM.DRAFT')}</div>}
+                            {!isResponderPortal && form?.isPublished && !isFormOpen && <div className="text-black-600 right-2 mx-1 inline-block rounded bg-gray-100 px-2 py-1 text-xs font-semibold">{t('FORM.CLOSED')}</div>}
+                            {!isResponderPortal && form?.builderVersion === 'v2' && <div className="text-black-600 right-2 mx-1 inline-block rounded bg-gray-100 px-2 py-1 text-xs font-semibold">V2</div>}
                         </div>
                         {!group && !isResponderPortal && (
                             <div className="flex-1 lg:hidden">
