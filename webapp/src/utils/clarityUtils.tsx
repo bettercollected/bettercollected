@@ -1,8 +1,9 @@
+'use client';
+
 import { useEffect } from 'react';
 
 import { selectAuth } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
-
 
 function SetClarityUserId() {
     const auth = useAppSelector(selectAuth);

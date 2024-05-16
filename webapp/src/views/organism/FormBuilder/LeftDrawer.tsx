@@ -36,7 +36,7 @@ function LeftDrawer({ formFields, activeSlideComponent }: { formFields: Array<St
                         >
                             {activeSlideComponent.id === 'welcome-page' && <div className="absolute bottom-0 left-0 top-0 h-full w-1" style={{ background: 'blue' }}></div>}
                             <div className=" text-black-900 mb-1 !text-[10px] font-medium">Welcome Page</div>
-                            <div className="h-[30px] w-[54px] overflow-hidden rounded-lg">
+                            <div className="border-black-200 h-[30px] w-[54px] overflow-hidden rounded-lg border">
                                 <div
                                     className={cn('shadow-slide flex !aspect-video flex-1 cursor-pointer items-center justify-center overflow-hidden rounded bg-white')}
                                     style={{
@@ -63,10 +63,10 @@ function LeftDrawer({ formFields, activeSlideComponent }: { formFields: Array<St
                                                 <div className="text-black-700 mb-1 text-[10px] font-medium">Page {index + 1}</div>
                                                 <SlideOptions slideIndex={slide.index} />
                                             </div>
-                                            <div key={slide.id} className={cn('h-[102px]')}>
+                                            <div key={slide.id} className="border-black-200 !aspect-video w-full overflow-hidden rounded-lg border">
                                                 <div
                                                     role="button"
-                                                    className={cn('shadow-slide flex !aspect-video cursor-pointer items-center justify-center overflow-hidden border')}
+                                                    className={cn('shadow-slide  flex  cursor-pointer items-center justify-center overflow-hidden ')}
                                                     onClick={() => {
                                                         setActiveSlideComponent({
                                                             id: slide.id,
@@ -108,7 +108,7 @@ function LeftDrawer({ formFields, activeSlideComponent }: { formFields: Array<St
                             }}
                         >
                             <div className=" text-black-900 mb-1 !text-[10px] font-medium">Thank You Page</div>
-                            <div className="h-[30px] w-[54px] overflow-hidden rounded-lg">
+                            <div className="border-black-200 h-[30px] w-[54px] overflow-hidden rounded-lg border">
                                 <div
                                     className={cn('shadow-slide flex !aspect-video flex-1 cursor-pointer items-center justify-center overflow-hidden rounded bg-white')}
                                     style={{

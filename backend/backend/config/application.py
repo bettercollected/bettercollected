@@ -6,6 +6,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 from pydantic import BaseSettings
 
+from backend.config.OpenAISettings import OpenAISettings
 from backend.config.api_settings import ApiSettings
 from backend.config.apm_settings import APMSettings
 from backend.config.auth_settings import AuthSettings
@@ -57,6 +58,7 @@ class Application(BaseSettings):
     kafka_settings: KafkaSettings = KafkaSettings()
     event_webhook_settings: EventsWebhook = EventsWebhook()
     coupon_settings: CouponCodeSettings = CouponCodeSettings()
+    open_ai: OpenAISettings = OpenAISettings()
     # All your additional application configuration should go either here or in
     # separate file in this submodule.
 

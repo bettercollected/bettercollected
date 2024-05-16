@@ -132,7 +132,7 @@ export default function UpgradeToProContainer({ featureText, isModal = true }: I
                             }).then((response: any) => {
                                 if (response.data) {
                                     closeModal();
-                                    router.replace(window.location.href);
+                                    router.refresh();
                                     toast('Congratulations! You have been upgraded to PRO', { type: 'success' });
                                 }
                                 if (response.error) {
