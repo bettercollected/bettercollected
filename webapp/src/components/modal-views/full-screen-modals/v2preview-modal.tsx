@@ -33,7 +33,7 @@ export const PreviewFullModalView = () => {
 
     return (
         <div className="relative h-screen w-full">
-            <div className="absolute left-4 top-16 z-50 " onClick={handleClickClose}>
+            <div className="absolute left-4 top-16 z-50 lg:top-4 " onClick={handleClickClose}>
                 <BackButton hideForSmallScreen />
             </div>
             <div className=" h-full w-full bg-white">
