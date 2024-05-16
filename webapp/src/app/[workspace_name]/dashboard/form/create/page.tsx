@@ -24,6 +24,7 @@ import LayoutWrapper from '@app/views/organism/Layout/LayoutWrapper';
 import useDrivePicker from '@fyelci/react-google-drive-picker';
 import { useDialogModal } from '@app/lib/hooks/useDialogModal';
 import AIIcon from '@app/views/atoms/Icons/AIIcon';
+import { Badge } from 'lucide-react';
 
 const CardVariants = {
     blue: 'text-blue-500 hover:bg-blue-100 transition hover:border-blue-100',
@@ -166,6 +167,7 @@ const Card = ({ icon, content, onClick, variant, addSoon, soonMsg }: CardWrapper
             <span className="p3-new text-black-800 mb-1 mt-2">{content}</span>
             {content !== 'Import Google Form' && <OnlyAvailableInDesktopVersion />}
             {addSoon && <SoonComponent msg={soonMsg} />}
+            {content === 'Start with AI' && <div className="bg-new-pink absolute -right-0.5 -top-0.5 hidden rounded-lg px-2 py-1 text-xs font-semibold text-white lg:flex">beta</div>}
         </div>
     );
 };
