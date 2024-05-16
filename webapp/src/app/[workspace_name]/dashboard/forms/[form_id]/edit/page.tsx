@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
-import { motion } from 'framer-motion';
 
 import { useDialogModal } from '@app/lib/hooks/useDialogModal';
 import { selectForm } from '@app/store/forms/slice';

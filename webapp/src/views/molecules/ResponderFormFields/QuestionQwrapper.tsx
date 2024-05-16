@@ -16,7 +16,7 @@ export default function QuestionWrapper({ field, children }: { field: StandardFo
     return (
         <div className="relative flex flex-col gap-1" id={field.id}>
             {field?.validations?.required && (
-                <div className="absolute -right-10 top-2">
+                <div className="absolute -right-2 top-2">
                     <RequiredIcon className="text-black-900" />
                 </div>
             )}

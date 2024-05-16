@@ -133,12 +133,12 @@ const OnboardingContainer = ({ workspace, createWorkspace }: onBoardingProps) =>
     };
 
     return (
-        <div className="bg-white w-full flex flex-col items-center px-4 md:px-0">
+        <div className="flex w-full flex-col items-center bg-white px-4 md:px-0">
             <AuthNavbar showPlans={false} showHamburgerIcon />
-            <div className="flex flex-col relative mt-32">
+            <div className="mt-32 flex flex-col">
                 <div className="h3-new">{t(onBoarding.addYourOrganization)}</div>
                 <UploadLogo logoImageUrl={workspace?.profileImage ?? ''} className="mt-12" onUpload={handleUploadLogo} onRemove={handleRemoveLogo} />
-                <form className="mt-12 md:w-[541px] space-y-8 " onSubmit={onSubmitForm}>
+                <form className="mt-12 w-full space-y-8 md:w-[541px] " onSubmit={onSubmitForm}>
                     <AppTextField required title="Organization Name" id="title" placeholder="Enter name of your workspace" value={formData.title} onChange={handleOnchange} />
                     <TextFieldHandler formData={formData} setFormData={setFormData} handleOnChange={handleOnchange} createWorkspace={createWorkspace} />
                     <AppTextField title="Add Your Organization Description" id="description" placeholder="Write Description" multiline value={formData.description} onChange={handleOnchange} />

@@ -14,7 +14,7 @@ import { useAppSelector } from '@app/store/hooks';
 import AddFormTitleModal from '@app/views/molecules/Dialogs/AddFormTitleModal';
 import FormPublishedModal from '@app/views/molecules/Dialogs/FormPublishedModal';
 import UnsplashImagePicker from '@app/views/molecules/UnsplashImagePicker';
-import StartWithAi from "@app/views/molecules/Dialogs/StartWithAIModal";
+import StartWithAi from '@app/views/molecules/Dialogs/StartWithAIModal';
 
 export type DIALOG_MODALS = 'ADD_FORM_TITLE' | 'UNSPLASH_IMAGE_PICKER' | 'FORM_PUBLISHED' | 'SHARE_FORM_MODAL' | 'START_WITH_AI' | '';
 
@@ -95,12 +95,6 @@ const getClassName = (view?: DIALOG_MODALS) => {
     }
 };
 
-function shouldHideCloseIcon(view?: DIALOG_MODALS) {
-    const ViewWithHideCloseIcon = [''];
-    if (ViewWithHideCloseIcon.includes(view || 'SHARE_FORM_MODAL')) return true;
-    else return false;
-}
-
 export function DialogModalContainer() {
     const { isOpen, view, closeDialogModal, props } = useDialogModal();
 
@@ -120,20 +114,6 @@ export function DialogModalContainer() {
         >
             <DialogContent onClickCloseIcon={closeDialogModal} className={cn('!bg-white !p-0', getClassName(view))}>
                 {GetModalToRender(view, props)}
-                {shouldHideCloseIcon(view) && (
-                    <div
-                        onClick={(e: any) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            closeDialogModal();
-                        }}
-                        className="hover:bg-black-200 absolute right-4 top-3 rounded-md  disabled:pointer-events-none"
-                    >
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M19 5L5 19M5.00001 5L19 19" stroke="#6E6E6E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                        </svg>
-                    </div>
-                )}
             </DialogContent>
         </Dialog>
     );
