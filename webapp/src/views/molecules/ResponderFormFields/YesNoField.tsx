@@ -60,7 +60,7 @@ const YesNoField = ({ field }: { field: StandardFormFieldDto }) => {
                                                 background: active || checked ? theme?.tertiary : '',
                                                 color: theme?.secondary
                                             }}
-                                            className={`flex cursor-pointer justify-between rounded-xl border p-2 px-4`}
+                                            className={`flex w-[100px] cursor-pointer justify-between rounded-xl border p-2 px-4`}
                                         >
                                             {choice.value}
                                             {checked && <Check />}
