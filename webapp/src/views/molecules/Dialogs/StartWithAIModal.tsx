@@ -1,17 +1,16 @@
-import React, { FormEvent, useState } from 'react';
-import { Button } from '@app/shadcn/components/ui/button';
-import styled from 'styled-components';
 import { ButtonSize } from '@Components/Common/Input/Button/AppButtonProps';
+import { Button } from '@app/shadcn/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@app/shadcn/components/ui/collapsible';
-import { ChevronDown } from '@app/views/atoms/Icons/ChevronDown';
 import { cn } from '@app/shadcn/util/lib';
-import { useCreateFormWithAIMutation } from '@app/store/redux/formApi';
 import { useAppSelector } from '@app/store/hooks';
+import { useCreateFormWithAIMutation } from '@app/store/redux/formApi';
 import { selectWorkspace } from '@app/store/workspaces/slice';
+import { ChevronDown } from '@app/views/atoms/Icons/ChevronDown';
 import { useRouter } from 'next-nprogress-bar';
-import CircularLoadingAnimation from '@app/views/atoms/Loaders/CircularLoadingAnimation';
 import Image from 'next/image';
+import React, { FormEvent, useState } from 'react';
 import { toast } from 'react-toastify';
+import styled from 'styled-components';
 
 const GenerateButton = styled(Button)`
     background: linear-gradient(89.94deg, #00a9fe 1.64%, #8f6aff 99.95%);
@@ -54,7 +53,7 @@ const GradiantBorderDiv = styled.div`
     }
 `;
 
-const examples = ["Contact form to gathers user’s information. Include fields for the user's name, email address, and phone number.", 'A form to collect suggestions for improving the design and functionality of a app.'];
+const examples = ["Contact form to gather user’s information. Include fields for the user's name, email address, and phone number among others.", 'A form to collect suggestions for improving the design and functionality of an marketing app.'];
 export default function StartWithAi() {
     const [prompt, setPrompt] = React.useState('');
     const [isOpen, setIsOpen] = React.useState(false);
@@ -127,6 +126,7 @@ export default function StartWithAi() {
                                             key={example}
                                             onClick={() => {
                                                 setPrompt(example);
+                                                setIsOpen(false);
                                             }}
                                         >
                                             <div className="bg-black-200 text-black-600 cursor-pointer rounded-lg p-4 text-sm">{example}</div>
@@ -136,9 +136,9 @@ export default function StartWithAi() {
                             </CollapsibleContent>
                         </Collapsible>
                     </div>
-                    <GenerateButton size={ButtonSize.Medium} variant={'primary'} type="submit">
+                    <GenerateButton className="group" size={ButtonSize.Medium} variant={'primary'} type="submit">
                         <div className="z-10 flex items-center gap-2">
-                            <AIIcon />
+                            <AIIcon className="transition-all group-hover:scale-125" />
                             Generate
                         </div>
                     </GenerateButton>
@@ -148,9 +148,9 @@ export default function StartWithAi() {
     );
 }
 
-const AIIcon = () => {
+const AIIcon = (props: React.SVGAttributes<any>) => {
     return (
-        <svg width="24" height="25" viewBox="0 0 24 25" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <svg width="24" height="25" viewBox="0 0 24 25" fill="none" xmlns="http://www.w3.org/2000/svg" {...props}>
             <path
                 d="M15.7739 10.7054C11.2572 9.77189 10.6405 9.10768 9.77367 4.24346C9.76144 4.17495 9.72743 4.11317 9.67748 4.06874C9.62754 4.02431 9.56478 4 9.5 4C9.43522 4 9.37246 4.02431 9.32251 4.06874C9.27257 4.11317 9.23855 4.17495 9.22632 4.24346C8.35971 9.10768 7.74298 9.77189 3.22606 10.7054C3.16245 10.7186 3.10508 10.7552 3.06382 10.809C3.02257 10.8628 3 10.9304 3 11.0001C3 11.0699 3.02257 11.1375 3.06382 11.1913C3.10508 11.2451 3.16245 11.2817 3.22606 11.2949C7.74298 12.2284 8.35971 12.8926 9.22632 17.7568C9.23861 17.8253 9.27265 17.887 9.32259 17.9313C9.37253 17.9757 9.43525 18 9.5 18C9.56474 18 9.62747 17.9757 9.67741 17.9313C9.72735 17.887 9.76138 17.8253 9.77367 17.7568C10.6405 12.8926 11.2572 12.2284 15.7739 11.2949C15.8376 11.2817 15.8949 11.2451 15.9362 11.1913C15.9774 11.1375 16 11.0699 16 11.0001C16 10.9304 15.9774 10.8628 15.9362 10.809C15.8949 10.7552 15.8376 10.7186 15.7739 10.7054Z"
                 fill="white"
