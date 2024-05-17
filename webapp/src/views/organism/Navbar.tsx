@@ -162,7 +162,7 @@ const Navbar = () => {
                     className="w-full overflow-clip text-ellipsis border-0"
                 />
             </div>
-            <div className={'flex min-w-fit flex-1 items-center gap-2'}>
+            <div className={'flex min-w-fit flex-1 items-center justify-center gap-2'}>
                 <DropdownMenu
                     open={insertDropdownOpen}
                     onOpenChange={(open) => {
