@@ -76,9 +76,9 @@ export default function ParamTab({ tabMenu, children, isRouteChangeable = true, 
     return (
         <Tab.Group selectedIndex={selectedTabIndex} onChange={(index: any) => handleTabChange(index)}>
             <div className={`flex flex-row justify-between py-[26px] ${className}`}>
-                <Tab.List className="relative w-full text-sm gap-8">
-                    <div className="flex justify-between pb-[24px] border-b-[1px] border-black-300 max-w-full gap-5 overflow-x-auto">
-                        <div className="flex sm:gap-3 top-[-2px] justify-start xl:gap:6">
+                <Tab.List className="relative w-full gap-8  text-sm">
+                    <div className="border-black-300 flex max-w-full justify-between gap-5 overflow-x-auto border-b-[1px] pb-[24px]">
+                        <div className="top-[-2px] flex w-full justify-start gap-2 px-4 xl:gap-3">
                             {tabMenu.map((item, index) => (
                                 <TabItem key={item.path} className={`min-w-fit ${selectedTabIndex !== index ? 'hover:bg-black-100' : ''}`}>
                                     <div className={`flex items-center ${selectedTabIndex === index ? 'text-black-900' : 'text-black-600'}`}>
