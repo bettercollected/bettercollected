@@ -1,6 +1,7 @@
 import React from 'react';
 
 import UnsplashPhotoCard from './PhotoCard';
+import { SkeletonLoadingComponent } from './UploadMediaComponent';
 
 interface Props {
     isLoading?: boolean;
@@ -11,7 +12,7 @@ interface Props {
     loadMore: () => void;
 }
 function PhotoList({ isLoading = false, isLoadingMore = false, photoList, total, onPhotoSelect, loadMore }: Props) {
-    const listHeight = '405px'; // 'calc(100 - 125px)'
+    const listHeight = '365px'; // 'calc(100 - 125px)'
     const ref = React.useMemo(() => React.createRef<HTMLDivElement>(), []);
 
     const onScroll = () => {
@@ -29,7 +30,7 @@ function PhotoList({ isLoading = false, isLoadingMore = false, photoList, total,
         <div className="Body h-full w-full">
             {isLoading ? (
                 <div className="flex h-full w-full items-center justify-center">
-                    <Loader />
+                    <SkeletonLoadingComponent />
                 </div>
             ) : (
                 <div>

@@ -2,12 +2,13 @@
 
 import { useEffect, useState } from 'react';
 
+import { Skeleton } from '@app/shadcn/components/ui/skeleton';
 import { useAppSelector } from '@app/store/hooks';
-import { useAddPhotoInWorkspaceMediaLibraryMutation, useDeletePhotoFromWorkspaceMediaLibraryMutation, useLazyGetWorkspaceMediaLibraryQuery, useGetWorkspaceMediaLibraryQuery } from '@app/store/media-library/api';
+import { useAddPhotoInWorkspaceMediaLibraryMutation, useDeletePhotoFromWorkspaceMediaLibraryMutation, useGetWorkspaceMediaLibraryQuery, useLazyGetWorkspaceMediaLibraryQuery } from '@app/store/media-library/api';
 import { MediaLibrary } from '@app/store/media-library/type';
 import { selectWorkspace } from '@app/store/workspaces/slice';
-import CircularProgressBar from '@app/views/atoms/Loaders/CircularLoadingAnimation';
-import MediaList from './MediaList';
+import { toast } from 'react-toastify';
+import MediaItem from './MediaItem';
 import SearchBar from './PhotoSearch';
 
 const UploadMediaComponent = ({ updatePageImage }: { updatePageImage: (args: any) => void }) => {
@@ -16,13 +17,13 @@ const UploadMediaComponent = ({ updatePageImage }: { updatePageImage: (args: any
 
     const { data, isLoading } = useGetWorkspaceMediaLibraryQuery({ workspace_id: workspace.id });
     const [addPhotoInLibrary, { isLoading: isAddPhotoInMediaLoading }] = useAddPhotoInWorkspaceMediaLibraryMutation();
-    const [deletePhotoInLibrary, { isLoading: isDeletePhotoInMediaLoading }] = useDeletePhotoFromWorkspaceMediaLibraryMutation();
+    const [deletePhotoInLibrary] = useDeletePhotoFromWorkspaceMediaLibraryMutation();
     const [searchPhoto, { isLoading: isSeaching }] = useLazyGetWorkspaceMediaLibraryQuery();
 
     const [medias, setMedias] = useState<Array<MediaLibrary>>(data ? data : []);
-    // useEffect(() => {
-    //     data && setMedias(data);
-    // }, [data]);
+    useEffect(() => {
+        data && setMedias(data);
+    }, [data]);
 
     const handleAddMedia = (e: any) => {
         e.preventDefault();
@@ -30,16 +31,21 @@ const UploadMediaComponent = ({ updatePageImage }: { updatePageImage: (args: any
         const formData = new FormData();
         formData.append('file', file);
         addPhotoInLibrary({ workspace_id: workspace.id, media: formData }).then((result: any) => {
-            updatePageImage(result.data.mediaUrl);
+            if (result.data) {
+                updatePageImage(result.data.mediaUrl);
+                setMedias(result.data);
+            } else {
+                toast(result?.error?.data, {
+                    type: 'error'
+                });
+            }
         });
     };
 
-    console.log('assssss', Array.isArray(medias));
-
     return (
         <>
-            <div className="mb-6 mr-2 flex h-[405px] flex-col">
-                <div className="flex flex-col items-center justify-between md:flex-row">
+            <div className="mr-2 flex h-[430px] flex-col">
+                <div className="flex flex-col items-start justify-between gap-2 md:flex-row md:items-center">
                     <SearchBar
                         onSearch={(query: string) =>
                             searchPhoto({ workspace_id: workspace.id, media_query: query }).then((result: any) => {
@@ -54,22 +60,29 @@ const UploadMediaComponent = ({ updatePageImage }: { updatePageImage: (args: any
                     <label htmlFor="upload-media" className="bg-new-black-800 flex !h-9 cursor-pointer items-center justify-center rounded px-4 py-2 text-white">
                         <span className="p3-new"> Upload New</span>
                     </label>
-                    <input type="file" hidden id="upload-media" onChange={handleAddMedia} />
+                    <input type="file" hidden id="upload-media" onChange={handleAddMedia} accept="image/*" />
                 </div>
-                {(isLoading || isAddPhotoInMediaLoading || isDeletePhotoInMediaLoading || isSeaching) && (
-                    <div className="flex h-full w-full items-center justify-center">
-                        <CircularProgressBar className="h-10 w-10" />
-                    </div>
-                )}
+                {(isLoading || isSeaching) && <SkeletonLoadingComponent />}
 
-                {!isAddPhotoInMediaLoading && !isDeletePhotoInMediaLoading && !isSeaching && Array.isArray(medias) && medias.length ? (
-                    <div className="max-h-media-library mt-6 grid grid-cols-2 justify-end gap-4 overflow-auto">
-                        {medias.map((media: MediaLibrary) => {
-                            return <MediaList media={media} updatePageImage={updatePageImage} deletePhotoInLibrary={deletePhotoInLibrary} />;
-                        })}
+                {!isSeaching && Array.isArray(medias) && medias.length ? (
+                    <div className="max-h-media-library col mt-6 grid grid-cols-2 gap-4 overflow-auto">
+                        <div className="flex flex-col gap-4">
+                            {medias.map((media: MediaLibrary, index: number) => {
+                                if (index % 2 === 0) {
+                                    return <MediaItem isAddPhotoInMediaLoading={isAddPhotoInMediaLoading && index === 0} media={media} updatePageImage={updatePageImage} deletePhotoInLibrary={deletePhotoInLibrary} />;
+                                } else return <></>;
+                            })}
+                        </div>
+                        <div className="flex flex-col gap-4">
+                            {medias.map((media: MediaLibrary, index: number) => {
+                                if (index % 2 !== 0) {
+                                    return <MediaItem media={media} updatePageImage={updatePageImage} deletePhotoInLibrary={deletePhotoInLibrary} />;
+                                } else return <></>;
+                            })}
+                        </div>
                     </div>
                 ) : (
-                    <div className="flex h-full items-center justify-center">{!isAddPhotoInMediaLoading && !isDeletePhotoInMediaLoading && !isSeaching && <span>No Images Uploaded yet.</span>}</div>
+                    <div className="flex h-full items-center justify-center">{!isSeaching && <span>No Images Uploaded yet.</span>}</div>
                 )}
             </div>
         </>
@@ -77,3 +90,13 @@ const UploadMediaComponent = ({ updatePageImage }: { updatePageImage: (args: any
 };
 
 export default UploadMediaComponent;
+
+export const SkeletonLoadingComponent = ({ quantity = 6 }: { quantity?: number }) => {
+    return (
+        <div className="mt-4 grid h-full w-full grid-cols-3 items-center justify-center gap-2">
+            {[...Array(quantity)].map((index: number) => {
+                return <Skeleton key={index} className="bg-black-300 inset-0 h-[130px] pb-10" />;
+            })}
+        </div>
+    );
+};
