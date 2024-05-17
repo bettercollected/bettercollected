@@ -129,7 +129,7 @@ export default function StartWithAi() {
                                                 setIsOpen(false);
                                             }}
                                         >
-                                            <div className="bg-black-200 text-black-600 cursor-pointer rounded-lg p-4 text-sm">{example}</div>
+                                            <div className="bg-black-200 text-black-600 hover:text-black-800 cursor-pointer rounded-lg p-4 text-sm">{example}</div>
                                         </GradiantBorderDiv>
                                     );
                                 })}

@@ -201,6 +201,8 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
         const response: any = await submitResponse({ workspaceId: workspace.id, formId: form?.formId, body: formData });
         if (response?.data) {
             setIsFormSubmitted(true);
+            resetFillForm();
+            resetFormFiles();
         } else {
             toast('Error submitting response', { type: 'error' });
         }
