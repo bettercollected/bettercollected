@@ -19,10 +19,7 @@ export const defaultForm: StandardFormDto = {
                         id: v4(),
                         index: 0,
                         type: FieldTypes.SHORT_TEXT,
-                        title: 'Enter Question',
-                        properties: {
-                            placeholder: 'Answer'
-                        }
+                        title: 'Enter Question'
                     }
                 ]
             }
