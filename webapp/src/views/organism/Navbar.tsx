@@ -36,6 +36,7 @@ import BackButton from '../molecules/FormBuilder/BackButton';
 import PreviewWrapper from '../molecules/FormBuilder/PreviewWrapper';
 import PublishButton from '../molecules/FormBuilder/PublishButton';
 import Form from './Form/Form';
+import { TextareaAutosize } from '@mui/material';
 
 const Navbar = () => {
     const { activeSlide, formFields, addField, updateSlideImage, updateSlideLayout } = useFormFieldsAtom();
@@ -141,7 +142,7 @@ const Navbar = () => {
 
     return (
         <div id="navbar" className="border-b-black-300 flex h-16 w-full justify-between border-b-[1px] p-4">
-            <div className={'flex items-center gap-[2px]'}>
+            <div className={'flex flex-1 items-center gap-[2px]'}>
                 <div
                     className={'bg-brand-500 active:bg-brand-600 cursor-pointer rounded-[5px] p-[6px] text-white shadow'}
                     onClick={() => {
@@ -150,17 +151,18 @@ const Navbar = () => {
                 >
                     <NewBetterCollectedSmallLogo width={17} height={19} />
                 </div>
-                <input
-                    type="text"
+                <TextareaAutosize
+                    maxRows={2}
+                    style={{ resize: 'none' }}
                     placeholder="Form Title"
                     value={formState.title}
                     onChange={(event) => {
                         setFormTitle(event.target.value);
                     }}
-                    className="border-0"
+                    className="w-full overflow-clip text-ellipsis border-0"
                 />
             </div>
-            <div className={'flex items-center gap-2'}>
+            <div className={'flex min-w-fit flex-1 items-center gap-2'}>
                 <DropdownMenu
                     open={insertDropdownOpen}
                     onOpenChange={(open) => {
@@ -232,7 +234,7 @@ const Navbar = () => {
                 </DropdownMenu>
             </div>
 
-            <div className={'flex items-center gap-2 '}>
+            <div className={'flex flex-1 items-center justify-end  gap-2'}>
                 <Sheet>
                     <SheetTrigger asChild>
                         <Button icon={<PlayIcon />} variant={'v2Button'}>
