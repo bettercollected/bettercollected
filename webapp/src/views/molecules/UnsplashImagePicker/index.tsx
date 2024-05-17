@@ -101,10 +101,11 @@ export default function UnsplashImagePicker({ initialPhotoSearchQuery = '', onPh
                     <Tabs defaultValue="upload" className="h-full w-full">
                         <TabsList className=" flex h-auto w-full gap-4 px-6 py-2">
                             <TabsTrigger value="upload">Upload</TabsTrigger>
-                            <TabsTrigger value="unsplash">
-                                <Link href="https://unsplash.com/?utm_source=bettercollected&utm_medium=referral" target="_blank" referrerPolicy="no-referrer" className="flex items-center gap-4 bg-white px-4 pt-4 text-lg font-bold">
-                                    <Unsplash /> Unsplash
-                                </Link>
+                            <TabsTrigger value="unsplash" className='gap-1 flex'>
+                                {/* <Link href="https://unsplash.com/?utm_source=bettercollected&utm_medium=referral" target="_blank" referrerPolicy="no-referrer" className="flex items-center gap-4 bg-white px-4 pt-4 text-lg font-bold"> */}
+                                <Unsplash />
+                                <span className="p3-new text-black-600">Unsplash</span>
+                                {/* </Link> */}
                             </TabsTrigger>
                         </TabsList>
                         <Separator />
