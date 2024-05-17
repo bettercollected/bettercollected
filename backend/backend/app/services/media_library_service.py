@@ -49,6 +49,12 @@ class MediaLibraryService:
         request: Request,
     ):
         if file is not None:
+            file_type = check_if_file_is_of_supported_type(file)
+            if not file_type:
+                raise HTTPException(
+                    status_code=415,
+                    content="Unsupported file type.Only supporting images.",
+                )
             file_size = get_file_size(request)
             if file_size > self.MAX_FILE_SIZE_BYTES:
                 return HTTPException(
@@ -77,3 +83,7 @@ class MediaLibraryService:
 
 def get_file_size(request: Request):
     return int(request.headers["content-length"])
+
+
+def check_if_file_is_of_supported_type(file: UploadFile):
+    return "image" in file.content_type
