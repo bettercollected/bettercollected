@@ -69,6 +69,12 @@ const nextConfig = {
                 hostname: '*.googleusercontent.com',
                 port: '',
                 pathname: '**'
+            },
+            {
+                protocol: 'https',
+                hostname: 's3.eu-west-1.wasabisys.com',
+                port: '',
+                pathname: '**'
             }
         ]
     },
