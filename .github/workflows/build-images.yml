@@ -92,7 +92,6 @@ jobs:
                     - auth
                     - backend
                     - integrations/google
-                    - integrations/typeform
                     - webapp
                     - temporal/worker
                     - temporal/actions-executor
