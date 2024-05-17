@@ -36,7 +36,7 @@ function MatrixFieldComponent({ field, disabled }: IMatrixFieldProps) {
                     gridTemplateColumns: `repeat(${(field?.properties?.fields?.[0]?.properties?.choices?.length || 0) + 1} ,minmax(120px,1fr))`
                 }}
             >
-                <div></div>
+                <div className="sticky left-0 z-10 w-full opacity-100"></div>
                 {(field?.properties?.fields?.length || -1) > 0 &&
                     field?.properties?.fields?.[0]?.properties?.choices?.map((choice, index) => {
                         return (
