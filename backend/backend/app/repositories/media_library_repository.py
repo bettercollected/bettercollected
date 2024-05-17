@@ -9,16 +9,30 @@ class MediaLibraryRepository:
         self, workspace_id: str, media_query: str
     ):
         if media_query is not None:
-            return await MediaLibraryDocument.find(
-                {
-                    "workspace_id": workspace_id,
-                    "media_name": {"$regex": media_query, "$options": "i"},
-                }
-            ).to_list()
+            return (
+                await MediaLibraryDocument.find(
+                    {
+                        "workspace_id": workspace_id,
+                        "media_name": {"$regex": media_query, "$options": "i"},
+                    }
+                )
+                .aggregate(
+                    [
+                        {"$sort": {"created_at": -1}},
+                    ]
+                )
+                .to_list()
+            )
         else:
-            return await MediaLibraryDocument.find(
-                {"workspace_id": workspace_id}
-            ).to_list()
+            return (
+                await MediaLibraryDocument.find({"workspace_id": workspace_id})
+                .aggregate(
+                    [
+                        {"$sort": {"created_at": -1}},
+                    ]
+                )
+                .to_list()
+            )
 
     async def get_single_media_from_workspace_library(
         self, workspace_id: str, media_id: PydanticObjectId
