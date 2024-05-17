@@ -88,20 +88,6 @@ export default function FormPage(props: any) {
         return <Error />;
     }
 
-    const breadcrumbsItem: Array<BreadcrumbsItem> = [
-        {
-            title: t(breadcrumbsItems.dashboard),
-            url: `/${props?.workspace?.workspaceName}/dashboard`
-        },
-        {
-            title: t(breadcrumbsItems.forms),
-            url: `/${props?.workspace?.workspaceName}/dashboard/forms`
-        },
-        {
-            title: router.query ? router.query.view?.toString() ?? 'Preview' : 'Preview',
-            disabled: true
-        }
-    ];
 
     if (form?.isPublished) {
         const additionalTabs = [
