@@ -69,14 +69,14 @@ const UploadMediaComponent = ({ updatePageImage }: { updatePageImage: (args: any
                         <div className="flex flex-col gap-4">
                             {medias.map((media: MediaLibrary, index: number) => {
                                 if (index % 2 === 0) {
-                                    return <MediaItem isAddPhotoInMediaLoading={isAddPhotoInMediaLoading && index === 0} media={media} updatePageImage={updatePageImage} deletePhotoInLibrary={deletePhotoInLibrary} />;
+                                    return <MediaItem key={media.mediaId} isAddPhotoInMediaLoading={isAddPhotoInMediaLoading && index === 0} media={media} updatePageImage={updatePageImage} deletePhotoInLibrary={deletePhotoInLibrary} />;
                                 } else return <></>;
                             })}
                         </div>
                         <div className="flex flex-col gap-4">
                             {medias.map((media: MediaLibrary, index: number) => {
                                 if (index % 2 !== 0) {
-                                    return <MediaItem media={media} updatePageImage={updatePageImage} deletePhotoInLibrary={deletePhotoInLibrary} />;
+                                    return <MediaItem key={media.mediaId} media={media} updatePageImage={updatePageImage} deletePhotoInLibrary={deletePhotoInLibrary} />;
                                 } else return <></>;
                             })}
                         </div>
