@@ -20,6 +20,7 @@ import ReduxProvider from '@app/shared/hocs/ReduxProvider';
 import ThemeProvider from '@app/shared/hocs/ThemeProvider';
 import environments from '@app/configs/environments';
 import SetClarityUserId from '@app/utils/clarityUtils';
+import { SecondaryDialogModalContainer } from '@app/lib/hooks/useSecondaryDialogModal';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -47,6 +48,7 @@ export default function RootLayout({
                         <ReduxProvider>
                             {children}
                             <DialogModalContainer />
+                            <SecondaryDialogModalContainer />
                             <BaseModalContainer />
                             <SetClarityUserId />
                         </ReduxProvider>
