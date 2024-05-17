@@ -1,13 +1,28 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 
-import { Button } from '@app/shadcn/components/ui/button';
+import { SearchIcon } from '@app/views/atoms/Icons/Search';
+import { TextField } from '@mui/material';
+import { useDebounceValue } from 'usehooks-ts';
 
 interface Props {
     query: string;
     setQuery: (query: string) => void;
     onSearch: (query: string) => void;
+    initialPhotoSearchQuery?: string;
 }
-function PhotoSearch({ setQuery, query, onSearch }: Props) {
+function PhotoSearch({ setQuery, query, onSearch, initialPhotoSearchQuery }: Props) {
+    const [inputVal, setInputVal] = useState(query);
+    const [debouncedInputValue] = useDebounceValue(inputVal, 500);
+
+    useEffect(() => {
+        initialPhotoSearchQuery && onSearch(initialPhotoSearchQuery);
+    }, [initialPhotoSearchQuery]);
+
+    useEffect(() => {
+        onSearch(debouncedInputValue);
+        initialPhotoSearchQuery && !debouncedInputValue && onSearch(initialPhotoSearchQuery);
+    }, [debouncedInputValue]);
+
     // Handler for form submission
     const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -15,21 +30,44 @@ function PhotoSearch({ setQuery, query, onSearch }: Props) {
     };
 
     return (
-        <form onSubmit={handleSubmit} className="flex items-center space-x-2">
+        <form onSubmit={handleSubmit} className="flex items-center space-x-2  md:w-[227px]">
             <label className=" w-full">
-                <input
-                    className="placeholder:theme-text-subtitle-1 theme-border-default  focus:theme-border-primary w-full rounded-md border py-2 pl-3 pr-3 focus:outline-none focus:ring-1 sm:text-sm"
-                    placeholder="Search for an image"
+                <TextField
+                    sx={{
+                        height: '40px',
+                        padding: 0,
+                        '& .MuiOutlinedInput-root': {
+                            borderRadius: '8px',
+                            '& fieldset': {
+                                borderColor: '#EEEEEE'
+                            },
+                            '&.Mui-focused fieldset': {
+                                borderColor: '#EEEEEE'
+                            },
+                            '&:hover fieldset': {
+                                borderColor: '#EEEEEE'
+                            }
+                        },
+                        '& .MuiInputBase-root': {
+                            height: '40px',
+                            gap: '4px'
+                        }
+                    }}
+                    InputProps={{
+                        sx: {
+                            backgroundColor: '#F6F6F6'
+                        },
+                        startAdornment: <SearchIcon className="text-black-900 h-4 w-4 stroke-[2px]" />
+                    }}
+                    className="placeholder:text-black-400 bg-black-100 focus:bg-border-400 border-black-200 focus:ring-none h-full w-full rounded-lg border py-2 pl-3 pr-3 focus:outline-none sm:text-sm"
+                    placeholder="Search"
                     type="text"
                     name="search"
-                    value={query}
-                    onChange={(e) => setQuery(e.target.value)}
+                    value={inputVal}
+                    onChange={(e) => setInputVal(e.target.value)}
                     autoFocus={true}
                 />
             </label>
-            <Button variant="secondary" type="submit">
-                Search
-            </Button>
         </form>
     );
 }
