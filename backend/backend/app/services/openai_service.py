@@ -184,7 +184,10 @@ class OpenAIService:
                     "id": str(uuid.uuid4()),
                     "type": StandardFormFieldType.SLIDE,
                     "index": index,
-                    "properties": {"fields": slide_fields},
+                    "properties": {
+                        "fields": slide_fields,
+                        "layout": LayoutType.SINGLE_COLUMN_NO_BACKGROUND,
+                    },
                 }
             )
         return fields
