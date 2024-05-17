@@ -23,10 +23,8 @@ export const mediaLibraryApi = createApi({
     endpoints: (builder) => ({
         getWorkspaceMediaLibrary: builder.query<Array<MediaLibrary>, MediaLibraryRequestDto>({
             query: (data) => ({
-                url: `/${data.workspace_id}/media?${data.media_query?`media_query=${data.media_query}`:''}`,
-                method: 'GET',
-                
-               
+                url: `/${data.workspace_id}/media?${data.media_query ? `media_query=${data.media_query}` : ''}`,
+                method: 'GET'
             }),
             providesTags: [MEDIA_LIBRARY]
         }),
