@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from 'react';
 
+import { useDialogModal } from '@app/lib/hooks/useDialogModal';
 import { Skeleton } from '@app/shadcn/components/ui/skeleton';
 import { useAppSelector } from '@app/store/hooks';
-import { useAddPhotoInWorkspaceMediaLibraryMutation, useDeletePhotoFromWorkspaceMediaLibraryMutation, useGetWorkspaceMediaLibraryQuery, useLazyGetWorkspaceMediaLibraryQuery } from '@app/store/media-library/api';
+import { useAddPhotoInWorkspaceMediaLibraryMutation, useGetWorkspaceMediaLibraryQuery, useLazyGetWorkspaceMediaLibraryQuery } from '@app/store/media-library/api';
 import { MediaLibrary } from '@app/store/media-library/type';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { toast } from 'react-toastify';
@@ -15,9 +16,10 @@ const UploadMediaComponent = ({ updatePageImage }: { updatePageImage: (args: any
     const [query, setQuery] = useState('');
     const workspace = useAppSelector(selectWorkspace);
 
+    const { closeDialogModal } = useDialogModal();
+
     const { data, isLoading } = useGetWorkspaceMediaLibraryQuery({ workspace_id: workspace.id });
     const [addPhotoInLibrary, { isLoading: isAddPhotoInMediaLoading }] = useAddPhotoInWorkspaceMediaLibraryMutation();
-    const [deletePhotoInLibrary] = useDeletePhotoFromWorkspaceMediaLibraryMutation();
     const [searchPhoto, { isLoading: isSeaching }] = useLazyGetWorkspaceMediaLibraryQuery();
 
     const [medias, setMedias] = useState<Array<MediaLibrary>>(data ? data : []);
@@ -32,6 +34,7 @@ const UploadMediaComponent = ({ updatePageImage }: { updatePageImage: (args: any
         formData.append('file', file);
         addPhotoInLibrary({ workspace_id: workspace.id, media: formData }).then((result: any) => {
             if (result.data) {
+                closeDialogModal();
                 updatePageImage(result.data.mediaUrl);
                 setMedias(result.data);
             } else {
@@ -69,14 +72,14 @@ const UploadMediaComponent = ({ updatePageImage }: { updatePageImage: (args: any
                         <div className="flex flex-col gap-4">
                             {medias.map((media: MediaLibrary, index: number) => {
                                 if (index % 2 === 0) {
-                                    return <MediaItem key={media.mediaId} isAddPhotoInMediaLoading={isAddPhotoInMediaLoading && index === 0} media={media} updatePageImage={updatePageImage} deletePhotoInLibrary={deletePhotoInLibrary} />;
+                                    return <MediaItem key={media.mediaId} isAddPhotoInMediaLoading={isAddPhotoInMediaLoading && index === 0} media={media} updatePageImage={updatePageImage} />;
                                 } else return <></>;
                             })}
                         </div>
                         <div className="flex flex-col gap-4">
                             {medias.map((media: MediaLibrary, index: number) => {
                                 if (index % 2 !== 0) {
-                                    return <MediaItem key={media.mediaId} media={media} updatePageImage={updatePageImage} deletePhotoInLibrary={deletePhotoInLibrary} />;
+                                    return <MediaItem key={media.mediaId} media={media} updatePageImage={updatePageImage} />;
                                 } else return <></>;
                             })}
                         </div>
