@@ -27,22 +27,14 @@ const MediaItem = ({ media, updatePageImage, isAddPhotoInMediaLoading = false }:
     if (isAddPhotoInMediaLoading || nextImageLoading) return <Skeleton className="bg-black-300 inset-0 h-[130px] w-full pb-10" />;
     return (
         <div className="group relative h-auto cursor-pointer overflow-hidden" key={media.mediaId}>
-            <Image
-                className="cursor-pointer"
+            <Image className="cursor-pointer" src={media.mediaUrl} alt={media.mediaName} priority width={0} height={0} sizes="100vw" onLoad={() => isAddPhotoInMediaLoading && setNextImageLoading(true)} style={{ width: '100%', height: 'auto' }} />
+            <div
+                className="absolute inset-0 z-[1000] transition-all duration-300 hidden h-full w-full items-end justify-center group-hover:flex group-hover:bg-black/60 md:p-4"
                 onClick={() => {
                     updatePageImage(media.mediaUrl);
                     closeDialogModal();
                 }}
-                src={media.mediaUrl}
-                alt={media.mediaName}
-                priority
-                width={0}
-                height={0}
-                sizes="100vw"
-                onLoad={() => isAddPhotoInMediaLoading && setNextImageLoading(true)}
-                style={{ width: '100%', height: 'auto' }}
-            />
-            <div className="absolute inset-0 z-[1000] hidden h-full w-full items-end justify-center group-hover:flex group-hover:bg-black/70 md:p-4">
+            >
                 <span className="p4-new text-white">{media.mediaName}</span>
             </div>
             <div className="invisible absolute right-2 top-2 z-[10000] group-hover:visible ">
