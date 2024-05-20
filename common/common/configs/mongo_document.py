@@ -182,7 +182,7 @@ class MongoDocument(Document):
         by_alias: bool = False,
         include: Union["AbstractSetIntStr", "MappingIntStrAny"] = None,
         exclude: Union["AbstractSetIntStr", "MappingIntStrAny"] = None,
-        exclude_unset: bool = False,
+        exclude_unset: bool = True,
         exclude_defaults: bool = False,
         exclude_none: bool = True,
     ) -> "TupleGenerator":
