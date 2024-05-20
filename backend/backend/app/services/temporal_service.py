@@ -268,24 +268,3 @@ class TemporalService:
             raise HTTPException(
                 status_code=HTTPStatus.CONFLICT, content="Workflow has already started."
             )
-
-    async def export_as_csv(
-        self, form: StandardForm, responses: List[StandardFormResponse], user: User
-    ):
-        await self.check_temporal_client_and_try_to_connect_if_not_connected()
-        try:
-            converted_responses = [response.json() for response in responses]
-            converted_forms = form.json()
-            params = ExportCSVParams(
-                form=converted_forms, responses=converted_responses, user_email=user.sub
-            )
-            await self.temporal_client.start_workflow(
-                "export_as_csv_workflow",
-                arg=params,
-                id="export_as_csv" + str(form.form_id),
-                task_queue=settings.temporal_settings.csv_queue,
-                retry_policy=RetryPolicy(maximum_attempts=4),
-            )
-            return "Workflow Started"
-        except WorkflowAlreadyStartedError as e:
-            loguru.logger.info("Workflow has already started")

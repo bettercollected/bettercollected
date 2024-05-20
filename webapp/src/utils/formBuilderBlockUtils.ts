@@ -1,9 +1,11 @@
 import { uuidv4 } from '@mswjs/interceptors/lib/utils/uuid';
 import { v4 } from 'uuid';
 
+import { FieldTypes, StandardFormDto, StandardFormFieldDto, StandardFormResponseDto } from '@app/models/dtos/form';
 import { FormBuilderTagNames, LabelFormBuilderTagNames } from '@app/models/enums/formBuilder';
 import { IChoiceFieldState, IFormFieldState } from '@app/store/form-builder/types';
-import { FieldTypes, StandardFormFieldDto, StandardFormResponseDto } from '@app/models/dtos/form';
+import { getFieldsFromV2Form } from './formUtils';
+import { extractTextfromJSON } from './richTextEditorExtenstion/getHtmlFromJson';
 
 export function extractBlockTypeNames() {}
 
@@ -203,4 +205,63 @@ function getMultipleChoiceOtherValue(answer: any, multipleSelection: boolean = f
     } else {
         return answer?.choice?.other ? answer.choice?.other : '';
     }
+}
+
+export function getTitleForHeader(field: StandardFormFieldDto, form: StandardFormDto) {
+    let title: string = '';
+    if (form.builderVersion === 'v2') {
+        title = extractTextfromJSON(field);
+    } else if (form.builderVersion !== 'v2' && form.settings?.provider === 'google') {
+        // @ts-ignore
+        title = field.title || '';
+    } else {
+        title = convertPlaceholderToDisplayValue(
+            form?.fields.map((field: any, index: number) => {
+                return {
+                    ...field,
+                    position: index
+                };
+            }) ?? [],
+            field?.value || ''
+        );
+    }
+    return title;
+}
+
+export function getFormFields(form: StandardFormDto) {
+    if (form.builderVersion === 'v2') {
+        return getFieldsFromV2Form(form);
+    } else {
+        return getFilteredInputFields(form);
+    }
+}
+
+function getFilteredInputFields(form: StandardFormDto) {
+    if (form?.settings?.provider === 'google') {
+        return form?.fields.filter((field) => field.type !== null);
+    } else {
+        return getFilteredV1InputFields(form);
+    }
+}
+
+function getFilteredV1InputFields(form: StandardFormDto) {
+    const filteredFields: Array<any> = [];
+    form?.fields.forEach((field, index) => {
+        if (field.type.includes('input_')) {
+            const x: any = {
+                fieldId: field.id,
+                id: field.id
+            };
+            const previousField = form?.fields[index - 1] || undefined;
+            let text = field?.properties?.placeholder;
+            if (LabelFormBuilderTagNames.includes(previousField?.type)) {
+                text = previousField?.value;
+            }
+            x.value = text;
+            x.type = field.type;
+            x.properties = field?.properties;
+            filteredFields.push(x);
+        }
+    });
+    return filteredFields;
 }

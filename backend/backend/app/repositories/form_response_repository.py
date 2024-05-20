@@ -296,19 +296,17 @@ class FormResponseRepository(BaseRepository):
             )
         return await response_document.save()
 
-    async def delete_form_response(
-        self, form_id: PydanticObjectId, response_id: PydanticObjectId
-    ):
+    async def delete_form_response(self, form_id: PydanticObjectId, response_id: str):
         await FormResponseDocument.find(
-            {"form_id": str(form_id), "response_id": str(response_id)}
+            {"form_id": str(form_id), "response_id": response_id}
         ).delete()
         deletion_request = await FormResponseDeletionRequest.find_one(
-            {"form_id": str(form_id), "response_id": str(response_id)}
+            {"form_id": str(form_id), "response_id": response_id}
         )
         if deletion_request:
             deletion_request.status = DeletionRequestStatus.SUCCESS
             await deletion_request.save()
-        return str(response_id)
+        return response_id
 
     async def get_all_expiring_responses(self):
         return await FormResponseDocument.find(

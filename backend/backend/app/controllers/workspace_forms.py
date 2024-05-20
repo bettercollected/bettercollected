@@ -153,13 +153,14 @@ class WorkspaceFormsRouter(Routable):
         form_id: str,
         published: bool = False,
         user: User = Depends(get_user_if_logged_in),
+        draft: bool = False
     ):
         if not user and not published:
             raise HTTPException(
                 status_code=HTTPStatus.UNAUTHORIZED, content=MESSAGE_UNAUTHORIZED
             )
         form = await self._form_service.get_form_by_id(
-            workspace_id=workspace_id, form_id=form_id, published=published, user=user
+            workspace_id=workspace_id, form_id=form_id, published=published, user=user,draft=draft
         )
         return form
 
@@ -305,7 +306,7 @@ class WorkspaceFormsRouter(Routable):
         self,
         workspace_id: PydanticObjectId,
         form_id: PydanticObjectId,
-        response_id: PydanticObjectId,
+        response_id: str,
         user: User = Depends(get_logged_user),
     ):
         if not settings.api_settings.ENABLE_FORM_CREATION:
@@ -462,14 +463,3 @@ class WorkspaceFormsRouter(Routable):
         )
         return updated_actions
 
-    @get("/{form_id}/export-csv")
-    async def export_csv_of_responses(
-        self,
-        workspace_id: PydanticObjectId,
-        form_id: PydanticObjectId,
-        user: User = Depends(get_logged_user),
-    ):
-        responses = await self.workspace_form_service.get_responses_in_csv_format(
-            workspace_id=workspace_id, form_id=str(form_id), user=user
-        )
-        return responses
