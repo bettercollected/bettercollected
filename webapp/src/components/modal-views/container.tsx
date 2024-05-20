@@ -3,7 +3,6 @@ import { Fragment, useCallback, useEffect } from 'react';
 import Button from '@Components/Common/Input/Button';
 import AddActionToFormModal from '@Components/Modals/DialogModals/AddActionToFormModal';
 import BuilderVersionSelectorModal from '@Components/Modals/DialogModals/BuilderVersion';
-import ExportResponsesModal from '@Components/Modals/DialogModals/ExportResponsesModal';
 import ImportFormModal from '@Components/Modals/DialogModals/ImportFormModal';
 import OauthErrorModal from '@Components/Modals/DialogModals/OauthErrorModal';
 import RedeemCouponCodeModal from '@Components/Modals/DialogModals/RedeemCouponCodeModal';
@@ -124,8 +123,6 @@ function renderModalContent(view: MODAL_VIEW, modalProps: any) {
             return <ImportTemplateModalView {...modalProps} />;
         case 'ADD_ACTION_TO_FORM':
             return <AddActionToFormModal {...modalProps} />;
-        case 'EXPORT_RESPONSES':
-            return <ExportResponsesModal {...modalProps} />;
         case 'OAUTH_ERROR_VIEW':
             return <OauthErrorModal {...modalProps} />;
         case 'GENERATE_QR':
@@ -150,7 +147,6 @@ export default function ModalContainer() {
         dispatch(resetBuilderMenuState());
         if (!modalProps?.nonClosable) closeModal();
     }, [closeModal]);
-
 
     return (
         <Transition appear show={isOpen} as={Fragment}>

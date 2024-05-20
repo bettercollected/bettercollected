@@ -1,17 +1,18 @@
-import { Close } from '@app/components/icons/close';
-import { Separator } from '@app/shadcn/components/ui/separator';
-import { useFullScreenModal } from '../full-screen-modal-context';
-import { StandardFormFieldDto, StandardFormResponseDto } from '@app/models/dtos/form';
-import { getAnswerForField } from '@app/utils/formBuilderBlockUtils';
-import { extractTextfromJSON } from '@app/utils/richTextEditorExtenstion/getHtmlFromJson';
-import { utcToLocalDateTIme } from '@app/utils/dateUtils';
-import { motion } from 'framer-motion';
-import { Popover, PopoverContent, PopoverTrigger } from '@app/shadcn/components/ui/popover';
 import EllipsisOption from '@Components/Common/Icons/Common/EllipsisOption';
-import DeleteIcon from '@app/views/atoms/Icons/Delete';
+import { Close } from '@app/components/icons/close';
+import { StandardFormFieldDto, StandardFormResponseDto } from '@app/models/dtos/form';
+import { Popover, PopoverContent, PopoverTrigger } from '@app/shadcn/components/ui/popover';
+import { Separator } from '@app/shadcn/components/ui/separator';
 import { cn } from '@app/shadcn/util/lib';
+import { selectForm } from '@app/store/forms/slice';
+import { useAppSelector } from '@app/store/hooks';
 import { useDeleteResponseMutation } from '@app/store/workspaces/api';
+import { utcToLocalDateTIme } from '@app/utils/dateUtils';
+import { getAnswerForField, getTitleForHeader } from '@app/utils/formBuilderBlockUtils';
+import DeleteIcon from '@app/views/atoms/Icons/Delete';
+import { motion } from 'framer-motion';
 import { toast } from 'react-toastify';
+import { useFullScreenModal } from '../full-screen-modal-context';
 
 export interface IViewResponseFullModalView {
     response: StandardFormResponseDto;
@@ -47,12 +48,17 @@ const ViewResponseFullModalView = ({ response, formFields, formId, workspaceId }
 };
 
 export const IndividualFormResponse = ({ formFields, response }: { formFields: Array<StandardFormFieldDto>; response: StandardFormResponseDto }) => {
+    const form = useAppSelector(selectForm);
+    function getTitleForHeaderForTable(field: StandardFormFieldDto) {
+        const title = getTitleForHeader(field, form);
+        return <span className="p3-new !text-black-800 truncate md:w-[250px]">{title}</span>;
+    }
     return (
         <div className="flex min-h-fit w-full flex-col gap-8 overflow-y-auto p-4 pt-6 ">
             {formFields.map((field) => {
                 return (
                     <div className="flex flex-col gap-1" key={field.id}>
-                        <span className="p4-new text-black-500">{extractTextfromJSON(field)}</span>
+                        <span className="p4-new text-black-500">{getTitleForHeaderForTable(field)}</span>
                         <span className="p2-new text-black-700">{getAnswerForField(response, field) || '- -'}</span>
                     </div>
                 );

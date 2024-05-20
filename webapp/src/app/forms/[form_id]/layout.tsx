@@ -6,7 +6,7 @@ import { notFound } from 'next/navigation';
 import React, { Suspense } from 'react';
 
 export async function generateMetadata() {
-    const domain = headers().get('host') || '';
+    const domain = headers().get('x-forwarded-host') || headers().get('host') || '';
     const workspaceResponse = await fetch(environments.INTERNAL_DOCKER_API_ENDPOINT_HOST + '/workspaces?custom_domain=' + domain);
     const workspace = await workspaceResponse.json();
 

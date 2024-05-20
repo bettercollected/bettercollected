@@ -10,21 +10,21 @@ import { useModal } from '@app/components/modal-views/context';
 import { defaultForm } from '@app/constants/form';
 import { getDefaultImageFromUnsplash } from '@app/lib/getDefaultImageFromUnsplash';
 import { useIsMobile } from '@app/lib/hooks/use-breakpoint';
+import { useDialogModal } from '@app/lib/hooks/useDialogModal';
 import { Sheet, SheetContent, SheetTrigger } from '@app/shadcn/components/ui/sheet';
 import { useAppSelector } from '@app/store/hooks';
 import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
 import { useCreateV2FormMutation } from '@app/store/redux/formApi';
 import { useCreateFormFromTemplateMutation, useGetTemplatesQuery } from '@app/store/redux/templateApi';
 import { selectWorkspace } from '@app/store/workspaces/slice';
+import AIIcon from '@app/views/atoms/Icons/AIIcon';
 import { GoogleFormIcon } from '@app/views/atoms/Icons/GoogleForm';
 import FormTypeSelectionComponent from '@app/views/molecules/FormBuilder/FormTypeSelectionComponent';
 import NavBar from '@app/views/molecules/FormBuilder/Navbar';
 import WelcomePage from '@app/views/organism/Form/WelcomePage';
 import LayoutWrapper from '@app/views/organism/Layout/LayoutWrapper';
 import useDrivePicker from '@fyelci/react-google-drive-picker';
-import { useDialogModal } from '@app/lib/hooks/useDialogModal';
-import AIIcon from '@app/views/atoms/Icons/AIIcon';
-import { Badge } from 'lucide-react';
+import globalConstants from '@app/constants/global';
 
 const CardVariants = {
     blue: 'text-blue-500 hover:bg-blue-100 transition hover:border-blue-100',
@@ -57,14 +57,10 @@ export default function CreateFormPage({ searchParams }: { searchParams: { modal
     const handleCreateForm = async (type: string) => {
         const isMultiPage = type === 'Modern Form';
         resetFields();
-        const imageResponse = await getDefaultImageFromUnsplash('New minimal');
-        const newPics = imageResponse?.response?.results;
-        const randomIndexes = Array.from({ length: 3 }, () => Math.floor(Math.random() * 10));
-        const pic = newPics?.filter((item: any, index: number) => randomIndexes.includes(index));
         const updatedForm = { ...defaultForm };
-        updatedForm.fields[0].imageUrl = (pic && pic[1]?.urls?.full) || 'https://s3.eu-central-1.wasabisys.com/bettercollected/images/v2_layout_image.webp';
-        updatedForm.welcomePage!.imageUrl = (pic && pic[0]?.urls?.full) || 'https://s3.eu-central-1.wasabisys.com/bettercollected/images/v2_layout_image.webp';
-        updatedForm.thankyouPage![0].imageUrl = (pic && pic[2]?.urls?.full) || 'https://s3.eu-central-1.wasabisys.com/bettercollected/images/v2_layout_image.webp';
+        updatedForm.fields[0].imageUrl = globalConstants.defaultImage;
+        updatedForm.welcomePage!.imageUrl = globalConstants.defaultImage;
+        updatedForm.thankyouPage![0].imageUrl = globalConstants.defaultImage;
         const formBody = { ...updatedForm, builderVersion: 'v2', isMultiPage };
         const formData = new FormData();
         formData.append('form_body', JSON.stringify(formBody));
@@ -87,8 +83,8 @@ export default function CreateFormPage({ searchParams }: { searchParams: { modal
     return (
         <div className="min-h-screen  bg-white">
             <NavBar />
-            <div className="px-auto h-body-content flex flex-col justify-center overflow-auto lg:flex-row ">
-                <div className=" flex w-full max-w-[1330px] flex-col px-5 md:px-10">
+            <div className="px-auto h-body-content overflow-auto ">
+                <div className="mx-auto flex w-full max-w-[1330px] flex-col px-5 md:px-10">
                     <div className="h3-new text-black-800 mb-4 mt-6">New Form</div>
                     <div className="flex w-full flex-col flex-wrap gap-6 lg:flex-row">
                         {isMobile ? (

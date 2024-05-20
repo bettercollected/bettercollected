@@ -120,14 +120,6 @@ export default function FormPage({ params }: { params: { form_id: string } }) {
         }
     }, [standardForm.formId]);
 
-    function handleClickOutsideFieldOption(event: any) {
-        var divA = document.getElementById('fields-option');
-        var clickedElement = event.target as HTMLDivElement;
-
-        if (!divA?.contains(clickedElement)) {
-            setNavbarState({ ...navbarState, insertClicked: false });
-        }
-    }
 
     return (
         <main className=" flex h-screen flex-col items-center justify-start overflow-hidden bg-white">

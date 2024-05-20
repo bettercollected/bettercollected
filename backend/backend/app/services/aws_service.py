@@ -35,6 +35,7 @@ class AWSS3Service:
         previous_image="",
         bucket="bettercollected",
         private=False,
+        folder_name="public",
     ):
         # If S3 object_name was not specified, use file_name
         if (key is None) or (bucket is None):
@@ -46,7 +47,9 @@ class AWSS3Service:
                 self._s3.Bucket(bucket).put_object(Body=file, Key=key, ACL="private")
             else:
                 self._s3.Bucket(bucket).put_object(
-                    Body=file, Key=f"public/{current_time}_{key}", ACL="public-read"
+                    Body=file,
+                    Key=f"{folder_name}/{current_time}_{key}",
+                    ACL="public-read",
                 )
             if previous_image:
                 # extract previous key from the link
@@ -59,10 +62,17 @@ class AWSS3Service:
             print("Other Exception:", other_exception)
             raise HTTPException(550, "INFO: Failed to upload image")
         wasabi_domain = "https://s3.eu-central-1.wasabisys.com"
-        folder = f"/{bucket}/public/{current_time}_{key}"
+        folder = f"/{bucket}/{folder_name}/{current_time}_{key}"
         if private:
             folder = f"/{bucket}/private/{key}"
         return f"{wasabi_domain}{folder}"
+    
+
+    """
+        key : path to your file
+    """
+    def delete_file_from_s3(self, key: str, bucket: str = "bettercollected"):
+        return self._s3.Object(bucket, key).delete()
 
     def generate_presigned_url(self, key: str, bucket="bettercollected"):
         try:

@@ -161,6 +161,7 @@ class FormService:
         form_id: str,
         user: User,
         published: bool = False,
+        draft: bool = False,
     ):
         is_admin = await self._workspace_user_repo.has_user_access_in_workspace(
             workspace_id=workspace_id, user=user
@@ -202,6 +203,19 @@ class FormService:
                 form_id_list=workspace_form_ids,
             ).to_list()
             if not authorized_form:
+                if draft:
+                    form = await self._form_repo.get_forms_in_workspace_query(
+                        workspace_id=workspace_id,
+                        form_id_list=workspace_form_ids,
+                        is_admin=is_admin,
+                    ).to_list()
+                    if not form:
+                        raise HTTPException(
+                            status_code=HTTPStatus.NOT_FOUND, content="Form Not Found"
+                        )
+                    form = form[0]
+                    form = await self.add_user_details_to_form(form)
+                    return form
                 form = await self._form_repo.get_latest_version_of_form(
                     form_id=PydanticObjectId(workspace_form.form_id)
                 )
@@ -479,9 +493,9 @@ class FormService:
         if add_action_to_form_params.parameters:
             if form.parameters is not None:
 
-                form.parameters[
-                    str(add_action_to_form_params.action_id)
-                ] = add_action_to_form_params.parameters
+                form.parameters[str(add_action_to_form_params.action_id)] = (
+                    add_action_to_form_params.parameters
+                )
             else:
                 form.parameters = {
                     str(
