@@ -29,7 +29,7 @@ const MediaItem = ({ media, updatePageImage, isAddPhotoInMediaLoading = false }:
         <div className="group relative h-auto cursor-pointer overflow-hidden" key={media.mediaId}>
             <Image className="cursor-pointer" src={media.mediaUrl} alt={media.mediaName} priority width={0} height={0} sizes="100vw" onLoad={() => isAddPhotoInMediaLoading && setNextImageLoading(true)} style={{ width: '100%', height: 'auto' }} />
             <div
-                className="absolute inset-0 z-[1000] hidden h-full w-full items-end justify-center group-hover:flex group-hover:bg-black/70 md:p-4"
+                className="absolute inset-0 z-[1000] transition-all duration-300 hidden h-full w-full items-end justify-center group-hover:flex group-hover:bg-black/60 md:p-4"
                 onClick={() => {
                     updatePageImage(media.mediaUrl);
                     closeDialogModal();
