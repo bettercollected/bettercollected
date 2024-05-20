@@ -463,14 +463,3 @@ class WorkspaceFormsRouter(Routable):
         )
         return updated_actions
 
-    @get("/{form_id}/export-csv")
-    async def export_csv_of_responses(
-        self,
-        workspace_id: PydanticObjectId,
-        form_id: PydanticObjectId,
-        user: User = Depends(get_logged_user),
-    ):
-        responses = await self.workspace_form_service.get_responses_in_csv_format(
-            workspace_id=workspace_id, form_id=str(form_id), user=user
-        )
-        return responses
