@@ -305,7 +305,7 @@ class WorkspaceFormsRouter(Routable):
         self,
         workspace_id: PydanticObjectId,
         form_id: PydanticObjectId,
-        response_id: PydanticObjectId,
+        response_id: str,
         user: User = Depends(get_logged_user),
     ):
         if not settings.api_settings.ENABLE_FORM_CREATION:

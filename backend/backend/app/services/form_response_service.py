@@ -326,7 +326,7 @@ class FormResponseService:
         return updated_response.response_uuid
 
     async def delete_form_response(
-        self, form_id: PydanticObjectId, response_id: PydanticObjectId
+        self, form_id: PydanticObjectId, response_id: str
     ):
         return await self._form_response_repo.delete_form_response(
             form_id=form_id, response_id=response_id
