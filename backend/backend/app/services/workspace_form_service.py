@@ -563,7 +563,7 @@ class WorkspaceFormService:
         self,
         workspace_id: PydanticObjectId,
         form_id: PydanticObjectId,
-        response_id: PydanticObjectId,
+        response_id: str,
         user: User,
     ):
         await self.workspace_user_service.check_user_has_access_in_workspace(
