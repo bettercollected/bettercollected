@@ -12,17 +12,15 @@ import globalConstants from '@app/constants/global';
 import { Button } from '@app/shadcn/components/ui/button';
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
-import { useLazyGetFormAllSubmissionsQuery, useGetFormsSubmissionsQuery } from '@app/store/workspaces/api';
+import { useGetFormsSubmissionsQuery, useLazyGetFormAllSubmissionsQuery } from '@app/store/workspaces/api';
 import { IGetFormSubmissionsQuery } from '@app/store/workspaces/types';
 import EmptyResponseIcon from '@app/views/atoms/Icons/EmptyResponseIcon';
 import { DownloadIcon } from 'lucide-react';
 import ResponsesTable from '../responses';
 //@ts-ignore
 import { CSVLink } from 'react-csv';
-import { getFieldsFromV2Form } from '@app/utils/formUtils';
-import { extractTextfromJSON } from '@app/utils/richTextEditorExtenstion/getHtmlFromJson';
-import { getAnswerForField } from '@app/utils/formBuilderBlockUtils';
 import { StandardFormResponseDto } from '@app/models/dtos/form';
+import { getAnswerForField, getFormFields, getTitleForHeader } from '@app/utils/formBuilderBlockUtils';
 
 export default function FormResponsesTable({ props }: any) {
     const { t } = useTranslation();
@@ -59,7 +57,7 @@ export default function FormResponsesTable({ props }: any) {
     const extractFormResponses = (responses: Array<StandardFormResponseDto>) => {
         return responses.map((response: StandardFormResponseDto) => {
             const fieldResponse: Array<number | string> = [response?.dataOwnerIdentifier || '- -'];
-            const singleFieldResponses = getFieldsFromV2Form(form).map((field) => field && (getAnswerForField(response, field) ?? ''));
+            const singleFieldResponses = getFormFields(form).map((field) => field && (getAnswerForField(response, field) ?? ''));
             singleFieldResponses.forEach((response) => fieldResponse.push(response ?? ''));
             return fieldResponse;
         });
@@ -67,28 +65,22 @@ export default function FormResponsesTable({ props }: any) {
 
     const extractFormFieldTitles = () => {
         const fieldTitles = ['Responder ID'];
-        const fieldQuestions = getFieldsFromV2Form(form).map((field) => field && extractTextfromJSON(field));
-        fieldQuestions.forEach((qsn) => fieldTitles.push(qsn ?? ''));
+        const fieldQuestions = getFormFields(form);
+        fieldQuestions.forEach((field) => fieldTitles.push(getTitleForHeader(field, form) ?? ''));
         return fieldTitles;
     };
 
     const handleClickExportCSV = () => {
-        if (form.builderVersion === 'v2') {
-            trigger({ formId: form.formId, workspaceId: workspace?.id }).then((result) => {
-                const fieldTitles = extractFormFieldTitles();
-                const responses = result.data && extractFormResponses(result?.data);
-                const csv_list = [];
-                csv_list.push(fieldTitles);
-                responses?.forEach((response) => {
-                    csv_list.push(response);
-                });
-                setCsvDatas(csv_list);
+        trigger({ formId: form.formId, workspaceId: workspace?.id }).then((result) => {
+            const fieldTitles = extractFormFieldTitles();
+            const responses = result.data && extractFormResponses(result?.data);
+            const csv_list = [];
+            csv_list.push(fieldTitles);
+            responses?.forEach((response) => {
+                csv_list.push(response);
             });
-        } else {
-            openModal('EXPORT_RESPONSES', {
-                formId: form.formId
-            });
-        }
+            setCsvDatas(csv_list);
+        });
     };
 
     useEffect(() => {
@@ -114,11 +106,9 @@ export default function FormResponsesTable({ props }: any) {
                         <div className="flex w-full flex-row justify-between">
                             <div className="flex w-full flex-row items-center gap-4 ">
                                 <SearchInput handleSearch={handleSearch} placeholder={'Search Responses'} className="!bg-black-300 md:w-[282px]" />
-                                {/* <Button variant="v2Button">Filter</Button>
-                        <Button variant="v2Button">Sort</Button> */}
                             </div>
-                            {environments.ENABLE_EXPORT_CSV && form?.settings?.provider === 'self' && isSubmission && (
-                                <Button isLoading={form.builderVersion === 'v2' && csvLoading} variant="v2Button" icon={<DownloadIcon className="h-4 w-4" />} onClick={handleClickExportCSV} className={''}>
+                            {environments.ENABLE_EXPORT_CSV && isSubmission && (
+                                <Button isLoading={csvLoading} variant="v2Button" icon={<DownloadIcon className="h-4 w-4" />} onClick={handleClickExportCSV} className={''}>
                                     Export CSV
                                 </Button>
                             )}
