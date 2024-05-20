@@ -106,14 +106,15 @@ def get_application(is_test_mode: bool = False):
         on_startup=[on_startup],
         on_shutdown=[on_shutdown],
     )
+
+    logger.info("Add application routes.")
+    app.include_router(root_api_router)
     app.add_middleware(
         DynamicCORSMiddleware,
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
     )
-    logger.info("Add application routes.")
-    app.include_router(root_api_router)
     logger.info("Register global exception handler for custom HTTPException.")
     app.add_exception_handler(HTTPException, http_exception_handler)
     app.add_exception_handler(
@@ -124,7 +125,6 @@ def get_application(is_test_mode: bool = False):
     logger.info("Register application middlewares.")
     include_middlewares(app)
     add_timing_middleware(app, record=logger.info, prefix="app", exclude="untimed")
-
     add_pagination(app)  # Important for paginating elements
     if settings.apm_settings.service_name and settings.apm_settings.server_url:
         apm = make_apm_client()
