@@ -13,16 +13,13 @@ import { dataTableCustomStyles } from '@app/components/datatable/form/datatable-
 import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
 import globalConstants from '@app/constants/global';
 import { StandardFormDto, StandardFormFieldDto, StandardFormResponseDto } from '@app/models/dtos/form';
-import { LabelFormBuilderTagNames } from '@app/models/enums/formBuilder';
 import { useAppSelector } from '@app/store/hooks';
 import { useGetFormsSubmissionsQuery } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { IGetFormSubmissionsQuery } from '@app/store/workspaces/types';
 import { utcToLocalDateTIme } from '@app/utils/dateUtils';
 import { downloadFile } from '@app/utils/fileUtils';
-import { convertPlaceholderToDisplayValue, getAnswerForField } from '@app/utils/formBuilderBlockUtils';
-import { getFieldsFromV2Form } from '@app/utils/formUtils';
-import { extractTextfromJSON } from '@app/utils/richTextEditorExtenstion/getHtmlFromJson';
+import { getAnswerForField, getFormFields, getTitleForHeader } from '@app/utils/formBuilderBlockUtils';
 import { ExpandIcon } from '@app/views/atoms/Icons/ExpandIcon';
 
 const customTableStyles = {
@@ -72,36 +69,6 @@ export default function TabularResponses({ form }: TabularResponsesProps) {
         setQuery({ ...query, page: page });
     }, [page]);
 
-    const getFilteredV1InputFields = () => {
-        const filteredFields: Array<any> = [];
-        form?.fields.forEach((field, index) => {
-            if (field.type.includes('input_')) {
-                const x: any = {
-                    fieldId: field.id,
-                    id: field.id
-                };
-                const previousField = form?.fields[index - 1] || undefined;
-                let text = field?.properties?.placeholder;
-                if (LabelFormBuilderTagNames.includes(previousField?.type)) {
-                    text = previousField?.value;
-                }
-                x.value = text;
-                x.type = field.type;
-                x.properties = field?.properties;
-                filteredFields.push(x);
-            }
-        });
-        return filteredFields;
-    };
-
-    const getFilteredInputFields = () => {
-        if (form?.settings?.provider === 'google') {
-            return form?.fields.filter((field) => field.type !== null);
-        } else {
-            return getFilteredV1InputFields();
-        }
-    };
-
     const downloadFormFile = async (ans: any) => {
         try {
             downloadFile(ans?.file_metadata?.url, ans?.file_metadata.name ?? ans?.file_metadata.id);
@@ -140,32 +107,8 @@ export default function TabularResponses({ form }: TabularResponsesProps) {
         </div>
     );
 
-    function getFormFields() {
-        if (form.builderVersion === 'v2') {
-            return getFieldsFromV2Form(form);
-        } else {
-            return getFilteredInputFields();
-        }
-    }
-
-    function getTitleForHeader(field: StandardFormFieldDto) {
-        let title: string = '';
-        if (form.builderVersion === 'v2') {
-            title = extractTextfromJSON(field);
-        } else if (form.builderVersion !== 'v2' && form.settings?.provider === 'google') {
-            // @ts-ignore
-            title = field.title || '';
-        } else {
-            title = convertPlaceholderToDisplayValue(
-                form?.fields.map((field: any, index: number) => {
-                    return {
-                        ...field,
-                        position: index
-                    };
-                }) ?? [],
-                field?.value || ''
-            );
-        }
+    function getTitleForHeaderForTable(field: StandardFormFieldDto) {
+        const title = getTitleForHeader(field, form);
         return <span className="p3-new !text-black-800 truncate md:w-[250px]">{title}</span>;
     }
 
@@ -173,7 +116,7 @@ export default function TabularResponses({ form }: TabularResponsesProps) {
         return (
             <ExpandIcon
                 onClick={() => {
-                    openModal('VIEW_RESPONSE', { response: response, formFields: getFormFields(), formId: form.formId, workspaceId: workspace.id });
+                    openModal('VIEW_RESPONSE', { response: response, formFields: getFormFields(form), formId: form.formId, workspaceId: workspace.id });
                 }}
             />
         );
@@ -211,9 +154,9 @@ export default function TabularResponses({ form }: TabularResponsesProps) {
     ];
 
     const columnForResponseData: any = [
-        ...getFormFields().map((field: any) => {
+        ...getFormFields(form).map((field: any) => {
             return {
-                name: getTitleForHeader(field),
+                name: getTitleForHeaderForTable(field),
                 className: '!bg-red-100',
                 selector: (response: StandardFormResponseDto) => getAnswerField(response, field),
                 style: {
@@ -231,10 +174,10 @@ export default function TabularResponses({ form }: TabularResponsesProps) {
     const handlePageChange = (e: any, page: number) => {
         setPage(page);
     };
-    const { data, isLoading } = useGetFormsSubmissionsQuery(query, { skip: !workspace.id });
+    const { data } = useGetFormsSubmissionsQuery(query, { skip: !workspace.id });
 
     const onClickExpandSingleResponse = (response: StandardFormResponseDto) => {
-        openModal('VIEW_RESPONSE', { response: response, formFields: getFormFields(), formId: form.formId, workspaceId: workspace.id });
+        openModal('VIEW_RESPONSE', { response: response, formFields: getFormFields(form), formId: form.formId, workspaceId: workspace.id });
     };
 
     return (

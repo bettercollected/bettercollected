@@ -5,6 +5,7 @@ import { useAppSelector } from '@app/store/hooks';
 import { usePublishV2FormMutation } from '@app/store/redux/formApi';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { usePathname, useRouter } from 'next/navigation';
+import { toast } from 'react-toastify';
 
 const PublishButton = ({ refresh = false }: { refresh?: boolean }) => {
     const standardForm = useAppSelector(selectForm);
@@ -19,10 +20,13 @@ const PublishButton = ({ refresh = false }: { refresh?: boolean }) => {
             workspaceId: workspace.id,
             formId: standardForm.formId
         });
-        if (refresh && pathname) {
-            router.push(pathname);
-        }
+
         if (response.data) {
+            if (refresh && pathname) {
+                router.push(pathname);
+                toast('Form Published');
+                return;
+            }
             openDialogModal('FORM_PUBLISHED');
         }
     };

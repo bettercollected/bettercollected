@@ -31,7 +31,7 @@ export const FormTabContent = ({ form }: { form: StandardFormDto }) => {
         return (
             <>
                 <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-                    <div className=" relative aspect-video overflow-hidden rounded-md" style={{ width: getContainerWidth() }}>
+                    <div className=" border-black-300 relative aspect-video overflow-hidden rounded-lg rounded-md border" style={{ width: getContainerWidth() }}>
                         <div className=" pointer-events-none h-[810px] w-[1440px]" style={getPreviewStyles()}>
                             <LayoutWrapper showDesktopLayout theme={form?.theme} disabled layout={form.welcomePage?.layout} imageUrl={form?.welcomePage?.imageUrl}>
                                 <WelcomePage isPreviewMode theme={form?.theme} welcomePageData={form?.welcomePage} />
