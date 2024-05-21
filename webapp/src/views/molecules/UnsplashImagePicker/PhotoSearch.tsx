@@ -42,10 +42,11 @@ function PhotoSearch({ setQuery, query, onSearch, initialPhotoSearchQuery }: Pro
                                 borderColor: '#EEEEEE'
                             },
                             '&.Mui-focused fieldset': {
-                                borderColor: '#EEEEEE'
+                                borderColor: '#4D4D4D',
+                                borderWidth: '1px'
                             },
                             '&:hover fieldset': {
-                                borderColor: '#EEEEEE'
+                                borderColor: '#4D4D4D'
                             }
                         },
                         '& .MuiInputBase-root': {
@@ -59,7 +60,7 @@ function PhotoSearch({ setQuery, query, onSearch, initialPhotoSearchQuery }: Pro
                         },
                         startAdornment: <SearchIcon className="text-black-900 h-4 w-4 stroke-[2px]" />
                     }}
-                    className="placeholder:text-black-400 bg-black-100 focus:bg-border-400 border-black-200 focus:ring-none h-full w-full rounded-lg border py-2 pl-3 pr-3 focus:outline-none sm:text-sm"
+                    className="placeholder:text-black-400 bg-black-100 border-black-200 focus:ring-none h-full w-full rounded-lg border py-2 pl-3 pr-3 focus:outline-none sm:text-sm"
                     placeholder="Search"
                     type="text"
                     name="search"
