@@ -92,7 +92,7 @@ export default function UnsplashImagePicker({ initialPhotoSearchQuery = '', onPh
     }
 
     return (
-        <div className="ImagePicker h-full  w-full items-center !rounded-lg bg-white">
+        <div className="ImagePicker h-full  w-full items-center !rounded-lg bg-white shadow-powered-by">
             <div className="h-full w-full rounded-lg bg-white">
                 <div className="Picker relative h-full">
                     <div className="p2-new text-black-800 flex items-center gap-4 rounded-t-lg px-4 py-[10px]">Media</div>
