@@ -1,4 +1,6 @@
 """Application implementation - middlewares."""
+from http import HTTPStatus
+from traceback import print_exception
 from fastapi import FastAPI
 
 from loguru import logger
@@ -20,6 +22,15 @@ def include_middlewares(app: "FastAPI"):
     """
 
     @app.middleware("http")
+    async def base_exception_handler(request: "Request", call_next):
+        try:
+            return await call_next(request)
+        except Exception as e:
+            print_exception(e)
+            return Response("Internal server error", status_code=HTTPStatus.INTERNAL_SERVER_ERROR)
+
+
+    @app.middleware("http")
     async def request_logger(request: "Request", call_next):
         """
         Middleware for logging requests and responses for debugging purposes.
@@ -37,3 +48,4 @@ def include_middlewares(app: "FastAPI"):
         response: Response = await call_next(request)
         logger.info(response.status_code)
         return response
+    

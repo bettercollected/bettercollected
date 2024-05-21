@@ -376,6 +376,10 @@ class Trigger(str, Enum):
     on_submit = "on_submit"
     # This trigger is run when form is opened
     on_open = "on_open"
+    
+    
+    def __str__(self):
+        return self.value
 
 
 class ParameterValue(BaseModel):
@@ -421,7 +425,7 @@ class StandardForm(BaseModel):
     state: Optional[State] = Field(State())
     settings: Optional[StandardFormSettings] = StandardFormSettings()
     published_at: Optional[dt.datetime]
-    actions: Optional[Dict[Trigger, List[ActionState]]]
+    actions: Optional[Dict[str, List[ActionState]]]
     parameters: Optional[Dict[str, List[ParameterValue]]] = Field()
     secrets: Optional[Dict[str, List[ParameterValue]]] = Field()
     theme: Optional[Theme]
