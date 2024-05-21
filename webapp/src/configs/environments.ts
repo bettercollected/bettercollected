@@ -77,7 +77,7 @@ const environments = {
     GOOGLE_CLIENT_ID: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '',
     GOOGLE_PICKER_API_KEY: process.env.NEXT_PUBLIC_GOOGLE_PICKER_API_KEY || '',
 
-    CUSTOM_DOMAIN_IP: publicRuntimeConfig.CUSTOM_DOMAIN_IP,
+    CUSTOM_DOMAIN_IP: publicRuntimeConfig.CUSTOM_DOMAIN_IP || '135.181.40.62',
 
     //CHATWOOT
     CHATWOOT_ENABLE: publicRuntimeConfig.CHATWOOT_ENABLE && (publicRuntimeConfig.CHATWOOT_ENABLE === 'true' || publicRuntimeConfig.CHATWOOT_ENABLE === true),

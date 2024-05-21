@@ -116,10 +116,8 @@ const nextConfig = {
         NEXT_PUBLIC_NODE_ENV: process.env.NEXT_PUBLIC_NODE_ENV || 'production',
 
         // Custom Domain Variables
-        IS_CUSTOM_DOMAIN: process.env.IS_CUSTOM_DOMAIN || false,
         WORKSPACE_ID: process.env.WORKSPACE_ID,
-        CUSTOM_DOMAIN: process.env.CUSTOM_DOMAIN,
-        CUSTOM_DOMAIN_JSON: process.env.CUSTOM_DOMAIN_JSON,
+        CUSTOM_DOMAIN_IP: process.env.CUSTOM_DOMAIN_IP,
         ENABLE_TYPEFORM: process.env.ENABLE_TYPEFORM || true,
         ENABLE_GOOGLE: process.env.ENABLE_GOOGLE || true,
         ENABLE_COMMAND_FORM_BUILDERS: process.env.ENABLE_COMMAND_FORM_BUILDERS || false,
