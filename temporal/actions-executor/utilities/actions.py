@@ -10,6 +10,7 @@ from pydantic import EmailStr
 
 from configs.crypto import crypto
 from wrappers.thread_pool_executor import thread_pool_executor
+from utilities.form import get_questions_and_answers
 
 
 async def run_action(
@@ -108,94 +109,9 @@ async def run_action(
             TEMPLATE_FOLDER="templates",
         )
 
-    def get_answer_for_field(field_answer, input_field):
-        if field_answer is None:
-            return ""
-        form_builder_tag_names = {
-            "INPUT_RATING": "input_rating",
-            "INPUT_NUMBER": "input_number",
-            "INPUT_SHORT_TEXT": "input_short_text",
-            "INPUT_LONG_TEXT": "input_long_text",
-            "INPUT_LINK": "input_link",
-            "INPUT_EMAIL": "input_email",
-            "INPUT_DATE": "input_date",
-            "INPUT_MULTIPLE_CHOICE": "input_multiple_choice",
-            "INPUT_DROPDOWN": "input_dropdown",
-            "INPUT_CHECKBOXES": "input_checkboxes",
-            "INPUT_PHONE_NUMBER": "input_phone_number",
-            "INPUT_RANKING": "input_ranking",
-            "INPUT_FILE_UPLOAD": "input_file_upload",
-        }
-
-        input_field_type = input_field.get("type", "")
-        answer_choice_values = (
-            field_answer.get("choices", {}).get("values", [])
-            if field_answer.get("choices", {})
-            else []
-        )
-        file_metadata_name = (
-            field_answer.get("file_metadata", {}).get("name", "")
-            if field_answer.get("file_metadata", {})
-            else ""
-        )
-
-        if input_field_type in [
-            form_builder_tag_names["INPUT_RATING"],
-            form_builder_tag_names["INPUT_NUMBER"],
-        ]:
-            return field_answer.get("number", "")
-        elif input_field_type in [
-            form_builder_tag_names["INPUT_SHORT_TEXT"],
-            form_builder_tag_names["INPUT_LONG_TEXT"],
-        ]:
-            return field_answer.get("text", "")
-        elif input_field_type == form_builder_tag_names["INPUT_LINK"]:
-            return field_answer.get("url", "")
-        elif input_field_type == form_builder_tag_names["INPUT_EMAIL"]:
-            return field_answer.get("email", "")
-        elif input_field_type == form_builder_tag_names["INPUT_DATE"]:
-            return field_answer.get("date", "")
-        elif input_field_type in [
-            form_builder_tag_names["INPUT_MULTIPLE_CHOICE"],
-            form_builder_tag_names["INPUT_DROPDOWN"],
-        ]:
-            return next(
-                (
-                    choice["value"]
-                    for choice in input_field.get("properties", {}).get("choices", [])
-                    if choice["id"] == field_answer.get("choice", {}).get("value")
-                ),
-                "",
-            )
-        elif input_field_type == form_builder_tag_names["INPUT_CHECKBOXES"]:
-            choices = [
-                choice["value"]
-                for choice in input_field.get("properties", {}).get("choices", [])
-                if choice["id"] in answer_choice_values
-            ]
-            return ", ".join(choices)
-        elif input_field_type == form_builder_tag_names["INPUT_PHONE_NUMBER"]:
-            return field_answer.get("phone_number", "")
-        elif input_field_type == form_builder_tag_names["INPUT_RANKING"]:
-            return ", ".join(choice.get("value", "") for choice in answer_choice_values)
-        elif input_field_type == form_builder_tag_names["INPUT_FILE_UPLOAD"]:
-            return file_metadata_name
-        else:
-            return ""
-
     def get_simple_form_response():
-        simple_form = {**form}
-        for field in simple_form.get("fields"):
-            if field.get("type") and "input_" in str(field.get("type")):
-                answers = response.get("answers")
-                if answers is not None:
-                    answer_for_field = answers.get(str(field.get("id")))
-                    field["answer"] = (
-                        get_answer_for_field(answer_for_field, field)
-                        if answer_for_field
-                        else "&nbsp;"
-                    )
-        return simple_form
+        extracted_question_answers = get_questions_and_answers(form=form, response=response)
+        return extracted_question_answers
 
     def send_mail_action(
         config, subject, recipient: List[str], creator_mail: Optional[bool] = False
@@ -236,10 +152,7 @@ async def run_action(
 
     def send_webhook_action():
         URL = get_parameter("Webhook URL")
-
-        response = get_response()
-        form = get_form()
-        data = {"form": form, "response": response}
+        data = get_simple_form_response()
         send_data_webhook(URL, data=data)
 
     def send_responder_a_copy_of_mail():
@@ -288,7 +201,11 @@ async def run_action(
                 True,
             )
 
+
+
     if action.get("predefined"):
+        if action.get("name") == "send_webhook":
+            send_webhook_action()
 
         ## Write switch case to execute code based on the action name
         return
