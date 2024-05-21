@@ -29,6 +29,7 @@ class ActionDocument(MongoDocument):
     created_by: PydanticObjectId
     parameters: Optional[List[ParameterValue]]
     secrets: Optional[List[ParameterValue]]
+    predefined: Optional[bool] = True
 
     class Settings:
         name = "actions"
