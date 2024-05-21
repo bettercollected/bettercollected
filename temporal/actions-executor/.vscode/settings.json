@@ -1,3 +1,5 @@
 {
-	"editor.defaultFormatter": "mikoz.black-py"
+	"editor.defaultFormatter": "mikoz.black-py",
+	"editor.formatOnPaste": true,
+	"editor.formatOnSave": true
 }
