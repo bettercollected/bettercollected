@@ -23,14 +23,12 @@ import { useModal } from '@app/components/modal-views/context';
 import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
 import ParamTab, { TabPanel } from '@app/components/ui/param-tab';
 import environments from '@app/configs/environments';
-import { breadcrumbsItems } from '@app/constants/locales/breadcrumbs-items';
 import { localesCommon } from '@app/constants/locales/common';
 import { formConstant } from '@app/constants/locales/form';
 import { formPage } from '@app/constants/locales/form-page';
 import Layout from '@app/layouts/_layout';
 import { useBreakpoint, useIsMobile } from '@app/lib/hooks/use-breakpoint';
 import { StandardFormDto } from '@app/models/dtos/form';
-import { BreadcrumbsItem } from '@app/models/props/breadcrumbs-item';
 import Error from '@app/pages/_error';
 import { Button } from '@app/shadcn/components/ui/button';
 import { resetSingleForm, selectForm, setForm } from '@app/store/forms/slice';
@@ -88,7 +86,6 @@ export default function FormPage(props: any) {
         return <Error />;
     }
 
-
     if (form?.isPublished) {
         const additionalTabs = [
             {
@@ -108,7 +105,7 @@ export default function FormPage(props: any) {
             }
         ];
 
-        if (form?.settings?.provider === 'self' && form?.builderVersion !== 'v2' && environments.ENABLE_ACTIONS)
+        if (form?.settings?.provider === 'self' && environments.ENABLE_ACTIONS)
             additionalTabs.splice(0, 0, {
                 icon: <IntegrationInstructions className="h-5 w-5" />,
                 title: 'Integrations',
@@ -233,7 +230,7 @@ export default function FormPage(props: any) {
                         </FormPageLayer>
                         {form?.isPublished && (
                             <>
-                                {form?.settings?.provider === 'self' && form?.builderVersion !== 'v2' && environments.ENABLE_ACTIONS && (
+                                {form?.settings?.provider === 'self' && environments.ENABLE_ACTIONS && (
                                     <TabPanel className="focus:outline-none" key="Integrations">
                                         <FormIntegrations />
                                     </TabPanel>

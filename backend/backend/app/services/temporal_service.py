@@ -243,8 +243,6 @@ class TemporalService:
         response: FormResponseDocument,
         workspace: WorkspaceRequestDto,
     ):
-        if not settings.schedular_settings.ENABLED:
-            return
         run_action_params = RunActionCodeParams(
             action=action.json(),
             form=form.json(),
