@@ -156,58 +156,55 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
     return (
         <Controller>
             <SlideLayoutWrapper showDesktopLayout={showDesktopLayout} scrollDivId={'questions-container'} theme={standardForm.theme} slide={formSlide} disabled>
-                <BackButton
-                    handleClick={() => {
-                        currentSlide > 0 ? previousSlide() : setCurrentSlideToWelcomePage();
-                    }}
-                    className="relative top-8 z-[100] w-fit "
-                />
-
-                <div className={cn('flex h-full flex-1 flex-col justify-center overflow-hidden ', formSlide?.properties?.layout === FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND_LEFT_ALIGN ? 'items-start ' : 'items-center')}>
-                    <AnimatePresence mode="wait">
-                        <div className={cn('grid h-full w-full max-w-[800px] grid-cols-1 content-center items-center justify-center gap-[120px] overflow-hidden px-4 py-[10vh]', isPreviewMode ? '' : 'lg:px-10')}>
-                            {formSlide?.properties?.fields?.map((field: StandardFormFieldDto, index: number) => (
-                                <FormFieldComponent key={field.id} field={formSlide!.properties!.fields![index]} slideIndex={formSlide!.index} />
-                            ))}
-                            <div className="relative -top-[72px] ">
-                                {(standardForm?.fields?.length || 0) - 1 === currentSlide && currentSlide === index && (
-                                    <div className="mb-4 flex flex-col">
-                                        {authState.id && !standardForm.settings?.requireVerifiedIdentity && (
-                                            <div className="flex flex-row gap-2 ">
-                                                <FieldInput
-                                                    checked={!formResponse.anonymize}
-                                                    onChange={(e: any) => {
-                                                        setFormResponse({
-                                                            ...formResponse,
-                                                            anonymize: !e.target.checked
-                                                        });
-                                                    }}
-                                                    type="checkbox"
-                                                    className="h-4 w-4 border focus:border-0 focus:outline-none"
-                                                />
-                                                <div className="flex flex-col ">
-                                                    <span className="text-black-800 text-xs font-medium">Show your identity(email) to form collector</span>
-                                                    <span className={`p4-new text-black-600 `}>{authState?.email} </span>
-                                                </div>
+                <div className={cn('flex h-full flex-1 flex-col justify-center ', formSlide?.properties?.layout === FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND_LEFT_ALIGN ? 'items-start ' : 'items-center')}>
+                    <div className={cn('relative flex h-full w-full max-w-[800px] flex-col gap-[88px] overflow-hidden px-4 py-[60px] lg:gap-[120px]', isPreviewMode ? '' : 'lg:px-10')}>
+                        <BackButton
+                            handleClick={() => {
+                                currentSlide > 0 ? previousSlide() : setCurrentSlideToWelcomePage();
+                            }}
+                            className="absolute top-0 z-10 w-fit"
+                        />
+                        {formSlide?.properties?.fields?.map((field: StandardFormFieldDto, index: number) => (
+                            <FormFieldComponent key={field.id} field={formSlide!.properties!.fields![index]} slideIndex={formSlide!.index} />
+                        ))}
+                        <div className="">
+                            {(standardForm?.fields?.length || 0) - 1 === currentSlide && currentSlide === index && (
+                                <div className="mb-4 flex flex-col">
+                                    {authState.id && !standardForm.settings?.requireVerifiedIdentity && (
+                                        <div className="flex flex-row gap-2 ">
+                                            <FieldInput
+                                                checked={!formResponse.anonymize}
+                                                onChange={(e: any) => {
+                                                    setFormResponse({
+                                                        ...formResponse,
+                                                        anonymize: !e.target.checked
+                                                    });
+                                                }}
+                                                type="checkbox"
+                                                className="h-4 w-4 border focus:border-0 focus:outline-none"
+                                            />
+                                            <div className="flex flex-col ">
+                                                <span className="text-black-800 text-xs font-medium">Show your identity(email) to form collector</span>
+                                                <span className={`p4-new text-black-600 `}>{authState?.email} </span>
                                             </div>
-                                        )}
-                                    </div>
-                                )}
-                                <Button
-                                    style={{
-                                        background: standardForm.theme?.secondary,
-                                        color: 'white'
-                                    }}
-                                    isLoading={isLoading}
-                                    className=" rounded px-8 py-3"
-                                    onClick={onNext}
-                                    size="medium"
-                                >
-                                    {(standardForm?.fields?.length || 0) - 1 === currentSlide && currentSlide === index ? 'Submit' : 'Next'}
-                                </Button>
-                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                            <Button
+                                style={{
+                                    background: standardForm.theme?.secondary,
+                                    color: 'white'
+                                }}
+                                isLoading={isLoading}
+                                className=" rounded px-8 py-3"
+                                onClick={onNext}
+                                size="medium"
+                            >
+                                {(standardForm?.fields?.length || 0) - 1 === currentSlide && currentSlide === index ? 'Submit' : 'Next'}
+                            </Button>
                         </div>
-                    </AnimatePresence>
+                    </div>
                 </div>
             </SlideLayoutWrapper>
         </Controller>
