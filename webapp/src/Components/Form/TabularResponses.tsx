@@ -12,7 +12,7 @@ import { toast } from 'react-toastify';
 import { dataTableCustomStyles } from '@app/components/datatable/form/datatable-styles';
 import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
 import globalConstants from '@app/constants/global';
-import { StandardFormDto, StandardFormFieldDto, StandardFormResponseDto } from '@app/models/dtos/form';
+import { FieldTypes, StandardFormDto, StandardFormFieldDto, StandardFormResponseDto } from '@app/models/dtos/form';
 import { useAppSelector } from '@app/store/hooks';
 import { useGetFormsSubmissionsQuery } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
@@ -71,13 +71,22 @@ export default function TabularResponses({ form }: TabularResponsesProps) {
 
     const downloadFormFile = async (ans: any) => {
         try {
+            if (!ans?.file_metadata?.url) return;
             downloadFile(ans?.file_metadata?.url, ans?.file_metadata.name ?? ans?.file_metadata.id);
         } catch (err) {
             toast('Error downloading file', { type: 'error' });
         }
     };
 
-    const getAnswerField = (response: StandardFormResponseDto, field: any) => {
+    const getAnswerField = (response: StandardFormResponseDto, field: StandardFormFieldDto) => {
+        if (field.type === FieldTypes.FILE_UPLOAD) {
+            const ans = response.answers[field.id];
+            return (
+                <div onClick={() => downloadFormFile(ans)} className={cn('!text-black-600 p2-new   w-[140px] cursor-default truncate rounded px-2 py-1', ans?.file_metadata?.url ? 'bg-black-300 active:bg-black-400 !cursor-pointer' : '')}>
+                    {getAnswerForField(response, field)}
+                </div>
+            );
+        }
         return (
             <>
                 <Typography className={cn('!text-black-600 p2-new  w-[140px] truncate')} noWrap>
