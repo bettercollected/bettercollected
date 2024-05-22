@@ -2,6 +2,7 @@ import React from 'react';
 
 import UnsplashPhotoCard from './PhotoCard';
 import { SkeletonLoadingComponent } from './UploadMediaComponent';
+import EmptyGallerIcon from '@app/views/atoms/Icons/EmptyGalleryIcon';
 
 interface Props {
     isLoading?: boolean;
@@ -26,19 +27,32 @@ function PhotoList({ isLoading = false, isLoadingMore = false, photoList, total,
         }
     };
 
+    function divideArray(arr: Array<any>) {
+        const middleIndex = Math.ceil(arr.length / 2); // Calculate middle index
+        const firstHalf = arr.slice(0, middleIndex); // Slice the first half
+        const secondHalf = arr.slice(middleIndex); // Slice the second half
+        return [firstHalf, secondHalf];
+    }
+    const [firstHalfPhotoList, secondHalfPhotoList] = divideArray(photoList);
+
     return (
-        <div className="Body h-full w-full">
+        <div className=" h-full w-full">
             {isLoading ? (
-                <div className="flex h-full w-full items-center justify-center">
-                    <SkeletonLoadingComponent />
-                </div>
+                <SkeletonLoadingComponent />
             ) : (
                 <div>
                     {Array.isArray(photoList) && photoList.length > 0 && (
-                        <div className="PhotoList grid grid-cols-1 gap-2 overflow-y-auto pb-12 sm:grid-cols-2 md:grid-cols-3" style={{ maxHeight: listHeight }} ref={ref} onScroll={onScroll}>
-                            {photoList.map((photo: any) => {
-                                return <UnsplashPhotoCard key={photo.id} photo={photo} onPhotoSelect={onPhotoSelect} />;
-                            })}
+                        <div className="PhotoList grid grid-cols-2 gap-2 overflow-y-auto pb-12" style={{ maxHeight: listHeight }} ref={ref} onScroll={onScroll}>
+                            <div className="flex flex-col gap-4">
+                                {firstHalfPhotoList.map((photo: any) => {
+                                    return <UnsplashPhotoCard key={photo.id} photo={photo} onPhotoSelect={onPhotoSelect} />;
+                                })}
+                            </div>
+                            <div className="flex flex-col gap-4">
+                                {secondHalfPhotoList.map((photo: any) => {
+                                    return <UnsplashPhotoCard key={photo.id} photo={photo} onPhotoSelect={onPhotoSelect} />;
+                                })}
+                            </div>
                             {isLoadingMore && (
                                 <div className="my-4 flex justify-center sm:col-span-2 md:col-span-3">
                                     <Loader />
@@ -46,7 +60,14 @@ function PhotoList({ isLoading = false, isLoadingMore = false, photoList, total,
                             )}
                         </div>
                     )}
-                    {Array.isArray(photoList) && photoList.length === 0 && total === 0 && <div className="flex h-96 items-center justify-center">No photos found</div>}
+                    {Array.isArray(photoList) && photoList.length === 0 && total === 0 && (
+                        <div className="flex h-96 flex-col items-center justify-start gap-2 py-10">
+                            <>
+                                <EmptyGallerIcon />
+                                <span className="p4-new text-black-600">No images found</span>
+                            </>
+                        </div>
+                    )}
                     {typeof total === 'undefined' && <div className="flex h-96 items-center justify-center text-gray-600" />}
                 </div>
             )}
