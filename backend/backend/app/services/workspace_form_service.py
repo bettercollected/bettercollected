@@ -442,11 +442,11 @@ class WorkspaceFormService:
         self, form_files, response: StandardFormResponseCamelModel
     ):
         for form_file in form_files:
-            await self._aws_service.upload_file_to_s3(
+            url = await self._aws_service.upload_file_to_s3(
                 form_file.file.file, str(form_file.file_id), private=True
             )
             # TODO handle this for both builder versions
-            # response.answers[form_file.field_id]["file_metadata"]["url"] = ""
+            response.answers[form_file.field_id]["file_metadata"]["url"] = url
         return response
 
     async def patch_response(
@@ -707,7 +707,6 @@ class WorkspaceFormService:
         await self.form_service.update_state_of_action_in_form(
             form_id=form_id, update_action_dto=update_action_dto
         )
-        
 
     def clean_and_normalize_string(self, input_string):
         # Remove special characters, keep only alphanumeric and spaces
