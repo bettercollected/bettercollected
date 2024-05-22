@@ -16,6 +16,7 @@ import SlideLayoutBackgroundImage from '../../atoms/Icons/SlideLayoutBackgroundI
 import SlideLayoutLeftImage from '../../atoms/Icons/SlideLayoutLeftImage';
 import SlideLayoutNoImage from '../../atoms/Icons/SlideLayoutNoImage';
 import SlideLayoutRightImage from '../../atoms/Icons/SlideLayoutRightImage';
+import { FieldTypes } from '@app/models/dtos/form';
 
 export default function PagePropertiesTab({}: {}) {
     const { formFields, activeSlide, updateSlideLayout, updateSlideImage } = useFormFieldsAtom();
@@ -201,14 +202,16 @@ export default function PagePropertiesTab({}: {}) {
                                         >
                                             {extractTextfromJSON(field)}
                                         </div>
-                                        <div
-                                            className="h-5 w-5"
-                                            onClick={() => {
-                                                updateFieldRequired(field.index, activeSlideComponent.index, !field?.validations?.required);
-                                            }}
-                                        >
-                                            <RequiredIcon className={cn('cursor-pointer', field?.validations?.required ? 'text-black-900' : 'text-[#DBDBDB]')} />
-                                        </div>
+                                        {field.type !== FieldTypes.TEXT && (
+                                            <div
+                                                className="h-5 w-5"
+                                                onClick={() => {
+                                                    updateFieldRequired(field.index, activeSlideComponent.index, !field?.validations?.required);
+                                                }}
+                                            >
+                                                <RequiredIcon className={cn('cursor-pointer', field?.validations?.required ? 'text-black-900' : 'text-[#DBDBDB]')} />
+                                            </div>
+                                        )}
                                     </div>
                                 );
                             })}
