@@ -167,7 +167,7 @@ export default function useFormFieldsAtom() {
             if (choice.id === choiceId) {
                 const existingChoice = { ...choice };
                 existingChoice.value = choiceValue;
-                return choice;
+                return existingChoice;
             } else return choice;
         });
         const updatedSlides = [...formFields];
