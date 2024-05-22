@@ -54,17 +54,18 @@ const InsertFieldComponent = ({ formFields, activeSlideComponent, closeDropdown 
             return;
         }
         if (!currentPage || formFields.length === 0) {
+            const newSlideIndex = activeSlideComponent.index < 0 ? formFields.length : activeSlideComponent.index + 1;
             addSlide({
                 id: slideId,
-                index: formFields.length,
+                index: newSlideIndex,
                 type: FieldTypes.SLIDE,
                 properties: {
                     layout: FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT,
                     fields: [getNewField(field, fieldId, formFields.length)]
                 },
                 imageUrl: globalConstants.defaultImage
-            });
-            setActiveSlideComponent({ id: slideId, index: formFields.length });
+            },newSlideIndex);
+            setActiveSlideComponent({ id: slideId, index: newSlideIndex });
             window.setTimeout(function () {
                 const slideElement = document.getElementById(slideId);
                 slideElement?.scrollIntoView({

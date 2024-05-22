@@ -10,14 +10,14 @@ import { Skeleton } from '@app/shadcn/components/ui/skeleton';
 import { cn } from '@app/shadcn/util/lib';
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
+import { useResponderState } from '@app/store/jotai/responderFormState';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import getFormShareURL from '@app/utils/formUtils';
 import { DesktopIcon } from '@app/views/atoms/Icons/DesktopIcon';
 import { MobileIcon } from '@app/views/atoms/Icons/MobileIcon';
+import ShareIcon from '@app/views/atoms/Icons/ShareIcon';
 import { useTranslation } from 'next-i18next';
 import PublishButton from './PublishButton';
-import ShareIcon from '@app/views/atoms/Icons/ShareIcon';
-import { useDialogModal } from '@app/lib/hooks/useDialogModal';
 
 const PreviewWrapper = ({ children, handleResetResponderState }: { children: React.ReactNode; handleResetResponderState: () => void }) => {
     const [key, setKey] = useState(1);
@@ -27,8 +27,8 @@ const PreviewWrapper = ({ children, handleResetResponderState }: { children: Rea
     const standardForm = useAppSelector(selectForm);
     const workspace = useAppSelector(selectWorkspace);
     const isMobile = useIsMobile();
-    const { openDialogModal } = useDialogModal();
     const { openModal } = useModal();
+    const { setResponderState, responderState } = useResponderState();
 
     useEffect(() => {
         setIFrameLoaded(false);
@@ -87,7 +87,20 @@ const PreviewWrapper = ({ children, handleResetResponderState }: { children: Rea
             <Separator />
             <div className=" h-full drop-shadow-xl lg:mx-10 lg:py-10 lg:pb-24 ">
                 {isDesktopView ? (
-                    <div className={`aspect-video max-w-full lg:mx-auto lg:!max-h-full ${isMobile ? 'h-preview-page' : 'h-screen'}`}>{children}</div>
+                    <div className={`flex aspect-video max-w-full flex-col gap-2 lg:mx-auto lg:!max-h-full ${isMobile ? 'h-preview-page' : 'h-screen'}`}>
+                        {/* <div className="flex justify-center gap-4">
+                            {standardForm.fields.map((_, index: number) => (
+                                <span
+                                    onClick={() => setResponderState({ ...responderState, currentSlide: index, currentField: 0 })}
+                                    className="cursor-pointer rounded px-4 py-1 text-white active:brightness-90"
+                                    style={{ background: standardForm.theme?.secondary }}
+                                >
+                                    {index + 1}
+                                </span>
+                            ))}
+                        </div> */}
+                        {children}
+                    </div>
                 ) : (
                     <div className="relative mx-auto aspect-[9/16] h-full rounded-lg drop-shadow-xl">
                         <iframe

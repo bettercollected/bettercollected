@@ -50,7 +50,7 @@ const GetModalToRender = (view?: DIALOG_MODALS, props?: any) => {
 const getClassName = (view?: DIALOG_MODALS) => {
     switch (view) {
         case 'DELETE_MEDIA':
-            return 'md:!w-[350px]';
+            return 'md:!w-[450px]';
     }
 };
 
