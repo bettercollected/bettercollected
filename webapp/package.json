@@ -11,7 +11,6 @@
     "postbuild": "cross-env next-sitemap --config next-sitemap.config.js",
     "start": "next start",
     "test": "jest --watch",
-    "runHeadless": "./node_modules/.bin/cypress run ",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
     "format:check": "prettier --check \"**/*.{js,jsx,ts,tsx,json,md}\"",
@@ -147,6 +146,7 @@
     "vanilla-cookieconsent": "^2.9.0"
   },
   "devDependencies": {
+    "@babel/traverse": "^7.24.5",
     "@redux-devtools/core": "^3.13.1",
     "@storybook/addon-essentials": "^7.6.10",
     "@storybook/addon-interactions": "^7.6.10",
@@ -179,7 +179,7 @@
     "@types/uuid": "^8.3.4",
     "autoprefixer": "^10.4.12",
     "cross-env": "^7.0.3",
-    "cypress": "^12.17.2",
+    "ejs": "^3.1.10",
     "eslint": "8.25.0",
     "eslint-config-next": "^14.1.4",
     "eslint-config-prettier": "8.5.0",
