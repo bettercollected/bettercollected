@@ -35,35 +35,39 @@ const Layout = (props: { Icon: any; name: string; image: string; style?: FormSli
 
 export default function LayoutsTab({ closePopover }: { closePopover: () => void }) {
     const { formFields, addSlide } = useFormFieldsAtom();
-    const { setActiveSlideComponent } = useActiveSlideComponent();
+    const { setActiveSlideComponent, activeSlideComponent } = useActiveSlideComponent();
 
     const addSlideOfStyle = (style: FormSlideLayout, blank: boolean = false) => {
         const fieldId = v4();
-        addSlide({
-            id: fieldId,
-            index: formFields.length,
-            type: FieldTypes.SLIDE,
-            properties: {
-                layout: style,
-                fields: [
-                    ...(blank
-                        ? []
-                        : [
-                              {
-                                  id: v4(),
-                                  index: 0,
-                                  type: FieldTypes.SHORT_TEXT,
-                                  value: 'Enter Question',
-                                  properties: {
-                                      placeholder: 'Answer'
+        const newSlideIndex = (activeSlideComponent?.index || 0) < 0 ? formFields.length : (activeSlideComponent?.index || 0) + 1;
+        addSlide(
+            {
+                id: fieldId,
+                index: formFields.length,
+                type: FieldTypes.SLIDE,
+                properties: {
+                    layout: style,
+                    fields: [
+                        ...(blank
+                            ? []
+                            : [
+                                  {
+                                      id: v4(),
+                                      index: 0,
+                                      type: FieldTypes.SHORT_TEXT,
+                                      value: 'Enter Question',
+                                      properties: {
+                                          placeholder: 'Answer'
+                                      }
                                   }
-                              }
-                          ])
-                ]
+                              ])
+                    ]
+                },
+                imageUrl: globalConstants.defaultImage
             },
-            imageUrl: globalConstants.defaultImage
-        });
-        setActiveSlideComponent({ id: fieldId, index: formFields.length });
+            newSlideIndex
+        );
+        setActiveSlideComponent({ id: fieldId, index: newSlideIndex });
         window.setTimeout(function () {
             const element = document.getElementById(fieldId);
             element?.scrollIntoView({

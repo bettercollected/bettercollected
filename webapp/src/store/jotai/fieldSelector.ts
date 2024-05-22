@@ -39,8 +39,13 @@ export default function useFormFieldsAtom() {
     const { activeSlideComponent, setActiveSlideComponent } = useActiveSlideComponent();
     const { activeFieldComponent, setActiveFieldComponent } = useActiveFieldComponent();
 
-    const addSlide = (field: StandardFormFieldDto) => {
-        setFormFields([...formFields, field]);
+    const addSlide = (field: StandardFormFieldDto, index: number) => {
+        formFields.splice(index, 0, field);
+        formFields.map((slide, index: number) => {
+            slide.index = index;
+            return slide;
+        });
+        setFormFields([...formFields]);
     };
 
     const addSlideFormTemplate = (slide: StandardFormFieldDto, index?: number) => {
