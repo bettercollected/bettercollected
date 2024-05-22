@@ -1,13 +1,19 @@
 import json
 from http import HTTPStatus
-from typing import List, Sequence
+from typing import List, Optional, Sequence
 
 from beanie import PydanticObjectId
 from common.constants import MESSAGE_FORBIDDEN, MESSAGE_NOT_FOUND
-from common.models.standard_form import StandardFormResponse, StandardFormResponseAnswer
+from common.models.standard_form import (
+    StandardFormResponse,
+    StandardFormResponseAnswer,
+    StandardFormField,
+    StandardFormFieldType,
+)
 from common.models.user import User
 from common.services.crypto_service import crypto_service
 from fastapi_pagination import Page
+from questionary import FormField
 
 from backend.app.constants.consents import default_consent_responses
 from backend.app.exceptions import HTTPException
@@ -121,10 +127,16 @@ class FormResponseService:
         form_responses = await self._form_response_repo.list(
             [form_id], request_for_deletion, filter_query, sort
         )
+        form = await FormDocument.find_one({"form_id": form_id})
+        file_fields = []
+        if form is not None:
+            file_fields = get_fields_of_type_file_upload(form)
 
         if not request_for_deletion:
             return self.decrypt_response_page(
-                workspace_id=workspace_id, responses_page=form_responses
+                workspace_id=workspace_id,
+                responses_page=form_responses,
+                file_fields=file_fields,
             )
         return form_responses
 
@@ -259,9 +271,12 @@ class FormResponseService:
         self,
         workspace_id: PydanticObjectId,
         responses_page: Page[StandardFormResponseCamelModel],
+        file_fields: Optional[List[StandardFormField]],
     ):
         responses_page.items = self.decrypt_form_responses(
-            workspace_id=workspace_id, responses=responses_page.items
+            workspace_id=workspace_id,
+            responses=responses_page.items,
+            file_fields=file_fields,
         )
         return responses_page
 
@@ -275,15 +290,19 @@ class FormResponseService:
         self,
         workspace_id: PydanticObjectId,
         responses: Sequence[StandardFormResponseCamelModel],
+        file_fields: Optional[List[StandardFormField]],
     ):
         for response in responses:
             response = self.decrypt_form_response(
-                workspace_id=workspace_id, response=response
+                workspace_id=workspace_id, response=response, file_fields=file_fields
             )
         return responses
 
     def decrypt_form_response(
-        self, workspace_id: PydanticObjectId, response: StandardFormResponseCamelModel
+        self,
+        workspace_id: PydanticObjectId,
+        response: StandardFormResponseCamelModel,
+        file_fields: Optional[List[StandardFormField]] = [],
     ):
         if isinstance(response.answers, dict):
             return response
@@ -294,6 +313,10 @@ class FormResponseService:
                 data=response.answers,
             )
         )
+        if file_fields:
+            response = self.generate_presigned_url_for_each_response(
+                file_fields, response
+            )
         return response
 
     async def submit_form_response(
@@ -325,9 +348,7 @@ class FormResponseService:
         )
         return updated_response.response_uuid
 
-    async def delete_form_response(
-        self, form_id: PydanticObjectId, response_id: str
-    ):
+    async def delete_form_response(self, form_id: PydanticObjectId, response_id: str):
         return await self._form_response_repo.delete_form_response(
             form_id=form_id, response_id=response_id
         )
@@ -391,3 +412,40 @@ class FormResponseService:
             provider=response.provider,
         ).save()
         pass
+
+    def generate_presigned_url_for_each_response(
+        self, file_fields: List[StandardFormField], response: StandardFormResponse
+    ):
+        for field in file_fields:
+            file_answer = response.answers.get(field.id, {})
+            file_url = file_answer.get("file_metadata", {}).get("url", "")
+            if file_url:
+                if "s3.eu-central-1.wasabisys.com/bettercollected/private" in file_url:
+                    private_key = "private" + file_url.split("/private")[1]
+                    url = self._aws_service.generate_presigned_url(key=private_key)
+                    response.answers[field.id]["file_metadata"]["url"] = url
+                else:
+                    response.answers[field.id]["file_metadata"]["url"] = ""
+        return response
+
+
+def get_fields_from_form(form: StandardFormCamelModel) -> List[StandardFormField]:
+    fields = []
+    if form.builder_version == "v2":
+        for slide in form.fields:
+            for field in slide.properties.fields:
+                fields.append(field)
+    else:
+        for field in form.fields:
+            fields.append(field)
+    return fields
+
+
+def get_fields_of_type_file_upload(form: StandardFormCamelModel):
+    file_fields = []
+    form_fields = get_fields_from_form(form)
+    if form_fields:
+        for field in form_fields:
+            if field.type == StandardFormFieldType.FILE_UPLOAD:
+                file_fields.append(field)
+    return file_fields
