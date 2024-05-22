@@ -27,8 +27,7 @@ async def run_worker():
         workflows=[RunActionCode],
         activities=[run_action_code],
     )
-    response = await worker.run()
-    print(response)
+    await worker.run()
 
 
 async def main():

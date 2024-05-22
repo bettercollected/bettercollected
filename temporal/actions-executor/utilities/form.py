@@ -1,5 +1,6 @@
 from typing import List, Dict, Any
 import re
+import json
 
 FieldTypes = {
     'TEXT': 'text',
@@ -11,12 +12,12 @@ FieldTypes = {
     'NUMBER': 'number',
     'SHORT_TEXT': 'short_text',
     'LONG_TEXT': 'long_text',
-    'LINK': 'link',
+    'LINK': 'url',
     'EMAIL': 'email',
     'DATE': 'date',
     'YES_NO': 'yes_no',
     'MULTIPLE_CHOICE': 'multiple_choice',
-    'DROP_DOWN': 'drop_down',
+    'DROP_DOWN': 'dropdown',
     'PHONE_NUMBER': 'phone_number',
     'FILE_UPLOAD': 'file_upload'
 }
@@ -87,8 +88,8 @@ def get_fields_from_v2_form(form: Dict[str, Any]) -> List[Dict[str, Any]]:
     return [field for field in fields if field is not None]
 
 def get_answer_for_field(response: Dict[str, Any], field: Dict[str, Any]) -> Any:
-    answer = response.get('answers', {}).get(field['id'],{})
 
+    answer = response.get('answers', {}).get(field['id'],{})
     if field['type'] in [FormBuilderTagNames['INPUT_RATING'], FormBuilderTagNames['INPUT_NUMBER'],
                          FieldTypes['LINEAR_RATING'], FieldTypes['RATING'], FieldTypes['NUMBER']]:
         return answer.get('number')
@@ -106,9 +107,6 @@ def get_answer_for_field(response: Dict[str, Any], field: Dict[str, Any]) -> Any
     if field['type'] in [FieldTypes['MULTIPLE_CHOICE'], FieldTypes['DROP_DOWN']]:
         return get_choices_value(field, answer)
     if field['type'] in [FormBuilderTagNames['INPUT_MULTIPLE_CHOICE'], FormBuilderTagNames['INPUT_DROPDOWN']]:
-        compare_value = not bool(re.match('^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$', answer.get('choice', {}).get('value', '')))
-        if compare_value:
-            return next((choice['value'] for choice in field.get('properties', {}).get('choices', []) if choice['value'] == answer.get('choice', {}).get('value')), None)
         return next((choice['value'] for choice in field.get('properties', {}).get('choices', []) if choice['id'] == answer.get('choice', {}).get('value')), None)
     if field['type'] == FormBuilderTagNames['INPUT_CHECKBOXES']:
         choices_answers = answer.get('choices', {}).get('values')
@@ -128,13 +126,13 @@ def get_answer_for_field(response: Dict[str, Any], field: Dict[str, Any]) -> Any
 
 def get_choices_value(field: Dict[str, Any], answer: Dict[str, Any]) -> str:
     choices = field.get('properties', {}).get('choices', [])
-    if field.get('properties', {}).get('allowMultipleSelection'):
+    if field.get('properties', {}).get('allow_multiple_selection'):
         selected_choices = [choice for choice in choices if choice['id'] in answer.get('choices', {}).get('values', [])]
     else:
         selected_choices = [choice for choice in choices if choice['id'] == answer.get('choice', {}).get('value')]
     
-    other_value = get_multiple_choice_other_value(answer, field.get('properties', {}).get('allowMultipleSelection', False))
-    choices_value = [choice['value'] if 'value' in choice else f"Item {choices.index(choice) + 1}" for choice in selected_choices]
+    other_value = get_multiple_choice_other_value(answer, field.get('properties', {}).get('allow_multiple_selection', False))
+    choices_value = [choice['value'] if 'value' in choice and choice["value"] else f"Item {choices.index(choice) + 1}" for choice in selected_choices]
     
     if other_value:
         return ', '.join(choices_value + [other_value])
