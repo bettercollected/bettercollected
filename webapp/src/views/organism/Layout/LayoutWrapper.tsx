@@ -112,7 +112,7 @@ const LayoutWrapper = ({ layout, theme, imageUrl, updatePageImage, updatePageLay
                         layout && layout === FormSlideLayout.TWO_COLUMN_IMAGE_LEFT ? 'order-1' : layout && layout === FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT ? 'order-0' : ''
                     )}
                 >
-                    <div className="flex min-h-[100%] w-full flex-col justify-center">{children}</div>
+                    <div className="flex min-h-[100%] w-full flex-col justify-center py-[60px]">{children}</div>
                 </ScrollArea>
                 {/* Image with controls works for left and right image layout */}
                 {layout && layout !== FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND && layout !== FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND_LEFT_ALIGN && layout !== FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND && (
