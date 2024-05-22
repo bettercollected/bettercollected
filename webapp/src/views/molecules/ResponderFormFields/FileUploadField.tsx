@@ -29,7 +29,7 @@ const StyledLabel = styled.label<{ $theme: any }>(({ $theme }) => {
 });
 
 export default function FileUpload({ field }: { field: StandardFormFieldDto }) {
-    const { formResponse, addFieldFileAnswer } = useFormResponse();
+    const { formResponse, addFieldFileAnswer, removeAnswer } = useFormResponse();
     const { theme } = useFormState();
 
     const form = useAppSelector(selectForm);
@@ -106,6 +106,7 @@ export default function FileUpload({ field }: { field: StandardFormFieldDto }) {
             url: undefined
         });
         resetFormFiles();
+        removeAnswer(field.id);
     };
     const getFilePreview = () => {
         return (
