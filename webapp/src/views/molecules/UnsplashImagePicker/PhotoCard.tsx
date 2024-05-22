@@ -1,14 +1,17 @@
-import React from 'react';
+import React, { useState } from 'react';
 
 import Image from 'next/image';
 import Link from 'next/link';
+import { Skeleton } from '@app/shadcn/components/ui/skeleton';
+import { cn } from '@app/shadcn/util/lib';
 
 export default function UnsplashPhotoCard({ photo, onPhotoSelect = (_: any) => {} }: any) {
     return (
-        <div className="theme-border-default group relative h-60 w-full cursor-pointer place-items-center border object-cover sm:h-44 md:h-32" key={photo.id} onClick={() => onPhotoSelect(photo)}>
-            <Image className="card-img h-full w-full place-items-center rounded object-cover" src={photo.urls.thumb} alt={photo.alt_description} fill sizes="(min-width 100px) 100%" />
-            <div className="invisible absolute bottom-0 left-0 right-0 top-0 group-hover:visible group-hover:bg-black/70" style={{ color: 'white' }}>
-                <div className="m-2 flex place-content-center items-center justify-between space-x-1">
+        <div className="theme-border-default group relative h-auto w-full cursor-pointer place-items-center rounded border" key={photo.id} onClick={() => onPhotoSelect(photo)}>
+            <ImageWithLoader photo={photo} />
+            {/* <Image style={{ objectFit: 'cover', width: '100%', height: 'auto' }} className="card-img place-items-center rounded " src={photo.urls.full} sizes="10vw" alt={photo.alt_description} width={0} height={0} /> */}
+            <div className="invisible absolute inset-0 h-full rounded group-hover:visible group-hover:bg-black/60" style={{ color: 'white' }}>
+                <div className="flex place-content-center items-center justify-between space-x-1 p-4">
                     <Link
                         href={photo.user.links.html + '?utm_source=bettercollected&utm_medium=referral'}
                         target="_blank"
@@ -26,3 +29,25 @@ export default function UnsplashPhotoCard({ photo, onPhotoSelect = (_: any) => {
         </div>
     );
 }
+
+const ImageWithLoader = ({ photo }: { photo: any }) => {
+    const [nextImageLoading, setNextImageLoading] = useState(true);
+
+    return (
+        <div className={cn(`h-full w-full`)}>
+            <Image
+                style={{ objectFit: 'cover', width: '100%', height: 'auto' }}
+                className="card-img place-items-center rounded "
+                onLoadingComplete={() => {
+                    setNextImageLoading(false);
+                }}
+                src={photo.urls.full}
+                sizes="10vw"
+                alt={photo.alt_description}
+                width={0}
+                height={0}
+            />
+            {nextImageLoading && <Skeleton className=" bg-black-300 z-[10] h-[200px] w-full" />}
+        </div>
+    );
+};
