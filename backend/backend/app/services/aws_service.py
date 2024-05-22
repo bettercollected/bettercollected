@@ -44,7 +44,9 @@ class AWSS3Service:
         try:
             current_time = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
             if private:
-                self._s3.Bucket(bucket).put_object(Body=file, Key=key, ACL="private")
+                self._s3.Bucket(bucket).put_object(
+                    Body=file, Key=f"private/{key}", ACL="private"
+                )
             else:
                 self._s3.Bucket(bucket).put_object(
                     Body=file,
@@ -66,11 +68,11 @@ class AWSS3Service:
         if private:
             folder = f"/{bucket}/private/{key}"
         return f"{wasabi_domain}{folder}"
-    
 
     """
         key : path to your file
     """
+
     def delete_file_from_s3(self, key: str, bucket: str = "bettercollected"):
         return self._s3.Object(bucket, key).delete()
 
