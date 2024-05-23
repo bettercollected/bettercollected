@@ -419,7 +419,7 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                                 </FormSettingsCard>
                             </>
                         )}
-                        {form?.settings?.provider === 'self' && (
+                        {form?.settings?.provider === 'self' && form?.builderVersion !== 'v2' && (
                             <FormSettingsCard>
                                 <div className="flex w-full flex-col items-start">
                                     <div className="body1">{t(formPage.formPurposeTitle)}</div>

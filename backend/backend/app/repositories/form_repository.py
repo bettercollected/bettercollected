@@ -115,7 +115,7 @@ class FormRepository:
 
     @staticmethod
     def get_published_forms_in_workspace(
-        workspace_id: PydanticObjectId, form_id_list: List[str], sort=None
+        workspace_id: PydanticObjectId, form_id_list: List[str], sort=None, get_actions= False
     ):
         aggregation_pipeline = [
             {"$sort": {"version": -1}},
@@ -162,6 +162,28 @@ class FormRepository:
             },
             {"$set": {"deletion_requests": {"$size": "$responses_deletion_requests"}}},
         ]
+        get_action_aggregation = [
+            {
+                 "$lookup": {
+                    "from": "forms",
+                    "localField": "form_id",
+                    "foreignField": "form_id",
+                    "as": "form",
+                }
+            },
+            {
+                "$unwind": "$form"
+            },
+            {
+                "$set": {
+                    "actions": "$form.actions",
+                    "parameters": "$form.parameters",
+                    "secrets":"$form.secrets"
+                }
+            }
+        ]
+        if get_actions:
+            aggregation_pipeline.extend(get_action_aggregation)
         aggregation_pipeline.extend(create_filter_pipeline(sort=sort))
         form_versions_query = FormVersionsDocument.find(
             {"form_id": {"$in": form_id_list}}

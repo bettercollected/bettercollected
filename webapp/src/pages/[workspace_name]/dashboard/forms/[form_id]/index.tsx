@@ -105,7 +105,7 @@ export default function FormPage(props: any) {
             }
         ];
 
-        if (form?.settings?.provider === 'self' && environments.ENABLE_ACTIONS)
+        if (form?.settings?.provider === 'self' && environments.ENABLE_ACTIONS && form?.builderVersion === 'v2')
             additionalTabs.splice(0, 0, {
                 icon: <IntegrationInstructions className="h-5 w-5" />,
                 title: 'Integrations',
@@ -230,7 +230,7 @@ export default function FormPage(props: any) {
                         </FormPageLayer>
                         {form?.isPublished && (
                             <>
-                                {form?.settings?.provider === 'self' && environments.ENABLE_ACTIONS && (
+                                {form?.settings?.provider === 'self' && environments.ENABLE_ACTIONS && form?.builderVersion === 'v2' && (
                                     <TabPanel className="focus:outline-none" key="Integrations">
                                         <FormIntegrations />
                                     </TabPanel>
