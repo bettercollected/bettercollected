@@ -348,10 +348,18 @@ class FormResponseService:
         )
         return updated_response.response_uuid
 
-    async def delete_form_response(self, form_id: PydanticObjectId, response_id: str):
-        return await self._form_response_repo.delete_form_response(
+    async def delete_form_response(
+        self,
+        form_id: PydanticObjectId,
+        response_id: str,
+        workspace_id: PydanticObjectId,
+    ):
+        await self._form_response_repo.delete_form_response(
             form_id=form_id, response_id=response_id
         )
+        prefix = f"private/{workspace_id}/{form_id}/{response_id}"
+        self._aws_service.delete_folder_from_s3(prefix)
+        return response_id
 
     async def delete_response(self, response_id: str):
         return await self._form_response_repo.delete_response(response_id=response_id)
