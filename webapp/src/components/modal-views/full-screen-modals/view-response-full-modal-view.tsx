@@ -1,6 +1,6 @@
 import EllipsisOption from '@Components/Common/Icons/Common/EllipsisOption';
 import { Close } from '@app/components/icons/close';
-import { StandardFormFieldDto, StandardFormResponseDto } from '@app/models/dtos/form';
+import { FieldTypes, StandardFormFieldDto, StandardFormResponseDto } from '@app/models/dtos/form';
 import { Popover, PopoverContent, PopoverTrigger } from '@app/shadcn/components/ui/popover';
 import { Separator } from '@app/shadcn/components/ui/separator';
 import { cn } from '@app/shadcn/util/lib';
@@ -13,6 +13,7 @@ import DeleteIcon from '@app/views/atoms/Icons/Delete';
 import { motion } from 'framer-motion';
 import { toast } from 'react-toastify';
 import { useFullScreenModal } from '../full-screen-modal-context';
+import { downloadFile } from '@app/utils/fileUtils';
 
 export interface IViewResponseFullModalView {
     response: StandardFormResponseDto;
@@ -53,9 +54,28 @@ export const IndividualFormResponse = ({ formFields, response }: { formFields: A
         const title = getTitleForHeader(field, form);
         return <span className="p3-new !text-black-800 truncate md:w-[250px]">{title}</span>;
     }
+    const downloadFormFile = async (ans: any) => {
+        try {
+            if (!ans?.file_metadata?.url) return;
+            downloadFile(ans?.file_metadata?.url, ans?.file_metadata.name ?? ans?.file_metadata.id);
+        } catch (err) {
+            toast('Error downloading file', { type: 'error' });
+        }
+    };
     return (
         <div className="flex min-h-fit w-full flex-col gap-8 overflow-y-auto p-4 pt-6 ">
             {formFields.map((field) => {
+                if (field.type === FieldTypes.FILE_UPLOAD) {
+                    const ans = response.answers[field.id];
+                    return (
+                        <div className="flex flex-col gap-1" key={field.id}>
+                            <span className="p4-new text-black-500">{getTitleForHeaderForTable(field)}</span>
+                            <div onClick={() => downloadFormFile(ans)} className={cn('!text-black-600 p2-new   w-[140px] cursor-default truncate rounded px-2 py-1', ans?.file_metadata?.url ? 'bg-black-300 active:bg-black-400 !cursor-pointer' : '')}>
+                                {getAnswerForField(response, field)}
+                            </div>
+                        </div>
+                    );
+                }
                 return (
                     <div className="flex flex-col gap-1" key={field.id}>
                         <span className="p4-new text-black-500">{getTitleForHeaderForTable(field)}</span>
