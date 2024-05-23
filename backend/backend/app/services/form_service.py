@@ -201,6 +201,7 @@ class FormService:
             authorized_form = await self._form_repo.get_published_forms_in_workspace(
                 workspace_id=workspace_id,
                 form_id_list=workspace_form_ids,
+                get_actions=is_admin
             ).to_list()
             if not authorized_form:
                 if draft:

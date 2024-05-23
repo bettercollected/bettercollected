@@ -25,6 +25,9 @@ async def run_action(
     response = json.loads(response)
     workspace = json.loads(workspace)
 
+    if form.get("builder_version") != "v2":
+        return
+
     def get_state():
         if response.state and response.state.global_state:
             return response.state.global_state
@@ -110,7 +113,9 @@ async def run_action(
         )
 
     def get_simple_form_response():
-        extracted_question_answers = get_questions_and_answers(form=form, response=response)
+        extracted_question_answers = get_questions_and_answers(
+            form=form, response=response
+        )
         return extracted_question_answers
 
     def send_mail_action(
@@ -124,12 +129,11 @@ async def run_action(
             subtype=MessageType.html,
             template_body={
                 "form": get_simple_form_response(),
-                "response": response,
                 "creator_mail": creator_mail,
             },
         )
         fast_mail = FastMail(mail_config)
-        asyncio.run(fast_mail.send_message(message, template_name="response-mail.html"))
+        asyncio.ensure_future(fast_mail.send_message(message, template_name="response-mail.html"))
         return "ok"
 
     def send_data_webhook(url: str, params=None, data=None, headers=None):
@@ -179,9 +183,8 @@ async def run_action(
                 [response.get("dataOwnerIdentifier")],
             )
 
-    def send_me_a_copy_of_response(self):
+    def send_me_a_copy_of_response():
         form = get_form()
-        response = get_response()
 
         receiving_mail = get_parameter("Receiving Mail Address")
 
@@ -201,13 +204,14 @@ async def run_action(
                 True,
             )
 
-
-
     if action.get("predefined"):
-        if action.get("name") == "send_webhook":
-            send_webhook_action()
-
-        ## Write switch case to execute code based on the action name
+        match action.get("name"):
+            case "send_webhook":
+                return send_webhook_action()
+            case "responder_copy_mail":
+                return send_responder_a_copy_of_mail()
+            case "creator_copy_mail":
+                return send_me_a_copy_of_response()
         return
     loop = asyncio.get_event_loop()
     result = await asyncio.wait_for(
