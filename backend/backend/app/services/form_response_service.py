@@ -315,7 +315,7 @@ class FormResponseService:
         )
         if file_fields:
             response = self.generate_presigned_url_for_each_response(
-                file_fields, response
+                file_fields, response, workspace_id
             )
         return response
 
@@ -422,18 +422,22 @@ class FormResponseService:
         pass
 
     def generate_presigned_url_for_each_response(
-        self, file_fields: List[StandardFormField], response: StandardFormResponse
+        self,
+        file_fields: List[StandardFormField],
+        response: StandardFormResponse,
+        workspace_id: PydanticObjectId,
     ):
         for field in file_fields:
             file_answer = response.answers.get(field.id, {})
-            file_url = file_answer.get("file_metadata", {}).get("url", "")
-            if file_url:
-                if "s3.eu-central-1.wasabisys.com/bettercollected/private" in file_url:
-                    private_key = "private" + file_url.split("/private")[1]
-                    url = self._aws_service.generate_presigned_url(key=private_key)
-                    response.answers[field.id]["file_metadata"]["url"] = url
-                else:
-                    response.answers[field.id]["file_metadata"]["url"] = ""
+            file_id = file_answer.get("file_metadata", {}).get("id", "")
+            private_key = f"private/{workspace_id}/{response.form_id}/{response.response_id}/{file_id}"
+            key_exists = self._aws_service.check_if_key_exists(private_key)
+            if key_exists:
+                url = self._aws_service.generate_presigned_url(key=private_key)
+            else:
+                key = file_answer.get("file_metadata", {}).get("id", "")
+                url = self._aws_service.generate_presigned_url(key=key) if key else ""
+            response.answers[field.id]["file_metadata"]["url"] = url
         return response
 
 
