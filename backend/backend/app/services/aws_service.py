@@ -69,12 +69,15 @@ class AWSS3Service:
             folder = f"/{bucket}/{folder_name}/{key}"
         return f"{wasabi_domain}{folder}"
 
-    def check_key_exists(self, key, bucket="bettercolllected"):
+    def check_if_key_exists(self, key, bucket="bettercollected"):
         try:
-            self._s3_client.head_object(Bucket=bucket, Key=key)
-            return True
+            objs = list(self._s3.Bucket(bucket).objects.filter(Prefix=key))
+            if len(objs) > 0:
+                return True
+            else:
+                return False
         except ClientError as e:
-            raise HTTPException(404, f"Key: '{key}' does not exist!")
+            raise HTTPException(404, e.response["Error"]["Message"])
 
     """
         key : path to your file
