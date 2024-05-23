@@ -19,4 +19,6 @@ class APMAsyncHttpClient:
         await self.client.aclose()  # Ensure the AsyncClient is closed
         if self.apm_client is not None:
             transaction_result = "success" if exc_type is None else "failure"
-            self.apm_client.end_transaction(name=self.transaction_name, result=transaction_result)
+            self.apm_client.end_transaction(
+                name=self.transaction_name, result=transaction_result
+            )

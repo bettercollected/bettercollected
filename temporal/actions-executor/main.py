@@ -13,11 +13,13 @@ from workflows.run_action_code import RunActionCode
 def get_random_string(length=20):
     # choose from all lowercase letter
     letters = string.ascii_lowercase
-    return ''.join(random.choice(letters) for i in range(length))
+    return "".join(random.choice(letters) for i in range(length))
 
 
 async def run_worker():
-    client = await Client.connect(settings.temporal_server_url, namespace=settings.namespace)
+    client = await Client.connect(
+        settings.temporal_server_url, namespace=settings.namespace
+    )
     worker = Worker(
         client,
         identity=get_random_string(),
@@ -25,8 +27,7 @@ async def run_worker():
         workflows=[RunActionCode],
         activities=[run_action_code],
     )
-    response = await worker.run()
-    print(response)
+    await worker.run()
 
 
 async def main():
