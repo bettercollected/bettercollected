@@ -45,7 +45,7 @@ class AWSS3Service:
             current_time = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
             if private:
                 self._s3.Bucket(bucket).put_object(
-                    Body=file, Key=f"private/{key}", ACL="private"
+                    Body=file, Key=f"{folder_name}/{key}", ACL="private"
                 )
             else:
                 self._s3.Bucket(bucket).put_object(
@@ -66,15 +66,32 @@ class AWSS3Service:
         wasabi_domain = "https://s3.eu-central-1.wasabisys.com"
         folder = f"/{bucket}/{folder_name}/{current_time}_{key}"
         if private:
-            folder = f"/{bucket}/private/{key}"
+            folder = f"/{bucket}/{folder_name}/{key}"
         return f"{wasabi_domain}{folder}"
+
+    def check_key_exists(self, key, bucket="bettercolllected"):
+        try:
+            self._s3_client.head_object(Bucket=bucket, Key=key)
+            return True
+        except ClientError as e:
+            raise HTTPException(404, f"Key: '{key}' does not exist!")
 
     """
         key : path to your file
     """
 
     def delete_file_from_s3(self, key: str, bucket: str = "bettercollected"):
-        return self._s3.Object(bucket, key).delete()
+        try:
+            self._s3.Object(bucket, key).delete()
+        except ClientError:
+            raise HTTPException(404, "INFO: Failed to delete file")
+
+    def delete_folder_from_s3(self, prefix: str, bucket: str = "bettercollected"):
+        try:
+            for object_summary in self._s3.Bucket(bucket).objects.filter(Prefix=prefix):
+                object_summary.delete()
+        except ClientError:
+            return
 
     def generate_presigned_url(self, key: str, bucket="bettercollected"):
         try:
