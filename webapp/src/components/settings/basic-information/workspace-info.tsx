@@ -17,6 +17,7 @@ import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { useAppDispatch } from '@app/store/hooks';
 import { usePatchExistingWorkspaceMutation } from '@app/store/workspaces/api';
 import { setWorkspace } from '@app/store/workspaces/slice';
+import { TextareaAutosize } from '@mui/material';
 
 export default function WorkspaceInfo({ workspace }: { workspace: WorkspaceDto }) {
     const dispatch = useAppDispatch();
@@ -84,23 +85,33 @@ export default function WorkspaceInfo({ workspace }: { workspace: WorkspaceDto }
     };
 
     return (
-        <form onSubmit={onSubmit} className="w-full flex items-start max-w-[540px] justify-center flex-col gap-6 pb-10">
+        <form onSubmit={onSubmit} className="flex w-full max-w-[540px] flex-col items-start justify-center gap-6 pb-10">
             <div className="relative -top-9 pl-6">
                 <UploadLogo onUpload={onProfileImageUpload} logoImageUrl={workspace.profileImage} showRemove={false} dropdownTopPosition={80} />
             </div>
-            <div className="gap-2 flex flex-col w-full">
+            <div className="flex w-full flex-col gap-2">
                 <div className="body1">{t('WORKSPACE.SETTINGS.DETAILS.TITLE')}</div>
                 <AppTextField onChange={onChange} value={workspaceInfo.title} name="title" placeholder={t(placeHolder.workspaceTitle)} />
             </div>
-            <div className="gap-2 w-full flex flex-col">
+            <div className="flex w-full flex-col gap-2">
                 <div className="body1">{t('WORKSPACE.SETTINGS.DETAILS.DESCRIPTION')}</div>
-                <AppTextField multiline fullWidth maxRows={4} minRows={4} onChange={onChange} value={workspaceInfo.description} name="description" placeholder={t(placeHolder.description)} />
+                <TextareaAutosize
+                    className="border-black-300 focus:shadow-input rounded focus:!border-[#B8E8FF] focus:outline-transparent focus:ring-transparent"
+                    minRows={3}
+                    style={{
+                        resize: 'none'
+                    }}
+                    onChange={onChange}
+                    value={workspaceInfo.description}
+                    name="description"
+                    placeholder={t(placeHolder.description)}
+                />
             </div>
-            <div className="gap-2 w-full flex flex-col">
+            <div className="flex w-full flex-col gap-2">
                 <div className="body1">Organization&apos;s Privacy Policy URL</div>
                 <AppTextField fullWidth onChange={onChange} value={workspaceInfo.privacy_policy} name="privacy_policy" placeholder={'Privacy Policy URL'} />
             </div>
-            <div className="gap-2 w-full flex flex-col">
+            <div className="flex w-full flex-col gap-2">
                 <div className="body1">Organization&apos;s Terms of Service URL</div>
                 <AppTextField fullWidth onChange={onChange} value={workspaceInfo.terms_of_service} name="terms_of_service" placeholder={'Privacy Policy URL'} />
             </div>
