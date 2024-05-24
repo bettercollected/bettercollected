@@ -18,7 +18,7 @@ import { UserStatus } from '@app/models/dtos/UserStatus';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { selectAuth } from '@app/store/auth/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
-import { useCreateWorkspaceMutation, usePatchExistingWorkspaceMutation } from '@app/store/workspaces/api';
+import { useCreateWorkspaceMutation, useLazyGetWorkspaceNameSuggestionsQuery, usePatchExistingWorkspaceMutation } from '@app/store/workspaces/api';
 import { setWorkspace } from '@app/store/workspaces/slice';
 
 interface onBoardingProps {
@@ -44,6 +44,8 @@ const OnboardingContainer = ({ workspace, createWorkspace }: onBoardingProps) =>
     const [patchExistingWorkspace, { isLoading, isSuccess }] = usePatchExistingWorkspaceMutation();
 
     const workspaceName: string = (workspace?.workspaceName as string) === (workspace?.ownerId as string) ? '' : (workspace?.workspaceName as string);
+
+    const [trigger] = useLazyGetWorkspaceNameSuggestionsQuery();
 
     const [formData, setFormData] = useState<FormDataDto>({
         title: createWorkspace ? '' : (user?.firstName || user?.lastName || user?.email?.split('@')[0]) + "'s Workspace",
@@ -132,6 +134,31 @@ const OnboardingContainer = ({ workspace, createWorkspace }: onBoardingProps) =>
         }
     };
 
+    const onWorkspaceTitleBlur = async (event: any) => {
+        if (createWorkspace && !formData.workspaceName) {
+            const suggestion = await fetchSuggestionsForWorkspaceHandle(event.target.value || '');
+            setFormData({ ...formData, workspaceName: suggestion });
+        }
+    };
+
+    const fetchSuggestionsForWorkspaceHandle = async (text: string) => {
+        if (!!text) {
+            const request = {
+                workspaceId: createWorkspace ? '' : workspace?.id,
+                title: text.toLowerCase()
+            };
+            const { isSuccess, data } = await trigger(request);
+            if (isSuccess) {
+                if (data.includes(text)) {
+                    return text;
+                } else {
+                    const suggestion = data[Math.floor(Math.random() * 4) + 1];
+                    return suggestion;
+                }
+            }
+        }
+    };
+
     return (
         <div className="flex w-full flex-col items-center bg-white px-4 md:px-0">
             <AuthNavbar showPlans={false} showHamburgerIcon />
@@ -139,7 +166,7 @@ const OnboardingContainer = ({ workspace, createWorkspace }: onBoardingProps) =>
                 <div className="h3-new">{t(onBoarding.addYourOrganization)}</div>
                 <UploadLogo logoImageUrl={workspace?.profileImage ?? ''} className="mt-12" onUpload={handleUploadLogo} onRemove={handleRemoveLogo} />
                 <form className="mt-12 w-full space-y-8 md:w-[541px] " onSubmit={onSubmitForm}>
-                    <AppTextField required title="Organization Name" id="title" placeholder="Enter name of your workspace" value={formData.title} onChange={handleOnchange} />
+                    <AppTextField onBlur={onWorkspaceTitleBlur} required title="Organization Name" id="title" placeholder="Enter name of your workspace" value={formData.title} onChange={handleOnchange} />
                     <TextFieldHandler formData={formData} setFormData={setFormData} handleOnChange={handleOnchange} createWorkspace={createWorkspace} />
                     <AppTextField title="Add Your Organization Description" id="description" placeholder="Write Description" multiline value={formData.description} onChange={handleOnchange} />
                     <AppButton size={ButtonSize.Medium} className="w-full " type="submit" disabled={!formData.title || !formData.workspaceName}>
