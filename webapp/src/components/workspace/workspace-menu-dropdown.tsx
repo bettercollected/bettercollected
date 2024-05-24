@@ -27,7 +27,6 @@ import { selectWorkspace } from '@app/store/workspaces/slice';
 import { generateRandomBgColor } from '@app/utils/backgroundColors';
 import { toEndDottedStr, trimTooltipTitle } from '@app/utils/stringUtils';
 
-
 interface IWorkspaceMenuDropdownProps {
     fullWidth?: boolean;
 }
@@ -59,7 +58,6 @@ function WorkspaceMenuDropdown({ fullWidth }: IWorkspaceMenuDropdownProps) {
     const redirectToUpgradeIfNotProPlan = () => {
         if (!isProPlan) {
             openModal('UPGRADE_TO_PRO');
-            // router.push(`/${workspace.workspaceName}/upgrade`);
         }
     };
 
@@ -91,23 +89,23 @@ function WorkspaceMenuDropdown({ fullWidth }: IWorkspaceMenuDropdownProps) {
             showExpandMore={showExpandMore}
             width={320}
             menuContent={
-                <div className="flex items-center gap-2 py-2 px-3 w-[200px]">
+                <div className="flex w-[200px] items-center gap-2 px-3 py-2">
                     <AuthAccountProfileImage
                         size={40}
                         image={workspace?.profileImage}
                         name={workspace?.title || 'Untitled'}
                         // style={{ background: `${color} !important` }}
                     />
-                    <div className="flex flex-col items-start w-full truncate">
+                    <div className="flex w-full flex-col items-start truncate">
                         <Typography className="body3 truncate">{toEndDottedStr(workspace?.title || 'Untitled', 14)}</Typography>
 
-                        <p className="leading-none text-[12px] text-black-700">{getWorkspaceRole(workspace)}</p>
+                        <p className="text-black-700 text-[12px] leading-none">{getWorkspaceRole(workspace)}</p>
                     </div>
                 </div>
             }
         >
             {isLoading ? (
-                <ListItem disablePadding className="px-5 py-3 flex justify-center items-center" alignItems="center">
+                <ListItem disablePadding className="flex items-center justify-center px-5 py-3" alignItems="center">
                     <Loader />
                 </ListItem>
             ) : !!data && Array.isArray(data) ? (
@@ -116,11 +114,11 @@ function WorkspaceMenuDropdown({ fullWidth }: IWorkspaceMenuDropdownProps) {
                     return (
                         <ListItem key={space.id} disablePadding alignItems="flex-start">
                             <IconButton
-                                className={`px-5 py-3 rounded hover:rounded-none hover:bg-brand-100 ${space?.disabled && 'cursor-not-allowed'} ${fullWidth ? 'w-full flex justify-between' : 'w-fit'}`}
+                                className={`hover:bg-brand-100 rounded px-5 py-3 hover:rounded-none ${space?.disabled && 'cursor-not-allowed'} ${fullWidth ? 'flex w-full justify-between' : 'w-fit'}`}
                                 onClick={() => handleChangeWorkspace(space)}
                                 size="small"
                             >
-                                <div className="flex justify-between w-full items-center gap-4">
+                                <div className="flex w-full items-center justify-between gap-4">
                                     <div className="flex items-center gap-3">
                                         <AuthAccountProfileImage
                                             size={40}
@@ -129,11 +127,11 @@ function WorkspaceMenuDropdown({ fullWidth }: IWorkspaceMenuDropdownProps) {
                                             className={color}
                                             // style={{ background: `${color} !important` }}
                                         />
-                                        <div className="flex flex-col items-start w-full">
+                                        <div className="flex w-full flex-col items-start">
                                             <Tooltip title={trimTooltipTitle(space?.title)}>
                                                 <p className="body3">{toEndDottedStr(space?.title || 'Untitled', 20)}</p>
                                             </Tooltip>
-                                            <p className="leading-none text-[12px] text-black-700">{getWorkspaceRole(space)}</p>
+                                            <p className="text-black-700 text-[12px] leading-none">{getWorkspaceRole(space)}</p>
                                         </div>
                                     </div>
                                     {workspace.id === space.id && <Check color="#0764EB" />}
@@ -144,15 +142,15 @@ function WorkspaceMenuDropdown({ fullWidth }: IWorkspaceMenuDropdownProps) {
                 })
             ) : (
                 <ListItem disablePadding alignItems="center">
-                    <IconButton className={`px-5 py-3 rounded hover:rounded-none hover:bg-brand-100 ${fullWidth ? 'w-full flex justify-between' : 'w-fit'}`} onClick={() => handleChangeWorkspace(workspace)} size="small">
-                        <div className="flex justify-between w-full items-center gap-4">
+                    <IconButton className={`hover:bg-brand-100 rounded px-5 py-3 hover:rounded-none ${fullWidth ? 'flex w-full justify-between' : 'w-fit'}`} onClick={() => handleChangeWorkspace(workspace)} size="small">
+                        <div className="flex w-full items-center justify-between gap-4">
                             <div className="flex items-center gap-3">
                                 <AuthAccountProfileImage size={40} image={workspace?.profileImage} name={workspaceName} />
-                                <div className="flex flex-col items-start w-full">
+                                <div className="flex w-full flex-col items-start">
                                     <Tooltip title={trimTooltipTitle(fullWorkspaceName)}>
                                         <p className="body3">{workspaceName}</p>
                                     </Tooltip>
-                                    <p className="leading-none text-[12px] text-black-700">{getWorkspaceRole(workspace)}</p>
+                                    <p className="text-black-700 text-[12px] leading-none">{getWorkspaceRole(workspace)}</p>
                                 </div>
                             </div>
                             <Check color="#0764EB" />
@@ -163,25 +161,23 @@ function WorkspaceMenuDropdown({ fullWidth }: IWorkspaceMenuDropdownProps) {
             {!isLoading && (
                 <div>
                     <Divider className="my-2" />
-                    <div onClick={redirectToUpgradeIfNotProPlan}>
-                        <ProPlanHoc feature={Features.workspace}>
-                            <ListItem disablePadding alignItems="center" className={``}>
-                                <IconButton
-                                    className={`px-5 py-3 rounded hover:rounded-none hover:bg-brand-100 ${fullWidth ? 'w-full flex justify-between' : 'w-fit'} ${
-                                        !enableCreateWorkspaceButton() && isProPlan ? '!text-black-500 cursor-not-allowed' : '!text-black-800'
-                                    }`}
-                                    onClick={handleCreateWorkspace}
-                                    size="small"
-                                >
-                                    <span className="flex justify-between w-full items-center gap-4">
-                                        <div className="flex items-center gap-3">
-                                            <Plus />
-                                            <p className={`body3 !not-italic  `}>{t(menuDropdown.createWorkspace)}</p>
-                                        </div>
-                                    </span>
-                                </IconButton>
-                            </ListItem>
-                        </ProPlanHoc>
+                    <div>
+                        <ListItem onClick={redirectToUpgradeIfNotProPlan} disablePadding alignItems="center" className={``}>
+                            <IconButton
+                                className={`hover:bg-brand-100 rounded px-5 py-3 hover:rounded-none ${fullWidth ? 'flex w-full justify-between' : 'w-fit'} ${
+                                    !enableCreateWorkspaceButton() && isProPlan ? '!text-black-500 cursor-not-allowed' : '!text-black-800'
+                                }`}
+                                onClick={handleCreateWorkspace}
+                                size="small"
+                            >
+                                <span className="flex w-full items-center justify-between gap-4">
+                                    <div className="flex items-center gap-3">
+                                        <Plus />
+                                        <p className={`body3 !not-italic  `}>{t(menuDropdown.createWorkspace)}</p>
+                                    </div>
+                                </span>
+                            </IconButton>
+                        </ListItem>
                     </div>
                 </div>
             )}
