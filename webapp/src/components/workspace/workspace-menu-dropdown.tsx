@@ -57,7 +57,11 @@ function WorkspaceMenuDropdown({ fullWidth }: IWorkspaceMenuDropdownProps) {
 
     const redirectToUpgradeIfNotProPlan = () => {
         if (!isProPlan) {
-            openModal('UPGRADE_TO_PRO');
+            openModal('UPGRADE_TO_PRO', {
+                callback: () => {
+                    router.push(`/workspace/create`);
+                }
+            });
         }
     };
 

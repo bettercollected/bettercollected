@@ -17,11 +17,12 @@ import { toast } from 'react-toastify';
 export interface IUpgradeToProModal {
     featureText?: string;
     isModal?: boolean;
+    callback?: () => void;
 }
 
 const prices = [0, 5, 15, 25, 50];
 
-export default function UpgradeToProContainer({ featureText, isModal = true }: IUpgradeToProModal) {
+export default function UpgradeToProContainer({ featureText, isModal = true, callback }: IUpgradeToProModal) {
     const { t } = useTranslation();
     const auth = useAppSelector(selectAuthStatus);
 
@@ -132,7 +133,11 @@ export default function UpgradeToProContainer({ featureText, isModal = true }: I
                             }).then((response: any) => {
                                 if (response.data) {
                                     closeModal();
-                                    router.refresh();
+                                    if (callback) {
+                                        callback();
+                                    } else {
+                                        router.refresh();
+                                    }
                                     toast('Congratulations! You have been upgraded to PRO', { type: 'success' });
                                 }
                                 if (response.error) {
