@@ -21,7 +21,7 @@ interface IMatrixFieldProps {
 function MatrixFieldComponent({ field, disabled }: IMatrixFieldProps) {
     const { theme } = useFormState();
 
-    const { addFieldChoicesAnswer, addFieldChoiceAnswer, formResponse } = useFormResponse();
+    const { addFieldChoicesAnswer, addFieldChoiceAnswer, formResponse, removeAnswer } = useFormResponse();
 
     const borderColor = theme?.secondary;
     const bgColor = theme?.tertiary;
