@@ -1,6 +1,6 @@
 import EllipsisOption from '@Components/Common/Icons/Common/EllipsisOption';
 import { Close } from '@app/components/icons/close';
-import { FieldTypes, StandardFormFieldDto, StandardFormResponseDto } from '@app/models/dtos/form';
+import { FieldTypes, StandardFormDto, StandardFormFieldDto, StandardFormResponseDto } from '@app/models/dtos/form';
 import { Popover, PopoverContent, PopoverTrigger } from '@app/shadcn/components/ui/popover';
 import { Separator } from '@app/shadcn/components/ui/separator';
 import { cn } from '@app/shadcn/util/lib';
@@ -48,10 +48,11 @@ const ViewResponseFullModalView = ({ response, formFields, formId, workspaceId }
     );
 };
 
-export const IndividualFormResponse = ({ formFields, response }: { formFields: Array<StandardFormFieldDto>; response: StandardFormResponseDto }) => {
-    const form = useAppSelector(selectForm);
+export const IndividualFormResponse = ({ formFields, response, form }: { formFields: Array<StandardFormFieldDto>; response: StandardFormResponseDto; form?: StandardFormDto }) => {
+    const standardForm = form ? form : useAppSelector(selectForm);
     function getTitleForHeaderForTable(field: StandardFormFieldDto) {
-        const title = getTitleForHeader(field, form);
+        const title = getTitleForHeader(field, standardForm);
+
         return <span className="p3-new !text-black-800 truncate md:w-[250px]">{title}</span>;
     }
     const downloadFormFile = async (ans: any) => {
@@ -65,7 +66,7 @@ export const IndividualFormResponse = ({ formFields, response }: { formFields: A
     return (
         <div className="flex min-h-fit w-full flex-col gap-8 overflow-y-auto p-4 pt-6 ">
             {formFields.map((field) => {
-                if (field.type === FieldTypes.FILE_UPLOAD) {
+                if (field.type === FieldTypes.FILE_UPLOAD || field.type === FieldTypes.INPUT_FILE_UPLOAD) {
                     const ans = response.answers[field.id];
                     return (
                         <div className="flex flex-col gap-1" key={field.id}>
