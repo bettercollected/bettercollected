@@ -54,7 +54,6 @@ export default function FullScreenModalContainer() {
         if (!modalProps?.nonClosable) closeModal();
     }, [closeModal]);
 
-
     return (
         <>
             <Transition appear show={isOpen} as={Fragment}>
