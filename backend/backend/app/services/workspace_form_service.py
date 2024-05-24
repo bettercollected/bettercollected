@@ -451,14 +451,12 @@ class WorkspaceFormService:
                 if workspace_id and form_id
                 else "private"
             )
-            url = await self._aws_service.upload_file_to_s3(
+            await self._aws_service.upload_file_to_s3(
                 file=form_file.file.file,
                 key=str(form_file.file_id),
                 private=True,
                 folder_name=folder_name,
             )
-            # TODO handle this for both builder versions
-            response.answers[form_file.field_id]["file_metadata"]["url"] = url
         return response
 
     async def patch_response(
