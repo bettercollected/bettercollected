@@ -161,8 +161,7 @@ class GoogleFormTransformerService(FormTransformerService):
         slide.id = str(PydanticObjectId())
         slide.index = index
         slide.type = StandardFormFieldType.SLIDE
-        slide.image_url = default_image_url
-        slide.properties.layout = LayoutType.TWO_COLUMN_IMAGE_RIGHT
+        slide.properties.layout = LayoutType.SINGLE_COLUMN_NO_BACKGROUND
         slide.properties.fields = []
         return slide
 
@@ -201,47 +200,37 @@ class GoogleFormTransformerService(FormTransformerService):
     def _transform_welcome_page(self, welcome_page_title):
         return WelcomePageField(
             title=welcome_page_title,
-            layout=LayoutType.TWO_COLUMN_IMAGE_RIGHT,
-            imageUrl=default_image_url,
+            layout=LayoutType.SINGLE_COLUMN_NO_BACKGROUND,
         )
 
     def _transform_thank_you_page(self):
         return [
             ThankYouPageField(
-                layout=LayoutType.TWO_COLUMN_IMAGE_RIGHT, imageUrl=default_image_url
+                layout=LayoutType.SINGLE_COLUMN_NO_BACKGROUND
             )
         ]
-
-    def _transform_theme(self):
-        return Theme(
-            title="Default",
-            primary="#2E2E2E",
-            secondary="#0764EB",
-            tertiary="#A2C5F8",
-            accent="#F2F7FF",
-        )
 
     def _transform_welcome_page(self, welcome_page_title):
         return WelcomePageField(
             title=welcome_page_title,
-            layout=LayoutType.TWO_COLUMN_IMAGE_RIGHT,
-            imageUrl=default_image_url,
+            layout=LayoutType.SINGLE_COLUMN_NO_BACKGROUND,
         )
 
     def _transform_thank_you_page(self):
         return [
             ThankYouPageField(
-                layout=LayoutType.TWO_COLUMN_IMAGE_RIGHT, imageUrl=default_image_url
+                layout=LayoutType.SINGLE_COLUMN_NO_BACKGROUND
             )
         ]
 
+
     def _transform_theme(self):
         return Theme(
-            title="Default",
+            title="Black",
             primary="#2E2E2E",
-            secondary="#0764EB",
-            tertiary="#A2C5F8",
-            accent="#F2F7FF",
+            secondary="#2E2E2E",
+            tertiary="#DBDBDB",
+            accent="#FFFFFF",
         )
 
     def transform_form(self, form: Dict[str, Any]) -> StandardForm:
