@@ -401,9 +401,11 @@ class WorkspaceService:
                     headers={"api_key": settings.https_cert_api_settings.key},
                     params={
                         "domain": new_domain,
-                        "upstream": settings.https_cert_api_settings.upstream
-                        if settings.https_cert_api_settings.upstream
-                        else None,
+                        "upstream": (
+                            settings.https_cert_api_settings.upstream
+                            if settings.https_cert_api_settings.upstream
+                            else None
+                        ),
                     },
                 )
         except Exception as e:
@@ -453,6 +455,9 @@ class WorkspaceService:
         await self._workspace_user_service.delete_user_of_workspaces(
             workspace_ids=workspace_ids
         )
+        for workspace_id in workspace_ids:
+            self._aws_service.delete_folder_from_s3(f"private/{workspace_id}")
+
         await self._workspace_repo.delete_workspaces_with_ids(workspace_ids)
 
 
