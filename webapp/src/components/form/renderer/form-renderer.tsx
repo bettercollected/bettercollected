@@ -339,7 +339,7 @@ export default function FormRenderer({ form, response, enabled, isDisabled = fal
                 <>
                     {form?.builderVersion === 'v2' ? (
                         <div className="h-full  w-full bg-white  px-5 md:px-10 lg:px-28">
-                            <IndividualFormResponse response={response} formFields={getFieldsFromV2Form(form)||[]}/>
+                            <IndividualFormResponse response={response} formFields={getFieldsFromV2Form(form)||[]} form={form}/>
                         </div>
                     ) : (
                         <BetterCollectedForm form={form} response={response} enabled={enabled} isDisabled={isDisabled} />

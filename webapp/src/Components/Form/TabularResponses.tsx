@@ -14,7 +14,7 @@ import { useFullScreenModal } from '@app/components/modal-views/full-screen-moda
 import globalConstants from '@app/constants/global';
 import { FieldTypes, StandardFormDto, StandardFormFieldDto, StandardFormResponseDto } from '@app/models/dtos/form';
 import { useAppSelector } from '@app/store/hooks';
-import { useGetFormsSubmissionsQuery } from '@app/store/workspaces/api';
+import { useGetFormsSubmissionsQuery, useGetWorkspaceSubmissionQuery, useLazyGetWorkspaceSubmissionQuery } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { IGetFormSubmissionsQuery } from '@app/store/workspaces/types';
 import { utcToLocalDateTIme } from '@app/utils/dateUtils';
@@ -55,6 +55,8 @@ export default function TabularResponses({ form }: TabularResponsesProps) {
     const workspace = useAppSelector(selectWorkspace);
     const [page, setPage] = useState(1);
 
+    const [triggerSingleResponse] = useLazyGetWorkspaceSubmissionQuery();
+
     const { t } = useTranslation();
 
     const [query, setQuery] = useState<IGetFormSubmissionsQuery>({
@@ -79,7 +81,7 @@ export default function TabularResponses({ form }: TabularResponsesProps) {
     };
 
     const getAnswerField = (response: StandardFormResponseDto, field: StandardFormFieldDto) => {
-        if (field.type === FieldTypes.FILE_UPLOAD) {
+        if (field.type === FieldTypes.FILE_UPLOAD || field.type === FieldTypes.INPUT_FILE_UPLOAD) {
             const ans = response.answers[field.id];
             return (
                 <div onClick={() => downloadFormFile(ans)} className={cn('!text-black-600 p2-new   w-[140px] cursor-default truncate rounded px-2 py-1', ans?.file_metadata?.url ? 'bg-black-300 active:bg-black-400 !cursor-pointer' : '')}>
@@ -125,7 +127,13 @@ export default function TabularResponses({ form }: TabularResponsesProps) {
         return (
             <ExpandIcon
                 onClick={() => {
-                    openModal('VIEW_RESPONSE', { response: response, formFields: getFormFields(form), formId: form.formId, workspaceId: workspace.id });
+                    triggerSingleResponse({
+                        workspace_id: workspace?.id ?? '',
+                        submission_id: response.responseId
+                    }).then((result: any) => {
+                        console.log('Read', result);
+                        openModal('VIEW_RESPONSE', { response: result.data.response, formFields: getFormFields(result.data.form), formId: result.data.form.formId, workspaceId: workspace.id });
+                    });
                 }}
             />
         );
@@ -186,7 +194,12 @@ export default function TabularResponses({ form }: TabularResponsesProps) {
     const { data } = useGetFormsSubmissionsQuery(query, { skip: !workspace.id });
 
     const onClickExpandSingleResponse = (response: StandardFormResponseDto) => {
-        openModal('VIEW_RESPONSE', { response: response, formFields: getFormFields(form), formId: form.formId, workspaceId: workspace.id });
+        triggerSingleResponse({
+            workspace_id: workspace?.id ?? '',
+            submission_id: response.responseId
+        }).then((result) => {
+            openModal('VIEW_RESPONSE', { response: result.data.response, formFields: getFormFields(result.data.form), formId: result.data.form.formId, workspaceId: workspace.id });
+        });
     };
 
     return (
