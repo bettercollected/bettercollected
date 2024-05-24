@@ -3,6 +3,8 @@ from http import HTTPStatus
 from typing import List, Optional, Sequence
 
 from beanie import PydanticObjectId
+from beanie.odm.enums import SortDirection
+
 from common.constants import MESSAGE_FORBIDDEN, MESSAGE_NOT_FOUND
 from common.models.standard_form import (
     StandardFormResponse,
@@ -133,11 +135,16 @@ class FormResponseService:
             file_fields = get_fields_of_type_file_upload(form)
 
         if not request_for_deletion:
-            return self.decrypt_response_page(
+            response_page = self.decrypt_response_page(
                 workspace_id=workspace_id,
                 responses_page=form_responses,
-                file_fields=file_fields,
             )
+            for response in response_page.items:
+                if file_fields:
+                    response = self.generate_presigned_url_for_each_response(
+                        file_fields, response, workspace_id
+                    )
+            return response_page
         return form_responses
 
     async def get_workspace_form_all_submissions(
@@ -159,12 +166,20 @@ class FormResponseService:
         response = await FormResponseDocument.find_one({"response_id": response_id})
         if not response:
             raise HTTPException(HTTPStatus.NOT_FOUND, MESSAGE_NOT_FOUND)
-        form = await FormVersionsDocument.find_one(
-            {
-                "form_id": response.form_id,
-                "version": response.form_version if response.form_version else 1,
-            }
-        )
+        if response.form_version:
+            form = await FormVersionsDocument.find_one(
+                {
+                    "form_id": response.form_id,
+                    "version": response.form_version if response.form_version else 1,
+                }
+            )
+        else:
+            form = (
+                await FormVersionsDocument.find({"form_id": response.form_id})
+                .sort(("version", SortDirection.DESCENDING))
+                .first_or_none()
+            )
+            form = await FormDocument.find_one({"form_id": response.form_id})
         if not form:
             form = await FormDocument.find_one({"form_id": response.form_id})
         deletion_request = await FormResponseDeletionRequest.find_one(
@@ -271,12 +286,10 @@ class FormResponseService:
         self,
         workspace_id: PydanticObjectId,
         responses_page: Page[StandardFormResponseCamelModel],
-        file_fields: Optional[List[StandardFormField]],
     ):
         responses_page.items = self.decrypt_form_responses(
             workspace_id=workspace_id,
             responses=responses_page.items,
-            file_fields=file_fields,
         )
         return responses_page
 
@@ -290,11 +303,10 @@ class FormResponseService:
         self,
         workspace_id: PydanticObjectId,
         responses: Sequence[StandardFormResponseCamelModel],
-        file_fields: Optional[List[StandardFormField]],
     ):
         for response in responses:
             response = self.decrypt_form_response(
-                workspace_id=workspace_id, response=response, file_fields=file_fields
+                workspace_id=workspace_id, response=response
             )
         return responses
 
@@ -302,7 +314,6 @@ class FormResponseService:
         self,
         workspace_id: PydanticObjectId,
         response: StandardFormResponseCamelModel,
-        file_fields: Optional[List[StandardFormField]] = [],
     ):
         if isinstance(response.answers, dict):
             return response
@@ -313,10 +324,6 @@ class FormResponseService:
                 data=response.answers,
             )
         )
-        if file_fields:
-            response = self.generate_presigned_url_for_each_response(
-                file_fields, response, workspace_id
-            )
         return response
 
     async def submit_form_response(
@@ -429,15 +436,18 @@ class FormResponseService:
     ):
         for field in file_fields:
             file_answer = response.answers.get(field.id, {})
-            file_id = file_answer.get("file_metadata", {}).get("id", "")
-            private_key = f"private/{workspace_id}/{response.form_id}/{response.response_id}/{file_id}"
-            key_exists = self._aws_service.check_if_key_exists(private_key)
-            if key_exists:
-                url = self._aws_service.generate_presigned_url(key=private_key)
-            else:
-                key = file_answer.get("file_metadata", {}).get("id", "")
-                url = self._aws_service.generate_presigned_url(key=key) if key else ""
-            response.answers[field.id]["file_metadata"]["url"] = url
+            if file_answer and file_answer.get("file_metadata") is not None:
+                file_id = file_answer.get("file_metadata", {}).get("id", "")
+                private_key = f"private/{workspace_id}/{response.form_id}/{response.response_id}/{file_id}"
+                key_exists = self._aws_service.check_if_key_exists(private_key)
+                if key_exists:
+                    url = self._aws_service.generate_presigned_url(key=private_key)
+                else:
+                    key = file_answer.get("file_metadata", {}).get("id", "")
+                    url = (
+                        self._aws_service.generate_presigned_url(key=key) if key else ""
+                    )
+                response.answers[field.id]["file_metadata"]["url"] = url
         return response
 
 
@@ -458,6 +468,9 @@ def get_fields_of_type_file_upload(form: StandardFormCamelModel):
     form_fields = get_fields_from_form(form)
     if form_fields:
         for field in form_fields:
-            if field.type == StandardFormFieldType.FILE_UPLOAD:
+            if (
+                field.type == StandardFormFieldType.FILE_UPLOAD
+                or field.type == StandardFormFieldType.INPUT_FILE_UPLOAD
+            ):
                 file_fields.append(field)
     return file_fields
