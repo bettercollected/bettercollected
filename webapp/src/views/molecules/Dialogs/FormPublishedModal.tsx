@@ -43,7 +43,7 @@ export default function FormPublishedModal(props: any) {
                         Copy
                     </Button>
                 </div>
-                <div className="p2-new mt-5 flex flex-col items-center gap-2 md:w-[233px]">
+                <div className="p2-new mt-5 flex flex-col items-center gap-2 md:w-[250px]">
                     <span className="h5-new">What’s Next?</span>
                     <span className="p4-new break-words text-center">
                         Add your custom domain, add integration or change form privacy,{' '}
