@@ -241,6 +241,7 @@ class WorkspaceFormService:
         await self.responder_groups_service.responder_groups_repo.delete_workspace_form_groups(
             form_id=form_id
         )
+        self._aws_service.delete_folder_from_s3(f"private/{workspace_id}/{form_id}")
 
         return "Form deleted from workspace."
 
