@@ -130,6 +130,8 @@ async def run_action(
             template_body={
                 "form": get_simple_form_response(),
                 "creator_mail": creator_mail,
+                "title": form.get("welcome_page",{}).get("title", "Untitled Form"),
+                "description":  form.get("welcome_page",{}).get("description", "")
             },
         )
         fast_mail = FastMail(mail_config)
