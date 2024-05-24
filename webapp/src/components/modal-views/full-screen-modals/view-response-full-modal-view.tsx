@@ -49,6 +49,7 @@ const ViewResponseFullModalView = ({ response, formFields, formId, workspaceId }
 };
 
 export const IndividualFormResponse = ({ formFields, response, form }: { formFields: Array<StandardFormFieldDto>; response: StandardFormResponseDto; form?: StandardFormDto }) => {
+    
     const standardForm = form ? form : useAppSelector(selectForm);
     function getTitleForHeaderForTable(field: StandardFormFieldDto) {
         const title = getTitleForHeader(field, standardForm);
