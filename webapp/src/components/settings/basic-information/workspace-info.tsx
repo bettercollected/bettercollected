@@ -8,7 +8,7 @@ import { ButtonSize, ButtonVariant } from '@Components/Common/Input/Button/AppBu
 import UploadLogo from '@Components/Common/UploadLogo';
 import { toast } from 'react-toastify';
 
-import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
+import { useBottomSheetModal } from '@Components/Modals/Contexts/BottomSheetModalContext';
 import environments from '@app/configs/environments';
 import { placeHolder } from '@app/constants/locales/placeholder';
 import { toastMessage } from '@app/constants/locales/toast-message';
@@ -23,7 +23,7 @@ export default function WorkspaceInfo({ workspace }: { workspace: WorkspaceDto }
     const dispatch = useAppDispatch();
     const { t } = useTranslation();
     const [patchExistingWorkspace, { isLoading }] = usePatchExistingWorkspaceMutation();
-    const { closeModal } = useFullScreenModal();
+    const { closeBottomSheetModal } = useBottomSheetModal();
     const [workspaceInfo, setWorkspaceInfo] = useState({
         title: workspace.title || '',
         description: workspace.description || '',
@@ -44,7 +44,7 @@ export default function WorkspaceInfo({ workspace }: { workspace: WorkspaceDto }
         event.preventDefault();
         const formData = new FormData();
         if (workspaceInfo.title === workspace?.title && workspaceInfo.description === workspace?.description && workspaceInfo.privacy_policy === workspace?.privacyPolicy && workspaceInfo.terms_of_service === workspace?.termsOfService) {
-            closeModal();
+            closeBottomSheetModal();
             return;
         }
         Object.keys(workspaceInfo).forEach((key: any) => {
@@ -58,8 +58,8 @@ export default function WorkspaceInfo({ workspace }: { workspace: WorkspaceDto }
         }
         if (response.data) {
             dispatch(setWorkspace(response.data));
+            closeBottomSheetModal();
             toast(t(toastMessage.workspaceUpdate).toString(), { type: 'success', toastId: ToastId.SUCCESS_TOAST });
-            closeModal();
         }
     };
 
