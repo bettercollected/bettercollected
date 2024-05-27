@@ -43,12 +43,7 @@ class FormImportService:
         responses = form_data.responses
         updated_responses_id = []
         for response in responses:
-            existing_response = await FormResponseDocument.find_one(
-                {"response_id": response.response_id}
-            )
             response_document = FormResponseDocument(**response.dict())
-            if existing_response:
-                response_document.id = existing_response.id
             response_document.form_id = standard_form.form_id
             data_owner_answer = response_document.answers.get(form_response_data_owner)
 

@@ -29,7 +29,7 @@ const StyledLabel = styled.label<{ $theme: any }>(({ $theme }) => {
 });
 
 export default function FileUpload({ field }: { field: StandardFormFieldDto }) {
-    const { formResponse, addFieldFileAnswer } = useFormResponse();
+    const { formResponse, addFieldFileAnswer, removeAnswer } = useFormResponse();
     const { theme } = useFormState();
 
     const form = useAppSelector(selectForm);
@@ -37,7 +37,7 @@ export default function FileUpload({ field }: { field: StandardFormFieldDto }) {
 
     const [isDragging, setIsDragging] = useState(false);
     const inputFileRef = useRef<HTMLInputElement | null>(null);
-    const { addFile } = useFormAtom();
+    const { addFile, resetFormFiles } = useFormAtom();
     const ans = formResponse.answers && formResponse.answers[field.id];
     const [fileMetaData, setFileMetadata] = useState<FileMetadata>(ans?.file_metadata ?? { id: v4() });
     useEffect(() => {
@@ -105,6 +105,8 @@ export default function FileUpload({ field }: { field: StandardFormFieldDto }) {
             type: undefined,
             url: undefined
         });
+        resetFormFiles();
+        removeAnswer(field.id);
     };
     const getFilePreview = () => {
         return (

@@ -9,7 +9,7 @@ import { useFormState } from '@app/store/jotai/form';
 import QuestionWrapper from './QuestionQwrapper';
 
 export default function MultipleChoiceWithMultipleSelection({ field, slideIndex }: { field: StandardFormFieldDto; slideIndex: number }) {
-    const { addFieldChoicesAnswer, addOtherChoicesAnswer, formResponse } = useFormResponse();
+    const { addFieldChoicesAnswer, addOtherChoicesAnswer, formResponse, removeAnswer } = useFormResponse();
 
     const { theme } = useFormState();
 
@@ -35,7 +35,7 @@ export default function MultipleChoiceWithMultipleSelection({ field, slideIndex 
         } else {
             selectedValues.splice(index, 1);
         }
-        addFieldChoicesAnswer(field.id, selectedValues);
+        selectedValues.length ? addFieldChoicesAnswer(field.id, selectedValues) : removeAnswer(field.id);
     };
 
     return (
@@ -59,6 +59,10 @@ export default function MultipleChoiceWithMultipleSelection({ field, slideIndex 
                         value={otherOption}
                         placeholder={`Other Choice`}
                         onChange={(e: any) => {
+                            if (!e.target.value && !formResponse.answers[field.id]) {
+                                removeAnswer(field.id);
+                                return;
+                            }
                             addOtherChoicesAnswer(field.id, e.target.value);
                         }}
                         className={`flex justify-between rounded-xl border p-2 px-4 text-base `}
