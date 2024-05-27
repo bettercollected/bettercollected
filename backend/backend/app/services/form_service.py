@@ -268,30 +268,8 @@ class FormService:
         return minified_form
 
     async def save_form(self, form: StandardForm):
-        existing_form = await FormDocument.find_one(
-            {"imported_form_id": form.imported_form_id}
-        )
         form_document = FormDocument(**form.dict())
-        if existing_form:
-            form_document.id = existing_form.id
-            form_document.form_id = existing_form.form_id
-            form_document.created_at = (
-                existing_form.created_at
-                if existing_form.created_at
-                else datetime.utcnow()
-            )
-        existing_form_version = await FormVersionsDocument.find_one(
-            {"imported_form_id": form.imported_form_id}
-        )
         form_version_document = FormVersionsDocument(**form.dict(), version=1)
-        if existing_form_version:
-            form_version_document.id = existing_form_version.id
-            form_version_document.form_id = existing_form_version.form_id
-            form_version_document.created_at = (
-                existing_form_version.created_at
-                if existing_form_version.created_at
-                else datetime.utcnow()
-            )
         await form_version_document.save()
         return await self._form_repo.save_form(form_document)
 

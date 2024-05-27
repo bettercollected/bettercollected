@@ -234,7 +234,8 @@ export enum FieldTypes {
     RATING_INPUT = 'rating_input',
     DROP_DOWN_INPUT = 'drop_down_input',
     MEDIA_INPUT = 'media_input',
-    MATRIX_ROW_INPUT = 'matrix_row_input'
+    MATRIX_ROW_INPUT = 'matrix_row_input',
+    INPUT_FILE_UPLOAD = 'input_file_upload'
 }
 
 export const V2InputFields = [

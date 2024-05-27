@@ -20,7 +20,7 @@ export const FieldInputWrapper = ({ id, slide, value, onChange, type = 'text', s
     const [debouncedInputValue] = useDebounceValue(inputVal, 300);
 
     useEffect(() => {
-        if (debouncedInputValue && onChange) {
+        if (onChange) {
             onChange(debouncedInputValue);
         }
     }, [debouncedInputValue]);

@@ -4,7 +4,7 @@ import { Close } from '@app/components/icons/close';
 import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
 import UpgradeToProContainer from '@app/containers/upgrade-to-pro';
 
-export default function UpgradeToProModal() {
+export default function UpgradeToProModal({ callback }: { callback?: () => void }) {
     const { closeModal } = useFullScreenModal();
 
     return (
@@ -17,7 +17,7 @@ export default function UpgradeToProModal() {
                     closeModal();
                 }}
             />
-            <UpgradeToProContainer />
+            <UpgradeToProContainer callback={callback} />
         </div>
     );
 }

@@ -109,36 +109,36 @@ export default function Submission({ hasCustomDomain, data, handleRequestForDele
                     )}
 
                     <div className="w-full px-5">
-                        <div className="flex items-center justify-start gap-2 w-fit " onClick={goToSubmissions}>
+                        <div className="flex w-fit items-center justify-start gap-2 " onClick={goToSubmissions}>
                             <ChevronLeft className="cursor-pointer" strokeWidth={2} width={24} height={24} />
-                            <span className="text-black-800 text-sm cursor-pointer">Form Page</span>
-                            <ChevronLeft className="text-black-600 rotate-180" strokeWidth={1} width={24} height={24} />
+                            <span className="text-black-800 cursor-pointer text-sm">Form Page</span>
+                            <ChevronLeft className="text-black-600 " strokeWidth={1} width={24} height={24} />
                             <span className="text-black-600  text-sm"> My response</span>
                         </div>
                     </div>
-                    <div className="w-full flex flex-col mt-12 gap-2 px-5 md:px-10 lg:px-28">
+                    <div className="mt-12 flex w-full flex-col gap-2 px-5 md:px-10 lg:px-28">
                         <span className="!text-pink h2-new">{form?.form?.title || 'Untitled Form'}</span>
-                        <div className="text-black-600 text-sm flex flex-wrap gap-2 items-center">
+                        <div className="text-black-600 flex flex-wrap items-center gap-2 text-sm">
                             <FormProviderIcon provider={form?.form?.settings?.provider} />
                             <DotIcon />
                             <div className="min-w-fit">Submitted: {utcToLocalDate(form?.response?.createdAt)}</div>
                         </div>
                         <Divider className="mt-6" />
                     </div>
-                    <ParamTab showInfo={true} className="px-5 lg:px-28 md:px-10 w-full" tabMenu={paramTabs}>
-                        <div className="w-full mt-12">
+                    <ParamTab showInfo={true} className="w-full px-5 md:px-10 lg:px-28" tabMenu={paramTabs}>
+                        <div className="mt-12 w-full">
                             <TabPanel key="Form">
                                 <FormRenderer form={form.form} response={form.response} isDisabled />
                             </TabPanel>
                         </div>
                         <TabPanel key="Settings">
-                            <div className="flex flex-col px-5 md:px-10 lg:px-28 gap-[72px]">
+                            <div className="flex flex-col gap-[72px] px-5 md:px-10 lg:px-28">
                                 <div className="flex flex-col gap-2">
                                     <span className="h3-new">Settings</span>
                                     <span className="p2-new text-black-700"> Review your data usage permissions</span>
                                 </div>
                                 {form?.settings?.provider !== 'self' && (
-                                    <div className="flex flex-col gap-4 max-w-[800px]">
+                                    <div className="flex max-w-[800px] flex-col gap-4">
                                         <Divider />
                                         <div className="h4-new">You can request for deletion of your data in this form.</div>
                                         <Divider />

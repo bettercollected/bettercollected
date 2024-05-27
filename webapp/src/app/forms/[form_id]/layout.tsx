@@ -7,7 +7,7 @@ import React, { Suspense } from 'react';
 
 export async function generateMetadata() {
     const domain = headers().get('x-forwarded-host') || headers().get('host') || '';
-    const workspaceResponse = await fetch(environments.INTERNAL_DOCKER_API_ENDPOINT_HOST + '/workspaces?custom_domain=' + domain);
+    const workspaceResponse = await fetch(environments.INTERNAL_DOCKER_API_ENDPOINT_HOST + '/workspaces?custom_domain=' + domain, { next: { revalidate: 300 } });
     const workspace = await workspaceResponse.json();
 
     return {

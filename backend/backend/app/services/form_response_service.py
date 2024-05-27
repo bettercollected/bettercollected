@@ -1,13 +1,21 @@
 import json
 from http import HTTPStatus
-from typing import List, Sequence
+from typing import List, Optional, Sequence
 
 from beanie import PydanticObjectId
+from beanie.odm.enums import SortDirection
+
 from common.constants import MESSAGE_FORBIDDEN, MESSAGE_NOT_FOUND
-from common.models.standard_form import StandardFormResponse, StandardFormResponseAnswer
+from common.models.standard_form import (
+    StandardFormResponse,
+    StandardFormResponseAnswer,
+    StandardFormField,
+    StandardFormFieldType,
+)
 from common.models.user import User
 from common.services.crypto_service import crypto_service
 from fastapi_pagination import Page
+from questionary import FormField
 
 from backend.app.constants.consents import default_consent_responses
 from backend.app.exceptions import HTTPException
@@ -121,11 +129,22 @@ class FormResponseService:
         form_responses = await self._form_response_repo.list(
             [form_id], request_for_deletion, filter_query, sort
         )
+        form = await FormDocument.find_one({"form_id": form_id})
+        file_fields = []
+        if form is not None:
+            file_fields = get_fields_of_type_file_upload(form)
 
         if not request_for_deletion:
-            return self.decrypt_response_page(
-                workspace_id=workspace_id, responses_page=form_responses
+            response_page = self.decrypt_response_page(
+                workspace_id=workspace_id,
+                responses_page=form_responses,
             )
+            for response in response_page.items:
+                if file_fields:
+                    response = self.generate_presigned_url_for_each_response(
+                        file_fields, response, workspace_id
+                    )
+            return response_page
         return form_responses
 
     async def get_workspace_form_all_submissions(
@@ -147,12 +166,20 @@ class FormResponseService:
         response = await FormResponseDocument.find_one({"response_id": response_id})
         if not response:
             raise HTTPException(HTTPStatus.NOT_FOUND, MESSAGE_NOT_FOUND)
-        form = await FormVersionsDocument.find_one(
-            {
-                "form_id": response.form_id,
-                "version": response.form_version if response.form_version else 1,
-            }
-        )
+        if response.form_version:
+            form = await FormVersionsDocument.find_one(
+                {
+                    "form_id": response.form_id,
+                    "version": response.form_version if response.form_version else 1,
+                }
+            )
+        else:
+            form = (
+                await FormVersionsDocument.find({"form_id": response.form_id})
+                .sort(("version", SortDirection.DESCENDING))
+                .first_or_none()
+            )
+            form = await FormDocument.find_one({"form_id": response.form_id})
         if not form:
             form = await FormDocument.find_one({"form_id": response.form_id})
         deletion_request = await FormResponseDeletionRequest.find_one(
@@ -261,7 +288,8 @@ class FormResponseService:
         responses_page: Page[StandardFormResponseCamelModel],
     ):
         responses_page.items = self.decrypt_form_responses(
-            workspace_id=workspace_id, responses=responses_page.items
+            workspace_id=workspace_id,
+            responses=responses_page.items,
         )
         return responses_page
 
@@ -283,7 +311,9 @@ class FormResponseService:
         return responses
 
     def decrypt_form_response(
-        self, workspace_id: PydanticObjectId, response: StandardFormResponseCamelModel
+        self,
+        workspace_id: PydanticObjectId,
+        response: StandardFormResponseCamelModel,
     ):
         if isinstance(response.answers, dict):
             return response
@@ -326,11 +356,17 @@ class FormResponseService:
         return updated_response.response_uuid
 
     async def delete_form_response(
-        self, form_id: PydanticObjectId, response_id: str
+        self,
+        form_id: PydanticObjectId,
+        response_id: str,
+        workspace_id: PydanticObjectId,
     ):
-        return await self._form_response_repo.delete_form_response(
+        await self._form_response_repo.delete_form_response(
             form_id=form_id, response_id=response_id
         )
+        prefix = f"private/{workspace_id}/{form_id}/{response_id}"
+        self._aws_service.delete_folder_from_s3(prefix)
+        return response_id
 
     async def delete_response(self, response_id: str):
         return await self._form_response_repo.delete_response(response_id=response_id)
@@ -391,3 +427,50 @@ class FormResponseService:
             provider=response.provider,
         ).save()
         pass
+
+    def generate_presigned_url_for_each_response(
+        self,
+        file_fields: List[StandardFormField],
+        response: StandardFormResponse,
+        workspace_id: PydanticObjectId,
+    ):
+        for field in file_fields:
+            file_answer = response.answers.get(field.id, {})
+            if file_answer and file_answer.get("file_metadata") is not None:
+                file_id = file_answer.get("file_metadata", {}).get("id", "")
+                private_key = f"private/{workspace_id}/{response.form_id}/{response.response_id}/{file_id}"
+                key_exists = self._aws_service.check_if_key_exists(private_key)
+                if key_exists:
+                    url = self._aws_service.generate_presigned_url(key=private_key)
+                else:
+                    key = file_answer.get("file_metadata", {}).get("id", "")
+                    url = (
+                        self._aws_service.generate_presigned_url(key=key) if key else ""
+                    )
+                response.answers[field.id]["file_metadata"]["url"] = url
+        return response
+
+
+def get_fields_from_form(form: StandardFormCamelModel) -> List[StandardFormField]:
+    fields = []
+    if form.builder_version == "v2":
+        for slide in form.fields:
+            for field in slide.properties.fields:
+                fields.append(field)
+    else:
+        for field in form.fields:
+            fields.append(field)
+    return fields
+
+
+def get_fields_of_type_file_upload(form: StandardFormCamelModel):
+    file_fields = []
+    form_fields = get_fields_from_form(form)
+    if form_fields:
+        for field in form_fields:
+            if (
+                field.type == StandardFormFieldType.FILE_UPLOAD
+                or field.type == StandardFormFieldType.INPUT_FILE_UPLOAD
+            ):
+                file_fields.append(field)
+    return file_fields
