@@ -101,7 +101,8 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
         const postBody = {
             form_id: standardForm?.formId,
             answers: formResponse.answers ?? {},
-            anonymize: formResponse.anonymize ?? false
+            anonymize: formResponse.anonymize ?? false,
+            form_version: standardForm?.version || 1
         };
 
         formData.append('response', JSON.stringify(postBody));

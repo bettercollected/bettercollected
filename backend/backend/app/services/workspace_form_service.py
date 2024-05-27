@@ -241,6 +241,7 @@ class WorkspaceFormService:
         await self.responder_groups_service.responder_groups_repo.delete_workspace_form_groups(
             form_id=form_id
         )
+        self._aws_service.delete_folder_from_s3(f"private/{workspace_id}/{form_id}")
 
         return "Form deleted from workspace."
 
@@ -439,14 +440,24 @@ class WorkspaceFormService:
         return await self.form_service.update_form(form_id=form_id, form=form)
 
     async def upload_files_to_s3_and_update_url(
-        self, form_files, response: StandardFormResponseCamelModel
+        self,
+        form_files,
+        response: StandardFormResponseCamelModel,
+        workspace_id: Optional[str] = "",
+        form_id: Optional[str] = "",
     ):
         for form_file in form_files:
-            await self._aws_service.upload_file_to_s3(
-                form_file.file.file, str(form_file.file_id), private=True
+            folder_name = (
+                f"private/{workspace_id}/{form_id}/{response.response_id}"
+                if workspace_id and form_id
+                else "private"
             )
-            # TODO handle this for both builder versions
-            # response.answers[form_file.field_id]["file_metadata"]["url"] = ""
+            await self._aws_service.upload_file_to_s3(
+                file=form_file.file.file,
+                key=str(form_file.file_id),
+                private=True,
+                folder_name=folder_name,
+            )
         return response
 
     async def patch_response(
@@ -504,10 +515,15 @@ class WorkspaceFormService:
         form_files: list[FormFileResponse] = None,
         anonymize: bool = False,
     ):
+        response.response_id = str(PydanticObjectId())
         if form_files:
             response = await self.upload_files_to_s3_and_update_url(
-                form_files, response
+                form_files,
+                response,
+                workspace_id=str(workspace_id),
+                form_id=str(form_id),
             )
+
         workspace_forms = (
             await self.workspace_form_repository.get_workspace_forms_in_workspace(
                 workspace_id=workspace_id,
@@ -570,7 +586,7 @@ class WorkspaceFormService:
             workspace_id=workspace_id, user=user
         )
         return await self.form_response_service.delete_form_response(
-            form_id=form_id, response_id=response_id
+            form_id=form_id, response_id=response_id, workspace_id=workspace_id
         )
 
     async def publish_form(
@@ -707,7 +723,6 @@ class WorkspaceFormService:
         await self.form_service.update_state_of_action_in_form(
             form_id=form_id, update_action_dto=update_action_dto
         )
-        
 
     def clean_and_normalize_string(self, input_string):
         # Remove special characters, keep only alphanumeric and spaces

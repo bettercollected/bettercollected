@@ -10,7 +10,7 @@ import { scrollToDivById } from '@app/utils/scrollUtils';
 import QuestionWrapper from './QuestionQwrapper';
 
 const MultipleChoiceField = ({ field, slideIndex }: { field: StandardFormFieldDto; slideIndex: number }) => {
-    const { addFieldChoiceAnswer, addOtherChoiceAnswer, formResponse } = useFormResponse();
+    const { addFieldChoiceAnswer, addOtherChoiceAnswer, formResponse, removeAnswer } = useFormResponse();
     const { theme } = useFormState();
 
     const standardForm = useAppSelector(selectForm);
@@ -45,6 +45,10 @@ const MultipleChoiceField = ({ field, slideIndex }: { field: StandardFormFieldDt
                         value={otherOption}
                         placeholder={`Other`}
                         onChange={(e: any) => {
+                            if (!e.target.value) {
+                                removeAnswer(field.id);
+                                return;
+                            }
                             addOtherChoiceAnswer(field.id, e.target.value);
                         }}
                         className={`flex justify-between rounded-xl border p-2 px-4 text-base`}

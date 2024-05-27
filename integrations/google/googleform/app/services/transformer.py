@@ -278,7 +278,7 @@ class GoogleFormTransformerService(FormTransformerService):
         try:
             google_response = GoogleFormResponseDto(**google_response_data)
             response = StandardFormResponse(
-                response_id=google_response.responseId,
+                response_id=str(PydanticObjectId()),
                 provider=FormProvider.GOOGLE,
                 respondent_email=google_response.respondentEmail,
                 created_at=google_response.createTime,
