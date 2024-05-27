@@ -49,7 +49,7 @@ export default function FieldSettings() {
             </div>
             {activeField?.type !== FieldTypes.TEXT && (
                 <div className="flex w-full items-center justify-between">
-                    <div className="text-black-700 text-xs">Required</div>
+                    <div className="text-black-700 text-xs mr-4">{activeField?.type === FieldTypes.MATRIX ? 'Require a response in each row' : 'Required'}</div>
                     <Switch
                         checked={activeField?.validations?.required || false}
                         onCheckedChange={(checked) => {

@@ -14,7 +14,7 @@ export function getHtmlFromJson(value: JSONContent | string | undefined) {
 }
 
 export function extractTextfromJSON(field: StandardFormFieldDto): string {
-    const htmlValue = getHtmlFromJson(field.title) ?? getPlaceholderValueForTitle(field.type || FieldTypes.TEXT);
+    const htmlValue = getHtmlFromJson(field.title) || getPlaceholderValueForTitle(field.type || FieldTypes.TEXT);
     // .replace(/<[^>]+>/g, ' ')
     return htmlValue.replace(/<\/?[^>]+(>|$)/g, '');
 }

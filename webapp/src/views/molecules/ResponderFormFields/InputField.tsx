@@ -16,6 +16,7 @@ export default function InputField({ field }: { field: StandardFormFieldDto }) {
     const form: StandardFormDto = useAppSelector(selectForm);
     const { currentSlide } = useResponderState();
     const handleChange = (value: any) => {
+        console.log('value', value);
         if (!value) {
             removeAnswer(field.id);
             return;
