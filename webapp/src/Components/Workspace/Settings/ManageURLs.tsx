@@ -15,7 +15,7 @@ import { useModal } from '@app/components/modal-views/context';
 import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
 import environments from '@app/configs/environments';
 import { useCopyToClipboard } from '@app/lib/hooks/use-copy-to-clipboard';
-import { selectIsAdmin, selectIsProPlan } from '@app/store/auth/slice';
+import { selectAuth, selectIsAdmin, selectIsProPlan } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { ProLogo } from '@app/components/ui/logo';
@@ -25,6 +25,7 @@ export default function ManageURLs() {
     const workspace = useAppSelector(selectWorkspace);
     const { openModal } = useModal();
     const { openModal: openFullScreenModal } = useFullScreenModal();
+    const auth = useAppSelector(selectAuth);
 
     const isAdmin = useAppSelector(selectIsAdmin);
 
@@ -38,6 +39,8 @@ export default function ManageURLs() {
                 <div className="flex flex-col gap-6 md:flex-row">
                     <span className="p2-new text-black-700">{t('WORKSPACE.SETTINGS.URLS.DESCRIPTION')}</span>
                     <AppButton
+                        data-umami-event="Customize Workspace Link"
+                        data-umami-event-email={auth.email}
                         icon={<EditIcon />}
                         variant={ButtonVariant.Ghost}
                         onClick={() => {
@@ -57,6 +60,8 @@ export default function ManageURLs() {
                     </span>
                     <div>
                         <AppButton
+                            data-umami-event="Copy Default Workspace Link From Workspace Setting"
+                            data-umami-event-email={auth.email}
                             size={ButtonSize.Tiny}
                             variant={ButtonVariant.Ghost}
                             icon={<CopyIcon width={16} height={16} />}
