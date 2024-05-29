@@ -164,7 +164,7 @@ const nextConfig = {
 
         //unami
         UMAMI_SCRIPT_URL: process.env.UMAMI_SCRIPT_URL,
-        UMAMI_WEBSITE_ID: process.env.UMAMI_WEBSITE_ID,
+        NEXT_PUBLIC_UMAMI_WEBSITE_ID: process.env.NEXT_PUBLIC_UMAMI_WEBSITE_ID,
 
         //integrations
         ENABLE_ACTIONS: process.env.ENABLE_ACTIONS,

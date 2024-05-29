@@ -25,6 +25,8 @@ import WelcomePage from '@app/views/organism/Form/WelcomePage';
 import LayoutWrapper from '@app/views/organism/Layout/LayoutWrapper';
 import useDrivePicker from '@fyelci/react-google-drive-picker';
 import globalConstants from '@app/constants/global';
+import { selectAuthStatus } from '@app/store/auth/selectors';
+import { useAuthAtom } from '@app/store/jotai/auth';
 
 const CardVariants = {
     blue: 'text-blue-500 hover:bg-blue-100 transition hover:border-blue-100',
@@ -41,6 +43,7 @@ export default function CreateFormPage({ searchParams }: { searchParams: { modal
     const { openModal } = useModal();
     const { openDialogModal } = useDialogModal();
     const isMobile = useIsMobile();
+    const { authState } = useAuthAtom();
 
     const showModal = searchParams.modal;
 
@@ -126,17 +129,24 @@ export default function CreateFormPage({ searchParams }: { searchParams: { modal
                             <div className="h3-new text-black-800 mb-4 mt-12">Templates</div>
                             <div className="flex w-full flex-row flex-wrap gap-x-6 gap-y-10  ">
                                 {templates?.map((template) => (
-                                    <div className="flex flex-col rounded-lg border border-transparent" key={template?.id}>
-                                        <div className="border-black-200 relative  h-[157px] w-[281px] cursor-pointer  overflow-hidden rounded-md border" onClick={() => createFormFromTemplate(template.id)}>
-                                            <div className="pointer-events-none h-[810px] w-[1440px] scale-[0.195]" style={{ transformOrigin: 'top left' }}>
-                                                <LayoutWrapper showDesktopLayout theme={template?.theme} disabled layout={template.welcomePage?.layout} imageUrl={template?.welcomePage?.imageUrl}>
-                                                    <WelcomePage isPreviewMode theme={template?.theme} welcomePageData={template?.welcomePage} />
-                                                </LayoutWrapper>
+                                    <button key={template?.id} className="outline-none" data-umami-event={'Create Form With Template'} data-umami-event-email={authState.email}>
+                                        <div className="flex flex-col rounded-lg border border-transparent">
+                                            <div
+                                                data-umami-event={'Create Form With Template'}
+                                                data-umami-event-email={authState.email}
+                                                className="border-black-200 relative  h-[157px] w-[281px] cursor-pointer  overflow-hidden rounded-md border"
+                                                onClick={() => createFormFromTemplate(template.id)}
+                                            >
+                                                <div className="pointer-events-none h-[810px] w-[1440px] scale-[0.195]" style={{ transformOrigin: 'top left' }}>
+                                                    <LayoutWrapper showDesktopLayout theme={template?.theme} disabled layout={template.welcomePage?.layout} imageUrl={template?.welcomePage?.imageUrl}>
+                                                        <WelcomePage isPreviewMode theme={template?.theme} welcomePageData={template?.welcomePage} />
+                                                    </LayoutWrapper>
+                                                </div>
+                                                <div className="bg-black-800 absolute inset-0 z-10 opacity-0 hover:opacity-20" />
                                             </div>
-                                            <div className="bg-black-800 absolute inset-0 z-10 opacity-0 hover:opacity-20" />
+                                            <div className="p2-new mt-2 !font-medium">{template.title}</div>
                                         </div>
-                                        <div className="p2-new mt-2 !font-medium">{template.title}</div>
-                                    </div>
+                                    </button>
                                 ))}
                             </div>
                         </>
@@ -150,15 +160,22 @@ export default function CreateFormPage({ searchParams }: { searchParams: { modal
 interface CardWrapperProps {
     icon: React.ReactNode;
     content: React.ReactNode;
-    onClick: React.MouseEventHandler<HTMLDivElement>;
+    onClick: any;
     variant: 'blue' | 'purple' | 'pink';
     addSoon?: boolean;
     soonMsg?: string;
 }
 
 const Card = ({ icon, content, onClick, variant, addSoon, soonMsg }: CardWrapperProps) => {
+    const { authState } = useAuthAtom();
+
     return (
-        <div className={cn('border-black-300 relative flex h-[170px] w-full cursor-pointer flex-col items-center justify-center overflow-hidden rounded-lg border bg-white lg:h-[117px] lg:w-[220px]', CardVariants[variant])} onClick={onClick}>
+        <div
+            data-umami-event={content}
+            data-umami-event-email={authState.email}
+            className={cn('border-black-300 relative flex h-[170px] w-full cursor-pointer flex-col items-center justify-center overflow-hidden rounded-lg border bg-white lg:h-[117px] lg:w-[220px]', CardVariants[variant])}
+            onClick={onClick}
+        >
             {icon}
             <span className="p3-new text-black-800 mb-1 mt-2">{content}</span>
             {content !== 'Import Google Form' && <OnlyAvailableInDesktopVersion />}

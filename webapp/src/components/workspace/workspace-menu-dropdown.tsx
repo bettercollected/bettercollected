@@ -20,7 +20,7 @@ import { Features } from '@app/constants/locales/feature';
 import { menuDropdown } from '@app/constants/locales/menu-dropdown';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { selectAuthStatus } from '@app/store/auth/selectors';
-import { selectIsProPlan } from '@app/store/auth/slice';
+import { selectAuth, selectIsProPlan } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { useGetAllMineWorkspacesQuery } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
@@ -47,6 +47,7 @@ function WorkspaceMenuDropdown({ fullWidth }: IWorkspaceMenuDropdownProps) {
         if (!space?.disabled) router.push(`/${space.workspaceName}/dashboard/forms`);
     };
     const auth = useAppSelector(selectAuthStatus);
+    const user = useAppSelector(selectAuth);
 
     const handleCreateWorkspace = () => {
         if (!enableCreateWorkspaceButton() || !isProPlan) {
@@ -168,6 +169,8 @@ function WorkspaceMenuDropdown({ fullWidth }: IWorkspaceMenuDropdownProps) {
                     <div>
                         <ListItem onClick={redirectToUpgradeIfNotProPlan} disablePadding alignItems="center" className={``}>
                             <IconButton
+                                data-umami-event={'Create New Workspace Button'}
+                                data-umami-event-email={user.email}
                                 className={`hover:bg-brand-100 rounded px-5 py-3 hover:rounded-none ${fullWidth ? 'flex w-full justify-between' : 'w-fit'} ${
                                     !enableCreateWorkspaceButton() && isProPlan ? '!text-black-500 cursor-not-allowed' : '!text-black-800'
                                 }`}

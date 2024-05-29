@@ -16,6 +16,7 @@ class MyDocument extends Document {
                     {embedScript()}
                     {embedMicrosoftClarityScript()}
                     {environments.NEXT_PUBLIC_NODE_ENV === 'production' && environments.UMAMI_WEBSITE_ID && environments.UMAMI_SCRIPT_URL && <script async src={environments.UMAMI_SCRIPT_URL} data-website-id={environments.UMAMI_WEBSITE_ID} />}
+                    <script defer src="/script.js" data-website-id="6fb3ef1c-ccf8-4829-b1f6-7a9cea4edeea"></script>
                 </Head>
                 <body>
                     <Main />

@@ -18,6 +18,7 @@ import { MobileIcon } from '@app/views/atoms/Icons/MobileIcon';
 import ShareIcon from '@app/views/atoms/Icons/ShareIcon';
 import { useTranslation } from 'next-i18next';
 import PublishButton from './PublishButton';
+import { useAuthAtom } from '@app/store/jotai/auth';
 
 const PreviewWrapper = ({ children, handleResetResponderState }: { children: React.ReactNode; handleResetResponderState: () => void }) => {
     const [key, setKey] = useState(1);
@@ -29,6 +30,7 @@ const PreviewWrapper = ({ children, handleResetResponderState }: { children: Rea
     const isMobile = useIsMobile();
     const { openModal } = useModal();
     const { setResponderState, responderState } = useResponderState();
+    const { authState } = useAuthAtom();
 
     useEffect(() => {
         setIFrameLoaded(false);
@@ -49,10 +51,12 @@ const PreviewWrapper = ({ children, handleResetResponderState }: { children: Rea
                         <DesktopIcon />
                         Desktop
                     </div>
-                    <div onClick={() => setIsDesktopView(false)} className={cn('flex cursor-pointer items-center gap-1 p-2 text-xs', isDesktopView ? 'text-black-500' : 'bg-black-200 text-black-800 rounded-lg p-2')}>
-                        <MobileIcon />
-                        Mobile
-                    </div>
+                    <button data-umami-event={'Preview in Mobile View Button'} data-umami-event-email={authState.email}>
+                        <div onClick={() => setIsDesktopView(false)} className={cn('flex cursor-pointer items-center gap-1 p-2 text-xs', isDesktopView ? 'text-black-500' : 'bg-black-200 text-black-800 rounded-lg p-2')}>
+                            <MobileIcon />
+                            Mobile
+                        </div>
+                    </button>
                 </div>
                 <div className=" hidden gap-2 lg:flex">
                     <Button
@@ -91,6 +95,7 @@ const PreviewWrapper = ({ children, handleResetResponderState }: { children: Rea
                         {/* <div className="flex justify-center gap-4">
                             {standardForm.fields.map((_, index: number) => (
                                 <span
+                                    key={index}
                                     onClick={() => setResponderState({ ...responderState, currentSlide: index, currentField: 0 })}
                                     className="cursor-pointer rounded px-4 py-1 text-white active:brightness-90"
                                     style={{ background: standardForm.theme?.secondary }}

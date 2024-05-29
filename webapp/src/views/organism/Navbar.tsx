@@ -201,24 +201,28 @@ const Navbar = () => {
                     </AnimatePresence>
                 </DropdownMenu>
                 <DropdownMenu>
-                    <DropdownMenu.Trigger onClick={handleAddText}>
-                        <div className={'flex items-center hover:bg-inherit'}>
-                            <div className="!text-black-500 hover:!text-black-900 flex flex-row items-center gap-1 text-xs font-semibold ">
-                                <HeadingOutlinedIcon />
-                                <span>Heading</span>
+                    <button data-umami-event={'Add Heading Button'} data-umami-event-email={authState.email}>
+                        <DropdownMenu.Trigger onClick={handleAddText}>
+                            <div className={'flex items-center hover:bg-inherit'}>
+                                <div className="!text-black-500 hover:!text-black-900 flex flex-row items-center gap-1 text-xs font-semibold ">
+                                    <HeadingOutlinedIcon />
+                                    <span>Heading</span>
+                                </div>
                             </div>
-                        </div>
-                    </DropdownMenu.Trigger>
+                        </DropdownMenu.Trigger>
+                    </button>
                 </DropdownMenu>
                 <DropdownMenu>
-                    <DropdownMenu.Trigger onClick={handleClickMedia}>
-                        <div className={'flex items-center hover:bg-inherit'}>
-                            <div className="!text-black-500 hover:!text-black-900 flex flex-row items-center gap-1 text-xs font-semibold ">
-                                <MediaOutlinedIcon />
-                                Layout Image
+                    <button data-umami-event={'Add Layout Image Button'} data-umami-event-email={authState.email}>
+                        <DropdownMenu.Trigger onClick={handleClickMedia}>
+                            <div className={'flex items-center hover:bg-inherit'}>
+                                <div className="!text-black-500 hover:!text-black-900 flex flex-row items-center gap-1 text-xs font-semibold ">
+                                    <MediaOutlinedIcon />
+                                    Layout Image
+                                </div>
                             </div>
-                        </div>
-                    </DropdownMenu.Trigger>
+                        </DropdownMenu.Trigger>
+                    </button>
                 </DropdownMenu>
 
                 <DropdownMenu>
@@ -237,7 +241,7 @@ const Navbar = () => {
             <div className={'flex flex-1 items-center justify-end  gap-2'}>
                 <Sheet>
                     <SheetTrigger asChild>
-                        <Button icon={<PlayIcon />} variant={'v2Button'}>
+                        <Button icon={<PlayIcon />} variant={'v2Button'} data-umami-event={`Preview Button`} data-umami-event-email={authState.email}>
                             Preview
                         </Button>
                     </SheetTrigger>

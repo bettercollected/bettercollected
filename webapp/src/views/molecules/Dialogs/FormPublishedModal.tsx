@@ -8,11 +8,13 @@ import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import GreenCheckedCircle from '@app/views/atoms/Icons/GreenCheckedCircle';
 import getFormShareURL from '@app/utils/formUtils';
+import { useAuthAtom } from '@app/store/jotai/auth';
 
 export default function FormPublishedModal(props: any) {
     const workspace = useAppSelector(selectWorkspace);
 
     const standardForm = useAppSelector(selectForm);
+    const { authState } = useAuthAtom();
 
     return (
         <div className="w-full">
@@ -34,6 +36,8 @@ export default function FormPublishedModal(props: any) {
                         <span className="text-pink-500">{standardForm.settings?.customUrl}</span>
                     </div>
                     <Button
+                        data-umami-event={'PublishModal Copy Button'}
+                        data-umami-event-email={authState.email}
                         variant={'v2Button'}
                         onClick={() => {
                             navigator.clipboard.writeText(getFormShareURL(standardForm, workspace));
@@ -47,15 +51,19 @@ export default function FormPublishedModal(props: any) {
                     <span className="h5-new">What’s Next?</span>
                     <span className="p4-new break-words text-center">
                         Add your custom domain, add integration or change form privacy,{' '}
-                        <a href={`${environments.HTTP_SCHEME}${environments.DASHBOARD_DOMAIN}/${workspace.workspaceName}/dashboard/forms/${standardForm.formId}?view=FormLinks`} className="text-blue-500">
-                            Go to form settings
-                        </a>
+                        <button data-umami-event={'PublishModal Goto Settings Link'} data-umami-event-email={authState.email}>
+                            <a href={`${environments.HTTP_SCHEME}${environments.DASHBOARD_DOMAIN}/${workspace.workspaceName}/dashboard/forms/${standardForm.formId}?view=FormLinks`} className="text-blue-500">
+                                Go to form settings
+                            </a>
+                        </button>
                     </span>
                 </div>
                 <div className="mb-5 mt-5">
-                    <a href={`${environments.HTTP_SCHEME}${environments.DASHBOARD_DOMAIN}/${workspace.workspaceName}/dashboard/forms`}>
-                        <Button size={ButtonSize.Medium}>Done! Go to dashboard</Button>
-                    </a>
+                    <button data-umami-event={'PublishModal Goto Dashboard Link'} data-umami-event-email={authState.email}>
+                        <a href={`${environments.HTTP_SCHEME}${environments.DASHBOARD_DOMAIN}/${workspace.workspaceName}/dashboard/forms`}>
+                            <Button size={ButtonSize.Medium}>Done! Go to dashboard</Button>
+                        </a>
+                    </button>
                 </div>
             </div>
         </div>

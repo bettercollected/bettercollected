@@ -14,10 +14,11 @@ import { placeHolder } from '@app/constants/locales/placeholder';
 import { toastMessage } from '@app/constants/locales/toast-message';
 import { ToastId } from '@app/constants/toastId';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
-import { useAppDispatch } from '@app/store/hooks';
+import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { usePatchExistingWorkspaceMutation } from '@app/store/workspaces/api';
 import { setWorkspace } from '@app/store/workspaces/slice';
 import { TextareaAutosize } from '@mui/material';
+import { selectAuth } from '@app/store/auth/slice';
 
 export default function WorkspaceInfo({ workspace }: { workspace: WorkspaceDto }) {
     const dispatch = useAppDispatch();
@@ -30,6 +31,7 @@ export default function WorkspaceInfo({ workspace }: { workspace: WorkspaceDto }
         privacy_policy: workspace.privacyPolicy || environments.PRIVACY_POLICY_URL,
         terms_of_service: workspace.termsOfService || environments.TERMS_OF_SERVICE_URL
     });
+    const auth = useAppSelector(selectAuth);
 
     const onChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         if (e.target.name === 'description') {
@@ -116,7 +118,16 @@ export default function WorkspaceInfo({ workspace }: { workspace: WorkspaceDto }
                 <AppTextField fullWidth onChange={onChange} value={workspaceInfo.terms_of_service} name="terms_of_service" placeholder={'Privacy Policy URL'} />
             </div>
 
-            <AppButton className="mt-4 w-full" type="submit" size={ButtonSize.Medium} variant={ButtonVariant.Secondary} disabled={!workspaceInfo.title} isLoading={isLoading}>
+            <AppButton
+                data-umami-event="Update Workspace Info From Workspace Settings"
+                data-umami-event-email={auth.email}
+                className="mt-4 w-full"
+                type="submit"
+                size={ButtonSize.Medium}
+                variant={ButtonVariant.Secondary}
+                disabled={!workspaceInfo.title}
+                isLoading={isLoading}
+            >
                 {t('BUTTON.SAVE_CHANGES')}
             </AppButton>
         </form>

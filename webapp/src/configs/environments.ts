@@ -66,7 +66,7 @@ const environments = {
     APM_ENABLED: publicRuntimeConfig.ELASTIC_APM_SERVER_URL && publicRuntimeConfig.ELASTIC_APM_SERVICE_NAME,
 
     //umani
-    UMAMI_WEBSITE_ID: publicRuntimeConfig.UMAMI_WEBSITE_ID,
+    UMAMI_WEBSITE_ID: publicRuntimeConfig.NEXT_PUBLIC_UMAMI_WEBSITE_ID,
     UMAMI_SCRIPT_URL: publicRuntimeConfig.UMAMI_SCRIPT_URL,
 
     ENABLE_ACTIONS: publicRuntimeConfig.ENABLE_ACTIONS && (publicRuntimeConfig.ENABLE_ACTIONS === 'true' || publicRuntimeConfig.ENABLE_ACTIONS === true),
