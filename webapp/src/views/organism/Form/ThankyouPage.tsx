@@ -30,10 +30,7 @@ export default function ThankyouPage({ isPreviewMode }: { isPreviewMode: boolean
         });
     };
     return (
-        <div
-            className={cn('flex h-full w-full flex-col justify-center', standardForm?.thankyouPage![0]?.layout === FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND_LEFT_ALIGN ? 'items-start' : 'items-center')}
-            style={{ background: standardForm.theme?.accent }}
-        >
+        <div className={cn('flex h-full w-full flex-col justify-center bg-inherit', standardForm?.thankyouPage![0]?.layout === FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND_LEFT_ALIGN ? 'items-start' : 'items-center')}>
             <UserAvatarDropDown disabled />
             <div className=" flex h-full w-full max-w-[800px] flex-col justify-between">
                 {/* <div className=""> */}
