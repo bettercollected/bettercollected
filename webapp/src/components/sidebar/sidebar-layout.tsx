@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, {  } from 'react';
 
 import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/router';
@@ -9,7 +9,7 @@ import MembersIcon from '@Components/Common/Icons/Dashboard/Members';
 import ResponderIcon from '@Components/Common/Icons/Dashboard/Responder';
 import { FormIcon } from '@Components/Common/Icons/Form/FormIcon';
 import { useBottomSheetModal } from '@Components/Modals/Contexts/BottomSheetModalContext';
-import { Box, MenuItem } from '@mui/material';
+import { Box } from '@mui/material';
 import cn from 'classnames';
 import { AnimatePresence, motion } from 'framer-motion';
 
@@ -28,15 +28,9 @@ import { INavbarItem } from '@app/models/props/navbar';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { selectAuth } from '@app/store/auth/slice';
-import MenuDropdown from '@Components/Common/Navigation/MenuDropdown/MenuDropdown';
-import { Popover, PopoverContent, PopoverTrigger } from '@app/shadcn/components/ui/popover';
-import AnchorLink from '../ui/links/anchor-link';
 import FloatingPopOverButton from './FloatingPopOverButton';
-import WhatsNewIcon from './Icons/WhatsNewIcon';
-import ReportProblemIcon from './Icons/ReportProblemIcon';
-import RequestFeatureIcon from './Icons/RequestFeatureIcon';
-import ContactSupportIcon from './Icons/ContactSupportIcon';
 import HelpMenuComponent from './HelpMenuComponent';
+import HelpMenuItem from './HelpMenuItem';
 
 interface ISidebarLayout {
     children: any;
@@ -154,22 +148,7 @@ export default function SidebarLayout({ children, DrawerComponent = DashboardDra
                             <div className={cn('bg-black-100 h-full w-full', boxClassName)}>{children}</div>
                         </motion.div>
                         <FloatingPopOverButton content={<HelpMenuComponent />}>
-                            <MenuItemWrapper href="https://bettercollected.com/whats-new/">
-                                <WhatsNewIcon />
-                                What's New
-                            </MenuItemWrapper>
-                            <MenuItemWrapper href="https://forms.bettercollected.com/support/forms/report-problem">
-                                <ReportProblemIcon />
-                                Report Problem
-                            </MenuItemWrapper>
-                            <MenuItemWrapper href="https://forms.bettercollected.com/support/forms/feature-request">
-                                <RequestFeatureIcon />
-                                Request Feature
-                            </MenuItemWrapper>{' '}
-                            <MenuItemWrapper href="https://forms.bettercollected.com/support/forms/contact">
-                                <ContactSupportIcon />
-                                Contact Support
-                            </MenuItemWrapper>
+                            <HelpMenuItem />
                         </FloatingPopOverButton>
                     </div>
                 </Box>
@@ -177,11 +156,3 @@ export default function SidebarLayout({ children, DrawerComponent = DashboardDra
         </AnimatePresence>
     );
 }
-
-const MenuItemWrapper = ({ children, href }: { children: any; href: string }) => {
-    return (
-        <AnchorLink href={href} target="_blank" key={href}>
-            <div className="hover:bg-black-200 hover:text-black-800 flex w-full items-center justify-start gap-2 rounded-lg p-2">{children}</div>
-        </AnchorLink>
-    );
-};
