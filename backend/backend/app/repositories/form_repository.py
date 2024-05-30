@@ -164,23 +164,37 @@ class FormRepository:
         ]
         get_action_aggregation = [
             {
-                 "$lookup": {
+                "$lookup": {
                     "from": "forms",
                     "localField": "form_id",
                     "foreignField": "form_id",
                     "as": "form",
                 }
             },
-            {
-                "$unwind": "$form"
-            },
+            {"$unwind": "$form"},
             {
                 "$set": {
                     "actions": "$form.actions",
                     "parameters": "$form.parameters",
-                    "secrets":"$form.secrets"
+                    "secrets": "$form.secrets",
                 }
-            }
+            },
+            {
+                "$lookup": {
+                    "from": "responder_group_form",
+                    "localField": "form_id",
+                    "foreignField": "form_id",
+                    "as": "form_groups",
+                }
+            },
+            {
+                "$lookup": {
+                    "from": "responder_group",
+                    "localField": "form_groups.group_id",
+                    "foreignField": "_id",
+                    "as": "groups",
+                }
+            },
         ]
         if get_actions:
             aggregation_pipeline.extend(get_action_aggregation)
