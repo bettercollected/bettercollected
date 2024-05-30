@@ -23,7 +23,7 @@ import { handleRegexType } from '@app/models/enums/groupRegex';
 import { useAppSelector } from '@app/store/hooks';
 import { useCreateRespondersGroupMutation } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
-
+import { selectAuth } from '@app/store/auth/slice';
 
 export default function CreateGroupModal() {
     const router = useRouter();
@@ -32,6 +32,7 @@ export default function CreateGroupModal() {
     const { t } = useTranslation();
     const { closeModal } = useModal();
     const workspace: WorkspaceDto = useAppSelector(selectWorkspace);
+    const authState = useAppSelector(selectAuth);
     const [groupInfo, setGroupInfo] = useState<GroupInfoDto>({
         name: '',
         description: '',
@@ -112,14 +113,21 @@ export default function CreateGroupModal() {
             </div>
             <div className="flex flex-col md:max-w-[700px] xl:max-w-[1000px]">
                 <div className="md:max-w-[618px]">
-                    <div className="flex flex-col pt-16 gap-12">
+                    <div className="flex flex-col gap-12 pt-16">
                         <GroupInfo handleInput={handleInput} groupInfo={groupInfo} />
                         <div>
                             <RegexCard handleRegex={handleRegex} regex={groupInfo.regex} />
                             {groupInfo.emails && <GroupMember emails={groupInfo.emails} handleAddMembers={handleAddMembers} handleRemoveMember={handleRemoveMember} />}
                         </div>
                         <div>
-                            <AppButton isLoading={isLoading} variant={ButtonVariant.Secondary} disabled={!groupInfo.name || (groupInfo.emails?.length === 0 && groupInfo.regex?.length === 0)} onClick={handleCreateGroup}>
+                            <AppButton
+                                data-umami-event={'Add New Group Button'}
+                                data-umami-event-email={authState.email}
+                                isLoading={isLoading}
+                                variant={ButtonVariant.Secondary}
+                                disabled={!groupInfo.name || (groupInfo.emails?.length === 0 && groupInfo.regex?.length === 0)}
+                                onClick={handleCreateGroup}
+                            >
                                 {t(buttonConstant.saveGroup)}
                             </AppButton>
                         </div>
