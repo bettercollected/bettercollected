@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {  } from 'react';
 
 import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/router';
@@ -28,6 +28,9 @@ import { INavbarItem } from '@app/models/props/navbar';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { selectAuth } from '@app/store/auth/slice';
+import FloatingPopOverButton from './FloatingPopOverButton';
+import HelpMenuComponent from './HelpMenuComponent';
+import HelpMenuItem from './HelpMenuItem';
 
 interface ISidebarLayout {
     children: any;
@@ -130,6 +133,7 @@ export default function SidebarLayout({ children, DrawerComponent = DashboardDra
                                 <AuthAccountMenuDropdown hideMenu={false} isClientDomain={false} />
                             </div>
                         </div>
+
                         <motion.div
                             initial={{ x: 0, opacity: 0 }}
                             animate={{ x: 0, opacity: 1 }}
@@ -143,6 +147,9 @@ export default function SidebarLayout({ children, DrawerComponent = DashboardDra
                         >
                             <div className={cn('bg-black-100 h-full w-full', boxClassName)}>{children}</div>
                         </motion.div>
+                        <FloatingPopOverButton content={<HelpMenuComponent />}>
+                            <HelpMenuItem />
+                        </FloatingPopOverButton>
                     </div>
                 </Box>
             </div>
