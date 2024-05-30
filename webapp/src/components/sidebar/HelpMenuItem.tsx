@@ -9,7 +9,7 @@ const HelpMenuItem = () => {
         <>
             <MenuItemWrapper href="https://bettercollected.com/whats-new/">
                 <WhatsNewIcon />
-                What's New
+                What&apos;s New
             </MenuItemWrapper>
             <MenuItemWrapper href="https://forms.bettercollected.com/support/forms/report-problem">
                 <ReportProblemIcon />
