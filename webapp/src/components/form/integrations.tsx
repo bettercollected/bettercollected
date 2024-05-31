@@ -13,6 +13,7 @@ import { useGetAllIntegrationsQuery, useRemoveActionFromFormMutation, useUpdateA
 import { selectForm, setForm } from '@app/store/forms/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
+import { selectAuth } from '@app/store/auth/slice';
 
 export default function FormIntegrations() {
     const { data } = useGetAllIntegrationsQuery({});
@@ -21,6 +22,7 @@ export default function FormIntegrations() {
     const form = useAppSelector(selectForm);
     const dispatch = useAppDispatch();
     const { openModal } = useModal();
+    const auth = useAppSelector(selectAuth);
 
     const router = useRouter();
 
@@ -121,6 +123,8 @@ export default function FormIntegrations() {
                                     </div>
                                     <div>
                                         <AppButton
+                                            data-umami-event="Add Integrations Button"
+                                            data-umami-event-email={auth.email}
                                             variant={ButtonVariant.Ghost}
                                             onClick={() => {
                                                 openModal('ADD_ACTION_TO_FORM', { action: integration, form: form });

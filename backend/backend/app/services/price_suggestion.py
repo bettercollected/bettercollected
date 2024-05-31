@@ -5,11 +5,11 @@ from common.enums.plan import Plans
 from common.models.user import User
 
 from backend.app.exceptions import HTTPException
-from backend.app.models.dtos.kafka_event_dto import UserEventType
+from backend.app.models.dtos.brevo_event_dto import UserEventType
 from backend.app.models.dtos.price_suggestion import PriceSuggestionRequest
 from backend.app.schemas.price_suggestion import PriceSuggestion
 from backend.app.services.auth_service import AuthService
-from backend.app.services.kafka_service import event_logger_service
+from backend.app.services.brevo_service import event_logger_service
 from backend.app.services.workspace_service import WorkspaceService
 
 

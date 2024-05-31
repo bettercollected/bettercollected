@@ -3,6 +3,7 @@ import { Button } from '@app/shadcn/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@app/shadcn/components/ui/collapsible';
 import { cn } from '@app/shadcn/util/lib';
 import { useAppSelector } from '@app/store/hooks';
+import { useAuthAtom } from '@app/store/jotai/auth';
 import { useCreateFormWithAIMutation } from '@app/store/redux/formApi';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { ChevronDown } from '@app/views/atoms/Icons/ChevronDown';
@@ -60,6 +61,7 @@ export default function StartWithAi() {
     const workspace = useAppSelector(selectWorkspace);
     const [generateWithAI, { isLoading }] = useCreateFormWithAIMutation();
     const [isGenerationStarted, setIsGenerationStarted] = useState(false);
+    const { authState } = useAuthAtom();
 
     const router = useRouter();
     const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -136,7 +138,7 @@ export default function StartWithAi() {
                             </CollapsibleContent>
                         </Collapsible>
                     </div>
-                    <GenerateButton className="group" size={ButtonSize.Medium} variant={'primary'} type="submit">
+                    <GenerateButton data-umami-event={'Creating Form with AI'} data-umami-event-email={authState.email} className="group" size={ButtonSize.Medium} variant={'primary'} type="submit">
                         <div className="z-10 flex items-center gap-2">
                             <AIIcon className="transition-all group-hover:scale-125" />
                             Generate

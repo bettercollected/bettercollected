@@ -10,6 +10,7 @@ import { IFormTemplateDto } from '@app/store/redux/types';
 import WelcomePage from '@app/views/organism/Form/WelcomePage';
 import FormSlidePreview from '@app/views/organism/FormPreview/FormSlidePreview';
 import LayoutWrapper from '@app/views/organism/Layout/LayoutWrapper';
+import { useAuthAtom } from '@app/store/jotai/auth';
 
 export default function TemplateTab({ closePopover }: { closePopover: () => void }) {
     const [selectedTemplate, setSelectedTemplate] = useState<IFormTemplateDto | undefined>();
@@ -17,6 +18,7 @@ export default function TemplateTab({ closePopover }: { closePopover: () => void
     const { addSlideFormTemplate } = useFormFieldsAtom();
     const { theme } = useFormState();
     const { data: templates } = useGetTemplatesQuery({ v2: true });
+    const { authState } = useAuthAtom();
 
     return (
         <>
@@ -35,22 +37,23 @@ export default function TemplateTab({ closePopover }: { closePopover: () => void
                     <ScrollArea className="h-[495px] overflow-auto">
                         <div className="flex !h-full w-full flex-row flex-wrap gap-2 overflow-auto">
                             {selectedTemplate?.fields?.map((slide, index) => (
-                                <div
-                                    onClick={() => {
-                                        addSlideFormTemplate(slide);
-                                        closePopover();
-                                    }}
-                                    className="mb-2 flex w-min cursor-pointer flex-col  rounded-lg border border-transparent p-1"
-                                    key={slide?.id}
-                                >
-                                    <div className="border-black-300 relative aspect-video w-[160px] overflow-hidden rounded-md border">
-                                        <div className="pointer-events-none h-[720px] w-[1280px] scale-[0.125]" style={{ transformOrigin: 'top left' }}>
-                                            <FormSlidePreview slide={slide} theme={theme} />
+                                <button key={slide?.id} data-umami-event={'Add Page From Template Button'} data-umami-event-email={authState.email}>
+                                    <div
+                                        onClick={() => {
+                                            addSlideFormTemplate(slide);
+                                            closePopover();
+                                        }}
+                                        className="mb-2 flex w-min cursor-pointer flex-col  rounded-lg border border-transparent p-1"
+                                    >
+                                        <div className="border-black-300 relative aspect-video w-[160px] overflow-hidden rounded-md border">
+                                            <div className="pointer-events-none h-[720px] w-[1280px] scale-[0.125]" style={{ transformOrigin: 'top left' }}>
+                                                <FormSlidePreview slide={slide} theme={theme} />
+                                            </div>
+                                            <div className="absolute inset-0 z-10 bg-transparent transition-all hover:bg-[#00000026]"></div>
                                         </div>
-                                        <div className="absolute inset-0 z-10 bg-transparent transition-all hover:bg-[#00000026]"></div>
+                                        <span className="text-black-600 text-[10px]">Page {index + 1}</span>
                                     </div>
-                                    <span className="text-black-600 text-[10px]">Page {index + 1}</span>
-                                </div>
+                                </button>
                             ))}
                         </div>
                     </ScrollArea>

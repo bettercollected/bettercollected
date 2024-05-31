@@ -1,4 +1,3 @@
-import React from 'react';
 
 import { useTranslation } from 'next-i18next';
 
@@ -8,7 +7,7 @@ import ModalButton from '@Components/Common/Input/Button/ModalButton';
 
 import { Close } from '@app/components/icons/close';
 import { useModal } from '@app/components/modal-views/context';
-
+import { useBottomSheetModal } from '@Components/Modals/Contexts/BottomSheetModalContext';
 
 interface IVisibilityConfirmationModalViewProps {
     visibilityType: string;
@@ -18,6 +17,7 @@ interface IVisibilityConfirmationModalViewProps {
 
 const VisibilityConfirmationModalView = ({ visibilityType, handleOnConfirm, isTemplate = false }: IVisibilityConfirmationModalViewProps) => {
     const { closeModal } = useModal();
+    const { closeBottomSheetModal } = useBottomSheetModal();
     const { t } = useTranslation();
     const title: any = {
         Public: [`${t('VISIBILITY_MODAL.ARE_YOU_SURE')} ${isTemplate ? t('VISIBILITY_MODAL.TEMPLATE.TITLE') : t('VISIBILITY_MODAL.FORM.TITLE')} `, t('PUBLIC')],
@@ -33,13 +33,14 @@ const VisibilityConfirmationModalView = ({ visibilityType, handleOnConfirm, isTe
     const onClickConfirm = () => {
         handleOnConfirm();
         closeModal();
+        closeBottomSheetModal();
     };
 
     return (
-        <div className={'md:w-[466px] rounded-xl bg-white'}>
+        <div className={'rounded-xl bg-white md:w-[466px]'}>
             <div className={'flex justify-between p-4'}>
-                <h1 className={'text-sm font-normal text-black-800'}>{t('VISIBILITY_MODAL.TITLE')}</h1>
-                <div className={'absolute top-3 right-5 cursor-pointer hover:bg-black-200 hover:rounded-sm p-1'}>
+                <h1 className={'text-black-800 text-sm font-normal'}>{t('VISIBILITY_MODAL.TITLE')}</h1>
+                <div className={'hover:bg-black-200 absolute right-5 top-3 cursor-pointer p-1 hover:rounded-sm'}>
                     <Close
                         onClick={() => {
                             closeModal();
@@ -48,12 +49,12 @@ const VisibilityConfirmationModalView = ({ visibilityType, handleOnConfirm, isTe
                 </div>
             </div>
             <Divider />
-            <div className={'pt-6 p-10 flex flex-col gap-3'}>
+            <div className={'flex flex-col gap-3 p-10 pt-6'}>
                 <h1 className={'h4-new !text-black-800'}>
                     {title[visibilityType][0]} <span className={'text-pink-500'}>{title[visibilityType][1]} </span> {title[visibilityType][1] ? '?' : '.'}
                 </h1>
-                <h2 className={'text-sm font-normal mb-3 text-black-700'}>{description[visibilityType]}</h2>
-                <div className={'flex flex-row gap-4 w-full'}>
+                <h2 className={'text-black-700 mb-3 text-sm font-normal'}>{description[visibilityType]}</h2>
+                <div className={'flex w-full flex-row gap-4'}>
                     <ModalButton buttonType={'Modal'} size={ButtonSize.Medium} variant={ButtonVariant.Secondary} onClick={closeModal}>
                         {t('BUTTON.CANCEL')}
                     </ModalButton>

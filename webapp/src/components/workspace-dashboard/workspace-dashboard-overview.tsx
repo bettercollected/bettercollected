@@ -18,7 +18,7 @@ import ActiveLink from '@app/components/ui/links/active-link';
 import environments from '@app/configs/environments';
 import { workspaceConstant } from '@app/constants/locales/workspace';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
-import { selectIsAdmin } from '@app/store/auth/slice';
+import { selectAuth, selectIsAdmin } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { useGetWorkspaceMembersQuery } from '@app/store/workspaces/members-n-invitations-api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
@@ -35,6 +35,7 @@ const WorkspaceDashboardOverview = ({ workspace }: IWorkspaceDashboardOverviewPr
     const { t } = useTranslation();
     const language = router?.locale === 'en' ? '' : `${router?.locale}/`;
     const { data } = useGetWorkspaceMembersQuery({ workspaceId: workspace.id });
+    const auth = useAppSelector(selectAuth);
 
     const reduxWorkspace = useAppSelector(selectWorkspace);
 
@@ -63,14 +64,14 @@ const WorkspaceDashboardOverview = ({ workspace }: IWorkspaceDashboardOverviewPr
 
     return (
         <div className="flex flex-col gap-4">
-            <div className="flex lg:flex-row flex-col gap-8 justify-between">
-                <div className="flex gap-2 w-full justify-between items-start">
+            <div className="flex flex-col justify-between gap-8 lg:flex-row">
+                <div className="flex w-full items-start justify-between gap-2">
                     <div className="flex flex-col gap-4">
                         <div className="flex  items-center gap-4">
                             <AuthAccountProfileImage name={reduxWorkspace?.title || 'Untitled'} typography="h2" size={72} image={reduxWorkspace?.profileImage} />
                             <div className="flex flex-col gap-2">
                                 <div className="h3-new">{reduxWorkspace?.title || 'Untitled'}</div>
-                                <div className="p2-new text-black-600 max-w-[200px] md:max-w-[300px] lg:max-w-[409px] line-clamp-2">{reduxWorkspace?.description || ''}</div>
+                                <div className="p2-new text-black-600 line-clamp-2 max-w-[200px] md:max-w-[300px] lg:max-w-[409px]">{reduxWorkspace?.description || ''}</div>
                             </div>
                         </div>
                     </div>
@@ -80,10 +81,10 @@ const WorkspaceDashboardOverview = ({ workspace }: IWorkspaceDashboardOverviewPr
                 </div>
 
                 {isAdmin && (
-                    <div className="flex  lg:flex-col lg:items-end gap-4">
+                    <div className="flex  gap-4 lg:flex-col lg:items-end">
                         <div className="flex flex-col gap-2 lg:items-end">
                             <div className="flex items-center gap-4">
-                                <span className="h5-new min-w-[max-content]  text-black-700">
+                                <span className="h5-new text-black-700  min-w-[max-content]">
                                     {t('MEMBERS.COLLABORATORS.DEFAULT')} ({data?.length || 1 - 1})
                                 </span>
                                 <div className="lg:hidden">
@@ -91,22 +92,22 @@ const WorkspaceDashboardOverview = ({ workspace }: IWorkspaceDashboardOverviewPr
                                 </div>
                             </div>
 
-                            <div className="flex-1 flex gap-2 max-w-[90vw] overflow-auto lg:overflow-clip lg:!max-w-[330px]">
+                            <div className="flex max-w-[90vw] flex-1 gap-2 overflow-auto lg:!max-w-[330px] lg:overflow-clip">
                                 {data?.slice(0, 2)?.map((user) => (
                                     <div key={user.email}>
                                         <AuthAccountProfileImage image={user.profileImage} name={user?.firstName || user?.lastName || user?.email} size={40} variant="circular" />
                                     </div>
                                 ))}
-                                {data && data?.length > 2 && <div className="bg-gray-200 flex items-center justify-center text-sm  h-10 w-10 rounded-full text-black-800 font-bold">+ {data?.length - 2}</div>}
+                                {data && data?.length > 2 && <div className="text-black-800 flex h-10 w-10 items-center  justify-center rounded-full bg-gray-200 text-sm font-bold">+ {data?.length - 2}</div>}
                             </div>
                         </div>
                     </div>
                 )}
             </div>
-            <div className=" hidden lg:flex justify-between">
+            <div className=" hidden justify-between lg:flex">
                 <div className="flex gap-2">
                     {isAdmin && (
-                        <AppButton onClick={onClickEditButton} icon={<SettingsIcon strokeWidth={1} />} variant={ButtonVariant.Ghost}>
+                        <AppButton data-umami-event="Open Workspace Settings button" data-umami-event-email={auth.email} onClick={onClickEditButton} icon={<SettingsIcon strokeWidth={1} />} variant={ButtonVariant.Ghost}>
                             {t('SETTINGS')}
                         </AppButton>
                     )}
@@ -115,7 +116,7 @@ const WorkspaceDashboardOverview = ({ workspace }: IWorkspaceDashboardOverviewPr
                             {t('BUTTON.OPEN_WORKSPACE')}
                         </AppButton>
                     </ActiveLink>
-                    <AppButton onClick={onClickShareWorkspaceButton} icon={<ShareIcon strokeWidth={1} height={20} width={20} />} variant={ButtonVariant.Ghost}>
+                    <AppButton data-umami-event="Share Workspace button" data-umami-event-email={auth.email} onClick={onClickShareWorkspaceButton} icon={<ShareIcon strokeWidth={1} height={20} width={20} />} variant={ButtonVariant.Ghost}>
                         {t('SHARE_WORKSPACE')}
                     </AppButton>
                 </div>
@@ -126,9 +127,10 @@ const WorkspaceDashboardOverview = ({ workspace }: IWorkspaceDashboardOverviewPr
 };
 
 function InviteCollaboratorButton({ onClick }: { onClick: () => void }) {
+    const auth = useAppSelector(selectAuth);
     const { t } = useTranslation();
     return (
-        <AppButton onClick={onClick} icon={<PlusIcon width={20} height={20} />} variant={ButtonVariant.Ghost} size={ButtonSize.Small}>
+        <AppButton data-umami-event="Invite Collaborator Button" data-umami-event-email={auth.email} onClick={onClick} icon={<PlusIcon width={20} height={20} />} variant={ButtonVariant.Ghost} size={ButtonSize.Small}>
             {t('BUTTON.INVITE_COLLABORATOR')}
         </AppButton>
     );

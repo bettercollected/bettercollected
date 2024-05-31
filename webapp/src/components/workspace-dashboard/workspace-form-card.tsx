@@ -19,7 +19,6 @@ import FormOptionsDropdownMenu from '@app/components/datatable/form/form-options
 import { GroupIcon } from '@app/components/icons/group-icon';
 import { useModal } from '@app/components/modal-views/context';
 import DeleteDropDown from '@app/components/ui/delete-dropdown';
-import environments from '@app/configs/environments';
 import { localesCommon } from '@app/constants/locales/common';
 import { formConstant } from '@app/constants/locales/form';
 import { toolTipConstant } from '@app/constants/locales/tooltip';
@@ -29,8 +28,8 @@ import { ResponderGroupDto } from '@app/models/dtos/groups';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { JOYRIDE_CLASS } from '@app/store/tours/types';
 import getFormShareURL from '@app/utils/formUtils';
-import { validateFormOpen } from '@app/utils/validationUtils';
 import { getEditFormURL } from '@app/utils/urlUtils';
+import { validateFormOpen } from '@app/utils/validationUtils';
 
 interface IWorkspaceFormCardProps {
     form: StandardFormDto;
@@ -94,7 +93,7 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, group, worksp
                             </Tooltip>
                             {!isResponderPortal && !form?.isPublished && <div className="text-black-600 right-2 mx-1 inline-block rounded bg-gray-100 px-2 py-1 text-xs font-semibold">{t('FORM.DRAFT')}</div>}
                             {!isResponderPortal && form?.isPublished && !isFormOpen && <div className="text-black-600 right-2 mx-1 inline-block rounded bg-gray-100 px-2 py-1 text-xs font-semibold">{t('FORM.CLOSED')}</div>}
-                            {!isResponderPortal && form?.builderVersion === 'v2' && <div className="text-black-600 right-2 mx-1 inline-block rounded bg-gray-100 px-2 py-1 text-xs font-semibold">V2</div>}
+                            {!isResponderPortal && form.settings?.provider === 'self' && form?.builderVersion !== 'v2' && <div className="text-black-600 right-2 mx-1 inline-block rounded bg-gray-100 px-2 py-1 text-xs font-semibold">V1</div>}
                         </div>
                         {!group && !isResponderPortal && (
                             <div className="flex-1 lg:hidden">
@@ -103,7 +102,7 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, group, worksp
                         )}
                     </div>
                     <div className="flex max-w-full flex-wrap items-center gap-2">
-                        <FormProviderIcon provider={form?.settings?.provider} />
+                        <FormProviderIcon provider={form.settings?.provider === 'self' && form.importedFormId && form.settings.showOriginalForm ? 'google' : form?.settings?.provider} />
                         {showVisibility && (
                             <Tooltip title={form?.settings?.private ? t(toolTipConstant.hideForm) : ''}>
                                 <div className="fap-2 flex items-center">

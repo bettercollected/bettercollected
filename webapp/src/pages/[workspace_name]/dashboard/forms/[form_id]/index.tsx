@@ -210,7 +210,7 @@ export default function FormPage(props: any) {
                         </div>
                         {!isMobile && (
                             <div className="flex flex-row items-center gap-1">
-                                <FormProviderIcon provider={form?.settings?.provider} />
+                                <FormProviderIcon provider={form.settings?.provider === 'self' && form.importedFormId && form.settings.showOriginalForm ? 'google' : form?.settings?.provider} />
                             </div>
                         )}
                         <Divider className="mt-6 hidden md:flex" />

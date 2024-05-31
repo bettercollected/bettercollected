@@ -30,7 +30,7 @@ import { formPage } from '@app/constants/locales/form-page';
 import { toastMessage } from '@app/constants/locales/toast-message';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { ResponderGroupDto } from '@app/models/dtos/groups';
-import { selectIsAdmin } from '@app/store/auth/slice';
+import { selectAuth, selectIsAdmin } from '@app/store/auth/slice';
 import { selectForm, setFormSettings } from '@app/store/forms/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { usePatchFormSettingsMutation } from '@app/store/workspaces/api';
@@ -186,6 +186,7 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
 
     const isProPlan = useAppSelector(selectWorkspace).isPro;
     const isAdmin = useAppSelector(selectIsAdmin);
+    const auth = useAppSelector(selectAuth);
 
     const closeFormChecked = !!form?.settings?.formCloseDate && moment.utc().isAfter(moment.utc(form?.settings?.formCloseDate));
 
@@ -213,10 +214,12 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                                     value="Public"
                                     control={<Radio />}
                                     label={
-                                        <div className="body6 !text-black-800 flex items-center gap-[6px]">
-                                            <Globe className="h-[18px] w-[18px]" />
-                                            {t(formConstant.settings.visibility.public)}
-                                        </div>
+                                        <button data-umami-event="Make Form Public" data-umami-event-email={auth.email}>
+                                            <div className="body6 !text-black-800 flex items-center gap-[6px]">
+                                                <Globe className="h-[18px] w-[18px]" />
+                                                {t(formConstant.settings.visibility.public)}
+                                            </div>
+                                        </button>
                                     }
                                 />
                                 <span className="body4 !text-black-700 ml-8">{t(formPage.visibilityPublic)}</span>
@@ -228,10 +231,12 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                                     value="Private"
                                     control={<Radio />}
                                     label={
-                                        <div className="body6 !text-black-800 flex items-center gap-[6px]">
-                                            <LockIcon className="h-[18px] w-[18px]" />
-                                            {t(formConstant.settings.visibility.private)}
-                                        </div>
+                                        <button data-umami-event="Make Form Private" data-umami-event-email={auth.email}>
+                                            <div className="body6 !text-black-800 flex items-center gap-[6px]">
+                                                <LockIcon className="h-[18px] w-[18px]" />
+                                                {t(formConstant.settings.visibility.private)}
+                                            </div>
+                                        </button>
                                     }
                                 />
                                 <span className="body4 !text-black-700 ml-8">{t(formPage.visibilityPrivate)}</span>
@@ -243,10 +248,12 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                                     value="Group"
                                     control={<Radio />}
                                     label={
-                                        <div className="body6 !text-black-800 flex items-center gap-[6px]">
-                                            <GroupIcon className="h-[18px] w-[18px]" />
-                                            {t(formPage.visibilityGroupsTitle)}
-                                        </div>
+                                        <button data-umami-event="Make Form Only For Certain Groups" data-umami-event-email={auth.email}>
+                                            <div className="body6 !text-black-800 flex items-center gap-[6px]">
+                                                <GroupIcon className="h-[18px] w-[18px]" />
+                                                {t(formPage.visibilityGroupsTitle)}
+                                            </div>
+                                        </button>
                                     }
                                 />
                                 <span className="body4 !text-black-700 ml-8">{!(form?.groups?.length === 0) ? t(formPage.visibilityGroups1) : t(formPage.visibilityGroups0)}</span>
@@ -272,6 +279,8 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                             </Tooltip>
                             <div className={'flex gap-8'}>
                                 <AppButton
+                                    data-umami-event="Customize Form Link Button"
+                                    data-umami-event-email={auth.email}
                                     className={'!py-0'}
                                     icon={<EditIcon className="h-4 w-4" />}
                                     onClick={() => {
@@ -286,6 +295,8 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                                 </AppButton>
                                 {environments.ENABLE_FORM_QR && !form?.settings?.hidden && (
                                     <AppButton
+                                        data-umami-event="Generate QR button"
+                                        data-umami-event-email={auth.email}
                                         className={'!py-0'}
                                         icon={<QrCode className="h-5 w-5" />}
                                         onClick={() => {
@@ -317,7 +328,9 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                                         <div className="body4 !text-black-700 w-3/4 flex-1">Original Google Form in Embed mode is shown if this is enabled.</div>
                                         {/*<div className="body4 !text-black-700 w-3/4">{t('FORM_PAGE.SETTINGS.DEFAULT.COLLECT_EMAILS.DESCRIPTION')}</div>*/}
                                         <Switch
-                                            data-testid="pinned-switch"
+                                            data-umami-event="Show Original Google Form Switch"
+                                            data-umami-event-email={auth.email}
+                                            data-testid="show-original-form-switch"
                                             checked={!!form?.settings?.showOriginalForm}
                                             onClick={(e) => {
                                                 onShowOriginalFormChange(e, form);
@@ -339,7 +352,9 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                                         <div className="body4 !text-black-700 w-3/4 flex-1">If this is enabled the user needs to verify his email identity before filling this form</div>
                                         {/*<div className="body4 !text-black-700 w-3/4">{t('FORM_PAGE.SETTINGS.DEFAULT.COLLECT_EMAILS.DESCRIPTION')}</div>*/}
                                         <Switch
-                                            data-testid="pinned-switch"
+                                            data-umami-event="Require Verified Identity Switch"
+                                            data-umami-event-email={auth.email}
+                                            data-testid="require-verified-identity-switch"
                                             checked={!!form?.settings?.requireVerifiedIdentity}
                                             onClick={(e) => {
                                                 onCollectEmailsChange(e, form);
@@ -358,7 +373,9 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                                     <div className="flex w-full flex-row items-center justify-between md:gap-4">
                                         <div className="body4 !text-black-700 w-3/4">When this is enabled the responder will br shown a submission ID which the user can use to view his response and also request for deletion of his response</div>
                                         <Switch
-                                            data-testid="pinned-switch"
+                                            data-umami-event="Show Submission Number Switch"
+                                            data-umami-event-email={auth.email}
+                                            data-testid="show-submission-number-switch"
                                             checked={!!form?.settings?.showSubmissionNumber}
                                             onClick={(e) => {
                                                 onShowSubmissionNumberChange(e, form);
@@ -377,6 +394,8 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                                     <div className="flex w-full flex-row items-center justify-between md:gap-4">
                                         <div className="body4 !text-black-700 w-3/4">The verified responder can change their response if this is enabled</div>
                                         <Switch
+                                            data-umami-event="Allow Response Editing Switch"
+                                            data-umami-event-email={auth.email}
                                             data-testid="pinned-switch"
                                             checked={!!form?.settings?.allowEditingResponse}
                                             onClick={(e) => {
@@ -397,7 +416,7 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                                             <Divider className={'my-2 w-full'} />
                                             <div className="flex flex-row items-center justify-between md:gap-4">
                                                 <div className="body4 !text-black-700 w-3/4">{t(formPage.pinFormDescription)}</div>
-                                                <Switch data-testid="pinned-switch" checked={!!form?.settings?.pinned} onClick={(e) => onPinnedChange(e, form)} />
+                                                <Switch data-umami-event="Pin Form Switch" data-umami-event-email={auth.email} data-testid="pinned-switch" checked={!!form?.settings?.pinned} onClick={(e) => onPinnedChange(e, form)} />
                                             </div>
                                             <Divider className={'my-2 w-full'} />
                                         </div>
@@ -412,7 +431,14 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                                         <Divider className={'my-2 w-full'} />
                                         <div className="flex w-full flex-row items-center justify-between md:gap-4">
                                             <div className="body4 !text-black-700 w-3/4">{t(formPage.brandingDescription)}</div>
-                                            <Switch disabled={!isProPlan} data-testid="disable-branding-switch" checked={!form?.settings?.disableBranding} onClick={(e) => onDisableBrandingChange(e, form)} />
+                                            <Switch
+                                                disabled={!isProPlan}
+                                                data-umami-event="Disable Branding Switch"
+                                                data-umami-event-email={auth.email}
+                                                data-testid="disable-branding-switch"
+                                                checked={!form?.settings?.disableBranding}
+                                                onClick={(e) => onDisableBrandingChange(e, form)}
+                                            />
                                         </div>
                                         <Divider className={'my-2 w-full'} />
                                     </div>
@@ -427,6 +453,8 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                                     <div className=" flex w-full flex-row items-center justify-between gap-4">
                                         <div className="!text-black-700 text-sm">{t(formPage.formPurposeDescription)}</div>
                                         <AppButton
+                                            data-umami-event="View Form Consent Button"
+                                            data-umami-event-email={auth.email}
                                             variant={ButtonVariant.Ghost}
                                             className="h5-new !text-new-blue-500 w-60 cursor-pointer"
                                             onClick={() => {
@@ -453,6 +481,8 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                                             <div className=" flex w-full flex-row items-center justify-between gap-4">
                                                 <div className="!text-black-700 text-sm">{t(formPage.closeFormDescription)}</div>
                                                 <Switch
+                                                    data-umami-event="Close Form Switch"
+                                                    data-umami-event-email={auth.email}
                                                     data-testid="close-form-switch"
                                                     // checked={false}
                                                     checked={closeFormChecked}
@@ -467,6 +497,8 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                                             </div>
                                             {!closeFormChecked && !moment(form?.settings?.formCloseDate).isAfter(moment.utc()) && (
                                                 <AppButton
+                                                    data-umami-event="Select Form Close Date Button"
+                                                    data-umami-event-email={auth.email}
                                                     className="mt-2"
                                                     variant={ButtonVariant.Ghost}
                                                     onClick={() => {
@@ -500,6 +532,8 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                         )}
                         <div className="mt-6">
                             <AppButton
+                                data-umami-event="Delete Form From Preview Section"
+                                data-umami-event-email={auth.email}
                                 onClick={() => {
                                     openModal('DELETE_FORM_MODAL', { form, redirectToDashboard: true });
                                 }}
