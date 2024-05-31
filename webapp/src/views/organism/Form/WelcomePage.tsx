@@ -100,7 +100,7 @@ export default function WelcomePage({
                     </>
                 )}
 
-                {((!standardForm?.settings?.private && !standardForm?.settings?.requireVerifiedIdentity) || (standardForm?.settings?.private && auth.id && !standardForm?.unauthorized)) && (
+                {(!standardForm?.settings?.private || (standardForm?.settings?.private && auth.id && !standardForm?.unauthorized)) && (
                     <div>
                         <Button
                             style={{ background: formTheme?.secondary }}
