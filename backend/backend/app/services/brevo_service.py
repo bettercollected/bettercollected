@@ -4,11 +4,9 @@ from concurrent.futures import ThreadPoolExecutor
 
 import httpx
 import loguru
-from aiokafka import AIOKafkaProducer
-from aiokafka.errors import KafkaConnectionError
 from pydantic import BaseModel, EmailStr
 
-from backend.app.models.dtos.kafka_event_dto import UserEventType, UserEventDto
+from backend.app.models.dtos.brevo_event_dto import UserEventDto, UserEventType
 from backend.config import settings
 
 
@@ -29,42 +27,35 @@ def value_serializer(model_instance):
 executor = ThreadPoolExecutor(max_workers=10)
 
 
-class KafkaService:
+class BrevoService:
     def __init__(self):
-        if settings.kafka_settings.enabled:
-            self.producer: AIOKafkaProducer = AIOKafkaProducer(
-                bootstrap_servers=settings.kafka_settings.server_url,
-                value_serializer=value_serializer,
-            )
+        self.event_api_client = httpx.AsyncClient(
+            headers={
+                "accept": "application/json",
+                "content-type": "application/json",
+                "ma-key": settings.brevo_settings.tracker_key,
+            }
+        )
 
-    async def start_kafka_producer(self):
-        try:
-            loguru.logger.info("Starting kafka producer")
-            await self.producer.start()
-        except KafkaConnectionError as e:
-            loguru.logger.info("Could not connect to Kafka service")
+    async def track_event(self, email: EmailStr, event_type: UserEventType):
+        return await self.event_api_client.post(
+            settings.brevo_settings.tracker_api_url,
+            json={"email": email, "event": event_type},
+        )
 
-    async def stop_kafka_producer(self):
-        try:
-            loguru.logger.info("Stopping kafka producer")
-            await self.producer.stop()
-        except KafkaConnectionError as e:
-            loguru.logger.info("Could not connect to Kafka service")
-
-    async def send_kafka_event(
+    async def send_brevo_event(
         self, event_type: UserEventType, user_id: str, email: EmailStr
     ):
         event_message = UserEventDto(
             event_type=event_type, user_id=user_id, email=email
         )
-        if settings.kafka_settings.enabled:
-            try:
-                await self.producer.send(settings.kafka_settings.topic, event_message)
-            except Exception as e:
-                loguru.logger.warning(
-                    "Could not send event to kafka, Event Message: "
-                    + str(event_message.dict())
-                )
+        try:
+            await self.track_event(email=email, event_type=event_type)
+        except Exception as e:
+            loguru.logger.warning(
+                "Could not send event to Brevo, Event Message: "
+                + str(event_message.dict())
+            )
 
         if settings.event_webhook_settings.enabled:
             try:
@@ -102,7 +93,7 @@ class KafkaService:
     async def send_event(
         self, event_type: UserEventType, user_id: str, email: EmailStr
     ):
-        asyncio.ensure_future(self.send_kafka_event(event_type, user_id, email))
+        asyncio.ensure_future(self.send_brevo_event(event_type, user_id, email))
 
 
 def get_enthusiastic_text(event_type):
@@ -122,4 +113,4 @@ def get_enthusiastic_text(event_type):
         return "Unknown event type. Enthusiasm can't contain the unknown!"
 
 
-event_logger_service = KafkaService()
+event_logger_service = BrevoService()
