@@ -12,15 +12,15 @@ import 'vanilla-cookieconsent/dist/cookieconsent.css';
 
 import BaseModalContainer from '@Components/Modals/Containers/BaseModalContainer';
 import '@app/assets/css/globals.css';
+import environments from '@app/configs/environments';
 import { DialogModalContainer } from '@app/lib/hooks/useDialogModal';
+import { SecondaryDialogModalContainer } from '@app/lib/hooks/useSecondaryDialogModal';
 import { Toaster } from '@app/shadcn/components/ui/toaster';
 import { cn } from '@app/shadcn/util/lib';
 import AuthProvider from '@app/shared/hocs/AuthProvider';
 import ReduxProvider from '@app/shared/hocs/ReduxProvider';
 import ThemeProvider from '@app/shared/hocs/ThemeProvider';
-import environments from '@app/configs/environments';
 import SetClarityUserId from '@app/utils/clarityUtils';
-import { SecondaryDialogModalContainer } from '@app/lib/hooks/useSecondaryDialogModal';
 
 const inter = Inter({ subsets: ['latin'] });
 
