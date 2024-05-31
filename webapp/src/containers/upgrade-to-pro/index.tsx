@@ -74,8 +74,10 @@ export default function UpgradeToProContainer({ featureText, isModal = true, cal
                 </div>
             </div>
             <>
-                <div className="h2-new mb-2 text-center">Suggest a monthly price for PRO</div>
-                <div className="p2-new text-black-700 max-w-[426px] text-center">We&apos;re committed to putting our users first, making online form building accessible to all. Share your thoughts on what our Pro features are worth to you.</div>
+                <div className="h2-new mb-2 text-center">
+                    bettercollected PRO is <span className="text-new-pink">Free</span>
+                </div>
+                <div className="p2-new text-black-700 max-w-[426px] text-center">You won't be charged any money. Share your thoughts on what the best price would be. Future pricing will be based on your suggestions.</div>
                 <div className="mt-10 flex flex-wrap justify-center gap-2">
                     {prices.map((price, index) => {
                         return (
@@ -148,7 +150,7 @@ export default function UpgradeToProContainer({ featureText, isModal = true, cal
                             });
                         }}
                     >
-                        Unlock Pro Features
+                        Start Pro account
                     </AppButton>
                     <div className="p2-new text-black-600 text-center italic">Free for 90 days!</div>
                 </div>
