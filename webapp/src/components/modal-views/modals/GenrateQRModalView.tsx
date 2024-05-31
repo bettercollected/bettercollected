@@ -13,6 +13,7 @@ import { useAppSelector } from '@app/store/hooks';
 import html2canvas from 'html2canvas';
 import { toast } from 'react-toastify';
 import useCopyToClipboard from 'react-use/lib/useCopyToClipboard';
+import { selectAuth } from '@app/store/auth/slice';
 
 export interface IGenerateQR {
     form?: StandardFormDto;
@@ -23,6 +24,7 @@ const GenerateQRModalView = ({ form }: IGenerateQR) => {
     const { t } = useTranslation();
     const workspaceForm = useAppSelector(selectForm);
     const currentForm = form ? form : workspaceForm;
+    const auth = useAppSelector(selectAuth);
 
     const [_, copyToClipboard] = useCopyToClipboard();
 
@@ -90,11 +92,11 @@ const GenerateQRModalView = ({ form }: IGenerateQR) => {
                 <QRGenerator form={currentForm} />
                 <span className="p4-new w-[266px] text-center">Scan this QR code to get access to the form or </span>
                 <div className={'flex gap-2 '}>
-                    <Button variant={'v2Button'} onClick={onDownload}>
+                    <Button variant={'v2Button'} onClick={onDownload} data-umami-event="Download QR button" data-umami-event-email={auth.email}>
                         Download
                     </Button>
-                    <Button variant={'v2Button'} onClick={handleCopyImageToClipboard}>
-                        Copy 
+                    <Button variant={'v2Button'} onClick={handleCopyImageToClipboard} data-umami-event="Copy QR button" data-umami-event-email={auth.email}>
+                        Copy
                     </Button>
                 </div>
             </div>

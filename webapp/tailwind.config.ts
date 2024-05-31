@@ -146,7 +146,8 @@ export default {
             },
             backgroundImage: {
                 'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
-                'sign-in': "url('/images/background.png')"
+                'sign-in': "url('/images/background.png')",
+                'floating-button': 'linear-gradient(135.6deg, #FE3678 0%, #0764EB 98.97%)'
             },
             animation: {
                 blink: 'blink 1.4s infinite both;',
@@ -351,7 +352,8 @@ export default {
             tooltip: '0px 0px 6px 0px #00000026',
             'blue-hue': ' 0px 0px 16px 0px #0764EB29',
             bubble: '-4px 0px 12px 0px #0000001A',
-            slide: '0px 0px 6px 0px #00000026'
+            slide: '0px 0px 6px 0px #00000026',
+            'floating-button':' 0px 4px 24px 0px rgba(0, 0, 0, 0.15)'
         },
         boxShadowColor: ({theme}) => theme('colors'),
         brightness: {

@@ -20,6 +20,7 @@ import { fireworks } from '@app/utils/confetti';
 import { getEditFormURL } from '@app/utils/urlUtils';
 import { useRouter } from 'next/navigation';
 import { useIsMobile } from '@app/lib/hooks/use-breakpoint';
+import { selectAuth } from '@app/store/auth/slice';
 
 export default function ImportFormModal() {
     const router = useRouter();
@@ -34,6 +35,7 @@ export default function ImportFormModal() {
     const [form, setForm] = useState<StandardFormDto>(initFormState);
     const [formTitle, setFormTitle] = useState('');
     const isMobile = useIsMobile();
+    const auth = useAppSelector(selectAuth);
 
     const [importForm, importFormResult] = useImportFormMutation();
     const [singleFormFromProviderTrigger, singleFormFromProviderResult] = useLazyGetSingleFormFromProviderQuery();
@@ -123,6 +125,8 @@ export default function ImportFormModal() {
             {formTitle && !form?.formId && <ImportFormLoading loadingText={singleFormFromProviderResult.isLoading ? 'Fetching Form' : 'Importing'} formTitle={formTitle} />}
             {!form?.formId && !formTitle && (
                 <AppButton
+                    data-umami-event={'Imported Google Form'}
+                    data-umami-event-email={auth.email}
                     variant={ButtonVariant.Primary}
                     size={ButtonSize.Big}
                     onClick={() => {

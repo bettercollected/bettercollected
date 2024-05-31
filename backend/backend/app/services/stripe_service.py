@@ -2,9 +2,9 @@ from common.services.http_client import HttpClient
 from common.services.jwt_service import JwtService
 from fastapi import Request
 
-from backend.app.models.dtos.kafka_event_dto import UserEventType
+from backend.app.models.dtos.brevo_event_dto import UserEventType
 from backend.app.services.form_plugin_provider_service import FormPluginProviderService
-from backend.app.services.kafka_service import event_logger_service
+from backend.app.services.brevo_service import event_logger_service
 from backend.app.services.plugin_proxy_service import PluginProxyService
 from backend.app.services.workspace_service import WorkspaceService
 from backend.config import settings
