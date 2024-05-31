@@ -77,7 +77,7 @@ export default function UpgradeToProContainer({ featureText, isModal = true, cal
                 <div className="h2-new mb-2 text-center">
                     bettercollected PRO is <span className="text-new-pink">Free</span>
                 </div>
-                <div className="p2-new text-black-700 max-w-[426px] text-center">You won't be charged any money. Share your thoughts on what the best price would be. Future pricing will be based on your suggestions.</div>
+                <div className="p2-new text-black-700 max-w-[426px] text-center">You won&apos;t be charged any money. Share your thoughts on what the best price would be. Future pricing will be based on your suggestions.</div>
                 <div className="mt-10 flex flex-wrap justify-center gap-2">
                     {prices.map((price, index) => {
                         return (
