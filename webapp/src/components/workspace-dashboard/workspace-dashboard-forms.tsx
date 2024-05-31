@@ -1,15 +1,13 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
 
 import { escapeRegExp } from 'lodash';
 
-import CreateFormButton from '@Components/Common/CreateFormButton';
 import EmptyFormIcon from '@Components/Common/Icons/Form/EmptyForm';
 import StyledPagination from '@Components/Common/Pagination';
 import SearchInput from '@Components/Common/Search/SearchInput';
 
-import ImportFormsButton from '@app/components/form-integrations/import-forms-button';
 import Loader from '@app/components/ui/loader';
 import WorkspaceDashboardFormsCard from '@app/components/workspace-dashboard/workspace-dashboard-form-cards';
 import globalConstants from '@app/constants/global';
@@ -17,7 +15,6 @@ import { localesCommon } from '@app/constants/locales/common';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { useAppSelector } from '@app/store/hooks';
-import { JOYRIDE_CLASS } from '@app/store/tours/types';
 import { useGetWorkspaceFormsQuery, useLazySearchWorkspaceFormsQuery } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import NewFormButton from '@app/views/atoms/NewFormButton';
@@ -123,25 +120,7 @@ export default function WorkspaceDashboardForms({ title, showButtons, hasCustomD
                             // </div>
                         )}
                     </div>
-                    <WorkspaceDashboardFormsCard
-                        showPinned={true}
-                        showEmpty={showSearchedResults}
-                        workspaceForms={
-                            showSearchedResults
-                                ? searchedForms
-                                : [
-                                      ...workspaceForms?.data?.items,
-                                      ...workspaceForms?.data?.items,
-                                      ...workspaceForms?.data?.items,
-                                      ...workspaceForms?.data?.items,
-                                      ...workspaceForms?.data?.items,
-                                      ...workspaceForms?.data?.items,
-                                      ...workspaceForms?.data?.items
-                                  ]
-                        }
-                        workspace={workspace}
-                        hasCustomDomain={hasCustomDomain}
-                    />
+                    <WorkspaceDashboardFormsCard showPinned={true} showEmpty={showSearchedResults} workspaceForms={showSearchedResults ? searchedForms : [...workspaceForms?.data?.items]} workspace={workspace} hasCustomDomain={hasCustomDomain} />
                     {showPagination && !showSearchedResults && Array.isArray(workspaceForms?.data?.items) && workspaceForms?.data?.total > globalConstants.pageSize && (
                         <div className="my-8 flex justify-center">
                             <StyledPagination shape="rounded" count={workspaceForms?.data?.pages || 0} page={workspaceQuery.page || 1} onChange={handlePageChange} />

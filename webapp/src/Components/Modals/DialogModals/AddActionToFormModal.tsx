@@ -14,7 +14,6 @@ import { selectAuth } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 
-
 export default function AddActionToFormModal({ action, form, ...props }: any) {
     const { closeModal } = useModal();
     const [addActionToForm] = useAddActionToFormMutation();
@@ -76,7 +75,7 @@ export default function AddActionToFormModal({ action, form, ...props }: any) {
                         <div className="text-black-800 w-full">Params required to add action:</div>
                         {action?.parameters?.map((parameter: any, index: number) =>
                             parameter?.required ? (
-                                <div key={index} className="flex flex-col mt-3  w-full items-start gap-2">
+                                <div key={index} className="mt-3 flex w-full  flex-col items-start gap-2">
                                     <div className="text-sm font-bold">{parameter.name}</div>
                                     <AppTextField
                                         className="w-full"
@@ -90,12 +89,12 @@ export default function AddActionToFormModal({ action, form, ...props }: any) {
                                 <div key={index}></div>
                             )
                         )}
-                        {error && <div className="text-red-500 text-sm ">Please fill in all required parameters.</div>}
+                        {error && <div className="text-sm text-red-500 ">Please fill in all required parameters.</div>}
                     </>
                 )}
 
-                <AppButton className="mt-4" variant={ButtonVariant.Primary} size={ButtonSize.Medium} onClick={onAddIntegration}>
-                    Add Integration
+                <AppButton data-umami-event={`Add ${action?.title} Integration`} data-umami-event-email={user.email} className="mt-4" variant={ButtonVariant.Primary} size={ButtonSize.Medium} onClick={onAddIntegration}>
+                    Add Integrations
                 </AppButton>
             </div>
         </HeaderModalWrapper>

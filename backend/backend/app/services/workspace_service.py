@@ -13,7 +13,7 @@ from loguru import logger
 from pydantic import EmailStr
 
 from backend.app.exceptions import HTTPException
-from backend.app.models.dtos.kafka_event_dto import UserEventType
+from backend.app.models.dtos.brevo_event_dto import UserEventType
 from backend.app.models.enum.user_tag_enum import UserTagType
 from backend.app.models.enum.workspace_roles import WorkspaceRoles
 from backend.app.models.workspace import (
@@ -26,7 +26,7 @@ from backend.app.schemas.workspace import WorkspaceDocument
 from backend.app.schemas.workspace_user import WorkspaceUserDocument
 from backend.app.services.aws_service import AWSS3Service
 from backend.app.services.form_response_service import FormResponseService
-from backend.app.services.kafka_service import event_logger_service
+from backend.app.services.brevo_service import event_logger_service
 from backend.app.services.responder_groups_service import ResponderGroupsService
 from backend.app.services.user_tags_service import UserTagsService
 from backend.app.services.workspace_form_service import WorkspaceFormService

@@ -2,8 +2,8 @@
 
 import { useRouter } from 'next/navigation';
 
-import { v4 } from 'uuid';
 import { AnimatePresence, motion } from 'framer-motion';
+import { v4 } from 'uuid';
 
 import { useDialogModal } from '@app/lib/hooks/useDialogModal';
 import { FieldTypes } from '@app/models/dtos/form';
@@ -26,17 +26,17 @@ import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { NewBetterCollectedSmallLogo } from '@app/views/atoms/Icons/BetterCollectedSmallLogo';
 import { LogicOutlinedIcon } from '@app/views/atoms/Icons/LogicOutlinedIcon';
+import { TextareaAutosize } from '@mui/material';
 import { useState } from 'react';
-import { HeadingOutlinedIcon } from '../atoms/Icons/HeadingOutlinedIcon';
 import { MediaOutlinedIcon } from '../atoms/Icons/MediaOutlined';
 import PlayIcon from '../atoms/Icons/PlayIcon';
 import { PlusOutlined } from '../atoms/Icons/PlusOutlined';
+import { TextOutlinedIcon } from '../atoms/Icons/TextOutlined';
 import InsertFieldComponent from '../molecules/Dialogs/InsertFieldModal';
 import BackButton from '../molecules/FormBuilder/BackButton';
 import PreviewWrapper from '../molecules/FormBuilder/PreviewWrapper';
 import PublishButton from '../molecules/FormBuilder/PublishButton';
 import Form from './Form/Form';
-import { TextareaAutosize } from '@mui/material';
 
 const Navbar = () => {
     const { activeSlide, formFields, addField, updateSlideImage, updateSlideLayout } = useFormFieldsAtom();
@@ -201,24 +201,28 @@ const Navbar = () => {
                     </AnimatePresence>
                 </DropdownMenu>
                 <DropdownMenu>
-                    <DropdownMenu.Trigger onClick={handleAddText}>
-                        <div className={'flex items-center hover:bg-inherit'}>
-                            <div className="!text-black-500 hover:!text-black-900 flex flex-row items-center gap-1 text-xs font-semibold ">
-                                <HeadingOutlinedIcon />
-                                <span>Heading</span>
+                    <button data-umami-event={'Add Heading Button'} data-umami-event-email={authState.email}>
+                        <DropdownMenu.Trigger onClick={handleAddText}>
+                            <div className={'flex items-center hover:bg-inherit'}>
+                                <div className="!text-black-500 hover:!text-black-900 flex flex-row items-center gap-1 text-xs font-semibold ">
+                                    <TextOutlinedIcon />
+                                    <span>Text</span>
+                                </div>
                             </div>
-                        </div>
-                    </DropdownMenu.Trigger>
+                        </DropdownMenu.Trigger>
+                    </button>
                 </DropdownMenu>
                 <DropdownMenu>
-                    <DropdownMenu.Trigger onClick={handleClickMedia}>
-                        <div className={'flex items-center hover:bg-inherit'}>
-                            <div className="!text-black-500 hover:!text-black-900 flex flex-row items-center gap-1 text-xs font-semibold ">
-                                <MediaOutlinedIcon />
-                                Layout Image
+                    <button data-umami-event={'Add Layout Image Button'} data-umami-event-email={authState.email}>
+                        <DropdownMenu.Trigger onClick={handleClickMedia}>
+                            <div className={'flex items-center hover:bg-inherit'}>
+                                <div className="!text-black-500 hover:!text-black-900 flex flex-row items-center gap-1 text-xs font-semibold ">
+                                    <MediaOutlinedIcon />
+                                    Layout Image
+                                </div>
                             </div>
-                        </div>
-                    </DropdownMenu.Trigger>
+                        </DropdownMenu.Trigger>
+                    </button>
                 </DropdownMenu>
 
                 <DropdownMenu>
@@ -237,7 +241,7 @@ const Navbar = () => {
             <div className={'flex flex-1 items-center justify-end  gap-2'}>
                 <Sheet>
                     <SheetTrigger asChild>
-                        <Button icon={<PlayIcon />} variant={'v2Button'}>
+                        <Button icon={<PlayIcon />} variant={'v2Button'} data-umami-event={`Preview Button`} data-umami-event-email={authState.email}>
                             Preview
                         </Button>
                     </SheetTrigger>

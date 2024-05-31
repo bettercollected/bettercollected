@@ -14,6 +14,7 @@ import { useNavbarState } from '@app/store/jotai/navbar';
 import { useDialogModal } from '@app/lib/hooks/useDialogModal';
 import styled from 'styled-components';
 import globalConstants from '@app/constants/global';
+import { useAuthAtom } from '@app/store/jotai/auth';
 
 const StyledDiv = styled.div<{ $hoverColor: string }>(({ $hoverColor }) => {
     return {
@@ -29,6 +30,7 @@ const InsertFieldComponent = ({ formFields, activeSlideComponent, closeDropdown 
     const { addField, addSlide, getNewField } = useFormFieldsAtom();
     const { navbarState, setNavbarState } = useNavbarState();
     const fieldId = v4();
+    const { authState } = useAuthAtom();
 
     function checkIfInputFieldExistsInSlide(slide: StandardFormFieldDto) {
         if (!slide?.properties?.fields?.length) return false;
@@ -55,16 +57,19 @@ const InsertFieldComponent = ({ formFields, activeSlideComponent, closeDropdown 
         }
         if (!currentPage || formFields.length === 0) {
             const newSlideIndex = activeSlideComponent.index < 0 ? formFields.length : activeSlideComponent.index + 1;
-            addSlide({
-                id: slideId,
-                index: newSlideIndex,
-                type: FieldTypes.SLIDE,
-                properties: {
-                    layout: FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT,
-                    fields: [getNewField(field, fieldId, formFields.length)]
+            addSlide(
+                {
+                    id: slideId,
+                    index: newSlideIndex,
+                    type: FieldTypes.SLIDE,
+                    properties: {
+                        layout: FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT,
+                        fields: [getNewField(field, fieldId, formFields.length)]
+                    },
+                    imageUrl: globalConstants.defaultImage
                 },
-                imageUrl: globalConstants.defaultImage
-            },newSlideIndex);
+                newSlideIndex
+            );
             setActiveSlideComponent({ id: slideId, index: newSlideIndex });
             window.setTimeout(function () {
                 const slideElement = document.getElementById(slideId);
@@ -156,23 +161,24 @@ const InsertFieldComponent = ({ formFields, activeSlideComponent, closeDropdown 
                                     index: number
                                 ) => {
                                     return (
-                                        <StyledDiv
-                                            $hoverColor={field.hoverBackgroundColor}
-                                            onClick={() => {
-                                                closeDropdown();
-                                                handleAddField(field);
-                                                setNavbarState({ ...navbarState, insertClicked: true });
-                                                setTimeout(() => {
-                                                    setNavbarState({ ...navbarState, insertClicked: false });
-                                                }, 1000);
-                                            }}
-                                            key={index}
-                                            style={{ background: field.background }}
-                                            className="text-black-600 hover:text-black-900 flex h-[100px] w-[100px] cursor-grab flex-col items-center justify-center gap-2 md:h-[120px] md:w-[120px] "
-                                        >
-                                            {field.icon}
-                                            <span className="text-xs"> {field.name}</span>
-                                        </StyledDiv>
+                                        <button key={index} data-umami-event={'Insert Field Button'} data-umami-event-field-type={field.type}>
+                                            <StyledDiv
+                                                $hoverColor={field.hoverBackgroundColor}
+                                                onClick={() => {
+                                                    closeDropdown();
+                                                    handleAddField(field);
+                                                    setNavbarState({ ...navbarState, insertClicked: true });
+                                                    setTimeout(() => {
+                                                        setNavbarState({ ...navbarState, insertClicked: false });
+                                                    }, 1000);
+                                                }}
+                                                style={{ background: field.background }}
+                                                className="text-black-600 hover:text-black-900 flex h-[100px] w-[100px] cursor-grab flex-col items-center justify-center gap-2 md:h-[120px] md:w-[120px] "
+                                            >
+                                                {field.icon}
+                                                <span className="text-xs"> {field.name}</span>
+                                            </StyledDiv>
+                                        </button>
                                     );
                                 }
                             )}

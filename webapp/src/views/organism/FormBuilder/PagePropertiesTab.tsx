@@ -17,12 +17,14 @@ import SlideLayoutLeftImage from '../../atoms/Icons/SlideLayoutLeftImage';
 import SlideLayoutNoImage from '../../atoms/Icons/SlideLayoutNoImage';
 import SlideLayoutRightImage from '../../atoms/Icons/SlideLayoutRightImage';
 import { FieldTypes } from '@app/models/dtos/form';
+import { useAuthAtom } from '@app/store/jotai/auth';
 
 export default function PagePropertiesTab({}: {}) {
     const { formFields, activeSlide, updateSlideLayout, updateSlideImage } = useFormFieldsAtom();
     const { activeSlideComponent } = useActiveSlideComponent();
     const { setActiveFieldComponent } = useActiveFieldComponent();
     const { activeThankYouPageComponent } = useActiveThankYouPageComponent();
+    const { authState } = useAuthAtom();
     const { formState, setWelcomePageButtonText, setThankYouPageDescription, setThankYouPageButtonText, setThankYouPageButtonLink, updateThankYouPageLayout, updateWelcomePageLayout, setFormDescription } = useFormState();
 
     function getPageIndex() {
@@ -83,17 +85,18 @@ export default function PagePropertiesTab({}: {}) {
                     <div className="p2-new text-black-700 mb-4 mt-6 px-4 !font-medium">Layout</div>
                     <div className="grid grid-cols-2 gap-2 border-b px-4 pb-6">
                         {getLayoutList().map((item: { style: FormSlideLayout; Icon: any }) => (
-                            <div
-                                key={item.style}
-                                className={cn(
-                                    'flex h-[50px] w-20 cursor-pointer items-center justify-center rounded-xl border-[1px] p-2 hover:bg-gray-200',
+                            <button key={item.style} data-umami-event={`${item.style} Layout`} data-umami-event-email={authState.email}>
+                                <div
+                                    className={cn(
+                                        'flex h-[50px] w-20 cursor-pointer items-center justify-center rounded-xl border-[1px] p-2 hover:bg-gray-200',
 
-                                    layout && layout === item.style ? 'border-pink-500 ring-offset-1' : 'border-gray-200'
-                                )}
-                                onClick={() => handleSlideLayoutChange(activeSlideComponent?.id, item.style)}
-                            >
-                                {item.Icon && <item.Icon />}
-                            </div>
+                                        layout && layout === item.style ? 'border-pink-500 ring-offset-1' : 'border-gray-200'
+                                    )}
+                                    onClick={() => handleSlideLayoutChange(activeSlideComponent?.id, item.style)}
+                                >
+                                    {item.Icon && <item.Icon />}
+                                </div>
+                            </button>
                         ))}
                     </div>
                 </>
