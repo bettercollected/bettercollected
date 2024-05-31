@@ -29,7 +29,7 @@ export default function GroupInfo({ handleInput, groupInfo }: IGroupInfoProps) {
             </p>
             <AppTextField disabled={!isAdmin} value={groupInfo.name} id="name" placeholder={t(placeHolder.groupName)} onChange={handleInput} />
             <p className="h4-new leading-none mt-8 !font-medium mb-2">{t(localesCommon.description)}</p>
-            <AppTextField disabled={!isAdmin} value={groupInfo.description} id="description" placeholder={t(placeHolder.description)} multiline rows={5} onChange={handleInput} />
+            <AppTextField disabled={!isAdmin} value={groupInfo.description} id="description" placeholder={t(placeHolder.description)} multiline rows={1} onChange={handleInput} />
         </div>
     );
 }

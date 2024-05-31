@@ -20,6 +20,9 @@ import SlideBuilder from '@app/views/organism/FormBuilder/SlideBuilder';
 import ThankYouSlide from '@app/views/organism/FormBuilder/ThankYouPage';
 import WelcomeSlide from '@app/views/organism/FormBuilder/WelcomePage';
 import Navbar from '@app/views/organism/Navbar';
+import FloatingPopOverButton from '@app/components/sidebar/FloatingPopOverButton';
+import HelpMenuComponent from '@app/components/sidebar/HelpMenuComponent';
+import HelpMenuItem from '@app/components/sidebar/HelpMenuItem';
 
 export default function FormPage({ params }: { params: { form_id: string } }) {
     const { formFields, setFormFields } = useFormFieldsAtom();
@@ -152,6 +155,9 @@ export default function FormPage({ params }: { params: { form_id: string } }) {
                 <div id="slide-element-properties" className="border-l-black-300 h-full w-[200px] self-stretch overflow-auto bg-white">
                     <PropertiesDrawer />
                 </div>
+                <FloatingPopOverButton content={<HelpMenuComponent />}>
+                    <HelpMenuItem />
+                </FloatingPopOverButton>
             </div>
         </main>
     );

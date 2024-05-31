@@ -19,6 +19,9 @@ import ShareIcon from '@app/views/atoms/Icons/ShareIcon';
 import { useTranslation } from 'next-i18next';
 import PublishButton from './PublishButton';
 import { useAuthAtom } from '@app/store/jotai/auth';
+import FloatingPopOverButton from '@app/components/sidebar/FloatingPopOverButton';
+import HelpMenuItem from '@app/components/sidebar/HelpMenuItem';
+import HelpMenuComponent from '@app/components/sidebar/HelpMenuComponent';
 
 const PreviewWrapper = ({ children, handleResetResponderState }: { children: React.ReactNode; handleResetResponderState: () => void }) => {
     const [key, setKey] = useState(1);
@@ -121,6 +124,9 @@ const PreviewWrapper = ({ children, handleResetResponderState }: { children: Rea
                     </div>
                 )}
             </div>
+            <FloatingPopOverButton content={<HelpMenuComponent />}>
+                <HelpMenuItem />
+            </FloatingPopOverButton>
         </div>
     );
 };
