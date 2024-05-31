@@ -55,7 +55,6 @@ jobs:
 
   build_on_pr:
     if: github.event_name == 'pull_request'
-    needs: test
     strategy:
       matrix:
         service:
