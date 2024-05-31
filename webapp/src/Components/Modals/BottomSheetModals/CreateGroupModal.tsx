@@ -23,7 +23,8 @@ import { handleRegexType } from '@app/models/enums/groupRegex';
 import { useAppSelector } from '@app/store/hooks';
 import { useCreateRespondersGroupMutation } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
-import { selectAuth } from '@app/store/auth/slice';
+import { selectAuth } from '@app/store/auth/slice';import { selectForm } from '@app/store/forms/slice';
+import { useGroupForm } from '@app/lib/hooks/use-group-form';
 
 export default function CreateGroupModal() {
     const router = useRouter();
@@ -33,6 +34,9 @@ export default function CreateGroupModal() {
     const { closeModal } = useModal();
     const workspace: WorkspaceDto = useAppSelector(selectWorkspace);
     const authState = useAppSelector(selectAuth);
+    const form = useAppSelector(selectForm);
+    const { addFormOnGroup } = useGroupForm();
+    const existingGroups = form?.groups || [];
     const [groupInfo, setGroupInfo] = useState<GroupInfoDto>({
         name: '',
         description: '',
@@ -68,11 +72,17 @@ export default function CreateGroupModal() {
             await createResponderGroup({
                 groupInfo: groupInfo,
                 workspace_id: workspace.id
-            }).then((response) => {
+            }).then((response: any) => {
                 if ('data' in response) {
                     toast(t(toastMessage.workspaceSuccess).toString(), {
                         toastId: ToastId.SUCCESS_TOAST,
                         type: 'success'
+                    });
+                    addFormOnGroup({
+                        groups: [],
+                        groupsForUpdate: [...existingGroups, { ...response.data, id: response.data._id }],
+                        form,
+                        workspaceId: workspace.id
                     });
                     closeBottomSheetModal();
                 } else
@@ -111,8 +121,9 @@ export default function CreateGroupModal() {
                 <div className="h2-new mb-2">{t(groupConstant.createGroup)}</div>
                 <div className="p2-new text-black-700">Create a group to limit access to form from your workspace</div>
             </div>
-            <div className="flex flex-col md:max-w-[700px] xl:max-w-[1000px]">
+            <div className="mb-4 flex flex-col md:max-w-[700px] xl:max-w-[1000px]">
                 <div className="md:max-w-[618px]">
+                    <div className="flex flex-col gap-12 pt-16">
                     <div className="flex flex-col gap-12 pt-16">
                         <GroupInfo handleInput={handleInput} groupInfo={groupInfo} />
                         <div>
@@ -137,3 +148,4 @@ export default function CreateGroupModal() {
         </BottomSheetModalWrapper>
     );
 }
+

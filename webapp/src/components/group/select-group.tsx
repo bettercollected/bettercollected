@@ -1,10 +1,9 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
 
 import AppButton from '@Components/Common/Input/Button/AppButton';
 import { ButtonSize, ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
-import CheckBox from '@Components/Common/Input/CheckBox';
 import { useBottomSheetModal } from '@Components/Modals/Contexts/BottomSheetModalContext';
 import DataTable from 'react-data-table-component';
 import { toast } from 'react-toastify';
@@ -17,6 +16,7 @@ import { toastMessage } from '@app/constants/locales/toast-message';
 import { useGroupForm } from '@app/lib/hooks/use-group-form';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { ResponderGroupDto } from '@app/models/dtos/groups';
+import { Checkbox } from '@app/shadcn/components/ui/checkbox';
 import { selectForm, setForm } from '@app/store/forms/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { useGetAllRespondersGroupQuery, usePatchFormSettingsMutation } from '@app/store/workspaces/api';
@@ -31,7 +31,7 @@ const SelectGroup = () => {
     const { t } = useTranslation();
     const { openModal, closeModal } = useModal();
 
-    const { openBottomSheetModal } = useBottomSheetModal();
+    const { openBottomSheetModal, closeBottomSheetModal } = useBottomSheetModal();
     const { addFormOnGroup } = useGroupForm();
     const [selectedGroup, setSelectedGroup] = useState<Array<ResponderGroupDto>>(form?.groups || []);
     const patchSettings = async (body: any, f: StandardFormDto) => {
@@ -53,7 +53,7 @@ const SelectGroup = () => {
         }
     };
     const handleOnClickCheckbox = (row: ResponderGroupDto, e: any) => {
-        if (e.target.checked) {
+        if (e) {
             setSelectedGroup([...selectedGroup, row]);
         } else {
             setSelectedGroup(selectedGroup.filter((uncheckedRow) => row.id != uncheckedRow.id));
@@ -68,6 +68,7 @@ const SelectGroup = () => {
                 workspaceId: workspace.id
             });
             patchSettings({ hidden: false, private: true, pinned: false }, form);
+            closeBottomSheetModal();
         } else {
             openModal('VISIBILITY_CONFIRMATION_MODAL_VIEW', {
                 visibilityType: 'Group',
@@ -118,7 +119,7 @@ const SelectGroup = () => {
         {
             name: '',
             selector: (row: any) => {
-                return <CheckBox checked={checkIfRowExistsInGroups(row)} value={row} onClick={(e) => handleOnClickCheckbox(row, e)} />;
+                return <Checkbox checked={checkIfRowExistsInGroups(row)} value={row} onCheckedChange={(e) => handleOnClickCheckbox(row, e)} />;
             },
             grow: 1,
             minWidth: '40px',

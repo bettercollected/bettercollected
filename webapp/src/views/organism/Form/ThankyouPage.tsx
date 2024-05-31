@@ -14,6 +14,7 @@ import { selectWorkspace } from '@app/store/workspaces/slice';
 import UserAvatarDropDown from '@app/views/molecules/UserAvatarDropdown';
 import { toast } from 'react-toastify';
 import useCopyToClipboard from 'react-use/lib/useCopyToClipboard';
+import { selectAnonymize } from '@app/store/fill-form/slice';
 
 export default function ThankyouPage({ isPreviewMode }: { isPreviewMode: boolean }) {
     const standardForm = useAppSelector(selectForm);
@@ -22,6 +23,11 @@ export default function ThankyouPage({ isPreviewMode }: { isPreviewMode: boolean
     const submissionUrl = environments.HTTP_SCHEME + environments.FORM_DOMAIN + '/' + workspace.workspaceName;
     const { responderId } = useResponderState();
     const [_, copyToClipboard] = useCopyToClipboard();
+    const anonymize = useAppSelector(selectAnonymize);
+
+    function getThankYouMessage() {
+        return standardForm?.thankyouPage?.[0]?.message ? standardForm?.thankyouPage?.[0]?.message : anonymize ? 'Your response is anonymously submitted.' : 'Your response is successfully submitted.';
+    }
 
     const handleOnCopy = (copyValue: string) => {
         copyToClipboard(copyValue);
@@ -30,17 +36,13 @@ export default function ThankyouPage({ isPreviewMode }: { isPreviewMode: boolean
         });
     };
     return (
-        <div
-            className={cn('flex h-full w-full flex-col justify-center', standardForm?.thankyouPage![0]?.layout === FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND_LEFT_ALIGN ? 'items-start' : 'items-center')}
-            style={{ background: standardForm.theme?.accent }}
-        >
+        <div className={cn('flex h-full w-full flex-col justify-center bg-inherit', standardForm?.thankyouPage![0]?.layout === FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND_LEFT_ALIGN ? 'items-start' : 'items-center')}>
             <UserAvatarDropDown disabled />
             <div className=" flex h-full w-full max-w-[800px] flex-col justify-between">
-                {/* <div className=""> */}
                 <div className="flex">
                     <span className="text-[40px] font-bold leading-[48px]">Thank You! 🎉</span>
                 </div>
-                <div className="p2-new text-black-700 mt-4">{standardForm?.thankyouPage?.[0]?.message || 'Your response is successfully submitted.'}</div>
+                <div className="p2-new text-black-700 mt-4">{getThankYouMessage()}</div>
                 {standardForm?.thankyouPage && standardForm?.thankyouPage[0].buttonText && (
                     <Button style={{ background: standardForm.theme?.secondary }} className="mt-14">
                         <Link href={isPreviewMode ? '' : standardForm?.thankyouPage[0].buttonLink || 'https://bettercollected.com'} target="_blank" referrerPolicy="no-referrer">
@@ -48,7 +50,7 @@ export default function ThankyouPage({ isPreviewMode }: { isPreviewMode: boolean
                         </Link>
                     </Button>
                 )}
-                {auth.id && (
+                {auth.id && standardForm.settings?.showSubmissionNumber && (
                     <div className="p2-new mt-10 flex max-w-[400px] flex-col gap-2 rounded-lg bg-white/50 p-4 ">
                         <div className="flex flex-row justify-between">
                             <span className="p3-new text-black-800">Submission Number</span>
