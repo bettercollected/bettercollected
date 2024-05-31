@@ -37,7 +37,7 @@ export default function RootLayout({
     return (
         <html lang="en">
             <head>
-                <script defer src="/script.js" data-website-id={environments.UMAMI_WEBSITE_ID}></script>
+                {environments.NEXT_PUBLIC_NODE_ENV === 'production' && environments.UMAMI_WEBSITE_ID && <script defer src="/script.js" data-website-id={environments.UMAMI_WEBSITE_ID}></script>}
                 <script src="/api/config" defer></script>
                 {embedMicrosoftClarityScript()}
             </head>
