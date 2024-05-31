@@ -104,7 +104,7 @@ export default function WelcomePage({
                     <div>
                         <Button
                             style={{ background: formTheme?.secondary }}
-                            className="z-10 rounded px-8 py-3"
+                            className="z-10 rounded px-8 py-3 mt-2"
                             size="medium"
                             onClick={() => {
                                 if (!auth.id && standardForm?.settings?.requireVerifiedIdentity) {
