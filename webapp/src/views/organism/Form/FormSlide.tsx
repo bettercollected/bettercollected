@@ -1,6 +1,5 @@
 'use client';
 
-import { AnimatePresence } from 'framer-motion';
 import { Controller } from 'react-scrollmagic';
 import { toast } from 'react-toastify';
 
@@ -33,6 +32,7 @@ import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { scrollToDivById } from '@app/utils/scrollUtils';
 import BackButton from '@app/views/molecules/FormBuilder/BackButton';
+import TextAreaField from '@app/views/molecules/ResponderFormFields/TextAreaField';
 import ImageField from '../FormBuilder/Fields/Imagefield';
 import MatrixField from '../FormBuilder/Fields/Matrix';
 import VideoField from '../FormBuilder/Fields/VideoField';
@@ -42,12 +42,13 @@ export function FormFieldComponent({ field, slideIndex }: { field: StandardFormF
     switch (field.type) {
         case FieldTypes.TEXT:
             return <QuestionWrapper field={field} />;
-        case FieldTypes.NUMBER:
         case FieldTypes.EMAIL:
-        case FieldTypes.SHORT_TEXT:
-        case FieldTypes.LONG_TEXT:
+        case FieldTypes.NUMBER:
         case FieldTypes.LINK:
             return <InputField field={field} />;
+        case FieldTypes.SHORT_TEXT:
+        case FieldTypes.LONG_TEXT:
+            return <TextAreaField field={field} />;
         case FieldTypes.MULTIPLE_CHOICE:
             if (field?.properties?.allowMultipleSelection) {
                 return <MultipleChoiceWithMultipleSelection field={field} slideIndex={slideIndex} />;

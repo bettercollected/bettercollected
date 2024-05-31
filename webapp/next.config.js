@@ -38,6 +38,14 @@ const nextConfig = {
         emotion: true,
         removeConsole: false
     },
+    async rewrites() {
+        return [
+            {
+                source: '/script.js',
+                destination: 'https://cloud.umami.is/script.js?website-id=6fb3ef1c-ccf8-4829-b1f6-7a9cea4edeea'
+            }
+        ];
+    },
     async headers() {
         return [
             {
@@ -156,7 +164,7 @@ const nextConfig = {
 
         //unami
         UMAMI_SCRIPT_URL: process.env.UMAMI_SCRIPT_URL,
-        UMAMI_WEBSITE_ID: process.env.UMAMI_WEBSITE_ID,
+        NEXT_PUBLIC_UMAMI_WEBSITE_ID: process.env.NEXT_PUBLIC_UMAMI_WEBSITE_ID,
 
         //integrations
         ENABLE_ACTIONS: process.env.ENABLE_ACTIONS,

@@ -100,11 +100,11 @@ export default function WelcomePage({
                     </>
                 )}
 
-                {((!standardForm?.settings?.private && !standardForm?.settings?.requireVerifiedIdentity) || (standardForm?.settings?.private && auth.id && !standardForm?.unauthorized)) && (
+                {(!standardForm?.settings?.private || (standardForm?.settings?.private && auth.id && !standardForm?.unauthorized)) && (
                     <div>
                         <Button
                             style={{ background: formTheme?.secondary }}
-                            className="z-10 rounded px-8 py-3"
+                            className="z-10 rounded px-8 py-3 mt-2"
                             size="medium"
                             onClick={() => {
                                 if (!auth.id && standardForm?.settings?.requireVerifiedIdentity) {

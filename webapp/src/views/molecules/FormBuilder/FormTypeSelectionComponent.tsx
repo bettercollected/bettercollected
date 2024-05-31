@@ -1,3 +1,4 @@
+import { useAuthAtom } from '@app/store/jotai/auth';
 import { MultiPageFormIcon } from '@app/views/atoms/Icons/MultipageFormIcon';
 import { SinglePageFormIcon } from '@app/views/atoms/Icons/SinglePageFormIcon';
 
@@ -26,6 +27,8 @@ const FormTypes: IFormTypes[] = [
 ];
 
 const FormTypeSelectionComponent = ({ handleCreateForm }: { handleCreateForm: (type: any) => void }) => {
+    const { authState } = useAuthAtom();
+
     return (
         <div className="flex flex-col items-center gap-20 py-12">
             <div className="flex flex-col items-center gap-1">
@@ -34,7 +37,11 @@ const FormTypeSelectionComponent = ({ handleCreateForm }: { handleCreateForm: (t
             </div>
             <div className="flex flex-row gap-12">
                 {FormTypes.map((item: IFormTypes) => {
-                    return <FormTypeCard key={item.type} item={item} handleClick={handleCreateForm} />;
+                    return (
+                        <button key={item.type} autoFocus={false} className="border-none outline-none active:border-none" data-umami-event={item.type} data-umami-event-email={authState.email}>
+                            <FormTypeCard item={item} handleClick={handleCreateForm} />;
+                        </button>
+                    );
                 })}
             </div>
         </div>
