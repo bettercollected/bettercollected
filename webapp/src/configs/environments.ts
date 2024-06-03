@@ -66,8 +66,8 @@ const environments = {
     APM_ENABLED: publicRuntimeConfig.ELASTIC_APM_SERVER_URL && publicRuntimeConfig.ELASTIC_APM_SERVICE_NAME,
 
     //umani
-    UMAMI_WEBSITE_ID: publicRuntimeConfig.NEXT_PUBLIC_UMAMI_WEBSITE_ID,
-    UMAMI_SCRIPT_URL: publicRuntimeConfig.UMAMI_SCRIPT_URL,
+    UMAMI_WEBSITE_ID: process.env.NEXT_PUBLIC_UMAMI_WEBSITE_ID,
+    UMAMI_SCRIPT_URL: process.env.UMAMI_SCRIPT_URL,
 
     ENABLE_ACTIONS: publicRuntimeConfig.ENABLE_ACTIONS && (publicRuntimeConfig.ENABLE_ACTIONS === 'true' || publicRuntimeConfig.ENABLE_ACTIONS === true),
     ENABLE_IMPORT_WITH_PICKER: publicRuntimeConfig.ENABLE_IMPORT_WITH_PICKER && (publicRuntimeConfig.ENABLE_IMPORT_WITH_PICKER === 'true' || publicRuntimeConfig.ENABLE_IMPORT_WITH_PICKER === true),
