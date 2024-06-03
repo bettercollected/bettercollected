@@ -42,7 +42,7 @@ const nextConfig = {
         return [
             {
                 source: '/script.js',
-                destination: 'https://cloud.umami.is/script.js?website-id=6fb3ef1c-ccf8-4829-b1f6-7a9cea4edeea'
+                destination: 'https://cloud.umami.is/script.js'
             }
         ];
     },
