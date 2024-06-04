@@ -189,6 +189,12 @@ export const workspacesApi = createApi({
             }),
             providesTags: [WORKSPACE_TAGS]
         }),
+        verifyWorkspaceDomain: builder.query<any, string>({
+            query: (workspaceId: string) => ({
+                url: `/workspaces/${workspaceId}/verify-domain`,
+                method: 'GET'
+            })
+        }),
         getAllMineWorkspaces: builder.query<any, void>({
             query: () => ({
                 url: '/workspaces/mine',
@@ -551,5 +557,6 @@ export const {
     useLazyGetWorkspaceSubmissionByUUIDQuery,
     useRequestWorkspaceSubmissionDeletionByUUIDMutation,
     useGetFormAllSubmissionsQuery,
-    useLazyGetFormAllSubmissionsQuery
+    useLazyGetFormAllSubmissionsQuery,
+    useVerifyWorkspaceDomainQuery
 } = workspacesApi;

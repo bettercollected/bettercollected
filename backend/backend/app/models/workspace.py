@@ -2,6 +2,7 @@ import datetime as dt
 from typing import Optional
 
 from beanie import PydanticObjectId
+from click import Option
 from common.models.consent import ResponseRetentionType
 from fastapi_camelcase import CamelModel
 from pydantic import BaseModel
@@ -64,3 +65,4 @@ class WorkspaceResponseDto(WorkspaceRequestDto, CamelModel):
     is_pro: Optional[bool] = False
     privacy_policy: Optional[str]
     terms_of_service: Optional[str]
+    custom_domain_verified: Optional[bool] = False

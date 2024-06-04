@@ -31,16 +31,16 @@ export default function NavigationList({ navigationList, className = '', sx = {}
                         <ListItem
                             disablePadding
                             onClick={() => {
-                                if (element.url) {
-                                    router.push(element.url, undefined, { shallow: true });
+                                if (element.onClick) {
+                                    element.onClick();
                                 } else {
-                                    element.onClick && element.onClick();
+                                    router.push(element.url, undefined, { shallow: true });
                                 }
                             }}
                         >
-                            <ListItemButton sx={{ paddingY: '8px', paddingX: '20px' }} className={`${active ? '' : 'hover:!bg-transparent'}`}>
+                            <ListItemButton sx={{ paddingY: '8px', paddingX: '20px' }} className={`hover:!bg-transparent`}>
                                 {element.icon && (
-                                    <ListItemIcon sx={{ minWidth: '36px' }} className={`${active ? 'text-white' : 'text-black-600'}`}>
+                                    <ListItemIcon sx={{ minWidth: '36px' }} className={`${active ? 'text-black-800' : 'text-black-600'}`}>
                                         {element?.icon}
                                     </ListItemIcon>
                                 )}

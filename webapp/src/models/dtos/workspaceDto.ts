@@ -19,6 +19,7 @@ export interface WorkspaceDto {
     mailSettings?: string | null;
     id: string;
     isPro?: boolean;
+    customDomainVerified?: boolean;
 }
 
 export const initWorkspaceDto: WorkspaceDto = {

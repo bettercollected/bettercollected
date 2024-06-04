@@ -353,7 +353,8 @@ export default {
             'blue-hue': ' 0px 0px 16px 0px #0764EB29',
             bubble: '-4px 0px 12px 0px #0000001A',
             slide: '0px 0px 6px 0px #00000026',
-            'floating-button':' 0px 4px 24px 0px rgba(0, 0, 0, 0.15)'
+            'floating-button':' 0px 4px 24px 0px rgba(0, 0, 0, 0.15)',
+            "workspace-card": "0px 0px 30px 0px #03035014"
         },
         boxShadowColor: ({theme}) => theme('colors'),
         brightness: {
