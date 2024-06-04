@@ -60,6 +60,8 @@ export const dataTableCustomStyles = {
 export const simpleDataTableStyles = {
     table: {
         style: {
+            borderRadius: '16px !important',
+            overflow: 'hidden',
             border: '1px solid #F6F6F6'
         }
     },

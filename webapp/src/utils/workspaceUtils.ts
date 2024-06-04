@@ -14,8 +14,8 @@ export const checkErrorForWorkspaceName = (name: string | null) => {
     return true;
 };
 
-export function getWorkspaceShareURL(workspace: WorkspaceDto) {
-    if (workspace.isPro && workspace.customDomain) {
+export function getWorkspaceShareURL(workspace: WorkspaceDto, customDomain: boolean = true) {
+    if (workspace.isPro && workspace.customDomain && customDomain) {
         return `${environments.HTTP_SCHEME}${workspace.customDomain}`;
     } else {
         return `${environments.HTTP_SCHEME}${environments.CLIENT_DOMAIN}/${workspace.workspaceName}`;

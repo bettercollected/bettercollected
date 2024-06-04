@@ -26,7 +26,7 @@ export default function AppButton({ children, className, disabled, isLoading, ic
             case ButtonVariant.Ghost:
                 return disabled ? 'bg-transparent text-black-500' : 'text-brand-500 border border-transparent hover:bg-black-200 outline-none active:border-brand-500 active:bg-black-300';
             case ButtonVariant.DangerGhost:
-                return disabled ? 'bg-white-300 text-red-500' : 'bg-red-400 text-red hover:bg-red-500 focus:ring-red-500 focus-ring active:bg-red-300';
+                return disabled ? 'bg-white-300 text-red-500' : 'bg-red-500 text-red hover:bg-red-600 focus:ring-red-500 focus-ring active:bg-red-300';
         }
     };
 

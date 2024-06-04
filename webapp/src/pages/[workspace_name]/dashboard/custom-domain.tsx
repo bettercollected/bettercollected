@@ -1,11 +1,13 @@
 import { simpleDataTableStyles } from '@app/components/datatable/form/datatable-styles';
 import { Refresh } from '@app/components/icons/refresh';
 import { useModal } from '@app/components/modal-views/context';
+import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
 import DashboardLayout from '@app/components/sidebar/dashboard-layout';
 import { ProLogo } from '@app/components/ui/logo';
 import environments from '@app/configs/environments';
 import { toastMessage } from '@app/constants/locales/toast-message';
 import { ToastId } from '@app/constants/toastId';
+import { ButtonVariant } from '@app/models/enums/button';
 import { Button } from '@app/shadcn/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@app/shadcn/components/ui/dropdown-menu';
 import { AppInput } from '@app/shadcn/components/ui/input';
@@ -18,6 +20,7 @@ import CopyIcon from '@app/views/atoms/Icons/Copy copy';
 import DeleteIcon from '@app/views/atoms/Icons/Delete';
 import EllipsisOption from '@app/views/atoms/Icons/EllipsisOption';
 import OpenLinkIcon from '@app/views/atoms/Icons/OpenLink';
+import { RefreshCcw } from 'lucide-react';
 import { useTranslation } from 'next-i18next';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
@@ -26,23 +29,31 @@ import DataTable from 'react-data-table-component';
 import { toast } from 'react-toastify';
 
 export default function CustomDomainSettings() {
-    const workspace = useAppSelector(selectWorkspace);
     return (
         <>
             <DashboardLayout boxClassName="px-5 pt-10 lg:px-10">
-                <div className="flex max-w-[664px] flex-col rounded-2xl bg-white p-8">
-                    <div className="text-black-900  flex gap-2 text-sm font-semibold ">
-                        {' '}
-                        Custom Domain <ProLogo />
-                    </div>
-                    <hr className="text-black-200 mt-2" />
-                    {!workspace?.customDomain && <AddWorkspaceDomainForm />}
-                    {workspace?.customDomain && <WorkspaceDomainStatus />}
+                <div className="max-w-[664px] rounded-2xl bg-white p-8">
+                    <CustomDomainCard />
                 </div>
             </DashboardLayout>
         </>
     );
 }
+
+export const CustomDomainCard = () => {
+    const workspace = useAppSelector(selectWorkspace);
+    return (
+        <div className="flex max-w-[664px] flex-col">
+            <div className="text-black-900  flex gap-2 text-sm font-semibold ">
+                {' '}
+                Custom Domain <ProLogo />
+            </div>
+            <hr className="text-black-200 mt-2" />
+            {!workspace?.customDomain && <AddWorkspaceDomainForm />}
+            {workspace?.customDomain && <WorkspaceDomainStatus />}
+        </div>
+    );
+};
 
 const WorkspaceDomainStatus = () => {
     const workspace = useAppSelector(selectWorkspace);
@@ -53,6 +64,7 @@ const WorkspaceDomainStatus = () => {
 
     useEffect(() => {
         if (data?.domain_verified && data?.txt_verified) {
+            console.log(pathname);
             router.push(pathname || '');
         }
     }, [data]);
@@ -110,13 +122,13 @@ const WorkspaceDomainStatus = () => {
             name: workspace.customDomain,
             type: 'A',
             value: environments.CUSTOM_DOMAIN_IP,
-            status: data?.domain_verified ? <div className="rounded-xl bg-green-100 px-2 py-1 text-xs text-green-500">Success</div> : <div className="rounded-xl bg-yellow-100 px-2 py-1 text-xs text-yellow-500">Pending</div>
+            status: data?.domain_verified ? <div className="rounded-xl bg-green-100 px-2 py-1 text-xs text-green-500">Success</div> : <div className="rounded-xl bg-yellow-100 px-2 py-1 text-xs text-yellow-600">Pending</div>
         });
         dnsData.push({
             name: workspace.customDomain,
             type: 'TXT',
             value: data?.records?.[1].value,
-            status: data?.txt_verified ? <div className="rounded-xl bg-green-100 px-2 py-1 text-xs text-green-500">Success</div> : <div className="rounded-xl bg-yellow-100 px-2 py-1  text-xs text-yellow-500">Pending</div>
+            status: data?.txt_verified ? <div className="rounded-xl bg-green-100 px-2 py-1 text-xs text-green-500">Success</div> : <div className="rounded-xl bg-yellow-100 px-2 py-1  text-xs text-yellow-600">Pending</div>
         });
         return dnsData;
     };
@@ -181,10 +193,10 @@ const WorkspaceDomainStatus = () => {
             <div className="mt-4 flex items-center gap-2">
                 Once you are done press here to check the status.{' '}
                 <span>
-                    <Refresh
+                    <RefreshCcw
                         width={24}
                         height={24}
-                        className={cn(isFetching && 'animate-spin', 'cursor-pointer text-blue-500')}
+                        className={cn(isFetching && 'rotate-180 transform animate-spin', 'cursor-pointer text-blue-500')}
                         onClick={() => {
                             if (!isFetching) {
                                 refetch();
@@ -226,6 +238,7 @@ const AddWorkspaceDomainForm = () => {
     const [patchExistingWorkspace, { isLoading }] = usePatchExistingWorkspaceMutation();
 
     const workspace = useAppSelector(selectWorkspace);
+    const { openModal } = useFullScreenModal();
 
     const [warned, setWarned] = useState(false);
 
@@ -239,8 +252,12 @@ const AddWorkspaceDomainForm = () => {
     });
 
     const addDomain = async () => {
+        if (!workspace.isPro) {
+            openModal('UPGRADE_TO_PRO');
+            return;
+        }
         if (domain.match(/^[a-zA-Z0-9-]+\.[a-zA-Z]{2,63}$/) && !warned) {
-            setMessage({ error: false, message: 'This looks like a root domain. This might break your existing site. We recommend using subdomain that is not used elsewhere. \n E.g. : forms.yourdomain.com' });
+            setMessage({ error: false, message: 'This looks like a root domain. This might break your existing site. We recommend using subdomain that is not used elsewhere.' });
             setWarned(true);
             return;
         }
@@ -265,9 +282,15 @@ const AddWorkspaceDomainForm = () => {
         <div className="mt-4 flex flex-col  gap-2">
             <span className="text-black-700 text-xs">You can use your own domain name to have a custom URL for your published forms. Consider using a subdomain, such as : forms.yourdomain.com</span>
             <div className="text-black-800 mt-4 text-xs font-medium">Enter a domain you own</div>
-            <div className="flex items-center gap-4">
+            <form
+                onSubmit={(event) => {
+                    event.preventDefault();
+                    addDomain();
+                }}
+                className="flex items-center gap-4"
+            >
                 <AppInput
-                    className={cn('max-w-[400px]', message.message && (message.error ? 'border-red-500' : 'border-yellow-600'))}
+                    className={cn('max-w-[400px]', message.message && (message.error ? 'border-red-500' : ''))}
                     value={domain}
                     onChange={(event) => {
                         setDomain(event.target.value);
@@ -278,12 +301,19 @@ const AddWorkspaceDomainForm = () => {
                     }}
                     placeholder="eg. forms.yoursite.com"
                 />
-                <Button variant={'v2Button'} onClick={addDomain} isLoading={isLoading}>
+                <Button variant={'v2Button'} type="submit" disabled={warned} isLoading={isLoading}>
                     {' '}
-                    Add Domain {warned && ' Anyways'}
+                    Add Domain
                 </Button>
+            </form>
+            <div className="max-w-[400px]">
+                {message.message && <div className={cn(message.error ? 'text-red-500' : 'text-[#FFA716]', 'whitespace-pre-wrap text-wrap text-xs	')}>{message.message}</div>}
+                {warned && (
+                    <Button variant={ButtonVariant.Ghost} isLoading={isLoading} className="mt-2 cursor-pointer text-xs text-blue-500" onClick={addDomain}>
+                        Add Anyway
+                    </Button>
+                )}
             </div>
-            <div className="max-w-[400px]">{message.message && <div className={cn(message.error ? 'text-red-500' : 'text-yellow-600', 'whitespace-pre-wrap text-wrap text-xs	')}>{message.message}</div>}</div>
         </div>
     );
 };
