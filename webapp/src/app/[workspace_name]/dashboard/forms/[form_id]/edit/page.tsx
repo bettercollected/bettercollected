@@ -4,7 +4,9 @@ import { useEffect, useState } from 'react';
 
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
-
+import FloatingPopOverButton from '@app/components/sidebar/FloatingPopOverButton';
+import HelpMenuComponent from '@app/components/sidebar/HelpMenuComponent';
+import HelpMenuItem from '@app/components/sidebar/HelpMenuItem';
 import { useDialogModal } from '@app/lib/hooks/useDialogModal';
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
@@ -20,9 +22,6 @@ import SlideBuilder from '@app/views/organism/FormBuilder/SlideBuilder';
 import ThankYouSlide from '@app/views/organism/FormBuilder/ThankYouPage';
 import WelcomeSlide from '@app/views/organism/FormBuilder/WelcomePage';
 import Navbar from '@app/views/organism/Navbar';
-import FloatingPopOverButton from '@app/components/sidebar/FloatingPopOverButton';
-import HelpMenuComponent from '@app/components/sidebar/HelpMenuComponent';
-import HelpMenuItem from '@app/components/sidebar/HelpMenuItem';
 
 export default function FormPage({ params }: { params: { form_id: string } }) {
     const { formFields, setFormFields } = useFormFieldsAtom();
@@ -122,7 +121,6 @@ export default function FormPage({ params }: { params: { form_id: string } }) {
             });
         }
     }, [standardForm.formId]);
-
 
     return (
         <main className=" flex h-screen flex-col items-center justify-start overflow-hidden bg-white">
