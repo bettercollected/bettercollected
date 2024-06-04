@@ -77,7 +77,7 @@ const SlideBuilder = ({ slide, isScaledDown = false, disabled = false }: { slide
                                                         <MoveUpDown slideIndex={slide.index} field={field} />
                                                     </div>
                                                 )}
-                                                <div className={cn(field?.type !== FieldTypes.TEXT && 'mb-2 w-full')}>
+                                                <div className={cn('mb-2 w-full')}>
                                                     <div className="relative flex w-full items-center gap-2">
                                                         {slide?.properties?.showQuestionNumbers && <span className="text-2xl">{index + 1}.</span>}
                                                         <RichTextEditor
