@@ -114,7 +114,7 @@ export default function UnsplashImagePicker({ initialPhotoSearchQuery = '', onPh
                             <div className="mr-2 flex h-[430px] flex-col">
                                 <div className="mb-6 mr-2 ">
                                     <SearchBar
-                                        placeholder="Search free high-resolution images from unsplash"
+                                        placeholder="Search free high-resolution images from Unsplash"
                                         className="md:w-full"
                                         initialPhotoSearchQuery={initialPhotoSearchQuery}
                                         onSearch={(query: string) => {

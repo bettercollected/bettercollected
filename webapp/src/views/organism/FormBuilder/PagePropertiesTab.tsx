@@ -141,15 +141,15 @@ export default function PagePropertiesTab({}: {}) {
         if (slideId) {
             if (slideId === 'welcome-page' && formState.welcomePage) {
                 formState.welcomePage.imageUrl = '';
-                formState.welcomePage.layout = FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND_LEFT_ALIGN;
+                formState.welcomePage.layout = FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND;
                 setFormState({ ...formState });
             } else if (slideId === 'thank-you-page' && formState.thankyouPage) {
                 formState.thankyouPage[activeThankYouPageComponent?.index || 0].imageUrl = '';
-                formState.thankyouPage[activeThankYouPageComponent?.index || 0].layout = FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND_LEFT_ALIGN;
+                formState.thankyouPage[activeThankYouPageComponent?.index || 0].layout = FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND;
                 setFormState({ ...formState });
             } else {
                 formFields[activeSlideComponent?.index || 0].imageUrl = '';
-                formFields[activeSlideComponent?.index || 0] && (formFields[activeSlideComponent?.index || 0]!.properties!.layout = FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND_LEFT_ALIGN);
+                formFields[activeSlideComponent?.index || 0] && (formFields[activeSlideComponent?.index || 0]!.properties!.layout = FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND);
                 setFormFields([...formFields]);
             }
         }

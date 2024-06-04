@@ -158,14 +158,14 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
     return (
         <Controller>
             <SlideLayoutWrapper showDesktopLayout={showDesktopLayout} scrollDivId={'questions-container'} theme={standardForm.theme} slide={formSlide} disabled>
-                <div className="absolute left-0 right-0 top-5 z-10 mx-auto  w-full">
+                <div className="absolute left-0 right-0 top-5 z-10 mx-auto w-full">
                     <div className="px-5 md:px-8 xl:px-10 2xl:px-20">
-                        <div className=" mx-auto w-full max-w-[800px] px-4">
+                        <div className={`w-full max-w-[800px] px-4 ${formSlide?.properties?.layout === FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND_LEFT_ALIGN ? '' : 'mx-auto'}`}>
                             <BackButton
                                 handleClick={() => {
                                     currentSlide > 0 ? previousSlide() : setCurrentSlideToWelcomePage();
                                 }}
-                                className=" w-fit bg-opacity-100"
+                                className=" w-fit !bg-inherit"
                                 style={{
                                     background: standardForm?.theme?.accent
                                 }}

@@ -24,7 +24,7 @@ const initialFieldsAtom = atom<StandardFormFieldDto[]>([
                     type: FieldTypes.SHORT_TEXT,
                     value: 'Hi, what is your name?',
                     properties: {
-                        placeholder: 'Your full name please'
+                        placeholder: 'Answer'
                     }
                 }
             ]
@@ -227,7 +227,6 @@ export default function useFormFieldsAtom() {
     };
 
     const updateSlideLayout = (layout: FormSlideLayout) => {
-      
         formFields[activeSlide?.index || 0].properties!.layout = layout;
         setFormFields([...formFields]);
     };
