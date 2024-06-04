@@ -6,7 +6,7 @@ import WorkspaceDetails from '@Components/Workspace/Settings/WorkspaceDetails';
 
 import ParamTab, { TabPanel } from '@app/components/ui/param-tab';
 
-export default function WorkspaceSettingsModal({ initialIndex }: { initialIndex?: number }) {
+export default function WorkspaceSettingsModal({ initialIndex = 0 }: { initialIndex?: number }) {
     const { t } = useTranslation();
 
     const tabMenu = [
@@ -21,17 +21,17 @@ export default function WorkspaceSettingsModal({ initialIndex }: { initialIndex?
     ];
     return (
         <BottomSheetModalWrapper className="!px-0 pb-10">
-            <div className="px-5 md:px-20 lg:px-30">
-                <div className="h2-new mb-2 text-black-800">{t('WORKSPACE.SETTINGS.DEFAULT')}</div>
-                <div className="p2-new text-black-700 max-w-[440px] mb-10">{t('WORKSPACE.SETTINGS.DESCRIPTION')}</div>
+            <div className="lg:px-30 px-5 md:px-20">
+                <div className="h2-new text-black-800 mb-2">{t('WORKSPACE.SETTINGS.DEFAULT')}</div>
+                <div className="p2-new text-black-700 mb-10 max-w-[440px]">{t('WORKSPACE.SETTINGS.DESCRIPTION')}</div>
             </div>
-            <ParamTab initialIndex={initialIndex} tabMenu={tabMenu} isRouteChangeable={false} className="px-5 md:px-20 !py-0 lg:px-30">
+            <ParamTab initialIndex={initialIndex} tabMenu={tabMenu} isRouteChangeable={false} className="lg:px-30 !py-0 px-5 md:px-20">
                 <TabPanel key="workspace-details">
                     <WorkspaceDetails />
                 </TabPanel>
 
                 <TabPanel key="manage-url">
-                    <div className="px-5 md:px-20 lg:px-30">
+                    <div className="lg:px-30 px-5 md:px-20">
                         <ManageURLs />
                     </div>
                 </TabPanel>

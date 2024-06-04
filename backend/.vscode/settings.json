@@ -1,5 +1,7 @@
 {
-  "editor.defaultFormatter": "ms-python.black-formatter",
-  "python.analysis.typeCheckingMode": "off",
-  "python.analysis.autoImportCompletions": true
+	"editor.defaultFormatter": "ms-python.black-formatter",
+	"python.analysis.typeCheckingMode": "off",
+	"python.analysis.autoImportCompletions": true,
+	"editor.formatOnPaste": true,
+	"editor.formatOnSave": true
 }
