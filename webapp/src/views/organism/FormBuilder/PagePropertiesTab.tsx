@@ -11,21 +11,80 @@ import { extractTextfromJSON } from '@app/utils/richTextEditorExtenstion/getHtml
 import RequiredIcon from '@app/views/atoms/Icons/Required';
 import { SlideLayoutNoImageLeftAlign } from '@app/views/atoms/Icons/SlideLayoutNoImageLeftAlign';
 
+import { useDialogModal } from '@app/lib/hooks/useDialogModal';
+import { FieldTypes } from '@app/models/dtos/form';
+import { useAuthAtom } from '@app/store/jotai/auth';
 import { IsValidString } from '@app/utils/stringUtils';
+import DeleteIcon from '@app/views/atoms/Icons/Delete';
+import { PlusIcon } from '@app/views/atoms/Icons/Plus';
+import { SwitchIcon } from '@app/views/atoms/Icons/SwitchIcon';
+import Image from 'next/image';
 import SlideLayoutBackgroundImage from '../../atoms/Icons/SlideLayoutBackgroundImage';
 import SlideLayoutLeftImage from '../../atoms/Icons/SlideLayoutLeftImage';
 import SlideLayoutNoImage from '../../atoms/Icons/SlideLayoutNoImage';
 import SlideLayoutRightImage from '../../atoms/Icons/SlideLayoutRightImage';
-import { FieldTypes } from '@app/models/dtos/form';
-import { useAuthAtom } from '@app/store/jotai/auth';
 
 export default function PagePropertiesTab({}: {}) {
-    const { formFields, activeSlide, updateSlideLayout, updateSlideImage } = useFormFieldsAtom();
+    const { formFields, activeSlide, updateSlideLayout, updateSlideImage, setFormFields } = useFormFieldsAtom();
     const { activeSlideComponent } = useActiveSlideComponent();
     const { setActiveFieldComponent } = useActiveFieldComponent();
     const { activeThankYouPageComponent } = useActiveThankYouPageComponent();
     const { authState } = useAuthAtom();
-    const { formState, setWelcomePageButtonText, setThankYouPageDescription, setThankYouPageButtonText, setThankYouPageButtonLink, updateThankYouPageLayout, updateWelcomePageLayout, setFormDescription } = useFormState();
+    const {
+        formState,
+        setFormState,
+        setWelcomePageButtonText,
+        setThankYouPageDescription,
+        setThankYouPageButtonText,
+        setThankYouPageButtonLink,
+        updateThankYouPageLayout,
+        updateWelcomePageLayout,
+        setFormDescription,
+        updateWelcomePageImage,
+        updateThankYouPageImage
+    } = useFormState();
+
+    const { openDialogModal } = useDialogModal();
+
+    const NO_IMAGE_LAYOUTS = [FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND, FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND_LEFT_ALIGN];
+
+    const slide = activeSlideComponent && (activeSlideComponent.index >= 0 ? formFields[activeSlideComponent.index] : activeSlideComponent.index === -10 ? formState.welcomePage : formState.thankyouPage![activeThankYouPageComponent?.index || 0]);
+
+    function updatePagesLayout() {
+        if (
+            (activeSlide?.properties?.layout && NO_IMAGE_LAYOUTS.includes(activeSlide?.properties?.layout)) ||
+            (activeSlideComponent &&
+                ((formState.welcomePage?.layout && NO_IMAGE_LAYOUTS.includes(formState.welcomePage?.layout)) ||
+                    NO_IMAGE_LAYOUTS.includes(formState.thankyouPage![activeThankYouPageComponent?.index || 0]?.layout ?? FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND_LEFT_ALIGN)))
+        ) {
+            if (activeSlideComponent?.index === -10) {
+                updateWelcomePageLayout(FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT);
+            } else if (activeSlideComponent?.index === -20) {
+                updateThankYouPageLayout(FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT);
+            } else {
+                updateSlideLayout(FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT);
+            }
+        }
+    }
+
+    function getPageImageUpdateFunction(image: string) {
+        if (image) {
+            updatePagesLayout();
+        }
+        if (activeSlideComponent?.index === -10) {
+            updateWelcomePageImage(image);
+        } else if (activeSlideComponent?.index === -20) {
+            updateThankYouPageImage(image);
+        } else {
+            updateSlideImage(image);
+        }
+    }
+
+    const handleClickMedia = () => {
+        openDialogModal('UNSPLASH_IMAGE_PICKER', {
+            updatePageImage: getPageImageUpdateFunction
+        });
+    };
 
     function getPageIndex() {
         if (activeSlideComponent?.id === 'welcome-page') return -10;
@@ -76,6 +135,30 @@ export default function PagePropertiesTab({}: {}) {
                 updateSlideLayout(newLayout);
             }
         }
+    };
+
+    const handleRemoveImage = (slideId?: string) => {
+        if (slideId) {
+            if (slideId === 'welcome-page' && formState.welcomePage) {
+                formState.welcomePage.imageUrl = '';
+                formState.welcomePage.layout = FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND_LEFT_ALIGN;
+                setFormState({ ...formState });
+            } else if (slideId === 'thank-you-page' && formState.thankyouPage) {
+                formState.thankyouPage[activeThankYouPageComponent?.index || 0].imageUrl = '';
+                formState.thankyouPage[activeThankYouPageComponent?.index || 0].layout = FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND_LEFT_ALIGN;
+                setFormState({ ...formState });
+            } else {
+                formFields[activeSlideComponent?.index || 0].imageUrl = '';
+                formFields[activeSlideComponent?.index || 0] && (formFields[activeSlideComponent?.index || 0]!.properties!.layout = FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND_LEFT_ALIGN);
+                setFormFields([...formFields]);
+            }
+        }
+    };
+
+    const handleChangeImage = () => {
+        openDialogModal('UNSPLASH_IMAGE_PICKER', {
+            updatePageImage: getPageImageUpdateFunction
+        });
     };
 
     return (
@@ -179,7 +262,30 @@ export default function PagePropertiesTab({}: {}) {
                     </div>
                 </>
             )}
+            <div className={cn('border-black-200 flex justify-between border-b px-4 py-6 hover:bg-inherit', slide?.imageUrl ? 'flex-col items-start gap-2' : 'flex-row items-center ')}>
+                <span className="p3-new text-black-700">Layout Image</span>
+                {slide?.imageUrl ? (
+                    <div className={`group relative my-4 max-h-[168px] w-full`}>
+                        <div className={cn('absolute hidden h-full w-full items-start justify-start gap-2 p-2 group-hover:flex')}>
+                            <div className="shadow-bubble cursor-pointer rounded-md bg-white p-2" onClick={() => handleRemoveImage(activeSlideComponent?.id)}>
+                                <DeleteIcon width={16} height={16} />
+                            </div>
+                            <div className=" shadow-bubble cursor-pointer rounded-md bg-white p-2" onClick={handleChangeImage}>
+                                <SwitchIcon width={16} height={16} />
+                            </div>
+                        </div>
+                        <Image style={{ objectFit: 'contain', width: 'fit-content', maxHeight: '168px' }} sizes="100vw" src={slide.imageUrl} alt={' image'} height={0} width={0} priority />
+                    </div>
+                ) : (
+                    <div className="border-black-300 hover:bg-black-300 cursor-pointer rounded border-[1px] p-1" onClick={handleClickMedia}>
+                        <PlusIcon className="h-4 w-4" />
+                    </div>
+                )}
+            </div>
             {activeSlideComponent?.id === 'welcome-page' || activeSlideComponent?.id === 'thank-you-page' ? (
+                <></>
+            ) : activeSlideComponent?.index !== undefined && (!formFields[activeSlideComponent.index]?.properties?.fields || !formFields[activeSlideComponent.index]?.properties?.fields?.length) ? (
+                // <div className="text-black-700z text-xs">No form fields in this page. Add elements to this page will be shown here</div>
                 <></>
             ) : (
                 <>
@@ -218,9 +324,6 @@ export default function PagePropertiesTab({}: {}) {
                                     </div>
                                 );
                             })}
-                        {activeSlideComponent?.index !== undefined && (!formFields[activeSlideComponent.index]?.properties?.fields || !formFields[activeSlideComponent.index]?.properties?.fields?.length) && (
-                            <div className="text-black-700z text-xs">No form fields in this page. Add elements to this page will be shown here</div>
-                        )}
                     </div>
                 </>
             )}

@@ -37,7 +37,7 @@ const LayoutWrapper = ({ layout, theme, imageUrl, updatePageImage, updatePageLay
 
     const handleRemoveImage = () => {
         updatePageImage && updatePageImage('');
-        updatePageLayout && updatePageLayout(FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND);
+        updatePageLayout && updatePageLayout(FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND_LEFT_ALIGN);
     };
 
     const handleChangeImage = () => {
