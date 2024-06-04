@@ -3,7 +3,6 @@
 import React from 'react';
 
 import { useDialogModal } from '@app/lib/hooks/useDialogModal';
-import { Unsplash } from '@app/views/atoms/Icons/Brands/Unsplash';
 
 import { Separator } from '@app/shadcn/components/ui/separator';
 import { selectForm } from '@app/store/forms/slice';
@@ -92,7 +91,7 @@ export default function UnsplashImagePicker({ initialPhotoSearchQuery = '', onPh
     }
 
     return (
-        <div className="ImagePicker h-full  w-full items-center !rounded-lg bg-white shadow-powered-by">
+        <div className="ImagePicker shadow-powered-by  h-full w-full items-center !rounded-lg bg-white">
             <div className="h-full w-full rounded-lg bg-white">
                 <div className="Picker relative h-full">
                     <div className="p2-new text-black-800 flex items-center gap-4 rounded-t-lg px-4 py-[10px]">Media</div>
@@ -102,19 +101,21 @@ export default function UnsplashImagePicker({ initialPhotoSearchQuery = '', onPh
                             <TabsTrigger value="upload">Upload</TabsTrigger>
                             <TabsTrigger value="unsplash" className="flex gap-1">
                                 {/* <Link href="https://unsplash.com/?utm_source=bettercollected&utm_medium=referral" target="_blank" referrerPolicy="no-referrer" className="flex items-center gap-4 bg-white px-4 pt-4 text-lg font-bold"> */}
-                                <Unsplash />
-                                <span className="p3-new text-black-600">Unsplash</span>
+                                {/* <Unsplash /> */}
+                                Images
                                 {/* </Link> */}
                             </TabsTrigger>
                         </TabsList>
                         <Separator />
-                        <TabsContent value="upload" className="px-6 !pr-0 pt-4">
+                        <TabsContent value="upload" className="px-6 !pr-0 pb-4 pt-4">
                             <UploadMediaComponent updatePageImage={updatePageImage} />
                         </TabsContent>
                         <TabsContent value="unsplash" className="px-6 !pr-0 pt-4">
                             <div className="mr-2 flex h-[430px] flex-col">
                                 <div className="mb-6 mr-2 ">
                                     <SearchBar
+                                        placeholder="Search free high-resolution images from unsplash"
+                                        className="md:w-full"
                                         initialPhotoSearchQuery={initialPhotoSearchQuery}
                                         onSearch={(query: string) => {
                                             setPics([]);

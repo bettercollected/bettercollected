@@ -13,8 +13,8 @@ import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
 import AddFormTitleModal from '@app/views/molecules/Dialogs/AddFormTitleModal';
 import FormPublishedModal from '@app/views/molecules/Dialogs/FormPublishedModal';
-import UnsplashImagePicker from '@app/views/molecules/UnsplashImagePicker';
 import StartWithAi from '@app/views/molecules/Dialogs/StartWithAIModal';
+import UnsplashImagePicker from '@app/views/molecules/UnsplashImagePicker';
 
 export type DIALOG_MODALS = 'ADD_FORM_TITLE' | 'UNSPLASH_IMAGE_PICKER' | 'FORM_PUBLISHED' | 'SHARE_FORM_MODAL' | 'START_WITH_AI' | '';
 
@@ -91,7 +91,7 @@ const getClassName = (view?: DIALOG_MODALS) => {
         case 'SHARE_FORM_MODAL':
             return 'md:!min-w-fit';
         case 'UNSPLASH_IMAGE_PICKER':
-            return 'md:min-w-[600px] md:max-w-[600px] md:max-h-screen md:h-[550px] !rounded-lg';
+            return 'md:min-w-[550px] md:max-w-[550px] md:max-h-screen md:h-[520px] !rounded-lg';
         default:
             return <></>;
     }
