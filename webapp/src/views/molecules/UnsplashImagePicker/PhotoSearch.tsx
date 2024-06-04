@@ -9,8 +9,10 @@ interface Props {
     setQuery: (query: string) => void;
     onSearch: (query: string) => void;
     initialPhotoSearchQuery?: string;
+    placeholder?: string;
+    className?: string;
 }
-function PhotoSearch({ setQuery, query, onSearch, initialPhotoSearchQuery }: Props) {
+function PhotoSearch({ setQuery, query, onSearch, initialPhotoSearchQuery, placeholder, className }: Props) {
     const [inputVal, setInputVal] = useState(query);
     const [debouncedInputValue] = useDebounceValue(inputVal, 500);
 
@@ -30,7 +32,7 @@ function PhotoSearch({ setQuery, query, onSearch, initialPhotoSearchQuery }: Pro
     };
 
     return (
-        <form onSubmit={handleSubmit} className="flex items-center space-x-2  md:w-[227px]">
+        <form onSubmit={handleSubmit} className={`flex h-10 items-center  space-x-2 md:w-[248px] ${className}`}>
             <label className=" w-full">
                 <TextField
                     sx={{
@@ -55,13 +57,11 @@ function PhotoSearch({ setQuery, query, onSearch, initialPhotoSearchQuery }: Pro
                         }
                     }}
                     InputProps={{
-                        sx: {
-                            backgroundColor: '#F6F6F6'
-                        },
-                        startAdornment: <SearchIcon className="text-black-900 h-4 w-4 stroke-[2px]" />
+                      
+                        startAdornment: <SearchIcon className="text-black-900 h-4 w-4 stroke-[2px] mr-2" />
                     }}
-                    className="placeholder:text-black-400 bg-black-100 border-black-200 focus:ring-none h-full w-full rounded-lg border py-2 pl-3 pr-3 focus:outline-none sm:text-sm"
-                    placeholder="Search"
+                    className="placeholder:text-black-400 border-black-200 focus:ring-none h-full w-full rounded-lg border bg-white py-2 px-3 focus:outline-none sm:text-sm"
+                    placeholder={placeholder ? placeholder : 'Search'}
                     type="text"
                     name="search"
                     value={inputVal}

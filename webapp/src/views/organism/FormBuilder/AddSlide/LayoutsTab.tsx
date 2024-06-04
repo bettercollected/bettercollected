@@ -2,10 +2,12 @@ import React from 'react';
 
 import { v4 } from 'uuid';
 
+import globalConstants from '@app/constants/global';
 import { FieldTypes } from '@app/models/dtos/form';
 import { FormSlideLayout } from '@app/models/enums/form';
 import { ScrollArea } from '@app/shadcn/components/ui/scroll-area';
 import { useActiveSlideComponent } from '@app/store/jotai/activeBuilderComponent';
+import { useAuthAtom } from '@app/store/jotai/auth';
 import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
 import SlideLayoutBackgroundImage from '@app/views/atoms/Icons/SlideLayoutBackgroundImage';
 import SlideLayoutLeftImage from '@app/views/atoms/Icons/SlideLayoutLeftImage';
@@ -13,8 +15,6 @@ import SlideLayoutNoImage from '@app/views/atoms/Icons/SlideLayoutNoImage';
 import { SlideLayoutNoImageLeftAlign } from '@app/views/atoms/Icons/SlideLayoutNoImageLeftAlign';
 import SlideLayoutRightImage from '@app/views/atoms/Icons/SlideLayoutRightImage';
 import Image from 'next/image';
-import globalConstants from '@app/constants/global';
-import { useAuthAtom } from '@app/store/jotai/auth';
 
 const Layout = (props: { Icon: any; name: string; image: string; style?: FormSlideLayout; onClick?: (event?: React.MouseEvent<HTMLDivElement, MouseEvent>) => void }) => {
     const { authState } = useAuthAtom();
@@ -42,6 +42,8 @@ export default function LayoutsTab({ closePopover }: { closePopover: () => void 
     const { setActiveSlideComponent, activeSlideComponent } = useActiveSlideComponent();
     const { authState } = useAuthAtom();
 
+    const NO_IMAGE_LAYOUTS = [FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND, FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND_LEFT_ALIGN];
+
     const addSlideOfStyle = (style: FormSlideLayout, blank: boolean = false) => {
         const fieldId = v4();
         const newSlideIndex = (activeSlideComponent?.index || 0) < 0 ? formFields.length : (activeSlideComponent?.index || 0) + 1;
@@ -68,7 +70,7 @@ export default function LayoutsTab({ closePopover }: { closePopover: () => void 
                               ])
                     ]
                 },
-                imageUrl: globalConstants.defaultImage
+                imageUrl: NO_IMAGE_LAYOUTS.includes(style) ? '' : globalConstants.defaultImage
             },
             newSlideIndex
         );
