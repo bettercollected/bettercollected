@@ -484,7 +484,7 @@ class WorkspaceService:
             verified = False
             if response.get("domain_verified") and response.get("txt_verified"):
                 verified = True
-            await workspace.update({"$set": {"custom_domain_verified": True}})
+            await workspace.update({"$set": {"custom_domain_verified": verified}})
             return response
         except Exception as e:
             loguru.logger.error(e)
