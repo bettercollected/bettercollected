@@ -1,8 +1,8 @@
 import React from 'react';
 
+import EmptyGallerIcon from '@app/views/atoms/Icons/EmptyGalleryIcon';
 import UnsplashPhotoCard from './PhotoCard';
 import { SkeletonLoadingComponent } from './UploadMediaComponent';
-import EmptyGallerIcon from '@app/views/atoms/Icons/EmptyGalleryIcon';
 
 interface Props {
     isLoading?: boolean;
@@ -27,14 +27,6 @@ function PhotoList({ isLoading = false, isLoadingMore = false, photoList, total,
         }
     };
 
-    function divideArray(arr: Array<any>) {
-        const middleIndex = Math.ceil(arr.length / 2); // Calculate middle index
-        const firstHalf = arr.slice(0, middleIndex); // Slice the first half
-        const secondHalf = arr.slice(middleIndex); // Slice the second half
-        return [firstHalf, secondHalf];
-    }
-    const [firstHalfPhotoList, secondHalfPhotoList] = divideArray(photoList);
-
     return (
         <div className=" h-full w-full">
             {isLoading ? (
@@ -44,13 +36,17 @@ function PhotoList({ isLoading = false, isLoadingMore = false, photoList, total,
                     {Array.isArray(photoList) && photoList.length > 0 && (
                         <div className="PhotoList grid grid-cols-2 gap-2 overflow-y-auto pb-12" style={{ maxHeight: listHeight }} ref={ref} onScroll={onScroll}>
                             <div className="flex flex-col gap-4">
-                                {firstHalfPhotoList.map((photo: any) => {
-                                    return <UnsplashPhotoCard key={photo.id} photo={photo} onPhotoSelect={onPhotoSelect} />;
+                                {photoList.map((photo: any, index: number) => {
+                                    if (index % 2 === 0) {
+                                        return <UnsplashPhotoCard key={photo.id} photo={photo} onPhotoSelect={onPhotoSelect} />;
+                                    } else return;
                                 })}
                             </div>
                             <div className="flex flex-col gap-4">
-                                {secondHalfPhotoList.map((photo: any) => {
-                                    return <UnsplashPhotoCard key={photo.id} photo={photo} onPhotoSelect={onPhotoSelect} />;
+                                {photoList.map((photo: any, index: number) => {
+                                    if (index % 2 !== 0) {
+                                        return <UnsplashPhotoCard key={photo.id} photo={photo} onPhotoSelect={onPhotoSelect} />;
+                                    } else return;
                                 })}
                             </div>
                             {isLoadingMore && (

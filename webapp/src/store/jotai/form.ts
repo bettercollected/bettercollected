@@ -120,7 +120,6 @@ export function useFormState() {
 
     const updateWelcomePageLayout = (layout: FormSlideLayout) => {
         if (formState.welcomePage) {
-            !formState.welcomePage.imageUrl && (formState.welcomePage.imageUrl = 'https://s3.eu-central-1.wasabisys.com/bettercollected/images/v2defaultImage.png');
             formState.welcomePage.layout = layout;
         }
         setFormState({
@@ -135,7 +134,6 @@ export function useFormState() {
 
     const updateThankYouPageLayout = (layout: FormSlideLayout) => {
         if (formState.thankyouPage) {
-            !formState.thankyouPage![activeThankYouPageComponent?.index || 0].imageUrl && (formState.thankyouPage![activeThankYouPageComponent?.index || 0].imageUrl = 'https://s3.eu-central-1.wasabisys.com/bettercollected/images/v2defaultImage.png');
             formState.thankyouPage![activeThankYouPageComponent?.index || 0].layout = layout;
         }
         setFormState({ ...formState });
