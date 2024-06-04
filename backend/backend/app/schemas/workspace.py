@@ -33,6 +33,7 @@ class WorkspaceDocument(MongoDocument, Workspace):
     default: bool = False
     owner_id: Optional[str]
     custom_domain_disabled = False
+    custom_domain_verified: Optional[bool] = False
     disabled: Optional[bool] = False
 
     class Settings:

@@ -10,6 +10,7 @@ from common.models.user import User
 from common.services.http_client import HttpClient
 from fastapi import UploadFile
 from loguru import logger
+import loguru
 from pydantic import EmailStr
 
 from backend.app.exceptions import HTTPException
@@ -459,6 +460,35 @@ class WorkspaceService:
             self._aws_service.delete_folder_from_s3(f"private/{workspace_id}")
 
         await self._workspace_repo.delete_workspaces_with_ids(workspace_ids)
+
+    async def verify_workspace_domain(self, workspace_id, user):
+        await self._workspace_user_service.check_is_admin_in_workspace(
+            workspace_id=workspace_id, user=user
+        )
+        workspace = await WorkspaceDocument.find_one({"_id": workspace_id})
+        if (
+            not workspace.custom_domain
+            or workspace.custom_domain_disabled
+            or not workspace.is_pro
+        ):
+            raise HTTPException(
+                status_code=HTTPStatus.BAD_REQUEST,
+                content="Cannot verify domain for workspace",
+            )
+        try:
+            response = await self.http_client.get(
+                f"{settings.https_cert_api_settings.host}/domains/verify/{workspace.custom_domain}",
+                headers={"api_key": settings.https_cert_api_settings.key},
+                timeout=60,
+            )
+            verified = False
+            if response.get("domain_verified") and response.get("txt_verified"):
+                verified = True
+            await workspace.update({"$set": {"custom_domain_verified": True}})
+            return response
+        except Exception as e:
+            loguru.logger.error(e)
+            raise e
 
 
 async def create_workspace(user: User):

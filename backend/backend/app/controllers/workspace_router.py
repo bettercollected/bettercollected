@@ -179,3 +179,11 @@ class WorkspaceRouter(Routable):
         self, workspace_id: PydanticObjectId, user: User = Depends(get_logged_user)
     ):
         return await self.workspace_service.get_workspace_stats(workspace_id, user)
+
+    @get("/{workspace_id}/verify-domain")
+    async def verify_workspace_domain(
+        self, workspace_id: PydanticObjectId, user: User = Depends(get_logged_user)
+    ):
+        return await self.workspace_service.verify_workspace_domain(
+            workspace_id=workspace_id, user=user
+        )
