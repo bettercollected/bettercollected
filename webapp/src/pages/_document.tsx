@@ -8,7 +8,6 @@ class MyDocument extends Document {
     }
 
     render() {
-        console.log('env : ', environments.NEXT_PUBLIC_NODE_ENV, environments.UMAMI_WEBSITE_ID);
         return (
             <Html lang="en-US" dir="ltr" className="light">
                 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" />

@@ -19,7 +19,7 @@ const MediaItem = ({ media, updatePageImage }: { media: MediaLibrary; updatePage
     const handleDeleteMedia = (mediaId: string) => {
         openSecondaryDialogModal('DELETE_MEDIA', { workspace_id: workspace.id, media_id: mediaId });
     };
-    if (!media.mediaName && !media.mediaType) return <Skeleton className="bg-black-300 inset-0 h-[200px] w-full pb-10" />;
+    if (!media.mediaName && !media.mediaType) return <SpinLoaderOnSkeleton />;
     return (
         <div className="group relative h-auto cursor-pointer overflow-hidden" key={media.mediaId}>
             <ImageWithLoader media={media} />
@@ -45,7 +45,7 @@ const ImageWithLoader = ({ media }: { media: MediaLibrary }) => {
     const [nextImageLoading, setNextImageLoading] = useState(true);
 
     return (
-        <div className={cn(`h-full w-full`)}>
+        <div className={cn(` h-full w-full`)}>
             <Image
                 className=" cursor-pointer"
                 src={media.mediaUrl}
@@ -59,7 +59,21 @@ const ImageWithLoader = ({ media }: { media: MediaLibrary }) => {
                 }}
                 style={{ objectFit: 'cover', width: '100%', height: 'auto' }}
             />
-            {nextImageLoading && <Skeleton className=" bg-black-300 z-[10] h-[200px] w-full" />}
+            {nextImageLoading && <SpinLoaderOnSkeleton />}
+        </div>
+    );
+};
+
+const SpinLoaderOnSkeleton = () => {
+    return (
+        <div className="relative flex items-center justify-center">
+            <div className="absolute z-[20] flex flex-col items-center justify-center gap-4">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="animate-spin">
+                    <path d="M2 12C2 17.5229 6.47715 22 12 22C17.5229 22 22 17.5229 22 12C22 6.47715 17.5229 2 12 2" stroke="#2E2E2E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+                <span className="p4-new">Uploading</span>
+            </div>
+            <Skeleton className="bg-black-300 inset-0 h-[200px] w-full pb-10" />
         </div>
     );
 };
