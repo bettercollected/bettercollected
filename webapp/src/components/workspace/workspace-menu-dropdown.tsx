@@ -90,17 +90,12 @@ function WorkspaceMenuDropdown({ fullWidth }: IWorkspaceMenuDropdownProps) {
             id="workspace-menu"
             menuTitle={trimTooltipTitle(fullWorkspaceName)}
             fullWidth={fullWidth}
-            className={`!rounded-none hover:!rounded-none ${showExpandMore ? 'pr-4' : ''}`}
+            className={`hover:!bg-black-100 !rounded-lg ${showExpandMore ? 'pr-4' : ''}`}
             showExpandMore={showExpandMore}
             width={320}
             menuContent={
-                <div className="flex w-[200px] items-center gap-2 px-3 py-2">
-                    <AuthAccountProfileImage
-                        size={40}
-                        image={workspace?.profileImage}
-                        name={workspace?.title || 'Untitled'}
-                        // style={{ background: `${color} !important` }}
-                    />
+                <div className="flex w-[200px] items-center gap-2 px-3 py-1">
+                    <AuthAccountProfileImage size={40} image={workspace?.profileImage} name={workspace?.title || 'Untitled'} variant="circular" />
                     <div className="flex w-full flex-col items-start truncate">
                         <Typography className="body3 truncate">{toEndDottedStr(workspace?.title || 'Untitled', 14)}</Typography>
 
@@ -119,7 +114,7 @@ function WorkspaceMenuDropdown({ fullWidth }: IWorkspaceMenuDropdownProps) {
                     return (
                         <ListItem key={space.id} disablePadding alignItems="flex-start">
                             <IconButton
-                                className={`hover:bg-brand-100 rounded px-5 py-3 hover:rounded-none ${space?.disabled && 'cursor-not-allowed'} ${fullWidth ? 'flex w-full justify-between' : 'w-fit'}`}
+                                className={`hover:bg-black-100 rounded px-5 py-3 hover:rounded-none ${space?.disabled && 'cursor-not-allowed'} ${fullWidth ? 'flex w-full justify-between' : 'w-fit'}`}
                                 onClick={() => handleChangeWorkspace(space)}
                                 size="small"
                             >
@@ -147,7 +142,7 @@ function WorkspaceMenuDropdown({ fullWidth }: IWorkspaceMenuDropdownProps) {
                 })
             ) : (
                 <ListItem disablePadding alignItems="center">
-                    <IconButton className={`hover:bg-brand-100 rounded px-5 py-3 hover:rounded-none ${fullWidth ? 'flex w-full justify-between' : 'w-fit'}`} onClick={() => handleChangeWorkspace(workspace)} size="small">
+                    <IconButton className={`hover:bg-black-100 rounded px-5 py-3 ${fullWidth ? 'flex w-full justify-between' : 'w-fit'}`} onClick={() => handleChangeWorkspace(workspace)} size="small">
                         <div className="flex w-full items-center justify-between gap-4">
                             <div className="flex items-center gap-3">
                                 <AuthAccountProfileImage size={40} image={workspace?.profileImage} name={workspaceName} />
@@ -171,9 +166,7 @@ function WorkspaceMenuDropdown({ fullWidth }: IWorkspaceMenuDropdownProps) {
                             <IconButton
                                 data-umami-event={'Create New Workspace Button'}
                                 data-umami-event-email={user.email}
-                                className={`hover:bg-brand-100 rounded px-5 py-3 hover:rounded-none ${fullWidth ? 'flex w-full justify-between' : 'w-fit'} ${
-                                    !enableCreateWorkspaceButton() && isProPlan ? '!text-black-500 cursor-not-allowed' : '!text-black-800'
-                                }`}
+                                className={`hover:bg-black-100 rounded px-5 py-3 ${fullWidth ? 'flex w-full justify-between' : 'w-fit'} ${!enableCreateWorkspaceButton() && isProPlan ? '!text-black-500 cursor-not-allowed' : '!text-black-800'}`}
                                 onClick={handleCreateWorkspace}
                                 size="small"
                             >
