@@ -9,7 +9,12 @@
 			"type": "debugpy",
 			"request": "launch",
 			"module": "uvicorn",
-			"args": ["backend.app:get_application", "--host", "0.0.0.0"]
+			"args": [
+				"backend.app:get_application",
+				"--host",
+				"0.0.0.0",
+				"--reload"
+			]
 		}
 	]
 }

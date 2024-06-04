@@ -19,12 +19,20 @@ import { toolTipConstant } from '@app/constants/locales/tooltip';
 import { upgradeConst } from '@app/constants/locales/upgrade';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { IDrawerProps } from '@app/models/props/navbar';
-import { selectAuth, selectIsAdmin, selectIsProPlan } from '@app/store/auth/slice';
+import { selectIsAdmin, selectIsProPlan } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { JOYRIDE_CLASS } from '@app/store/tours/types';
 import { useGetWorkspaceStatsQuery } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
+import Globe from '@app/views/atoms/Icons/Flags/Globe';
+import Link from 'next/link';
+import { cn } from '@app/shadcn/util/lib';
+import { usePathname } from 'next/navigation';
 
+const GradientBgDiv = styled.div`
+    background: linear-gradient(90.01deg, #0764eb 0.01%, #fe3678 101.52%);
+    background-clip: text;
+`;
 
 DashboardDrawer.defaultProps = {
     drawerWidth: 289,
@@ -50,6 +58,8 @@ const Drawer = ({ topNavList, isAdmin, bottomNavList }: any) => {
     const { openModal: openFullScreenModal } = useFullScreenModal();
     const { openModal } = useModal();
     const isProPlan = useAppSelector(selectIsProPlan);
+    const pathname = usePathname();
+    const commonWorkspaceUrl = `/${workspace?.workspaceName}/dashboard`;
 
     return (
         <>
@@ -59,11 +69,17 @@ const Drawer = ({ topNavList, isAdmin, bottomNavList }: any) => {
             <Box sx={{ overflow: 'auto', height: '100%' }}>
                 <div className="flex h-full flex-col justify-between">
                     <div className="px-4">
-                        <List disablePadding sx={{ paddingY: '20px' }} className={JOYRIDE_CLASS.WORKSPACE_SWITCHER}>
+                        <List disablePadding sx={{ paddingTop: '20px' }} className={JOYRIDE_CLASS.WORKSPACE_SWITCHER}>
                             <ListItem disablePadding>
                                 <WorkspaceMenuDropdown fullWidth />
                             </ListItem>
                         </List>
+
+                        <Link href={commonWorkspaceUrl} className={cn('hover:bg-black-100 mb-3 mt-2 flex cursor-pointer items-center gap-2 rounded-xl px-4 py-3 text-xs  font-medium text-transparent', pathname === commonWorkspaceUrl && 'bg-black-200')}>
+                            <Globe width={20} height={20} className="text-blue-600" />
+                            <GradientBgDiv className="p3-new">Public Workspace</GradientBgDiv>
+                        </Link>
+                        <hr className="mt-3" />
                         <NavigationList className={JOYRIDE_CLASS.WORKSPACE_NAVIGATION} sx={{ paddingY: '8px' }} navigationList={topNavList} />
                         {isAdmin && (
                             <>
@@ -74,11 +90,11 @@ const Drawer = ({ topNavList, isAdmin, bottomNavList }: any) => {
                     </div>
                     {isAdmin && !isProPlan && (
                         <div>
-                            <div className="rounded-md mx-2 mb-4 bg-new-white-200 p-4">
+                            <div className="bg-new-white-200 mx-2 mb-4 rounded-md p-4">
                                 <div className="h5-new mb-2">{t(pricingPlan.title)}</div>
                                 <div className="text-black-600 text-sm">For unlimited forms and many more features</div>
-                                <BorderLinearProgress className="mt-4 mb-2 text-black-500" variant="determinate" value={data?.forms || 0} color="inherit" />
-                                <div className="text-xs font-semibold flex items-center justify-between">
+                                <BorderLinearProgress className="text-black-500 mb-2 mt-4" variant="determinate" value={data?.forms || 0} color="inherit" />
+                                <div className="flex items-center justify-between text-xs font-semibold">
                                     <span className="text-black-800">
                                         {data?.forms || 0}/100 {' ' + t(toolTipConstant.formImported)}
                                     </span>
@@ -93,17 +109,17 @@ const Drawer = ({ topNavList, isAdmin, bottomNavList }: any) => {
                                 </div>
                             </div>
                             {environments.ENABLE_COUPON_CODES && (
-                                <div className="rounded-md mx-2 mb-6 bg-new-white-200 p-4">
+                                <div className="bg-new-white-200 mx-2 mb-6 rounded-md p-4">
                                     <div className="h5-new mb-2">Pro Lifetime Deal</div>
                                     <div className="text-black-600 text-sm">
                                         Redeem{' '}
-                                        <a href={environments.APP_SUMO_PRODUCT_URL} target="_blank" rel="noreferrer" className="text-black-800 underline cursor-pointer">
+                                        <a href={environments.APP_SUMO_PRODUCT_URL} target="_blank" rel="noreferrer" className="text-black-800 cursor-pointer underline">
                                             AppSumo code
                                         </a>{' '}
                                         to get a lifetime pro account.
                                     </div>
 
-                                    <div className="text-xs font-semibold flex items-center justify-end">
+                                    <div className="flex items-center justify-end text-xs font-semibold">
                                         <span
                                             className="text-brand-500 cursor-pointer hover:underline"
                                             onClick={() => {
