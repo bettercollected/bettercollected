@@ -1,10 +1,9 @@
-import React, {  } from 'react';
+import React from 'react';
 
 import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/router';
 
 import DeleteIcon from '@Components/Common/Icons/Common/Delete';
-import DashboardIcon from '@Components/Common/Icons/Dashboard/Dashboard';
 import MembersIcon from '@Components/Common/Icons/Dashboard/Members';
 import ResponderIcon from '@Components/Common/Icons/Dashboard/Responder';
 import { FormIcon } from '@Components/Common/Icons/Form/FormIcon';
@@ -20,7 +19,6 @@ import { TemplateIcon } from '@app/components/icons/template';
 import DashboardDrawer from '@app/components/sidebar/dashboard-drawer';
 import LocaleDropdownUi from '@app/components/ui/locale-dropdown-ui';
 import { localesCommon } from '@app/constants/locales/common';
-import dashboardConstants from '@app/constants/locales/dashboard';
 import { formConstant } from '@app/constants/locales/form';
 import { members } from '@app/constants/locales/members';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
@@ -31,6 +29,8 @@ import { selectAuth } from '@app/store/auth/slice';
 import FloatingPopOverButton from './FloatingPopOverButton';
 import HelpMenuComponent from './HelpMenuComponent';
 import HelpMenuItem from './HelpMenuItem';
+import { ProLogo } from '../ui/logo';
+import { useFullScreenModal } from '../modal-views/full-screen-modal-context';
 
 interface ISidebarLayout {
     children: any;
@@ -43,7 +43,7 @@ export default function SidebarLayout({ children, DrawerComponent = DashboardDra
 
     const auth = useAppSelector(selectAuth);
 
-    const { openBottomSheetModal } = useBottomSheetModal();
+    const { openModal } = useFullScreenModal();
 
     const [mobileOpen, setMobileOpen] = React.useState(false);
     const handleDrawerToggle = () => {
@@ -62,12 +62,6 @@ export default function SidebarLayout({ children, DrawerComponent = DashboardDra
             name: t(localesCommon.forms),
             url: `${commonWorkspaceUrl}/forms`,
             icon: <FormIcon />
-        },
-        {
-            key: 'dashboard',
-            name: t('MY_WORKSPACE'),
-            url: commonWorkspaceUrl,
-            icon: <DashboardIcon />
         },
         {
             key: 'responders',
@@ -96,13 +90,22 @@ export default function SidebarLayout({ children, DrawerComponent = DashboardDra
             url: `/${workspace?.workspaceName}/dashboard/members`,
             icon: <MembersIcon />
         },
+
         {
-            key: 'urls',
-            name: t(dashboardConstants.drawer.manageURLs),
-            url: ``,
+            key: 'custom-domain',
+            name: (
+                <div className="flex items-center gap-2">
+                    Custom Domain <ProLogo />
+                </div>
+            ),
             icon: <Globe />,
+            url: `/${workspace?.workspaceName}/dashboard/custom-domain`,
             onClick: () => {
-                openBottomSheetModal('WORKSPACE_SETTINGS', { initialIndex: 1 });
+                if (workspace.isPro) {
+                    router.push(`/${workspace?.workspaceName}/dashboard/custom-domain`);
+                } else {
+                    openModal('UPGRADE_TO_PRO');
+                }
             }
         }
     ];

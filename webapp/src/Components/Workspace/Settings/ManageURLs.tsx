@@ -1,11 +1,8 @@
-import React from 'react';
-
 import { useTranslation } from 'next-i18next';
 
 import CopyIcon from '@Components/Common/Icons/Common/Copy';
 import DeleteIcon from '@Components/Common/Icons/Common/Delete';
 import EditIcon from '@Components/Common/Icons/Common/Edit';
-import Pro from '@Components/Common/Icons/Dashboard/Pro';
 import AppButton from '@Components/Common/Input/Button/AppButton';
 import { ButtonSize, ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
 import { toast } from 'react-toastify';
@@ -13,12 +10,12 @@ import { toast } from 'react-toastify';
 import Globe from '@app/components/icons/flags/globe';
 import { useModal } from '@app/components/modal-views/context';
 import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
+import { ProLogo } from '@app/components/ui/logo';
 import environments from '@app/configs/environments';
 import { useCopyToClipboard } from '@app/lib/hooks/use-copy-to-clipboard';
 import { selectAuth, selectIsAdmin, selectIsProPlan } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
-import { ProLogo } from '@app/components/ui/logo';
 
 export default function ManageURLs() {
     const { t } = useTranslation();
@@ -124,6 +121,7 @@ export default function ManageURLs() {
                                     openModal('DELETE_CUSTOM_DOMAIN');
                                 }}
                                 size={ButtonSize.Tiny}
+                                className="text-white"
                                 variant={ButtonVariant.DangerGhost}
                                 icon={<DeleteIcon width={16} height={16} />}
                             >
