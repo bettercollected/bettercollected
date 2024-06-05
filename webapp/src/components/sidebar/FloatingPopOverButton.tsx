@@ -30,7 +30,7 @@ const FloatingPopOverButton = ({ content, children, className }: { content: Reac
                 {content}
             </button>
             {!isPopoverOpen && hovered && (
-                <div className="bg-black-800 absolute bottom-4 right-16 rounded-lg p-1 px-2">
+                <div className="bg-black-800 absolute bottom-0 right-10 rounded-lg p-1 px-2">
                     <span className="text-xs font-medium text-white">Help</span>
                 </div>
             )}
