@@ -1,4 +1,6 @@
+import { simpleDataTableStyles } from '@app/components/datatable/form/datatable-styles';
 import environments from '@app/configs/environments';
+import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { Button } from '@app/shadcn/components/ui/button';
 import { Skeleton } from '@app/shadcn/components/ui/skeleton';
 import { cn } from '@app/shadcn/util/lib';
@@ -6,17 +8,14 @@ import { useAppSelector } from '@app/store/hooks';
 import { useVerifyWorkspaceDomainQuery } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import CopyIcon from '@app/views/atoms/Icons/Copy copy';
+import OpenLinkIcon from '@app/views/atoms/Icons/OpenLink';
 import { RefreshCcw } from 'lucide-react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import DataTable from 'react-data-table-component';
 import { toast } from 'react-toastify';
 import DeleteDomainDropdown from './DeleteDomainDropdown';
-import OpenLinkIcon from '@app/views/atoms/Icons/OpenLink';
-import { simpleDataTableStyles } from '@app/components/datatable/form/datatable-styles';
-import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 
 const WorkspaceDomainStatus = () => {
     const workspace = useAppSelector(selectWorkspace);
@@ -166,7 +165,10 @@ const DomainVerificationPending = ({ workspace, dnsData, isFetching, refetch }: 
                 <span className="font-semibold text-blue-500">{workspace.customDomain}</span>
                 <DeleteDomainDropdown />
             </div>
-            <div className="text-black-700 mb-2 mt-4  text-xs">Visit the admin console of your DNS Provider (eg. Cloudflare) and add the following DNS entries.</div>
+            <div className="text-black-700 mb-2 mt-4  text-xs">
+                Visit the admin console of your DNS Provider (eg. Cloudflare) and add the following DNS entries. <br />
+                Note: Proxied DNS is not supported
+            </div>
             <DataTable className="" columns={columns} data={dnsData} customStyles={simpleDataTableStyles} />
             <div className="mt-4 flex items-center gap-2">
                 Once you are done press here to check the status.{' '}

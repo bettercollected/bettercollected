@@ -62,7 +62,7 @@ export default function TextAreaField({ field }: { field: StandardFormFieldDto }
                     rows={1}
                     value={inputVal}
                     onChange={(e) => setInputVal(e.target.value)}
-                    className="rounded-none border-0 border-b-[1px] px-0 py-2 text-[32px] leading-tight"
+                    className="rounded-none border-0 border-b-[1px] px-0 py-2 text-[28px] leading-tight lg:text-[32px]"
                     style={{
                         resize: 'none'
                     }}

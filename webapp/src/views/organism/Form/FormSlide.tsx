@@ -158,14 +158,14 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
     return (
         <Controller>
             <SlideLayoutWrapper showDesktopLayout={showDesktopLayout} scrollDivId={'questions-container'} theme={standardForm.theme} slide={formSlide} disabled>
-                <div className="absolute left-0 right-0 top-5 z-10 mx-auto  w-full">
+                <div className="absolute left-0 right-0 top-5 z-10 mx-auto hidden w-full lg:block">
                     <div className="px-5 md:px-8 xl:px-10 2xl:px-20">
-                        <div className=" mx-auto w-full max-w-[800px] px-4">
+                        <div className={`w-full max-w-[800px] px-4 ${formSlide?.properties?.layout === FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND_LEFT_ALIGN ? '' : 'mx-auto'}`}>
                             <BackButton
                                 handleClick={() => {
                                     currentSlide > 0 ? previousSlide() : setCurrentSlideToWelcomePage();
                                 }}
-                                className=" w-fit bg-opacity-100"
+                                className=" w-fit !bg-inherit"
                                 style={{
                                     background: standardForm?.theme?.accent
                                 }}
@@ -174,13 +174,13 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
                     </div>
                 </div>
                 <div className={cn('flex h-full flex-1 flex-col justify-center ', formSlide?.properties?.layout === FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND_LEFT_ALIGN ? 'items-start ' : 'items-center')}>
-                    <div className={cn('relative flex h-full w-full max-w-[800px] flex-col gap-[88px] overflow-hidden px-4 py-[60px] lg:gap-[120px]', isPreviewMode ? '' : 'lg:px-10')}>
+                    <div className={cn('relative flex h-full w-full max-w-[800px] flex-col gap-[48px] overflow-hidden px-4 py-[20px] pb-28 lg:gap-[120px] lg:py-[60px]', isPreviewMode ? '' : 'lg:px-10')}>
                         {formSlide?.properties?.fields?.map((field: StandardFormFieldDto, index: number) => (
                             <FormFieldComponent key={field.id} field={formSlide!.properties!.fields![index]} slideIndex={formSlide!.index} />
                         ))}
-                        <div className="">
+                        <div className="hidden lg:block">
                             {(standardForm?.fields?.length || 0) - 1 === currentSlide && currentSlide === index && (
-                                <div className="mb-4 flex flex-col">
+                                <div className="flex flex-col lg:mb-4 ">
                                     {authState.id && !standardForm.settings?.requireVerifiedIdentity && (
                                         <div className="flex flex-row gap-2 ">
                                             <FieldInput
@@ -209,6 +209,54 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
                                 }}
                                 isLoading={isLoading}
                                 className=" rounded px-8 py-3"
+                                onClick={onNext}
+                                size="medium"
+                            >
+                                {(standardForm?.fields?.length || 0) - 1 === currentSlide && currentSlide === index ? 'Submit' : 'Next'}
+                            </Button>
+                        </div>
+                    </div>
+                    <div style={{ background: standardForm.theme?.accent }} className="border-black-200 absolute bottom-0 left-0 flex w-full flex-col gap-4 border-t bg-opacity-100 p-4 lg:hidden">
+                        {(standardForm?.fields?.length || 0) - 1 === currentSlide && currentSlide === index && (
+                            <div className="flex flex-col px-5">
+                                {authState.id && !standardForm.settings?.requireVerifiedIdentity && (
+                                    <div className="flex flex-row gap-2 ">
+                                        <FieldInput
+                                            checked={!formResponse.anonymize}
+                                            onChange={(e: any) => {
+                                                setFormResponse({
+                                                    ...formResponse,
+                                                    anonymize: !e.target.checked
+                                                });
+                                            }}
+                                            type="checkbox"
+                                            className="h-4 w-4 border focus:border-0 focus:outline-none"
+                                        />
+                                        <div className="flex flex-col ">
+                                            <span className="text-black-800 text-xs font-medium">Show your identity(email) to form collector</span>
+                                            <span className={`p4-new text-black-600 `}>{authState?.email} </span>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                        <div className="flex w-full items-center gap-4">
+                            <BackButton
+                                handleClick={() => {
+                                    currentSlide > 0 ? previousSlide() : setCurrentSlideToWelcomePage();
+                                }}
+                                className="w-fit !bg-inherit"
+                                style={{
+                                    background: standardForm?.theme?.accent
+                                }}
+                            />
+                            <Button
+                                style={{
+                                    background: standardForm.theme?.secondary,
+                                    color: 'white'
+                                }}
+                                isLoading={isLoading}
+                                className=" w-full rounded"
                                 onClick={onNext}
                                 size="medium"
                             >
