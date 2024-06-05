@@ -44,7 +44,7 @@ const Form = ({ isPreviewMode = false, showDesktopLayout }: { isPreviewMode?: bo
                         transition={{ duration: 0.3 }}
                     >
                         <div className="relative h-full w-full">
-                            <LayoutWrapper showDesktopLayout={showDesktopLayout} theme={standardForm.theme} disabled layout={standardForm.welcomePage?.layout} imageUrl={standardForm?.welcomePage?.imageUrl}>
+                            <LayoutWrapper removePaddingXForSmallScreen showDesktopLayout={showDesktopLayout} theme={standardForm.theme} disabled layout={standardForm.welcomePage?.layout} imageUrl={standardForm?.welcomePage?.imageUrl}>
                                 <WelcomePage isPreviewMode={isPreviewMode} />
                             </LayoutWrapper>
                         </div>

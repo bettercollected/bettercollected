@@ -85,7 +85,7 @@ function DateFieldSection({ field, slide, isBuilder }: IDateField) {
         }
     }
 
-    const inputClassName = 'w-14 border-0 border-b-2 px-0 text-[32px] text-center';
+    const inputClassName = 'w-14 border-0 border-b-2 px-0 text-[28px] lg:text-[32px] text-center';
 
     return (
         <div className="flex flex-col gap-1">

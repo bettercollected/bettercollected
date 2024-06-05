@@ -1,15 +1,11 @@
-import React from 'react';
-
 import CopyIcon from '@Components/Common/Icons/Common/Copy';
 import AppButton from '@Components/Common/Input/Button/AppButton';
 import { ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
-import { useBottomSheetModal } from '@Components/Modals/Contexts/BottomSheetModalContext';
 import { toast } from 'react-toastify';
 
 import BannerImageComponent from '@app/components/dashboard/banner-image';
 import { EyeIcon } from '@app/components/icons/eye-icon';
 import Globe from '@app/components/icons/flags/globe';
-import { useModal } from '@app/components/modal-views/context';
 import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
 import WorkspaceInfo from '@app/components/settings/basic-information/workspace-info';
 import ActiveLink from '@app/components/ui/links/active-link';
@@ -17,22 +13,20 @@ import { useCopyToClipboard } from '@app/lib/hooks/use-copy-to-clipboard';
 import { useAppSelector } from '@app/store/hooks';
 import { WorkspaceState, selectWorkspace } from '@app/store/workspaces/slice';
 import { getWorkspaceShareURL } from '@app/utils/workspaceUtils';
+import { useRouter } from 'next/navigation';
 
 export default function WorkspaceDetails() {
     const workspace: WorkspaceState = useAppSelector(selectWorkspace);
-
-    const { openModal } = useModal();
-
-    const { closeBottomSheetModal } = useBottomSheetModal();
+    const router = useRouter();
 
     const { openModal: openFullScreenModal } = useFullScreenModal();
     const [_, copyToClipboard] = useCopyToClipboard();
 
     return (
         <div className="w-full">
-            <div className="flex gap-2 flex-col lg:flex-row lg:items-center items-start py-4 px-5 mb-10 md:px-20 shadow-settings">
+            <div className="shadow-settings mb-10 flex flex-col items-start gap-2 px-5 py-4 md:px-20 lg:flex-row lg:items-center">
                 <div
-                    className="items-center cursor-pointer flex mr-4 gap-4"
+                    className="mr-4 flex cursor-pointer items-center gap-4"
                     onClick={() => {
                         copyToClipboard(getWorkspaceShareURL(workspace));
                         toast('Copied', { type: 'info' });
@@ -42,13 +36,13 @@ export default function WorkspaceDetails() {
                     <CopyIcon className="text-black-700" />
                 </div>
                 <div className="flex gap-2 md:gap-6">
-                    {(!workspace.isPro || !workspace.customDomain) && (
+                    {(!workspace.isPro || !workspace.customDomain || !workspace.customDomainVerified) && (
                         <AppButton
                             variant={ButtonVariant.Ghost}
                             icon={<Globe width={20} height={20} strokeWidth={1} />}
                             onClick={() => {
                                 if (workspace?.isPro) {
-                                    openModal('UPDATE_WORKSPACE_DOMAIN');
+                                    router.push(`/${workspace.workspaceName}/dashboard/custom-domain`);
                                 } else {
                                     openFullScreenModal('UPGRADE_TO_PRO');
                                 }
@@ -64,10 +58,10 @@ export default function WorkspaceDetails() {
                     </ActiveLink>
                 </div>
             </div>
-            <div className="w-full md:px-20 px-5 max-w-full">
+            <div className="w-full max-w-full px-5 md:px-20">
                 <BannerImageComponent workspace={workspace} isFormCreator={true} />
             </div>
-            <div className="px-5 md:px-20 lg:px-30">
+            <div className="lg:px-30 px-5 md:px-20">
                 <WorkspaceInfo workspace={workspace} />
             </div>
         </div>
