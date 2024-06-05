@@ -1,6 +1,6 @@
 export interface INavbarItem {
     key: string;
-    name: string;
+    name: React.ReactNode;
     url: string;
     icon?: React.ReactNode;
     onClick?: () => void;

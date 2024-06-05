@@ -19,13 +19,19 @@ const ShadCNInput = React.forwardRef<HTMLInputElement, InputProps>(({ className,
                 color: theme?.secondary
             }}
             type={type}
-            className={cn(`w-full border-0 border-b-[1px] px-0 py-2 text-[32px] disabled:cursor-not-allowed disabled:opacity-50`, className)}
+            className={cn(`w-full border-0 border-b-[1px] px-0 py-2 text-[28px] disabled:cursor-not-allowed disabled:opacity-50 lg:text-[32px]`, className)}
             ref={ref}
             {...props}
         />
     );
 });
 ShadCNInput.displayName = 'ShadCNInput';
+
+const AppInput = React.forwardRef<HTMLInputElement, InputProps>(({ className, type, ...props }, ref) => {
+    return <input type={type} className={cn(`border-black-200 focus:border-black-400 w-full rounded-xl border px-3 py-2 text-[12px] focus:ring-transparent disabled:cursor-not-allowed disabled:opacity-50`, className)} ref={ref} {...props} />;
+});
+
+AppInput.displayName = 'AppInput';
 
 const FieldInput = styled(ShadCNInput)<{
     $slide?: StandardFormFieldDto;
@@ -47,4 +53,4 @@ const FieldInput = styled(ShadCNInput)<{
 });
 FieldInput.displayName = 'FieldInput';
 
-export { FieldInput, ShadCNInput as Input };
+export { FieldInput, ShadCNInput as Input, AppInput };

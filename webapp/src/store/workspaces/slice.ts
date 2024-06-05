@@ -25,6 +25,7 @@ export interface WorkspaceState {
     title: string;
     workspaceName: string;
     isPro: boolean;
+    customDomainVerified?: boolean;
 }
 
 const initialState: WorkspaceState = {

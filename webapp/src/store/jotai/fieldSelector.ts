@@ -4,11 +4,11 @@ import { JSONContent } from '@tiptap/react';
 import { atom, useAtom } from 'jotai';
 import { v4 } from 'uuid';
 
+import globalConstants from '@app/constants/global';
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import { FormSlideLayout } from '@app/models/enums/form';
 import { useActiveFieldComponent, useActiveSlideComponent } from '@app/store/jotai/activeBuilderComponent';
 import { reorder } from '@app/utils/arrayUtils';
-import globalConstants from '@app/constants/global';
 
 const initialFieldsAtom = atom<StandardFormFieldDto[]>([
     {
@@ -24,7 +24,7 @@ const initialFieldsAtom = atom<StandardFormFieldDto[]>([
                     type: FieldTypes.SHORT_TEXT,
                     value: 'Hi, what is your name?',
                     properties: {
-                        placeholder: 'Your full name please'
+                        placeholder: 'Answer'
                     }
                 }
             ]
@@ -227,9 +227,6 @@ export default function useFormFieldsAtom() {
     };
 
     const updateSlideLayout = (layout: FormSlideLayout) => {
-        if (!formFields[activeSlide?.index || 0].imageUrl) {
-            formFields[activeSlide?.index || 0].imageUrl = 'https://s3.eu-central-1.wasabisys.com/bettercollected/images/v2defaultImage.png';
-        }
         formFields[activeSlide?.index || 0].properties!.layout = layout;
         setFormFields([...formFields]);
     };
