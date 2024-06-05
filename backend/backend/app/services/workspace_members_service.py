@@ -111,7 +111,7 @@ class WorkspaceMembersService:
         invitation = await self.workspace_invitation_repository.get_workspace_invitation_by_token(
             workspace_id=workspace_id, invitation_token=invitation_token
         )
-        if (not is_admin) and (self.compare_emails(user.sub, invitation.email)):
+        if (not is_admin) and not (self.compare_emails(user.sub, invitation.email)):
             raise HTTPException(
                 status_code=HTTPStatus.FORBIDDEN, content=MESSAGE_FORBIDDEN
             )
@@ -146,7 +146,7 @@ class WorkspaceMembersService:
             workspace_id=workspace_id, invitation_token=invitation_token
         )
 
-        if self.compare_emails(invitation_request.email, user.sub):
+        if not self.compare_emails(invitation_request.email, user.sub):
             raise HTTPException(
                 status_code=HTTPStatus.FORBIDDEN, content="Invalid User"
             )
