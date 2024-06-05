@@ -19,7 +19,7 @@ const ShadCNInput = React.forwardRef<HTMLInputElement, InputProps>(({ className,
                 color: theme?.secondary
             }}
             type={type}
-            className={cn(`w-full border-0 border-b-[1px] px-0 py-2 text-[32px] disabled:cursor-not-allowed disabled:opacity-50`, className)}
+            className={cn(`w-full border-0 border-b-[1px] px-0 py-2 text-[28px] disabled:cursor-not-allowed disabled:opacity-50 lg:text-[32px]`, className)}
             ref={ref}
             {...props}
         />
