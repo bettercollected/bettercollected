@@ -9,13 +9,13 @@ export default function getFormShareURL(form: StandardFormDto, workspace: Worksp
     const scheme = environments.HTTP_SCHEME;
     let domain = '';
 
-    if (workspace?.isPro && workspace?.customDomain && !defaultLink) {
+    if (workspace?.isPro && workspace?.customDomain && !defaultLink && workspace?.customDomainVerified) {
         domain = workspace.customDomain;
     } else {
         domain = form?.builderVersion === 'v2' ? environments.FORM_DOMAIN : environments.CLIENT_DOMAIN;
     }
 
-    const url = workspace?.isPro && workspace?.customDomain && !defaultLink ? `/forms/${slug}` : `/${workspace.workspaceName}/forms/${slug}`;
+    const url = workspace?.isPro && workspace?.customDomain && !defaultLink && workspace?.customDomainVerified ? `/forms/${slug}` : `/${workspace.workspaceName}/forms/${slug}`;
 
     return `${scheme}${domain}${url}`;
 }
