@@ -99,7 +99,7 @@ export default function PhoneNumberField({ field }: { field: StandardFormFieldDt
                     }}
                     placeholder={field?.properties?.placeholder || getPlaceholderValueForField(field.type)}
                     inputProps={{
-                        className: 'text-[32px] bg-opacity-50 mx-14 border-0 border-b-[1px] w-[93%] ',
+                        className: 'text-[28px] lg:text-[32px] bg-opacity-50 mx-14 border-0 border-b-[1px] w-[93%] ',
                         id: `input-field-${field.id}`
                     }}
                 />

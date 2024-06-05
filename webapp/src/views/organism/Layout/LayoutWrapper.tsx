@@ -25,9 +25,10 @@ interface ILayoutWrapper {
     scrollDivId?: string;
     children: React.ReactNode | React.ReactNode[];
     showDesktopLayout?: boolean;
+    removePaddingXForSmallScreen?: boolean;
 }
 
-const LayoutWrapper = ({ layout, theme, imageUrl, updatePageImage, updatePageLayout, altImage, disabled = false, style = {}, scrollDivId, children, showDesktopLayout = false }: ILayoutWrapper) => {
+const LayoutWrapper = ({ layout, theme, imageUrl, updatePageImage, updatePageLayout, altImage, disabled = false, style = {}, scrollDivId, children, showDesktopLayout = false, removePaddingXForSmallScreen = false }: ILayoutWrapper) => {
     const [showControls, setShowControls] = useState(false);
     const { openDialogModal } = useDialogModal();
 
@@ -105,14 +106,15 @@ const LayoutWrapper = ({ layout, theme, imageUrl, updatePageImage, updatePageLay
                     }}
                     // TODO: Change this to apply layout from other layout
                     className={cn(
-                        'relative px-5 md:px-8 xl:px-10 2xl:px-20',
+                        removePaddingXForSmallScreen ? 'px-0 lg:px-8' : 'px-8 md:px-10 ',
+                        'relative xl:px-10 2xl:px-20',
                         'flex-grow lg:min-h-[100%]',
                         disabled ? 'overflow-hidden' : '',
                         layout && layout === FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND ? 'z-10 !bg-transparent' : '',
                         layout && layout === FormSlideLayout.TWO_COLUMN_IMAGE_LEFT ? 'order-1' : layout && layout === FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT ? 'order-0' : ''
                     )}
                 >
-                    <div className="flex min-h-[100%] w-full flex-col justify-center py-[60px]">{children}</div>
+                    <div className="flex min-h-[100%] w-full flex-col justify-center py-[32px] lg:py-[60px]">{children}</div>
                 </ScrollArea>
                 {/* Image with controls works for left and right image layout */}
                 {layout && layout !== FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND && layout !== FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND_LEFT_ALIGN && layout !== FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND && (
