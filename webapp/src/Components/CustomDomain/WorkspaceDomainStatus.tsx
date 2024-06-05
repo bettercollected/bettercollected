@@ -110,17 +110,17 @@ const DomainVerificationPending = ({ workspace, dnsData, isFetching, refetch }: 
             name: 'Name',
             grow: 2,
             selector: (record: any) => (
-                <div className="flex gap-2">
-                    {record.name}
-                    <CopyIcon
-                        className="cursor-pointer"
-                        width={12}
-                        height={12}
-                        onClick={() => {
-                            navigator.clipboard.writeText(record.name);
-                            toast('Copied', { type: 'info' });
-                        }}
-                    />
+                <div
+                    className="flex cursor-pointer gap-2"
+                    onClick={() => {
+                        navigator.clipboard.writeText(record.name);
+                        toast('Copied', { type: 'info' });
+                    }}
+                >
+                    <div className="min-w-fit">{record.name}</div>
+                    <div>
+                        <CopyIcon className="" width={12} height={12} />
+                    </div>
                 </div>
             )
         },
@@ -131,17 +131,25 @@ const DomainVerificationPending = ({ workspace, dnsData, isFetching, refetch }: 
         {
             name: 'Value',
             selector: (record: any) => (
-                <div className="flex gap-2">
+                <div
+                    className="flex cursor-pointer gap-2"
+                    onClick={() => {
+                        navigator.clipboard.writeText(record.value);
+                        toast('Copied', { type: 'info' });
+                    }}
+                >
                     <div className={'max-w-[100px] truncate'}>{record.value}</div>
-                    <CopyIcon
-                        className="cursor-pointer"
-                        width={12}
-                        height={12}
-                        onClick={() => {
-                            navigator.clipboard.writeText(record.value);
-                            toast('Copied', { type: 'info' });
-                        }}
-                    />
+                    <div>
+                        <CopyIcon
+                            className="min-w-fit"
+                            width={12}
+                            height={12}
+                            onClick={() => {
+                                navigator.clipboard.writeText(record.value);
+                                toast('Copied', { type: 'info' });
+                            }}
+                        />
+                    </div>
                 </div>
             ),
             grow: 2
