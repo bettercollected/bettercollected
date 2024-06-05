@@ -5,23 +5,23 @@ import { useTranslation } from 'next-i18next';
 import Joyride from '@Components/Joyride';
 import { JoyrideStepContent, JoyrideStepTitle } from '@Components/Joyride/JoyrideStepTitleAndContent';
 
+import { useBottomSheetModal } from '@Components/Modals/Contexts/BottomSheetModalContext';
+import WorkspaceDetailsCard from '@Components/RespondersPortal/WorkspaceDetailsCard';
 import DashboardLayout from '@app/components/sidebar/dashboard-layout';
+import { ProLogo } from '@app/components/ui/logo';
 import WorkspaceDashboardForms from '@app/components/workspace-dashboard/workspace-dashboard-forms';
 import WorkspaceDashboardPinnedForms from '@app/components/workspace-dashboard/workspace-dashboard-pinned-forms';
 import environments from '@app/configs/environments';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
+import { Button } from '@app/shadcn/components/ui/button';
 import { useAppSelector } from '@app/store/hooks';
 import { JOYRIDE_CLASS, JOYRIDE_ID } from '@app/store/tours/types';
 import { useGetWorkspaceFormsQuery } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
-import WorkspaceDetailsCard from '@Components/RespondersPortal/WorkspaceDetailsCard';
+import { getWorkspaceShareURL } from '@app/utils/workspaceUtils';
 import EditIcon from '@app/views/atoms/Icons/Edit';
 import OpenLinkIcon from '@app/views/atoms/Icons/OpenLink';
-import { Button } from '@app/shadcn/components/ui/button';
-import { ProLogo } from '@app/components/ui/logo';
 import { toast } from 'react-toastify';
-import { useBottomSheetModal } from '@Components/Modals/Contexts/BottomSheetModalContext';
-import { getWorkspaceShareURL } from '@app/utils/workspaceUtils';
 
 export default function CreatorDashboard({ hasCustomDomain, ...props }: { workspace: WorkspaceDto; hasCustomDomain: boolean }) {
     const { t } = useTranslation();
@@ -90,7 +90,7 @@ export default function CreatorDashboard({ hasCustomDomain, ...props }: { worksp
                 />
             )}
             <div className="relative flex flex-col gap-4 md:w-[320px] md:max-w-[320px]">
-                <div className="absolute right-4 top-4">
+                <div className="absolute right-4 top-4 z-[1000] bg-white/30">
                     <EditIcon
                         width={32}
                         height={32}
