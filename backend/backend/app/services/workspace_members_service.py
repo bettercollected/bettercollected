@@ -111,7 +111,7 @@ class WorkspaceMembersService:
         invitation = await self.workspace_invitation_repository.get_workspace_invitation_by_token(
             workspace_id=workspace_id, invitation_token=invitation_token
         )
-        if (not is_admin) and (user.sub != invitation.email):
+        if (not is_admin) and (self.compare_emails(user.sub, invitation.email)):
             raise HTTPException(
                 status_code=HTTPStatus.FORBIDDEN, content=MESSAGE_FORBIDDEN
             )
@@ -124,6 +124,17 @@ class WorkspaceMembersService:
             )
         return invitation
 
+    def normalize_gmail(self, email):
+        local, domain = email.split("@")
+        if (
+            domain == "gmail.com" or domain == "googlemail.com"
+        ):  # Google handles both domains the same
+            local = local.replace(".", "")
+        return f"{local}@{domain}"
+
+    def compare_emails(self, email1, email2):
+        return self.normalize_gmail(email1) == self.normalize_gmail(email2)
+
     async def process_invitation_request(
         self,
         workspace_id: PydanticObjectId,
@@ -135,7 +146,7 @@ class WorkspaceMembersService:
             workspace_id=workspace_id, invitation_token=invitation_token
         )
 
-        if invitation_request.email != user.sub:
+        if self.compare_emails(invitation_request.email, user.sub):
             raise HTTPException(
                 status_code=HTTPStatus.FORBIDDEN, content="Invalid User"
             )
