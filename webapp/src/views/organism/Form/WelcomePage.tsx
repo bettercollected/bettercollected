@@ -102,7 +102,7 @@ export default function WelcomePage({
                     )}
 
                     {(!standardForm?.settings?.private || (standardForm?.settings?.private && auth.id && !standardForm?.unauthorized)) && (
-                        <div className="invisible lg:visible">
+                        <div>
                             <Button
                                 style={{ background: formTheme?.secondary }}
                                 className="z-10 mt-2 rounded px-8 py-3"
@@ -122,7 +122,7 @@ export default function WelcomePage({
                     )}
                 </div>
             </div>
-            <div className="border-black-200 flex absolute bottom-0 w-full border-t p-4 lg:hidden" style={{ background: formTheme?.accent }}>
+            {/* <div className="border-black-200 flex absolute bottom-0 w-full border-t p-4 lg:hidden" style={{ background: formTheme?.accent }}>
                 <Button
                     style={{ background: formTheme?.secondary }}
                     className="z-10 mt-2 w-full rounded px-8 py-3"
@@ -138,7 +138,7 @@ export default function WelcomePage({
                 >
                     {standardForm?.settings?.requireVerifiedIdentity && !auth.id ? 'Verify and Start' : standardForm?.welcomePage?.buttonText || 'Start'}
                 </Button>
-            </div>
+            </div> */}
         </>
     );
 }
