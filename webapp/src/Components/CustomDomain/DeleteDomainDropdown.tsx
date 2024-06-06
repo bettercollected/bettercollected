@@ -13,7 +13,7 @@ const DeleteDomainDropdown = () => {
                 <DropdownMenuTrigger className="outline-none">
                     <Button className="!p-1 outline-none" variant={'v2GhostButton'} icon={<EllipsisOption width={24} height={24} className="text-black-700" />}></Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="bg-white">
+                <DropdownMenuContent align="end" className="!z-[1000000] bg-white">
                     <DropdownMenuItem
                         className="hover:bg-black-200 flex cursor-pointer items-center gap-2 outline-none"
                         onClick={() => {

@@ -158,7 +158,7 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
     return (
         <Controller>
             <SlideLayoutWrapper showDesktopLayout={showDesktopLayout} scrollDivId={'questions-container'} theme={standardForm.theme} slide={formSlide} disabled>
-                <div className="absolute left-0 right-0 top-5 z-10 mx-auto hidden w-full lg:block">
+                <div className="absolute left-0 right-0 top-5 z-10 mx-auto w-full ">
                     <div className="px-5 md:px-8 xl:px-10 2xl:px-20">
                         <div className={`w-full max-w-[800px] px-4 ${formSlide?.properties?.layout === FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND_LEFT_ALIGN ? '' : 'mx-auto'}`}>
                             <BackButton
@@ -174,11 +174,11 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
                     </div>
                 </div>
                 <div className={cn('flex h-full flex-1 flex-col justify-center ', formSlide?.properties?.layout === FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND_LEFT_ALIGN ? 'items-start ' : 'items-center')}>
-                    <div className={cn('relative flex h-full w-full max-w-[800px] flex-col gap-[48px] overflow-hidden px-4 py-[20px] pb-28 lg:gap-[120px] lg:py-[60px]', isPreviewMode ? '' : 'lg:px-10')}>
+                    <div className={cn('relative flex h-full w-full max-w-[800px] flex-col gap-[48px] overflow-hidden px-4 lg:gap-[120px] py-[60px]', isPreviewMode ? '' : 'lg:px-10')}>
                         {formSlide?.properties?.fields?.map((field: StandardFormFieldDto, index: number) => (
                             <FormFieldComponent key={field.id} field={formSlide!.properties!.fields![index]} slideIndex={formSlide!.index} />
                         ))}
-                        <div className="hidden lg:block">
+                        <div>
                             {(standardForm?.fields?.length || 0) - 1 === currentSlide && currentSlide === index && (
                                 <div className="flex flex-col lg:mb-4 ">
                                     {authState.id && !standardForm.settings?.requireVerifiedIdentity && (
@@ -208,7 +208,7 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
                                     color: 'white'
                                 }}
                                 isLoading={isLoading}
-                                className=" rounded px-8 py-3"
+                                className=" rounded px-8 py-3 mt-4"
                                 onClick={onNext}
                                 size="medium"
                             >
@@ -216,7 +216,7 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
                             </Button>
                         </div>
                     </div>
-                    <div style={{ background: standardForm.theme?.accent }} className="border-black-200 absolute bottom-0 left-0 flex w-full flex-col gap-4 border-t bg-opacity-100 p-4 lg:hidden">
+                    {/* <div style={{ background: standardForm.theme?.accent }} className="border-black-200 absolute bottom-0 left-0 flex w-full flex-col gap-4 border-t bg-opacity-100 p-4 lg:hidden">
                         {(standardForm?.fields?.length || 0) - 1 === currentSlide && currentSlide === index && (
                             <div className="flex flex-col px-5">
                                 {authState.id && !standardForm.settings?.requireVerifiedIdentity && (
@@ -263,7 +263,7 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
                                 {(standardForm?.fields?.length || 0) - 1 === currentSlide && currentSlide === index ? 'Submit' : 'Next'}
                             </Button>
                         </div>
-                    </div>
+                    </div> */}
                 </div>
             </SlideLayoutWrapper>
         </Controller>
