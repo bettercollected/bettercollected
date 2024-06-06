@@ -3,6 +3,7 @@ import environments from '@app/configs/environments';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { Button } from '@app/shadcn/components/ui/button';
 import { Skeleton } from '@app/shadcn/components/ui/skeleton';
+import ToolTip from '@app/shadcn/components/ui/tooltip';
 import { cn } from '@app/shadcn/util/lib';
 import { useAppSelector } from '@app/store/hooks';
 import { useVerifyWorkspaceDomainQuery } from '@app/store/workspaces/api';
@@ -116,7 +117,9 @@ const DomainVerificationPending = ({ workspace, dnsData, isFetching, refetch }: 
                         toast('Copied', { type: 'info' });
                     }}
                 >
-                    <div className="min-w-fit">{record.name}</div>
+                    <ToolTip label={record.name} triggerClassName="!max-w-[150px] truncate">
+                        <span>{record.name}</span>
+                    </ToolTip>
                     <div>
                         <CopyIcon className="" width={12} height={12} />
                     </div>
@@ -137,17 +140,11 @@ const DomainVerificationPending = ({ workspace, dnsData, isFetching, refetch }: 
                         toast('Copied', { type: 'info' });
                     }}
                 >
-                    <div className={'max-w-[100px] truncate'}>{record.value}</div>
+                    <ToolTip label={record.value} triggerClassName="!max-w-[150px] truncate">
+                        <span>{record.value}</span>
+                    </ToolTip>
                     <div>
-                        <CopyIcon
-                            className="min-w-fit"
-                            width={12}
-                            height={12}
-                            onClick={() => {
-                                navigator.clipboard.writeText(record.value);
-                                toast('Copied', { type: 'info' });
-                            }}
-                        />
+                        <CopyIcon className="min-w-fit" width={12} height={12} />
                     </div>
                 </div>
             ),
