@@ -146,7 +146,7 @@
     "vanilla-cookieconsent": "^2.9.0"
   },
   "devDependencies": {
-    "@babel/traverse": "^7.24.5",
+    "@babel/traverse": "^7.24.6",
     "@redux-devtools/core": "^3.13.1",
     "@storybook/addon-essentials": "^7.6.10",
     "@storybook/addon-interactions": "^7.6.10",
