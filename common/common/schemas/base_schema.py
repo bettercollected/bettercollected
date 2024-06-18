@@ -6,8 +6,8 @@ from common.configs.mongo_document import MongoDocument
 
 
 class BaseDocument(abc.ABC, MongoDocument):
-    created_at: Optional[dt.datetime] = dt.datetime.utcnow()
-    updated_at: Optional[dt.datetime] = dt.datetime.utcnow()
+    created_at: Optional[dt.datetime] = dt.datetime.now(dt.timezone.utc)
+    updated_at: Optional[dt.datetime] = dt.datetime.now(dt.timezone.utc)
 
     class Settings:
         bson_encoders = {

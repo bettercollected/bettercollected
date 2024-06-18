@@ -122,5 +122,5 @@ class UserRepository:
     @staticmethod
     async def update_last_logged_in(user_id: PydanticObjectId):
         user_document = await UserDocument.find_one(UserDocument.id == user_id)
-        user_document.last_logged_in = datetime.datetime.utcnow()
+        user_document.last_logged_in = datetime.datetime.now(datetime.timezone.utc)
         return await user_document.save()
