@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from http import HTTPStatus
 from typing import Dict, Any, List
 
@@ -115,7 +115,7 @@ class WorkspaceFormRepository:
                                 {"settings.form_close_date": None},
                                 {
                                     "settings.form_close_date": {
-                                        "$gte": datetime.utcnow().isoformat()
+                                        "$gte": datetime.now(timezone.utc).isoformat()
                                     }
                                 },
                             ]

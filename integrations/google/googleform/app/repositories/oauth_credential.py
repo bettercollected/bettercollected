@@ -1,5 +1,5 @@
 import json
-from datetime import datetime
+from datetime import datetime , timezone
 from http import HTTPStatus
 from typing import Any
 
@@ -88,8 +88,8 @@ class OauthCredentialRepository:
                 email=email,
                 provider=provider,
                 credentials=credentials,
-                created_at=datetime.utcnow(),
-                updated_at=datetime.utcnow(),
+                created_at=datetime.now(timezone.utc),
+                updated_at=datetime.now(timezone.utc),
             )
             return await oauth_credential_document.save()
         except (InvalidURI, NetworkTimeout, OperationFailure, InvalidOperation):
