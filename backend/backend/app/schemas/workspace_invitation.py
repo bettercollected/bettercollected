@@ -1,5 +1,5 @@
 import calendar
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta , timezone
 from typing import Optional
 
 from beanie import PydanticObjectId
@@ -23,7 +23,7 @@ def _get_expiry_epoch_after(time_delta: timedelta = _time_delta):
     Returns:
         int: The Unix epoch time of the given time in the future.
     """
-    return calendar.timegm((datetime.utcnow() + time_delta).utctimetuple())
+    return calendar.timegm((datetime.now(timezone.utc) + time_delta).utctimetuple())
 
 
 class WorkspaceUserInvitesDocument(MongoDocument):

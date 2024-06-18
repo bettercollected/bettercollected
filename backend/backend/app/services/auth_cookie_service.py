@@ -1,7 +1,7 @@
 import calendar
 import http.cookies
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 import jwt
 from common.models.user import User
@@ -54,7 +54,7 @@ def set_tokens_to_response(user: User, response: Response):
 
 
 def get_expiry_epoch_after(time_delta: timedelta = timedelta()):
-    return calendar.timegm((datetime.utcnow() + time_delta).utctimetuple())
+    return calendar.timegm((datetime.now(timezone.utc) + time_delta).utctimetuple())
 
 
 def set_cookie(

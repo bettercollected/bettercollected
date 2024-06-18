@@ -1,6 +1,6 @@
 import datetime
 import secrets
-from datetime import timedelta
+from datetime import timedelta, timezone
 from http import HTTPStatus
 
 from beanie import PydanticObjectId
@@ -27,7 +27,7 @@ class WorkspaceInvitationRepo:
             existing_invitation.expiry = get_expiry_epoch_after(
                 time_delta=timedelta(days=7)
             )
-            existing_invitation.created_at = datetime.datetime.utcnow()
+            existing_invitation.created_at = datetime.datetime.now(timezone.utc)
             existing_invitation.invitation_token = secrets.token_hex(16)
         else:
             existing_invitation = WorkspaceUserInvitesDocument(

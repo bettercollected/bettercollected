@@ -449,7 +449,7 @@ class TestWorkspaceForm:
         test_user_cookies: dict[str, str],
     ):
         patch_url = f"{workspace_form_common_url}/{workspace_form.form_id}/settings"
-        close_date = datetime.datetime.utcnow().isoformat()
+        close_date = datetime.datetime.now(datetime.timezone.utc).isoformat()
 
         patch_settings = client.patch(
             patch_url, cookies=test_user_cookies, json={"formCloseDate": close_date}

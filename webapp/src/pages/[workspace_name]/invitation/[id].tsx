@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
 import { NextSeo } from 'next-seo';
@@ -25,7 +25,6 @@ import { useAppSelector } from '@app/store/hooks';
 import { useRespondToWorkspaceInvitationMutation } from '@app/store/workspaces/members-n-invitations-api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { getServerSideAuthHeaderConfig } from '@app/utils/serverSidePropsUtils';
-
 
 export default function Id({ workspace, user, invitation }: { workspace: WorkspaceDto; user: UserStatus; invitation: WorkspaceInvitationDto }) {
     const [trigger, { isLoading }] = useRespondToWorkspaceInvitationMutation();
@@ -75,39 +74,39 @@ export default function Id({ workspace, user, invitation }: { workspace: Workspa
 
     if (rejected) {
         return (
-            <div className=" py-10 flex items-center flex-col">
+            <div className=" flex flex-col items-center py-10">
                 <NextSeo title={t(invitationConstant.title) + ' | ' + workspaceName} noindex={true} nofollow={true} />;
                 <AuthNavbar showHamburgerIcon={false} showPlans={false} />
-                <div className="rounded-lg bg-white mt-36  flex flex-col items-center w-full p-10 md:max-w-[502px]">Request Rejected</div>
+                <div className="mt-36 flex w-full  flex-col items-center rounded-lg bg-white p-10 md:max-w-[502px]">Request Rejected</div>
             </div>
         );
     }
 
     if (!invitation) {
         return (
-            <div className=" py-10 flex items-center flex-col">
+            <div className=" flex flex-col items-center py-10">
                 <NextSeo title={t(invitationConstant.title) + ' | ' + workspaceName} noindex={true} nofollow={true} />;
                 <AuthNavbar showHamburgerIcon={false} showPlans={false} />
-                <div className="rounded-lg bg-white mt-36  flex flex-col items-center w-full p-10 md:max-w-[620px]">{t(workspaceConstant.invitationNotFound)}</div>
+                <div className="mt-36 flex w-full  flex-col items-center rounded-lg bg-white p-10 md:max-w-[620px]">{t(workspaceConstant.invitationNotFound)}</div>
             </div>
         );
     }
 
     return (
-        <div className=" py-10 px-4 w-full">
+        <div className=" w-full px-4 py-10">
             <NextSeo title={t(invitationConstant.title) + ' | ' + workspaceName} noindex={true} nofollow={true} />;
             <AuthNavbar showHamburgerIcon={false} showPlans={false} />
-            <div className="rounded w-full mt-36 flex flex-col items-center ">
-                <div className="md:max-w-[620px] flex flex-col">
-                    <div className="bg-white md:max-w-[620px] flex flex-col rounded p-10 items-center justify-center">
+            <div className="mt-36 flex w-full flex-col items-center rounded ">
+                <div className="flex flex-col md:max-w-[620px]">
+                    <div className="flex flex-col items-center justify-center rounded bg-white p-10 md:max-w-[620px]">
                         <AuthAccountProfileImage size={60} image={workspace?.profileImage} name={workspace?.title} />
-                        <div className="text-2xl text-center mt-6 mb-4 sh3 !font-normal !text-black-700 ">
+                        <div className="sh3 !text-black-700 mb-4 mt-6 text-center text-2xl !font-normal ">
                             {t(invitationConstant.title1)}
-                            <span className="font-bold text-black-900">{' ' + workspace?.title || t(localesCommon.untitled)}</span>
+                            <span className="text-black-900 font-bold">{' ' + workspace?.title || t(localesCommon.untitled)}</span>
                         </div>
-                        <div className="body3 mb-10 !text-black-700">{t(invitationConstant.title2)}</div>
-                        <div className="flex flex-col space-y-4 items-center">
-                            <div className="flex sm:flex-row flex-col gap-5 justify-between items-center">
+                        <div className="body3 !text-black-700 mb-10">{t(invitationConstant.title2)}</div>
+                        <div className="flex flex-col items-center space-y-4">
+                            <div className="flex flex-col items-center justify-between gap-5 sm:flex-row">
                                 <AppButton disabled={isLoading} size={ButtonSize.Big} onClick={onAccept}>
                                     {t(buttonConstant.joinWorkspace)}
                                 </AppButton>
@@ -116,12 +115,12 @@ export default function Id({ workspace, user, invitation }: { workspace: Workspa
                                 </AppButton>
                             </div>
                         </div>
-                        <div className="mt-5 body3 !text-black-700">{t(invitationConstant.expiryLink)}</div>
+                        <div className="body3 !text-black-700 mt-5">{t(invitationConstant.expiryLink)}</div>
                     </div>
                     <div className="ml-10 mt-8">
                         <div className="body1 mb-6">{t(invitationConstant.list.title)}</div>
 
-                        <ul className="list-disc body2 flex flex-col space-y-3 pl-10">
+                        <ul className="body2 flex list-disc flex-col space-y-3 pl-10">
                             <li>{t(invitationConstant.list['item1'])}</li>
                             <li>{t(invitationConstant.list['item2'])}</li>
                             <li>{t(invitationConstant.list['item3'])}</li>
@@ -151,7 +150,7 @@ export async function getServerSideProps(_context: any) {
         if (user !== null) {
             const invitation_response = await fetch(`${environments.INTERNAL_DOCKER_API_ENDPOINT_HOST}/workspaces/${globalProps.workspace.id}/members/invitations/${id}`, config);
             invitation = await invitation_response?.json();
-            if (invitation_response.status !== 200 || user?.email !== invitation?.email) {
+            if (invitation_response.status !== 200) {
                 return {
                     props: {
                         ...globalProps,

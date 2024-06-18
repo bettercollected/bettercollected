@@ -1,5 +1,5 @@
 import datetime
-from datetime import timedelta
+from datetime import date, timedelta
 from http import HTTPStatus
 
 from common.enums.plan import Plans
@@ -51,7 +51,7 @@ class CouponService:
         if (
             coupon_document.created_at
             + timedelta(days=settings.coupon_settings.EXPIRY_IN_DAYS)
-            < datetime.datetime.utcnow()
+            < datetime.datetime.now(datetime.timezone.utc)
         ):
             coupon_document.status = CouponStatus.EXPIRED
             await coupon_document.save()
@@ -65,5 +65,5 @@ class CouponService:
         )
         coupon_document.status = CouponStatus.USED
         coupon_document.used_by = user.sub
-        coupon_document.activated_at = datetime.datetime.utcnow()
+        coupon_document.activated_at = datetime.datetime.now(datetime.timezone.utc)
         await coupon_document.save()
