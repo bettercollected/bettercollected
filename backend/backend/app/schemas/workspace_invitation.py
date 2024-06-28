@@ -53,7 +53,7 @@ class WorkspaceUserInvitesDocument(MongoDocument):
     email: str
     invitation_status: Optional[InvitationStatus] = InvitationStatus.PENDING
     role: Optional[WorkspaceRoles] = WorkspaceRoles.COLLABORATOR
-    expiry: int = _get_expiry_epoch_after(time_delta=timedelta(days=7))
+    expiry: int 
     invitation_token: str
 
     class Settings:

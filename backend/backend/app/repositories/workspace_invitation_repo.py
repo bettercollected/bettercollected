@@ -35,6 +35,7 @@ class WorkspaceInvitationRepo:
                 email=invitation.email,
                 role=invitation.role,
                 invitation_token=secrets.token_hex(16),
+                expiry=get_expiry_epoch_after(time_delta=timedelta(days=7)),
             )
         return await existing_invitation.save()
 
