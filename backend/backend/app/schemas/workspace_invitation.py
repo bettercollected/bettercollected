@@ -1,13 +1,13 @@
 import calendar
-from datetime import datetime, timedelta , timezone
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from beanie import PydanticObjectId
+from common.configs.mongo_document import MongoDocument
+from common.enums.workspace_invitation_status import InvitationStatus
 from pymongo import IndexModel
 
 from backend.app.models.enum.workspace_roles import WorkspaceRoles
-from common.configs.mongo_document import MongoDocument
-from common.enums.workspace_invitation_status import InvitationStatus
 
 _time_delta = timedelta()
 
@@ -53,7 +53,7 @@ class WorkspaceUserInvitesDocument(MongoDocument):
     email: str
     invitation_status: Optional[InvitationStatus] = InvitationStatus.PENDING
     role: Optional[WorkspaceRoles] = WorkspaceRoles.COLLABORATOR
-    expiry: int 
+    expiry: int
     invitation_token: str
 
     class Settings:
