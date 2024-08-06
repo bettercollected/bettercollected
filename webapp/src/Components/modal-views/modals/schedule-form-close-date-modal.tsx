@@ -23,6 +23,9 @@ const ScheduleFormCloseDateModal: React.FC<IScheduleFormCloseDateModalProps> = (
 
     const { closeBottomSheetModal } = useBottomSheetModal();
 
+    // Set the minimum date to tommorow
+    const minDate = dayjs().add(1, 'day').startOf('day').toDate();
+
     return (
         <BottomSheetModalWrapper>
             <div className="flex w-full max-w-[660px] flex-col items-start gap-[72px]">
@@ -51,11 +54,12 @@ const ScheduleFormCloseDateModal: React.FC<IScheduleFormCloseDateModalProps> = (
                             <Calendar
                                 mode="single"
                                 selected={value}
-                                onSelect={(value) => {
-                                    setValue(value);
+                                onSelect={(selectedDate) => {
+                                    setValue(selectedDate);
                                     setIsDatePickerOpen(false);
                                 }}
                                 initialFocus
+                                fromDate={minDate} // Set the minimum date to tomorrow
                             />
                         </PopoverContent>
                     </Popover>
