@@ -6,7 +6,7 @@ import { useRouter } from 'next/router';
 import InfoIcon from '@Components/Common/Icons/FormBuilder/infoIcon';
 import AppTextField from '@Components/Common/Input/AppTextField';
 
-import { SearchIcon } from '@app/components/icons/search';
+import { SearchIcon } from '@app/Components/icons/search';
 import environments from '@app/configs/environments';
 import { useAppSelector } from '@app/store/hooks';
 import { useLazyGetWorkspaceSubmissionByUUIDQuery } from '@app/store/workspaces/api';

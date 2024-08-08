@@ -2,8 +2,8 @@ import React from 'react';
 
 import { uuidv4 } from '@mswjs/interceptors/lib/utils/uuid';
 
-import { useModal } from '@app/components/modal-views/context';
-import { ConsentRetentionModalProps } from '@app/components/modal-views/modals/consent-retention-modal-view';
+import { useModal } from '@app/Components/modal-views/context';
+import { ConsentRetentionModalProps } from '@app/Components/modal-views/modals/consent-retention-modal-view';
 import { dataRetention } from '@app/data/consent';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { ConsentCategoryType, ConsentType } from '@app/models/enums/consentEnum';

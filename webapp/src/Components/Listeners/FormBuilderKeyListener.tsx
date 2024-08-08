@@ -4,8 +4,8 @@ import { uuidv4 } from '@mswjs/interceptors/lib/utils/uuid';
 import { batch } from 'react-redux';
 import { toast } from 'react-toastify';
 
-import { useModal } from '@app/components/modal-views/context';
-import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
+import { useModal } from '@app/Components/modal-views/context';
+import { useFullScreenModal } from '@app/Components/modal-views/full-screen-modal-context';
 import useFormBuilderState from '@app/containers/form-builder/context';
 import eventBus from '@app/lib/event-bus';
 import EventBusEventType from '@app/models/enums/eventBusEnum';

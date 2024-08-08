@@ -6,7 +6,7 @@ import { useRouter } from 'next-nprogress-bar';
 
 import cn from 'classnames';
 
-import { useModal } from '@app/components/modal-views/context';
+import { useModal } from '@app/Components/modal-views/context';
 import { defaultForm } from '@app/constants/form';
 import { getDefaultImageFromUnsplash } from '@app/lib/getDefaultImageFromUnsplash';
 import { useIsMobile } from '@app/lib/hooks/use-breakpoint';

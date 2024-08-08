@@ -1,11 +1,11 @@
 import type {Meta, StoryObj} from '@storybook/react';
 import React from "react";
-import DashboardDrawer from '@app/components/sidebar/dashboard-drawer';
+import DashboardDrawer from '@app/Components/sidebar/dashboard-drawer';
 import {INavbarItem} from "@app/models/props/navbar";
 import {FormIcon} from "@Components/Common/Icons/Form/FormIcon";
 import ResponderIcon from "@Components/Common/Icons/Dashboard/Responder";
-import {TemplateIcon} from "@app/components/icons/template";
-import Globe from "@app/components/icons/flags/globe";
+import {TemplateIcon} from "@app/Components/icons/template";
+import Globe from "@app/Components/icons/flags/globe";
 import {store} from '@app/store/store';
 import {setAuth} from '@app/store/auth/slice';
 

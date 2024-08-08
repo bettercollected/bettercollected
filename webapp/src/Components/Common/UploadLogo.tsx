@@ -5,9 +5,9 @@ import Image from "next/legacy/image";
 
 import AppButton from '@Components/Common/Input/Button/AppButton';
 import cn from 'classnames';
+import Camera from "@Components/icons/camera";
+import {Close} from "@Components/icons/close";
 
-import Camera from '@app/components/icons/camera';
-import { Close } from '@app/components/icons/close';
 
 interface IUploadLogo {
     className?: string;

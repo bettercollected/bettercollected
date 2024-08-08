@@ -1,5 +1,5 @@
 import FieldInputWrapper from '@Components/HOCs/FieldInputWrapper';
-import { Close } from '@app/components/icons/close';
+import { Close } from '@app/Components/icons/close';
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import { Input } from '@app/shadcn/components/ui/input';
 import useFormFieldsAtom from '@app/store/jotai/fieldSelector';

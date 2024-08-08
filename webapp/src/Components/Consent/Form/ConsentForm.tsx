@@ -4,7 +4,7 @@ import FormButton from '@Components/Common/Input/Button/FormButton';
 import ErrorIcon from '@mui/icons-material/Error';
 import cn from 'classnames';
 
-import { useModal } from '@app/components/modal-views/context';
+import { useModal } from '@app/Components/modal-views/context';
 import { dataRetention, formPurpose } from '@app/data/consent';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { ConsentCategoryType } from '@app/models/enums/consentEnum';

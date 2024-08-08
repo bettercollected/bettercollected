@@ -3,7 +3,7 @@ import React from 'react';
 import CheckBox from '@Components/Common/Input/CheckBox';
 import cn from 'classnames';
 
-import  DropdownCloseIcon  from '@app/components/icons/dropdown-close';
+import  DropdownCloseIcon  from '@app/Components/icons/dropdown-close';
 import { ConsentCategoryType } from '@app/models/enums/consentEnum';
 import { OnlyClassNameInterface } from '@app/models/interfaces';
 import { setRemoveConsent } from '@app/store/consent/actions';

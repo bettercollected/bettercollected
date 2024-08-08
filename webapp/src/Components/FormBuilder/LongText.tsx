@@ -1,5 +1,5 @@
 import AppTextField from '@Components/Common/Input/AppTextField';
-import { FieldRequired } from '@Components/UI/FieldRequired';
+import { FieldRequired } from '@Components/ui/FieldRequired';
 import { Notes } from '@mui/icons-material';
 
 import useFormBuilderState from '@app/containers/form-builder/context';

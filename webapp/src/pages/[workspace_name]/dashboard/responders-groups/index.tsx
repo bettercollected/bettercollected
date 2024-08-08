@@ -5,11 +5,11 @@ import { NextSeo } from 'next-seo';
 
 import ResponderIcon from '@Components/Common/Icons/Dashboard/Responder';
 
-import UserMore from '@app/components/icons/user-more';
-import DashboardLayout from '@app/components/sidebar/dashboard-layout';
-import ParamTab, { TabPanel } from '@app/components/ui/param-tab';
-import WorkspaceGroups from '@app/components/workspace-responders/workspace-groups';
-import WorkspaceResponses from '@app/components/workspace-responders/workspace-responders';
+import UserMore from '@app/Components/icons/user-more';
+import DashboardLayout from '@app/Components/sidebar/dashboard-layout';
+import ParamTab, { TabPanel } from '@app/Components/ui/param-tab';
+import WorkspaceGroups from '@app/Components/workspace-responders/workspace-groups';
+import WorkspaceResponses from '@app/Components/workspace-responders/workspace-responders';
 import { formConstant } from '@app/constants/locales/form';
 import { groupConstant } from '@app/constants/locales/group';
 import { workspaceConstant } from '@app/constants/locales/workspace';

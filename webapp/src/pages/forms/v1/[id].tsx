@@ -14,12 +14,12 @@ import BetterCollectedForm from '@Components/Form/BetterCollectedForm';
 import { ChevronLeft } from '@mui/icons-material';
 import { Widget } from '@typeform/embed-react';
 
-import { useModal } from '@app/components/modal-views/context';
-import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
-import FullScreenLoader from '@app/components/ui/fullscreen-loader';
-import ActiveLink from '@app/components/ui/links/active-link';
-import Loader from '@app/components/ui/loader';
-import PoweredBy from '@app/components/ui/powered-by';
+import { useModal } from '@app/Components/modal-views/context';
+import { useFullScreenModal } from '@app/Components/modal-views/full-screen-modal-context';
+import FullScreenLoader from '@app/Components/ui/fullscreen-loader';
+import ActiveLink from '@app/Components/ui/links/active-link';
+import Loader from '@app/Components/ui/loader';
+import PoweredBy from '@app/Components/ui/powered-by';
 import environments from '@app/configs/environments';
 import globalConstants from '@app/constants/global';
 import { localesCommon } from '@app/constants/locales/common';

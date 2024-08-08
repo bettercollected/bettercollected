@@ -8,8 +8,8 @@ import AppButton from '@Components/Common/Input/Button/AppButton';
 import { ButtonSize, ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
 import { toast } from 'react-toastify';
 
-import AuthAccountProfileImage from '@app/components/auth/account-profile-image';
-import AuthNavbar from '@app/components/auth/navbar';
+import AuthAccountProfileImage from '@app/Components/auth/account-profile-image';
+import AuthNavbar from '@app/Components/auth/navbar';
 import environments from '@app/configs/environments';
 import { buttonConstant } from '@app/constants/locales/button';
 import { localesCommon } from '@app/constants/locales/common';

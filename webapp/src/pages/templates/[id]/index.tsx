@@ -10,7 +10,7 @@ import BetterCollectedForm from '@Components/Form/BetterCollectedForm';
 import { MenuItem } from '@mui/material';
 import { toast } from 'react-toastify';
 
-import ActiveLink from '@app/components/ui/links/active-link';
+import ActiveLink from '@app/Components/ui/links/active-link';
 import Layout from '@app/layouts/_layout';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { useGetStatusQuery } from '@app/store/auth/api';

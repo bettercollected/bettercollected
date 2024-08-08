@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 
-import { useModal } from '@app/components/modal-views/context';
+import { useModal } from '@app/Components/modal-views/context';
 import environments from '@app/configs/environments';
 import { formConstant } from '@app/constants/locales/form';
 import { useIsMobile } from '@app/lib/hooks/use-breakpoint';
@@ -19,9 +19,9 @@ import ShareIcon from '@app/views/atoms/Icons/ShareIcon';
 import { useTranslation } from 'next-i18next';
 import PublishButton from './PublishButton';
 import { useAuthAtom } from '@app/store/jotai/auth';
-import FloatingPopOverButton from '@app/components/sidebar/FloatingPopOverButton';
-import HelpMenuItem from '@app/components/sidebar/HelpMenuItem';
-import HelpMenuComponent from '@app/components/sidebar/HelpMenuComponent';
+import FloatingPopOverButton from '@app/Components/sidebar/FloatingPopOverButton';
+import HelpMenuItem from '@app/Components/sidebar/HelpMenuItem';
+import HelpMenuComponent from '@app/Components/sidebar/HelpMenuComponent';
 
 const PreviewWrapper = ({ children, handleResetResponderState }: { children: React.ReactNode; handleResetResponderState: () => void }) => {
     const [key, setKey] = useState(1);
