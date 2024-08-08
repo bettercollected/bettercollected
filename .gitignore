@@ -2,3 +2,4 @@
 node_modules/
 webapp/.yarn
 .env.local
+.DS_Store

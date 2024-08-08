@@ -18,7 +18,7 @@ export default function PhoneNumber({ ans, enabled, field }: IPhoneNumberProps) 
     const dispatch = useDispatch();
     const [isTyping, setIsTyping] = useState(false);
 
-    const onChange = (value?: E164Number) => {
+    const onChange = (value?: string) => {
         const answer = {} as AnswerDto;
         answer.field = { id: field.id };
         answer.phone_number = value;
