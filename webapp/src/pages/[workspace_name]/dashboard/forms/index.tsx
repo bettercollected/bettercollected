@@ -3,9 +3,9 @@ import React from 'react';
 import { useTranslation } from 'next-i18next';
 import { NextSeo } from 'next-seo';
 
-import SidebarLayout from '@app/components/sidebar/sidebar-layout';
-import WorkspaceDashboardForms from '@app/components/workspace-dashboard/workspace-dashboard-forms';
-import WorkspaceDashboardPinnedForms from '@app/components/workspace-dashboard/workspace-dashboard-pinned-forms';
+import SidebarLayout from '@app/Components/sidebar/sidebar-layout';
+import WorkspaceDashboardForms from '@app/Components/workspace-dashboard/workspace-dashboard-forms';
+import WorkspaceDashboardPinnedForms from '@app/Components/workspace-dashboard/workspace-dashboard-pinned-forms';
 import { localesCommon } from '@app/constants/locales/common';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { useAppSelector } from '@app/store/hooks';

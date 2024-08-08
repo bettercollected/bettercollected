@@ -7,10 +7,10 @@ import AppButton from '@Components/Common/Input/Button/AppButton';
 import { ButtonSize, ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
 import { toast } from 'react-toastify';
 
-import Globe from '@app/components/icons/flags/globe';
-import { useModal } from '@app/components/modal-views/context';
-import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
-import { ProLogo } from '@app/components/ui/logo';
+import Globe from '@app/Components/icons/flags/globe';
+import { useModal } from '@app/Components/modal-views/context';
+import { useFullScreenModal } from '@app/Components/modal-views/full-screen-modal-context';
+import { ProLogo } from '@app/Components/ui/logo';
 import environments from '@app/configs/environments';
 import { useCopyToClipboard } from '@app/lib/hooks/use-copy-to-clipboard';
 import { selectAuth, selectIsAdmin, selectIsProPlan } from '@app/store/auth/slice';

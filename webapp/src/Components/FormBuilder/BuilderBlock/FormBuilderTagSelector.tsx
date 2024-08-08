@@ -19,8 +19,8 @@ import TagListItem from '@Components/FormBuilder/BuilderBlock/TagListItem';
 import LinkIcon from '@mui/icons-material/Link';
 import { List, ListSubheader, Paper } from '@mui/material';
 
-import { Logic } from '@app/components/icons/logic';
-import { Ranking } from '@app/components/icons/ranking';
+import { Logic } from '@app/Components/icons/logic';
+import { Ranking } from '@app/Components/icons/ranking';
 import useClickOutsideMenu from '@app/lib/hooks/use-click-outside-menu';
 import { BlockTypes, FormBuilderTagNames, KeyType, LabelFormBuilderTagNames } from '@app/models/enums/formBuilder';
 import { OnlyClassNameInterface } from '@app/models/interfaces';

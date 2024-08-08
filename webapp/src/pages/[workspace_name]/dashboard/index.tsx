@@ -7,10 +7,10 @@ import { JoyrideStepContent, JoyrideStepTitle } from '@Components/Joyride/Joyrid
 
 import { useBottomSheetModal } from '@Components/Modals/Contexts/BottomSheetModalContext';
 import WorkspaceDetailsCard from '@Components/RespondersPortal/WorkspaceDetailsCard';
-import DashboardLayout from '@app/components/sidebar/dashboard-layout';
-import { ProLogo } from '@app/components/ui/logo';
-import WorkspaceDashboardForms from '@app/components/workspace-dashboard/workspace-dashboard-forms';
-import WorkspaceDashboardPinnedForms from '@app/components/workspace-dashboard/workspace-dashboard-pinned-forms';
+import DashboardLayout from '@app/Components/sidebar/dashboard-layout';
+import { ProLogo } from '@app/Components/ui/logo';
+import WorkspaceDashboardForms from '@app/Components/workspace-dashboard/workspace-dashboard-forms';
+import WorkspaceDashboardPinnedForms from '@app/Components/workspace-dashboard/workspace-dashboard-pinned-forms';
 import environments from '@app/configs/environments';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { Button } from '@app/shadcn/components/ui/button';

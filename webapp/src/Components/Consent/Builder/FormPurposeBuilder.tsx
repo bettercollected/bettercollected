@@ -1,7 +1,7 @@
 import React from 'react';
 
-import { useModal } from '@app/components/modal-views/context';
-import { ConsentPurposeModalMode, ConsentPurposeModalProps } from '@app/components/modal-views/modals/consent-purpose-modal-view';
+import { useModal } from '@app/Components/modal-views/context';
+import { ConsentPurposeModalMode, ConsentPurposeModalProps } from '@app/Components/modal-views/modals/consent-purpose-modal-view';
 import { formPurpose } from '@app/data/consent';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { ConsentCategoryType } from '@app/models/enums/consentEnum';

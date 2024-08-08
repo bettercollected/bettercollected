@@ -4,9 +4,9 @@ import { useEffect, useState } from 'react';
 
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
-import FloatingPopOverButton from '@app/components/sidebar/FloatingPopOverButton';
-import HelpMenuComponent from '@app/components/sidebar/HelpMenuComponent';
-import HelpMenuItem from '@app/components/sidebar/HelpMenuItem';
+import FloatingPopOverButton from '@app/Components/sidebar/FloatingPopOverButton';
+import HelpMenuComponent from '@app/Components/sidebar/HelpMenuComponent';
+import HelpMenuItem from '@app/Components/sidebar/HelpMenuItem';
 import { useDialogModal } from '@app/lib/hooks/useDialogModal';
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';

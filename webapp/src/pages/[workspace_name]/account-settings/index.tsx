@@ -6,9 +6,9 @@ import { NextSeo } from 'next-seo';
 import { useBottomSheetModal } from '@Components/Modals/Contexts/BottomSheetModalContext';
 import { Button } from '@mui/material';
 
-import AuthAccountProfileImage from '@app/components/auth/account-profile-image';
-import SettingCard from '@app/components/cards/setting-card';
-import DashboardLayout from '@app/components/sidebar/dashboard-layout';
+import AuthAccountProfileImage from '@app/Components/auth/account-profile-image';
+import SettingCard from '@Components/cards/setting-card';
+import DashboardLayout from '@app/Components/sidebar/dashboard-layout';
 import { buttonConstant } from '@app/constants/locales/button';
 import { localesCommon } from '@app/constants/locales/common';
 import { profileMenu } from '@app/constants/locales/profile-menu';

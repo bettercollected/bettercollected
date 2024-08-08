@@ -9,8 +9,8 @@ import cn from 'classnames';
 import DataTable from 'react-data-table-component';
 import { toast } from 'react-toastify';
 
-import { dataTableCustomStyles } from '@app/components/datatable/form/datatable-styles';
-import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
+import { dataTableCustomStyles } from '@app/Components/datatable/form/datatable-styles';
+import { useFullScreenModal } from '@app/Components/modal-views/full-screen-modal-context';
 import globalConstants from '@app/constants/global';
 import { FieldTypes, StandardFormDto, StandardFormFieldDto, StandardFormResponseDto } from '@app/models/dtos/form';
 import { useAppSelector } from '@app/store/hooks';

@@ -8,8 +8,8 @@ import { InputAdornment } from '@mui/material';
 import TextField from '@mui/material/TextField';
 import cn from 'classnames';
 
-import { StyledTextField } from '@app/components/dashboard/workspace-forms-tab-content';
-import { SearchIcon } from '@app/components/icons/search';
+import { StyledTextField } from '@Components/dashboard/workspace-forms-tab-content';
+import { SearchIcon } from '@app/Components/icons/search';
 import { placeHolder } from '@app/constants/locales/placeholder';
 
 interface ISearchInputProps {

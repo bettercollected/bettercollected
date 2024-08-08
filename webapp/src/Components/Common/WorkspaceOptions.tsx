@@ -8,7 +8,7 @@ import ShareIcon from '@Components/Common/Icons/Common/ShareIcon';
 import MenuDropdown from '@Components/Common/Navigation/MenuDropdown/MenuDropdown';
 import { ListItemIcon, MenuItem } from '@mui/material';
 
-import { EyeIcon } from '@app/components/icons/eye-icon';
+import { EyeIcon } from '@app/Components/icons/eye-icon';
 
 
 interface IWorkspaceOptionsProps {

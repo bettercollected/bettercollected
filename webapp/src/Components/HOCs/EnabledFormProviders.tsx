@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 
 import FormProviderContext from '@app/Contexts/FormProviderContext';
-import FullScreenLoader from '@app/components/ui/fullscreen-loader';
+import FullScreenLoader from '@app/Components/ui/fullscreen-loader';
 import { useGetEnabledProvidersQuery } from '@app/store/providers/api';
 
 interface IEnabledFormProvidersProps {
