@@ -26,9 +26,9 @@ import 'swiper/css/navigation';
 import 'vanilla-cookieconsent/dist/cookieconsent.css';
 
 import '@app/assets/css/globals.css';
-import CookieConsent from '@app/components/cookie/cookie-consent';
-import FullScreenLoader from '@app/components/ui/fullscreen-loader';
-import NextNProgress from '@app/components/ui/nprogress';
+import CookieConsent from '@Components/cookie/cookie-consent';
+import FullScreenLoader from '@app/Components/ui/fullscreen-loader';
+import NextNProgress from '@app/Components/ui/nprogress';
 import createEmotionCache from '@app/configs/createEmotionCache';
 import environments from '@app/configs/environments';
 import globalConstants from '@app/constants/global';

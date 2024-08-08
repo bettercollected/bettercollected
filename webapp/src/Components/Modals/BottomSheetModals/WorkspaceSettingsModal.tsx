@@ -4,7 +4,7 @@ import BottomSheetModalWrapper from '@Components/Modals/ModalWrappers/BottomShee
 import ManageURLs from '@Components/Workspace/Settings/ManageURLs';
 import WorkspaceDetails from '@Components/Workspace/Settings/WorkspaceDetails';
 
-import ParamTab, { TabPanel } from '@app/components/ui/param-tab';
+import ParamTab, { TabPanel } from '@app/Components/ui/param-tab';
 
 export default function WorkspaceSettingsModal({ initialIndex = 0 }: { initialIndex?: number }) {
     const { t } = useTranslation();

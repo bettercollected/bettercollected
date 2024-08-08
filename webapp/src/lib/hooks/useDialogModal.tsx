@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation';
 
 import { atom, useAtom } from 'jotai';
 
-import ShareView from '@app/components/ui/share-view';
+import ShareView from '@app/Components/ui/share-view';
 import { Dialog, DialogContent } from '@app/shadcn/components/ui/dialog';
 import { cn } from '@app/shadcn/util/lib';
 import { selectForm } from '@app/store/forms/slice';

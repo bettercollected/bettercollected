@@ -7,7 +7,7 @@ import AppButton from '@Components/Common/Input/Button/AppButton';
 import { ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
 import { toast } from 'react-toastify';
 
-import { IFormCreateSlugFullModalViewProps } from '@app/components/modal-views/full-screen-modals/create-form-slug-full-modal-view';
+import { IFormCreateSlugFullModalViewProps } from '@app/Components/modal-views/full-screen-modals/create-form-slug-full-modal-view';
 import { localesCommon } from '@app/constants/locales/common';
 import { formPage } from '@app/constants/locales/form-page';
 import { toastMessage } from '@app/constants/locales/toast-message';

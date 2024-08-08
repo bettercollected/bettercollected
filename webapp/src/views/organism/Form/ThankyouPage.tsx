@@ -1,7 +1,7 @@
 import Link from 'next/link';
 
 import Copy from '@Components/Common/Icons/Common/Copy';
-import Logo from '@app/components/ui/logo';
+import Logo from '@app/Components/ui/logo';
 import environments from '@app/configs/environments';
 import { FormSlideLayout } from '@app/models/enums/form';
 import { Button } from '@app/shadcn/components/ui/button';

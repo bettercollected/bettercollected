@@ -3,8 +3,8 @@ import React, { ReactNode } from 'react';
 import Divider from '@mui/material/Divider';
 import cn from 'classnames';
 
-import { Close } from '@app/components/icons/close';
-import { useModal } from '@app/components/modal-views/context';
+import { Close } from '@app/Components/icons/close';
+import { useModal } from '@app/Components/modal-views/context';
 
 interface HeaderModalWrapperProps {
     headerTitle?: string;

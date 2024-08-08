@@ -1,7 +1,7 @@
 import React from 'react';
 
 import { FormFieldProps } from '@Components/Form/BetterCollectedForm';
-import { FieldRequired } from '@Components/UI/FieldRequired';
+import { FieldRequired } from '@Components/ui/FieldRequired';
 import { Select, SelectChangeEvent } from '@mui/material';
 import MenuItem from '@mui/material/MenuItem';
 

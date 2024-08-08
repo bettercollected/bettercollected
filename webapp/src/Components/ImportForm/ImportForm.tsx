@@ -12,7 +12,7 @@ import { toast } from 'react-toastify';
 
 import GoogleFolder from '@app/assets/images/google_folder.png';
 import GoogleForm from '@app/assets/images/google_form.png';
-import { LinkIcon } from '@app/components/icons/link-icon';
+import { LinkIcon } from '@app/Components/icons/link-icon';
 import { toastMessage } from '@app/constants/locales/toast-message';
 import { selectForm, setForm } from '@app/store/forms/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';

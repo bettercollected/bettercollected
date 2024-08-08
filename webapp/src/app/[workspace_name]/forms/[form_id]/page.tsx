@@ -1,6 +1,6 @@
 'use client';
 
-import Loader from '@app/components/ui/loader';
+import Loader from '@app/Components/ui/loader';
 import environments from '@app/configs/environments';
 import ReduxWrapperAppRouter from '@app/containers/ReduxWrapperAppRouter';
 import SingleFormPage from '@app/pages/forms/v1/[id]';

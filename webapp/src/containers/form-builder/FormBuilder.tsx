@@ -20,8 +20,8 @@ import ContentEditable from 'react-contenteditable';
 import { batch } from 'react-redux';
 import { toast } from 'react-toastify';
 
-import { useModal } from '@app/components/modal-views/context';
-import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
+import { useModal } from '@app/Components/modal-views/context';
+import { useFullScreenModal } from '@app/Components/modal-views/full-screen-modal-context';
 import eventBus from '@app/lib/event-bus';
 import useBuilderTranslation from '@app/lib/hooks/use-builder-translation';
 import useUserTypingDetection from '@app/lib/hooks/use-user-typing-detection';

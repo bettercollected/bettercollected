@@ -2,7 +2,7 @@ import React from 'react';
 
 import { FormFieldProps } from '@Components/Form/BetterCollectedForm';
 import { StrictModeDroppable } from '@Components/FormBuilder/StrictModeDroppable';
-import { FieldRequired } from '@Components/UI/FieldRequired';
+import { FieldRequired } from '@Components/ui/FieldRequired';
 import { Code } from '@mui/icons-material';
 import { DragDropContext, Draggable, DraggableProvided, DraggableStateSnapshot, DroppableProvided, DropResult } from 'react-beautiful-dnd';
 

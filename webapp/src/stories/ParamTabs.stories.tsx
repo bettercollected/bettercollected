@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react';
 
-import ParamTab, { TabPanel } from '@app/components/ui/param-tab';
+import ParamTab, { TabPanel } from '@app/Components/ui/param-tab';
 
 const meta: Meta<typeof ParamTab> = {
     title: 'Common/ParamTab',

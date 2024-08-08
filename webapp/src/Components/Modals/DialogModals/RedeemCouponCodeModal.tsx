@@ -8,8 +8,8 @@ import AppButton from '@Components/Common/Input/Button/AppButton';
 import { ButtonSize } from '@Components/Common/Input/Button/AppButtonProps';
 import CloseModal from '@Components/Modals/CloseModal';
 
-import { useModal } from '@app/components/modal-views/context';
-import { ProLogo } from '@app/components/ui/logo';
+import { useModal } from '@app/Components/modal-views/context';
+import { ProLogo } from '@app/Components/ui/logo';
 import environments from '@app/configs/environments';
 import { useRedeemCouponCodeMutation } from '@app/store/coupon-code/api';
 import { fireworks } from '@app/utils/confetti';

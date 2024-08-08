@@ -3,12 +3,12 @@ import AppButton from '@Components/Common/Input/Button/AppButton';
 import { ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
 import { toast } from 'react-toastify';
 
-import BannerImageComponent from '@app/components/dashboard/banner-image';
-import { EyeIcon } from '@app/components/icons/eye-icon';
-import Globe from '@app/components/icons/flags/globe';
-import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
-import WorkspaceInfo from '@app/components/settings/basic-information/workspace-info';
-import ActiveLink from '@app/components/ui/links/active-link';
+import BannerImageComponent from '@Components/dashboard/banner-image';
+import { EyeIcon } from '@app/Components/icons/eye-icon';
+import Globe from '@app/Components/icons/flags/globe';
+import { useFullScreenModal } from '@app/Components/modal-views/full-screen-modal-context';
+import WorkspaceInfo from '@app/Components/settings/basic-information/workspace-info';
+import ActiveLink from '@app/Components/ui/links/active-link';
 import { useCopyToClipboard } from '@app/lib/hooks/use-copy-to-clipboard';
 import { useAppSelector } from '@app/store/hooks';
 import { WorkspaceState, selectWorkspace } from '@app/store/workspaces/slice';
