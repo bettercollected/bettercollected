@@ -10,7 +10,6 @@ import { Calendar as CalendarIcon } from 'lucide-react';
 
 import { Popover, PopoverContent, PopoverTrigger } from '@app/shadcn/components/ui/popover';
 import { Calendar } from '@app/shadcn/components/ui/calendar';
-import { cn } from '@app/shadcn/util/lib';
 
 interface IScheduleFormCloseDateModalProps {
     onFormClosedChange: (date: string | moment.Moment) => void;
@@ -23,7 +22,7 @@ const ScheduleFormCloseDateModal: React.FC<IScheduleFormCloseDateModalProps> = (
 
     const { closeBottomSheetModal } = useBottomSheetModal();
 
-    // Set the minimum date to tommorow
+    // Set the minimum date to tomorrow
     const minDate = dayjs().add(1, 'day').startOf('day').toDate();
 
     return (
@@ -47,15 +46,15 @@ const ScheduleFormCloseDateModal: React.FC<IScheduleFormCloseDateModalProps> = (
                         <PopoverTrigger asChild>
                             <div className="relative flex w-[280px] cursor-pointer items-center rounded-lg border border-gray-400 bg-white p-2 text-left font-normal text-gray-700">
                                 <CalendarIcon className="absolute left-2 h-4 w-4 text-gray-500" />
-                                <div className="ml-8 text-black">{value ? format(value, 'PPP') : <span className="text-gray-500">Pick a date</span>}</div>
+                                <div className="ml-8 text-black">{value ? format(value.toDate(), 'PPP') : <span className="text-gray-500">Pick a date</span>}</div>
                             </div>
                         </PopoverTrigger>
                         <PopoverContent className="custom-calendar text-black-900 z-[100000000] w-auto bg-white p-0">
                             <Calendar
                                 mode="single"
-                                selected={value}
+                                selected={value?.toDate()}
                                 onSelect={(selectedDate) => {
-                                    setValue(selectedDate);
+                                    setValue(dayjs(selectedDate));
                                     setIsDatePickerOpen(false);
                                 }}
                                 initialFocus
