@@ -5,8 +5,8 @@ import { useTranslation } from 'next-i18next';
 import Submission from '@Components/RespondersPortal/Submission';
 import { toast } from 'react-toastify';
 
-import { useModal } from '@app/components/modal-views/context';
-import FullScreenLoader from '@app/components/ui/fullscreen-loader';
+import { useModal } from '@app/Components/modal-views/context';
+import FullScreenLoader from '@app/Components/ui/fullscreen-loader';
 import { toastMessage } from '@app/constants/locales/toast-message';
 import { ToastId } from '@app/constants/toastId';
 import { useAppSelector } from '@app/store/hooks';

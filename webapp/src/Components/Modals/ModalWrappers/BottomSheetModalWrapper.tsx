@@ -3,8 +3,8 @@ import React, { ReactNode } from 'react';
 import { useBottomSheetModal } from '@Components/Modals/Contexts/BottomSheetModalContext';
 import cn from 'classnames';
 
-import { Close } from '@app/components/icons/close';
-import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
+import { Close } from '@app/Components/icons/close';
+import { useFullScreenModal } from '@app/Components/modal-views/full-screen-modal-context';
 
 export default function BottomSheetModalWrapper({ children, className }: { children?: ReactNode; className?: string }) {
     const { closeModal } = useFullScreenModal();

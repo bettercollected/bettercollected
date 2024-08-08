@@ -1,7 +1,7 @@
 import React, { ChangeEvent } from 'react';
 
 import AppTextField from '@Components/Common/Input/AppTextField';
-import { FieldRequired } from '@Components/UI/FieldRequired';
+import { FieldRequired } from '@Components/ui/FieldRequired';
 import { useDispatch } from 'react-redux';
 
 import { AnswerDto, StandardFormFieldDto } from '@app/models/dtos/form';

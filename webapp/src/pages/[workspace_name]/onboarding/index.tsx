@@ -6,8 +6,8 @@ import { useTranslation } from 'next-i18next';
 import AppButton from '@Components/Common/Input/Button/AppButton';
 import { ButtonSize } from '@Components/Common/Input/Button/AppButtonProps';
 
-import AuthAccountProfileImage from '@app/components/auth/account-profile-image';
-import Logo from '@app/components/ui/logo';
+import AuthAccountProfileImage from '@app/Components/auth/account-profile-image';
+import Logo from '@app/Components/ui/logo';
 import { localesCommon } from '@app/constants/locales/common';
 import { onBoarding } from '@app/constants/locales/onboarding-screen';
 import OnboardingContainer from '@app/containers/Onboarding';

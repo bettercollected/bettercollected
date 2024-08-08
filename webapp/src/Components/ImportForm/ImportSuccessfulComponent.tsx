@@ -17,10 +17,10 @@ import ContentEditable from 'react-contenteditable';
 import { toast } from 'react-toastify';
 
 import GoogleFolder from '@app/assets/images/google_folder.png';
-import { Close } from '@app/components/icons/close';
-import TickIcon from '@app/components/icons/tick-icon';
-import { useModal } from '@app/components/modal-views/context';
-import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
+import { Close } from '@app/Components/icons/close';
+import TickIcon from '@app/Components/icons/tick-icon';
+import { useModal } from '@app/Components/modal-views/context';
+import { useFullScreenModal } from '@app/Components/modal-views/full-screen-modal-context';
 import environments from '@app/configs/environments';
 import { toastMessage } from '@app/constants/locales/toast-message';
 import { useCopyToClipboard } from '@app/lib/hooks/use-copy-to-clipboard';

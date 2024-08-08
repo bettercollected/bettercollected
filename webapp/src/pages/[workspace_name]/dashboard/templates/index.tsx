@@ -5,7 +5,7 @@ import { NextSeo } from 'next-seo';
 
 import TemplateSection from '@Components/Template/TemplateSection';
 
-import SidebarLayout from '@app/components/sidebar/sidebar-layout';
+import SidebarLayout from '@app/Components/sidebar/sidebar-layout';
 import environments from '@app/configs/environments';
 import { getAuthUserPropsWithWorkspace } from '@app/lib/serverSideProps';
 import { useGetTemplatesQuery } from '@app/store/template/api';

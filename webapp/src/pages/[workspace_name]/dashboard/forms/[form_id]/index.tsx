@@ -15,13 +15,13 @@ import AppButton from '@Components/Common/Input/Button/AppButton';
 import { ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
 import { Group, IntegrationInstructions, Share } from '@mui/icons-material';
 
-import FormIntegrations from '@app/components/form/integrations';
-import { ChevronForward } from '@app/components/icons/chevron-forward';
-import { HistoryIcon } from '@app/components/icons/history';
-import { TrashIcon } from '@app/components/icons/trash';
-import { useModal } from '@app/components/modal-views/context';
-import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
-import ParamTab, { TabPanel } from '@app/components/ui/param-tab';
+import FormIntegrations from '@app/Components/Form/integrations';
+import { ChevronForward } from '@app/Components/icons/chevron-forward';
+import { HistoryIcon } from '@app/Components/icons/history';
+import { TrashIcon } from '@app/Components/icons/trash';
+import { useModal } from '@app/Components/modal-views/context';
+import { useFullScreenModal } from '@app/Components/modal-views/full-screen-modal-context';
+import ParamTab, { TabPanel } from '@app/Components/ui/param-tab';
 import environments from '@app/configs/environments';
 import { localesCommon } from '@app/constants/locales/common';
 import { formConstant } from '@app/constants/locales/form';
@@ -40,12 +40,12 @@ import { validateFormOpen } from '@app/utils/validationUtils';
 import PlayIcon from '@app/views/atoms/Icons/PlayIcon';
 import PublishButton from '@app/views/molecules/FormBuilder/PublishButton';
 
-const FormResponses = dynamic(() => import('@app/components/form/responses'));
-const FormResponsesTable = dynamic(() => import('@app/components/datatable/form/form-responses'));
-const FormVisibilities = dynamic(() => import('@app/components/form/visibility'));
-const FormLinks = dynamic(() => import('@app/components/form/links'));
-const FormSettings = dynamic(() => import('@app/components/form/settings'));
-const FormPreview = dynamic(() => import('@app/components/form/preview'));
+const FormResponses = dynamic(() => import('@app/Components/Form/responses'));
+const FormResponsesTable = dynamic(() => import('@app/Components/datatable/form/form-responses'));
+const FormVisibilities = dynamic(() => import('@app/Components/Form/visibility'));
+const FormLinks = dynamic(() => import('@app/Components/Form/links'));
+const FormSettings = dynamic(() => import('@app/Components/Form/settings'));
+const FormPreview = dynamic(() => import('@app/Components/Form/preview'));
 
 export default function FormPage(props: any) {
     const { form }: { form: StandardFormDto } = props;

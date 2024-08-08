@@ -8,8 +8,8 @@ import AppButton from '@Components/Common/Input/Button/AppButton';
 import { ButtonSize, ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
 import { toast } from 'react-toastify';
 
-import Back from '@app/components/icons/back';
-import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
+import Back from '@app/Components/icons/back';
+import { useFullScreenModal } from '@app/Components/modal-views/full-screen-modal-context';
 import { buttonConstant } from '@app/constants/locales/button';
 import { formResponderLogin } from '@app/constants/locales/form-responder-login';
 import { signInScreen } from '@app/constants/locales/signin-screen';

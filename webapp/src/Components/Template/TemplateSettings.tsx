@@ -12,8 +12,8 @@ import { FormControlLabel, Radio, RadioGroup } from '@mui/material';
 import { toast } from 'react-toastify';
 import useCopyToClipboard from 'react-use/lib/useCopyToClipboard';
 
-import Globe from '@app/components/icons/flags/globe';
-import { useModal } from '@app/components/modal-views/context';
+import Globe from '@app/Components/icons/flags/globe';
+import { useModal } from '@app/Components/modal-views/context';
 import environments from '@app/configs/environments';
 import { localesCommon } from '@app/constants/locales/common';
 import { formConstant } from '@app/constants/locales/form';

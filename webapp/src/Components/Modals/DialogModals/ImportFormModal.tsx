@@ -7,9 +7,9 @@ import ImportSuccessfulComponent from '@Components/ImportForm/ImportSuccessfulCo
 import useDrivePicker from '@fyelci/react-google-drive-picker';
 import { toast } from 'react-toastify';
 
-import ImportErrorView from '@app/components/form-integrations/import-error-view';
-import { useModal } from '@app/components/modal-views/context';
-import FullScreenLoader from '@app/components/ui/fullscreen-loader';
+import ImportErrorView from '@app/Components/form-integrations/import-error-view';
+import { useModal } from '@app/Components/modal-views/context';
+import FullScreenLoader from '@app/Components/ui/fullscreen-loader';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { initFormState } from '@app/store/forms/slice';
 

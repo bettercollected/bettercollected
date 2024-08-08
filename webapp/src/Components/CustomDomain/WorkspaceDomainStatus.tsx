@@ -1,4 +1,4 @@
-import { simpleDataTableStyles } from '@app/components/datatable/form/datatable-styles';
+import { simpleDataTableStyles } from '@app/Components/datatable/form/datatable-styles';
 import environments from '@app/configs/environments';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { Button } from '@app/shadcn/components/ui/button';

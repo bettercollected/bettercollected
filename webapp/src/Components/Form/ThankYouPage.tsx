@@ -7,8 +7,8 @@ import CopyIcon from '@Components/Common/Icons/Common/Copy';
 import SmallLogo from '@Components/Common/Icons/Common/SmallLogo';
 import { toast } from 'react-toastify';
 
-import AuthAccountProfileImage from '@app/components/auth/account-profile-image';
-import ActiveLink from '@app/components/ui/links/active-link';
+import AuthAccountProfileImage from '@app/Components/auth/account-profile-image';
+import ActiveLink from '@app/Components/ui/links/active-link';
 import environments from '@app/configs/environments';
 import { useCopyToClipboard } from '@app/lib/hooks/use-copy-to-clipboard';
 import { StandardFormDto } from '@app/models/dtos/form';

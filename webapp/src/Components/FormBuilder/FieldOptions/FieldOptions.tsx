@@ -12,7 +12,7 @@ import { FormControlLabel, ListItemIcon, MenuItem } from '@mui/material';
 import { DraggableProvided } from 'react-beautiful-dnd';
 import { batch } from 'react-redux';
 
-import { useModal } from '@app/components/modal-views/context';
+import { useModal } from '@app/Components/modal-views/context';
 import { useIsMobile } from '@app/lib/hooks/use-breakpoint';
 import useBuilderTranslation from '@app/lib/hooks/use-builder-translation';
 import { FormBuilderTagNames, LabelFormBuilderTagNames, NonInputFormBuilderTagNames } from '@app/models/enums/formBuilder';

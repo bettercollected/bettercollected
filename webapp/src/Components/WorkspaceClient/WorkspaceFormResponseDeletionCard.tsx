@@ -4,7 +4,7 @@ import { DotIcon } from '@Components/Common/Icons/Common/DotIcon';
 import FormProviderIcon from '@Components/Common/Icons/Form/FormProviderIcon';
 import styled from '@emotion/styled';
 
-import ActiveLink from '@app/components/ui/links/active-link';
+import ActiveLink from '@app/Components/ui/links/active-link';
 import { localesCommon } from '@app/constants/locales/common';
 import { StandardFormResponseDto } from '@app/models/dtos/form';
 import { utcToLocalDate } from '@app/utils/dateUtils';
