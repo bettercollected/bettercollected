@@ -45,7 +45,7 @@ export default function Layout({ children, params }: { children: React.ReactNode
 }
 
 async function FormWrapper({ workspaceName, formId, children }: { workspaceName: string; formId: string; children: React.ReactNode }) {
-    const workspaceResponse = await fetch(process.env.INTERNAL_DOCKER_API_ENDPOINT_HOST + '/workspaces?workspace_name=' + workspaceName, { next: { revalidate: 300 } });
+    const workspaceResponse = await fetch(environments.INTERNAL_DOCKER_API_ENDPOINT_HOST + '/workspaces?workspace_name=' + workspaceName, { next: { revalidate: 300 } });
     const workspace = await workspaceResponse.json();
 
     const config = {
