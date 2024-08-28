@@ -102,6 +102,11 @@ export default function FormPage(props: any) {
                 icon: <Group className="h-5 w-5" />,
                 title: t(formConstant.settings.visibility.title),
                 path: 'FormVisibility'
+            },
+            {
+                icon: <Group className="h-5 w-5" />,
+                title: t('Analytics'),
+                path: 'FormAnalytics'
             }
         ];
 
@@ -114,7 +119,7 @@ export default function FormPage(props: any) {
         paramTabs.splice(2, 0, ...additionalTabs);
 
         if (isFormOpen) {
-            paramTabs.splice(6, 0, {
+            paramTabs.splice(-1, 0, {
                 icon: <Group className="h-5 w-5" />,
                 title: t(formConstant.settings.formLink.title),
                 path: 'FormLinks'
