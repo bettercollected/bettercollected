@@ -45,13 +45,12 @@ class TemporalService:
         self.crypto = crypto
         self.temporal_client = None
         if settings.schedular_settings.ENABLED:
-            self.connect_to_temporal_server(
-                server_uri=server_uri, namespace=namespace)
+            self.connect_to_temporal_server(server_uri=server_uri, namespace=namespace)
 
     def connect_to_temporal_server(self, server_uri: str, namespace: str):
         try:
             self.temporal_client: Client = asyncio_run(
-                Client.connect("localhost:7233", namespace=namespace)
+                Client.connect(server_uri, namespace=namespace)
             )
         except Exception as e:
             self.temporal_client: Client = None
@@ -69,8 +68,7 @@ class TemporalService:
     async def start_user_deletion_workflow(self, user_tokens: UserTokens, user_id: str):
         await self.check_temporal_client_and_try_to_connect_if_not_connected()
         try:
-            encrypted_tokens = self.crypto.encrypt(
-                json.dumps(asdict(user_tokens)))
+            encrypted_tokens = self.crypto.encrypt(json.dumps(asdict(user_tokens)))
             await self.temporal_client.start_workflow(
                 "delete_user_workflow",
                 encrypted_tokens,
@@ -92,8 +90,7 @@ class TemporalService:
     ):
         await self.check_temporal_client_and_try_to_connect_if_not_connected()
         try:
-            encrypted_tokens = self.crypto.encrypt(
-                json.dumps(asdict(user_tokens)))
+            encrypted_tokens = self.crypto.encrypt(json.dumps(asdict(user_tokens)))
             params = SavePreviewParams(
                 template_id=str(template_id),
                 template_url=f"{settings.api_settings.CLIENT_URL}/templates/"
@@ -192,8 +189,7 @@ class TemporalService:
         try:
             await self.check_temporal_client_and_try_to_connect_if_not_connected()
             schedule_id = "import_" + str(workspace_id) + "_" + form_id
-            schedule_handle = self.temporal_client.get_schedule_handle(
-                schedule_id)
+            schedule_handle = self.temporal_client.get_schedule_handle(schedule_id)
             await schedule_handle.delete()
 
         except HTTPException:
@@ -210,8 +206,7 @@ class TemporalService:
         try:
             await self.check_temporal_client_and_try_to_connect_if_not_connected()
             schedule_id = "delete_response_" + response_id
-            schedule_handle = self.temporal_client.get_schedule_handle(
-                schedule_id)
+            schedule_handle = self.temporal_client.get_schedule_handle(schedule_id)
             await schedule_handle.delete()
 
         except HTTPException:
@@ -228,8 +223,7 @@ class TemporalService:
         ) -> ScheduleUpdate:
             schedule_spec = update_input.description.schedule.spec
             if isinstance(schedule_spec, ScheduleSpec):
-                schedule_spec.intervals = [
-                    ScheduleIntervalSpec(every=interval)]
+                schedule_spec.intervals = [ScheduleIntervalSpec(every=interval)]
             return ScheduleUpdate(schedule=update_input.description.schedule)
 
         return update_interval_to_default
