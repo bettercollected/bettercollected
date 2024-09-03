@@ -20,6 +20,7 @@ from backend.config.schedular_settings import SchedularSettings
 from backend.config.sentry_setting import SentrySettings
 from backend.config.template_settings import DefaultResourcesWorkspaceSettings
 from backend.config.temporal_settings import TemporalSettings
+from backend.config.UmamiSettings import UmamiSettings
 
 default_dot_env_path = (
     Path(os.path.abspath(os.path.dirname(__file__)))
@@ -59,6 +60,7 @@ class Application(BaseSettings):
     coupon_settings: CouponCodeSettings = CouponCodeSettings()
     open_ai: OpenAISettings = OpenAISettings()
     brevo_settings: BrevoSettings = BrevoSettings()
+    umami_settings: UmamiSettings = UmamiSettings()
     # All your additional application configuration should go either here or in
     # separate file in this submodule.
 

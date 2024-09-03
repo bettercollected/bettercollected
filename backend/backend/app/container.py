@@ -58,6 +58,8 @@ from backend.app.services.workspace_members_service import WorkspaceMembersServi
 from backend.app.services.workspace_responders_service import WorkspaceRespondersService
 from backend.app.services.workspace_service import WorkspaceService
 from backend.app.services.workspace_user_service import WorkspaceUserService
+from backend.app.services.analytics_service import AnalyticsService
+
 from backend.config import settings
 
 current_path = Path(os.path.abspath(os.path.dirname(__file__))).absolute()
@@ -303,6 +305,9 @@ class AppContainer(containers.DeclarativeContainer):
         MediaLibraryService,
         media_library_repo=media_library_repo,
         aws_service=aws_service,
+    )
+    analytics_service: AnalyticsService = providers.Singleton(
+        AnalyticsService,
     )
 
 
