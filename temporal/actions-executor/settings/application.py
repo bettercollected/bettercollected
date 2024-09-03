@@ -13,7 +13,7 @@ class ApplicationSettings(BaseSettings):
     api_key: str = "random_api_key"
     aes_hex_key: str = ""
     worker_queue: str = "actions"
-    frontend_url: str = "http://localhost:3000",
+    frontend_url: str = ("http://localhost:3000",)
     workers: int = 10
     cookie_domain: str = "localhost"
     max_thread_pool_executors: int = 20

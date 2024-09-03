@@ -132,12 +132,13 @@ async def run_action(
                 "form": get_simple_form_response(),
                 "creator_mail": creator_mail,
                 "title": form.get("welcome_page", {}).get("title", "Untitled Form"),
-                "description":  form.get("welcome_page", {}).get("description", "")
+                "description": form.get("welcome_page", {}).get("description", ""),
             },
         )
         fast_mail = FastMail(mail_config)
-        asyncio.ensure_future(fast_mail.send_message(
-            message, template_name="response-mail.html"))
+        asyncio.ensure_future(
+            fast_mail.send_message(message, template_name="response-mail.html")
+        )
         return "ok"
 
     def send_data_webhook(url: str, params=None, data=None, headers=None):
@@ -183,8 +184,7 @@ async def run_action(
 
             send_mail_action(
                 mail_config,
-                "Copy of your response to " +
-                form.get("title", "Untitled Form"),
+                "Copy of your response to " + form.get("title", "Untitled Form"),
                 [response.get("dataOwnerIdentifier")],
             )
 
@@ -204,8 +204,7 @@ async def run_action(
 
             send_mail_action(
                 mail_config,
-                "You have got a new response in " +
-                form.get("title", "Untitled Form"),
+                "You have got a new response in " + form.get("title", "Untitled Form"),
                 [receiving_mail],
                 True,
             )
@@ -230,9 +229,7 @@ async def run_action(
                     "color": 0x00FF00,
                     "description": f"[View Form response here]({settings.frontend_url}/{workspace['workspace_name']}/dashboard/forms/{form['form_id']}/?view=Responses)\n --------------------------",
                     "fields": fields,
-                    "footer": {
-                        "text": "Thank You for using Bettercollected"
-                    }
+                    "footer": {"text": "Thank You for using Bettercollected"},
                 }
             ],
         }
