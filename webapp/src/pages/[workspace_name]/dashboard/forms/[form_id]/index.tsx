@@ -102,7 +102,8 @@ export default function FormPage(props: any) {
                 icon: <Group className="h-5 w-5" />,
                 title: t(formConstant.settings.visibility.title),
                 path: 'FormVisibility'
-            }
+            },
+            { icon: <Group className="h-5 w-5" />, title: t('ANlytics'), path: 'FormVisibility' }
         ];
 
         if (form?.settings?.provider === 'self' && form?.builderVersion === 'v2')
