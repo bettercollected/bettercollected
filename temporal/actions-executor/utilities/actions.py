@@ -236,10 +236,46 @@ async def run_action(
         res = httpx.post(url=url, params=params, json=payload, headers=headers)
         return res
 
+    def send_data_slack(url: str, params=None, data=None, headers=None):
+        if data is None:
+            data = {}
+
+        fields = []
+        for q_n_a in data:
+            fields.append(
+                {
+                    "title": q_n_a["title"],
+                    "value": q_n_a["answer"],
+                    "short": False,
+                }
+            )
+
+        payload = {
+            "attachments": [
+                {
+                    "title": f"🎉 **Congratulations!** You received a new response on! `{form['title']}`\n\n",
+                    "color": "#00FF00",
+                    "text": (
+                        f"Click <{settings.frontend_url}/{workspace['workspace_name']}/dashboard/forms/{form['form_id']}/?view=Responses|here> to view the form response.\n\n"
+                        "Details:\n"
+                    ),
+                    "fields": fields,
+                    "footer": "Thank you for using Bettercollected",
+                }
+            ]
+        }
+        res = httpx.post(url=url, params=params, json=payload, headers=headers)
+        return res
+
     def send_message_to_discord():
         URL = get_parameter("Discord Webhook URL")
         data = get_simple_form_response()
         send_data_discord(URL, data=data)
+
+    def send_message_to_slack():
+        URL = get_parameter("Slack Webhook URL")
+        data = get_simple_form_response()
+        send_data_slack(URL, data=data)
 
     if action.get("predefined"):
         match action.get("name"):
@@ -251,6 +287,8 @@ async def run_action(
                 return send_me_a_copy_of_response()
             case "send_to_discord":
                 return send_message_to_discord()
+            case "send_to_slack":
+                return send_message_to_slack()
         return
     loop = asyncio.get_event_loop()
     result = await asyncio.wait_for(
@@ -269,6 +307,7 @@ async def run_action(
             get_state,
             send_data_webhook,
             send_data_discord,
+            send_data_slack,
             config_mail,
             send_mail_action,
             get_simple_form_response,
@@ -292,6 +331,7 @@ def execute_action_code(
     get_state,
     send_data_webhook,
     send_data_discord,
+    send_data_slack,
     config_mail,
     send_mail_action,
     get_simple_form_response,
@@ -332,6 +372,7 @@ def execute_action_code(
                 "get_state": get_state,
                 "send_data_webhook": send_data_webhook,
                 "send_data_discord": send_data_discord,
+                "send_data_slack": send_data_slack,
                 "config_mail": config_mail,
                 "send_mail_action": send_mail_action,
                 "get_simple_form_response": get_simple_form_response,
