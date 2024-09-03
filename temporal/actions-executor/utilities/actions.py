@@ -11,6 +11,7 @@ from pydantic import EmailStr
 from configs.crypto import crypto
 from wrappers.thread_pool_executor import thread_pool_executor
 from utilities.form import get_questions_and_answers
+from settings.application import settings
 
 
 async def run_action(
@@ -130,12 +131,14 @@ async def run_action(
             template_body={
                 "form": get_simple_form_response(),
                 "creator_mail": creator_mail,
-                "title": form.get("welcome_page",{}).get("title", "Untitled Form"),
-                "description":  form.get("welcome_page",{}).get("description", "")
+                "title": form.get("welcome_page", {}).get("title", "Untitled Form"),
+                "description": form.get("welcome_page", {}).get("description", ""),
             },
         )
         fast_mail = FastMail(mail_config)
-        asyncio.ensure_future(fast_mail.send_message(message, template_name="response-mail.html"))
+        asyncio.ensure_future(
+            fast_mail.send_message(message, template_name="response-mail.html")
+        )
         return "ok"
 
     def send_data_webhook(url: str, params=None, data=None, headers=None):
@@ -206,6 +209,38 @@ async def run_action(
                 True,
             )
 
+    def send_data_discord(url: str, params=None, data=None, headers=None):
+        if data is None:
+            data = {}
+
+        fields = []
+        for q_n_a in data:
+            fields.append(
+                {
+                    "name": q_n_a["title"],
+                    "value": q_n_a["answer"],
+                    "inline": False,
+                }
+            )
+        payload = {
+            "content": f"🎉 **Congratulations!** You received a new response on! **{form['title']}**",
+            "embeds": [
+                {
+                    "color": 0x00FF00,
+                    "description": f"[View Form response here]({settings.frontend_url}/{workspace['workspace_name']}/dashboard/forms/{form['form_id']}/?view=Responses)\n --------------------------",
+                    "fields": fields,
+                    "footer": {"text": "Thank You for using Bettercollected"},
+                }
+            ],
+        }
+        res = httpx.post(url=url, params=params, json=payload, headers=headers)
+        return res
+
+    def send_message_to_discord():
+        URL = get_parameter("Discord Webhook URL")
+        data = get_simple_form_response()
+        send_data_discord(URL, data=data)
+
     if action.get("predefined"):
         match action.get("name"):
             case "send_webhook":
@@ -214,6 +249,8 @@ async def run_action(
                 return send_responder_a_copy_of_mail()
             case "creator_copy_mail":
                 return send_me_a_copy_of_response()
+            case "send_to_discord":
+                return send_message_to_discord()
         return
     loop = asyncio.get_event_loop()
     result = await asyncio.wait_for(
@@ -231,6 +268,7 @@ async def run_action(
             get_secret,
             get_state,
             send_data_webhook,
+            send_data_discord,
             config_mail,
             send_mail_action,
             get_simple_form_response,
@@ -253,6 +291,7 @@ def execute_action_code(
     get_secret,
     get_state,
     send_data_webhook,
+    send_data_discord,
     config_mail,
     send_mail_action,
     get_simple_form_response,
@@ -292,6 +331,7 @@ def execute_action_code(
                 "get_secret": get_secret,
                 "get_state": get_state,
                 "send_data_webhook": send_data_webhook,
+                "send_data_discord": send_data_discord,
                 "config_mail": config_mail,
                 "send_mail_action": send_mail_action,
                 "get_simple_form_response": get_simple_form_response,
