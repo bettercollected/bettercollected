@@ -43,7 +43,7 @@ classifiers = [
 [tool.poetry.dependencies]
 python = "^3.10"
 beanie = "^1.17.0"
-cryptography = "^42.0.4"
+cryptography = "43.0.1"
 tink = "^1.8.0"
 
 [tool.poetry.group.dev.dependencies]
