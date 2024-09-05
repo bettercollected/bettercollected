@@ -18,6 +18,7 @@
     "dev-4000": "cross-env NODE_OPTIONS='--inspect' next dev -p 4000"
   },
   "dependencies": {
+    "@babel/traverse": "7.23.2",
     "@calcom/embed-react": "^1.0.9",
     "@elastic/apm-rum": "^5.12.0",
     "@emotion/cache": "^11.11.0",
@@ -63,7 +64,7 @@
     "@uiw/react-markdown-preview": "^5.1.1",
     "@uiw/react-md-editor": "^4.0.4",
     "async-mutex": "^0.4.0",
-    "axios": "^1.6.8",
+    "axios": "^1.7.6",
     "bson-objectid": "^2.0.4",
     "canvas-confetti": "^1.9.2",
     "class-variance-authority": "^0.7.0",
@@ -147,7 +148,6 @@
     "vanilla-cookieconsent": "^2.9.0"
   },
   "devDependencies": {
-    "@babel/traverse": "^7.24.5",
     "@redux-devtools/core": "^3.13.1",
     "@storybook/addon-essentials": "^7.6.10",
     "@storybook/addon-interactions": "^7.6.10",
@@ -201,5 +201,6 @@
     "ts-node": "^10.9.2",
     "typescript": "^5.4.4",
     "whatwg-fetch": "^3.6.2"
-  }
+  },
+  "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"
 }
