@@ -5,11 +5,12 @@ from classy_fastapi import Routable, get
 from common.models.user import User
 from backend.app.services.user_service import get_user_if_logged_in
 from backend.app.router import router
-from backend.app.services.analytics_service import AnalyticsService
+from backend.app.services.umami_client import UmamiClient
 from backend.app.models.dtos.stats_model_dto import StatsModel
-from backend.app.models.dtos.pageviews_model_dto import PageViewModel, PageDataModel
+from backend.app.models.dtos.pageviews_model_dto import PageViewModel
+from backend.app.models.dtos.metrics_model_dto import MetricResponseModel
 from backend.app.container import container
-from typing import List
+from typing import List, Optional, Dict
 
 
 @router(
@@ -25,12 +26,18 @@ from typing import List
 class FormAnalyticsRouter(Routable):
     def __init__(
         self,
-        analytics_service: AnalyticsService = container.analytics_service(),
+        umami_client: UmamiClient = container.umami_client(),
         *args,
         **kwargs,
     ):
         super().__init__(*args, **kwargs)
-        self.analytics_service = analytics_service
+        self.umami_client = umami_client
+
+    async def _check_user(self, user: User):
+        if not user:
+            raise HTTPException(
+                status_code=HTTPStatus.UNAUTHORIZED, detail="Unauthorized"
+            )
 
     @get(
         "/{workspace_id}/forms/{form_id}/stats",
@@ -42,23 +49,20 @@ class FormAnalyticsRouter(Routable):
         form_id: str,
         start_at: int,
         end_at: int,
-        referrer: str | None = None,
-        title: str | None = None,
-        query: str | None = None,
-        event: str | None = None,
-        host: str | None = None,
-        os: str | None = None,
-        browser: str | None = None,
-        device: str | None = None,
-        country: str | None = None,
-        region: str | None = None,
-        city: str | None = None,
+        referrer: Optional[str] = None,
+        title: Optional[str] = None,
+        query: Optional[str] = None,
+        event: Optional[str] = None,
+        host: Optional[str] = None,
+        os: Optional[str] = None,
+        browser: Optional[str] = None,
+        device: Optional[str] = None,
+        country: Optional[str] = None,
+        region: Optional[str] = None,
+        city: Optional[str] = None,
         user: User = Depends(get_user_if_logged_in),
     ):
-        if not user:
-            raise HTTPException(
-                status_code=HTTPStatus.UNAUTHORIZED, detail="Unauthorized"
-            )
+        await self._check_user(user)
 
         form_url = f"/{workspace_id}/forms/{form_id}"
 
@@ -66,6 +70,7 @@ class FormAnalyticsRouter(Routable):
             raise HTTPException(
                 status_code=HTTPStatus.BAD_REQUEST, detail="Invalid time range"
             )
+
         params = {
             "startAt": start_at,
             "endAt": end_at,
@@ -82,9 +87,9 @@ class FormAnalyticsRouter(Routable):
             "region": region,
             "city": city,
         }
+        params = {k: v for k, v in params.items() if v is not None}
 
-        self.analytics_service.authenticate()
-        stats_data = self.analytics_service.fetch_stats(params)
+        stats_data = await self.umami_client.fetch_stats(params)
         return StatsModel(**stats_data)
 
     @get(
@@ -99,21 +104,18 @@ class FormAnalyticsRouter(Routable):
         end_at: int,
         unit: str,
         timezone: str,
-        referrer: str | None = None,
-        title: str | None = None,
-        host: str | None = None,
-        os: str | None = None,
-        browser: str | None = None,
-        device: str | None = None,
-        country: str | None = None,
-        region: str | None = None,
-        city: str | None = None,
+        referrer: Optional[str] = None,
+        title: Optional[str] = None,
+        host: Optional[str] = None,
+        os: Optional[str] = None,
+        browser: Optional[str] = None,
+        device: Optional[str] = None,
+        country: Optional[str] = None,
+        region: Optional[str] = None,
+        city: Optional[str] = None,
         user: User = Depends(get_user_if_logged_in),
     ):
-        if not user:
-            raise HTTPException(
-                status_code=HTTPStatus.UNAUTHORIZED, detail="Unauthorized"
-            )
+        await self._check_user(user)
 
         form_url = f"/{workspace_id}/forms/{form_id}"
 
@@ -121,6 +123,7 @@ class FormAnalyticsRouter(Routable):
             raise HTTPException(
                 status_code=HTTPStatus.BAD_REQUEST, detail="Invalid time range"
             )
+
         params = {
             "startAt": start_at,
             "endAt": end_at,
@@ -138,13 +141,14 @@ class FormAnalyticsRouter(Routable):
             "timezone": timezone,
         }
 
-        self.analytics_service.authenticate()
-        pageview_data = self.analytics_service.fetch_pageviews(params)
+        params = {k: v for k, v in params.items() if v is not None}
+
+        pageview_data = await self.umami_client.fetch_pageviews(params)
         return PageViewModel(**pageview_data)
 
     @get(
         "/{workspace_id}/forms/{form_id}/metrics",
-        response_model=List[PageDataModel],
+        response_model=MetricResponseModel,
     )
     async def get_form_metrics(
         self,
@@ -153,25 +157,22 @@ class FormAnalyticsRouter(Routable):
         start_at: int,
         end_at: int,
         type: str,
-        referrer: str | None = None,
-        query: str | None = None,
-        title: str | None = None,
-        host: str | None = None,
-        os: str | None = None,
-        browser: str | None = None,
-        device: str | None = None,
-        country: str | None = None,
-        region: str | None = None,
-        city: str | None = None,
-        language: str | None = None,
-        event: str | None = None,
-        limit: int | None = 500,
+        referrer: Optional[str] = None,
+        query: Optional[str] = None,
+        title: Optional[str] = None,
+        host: Optional[str] = None,
+        os: Optional[str] = None,
+        browser: Optional[str] = None,
+        device: Optional[str] = None,
+        country: Optional[str] = None,
+        region: Optional[str] = None,
+        city: Optional[str] = None,
+        language: Optional[str] = None,
+        event: Optional[str] = None,
+        limit: Optional[int] = 500,
         user: User = Depends(get_user_if_logged_in),
     ):
-        if not user:
-            raise HTTPException(
-                status_code=HTTPStatus.UNAUTHORIZED, detail="Unauthorized"
-            )
+        await self._check_user(user)
 
         form_url = f"/{workspace_id}/forms/{form_id}"
 
@@ -179,6 +180,7 @@ class FormAnalyticsRouter(Routable):
             raise HTTPException(
                 status_code=HTTPStatus.BAD_REQUEST, detail="Invalid time range"
             )
+
         params = {
             "startAt": start_at,
             "endAt": end_at,
@@ -198,7 +200,7 @@ class FormAnalyticsRouter(Routable):
             "limit": limit,
             "query": query,
         }
+        params = {k: v for k, v in params.items() if v is not None}
 
-        self.analytics_service.authenticate()
-        metrics_data = self.analytics_service.fetch_form_metrics(params)
-        return metrics_data
+        metrics_data = await self.umami_client.fetch_form_metrics(params)
+        return MetricResponseModel(__root__=metrics_data)

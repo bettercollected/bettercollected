@@ -58,7 +58,7 @@ from backend.app.services.workspace_members_service import WorkspaceMembersServi
 from backend.app.services.workspace_responders_service import WorkspaceRespondersService
 from backend.app.services.workspace_service import WorkspaceService
 from backend.app.services.workspace_user_service import WorkspaceUserService
-from backend.app.services.analytics_service import AnalyticsService
+from backend.app.services.umami_client import UmamiClient
 
 from backend.config import settings
 
@@ -306,9 +306,7 @@ class AppContainer(containers.DeclarativeContainer):
         media_library_repo=media_library_repo,
         aws_service=aws_service,
     )
-    analytics_service: AnalyticsService = providers.Singleton(
-        AnalyticsService,
-    )
+    umami_client: UmamiClient = providers.Singleton(UmamiClient)
 
 
 container = AppContainer()
