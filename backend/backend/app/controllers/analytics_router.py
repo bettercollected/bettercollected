@@ -3,7 +3,7 @@ from http import HTTPStatus
 from beanie import PydanticObjectId
 from classy_fastapi import Routable, get
 from common.models.user import User
-from backend.app.services.user_service import get_user_if_logged_in
+from backend.app.services.user_service import get_logged_user
 from backend.app.router import router
 from backend.app.services.umami_client import UmamiClient
 from backend.app.models.dtos.stats_model_dto import StatsModel
@@ -33,12 +33,6 @@ class FormAnalyticsRouter(Routable):
         super().__init__(*args, **kwargs)
         self.umami_client = umami_client
 
-    async def _check_user(self, user: User):
-        if not user:
-            raise HTTPException(
-                status_code=HTTPStatus.UNAUTHORIZED, detail="Unauthorized"
-            )
-
     @get(
         "/{workspace_id}/forms/{form_id}/stats",
         response_model=StatsModel,
@@ -60,9 +54,8 @@ class FormAnalyticsRouter(Routable):
         country: Optional[str] = None,
         region: Optional[str] = None,
         city: Optional[str] = None,
-        user: User = Depends(get_user_if_logged_in),
+        user: User = Depends(get_logged_user),
     ):
-        await self._check_user(user)
 
         form_url = f"/{workspace_id}/forms/{form_id}"
 
@@ -113,9 +106,8 @@ class FormAnalyticsRouter(Routable):
         country: Optional[str] = None,
         region: Optional[str] = None,
         city: Optional[str] = None,
-        user: User = Depends(get_user_if_logged_in),
+        user: User = Depends(get_logged_user),
     ):
-        await self._check_user(user)
 
         form_url = f"/{workspace_id}/forms/{form_id}"
 
@@ -170,10 +162,8 @@ class FormAnalyticsRouter(Routable):
         language: Optional[str] = None,
         event: Optional[str] = None,
         limit: Optional[int] = 500,
-        user: User = Depends(get_user_if_logged_in),
+        user: User = Depends(get_logged_user),
     ):
-        await self._check_user(user)
-
         form_url = f"/{workspace_id}/forms/{form_id}"
 
         if not start_at or not end_at:
