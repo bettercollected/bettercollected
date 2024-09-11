@@ -59,7 +59,7 @@ flake8 = "~5.0.4"
 flake8-docstrings = "~1.6.0"
 flake8-import-order = "~0.18.1"
 flake8-todo = "^0.7"
-black = "~22.8.0"
+black = "~24.8.0"
 myst-parser = "~0.18.1"
 sphinx-material = {git = "https://github.com/bashtage/sphinx-material.git"}
 pallets-sphinx-themes = "^2.0.3"
