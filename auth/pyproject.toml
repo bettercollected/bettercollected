@@ -36,7 +36,7 @@ sentry-sdk = {extras = ["fastapi"], version = "^1.24.0"}
 loguru = "^0.7.0"
 elastic-apm = "^6.17.0"
 common = {path = "../common", develop = true}
-aiohttp = "3.9.4"
+aiohttp = "3.10.5"
 cryptography = "43.0.1"
 
 [tool.poetry.group.dev.dependencies]
