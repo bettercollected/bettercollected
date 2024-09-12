@@ -39,7 +39,7 @@ const FormTypeSelectionComponent = ({ handleCreateForm }: { handleCreateForm: (t
                 {FormTypes.map((item: IFormTypes) => {
                     return (
                         <button key={item.type} autoFocus={false} className="border-none outline-none active:border-none" data-umami-event={item.type} data-umami-event-email={authState.email}>
-                            <FormTypeCard item={item} handleClick={handleCreateForm} />;
+                            <FormTypeCard item={item} handleClick={handleCreateForm} />
                         </button>
                     );
                 })}
