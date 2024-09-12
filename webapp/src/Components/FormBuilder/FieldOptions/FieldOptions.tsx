@@ -80,7 +80,7 @@ export default function FieldOptions({ provided, id, position }: IFieldOptionsPr
     const handleBlockVisibilityChange = (event: React.SyntheticEvent<Element, Event>, checked: boolean) => {
         event.preventDefault();
         event.stopPropagation();
-        const fieldProperties = { ...field.properties } || {};
+        const fieldProperties = { ...(field.properties || {}) };
         fieldProperties.hidden = checked;
         dispatch(setUpdateVisibility({ ...field, properties: fieldProperties }));
     };
@@ -114,7 +114,7 @@ export default function FieldOptions({ provided, id, position }: IFieldOptionsPr
             id="block-options-menu"
             menuTitle={t('COMPONENTS.OPTIONS.TOOLTIP_TITLE')}
             menuContent={
-                <div className={`flex items-center justify-center cursor-pointer rounded-sm`} {...provided.dragHandleProps} tabIndex={-1}>
+                <div className={`flex cursor-pointer items-center justify-center rounded-sm`} {...provided.dragHandleProps} tabIndex={-1}>
                     <DragHandleIcon className={activeFieldId === id ? 'text-black-800' : 'text-black-600'} tabIndex={-1} width={24} height={24} />
                 </div>
             }
@@ -137,43 +137,43 @@ export default function FieldOptions({ provided, id, position }: IFieldOptionsPr
                     <ListItemIcon className="text-black-700">
                         <PlusIcon width={24} height={24} />
                     </ListItemIcon>
-                    <span className="text-sm text-black-700">{t('INSERT.DEFAULT')}</span>
+                    <span className="text-black-700 text-sm">{t('INSERT.DEFAULT')}</span>
                 </MenuItem>
 
-                <MenuItem sx={{ paddingX: '16px', paddingY: '6px' }} className="flex items-center body4 !text-black-700 " onClick={deleteFieldWithId}>
+                <MenuItem sx={{ paddingX: '16px', paddingY: '6px' }} className="body4 !text-black-700 flex items-center " onClick={deleteFieldWithId}>
                     <ListItemIcon className="text-black-00">
                         <DeleteIcon width={24} height={24} />
                     </ListItemIcon>
-                    <span className="leading-none flex items-center justify-between w-full">
+                    <span className="flex w-full items-center justify-between leading-none">
                         <span className="text-sm">{t('COMPONENTS.ACTIONS.DELETE')}</span>
-                        <span className="italic text-xs text-black-500 hidden md:flex">Ctrl/Cmd + Del</span>
+                        <span className="text-black-500 hidden text-xs italic md:flex">Ctrl/Cmd + Del</span>
                     </span>
                 </MenuItem>
 
-                <MenuItem sx={{ paddingX: '16px', paddingY: '6px' }} className="flex items-center body4 !text-black-700 " onClick={duplicateField}>
+                <MenuItem sx={{ paddingX: '16px', paddingY: '6px' }} className="body4 !text-black-700 flex items-center " onClick={duplicateField}>
                     <ListItemIcon className="text-black-700">
                         <CopyIcon width={24} height={24} />
                     </ListItemIcon>
-                    <span className="leading-none flex items-center justify-between w-full">
-                        <span className="text-sm text-black-700">{t('COMPONENTS.ACTIONS.DUPLICATE')}</span>
-                        <span className="italic text-xs text-black-500 hidden md:flex">Ctrl/Cmd + D</span>
+                    <span className="flex w-full items-center justify-between leading-none">
+                        <span className="text-black-700 text-sm">{t('COMPONENTS.ACTIONS.DUPLICATE')}</span>
+                        <span className="text-black-500 hidden text-xs italic md:flex">Ctrl/Cmd + D</span>
                     </span>
                 </MenuItem>
                 <EmailIdentifier actualIdentifierField={actualFillField} />
                 {!hasLabelField() && (
                     <>
-                        <MenuItem sx={{ paddingX: '16px', paddingY: '6px' }} className="flex items-center body4 !text-black-700 xl:hidden hover:bg-brand-100" onClick={addFieldLabel}>
-                            <ListItemIcon className=" rounded text-black-900">
-                                <span className="bg-black-100 w-5 h-5 text-center justify-center font-bold text-[14px] flex items-center">L</span>
+                        <MenuItem sx={{ paddingX: '16px', paddingY: '6px' }} className="body4 !text-black-700 hover:bg-brand-100 flex items-center xl:hidden" onClick={addFieldLabel}>
+                            <ListItemIcon className=" text-black-900 rounded">
+                                <span className="bg-black-100 flex h-5 w-5 items-center justify-center text-center text-[14px] font-bold">L</span>
                             </ListItemIcon>
-                            <span className="leading-none flex items-center justify-between w-full">
+                            <span className="flex w-full items-center justify-between leading-none">
                                 <span>{t('COMPONENTS.ACTIONS.ADD_LABEL')}</span>
-                                <span className="italic text-xs text-black-500 hidden md:flex">Alt + L</span>
+                                <span className="text-black-500 hidden text-xs italic md:flex">Alt + L</span>
                             </span>
                         </MenuItem>
                     </>
                 )}
-                <MenuItem sx={{ paddingX: '20px', paddingY: '10px', height: '30px' }} className="flex items-center body4 !text-black-700 hover:bg-brand-100">
+                <MenuItem sx={{ paddingX: '20px', paddingY: '10px', height: '30px' }} className="body4 !text-black-700 hover:bg-brand-100 flex items-center">
                     <FormControlLabel
                         slotProps={{
                             typography: {
@@ -182,7 +182,7 @@ export default function FieldOptions({ provided, id, position }: IFieldOptionsPr
                         }}
                         label="Hide field"
                         labelPlacement="start"
-                        className="m-0 text-xs flex items-center justify-between w-full"
+                        className="m-0 flex w-full items-center justify-between text-xs"
                         control={<MuiSwitch sx={{ m: 1 }} className="text-black-900 m-0" size="small" onChange={handleBlockVisibilityChange} checked={!!field?.properties?.hidden} />}
                     />
                 </MenuItem>
@@ -207,7 +207,7 @@ const EmailIdentifier = ({ actualIdentifierField }: { actualIdentifierField?: IF
     return (
         <>
             {actualIdentifierField?.type === FormBuilderTagNames.INPUT_EMAIL && (
-                <MenuItem sx={{ paddingX: '16px', paddingY: '6px' }} className="flex items-center body4 !text-black-700">
+                <MenuItem sx={{ paddingX: '16px', paddingY: '6px' }} className="body4 !text-black-700 flex items-center">
                     <FormControlLabel
                         slotProps={{
                             typography: {
@@ -216,7 +216,7 @@ const EmailIdentifier = ({ actualIdentifierField }: { actualIdentifierField?: IF
                         }}
                         label={t('COMPONENTS.OPTIONS.IDENTIFIER_FIELD')}
                         labelPlacement="start"
-                        className="m-0 text-xs flex items-center justify-between w-full"
+                        className="m-0 flex w-full items-center justify-between text-xs"
                         control={<MuiSwitch sx={{ m: 1 }} className="text-black-900 m-0" size="small" onChange={handleSetEmailIdentifier} checked={responseOwnerField === actualIdentifierField?.id} />}
                     />
                 </MenuItem>
