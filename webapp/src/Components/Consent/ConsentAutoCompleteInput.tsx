@@ -4,13 +4,14 @@ import AppButton from '@Components/Common/Input/Button/AppButton';
 import { Combobox, Transition } from '@headlessui/react';
 import cn from 'classnames';
 
-import { AddIcon } from '@app/components/icons/add';
-import { ArrowDown } from '@app/components/icons/arrow-down';
-import { DropdownCloseIcon } from '@app/components/icons/dropdown-close';
-import { ConsentPurposeModalMode } from '@app/components/modal-views/modals/consent-purpose-modal-view';
+import { AddIcon } from '@app/Components/icons/add';
+import { ArrowDown } from '@app/Components/icons/arrow-down';
+import { DropdownCloseIcon } from '@app/Components/icons/dropdown-close';
+import { ConsentPurposeModalMode } from '@app/Components/modal-views/modals/consent-purpose-modal-view';
 import { ConsentCategoryType, ConsentType } from '@app/models/enums/consentEnum';
 import { OnlyClassNameInterface } from '@app/models/interfaces';
 import { IConsentOption } from '@app/models/types/consentTypes';
+
 
 interface ConsentAutoCompleteInputProps extends OnlyClassNameInterface {
     dropdownTitle?: string;

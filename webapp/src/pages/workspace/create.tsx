@@ -7,7 +7,7 @@ import { getServerSideAuthHeaderConfig } from '@app/utils/serverSidePropsUtils';
 export async function getServerSideProps({ locale, ..._context }: any) {
     const config = getServerSideAuthHeaderConfig(_context);
     try {
-        const userStatus = await fetch(`${environments.API_ENDPOINT_HOST}/auth/status`, config);
+        const userStatus = await fetch(`${environments.INTERNAL_DOCKER_API_ENDPOINT_HOST}/auth/status`, config);
         const user = (await userStatus?.json().catch((e: any) => e)) ?? null;
         if (!user?.roles?.includes('FORM_CREATOR') || user?.plan !== 'PRO') {
             return {

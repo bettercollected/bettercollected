@@ -4,6 +4,7 @@ import { FormBuilderCommands } from '@app/models/enums/FormBuilderCommands';
 
 import ICommandListener from '../listeners/interfaces/ICommandListener';
 
+
 type BuilderContext = 'SPOTLIGHT' | 'BUILDER' | 'PREVIEW' | 'FIELD' | 'COMMAND';
 
 export default class CommandManager {

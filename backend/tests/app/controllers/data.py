@@ -61,6 +61,10 @@ workspace_settings = {
     "disableBranding": None,
     "isPublished": None,
     "formCloseDate": None,
+    "allowEditingResponse": None,
+    "showSubmissionNumber": None,
+    "requireVerifiedIdentity": None,
+    "showOriginalForm": None,
 }
 
 workspace_tag = {"title": "BetterCollected-Team"}

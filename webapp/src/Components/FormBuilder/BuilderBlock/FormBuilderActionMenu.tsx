@@ -4,10 +4,11 @@ import DeleteIcon from '@Components/Common/Icons/Common/Delete';
 import PlusIcon from '@Components/Common/Icons/Common/Plus';
 import FieldOptions from '@Components/FormBuilder/FieldOptions/FieldOptions';
 
-import { useModal } from '@app/components/modal-views/context';
+import { useModal } from '@app/Components/modal-views/context';
 import { resetBuilderMenuState, setDeleteField } from '@app/store/form-builder/actions';
 import { selectFormField } from '@app/store/form-builder/selectors';
 import { useAppAsyncDispatch, useAppSelector } from '@app/store/hooks';
+
 
 const FormBuilderActionMenu = ({ id, provided, className = '', index }: any) => {
     const { openModal } = useModal();

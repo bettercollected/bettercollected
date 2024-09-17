@@ -1,11 +1,12 @@
 import React from 'react';
 
 import { FormFieldProps } from '@Components/Form/BetterCollectedForm';
-import { FieldRequired } from '@Components/UI/FieldRequired';
+import { FieldRequired } from '@Components/ui/FieldRequired';
 import Checkbox from '@mui/material/Checkbox';
 
 import { addAnswer, deleteAnswer, selectAnswer } from '@app/store/fill-form/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
+
 
 export default function CheckboxField({ field, ans, enabled }: FormFieldProps) {
     const dispatch = useAppDispatch();

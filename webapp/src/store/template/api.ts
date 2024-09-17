@@ -1,9 +1,14 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 
+
+
 import environments from '@app/configs/environments';
 import { IFormTemplateDto } from '@app/models/dtos/template';
 
+
+
 import { ICreateFormFromTemplate, ICreateTemplateFromForm, IGetTemplate } from './types';
+
 
 const TEMPLATE_REDUCER_PATH = 'templateApi';
 
@@ -24,13 +29,20 @@ export const templateApi = createApi({
     }),
     endpoints: (builder) => ({
         getTemplates: builder.query<Array<IFormTemplateDto>, any>({
-            query: (data) => ({
-                url: `/templates`,
-                method: 'GET',
-                params: {
-                    workspace_id: data ? data : ''
+            query: (data) => {
+                const params: any = {};
+                if (data?.workspace_id) {
+                    params.workspace_id = data.workspace_id;
                 }
-            }),
+                if (data?.v2) {
+                    params.v2 = data.v2;
+                }
+                return {
+                    url: `/templates`,
+                    method: 'GET',
+                    params: params
+                };
+            },
             providesTags: [FORM_TEMPLATE]
         }),
         getTemplateById: builder.query<IFormTemplateDto, IGetTemplate>({

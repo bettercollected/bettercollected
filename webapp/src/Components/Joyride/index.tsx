@@ -92,6 +92,33 @@ export default function Joyride({
         options: {
             beaconSize: 20,
             zIndex: 2200
+        },
+        beaconInner: {
+            height: '100%'
+        },
+        beaconOuter: {
+            height: '100%'
+        },
+        overlayLegacy: {
+            height: '100%'
+        },
+        overlayLegacyCenter: {
+            height: '100%'
+        },
+        spotlight: {
+            height: '100%'
+        },
+        spotlightLegacy: {
+            height: '100%'
+        },
+        tooltipContainer: {
+            height: '100%'
+        },
+        tooltipFooter: {
+            height: '100%'
+        },
+        tooltipFooterSpacer: {
+            height: '100%'
         }
     }
 }: IJoyrideProps) {
@@ -118,7 +145,7 @@ export default function Joyride({
     const getFilteredState = ({ steps, ...rest }: JoyrideState) => rest;
 
     useEffect(() => {
-        setState({ ...state, ...reduxState, run: !reduxState?.finished ?? true });
+        setState({ ...state, ...reduxState, run: !reduxState?.finished || true });
         // dispatch(setJoyrideState(getFilteredState(state)));
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
@@ -169,6 +196,7 @@ export default function Joyride({
     if (showCloseButton) floaterProps.showCloseButton = true;
 
     return (
+        // @ts-ignore
         <JR
             run={run}
             scrollToFirstStep={scrollToFirstStep}

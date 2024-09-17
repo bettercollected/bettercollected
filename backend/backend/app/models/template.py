@@ -1,10 +1,16 @@
 from typing import Optional, List
 
 from beanie import PydanticObjectId
-from common.models.standard_form import StandardFormField
+from common.models.standard_form import (
+    StandardFormField,
+    Theme,
+    WelcomePageField,
+    ThankYouPageField,
+)
 from fastapi_camelcase import CamelModel
 from pydantic import BaseModel
 
+from backend.app.models.dtos.response_dtos import StandardFormFieldCamelModel
 from backend.app.models.enum.template import TemplateCategory
 
 
@@ -18,6 +24,7 @@ class StandardTemplateSettingsCamelModel(StandardTemplateSetting, CamelModel):
 
 class StandardFormTemplate(BaseModel):
     id: Optional[PydanticObjectId]
+    builder_version: Optional[str]
     workspace_id: Optional[PydanticObjectId]
     type: Optional[str]
     title: Optional[str]
@@ -31,10 +38,14 @@ class StandardFormTemplate(BaseModel):
     created_by: Optional[str]
     imported_from: Optional[PydanticObjectId]
     preview_image: Optional[str]
+    theme: Optional[Theme]
+    welcome_page: Optional[WelcomePageField]
+    thankyou_page: Optional[List[ThankYouPageField]]
 
 
 class StandardFormTemplateResponse(StandardFormTemplate):
     imported_from: Optional[str]
+    fields: Optional[List[StandardFormFieldCamelModel]]
 
 
 class StandardFormTemplateResponseCamelModel(CamelModel, StandardFormTemplateResponse):

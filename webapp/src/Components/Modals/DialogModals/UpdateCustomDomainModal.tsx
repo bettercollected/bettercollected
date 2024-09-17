@@ -1,7 +1,6 @@
-import { MouseEventHandler, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
-import { useRouter } from 'next/router';
 
 import AppTextField from '@Components/Common/Input/AppTextField';
 import AppButton from '@Components/Common/Input/Button/AppButton';
@@ -9,15 +8,16 @@ import { ButtonSize, ButtonVariant } from '@Components/Common/Input/Button/AppBu
 import HeaderModalWrapper from '@Components/Modals/ModalWrappers/HeaderModalWrapper';
 import { toast } from 'react-toastify';
 
-import { useModal } from '@app/components/modal-views/context';
+import { useModal } from '@app/Components/modal-views/context';
 import { buttonConstant } from '@app/constants/locales/button';
 import { placeHolder } from '@app/constants/locales/placeholder';
 import { toastMessage } from '@app/constants/locales/toast-message';
-import { updateWorkspace } from '@app/constants/locales/update-workspace';
 import { ToastId } from '@app/constants/toastId';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { usePatchExistingWorkspaceMutation } from '@app/store/workspaces/api';
 import { selectWorkspace, setWorkspace } from '@app/store/workspaces/slice';
+import environments from '@app/configs/environments';
+
 
 export default function UpdateCustomDomainModal() {
     const workspace = useAppSelector(selectWorkspace);
@@ -61,7 +61,7 @@ export default function UpdateCustomDomainModal() {
     return (
         <HeaderModalWrapper headerTitle="Add Custom Domain">
             <form onSubmit={handleSubmit}>
-                <div className="text-start max-w-full mb-4 body4 !text-pink-500">{t('UPGRADE.FEATURES.CUSTOM_DOMAIN.NOTE')}</div>
+                <div className="text-start max-w-full mb-4 body4 !text-pink-500">{t('UPGRADE.FEATURES.CUSTOM_DOMAIN.NOTE', {domain: environments.CUSTOM_DOMAIN_IP})}</div>
                 <h1 className={'body3 !text-black-800 mb-1'}>{t('UPGRADE.FEATURES.CUSTOM_DOMAIN.TEXT_FIELD_TITLE')}</h1>
                 <AppTextField
                     isError={error}

@@ -6,7 +6,7 @@ import { formConstant } from '@app/constants/locales/form';
 import { AnswerDto, StandardFormDto, StandardFormFieldDto } from '@app/models/dtos/form';
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
 import { FormValidationError } from '@app/store/fill-form/type';
-import { ActionType, Comparison, Condition, ConditionalActions, LogicalOperator } from '@app/store/form-builder/types';
+import { ActionType, Comparison, Condition, ConditionalActions, FieldType, LogicalOperator } from '@app/store/form-builder/types';
 
 /**
  * Validation method to check if the given value is undefined or not.
@@ -270,3 +270,29 @@ export const validateConditionsAndReturnUpdatedForm = (formToUpdate: StandardFor
     });
     return formToUpdate;
 };
+
+export function validateSlide(slide: StandardFormFieldDto, answers: Record<string, any>) {
+    const invalidFields: Record<string, Array<Invalidations>> = {};
+    slide?.properties?.fields?.forEach((field) => {
+        if (field.type === FieldType.MATRIX && field?.validations?.required) {
+            field.properties?.fields?.map((row: StandardFormFieldDto) => {
+                if (field.properties?.allowMultipleSelection) {
+                    if (!answers[row.id]?.choices.values.length) {
+                        invalidFields[field.id] = [Invalidations.REQUIRED];
+                    }
+                } else {
+                    if (!answers[row.id]) {
+                        invalidFields[field.id] = [Invalidations.REQUIRED];
+                    }
+                }
+            });
+        } else if (field?.validations?.required && !answers[field.id]) {
+            invalidFields[field.id] = [Invalidations.REQUIRED];
+        }
+    });
+    return invalidFields;
+}
+
+export enum Invalidations {
+    REQUIRED
+}

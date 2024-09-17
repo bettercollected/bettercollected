@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
 
-import Image from 'next/image';
+import Image from "next/legacy/image";
 
 import useFormBuilderAtom from '@Components/FormBuilder/builderAtom';
 import cn from 'classnames';
@@ -8,10 +8,10 @@ import html2canvas from 'html2canvas';
 import { SetStateAction } from 'jotai';
 import { TransformComponent, TransformWrapper } from 'react-zoom-pan-pinch';
 
-import Upload from '@app/components/icons/upload';
-import { selectBuilderState, selectCoverImage } from '@app/store/form-builder/selectors';
-import { IBuilderState } from '@app/store/form-builder/types';
+import Upload from '@app/Components/icons/upload';
+import { selectCoverImage } from '@app/store/form-builder/selectors';
 import { useAppSelector } from '@app/store/hooks';
+
 
 interface IFormCoverComponent {
     setIsCoverClicked: React.Dispatch<SetStateAction<boolean>>;

@@ -1,6 +1,5 @@
 import AppTextField from '@Components/Common/Input/AppTextField';
-import FormBuilderInput from '@Components/FormBuilder/FormBuilderInput';
-import { FieldRequired } from '@Components/UI/FieldRequired';
+import { FieldRequired } from '@Components/ui/FieldRequired';
 import { Notes } from '@mui/icons-material';
 
 import useFormBuilderState from '@app/containers/form-builder/context';
@@ -9,6 +8,7 @@ import useUndoRedo from '@app/lib/use-undo-redo';
 import { setUpdateField } from '@app/store/form-builder/actions';
 import { IFormFieldState } from '@app/store/form-builder/types';
 import { useAppDispatch } from '@app/store/hooks';
+
 
 export default function LongText({ field, id, position }: { field: IFormFieldState; id: any; position: number }) {
     const { setBackspaceCount } = useFormBuilderState();

@@ -1,6 +1,8 @@
 import os
 from pathlib import Path
 
+from concurrent.futures.thread import ThreadPoolExecutor
+
 from apscheduler.jobstores.mongodb import MongoDBJobStore
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from common.configs.crypto import Crypto
@@ -16,6 +18,7 @@ from backend.app.repositories.form_plugin_provider_repository import (
 )
 from backend.app.repositories.form_repository import FormRepository
 from backend.app.repositories.form_response_repository import FormResponseRepository
+from backend.app.repositories.media_library_repository import MediaLibraryRepository
 from backend.app.repositories.responder_groups_repository import (
     ResponderGroupsRepository,
 )
@@ -40,10 +43,13 @@ from backend.app.services.form_import_service import FormImportService
 from backend.app.services.form_plugin_provider_service import FormPluginProviderService
 from backend.app.services.form_response_service import FormResponseService
 from backend.app.services.form_service import FormService
+from backend.app.services.media_library_service import MediaLibraryService
+from backend.app.services.openai_service import OpenAIService
 from backend.app.services.integration_action_service import IntegrationActionService
 from backend.app.services.integration_provider_factory import IntegrationProviderFactory
 from backend.app.services.integration_service import IntegrationService
 from backend.app.services.plugin_proxy_service import PluginProxyService
+from backend.app.services.price_suggestion import PriceSuggestionService
 from backend.app.services.responder_groups_service import ResponderGroupsService
 from backend.app.services.stripe_service import StripeService
 from backend.app.services.template_service import FormTemplateService
@@ -71,12 +77,11 @@ class AppContainer(containers.DeclarativeContainer):
     user_tags_service = providers.Singleton(
         UserTagsService, user_tags_repo=user_tags_repo
     )
+    crypto = providers.Singleton(Crypto, settings.auth_settings.AES_HEX_KEY)
 
     # Repositories
 
-    coupon_repository: CouponRepository = providers.Singleton(
-        CouponRepository
-    )
+    coupon_repository: CouponRepository = providers.Singleton(CouponRepository)
     workspace_user_repo: WorkspaceUserRepository = providers.Singleton(
         WorkspaceUserRepository
     )
@@ -84,7 +89,7 @@ class AppContainer(containers.DeclarativeContainer):
 
     form_repo: FormRepository = providers.Singleton(FormRepository)
     form_response_repo: FormResponseRepository = providers.Singleton(
-        FormResponseRepository
+        FormResponseRepository, crypto=crypto
     )
     workspace_form_repo: WorkspaceFormRepository = providers.Singleton(
         WorkspaceFormRepository
@@ -96,14 +101,11 @@ class AppContainer(containers.DeclarativeContainer):
 
     responder_groups_repository = providers.Singleton(ResponderGroupsRepository)
 
-    crypto = providers.Singleton(Crypto, settings.auth_settings.AES_HEX_KEY)
-
-    action_repository = providers.Singleton(
-        ActionRepository, crypto=crypto
-    )
+    action_repository = providers.Singleton(ActionRepository, crypto=crypto)
 
     integration_action_service: IntegrationActionService = providers.Singleton(
-        IntegrationActionService)
+        IntegrationActionService
+    )
 
     temporal_service = providers.Singleton(
         TemporalService,
@@ -135,7 +137,7 @@ class AppContainer(containers.DeclarativeContainer):
         form_provider_service=form_provider_service,
         crypto=crypto,
         http_client=http_client,
-        integration_action_service=integration_action_service
+        integration_action_service=integration_action_service,
     )
 
     form_service: FormService = providers.Singleton(
@@ -146,7 +148,7 @@ class AppContainer(containers.DeclarativeContainer):
         user_tags_service=user_tags_service,
         crypto=crypto,
         http_client=http_client,
-        integration_provider=integration_provider
+        integration_provider=integration_provider,
     )
 
     form_response_service: FormResponseService = providers.Singleton(
@@ -164,10 +166,6 @@ class AppContainer(containers.DeclarativeContainer):
     job_store = providers.Singleton(MongoDBJobStore, host=settings.mongo_settings.URI)
 
     job_stores = providers.Dict(default=job_store)
-
-    # executors = providers.Dict(
-    #     default=ThreadPoolExecutor(100)
-    # )
 
     schedular = providers.Singleton(
         AsyncIOScheduler,
@@ -202,7 +200,7 @@ class AppContainer(containers.DeclarativeContainer):
         http_client=http_client,
         form_provider_service=form_provider_service,
         form_response_service=form_response_service,
-        workspace_repo=workspace_repo
+        workspace_repo=workspace_repo,
     )
 
     workspace_form_service: WorkspaceFormService = providers.Singleton(
@@ -221,6 +219,7 @@ class AppContainer(containers.DeclarativeContainer):
         temporal_service=temporal_service,
         aws_service=aws_service,
         action_service=action_service,
+        crypto=crypto,
     )
 
     workspace_service: WorkspaceService = providers.Singleton(
@@ -233,6 +232,12 @@ class AppContainer(containers.DeclarativeContainer):
         form_response_service=form_response_service,
         responder_groups_service=responder_groups_service,
         user_tags_service=user_tags_service,
+    )
+
+    openai_service: OpenAIService = providers.Singleton(
+        OpenAIService,
+        workspace_service=workspace_service,
+        workspace_form_service=workspace_form_service,
     )
 
     auth_service: AuthService = providers.Singleton(
@@ -291,23 +296,34 @@ class AppContainer(containers.DeclarativeContainer):
         form_template_repo=form_template_repo,
         workspace_form_service=workspace_form_service,
         aws_service=aws_service,
-        temporal_service=temporal_service
+        temporal_service=temporal_service,
     )
 
-    user_feedback_repo = providers.Singleton(
-        UserFeedbackRepo
-    )
+    user_feedback_repo = providers.Singleton(UserFeedbackRepo)
 
     user_feedback_service = providers.Singleton(
-        UserFeedbackService,
-        user_feedback_repo=user_feedback_repo
+        UserFeedbackService, user_feedback_repo=user_feedback_repo
     )
 
     coupon_service = providers.Singleton(
         CouponService,
         coupon_repository=coupon_repository,
         auth_service=auth_service,
-        workspace_service=workspace_service
+        workspace_service=workspace_service,
+    )
+
+    price_suggestion_service = providers.Singleton(
+        PriceSuggestionService,
+        auth_service=auth_service,
+        workspace_service=workspace_service,
+    )
+
+    media_library_repo = providers.Singleton(MediaLibraryRepository)
+
+    media_library_service = providers.Singleton(
+        MediaLibraryService,
+        media_library_repo=media_library_repo,
+        aws_service=aws_service,
     )
 
     integration_service: IntegrationService = providers.Singleton(
@@ -315,7 +331,7 @@ class AppContainer(containers.DeclarativeContainer):
         form_provider_service=form_provider_service,
         crypto=crypto,
         http_client=http_client,
-        integration_action_service=integration_action_service
+        integration_action_service=integration_action_service,
     )
 
 

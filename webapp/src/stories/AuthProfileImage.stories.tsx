@@ -1,5 +1,5 @@
 import type {Meta, StoryObj} from '@storybook/react';
-import AuthAccountProfileImage from "@app/components/auth/account-profile-image";
+import AuthAccountProfileImage from "@app/Components/auth/account-profile-image";
 
 const meta: Meta<typeof AuthAccountProfileImage> = {
     title: 'Common/AuthProfileImage',

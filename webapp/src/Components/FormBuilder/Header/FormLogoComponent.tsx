@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-import Image from 'next/image';
+import Image from "next/legacy/image";
 
 import AppButton from '@Components/Common/Input/Button/AppButton';
 import { Close } from '@mui/icons-material';
@@ -8,9 +8,10 @@ import cn from 'classnames';
 import { SetStateAction } from 'jotai';
 
 import useFormBuilderAtom from '@app/Components/FormBuilder/builderAtom';
-import Camera from '@app/components/icons/camera';
-import { selectBuilderState, selectLogo } from '@app/store/form-builder/selectors';
+import Camera from '@app/Components/icons/camera';
+import { selectLogo } from '@app/store/form-builder/selectors';
 import { useAppSelector } from '@app/store/hooks';
+
 
 interface IFormLogoComponent {
     setIsLogoClicked: React.Dispatch<SetStateAction<boolean>>;

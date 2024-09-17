@@ -1,10 +1,15 @@
-from typing import Optional, Dict, List
+from typing import Any, Optional, Dict, List
 
 from common.models.standard_form import (
     StandardForm,
     StandardFormFieldType,
     FormBuilderTagTypes,
-    StandardFieldAttachment, Condition, ConditionalActions, LogicalOperator,
+    StandardFieldAttachment,
+    Condition,
+    ConditionalActions,
+    LogicalOperator,
+    LayoutType,
+    Theme,
 )
 from fastapi import UploadFile
 from fastapi_camelcase import CamelModel
@@ -67,7 +72,7 @@ class StandardFieldPropertyCamelModel(CamelModel):
     button_text: Optional[str]
     placeholder: Optional[str]
     steps: Optional[int]
-    start_form: Optional[int]
+    start_from: Optional[int]
     rating_shape: Optional[str]
     labels: Optional[Dict[str, str]]
     date_format: Optional[str]
@@ -76,19 +81,23 @@ class StandardFieldPropertyCamelModel(CamelModel):
     conditions: Optional[List[ConditionCamelModel]]
     logical_operator: Optional[LogicalOperator]
     mentions: Optional[Dict[str, str]]
+    theme: Optional[Theme]
+    layout: Optional[LayoutType]
 
 
 class StandardFormFieldCamelModel(CamelModel):
     id: Optional[str]
     ref: Optional[str]
-    title: Optional[str]
+    title: Optional[str | Dict[str, Any]]
     description: Optional[str]
     value: Optional[str]
+    index: Optional[int]
     type: Optional[StandardFormFieldType]
     tag: Optional[FormBuilderTagTypes]
     properties: Optional[StandardFieldPropertyCamelModel]
     validations: Optional[StandardFieldValidationsCamelModal]
     attachment: Optional[StandardFieldAttachment] = None
+    image_url: Optional[str]
 
 
 StandardFieldPropertyCamelModel.update_forward_refs()
@@ -100,6 +109,7 @@ class StandardFormResponseCamelModel(FormResponseDocument, CamelModel):
     form_imported_by: Optional[str]
     consent: Optional[List[ConsentResponseCamelModel]]
     deletion_status: Optional[DeletionRequestStatus]
+    anonymize: Optional[bool]
 
 
 class FormFileResponse(BaseModel):

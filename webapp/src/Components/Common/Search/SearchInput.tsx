@@ -8,8 +8,8 @@ import { InputAdornment } from '@mui/material';
 import TextField from '@mui/material/TextField';
 import cn from 'classnames';
 
-import { StyledTextField } from '@app/components/dashboard/workspace-forms-tab-content';
-import { SearchIcon } from '@app/components/icons/search';
+import { StyledTextField } from '@Components/dashboard/workspace-forms-tab-content';
+import { SearchIcon } from '@app/Components/icons/search';
 import { placeHolder } from '@app/constants/locales/placeholder';
 
 interface ISearchInputProps {
@@ -36,6 +36,7 @@ export default function SearchInput({ handleSearch, className, placeholder }: IS
                     height: '40px',
                     padding: 0,
                     '& .MuiOutlinedInput-root': {
+                        borderRadius: '8px',
                         '&.Mui-focused fieldset': {
                             borderColor: '#B8E8FF',
                             boxShadow: '0px 0px 12px 0px rgba(7, 100, 235, 0.45)'

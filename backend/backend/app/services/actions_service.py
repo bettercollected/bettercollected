@@ -16,12 +16,16 @@ from backend.app.services.workspace_user_service import WorkspaceUserService
 
 
 class ActionService:
-    def __init__(self, action_repository: ActionRepository, temporal_service: TemporalService,
-                 http_client: HttpClient, form_provider_service: FormPluginProviderService,
-                 workspace_user_service: WorkspaceUserService,
-                 form_response_service: FormResponseService,
-                 workspace_repo=WorkspaceRepository
-                 ):
+    def __init__(
+        self,
+        action_repository: ActionRepository,
+        temporal_service: TemporalService,
+        http_client: HttpClient,
+        form_provider_service: FormPluginProviderService,
+        workspace_user_service: WorkspaceUserService,
+        form_response_service: FormResponseService,
+        workspace_repo=WorkspaceRepository,
+    ):
         self.action_repository = action_repository
         self.temporal_service: TemporalService = temporal_service
         self.workspace_user_service = workspace_user_service
@@ -33,10 +37,15 @@ class ActionService:
     async def get_action(self, action_id: PydanticObjectId):
         return await self.action_repository.get_action_by_id(action_id)
 
-    async def create_action(self, workspace_id: PydanticObjectId, action: ActionDto, user: User):
-        await self.workspace_user_service.check_is_admin_in_workspace(workspace_id=workspace_id, user=user)
-        return await self.action_repository.create_action(workspace_id=workspace_id, action=action,
-                                                          user=user)
+    async def create_action(
+        self, workspace_id: PydanticObjectId, action: ActionDto, user: User
+    ):
+        await self.workspace_user_service.check_is_admin_in_workspace(
+            workspace_id=workspace_id, user=user
+        )
+        return await self.action_repository.create_action(
+            workspace_id=workspace_id, action=action, user=user
+        )
 
     async def get_all_actions(self):
         return await self.action_repository.get_all_actions()
@@ -44,18 +53,25 @@ class ActionService:
     async def get_action_by_id(self, action_id: PydanticObjectId):
         return await self.action_repository.get_action_by_id(action_id=action_id)
 
-    async def start_actions_for_submission(self, form: FormDocument,
-                                           response: FormResponseDocument, workspace_id: PydanticObjectId,
-                                           request: Request
-                                           ):
+    async def start_actions_for_submission(
+        self,
+        form: FormDocument,
+        response: FormResponseDocument,
+        workspace_id: PydanticObjectId,
+        request: Request,
+    ):
         form_actions = form.actions
         if form_actions is None:
             return
         submission_actions = form.actions.get(Trigger.on_submit)
-        submission_actions = [action.id for action in submission_actions if action.enabled]
+        submission_actions = [
+            action.id for action in submission_actions if action.enabled
+        ]
         if len(submission_actions) == 0:
             return
-        actions = await self.action_repository.get_actions_by_ids(action_ids=submission_actions)
+        actions = await self.action_repository.get_actions_by_ids(
+            action_ids=submission_actions
+        )
         for action in actions:
             # if action.name == "integrate_google_sheets":
             #     google_sheet_id = [params.value for params in form.parameters.get(str(action.id)) if
@@ -66,20 +82,26 @@ class ActionService:
             #                                           params={'google_sheet_id': google_sheet_id[0]},
             #                                           cookies=request.cookies)
             #     print(response)
-            workspace = await self.workspace_repo.get_workspace_with_action_by_id(workspace_id=workspace_id,
-                                                                                  action_id=action.id)
-            await self.temporal_service.start_action_execution(action=action, form=form, response=response,
-                                                               workspace=workspace)
+            workspace = await self.workspace_repo.get_workspace_with_action_by_id(
+                workspace_id=workspace_id, action_id=action.id
+            )
+            await self.temporal_service.start_action_execution(
+                action=action, form=form, response=response, workspace=workspace
+            )
 
     async def delete_action_from_workspace(self, action_id: PydanticObjectId):
         await self.action_repository.remove_action_form_all_forms(action_id=action_id)
         await self.action_repository.delete_action(action_id=action_id)
 
-    async def create_action_in_workspace_from_action(self, workspace_id: PydanticObjectId, action: ActionResponse,
-                                                     user: User):
+    async def create_action_in_workspace_from_action(
+        self, workspace_id: PydanticObjectId, action: ActionResponse, user: User
+    ):
         action = await self.action_repository.get_action_by_id(action.id)
-        return await self.action_repository.create_action_in_workspace_from_action(workspace_id=workspace_id,
-                                                                                   action_id=action.id)
+        return await self.action_repository.create_action_in_workspace_from_action(
+            workspace_id=workspace_id, action_id=action.id
+        )
 
     async def create_global_action(self, action: ActionDto, user: User):
-        return await self.action_repository.create_global_action(action=action, user=user)
+        return await self.action_repository.create_global_action(
+            action=action, user=user
+        )

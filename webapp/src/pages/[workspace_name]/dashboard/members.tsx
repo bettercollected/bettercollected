@@ -3,13 +3,14 @@ import { NextSeo } from 'next-seo';
 
 import MembersIcon from '@Components/Common/Icons/Dashboard/Members';
 
-import Collaborators from '@app/components/member/collaborators';
-import Invitations from '@app/components/member/invitations';
-import DashboardLayout from '@app/components/sidebar/dashboard-layout';
-import ParamTab, { TabPanel } from '@app/components/ui/param-tab';
+import Collaborators from '@app/Components/member/collaborators';
+import Invitations from '@app/Components/member/invitations';
+import DashboardLayout from '@app/Components/sidebar/dashboard-layout';
+import ParamTab, { TabPanel } from '@app/Components/ui/param-tab';
 import { members } from '@app/constants/locales/members';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
+
 
 export default function ManageMembers({ workspace }: any) {
     const { t } = useTranslation();

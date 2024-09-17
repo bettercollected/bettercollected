@@ -6,7 +6,8 @@ import AppButton from '@Components/Common/Input/Button/AppButton';
 import { ButtonSize, ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
 import HeaderModalWrapper from '@Components/Modals/ModalWrappers/HeaderModalWrapper';
 
-import { useModal } from '@app/components/modal-views/context';
+import { useModal } from '@app/Components/modal-views/context';
+
 
 interface IModalWrapperProps {
     headerTitle?: string;

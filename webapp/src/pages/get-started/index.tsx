@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 
 import { useTranslation } from 'next-i18next';
-import Image, { StaticImageData } from 'next/image';
+import Image, { StaticImageData } from "next/legacy/image";
 import { useRouter } from 'next/router';
 
 import AppButton from '@Components/Common/Input/Button/AppButton';
@@ -13,8 +13,8 @@ import GetStartedFormBrand from '@app/assets/images/getstarted-formbrand.png';
 import GetStartedProvidersImage from '@app/assets/images/getstarted-providers.png';
 import UserFitImage from '@app/assets/images/happy.png';
 import UserNotFitImage from '@app/assets/images/sad.png';
-import ActiveLink from '@app/components/ui/links/active-link';
-import Logo from '@app/components/ui/logo';
+import ActiveLink from '@app/Components/ui/links/active-link';
+import Logo from '@app/Components/ui/logo';
 import environments from '@app/configs/environments';
 import { buttonConstant } from '@app/constants/locales/button';
 import { getStarted } from '@app/constants/locales/get-started';
@@ -22,6 +22,7 @@ import Layout from '@app/layouts/_layout';
 import { getGlobalServerSidePropsByDomain } from '@app/lib/serverSideProps';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { checkHasCustomDomain, getServerSideAuthHeaderConfig } from '@app/utils/serverSidePropsUtils';
+
 
 export async function getServerSideProps(_context: any) {
     const globalProps = (await getGlobalServerSidePropsByDomain(_context)).props;
@@ -37,10 +38,10 @@ export async function getServerSideProps(_context: any) {
     const config = getServerSideAuthHeaderConfig(_context);
 
     try {
-        const userStatus = await fetch(`${environments.API_ENDPOINT_HOST}/auth/status`, config);
+        const userStatus = await fetch(`${environments.INTERNAL_DOCKER_API_ENDPOINT_HOST}/auth/status`, config);
         const user = (await userStatus?.json().catch((e: any) => e)) ?? null;
         if (user?.roles?.includes('FORM_CREATOR')) {
-            const userWorkspaceResponse = await fetch(`${environments.API_ENDPOINT_HOST}/workspaces/mine`, config);
+            const userWorkspaceResponse = await fetch(`${environments.INTERNAL_DOCKER_API_ENDPOINT_HOST}/workspaces/mine`, config);
             const userWorkspace = (await userWorkspaceResponse?.json().catch((e: any) => e)) ?? null;
             const defaultWorkspace = userWorkspace.filter((workspace: WorkspaceDto) => workspace.ownerId === user.id);
             let redirectWorkspace: WorkspaceDto | null;

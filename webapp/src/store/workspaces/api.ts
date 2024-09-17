@@ -1,19 +1,12 @@
-import {createApi, fetchBaseQuery} from '@reduxjs/toolkit/query/react';
+import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 
 import environments from '@app/configs/environments';
-import {StandardFormDto, StandardFormResponseDto, WorkspaceResponderDto} from '@app/models/dtos/form';
-import {ResponderGroupDto} from '@app/models/dtos/groups';
-import {Page} from '@app/models/dtos/page';
-import {WorkspaceDto} from '@app/models/dtos/workspaceDto';
-import {WorkspaceStatsDto} from '@app/models/dtos/workspaceStatsDto';
-import {
-    IGetAllSubmissionsQuery,
-    IGetFormSubmissionsQuery,
-    IGetWorkspaceFormQuery,
-    IGetWorkspaceSubmissionQuery,
-    IPatchFormSettingsRequest,
-    ISearchWorkspaceFormsQuery
-} from '@app/store/workspaces/types';
+import { StandardFormDto, StandardFormResponseDto, WorkspaceResponderDto } from '@app/models/dtos/form';
+import { ResponderGroupDto } from '@app/models/dtos/groups';
+import { Page } from '@app/models/dtos/page';
+import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
+import { WorkspaceStatsDto } from '@app/models/dtos/workspaceStatsDto';
+import { IGetAllSubmissionsQuery, IGetFormSubmissionsQuery, IGetWorkspaceFormQuery, IGetWorkspaceSubmissionQuery, IPatchFormSettingsRequest, ISearchWorkspaceFormsQuery } from '@app/store/workspaces/types';
 
 export const WORKSPACES_REDUCER_PATH = 'workspacesApi';
 
@@ -60,11 +53,11 @@ export const workspacesApi = createApi({
                 const returnValue: Array<{ label: string; formId: string }> = [];
                 baseQueryReturnValue.forEach((data) => {
                     if (provider === 'google') {
-                        const parsedForm = {label: data?.name, formId: data?.id};
+                        const parsedForm = { label: data?.name, formId: data?.id };
                         returnValue.push(parsedForm);
                     }
                     if (provider === 'typeform') {
-                        const parsedForm = {label: data?.title, formId: data?.id};
+                        const parsedForm = { label: data?.title, formId: data?.id };
                         returnValue.push(parsedForm);
                     }
                 });
@@ -73,7 +66,7 @@ export const workspacesApi = createApi({
             }
         }),
         getSingleFormFromProvider: builder.query<any, { provider: string; formId: string }>({
-            query: ({provider, formId}) => ({
+            query: ({ provider, formId }) => ({
                 url: `/${provider}/import/${formId}`,
                 method: 'GET',
                 refetchOnMountOrArgChange: false,
@@ -125,7 +118,7 @@ export const workspacesApi = createApi({
             }
         }),
         verifyFormToken: builder.mutation<any, any>({
-            query: ({provider}) => ({
+            query: ({ provider }) => ({
                 url: `/${provider}/oauth/verify`,
                 method: 'GET'
             })
@@ -196,6 +189,12 @@ export const workspacesApi = createApi({
             }),
             providesTags: [WORKSPACE_TAGS]
         }),
+        verifyWorkspaceDomain: builder.query<any, string>({
+            query: (workspaceId: string) => ({
+                url: `/workspaces/${workspaceId}/verify-domain`,
+                method: 'GET'
+            })
+        }),
         getAllMineWorkspaces: builder.query<any, void>({
             query: () => ({
                 url: '/workspaces/mine',
@@ -238,7 +237,13 @@ export const workspacesApi = createApi({
                 },
                 method: 'GET'
             }),
-            providesTags: [WORKSPACE_TAGS]
+            providesTags: [WORKSPACE_TAGS, SUBMISSION_TAG]
+        }),
+        getFormAllSubmissions: builder.query<Array<StandardFormResponseDto>, IGetFormSubmissionsQuery>({
+            query: (query) => ({
+                url: `/workspaces/${query.workspaceId}/forms/${query.formId}/all-submissions`,
+                method: 'GET'
+            })
         }),
         getWorkspaceSubmissions: builder.query<Page<StandardFormResponseDto>, IGetAllSubmissionsQuery>({
             query: (query) => ({
@@ -290,6 +295,13 @@ export const workspacesApi = createApi({
             }),
             providesTags: [WORKSPACE_TAGS, SUBMISSION_TAG]
         }),
+        getWorkspaceSubmissionByUUID: builder.query<any, any>({
+            query: (query) => ({
+                url: `/workspaces/${query.workspace_id}/submissions/by-uuid/${query.submissionUUID}`,
+                method: 'GET'
+            }),
+            providesTags: [WORKSPACE_TAGS, SUBMISSION_TAG]
+        }),
         getWorkspaceStats: builder.query<WorkspaceStatsDto, string>({
             query: (id) => ({
                 url: `/workspaces/${id}/stats`,
@@ -300,6 +312,17 @@ export const workspacesApi = createApi({
         requestWorkspaceSubmissionDeletion: builder.mutation<any, IGetWorkspaceSubmissionQuery>({
             query: (query) => ({
                 url: `/workspaces/${query.workspace_id}/submissions/${query.submission_id}`,
+                method: 'DELETE',
+                credentials: 'include',
+                headers: {
+                    'Access-control-allow-origin': environments.API_ENDPOINT_HOST
+                }
+            }),
+            invalidatesTags: [SUBMISSION_TAG, WORKSPACE_TAGS]
+        }),
+        requestWorkspaceSubmissionDeletionByUUID: builder.mutation<any, IGetWorkspaceSubmissionQuery>({
+            query: (query) => ({
+                url: `/workspaces/${query.workspace_id}/submissions/by-uuid/${query.submission_id}`,
                 method: 'DELETE',
                 credentials: 'include',
                 headers: {
@@ -479,13 +502,6 @@ export const workspacesApi = createApi({
                 method: 'PATCH'
             }),
             invalidatesTags: [GROUP_TAG]
-        }),
-        exportCSVResponses: builder.query<any, any>({
-            query: (request) => ({
-                url: `/workspaces/${request.workspaceId}/forms/${request.formId}/export-csv`,
-                method: 'GET'
-            }),
-            providesTags: [GROUP_TAG, RESPONDER_TAG, FORM_TAG]
         })
     })
 });
@@ -537,6 +553,10 @@ export const {
     useUpdateResponderGroupMutation,
     usePublishFormMutation,
     useVerifyFormTokenMutation,
-    useExportCSVResponsesQuery,
-    useLazyExportCSVResponsesQuery
+    useGetWorkspaceSubmissionByUUIDQuery,
+    useLazyGetWorkspaceSubmissionByUUIDQuery,
+    useRequestWorkspaceSubmissionDeletionByUUIDMutation,
+    useGetFormAllSubmissionsQuery,
+    useLazyGetFormAllSubmissionsQuery,
+    useVerifyWorkspaceDomainQuery
 } = workspacesApi;

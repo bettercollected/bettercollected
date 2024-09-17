@@ -13,7 +13,7 @@ export default function TemplatePreview(props: any) {
     const { data } = useGetTemplateByIdQuery({
         template_id: templateId
     });
-    return <div className="overflow-hidden h-[100vh] max-h-[100v] bg-white">{data && <BetterCollectedForm isDisabled form={convertFormTemplateToStandardForm(data)} />}</div>;
+    return <div className="h-[100vh] max-h-[100v] overflow-hidden bg-white">{data && <BetterCollectedForm isDisabled form={convertFormTemplateToStandardForm(data)} />}</div>;
 }
 
 export async function getServerSideProps(_context: any) {

@@ -1,14 +1,15 @@
 import { useTranslation } from 'next-i18next';
 import { NextSeo } from 'next-seo';
 
-import FormRenderer from '@app/components/form/renderer/form-renderer';
-import DashboardLayout from '@app/components/sidebar/dashboard-layout';
-import FullScreenLoader from '@app/components/ui/fullscreen-loader';
+import FormRenderer from '@app/Components/Form/renderer/form-renderer';
+import DashboardLayout from '@app/Components/sidebar/dashboard-layout';
+import FullScreenLoader from '@app/Components/ui/fullscreen-loader';
 import { metaDataTitle } from '@app/constants/locales/meta-data-title';
 import { getAuthUserPropsWithWorkspace } from '@app/lib/serverSideProps';
 import { useAppSelector } from '@app/store/hooks';
 import { useGetWorkspaceSubmissionQuery } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
+
 
 export default function SubmissionDashboard(props: any) {
     const { workspace, sub_id } = props;

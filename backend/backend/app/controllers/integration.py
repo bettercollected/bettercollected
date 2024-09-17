@@ -21,7 +21,12 @@ from backend.app.services.user_service import get_logged_user
     },
 )
 class IntegrationRouter(Routable):
-    def __init__(self, integration_service: IntegrationService = container.integration_service(), *args, **kwargs):
+    def __init__(
+        self,
+        integration_service: IntegrationService = container.integration_service(),
+        *args,
+        **kwargs
+    ):
         super().__init__(*args, **kwargs)
         self.integration_service = integration_service
 
@@ -29,10 +34,10 @@ class IntegrationRouter(Routable):
         "/{integration_type}/oauth",
     )
     async def oauth_provider(
-            self,
-            integration_type: FormIntegrationType,
-            request: Request,
-            user=Depends(get_logged_user),
+        self,
+        integration_type: FormIntegrationType,
+        request: Request,
+        user=Depends(get_logged_user),
     ):
         client_referer_url = request.headers.get("referer")
         oauth_url = await self.integration_service.get_oauth_url(
@@ -41,14 +46,19 @@ class IntegrationRouter(Routable):
         return oauth_url
 
     @post("/{integration_type}/oauth/callback")
-    async def handle_oauth_callback(self, integration_type: FormIntegrationType, callback_data: IntegrationCallBackDto,
-                                    user=Depends(get_logged_user)):
+    async def handle_oauth_callback(
+        self,
+        integration_type: FormIntegrationType,
+        callback_data: IntegrationCallBackDto,
+        user=Depends(get_logged_user),
+    ):
         state = callback_data.state
         code = callback_data.code
         form_id = callback_data.form_id
         action_id = callback_data.action_id
         if not code:
             return {"message": "You cancelled the authorization request."}
-        response = await self.integration_service.handle_oauth_callback(integration_type, state, code, user, form_id,
-                                                                        action_id)
+        response = await self.integration_service.handle_oauth_callback(
+            integration_type, state, code, user, form_id, action_id
+        )
         return response

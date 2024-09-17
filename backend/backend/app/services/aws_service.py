@@ -35,6 +35,7 @@ class AWSS3Service:
         previous_image="",
         bucket="bettercollected",
         private=False,
+        folder_name="public",
     ):
         # If S3 object_name was not specified, use file_name
         if (key is None) or (bucket is None):
@@ -43,10 +44,14 @@ class AWSS3Service:
         try:
             current_time = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
             if private:
-                self._s3.Bucket(bucket).put_object(Body=file, Key=key, ACL="private")
+                self._s3.Bucket(bucket).put_object(
+                    Body=file, Key=f"{folder_name}/{key}", ACL="private"
+                )
             else:
                 self._s3.Bucket(bucket).put_object(
-                    Body=file, Key=f"public/{current_time}_{key}", ACL="public-read"
+                    Body=file,
+                    Key=f"{folder_name}/{current_time}_{key}",
+                    ACL="public-read",
                 )
             if previous_image:
                 # extract previous key from the link
@@ -59,10 +64,37 @@ class AWSS3Service:
             print("Other Exception:", other_exception)
             raise HTTPException(550, "INFO: Failed to upload image")
         wasabi_domain = "https://s3.eu-central-1.wasabisys.com"
-        folder = f"/{bucket}/public/{current_time}_{key}"
+        folder = f"/{bucket}/{folder_name}/{current_time}_{key}"
         if private:
-            folder = f"/{bucket}/private/{key}"
+            folder = f"/{bucket}/{folder_name}/{key}"
         return f"{wasabi_domain}{folder}"
+
+    def check_if_key_exists(self, key, bucket="bettercollected"):
+        try:
+            objs = list(self._s3.Bucket(bucket).objects.filter(Prefix=key))
+            if len(objs) > 0:
+                return True
+            else:
+                return False
+        except ClientError as e:
+            raise HTTPException(404, e.response["Error"]["Message"])
+
+    """
+        key : path to your file
+    """
+
+    def delete_file_from_s3(self, key: str, bucket: str = "bettercollected"):
+        try:
+            self._s3.Object(bucket, key).delete()
+        except ClientError:
+            raise HTTPException(404, "INFO: Failed to delete file")
+
+    def delete_folder_from_s3(self, prefix: str, bucket: str = "bettercollected"):
+        try:
+            for object_summary in self._s3.Bucket(bucket).objects.filter(Prefix=prefix):
+                object_summary.delete()
+        except ClientError:
+            return
 
     def generate_presigned_url(self, key: str, bucket="bettercollected"):
         try:

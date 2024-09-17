@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
 
-import Image from 'next/image';
+import Image from "next/legacy/image";
 
 import { uuidv4 } from '@mswjs/interceptors/lib/utils/uuid';
 import { toast } from 'react-toastify';
@@ -14,6 +14,7 @@ import { downloadFile, generateFileMetaData } from '@app/utils/fileUtils';
 
 import { FormFieldProps } from './BetterCollectedForm';
 import useFormAtom from './atom';
+
 
 export default function FileUpload({ field, ans, enabled }: FormFieldProps) {
     const [isDragging, setIsDragging] = useState(false);

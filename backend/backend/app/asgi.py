@@ -1,7 +1,8 @@
 """Application implementation - ASGI."""
+
 import common.exceptions.http
 import sentry_sdk
-from elasticapm.contrib.starlette import make_apm_client, ElasticAPM
+from elasticapm.contrib.starlette import ElasticAPM, make_apm_client
 from fastapi import FastAPI
 from fastapi_pagination import add_pagination
 from fastapi_utils.timing import add_timing_middleware
@@ -11,16 +12,13 @@ from sentry_sdk.integrations.httpx import HttpxIntegration
 from sentry_sdk.integrations.loguru import LoguruIntegration
 
 from backend.app.container import container
-from backend.app.exceptions import (
-    HTTPException,
-    http_exception_handler,
-)
+from backend.app.exceptions import HTTPException, http_exception_handler
 from backend.app.handlers import init_logging
 from backend.app.handlers.database import close_db, init_db
 from backend.app.middlewares import DynamicCORSMiddleware, include_middlewares
 from backend.app.router import root_api_router
+from backend.app.services.brevo_service import event_logger_service
 from backend.app.services.init_schedulers import migrate_schedule_to_temporal
-from backend.app.services.kafka_service import event_logger_service
 from backend.app.utils import AiohttpClient
 from backend.config import settings
 
@@ -34,8 +32,6 @@ async def on_startup():
     """
     logger.info("Execute FastAPI startup event handler.")
 
-    if settings.kafka_settings.enabled:
-        await event_logger_service.start_kafka_producer()
     AiohttpClient.get_aiohttp_client()
     # TODO merge with container
     client = container.database_client()
@@ -58,9 +54,6 @@ async def on_shutdown():
     # TODO merge with container
     client = container.database_client()
     await close_db(client)
-
-    if settings.kafka_settings.enabled:
-        await event_logger_service.stop_kafka_producer()
 
     await AiohttpClient.close_aiohttp_client()
     await container.http_client().aclose()
@@ -106,14 +99,15 @@ def get_application(is_test_mode: bool = False):
         on_startup=[on_startup],
         on_shutdown=[on_shutdown],
     )
+
+    logger.info("Add application routes.")
+    app.include_router(root_api_router)
     app.add_middleware(
         DynamicCORSMiddleware,
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
     )
-    logger.info("Add application routes.")
-    app.include_router(root_api_router)
     logger.info("Register global exception handler for custom HTTPException.")
     app.add_exception_handler(HTTPException, http_exception_handler)
     app.add_exception_handler(
@@ -124,7 +118,6 @@ def get_application(is_test_mode: bool = False):
     logger.info("Register application middlewares.")
     include_middlewares(app)
     add_timing_middleware(app, record=logger.info, prefix="app", exclude="untimed")
-
     add_pagination(app)  # Important for paginating elements
     if settings.apm_settings.service_name and settings.apm_settings.server_url:
         apm = make_apm_client()

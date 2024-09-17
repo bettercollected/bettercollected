@@ -8,10 +8,26 @@ from common.models.consent import Consent, ConsentResponse, ResponseRetentionTyp
 from pydantic import BaseModel, Field
 
 
+class Theme(BaseModel):
+    title: str
+    primary: str
+    secondary: str
+    tertiary: str
+    accent: str
+
+
 class EmbedProvider(str, enum.Enum):
     YOUTUBE = "youtube"
     VIEMO = "vimeo"
     NO_EMBED = "no_embed"
+
+
+class LayoutType(str, enum.Enum):
+    TWO_COLUMN_IMAGE_LEFT = ("TWO_COLUMN_IMAGE_LEFT",)
+    TWO_COLUMN_IMAGE_RIGHT = ("TWO_COLUMN_IMAGE_RIGHT",)
+    SINGLE_COLUMN_IMAGE_BACKGROUND = ("SINGLE_COLUMN_IMAGE_BACKGROUND",)
+    SINGLE_COLUMN_NO_BACKGROUND = ("SINGLE_COLUMN_NO_BACKGROUND",)
+    SINGLE_COLUMN_NO_BACKGROUND_LEFT_ALIGN = "SINGLE_COLUMN_NO_BACKGROUND_LEFT_ALIGN"
 
 
 class FormBuilderTagTypes(str, enum.Enum):
@@ -49,6 +65,7 @@ class FormBuilderTagTypes(str, enum.Enum):
 
 
 class StandardFormFieldType(str, Enum):
+    SLIDE = "slide"
     DATE = "date"
     SHORT_TEXT = "short_text"
     LONG_TEXT = "long_text"
@@ -100,6 +117,26 @@ class StandardFormFieldType(str, Enum):
     INPUT_FILE_UPLOAD = "input_file_upload"
     INPUT_RANKING = "input_ranking"
     INPUT_MATRIX = "input_matrix"
+
+    TEXT = "text"
+    YES_NO = "yes_no"
+    LINK = "url"
+    LINEAR_RATING = "linear_rating"
+    PHONE_NUMBER = "phone_number"
+    NUMBER = "number"
+    VIDEO_CONTENT = "VIDEO_CONTENT"
+    IMAGE_CONTENT = "IMAGE_CONTENT"
+    DATE_INPUT = "date_input"
+    EMAIL_INPUT = "email_input"
+    NUMBER_INPUT = "number_input"
+    SHORT_TEXT_INPUT = "short_text_input"
+    LONG_TEXT_INPUT = "long_text_input"
+    MULTIPLE_CHOICE_INPUT = "multiple_choice_input"
+    RANKING_INPUT = "ranking_input"
+    RATING_INPUT = "rating_input"
+    DROP_DOWN_INPUT = "drop_down_input"
+    MEDIA_INPUT = "media_input"
+    MATRIX_ROW_INPUT = "matrix_row_input"
 
 
 class StandardResponseType(str, Enum):
@@ -264,7 +301,7 @@ class StandardFieldProperty(BaseModel):
     button_text: Optional[str]
     placeholder: Optional[str]
     steps: Optional[int]
-    start_form: Optional[int]
+    start_from: Optional[int]
     rating_shape: Optional[str]
     labels: Optional[Dict[str, str]]
     date_format: Optional[str]
@@ -273,6 +310,8 @@ class StandardFieldProperty(BaseModel):
     logical_operator: Optional[LogicalOperator]
     update_id: Optional[str]
     mentions: Optional[Dict[str, str]]
+    theme: Optional[Theme]
+    layout: Optional[LayoutType]
 
 
 class StandardFieldValidations(BaseModel):
@@ -292,8 +331,9 @@ class StandardFormField(BaseModel):
     """
 
     id: Optional[str]
+    index: Optional[int]
     ref: Optional[str]
-    title: Optional[str]
+    title: Optional[str | Dict[str, Any]]
     description: Optional[str]
     value: Optional[str]
     type: Optional[StandardFormFieldType]
@@ -301,6 +341,7 @@ class StandardFormField(BaseModel):
     properties: Optional[StandardFieldProperty] = StandardFieldProperty()
     validations: Optional[StandardFieldValidations] = StandardFieldValidations()
     attachment: Optional[StandardFieldAttachment] = None
+    image_url: Optional[str]
 
 
 StandardFieldProperty.update_forward_refs()
@@ -315,14 +356,16 @@ class State(BaseModel):
             "global_var1": "default value",
             "global_var2": 0,
             "global_var3": True,
-        })
+        },
+    )
     processor_state: Optional[Dict[str, Any]] = Field(
         None,
         example={
             "processor_var1": "default value",
             "processor_var2": 0,
             "processor_var3": True,
-        })
+        },
+    )
     # Is form response locked at submission by default can be set otherwise
     # by default it will be in locked state
     is_locked: Optional[bool] = Field(None)
@@ -333,6 +376,10 @@ class Trigger(str, Enum):
     on_submit = "on_submit"
     # This trigger is run when form is opened
     on_open = "on_open"
+    
+    
+    def __str__(self):
+        return self.value
 
 
 class ParameterValue(BaseModel):
@@ -346,22 +393,44 @@ class ActionState(BaseModel):
     enabled: Optional[bool] = True
 
 
+class WelcomePageField(BaseModel):
+    title: Optional[str]
+    description: Optional[str]
+    layout: Optional[LayoutType]
+    imageUrl: Optional[str]
+    buttonText: Optional[str]
+
+
+class ThankYouPageField(BaseModel):
+    message: Optional[str]
+    buttonText: Optional[str]
+    buttonLink: Optional[str]
+    layout: Optional[LayoutType]
+    imageUrl: Optional[str]
+
+
 class StandardForm(BaseModel):
+    builder_version: Optional[str]
     form_id: Optional[str]
+    imported_form_id: Optional[str]
     type: Optional[str]
     title: Optional[str]
     logo: Optional[str]
     cover_image: Optional[str]
     description: Optional[str]
     button_text: Optional[str]
+    is_multi_page: Optional[bool]
     fields: Optional[List[StandardFormField]]
     consent: Optional[List[Consent]]
     state: Optional[State] = Field(State())
     settings: Optional[StandardFormSettings] = StandardFormSettings()
     published_at: Optional[dt.datetime]
-    actions: Optional[Dict[Trigger, List[ActionState]]]
+    actions: Optional[Dict[str, List[ActionState]]]
     parameters: Optional[Dict[str, List[ParameterValue]]] = Field()
     secrets: Optional[Dict[str, List[ParameterValue]]] = Field()
+    theme: Optional[Theme]
+    welcome_page: Optional[WelcomePageField]
+    thankyou_page: Optional[List[ThankYouPageField]]
 
 
 class StandardFormResponseAnswer(BaseModel):
@@ -392,13 +461,14 @@ class StandardFormResponse(BaseModel):
     """
     Data transfer object for a standard form response.
     """
+
     response_id: Optional[str]
     form_id: Optional[str]
     provider: Optional[str]
     respondent_email: Optional[str] = None
-    answers: Optional[
-                 Dict[str, StandardFormResponseAnswer | Dict[str, Any]]
-             ] | bytes | str
+    answers: (
+        Optional[Dict[str, StandardFormResponseAnswer | Dict[str, Any]]] | bytes | str
+    )
     form_version: Optional[int]
     created_at: Optional[dt.datetime]
     updated_at: Optional[dt.datetime]
@@ -409,3 +479,5 @@ class StandardFormResponse(BaseModel):
     state: Optional[ResponseState] = Field(None)
     dataOwnerIdentifierType: Optional[str]
     dataOwnerIdentifier: Optional[str]
+    anonymous_identity: Optional[str]
+    submission_uuid: Optional[str] = None

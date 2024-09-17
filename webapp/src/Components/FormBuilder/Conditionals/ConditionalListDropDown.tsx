@@ -2,9 +2,10 @@ import React, { Fragment, useEffect, useState } from 'react';
 
 import { Listbox } from '@headlessui/react';
 
-import { ArrowDown } from '@app/components/icons/arrow-down';
-import TickIcon from '@app/components/icons/tick-icon';
+import { ArrowDown } from '@app/Components/icons/arrow-down';
+import TickIcon from '@app/Components/icons/tick-icon';
 import { getIconForFieldType } from '@app/utils/conditionalUtils';
+
 
 interface IConditionalListDropDown<T> {
     size?: string;

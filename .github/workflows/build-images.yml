@@ -55,18 +55,10 @@ jobs:
 
   build_on_pr:
     if: github.event_name == 'pull_request'
-    needs: test
     strategy:
       matrix:
         service:
-          - auth
-          - backend
-          - integrations/google
-          - integrations/typeform
           - webapp
-          - temporal/worker
-          - temporal/actions-executor
-          - temporal/csv-worker
 
     runs-on: ubuntu-latest
     steps:
@@ -88,8 +80,7 @@ jobs:
           SERVICE_TAG: ${{ matrix.service }}
         run: |
           SERVICE_TAG=${SERVICE_TAG//\//-}
-          docker build -f ${{ matrix.service }}/Dockerfile -t bettercollected/${SERVICE_TAG}:${{ github.sha }} .  
-  
+          docker build -f ${{ matrix.service }}/Dockerfile -t bettercollected/${SERVICE_TAG}:${{ github.sha }} .
 
   build_and_push:
     if: github.event_name != 'pull_request'
@@ -100,7 +91,6 @@ jobs:
           - auth
           - backend
           - integrations/google
-          - integrations/typeform
           - webapp
           - temporal/worker
           - temporal/actions-executor
@@ -123,7 +113,30 @@ jobs:
           SERVICE_TAG: ${{ matrix.service }}
         run: |
           SERVICE_TAG=${SERVICE_TAG//\//-}
-          docker build -f ${{ matrix.service }}/Dockerfile -t bettercollected/${SERVICE_TAG}:${{ github.sha }} .
+          NEXT_PUBLIC_UNSPLASH_ACCESS_KEY=${{ vars.UNSPLASH_ACCESS_KEY }}
+          if [[ "${{ github.ref }}" = "refs/heads/develop" ]]; then
+            API_ENDPOINT_HOST=${{ vars.DEVELOP_API }}
+            DASHBOARD_DOMAIN=${{ vars.DEVELOP_DASHBOARD }}
+            FORM_DOMAIN=${{ vars.DEVELOP_CLIENT }}
+            CLARITY_TRACKING_CODE=${{ vars.DEV_CLARITY }}
+            UMAMI_WEBSITE_ID=${{ vars.DEV_UMAMI_WEBSITE}}
+          fi
+          if [[ "${{ github.ref }}" = "refs/heads/master" ]]; then
+            API_ENDPOINT_HOST=${{ vars.STAGING_API }}
+            DASHBOARD_DOMAIN=${{ vars.STAGING_DASHBOARD }}
+            FORM_DOMAIN=${{ vars.STAGING_CLIENT }}
+            CLARITY_TRACKING_CODE=${{ vars.STAGING_CLARITY }}
+            UMAMI_WEBSITE_ID=${{ vars.STAGING_UMAMI_WEBSITE}}
+          fi
+          if [[ "${{ github.ref }}" =~ ^refs/tags/ ]]; then
+            API_ENDPOINT_HOST=${{ vars.PROD_API }}
+            DASHBOARD_DOMAIN=${{ vars.PROD_DASHBOARD }}
+            FORM_DOMAIN=${{ vars.PROD_CLIENT }}
+            CLARITY_TRACKING_CODE=${{ vars.PROD_CLARITY }}
+            UMAMI_WEBSITE_ID=${{ vars.PROD_UMAMI_WEBSITE}}
+          fi
+          echo $API_ENDPOINT_HOST /n $DASHBOARD_DOMAIN /n $FORM_DOMAIN
+          docker build --build-arg NEXT_PUBLIC_UMAMI_WEBSITE_ID=${UMAMI_WEBSITE_ID} --build-arg CLARITY_TRACKING_CODE=${CLARITY_TRACKING_CODE} --build-arg NEXT_PUBLIC_API_ENDPOINT_HOST=${API_ENDPOINT_HOST} --build-arg NEXT_PUBLIC_DASHBOARD_DOMAIN=${DASHBOARD_DOMAIN} --build-arg NEXT_PUBLIC_FORM_DOMAIN=${FORM_DOMAIN} -f ${{ matrix.service }}/Dockerfile -t bettercollected/${SERVICE_TAG}:${{ github.sha }} .
           docker push bettercollected/${SERVICE_TAG}:${{ github.sha }}
 
       - name: Add Nightly, Latest and Release Tags
@@ -139,8 +152,6 @@ jobs:
             docker tag bettercollected/${SERVICE_TAG}:${{ github.sha }} bettercollected/${SERVICE_TAG}:latest
             docker push bettercollected/${SERVICE_TAG}:latest
           fi
-          echo GITHUB_REF_NAME
-          echo ${{ github.ref_name }}
           if [[ "${{ github.ref }}" =~ ^refs/tags/ ]]; then
             docker tag bettercollected/${SERVICE_TAG}:${{ github.sha }} bettercollected/${SERVICE_TAG}:release
             docker tag bettercollected/${SERVICE_TAG}:${{ github.sha }} bettercollected/${SERVICE_TAG}:${{ github.ref_name }}
@@ -162,7 +173,7 @@ jobs:
           - temporal/worker
           - temporal/actions-executor
           - temporal/csv-worker
-          
+
     runs-on: ubuntu-latest
     steps:
       - name: Deploy built Image
@@ -183,4 +194,7 @@ jobs:
               DOCKER_STACK=${{ vars.PROD_STACK }}
               DOCKER_HOST=${{ vars.PROD_HOST }} docker service update --image  bettercollected/${SERVICE_TAG}:${{ github.ref_name }} ${DOCKER_STACK}_${SERVICE_TAG}
             fi
-
+            if [[ "${{ github.ref }}" = "refs/heads/feature/slide-formbuilder" ]]; then
+              DOCKER_STACK=${{ vars.BUILDER_STACK }}
+              DOCKER_HOST=${{ vars.BUILDER_HOST }} docker service update --image  bettercollected/${SERVICE_TAG}:${{ github.sha }} ${DOCKER_STACK}_${SERVICE_TAG}
+            fi

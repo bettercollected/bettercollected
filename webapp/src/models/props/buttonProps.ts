@@ -1,6 +1,7 @@
 import React from 'react';
 
-import { LoaderSizeTypes, LoaderVariantTypes } from '@app/components/ui/loader';
+import { LoaderSizeTypes, LoaderVariantTypes } from '@app/Components/ui/loader';
+
 
 type ShapeNames = 'rounded' | 'pill' | 'circle';
 type VariantNames = 'ghost' | 'solid' | 'transparent' | 'outline';

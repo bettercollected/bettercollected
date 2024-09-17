@@ -1,64 +1,62 @@
-import React, { useEffect, useState } from 'react';
+import { useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
-import { useRouter } from 'next/router';
 
-import Pro from '@Components/Common/Icons/Dashboard/Pro';
-import ModalButton from '@Components/Common/Input/Button/ModalButton';
-
-import PlanCard from '@app/components/pro-plan/plan-card';
-import ActiveLink from '@app/components/ui/links/active-link';
-import Loader from '@app/components/ui/loader';
-import Logo from '@app/components/ui/logo';
-import environments from '@app/configs/environments';
-import { buttonConstant } from '@app/constants/locales/button';
-import { pricingPlan } from '@app/constants/locales/pricingplan';
+import AppButton from '@Components/Common/Input/Button/AppButton';
+import { ButtonSize } from '@Components/Common/Input/Button/AppButtonProps';
+import { useFullScreenModal } from '@app/Components/modal-views/full-screen-modal-context';
+import Logo, { ProLogo } from '@app/Components/ui/logo';
 import { upgradeConst } from '@app/constants/locales/upgrade';
 import { selectAuthStatus } from '@app/store/auth/selectors';
 import { useAppSelector } from '@app/store/hooks';
-import { useGetPlansQuery } from '@app/store/plans/api';
+import { useSuggestPriceAndUpgradeUserToProMutation } from '@app/store/price-suggestion/api';
+import cn from 'classnames';
+import { useRouter } from 'next/navigation';
+import { toast } from 'react-toastify';
 
 export interface IUpgradeToProModal {
     featureText?: string;
     isModal?: boolean;
+    callback?: () => void;
 }
 
-export default function UpgradeToProContainer({ featureText, isModal = true }: IUpgradeToProModal) {
-    const { data, isLoading } = useGetPlansQuery();
+const prices = [0, 5, 15, 25, 50];
+
+export default function UpgradeToProContainer({ featureText, isModal = true, callback }: IUpgradeToProModal) {
     const { t } = useTranslation();
-    const [activePlan, setActivePlan] = useState<any>();
     const auth = useAppSelector(selectAuthStatus);
 
-    useEffect(() => {
-        if (data && Array.isArray(data) && data.length > 0) setActivePlan(data[0]);
-    }, [data]);
+    const [suggestPrice, { isLoading: isSuggesting }] = useSuggestPriceAndUpgradeUserToProMutation();
+
+    const [activeSuggestion, setActiveSuggestion] = useState<null | number>(null);
+    const [customPrice, setCustomPrice] = useState('');
+
+    const { closeModal } = useFullScreenModal();
 
     const features = [
         {
             title: t(upgradeConst.features.unlimitedForms.title),
             description: t(upgradeConst.features.unlimitedForms.description),
-            color: '#FFE9CA'
+            color: '#E5EFFF'
         },
         {
             title: t(upgradeConst.features.customDomain.title),
             description: t(upgradeConst.features.customDomain.description),
-            color: '#D3E6FE'
+            color: '#FFE8F0'
         },
         {
             title: t(upgradeConst.features.collaborator.title),
             description: t(upgradeConst.features.collaborator.description),
-            color: '#E3E0FF'
+            color: '#E4FFF4'
         },
         {
             title: t(upgradeConst.features.workspace.title),
             description: t(upgradeConst.features.workspace.description),
-            color: '#D9FFD6'
+            color: '#FFF7E9'
         }
     ];
-
-    const url = auth === null ? '/login?fromProPlan=true' : `${environments.API_ENDPOINT_HOST}/stripe/session/create/checkout?price_id=${activePlan?.price_id}`;
-
     const router = useRouter();
+
     const onClickProTag = () => {
         if (isModal) return;
         if (auth === null) {
@@ -68,53 +66,109 @@ export default function UpgradeToProContainer({ featureText, isModal = true }: I
         }
     };
     return (
-        <div className="container p-10  w-full h-full mx-auto flex flex-col items-center justify-center">
+        <div className="container mx-auto flex h-full w-full flex-col items-center justify-center px-5 pb-10">
             <div className={`w-fit ${!isModal ? 'cursor-pointer' : ''}`} onClick={onClickProTag}>
-                <div className="flex pb-10 items-center pointer-events-none">
+                <div className="pointer-events-none flex items-center pb-10">
                     <Logo />
-                    <div className="flex items-center rounded ml-1 gap-[2px] h-5 sm:h-6 p-1 sm:p-[6px] text-[10px] sm:body5 uppercase !leading-none !font-semibold !text-white bg-brand-500">
-                        <Pro width={12} height={12} />
-                        <span className="leading-none">Pro</span>
-                    </div>
+                    <ProLogo />
                 </div>
             </div>
-
-            <div className="text-[36px] text-black-900 font-semibold text-center mb-4 max-w-[370px]">{featureText || t(upgradeConst.features.default.slogan)}</div>
-            <div className="paragraph text-center mb-6 text-black-600">{t(pricingPlan.description)}</div>
-            {isLoading && <Loader variant="blink" />}
-
-            {data &&
-                Array.isArray(data) &&
-                data.map((plan: any) => (
-                    <PlanCard
-                        activePlan={activePlan}
-                        plan={plan}
-                        key={plan.price_id}
-                        onClick={() => {
-                            setActivePlan(plan);
-                        }}
-                    />
-                ))}
-
-            {data && (
-                <ActiveLink className="mt-10" href={url}>
-                    <ModalButton>{t(buttonConstant.continue)}</ModalButton>
-                </ActiveLink>
-            )}
-
-            <div className="text-[24px] font-medium mt-20 mb-15">{t(upgradeConst.proIncludes)}</div>
-            <div className="grid grid-cols-1 md:grid-cols-2 w-full gap-6 mt-14">
-                {features.map((feature: any, idx: number) => {
-                    return (
-                        <div key={feature.title + idx} style={{ background: feature.color }} className={`flex rounded p-6 flex-col`}>
-                            <div className="flex items-center mb-5">
-                                <Pro />
-                                <div className="sh1 ml-2 font-semibold ">{feature.title}</div>
+            <>
+                <div className="h2-new mb-2 text-center">
+                    bettercollected PRO is <span className="text-new-pink">Free</span>
+                </div>
+                <div className="p2-new text-black-700 max-w-[426px] text-center">You won&apos;t be charged any money. Share your thoughts on what the best price would be. Future pricing will be based on your suggestions.</div>
+                <div className="mt-10 flex flex-wrap justify-center gap-2">
+                    {prices.map((price, index) => {
+                        return (
+                            <div
+                                tabIndex={0}
+                                key={`${price}`}
+                                onClick={() => {
+                                    setActiveSuggestion(price);
+                                    setCustomPrice('');
+                                }}
+                                className={cn(
+                                    'bg-black-100 hover:text-black-800 flex h-10 w-[70px] cursor-pointer items-center justify-center font-medium ' + 'text-black-500 rounded-lg hover:border hover:border-blue-200' + ' hover:bg-white',
+                                    price === activeSuggestion && 'shadow-suggestion-price !text-black-800 bg-white'
+                                )}
+                            >
+                                ${price}
                             </div>
-                            <div className="">{feature.description}</div>
-                        </div>
-                    );
-                })}
+                        );
+                    })}
+                    <div className={cn('focus-within:shadow-suggestion-price hidden h-10 rounded-lg border border-blue-100 lg:flex', customPrice && 'shadow-suggestion-price')}>
+                        <div className="bg-black-100 text-black-500 flex h-full w-full items-center justify-center rounded-l-lg px-2">$</div>
+                        <input
+                            type="number"
+                            value={customPrice || ''}
+                            onFocus={() => {
+                                setActiveSuggestion(null);
+                            }}
+                            onChange={(event) => {
+                                setCustomPrice(event.target.value);
+                            }}
+                            className={cn('placeholder-black-500 w-[82px] rounded-r-lg border-0 bg-white !p-2 text-left text-sm font-medium outline-none')}
+                            placeholder="Amount"
+                        />
+                    </div>
+                </div>
+                <div className="mt-10">
+                    <AppButton
+                        isLoading={isSuggesting}
+                        className="mb-2"
+                        size={ButtonSize.Medium}
+                        onClick={async () => {
+                            if (activeSuggestion === null && !customPrice) {
+                                toast('Please select a price first', { type: 'warning' });
+                                return;
+                            }
+                            let price = 0;
+                            if (activeSuggestion) {
+                                price = activeSuggestion;
+                            }
+                            if (customPrice) {
+                                price = parseInt(customPrice);
+                            }
+                            suggestPrice({
+                                price
+                            }).then((response: any) => {
+                                if (response.data) {
+                                    closeModal();
+                                    if (callback) {
+                                        callback();
+                                    } else {
+                                        router.refresh();
+                                    }
+                                    toast('Congratulations! You have been upgraded to PRO', { type: 'success' });
+                                }
+                                if (response.error) {
+                                    toast('Something went wrong', {
+                                        type: 'error'
+                                    });
+                                }
+                            });
+                        }}
+                    >
+                        Start Pro account
+                    </AppButton>
+                    <div className="p2-new text-black-600 text-center italic">Free for 90 days!</div>
+                </div>
+            </>
+            {/* )} */}
+            <div className="max-w-[658px]">
+                <div className="mb-2 mt-12 text-xs">{t(upgradeConst.proIncludes)}</div>
+                <div className="grid w-full grid-cols-1 gap-4 md:grid-cols-2">
+                    {features.map((feature: any, idx: number) => {
+                        return (
+                            <div key={feature.title + idx} style={{ background: feature.color }} className={`flex flex-col rounded-lg p-4`}>
+                                <div className="h4-new font-medium ">{feature.title}</div>
+
+                                <div className="p2-new text-black-700 mt-2">{feature.description}</div>
+                            </div>
+                        );
+                    })}
+                </div>
             </div>
         </div>
     );

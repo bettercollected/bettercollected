@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
-import { useRouter } from 'next/router';
 
 import Divider from '@Components/Common/DataDisplay/Divider';
 import CopyIcon from '@Components/Common/Icons/Common/Copy';
@@ -13,16 +12,17 @@ import { FormControlLabel, Radio, RadioGroup } from '@mui/material';
 import { toast } from 'react-toastify';
 import useCopyToClipboard from 'react-use/lib/useCopyToClipboard';
 
-import Globe from '@app/components/icons/flags/globe';
-import { useModal } from '@app/components/modal-views/context';
+import Globe from '@app/Components/icons/flags/globe';
+import { useModal } from '@app/Components/modal-views/context';
 import environments from '@app/configs/environments';
 import { localesCommon } from '@app/constants/locales/common';
 import { formConstant } from '@app/constants/locales/form';
 import { toastMessage } from '@app/constants/locales/toast-message';
 import { IFormTemplateDto } from '@app/models/dtos/template';
 import { useAppSelector } from '@app/store/hooks';
-import { useDeleteTemplateMutation, usePatchTemplateSettingsMutation } from '@app/store/template/api';
+import { usePatchTemplateSettingsMutation } from '@app/store/template/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
+
 
 const TemplateSettings = ({ template, showTitle }: { template: IFormTemplateDto; showTitle: boolean }) => {
     const { t } = useTranslation();

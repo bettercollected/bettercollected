@@ -26,16 +26,16 @@ export default function AppButton({ children, className, disabled, isLoading, ic
             case ButtonVariant.Ghost:
                 return disabled ? 'bg-transparent text-black-500' : 'text-brand-500 border border-transparent hover:bg-black-200 outline-none active:border-brand-500 active:bg-black-300';
             case ButtonVariant.DangerGhost:
-                return disabled ? 'bg-black-300 text-black-500' : 'bg-red-100 text-red hover:bg-red-200 focus:ring-red-500 focus-ring active:bg-red-300';
+                return disabled ? 'bg-white-300 text-red-500' : 'bg-red-500 text-red hover:bg-red-600 focus:ring-red-500 focus-ring active:bg-red-300';
         }
     };
 
     const getClassnamesForSize = () => {
         switch (size) {
             case ButtonSize.Medium:
-                return 'h-[48px] text-sm';
+                return 'h-[48px] text-sm font-medium';
             case ButtonSize.Big:
-                return 'h-[64px] text-normal';
+                return 'h-[64px] text-normal font-medium';
             case ButtonSize.Small:
                 return 'h-[36px] text-sm';
             case ButtonSize.Tiny:
@@ -46,7 +46,7 @@ export default function AppButton({ children, className, disabled, isLoading, ic
     return (
         <button
             disabled={isLoading || disabled}
-            className={cn('rounded gap-2 min-w-fit flex justify-center items-center px-4', disabled || isLoading ? 'cursor-not-allowed' : 'cursor-pointer', getClassnamesForSize(), getClassNamesForVariant(), className)}
+            className={cn('flex min-w-fit items-center justify-center gap-2 rounded px-4', disabled || isLoading ? 'cursor-not-allowed' : 'cursor-pointer', getClassnamesForSize(), getClassNamesForVariant(), className)}
             {...buttonProps}
         >
             {!isLoading && icon}

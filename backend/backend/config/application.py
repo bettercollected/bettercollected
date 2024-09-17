@@ -10,11 +10,12 @@ from backend.config.api_settings import ApiSettings
 from backend.config.apm_settings import APMSettings
 from backend.config.auth_settings import AuthSettings
 from backend.config.aws import AWSSettings
+from backend.config.brevo_settings import BrevoSettings
 from backend.config.coupon_code_settings import CouponCodeSettings
 from backend.config.database import MongoSettings
 from backend.config.events_webhook import EventsWebhook
 from backend.config.https_certificate import HttpsCertificateApiSettings
-from backend.config.kafka_settings import KafkaSettings
+from backend.config.OpenAISettings import OpenAISettings
 from backend.config.schedular_settings import SchedularSettings
 from backend.config.sentry_setting import SentrySettings
 from backend.config.template_settings import DefaultResourcesWorkspaceSettings
@@ -41,6 +42,7 @@ class Application(BaseSettings):
     """
 
     DEBUG: bool = True
+    ENABLE_SUGGEST_PRICE: bool = False
     apm_settings: APMSettings = APMSettings()
     api_settings: ApiSettings = ApiSettings()
     auth_settings: AuthSettings = AuthSettings()
@@ -50,10 +52,13 @@ class Application(BaseSettings):
     https_cert_api_settings: HttpsCertificateApiSettings = HttpsCertificateApiSettings()
     sentry_settings: SentrySettings = SentrySettings()
     temporal_settings: TemporalSettings = TemporalSettings()
-    default_workspace_settings: DefaultResourcesWorkspaceSettings = DefaultResourcesWorkspaceSettings()
-    kafka_settings: KafkaSettings = KafkaSettings()
+    default_workspace_settings: DefaultResourcesWorkspaceSettings = (
+        DefaultResourcesWorkspaceSettings()
+    )
     event_webhook_settings: EventsWebhook = EventsWebhook()
     coupon_settings: CouponCodeSettings = CouponCodeSettings()
+    open_ai: OpenAISettings = OpenAISettings()
+    brevo_settings: BrevoSettings = BrevoSettings()
     # All your additional application configuration should go either here or in
     # separate file in this submodule.
 

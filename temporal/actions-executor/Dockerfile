@@ -1,4 +1,4 @@
-FROM joyzoursky/python-chromedriver
+FROM python:3.10
 
 ENV VIRTUAL_ENV=/venv
 RUN python3 -m venv $VIRTUAL_ENV

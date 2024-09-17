@@ -4,7 +4,7 @@ import PlusIcon from '@Components/Common/Icons/Common/Plus';
 import DragHandleIcon from '@Components/Common/Icons/FormBuilder/DragHandle';
 import StartAdornmentInputField from '@Components/FormBuilder/StartAdornmentInputField';
 import { StrictModeDroppable } from '@Components/FormBuilder/StrictModeDroppable';
-import { FieldRequired } from '@Components/UI/FieldRequired';
+import { FieldRequired } from '@Components/ui/FieldRequired';
 import { GridCloseIcon } from '@mui/x-data-grid';
 import { DragDropContext, Draggable, DropResult, DroppableProvided } from 'react-beautiful-dnd';
 import { useDispatch } from 'react-redux';
@@ -12,11 +12,10 @@ import { useDispatch } from 'react-redux';
 import useUserTypingDetection from '@app/lib/hooks/use-user-typing-detection';
 import useUndoRedo from '@app/lib/use-undo-redo';
 import { setActiveChoice, setAddNewChoice, setUpdateField } from '@app/store/form-builder/actions';
-import { selectBuilderState } from '@app/store/form-builder/selectors';
-import { IBuilderState, IFormFieldState } from '@app/store/form-builder/types';
-import { useAppSelector } from '@app/store/hooks';
+import { IFormFieldState } from '@app/store/form-builder/types';
 import { reorder } from '@app/utils/arrayUtils';
 import { createNewChoice } from '@app/utils/formBuilderBlockUtils';
+
 
 interface IMultipleChoiceProps {
     field: IFormFieldState;

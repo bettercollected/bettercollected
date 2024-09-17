@@ -2,8 +2,8 @@ import React, { FocusEvent, FormEvent, KeyboardEvent, useRef } from 'react';
 
 import ContentEditable, { ContentEditableEvent } from 'react-contenteditable';
 
-import { useModal } from '@app/components/modal-views/context';
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
+
 
 interface ICustomContentEditableProps {
     id: string;

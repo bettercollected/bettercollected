@@ -39,17 +39,11 @@ class FormImportService:
         form_data = FormImportResponse.parse_obj(response_data)
         if not (form_data.form or form_data.responses):
             return None
-        standard_form = form_data.form
-        await self.form_service.save_form(standard_form)
+        standard_form = await self.form_service.save_form(form_data.form)
         responses = form_data.responses
         updated_responses_id = []
         for response in responses:
-            existing_response = await FormResponseDocument.find_one(
-                {"response_id": response.response_id}
-            )
             response_document = FormResponseDocument(**response.dict())
-            if existing_response:
-                response_document.id = existing_response.id
             response_document.form_id = standard_form.form_id
             data_owner_answer = response_document.answers.get(form_response_data_owner)
 

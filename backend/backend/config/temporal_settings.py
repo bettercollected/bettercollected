@@ -1,10 +1,13 @@
+from typing import Optional
+
 from pydantic import BaseSettings
 
 
 class TemporalSettings(BaseSettings):
-    server_uri: str = ""
+    server_uri: str = "localhost:7233"
     api_key: str = "random_api_key"
     namespace: str = "default"
+    template_preview_queue: Optional[str] = "template_preview_queue"
     worker_queue: str = "default"
     action_queue: str = "actions"
     csv_queue: str = "csv_worker"

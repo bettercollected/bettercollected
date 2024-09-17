@@ -5,6 +5,7 @@ import storage from 'redux-persist/lib/storage';
 import { Plan } from '@app/models/dtos/UserStatus';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { RootState } from '@app/store/store';
+import { FormSlideLayout } from '@app/models/enums/form';
 
 export const initFormState: StandardFormDto = {
     formId: '',
@@ -32,7 +33,23 @@ export const initFormState: StandardFormDto = {
     modifiedTime: '',
     groups: [],
     coverImage: '',
-    logo: ''
+    logo: '',
+    welcomePage: {
+        title: '',
+        layout: FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND
+    },
+    thankyouPage: [
+        {
+            layout: FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND
+        }
+    ],
+    theme: {
+        title: '',
+        primary: '',
+        secondary: '',
+        tertiary: '',
+        accent: ''
+    }
 };
 
 export const slice = createSlice({

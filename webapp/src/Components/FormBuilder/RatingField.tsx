@@ -2,8 +2,9 @@ import React, { useState } from 'react';
 
 import _ from 'lodash';
 
-import { FieldRequired } from '@Components/UI/FieldRequired';
+import { FieldRequired } from '@Components/ui/FieldRequired';
 import { Star, StarBorder } from '@mui/icons-material';
+
 
 interface IRatingFieldProps {
     field: any;

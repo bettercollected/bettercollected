@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/router';
@@ -9,17 +9,18 @@ import cn from 'classnames';
 import DataTable from 'react-data-table-component';
 import { toast } from 'react-toastify';
 
-import { dataTableCustomStyles } from '@app/components/datatable/form/datatable-styles';
+import { dataTableCustomStyles } from '@app/Components/datatable/form/datatable-styles';
+import { useFullScreenModal } from '@app/Components/modal-views/full-screen-modal-context';
 import globalConstants from '@app/constants/global';
-import { StandardFormDto, StandardFormResponseDto } from '@app/models/dtos/form';
-import { FormBuilderTagNames, LabelFormBuilderTagNames } from '@app/models/enums/formBuilder';
-import { IFormFieldState } from '@app/store/form-builder/types';
+import { FieldTypes, StandardFormDto, StandardFormFieldDto, StandardFormResponseDto } from '@app/models/dtos/form';
 import { useAppSelector } from '@app/store/hooks';
-import { useGetFormsSubmissionsQuery } from '@app/store/workspaces/api';
+import { useGetFormsSubmissionsQuery, useGetWorkspaceSubmissionQuery, useLazyGetWorkspaceSubmissionQuery } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { IGetFormSubmissionsQuery } from '@app/store/workspaces/types';
+import { utcToLocalDateTIme } from '@app/utils/dateUtils';
 import { downloadFile } from '@app/utils/fileUtils';
-import { convertPlaceholderToDisplayValue } from '@app/utils/formBuilderBlockUtils';
+import { getAnswerForField, getFormFields, getTitleForHeader } from '@app/utils/formBuilderBlockUtils';
+import { ExpandIcon } from '@app/views/atoms/Icons/ExpandIcon';
 
 const customTableStyles = {
     ...dataTableCustomStyles,
@@ -32,14 +33,29 @@ const customTableStyles = {
     }
 };
 
+const customTableStylesForResponderDetails = {
+    ...dataTableCustomStyles,
+    table: {
+        ...dataTableCustomStyles.table,
+        style: {
+            ...dataTableCustomStyles.table.style,
+            borderRight: '1px solid #DBDBDB',
+            boxShadow: '2px 0px 4px 0px rgba(0, 0, 0, 0.15)'
+        }
+    }
+};
+
 interface TabularResponsesProps {
     form: StandardFormDto;
 }
 
 export default function TabularResponses({ form }: TabularResponsesProps) {
     const router = useRouter();
+    const { openModal } = useFullScreenModal();
     const workspace = useAppSelector(selectWorkspace);
     const [page, setPage] = useState(1);
+
+    const [triggerSingleResponse] = useLazyGetWorkspaceSubmissionQuery();
 
     const { t } = useTranslation();
 
@@ -55,88 +71,28 @@ export default function TabularResponses({ form }: TabularResponsesProps) {
         setQuery({ ...query, page: page });
     }, [page]);
 
-    const getFilteredInputFields = () => {
-        const filteredFields: Array<any> = [];
-        form?.fields.forEach((field, index) => {
-            if (field.type.includes('input_')) {
-                const x: any = {
-                    fieldId: field.id
-                };
-                const previousField = form?.fields[index - 1] || undefined;
-                let text = field?.properties?.placeholder;
-                if (LabelFormBuilderTagNames.includes(previousField?.type)) {
-                    text = previousField?.value;
-                }
-                x.value = text;
-                x.type = field.type;
-                x.properties = field?.properties;
-                filteredFields.push(x);
-            }
-        });
-        return filteredFields;
-    };
-
     const downloadFormFile = async (ans: any) => {
         try {
+            if (!ans?.file_metadata?.url) return;
             downloadFile(ans?.file_metadata?.url, ans?.file_metadata.name ?? ans?.file_metadata.id);
         } catch (err) {
             toast('Error downloading file', { type: 'error' });
         }
     };
 
-    const getAnswerForField = (response: StandardFormResponseDto, inputField: any) => {
-        const answer = response.answers[inputField.fieldId];
-        switch (inputField.type) {
-            case FormBuilderTagNames.INPUT_RATING:
-            case FormBuilderTagNames.INPUT_NUMBER:
-                return answer?.number;
-            case FormBuilderTagNames.INPUT_SHORT_TEXT:
-            case FormBuilderTagNames.INPUT_LONG_TEXT:
-                return answer?.text;
-            case FormBuilderTagNames.INPUT_LINK:
-                return answer?.url;
-            case FormBuilderTagNames.INPUT_EMAIL:
-                return answer?.email;
-            case FormBuilderTagNames.INPUT_DATE:
-                return answer?.date;
-            case FormBuilderTagNames.INPUT_MULTIPLE_CHOICE:
-            case FormBuilderTagNames.INPUT_DROPDOWN:
-                const compareValue = !answer?.choice?.value?.match('^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$');
-                if (compareValue) {
-                    return inputField?.properties?.choices.find((choice: any) => choice.value === answer?.choice?.value)?.value;
-                }
-                return inputField?.properties?.choices?.find((choice: any) => choice.id === answer?.choice?.value)?.value;
-            case FormBuilderTagNames.INPUT_CHECKBOXES:
-                const choicesAnswers = answer?.choices?.values;
-                const compareIds = Array.isArray(choicesAnswers) && choicesAnswers.length > 0 && choicesAnswers?.every((choice: any) => choice.match('^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'));
-                if (!compareIds) {
-                    const choices = inputField?.properties?.choices?.filter((choice: any) => answer?.choices?.values?.includes(choice.value));
-                    return choices?.map((choice: any) => choice.value)?.join(', ');
-                }
-                const choices = inputField?.properties?.choices?.filter((choice: any) => answer?.choices?.values?.includes(choice.id));
-                return choices?.map((choice: any) => choice.value)?.join(', ');
-            case FormBuilderTagNames.INPUT_PHONE_NUMBER:
-                return answer?.phone_number;
-
-            case FormBuilderTagNames.INPUT_RANKING:
-                return answer?.choices?.values?.map((choice: any) => choice?.value)?.join(', ');
-            case FormBuilderTagNames.INPUT_FILE_UPLOAD:
-                return (
-                    <span className="p1 flex w-full justify-between items-center rounded bg-blue-200 py-2 px-3 cursor-pointer" onClick={downloadFormFile}>
-                        <span className="flex-1 truncate mr-5">{answer?.file_metadata?.name}</span>
-                        <span className="text-sm">{answer?.file_metadata?.size} MB</span>
-                    </span>
-                );
-            default:
-                return '';
+    const getAnswerField = (response: StandardFormResponseDto, field: StandardFormFieldDto) => {
+        if (field.type === FieldTypes.FILE_UPLOAD || field.type === FieldTypes.INPUT_FILE_UPLOAD) {
+            const ans = response.answers[field.id];
+            return (
+                <div onClick={() => downloadFormFile(ans)} className={cn('!text-black-600 p2-new   w-[140px] cursor-default truncate rounded px-2 py-1', ans?.file_metadata?.url ? 'bg-black-300 active:bg-black-400 !cursor-pointer' : '')}>
+                    {getAnswerForField(response, field)}
+                </div>
+            );
         }
-    };
-
-    const getAnswerField = (response: StandardFormResponseDto, inputField: any) => {
         return (
             <>
-                <Typography className={cn('!text-black-900 body3 ')} noWrap>
-                    {getAnswerForField(response, inputField)}
+                <Typography className={cn('!text-black-600 p2-new  w-[140px] truncate')} noWrap>
+                    {getAnswerForField(response, field)}
                 </Typography>
             </>
         );
@@ -154,49 +110,80 @@ export default function TabularResponses({ form }: TabularResponsesProps) {
     };
 
     const responseDataOwnerField = (response: StandardFormResponseDto) => (
-        <div aria-hidden className="w-fit">
-            <Typography className={cn('!text-black-900 body3 ')} noWrap>
-                {response?.dataOwnerIdentifier ?? 'Anonymous'}
+        <div aria-hidden className="flex w-fit flex-col gap-1 ">
+            <Typography className={cn('!text-black-800 p2-new w-fit truncate')} noWrap>
+                {response?.dataOwnerIdentifier || '- -'}
             </Typography>
+            <span className="text-black-600 text-[10px] font-normal">{utcToLocalDateTIme(response?.createdAt)}</span>
         </div>
     );
 
-    const columns: any = [
+    function getTitleForHeaderForTable(field: StandardFormFieldDto) {
+        const title = getTitleForHeader(field, form);
+        return <span className="p3-new !text-black-800 truncate md:w-[250px]">{title}</span>;
+    }
+
+    function getColumnForExpandIcon(response: StandardFormResponseDto) {
+        return (
+            <ExpandIcon
+                onClick={() => {
+                    triggerSingleResponse({
+                        workspace_id: workspace?.id ?? '',
+                        submission_id: response.responseId
+                    }).then((result: any) => {
+                        console.log('Read', result);
+                        openModal('VIEW_RESPONSE', { response: result.data.response, formFields: getFormFields(result.data.form), formId: result.data.form.formId, workspaceId: workspace.id });
+                    });
+                }}
+            />
+        );
+    }
+
+    const columnsForResponderDetail: any = [
         {
-            name: t('FORM.RESPONDER'),
+            name: '',
+            cell: (response: StandardFormResponseDto) => getColumnForExpandIcon(response),
+            style: {
+                color: 'rgba(0,0,0,.54)',
+                paddingLeft: '8px',
+                height: 'auto',
+                overflow: 'hidden ',
+                paddingRight: '8px',
+                textOverFlow: 'ellipsis',
+                cursor: 'pointer'
+            },
+            width: '40px',
+            minWidth: '0px'
+        },
+        {
+            name: t('FORM.RESPONDER') + ' ID',
             cell: (response: StandardFormResponseDto) => responseDataOwnerField(response),
             style: {
                 color: 'rgba(0,0,0,.54)',
-                paddingLeft: '16px',
+                paddingLeft: '8px',
                 height: 'auto',
-                background: '#F7F8FA',
-                opacity: 100,
-                zIndex: 100,
-                width: '400px !important',
                 overflow: 'hidden ',
-                paddingRight: '16px'
-            }
-        },
-        ...getFilteredInputFields().map((inputField: any) => {
+                paddingRight: '8px',
+                textOverFlow: 'ellipsis'
+            },
+            ignoreRowClick: true
+        }
+    ];
+
+    const columnForResponseData: any = [
+        ...getFormFields(form).map((field: any) => {
             return {
-                name: convertPlaceholderToDisplayValue(
-                    form?.fields.map((field: any, index: number) => {
-                        return {
-                            ...field,
-                            position: index
-                        };
-                    }) ?? [],
-                    inputField?.value || ''
-                ),
-                selector: (response: StandardFormResponseDto) => getAnswerField(response, inputField),
+                name: getTitleForHeaderForTable(field),
+                className: '!bg-red-100',
+                selector: (response: StandardFormResponseDto) => getAnswerField(response, field),
                 style: {
                     color: 'rgba(0,0,0,.54)',
-                    paddingLeft: '16px',
+                    paddingLeft: '8px',
                     height: 'auto',
-                    width: '400px !important',
                     overflow: 'hidden ',
-                    paddingRight: '16px'
-                }
+                    paddingRight: '8px'
+                },
+                width: '156px !important'
             };
         })
     ];
@@ -204,11 +191,31 @@ export default function TabularResponses({ form }: TabularResponsesProps) {
     const handlePageChange = (e: any, page: number) => {
         setPage(page);
     };
-    const { data, isLoading } = useGetFormsSubmissionsQuery(query, { skip: !workspace.id });
+    const { data } = useGetFormsSubmissionsQuery(query, { skip: !workspace.id });
+
+    const onClickExpandSingleResponse = (response: StandardFormResponseDto) => {
+        triggerSingleResponse({
+            workspace_id: workspace?.id ?? '',
+            submission_id: response.responseId
+        }).then((result) => {
+            openModal('VIEW_RESPONSE', { response: result.data.response, formFields: getFormFields(result.data.form), formId: result.data.form.formId, workspaceId: workspace.id });
+        });
+    };
 
     return (
         <>
-            {Array.isArray(data?.items) && <DataTable onRowClicked={onRowClicked} columns={columns} customStyles={customTableStyles} data={data?.items || []} />}
+            {Array.isArray(data?.items) && (
+                <div className="flex flex-row">
+                    {data?.items.length ? (
+                        <div className="flex-1">
+                            <DataTable onRowClicked={onClickExpandSingleResponse} columns={columnsForResponderDetail} selectableRows customStyles={customTableStylesForResponderDetails} data={data?.items || []} />
+                        </div>
+                    ) : (
+                        <></>
+                    )}
+                    <DataTable onRowClicked={onRowClicked} columns={columnForResponseData} customStyles={customTableStyles} data={data?.items || []} />
+                </div>
+            )}
             {Array.isArray(data?.items) && (data?.total || 0) > globalConstants.pageSize && (
                 <div className="mt-8 flex justify-center">
                     <StyledPagination shape="rounded" count={data?.pages || 0} page={page} onChange={handlePageChange} />

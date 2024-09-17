@@ -2,13 +2,14 @@ import React from 'react';
 
 import _ from 'lodash';
 
-import { Close } from '@app/components/icons/close';
-import { useModal } from '@app/components/modal-views/context';
+import { Close } from '@app/Components/icons/close';
+import { useModal } from '@app/Components/modal-views/context';
 import useBuilderTranslation from '@app/lib/hooks/use-builder-translation';
 import { setBuilderState } from '@app/store/form-builder/actions';
 import { useAppDispatch } from '@app/store/hooks';
 
 import { TipList } from './tipsList';
+
 
 function BuilderTips() {
     const { t } = useBuilderTranslation();

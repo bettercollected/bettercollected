@@ -1,9 +1,9 @@
 from http import HTTPStatus
+from typing import Optional
 
 from beanie import PydanticObjectId
 from common.constants import MESSAGE_NOT_FOUND
 from common.models.user import User
-
 from backend.app.exceptions import HTTPException
 from backend.app.models.template import StandardFormTemplate, StandardTemplateSetting
 from backend.app.schemas.template import FormTemplateDocument
@@ -11,20 +11,39 @@ from backend.app.schemas.template import FormTemplateDocument
 
 class FormTemplateRepository:
     async def get_templates_with_creator(
-            self,
-            workspace_id: PydanticObjectId,
-            template_id: PydanticObjectId = None,
-            predefined_workspace: bool = False,
+        self,
+        v2: Optional[bool],
+        workspace_id: PydanticObjectId,
+        template_id: PydanticObjectId = None,
+        predefined_workspace: bool = False,
     ):
         query = {"workspace_id": workspace_id}
         if predefined_workspace:
             query["settings"] = {"is_public": True}
         if template_id:
             query["template_id"] = template_id
+
         return (
             await FormTemplateDocument.find(query)
             .aggregate(
                 [
+                    {
+                        "$match": {
+                            "$or": (
+                                [{"builder_version": "v2"}]
+                                if v2
+                                else [
+                                    {
+                                        "$or": [
+                                            {"builder_version": {"$ne": "v2"}},
+                                            {"builder_version": {"$exists": False}},
+                                            {"builder_version": None},
+                                        ]
+                                    }
+                                ]
+                            )
+                        }
+                    },
                     {"$set": {"id": "$_id"}},
                     {
                         "$lookup": {
@@ -41,7 +60,7 @@ class FormTemplateRepository:
                         }
                     },
                     {"$set": {"imported_from": "$workspace.title"}},
-                    {"$sort": {"created_at": -1}}
+                    {"$sort": {"created_at": -1}},
                 ]
             )
             .to_list()
@@ -50,12 +69,15 @@ class FormTemplateRepository:
     async def get_template_by_id(self, template_id: PydanticObjectId):
         return await FormTemplateDocument.find_one({"_id": template_id})
 
-    async def get_template_by_workspace_id_n_template_id(self, workspace_id: PydanticObjectId,
-                                                         template_id: PydanticObjectId):
-        return await FormTemplateDocument.find_one({"_id": template_id, "workspace_id": workspace_id})
+    async def get_template_by_workspace_id_n_template_id(
+        self, workspace_id: PydanticObjectId, template_id: PydanticObjectId
+    ):
+        return await FormTemplateDocument.find_one(
+            {"_id": template_id, "workspace_id": workspace_id}
+        )
 
     async def get_template_by_id_with_creator(
-            self, workspace_id: PydanticObjectId, template_id: PydanticObjectId
+        self, workspace_id: PydanticObjectId, template_id: PydanticObjectId
     ):
         templates = await self.get_templates_with_creator(
             workspace_id=workspace_id, template_id=template_id
@@ -67,7 +89,7 @@ class FormTemplateRepository:
         raise HTTPException(HTTPStatus.NOT_FOUND, content=MESSAGE_NOT_FOUND)
 
     async def import_template_to_workspace(
-            self, workspace_id: PydanticObjectId, template_id: PydanticObjectId
+        self, workspace_id: PydanticObjectId, template_id: PydanticObjectId
     ):
         template = await self.get_template_by_id(template_id)
         imported_template = FormTemplateDocument(**template.dict())
@@ -79,10 +101,10 @@ class FormTemplateRepository:
         return imported_template
 
     async def create_new_template(
-            self,
-            workspace_id: PydanticObjectId,
-            template_body: StandardFormTemplate,
-            user: User,
+        self,
+        workspace_id: PydanticObjectId,
+        template_body: StandardFormTemplate,
+        user: User,
     ):
         template = FormTemplateDocument(**template_body.dict())
         template.workspace_id = workspace_id
@@ -90,7 +112,7 @@ class FormTemplateRepository:
         return await template.save()
 
     async def update_template(
-            self, template_id: PydanticObjectId, template_body: StandardFormTemplate
+        self, template_id: PydanticObjectId, template_body: StandardFormTemplate
     ):
         template = await FormTemplateDocument.find_one({"_id": template_id})
         template.fields = template_body.fields

@@ -5,9 +5,9 @@ import { NextSeo } from 'next-seo';
 
 import SearchInput from '@Components/Common/Search/SearchInput';
 
-import ResponsesTable from '@app/components/datatable/responses';
-import DashboardLayout from '@app/components/sidebar/dashboard-layout';
-import Loader from '@app/components/ui/loader';
+import ResponsesTable from '@app/Components/datatable/responses';
+import DashboardLayout from '@app/Components/sidebar/dashboard-layout';
+import Loader from '@app/Components/ui/loader';
 import globalConstants from '@app/constants/global';
 import { localesCommon } from '@app/constants/locales/common';
 import { formConstant } from '@app/constants/locales/form';
@@ -16,6 +16,7 @@ import { useAppSelector } from '@app/store/hooks';
 import { useGetWorkspaceAllSubmissionsQuery, useGetWorkspaceStatsQuery } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { IGetAllSubmissionsQuery } from '@app/store/workspaces/types';
+
 
 export default function DeletionRequests({ workspace }: { workspace: WorkspaceDto }) {
     const { t } = useTranslation();

@@ -6,14 +6,15 @@ import { useRouter } from 'next/router';
 
 import ImportForm from '@Components/ImportForm/ImportForm';
 
-import { ChevronForward } from '@app/components/icons/chevron-forward';
-import { useModal } from '@app/components/modal-views/context';
-import Loader from '@app/components/ui/loader';
+import { ChevronForward } from '@app/Components/icons/chevron-forward';
+import { useModal } from '@app/Components/modal-views/context';
+import Loader from '@app/Components/ui/loader';
 import Layout from '@app/layouts/_layout';
 import { resetSingleForm } from '@app/store/forms/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { useVerifyFormTokenMutation } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
+
 
 export default function ImportFormPage() {
     const { t } = useTranslation();

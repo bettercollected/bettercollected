@@ -6,6 +6,7 @@ from common.constants import MESSAGE_NOT_FOUND
 from common.models.standard_form import StandardForm
 from fastapi import UploadFile
 from gunicorn.config import User
+from typing import Optional
 
 from backend.app.exceptions import HTTPException
 from backend.app.models.dataclasses.user_tokens import UserTokens
@@ -26,7 +27,7 @@ class FormTemplateService:
         form_template_repo: FormTemplateRepository,
         aws_service: AWSS3Service,
         workspace_form_service: WorkspaceFormService,
-        temporal_service: TemporalService
+        temporal_service: TemporalService,
     ):
         self.workspace_user_service = workspace_user_service
         self.form_template_repo = form_template_repo
@@ -34,7 +35,9 @@ class FormTemplateService:
         self._aws_service = aws_service
         self.temporal_service = temporal_service
 
-    async def get_templates(self, workspace_id: PydanticObjectId, user: User):
+    async def get_templates(
+        self, v2: Optional[bool], workspace_id: PydanticObjectId, user: User
+    ):
         predefined_workspace = False
         if not workspace_id:
             workspace_id = settings.default_workspace_settings.WORKSPACE_ID
@@ -44,33 +47,40 @@ class FormTemplateService:
                 workspace_id=workspace_id, user=user
             )
         return await self.form_template_repo.get_templates_with_creator(
-            workspace_id=workspace_id, predefined_workspace=predefined_workspace
+            workspace_id=workspace_id, predefined_workspace=predefined_workspace, v2=v2
         )
 
     async def get_template_by_id(
-        self, user: User, template_id: PydanticObjectId, workspace_id: PydanticObjectId = None
+        self,
+        user: User,
+        template_id: PydanticObjectId,
+        workspace_id: PydanticObjectId = None,
     ):
         if template_id and workspace_id:
             template = await self.form_template_repo.get_template_by_workspace_id_n_template_id(
-                workspace_id=workspace_id, template_id=template_id)
+                workspace_id=workspace_id, template_id=template_id
+            )
         else:
             template = await self.form_template_repo.get_template_by_id(template_id)
 
         if template is None:
-            raise HTTPException(status_code=HTTPStatus.NOT_FOUND, content=MESSAGE_NOT_FOUND)
+            raise HTTPException(
+                status_code=HTTPStatus.NOT_FOUND, content=MESSAGE_NOT_FOUND
+            )
         if not template.settings.is_public:
             await self.workspace_user_service.check_user_has_access_in_workspace(
-                workspace_id=workspace_id if workspace_id else template.workspace_id, user=user
+                workspace_id=workspace_id if workspace_id else template.workspace_id,
+                user=user,
             )
         return template
 
     async def import_form_template_to_workspace(
         self, workspace_id: PydanticObjectId, user: User, template_id: PydanticObjectId
     ):
-        await self.workspace_user_service.check_user_has_access_in_workspace(workspace_id=workspace_id, user=user)
-        await self.get_template_by_id(
-            user=user, template_id=template_id
+        await self.workspace_user_service.check_user_has_access_in_workspace(
+            workspace_id=workspace_id, user=user
         )
+        await self.get_template_by_id(user=user, template_id=template_id)
         return await self.form_template_repo.import_template_to_workspace(
             workspace_id, template_id
         )
@@ -125,7 +135,7 @@ class FormTemplateService:
         template_body: StandardFormTemplate,
         logo: UploadFile,
         cover_image: UploadFile,
-        user_tokens: UserTokens
+        user_tokens: UserTokens,
     ):
         await self.workspace_user_service.check_user_has_access_in_workspace(
             workspace_id=workspace_id, user=user
@@ -164,7 +174,9 @@ class FormTemplateService:
             template_id=template_id, template_body=template_body
         )
         if settings.schedular_settings.ENABLED:
-            await self.temporal_service.start_save_preview_workflow(template_id=template_id, user_tokens=user_tokens)
+            await self.temporal_service.start_save_preview_workflow(
+                template_id=template_id, user_tokens=user_tokens
+            )
         return updated_template
 
     async def update_template_settings(
@@ -202,12 +214,20 @@ class FormTemplateService:
             )
         return await self.form_template_repo.delete_template(template_id)
 
-    async def update_template_preview(self, template_id: PydanticObjectId,
-                                      preview_image: UploadFile):
-        template = await self.form_template_repo.get_template_by_id(template_id=template_id)
+    async def update_template_preview(
+        self, template_id: PydanticObjectId, preview_image: UploadFile
+    ):
+        template = await self.form_template_repo.get_template_by_id(
+            template_id=template_id
+        )
         if not template:
-            raise HTTPException(status_code=HTTPStatus.NOT_FOUND, content="Template not found")
-        preview_image = await self._aws_service.upload_file_to_s3(file=preview_image.file, key=template_id,
-                                                                  previous_image=template.preview_image)
+            raise HTTPException(
+                status_code=HTTPStatus.NOT_FOUND, content="Template not found"
+            )
+        preview_image = await self._aws_service.upload_file_to_s3(
+            file=preview_image.file,
+            key=template_id,
+            previous_image=template.preview_image,
+        )
         template.preview_image = preview_image
         return await template.save()

@@ -2,12 +2,13 @@ import React from 'react';
 
 import cn from 'classnames';
 
-import { Hint } from '@app/components/icons/hint';
-import { ConsentPurposeModalMode } from '@app/components/modal-views/modals/consent-purpose-modal-view';
+import { Hint } from '@app/Components/icons/hint';
+import { ConsentPurposeModalMode } from '@app/Components/modal-views/modals/consent-purpose-modal-view';
 import { OnlyClassNameInterface } from '@app/models/interfaces';
 import { IConsentOption } from '@app/models/types/consentTypes';
 
 import ConsentAutoCompleteInput from '../ConsentAutoCompleteInput';
+
 
 interface ConsentAddInputProps extends OnlyClassNameInterface {
     title?: string;

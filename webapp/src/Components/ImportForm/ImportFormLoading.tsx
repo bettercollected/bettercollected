@@ -1,10 +1,11 @@
 import React from 'react';
 
-import Image from 'next/image';
+import Image from "next/legacy/image";
 
 import { CircularProgress } from '@mui/material';
 
 import GoogleFolder from '@app/assets/images/google_folder.png';
+
 
 interface ImportFormLoadingProps {
     loadingText: string;

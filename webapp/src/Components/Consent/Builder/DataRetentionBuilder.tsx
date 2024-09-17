@@ -2,8 +2,8 @@ import React from 'react';
 
 import { uuidv4 } from '@mswjs/interceptors/lib/utils/uuid';
 
-import { useModal } from '@app/components/modal-views/context';
-import { ConsentRetentionModalProps } from '@app/components/modal-views/modals/consent-retention-modal-view';
+import { useModal } from '@app/Components/modal-views/context';
+import { ConsentRetentionModalProps } from '@app/Components/modal-views/modals/consent-retention-modal-view';
 import { dataRetention } from '@app/data/consent';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { ConsentCategoryType, ConsentType } from '@app/models/enums/consentEnum';
@@ -49,11 +49,11 @@ export default function DataRetentionBuilder({ form, isPreview, options, consent
         }
     };
 
-    const isDataRetentionAvailable = form?.consent.filter((consent) => consent.category === ConsentCategoryType.DataRetention).length !== 0;
+    const isDataRetentionAvailable = form?.consent?.filter((consent) => consent.category === ConsentCategoryType.DataRetention).length !== 0;
     if (!isDataRetentionAvailable) return <></>;
     return (
         <div>
-            <div className="h3-new pb-5 xs:pb-[17px]">For How Long Data Will Be Stored?</div>
+            <div className="h3-new xs:pb-[17px] pb-5">For How Long Data Will Be StorFOrmed?</div>
             {consents?.map((consent, idx) => (
                 <ConsentBuilderField
                     key={consent.consentId}
@@ -67,7 +67,7 @@ export default function DataRetentionBuilder({ form, isPreview, options, consent
                 />
             ))}
             {!isPreview && consents.length === 0 && (
-                <ConsentAddInput className="mt-5 xs:mt-[17px]" title={dataRetention.title} placeholder="Select a Data Retention options" hint={dataRetention.hint} options={options} dropdownTitle="Data Retention Options" onSelect={handleSelect} />
+                <ConsentAddInput className="xs:mt-[17px] mt-5" title={dataRetention.title} placeholder="Select a Data Retention options" hint={dataRetention.hint} options={options} dropdownTitle="Data Retention Options" onSelect={handleSelect} />
             )}
         </div>
     );

@@ -1,30 +1,40 @@
 import React from 'react';
 
-import { useTranslation } from 'next-i18next';
-
+import ResponderLoginPage from '@Components/Login/ResponderLoginPage';
 import LoginLayout from '@Components/Login/login-layout';
 
 import environments from '@app/configs/environments';
 import { getGlobalServerSidePropsByDomain } from '@app/lib/serverSideProps';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
-import { checkHasCustomDomain, getServerSideAuthHeaderConfig } from '@app/utils/serverSidePropsUtils';
+import { checkHasAdminDomain, getRequestHost, getServerSideAuthHeaderConfig } from '@app/utils/serverSidePropsUtils';
 
 export async function getServerSideProps(_context: any) {
     const config = getServerSideAuthHeaderConfig(_context);
     const globalProps = (await getGlobalServerSidePropsByDomain(_context)).props;
     const locale = globalProps['_nextI18Next']['initialLocale'] === 'en' ? '' : `${globalProps['_nextI18Next']['initialLocale']}/`;
-    if (checkHasCustomDomain(_context)) {
+
+    const hasAdminDomain = checkHasAdminDomain(getRequestHost(_context));
+
+    const loginType = _context.query?.type || null;
+    const workspace_id = _context.query?.workspace_id || null;
+    const redirect_to = _context.query?.redirect_to || null;
+
+    if (!hasAdminDomain && (!loginType || !workspace_id)) {
         return {
-            redirect: {
-                permanent: false,
-                destination: `/${locale}`
-            }
+            notFound: true
+        };
+    }
+
+    if (!hasAdminDomain) {
+        return {
+            props: { ...globalProps, type: loginType, workspace_id, redirect_to }
         };
     }
 
     try {
         const userStatus = await fetch(`${environments.INTERNAL_DOCKER_API_ENDPOINT_HOST}/auth/status`, config);
         const user = (await userStatus?.json().catch((e: any) => e)) ?? null;
+
         if (user?.roles?.includes('FORM_CREATOR')) {
             const userWorkspaceResponse = await fetch(`${environments.INTERNAL_DOCKER_API_ENDPOINT_HOST}/workspaces/mine`, config);
             const userWorkspace = (await userWorkspaceResponse?.json().catch((e: any) => e)) ?? null;
@@ -53,15 +63,18 @@ export async function getServerSideProps(_context: any) {
     } catch (e) {
         console.error(e);
     }
+
     return {
-        props: { ...globalProps }
+        props: { ...globalProps, type: loginType, workspace_id, redirect_to }
     };
 }
 
-export const Login = () => {
-    const { t } = useTranslation();
+export const Login = ({ type = 'creator', workspace_id, redirect_to }: { type?: string; workspace_id?: string; redirect_to?: string }) => {
+    const isAdminDomain = window?.location?.host === environments.ADMIN_DOMAIN;
 
-    return <LoginLayout isCreator={true} />;
+    if (!isAdminDomain && workspace_id && redirect_to) return <ResponderLoginPage workspaceId={workspace_id} redirectTo={redirect_to} />;
+
+    return <LoginLayout isCreator={type !== 'responder'} workspaceId={workspace_id} />;
 };
 
 export default Login;

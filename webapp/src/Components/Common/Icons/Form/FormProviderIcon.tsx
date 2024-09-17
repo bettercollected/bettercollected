@@ -1,7 +1,6 @@
 import SmallLogo from '@Components/Common/Icons/Common/SmallLogo';
-
-import { TypeformIcon } from '@app/components/icons/brands/typeform';
-import { GoogleFormIcon } from '@app/components/icons/google-form-icon';
+import {GoogleFormIcon} from "@Components/icons/google-form-icon";
+import {TypeformIcon} from "@Components/icons/brands/typeform";
 
 interface IFormProviderIconProps {
     provider?: string;

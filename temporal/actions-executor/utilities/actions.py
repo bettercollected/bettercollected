@@ -18,6 +18,8 @@ from settings.application import settings
 from utilities.exceptions import HTTPException
 from utilities.google_service import build_google_service, fetch_oauth_token
 from wrappers.thread_pool_executor import thread_pool_executor
+from utilities.form import get_questions_and_answers
+from settings.application import settings
 
 
 async def run_action(
@@ -31,6 +33,9 @@ async def run_action(
     action = json.loads(action)
     form = json.loads(form)
     response = json.loads(response)
+
+    if form.get("builder_version") != "v2":
+        return
 
     def get_state():
         if response.state and response.state.global_state:
@@ -46,7 +51,9 @@ async def run_action(
             item_value = variable.get("value")
 
             if item_name is not None and item_value is not None:
-                return item_name, item_value if not decrypt else crypto.decrypt(item_value)
+                return item_name, (
+                    item_value if not decrypt else crypto.decrypt(item_value)
+                )
             return None, None
 
         extra_data = {}
@@ -98,16 +105,18 @@ async def run_action(
     def get_response():
         return response
 
-    def config_mail(smtp_username: str,
-                    smtp_password: str,
-                    smtp_sender: str,
-                    smtp_port: int,
-                    smtp_server: str,
-                    org_name: Optional[str] = "",
-                    tls: Optional[bool] = True,
-                    ssl: Optional[bool] = False,
-                    use_credentials: Optional[bool] = True,
-                    validate_certs: Optional[bool] = True):
+    def config_mail(
+        smtp_username: str,
+        smtp_password: str,
+        smtp_sender: str,
+        smtp_port: int,
+        smtp_server: str,
+        org_name: Optional[str] = "",
+        tls: Optional[bool] = True,
+        ssl: Optional[bool] = False,
+        use_credentials: Optional[bool] = True,
+        validate_certs: Optional[bool] = True,
+    ):
         return ConnectionConfig(
             MAIL_USERNAME=smtp_username,
             MAIL_PASSWORD=smtp_password,
@@ -119,74 +128,14 @@ async def run_action(
             MAIL_SSL_TLS=ssl,
             USE_CREDENTIALS=use_credentials,
             VALIDATE_CERTS=validate_certs,
-            TEMPLATE_FOLDER="templates"
+            TEMPLATE_FOLDER="templates",
         )
 
-    def get_answer_for_field(field_answer, input_field):
-        if field_answer is None:
-            return ""
-        form_builder_tag_names = {
-            'INPUT_RATING': 'input_rating',
-            'INPUT_NUMBER': 'input_number',
-            'INPUT_SHORT_TEXT': 'input_short_text',
-            'INPUT_LONG_TEXT': 'input_long_text',
-            'INPUT_LINK': 'input_link',
-            'INPUT_EMAIL': 'input_email',
-            'INPUT_DATE': 'input_date',
-            'INPUT_MULTIPLE_CHOICE': 'input_multiple_choice',
-            'INPUT_DROPDOWN': 'input_dropdown',
-            'INPUT_CHECKBOXES': 'input_checkboxes',
-            'INPUT_PHONE_NUMBER': 'input_phone_number',
-            'INPUT_RANKING': 'input_ranking',
-            'INPUT_FILE_UPLOAD': 'input_file_upload'
-        }
-
-        input_field_type = input_field.get('type', '')
-        answer_choice_values = field_answer.get('choices', {}).get('values', []) if field_answer.get('choices',
-                                                                                                     {}) else []
-        file_metadata_name = field_answer.get("file_metadata", {}).get('name', '') if field_answer.get("file_metadata",
-                                                                                                       {}) else ""
-
-        if input_field_type in [form_builder_tag_names['INPUT_RATING'], form_builder_tag_names['INPUT_NUMBER']]:
-            return field_answer.get('number', '')
-        elif input_field_type in [form_builder_tag_names['INPUT_SHORT_TEXT'],
-                                  form_builder_tag_names['INPUT_LONG_TEXT']]:
-            return field_answer.get('text', '')
-        elif input_field_type == form_builder_tag_names['INPUT_LINK']:
-            return field_answer.get('url', '')
-        elif input_field_type == form_builder_tag_names['INPUT_EMAIL']:
-            return field_answer.get('email', '')
-        elif input_field_type == form_builder_tag_names['INPUT_DATE']:
-            return field_answer.get('date', '')
-        elif input_field_type in [form_builder_tag_names['INPUT_MULTIPLE_CHOICE'],
-                                  form_builder_tag_names['INPUT_DROPDOWN']]:
-            return next((choice['value'] for choice in input_field.get('properties', {}).get('choices', []) if
-                         choice['id'] == field_answer.get('choice', {}).get('value')), '')
-        elif input_field_type == form_builder_tag_names['INPUT_CHECKBOXES']:
-            choices = [choice['value'] for choice in input_field.get('properties', {}).get('choices', []) if
-                       choice['id'] in answer_choice_values]
-            return ', '.join(choices)
-        elif input_field_type == form_builder_tag_names['INPUT_PHONE_NUMBER']:
-            return field_answer.get('phone_number', '')
-        elif input_field_type == form_builder_tag_names['INPUT_RANKING']:
-            return ', '.join(choice.get('value', '') for choice in answer_choice_values)
-        elif input_field_type == form_builder_tag_names['INPUT_FILE_UPLOAD']:
-            return file_metadata_name
-        else:
-            return ''
-
     def get_simple_form_response():
-        simple_form = {
-            **form
-        }
-        for field in simple_form.get("fields"):
-            if field.get("type") and "input_" in str(field.get("type")):
-                answers = response.get("answers")
-                if answers is not None:
-                    answer_for_field = answers.get(str(field.get("id")))
-                    field["answer"] = get_answer_for_field(answer_for_field,
-                                                           field) if answer_for_field else "&nbsp;"
-        return simple_form
+        extracted_question_answers = get_questions_and_answers(
+            form=form, response=response
+        )
+        return extracted_question_answers
 
     def get_responses_in_array():
         simple_form = {
@@ -243,10 +192,17 @@ async def run_action(
             subject=subject,
             recipients=recipient,
             subtype=MessageType.html,
-            template_body={"form": get_simple_form_response(), "response": response, "creator_mail": creator_mail},
+            template_body={
+                "form": get_simple_form_response(),
+                "creator_mail": creator_mail,
+                "title": form.get("welcome_page", {}).get("title", "Untitled Form"),
+                "description": form.get("welcome_page", {}).get("description", ""),
+            },
         )
         fast_mail = FastMail(mail_config)
-        asyncio.run(fast_mail.send_message(message, template_name="response-mail.html"))
+        asyncio.ensure_future(
+            fast_mail.send_message(message, template_name="response-mail.html")
+        )
         return "ok"
 
     def append_in_sheet(google_sheet_id, credentials, question_array, response_array):
@@ -302,49 +258,186 @@ async def run_action(
         res = httpx.post(url=url, params=params, data=data, headers=headers)
         return res
 
+    def send_webhook_action():
+        URL = get_parameter("Webhook URL")
+        data = get_simple_form_response()
+        send_data_webhook(URL, data=data)
+
+    def send_responder_a_copy_of_mail():
+        form = get_form()
+        response = get_response()
+
+        workspace = get_workspace_details()
+
+        if response.get("dataOwnerIdentifier"):
+            username = get_parameter("Username")
+            password = get_secret("Password")
+            sender = get_parameter("Sender")
+            port = int(get_parameter("Port"))
+            server = get_parameter("server")
+            from_name = workspace.get("title", "")
+
+            mail_config = config_mail(
+                username, password, sender, port, server, from_name
+            )
+
+            send_mail_action(
+                mail_config,
+                "Copy of your response to " + form.get("title", "Untitled Form"),
+                [response.get("dataOwnerIdentifier")],
+            )
+
+    def send_me_a_copy_of_response():
+        form = get_form()
+
+        receiving_mail = get_parameter("Receiving Mail Address")
+
+        if receiving_mail:
+            username = get_parameter("Username")
+            password = get_secret("Password")
+            sender = get_parameter("Sender")
+            port = int(get_parameter("Port"))
+            server = get_parameter("server")
+
+            mail_config = config_mail(username, password, sender, port, server)
+
+            send_mail_action(
+                mail_config,
+                "You have got a new response in " + form.get("title", "Untitled Form"),
+                [receiving_mail],
+                True,
+            )
+
+    def send_data_discord(url: str, params=None, data=None, headers=None):
+        if data is None:
+            data = {}
+
+        fields = []
+        for q_n_a in data:
+            fields.append(
+                {
+                    "name": q_n_a["title"],
+                    "value": q_n_a["answer"],
+                    "inline": False,
+                }
+            )
+        payload = {
+            "content": f"🎉 **Congratulations!** You received a new response on! **{form['title']}**",
+            "embeds": [
+                {
+                    "color": 0x00FF00,
+                    "description": f"[View Form response here]({settings.frontend_url}/{workspace['workspace_name']}/dashboard/forms/{form['form_id']}/?view=Responses)\n --------------------------",
+                    "fields": fields,
+                    "footer": {"text": "Thank You for using Bettercollected"},
+                }
+            ],
+        }
+        res = httpx.post(url=url, params=params, json=payload, headers=headers)
+        return res
+
+    def send_data_slack(url: str, params=None, data=None, headers=None):
+        if data is None:
+            data = {}
+
+        fields = []
+        for q_n_a in data:
+            fields.append(
+                {
+                    "title": q_n_a["title"],
+                    "value": q_n_a["answer"],
+                    "short": False,
+                }
+            )
+
+        payload = {
+            "attachments": [
+                {
+                    "title": f"🎉 **Congratulations!** You received a new response on! `{form['title']}`\n\n",
+                    "color": "#00FF00",
+                    "text": (
+                        f"Click <{settings.frontend_url}/{workspace['workspace_name']}/dashboard/forms/{form['form_id']}/?view=Responses|here> to view the form response.\n\n"
+                        "Details:\n"
+                    ),
+                    "fields": fields,
+                    "footer": "Thank you for using Bettercollected",
+                }
+            ]
+        }
+        res = httpx.post(url=url, params=params, json=payload, headers=headers)
+        return res
+
+    def send_message_to_discord():
+        URL = get_parameter("Discord Webhook URL")
+        data = get_simple_form_response()
+        send_data_discord(URL, data=data)
+
+    def send_message_to_slack():
+        URL = get_parameter("Slack Webhook URL")
+        data = get_simple_form_response()
+        send_data_slack(URL, data=data)
+
+    if action.get("predefined"):
+        match action.get("name"):
+            case "send_webhook":
+                return send_webhook_action()
+            case "responder_copy_mail":
+                return send_responder_a_copy_of_mail()
+            case "creator_copy_mail":
+                return send_me_a_copy_of_response()
+            case "send_to_discord":
+                return send_message_to_discord()
+            case "send_to_slack":
+                return send_message_to_slack()
+        return
     loop = asyncio.get_event_loop()
-    result = await asyncio.wait_for(loop.run_in_executor(thread_pool_executor, execute_action_code,
-                                                         action.get("action_code"),
-                                                         response,
-                                                         form,
-                                                         action,
-                                                         workspace,
-                                                         get_form,
-                                                         get_response,
-                                                         get_parameters,
-                                                         get_secrets,
-                                                         get_parameter,
-                                                         get_secret,
-                                                         get_state,
-                                                         send_data_webhook,
-                                                         config_mail,
-                                                         send_mail_action,
-                                                         get_simple_form_response,
-                                                         get_workspace_details,
-                                                         get_form_question_in_array,
-                                                         get_responses_in_array,
-                                                         append_in_sheet
-                                                         ), timeout=30)
+    result = await asyncio.wait_for(
+        loop.run_in_executor(
+            thread_pool_executor,
+            execute_action_code,
+            action.get("action_code"),
+            response,
+            form,
+            get_form,
+            get_response,
+            get_parameters,
+            get_secrets,
+            get_parameter,
+            get_secret,
+            get_state,
+            send_data_webhook,
+            send_data_discord,
+            send_data_slack,
+            config_mail,
+            send_mail_action,
+            get_simple_form_response,
+            get_workspace_details,
+        ),
+        timeout=30,
+    )
     return result
 
 
-def execute_action_code(action_code: str,
-                        response,
-                        form,
+def execute_action_code(
+    action_code: str,
+    response,
+    form,
                         action,
                         workspace,
-                        get_form,
-                        get_response,
-                        get_parameters,
-                        get_secrets,
-                        get_parameter,
-                        get_secret,
-                        get_state,
-                        send_data_webhook,
-                        config_mail,
-                        send_mail_action,
-                        get_simple_form_response,
-                        get_workspace_details,
+    get_form,
+    get_response,
+    get_parameters,
+    get_secrets,
+    get_parameter,
+    get_secret,
+    get_state,
+    send_data_webhook,
+    send_data_discord,
+    send_data_slack,
+    config_mail,
+    send_mail_action,
+    get_simple_form_response,
+    get_workspace_details,
+,
                         get_form_question_in_array,
                         get_responses_in_array,
                         append_in_sheet
@@ -389,6 +482,8 @@ def execute_action_code(action_code: str,
                 "get_secret": get_secret,
                 "get_state": get_state,
                 "send_data_webhook": send_data_webhook,
+                "send_data_discord": send_data_discord,
+                "send_data_slack": send_data_slack,
                 "config_mail": config_mail,
                 "send_mail_action": send_mail_action,
                 "get_simple_form_response": get_simple_form_response,
@@ -410,7 +505,4 @@ def execute_action_code(action_code: str,
             )
         traceback.print_exception(e)
         raise RuntimeError("\n".join(log_string))
-    return {
-        "status": status,
-        "log": "\n".join(log_string)
-    }
+    return {"status": status, "log": "\n".join(log_string)}

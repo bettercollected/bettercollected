@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 
 import { batch } from 'react-redux';
 
-import { useModal } from '@app/components/modal-views/context';
+import { useModal } from '@app/Components/modal-views/context';
 import SpotlightCommandListener from '@app/lib/builders/listeners/implementations/SpotlightCommandListener';
 import ICommandListener from '@app/lib/builders/listeners/interfaces/ICommandListener';
 import CommandManager from '@app/lib/builders/managers/CommandManager';
@@ -12,6 +12,7 @@ import { selectBuilderState } from '@app/store/form-builder/selectors';
 import { IBuilderStateProps } from '@app/store/form-builder/types';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { AppDispatch } from '@app/store/store';
+
 
 interface IBuilderSpotlightDispatcherProps {
     children: React.ReactNode | React.ReactNode[];

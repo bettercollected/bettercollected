@@ -115,7 +115,7 @@ class FormRepository:
 
     @staticmethod
     def get_published_forms_in_workspace(
-        workspace_id: PydanticObjectId, form_id_list: List[str], sort=None
+        workspace_id: PydanticObjectId, form_id_list: List[str], sort=None, get_actions= False
     ):
         aggregation_pipeline = [
             {"$sort": {"version": -1}},
@@ -131,13 +131,73 @@ class FormRepository:
             },
             {"$unwind": "$workspace_form"},
             {"$match": {"workspace_form.workspace_id": workspace_id}},
+            {"$set": {"settings": "$workspace_form.settings", "is_published": True}},
+            {
+                "$lookup": {
+                    "from": "form_responses",
+                    "localField": "form_id",
+                    "foreignField": "form_id",
+                    "as": "responses",
+                }
+            },
             {
                 "$set": {
-                    "settings": "$workspace_form.settings",
-                    "is_published": True
+                    "responses": {
+                        "$filter": {
+                            "input": "$responses",
+                            "as": "item",
+                            "cond": {"$ne": [{"$type": "$$item.answers"}, "missing"]},
+                        }
+                    }
+                }
+            },
+            {"$set": {"responses": {"$size": "$responses"}}},
+            {
+                "$lookup": {
+                    "from": "responses_deletion_requests",
+                    "localField": "form_id",
+                    "foreignField": "form_id",
+                    "as": "responses_deletion_requests",
+                }
+            },
+            {"$set": {"deletion_requests": {"$size": "$responses_deletion_requests"}}},
+        ]
+        get_action_aggregation = [
+            {
+                "$lookup": {
+                    "from": "forms",
+                    "localField": "form_id",
+                    "foreignField": "form_id",
+                    "as": "form",
+                }
+            },
+            {"$unwind": "$form"},
+            {
+                "$set": {
+                    "actions": "$form.actions",
+                    "parameters": "$form.parameters",
+                    "secrets": "$form.secrets",
+                }
+            },
+            {
+                "$lookup": {
+                    "from": "responder_group_form",
+                    "localField": "form_id",
+                    "foreignField": "form_id",
+                    "as": "form_groups",
+                }
+            },
+            {
+                "$lookup": {
+                    "from": "responder_group",
+                    "localField": "form_groups.group_id",
+                    "foreignField": "_id",
+                    "as": "groups",
                 }
             },
         ]
+        if get_actions:
+            aggregation_pipeline.extend(get_action_aggregation)
         aggregation_pipeline.extend(create_filter_pipeline(sort=sort))
         form_versions_query = FormVersionsDocument.find(
             {"form_id": {"$in": form_id_list}}
@@ -202,11 +262,7 @@ class FormRepository:
                 ]
             )
 
-        aggregation_pipeline.append({
-            "$sort": {
-                "created_at": -1
-            }
-        })
+        aggregation_pipeline.append({"$sort": {"created_at": -1}})
         return (
             await query_document.find(
                 {
@@ -244,7 +300,9 @@ class FormRepository:
         form_document.logo = form.logo
         form_document.cover_image = form.cover_image
         form_document.description = form.description
-        form_document.button_text = form.button_text
+        form_document.welcome_page = form.welcome_page
+        form_document.thankyou_page = form.thankyou_page
+        form_document.theme = form.theme
         form_document.consent = form.consent if form.consent else form_document.consent
         form_document.settings = (
             form.settings if form.settings else form_document.settings

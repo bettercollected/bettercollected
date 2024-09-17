@@ -13,11 +13,11 @@ from starlette.requests import Request
 
 from backend.app.exceptions import HTTPException
 from backend.app.models.dataclasses.user_tokens import UserTokens
-from backend.app.models.dtos.kafka_event_dto import UserEventType
+from backend.app.models.dtos.brevo_event_dto import UserEventType
 from backend.app.models.enum.user_tag_enum import UserTagType
 from backend.app.services import workspace_service as workspaces_service
 from backend.app.services.form_plugin_provider_service import FormPluginProviderService
-from backend.app.services.kafka_service import event_logger_service
+from backend.app.services.brevo_service import event_logger_service
 from backend.app.services.plugin_proxy_service import PluginProxyService
 from backend.app.services.temporal_service import TemporalService
 from backend.app.services.user_tags_service import UserTagsService
@@ -28,15 +28,15 @@ from backend.config import settings
 
 class AuthService:
     def __init__(
-            self,
-            http_client: HttpClient,
-            plugin_proxy_service: PluginProxyService,
-            form_provider_service: FormPluginProviderService,
-            jwt_service: JwtService,
-            workspace_service: WorkspaceService,
-            temporal_service: TemporalService,
-            crypto: Crypto,
-            user_tags_service: UserTagsService,
+        self,
+        http_client: HttpClient,
+        plugin_proxy_service: PluginProxyService,
+        form_provider_service: FormPluginProviderService,
+        jwt_service: JwtService,
+        workspace_service: WorkspaceService,
+        temporal_service: TemporalService,
+        crypto: Crypto,
+        user_tags_service: UserTagsService,
     ):
         self.http_client = http_client
         self.plugin_proxy_service = plugin_proxy_service
@@ -82,7 +82,7 @@ class AuthService:
             )
 
     async def validate_otp(
-            self, login_details: UserLoginWithOTP, prospective_pro_user: bool
+        self, login_details: UserLoginWithOTP, prospective_pro_user: bool
     ):
         response_data = await self.http_client.get(
             settings.auth_settings.BASE_URL + "/auth/otp/validate",
@@ -112,7 +112,7 @@ class AuthService:
             raise HTTPException(HTTPStatus.UNAUTHORIZED, content="Invalid Otp Code")
 
     async def get_oauth_url(
-            self, provider_name: str, client_referer_url: str, user: User
+        self, provider_name: str, client_referer_url: str, user: User
     ):
         provider_url = await self.form_provider_service.get_provider_url(provider_name)
         oauth_state = OAuthState(
@@ -129,7 +129,7 @@ class AuthService:
         return oauth_url
 
     async def handle_backend_auth_callback(
-            self, *, provider_name: str, state: str, request: Request, user: User = None
+        self, *, provider_name: str, state: str, request: Request, user: User = None
     ) -> Tuple[User, OAuthState]:
         provider_config = await self.form_provider_service.get_provider_if_enabled(
             provider_name
@@ -154,11 +154,11 @@ class AuthService:
         return user, state
 
     async def get_basic_auth_url(
-            self,
-            provider: str,
-            client_referer_url: str,
-            creator: bool = False,
-            prospective_pro_user: bool = False,
+        self,
+        provider: str,
+        client_referer_url: str,
+        creator: bool = False,
+        prospective_pro_user: bool = False,
     ):
         response_data = await self.http_client.get(
             settings.auth_settings.BASE_URL + f"/auth/{provider}/basic",
@@ -196,6 +196,8 @@ class AuthService:
     async def delete_credentials_from_integrations(self, user: User):
         providers = await self.form_provider_service.get_providers(get_all=True)
         for provider in providers:
+            if not provider.enabled:
+                continue
             response = await AiohttpClient.get_aiohttp_client().delete(
                 await self.form_provider_service.get_provider_url(
                     provider.provider_name
@@ -219,7 +221,9 @@ class AuthService:
     async def add_workflow_to_delete_user(
         self, access_token: str, refresh_token: str, user: User
     ):
-        await event_logger_service.send_event(event_type=UserEventType.ACCOUNT_DELETED, user_id=user.id, email=user.sub)
+        await event_logger_service.send_event(
+            event_type=UserEventType.ACCOUNT_DELETED, user_id=user.id, email=user.sub
+        )
         return await self.temporal_service.start_user_deletion_workflow(
             UserTokens(access_token=access_token, refresh_token=refresh_token),
             user_id=user.id,

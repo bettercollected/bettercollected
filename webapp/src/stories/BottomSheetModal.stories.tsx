@@ -1,5 +1,5 @@
 import type {Meta, StoryObj} from '@storybook/react';
-import WorkspaceFormCard from "@app/components/workspace-dashboard/workspace-form-card";
+import WorkspaceFormCard from "@app/Components/workspace-dashboard/workspace-form-card";
 import BottomSheetModalWrapper from "@Components/Modals/BottomSheetModals/WorkspaceSettingsModal";
 
 

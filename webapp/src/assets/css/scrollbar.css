@@ -71,6 +71,7 @@
     border-radius: 15px;
     @apply bg-black/10 dark:bg-gray-600;
 }
+
 .os-theme-thin > .os-scrollbar > .os-scrollbar-track > .os-scrollbar-handle:before {
     content: '';
     display: block;
@@ -96,6 +97,7 @@
     -webkit-overflow-scrolling: touch;
     max-height: calc(100vh - 160px);
 }
+
 /* .table-scrollbar {
   background-color: green;
 } */

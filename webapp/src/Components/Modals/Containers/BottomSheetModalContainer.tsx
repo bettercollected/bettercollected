@@ -10,12 +10,12 @@ import { BOTTOM_SCREEN_MODALS, useBottomSheetModal } from '@Components/Modals/Co
 import { Button } from '@mui/material';
 import { AnimatePresence, motion } from 'framer-motion';
 
-import { Close } from '@app/components/icons/close';
-import ModalContainer from '@app/components/modal-views/container';
-import FormCreateSlugFullModalView from '@app/components/modal-views/full-screen-modals/create-form-slug-full-modal-view';
-import SelectGroupFullModalView from '@app/components/modal-views/full-screen-modals/select-group-modal-view';
-import ScheduleFormCloseDateModal from '@app/components/modal-views/modals/schedule-form-close-date-modal';
-import { Dialog } from '@app/components/ui/dialog';
+import { Close } from '@app/Components/icons/close';
+import ModalContainer from '@app/Components/modal-views/container';
+import FormCreateSlugFullModalView from '@app/Components/modal-views/full-screen-modals/create-form-slug-full-modal-view';
+import SelectGroupFullModalView from '@app/Components/modal-views/full-screen-modals/select-group-modal-view';
+import ScheduleFormCloseDateModal from '@app/Components/modal-views/modals/schedule-form-close-date-modal';
+import { Dialog } from '@app/Components/ui/dialog';
 
 const renderModalContent = (view: BOTTOM_SCREEN_MODALS, modalProps: any) => {
     switch (view) {
@@ -39,16 +39,7 @@ const renderModalContent = (view: BOTTOM_SCREEN_MODALS, modalProps: any) => {
 };
 
 export default function BottomSheetModalContainer() {
-    const router = useRouter();
     const { isOpen, closeBottomSheetModal, modalProps, view } = useBottomSheetModal();
-
-    useEffect(() => {
-        // close search modal when route change
-        router.events.on('routeChangeStart', closeBottomSheetModal);
-        return () => {
-            router.events.off('routeChangeStart', closeBottomSheetModal);
-        };
-    }, [closeBottomSheetModal, router.events]);
 
     return (
         <>
@@ -57,7 +48,7 @@ export default function BottomSheetModalContainer() {
                 <AnimatePresence mode="wait">
                     {view && (
                         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ ease: 'easeOut', duration: 0.5 }} className="!w-screen">
-                            <Dialog.Overlay className={`fixed inset-0  bg-gray-700 bg-opacity-20   cursor-pointer`} />
+                            <Dialog.Overlay className={`fixed inset-0  cursor-pointer bg-gray-700  bg-opacity-60`} />
                         </motion.div>
                     )}
                 </AnimatePresence>
@@ -66,7 +57,7 @@ export default function BottomSheetModalContainer() {
                         <Close className="h-auto w-[13px]" />
                     </Button>
                 </div>
-                <div data-testid="modal-view" className={`relative min-h-screen flex flex-col items-center content-center !w-full  z-50 text-left align-middle md:w-fit`}>
+                <div data-testid="modal-view" className={`relative z-50 flex min-h-screen !w-full flex-col content-center  items-center text-left align-middle md:w-fit`}>
                     <AnimatePresence mode="wait">
                         {view && (
                             <motion.div initial={{ opacity: 0, y: '100%' }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: '100%' }} transition={{ ease: 'easeOut', duration: 0.5 }} className="!w-screen">

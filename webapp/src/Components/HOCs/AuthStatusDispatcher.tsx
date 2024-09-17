@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 
-import { useRouter } from 'next/router';
+import { useRouter } from 'next/navigation';
 
 import { UserStatus } from '@app/models/dtos/UserStatus';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
@@ -21,7 +21,7 @@ export default function AuthStatusDispatcher({ workspace, children, isCustomDoma
     const [is401, setIs401] = useState(false);
 
     const { data, isLoading } = useGetStatusQuery(undefined, {
-        pollingInterval: 10000,
+        pollingInterval: 30000,
         selectFromResult: ({ data, isLoading, isError }) => {
             if (isError) setIs401(true);
             if (data) {
@@ -39,8 +39,8 @@ export default function AuthStatusDispatcher({ workspace, children, isCustomDoma
             dispatch(setAuth(user));
         }
         if (is401) {
-            dispatch(setAuth({ ...initialAuthState, isLoading: false }));
-            if (isAdminDomain()) router.replace(router.asPath);
+            dispatch(setAuth({ ...initialAuthState, isLoading: false, is401 }));
+            if (isAdminDomain()) router.replace(window.location.href);
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isLoading, is401, workspace]);

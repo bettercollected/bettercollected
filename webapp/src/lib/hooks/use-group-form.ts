@@ -3,8 +3,8 @@ import { useRouter } from 'next/router';
 
 import { toast } from 'react-toastify';
 
-import { useModal } from '@app/components/modal-views/context';
-import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
+import { useModal } from '@app/Components/modal-views/context';
+import { useFullScreenModal } from '@app/Components/modal-views/full-screen-modal-context';
 import { toastMessage } from '@app/constants/locales/toast-message';
 import { ToastId } from '@app/constants/toastId';
 import { StandardFormDto } from '@app/models/dtos/form';
@@ -12,6 +12,7 @@ import { ResponderGroupDto } from '@app/models/dtos/groups';
 import { setForm } from '@app/store/forms/slice';
 import { useAppDispatch } from '@app/store/hooks';
 import { useAddFormOnGroupMutation, useDeleteGroupFormMutation } from '@app/store/workspaces/api';
+
 
 interface IDeleteFormFromGroupProps {
     group: ResponderGroupDto | null;
@@ -72,7 +73,6 @@ export function useGroupForm() {
             // closeModal();
             // fullScreenModal.closeModal();
         } catch (error) {
-            console.log(error);
             toast(t(toastMessage.somethingWentWrong).toString(), { toastId: ToastId.ERROR_TOAST, type: 'error' });
         }
     };

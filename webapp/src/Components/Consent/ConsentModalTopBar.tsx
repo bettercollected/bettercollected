@@ -1,7 +1,8 @@
 import React from 'react';
 
-import { DropdownCloseIcon } from '@app/components/icons/dropdown-close';
-import { useModal } from '@app/components/modal-views/context';
+import { DropdownCloseIcon } from '@app/Components/icons/dropdown-close';
+import { useModal } from '@app/Components/modal-views/context';
+
 
 export default function ConsentModalTopBar({ title }: any) {
     const { closeModal } = useModal();

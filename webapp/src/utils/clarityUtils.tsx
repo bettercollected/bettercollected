@@ -1,6 +1,7 @@
+'use client';
+
 import { useEffect } from 'react';
 
-import environments from '@app/configs/environments';
 import { selectAuth } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 

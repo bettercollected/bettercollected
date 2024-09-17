@@ -6,9 +6,10 @@ import CheckedCircle from '@Components/Common/Icons/Common/CheckedCircle';
 import AppButton from '@Components/Common/Input/Button/AppButton';
 import { ButtonSize, ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
 
-import FormSettingsTab from '@app/components/dashboard/form-settings';
+import FormSettingsTab from '@Components/dashboard/form-settings';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
+
 
 export default function ChangeSlugComponent() {
     const workspace = useAppSelector(selectWorkspace);

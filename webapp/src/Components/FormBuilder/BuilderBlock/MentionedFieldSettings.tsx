@@ -2,12 +2,13 @@ import { ChangeEvent } from 'react';
 
 import AppTextField from '@Components/Common/Input/AppTextField';
 
-import { Close } from '@app/components/icons/close';
+import { Close } from '@app/Components/icons/close';
 import useClickOutsideMenu from '@app/lib/hooks/use-click-outside-menu';
 import { resetBuilderMenuState, setUpdateField } from '@app/store/form-builder/actions';
 import { selectMenuState } from '@app/store/form-builder/selectors';
 import { IFormFieldState } from '@app/store/form-builder/types';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
+
 
 export default function MentionedFieldSettings({ field }: { field: IFormFieldState }) {
     const pipingSettingsState = useAppSelector(selectMenuState('pipingFieldSettings'));

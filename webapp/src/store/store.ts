@@ -1,32 +1,53 @@
-import {Reducer, combineReducers, configureStore} from '@reduxjs/toolkit';
-import {setupListeners} from '@reduxjs/toolkit/query';
-import {persistStore} from 'redux-persist';
+import { combineReducers, configureStore, Reducer } from '@reduxjs/toolkit';
+import { setupListeners } from '@reduxjs/toolkit/query';
+import { persistStore } from 'redux-persist';
 
 import environments from '@app/configs/environments';
-import {RESET_STATE_ACTION_TYPE} from '@app/store/actions/resetState';
-import {authApi} from '@app/store/auth/api';
+import { RESET_STATE_ACTION_TYPE } from '@app/store/actions/resetState';
+import { authApi } from '@app/store/auth/api';
 import authSlice from '@app/store/auth/slice';
-import {couponCodeApi} from '@app/store/coupon-code/api';
+import { couponCodeApi } from '@app/store/coupon-code/api';
 import fillFormSlice from '@app/store/fill-form/slice';
 import builder from '@app/store/form-builder/builderSlice';
 import formSlice from '@app/store/forms/slice';
-import {plansApi} from '@app/store/plans/api';
-import {providerApi} from '@app/store/providers/api';
-import {templateApi} from '@app/store/template/api';
+import { plansApi } from '@app/store/plans/api';
+import { providerApi } from '@app/store/providers/api';
+import { templateApi } from '@app/store/template/api';
 import joyrideSlice from '@app/store/tours/slice';
-import {workspacesApi} from '@app/store/workspaces/api';
-import {membersNInvitationsApi} from '@app/store/workspaces/members-n-invitations-api';
+import { workspacesApi } from '@app/store/workspaces/api';
+import { membersNInvitationsApi } from '@app/store/workspaces/members-n-invitations-api';
 import workspaceSlice from '@app/store/workspaces/slice';
 
-import {apiActionsApi} from './api-actions-api';
-import {consentApi} from './consent/api';
+import { apiActionsApi } from './api-actions-api';
+import { consentApi } from './consent/api';
 import consentSlice from './consent/consentSlice';
 import mutationStatusSlice from './mutations/slice';
-import {integrationApi} from "@app/store/integrationApi";
+import { priceSuggestionApi } from './price-suggestion/api';
 
+import { templatesApi } from '@app/store/redux/templateApi';
+import { integrationApi } from '@app/store/integrationApi';
+
+import { formsApi } from '@app/store/redux/formApi';
+import { importApi } from '@app/store/redux/importApi';
+import { mediaLibraryApi } from './media-library/api';
 // Add more middlewares here
 // const middlewares = [loggerMiddleware, authApi.middleware, membersNInvitationsApi.middleware, plansApi.middleware, providerApi.middleware, workspacesApi.middleware];
-const middlewares = [authApi.middleware, membersNInvitationsApi.middleware, plansApi.middleware, providerApi.middleware, workspacesApi.middleware, consentApi.middleware, templateApi.middleware, apiActionsApi.middleware, couponCodeApi.middleware, integrationApi.middleware];
+const middlewares = [
+    priceSuggestionApi.middleware,
+    authApi.middleware,
+    membersNInvitationsApi.middleware,
+    plansApi.middleware,
+    providerApi.middleware,
+    workspacesApi.middleware,
+    consentApi.middleware,
+    templateApi.middleware,
+    apiActionsApi.middleware,
+    couponCodeApi.middleware,
+    formsApi.middleware,
+    templatesApi.middleware,
+    importApi.middleware,
+    mediaLibraryApi.middleware
+];
 
 // if (environments.IS_IN_PRODUCTION_MODE) middlewares.splice(0, 1);
 
@@ -48,7 +69,12 @@ const reducers = {
     [consentApi.reducerPath]: consentApi.reducer,
     [templateApi.reducerPath]: templateApi.reducer,
     [couponCodeApi.reducerPath]: couponCodeApi.reducer,
-    [integrationApi.reducerPath]: integrationApi.reducer
+    [priceSuggestionApi.reducerPath]: priceSuggestionApi.reducer,
+    [mutationStatusSlice.reducerPath]: mutationStatusSlice.reducer,
+    [formsApi.reducerPath]: formsApi.reducer,
+    [templatesApi.reducerPath]: templatesApi.reducer,
+    [importApi.reducerPath]: importApi.reducer,
+    [mediaLibraryApi.reducerPath]: mediaLibraryApi.reducer
 };
 
 const combinedReducer = combineReducers<typeof reducers>(reducers);

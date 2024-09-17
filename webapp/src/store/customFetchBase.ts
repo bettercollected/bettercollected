@@ -28,7 +28,14 @@ const customFetchBase: BaseQueryFn<string | FetchArgs, unknown, FetchBaseQueryEr
             const release = await mutex.acquire();
 
             try {
-                const refreshResult = await baseQuery({ credentials: 'include', url: 'auth/refresh_token' }, api, extraOptions);
+                const refreshResult = await baseQuery(
+                    {
+                        credentials: 'include',
+                        url: 'auth/refresh_token'
+                    },
+                    api,
+                    extraOptions
+                );
 
                 if (refreshResult.data) {
                     // Retry the initial query

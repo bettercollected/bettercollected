@@ -1,10 +1,14 @@
 import React, { useEffect, useState } from 'react';
 
-import Image from 'next/image';
+import Image from 'next/legacy/image';
+import { useRouter } from 'next/navigation';
 
+import Divider from '@Components/Common/DataDisplay/Divider';
+import LoggedOutAccountIcon from '@Components/Common/Icons/Common/LoggedOutAccountIcon';
 import AppButton from '@Components/Common/Input/Button/AppButton';
 import { ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
 import MarkdownText from '@Components/Common/Markdown';
+import MenuDropdown from '@Components/Common/Navigation/MenuDropdown/MenuDropdown';
 import CheckboxField from '@Components/Form/CheckboxField';
 import DropdownField from '@Components/Form/DropdownField';
 import FieldValidations from '@Components/Form/FieldValidations';
@@ -19,9 +23,15 @@ import ShortText from '@Components/Form/ShortText';
 import ThankYouPage from '@Components/Form/ThankYouPage';
 import { toast } from 'react-toastify';
 
-import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
+import AuthAccountProfileImage from '@app/Components/auth/account-profile-image';
+import { Close } from '@app/Components/icons/close';
+import { Logout } from '@app/Components/icons/logout-icon';
+import { useModal } from '@app/Components/modal-views/context';
+import { useFullScreenModal } from '@app/Components/modal-views/full-screen-modal-context';
 import { StandardFormDto, StandardFormFieldDto, StandardFormResponseDto } from '@app/models/dtos/form';
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
+import { useLogoutMutation } from '@app/store/auth/api';
+import { selectAuth } from '@app/store/auth/slice';
 import { ConsentAnswerDto } from '@app/store/consent/types';
 import { resetFillForm, selectAnswers, selectFormResponderOwnerField, selectInvalidFields, setDataResponseOwnerField, setFillFormId, setInvalidFields } from '@app/store/fill-form/slice';
 import { FormValidationError } from '@app/store/fill-form/type';
@@ -29,7 +39,7 @@ import { Condition } from '@app/store/form-builder/types';
 import { useAppAsyncDispatch, useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { useSubmitResponseMutation } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
-import { contentEditableClassNames } from '@app/utils/formBuilderBlockUtils';
+import { getFullNameFromUser } from '@app/utils/userUtils';
 import { validateConditionsAndReturnUpdatedForm, validateFormFieldAnswer } from '@app/utils/validationUtils';
 
 import useFormAtom from './atom';
@@ -91,19 +101,26 @@ interface IBetterCollectedFormProps {
 }
 
 export default function BetterCollectedForm({ form, enabled = false, response, isCustomDomain = false, isPreview = false, closeModal, isDisabled = false, isTemplate = false }: IBetterCollectedFormProps) {
-    const dispatch = useAppDispatch();
-    const asyncDispatch = useAppAsyncDispatch();
-    const { openModal, closeModal: closeFullScreenModal } = useFullScreenModal();
-    const [submitResponse] = useSubmitResponseMutation();
-    const answers = useAppSelector(selectAnswers);
+    const router = useRouter();
+
+    const auth = useAppSelector(selectAuth);
     const formId = useAppSelector((state) => state.fillForm.id);
     const responseDataOwnerField = useAppSelector(selectFormResponderOwnerField);
     const invalidFields = useAppSelector(selectInvalidFields);
     const workspace = useAppSelector(selectWorkspace);
+    const answers = useAppSelector(selectAnswers);
+
+    const { openModal, closeModal: closeDialogModal } = useModal();
+    const { openModal: openFullScreenModal, closeModal: closeFullScreenModal } = useFullScreenModal();
+
     const { files, resetFormFiles } = useFormAtom();
 
-    const [updatedForm, setUpdatedForm] = useState<StandardFormDto>(form);
+    const dispatch = useAppDispatch();
+    const asyncDispatch = useAppAsyncDispatch();
 
+    const [submitResponse, { data }] = useSubmitResponseMutation();
+
+    const [updatedForm, setUpdatedForm] = useState<StandardFormDto>(form);
     const [isFormSubmitted, setIsFormSubmitted] = useState(false);
 
     const conditionalFields = form?.fields?.filter((field: StandardFormFieldDto) => field?.type == FormBuilderTagNames.CONDITIONAL);
@@ -144,9 +161,9 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
 
     const [isResponseValid, setResponseValid] = useState(true);
 
-    const onFormSubmitCallback = async (consentAnswers: Record<string, ConsentAnswerDto>) => {
+    const onFormSubmitCallback = async (consentAnswers: Record<string, ConsentAnswerDto>, anonymize = false) => {
         if (isPreview) {
-            openModal('FORM_BUILDER_PREVIEW', { isFormSubmitted: true });
+            openFullScreenModal('FORM_BUILDER_PREVIEW', { isFormSubmitted: true });
             return;
         }
         const formData = new FormData();
@@ -175,16 +192,17 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
             consent: Object.values(consentAnswers),
             expiration: responseExpirationTime,
             expirationType: responseExpirationType,
-            dataOwnerIdentifier: (answers && answers[responseDataOwnerField]?.email) || null
+            dataOwnerIdentifier: (answers && answers[responseDataOwnerField]?.email) || null,
+            anonymize: anonymize
         };
 
         formData.append('response', JSON.stringify(postBody));
 
         const response: any = await submitResponse({ workspaceId: workspace.id, formId: form?.formId, body: formData });
         if (response?.data) {
-            resetFormFiles();
-            dispatch(resetFillForm());
             setIsFormSubmitted(true);
+            resetFillForm();
+            resetFormFiles();
         } else {
             toast('Error submitting response', { type: 'error' });
         }
@@ -223,31 +241,53 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
         }
         setResponseValid(true);
         if (isPreview) {
-            openModal('CONSENT_FULL_MODAL_VIEW', { form: form, isPreview: true, onFormSubmit: onFormSubmitCallback });
+            openFullScreenModal('CONSENT_FULL_MODAL_VIEW', {
+                form: form,
+                isPreview: true,
+                onFormSubmit: onFormSubmitCallback
+            });
             return;
         }
-        openModal('CONSENT_FULL_MODAL_VIEW', { form: form, onFormSubmit: onFormSubmitCallback });
+        openFullScreenModal('CONSENT_FULL_MODAL_VIEW', { form: form, onFormSubmit: onFormSubmitCallback });
     };
 
     useEffect(() => {
         return () => {
             resetFillForm();
+            resetFormFiles();
         };
     }, []);
 
+    const [trigger] = useLogoutMutation();
+
+    const onClickSwitchAccount = async () => {
+        trigger().then(async () => {
+            const workspaceId = workspace.id !== null ? encodeURIComponent(workspace.id) : '';
+            const redirectPath = window.location.href !== null ? encodeURIComponent(window.location.href) : '';
+
+            const href = `/login?type=responder${workspaceId !== '' ? `&workspace_id=${workspaceId}` : ''}${redirectPath !== '' ? `&redirect_to=${redirectPath}` : ''}`;
+
+            router.push(href);
+        });
+    };
+
+    const handleLogout = () => {
+        openModal('LOGOUT_VIEW', { workspace, isClientDomain: true, skipRedirect: true });
+    };
+
     if (isFormSubmitted) {
-        return <ThankYouPage isDisabled={isDisabled} />;
+        return <ThankYouPage isDisabled={isDisabled} form={form} showSubmissionNumber={!!form?.settings?.showSubmissionNumber} submissionNumber={data} />;
     }
 
     return (
         <div className="w-full bg-white">
             {updatedForm?.coverImage && (
-                <div className={`relative z-0 w-full flex aspect-banner-mobile lg:aspect-banner-desktop`}>
+                <div className={`aspect-banner-mobile lg:aspect-banner-desktop relative z-0 flex w-full`}>
                     <Image layout="fill" objectFit="cover" src={updatedForm.coverImage} alt="test" className="brightness-75" />
                 </div>
             )}
             <form
-                className="w-full max-w-[700px] mx-auto px-10 pb-10 bg-white flex rounded-lg flex-col items-start "
+                className="mx-auto flex w-full max-w-[700px] flex-col items-start rounded-lg bg-white px-10 pb-10 "
                 onKeyDown={(event: any) => {
                     if (!event.shiftKey && event.key === 'Enter') {
                         event.preventDefault();
@@ -256,16 +296,76 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
                 onSubmit={onSubmitForm}
             >
                 {updatedForm?.logo && (
-                    <div className={`relative ${updatedForm?.coverImage ? '-top-12' : 'mt-[60px]'} rounded-lg w-[100px] h-[100px] flex flex-col justify-center items-center gap-3 cursor-pointer hover:shadow-logoCard`}>
-                        <Image height={100} width={100} objectFit="cover" src={updatedForm.logo} alt="logo" className="rounded-lg hover:bg-black-100" />
+                    <div className={`relative ${updatedForm?.coverImage ? '-top-12' : 'mt-[60px]'} hover:shadow-logoCard flex h-[100px] w-[100px] cursor-pointer flex-col items-center justify-center gap-3 rounded-lg`}>
+                        <Image height={100} width={100} objectFit="cover" src={updatedForm.logo} alt="logo" className="hover:bg-black-100 rounded-lg" />
                     </div>
                 )}
-                <div className={`mb-6 ${updatedForm?.coverImage && updatedForm?.logo ? '' : 'mt-12'}`}>
-                    <div className="text-[32px] mb-2 font-bold text-black-800">{updatedForm?.title || 'Untitled'}</div>
-                    {updatedForm?.description && <div className="text-[16px] font-normal text-black-700">{updatedForm?.description}</div>}
+                <div className={`mb-6 ${updatedForm?.coverImage && updatedForm?.logo ? '' : 'mt-12'} w-full`}>
+                    <div className="text-black-800 mb-2 flex w-full items-center justify-between text-[32px] font-bold">
+                        <span>{updatedForm?.title || 'Untitled'}</span>
+                        {enabled && (
+                            <MenuDropdown
+                                id="auth-menu"
+                                className="!p-0"
+                                showExpandMore={false}
+                                menuTitle=""
+                                menuContent={auth.id ? <AuthAccountProfileImage size={40} image={auth?.profileImage} name={getFullNameFromUser(auth) ?? ''} /> : <LoggedOutAccountIcon />}
+                            >
+                                {auth.id && (
+                                    <div className="relative px-4 py-2">
+                                        <div className="flex gap-2">
+                                            <AuthAccountProfileImage size={40} image={auth?.profileImage} name={getFullNameFromUser(auth) ?? ''} />
+                                            <div className="!text-black-700 flex flex-col justify-center gap-2 pr-1 text-start">
+                                                <span className="body6 !leading-none">{getFullNameFromUser(auth)?.trim() || auth?.email || ''}</span>
+                                                <span className="body5 !leading-none">{auth?.email} </span>
+                                            </div>
+                                        </div>
+                                        <div className="p4-new mt-2  pl-11">
+                                            <span className="cursor-pointer text-blue-500" onClick={onClickSwitchAccount}>
+                                                Switch Account
+                                            </span>
+                                        </div>
+                                        <div className="text-black-600 absolute right-2 top-0">
+                                            <Close />
+                                        </div>
+
+                                        {!form?.settings?.requireVerifiedIdentity && (
+                                            <>
+                                                <Divider className="text-black-200 mt-4" />
+                                                <div className="text-black-800 hover:bg-new-blue-100 mt-2  flex  cursor-pointer gap-2 rounded px-4 py-2 active:bg-blue-100" onClick={handleLogout}>
+                                                    <Logout width={24} height={24} />
+                                                    <span className="font-medium">Log Out</span>
+                                                </div>
+                                            </>
+                                        )}
+                                    </div>
+                                )}
+                                {!auth.id && (
+                                    <div className="px-4 py-2">
+                                        <div className="p2-new text-black-600 mb-2">Do you wish to track your form response for future reference?</div>
+                                        <div
+                                            className="p2-new cursor-pointer text-blue-500 hover:underline"
+                                            onClick={() => {
+                                                const workspaceId = workspace.id !== null ? encodeURIComponent(workspace.id) : '';
+                                                const redirectPath = window.location.href !== null ? encodeURIComponent(window.location.href) : '';
+
+                                                const href = `/login?type=responder${workspaceId !== '' ? `&workspace_id=${workspaceId}` : ''}${redirectPath !== '' ? `&redirect_to=${redirectPath}` : ''}`;
+
+                                                router.push(href);
+                                            }}
+                                        >
+                                            Sign In and start tracking
+                                        </div>
+                                    </div>
+                                )}
+                            </MenuDropdown>
+                        )}
+                    </div>
+
+                    {updatedForm?.description && <div className="text-black-700 text-[16px] font-normal">{updatedForm?.description}</div>}
                 </div>
 
-                <div className="flex flex-col w-full gap-2">
+                <div className="flex w-full flex-col gap-2">
                     {updatedForm?.fields?.map((field: StandardFormFieldDto) => (
                         <div key={field?.id} className="relative w-full" id={field?.id}>
                             {!field?.properties?.hidden && renderFormField(field, enabled, response?.answers[field.id] || answers[field.id], updatedForm?.fields)}
@@ -273,7 +373,7 @@ export default function BetterCollectedForm({ form, enabled = false, response, i
                         </div>
                     ))}
                     <div className={'mt-10'}>
-                        {!isResponseValid && <div className="text-red-500 mb-2 text-sm">*Invalid answers in one or more fields. Check and correct the highlighted entries.</div>}
+                        {!isResponseValid && <div className="mb-2 text-sm text-red-500">*Invalid answers in one or more fields. Check and correct the highlighted entries.</div>}
                         <AppButton variant={ButtonVariant.Secondary} type="submit" disabled={!enabled}>
                             {updatedForm?.buttonText || 'Submit'}
                         </AppButton>

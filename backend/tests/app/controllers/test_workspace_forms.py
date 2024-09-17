@@ -323,11 +323,11 @@ class TestWorkspaceForm:
             data={"response": json.dumps(formResponse)},
         )
 
-        actual_user_id = response.json()
+        submission_uuid = response.json()
         expected_user_id = (
-            await FormResponseDocument.find_one({"response_id": actual_user_id})
-        ).response_id
-        assert actual_user_id == expected_user_id
+            await FormResponseDocument.find_one({"submission_uuid": submission_uuid})
+        ).submission_uuid
+        assert submission_uuid == expected_user_id
 
     async def test_submit_non_workspace_form_response(
         self,

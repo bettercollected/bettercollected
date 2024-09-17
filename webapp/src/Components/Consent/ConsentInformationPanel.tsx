@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
 
-import { Close } from '@app/components/icons/close';
-import { Hint } from '@app/components/icons/hint';
+import { Close } from '@app/Components/icons/close';
+import { Hint } from '@app/Components/icons/hint';
 import { consentPageInformation } from '@app/data/consent';
 import { useIsMobile } from '@app/lib/hooks/use-breakpoint';
+
 
 export default function ConsentInformationPanel() {
     const [isOpen, setOpen] = useState(false);

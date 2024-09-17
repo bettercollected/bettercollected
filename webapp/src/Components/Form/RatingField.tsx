@@ -3,11 +3,12 @@ import React, { useState } from 'react';
 import _ from 'lodash';
 
 import { FormFieldProps } from '@Components/Form/BetterCollectedForm';
-import { FieldRequired } from '@Components/UI/FieldRequired';
+import { FieldRequired } from '@Components/ui/FieldRequired';
 import { Star, StarBorder } from '@mui/icons-material';
 
 import { addAnswer, selectAnswer } from '@app/store/fill-form/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
+
 
 export default function RatingField({ field, ans, enabled }: FormFieldProps) {
     const dispatch = useAppDispatch();
