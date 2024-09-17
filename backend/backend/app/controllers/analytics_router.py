@@ -8,7 +8,10 @@ from backend.app.router import router
 from backend.app.services.umami_client import UmamiClient
 from backend.app.models.dtos.stats_model_dto import StatsModel
 from backend.app.models.dtos.pageviews_model_dto import PageViewModel
-from backend.app.models.dtos.metrics_model_dto import MetricResponseModel
+from backend.app.models.dtos.metrics_model_dto import (
+    MetricDataModel,
+    MetricResponseModel,
+)
 from backend.app.services.analytics_service import AnalyticsService
 from backend.app.container import container
 from typing import Optional
@@ -37,12 +40,12 @@ class FormAnalyticsRouter(Routable):
         self.analytics_service = analytics_services
 
     @get(
-        "/{workspace_id}/forms/{form_id}/stats",
+        "/{workspace_name}/forms/{form_id}/stats",
         response_model=StatsModel,
     )
     async def get_form_stats(
         self,
-        workspace_id: str,
+        workspace_name: str,
         form_id: str,
         start_at: int,
         end_at: int,
@@ -60,10 +63,10 @@ class FormAnalyticsRouter(Routable):
         user: User = Depends(get_logged_user),
     ):
         await self.analytics_service.check_user_can_view_analytics(
-            workspace_name=workspace_id, user=user
+            workspace_name=workspace_name, user=user
         )
 
-        form_url = f"/{workspace_id}/forms/{form_id}"
+        form_url = f"/{workspace_name}/forms/{form_id}"
 
         if not start_at or not end_at:
             raise HTTPException(
@@ -92,12 +95,12 @@ class FormAnalyticsRouter(Routable):
         return StatsModel(**stats_data)
 
     @get(
-        "/{workspace_id}/forms/{form_id}/pageviews",
+        "/{workspace_name}/forms/{form_id}/pageviews",
         response_model=PageViewModel,
     )
     async def get_form_pageviews(
         self,
-        workspace_id: str,
+        workspace_name: str,
         form_id: str,
         start_at: int,
         end_at: int,
@@ -115,10 +118,10 @@ class FormAnalyticsRouter(Routable):
         user: User = Depends(get_logged_user),
     ):
         await self.analytics_service.check_user_can_view_analytics(
-            workspace_name=workspace_id, user=user
+            workspace_name=workspace_name, user=user
         )
 
-        form_url = f"/{workspace_id}/forms/{form_id}"
+        form_url = f"/{workspace_name}/forms/{form_id}"
 
         if not start_at or not end_at:
             raise HTTPException(
@@ -148,12 +151,12 @@ class FormAnalyticsRouter(Routable):
         return PageViewModel(**pageview_data)
 
     @get(
-        "/{workspace_id}/forms/{form_id}/metrics",
+        "/{workspace_name}/forms/{form_id}/metrics",
         response_model=MetricResponseModel,
     )
     async def get_form_metrics(
         self,
-        workspace_id: str,
+        workspace_name: str,
         form_id: str,
         start_at: int,
         end_at: int,
@@ -174,9 +177,9 @@ class FormAnalyticsRouter(Routable):
         user: User = Depends(get_logged_user),
     ):
         await self.analytics_service.check_user_can_view_analytics(
-            workspace_name=workspace_id, user=user
+            workspace_name=workspace_name, user=user
         )
-        form_url = f"/{workspace_id}/forms/{form_id}"
+        form_url = f"/{workspace_name}/forms/{form_id}"
 
         if not start_at or not end_at:
             raise HTTPException(
