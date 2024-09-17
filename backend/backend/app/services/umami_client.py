@@ -1,6 +1,6 @@
 import httpx
-from fastapi import HTTPException
 from http import HTTPStatus
+from backend.app.exceptions.http import HTTPException
 from backend.config import settings
 from loguru import logger
 from typing import Dict, Any, Callable
