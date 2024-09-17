@@ -8,10 +8,7 @@ from backend.app.router import router
 from backend.app.services.umami_client import UmamiClient
 from backend.app.models.dtos.stats_model_dto import StatsModel
 from backend.app.models.dtos.pageviews_model_dto import PageViewModel
-from backend.app.models.dtos.metrics_model_dto import (
-    MetricDataModel,
-    MetricResponseModel,
-)
+from backend.app.models.dtos.metrics_model_dto import MetricResponseModel
 from backend.app.services.analytics_service import AnalyticsService
 from backend.app.container import container
 from typing import Optional
