@@ -1,16 +1,17 @@
-from fastapi import HTTPException, Depends, Query
+from fastapi import Depends
 from http import HTTPStatus
-from beanie import PydanticObjectId
 from classy_fastapi import Routable, get
 from common.models.user import User
+from backend.app.exceptions.http import HTTPException
 from backend.app.services.user_service import get_logged_user
 from backend.app.router import router
 from backend.app.services.umami_client import UmamiClient
 from backend.app.models.dtos.stats_model_dto import StatsModel
 from backend.app.models.dtos.pageviews_model_dto import PageViewModel
 from backend.app.models.dtos.metrics_model_dto import MetricResponseModel
+from backend.app.services.analytics_service import AnalyticsService
 from backend.app.container import container
-from typing import List, Optional, Dict
+from typing import Optional
 
 
 @router(
@@ -26,12 +27,14 @@ from typing import List, Optional, Dict
 class FormAnalyticsRouter(Routable):
     def __init__(
         self,
+        analytics_services: AnalyticsService = container.analytics_service(),
         umami_client: UmamiClient = container.umami_client(),
         *args,
         **kwargs,
     ):
         super().__init__(*args, **kwargs)
         self.umami_client = umami_client
+        self.analytics_service = analytics_services
 
     @get(
         "/{workspace_id}/forms/{form_id}/stats",
@@ -56,6 +59,9 @@ class FormAnalyticsRouter(Routable):
         city: Optional[str] = None,
         user: User = Depends(get_logged_user),
     ):
+        await self.analytics_service.check_user_can_view_analytics(
+            workspace_name=workspace_id, user=user
+        )
 
         form_url = f"/{workspace_id}/forms/{form_id}"
 
@@ -108,6 +114,9 @@ class FormAnalyticsRouter(Routable):
         city: Optional[str] = None,
         user: User = Depends(get_logged_user),
     ):
+        await self.analytics_service.check_user_can_view_analytics(
+            workspace_name=workspace_id, user=user
+        )
 
         form_url = f"/{workspace_id}/forms/{form_id}"
 
@@ -164,6 +173,9 @@ class FormAnalyticsRouter(Routable):
         limit: Optional[int] = 500,
         user: User = Depends(get_logged_user),
     ):
+        await self.analytics_service.check_user_can_view_analytics(
+            workspace_name=workspace_id, user=user
+        )
         form_url = f"/{workspace_id}/forms/{form_id}"
 
         if not start_at or not end_at:
