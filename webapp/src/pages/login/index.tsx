@@ -1,8 +1,5 @@
 import React from 'react';
-
-import ResponderLoginPage from '@Components/Login/ResponderLoginPage';
-import LoginLayout from '@Components/Login/login-layout';
-
+import LoginComponent from '@Components/Login/Login-Component';
 import environments from '@app/configs/environments';
 import { getGlobalServerSidePropsByDomain } from '@app/lib/serverSideProps';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
@@ -69,12 +66,10 @@ export async function getServerSideProps(_context: any) {
     };
 }
 
-export const Login = ({ type = 'creator', workspace_id, redirect_to }: { type?: string; workspace_id?: string; redirect_to?: string }) => {
-    const isAdminDomain = window?.location?.host === environments.ADMIN_DOMAIN;
+const IndexPage = ({ type = 'creator', workspace_id, redirect_to }: { type?: string; workspace_id?: string; redirect_to?: string }) => {
+    const isAdminDomain = typeof window !== 'undefined' && window?.location?.host === environments.ADMIN_DOMAIN;
 
-    if (!isAdminDomain && workspace_id && redirect_to) return <ResponderLoginPage workspaceId={workspace_id} redirectTo={redirect_to} />;
-
-    return <LoginLayout isCreator={type !== 'responder'} workspaceId={workspace_id} />;
+    return <LoginComponent type={type} workspaceId={workspace_id} redirectTo={redirect_to} isAdminDomain={isAdminDomain} />;
 };
 
-export default Login;
+export default IndexPage;
