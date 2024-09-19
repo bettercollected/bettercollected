@@ -1,7 +1,5 @@
 import React, { useEffect, useState } from 'react';
-
 import { useRouter } from 'next/navigation';
-
 import { UserStatus } from '@app/models/dtos/UserStatus';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { useGetStatusQuery } from '@app/store/auth/api';
@@ -34,13 +32,22 @@ export default function AuthStatusDispatcher({ workspace, children, isCustomDoma
     });
 
     useEffect(() => {
+        const currentPath = window.location.pathname;
+        const isInvitationPage = currentPath.includes('invitation');
+        const isOnAdminDomain = isAdminDomain();
+
         if (data) {
             const user: UserStatus = { ...data, isLoading: false };
             dispatch(setAuth(user));
         }
+
         if (is401) {
             dispatch(setAuth({ ...initialAuthState, isLoading: false, is401 }));
-            if (isAdminDomain()) router.replace(window.location.href);
+
+            // Only redirect if not on invitation page or admin domain
+            if (!isInvitationPage && !isOnAdminDomain) {
+                router.replace(window.location.href);
+            }
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isLoading, is401, workspace]);
