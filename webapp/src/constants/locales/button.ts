@@ -35,6 +35,7 @@ export const buttonConstant = {
     resend: 'BUTTON.RESEND',
     inviteCollaborator: 'BUTTON.INVITE_COLLABORATOR',
     sendInvitation: 'BUTTON.SEND_INVITATION',
+    resendInvitation: 'Resend invitation',
     update: 'BUTTON.UPDATE',
     cancel: 'BUTTON.CANCEL',
     delete: 'BUTTON.DELETE',

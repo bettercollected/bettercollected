@@ -448,12 +448,18 @@
     "TITLE_1": "Je bent uitgenodigd voor",
     "TITLE_2": "Word lid van de werkruimte en begin samen te werken",
     "LINK_EXPIRY": "Deze link verloopt over 7 dagen.",
+    "INVITATION_EXPIRED": "Uitnodiging Verlopen",
+    "THE_INVITATION_YOU_ARE_TRYING_TO_ACCESS_HAS_EXPIRED": "De uitnodiging die je probeert te openen is verlopen.",
+    "ENSURE_TEXT": "Zorg ervoor dat u bent ingelogd op het juiste account.", 
+    "RETURN_TO_WORKSPACE": "Terug naar Werkruimte",
+    "SWITCH_ACCOUNT": "ghfhvy",
     "LIST": {
       "ITEM_1": "Alle formulieren en antwoorden in werkruimte",
       "ITEM_2": "Formulieren importeren naar werkruimte",
-      "ITEM_3": "Formulier formulier werkruimte verwijderen",
-      "TITLE": "U krijgt toegang tot:"
+      "ITEM_3": "Formulier uit werkruimte verwijderen",
+      "TITLE": "Je krijgt toegang tot:"
     }
+    
   },
   "INVITE_COLLABORATOR": {
     "DEFAULT": "Medewerker uitnodigen",

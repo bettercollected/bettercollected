@@ -1,5 +1,4 @@
-import React, { useState } from 'react';
-
+import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'next-i18next';
 import { NextSeo } from 'next-seo';
 import { useRouter } from 'next/router';
@@ -8,8 +7,7 @@ import AppButton from '@Components/Common/Input/Button/AppButton';
 import { ButtonSize, ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
 import { toast } from 'react-toastify';
 
-import AuthAccountProfileImage from '@app/Components/auth/account-profile-image';
-import AuthNavbar from '@app/Components/auth/navbar';
+import AuthNavbar from '@app/components/auth/navbar';
 import environments from '@app/configs/environments';
 import { buttonConstant } from '@app/constants/locales/button';
 import { localesCommon } from '@app/constants/locales/common';
@@ -20,123 +18,115 @@ import { getGlobalServerSidePropsByWorkspaceName } from '@app/lib/serverSideProp
 import { UserStatus } from '@app/models/dtos/UserStatus';
 import { WorkspaceInvitationDto } from '@app/models/dtos/WorkspaceMembersDto';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
-import Login from '@app/pages/login';
+import Login from '@app/pages/login/index';
 import { useAppSelector } from '@app/store/hooks';
 import { useRespondToWorkspaceInvitationMutation } from '@app/store/workspaces/members-n-invitations-api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { getServerSideAuthHeaderConfig } from '@app/utils/serverSidePropsUtils';
+import InvalidUserInvitation from '@Components/invitation/sender';
+import MainValidUser from '@Components/invitation/MainValidUser';
+import Logout from '@Components/Common/Icons/Dashboard/Logout';
 
+import { useModal } from '@app/components/modal-views/context';
+import { useLazyGetStatusQuery, useLogoutMutation } from '@app/store/auth/api';
+import { useAppDispatch } from '@app/store/hooks';
+import { initialAuthState, setAuth } from '@app/store/auth/slice';
+import ExpiredInvitation from '@Components/invitation/expired';
+import Invitations from '@Components/member/invitations';
+import LoginComponent from '@Components/Login/Login-Component';
 
-export default function Id({ workspace, user, invitation }: { workspace: WorkspaceDto; user: UserStatus; invitation: WorkspaceInvitationDto }) {
+interface Props {
+    workspace: WorkspaceDto;
+    user: UserStatus | null;
+    invitation: WorkspaceInvitationDto | null;
+}
+
+const Id: React.FC<Props> = ({ workspace, user, invitation }) => {
     const [trigger, { isLoading }] = useRespondToWorkspaceInvitationMutation();
     const { t } = useTranslation();
-    const [rejected, setRejected] = useState(false);
+    const [rejected, setRejected] = useState<boolean>(false);
     const router = useRouter();
     const { workspaceName } = useAppSelector(selectWorkspace);
 
-    const onAccept = async () => {
-        await handleResponse('ACCEPTED');
-    };
-    const onDecline = async () => {
-        await handleResponse('REJECTED');
-    };
+    const [logout] = useLogoutMutation();
+    const [authTrigger] = useLazyGetStatusQuery();
+    const dispatch = useAppDispatch();
 
-    const handleResponse = async (status: string) => {
-        const request = {
-            workspaceId: workspace.id,
-            invitationToken: invitation.invitationToken,
-            responseStatus: status
-        };
-        const response: any = await trigger(request);
-        if (response.data) {
-            if (status == 'REJECTED') {
-                setRejected(true);
-                setTimeout(() => {
-                    window.close();
-                }, 2000);
-            } else {
-                await router.push(`/${workspace.workspaceName}/dashboard`);
-            }
-        }
-        if (response.error) {
-            toast(response.error?.data || t(toastMessage.somethingWentWrong), {
-                type: 'error'
-            });
-        }
+    const handleLogout = async () => {
+        await logout().then(async () => {
+            await authTrigger();
+            dispatch(setAuth(initialAuthState));
+            router.push(router.asPath);
+        });
     };
 
     if (!user) {
-        return (
-            <>
-                <Login />
-            </>
-        );
+        return <LoginComponent />;
     }
 
     if (rejected) {
         return (
-            <div className=" py-10 flex items-center flex-col">
-                <NextSeo title={t(invitationConstant.title) + ' | ' + workspaceName} noindex={true} nofollow={true} />;
+            <div className="flex min-h-screen flex-col items-center justify-center bg-gray-100">
+                <NextSeo title={`${t(invitationConstant.title)} | ${workspaceName}`} noindex={true} nofollow={true} />
                 <AuthNavbar showHamburgerIcon={false} showPlans={false} />
-                <div className="rounded-lg bg-white mt-36  flex flex-col items-center w-full p-10 md:max-w-[502px]">Request Rejected</div>
+                <div className="custom-blue-shadow mx-4 flex w-full flex-col items-center rounded-lg border bg-white p-10 shadow-lg md:max-w-[502px]">
+                    <img src="/path/to/rejected-request-image.png" alt="Request Rejected" className="mb-6 h-24 w-24 object-cover" />
+                    <div className="text-center text-xl font-semibold text-red-600">{t('Request Rejected')}</div>
+                </div>
             </div>
         );
     }
 
     if (!invitation) {
         return (
-            <div className=" py-10 flex items-center flex-col">
-                <NextSeo title={t(invitationConstant.title) + ' | ' + workspaceName} noindex={true} nofollow={true} />;
+            <div className="flex min-h-screen flex-col items-center justify-center bg-gray-100">
+                <NextSeo title={`${t(invitationConstant.title)} | ${workspaceName}`} noindex={true} nofollow={true} />
                 <AuthNavbar showHamburgerIcon={false} showPlans={false} />
-                <div className="rounded-lg bg-white mt-36  flex flex-col items-center w-full p-10 md:max-w-[620px]">{t(workspaceConstant.invitationNotFound)}</div>
+
+                <div className="mx-2 mt-10 flex h-[520px] w-full max-w-[420px] flex-col items-center justify-center rounded-xl bg-white p-10 shadow-lg">
+                    <img src="/errorr.png" alt="Invitation Not Found" className="h-34 w-34 mb-4 object-cover" />
+                    <div className="text-black-800 mb-4 text-center text-2xl font-semibold">{t(workspaceConstant.invitationNotFound)}</div>
+
+                    <p className="mb-4 text-center text-sm text-gray-800">{t(invitationConstant.ensureText)}</p>
+
+                    <p className="cursor-pointer text-sm text-blue-600 hover:underline" onClick={handleLogout}>
+                        {t(invitationConstant.switchAccount)}
+                    </p>
+                </div>
             </div>
         );
     }
+    if (invitation && isInvitationExpired(invitation.createdAt, invitation.expiry)) {
+        return <ExpiredInvitation />;
+    }
 
-    return (
-        <div className=" py-10 px-4 w-full">
-            <NextSeo title={t(invitationConstant.title) + ' | ' + workspaceName} noindex={true} nofollow={true} />;
-            <AuthNavbar showHamburgerIcon={false} showPlans={false} />
-            <div className="rounded w-full mt-36 flex flex-col items-center ">
-                <div className="md:max-w-[620px] flex flex-col">
-                    <div className="bg-white md:max-w-[620px] flex flex-col rounded p-10 items-center justify-center">
-                        <AuthAccountProfileImage size={60} image={workspace?.profileImage} name={workspace?.title} />
-                        <div className="text-2xl text-center mt-6 mb-4 sh3 !font-normal !text-black-700 ">
-                            {t(invitationConstant.title1)}
-                            <span className="font-bold text-black-900">{' ' + workspace?.title || t(localesCommon.untitled)}</span>
-                        </div>
-                        <div className="body3 mb-10 !text-black-700">{t(invitationConstant.title2)}</div>
-                        <div className="flex flex-col space-y-4 items-center">
-                            <div className="flex sm:flex-row flex-col gap-5 justify-between items-center">
-                                <AppButton disabled={isLoading} size={ButtonSize.Big} onClick={onAccept}>
-                                    {t(buttonConstant.joinWorkspace)}
-                                </AppButton>
-                                <AppButton variant={ButtonVariant.Secondary} disabled={isLoading} size={ButtonSize.Big} onClick={onDecline}>
-                                    {t(buttonConstant.decline)}
-                                </AppButton>
-                            </div>
-                        </div>
-                        <div className="mt-5 body3 !text-black-700">{t(invitationConstant.expiryLink)}</div>
-                    </div>
-                    <div className="ml-10 mt-8">
-                        <div className="body1 mb-6">{t(invitationConstant.list.title)}</div>
+    const isInvalidUser = user?.email !== invitation?.email;
+    if (isInvalidUser) {
+        return (
+            <InvalidUserInvitation
+                invitation={{
+                    email: invitation?.email || '',
+                    invitationToken: invitation?.invitationToken || ''
+                }}
+                workspaceId={workspace.id}
+            />
+        );
+    }
 
-                        <ul className="list-disc body2 flex flex-col space-y-3 pl-10">
-                            <li>{t(invitationConstant.list['item1'])}</li>
-                            <li>{t(invitationConstant.list['item2'])}</li>
-                            <li>{t(invitationConstant.list['item3'])}</li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-        </div>
-    );
-}
+    return <MainValidUser workspace={workspace} user={user} invitation={invitation} />;
+};
 
-export async function getServerSideProps(_context: any) {
-    const { id } = _context.query;
-    const config = getServerSideAuthHeaderConfig(_context);
-    const globalProps = (await getGlobalServerSidePropsByWorkspaceName(_context)).props;
+const isInvitationExpired = (createdAt: string, expiryTimestamp: number) => {
+    const currentDate = new Date();
+    const invitationExpiryDate = new Date(expiryTimestamp * 1000);
+
+    return currentDate > invitationExpiryDate;
+};
+
+export async function getServerSideProps(context: any) {
+    const { id } = context.query;
+    const config = getServerSideAuthHeaderConfig(context);
+    const globalProps = (await getGlobalServerSidePropsByWorkspaceName(context)).props;
     let user = null;
     let invitation = null;
     try {
@@ -151,26 +141,20 @@ export async function getServerSideProps(_context: any) {
         if (user !== null) {
             const invitation_response = await fetch(`${environments.INTERNAL_DOCKER_API_ENDPOINT_HOST}/workspaces/${globalProps.workspace.id}/members/invitations/${id}`, config);
             invitation = await invitation_response?.json();
-            if (invitation_response.status !== 200 || user?.email !== invitation?.email) {
-                return {
-                    props: {
-                        ...globalProps,
-                        user: user
-                    }
-                };
+            if (invitation_response.status !== 200) {
+                invitation = null;
             }
         }
     } catch (e) {
-        return {
-            notFound: true
-        };
+        console.log(e);
     }
-
     return {
         props: {
             ...globalProps,
-            user: user,
-            invitation: invitation
+            user,
+            invitation
         }
     };
 }
+
+export default Id;
