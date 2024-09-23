@@ -3,6 +3,7 @@ from dataclasses import asdict
 from datetime import timedelta
 from http import HTTPStatus
 from typing import List
+from bson import ObjectId
 
 import loguru
 from beanie import PydanticObjectId
@@ -241,8 +242,10 @@ class TemporalService:
         action: ActionResponse,
         form: StandardForm,
         response: FormResponseDocument,
-        workspace: WorkspaceRequestDto,
+        workspace: WorkspaceRequestWithActionDto,
     ):
+
+        workspace = WorkspaceRequestWithActionDto(**workspace)
         run_action_params = RunActionCodeParams(
             action=action.json(),
             form=form.json(),

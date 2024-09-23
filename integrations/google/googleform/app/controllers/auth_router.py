@@ -1,7 +1,8 @@
 """Auth controller implementation."""
+
 import logging
 
-from classy_fastapi import Routable, get, delete
+from classy_fastapi import Routable, get, delete, post
 from common.models.user import UserInfo
 from pydantic import EmailStr
 from starlette.requests import Request
@@ -23,7 +24,9 @@ class AuthRoutes(Routable):
 
     @get("/oauth/integration/authorize")
     async def _get_integration_oauth_url(self, state: str):
-        (authorization_url, state) = self.oauth_google_service.authorize(state, is_integration=True)
+        (authorization_url, state) = self.oauth_google_service.authorize(
+            state, is_integration=True
+        )
         return {"oauth_url": authorization_url}
 
     @get("/oauth/callback")
@@ -31,14 +34,16 @@ class AuthRoutes(Routable):
         user_info = await self.oauth_google_service.oauth2callback(request, user_id)
         return user_info
 
-    @get("/oauth/integration/callback")
+    @post("/oauth/integration/callback")
     def _integration_oauth_callback(self, state: str, code: str):
-        response = self.oauth_google_service.handle_integration_oauth_callback(code=code, state=state)
+        response = self.oauth_google_service.handle_integration_oauth_callback(
+            code=code, state=state
+        )
         return response
 
     @delete("/oauth/credentials")
     async def _delete_oauth_credentials(
-            self, email: EmailStr = None, user_id: str = None
+        self, email: EmailStr = None, user_id: str = None
     ):
         await self.oauth_google_service.delete_oauth_credentials_for_user(
             email=email, user_id=user_id

@@ -81,15 +81,23 @@ class OauthGoogleService:
         try:
             flow = google_auth_oauthlib.flow.Flow.from_client_config(
                 client_config=self.client_config,
-                scopes=settings.GOOGLE_SHEET_SCOPE if is_integration else settings.GOOGLE_SCOPES,
+                scopes=(
+                    settings.GOOGLE_SHEET_SCOPE
+                    if is_integration
+                    else settings.GOOGLE_SCOPES
+                ),
             )
 
-            flow.redirect_uri = settings.GOOGLE_SHEET_REDIRECT_URL if is_integration else settings.GOOGLE_REDIRECT_URIS
+            flow.redirect_uri = (
+                settings.GOOGLE_SHEET_REDIRECT_URL
+                if is_integration
+                else settings.GOOGLE_REDIRECT_URIS
+            )
             authorization_url, state = flow.authorization_url(
                 access_type="offline",
                 state=state,
-                include_granted_scopes="false",
-                prompt="consent",
+                include_granted_scopes="true",
+                prompt="select_account",
             )
             return authorization_url, state
         except InvalidGrantError:
@@ -194,12 +202,23 @@ class OauthGoogleService:
         try:
             flow = google_auth_oauthlib.flow.Flow.from_client_config(
                 client_config=self.client_config,
-                scopes=settings.GOOGLE_SHEET_SCOPE if is_integration else settings.GOOGLE_SCOPES,
+                scopes=(
+                    settings.GOOGLE_SHEET_SCOPE
+                    if is_integration
+                    else settings.GOOGLE_SCOPES
+                ),
                 state=state,
             )
-            flow.redirect_uri = settings.GOOGLE_SHEET_REDIRECT_URL if is_integration else settings.GOOGLE_REDIRECT_URIS
-            flow.fetch_token(code=auth_code) if is_integration else flow.fetch_token(
-                authorization_response=auth_code)
+            flow.redirect_uri = (
+                settings.GOOGLE_SHEET_REDIRECT_URL
+                if is_integration
+                else settings.GOOGLE_REDIRECT_URIS
+            )
+            (
+                flow.fetch_token(code=auth_code)
+                if is_integration
+                else flow.fetch_token(authorization_response=auth_code)
+            )
             credentials = flow.credentials
             return credentials
         except InvalidGrantError:
@@ -247,7 +266,9 @@ class OauthGoogleService:
             expiry_datetime = credentials.expiry
             current_date = OauthGoogleService.get_current_dt_in_google_format()
             if expiry_datetime < current_date:
-                return await self.refresh_access_token(oauth_credential=oauth_credential)
+                return await self.refresh_access_token(
+                    oauth_credential=oauth_credential
+                )
             return oauth_credential
         except HttpError:
             raise HTTPException(
@@ -359,7 +380,7 @@ class OauthGoogleService:
 
     async def get_encrypted_credential_for_user(self, email: EmailStr):
         if email is None:
-            raise HTTPException(400, 'Provide email')
+            raise HTTPException(400, "Provide email")
         credentials = await self.get_oauth_credentials_for_user(email=email)
         encrypted_credential = _crypto.encrypt(credentials.json())
         return encrypted_credential
@@ -368,7 +389,6 @@ class OauthGoogleService:
         credentials = self.fetch_token(state=state, auth_code=code, is_integration=True)
         json_credentials = credentials.to_json()
         google_credential = GoogleCredentialResponse(**json.loads(json_credentials))
-        integration_credential = {
-            "credentials": google_credential.dict()
-        }
-        return _crypto.encrypt(json.dumps(integration_credential))
+        integration_credential = {"credentials": google_credential.dict()}
+        creds = _crypto.encrypt(json.dumps(integration_credential))
+        return creds

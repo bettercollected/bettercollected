@@ -30,6 +30,7 @@ class ActionDocument(MongoDocument):
     parameters: Optional[List[ParameterValue]]
     secrets: Optional[List[ParameterValue]]
     type: Optional[str]
+    predefined: Optional[bool]
 
     class Settings:
         name = "actions"

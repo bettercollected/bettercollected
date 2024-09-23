@@ -46,7 +46,8 @@ const middlewares = [
     formsApi.middleware,
     templatesApi.middleware,
     importApi.middleware,
-    mediaLibraryApi.middleware
+    mediaLibraryApi.middleware,
+    integrationApi.middleware
 ];
 
 // if (environments.IS_IN_PRODUCTION_MODE) middlewares.splice(0, 1);
@@ -74,7 +75,9 @@ const reducers = {
     [formsApi.reducerPath]: formsApi.reducer,
     [templatesApi.reducerPath]: templatesApi.reducer,
     [importApi.reducerPath]: importApi.reducer,
-    [mediaLibraryApi.reducerPath]: mediaLibraryApi.reducer
+    [mediaLibraryApi.reducerPath]: mediaLibraryApi.reducer,
+    [integrationApi.reducerPath]: integrationApi.reducer
+    // Add more reducers here
 };
 
 const combinedReducer = combineReducers<typeof reducers>(reducers);

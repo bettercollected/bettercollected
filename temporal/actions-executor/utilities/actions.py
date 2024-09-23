@@ -1,6 +1,6 @@
 import asyncio
 import json
-import re
+import os
 import traceback
 from http import HTTPStatus
 from random import Random
@@ -23,11 +23,11 @@ from settings.application import settings
 
 
 async def run_action(
-        action: Any,
-        form: Any,
-        response: Any,
-        user_email: Optional[EmailStr] = None,
-        workspace: Optional[str] = None
+    action: Any,
+    form: Any,
+    response: Any,
+    user_email: Optional[EmailStr] = None,
+    workspace: Optional[str] = None,
 ):
     workspace = json.loads(workspace)
     action = json.loads(action)
@@ -49,8 +49,7 @@ async def run_action(
         def process_item(variable, decrypt=False):
             item_name = variable.get("name")
             item_value = variable.get("value")
-
-            if item_name is not None and item_value is not None:
+            if item_name is not None and item_value is not None and item_value != "":
                 return item_name, (
                     item_value if not decrypt else crypto.decrypt(item_value)
                 )
@@ -67,10 +66,11 @@ async def run_action(
                     extra_data[name] = value
 
         # process workspace data
-        a = workspace
         workspace_data = workspace.get(key, {})
         if workspace_data is not None:
             overriding_data = workspace_data.get(action.get("id"), [])
+            overriding_data = [] if overriding_data is None else overriding_data
+
             for overriding_item in overriding_data:
                 name, value = process_item(overriding_item, key == "secrets")
                 if name is not None:
@@ -78,6 +78,7 @@ async def run_action(
 
         # Process form data
         form_data = form.get(key, {})
+
         if form_data is not None:
             overriding_data = form_data.get(action.get("id"), [])
             for overriding_item in overriding_data:
@@ -137,55 +138,9 @@ async def run_action(
         )
         return extracted_question_answers
 
-    def get_responses_in_array():
-        simple_form = {
-            **form
-        }
-        # this is for integrate-google-sheet and here response might be multiple
-        responses = []
-        form_response_array = []
-        for field in simple_form.get("fields"):
-            if field.get("type") and "input_" in str(field.get("type")):
-                answers = response.get("answers")
-                if answers is not None:
-                    answer_for_field = answers.get(str(field.get("id")))
-                    form_response_array.append(get_answer_for_field(answer_for_field,
-                                                                    field) if answer_for_field else " ")
-        return [response.get("response_id"), *form_response_array]
-
-    def get_form_question_in_array():
-        simple_form = {
-            **form
-        }
-        fields = simple_form.get("fields")
-        question_list = []
-        for field in fields:
-            if field.get("type") and "input_" in str(field.get("type")):
-                question_field = get_previous_field(field.get("id"), fields)
-                if question_field:
-                    question_value = question_field.get("value", "")
-                    if '{{' in question_value:
-                        question_value = get_question_value(question_value, fields)[:40]
-                    question_list.append(question_value)
-        return question_list
-
-    def get_question_value(question_value, fields):
-        pattern = r"\b[a-f\d]{8}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{12}\b"
-        ids = re.findall(pattern, question_value)
-        for field_id in ids:
-            previous_field_value = get_previous_field(field_id, fields)['value']
-            if '{{' in previous_field_value:
-                previous_field_value = get_question_value(previous_field_value, fields)
-            question_value = question_value.replace('{{ ', '@').replace('}}', '').replace(field_id,
-                                                                                          previous_field_value)
-        return question_value
-
-    def get_previous_field(field_id, fields):
-        for index, field in enumerate(fields):
-            if field['id'] == field_id:
-                return fields[index - 1] if fields[index - 1] else None
-
-    def send_mail_action(config, subject, recipient: List[str], creator_mail: Optional[bool] = False):
+    def send_mail_action(
+        config, subject, recipient: List[str], creator_mail: Optional[bool] = False
+    ):
         mail_config = config
 
         message = MessageSchema(
@@ -205,40 +160,142 @@ async def run_action(
         )
         return "ok"
 
-    def append_in_sheet(google_sheet_id, credentials, question_array, response_array):
-        question = {"values": [["Response ID", *question_array]]}
-        response_body = {"values": [response_array]}
+    def append_in_sheet(
+        google_sheet_id: str = None, credentials: str = None, data=None
+    ):
         credentials = json.loads(credentials)
-        credential = fetch_oauth_token(
-            credentials.get("credentials")
-        )
-        credential['scopes'] = credential.get('scopes').split(' ')[1:]
+        credential = fetch_oauth_token(credentials.get("credentials"))
+        credential["scopes"] = credential.get("scopes").split(" ")[1:]
+
+        # Extract questions and answers from the response
+        question_array = [qa["title"] for qa in data]
+        response_array = [qa["answer"] for qa in data]
+
+        # Prepare the data to append (first row: questions, second row: responses)
+        question_data = {"values": [question_array]}
+        response_data = {"values": [response_array]}
 
         try:
-            google_sheet_question = (
-                build_google_service(credentials=credential, service_name="sheets", version="v4")
-                .spreadsheets().values()
-                .update(spreadsheetId=google_sheet_id,
-                        range=f"A1:{chr(ord('A') + len(question_array))}1",
-                        valueInputOption="USER_ENTERED",
-                        body=question)
+            # Build the Sheets service
+            service = build_google_service(
+                credentials=credential, service_name="sheets", version="v4"
+            )
+
+            # Check if the sheet already has questions in row 1
+            result = (
+                service.spreadsheets()
+                .values()
+                .get(spreadsheetId=google_sheet_id, range="A1:1")
                 .execute()
             )
-            google_sheet_response = (
-                build_google_service(credentials=credential, service_name="sheets", version="v4")
-                .spreadsheets().values()
-                .append(spreadsheetId=google_sheet_id,
-                        range="Sheet1",
-                        valueInputOption="USER_ENTERED",
-                        body=response_body)
+            values = result.get("values", [])
+
+            if not values:  # If no questions exist, insert them
+                # Update the first row (questions)
+                service.spreadsheets().values().update(
+                    spreadsheetId=google_sheet_id,
+                    range=f"A1:{chr(ord('A') + len(question_array))}1",
+                    valueInputOption="USER_ENTERED",
+                    body=question_data,
+                ).execute()
+
+                # Apply formatting (bold and underline) to the first row
+                requests = [
+                    {
+                        "repeatCell": {
+                            "range": {
+                                "sheetId": 0,  # Assuming the first sheet, otherwise fetch the correct sheetId
+                                "startRowIndex": 0,
+                                "endRowIndex": 1,
+                                "startColumnIndex": 0,
+                                "endColumnIndex": len(question_array),
+                            },
+                            "cell": {
+                                "userEnteredFormat": {
+                                    "textFormat": {"bold": True, "underline": True},
+                                    "backgroundColor": {
+                                        "red": 0.9,
+                                        "green": 0.9,
+                                        "blue": 0.9,
+                                    },
+                                }
+                            },
+                            "fields": "userEnteredFormat.textFormat,userEnteredFormat.backgroundColor",
+                        }
+                    }
+                ]
+
+                # Send batchUpdate request to format the first row
+                service.spreadsheets().batchUpdate(
+                    spreadsheetId=google_sheet_id, body={"requests": requests}
+                ).execute()
+
+            # Append the responses to the sheet
+            append_response = (
+                service.spreadsheets()
+                .values()
+                .append(
+                    spreadsheetId=google_sheet_id,
+                    range="A2",  # Starting at A2, will auto-increment
+                    valueInputOption="USER_ENTERED",
+                    insertDataOption="INSERT_ROWS",  # Ensures new rows are inserted
+                    body=response_data,
+                )
                 .execute()
             )
+
+            # Apply formatting to the last appended row (responses)
+            row_index = (
+                append_response["updates"]["updatedRange"]
+                .split("!")[-1]
+                .split(":")[0][1:]
+            )  # Get the starting row of the appended data
+            row_index = int(row_index) - 1  # Convert to 0-based index
+
+            # Apply color formatting for the response row
+            response_formatting_request = [
+                {
+                    "repeatCell": {
+                        "range": {
+                            "sheetId": 0,  # Assuming first sheet
+                            "startRowIndex": row_index,
+                            "endRowIndex": row_index + 1,
+                            "startColumnIndex": 0,
+                            "endColumnIndex": len(response_array),
+                        },
+                        "cell": {
+                            "userEnteredFormat": {
+                                "textFormat": {"bold": False, "underline": False},
+                                "backgroundColor": {
+                                    "red": 0.8,
+                                    "green": 0.9,
+                                    "blue": 1,
+                                },
+                            }
+                        },
+                        "fields": "userEnteredFormat.backgroundColor",
+                    }
+                }
+            ]
+
+            # Send batchUpdate request to format the last row (response)
+            service.spreadsheets().batchUpdate(
+                spreadsheetId=google_sheet_id,
+                body={"requests": response_formatting_request},
+            ).execute()
             return "Appended"
+
         except HttpError as e:
             if e.status_code == HTTPStatus.NOT_FOUND:
-                raise HTTPException(status_code=HTTPStatus.NOT_FOUND, content=ExceptionType.GOOGLE_SHEET_MISSING)
+                raise HTTPException(
+                    status_code=HTTPStatus.NOT_FOUND,
+                    content=ExceptionType.GOOGLE_SHEET_MISSING,
+                )
         except RefreshError as e:
-            raise HTTPException(status_code=HTTPStatus.EXPECTATION_FAILED, content=ExceptionType.OAUTH_TOKEN_MISSING)
+            raise HTTPException(
+                status_code=HTTPStatus.EXPECTATION_FAILED,
+                content=ExceptionType.OAUTH_TOKEN_MISSING,
+            )
 
     def send_data_webhook(url: str, params=None, data=None, headers=None):
         if headers is None:
@@ -266,7 +323,6 @@ async def run_action(
     def send_responder_a_copy_of_mail():
         form = get_form()
         response = get_response()
-
         workspace = get_workspace_details()
 
         if response.get("dataOwnerIdentifier"):
@@ -376,6 +432,12 @@ async def run_action(
         data = get_simple_form_response()
         send_data_slack(URL, data=data)
 
+    def integrate_google_sheets_append_action():
+        Google_sheet_id = get_parameter("Google Sheet Id")
+        credentials = get_secret("Credentials")
+        data = get_simple_form_response()
+        append_in_sheet(Google_sheet_id, credentials, data)
+
     if action.get("predefined"):
         match action.get("name"):
             case "send_webhook":
@@ -388,6 +450,8 @@ async def run_action(
                 return send_message_to_discord()
             case "send_to_slack":
                 return send_message_to_slack()
+            case "integrate_google_sheets":
+                return integrate_google_sheets_append_action()
         return
     loop = asyncio.get_event_loop()
     result = await asyncio.wait_for(
@@ -411,6 +475,7 @@ async def run_action(
             send_mail_action,
             get_simple_form_response,
             get_workspace_details,
+            append_in_sheet,
         ),
         timeout=30,
     )
@@ -421,8 +486,8 @@ def execute_action_code(
     action_code: str,
     response,
     form,
-                        action,
-                        workspace,
+    action,
+    workspace,
     get_form,
     get_response,
     get_parameters,
@@ -437,11 +502,10 @@ def execute_action_code(
     send_mail_action,
     get_simple_form_response,
     get_workspace_details,
-,
-                        get_form_question_in_array,
-                        get_responses_in_array,
-                        append_in_sheet
-                        ):
+    get_form_question_in_array,
+    get_responses_in_array,
+    append_in_sheet,
+):
     log_string = []
     status = True
 
@@ -492,13 +556,17 @@ def execute_action_code(
                 "get_responses_in_array": get_responses_in_array,
                 "append_in_sheet": append_in_sheet,
                 "fetch_oauth_token": fetch_oauth_token,
-                "build_google_service": build_google_service
-            }, {}
+                "build_google_service": build_google_service,
+            },
+            {},
         )
     except (HTTPException, Exception) as e:
         log("Exception While running action")
         log(str(e))
-        if str(e) == ExceptionType.GOOGLE_SHEET_MISSING or str(e) == ExceptionType.OAUTH_TOKEN_MISSING:
+        if (
+            str(e) == ExceptionType.GOOGLE_SHEET_MISSING
+            or str(e) == ExceptionType.OAUTH_TOKEN_MISSING
+        ):
             httpx.patch(
                 url=f"{settings.server_url}/workspaces/{workspace.get('id')}/forms/{form.get('form_id')}/action/{action.get('id')}/update",
                 headers={"api-key": settings.api_key},

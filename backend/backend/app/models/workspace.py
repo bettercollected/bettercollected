@@ -22,15 +22,15 @@ class WorkspaceRequestDto(BaseModel):
 
 
 class ParameterValue(BaseModel):
-    name: str = Field(None)
-    value: str = Field(None)
+    name: Optional[str] = Field(None)
+    value: Optional[str] = Field(None)
     required: Optional[bool] = Field(False)
 
 
 class WorkspaceRequestWithActionDto(WorkspaceRequestDto):
     id: Optional[PydanticObjectId]
-    parameters: Optional[Dict[str, List[ParameterValue]]] = Field()
-    secrets: Optional[Dict[str, List[ParameterValue]]] = Field()
+    parameters: Optional[Dict[str, Optional[List[ParameterValue]]]]
+    secrets: Optional[Dict[str, Optional[List[ParameterValue]]]]
 
 
 class WorkspaceRequestDtoCamel(WorkspaceRequestDto, CamelModel):

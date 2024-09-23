@@ -2,7 +2,6 @@ from datetime import datetime, timedelta
 from http import HTTPStatus
 
 import google.oauth2.credentials
-import google.oauth2.credentials
 import httpx
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
@@ -54,17 +53,16 @@ def refresh_access_token(oauth_credential):
             "refresh_token": credentials.refresh_token,
             "grant_type": "refresh_token",
         }
-        refreshed_token_response = httpx.post(
-            url=credentials.token_uri, data=data
-        )
+        refreshed_token_response = httpx.post(url=credentials.token_uri, data=data)
         token = refreshed_token_response.json()
         if not token.get("access_token") or not token.get("expires_in"):
-            raise HTTPException(status_code=HTTPStatus.EXPECTATION_FAILED, content=ExceptionType.OAUTH_TOKEN_MISSING)
+            raise HTTPException(
+                status_code=HTTPStatus.EXPECTATION_FAILED,
+                content=ExceptionType.OAUTH_TOKEN_MISSING,
+            )
         oauth_credential["token"] = token.get("access_token")
         expiry = current_date + timedelta(seconds=token.get("expires_in"))
-        oauth_credential["expiry"] = expiry.strftime(
-            GOOGLE_DATETIME_FORMAT
-        )
+        oauth_credential["expiry"] = expiry.strftime(GOOGLE_DATETIME_FORMAT)
         return oauth_credential
     except TimeoutError:
         raise HTTPException(

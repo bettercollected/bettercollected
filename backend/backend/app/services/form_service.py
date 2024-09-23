@@ -25,6 +25,7 @@ from backend.app.models.dtos.action_dto import (
     AddActionToFormDto,
     UpdateActionInFormDto,
     ActionUpdateType,
+    ActionDto,
 )
 from backend.app.models.dtos.brevo_event_dto import UserEventType
 from backend.app.models.dtos.minified_form import FormDtoCamelModel
@@ -42,7 +43,6 @@ from backend.app.schemas.form_versions import FormVersionsDocument
 from backend.app.schemas.standard_form import FormDocument
 from backend.app.services.brevo_service import event_logger_service
 from backend.app.services.integration_provider_factory import IntegrationProviderFactory
-from backend.app.services.kafka_service import event_logger_service
 from backend.app.services.user_tags_service import UserTagsService
 from backend.app.utils import AiohttpClient
 from backend.config import settings

@@ -525,8 +525,8 @@ class WorkspaceFormService:
                 form_id=str(form_id),
             )
 
-        workspace_forms = (
-            await self.workspace_form_repository.get_workspace_forms_in_workspace(
+        workspace_form_ids = (
+            await self.workspace_form_repository.get_form_ids_in_workspace(
                 workspace_id=workspace_id,
                 is_not_admin=True,
                 user=user,
@@ -538,26 +538,12 @@ class WorkspaceFormService:
                 },
             )
         )
-        if not workspace_forms or len(workspace_forms) == 0:
+        if not workspace_form_ids:
             raise HTTPException(
                 status_code=HTTPStatus.NOT_FOUND, content="Form not found"
             )
-
-        workspace_form = workspace_forms[0]
-        workspace_form = WorkspaceFormDocument(**workspace_form)
-
-        if user:
-            response.dataOwnerIdentifier = user.sub if not anonymize else ""
-
-        identifier = user.sub if user else response.dataOwnerIdentifier
-
-        if anonymize and identifier:
-            response.anonymous_identity = hash_string(user.sub)
-
-        if workspace_form.settings.require_verified_identity and not user:
-            raise HTTPException(
-                HTTPStatus.UNAUTHORIZED, content="Sign in to fill this form."
-            )
+        if not response.dataOwnerIdentifier and user:
+            response.dataOwnerIdentifier = user.sub
 
         form_response = await self.form_response_service.submit_form_response(
             form_id=form_id, response=response, workspace_id=workspace_id
@@ -683,10 +669,10 @@ class WorkspaceFormService:
                 status_code=HTTPStatus.NOT_FOUND, content=MESSAGE_NOT_FOUND
             )
         await self.action_service.create_action_in_workspace_from_action(
-            workspace_id=workspace_id, action=action
+            workspace_id=workspace_id, action=action, user=user
         )
         updated_form = await self.form_service.add_action_form(
-            form_id=form_id, add_action_to_form_params=add_action_to_form_params
+            form_id=form_id, add_action_to_form_params=add_action_to_form_params, action=action
         )
         return updated_form.actions
 

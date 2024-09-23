@@ -1,5 +1,5 @@
-import {createApi} from '@reduxjs/toolkit/dist/query/react';
-import {fetchBaseQuery} from '@reduxjs/toolkit/query';
+import { createApi } from '@reduxjs/toolkit/dist/query/react';
+import { fetchBaseQuery } from '@reduxjs/toolkit/query';
 
 import environments from '@app/configs/environments';
 
@@ -14,9 +14,9 @@ export const integrationApi = createApi({
     }),
     endpoints: (builder) => ({
         getIntegrationOauthUrl: builder.query<any, any>({
-            query: ({integrationType}) => ({
+            query: ({ integrationType }) => ({
                 url: `/integration/${integrationType}/oauth`,
-                method: 'GET',
+                method: 'GET'
             })
         }),
         handleIntegrationOauthCallback: builder.mutation<any, any>({
@@ -29,4 +29,4 @@ export const integrationApi = createApi({
     })
 });
 
-export const {useLazyGetIntegrationOauthUrlQuery, useHandleIntegrationOauthCallbackMutation} = integrationApi;
+export const { useLazyGetIntegrationOauthUrlQuery, useHandleIntegrationOauthCallbackMutation } = integrationApi;
