@@ -31,6 +31,7 @@ class ActionDocument(MongoDocument):
     secrets: Optional[List[ParameterValue]]
     type: Optional[str]
     predefined: Optional[bool]
+    url: Optional[str]
 
     class Settings:
         name = "actions"

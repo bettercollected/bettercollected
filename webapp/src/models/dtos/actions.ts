@@ -10,6 +10,7 @@ export enum Trigger {
 }
 
 export interface Action {
+    url?: string;
     id: string;
     actionCode?: string;
     parameters?: Array<Parameters>;
