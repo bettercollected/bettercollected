@@ -59,9 +59,13 @@ const BarChart: React.FC<BarChartProps> = ({ workspaceId, formId, startAt, endAt
         return <div>Loading...</div>;
     }
 
-    <div className="relative mx-auto mt-10 max-w-md rounded border border-red-400 bg-red-100 px-4 py-4 text-red-700">
-        <p className="text-center font-semibold">Oops! There was a problem while fetching the data.</p>
-    </div>;
+    if (pageviewsError) {
+        return (
+            <div className="relative mx-auto mt-10 max-w-md rounded border border-red-400 bg-red-100 px-4 py-4 text-red-700">
+                <p className="text-center font-semibold">Oops! There was a problem while fetching the data.</p>
+            </div>
+        );
+    }
 
     const pageviewsData = formPageviews as FormPageviewsData;
 
