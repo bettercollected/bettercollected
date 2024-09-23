@@ -46,6 +46,7 @@ const FormVisibilities = dynamic(() => import('@app/Components/Form/visibility')
 const FormLinks = dynamic(() => import('@app/Components/Form/links'));
 const FormSettings = dynamic(() => import('@app/Components/Form/settings'));
 const FormPreview = dynamic(() => import('@app/Components/Form/preview'));
+const FormAnalyticsDashboard = dynamic(() => import('@app/Components/Form/analyticsDashboard'));
 
 export default function FormPage(props: any) {
     const { form }: { form: StandardFormDto } = props;
@@ -118,6 +119,11 @@ export default function FormPage(props: any) {
                 icon: <Group className="h-5 w-5" />,
                 title: t(formConstant.settings.formLink.title),
                 path: 'FormLinks'
+            });
+            paramTabs.splice(7, 0, {
+                icon: <Group className="h-5 w-5" />,
+                title: 'Analytics',
+                path: 'AnalyticsDashboard'
             });
         }
     }
@@ -254,6 +260,9 @@ export default function FormPage(props: any) {
                                             <FormLinks />
                                         </TabPanel>
                                     )}
+                                    <TabPanel className="focus:outline-none" key="AnalyticsDashboard">
+                                        <FormAnalyticsDashboard />
+                                    </TabPanel>
                                 </>
                             ) : (
                                 <></>
