@@ -199,14 +199,8 @@ export default function FormAnalytics() {
 
     if (statsError || browsersMetricsError || referrerMetricsError || osMetricsError || deviceMetricsError || countryMetricsError) {
         return (
-            <div>
-                <p>Error loading data:</p>
-                {statsError && <p>Form Stats Error: {JSON.stringify(statsError, null, 2)}</p>}
-                {browsersMetricsError && <p>Browser Metrics Error: {JSON.stringify(browsersMetricsError, null, 2)}</p>}
-                {referrerMetricsError && <p>Referrer Metrics Error: {JSON.stringify(referrerMetricsError, null, 2)}</p>}
-                {osMetricsError && <p>os Metrics Error: {JSON.stringify(osMetricsError, null, 2)}</p>}
-                {deviceMetricsError && <p>device Metrics Error: {JSON.stringify(deviceMetricsError, null, 2)}</p>}
-                {countryMetricsError && <p>country Metrics Error: {JSON.stringify(countryMetricsError, null, 2)}</p>}
+            <div className="relative mx-auto mt-10 max-w-md rounded border border-red-400 bg-red-100 px-4 py-4 text-red-700">
+                <p className="text-center font-semibold">Oops! There was a problem while fetching the data.</p>
             </div>
         );
     }
