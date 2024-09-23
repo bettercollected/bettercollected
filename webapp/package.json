@@ -92,7 +92,7 @@
         "mermaid": "^10.2.3",
         "micromatch": "^4.0.8",
         "moment": "^2.29.4",
-        "next": "^14.1.4",
+        "next": "^14.2.10",
         "next-compose-plugins": "^2.2.1",
         "next-i18next": "^12.1.0",
         "next-nprogress-bar": "^2.3.11",
