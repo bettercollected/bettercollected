@@ -111,7 +111,7 @@ export default function InvitationsTable({ data }: IInvitationTableProps) {
         },
 
         {
-            cell: (invitation: WorkspaceInvitationDto) => (invitation.invitationStatus === 'PENDING' ? <MemberOptions invitation={invitation} /> : ''),
+            cell: (invitation: WorkspaceInvitationDto) => (invitation.invitationStatus === 'PENDING' ? <MemberOptions invitation={invitation} workspaceId={workspace} /> : ''),
             allowOverflow: true,
             button: true,
             width: '60px',

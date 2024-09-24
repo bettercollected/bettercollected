@@ -1,5 +1,4 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
-
 import environments from '@app/configs/environments';
 import { WorkspaceInvitationDto, WorkspaceMembersDto } from '@app/models/dtos/WorkspaceMembersDto';
 import { Page } from '@app/models/dtos/page';
@@ -8,6 +7,7 @@ export const WORKSPACE_INVITATIONS_PATH = 'membersNInvitationsApi';
 
 const WORKSPACE_INVITATIONS_TAG = 'WORKSPACE_INVITATIONS_TAG';
 const WORKSPACE_MEMBERS_TAG = 'WORKSPACE_MEMBERS_TAG';
+
 export const membersNInvitationsApi = createApi({
     reducerPath: WORKSPACE_INVITATIONS_PATH,
     tagTypes: [WORKSPACE_INVITATIONS_TAG, WORKSPACE_MEMBERS_TAG],
@@ -68,8 +68,32 @@ export const membersNInvitationsApi = createApi({
                 body: request.body
             }),
             invalidatesTags: [WORKSPACE_INVITATIONS_TAG]
+        }),
+        resendWorkspaceInvitation: builder.mutation<any, any>({
+            query: (request) => ({
+                url: `/${request.workspaceId}/members/invitations/${request.invitationToken}/resend`,
+                method: 'POST',
+                body: request.body
+            }),
+            invalidatesTags: [WORKSPACE_INVITATIONS_TAG]
         })
+        // // Resend invitation mutation
+        // resendWorkspaceInvitation: builder.mutation<any, { workspaceId: string; invitationId: string }>({
+        //     query: ({ workspaceId, invitationId }) => ({
+        //         url: `/${workspaceId}/members/invitations/${invitationId}/resend`,
+        //         method: 'POST'
+        //     }),
+        //     invalidatesTags: [WORKSPACE_INVITATIONS_TAG]
+        // })
     })
 });
 
-export const { useRespondToWorkspaceInvitationMutation, useGetWorkspaceMembersQuery, useGetWorkspaceMembersInvitationsQuery, useInviteToWorkspaceMutation, useDeleteWorkspaceMemberMutation, useDeleteWorkspaceInvitationMutation } = membersNInvitationsApi;
+export const {
+    useRespondToWorkspaceInvitationMutation,
+    useGetWorkspaceMembersQuery,
+    useGetWorkspaceMembersInvitationsQuery,
+    useInviteToWorkspaceMutation,
+    useDeleteWorkspaceMemberMutation,
+    useDeleteWorkspaceInvitationMutation,
+    useResendWorkspaceInvitationMutation // Export the resend mutation
+} = membersNInvitationsApi;
