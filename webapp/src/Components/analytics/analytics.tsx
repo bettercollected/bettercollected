@@ -44,10 +44,9 @@ export default function FormAnalytics() {
     const [endAt, setEndAt] = useState<number>(Date.now());
     const [unit, setUnit] = useState<string>('hour');
     const [range, setRange] = useState<string>('Last 24 hours');
-    const [loading, setLoading] = useState<boolean>(false);
+    const [loading, setLoading] = useState<boolean>(true);
 
     const handleRangeSelect = (selectedRange: string) => {
-        setLoading(true);
         let startDate = Date.now();
         let endDate = Date.now();
         let unit = 'hour';
@@ -106,6 +105,7 @@ export default function FormAnalytics() {
         setEndAt(endDate);
         setUnit(unit);
         setRange(selectedRange);
+        setLoading(false);
     };
 
     const {
@@ -127,6 +127,7 @@ export default function FormAnalytics() {
         countryMetrics,
         countryMetricsError,
         countryMetricsLoading,
+        pageviewsLoading,
         pageviewsError
     } = useFormAnalyticsData(workspaceId, formId, startAt, endAt, unit, timezone);
 
@@ -199,16 +200,16 @@ export default function FormAnalytics() {
     }, [referrerMetrics, browsersMetrics, osMetrics, deviceMetrics, countryMetrics]);
 
     const hasError = statsError || browsersMetricsError || referrerMetricsError || osMetricsError || deviceMetricsError || countryMetricsError || pageviewsError;
+    const zeroViews = analyticsData.currentViews === 0;
 
     useEffect(() => {
-        if (!statsLoading && !browsersMetricsLoading && !referrerMetricsLoading && !osMetricsLoading && !deviceMetricsLoading && !countryMetricsLoading) {
-            setLoading(false);
-        } else if (analyticsData.currentViews === 0) {
-            setLoading(false);
-        } else if (hasError) {
+        if (!statsLoading && !browsersMetricsLoading && !referrerMetricsLoading && !osMetricsLoading && !deviceMetricsLoading && !countryMetricsLoading && !pageviewsLoading) {
             setLoading(false);
         }
-    }, [statsLoading, browsersMetricsLoading, referrerMetricsLoading, osMetricsLoading, deviceMetricsLoading, countryMetricsLoading, analyticsData, hasError]);
+        if (hasError) {
+            setLoading(false);
+        }
+    }, [statsLoading, browsersMetricsLoading, referrerMetricsLoading, osMetricsLoading, deviceMetricsLoading, countryMetricsLoading, pageviewsLoading, analyticsData, hasError]);
 
     if (loading) {
         return (
@@ -230,7 +231,7 @@ export default function FormAnalytics() {
         );
     }
 
-    if (analyticsData.currentViews === 0) {
+    if (zeroViews) {
         return (
             <>
                 <TimeRangeSelector onRangeSelect={handleRangeSelect} />
