@@ -6,6 +6,7 @@ import { useAppSelector } from '@app/store/hooks';
 import { selectForm } from '@app/store/forms/slice';
 import BarChart from '@Components/analytics/BarChart';
 import { useFormAnalyticsData } from '@app/store/analytics/analyticsHook';
+import EmptyResponseIcon from '@app/views/atoms/Icons/EmptyResponseIcon';
 
 export default function FormAnalytics() {
     interface Metric {
@@ -43,8 +44,10 @@ export default function FormAnalytics() {
     const [endAt, setEndAt] = useState<number>(Date.now());
     const [unit, setUnit] = useState<string>('hour');
     const [range, setRange] = useState<string>('Last 24 hours');
+    const [loading, setLoading] = useState<boolean>(false);
 
     const handleRangeSelect = (selectedRange: string) => {
+        setLoading(true);
         let startDate = Date.now();
         let endDate = Date.now();
         let unit = 'hour';
@@ -79,6 +82,7 @@ export default function FormAnalytics() {
             case 'Last 90 days':
                 startDate = Date.now() - 90 * 24 * 60 * 60 * 1000;
                 unit = 'day';
+                break;
             case 'This year':
                 startDate = new Date(new Date().getFullYear(), 0, 1).getTime();
                 unit = 'month';
@@ -122,7 +126,8 @@ export default function FormAnalytics() {
         osMetricsLoading,
         countryMetrics,
         countryMetricsError,
-        countryMetricsLoading
+        countryMetricsLoading,
+        pageviewsError
     } = useFormAnalyticsData(workspaceId, formId, startAt, endAt, unit, timezone);
 
     const [analyticsData, setAnalyticsData] = useState<AnalyticsData>({
@@ -193,15 +198,44 @@ export default function FormAnalytics() {
         }));
     }, [referrerMetrics, browsersMetrics, osMetrics, deviceMetrics, countryMetrics]);
 
-    if (statsLoading || browsersMetricsLoading || referrerMetricsLoading || osMetricsLoading || deviceMetricsLoading || countryMetricsLoading) {
-        return <div>Loading...</div>;
+    const hasError = statsError || browsersMetricsError || referrerMetricsError || osMetricsError || deviceMetricsError || countryMetricsError || pageviewsError;
+
+    useEffect(() => {
+        if (!statsLoading && !browsersMetricsLoading && !referrerMetricsLoading && !osMetricsLoading && !deviceMetricsLoading && !countryMetricsLoading) {
+            setLoading(false);
+        } else if (analyticsData.currentViews === 0) {
+            setLoading(false);
+        } else if (hasError) {
+            setLoading(false);
+        }
+    }, [statsLoading, browsersMetricsLoading, referrerMetricsLoading, osMetricsLoading, deviceMetricsLoading, countryMetricsLoading, analyticsData, hasError]);
+
+    if (loading) {
+        return (
+            <div className="mt-16 flex h-screen items-start justify-center">
+                <div className="text-center">
+                    <div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-b-2 border-t-2 border-blue-500"></div>
+                    <div className="text-sm font-medium">Loading Data...</div>
+                </div>
+            </div>
+        );
     }
 
-    if (statsError || browsersMetricsError || referrerMetricsError || osMetricsError || deviceMetricsError || countryMetricsError) {
+    if (hasError) {
         return (
-            <div className="relative mx-auto mt-10 max-w-md rounded border border-red-400 bg-red-100 px-4 py-4 text-red-700">
-                <p className="text-center font-semibold">Oops! There was a problem while fetching the data.</p>
-            </div>
+            <>
+                <TimeRangeSelector onRangeSelect={handleRangeSelect} />
+                <EmptyDataResponseComponent title="No data yet" detail="There was an error while fetching the data" />
+            </>
+        );
+    }
+
+    if (analyticsData.currentViews === 0) {
+        return (
+            <>
+                <TimeRangeSelector onRangeSelect={handleRangeSelect} />
+                <EmptyDataResponseComponent title="No views yet" detail="There is no view in this time range." />
+            </>
         );
     }
 
@@ -220,3 +254,13 @@ export default function FormAnalytics() {
         </main>
     );
 }
+
+const EmptyDataResponseComponent = ({ title, detail }: { title: JSX.Element | string; detail: string }) => {
+    return (
+        <div className={'flex flex-col items-center gap-2 pl-80'}>
+            <EmptyResponseIcon />
+            <span className={'p3-new text-black'}>{title}</span>
+            <span className={'p4-new text-black-600'}>{detail}</span>
+        </div>
+    );
+};
