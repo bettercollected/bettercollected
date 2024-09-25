@@ -56,13 +56,12 @@ const BarChart: React.FC<BarChartProps> = ({ workspaceId, formId, startAt, endAt
     const { formPageviews, pageviewsError, pageviewsLoading } = useFormAnalyticsData(workspaceId, formId, startAt, endAt, unit, timezone);
 
     if (pageviewsLoading) {
-        return <div>Loading...</div>;
-    }
-
-    if (pageviewsError) {
         return (
-            <div className="relative mx-auto mt-10 max-w-md rounded border border-red-400 bg-red-100 px-4 py-4 text-red-700">
-                <p className="text-center font-semibold">Oops! There was a problem while fetching the data.</p>
+            <div className="mt-16 flex h-screen items-start justify-center">
+                <div className="text-center">
+                    <div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-b-2 border-t-2 border-blue-500"></div>
+                    <p className="text-lg font-semibold text-gray-600">Loading...</p>
+                </div>
             </div>
         );
     }
