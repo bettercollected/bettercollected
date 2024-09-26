@@ -9,10 +9,10 @@ interface DataTableProps {
     showCountryFlag?: boolean;
 }
 
-const DataTable: React.FC<DataTableProps> = ({ title, data, showCountryFlag }) => {
+const DataTable: React.FC<DataTableProps> = ({ title, data, showCountryFlag = false }) => {
     const regionNames = new Intl.DisplayNames(['en'], { type: 'region' });
 
-    const getIcon = (item: string) => {
+    const getIcon = (item: string): React.ElementType => {
         switch (title) {
             case 'Browsers':
                 return getBrowserIcon(item);
@@ -21,7 +21,7 @@ const DataTable: React.FC<DataTableProps> = ({ title, data, showCountryFlag }) =
             case 'Operating System':
                 return getOSIcon(item);
             default:
-                return FaGlobe;
+                return FaGlobe; // Default icon
         }
     };
 
@@ -35,7 +35,20 @@ const DataTable: React.FC<DataTableProps> = ({ title, data, showCountryFlag }) =
                     return (
                         <li key={index} className="flex items-center space-x-3 py-2">
                             {showCountryFlag ? <Flag code={item.x} style={{ width: '24px', height: '16px', marginRight: '8px' }} className="mr-2" /> : <Icon />}
-                            <span className="font-medium">{showCountryFlag ? regionNames.of(item.x) || 'Unknown' : item.x || 'None'}</span>
+                            <span className="font-medium">
+                                {showCountryFlag
+                                    ? (() => {
+                                          try {
+                                              return regionNames.of(item.x) || 'Unknown';
+                                          } catch (error) {
+                                              if (error instanceof RangeError) {
+                                                  return 'Unknown';
+                                              }
+                                              throw error;
+                                          }
+                                      })()
+                                    : item.x || 'None'}
+                            </span>
                             <span className="ml-auto text-gray-500">{item.y}</span>
                         </li>
                     );

@@ -37,13 +37,13 @@ class FormAnalyticsRouter(Routable):
         self.analytics_service = analytics_services
 
     @get(
-        "/{workspace_name}/forms/{form_id}/stats",
+        "/{workspace_name}/forms/{slug}/stats",
         response_model=StatsModel,
     )
     async def get_form_stats(
         self,
         workspace_name: str,
-        form_id: str,
+        slug: str,
         start_at: int,
         end_at: int,
         referrer: Optional[str] = None,
@@ -63,7 +63,7 @@ class FormAnalyticsRouter(Routable):
             workspace_name=workspace_name, user=user
         )
 
-        form_url = f"/{workspace_name}/forms/{form_id}"
+        form_url = f"/{workspace_name}/forms/{slug}"
 
         if not start_at or not end_at:
             raise HTTPException(
@@ -92,13 +92,13 @@ class FormAnalyticsRouter(Routable):
         return StatsModel(**stats_data)
 
     @get(
-        "/{workspace_name}/forms/{form_id}/pageviews",
+        "/{workspace_name}/forms/{slug}/pageviews",
         response_model=PageViewModel,
     )
     async def get_form_pageviews(
         self,
         workspace_name: str,
-        form_id: str,
+        slug: str,
         start_at: int,
         end_at: int,
         unit: str,
@@ -118,7 +118,7 @@ class FormAnalyticsRouter(Routable):
             workspace_name=workspace_name, user=user
         )
 
-        form_url = f"/{workspace_name}/forms/{form_id}"
+        form_url = f"/{workspace_name}/forms/{slug}"
 
         if not start_at or not end_at:
             raise HTTPException(
@@ -148,13 +148,13 @@ class FormAnalyticsRouter(Routable):
         return PageViewModel(**pageview_data)
 
     @get(
-        "/{workspace_name}/forms/{form_id}/metrics",
+        "/{workspace_name}/forms/{slug}/metrics",
         response_model=MetricResponseModel,
     )
     async def get_form_metrics(
         self,
         workspace_name: str,
-        form_id: str,
+        slug: str,
         start_at: int,
         end_at: int,
         type: str,
@@ -176,7 +176,7 @@ class FormAnalyticsRouter(Routable):
         await self.analytics_service.check_user_can_view_analytics(
             workspace_name=workspace_name, user=user
         )
-        form_url = f"/{workspace_name}/forms/{form_id}"
+        form_url = f"/{workspace_name}/forms/{slug}"
 
         if not start_at or not end_at:
             raise HTTPException(

@@ -6,7 +6,7 @@ export const ANALYTICS_REDUCER_PATH = 'analyticsApi';
 
 interface GetStatsQueryParams {
     workspaceId: string;
-    formId: string;
+    slug: string;
     start_at: number;
     end_at: number;
     referrer?: string;
@@ -45,22 +45,22 @@ export const analyticsApi = createApi({
     }),
     endpoints: (builder) => ({
         getFormStats: builder.query<FormStats, GetStatsQueryParams>({
-            query: ({ workspaceId, formId, start_at, end_at, ...params }) => ({
-                url: `/${workspaceId}/forms/${formId}/stats`,
+            query: ({ workspaceId, slug, start_at, end_at, ...params }) => ({
+                url: `/${workspaceId}/forms/${slug}/stats`,
                 method: 'GET',
                 params: { start_at, end_at, ...params }
             })
         }),
         getFormPageviews: builder.query<FormPageviews, GetPageViewsQueryParams>({
-            query: ({ workspaceId, formId, start_at, end_at, unit, timezone, ...params }) => ({
-                url: `/${workspaceId}/forms/${formId}/pageviews`,
+            query: ({ workspaceId, slug, start_at, end_at, unit, timezone, ...params }) => ({
+                url: `/${workspaceId}/forms/${slug}/pageviews`,
                 method: 'GET',
                 params: { start_at, end_at, unit, timezone, ...params }
             })
         }),
         getFormMetrics: builder.query<FormMetric, GetMetricsQueryParams>({
-            query: ({ workspaceId, formId, start_at, end_at, type, limit = 500, ...params }) => ({
-                url: `/${workspaceId}/forms/${formId}/metrics`,
+            query: ({ workspaceId, slug, start_at, end_at, type, limit = 500, ...params }) => ({
+                url: `/${workspaceId}/forms/${slug}/metrics`,
                 method: 'GET',
                 params: { start_at, end_at, type, limit, ...params }
             })

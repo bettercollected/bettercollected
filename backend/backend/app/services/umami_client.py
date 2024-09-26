@@ -15,6 +15,7 @@ class UmamiClient:
     async def authenticate(self):
         auth_url = f"{settings.umami_settings.URL}/api/auth/login"
         try:
+            logger.info("Attempting to authenticate with Umami API.")
             response = await self.client.post(
                 auth_url,
                 json={
@@ -27,12 +28,13 @@ class UmamiClient:
             self.token = response.json().get("token")
 
             if not self.token:
+                logger.error("Authentication failed: Token not found in response.")
                 raise HTTPException(
                     status_code=HTTPStatus.UNAUTHORIZED,
                     detail="Authentication token not found",
                 )
 
-            logger.info("Authenticated successfully with token.")
+            logger.info("Authenticated successfully, token acquired.")
         except (httpx.HTTPStatusError, KeyError) as e:
             logger.error(f"Authentication failed: {e}")
             raise HTTPException(
@@ -41,11 +43,11 @@ class UmamiClient:
             )
 
     def make_request(endpoint: str):
-
         def decorator(func: Callable):
             @functools.wraps(func)
             async def wrapper(self, *args, **kwargs):
                 if not self.token:
+                    logger.info("Token missing, initiating authentication.")
                     await self.authenticate()
 
                 headers = {"Authorization": f"Bearer {self.token}"}
@@ -53,30 +55,42 @@ class UmamiClient:
 
                 params = await func(self, *args, **kwargs)
 
+                logger.info(f"Sending request to {url} with params: {params}")
                 try:
                     response = await self.client.get(
                         url, headers=headers, params=params, timeout=180
                     )
                     response.raise_for_status()
+                    logger.info(
+                        f"Request to {endpoint} successful. Response: {response.json()}"
+                    )
                     return response.json()
 
                 except httpx.HTTPStatusError as e:
+                    logger.error(
+                        f"Request to {endpoint} failed with status {e.response.status_code}: {e.response.text}"
+                    )
                     if e.response.status_code == 401:
-                        logger.info("Token expired, re-authenticating...")
+                        logger.info(
+                            "Token expired, re-authenticating and retrying request."
+                        )
                         await self.authenticate()
-                        return await self.client.get(
+                        retry_response = await self.client.get(
                             url,
                             headers={"Authorization": f"Bearer {self.token}"},
                             params=params,
                             timeout=180,
-                        ).json()
-                    logger.error(f"Request failed for {endpoint}: {e.response.text}")
+                        )
+                        logger.info(
+                            f"Retry response for {endpoint}: {retry_response.json()}"
+                        )
+                        return retry_response.json()
                     raise HTTPException(
                         status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
                         detail=f"Failed to fetch data from {endpoint}",
                     )
                 except Exception as e:
-                    logger.error(f"Unexpected error for {endpoint}: {e}")
+                    logger.error(f"Unexpected error while accessing {endpoint}: {e}")
                     raise HTTPException(
                         status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
                         detail=f"Unexpected error fetching data from {endpoint}",

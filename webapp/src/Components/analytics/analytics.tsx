@@ -34,11 +34,11 @@ export default function FormAnalytics() {
         };
     }
 
-    const form = useAppSelector(selectForm);
+    const standardForm = useAppSelector(selectForm);
     const workspace = useAppSelector((state) => state.workspace);
     const workspaceId = workspace.workspaceName;
-    const formId = form.formId;
     const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const slug = standardForm.settings?.customUrl || standardForm.formId;
 
     const [startAt, setStartAt] = useState<number>(Date.now() - 24 * 60 * 60 * 1000);
     const [endAt, setEndAt] = useState<number>(Date.now());
@@ -129,7 +129,7 @@ export default function FormAnalytics() {
         countryMetricsLoading,
         pageviewsLoading,
         pageviewsError
-    } = useFormAnalyticsData(workspaceId, formId, startAt, endAt, unit, timezone);
+    } = useFormAnalyticsData(workspaceId, slug, startAt, endAt, unit, timezone);
 
     const [analyticsData, setAnalyticsData] = useState<AnalyticsData>({
         currentViews: 0,
@@ -213,7 +213,7 @@ export default function FormAnalytics() {
 
     if (loading) {
         return (
-            <div className="mt-16 flex h-screen items-start justify-center">
+            <div className="flex min-h-[300px] w-full items-center justify-center">
                 <div className="text-center">
                     <div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-b-2 border-t-2 border-blue-500"></div>
                     <div className="text-sm font-medium">Loading Data...</div>
@@ -225,7 +225,7 @@ export default function FormAnalytics() {
     if (hasError) {
         return (
             <>
-                <TimeRangeSelector onRangeSelect={handleRangeSelect} />
+                <TimeRangeSelector onRangeSelect={handleRangeSelect} selectedRange={range} />
                 <EmptyDataResponseComponent title="No data yet" detail="There was an error while fetching the data" />
             </>
         );
@@ -234,7 +234,7 @@ export default function FormAnalytics() {
     if (zeroViews) {
         return (
             <>
-                <TimeRangeSelector onRangeSelect={handleRangeSelect} />
+                <TimeRangeSelector onRangeSelect={handleRangeSelect} selectedRange={range} />
                 <EmptyDataResponseComponent title="No views yet" detail="There is no view in this time range." />
             </>
         );
@@ -242,9 +242,9 @@ export default function FormAnalytics() {
 
     return (
         <main>
-            <TimeRangeSelector onRangeSelect={handleRangeSelect} />
+            <TimeRangeSelector onRangeSelect={handleRangeSelect} selectedRange={range} />
             <Metrics analyticsData={analyticsData} />
-            <BarChart workspaceId={workspaceId} formId={formId} startAt={startAt} endAt={endAt} unit={unit} timezone={timezone} range={range} />
+            <BarChart workspaceId={workspaceId} slug={slug} startAt={startAt} endAt={endAt} unit={unit} timezone={timezone} range={range} />
             <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
                 <DataTable title="Referrers" data={analyticsData.detailedData.referrers} />
                 <DataTable title="Browsers" data={analyticsData.detailedData.browsers} />
@@ -258,10 +258,12 @@ export default function FormAnalytics() {
 
 const EmptyDataResponseComponent = ({ title, detail }: { title: JSX.Element | string; detail: string }) => {
     return (
-        <div className={'flex flex-col items-center gap-2 pl-80'}>
-            <EmptyResponseIcon />
-            <span className={'p3-new text-black'}>{title}</span>
-            <span className={'p4-new text-black-600'}>{detail}</span>
+        <div className="flex min-h-[300px] w-full items-center justify-center">
+            <div className="mb-28 flex flex-col items-center gap-2">
+                <EmptyResponseIcon />
+                <span className="p3-new text-black">{title}</span>
+                <span className="p4-new text-black-600">{detail}</span>
+            </div>
         </div>
     );
 };
