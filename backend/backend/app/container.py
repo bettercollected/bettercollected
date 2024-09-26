@@ -61,6 +61,7 @@ from backend.app.services.workspace_members_service import WorkspaceMembersServi
 from backend.app.services.workspace_responders_service import WorkspaceRespondersService
 from backend.app.services.workspace_service import WorkspaceService
 from backend.app.services.workspace_user_service import WorkspaceUserService
+from backend.app.services.form_actions_service import FormActionsService
 from backend.config import settings
 
 current_path = Path(os.path.abspath(os.path.dirname(__file__))).absolute()
@@ -332,6 +333,10 @@ class AppContainer(containers.DeclarativeContainer):
         crypto=crypto,
         http_client=http_client,
         integration_action_service=integration_action_service,
+    )
+
+    form_actions_service: FormActionsService = providers.Singleton(
+        FormActionsService, form_repo=form_repo
     )
 
 

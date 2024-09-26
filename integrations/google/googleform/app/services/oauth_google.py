@@ -389,6 +389,6 @@ class OauthGoogleService:
         credentials = self.fetch_token(state=state, auth_code=code, is_integration=True)
         json_credentials = credentials.to_json()
         google_credential = GoogleCredentialResponse(**json.loads(json_credentials))
-        integration_credential = {"credentials": google_credential.dict()}
+        integration_credential = google_credential.dict()
         creds = _crypto.encrypt(json.dumps(integration_credential))
         return creds

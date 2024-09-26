@@ -47,8 +47,9 @@ class GoogleService:
         try:
             spreadsheet = {"properties": {"title": title}}
             google_sheet = (
-                self._build_service(credentials=credentials_in_dict.get("credentials"), service_name="sheets",
-                                    version="v4")
+                self._build_service(
+                    credentials=credentials_in_dict, service_name="sheets", version="v4"
+                )
                 .spreadsheets()
                 .create(body=spreadsheet, fields="spreadsheetId")
                 .execute()
@@ -80,9 +81,12 @@ class GoogleService:
     def read_google_sheet(self, spreadsheet_id: str, credentials):
         try:
             result = (
-                self._build_service(credentials=credentials, service_name="sheets", version="v4")
+                self._build_service(
+                    credentials=credentials, service_name="sheets", version="v4"
+                )
                 .spreadsheets()
-                .values().get(spreadsheetId=spreadsheet_id, range="Sheet1!A1")
+                .values()
+                .get(spreadsheetId=spreadsheet_id, range="Sheet1!A1")
                 .execute()
             )
             return result

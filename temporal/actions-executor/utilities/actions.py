@@ -164,7 +164,11 @@ async def run_action(
         google_sheet_id: str = None, credentials: str = None, data=None
     ):
         credentials = json.loads(credentials)
-        credential = fetch_oauth_token(credentials.get("credentials"))
+        credential = fetch_oauth_token(
+            oauth_credential=credentials,
+            action_id=action["id"],
+            form_id=form["form_id"],
+        )
         credential["scopes"] = credential.get("scopes").split(" ")[1:]
 
         # Extract questions and answers from the response
@@ -188,15 +192,26 @@ async def run_action(
                 .get(spreadsheetId=google_sheet_id, range="A1:1")
                 .execute()
             )
-            values = result.get("values", [])
+            existing_questions = result.get("values", [[]])[0]
+            new_questions = []
+            updated_questions = False
 
-            if not values:  # If no questions exist, insert them
+            for i, question in enumerate(question_array):
+                if i < len(existing_questions):
+                    if existing_questions[i] != question:
+                        existing_questions[i] = question  # Update modified question
+                        updated_questions = True
+                else:
+                    existing_questions.append(question)  # Append new questions
+                    updated_questions = True
+
+            if updated_questions:  # If no questions exist, insert them
                 # Update the first row (questions)
                 service.spreadsheets().values().update(
                     spreadsheetId=google_sheet_id,
-                    range=f"A1:{chr(ord('A') + len(question_array))}1",
+                    range=f"A1:{chr(ord('A') + len(existing_questions)-1)}1",
                     valueInputOption="USER_ENTERED",
-                    body=question_data,
+                    body={"values": [existing_questions]},
                 ).execute()
 
                 # Apply formatting (bold and underline) to the first row

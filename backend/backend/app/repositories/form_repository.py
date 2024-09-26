@@ -9,6 +9,7 @@ from backend.app.exceptions import HTTPException
 from backend.app.models.enum.FormVersion import FormVersion
 from backend.app.schemas.form_versions import FormVersionsDocument
 from backend.app.schemas.standard_form import FormDocument
+from backend.app.models.dtos.form_actions_dto import FormActionsDto
 from backend.app.utils.aggregation_query_builder import create_filter_pipeline
 
 
@@ -115,7 +116,10 @@ class FormRepository:
 
     @staticmethod
     def get_published_forms_in_workspace(
-        workspace_id: PydanticObjectId, form_id_list: List[str], sort=None, get_actions= False
+        workspace_id: PydanticObjectId,
+        form_id_list: List[str],
+        sort=None,
+        get_actions=False,
     ):
         aggregation_pipeline = [
             {"$sort": {"version": -1}},
@@ -332,3 +336,25 @@ class FormRepository:
         new_form_version = FormVersionsDocument(**form.dict(), version=version)
         new_form_version.id = None
         return await new_form_version.save()
+
+    async def get_form_by_id(self, form_id: PydanticObjectId):
+        return await FormDocument.find_one({"form_id": str(form_id)})
+
+    async def update_form_actions(
+        self,
+        form_id: PydanticObjectId,
+        action_id: PydanticObjectId,
+        form: StandardForm,
+        payload: FormActionsDto,
+    ):
+        # Accessing secrets using the action_id
+        secrets = form.secrets[str(action_id)]
+
+        # Update the secret for that action_id
+        for secret in secrets:
+            if secret.name == payload.name:
+                secret.value = payload.value
+
+        form.secrets[str(action_id)] = secrets
+
+        return await form.save()
