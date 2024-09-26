@@ -7,7 +7,7 @@ import AppButton from '@Components/Common/Input/Button/AppButton';
 import { ButtonSize, ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
 import { toast } from 'react-toastify';
 
-import AuthNavbar from '@app/components/auth/navbar';
+import AuthNavbar from '@app/Components/auth/navbar';
 import { buttonConstant } from '@app/constants/locales/button';
 import { invitationConstant } from '@app/constants/locales/invitations';
 import { workspaceConstant } from '@app/constants/locales/workspace';

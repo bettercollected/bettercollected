@@ -1,7 +1,7 @@
 import React from 'react';
 import { useTranslation } from 'next-i18next';
 import { NextSeo } from 'next-seo';
-import AuthNavbar from '@app/components/auth/navbar';
+import AuthNavbar from '@app/Components/auth/navbar';
 import { useRouter } from 'next/router';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';

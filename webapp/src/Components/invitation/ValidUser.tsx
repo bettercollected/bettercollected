@@ -1,14 +1,14 @@
 import { buttonConstant } from '@app/constants/locales/button';
 import { localesCommon } from '@app/constants/locales/common';
 import { invitationConstant } from '@app/constants/locales/invitations';
-import { ButtonSize, ButtonVariant } from '@app/models/enums/button';
+import { ButtonSize, ButtonVariant } from '@app/Components/Common/Input/Button/AppButtonProps';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import AppButton from '@Components/Common/Input/Button/AppButton';
 import { NextSeo } from 'next-seo';
 import AuthAccountProfileImage from '../auth/account-profile-image';
 import { useTranslation } from 'next-i18next';
-import AuthNavbar from '@app/components/auth/navbar';
+import AuthNavbar from '@app/Components/auth/navbar';
 import { toast } from '@app/shadcn/components/ui/use-toast';
 import { toastMessage } from '@app/constants/locales/toast-message';
 import { useRespondToWorkspaceInvitationMutation } from '@app/store/workspaces/members-n-invitations-api';
@@ -43,8 +43,9 @@ export default function ValidUser({ workspace, invitation }: IValidProps) {
             responseStatus: status
         };
         const response: any = await trigger(request);
+
         if (response.data) {
-            if (status == 'REJECTED') {
+            if (status === 'REJECTED') {
                 setRejected(true);
                 setTimeout(() => {
                     window.close();
@@ -53,12 +54,16 @@ export default function ValidUser({ workspace, invitation }: IValidProps) {
                 await router.push(`/${workspace.workspaceName}/dashboard`);
             }
         }
+
         if (response.error) {
-            toast(response.error?.data || t(toastMessage.somethingWentWrong), {
-                type: 'error'
+            toast({
+                title: t(toastMessage.somethingWentWrong),
+                description: response.error?.data || t('An unknown error occurred'), // Fallback description
+                type: 'foreground' // Change this to a valid type according to your toast implementation
             });
         }
     };
+
     return (
         <div className=" w-full px-4 py-10">
             <NextSeo title={t(invitationConstant.title) + ' | ' + workspaceName} noindex={true} nofollow={true} />;
