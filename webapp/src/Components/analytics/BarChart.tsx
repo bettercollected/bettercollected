@@ -44,7 +44,7 @@ interface FormPageviewsData {
 
 interface BarChartProps {
     workspaceId: string;
-    formId: string;
+    slug: string;
     startAt: number;
     endAt: number;
     unit: string;
@@ -52,8 +52,8 @@ interface BarChartProps {
     range: string;
 }
 
-const BarChart: React.FC<BarChartProps> = ({ workspaceId, formId, startAt, endAt, unit, timezone, range }) => {
-    const { formPageviews, pageviewsError, pageviewsLoading } = useFormAnalyticsData(workspaceId, formId, startAt, endAt, unit, timezone);
+const BarChart: React.FC<BarChartProps> = ({ workspaceId, slug, startAt, endAt, unit, timezone, range }) => {
+    const { formPageviews, pageviewsError, pageviewsLoading } = useFormAnalyticsData(workspaceId, slug, startAt, endAt, unit, timezone);
 
     if (pageviewsLoading) {
         return (

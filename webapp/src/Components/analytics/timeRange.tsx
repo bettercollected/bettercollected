@@ -1,18 +1,17 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 const timeRanges = ['Today', 'Last 24 hours', 'This week', 'Last 7 days', 'This month', 'Last 30 days', 'Last 90 days', 'This year', 'Last 6 months', 'Last 12 months', 'All time'];
 
 interface TimeRangeSelectorProps {
     onRangeSelect: (range: string) => void;
+    selectedRange: string;
 }
 
-const TimeRangeSelector: React.FC<TimeRangeSelectorProps> = ({ onRangeSelect }) => {
-    const [selectedRange, setSelectedRange] = useState<string>('Last 24 hours');
+const TimeRangeSelector: React.FC<TimeRangeSelectorProps> = ({ onRangeSelect, selectedRange }) => {
     const [isOpen, setIsOpen] = useState<boolean>(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
 
     const handleRangeChange = (range: string) => {
-        setSelectedRange(range);
         onRangeSelect(range);
         setIsOpen(false);
     };
@@ -48,7 +47,7 @@ const TimeRangeSelector: React.FC<TimeRangeSelectorProps> = ({ onRangeSelect }) 
                 </svg>
             </button>
             {isOpen && (
-                <div className="left-0.1 absolute mt-2 w-56 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5">
+                <div className="absolute mt-2 w-56 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5">
                     <div className="py-1">
                         {timeRanges.map((range, index) => (
                             <button

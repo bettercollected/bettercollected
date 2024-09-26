@@ -1,13 +1,13 @@
 import { useGetFormStatsQuery, useGetFormMetricsQuery, useGetFormPageviewsQuery } from './api';
 
-export const useFormAnalyticsData = (workspaceId: string, formId: string, startAt: number, endAt: number, unit: string, timezone: string) => {
+export const useFormAnalyticsData = (workspaceId: string, slug: string, startAt: number, endAt: number, unit: string, timezone: string) => {
     const {
         data: formPageviews,
         error: pageviewsError,
         isLoading: pageviewsLoading
     } = useGetFormPageviewsQuery({
         workspaceId,
-        formId,
+        slug,
         start_at: startAt,
         end_at: endAt,
         unit: unit,
@@ -20,7 +20,7 @@ export const useFormAnalyticsData = (workspaceId: string, formId: string, startA
         isLoading: statsLoading
     } = useGetFormStatsQuery({
         workspaceId,
-        formId,
+        slug,
         start_at: startAt,
         end_at: endAt
     });
@@ -31,7 +31,7 @@ export const useFormAnalyticsData = (workspaceId: string, formId: string, startA
         isLoading: browsersMetricsLoading
     } = useGetFormMetricsQuery({
         workspaceId,
-        formId,
+        slug,
         start_at: startAt,
         end_at: endAt,
         type: 'browser'
@@ -43,7 +43,7 @@ export const useFormAnalyticsData = (workspaceId: string, formId: string, startA
         isLoading: referrerMetricsLoading
     } = useGetFormMetricsQuery({
         workspaceId,
-        formId,
+        slug,
         start_at: startAt,
         end_at: endAt,
         type: 'referrer'
@@ -55,7 +55,7 @@ export const useFormAnalyticsData = (workspaceId: string, formId: string, startA
         isLoading: deviceMetricsLoading
     } = useGetFormMetricsQuery({
         workspaceId,
-        formId,
+        slug,
         start_at: startAt,
         end_at: endAt,
         type: 'device'
@@ -67,7 +67,7 @@ export const useFormAnalyticsData = (workspaceId: string, formId: string, startA
         isLoading: osMetricsLoading
     } = useGetFormMetricsQuery({
         workspaceId,
-        formId,
+        slug,
         start_at: startAt,
         end_at: endAt,
         type: 'os'
@@ -79,7 +79,7 @@ export const useFormAnalyticsData = (workspaceId: string, formId: string, startA
         isLoading: countryMetricsLoading
     } = useGetFormMetricsQuery({
         workspaceId,
-        formId,
+        slug,
         start_at: startAt,
         end_at: endAt,
         type: 'country'
