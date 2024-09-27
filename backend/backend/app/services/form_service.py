@@ -563,3 +563,6 @@ class FormService:
             action_params=action_params, form_id=str(form_id)
         )
         return form_params
+
+    async def get_latest_version_of_form(self, form_id:PydanticObjectId):
+        return await self._form_repo.get_latest_version_of_form(form_id)

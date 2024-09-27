@@ -551,11 +551,20 @@ class WorkspaceFormService:
 
         form = await self.form_service.get_form_document_by_id(form_id=str(form_id))
 
+        # TODO: get latest version of form from form_service
+
+        latest_version_of_form = await self.form_service.get_latest_version_of_form(
+            form_id=form_id
+        )
+        latest_version_of_form.actions = form.actions
+        latest_version_of_form.secrets = form.secrets
+        latest_version_of_form.parameters = form.parameters
+
         # TODO resolve circular deps for workspace service to get workspace details
         # workspace = await WorkspaceDocument.find_one(WorkspaceDocument.id == workspace_id)
         # workspace = await self.workspace_repo.get_workspace_with_action_by_id(workspace_id)
         await self.action_service.start_actions_for_submission(
-            form=form,
+            form=latest_version_of_form,
             response=form_response,
             workspace_id=workspace_id,
             request=request,
@@ -672,7 +681,9 @@ class WorkspaceFormService:
             workspace_id=workspace_id, action=action, user=user
         )
         updated_form = await self.form_service.add_action_form(
-            form_id=form_id, add_action_to_form_params=add_action_to_form_params, action=action
+            form_id=form_id,
+            add_action_to_form_params=add_action_to_form_params,
+            action=action,
         )
         return updated_form.actions
 
