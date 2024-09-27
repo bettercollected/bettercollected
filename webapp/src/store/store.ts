@@ -30,6 +30,7 @@ import { integrationApi } from '@app/store/integrationApi';
 import { formsApi } from '@app/store/redux/formApi';
 import { importApi } from '@app/store/redux/importApi';
 import { mediaLibraryApi } from './media-library/api';
+import { analyticsApi } from './analytics/api';
 // Add more middlewares here
 // const middlewares = [loggerMiddleware, authApi.middleware, membersNInvitationsApi.middleware, plansApi.middleware, providerApi.middleware, workspacesApi.middleware];
 const middlewares = [
@@ -47,6 +48,7 @@ const middlewares = [
     templatesApi.middleware,
     importApi.middleware,
     mediaLibraryApi.middleware,
+    analyticsApi.middleware,
     integrationApi.middleware
 ];
 
@@ -76,6 +78,7 @@ const reducers = {
     [templatesApi.reducerPath]: templatesApi.reducer,
     [importApi.reducerPath]: importApi.reducer,
     [mediaLibraryApi.reducerPath]: mediaLibraryApi.reducer,
+    [analyticsApi.reducerPath]: analyticsApi.reducer,
     [integrationApi.reducerPath]: integrationApi.reducer
     // Add more reducers here
 };
