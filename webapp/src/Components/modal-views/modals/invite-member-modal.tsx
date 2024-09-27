@@ -17,7 +17,6 @@ import { toastMessage } from '@app/constants/locales/toast-message';
 import { useAppSelector } from '@app/store/hooks';
 import { useGetWorkspaceMembersQuery, useInviteToWorkspaceMutation } from '@app/store/workspaces/members-n-invitations-api';
 
-
 export default function InviteMemberModal() {
     const [trigger, { data, isLoading }] = useInviteToWorkspaceMutation();
     const workspace = useAppSelector((state) => state.workspace);
@@ -61,11 +60,11 @@ export default function InviteMemberModal() {
         closeModal();
     };
     return (
-        <SettingsCard className="!space-y-0 relative py-6 pb-10 px-10">
-            <Close onClick={closeModal} className="absolute top-2 right-2 cursor-pointer p-2 h-8 w-8" />
+        <SettingsCard className="relative !space-y-0 px-10 py-6 pb-10">
+            <Close onClick={closeModal} className="absolute right-2 top-2 h-8 w-8 cursor-pointer p-2" />
             <div className="sh1 !leading-none">{t(inviteCollaborator.default)}</div>
             <div className="body4 pt-6 !leading-none ">{t(inviteCollaborator.description)}</div>
-            <form onSubmit={handleSendInvitation} className="flex pt-8  flex-col justify-start">
+            <form onSubmit={handleSendInvitation} className="flex flex-col  justify-start pt-8">
                 <div className="body1 mb-3 !leading-none">{t(localesCommon.enterEmail)}</div>
                 <AppTextField
                     disabled={isLoading}
@@ -78,7 +77,7 @@ export default function InviteMemberModal() {
                         setInvitationMail(event.target.value);
                     }}
                 />
-                <div className="flex flex-col w-full mt-4 justify-end">
+                <div className="mt-4 flex w-full flex-col justify-end">
                     <AppButton size={ButtonSize.Medium} disabled={isLoading} isLoading={isLoading} type="submit">
                         {t(buttonConstant.sendInvitation)}
                     </AppButton>

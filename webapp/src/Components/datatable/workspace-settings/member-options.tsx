@@ -15,6 +15,7 @@ import { useResendWorkspaceInvitationMutation } from '@app/store/workspaces/memb
 interface IMemberOptionProps {
     member?: WorkspaceMembersDto;
     invitation?: WorkspaceInvitationDto;
+    workspaceId: string;
 }
 
 export default function MemberOptions({ member, invitation }: IMemberOptionProps) {

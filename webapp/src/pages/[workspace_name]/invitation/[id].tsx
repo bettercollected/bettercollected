@@ -7,7 +7,7 @@ import AppButton from '@Components/Common/Input/Button/AppButton';
 import { ButtonSize, ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
 import { toast } from 'react-toastify';
 
-import AuthNavbar from '@app/components/auth/navbar';
+import AuthNavbar from 'src/Components/auth/navbar';
 import environments from '@app/configs/environments';
 import { buttonConstant } from '@app/constants/locales/button';
 import { localesCommon } from '@app/constants/locales/common';
@@ -27,13 +27,13 @@ import InvalidUserInvitation from '@Components/invitation/sender';
 import MainValidUser from '@Components/invitation/MainValidUser';
 import Logout from '@Components/Common/Icons/Dashboard/Logout';
 
-import { useModal } from '@app/components/modal-views/context';
+import { useModal } from '@app/Components/modal-views/context';
 import { useLazyGetStatusQuery, useLogoutMutation } from '@app/store/auth/api';
 import { useAppDispatch } from '@app/store/hooks';
 import { initialAuthState, setAuth } from '@app/store/auth/slice';
 import ExpiredInvitation from '@Components/invitation/expired';
 import Invitations from '@Components/member/invitations';
-import LoginComponent from '@Components/Login/Login-Component';
+import LoginComponent from 'src/Components/Login/login-component';
 
 interface Props {
     workspace: WorkspaceDto;

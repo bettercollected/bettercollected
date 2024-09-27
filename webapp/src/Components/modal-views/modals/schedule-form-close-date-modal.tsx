@@ -47,14 +47,15 @@ const ScheduleFormCloseDateModal: React.FC<IScheduleFormCloseDateModalProps> = (
                         <PopoverTrigger asChild>
                             <div className="relative flex w-[280px] cursor-pointer items-center rounded-lg border border-gray-400 bg-white p-2 text-left font-normal text-gray-700">
                                 <CalendarIcon className="absolute left-2 h-4 w-4 text-gray-500" />
-                                <div className="ml-8 text-black">{value ? format(value, 'PPP') : <span className="text-gray-500">Pick a date</span>}</div>
+                                <div className="ml-8 text-black">{value ? format(value.toDate(), 'PPP') : <span className="text-gray-500">Pick a date</span>}</div>
                             </div>
                         </PopoverTrigger>
+
                         <PopoverContent className="custom-calendar text-black-900 z-[100000000] w-auto bg-white p-0">
                             <Calendar
                                 mode="single"
-                                selected={value}
-                                onSelect={(selectedDate) => {
+                                selected={value ? value.toDate() : undefined} // Convert Dayjs to Date or pass undefined if value is null
+                                onSelect={(selectedDate: any) => {
                                     setValue(selectedDate);
                                     setIsDatePickerOpen(false);
                                 }}

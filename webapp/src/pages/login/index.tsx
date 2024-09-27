@@ -1,5 +1,5 @@
 import React from 'react';
-import LoginComponent from '@Components/Login/Login-Component';
+import LoginComponent from 'src/Components/Login/login-component';
 import environments from '@app/configs/environments';
 import { getGlobalServerSidePropsByDomain } from '@app/lib/serverSideProps';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
