@@ -10,6 +10,7 @@ import { Calendar as CalendarIcon } from 'lucide-react';
 
 import { Popover, PopoverContent, PopoverTrigger } from '@app/shadcn/components/ui/popover';
 import { Calendar } from '@app/shadcn/components/ui/calendar';
+import { cn } from '@app/shadcn/util/lib';
 
 interface IScheduleFormCloseDateModalProps {
     onFormClosedChange: (date: string | moment.Moment) => void;
@@ -22,7 +23,7 @@ const ScheduleFormCloseDateModal: React.FC<IScheduleFormCloseDateModalProps> = (
 
     const { closeBottomSheetModal } = useBottomSheetModal();
 
-    // Set the minimum date to tomorrow
+    // Set the minimum date to tommorow
     const minDate = dayjs().add(1, 'day').startOf('day').toDate();
 
     return (
@@ -49,12 +50,13 @@ const ScheduleFormCloseDateModal: React.FC<IScheduleFormCloseDateModalProps> = (
                                 <div className="ml-8 text-black">{value ? format(value.toDate(), 'PPP') : <span className="text-gray-500">Pick a date</span>}</div>
                             </div>
                         </PopoverTrigger>
+
                         <PopoverContent className="custom-calendar text-black-900 z-[100000000] w-auto bg-white p-0">
                             <Calendar
                                 mode="single"
-                                selected={value?.toDate()}
-                                onSelect={(selectedDate) => {
-                                    setValue(dayjs(selectedDate));
+                                selected={value ? value.toDate() : undefined} // Convert Dayjs to Date or pass undefined if value is null
+                                onSelect={(selectedDate: any) => {
+                                    setValue(selectedDate);
                                     setIsDatePickerOpen(false);
                                 }}
                                 initialFocus

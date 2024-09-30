@@ -1,3 +1,5 @@
+// src/models/dtos/workspaceDto.ts
+
 export interface WorkspaceDto {
     title: string;
     workspaceName: string;
@@ -20,6 +22,14 @@ export interface WorkspaceDto {
     id: string;
     isPro?: boolean;
     customDomainVerified?: boolean;
+}
+
+export interface WorkspaceInvitationDto {
+    invitationToken: string;
+    email: string;
+    createdAt: string;
+    expiry: number;
+    // Add any other relevant properties here
 }
 
 export const initWorkspaceDto: WorkspaceDto = {

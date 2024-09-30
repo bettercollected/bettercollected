@@ -18,7 +18,7 @@ import ViewResponseFullModalView from './full-screen-modals/view-response-full-m
 import CropImageModalView from './modals/crop-image-modal-view';
 import FormBuilderPreviewModal from './modals/form-builder-preview-modal';
 import { PreviewFullModalView } from './full-screen-modals/v2preview-modal';
-import LoginView from "@Components/Login/login-view";
+import LoginView from '@Components/Login/login-view';
 
 function renderModalContent(view: FULL_SCREEN_MODALS, modalProps: any) {
     switch (view) {

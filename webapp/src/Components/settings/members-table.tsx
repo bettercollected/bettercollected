@@ -54,7 +54,7 @@ export default function MembersTable({ data }: any) {
             }
         },
         {
-            cell: (member: any) => workspace?.ownerId !== member.id && <MemberOptions member={member} />,
+            cell: (member: any) => workspace?.ownerId !== member.id && <MemberOptions member={member} workspaceId={''} />,
             allowOverflow: true,
             button: true,
             width: '60px',
