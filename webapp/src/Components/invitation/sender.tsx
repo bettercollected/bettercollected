@@ -57,7 +57,7 @@ export default function InvalidUserInvitation({ invitation, workspaceId }: Props
                 }}
             >
                 <div className="text-black-900 mb-4 text-center text-xl font-semibold">Invalid Invitation</div>
-                <p className="text-center text-base text-red-600">Oops! It seems like you don&apost have access to this invitation.</p>
+                <p className="text-center text-base text-red-600">Oops! It seems like you don't have access to this invitation.</p>
                 <p className="mt-4 text-center text-sm text-gray-600">
                     The invitation was sent to <strong>{invitation.email}</strong>. If you believe this is an error, please request a new invitation.
                 </p>
