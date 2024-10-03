@@ -58,7 +58,6 @@ class ActionService:
         form: FormDocument,
         response: FormResponseDocument,
         workspace_id: PydanticObjectId,
-        request: Request,
     ):
         form_actions = form.actions
         if form_actions is None:

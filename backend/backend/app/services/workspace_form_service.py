@@ -512,7 +512,6 @@ class WorkspaceFormService:
         workspace_id: PydanticObjectId,
         form_id: PydanticObjectId,
         response: StandardFormResponse,
-        request: Request,
         user: User,
         form_files: list[FormFileResponse] = None,
     ):
@@ -567,7 +566,6 @@ class WorkspaceFormService:
             form=latest_version_of_form,
             response=form_response,
             workspace_id=workspace_id,
-            request=request,
         )
         return form_response
 

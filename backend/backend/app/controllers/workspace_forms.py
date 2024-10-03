@@ -267,7 +267,6 @@ class WorkspaceFormsRouter(Routable):
             response=parsed_response,
             form_files=form_files,
             user=user,
-            request=request,
         )
         if parsed_response.expiration_type not in [ResponseRetentionType.FOREVER, None]:
             await self._temporal_service.add_scheduled_job_for_deleting_response(

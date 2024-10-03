@@ -13,6 +13,7 @@ from backend.app import get_application
 from backend.app.container import container
 from backend.app.models.enum.workspace_roles import WorkspaceRoles
 from backend.app.schemas.standard_form import FormDocument
+from backend.app.schemas.standard_form_response import FormResponseDocument
 from backend.app.schemas.workspace import WorkspaceDocument
 from backend.app.schemas.workspace_user import WorkspaceUserDocument
 from backend.app.services import workspace_service
@@ -25,6 +26,7 @@ from tests.app.controllers.data import (
     testUser2,
     proUser,
     invited_user,
+    formData_test
 )
 
 
@@ -82,13 +84,37 @@ async def workspace_form_1(workspace_1: Coroutine[Any, Any, WorkspaceDocument]):
 
 
 @pytest.fixture()
-async def workspace_form_response(
+async def published_form(
     workspace: Coroutine[Any, Any, WorkspaceDocument],
     workspace_form: Coroutine[Any, Any, FormDocument],
 ):
+    published_form = await container.workspace_form_service().publish_form(
+        workspace.id, workspace_form.form_id, testUser
+    )
+    return published_form
+
+
+@pytest.fixture()
+async def published_form_1(
+    workspace_1: Coroutine[Any, Any, WorkspaceDocument],
+    workspace_form_1: Coroutine[Any, Any, FormDocument],
+):
+    published_form_1 = await container.workspace_form_service().publish_form(
+        workspace_1.id, workspace_form_1.form_id, testUser1
+    )
+    return published_form_1
+
+
+@pytest.fixture()
+async def workspace_form_response(
+    workspace: Coroutine[Any, Any, WorkspaceDocument],
+    published_form: Coroutine[
+        Any, Any, FormDocument
+    ],  # workspace_form -> published_form
+):
     form_response = await container.workspace_form_service().submit_response(
         workspace.id,
-        workspace_form.form_id,
+        published_form.form_id,
         StandardFormResponse(**formResponse),
         testUser,
     )
@@ -96,15 +122,43 @@ async def workspace_form_response(
 
 
 @pytest.fixture()
-async def workspace_form_response_1(
+async def workspace_form_response_for_test(
     workspace: Coroutine[Any, Any, WorkspaceDocument],
     workspace_form: Coroutine[Any, Any, FormDocument],
 ):
+    form_response = await container.form_response_service().submit_form_response(
+        workspace_form.form_id, StandardFormResponse(**formResponse), workspace.id
+    )
+    return dict(form_response)
+
+
+@pytest.fixture()
+async def workspace_form_response_1(
+    workspace: Coroutine[Any, Any, WorkspaceDocument],
+    published_form: Coroutine[
+        Any, Any, FormDocument
+    ],  # workspace_form -> published_form
+):
     response = await container.workspace_form_service().submit_response(
         workspace.id,
-        workspace_form.form_id,
+        published_form.form_id,
         StandardFormResponse(**formResponse),
         testUser1,
+    )
+    return dict(response)
+
+@pytest.fixture()
+async def workspace_form_response_test_1(
+    workspace: Coroutine[Any, Any, WorkspaceDocument],
+    workspace_form: Coroutine[
+        Any, Any, FormDocument
+    ],
+):
+    # standard_form_response = StandardFormResponse(**formResponse)
+    response = await container.form_response_service().submit_form_response(
+        workspace_form.form_id,
+        StandardFormResponse(**formResponse),
+        workspace.id
     )
     return dict(response)
 
@@ -182,9 +236,13 @@ def mock_aiohttp_post_request(
     workspace_form_response: Coroutine[Any, Any, dict],
 ):
     async def mock_post(*args, **kwargs):
-        responses = StandardFormResponse(**formResponse)
-        form = StandardForm(**dict(workspace_form))
-        return FormImportResponse(form=form, responses=[responses])
+        return {
+            "form":formData_test,
+            "responses":[formResponse]
+        }
+        # responses = StandardFormResponse(**formData_test)
+        # form = StandardForm(**dict(workspace_form))
+        # return FormImportResponse(form=form, responses=[responses])
 
     yield patch(
         "backend.app.services.workspace_form_service.WorkspaceFormService.convert_form",

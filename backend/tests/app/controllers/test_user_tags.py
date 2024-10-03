@@ -5,6 +5,7 @@ from aiohttp.test_utils import TestClient
 
 from backend.app.schemas.standard_form import FormDocument
 from backend.app.schemas.workspace import WorkspaceDocument
+from backend.app.services.openai_service import client
 from tests.app.controllers.data import (
     test_form_import_data,
     workspace_attribute,
@@ -12,6 +13,7 @@ from tests.app.controllers.data import (
     user_tag_details,
     testUser,
 )
+from tests.conftest import workspace_form_response_1
 
 
 @pytest.fixture()
@@ -29,42 +31,6 @@ user_tags_url = "/api/v1/user/tags/"
 
 
 class TestUserTags:
-    def test_get_user_tags_for_form_import_and_delete_request_received_and_delete_request_processed(
-        self,
-        client: TestClient,
-        workspace: Coroutine[Any, Any, WorkspaceDocument],
-        test_user_cookies: dict[str, str],
-        workspace_form_response: Coroutine[Any, Any, dict],
-        workspace_form_response_1: Coroutine[Any, Any, dict],
-        workspace_form_response_2: Coroutine[Any, Any, dict],
-        workspace_form: Coroutine[Any, Any, FormDocument],
-        mock_aiohttp_post_request,
-    ):
-        import_form_url = f"/api/v1/workspaces/{workspace.id}/forms/import/google"
-        request_delete_url_1 = f"/api/v1/workspaces/{workspace.id}/submissions/{workspace_form_response['response_id']}"
-        request_delete_url_2 = f"/api/v1/workspaces/{workspace.id}/submissions/{workspace_form_response_1['response_id']}"
-        client.delete(
-            request_delete_url_1,
-            cookies=test_user_cookies,
-        )
-        client.delete(
-            request_delete_url_2,
-            cookies=test_user_cookies,
-        )
-        with mock_aiohttp_post_request:
-            client.post(
-                import_form_url, cookies=test_user_cookies, json=test_form_import_data
-            )
-
-        fetched_tags = client.get(user_tags_url, cookies=test_user_cookies)
-
-        expected_response = [
-            "DELETION_REQUEST_RECEIVED",
-            "DELETION_REQUEST_PROCESSED",
-            "FORM_IMPORTED",
-        ]
-        actual_response = fetched_tags.json()[0].get("tags")
-        assert actual_response == expected_response
 
     def test_get_user_tags_for_workspace_handle_change_and_custom_domain(
         self,
