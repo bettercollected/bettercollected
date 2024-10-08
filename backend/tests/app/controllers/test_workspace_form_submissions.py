@@ -170,7 +170,9 @@ class TestWorkspaceFormSubmission:
         self,
         client: TestClient,
         test_user_cookies: dict[str, str],
-        workspace_form: Coroutine[Any, Any, FormDocument],
+        published_form: Coroutine[
+            Any, Any, FormDocument
+        ],  # workspace_form -> published_form
         workspace_form_response_1: Coroutine[Any, Any, dict],
         workspace_form_response: Coroutine[Any, Any, dict],
         get_get_form_responses_url: str,
@@ -198,7 +200,9 @@ class TestWorkspaceFormSubmission:
     async def test_get_workspace_form_responses_returns_only_its_workspace_responses(
         self,
         client: TestClient,
-        workspace_form_1: Coroutine[Any, Any, FormDocument],
+        published_form_1: Coroutine[
+            Any, Any, FormDocument
+        ],  # - workspace_form_1: Coroutine[Any, Any, FormDocument],
         get_get_form_responses_url: str,
         workspace_1: Coroutine[Any, Any, WorkspaceDocument],
         workspace_form_response_1: Coroutine[Any, Any, dict],
@@ -208,7 +212,7 @@ class TestWorkspaceFormSubmission:
         new_workspace_form_response = dict(
             await container.workspace_form_service().submit_response(
                 workspace_1.id,
-                workspace_form_1.form_id,
+                published_form_1.form_id,
                 StandardFormResponse(**formResponse),
                 testUser1,
             )
@@ -269,10 +273,14 @@ class TestWorkspaceFormSubmission:
         get_all_workspace_responses_url: str,
         test_user_cookies: dict[str, str],
         workspace_form_response: Coroutine[Any, Any, dict],
+        workspace_form: Coroutine[Any, Any, FormDocument],
     ):
         # Arrange
-        new_form = await container.workspace_form_service().create_form(
-            workspace.id, StandardForm(**formData_2), testUser
+        # new_form = await container.workspace_form_service().create_form(
+        #     workspace.id, StandardForm(**formData_2), testUser
+        # )
+        new_form = await container.workspace_form_service().publish_form(
+            workspace.id, workspace_form.form_id, testUser
         )
         user_responses = await create_responses(new_form, workspace)
 
@@ -377,7 +385,7 @@ class TestWorkspaceFormSubmission:
     async def test_get_workspace_form_response_by_response_id_of_other_workspace_form_fails(
         self,
         client: TestClient,
-        workspace_form_1: Coroutine[Any, Any, FormDocument],
+        published_form_1: Coroutine[Any, Any, FormDocument],
         common_url: str,
         workspace_1: Coroutine[Any, Any, WorkspaceDocument],
         test_user_cookies: dict[str, str],
@@ -385,7 +393,7 @@ class TestWorkspaceFormSubmission:
         new_form_response = dict(
             await container.workspace_form_service().submit_response(
                 workspace_1.id,
-                workspace_form_1.form_id,
+                published_form_1.form_id,
                 StandardFormResponse(**formResponse),
                 testUser,
             )

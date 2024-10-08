@@ -8,7 +8,7 @@ import cn from 'classnames';
 import { SetStateAction } from 'jotai';
 
 import useFormBuilderAtom from '@app/Components/FormBuilder/builderAtom';
-import Camera from '@app/components/icons/camera';
+import Camera from '@app/Components/icons/camera';
 import { selectLogo } from '@app/store/form-builder/selectors';
 import { useAppSelector } from '@app/store/hooks';
 

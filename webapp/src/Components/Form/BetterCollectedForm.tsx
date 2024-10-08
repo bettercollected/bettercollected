@@ -23,11 +23,11 @@ import ShortText from '@Components/Form/ShortText';
 import ThankYouPage from '@Components/Form/ThankYouPage';
 import { toast } from 'react-toastify';
 
-import AuthAccountProfileImage from '@app/components/auth/account-profile-image';
-import { Close } from '@app/components/icons/close';
-import { Logout } from '@app/components/icons/logout-icon';
-import { useModal } from '@app/components/modal-views/context';
-import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
+import AuthAccountProfileImage from '@app/Components/auth/account-profile-image';
+import { Close } from '@app/Components/icons/close';
+import { Logout } from '@app/Components/icons/logout-icon';
+import { useModal } from '@app/Components/modal-views/context';
+import { useFullScreenModal } from '@app/Components/modal-views/full-screen-modal-context';
 import { StandardFormDto, StandardFormFieldDto, StandardFormResponseDto } from '@app/models/dtos/form';
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
 import { useLogoutMutation } from '@app/store/auth/api';

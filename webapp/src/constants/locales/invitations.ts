@@ -3,6 +3,8 @@ export const invitationConstant = {
     title: 'INVITATION.TITLE',
     title1: 'INVITATION.TITLE_1',
     title2: 'INVITATION.TITLE_2',
+    ensureText: 'INVITATION.ENSURE_TEXT',
+    switchAccount: 'INVITATION.SWITCH_ACCOUNT',
     list: {
         title: 'INVITATION.LIST.TITLE',
         item1: 'INVITATION.LIST.ITEM_1',

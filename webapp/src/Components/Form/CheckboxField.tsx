@@ -1,7 +1,7 @@
 import React from 'react';
 
 import { FormFieldProps } from '@Components/Form/BetterCollectedForm';
-import { FieldRequired } from '@Components/UI/FieldRequired';
+import { FieldRequired } from '@Components/ui/FieldRequired';
 import Checkbox from '@mui/material/Checkbox';
 
 import { addAnswer, deleteAnswer, selectAnswer } from '@app/store/fill-form/slice';

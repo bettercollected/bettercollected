@@ -15,11 +15,11 @@ import Joyride from '@Components/Joyride';
 import { JoyrideStepContent, JoyrideStepTitle } from '@Components/Joyride/JoyrideStepTitleAndContent';
 import { ChevronLeft } from '@mui/icons-material';
 
-import FormRenderer from '@app/components/form/renderer/form-renderer';
-import { useModal } from '@app/components/modal-views/context';
-import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
-import FullScreenLoader from '@app/components/ui/fullscreen-loader';
-import ParamTab, { TabPanel } from '@app/components/ui/param-tab';
+import FormRenderer from '@app/Components/Form/renderer/form-renderer';
+import { useModal } from '@app/Components/modal-views/context';
+import { useFullScreenModal } from '@app/Components/modal-views/full-screen-modal-context';
+import FullScreenLoader from '@app/Components/ui/fullscreen-loader';
+import ParamTab, { TabPanel } from '@app/Components/ui/param-tab';
 import environments from '@app/configs/environments';
 import { buttonConstant } from '@app/constants/locales/button';
 import { localesCommon } from '@app/constants/locales/common';

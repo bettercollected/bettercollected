@@ -42,7 +42,7 @@ const nextConfig = {
         return [
             {
                 source: '/script.js',
-                destination: 'https://cloud.umami.is/script.js'
+                destination: 'https://umami.sireto.io/script.js'
             }
         ];
     },

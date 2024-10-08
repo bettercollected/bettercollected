@@ -4,8 +4,8 @@ import { useTranslation } from 'next-i18next';
 
 import AppButton from '@Components/Common/Input/Button/AppButton';
 import { ButtonSize } from '@Components/Common/Input/Button/AppButtonProps';
-import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
-import Logo, { ProLogo } from '@app/components/ui/logo';
+import { useFullScreenModal } from '@app/Components/modal-views/full-screen-modal-context';
+import Logo, { ProLogo } from '@app/Components/ui/logo';
 import { upgradeConst } from '@app/constants/locales/upgrade';
 import { selectAuthStatus } from '@app/store/auth/selectors';
 import { useAppSelector } from '@app/store/hooks';

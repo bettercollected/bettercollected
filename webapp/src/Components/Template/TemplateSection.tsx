@@ -9,7 +9,7 @@ import { ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
 import CreateTemplateButton from '@Components/Template/CreateTemplateButton';
 import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
 
-import { useModal } from '@app/components/modal-views/context';
+import { useModal } from '@app/Components/modal-views/context';
 import { IFormTemplateDto } from '@app/models/dtos/template';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';

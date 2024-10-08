@@ -9,6 +9,7 @@ from backend.app.services.init_schedulers import (
     update_schedule_intervals,
 )
 from backend.app.services.user_service import get_api_key, get_logged_admin
+from backend.app.models.dtos.form_actions_dto import FormActionsDto
 
 
 @router(
@@ -23,9 +24,16 @@ from backend.app.services.user_service import get_api_key, get_logged_admin
     },
 )
 class TemporalRouter(Routable):
-    def __init__(self, form_schedular=container.form_schedular(), *args, **kwargs):
+    def __init__(
+        self,
+        form_schedular=container.form_schedular(),
+        form_actions_service=container.form_actions_service(),
+        *args,
+        **kwargs
+    ):
         super().__init__(*args, **kwargs)
         self.form_schedular = form_schedular
+        self.form_actions_service = form_actions_service
 
     @post("/import/{workspace_id}/form/{form_id}")
     async def import_form_to_workspace(
@@ -33,6 +41,18 @@ class TemporalRouter(Routable):
     ):
         await self.form_schedular.update_form(
             workspace_id=workspace_id, form_id=form_id
+        )
+
+    @patch("/forms/{form_id}/actions/{action_id}/secrets")
+    async def patch_form_secrets(
+        self,
+        form_id: PydanticObjectId,
+        action_id: PydanticObjectId,
+        payload: FormActionsDto,
+        api_key=Depends(get_api_key),
+    ):
+        return await self.form_actions_service.update_form_secrets(
+            form_id, action_id, payload
         )
 
     @post("/delete/submissions/{submission_id}")

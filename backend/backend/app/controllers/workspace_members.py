@@ -1,10 +1,8 @@
 from typing import Any, List
-
 from beanie import PydanticObjectId
 from classy_fastapi import Routable, get, post, delete
-from fastapi import Depends
+from fastapi import Depends, HTTPException
 from fastapi_pagination import Page
-
 from backend.app.container import container
 from backend.app.models.dtos.workspace_member_dto import (
     WorkspaceMemberDto,
@@ -13,10 +11,17 @@ from backend.app.models.dtos.workspace_member_dto import (
 from backend.app.models.enum.invitation_response import InvitationResponse
 from backend.app.models.invitation_request import InvitationRequest
 from backend.app.router import router
+from backend.app.schemas.workspace_invitation import _get_expiry_epoch_after
 from backend.app.services.user_service import get_logged_user
 from backend.app.services.workspace_members_service import WorkspaceMembersService
 from common.models.user import User
+from datetime import datetime, timedelta
+import secrets
 
+
+def generate_invitation_token() -> str:
+    """Generates a secure token for workspace invitations."""
+    return secrets.token_urlsafe(32)  
 
 @router(
     prefix="/workspaces/{workspace_id}/members",
@@ -133,3 +138,43 @@ class WorkspaceMembersRouter(Routable):
             response_status=response_status,
             user=user,
         )
+
+    @post(
+        "/invitations/{invitation_id}/resend",
+    )
+    async def resend_invitation(
+        self,
+        workspace_id: PydanticObjectId,
+        invitation_id: str,
+        user: User = Depends(get_logged_user),
+    ):
+        invitation = await self.workspace_members_service.get_workspace_invitation_by_token(
+            workspace_id=workspace_id, user=user, invitation_token=invitation_id
+        )
+        
+        # if not invitation:
+        #     raise HTTPException(status_code=404, detail="Invitation not found.")
+        
+        
+        # new_token = secrets.token_hex(16)
+        
+        
+        # invitation.token = new_token
+        # invitation.expiry_date =  _get_expiry_epoch_after(
+        #         time_delta=timedelta(days=7)
+        #     )
+        
+        # # Resend the email with the new token
+        # await self.workspace_members_service.send_invitation_email(
+        #     email=invitation.email,
+        #     token=new_token,
+        #     workspace_id=workspace_id
+        # )
+        
+        # # Save the updated invitation
+        # await self.workspace_members_service.update_invitation(invitation)
+        return await self.workspace_members_service.create_invitation_request(
+            workspace_id=workspace_id, invitation=invitation, user=user
+        )
+        
+        

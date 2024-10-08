@@ -1,4 +1,5 @@
 """Application configuration - FastAPI."""
+
 import os
 from pathlib import Path
 
@@ -66,6 +67,8 @@ class Application(BaseSettings):
     GOOGLE_REDIRECT_URIS = ""
     GOOGLE_JAVASCRIPT_ORIGINS = ""
     GOOGLE_SCOPES = "openid https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/forms.body.readonly https://www.googleapis.com/auth/forms.responses.readonly"
+    GOOGLE_SHEET_SCOPE = "https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive"
+    GOOGLE_SHEET_REDIRECT_URL = "http://localhost:3000/integrations/google/callback"
     GOOGLE_API_SERVICE_NAME = "drive"
     GOOGLE_API_VERSION = "v2"
     GOOGLE_REVOKE_CREDENTIALS_URL = "https://oauth2.googleapis.com/revoke"

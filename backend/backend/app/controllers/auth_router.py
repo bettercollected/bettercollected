@@ -1,4 +1,5 @@
 """Auth controller implementation."""
+
 import logging
 from http import HTTPStatus
 from typing import Optional
@@ -30,6 +31,7 @@ from backend.app.services.user_service import (
     get_api_key,
 )
 from backend.config import settings
+from backend.app.models.enum.form_integration import FormIntegrationType
 
 log = logging.getLogger(__name__)
 

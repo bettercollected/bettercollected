@@ -413,7 +413,7 @@ class TestWorkspaceMember:
 
         responded_invitation = client.post(url, cookies=test_invited_user_cookies)
 
-        expected_response_message = "Invalid Invitation Token"
+        expected_response_message = "Token has expired"
         actual_response_message = responded_invitation.json()
         assert responded_invitation.status_code == 410
         assert actual_response_message == expected_response_message

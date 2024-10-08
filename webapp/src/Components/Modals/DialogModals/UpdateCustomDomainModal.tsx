@@ -8,7 +8,7 @@ import { ButtonSize, ButtonVariant } from '@Components/Common/Input/Button/AppBu
 import HeaderModalWrapper from '@Components/Modals/ModalWrappers/HeaderModalWrapper';
 import { toast } from 'react-toastify';
 
-import { useModal } from '@app/components/modal-views/context';
+import { useModal } from '@app/Components/modal-views/context';
 import { buttonConstant } from '@app/constants/locales/button';
 import { placeHolder } from '@app/constants/locales/placeholder';
 import { toastMessage } from '@app/constants/locales/toast-message';

@@ -8,7 +8,7 @@ import html2canvas from 'html2canvas';
 import { SetStateAction } from 'jotai';
 import { TransformComponent, TransformWrapper } from 'react-zoom-pan-pinch';
 
-import Upload from '@app/components/icons/upload';
+import Upload from '@app/Components/icons/upload';
 import { selectCoverImage } from '@app/store/form-builder/selectors';
 import { useAppSelector } from '@app/store/hooks';
 

@@ -25,10 +25,12 @@ import mutationStatusSlice from './mutations/slice';
 import { priceSuggestionApi } from './price-suggestion/api';
 
 import { templatesApi } from '@app/store/redux/templateApi';
+import { integrationApi } from '@app/store/integrationApi';
 
 import { formsApi } from '@app/store/redux/formApi';
 import { importApi } from '@app/store/redux/importApi';
 import { mediaLibraryApi } from './media-library/api';
+import { analyticsApi } from './analytics/api';
 // Add more middlewares here
 // const middlewares = [loggerMiddleware, authApi.middleware, membersNInvitationsApi.middleware, plansApi.middleware, providerApi.middleware, workspacesApi.middleware];
 const middlewares = [
@@ -45,7 +47,9 @@ const middlewares = [
     formsApi.middleware,
     templatesApi.middleware,
     importApi.middleware,
-    mediaLibraryApi.middleware
+    mediaLibraryApi.middleware,
+    analyticsApi.middleware,
+    integrationApi.middleware
 ];
 
 // if (environments.IS_IN_PRODUCTION_MODE) middlewares.splice(0, 1);
@@ -73,7 +77,10 @@ const reducers = {
     [formsApi.reducerPath]: formsApi.reducer,
     [templatesApi.reducerPath]: templatesApi.reducer,
     [importApi.reducerPath]: importApi.reducer,
-    [mediaLibraryApi.reducerPath]: mediaLibraryApi.reducer
+    [mediaLibraryApi.reducerPath]: mediaLibraryApi.reducer,
+    [analyticsApi.reducerPath]: analyticsApi.reducer,
+    [integrationApi.reducerPath]: integrationApi.reducer
+    // Add more reducers here
 };
 
 const combinedReducer = combineReducers<typeof reducers>(reducers);

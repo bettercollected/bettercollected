@@ -15,9 +15,9 @@ from googleform.app.services.user_service import get_user_credential
 
 class GoogleFormRouter(Routable):
     def __init__(
-        self,
-        *args,
-        **kwargs,
+            self,
+            *args,
+            **kwargs,
     ):
         """This class defines the routes for interacting with the Google forms."""
         # Injecting dependencies
@@ -29,7 +29,7 @@ class GoogleFormRouter(Routable):
 
     @get("", status_code=HTTPStatus.OK)
     async def _get_all_google_forms(
-        self, credential: Oauth2CredentialDocument = Depends(get_user_credential)
+            self, credential: Oauth2CredentialDocument = Depends(get_user_credential)
     ):
         credential = await self.oauth_credential_service.verify_oauth_token(
             credential.email
@@ -44,11 +44,26 @@ class GoogleFormRouter(Routable):
         forms_list = await task
         return forms_list
 
+    @get("/read_google_sheet")
+    async def read_google_sheet(self, google_sheet_id: str,
+                                credential: Oauth2CredentialDocument = Depends(get_user_credential)):
+        credential = await self.oauth_credential_service.verify_oauth_token(
+            credential.email
+        )
+        read_google_sheet = asyncio.get_event_loop().run_in_executor(
+            self.executor,
+            self.google_service.read_google_sheet,
+            google_sheet_id,
+            credential.credentials.dict(),
+        )
+        response = await read_google_sheet
+        return response
+
     @get("/{form_id}", status_code=HTTPStatus.OK)
     async def _get_single_google_form(
-        self,
-        form_id: str,
-        credential: Oauth2CredentialDocument = Depends(get_user_credential),
+            self,
+            form_id: str,
+            credential: Oauth2CredentialDocument = Depends(get_user_credential),
     ):
         credential = await self.oauth_credential_service.verify_oauth_token(
             credential.email
@@ -65,10 +80,10 @@ class GoogleFormRouter(Routable):
 
     @post("/convert/standard_form")
     async def _convert_form(
-        self,
-        form_import: Dict[str, Any],
-        convert_responses: Optional[bool] = True,
-        credential: Oauth2CredentialDocument = Depends(get_user_credential),
+            self,
+            form_import: Dict[str, Any],
+            convert_responses: Optional[bool] = True,
+            credential: Oauth2CredentialDocument = Depends(get_user_credential),
     ):
         credential = await self.oauth_credential_service.verify_oauth_token(
             credential.email
@@ -95,3 +110,17 @@ class GoogleFormRouter(Routable):
             credential.email
         )
         return await self.oauth_credential_service.verify_token_validity(credential=credential)
+
+    @post("/create_google_sheet")
+    async def create_google_sheet(self, title: str,
+                                  credential: str):
+        task = asyncio.get_event_loop().run_in_executor(
+            self.executor,
+            self.google_service.create_sheet,
+            title,
+            credential,
+        )
+        google_sheet_id = await task
+        return google_sheet_id
+
+

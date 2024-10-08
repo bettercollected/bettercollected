@@ -1,38 +1,32 @@
 import React from 'react';
 
-import { useTranslation } from 'next-i18next';
-import { NextSeo } from 'next-seo';
-import { useRouter } from 'next/router';
-
-import { template } from 'lodash';
-
-import EditIcon from '@Components/Common/Icons/Common/Edit';
+import {useTranslation} from 'next-i18next';
+import {NextSeo} from 'next-seo';
+import {useRouter} from 'next/router';
 import EllipsisOption from '@Components/Common/Icons/Common/EllipsisOption';
 import SettingsIcon from '@Components/Common/Icons/Common/Settings';
 import AppButton from '@Components/Common/Input/Button/AppButton';
-import { ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
+import {ButtonVariant} from '@Components/Common/Input/Button/AppButtonProps';
 import MenuDropdown from '@Components/Common/Navigation/MenuDropdown/MenuDropdown';
-import BetterCollectedForm from '@Components/Form/BetterCollectedForm';
-import { useBottomSheetModal } from '@Components/Modals/Contexts/BottomSheetModalContext';
-import EditTemplateButton from '@Components/Template/EditTemplateButton';
-import { ListItemIcon, MenuItem } from '@mui/material';
-import { toast } from 'react-toastify';
+import {useBottomSheetModal} from '@Components/Modals/Contexts/BottomSheetModalContext';
+import {ListItemIcon, MenuItem} from '@mui/material';
+import {toast} from 'react-toastify';
 
-import FormRenderer from '@app/components/form/renderer/form-renderer';
-import { ArrowUp } from '@app/components/icons/arrow-up';
-import { ChevronForward } from '@app/components/icons/chevron-forward';
+import FormRenderer from '@app/Components/Form/renderer/form-renderer';
+import {ArrowUp} from '@app/Components/icons/arrow-up';
+import {ChevronForward} from '@app/Components/icons/chevron-forward';
 import environments from '@app/configs/environments';
 import Layout from '@app/layouts/_layout';
-import { useIsMobile } from '@app/lib/hooks/use-breakpoint';
-import { getAuthUserPropsWithWorkspace } from '@app/lib/serverSideProps';
-import { useCreateFormFromTemplateMutation, useGetTemplateByIdQuery, useImportTemplateMutation } from '@app/store/template/api';
-import { convertFormTemplateToStandardForm } from '@app/utils/convertDataType';
-import { StandardFormDto } from '@app/models/dtos/form';
-import { IFormTemplateDto } from '@app/models/dtos/template';
-import LayoutWrapper from '@app/views/organism/Layout/LayoutWrapper';
-import WelcomePage from '@app/views/organism/Form/WelcomePage';
+import {useIsMobile} from '@app/lib/hooks/use-breakpoint';
+import {getAuthUserPropsWithWorkspace} from '@app/lib/serverSideProps';
+import {
+    useCreateFormFromTemplateMutation,
+    useGetTemplateByIdQuery,
+    useImportTemplateMutation
+} from '@app/store/template/api';
+import {convertFormTemplateToStandardForm} from '@app/utils/convertDataType';
+import {IFormTemplateDto} from '@app/models/dtos/template';
 import FormSlidePreview from '@app/views/organism/FormPreview/FormSlidePreview';
-import SlideBuilder from '@app/views/organism/FormBuilder/SlideBuilder';
 
 const SingleTemplate = (props: any) => {
     const { workspace, templateId } = props;

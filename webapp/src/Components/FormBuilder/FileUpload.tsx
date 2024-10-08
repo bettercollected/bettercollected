@@ -2,7 +2,7 @@ import React from 'react';
 
 import Image from "next/legacy/image";
 
-import { FieldRequired } from '@Components/UI/FieldRequired';
+import { FieldRequired } from '@Components/ui/FieldRequired';
 
 import fileUploadImg from '@app/assets/images/file-upload.png';
 import { StandardFormFieldDto } from '@app/models/dtos/form';

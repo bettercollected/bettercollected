@@ -1,7 +1,7 @@
 import AddWorkspaceDomainForm from '@Components/CustomDomain/AddWorkspaceDomainForm';
 import WorkspaceDomainStatus from '@Components/CustomDomain/WorkspaceDomainStatus';
-import DashboardLayout from '@app/components/sidebar/dashboard-layout';
-import { ProLogo } from '@app/components/ui/logo';
+import DashboardLayout from '@app/Components/sidebar/dashboard-layout';
+import { ProLogo } from '@app/Components/ui/logo';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 

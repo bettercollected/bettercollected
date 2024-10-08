@@ -5,7 +5,7 @@ import CheckBox from '@Components/Common/Input/CheckBox';
 import { uuidv4 } from '@mswjs/interceptors/lib/utils/uuid';
 import cn from 'classnames';
 
-import { useModal } from '@app/components/modal-views/context';
+import { useModal } from '@app/Components/modal-views/context';
 import { dataRetention, formPurpose } from '@app/data/consent';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { ConsentCategoryType, ConsentType } from '@app/models/enums/consentEnum';

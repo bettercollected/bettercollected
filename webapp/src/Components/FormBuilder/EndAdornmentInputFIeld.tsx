@@ -1,7 +1,7 @@
 import { useRef } from 'react';
 
 import AppTextField from '@Components/Common/Input/AppTextField';
-import { FieldRequired } from '@Components/UI/FieldRequired';
+import { FieldRequired } from '@Components/ui/FieldRequired';
 import { AlternateEmail, DateRange, LocalPhone, Numbers, ShortText } from '@mui/icons-material';
 import LinkIcon from '@mui/icons-material/Link';
 import { useDispatch } from 'react-redux';

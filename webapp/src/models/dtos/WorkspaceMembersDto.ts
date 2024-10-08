@@ -9,6 +9,8 @@ export interface WorkspaceMembersDto {
 }
 
 export interface WorkspaceInvitationDto {
+    token: any;
+    expiryDate(createdAt: string, expiryDate: any): unknown;
     id: string;
     email: string;
     invitationStatus: string;
@@ -18,4 +20,5 @@ export interface WorkspaceInvitationDto {
     createdAt: string;
     workspaceId: string;
     expiry: number;
+    senderEmail?: string;
 }

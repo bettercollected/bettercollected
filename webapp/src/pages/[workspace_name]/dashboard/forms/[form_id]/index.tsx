@@ -15,13 +15,13 @@ import AppButton from '@Components/Common/Input/Button/AppButton';
 import { ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
 import { Group, IntegrationInstructions, Share } from '@mui/icons-material';
 
-import FormIntegrations from '@app/components/form/integrations';
-import { ChevronForward } from '@app/components/icons/chevron-forward';
-import { HistoryIcon } from '@app/components/icons/history';
-import { TrashIcon } from '@app/components/icons/trash';
-import { useModal } from '@app/components/modal-views/context';
-import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
-import ParamTab, { TabPanel } from '@app/components/ui/param-tab';
+import FormIntegrations from '@app/Components/Form/integrations';
+import { ChevronForward } from '@app/Components/icons/chevron-forward';
+import { HistoryIcon } from '@app/Components/icons/history';
+import { TrashIcon } from '@app/Components/icons/trash';
+import { useModal } from '@app/Components/modal-views/context';
+import { useFullScreenModal } from '@app/Components/modal-views/full-screen-modal-context';
+import ParamTab, { TabPanel } from '@app/Components/ui/param-tab';
 import environments from '@app/configs/environments';
 import { localesCommon } from '@app/constants/locales/common';
 import { formConstant } from '@app/constants/locales/form';
@@ -40,12 +40,13 @@ import { validateFormOpen } from '@app/utils/validationUtils';
 import PlayIcon from '@app/views/atoms/Icons/PlayIcon';
 import PublishButton from '@app/views/molecules/FormBuilder/PublishButton';
 
-const FormResponses = dynamic(() => import('@app/components/form/responses'));
-const FormResponsesTable = dynamic(() => import('@app/components/datatable/form/form-responses'));
-const FormVisibilities = dynamic(() => import('@app/components/form/visibility'));
-const FormLinks = dynamic(() => import('@app/components/form/links'));
-const FormSettings = dynamic(() => import('@app/components/form/settings'));
-const FormPreview = dynamic(() => import('@app/components/form/preview'));
+const FormResponses = dynamic(() => import('@app/Components/Form/responses'));
+const FormResponsesTable = dynamic(() => import('@app/Components/datatable/form/form-responses'));
+const FormVisibilities = dynamic(() => import('@app/Components/Form/visibility'));
+const FormLinks = dynamic(() => import('@app/Components/Form/links'));
+const FormSettings = dynamic(() => import('@app/Components/Form/settings'));
+const FormPreview = dynamic(() => import('@app/Components/Form/preview'));
+const FormAnalyticsDashboard = dynamic(() => import('@app/Components/Form/analyticsDashboard'));
 
 export default function FormPage(props: any) {
     const { form }: { form: StandardFormDto } = props;
@@ -105,7 +106,7 @@ export default function FormPage(props: any) {
             }
         ];
 
-        if (form?.settings?.provider === 'self' && environments.ENABLE_ACTIONS && form?.builderVersion === 'v2')
+        if (form?.settings?.provider === 'self' && form?.builderVersion === 'v2')
             additionalTabs.splice(0, 0, {
                 icon: <IntegrationInstructions className="h-5 w-5" />,
                 title: 'Integrations',
@@ -118,6 +119,11 @@ export default function FormPage(props: any) {
                 icon: <Group className="h-5 w-5" />,
                 title: t(formConstant.settings.formLink.title),
                 path: 'FormLinks'
+            });
+            paramTabs.splice(7, 0, {
+                icon: <Group className="h-5 w-5" />,
+                title: 'Analytics',
+                path: 'AnalyticsDashboard'
             });
         }
     }
@@ -217,7 +223,7 @@ export default function FormPage(props: any) {
                     </FormPageLayer>
                     <Divider className="mt-6 flex md:hidden" />
 
-                    <ParamTab showInfo={true} className="md:px-10 lg:px-28" tabMenu={paramTabs}>
+                    <ParamTab showInfo={true} className="md:px-10 lg:px-28" tabMenu={paramTabs} initialIndex={0}>
                         <FormPageLayer className="px-4 md:px-10 lg:px-28">
                             <TabPanel className="focus:outline-none" key="Preview">
                                 <FormPreview />
@@ -230,7 +236,7 @@ export default function FormPage(props: any) {
                         </FormPageLayer>
                         {form?.isPublished && (
                             <>
-                                {form?.settings?.provider === 'self' && environments.ENABLE_ACTIONS && form?.builderVersion === 'v2' && (
+                                {form?.settings?.provider === 'self' && form?.builderVersion === 'v2' && (
                                     <TabPanel className="focus:outline-none" key="Integrations">
                                         <FormIntegrations />
                                     </TabPanel>
@@ -254,6 +260,9 @@ export default function FormPage(props: any) {
                                             <FormLinks />
                                         </TabPanel>
                                     )}
+                                    <TabPanel className="focus:outline-none" key="AnalyticsDashboard">
+                                        <FormAnalyticsDashboard />
+                                    </TabPanel>
                                 </>
                             ) : (
                                 <></>

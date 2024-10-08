@@ -3,8 +3,8 @@ import React, { forwardRef } from 'react';
 import { TextField, TextFieldProps } from '@mui/material';
 import cn from 'classnames';
 
-import { ArrowDown } from '@app/components/icons/arrow-down';
-import { LinkHorizontalIcon } from '@app/components/icons/link-horizontal-icon';
+import { ArrowDown } from '@app/Components/icons/arrow-down';
+import { LinkHorizontalIcon } from '@app/Components/icons/link-horizontal-icon';
 import useBuilderTranslation from '@app/lib/hooks/use-builder-translation';
 
 

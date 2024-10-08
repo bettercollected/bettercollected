@@ -153,7 +153,7 @@ export default function useFormFieldsAtom() {
     const updateFieldPlaceholder = (fieldIndex: number, slideIndex: number, placeholderText: string) => {
         const existingSlide = formFields[slideIndex];
         const slide = { ...existingSlide };
-        slide.properties!.fields![fieldIndex]['properties'] = { ...slide.properties!.fields![fieldIndex].properties } || { fields: [] };
+        slide.properties!.fields![fieldIndex]['properties'] = { ...(slide.properties!.fields![fieldIndex].properties || { fields: [] }) };
         slide.properties!.fields![fieldIndex]!.properties!.placeholder = placeholderText;
         const updatedSlides = [...formFields];
         setFormFields(updatedSlides);
@@ -162,7 +162,7 @@ export default function useFormFieldsAtom() {
     const updateChoiceFieldValue = (fieldIndex: number, slideIndex: number, choiceId: string, choiceValue: string) => {
         const existingSlide = formFields[slideIndex];
         const slide = { ...existingSlide };
-        slide.properties!.fields![fieldIndex]['properties'] = { ...slide.properties!.fields![fieldIndex].properties } || { fields: [] };
+        slide.properties!.fields![fieldIndex]['properties'] = { ...(slide.properties!.fields![fieldIndex].properties || { fields: [] }) };
         slide.properties!.fields![fieldIndex]!.properties!.choices = slide.properties!.fields![fieldIndex]?.properties?.choices?.map((choice) => {
             if (choice.id === choiceId) {
                 const existingChoice = { ...choice };

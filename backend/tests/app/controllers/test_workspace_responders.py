@@ -28,6 +28,7 @@ async def create_tag_for_responder(
 
 
 class TestWorkspaceResponders:
+
     async def test_get_workspace_responders(
         self,
         client: TestClient,
@@ -37,6 +38,7 @@ class TestWorkspaceResponders:
         workspace_form_response: Coroutine[Any, Any, dict],
         workspace_form_response_1: Coroutine[Any, Any, dict],
         workspace_form_response_2: Coroutine[Any, Any, dict],
+        published_form,
     ):
         responders_emails = [
             workspace_form_response_2["dataOwnerIdentifier"],
@@ -65,6 +67,7 @@ class TestWorkspaceResponders:
         workspace_responders_api: str,
         workspace_form_response: Coroutine[Any, Any, dict],
         test_user_cookies_1: dict[str, str],
+        published_form,
     ):
         unauthorized_client = client.get(
             workspace_responders_api, cookies=test_user_cookies_1

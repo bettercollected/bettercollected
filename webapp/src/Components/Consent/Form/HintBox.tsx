@@ -2,7 +2,7 @@ import React from 'react';
 
 import cn from 'classnames';
 
-import { Hint } from '@app/components/icons/hint';
+import { Hint } from '@app/Components/icons/hint';
 import { OnlyClassNameInterface } from '@app/models/interfaces';
 
 

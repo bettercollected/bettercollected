@@ -2,7 +2,7 @@ import React from 'react';
 
 import cn from 'classnames';
 
-import { ArrowBack } from '@app/components/icons/arrow-back';
+import { ArrowBack } from '@app/Components/icons/arrow-back';
 
 interface BackButtonMenuBarProps {
     text: string;

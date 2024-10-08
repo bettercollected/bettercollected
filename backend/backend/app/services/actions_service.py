@@ -1,12 +1,16 @@
 from beanie import PydanticObjectId
 from common.models.standard_form import Trigger
 from common.models.user import User
+from common.services.http_client import HttpClient
+from starlette.requests import Request
 
 from backend.app.models.dtos.action_dto import ActionDto, ActionResponse
-from backend.app.models.workspace import WorkspaceRequestDto
 from backend.app.repositories.action_repository import ActionRepository
+from backend.app.repositories.workspace_repository import WorkspaceRepository
 from backend.app.schemas.standard_form import FormDocument
 from backend.app.schemas.standard_form_response import FormResponseDocument
+from backend.app.services.form_plugin_provider_service import FormPluginProviderService
+from backend.app.services.form_response_service import FormResponseService
 from backend.app.services.temporal_service import TemporalService
 from backend.app.services.workspace_user_service import WorkspaceUserService
 
@@ -16,11 +20,19 @@ class ActionService:
         self,
         action_repository: ActionRepository,
         temporal_service: TemporalService,
+        http_client: HttpClient,
+        form_provider_service: FormPluginProviderService,
         workspace_user_service: WorkspaceUserService,
+        form_response_service: FormResponseService,
+        workspace_repo=WorkspaceRepository,
     ):
         self.action_repository = action_repository
         self.temporal_service: TemporalService = temporal_service
         self.workspace_user_service = workspace_user_service
+        self.http_client = http_client
+        self.form_provider_service = form_provider_service
+        self.form_response_service = form_response_service
+        self.workspace_repo = workspace_repo
 
     async def get_action(self, action_id: PydanticObjectId):
         return await self.action_repository.get_action_by_id(action_id)
@@ -45,7 +57,7 @@ class ActionService:
         self,
         form: FormDocument,
         response: FormResponseDocument,
-        workspace: WorkspaceRequestDto,
+        workspace_id: PydanticObjectId,
     ):
         form_actions = form.actions
         if form_actions is None:
@@ -60,6 +72,18 @@ class ActionService:
             action_ids=submission_actions
         )
         for action in actions:
+            # if action.name == "integrate_google_sheets":
+            #     google_sheet_id = [params.value for params in form.parameters.get(str(action.id)) if
+            #                        params.name == "Google Sheet Id"]
+            #     provider_url = await self.form_provider_service.get_provider_url(FormProvider.GOOGLE)
+            #     read_google_sheet_url = f"{provider_url}/{FormProvider.GOOGLE}/forms/read_google_sheet"
+            #     response = await self.http_client.get(read_google_sheet_url,
+            #                                           params={'google_sheet_id': google_sheet_id[0]},
+            #                                           cookies=request.cookies)
+            #     print(response)
+            workspace = await self.workspace_repo.get_workspace_with_action_by_id(
+                workspace_id=workspace_id, action_id=action.id
+            )
             await self.temporal_service.start_action_execution(
                 action=action, form=form, response=response, workspace=workspace
             )
@@ -69,8 +93,9 @@ class ActionService:
         await self.action_repository.delete_action(action_id=action_id)
 
     async def create_action_in_workspace_from_action(
-        self, workspace_id: PydanticObjectId, action: ActionResponse
+        self, workspace_id: PydanticObjectId, action: ActionResponse, user: User
     ):
+        action = await self.action_repository.get_action_by_id(action.id)
         return await self.action_repository.create_action_in_workspace_from_action(
             workspace_id=workspace_id, action_id=action.id
         )

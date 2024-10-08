@@ -107,6 +107,7 @@
     "DESCRIPTION": "Any questions or remarks? Just write us a message",
     "DEFAULT": "Contact us"
   },
+  
   "CREATE_FORM": "Create Form",
   "CUSTOMIZE_DOMAIN": {
     "DEFAULT": "Customize domain",
@@ -118,6 +119,7 @@
     "POINT_2": "Avoid using spaces or special characters. Only “-” and “_” is accepted.",
     "POINT_3": "Keep it short and concise."
   },
+  
   "CUSTOMIZE_URL": "Customize URL",
   "CUSTOM_DOMAIN": "Custom Domain",
   "DASHBOARD": {
@@ -445,17 +447,23 @@
     },
     "TITLE": "Select a form to import"
   },
+
   "INVALID_DOMAIN": "Invalid domain",
   "INVALID_WORKSPACE_HANDLE": "Invalid Workspace Handle",
   "INVITATION": {
-    "TITLE": "Inviation",
+    "TITLE": "Invitation",
     "TITLE_1": "You have been invited to",
     "TITLE_2": "Join workspace and start collaborating",
     "LINK_EXPIRY": "This link will expire in 7 days.",
+    "INVITATION_EXPIRED": "Invitation Expired",
+    "THE_INVITATION_YOU_ARE_TRYING_TO_ACCESS_HAS_EXPIRED": "The invitation you are trying to access has expired.",
+    "ENSURE_TEXT": "Please ensure you are logged into the correct account.",
+    "RETURN_TO_WORKSPACE": "Return to Workspace",
+    "SWITCH_ACCOUNT": "Switch Account",
     "LIST": {
       "ITEM_1": "All forms and responses in workspace",
       "ITEM_2": "Importing forms to workspace",
-      "ITEM_3": "Deleting form form workspace",
+      "ITEM_3": "Deleting form from workspace",
       "TITLE": "You will have access to:"
     }
   },
@@ -822,7 +830,7 @@
     "ALL_RESPONDERS": "All Responders",
     "BANNER_EMPTY_MESSAGE": "You can drag to adjust the image.",
     "DESCRIPTION": "Workspace Description",
-    "INVITATION_NOT_FOUND": "Invitation Not Found",
+    "INVITATION_NOT_FOUND": "Invitation not found ",
     "LOGO.DESCRIPTION": "Make sure your image is less than 100mb",
     "NAME": "Workspace name",
     "PREVIEW.EMPTY_FORM_DESCRIPTION": "There are no forms imported in this workspace.",

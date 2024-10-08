@@ -35,7 +35,6 @@ from backend.app.schedulers.form_schedular import FormSchedular
 from backend.app.schemas.form_versions import FormVersionsDocument
 from backend.app.schemas.standard_form import FormDocument
 from backend.app.schemas.template import FormTemplateDocument
-from backend.app.schemas.workspace import WorkspaceDocument
 from backend.app.schemas.workspace_form import WorkspaceFormDocument
 from backend.app.services.actions_service import ActionService
 from backend.app.services.aws_service import AWSS3Service
@@ -52,6 +51,8 @@ from backend.app.services.workspace_user_service import WorkspaceUserService
 from backend.app.utils import AiohttpClient
 from backend.app.utils.hash import hash_string
 from backend.config import settings
+
+crypto = Crypto(settings.auth_settings.AES_HEX_KEY)
 
 
 class WorkspaceFormService:
@@ -513,7 +514,6 @@ class WorkspaceFormService:
         response: StandardFormResponse,
         user: User,
         form_files: list[FormFileResponse] = None,
-        anonymize: bool = False,
     ):
         response.response_id = str(PydanticObjectId())
         if form_files:
@@ -524,8 +524,8 @@ class WorkspaceFormService:
                 form_id=str(form_id),
             )
 
-        workspace_forms = (
-            await self.workspace_form_repository.get_workspace_forms_in_workspace(
+        workspace_form_ids = (
+            await self.workspace_form_repository.get_form_ids_in_workspace(
                 workspace_id=workspace_id,
                 is_not_admin=True,
                 user=user,
@@ -537,26 +537,12 @@ class WorkspaceFormService:
                 },
             )
         )
-        if not workspace_forms or len(workspace_forms) == 0:
+        if not workspace_form_ids:
             raise HTTPException(
                 status_code=HTTPStatus.NOT_FOUND, content="Form not found"
             )
-
-        workspace_form = workspace_forms[0]
-        workspace_form = WorkspaceFormDocument(**workspace_form)
-
-        if user:
-            response.dataOwnerIdentifier = user.sub if not anonymize else ""
-
-        identifier = user.sub if user else response.dataOwnerIdentifier
-
-        if anonymize and identifier:
-            response.anonymous_identity = hash_string(user.sub)
-
-        if workspace_form.settings.require_verified_identity and not user:
-            raise HTTPException(
-                HTTPStatus.UNAUTHORIZED, content="Sign in to fill this form."
-            )
+        if not response.dataOwnerIdentifier and user:
+            response.dataOwnerIdentifier = user.sub
 
         form_response = await self.form_response_service.submit_form_response(
             form_id=form_id, response=response, workspace_id=workspace_id
@@ -564,14 +550,22 @@ class WorkspaceFormService:
 
         form = await self.form_service.get_form_document_by_id(form_id=str(form_id))
 
-        # TODO resolve circular deps for workspace service to get workspace details
-        workspace = await WorkspaceDocument.find_one(
-            WorkspaceDocument.id == workspace_id
+        # TODO: get latest version of form from form_service
+
+        latest_version_of_form = await self.form_service.get_latest_version_of_form(
+            form_id=form_id
         )
+        latest_version_of_form.actions = form.actions
+        latest_version_of_form.secrets = form.secrets
+        latest_version_of_form.parameters = form.parameters
+
+        # TODO resolve circular deps for workspace service to get workspace details
+        # workspace = await WorkspaceDocument.find_one(WorkspaceDocument.id == workspace_id)
+        # workspace = await self.workspace_repo.get_workspace_with_action_by_id(workspace_id)
         await self.action_service.start_actions_for_submission(
-            form=form,
+            form=latest_version_of_form,
             response=form_response,
-            workspace=WorkspaceRequestDto(**workspace.dict()),
+            workspace_id=workspace_id,
         )
         return form_response
 
@@ -682,10 +676,12 @@ class WorkspaceFormService:
                 status_code=HTTPStatus.NOT_FOUND, content=MESSAGE_NOT_FOUND
             )
         await self.action_service.create_action_in_workspace_from_action(
-            workspace_id=workspace_id, action=action
+            workspace_id=workspace_id, action=action, user=user
         )
         updated_form = await self.form_service.add_action_form(
-            form_id=form_id, add_action_to_form_params=add_action_to_form_params
+            form_id=form_id,
+            add_action_to_form_params=add_action_to_form_params,
+            action=action,
         )
         return updated_form.actions
 
@@ -741,3 +737,19 @@ class WorkspaceFormService:
         cleaned_string = cleaned_string.lower()
 
         return cleaned_string
+
+    async def update_action_from_temporal(
+        self,
+        workspace_id: PydanticObjectId,
+        form_id: PydanticObjectId,
+        action_id: PydanticObjectId,
+    ):
+        form = await self.form_service.get_form_document_by_id(str(form_id))
+        form_action = [
+            action
+            for action in form.actions[Trigger.on_submit]
+            if action.id == action_id
+        ][0]
+        form_action.enabled = False
+        await form.save()
+        return form

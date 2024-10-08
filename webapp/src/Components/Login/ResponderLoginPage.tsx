@@ -5,8 +5,8 @@ import { useRouter } from 'next/router';
 import OtpCodeComponent from '@Components/Login/otp-code-component';
 import OtpEmailInput from '@Components/Login/otp-email-input';
 
-import FullScreenLoader from '@app/components/ui/fullscreen-loader';
-import Logo from '@app/components/ui/logo';
+import FullScreenLoader from '@app/Components/ui/fullscreen-loader';
+import Logo from '@app/Components/ui/logo';
 import { selectAuth } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 

@@ -12,7 +12,7 @@ import ImageSignInPreview from '@app/assets/images/sign-in-image.png';
 import ImageSignInValidatin from '@app/assets/images/sign-in-verification.png';
 import ImageSignUpPreview from '@app/assets/images/sign-up-image.png';
 import ImageSignUpValidation from '@app/assets/images/sign-up-verification.png';
-import Logo from '@app/components/ui/logo';
+import Logo from '@app/Components/ui/logo';
 import { localesCommon } from '@app/constants/locales/common';
 import { signInScreen } from '@app/constants/locales/signin-screen';
 import { signUpScreen } from '@app/constants/locales/signup-screen';

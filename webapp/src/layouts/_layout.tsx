@@ -3,7 +3,7 @@ import React from 'react';
 import { Box } from '@mui/material';
 import cn from 'classnames';
 
-import AuthNavbar from '@app/components/auth/navbar';
+import AuthNavbar from '@app/Components/auth/navbar';
 
 interface LayoutProps {
     isCustomDomain?: boolean;

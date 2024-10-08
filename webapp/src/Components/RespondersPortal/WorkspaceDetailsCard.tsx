@@ -1,5 +1,5 @@
-import AuthAccountProfileImage from '@app/components/auth/account-profile-image';
-import ActiveLink from '@app/components/ui/links/active-link';
+import AuthAccountProfileImage from '@app/Components/auth/account-profile-image';
+import ActiveLink from '@app/Components/ui/links/active-link';
 import { localesCommon } from '@app/constants/locales/common';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { useTranslation } from 'next-i18next';

@@ -9,8 +9,8 @@ import { ButtonSize } from '@Components/Common/Input/Button/AppButtonProps';
 import UploadLogo from '@Components/Common/UploadLogo';
 import { toast } from 'react-toastify';
 
-import AuthNavbar from '@app/components/auth/navbar';
-import TextFieldHandler from '@app/components/onboarding/TextFieldHandler';
+import AuthNavbar from '@app/Components/auth/navbar';
+import TextFieldHandler from '@app/Components/onboarding/TextFieldHandler';
 import { onBoarding } from '@app/constants/locales/onboarding-screen';
 import { toastMessage } from '@app/constants/locales/toast-message';
 import { ToastId } from '@app/constants/toastId';

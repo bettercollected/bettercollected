@@ -1,5 +1,5 @@
 import { ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
-import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
+import { useFullScreenModal } from '@app/Components/modal-views/full-screen-modal-context';
 import { toastMessage } from '@app/constants/locales/toast-message';
 import { ToastId } from '@app/constants/toastId';
 import { Button } from '@app/shadcn/components/ui/button';

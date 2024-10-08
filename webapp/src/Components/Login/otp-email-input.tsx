@@ -9,7 +9,7 @@ import { ButtonSize, ButtonVariant } from '@Components/Common/Input/Button/AppBu
 import Divider from '@mui/material/Divider';
 import { toast } from 'react-toastify';
 
-import ConnectWithProviderButton from '@app/components/login/login-with-google-button';
+import ConnectWithProviderButton from '@app/Components/Login/login-with-google-button';
 import environments from '@app/configs/environments';
 import { formResponderLogin } from '@app/constants/locales/form-responder-login';
 import { signInScreen } from '@app/constants/locales/signin-screen';
