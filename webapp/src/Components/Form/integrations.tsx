@@ -1,4 +1,5 @@
 import { useRouter } from 'next/router';
+import Image from 'next/image';
 
 import AppButton from '@Components/Common/Input/Button/AppButton';
 import { ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
@@ -29,8 +30,7 @@ export default function FormIntegrations() {
     const [updateAction] = useUpdateActionStatusInFormMutation();
     const getIntegrationEnabled = (integration: Action) => {
         const integrationState = form?.actions?.on_submit?.find((actionState: any) => actionState.id == integration.id);
-        if (!integrationState) return false;
-        else return integrationState?.enabled;
+        return integrationState ? integrationState?.enabled : false;
     };
 
     const addedActions = form?.actions?.on_submit?.map((action: any) => action.id);
@@ -41,31 +41,43 @@ export default function FormIntegrations() {
     };
 
     return (
-        <div className="md:px-10 lg:px-28">
+        <div className="mb-5 px-4 md:px-10 lg:px-28">
             {addedActions && addedActions.length > 0 && (
-                <div className="mb-10 flex flex-col gap-[2px]">
+                <div className="mb-10 flex flex-col gap-2">
                     <div className="h3-new text-black-800 mb-5">Integrations added to form</div>
                     {data?.map((integration, index) => (
                         <>
                             {addedActions.includes(integration.id) && (
-                                <div key={`${integration?.id}_${index}`} className="bg-black-100 flex w-full items-center justify-between rounded px-5 py-4">
-                                    <div className="flex flex-col items-start justify-center gap-2">
-                                        <div className="h4-new">{integration?.title || 'Untitled Integration'}</div>
-                                        {integration?.description && <div className="p2-new text-black-700">{integration.description}</div>}
-                                        {integration?.parameters && getIntegrationIsAdded(integration) && (
-                                            <div className="flex flex-col">
-                                                {integration?.parameters?.map(
-                                                    (parameter) =>
-                                                        parameter?.required && (
-                                                            <div key={parameter.name} className="p2-new mt-4 flex items-center gap-2 text-sm">
-                                                                <div className="text-sm font-bold">{parameter.name}</div>:<div className="text-black-700">{form?.parameters?.[integration.id]?.find((param: any) => param.name === parameter.name)?.value}</div>
-                                                            </div>
-                                                        )
+                                <div key={`${integration?.id}_${index}`} className="bg-black-50 mb-10 flex w-full flex-col items-start justify-between rounded px-5 py-4 shadow-lg sm:flex-row sm:items-center">
+                                    <div className="flex items-start sm:items-center">
+                                        {/*logo */}
+                                        <Image src={integration?.url || '/integration/default.svg'} alt="logo" width={50} height={50} className="mr-4" />
+                                        {/* Title and description */}
+                                        <div className="mt-2 sm:mt-0">
+                                            <h3 className="text-base font-semibold sm:text-lg">{integration?.title || 'Untitled Integration'}</h3>
+                                            <p className="text-sm text-gray-600">{integration.description}</p>
+                                            <span>
+                                                {integration?.parameters && getIntegrationIsAdded(integration) && (
+                                                    <div className="flex flex-col">
+                                                        {integration?.parameters?.map(
+                                                            (parameter) =>
+                                                                parameter?.required && (
+                                                                    <div key={parameter.name} className="p2-new mt-4 flex items-center gap-2 text-sm">
+                                                                        <div className="whitespace-nowrap text-sm font-bold">{parameter.name}</div>:
+                                                                        <div className="text-black-700 max-w-xs overflow-hidden text-ellipsis whitespace-nowrap sm:max-w-sm lg:max-w-md">
+                                                                            {form?.parameters?.[integration.id]?.find((param: any) => param.name === parameter.name)?.value || 'N/A'}
+                                                                        </div>
+                                                                    </div>
+                                                                )
+                                                        )}
+                                                    </div>
                                                 )}
-                                            </div>
-                                        )}
+                                            </span>
+                                        </div>
                                     </div>
-                                    <div className="flex items-center gap-4">
+                                    {/* Connect Button */}
+                                    <div className="mt-4 flex items-center gap-2 sm:mt-0">
+                                        {/* switch */}
                                         <MuiSwitch
                                             checked={getIntegrationEnabled(integration)}
                                             onChange={async (event, checked) => {
@@ -87,6 +99,7 @@ export default function FormIntegrations() {
                                                 }
                                             }}
                                         />
+                                        {/* Three dots dropdown */}
                                         <DeleteDropDown
                                             onDropDownItemClick={async () => {
                                                 const response: any = await removeActionFromForm({
@@ -111,21 +124,26 @@ export default function FormIntegrations() {
                 </div>
             )}
             {data && Array.isArray(data) && data?.length !== addedActions?.length && (
-                <div className="flex w-full flex-col gap-[2px]">
+                <div className="flex w-full flex-col gap-2">
                     <div className="h3-new mb-8">Integrations</div>
                     {data?.map((integration, index) => (
                         <>
                             {(!addedActions || !addedActions.includes(integration.id)) && (
-                                <div key={`${integration?.id}_${index}`} className="bg-black-100 flex w-full items-center justify-between rounded px-5 py-4">
-                                    <div className="flex flex-col items-start justify-center gap-2">
-                                        <div className="h4-new">{integration?.title || 'Untitled Integration'}</div>
-                                        {integration?.description && <div className="p2-new text-black-700">{integration.description}</div>}
+                                <div key={`${integration?.id}_${index}`} className="bg-black-50 mb-10 flex w-full flex-col items-start justify-between rounded px-5 py-4 shadow-lg sm:flex-row sm:items-center">
+                                    <div className="flex items-start sm:items-center">
+                                        {/* logo */}
+                                        <Image src={integration?.url || '/integration/default.svg'} alt="logo" width={50} height={50} className="mr-4" />
+                                        {/* title and description */}
+                                        <div className="mt-2 sm:mt-0">
+                                            <h3 className="text-base font-semibold sm:text-lg">{integration?.title || 'Untitled Integration'}</h3>
+                                            <p className="text-sm text-gray-600">{integration.description}</p>
+                                        </div>
                                     </div>
-                                    <div>
+                                    <div className="mt-4 sm:mt-0">
                                         <AppButton
                                             data-umami-event="Add Integrations Button"
                                             data-umami-event-email={auth.email}
-                                            variant={ButtonVariant.Ghost}
+                                            variant={ButtonVariant.Primary}
                                             onClick={() => {
                                                 openModal('ADD_ACTION_TO_FORM', { action: integration, form: form });
                                             }}

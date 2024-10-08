@@ -17,7 +17,9 @@ class ActionDto(CamelModel):
     name: str
     title: Optional[str]
     description: Optional[str]
+    type: Optional[str]
     predefined: Optional[bool]
+    url: Optional[str]
 
 
 class ActionResponse(ActionDto, CamelModel):

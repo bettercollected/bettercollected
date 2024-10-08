@@ -17,6 +17,10 @@ from backend.app.container import container
 from backend.app.decorators.user_tag_decorators import user_tag
 from backend.app.exceptions import HTTPException
 from backend.app.models.dtos.action_dto import AddActionToFormDto, UpdateActionInFormDto
+from backend.app.models.dtos.worksapce_form_dto import GroupsDto
+from backend.app.models.enum.FormVersion import FormVersion
+from backend.app.models.enum.user_tag_enum import UserTagType
+from backend.app.models.filter_queries.sort import SortRequest
 from backend.app.models.dtos.minified_form import FormDtoCamelModel
 from backend.app.models.dtos.request_dtos import CreateFormWithAI
 from backend.app.models.dtos.response_dtos import (
@@ -34,7 +38,11 @@ from backend.app.router import router
 from backend.app.services.form_service import FormService
 from backend.app.services.openai_service import OpenAIService
 from backend.app.services.temporal_service import TemporalService
-from backend.app.services.user_service import get_logged_user, get_user_if_logged_in
+from backend.app.services.user_service import (
+    get_logged_user,
+    get_user_if_logged_in,
+    get_api_key,
+)
 from backend.app.services.workspace_form_service import WorkspaceFormService
 from backend.config import settings
 
@@ -153,14 +161,18 @@ class WorkspaceFormsRouter(Routable):
         form_id: str,
         published: bool = False,
         user: User = Depends(get_user_if_logged_in),
-        draft: bool = False
+        draft: bool = False,
     ):
         if not user and not published:
             raise HTTPException(
                 status_code=HTTPStatus.UNAUTHORIZED, content=MESSAGE_UNAUTHORIZED
             )
         form = await self._form_service.get_form_by_id(
-            workspace_id=workspace_id, form_id=form_id, published=published, user=user,draft=draft
+            workspace_id=workspace_id,
+            form_id=form_id,
+            published=published,
+            user=user,
+            draft=draft,
         )
         return form
 
@@ -228,6 +240,7 @@ class WorkspaceFormsRouter(Routable):
         self,
         workspace_id: PydanticObjectId,
         form_id: PydanticObjectId,
+        request: Request,
         files: list[UploadFile] = None,
         file_field_ids: list[str] = Form(None),
         file_ids: list[str] = Form(None),
@@ -254,7 +267,6 @@ class WorkspaceFormsRouter(Routable):
             response=parsed_response,
             form_files=form_files,
             user=user,
-            anonymize=parsed_response.anonymize,
         )
         if parsed_response.expiration_type not in [ResponseRetentionType.FOREVER, None]:
             await self._temporal_service.add_scheduled_job_for_deleting_response(
@@ -463,3 +475,28 @@ class WorkspaceFormsRouter(Routable):
         )
         return updated_actions
 
+    @get("/{form_id}/export-csv")
+    async def export_csv_of_responses(
+        self,
+        workspace_id: PydanticObjectId,
+        form_id: PydanticObjectId,
+        user: User = Depends(get_logged_user),
+    ):
+        responses = await self.workspace_form_service.get_responses_in_csv_format(
+            workspace_id=workspace_id, form_id=str(form_id), user=user
+        )
+        return responses
+
+    @patch("/{form_id}/action/{action_id}/update")
+    async def update_action_from_temporal(
+        self,
+        workspace_id: PydanticObjectId,
+        form_id: PydanticObjectId,
+        action_id: PydanticObjectId,
+        temporal_api_key=Depends(get_api_key),
+    ):
+
+        response = await self.workspace_form_service.update_action_from_temporal(
+            workspace_id=workspace_id, form_id=form_id, action_id=action_id
+        )
+        return response

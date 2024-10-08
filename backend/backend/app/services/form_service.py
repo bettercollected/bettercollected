@@ -6,6 +6,7 @@ from aiohttp import ServerDisconnectedError
 from beanie import PydanticObjectId
 from common.configs.crypto import Crypto
 from common.constants import MESSAGE_FORBIDDEN
+from common.enums.form_provider import FormProvider
 from common.models.standard_form import (
     StandardForm,
     Trigger,
@@ -13,8 +14,10 @@ from common.models.standard_form import (
     ActionState,
 )
 from common.models.user import User
+from common.services.http_client import HttpClient
 from fastapi_pagination import Page
 from fastapi_pagination.ext.beanie import paginate
+from starlette.requests import Request
 
 from backend.app.constants.consents import default_consents
 from backend.app.exceptions import HTTPException
@@ -22,6 +25,7 @@ from backend.app.models.dtos.action_dto import (
     AddActionToFormDto,
     UpdateActionInFormDto,
     ActionUpdateType,
+    ActionDto,
 )
 from backend.app.models.dtos.brevo_event_dto import UserEventType
 from backend.app.models.dtos.minified_form import FormDtoCamelModel
@@ -29,6 +33,7 @@ from backend.app.models.dtos.settings_patch import SettingsPatchDto
 from backend.app.models.dtos.workspace_member_dto import (
     FormImporterDetails,
 )
+from backend.app.models.enum.form_integration import FormActionType, FormIntegrationType
 from backend.app.models.enum.user_tag_enum import UserTagType
 from backend.app.models.filter_queries.sort import SortRequest
 from backend.app.repositories.form_repository import FormRepository
@@ -37,6 +42,7 @@ from backend.app.repositories.workspace_user_repository import WorkspaceUserRepo
 from backend.app.schemas.form_versions import FormVersionsDocument
 from backend.app.schemas.standard_form import FormDocument
 from backend.app.services.brevo_service import event_logger_service
+from backend.app.services.integration_provider_factory import IntegrationProviderFactory
 from backend.app.services.user_tags_service import UserTagsService
 from backend.app.utils import AiohttpClient
 from backend.config import settings
@@ -50,12 +56,16 @@ class FormService:
         workspace_form_repo: WorkspaceFormRepository,
         user_tags_service: UserTagsService,
         crypto: Crypto,
+        http_client: HttpClient,
+        integration_provider: IntegrationProviderFactory,
     ):
         self._workspace_user_repo = workspace_user_repo
         self._form_repo = form_repo
         self._workspace_form_repo = workspace_form_repo
         self.user_tags_service = user_tags_service
-        self.crypto = crypto
+        self.crypto: Crypto = crypto
+        self.http_client = http_client
+        self.integration_provider = integration_provider
 
     async def get_forms_in_workspace(
         self,
@@ -201,7 +211,7 @@ class FormService:
             authorized_form = await self._form_repo.get_published_forms_in_workspace(
                 workspace_id=workspace_id,
                 form_id_list=workspace_form_ids,
-                get_actions=is_admin
+                get_actions=is_admin,
             ).to_list()
             if not authorized_form:
                 if draft:
@@ -445,7 +455,10 @@ class FormService:
             return form
 
     async def add_action_form(
-        self, form_id: PydanticObjectId, add_action_to_form_params: AddActionToFormDto
+        self,
+        form_id: PydanticObjectId,
+        add_action_to_form_params: AddActionToFormDto,
+        action: ActionDto,
     ):
         form = await self._form_repo.get_form_document_by_id(form_id=str(form_id))
         actions = []
@@ -471,7 +484,6 @@ class FormService:
             }
         if add_action_to_form_params.parameters:
             if form.parameters is not None:
-
                 form.parameters[str(add_action_to_form_params.action_id)] = (
                     add_action_to_form_params.parameters
                 )
@@ -481,6 +493,15 @@ class FormService:
                         add_action_to_form_params.action_id
                     ): add_action_to_form_params.parameters
                 }
+            if action.type == FormActionType.EXTERNAL:
+                form_params = await self.handle_external_integrations_services(
+                    action_params=add_action_to_form_params,
+                    integration_name=FormIntegrationType(action.name),
+                    form_id=form_id,
+                )
+                form.parameters[str(add_action_to_form_params.action_id)].append(
+                    form_params
+                )
 
         if add_action_to_form_params.secrets:
             secrets = [
@@ -529,3 +550,19 @@ class FormService:
                     )
 
         return await form.save()
+
+    async def handle_external_integrations_services(
+        self,
+        action_params: AddActionToFormDto,
+        integration_name: FormIntegrationType,
+        form_id: PydanticObjectId,
+    ):
+        form_params = await self.integration_provider.get_integration_provider(
+            integration_type=integration_name
+        ).add_google_sheet_id_to_form_action(
+            action_params=action_params, form_id=str(form_id)
+        )
+        return form_params
+
+    async def get_latest_version_of_form(self, form_id:PydanticObjectId):
+        return await self._form_repo.get_latest_version_of_form(form_id)

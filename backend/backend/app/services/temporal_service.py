@@ -3,6 +3,7 @@ from dataclasses import asdict
 from datetime import timedelta
 from http import HTTPStatus
 from typing import List
+from bson import ObjectId
 
 import loguru
 from beanie import PydanticObjectId
@@ -32,7 +33,7 @@ from backend.app.models.dataclasses.run_action_code_params import RunActionCodeP
 from backend.app.models.dataclasses.save_preview_params import SavePreviewParams
 from backend.app.models.dataclasses.user_tokens import UserTokens
 from backend.app.models.dtos.action_dto import ActionResponse
-from backend.app.models.workspace import WorkspaceRequestDto
+from backend.app.models.workspace import WorkspaceRequestWithActionDto
 from backend.app.schemas.standard_form_response import FormResponseDocument
 from backend.app.utils.date_utils import get_formatted_date_from_str
 from backend.config import settings
@@ -241,8 +242,10 @@ class TemporalService:
         action: ActionResponse,
         form: StandardForm,
         response: FormResponseDocument,
-        workspace: WorkspaceRequestDto,
+        workspace: WorkspaceRequestWithActionDto,
     ):
+
+        workspace = WorkspaceRequestWithActionDto(**workspace)
         run_action_params = RunActionCodeParams(
             action=action.json(),
             form=form.json(),

@@ -45,6 +45,9 @@ from backend.app.services.form_response_service import FormResponseService
 from backend.app.services.form_service import FormService
 from backend.app.services.media_library_service import MediaLibraryService
 from backend.app.services.openai_service import OpenAIService
+from backend.app.services.integration_action_service import IntegrationActionService
+from backend.app.services.integration_provider_factory import IntegrationProviderFactory
+from backend.app.services.integration_service import IntegrationService
 from backend.app.services.plugin_proxy_service import PluginProxyService
 from backend.app.services.price_suggestion import PriceSuggestionService
 from backend.app.services.responder_groups_service import ResponderGroupsService
@@ -61,6 +64,7 @@ from backend.app.services.workspace_user_service import WorkspaceUserService
 from backend.app.services.umami_client import UmamiClient
 from backend.app.services.analytics_service import AnalyticsService
 
+from backend.app.services.form_actions_service import FormActionsService
 from backend.config import settings
 
 current_path = Path(os.path.abspath(os.path.dirname(__file__))).absolute()
@@ -103,6 +107,10 @@ class AppContainer(containers.DeclarativeContainer):
 
     action_repository = providers.Singleton(ActionRepository, crypto=crypto)
 
+    integration_action_service: IntegrationActionService = providers.Singleton(
+        IntegrationActionService
+    )
+
     temporal_service = providers.Singleton(
         TemporalService,
         server_uri=settings.temporal_settings.server_uri,
@@ -128,6 +136,14 @@ class AppContainer(containers.DeclarativeContainer):
         PluginProxyService, http_client=http_client
     )
 
+    integration_provider: IntegrationProviderFactory = providers.Singleton(
+        IntegrationProviderFactory,
+        form_provider_service=form_provider_service,
+        crypto=crypto,
+        http_client=http_client,
+        integration_action_service=integration_action_service,
+    )
+
     form_service: FormService = providers.Singleton(
         FormService,
         workspace_user_repo=workspace_user_repo,
@@ -135,6 +151,8 @@ class AppContainer(containers.DeclarativeContainer):
         workspace_form_repo=workspace_form_repo,
         user_tags_service=user_tags_service,
         crypto=crypto,
+        http_client=http_client,
+        integration_provider=integration_provider,
     )
 
     form_response_service: FormResponseService = providers.Singleton(
@@ -183,6 +201,10 @@ class AppContainer(containers.DeclarativeContainer):
         action_repository=action_repository,
         temporal_service=temporal_service,
         workspace_user_service=workspace_user_service,
+        http_client=http_client,
+        form_provider_service=form_provider_service,
+        form_response_service=form_response_service,
+        workspace_repo=workspace_repo,
     )
 
     workspace_form_service: WorkspaceFormService = providers.Singleton(
@@ -313,6 +335,18 @@ class AppContainer(containers.DeclarativeContainer):
     analytics_service: AnalyticsService = providers.Singleton(
         AnalyticsService,
         workspace_user_service=workspace_user_service,
+    )
+
+    integration_service: IntegrationService = providers.Singleton(
+        IntegrationService,
+        form_provider_service=form_provider_service,
+        crypto=crypto,
+        http_client=http_client,
+        integration_action_service=integration_action_service,
+    )
+
+    form_actions_service: FormActionsService = providers.Singleton(
+        FormActionsService, form_repo=form_repo
     )
 
 

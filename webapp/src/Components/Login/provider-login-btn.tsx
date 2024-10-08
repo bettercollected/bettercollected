@@ -72,7 +72,7 @@ export default class ProviderLoginButton extends PureComponent<IPropTypes, IStat
         const Icon = icon;
 
         return (
-            <div {...otherProps} role="button" onClick={this.click} onMouseOver={this.mouseOver} onMouseOut={this.mouseOut} className={`flex justify-center items-center bg-black-800 text-white ${className}`}>
+            <div {...otherProps} role="button" onClick={this.click} onMouseOver={this.mouseOver} onMouseOut={this.mouseOut} className={`bg-black-800 flex items-center justify-center text-white ${className}`}>
                 {/*<Icon {...this.props} />*/}
                 <GoogleIcon />
                 <span className="mx-1">{label}</span>
