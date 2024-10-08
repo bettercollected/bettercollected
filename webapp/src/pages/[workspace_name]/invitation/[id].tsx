@@ -70,7 +70,6 @@ const Id: React.FC<Props> = ({ workspace, user, invitation }) => {
                 <NextSeo title={`${t(invitationConstant.title)} | ${workspaceName}`} noindex={true} nofollow={true} />
                 <AuthNavbar showHamburgerIcon={false} showPlans={false} />
                 <div className="custom-blue-shadow mx-4 flex w-full flex-col items-center rounded-lg border bg-white p-10 shadow-lg md:max-w-[502px]">
-                    <img src="/path/to/rejected-request-image.png" alt="Request Rejected" className="mb-6 h-24 w-24 object-cover" />
                     <div className="text-center text-xl font-semibold text-red-600">{t('Request Rejected')}</div>
                 </div>
             </div>

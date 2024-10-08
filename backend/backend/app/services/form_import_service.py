@@ -88,7 +88,7 @@ class FormImportService:
             {
                 "$set": {
                     "status": DeletionRequestStatus.SUCCESS,
-                    "updated_at": datetime.datetime.utcnow(),
+                    "updated_at": datetime.datetime.now(datetime.timezone.utc),
                 },
             }
         )

@@ -1,13 +1,13 @@
 import calendar
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from beanie import PydanticObjectId
+from common.configs.mongo_document import MongoDocument
+from common.enums.workspace_invitation_status import InvitationStatus
 from pymongo import IndexModel
 
 from backend.app.models.enum.workspace_roles import WorkspaceRoles
-from common.configs.mongo_document import MongoDocument
-from common.enums.workspace_invitation_status import InvitationStatus
 
 _time_delta = timedelta()
 
@@ -23,7 +23,7 @@ def _get_expiry_epoch_after(time_delta: timedelta = _time_delta):
     Returns:
         int: The Unix epoch time of the given time in the future.
     """
-    return calendar.timegm((datetime.utcnow() + time_delta).utctimetuple())
+    return calendar.timegm((datetime.now(timezone.utc) + time_delta).utctimetuple())
 
 
 class WorkspaceUserInvitesDocument(MongoDocument):
@@ -53,7 +53,7 @@ class WorkspaceUserInvitesDocument(MongoDocument):
     email: str
     invitation_status: Optional[InvitationStatus] = InvitationStatus.PENDING
     role: Optional[WorkspaceRoles] = WorkspaceRoles.COLLABORATOR
-    expiry: int = _get_expiry_epoch_after(time_delta=timedelta(days=7))
+    expiry: int
     invitation_token: str
 
     class Settings:

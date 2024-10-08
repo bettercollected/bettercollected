@@ -23,7 +23,7 @@ class SchedulerFormConfigDocument(MongoDocument, FormSchedulerConfigQuery):
             bson_encoders (dict): A dictionary of bson encoders for specific data types.
     """
 
-    imported_at: Optional[dt.datetime] = dt.datetime.utcnow()
+    imported_at: Optional[dt.datetime] = dt.datetime.now(dt.timezone.utc)
 
     class Settings:
         name = "scheduler_form_configs"

@@ -1,7 +1,7 @@
 import calendar
 import secrets
 import string
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 import jwt
 from beanie import PydanticObjectId
@@ -192,4 +192,4 @@ class AuthService:
         return "".join("-" if i == 3 else secrets.choice(alphabets) for i in range(7))
 
     def get_expiry_epoch_after(self, time_delta: timedelta = timedelta()):
-        return calendar.timegm((datetime.utcnow() + time_delta).utctimetuple())
+        return calendar.timegm((datetime.now(timezone.utc) + time_delta).utctimetuple())
