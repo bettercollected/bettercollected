@@ -1,9 +1,11 @@
 import secrets
-from typing import Coroutine, Any
+from typing import Any, Coroutine
 
 import pytest
 from aiohttp.test_utils import TestClient
 from beanie import PydanticObjectId
+from common.constants import MESSAGE_FORBIDDEN, MESSAGE_NOT_FOUND
+from common.models.standard_form import StandardForm
 
 from backend.app.container import container
 from backend.app.models.invitation_request import InvitationRequest
@@ -11,13 +13,11 @@ from backend.app.schemas.workspace import WorkspaceDocument
 from backend.app.schemas.workspace_form import WorkspaceFormDocument
 from backend.app.schemas.workspace_invitation import WorkspaceUserInvitesDocument
 from backend.app.schemas.workspace_user import WorkspaceUserDocument
-from common.constants import MESSAGE_FORBIDDEN, MESSAGE_NOT_FOUND
-from common.models.standard_form import StandardForm
 from tests.app.controllers.data import (
-    user_info,
-    testUser,
     formData_2,
     invitation_request,
+    testUser,
+    user_info,
 )
 
 
@@ -302,6 +302,7 @@ class TestWorkspaceMember:
             email="invited_daemon@gmail.com",
             invitation_status="REMOVED",
             invitation_token=secrets.token_hex(16),
+            expiry=1720156071,
         ).save()
         invitation_by_token_url = (
             f"{workspace_invitation_url}/{invitation.invitation_token}"
@@ -406,12 +407,13 @@ class TestWorkspaceMember:
             email="invited_daemon@gmail.com",
             invitation_status="ACCEPTED",
             invitation_token=secrets.token_hex(16),
+            expiry=1720156071,
         ).save()
         url = f"{workspace_invitation_url}/{accepted_invitation.invitation_token}?response_status=REJECTED"
 
         responded_invitation = client.post(url, cookies=test_invited_user_cookies)
 
-        expected_response_message = "Invalid Invitation Token"
+        expected_response_message = "Token has expired"
         actual_response_message = responded_invitation.json()
         assert responded_invitation.status_code == 410
         assert actual_response_message == expected_response_message
