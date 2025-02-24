@@ -14,7 +14,7 @@ from common.models.standard_form import (
 )
 from common.models.user import User
 from openai import AsyncOpenAI
-from openai.types.chat.completion_create_params import ResponseFormat
+from openai.types.shared_params import ResponseFormatJSONObject
 
 from backend.app.constants.themes import themes
 from backend.app.exceptions import HTTPException
@@ -87,7 +87,7 @@ class OpenAIService:
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": create_form_ai.prompt},
                 ],
-                response_format=ResponseFormat(type="json_object"),
+                response_format=ResponseFormatJSONObject(type="json_object"),
             )
             openai_form = json.loads(response.choices[0].message.content)
             form = await self.workspace_form_service.create_form(
