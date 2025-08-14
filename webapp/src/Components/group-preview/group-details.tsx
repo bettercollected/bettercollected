@@ -20,8 +20,10 @@ export default function GroupDetailsTab({ group }: { group: ResponderGroupDto })
     const [updateResponderGroup, updateGroupResponse] = useUpdateResponderGroupMutation();
     const [groupInfo, setGroupInfo] = useState<GroupInfoDto>({
         name: group.name,
-        description: group.description
+        description: group.description,
+        regex: group.regex
     });
+
     const isAdmin = useAppSelector(selectIsAdmin);
     const workspace = useAppSelector((state) => state.workspace);
     const handleInput = (event: any) => {

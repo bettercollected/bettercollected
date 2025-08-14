@@ -27,33 +27,51 @@ from backend.config import settings
 client = AsyncOpenAI(api_key=settings.open_ai.API_KEY)
 
 system_prompt = """
-Generate a json for a form with the following schema:
+You are to generate ONLY a valid JSON object matching the schema below. 
+Do NOT include any text outside of the JSON and do NOT include comments.
+
+Schema:
 
 interface Field {
-        title: string;
-        description: string;
-        type: 'short_text' | 'email' | 'phone_number' | 'date' | 'multiple_choice' | 'file_upload' | 'rating' | 'dropdown' | 'yes_no' | 'linear_scale' | 'number' | 'link' | 'group';
-        properties?: {
-            placeholder?: string;
-            required?: boolean;
-            allowOther?: boolean;
-            fields?: Array<Field>
-            choices: Array<string>;
-            allowMultiple?: boolean;
-            steps?: number;
-            startFrom?: number;
-        };
-    }
+    title: string;
+    description?: string;
+    type: 'short_text' | 'long_text' | 'multiple_choice' | 'dropdown' | 'yes_no' |
+           'rating' | 'linear_scale' | 'number' | 'email' | 'phone_number' | 'date' |
+           'file_upload' | 'link' | 'group';
+    properties?: {
+        placeholder?: string;
+        required?: boolean;
+        allowOther?: boolean;
+        allowMultiple?: boolean;
+        choices?: string[];
+        steps?: number;       // For rating or linear scale
+        startFrom?: number;   // For rating or linear scale
+        fields?: Field[];     // Only for type = 'group'
+    };
+}
 
 interface Form {
     title: string;
-    description: string;
-    fields: Array<Field>;
+    description?: string;
+    fields: Field[];
 }
 
-Group the fields whenever the fields fall under same category.
+STRICT RULES:
+1. Use only the allowed 'type' values listed above exactly as written (case-sensitive).
+2. Since this is a pages-style form:
+   - Whenever fields belong to the same logical topic, wrap them in a `group` type.
+   - Each group represents a "page" in the form.
+   - A `group` must have a meaningful `title` and at least two related fields inside `properties.fields`.
+3. The form should have optimal number of page based on the form type.
+4. If a question stands alone and doesn't belong in a group, it can be a single non-group field.
+5. Field `title` should be short and clear; `description` optional but helpful.
+6. `choices` is required for `multiple_choice` and `dropdown`, and must have at least 2 options.
+7. `steps` is required for `rating` or `linear_scale` and must be a positive integer.
+8. Always provide realistic, human-friendly example data — no placeholder text like "Question 1".
+9. Output must be syntactically valid JSON and match the schema exactly.
 
-Note: steps is the no of stars to be shown.
+Output:
+A single valid JSON object strictly matching the Form schema above, where each logical section of the form is in its own `group` page if applicable.
 """
 
 
@@ -174,9 +192,11 @@ class OpenAIService:
                     slide_fields.append(
                         self.convert_single_field(
                             openai_group_field,
-                            fieldIndex + 1
-                            if field.get("title") is not None
-                            else fieldIndex,
+                            (
+                                fieldIndex + 1
+                                if field.get("title") is not None
+                                else fieldIndex
+                            ),
                         )
                     )
             fields.append(
