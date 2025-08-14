@@ -73,8 +73,10 @@ class ResponderGroupsRepository:
             await ResponderGroupMemberDocument.insert_many(responder_group_emails)
 
         if responder_group:
-            responder_group.name = name
-            responder_group.description = description
+            if name:
+                responder_group.name = name
+            if description:
+                responder_group.description = description
             responder_group.regex = regex
         return await responder_group.save()
 
