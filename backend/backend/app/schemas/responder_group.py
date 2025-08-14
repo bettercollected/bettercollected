@@ -8,7 +8,7 @@ from common.configs.mongo_document import MongoDocument
 
 
 class ResponderGroupDocument(MongoDocument):
-    name: str
+    name: Optional[str]
     workspace_id: PydanticObjectId
     description: Optional[str] = None
     regex: Optional[str]

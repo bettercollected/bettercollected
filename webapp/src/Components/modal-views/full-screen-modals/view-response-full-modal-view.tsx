@@ -65,7 +65,7 @@ export const IndividualFormResponse = ({ formFields, response, form }: { formFie
         }
     };
     return (
-        <div className="flex min-h-fit w-full flex-col gap-8 overflow-y-auto p-4 pt-6 ">
+        <div className="flex h-[90vh]  w-full flex-col gap-8 overflow-y-auto p-4 pt-6 ">
             {formFields.map((field) => {
                 if (field.type === FieldTypes.FILE_UPLOAD || field.type === FieldTypes.INPUT_FILE_UPLOAD) {
                     const ans = response.answers[field.id];
