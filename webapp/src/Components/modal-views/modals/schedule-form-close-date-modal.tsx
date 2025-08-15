@@ -1,16 +1,15 @@
-import React, { useState } from 'react';
 import AppButton from '@Components/Common/Input/Button/AppButton';
 import { ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
 import { useBottomSheetModal } from '@Components/Modals/Contexts/BottomSheetModalContext';
 import BottomSheetModalWrapper from '@Components/Modals/ModalWrappers/BottomSheetModalWrapper';
-import dayjs, { Dayjs } from 'dayjs';
-import moment from 'moment/moment';
 import { format } from 'date-fns';
+import dayjs from 'dayjs';
 import { Calendar as CalendarIcon } from 'lucide-react';
+import moment from 'moment/moment';
+import React, { useState } from 'react';
 
-import { Popover, PopoverContent, PopoverTrigger } from '@app/shadcn/components/ui/popover';
 import { Calendar } from '@app/shadcn/components/ui/calendar';
-import { cn } from '@app/shadcn/util/lib';
+import { Popover, PopoverContent, PopoverTrigger } from '@app/shadcn/components/ui/popover';
 
 interface IScheduleFormCloseDateModalProps {
     onFormClosedChange: (date: string | moment.Moment) => void;
@@ -18,7 +17,7 @@ interface IScheduleFormCloseDateModalProps {
 }
 
 const ScheduleFormCloseDateModal: React.FC<IScheduleFormCloseDateModalProps> = ({ onFormClosedChange, closeDate }) => {
-    const [value, setValue] = React.useState<Dayjs | null>(closeDate ? dayjs(closeDate) : null);
+    const [value, setValue] = React.useState<Date | null>(closeDate ? new Date(closeDate) : null);
     const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
 
     const { closeBottomSheetModal } = useBottomSheetModal();
@@ -47,16 +46,16 @@ const ScheduleFormCloseDateModal: React.FC<IScheduleFormCloseDateModalProps> = (
                         <PopoverTrigger asChild>
                             <div className="relative flex w-[280px] cursor-pointer items-center rounded-lg border border-gray-400 bg-white p-2 text-left font-normal text-gray-700">
                                 <CalendarIcon className="absolute left-2 h-4 w-4 text-gray-500" />
-                                <div className="ml-8 text-black">{value ? format(value.toDate(), 'PPP') : <span className="text-gray-500">Pick a date</span>}</div>
+                                <div className="ml-8 text-black">{value ? format(value, 'PPP') : <span className="text-gray-500">Pick a date</span>}</div>
                             </div>
                         </PopoverTrigger>
 
                         <PopoverContent className="custom-calendar text-black-900 z-[100000000] w-auto bg-white p-0">
                             <Calendar
                                 mode="single"
-                                selected={value ? value.toDate() : undefined} // Convert Dayjs to Date or pass undefined if value is null
-                                onSelect={(selectedDate: any) => {
-                                    setValue(selectedDate);
+                                selected={value ? value : undefined} // Convert Dayjs to Date or pass undefined if value is null
+                                onSelect={(selectedDate?: Date) => {
+                                    setValue(selectedDate || null);
                                     setIsDatePickerOpen(false);
                                 }}
                                 initialFocus

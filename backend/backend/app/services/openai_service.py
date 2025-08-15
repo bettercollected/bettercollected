@@ -36,8 +36,8 @@ interface Field {
     title: string;
     description?: string;
     type: 'short_text' | 'long_text' | 'multiple_choice' | 'dropdown' | 'yes_no' |
-           'rating' | 'linear_scale' | 'number' | 'email' | 'phone_number' | 'date' |
-           'file_upload' | 'link' | 'group';
+           'rating' | 'linear_rating' | 'number' | 'email' | 'phone_number' | 'date' |
+           'file_upload' | 'url' | 'group';
     properties?: {
         placeholder?: string;
         required?: boolean;
