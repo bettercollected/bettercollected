@@ -15,7 +15,6 @@ from typing import (
 
 from fastapi import APIRouter, params, routing
 from fastapi.datastructures import Default, DefaultPlaceholder
-from fastapi.encoders import DictIntStrAny, SetIntStr
 from fastapi.openapi.models import Response
 from fastapi.routing import APIRoute
 from fastapi.utils import generate_unique_id
@@ -107,9 +106,9 @@ class CustomAPIRoute(APIRoute):
             allowed for the route. Defaults to None.
         operation_id (str, optional): The operation ID for the route.
             Defaults to None.
-        response_model_include (Union[SetIntStr, DictIntStrAny], optional):
+        response_model_include (Union[Any, Any], optional):
             The fields to include in the response model. Defaults to None.
-        response_model_exclude (Union[SetIntStr, DictIntStrAny], optional):
+        response_model_exclude (Union[Any, Any], optional):
             The fields to exclude from the response model. Defaults to None.
         response_model_by_alias (bool, optional): Whether to use field aliases
             in the response model. Defaults to True.
@@ -151,8 +150,8 @@ class CustomAPIRoute(APIRoute):
         name: Optional[str] = None,
         methods: Optional[Union[Set[str], List[str]]] = None,
         operation_id: Optional[str] = None,
-        response_model_include: Optional[Union[SetIntStr, DictIntStrAny]] = None,
-        response_model_exclude: Optional[Union[SetIntStr, DictIntStrAny]] = None,
+        response_model_include: Optional[Union[Any, Any]] = None,
+        response_model_exclude: Optional[Union[Any, Any]] = None,
         response_model_by_alias: bool = True,
         response_model_exclude_unset: bool = False,
         response_model_exclude_defaults: bool = False,
