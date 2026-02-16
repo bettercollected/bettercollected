@@ -38,6 +38,7 @@ dependencies = [
     "sentry-sdk[fastapi]>=2.8.0",
     "elastic-apm>=6.17.0",
     "common",
+    "pydantic[email]>=1.10.26",
 ]
 
 [project.scripts]
