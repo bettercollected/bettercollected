@@ -255,12 +255,12 @@ class FormResponseRepository(BaseRepository):
         response: StandardFormResponse,
         workspace_id: PydanticObjectId,
     ):
-        response_document = FormResponseDocument(**response.model_dump())
+        response_document = FormResponseDocument(**response.model_dump(mode='json'))
         response_document.submission_uuid = str(uuid4())
         if workspace_id:
             for k, v in response_document.answers.items():
                 if type(v) == StandardFormResponseAnswer:
-                    response_document.answers[k] = v.model_dump()
+                    response_document.answers[k] = v.model_dump(mode='json')
             response_document.answers = crypto_service.encrypt(
                 workspace_id=workspace_id,
                 form_id=form_id,
@@ -287,7 +287,7 @@ class FormResponseRepository(BaseRepository):
             )
         for k, v in response.answers.items():
             if type(v) == StandardFormResponseAnswer:
-                response_document.answers[k] = v.model_dump()
+                response_document.answers[k] = v.model_dump(mode='json')
             response_document.answers = crypto_service.encrypt(
                 workspace_id=workspace_id,
                 form_id=form_id,

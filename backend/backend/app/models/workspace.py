@@ -4,7 +4,7 @@ from typing import Optional, Dict, List
 from beanie import PydanticObjectId
 from common.models.consent import ResponseRetentionType
 from fastapi_camelcase import CamelModel
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_serializer
 
 
 class WorkspaceRequestDto(BaseModel):
@@ -77,3 +77,4 @@ class WorkspaceResponseDto(WorkspaceRequestDto, CamelModel):
     privacy_policy: Optional[str] = None
     terms_of_service: Optional[str] = None
     custom_domain_verified: Optional[bool] = False
+

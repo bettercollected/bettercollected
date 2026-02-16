@@ -87,7 +87,7 @@ class FormTemplateRepository:
         self, workspace_id: PydanticObjectId, template_id: PydanticObjectId
     ):
         template = await self.get_template_by_id(template_id)
-        imported_template = FormTemplateDocument(**template.model_dump())
+        imported_template = FormTemplateDocument(**template.model_dump(mode='json'))
         imported_template.id = None
         imported_template.imported_from = template.workspace_id
         imported_template.workspace_id = workspace_id
@@ -101,7 +101,7 @@ class FormTemplateRepository:
         template_body: StandardFormTemplate,
         user: User,
     ):
-        template = FormTemplateDocument(**template_body.model_dump())
+        template = FormTemplateDocument(**template_body.model_dump(mode='json'))
         template.workspace_id = workspace_id
         template.created_by = user.id
         return await template.save()

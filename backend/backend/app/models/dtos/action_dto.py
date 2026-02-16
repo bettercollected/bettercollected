@@ -5,7 +5,7 @@ from typing import Optional
 from beanie import PydanticObjectId
 from common.models.standard_form import Trigger
 from fastapi_camelcase import CamelModel
-from pydantic import BaseModel
+from pydantic import BaseModel, model_serializer
 
 from backend.app.schemas.action_document import ParameterValue, ActionSettings
 

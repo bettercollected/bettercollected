@@ -160,8 +160,6 @@ class FormResponseService:
         is_admin = await self._workspace_user_repo.has_user_access_in_workspace(
             workspace_id, user
         )
-        # TODO : Handle case for multiple form import by other user
-        # TODO : Combine all queries to one
         response = await FormResponseDocument.find_one({"response_id": response_id})
         if not response:
             raise HTTPException(HTTPStatus.NOT_FOUND, MESSAGE_NOT_FOUND)
@@ -213,7 +211,7 @@ class FormResponseService:
         )
         for key, decrypted_answer in decrypted_response.answers.items():
             decrypted_answer = (
-                decrypted_answer.model_dump()
+                decrypted_answer.model_dump(mode="json")
                 if isinstance(decrypted_answer, StandardFormResponseAnswer)
                 else decrypted_answer
             )
@@ -224,8 +222,8 @@ class FormResponseService:
                 decrypted_response.answers[key]["file_metadata"]["url"] = file_url
 
         return {
-            "form": form,
-            "response": decrypted_response,
+            "form": form.model_dump(mode="json"),
+            "response": decrypted_response.model_dump(mode="json"),
         }
 
     async def request_for_response_deletion(
@@ -396,9 +394,9 @@ class FormResponseService:
         )
 
         return {
-            "form": StandardFormCamelModel(**form.model_dump()),
+            "form": StandardFormCamelModel(**form.model_dump(mode="json")),
             "response": StandardFormResponseCamelModel(
-                **decrypted_response.model_dump()
+                **decrypted_response.model_dump(mode="json")
             ),
         }
 

@@ -6,13 +6,13 @@ from pydantic import BaseModel
 
 
 class WorkspaceResponderPatchDto(BaseModel):
-    tags: Optional[List[PydanticObjectId]]
-    metadata: Optional[Dict[str, str]]
+    tags: Optional[List[PydanticObjectId]] = None
+    metadata: Optional[Dict[str, str]] = None
 
 
 class WorkspaceTagsResponse(BaseModel):
     title: str
-    id: Optional[PydanticObjectId]
+    id: Optional[PydanticObjectId] = None
 
     def __init__(self, _id=None, *args, **kwargs):
         super().__init__(**kwargs)

@@ -9,6 +9,7 @@ from common.models.standard_form import (
     ThankYouPageField,
 )
 from fastapi_camelcase import CamelModel
+from pydantic import model_serializer
 
 from backend.app.models.dtos.consent import ConsentCamelModel
 from backend.app.models.dtos.response_group_dto import ResponderGroupDto
@@ -48,6 +49,7 @@ class FormDtoCamelModel(CamelModel):
     actions: Optional[Dict[Trigger, List[ActionState]]] = None
     parameters: Optional[Dict[str, List[ParameterValue]]] = None
     secrets: Optional[Dict[str, List[ParameterValue]]] = None
+
     theme: Optional[Theme] = None
     welcome_page: Optional[WelcomePageField] = None
     thankyou_page: Optional[List[ThankYouPageField]] = None

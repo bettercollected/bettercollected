@@ -116,7 +116,7 @@ class OpenAIService:
             create_form_prompt = CreateFormPrompt(
                 prompt=create_form_ai.prompt,
                 openai_response=openai_form,
-                created_form=form.model_dump(),
+                created_form=form.model_dump(mode='json'),
                 form_id=PydanticObjectId(form.form_id),
             )
             await create_form_prompt.save()

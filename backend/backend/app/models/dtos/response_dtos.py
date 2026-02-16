@@ -13,7 +13,7 @@ from common.models.standard_form import (
 )
 from fastapi import UploadFile
 from fastapi_camelcase import CamelModel
-from pydantic import BaseModel
+from pydantic import BaseModel, model_serializer
 
 from backend.app.models.dtos.consent import ConsentResponseCamelModel
 from backend.app.models.workspace import WorkspaceFormSettings
@@ -25,7 +25,6 @@ from backend.app.schemas.standard_form_response import (
 
 class WorkspaceFormSettingsCamelModal(WorkspaceFormSettings, CamelModel):
     is_published: Optional[bool] = None
-    pass
 
 
 class StandardFormCamelModel(StandardForm, CamelModel):
@@ -105,7 +104,6 @@ StandardFieldPropertyCamelModel.model_rebuild()
 
 
 class StandardFormResponseCamelModel(FormResponseDocument, CamelModel):
-    model_config = {"extra": "allow"}
     form_title: Optional[str] = None
     status: Optional[str] = None
     form_imported_by: Optional[str] = None

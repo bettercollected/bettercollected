@@ -51,7 +51,7 @@ class WorkspaceRespondersController(Routable):
         response = await self.workspace_responders_service.get_workspace_responders(
             workspace_id=workspace_id, filter_query=filter_query, sort=sort, user=user
         )
-        return response
+        return response.model_dump(mode="json")
 
     @get(
         "/tags",

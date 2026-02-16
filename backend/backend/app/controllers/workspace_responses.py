@@ -106,7 +106,6 @@ class WorkspaceResponsesRouter(CustomRoutable):
         )
         return submissions
 
-    # TODO : Insert form id here/ Make uniform endpoints
     @get(
         "/submissions/{submission_id}",
     )

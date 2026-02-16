@@ -92,10 +92,10 @@ class FormTemplateService:
             workspace_id=workspace_id, user=user
         )
         template = await self.form_template_repo.get_template_by_id(template_id)
-        minified_form = FormDtoCamelModel(**template.model_dump())
+        minified_form = FormDtoCamelModel(**template.model_dump(mode='json'))
         return await self.workspace_form_service.create_form(
             workspace_id=workspace_id,
-            form=StandardForm(**minified_form.model_dump()),
+            form=StandardForm(**minified_form.model_dump(mode='json')),
             user=user,
         )
 

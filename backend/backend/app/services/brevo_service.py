@@ -12,7 +12,7 @@ from backend.config import settings
 
 def value_serializer(model_instance):
     if isinstance(model_instance, BaseModel):
-        data_dict = model_instance.model_dump()
+        data_dict = model_instance.model_dump(mode='json')
         try:
             serialized_data = json.dumps(data_dict)
             return serialized_data.encode("utf-8")
@@ -54,7 +54,7 @@ class BrevoService:
         except Exception as e:
             loguru.logger.warning(
                 "Could not send event to Brevo, Event Message: "
-                + str(event_message.model_dump())
+                + str(event_message.model_dump(mode='json'))
             )
 
         if settings.event_webhook_settings.enabled:
@@ -85,7 +85,7 @@ class BrevoService:
             except Exception as e:
                 loguru.logger.warning(
                     "Could not send event to Webhook, Event Message: "
-                    + str(event_message.model_dump())
+                    + str(event_message.model_dump(mode='json'))
                 )
 
         loguru.logger.info("Event Handled Successfully", event_type, user_id)

@@ -183,8 +183,12 @@ class WorkspaceFormService:
         )
 
         response_dict = {
-            **standard_form.model_dump(),
-            "settings": workspace_form.settings,
+            **standard_form.model_dump(mode='json'),
+            "settings": (
+                workspace_form.settings.model_dump(mode='json')
+                if workspace_form and workspace_form.settings
+                else None
+            ),
         }
         return StandardFormCamelModel(**response_dict)
 

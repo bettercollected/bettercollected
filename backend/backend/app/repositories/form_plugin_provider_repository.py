@@ -22,7 +22,7 @@ class FormPluginProviderRepository(BaseRepository):
             document = await FormPluginConfigDocument.find_many().to_list()
             if document:
                 return [
-                    FormProviderConfigDto(**provider.model_dump())
+                    FormProviderConfigDto(**provider.model_dump(mode='json'))
                     for provider in document
                 ]
             return []

@@ -50,7 +50,7 @@ class MediaLibrary(Routable):
             media_name=file.filename,
             request=request,
         )
-        return MediaLibraryDto(**media.model_dump())
+        return MediaLibraryDto(**media.model_dump(mode='json'))
 
     @delete("/{media_id}")
     async def delete_media_from_workspace(
