@@ -29,6 +29,7 @@ class WorkspaceFormSettingsCamelModal(WorkspaceFormSettings, CamelModel):
 
 
 class StandardFormCamelModel(StandardForm, CamelModel):
+    model_config = {"extra": "allow"}
     settings: Optional[WorkspaceFormSettingsCamelModal] = None
     responses: Optional[int] = 0
     version: Optional[int] = None
@@ -104,6 +105,7 @@ StandardFieldPropertyCamelModel.model_rebuild()
 
 
 class StandardFormResponseCamelModel(FormResponseDocument, CamelModel):
+    model_config = {"extra": "allow"}
     form_title: Optional[str] = None
     status: Optional[str] = None
     form_imported_by: Optional[str] = None

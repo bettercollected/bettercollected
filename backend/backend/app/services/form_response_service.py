@@ -255,6 +255,7 @@ class FormResponseService:
             response_id=response_id,
             dataOwnerIdentifier=response.dataOwnerIdentifier,
             provider=response.provider,
+            deleted_at=None,
         ).save()
 
     async def get_responses_count_in_workspace(self, workspace_form_ids: List[str]):
@@ -426,6 +427,7 @@ class FormResponseService:
             response_id=response_id,
             dataOwnerIdentifier=response.dataOwnerIdentifier,
             provider=response.provider,
+            deleted_at=None,
         ).save()
         pass
 
