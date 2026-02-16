@@ -24,5 +24,5 @@ class WorkspaceResponderResponse(CamelModel):
     responses: int
     email: str
     deletion_requests: int
-    tags: Optional[List[WorkspaceTagsResponse]]
-    metadata: Optional[Dict[str, str]]
+    tags: Optional[List[WorkspaceTagsResponse]] = None
+    metadata: Optional[Dict[str, str]] = None

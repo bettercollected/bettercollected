@@ -14,8 +14,8 @@ class MediaType(str, enum.Enum):
 
 class MediaLibraryRequestDto(CamelModel):
     file: UploadFile
-    media_type: Optional[MediaType]
-    media_name: Optional[str]
+    media_type: Optional[MediaType] = None
+    media_name: Optional[str] = None
 
 
 class MediaLibraryDto(BaseModel):
