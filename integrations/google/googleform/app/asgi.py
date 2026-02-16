@@ -1,4 +1,5 @@
 """Application implementation - ASGI."""
+
 import logging
 
 import sentry_sdk
