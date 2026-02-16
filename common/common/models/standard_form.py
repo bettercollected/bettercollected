@@ -155,7 +155,7 @@ class StandardResponseType(str, Enum):
 
 
 class StandardAttachmentProperties(BaseModel):
-    description: Optional[str]
+    description: Optional[str] = None
 
 
 class StandardAttachmentType(str, enum.Enum):
@@ -164,48 +164,48 @@ class StandardAttachmentType(str, enum.Enum):
 
 
 class StandardFieldAttachment(BaseModel):
-    type: Optional[StandardAttachmentType]
-    href: Optional[str]
-    scale: Optional[float]
+    type: Optional[StandardAttachmentType] = None
+    href: Optional[str] = None
+    scale: Optional[float] = None
     properties: Optional[StandardAttachmentProperties] = StandardAttachmentProperties()
-    embed_provider: Optional[EmbedProvider]
+    embed_provider: Optional[EmbedProvider] = None
 
 
 class StandardChoice(BaseModel):
-    id: Optional[str]
-    ref: Optional[str]
-    value: Optional[str]
-    label: Optional[str]
-    attachment: Optional[StandardFieldAttachment]
+    id: Optional[str] = None
+    ref: Optional[str] = None
+    value: Optional[str] = None
+    label: Optional[str] = None
+    attachment: Optional[StandardFieldAttachment] = None
 
 
 class StandardAnswerField(BaseModel):
     id: str
-    ref: Optional[str]
+    ref: Optional[str] = None
 
 
 class StandardPaymentAnswer(BaseModel):
-    amount: Optional[str]
-    last4: Optional[str]
-    name: Optional[str]
+    amount: Optional[str] = None
+    last4: Optional[str] = None
+    name: Optional[str] = None
 
 
 class FileMetadata(BaseModel):
     id: str
-    name: Optional[str]
-    type: Optional[str]
-    size: Optional[float]
-    url: Optional[str]
+    name: Optional[str] = None
+    type: Optional[str] = None
+    size: Optional[float] = None
+    url: Optional[str] = None
 
 
 class StandardChoiceAnswer(BaseModel):
-    value: Optional[str]
-    other: Optional[str]
+    value: Optional[str] = None
+    other: Optional[str] = None
 
 
 class StandardChoicesAnswer(BaseModel):
-    values: Optional[List[str]]
-    other: Optional[str]
+    values: Optional[List[str]] = None
+    other: Optional[str] = None
 
 
 class Comparison(str, enum.Enum):
@@ -239,19 +239,19 @@ class LogicalOperator(str, enum.Enum):
 
 
 class Condition(BaseModel):
-    type: Optional[ConditionalType]
-    comparison: Optional[Comparison]
-    field: Optional["StandardFormField"]
-    conditions: Optional[List["Condition"]]
-    logical_operator: Optional[LogicalOperator]
-    field_type: Optional[FieldType]
-    value: Optional[Any]
+    type: Optional[ConditionalType] = None
+    comparison: Optional[Comparison] = None
+    field: Optional["StandardFormField"] = None
+    conditions: Optional[List["Condition"]] = None
+    logical_operator: Optional[LogicalOperator] = None
+    field_type: Optional[FieldType] = None
+    value: Optional[Any] = None
 
 
 class ConditionalPayload(BaseModel):
-    field: Optional[Any]
-    operator: Optional[str]
-    value: Optional[Any]
+    field: Optional[Any] = None
+    operator: Optional[str] = None
+    value: Optional[Any] = None
 
 
 class ActionType(str, enum.Enum):
@@ -263,8 +263,8 @@ class ActionType(str, enum.Enum):
 
 
 class ConditionalActions(BaseModel):
-    type: Optional[ActionType]
-    payload: Optional[List[str] | str]
+    type: Optional[ActionType] = None
+    payload: Optional[List[str] | str] = None
 
 
 class StandardFormSettings(BaseModel):
@@ -272,57 +272,57 @@ class StandardFormSettings(BaseModel):
     Data transfer object for standard form settings.
     """
 
-    embed_url: Optional[str]
-    custom_url: Optional[str]
-    provider: Optional[str]
-    language: Optional[str]
-    is_public: Optional[bool]
-    is_trial: Optional[bool]
-    response_data_owner_field: Optional[str]
-    response_data_owner_fields: Optional[List[str]]
-    screens: Optional[Dict[str, List[Dict[str, Any]]]]
-    privacy_policy_url: Optional[str]
-    response_expiration: Optional[str]
-    response_expiration_type: Optional[ResponseRetentionType]
+    embed_url: Optional[str] = None
+    custom_url: Optional[str] = None
+    provider: Optional[str] = None
+    language: Optional[str] = None
+    is_public: Optional[bool] = None
+    is_trial: Optional[bool] = None
+    response_data_owner_field: Optional[str] = None
+    response_data_owner_fields: Optional[List[str]] = None
+    screens: Optional[Dict[str, List[Dict[str, Any]]]] = None
+    privacy_policy_url: Optional[str] = None
+    response_expiration: Optional[str] = None
+    response_expiration_type: Optional[ResponseRetentionType] = None
     # If responses are set to editable then it can be used for tracking responses
-    is_response_editable: Optional[bool]
+    is_response_editable: Optional[bool] = None
     # State whether the form is accepting new responses
-    is_closed: Optional[bool]
+    is_closed: Optional[bool] = None
 
 
 class StandardFieldProperty(BaseModel):
-    hidden: Optional[bool]
-    description: Optional[str]
-    choices: Optional[List[StandardChoice]]
-    fields: Optional[List["StandardFormField"]]
-    allow_multiple_selection: Optional[bool]
-    allow_other_choice: Optional[bool]
-    hide_marks: Optional[bool]
-    button_text: Optional[str]
-    placeholder: Optional[str]
-    steps: Optional[int]
-    start_from: Optional[int]
-    rating_shape: Optional[str]
-    labels: Optional[Dict[str, str]]
-    date_format: Optional[str]
-    actions: Optional[List[ConditionalActions]]
-    conditions: Optional[List[Condition]]
-    logical_operator: Optional[LogicalOperator]
-    update_id: Optional[str]
-    mentions: Optional[Dict[str, str]]
-    theme: Optional[Theme]
-    layout: Optional[LayoutType]
+    hidden: Optional[bool] = None
+    description: Optional[str] = None
+    choices: Optional[List[StandardChoice]] = None
+    fields: Optional[List["StandardFormField"]] = None
+    allow_multiple_selection: Optional[bool] = None
+    allow_other_choice: Optional[bool] = None
+    hide_marks: Optional[bool] = None
+    button_text: Optional[str] = None
+    placeholder: Optional[str] = None
+    steps: Optional[int] = None
+    start_from: Optional[int] = None
+    rating_shape: Optional[str] = None
+    labels: Optional[Dict[str, str]] = None
+    date_format: Optional[str] = None
+    actions: Optional[List[ConditionalActions]] = None
+    conditions: Optional[List[Condition]] = None
+    logical_operator: Optional[LogicalOperator] = None
+    update_id: Optional[str] = None
+    mentions: Optional[Dict[str, str]] = None
+    theme: Optional[Theme] = None
+    layout: Optional[LayoutType] = None
 
 
 class StandardFieldValidations(BaseModel):
-    required: Optional[bool]
-    max_length: Optional[int]
-    min_length: Optional[int]
-    min_value: Optional[float]
-    max_value: Optional[float]
-    regex: Optional[str]
-    min_choices: Optional[int]
-    max_choices: Optional[int]
+    required: Optional[bool] = None
+    max_length: Optional[int] = None
+    min_length: Optional[int] = None
+    min_value: Optional[float] = None
+    max_value: Optional[float] = None
+    regex: Optional[str] = None
+    min_choices: Optional[int] = None
+    max_choices: Optional[int] = None
 
 
 class StandardFormField(BaseModel):
@@ -330,18 +330,18 @@ class StandardFormField(BaseModel):
     Data transfer object for Fields in a standard form.
     """
 
-    id: Optional[str]
-    index: Optional[int]
-    ref: Optional[str]
-    title: Optional[str | Dict[str, Any]]
-    description: Optional[str]
-    value: Optional[str]
-    type: Optional[StandardFormFieldType]
-    tag: Optional[FormBuilderTagTypes]
+    id: Optional[str] = None
+    index: Optional[int] = None
+    ref: Optional[str] = None
+    title: Optional[str | Dict[str, Any]] = None
+    description: Optional[str] = None
+    value: Optional[str] = None
+    type: Optional[StandardFormFieldType] = None
+    tag: Optional[FormBuilderTagTypes] = None
     properties: Optional[StandardFieldProperty] = StandardFieldProperty()
     validations: Optional[StandardFieldValidations] = StandardFieldValidations()
     attachment: Optional[StandardFieldAttachment] = None
-    image_url: Optional[str]
+    image_url: Optional[str] = None
 
 
 StandardFieldProperty.update_forward_refs()
@@ -376,8 +376,7 @@ class Trigger(str, Enum):
     on_submit = "on_submit"
     # This trigger is run when form is opened
     on_open = "on_open"
-    
-    
+
     def __str__(self):
         return self.value
 
@@ -394,60 +393,60 @@ class ActionState(BaseModel):
 
 
 class WelcomePageField(BaseModel):
-    title: Optional[str]
-    description: Optional[str]
-    layout: Optional[LayoutType]
-    imageUrl: Optional[str]
-    buttonText: Optional[str]
+    title: Optional[str] = None
+    description: Optional[str] = None
+    layout: Optional[LayoutType] = None
+    imageUrl: Optional[str] = None
+    buttonText: Optional[str] = None
 
 
 class ThankYouPageField(BaseModel):
-    message: Optional[str]
-    buttonText: Optional[str]
-    buttonLink: Optional[str]
-    layout: Optional[LayoutType]
-    imageUrl: Optional[str]
+    message: Optional[str] = None
+    buttonText: Optional[str] = None
+    buttonLink: Optional[str] = None
+    layout: Optional[LayoutType] = None
+    imageUrl: Optional[str] = None
 
 
 class StandardForm(BaseModel):
-    builder_version: Optional[str]
-    form_id: Optional[str]
-    imported_form_id: Optional[str]
-    type: Optional[str]
-    title: Optional[str]
-    logo: Optional[str]
-    cover_image: Optional[str]
-    description: Optional[str]
-    button_text: Optional[str]
-    is_multi_page: Optional[bool]
-    fields: Optional[List[StandardFormField]]
-    consent: Optional[List[Consent]]
+    builder_version: Optional[str] = None
+    form_id: Optional[str] = None
+    imported_form_id: Optional[str] = None
+    type: Optional[str] = None
+    title: Optional[str] = None
+    logo: Optional[str] = None
+    cover_image: Optional[str] = None
+    description: Optional[str] = None
+    button_text: Optional[str] = None
+    is_multi_page: Optional[bool] = None
+    fields: Optional[List[StandardFormField]] = None
+    consent: Optional[List[Consent]] = None
     state: Optional[State] = Field(State())
     settings: Optional[StandardFormSettings] = StandardFormSettings()
-    published_at: Optional[dt.datetime]
-    actions: Optional[Dict[str, List[ActionState]]]
-    parameters: Optional[Dict[str, List[ParameterValue]]] = Field()
-    secrets: Optional[Dict[str, List[ParameterValue]]] = Field()
-    theme: Optional[Theme]
-    welcome_page: Optional[WelcomePageField]
-    thankyou_page: Optional[List[ThankYouPageField]]
+    published_at: Optional[dt.datetime] = None
+    actions: Optional[Dict[str, List[ActionState]]] = None
+    parameters: Optional[Dict[str, List[ParameterValue]]] = Field(None)
+    secrets: Optional[Dict[str, List[ParameterValue]]] = Field(None)
+    theme: Optional[Theme] = None
+    welcome_page: Optional[WelcomePageField] = None
+    thankyou_page: Optional[List[ThankYouPageField]] = None
 
 
 class StandardFormResponseAnswer(BaseModel):
-    field: Optional[StandardAnswerField]
-    type: Optional[StandardResponseType]
-    text: Optional[str]
-    choice: Optional[StandardChoiceAnswer]
-    choices: Optional[StandardChoicesAnswer]
-    number: Optional[int]
-    boolean: Optional[bool]
-    email: Optional[str]
-    date: Optional[str]
-    url: Optional[str]
-    file_url: Optional[str]
-    payment: Optional[StandardPaymentAnswer]
-    phone_number: Optional[str]
-    file_metadata: Optional[FileMetadata]
+    field: Optional[StandardAnswerField] = None
+    type: Optional[StandardResponseType] = None
+    text: Optional[str] = None
+    choice: Optional[StandardChoiceAnswer] = None
+    choices: Optional[StandardChoicesAnswer] = None
+    number: Optional[int] = None
+    boolean: Optional[bool] = None
+    email: Optional[str] = None
+    date: Optional[str] = None
+    url: Optional[str] = None
+    file_url: Optional[str] = None
+    payment: Optional[StandardPaymentAnswer] = None
+    phone_number: Optional[str] = None
+    file_metadata: Optional[FileMetadata] = None
 
 
 class ResponseState(BaseModel):
@@ -462,22 +461,22 @@ class StandardFormResponse(BaseModel):
     Data transfer object for a standard form response.
     """
 
-    response_id: Optional[str]
-    form_id: Optional[str]
-    provider: Optional[str]
+    response_id: Optional[str] = None
+    form_id: Optional[str] = None
+    provider: Optional[str] = None
     respondent_email: Optional[str] = None
     answers: (
         Optional[Dict[str, StandardFormResponseAnswer | Dict[str, Any]]] | bytes | str
-    )
-    form_version: Optional[int]
-    created_at: Optional[dt.datetime]
-    updated_at: Optional[dt.datetime]
-    published_at: Optional[dt.datetime]
-    consent: Optional[List[ConsentResponse]]
-    expiration: Optional[str]
-    expiration_type: Optional[ResponseRetentionType]
+    ) = None
+    form_version: Optional[int] = None
+    created_at: Optional[dt.datetime] = None
+    updated_at: Optional[dt.datetime] = None
+    published_at: Optional[dt.datetime] = None
+    consent: Optional[List[ConsentResponse]] = None
+    expiration: Optional[str] = None
+    expiration_type: Optional[ResponseRetentionType] = None
     state: Optional[ResponseState] = Field(None)
-    dataOwnerIdentifierType: Optional[str]
-    dataOwnerIdentifier: Optional[str]
-    anonymous_identity: Optional[str]
+    dataOwnerIdentifierType: Optional[str] = None
+    dataOwnerIdentifier: Optional[str] = None
+    anonymous_identity: Optional[str] = None
     submission_uuid: Optional[str] = None

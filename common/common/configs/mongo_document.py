@@ -19,7 +19,7 @@ from common.exceptions import NotFoundError
 
 from pymongo.client_session import ClientSession
 from pymongo.collection import Collection
-from datetime import datetime as dt , timezone
+from datetime import datetime as dt, timezone
 
 IntStr = Union[int, str]
 AbstractSetIntStr = AbstractSet[IntStr]
@@ -34,8 +34,8 @@ class MongoDocument(Document):
     This class defines common methods and attributes for interacting with MongoDB documents.
     """
 
-    created_at: Optional[dt]
-    updated_at: Optional[dt]
+    created_at: Optional[dt] = None
+    updated_at: Optional[dt] = None
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

@@ -7,7 +7,7 @@ from common.models.standard_form import StandardForm, StandardFormResponse
 
 class FormImportRequestBody(BaseModel):
     form: Dict[str, Any]
-    response_data_owner: Optional[str]
+    response_data_owner: Optional[str] = None
 
 
 class FormImportResponse(BaseModel):
