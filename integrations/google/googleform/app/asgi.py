@@ -26,7 +26,7 @@ from googleform.app.services.database_service import close_db, init_db
 from googleform.app.services.migration_service import (
     migrate_credentials_to_include_user_id,
 )
-from googleform.app.utils import AiohttpClient, RedisClient
+from googleform.app.utils import AiohttpClient
 from googleform.config import settings
 
 log = logging.getLogger(__name__)
@@ -40,8 +40,6 @@ async def on_startup():
 
     """
     log.debug("Execute FastAPI startup event handler.")
-    if settings.USE_REDIS:
-        await RedisClient.open_redis_client()
 
     AiohttpClient.get_aiohttp_client()
 
@@ -55,8 +53,6 @@ async def on_shutdown():
     """
     log.debug("Execute FastAPI shutdown event handler.")
     # Gracefully close utilities.
-    if settings.USE_REDIS:
-        await RedisClient.close_redis_client()
     Container.executor = None
     await AiohttpClient.close_aiohttp_client()
 

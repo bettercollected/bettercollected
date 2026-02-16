@@ -34,6 +34,6 @@ class GoogleFormResponseDocument(BaseDocument, GoogleFormResponseDto):
     """
 
     dataOwnerFields: Optional[List[Dict[str, str | None]]] = []
-    dataOwnerIdentifier: Optional[str]
-    provider: Optional[str]
-    formId: Optional[str]
+    dataOwnerIdentifier: Optional[str] = None
+    provider: Optional[str] = None
+    formId: Optional[str] = None
