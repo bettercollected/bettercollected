@@ -100,7 +100,7 @@ class StandardFormFieldCamelModel(CamelModel):
     image_url: Optional[str]
 
 
-StandardFieldPropertyCamelModel.update_forward_refs()
+StandardFieldPropertyCamelModel.model_rebuild()
 
 
 class StandardFormResponseCamelModel(FormResponseDocument, CamelModel):

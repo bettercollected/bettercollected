@@ -15,7 +15,6 @@ from common.models.standard_form import (
 from common.models.user import User
 from common.services.crypto_service import crypto_service
 from fastapi_pagination import Page
-from questionary import FormField
 
 from backend.app.constants.consents import default_consent_responses
 from backend.app.exceptions import HTTPException

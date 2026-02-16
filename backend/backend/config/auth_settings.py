@@ -1,4 +1,4 @@
-from pydantic import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class AuthSettings(BaseSettings):
@@ -10,5 +10,4 @@ class AuthSettings(BaseSettings):
     BASE_URL: str = "http://localhost:8001/api/v1"
     CALLBACK_URI: str = f"{BASE_URL}/auth/callback"
 
-    class Config:
-        env_prefix = "AUTH_"
+    model_config = SettingsConfigDict(env_prefix='AUTH_')

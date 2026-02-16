@@ -4,7 +4,7 @@ import os
 from pathlib import Path
 
 from dotenv import load_dotenv
-from pydantic import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from backend.config.api_settings import ApiSettings
 from backend.config.apm_settings import APMSettings
@@ -64,10 +64,7 @@ class Application(BaseSettings):
     # All your additional application configuration should go either here or in
     # separate file in this submodule.
 
-    class Config:
-        """Config sub class needed to customize BaseSettings settings."""
-
-        case_sensitive = True
+    model_config = SettingsConfigDict(case_sensitive=True)
 
 
 settings = Application()

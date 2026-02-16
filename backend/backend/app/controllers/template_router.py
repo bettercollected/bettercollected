@@ -4,7 +4,7 @@ from typing import List
 from beanie import PydanticObjectId
 from classy_fastapi import Routable, post, get, patch, delete
 from fastapi import Depends, UploadFile, Form
-from gunicorn.config import User
+from common.models.user import User
 from typing import Optional
 from backend.app.container import container
 from backend.app.models.dataclasses.user_tokens import UserTokens

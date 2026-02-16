@@ -1,5 +1,5 @@
 import datetime as dt
-from typing import Optional
+from typing import Annotated, Optional
 
 from beanie import Indexed
 from common.configs.mongo_document import MongoDocument
@@ -12,10 +12,10 @@ from backend.app.models.types.coupon_code import CouponCode
 
 @entity
 class CouponCodeDocument(MongoDocument):
-    code: Indexed(CouponCode, unique=True)
+    code: Annotated[CouponCode, Indexed(unique=True)]
     status: CouponStatus = CouponStatus.ACTIVE
-    used_by: Optional[EmailStr]
-    activated_at: Optional[dt.datetime]
+    used_by: Optional[EmailStr] = None
+    activated_at: Optional[dt.datetime] = None
 
     class Settings:
         name = "coupon_codes"

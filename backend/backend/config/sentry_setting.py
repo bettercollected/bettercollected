@@ -1,9 +1,8 @@
-from pydantic import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class SentrySettings(BaseSettings):
     DSN: str = ""
     DEBUG: bool = False
 
-    class Config:
-        env_prefix = "SENTRY_"
+    model_config = SettingsConfigDict(env_prefix='SENTRY_')

@@ -1,92 +1,58 @@
-[tool.poetry]
+[project]
 name = "backend"
 version = "0.1.0"
-description = ""
-authors = ["Bibishan Pandey <bibishan.b.pandey@gmail.com>"]
-license = "no"
+description = "Backend for bettercollected"
 readme = "README.md"
-classifiers = [
-    "Intended Audience :: Developers",
-    "Natural Language :: English",
-    "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
+authors = [{ name = "Bibishan Pandey", email = "bibishan.b.pandey@gmail.com" }]
+requires-python = ">=3.10"
+dependencies = [
+    "fastapi>=0.129.0",
+    "uvicorn[standard]>=0.40.0",
+    "redis>=7.1.1",
+    "aiohttp>=3.13.3",
+    "pycryptodome>=3.23.0",
+    "base58>=2.1.1",
+    "fastapi-mail>=1.6.1",
+    "loguru>=0.7.3",
+    "requests>=2.32.5",
+    "fastapi-camelcase>=2.0.0",
+    "fastapi-utils>=0.8.0",
+    "beanie>=2.0.1",
+    "dependency-injector>=4.48.3",
+    "httpx>=0.28.1",
+    "classy-fastapi==0.6.1",
+    "pyjwt>=2.11.0",
+    "boto3>=1.42.49",
+    "python-multipart>=0.0.22",
+    "cryptography>=46.0.5",
+    "apscheduler>=3.11.2",
+    "fastapi-pagination>=0.15.10",
+    "python-whois>=0.9.6",
+    "camel-converter>=5.0.0",
+    "sentry-sdk[fastapi]>=2.52.0",
+    "temporalio>=1.22.0",
+    "mongomock-motor>=0.0.36",
+    "elastic-apm>=6.25.0",
+    "common",
+    "openai>=2.21.0",
+    "typing-inspect>=0.9.0",
 ]
 
-[tool.poetry.dependencies]
-python = "^3.10"
-fastapi = "~0.88.0"
-uvicorn = {extras = ["standard"], version = "~0.20.0"}
-gunicorn = "~22.0.0"
-click = "~8.1.3"
-redis = "~4.4.0"
-aiohttp = "3.10.5"
-fastapi-mvc = "^0.24.0"
-pycryptodome = "^3.17"
-base58 = "^2.1.1"
-fastapi-mail = "^1.2.5"
-loguru = "^0.6.0"
-requests = "2.32.3"
-fastapi-camelcase = "^1.0.5"
-fastapi-utils = "^0.2.1"
-beanie = "^1.17.0"
-dependency-injector = "^4.41.0"
-httpx = "^0.23.3"
-classy-fastapi = "^0.3.0"
-pyjwt = "^2.6.0"
-boto3 = "^1.26.75"
-python-multipart = "^0.0.9"
-cryptography = "43.0.1"
-apscheduler = "^3.10.0"
-fastapi-pagination = "^0.12.3"
-python-whois = "^0.8.0"
-camel-converter = "^3.0.0"
-sentry-sdk = {extras = ["fastapi"], version = "^2.8.0"}
-tink = "^1.8.0"
-temporalio = "^1.2.0"
-mongomock-motor = "^0.0.20"
-elastic-apm = "^6.17.0"
-schemathesis = "^3.19.6"
-common = {path = "../common", develop = true}
-aiokafka = "^0.10.0"
-openai = "^1.28.1"
-werkzeug = "3.0.3"
+[dependency-groups]
+dev = [
+    "pytest>=9.0.2",
+    "pytest-asyncio>=1.3.0",
+    "aioresponses>=0.7.8",
+    "httpx>=0.28.1",
+]
 
-[tool.poetry.scripts]
-backend = 'backend.cli:cli'
-
-[tool.poetry.urls]
-"Issues" = "/issues"
-
-[tool.poetry.group.dev.dependencies]
-pytest = "~7.2.0"
-pytest-cov = "~4.0.0"
-pytest-asyncio = "~0.20.3"
-httpx = "~0.23.1"
-aioresponses = "~0.7.3"
-flake8 = "~5.0.4"
-flake8-docstrings = "~1.6.0"
-flake8-import-order = "~0.18.1"
-flake8-todo = "^0.7"
-black = "~24.8.0"
-myst-parser = "~0.18.1"
-sphinx-material = {git = "https://github.com/bashtage/sphinx-material.git"}
-pallets-sphinx-themes = "^2.0.3"
-sphinx = "^5.3.0"
-pre-commit = "^3.0.4"
-pytest-github-report = "^0.0.1"
+[tool.uv.sources]
+common = { path = "../common", editable = true }
 
 [build-system]
-requires = ["poetry-core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
-[tool.coverage.run]
-omit = [
-    "backend/config/gunicorn.py",
-    "backend/__main__.py",
-]
-
-[tool.coverage.report]
-exclude_lines = [
-    "pass",
-]
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]

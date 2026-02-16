@@ -1,10 +1,8 @@
-from pydantic import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class MongoSettings(BaseSettings):
     DB: str = "bettercollected_backend"
     URI: str = "mongodb://localhost"
 
-    class Config:
-        case_sensitive = True
-        env_prefix = "MONGO_"
+    model_config = SettingsConfigDict(case_sensitive=True, env_prefix="MONGO_")

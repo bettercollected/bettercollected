@@ -1,6 +1,6 @@
 from classy_fastapi import Routable, get, post
 from fastapi import Depends, Request, Response
-from gunicorn.config import User
+from common.models.user import User
 from starlette.responses import RedirectResponse
 
 from backend.app.container import container

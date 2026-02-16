@@ -205,4 +205,4 @@ class FormAnalyticsRouter(Routable):
         params = {k: v for k, v in params.items() if v is not None}
 
         metrics_data = await self.umami_client.fetch_form_metrics(params)
-        return MetricResponseModel(__root__=metrics_data)
+        return MetricResponseModel(root=metrics_data)
