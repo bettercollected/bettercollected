@@ -338,15 +338,19 @@ class StandardFormField(BaseModel):
     value: Optional[str] = None
     type: Optional[StandardFormFieldType] = None
     tag: Optional[FormBuilderTagTypes] = None
-    properties: Optional[StandardFieldProperty] = StandardFieldProperty()
-    validations: Optional[StandardFieldValidations] = StandardFieldValidations()
+    properties: Optional[StandardFieldProperty] = Field(
+        default_factory=StandardFieldProperty
+    )
+    validations: Optional[StandardFieldValidations] = Field(
+        default_factory=StandardFieldValidations
+    )
     attachment: Optional[StandardFieldAttachment] = None
     image_url: Optional[str] = None
 
 
-StandardFieldProperty.update_forward_refs()
-Condition.update_forward_refs()
-StandardFormField.update_forward_refs()
+StandardFieldProperty.model_rebuild()
+Condition.model_rebuild()
+StandardFormField.model_rebuild()
 
 
 class State(BaseModel):
@@ -421,8 +425,10 @@ class StandardForm(BaseModel):
     is_multi_page: Optional[bool] = None
     fields: Optional[List[StandardFormField]] = None
     consent: Optional[List[Consent]] = None
-    state: Optional[State] = Field(State())
-    settings: Optional[StandardFormSettings] = StandardFormSettings()
+    state: Optional[State] = Field(default_factory=State)
+    settings: Optional[StandardFormSettings] = Field(
+        default_factory=StandardFormSettings
+    )
     published_at: Optional[dt.datetime] = None
     actions: Optional[Dict[str, List[ActionState]]] = None
     parameters: Optional[Dict[str, List[ParameterValue]]] = Field(None)
