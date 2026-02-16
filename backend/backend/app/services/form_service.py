@@ -278,8 +278,8 @@ class FormService:
         return minified_form
 
     async def save_form(self, form: StandardForm):
-        form_document = FormDocument(**form.dict())
-        form_version_document = FormVersionsDocument(**form.dict(), version=1)
+        form_document = FormDocument(**form.model_dump())
+        form_version_document = FormVersionsDocument(**form.model_dump(), version=1)
         await form_version_document.save()
         return await self._form_repo.save_form(form_document)
 
@@ -564,5 +564,5 @@ class FormService:
         )
         return form_params
 
-    async def get_latest_version_of_form(self, form_id:PydanticObjectId):
+    async def get_latest_version_of_form(self, form_id: PydanticObjectId):
         return await self._form_repo.get_latest_version_of_form(form_id)

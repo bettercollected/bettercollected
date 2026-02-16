@@ -48,21 +48,21 @@ class WorkspaceFormSettings(BaseModel):
     """Model for storing the form settings of a workspace."""
 
     pinned: Optional[bool] = False
-    embed_url: Optional[str]
-    custom_url: Optional[str]
+    embed_url: Optional[str] = None
+    custom_url: Optional[str] = None
     private: Optional[bool] = False
     hidden: Optional[bool] = False
-    response_data_owner_field: Optional[str]
-    provider: Optional[str]
-    privacy_policy_url: Optional[str]
-    response_expiration: Optional[str]
-    response_expiration_type: Optional[ResponseRetentionType]
-    disable_branding: Optional[bool]
-    form_close_date: Optional[dt.datetime | str]
-    require_verified_identity: Optional[bool]
-    show_submission_number: Optional[bool]
-    allow_editing_response: Optional[bool]
-    show_original_form: Optional[bool]
+    response_data_owner_field: Optional[str] = None
+    provider: Optional[str] = None
+    privacy_policy_url: Optional[str] = None
+    response_expiration: Optional[str] = None
+    response_expiration_type: Optional[ResponseRetentionType] = None
+    disable_branding: Optional[bool] = None
+    form_close_date: Optional[dt.datetime | str] = None
+    require_verified_identity: Optional[bool] = None
+    show_submission_number: Optional[bool] = None
+    allow_editing_response: Optional[bool] = None
+    show_original_form: Optional[bool] = None
 
 
 class WorkspaceResponseDto(WorkspaceRequestDto, CamelModel):

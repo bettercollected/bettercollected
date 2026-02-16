@@ -68,7 +68,7 @@ class ResponderGroupsService:
             workspace_id=workspace_id,
             regex=regex,
         )
-        return response.dict()
+        return response.model_dump()
 
     async def create_group(
         self,

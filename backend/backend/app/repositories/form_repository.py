@@ -294,7 +294,7 @@ class FormRepository:
         return await FormDocument.find({"form_id": {"$in": form_ids}}).delete()
 
     async def create_form(self, form: StandardForm) -> FormDocument:
-        form_document = FormDocument(**form.dict())
+        form_document = FormDocument(**form.model_dump())
         return await form_document.save()
 
     async def update_form(self, form_id: PydanticObjectId, form: StandardForm):
@@ -333,7 +333,7 @@ class FormRepository:
         )
 
     async def publish_form(self, form: FormDocument, version: int):
-        new_form_version = FormVersionsDocument(**form.dict(), version=version)
+        new_form_version = FormVersionsDocument(**form.model_dump(), version=version)
         new_form_version.id = None
         return await new_form_version.save()
 

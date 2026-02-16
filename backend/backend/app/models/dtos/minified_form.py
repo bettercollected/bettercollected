@@ -22,33 +22,33 @@ from common.models.standard_form import Theme
 
 
 class FormDtoCamelModel(CamelModel):
-    builder_version: Optional[str]
-    form_id: Optional[str]
-    imported_form_id: Optional[str]
-    logo: Optional[str]
-    cover_image: Optional[str]
-    title: Optional[str]
-    description: Optional[str]
-    type: Optional[str]
-    button_text: Optional[str]
-    settings: Optional[WorkspaceFormSettingsCamelModal]
-    is_published: Optional[bool]
-    is_multi_page: Optional[bool]
-    created_at: Optional[dt.datetime]
-    published_at: Optional[dt.datetime]
-    consent: Optional[List[ConsentCamelModel]]
-    responses: Optional[int]
-    deletion_requests: Optional[int]
-    groups: Optional[List[ResponderGroupDto]]
-    imported_by: Optional[str]
-    importer_details: Optional[FormImporterDetails]
-    fields: Optional[List[StandardFormFieldCamelModel]]
-    version: Optional[str]
-    updated_at: Optional[dt.datetime]
-    actions: Optional[Dict[Trigger, List[ActionState]]]
-    parameters: Optional[Dict[str, List[ParameterValue]]]
-    secrets: Optional[Dict[str, List[ParameterValue]]]
-    theme: Optional[Theme]
-    welcome_page: Optional[WelcomePageField]
-    thankyou_page: Optional[List[ThankYouPageField]]
-    unauthorized: Optional[bool]
+    builder_version: Optional[str] = None
+    form_id: Optional[str] = None
+    imported_form_id: Optional[str] = None
+    logo: Optional[str] = None
+    cover_image: Optional[str] = None
+    title: Optional[str] = None
+    description: Optional[str] = None
+    type: Optional[str] = None
+    button_text: Optional[str] = None
+    settings: Optional[WorkspaceFormSettingsCamelModal] = None
+    is_published: Optional[bool] = None
+    is_multi_page: Optional[bool] = None
+    created_at: Optional[dt.datetime] = None
+    published_at: Optional[dt.datetime] = None
+    consent: Optional[List[ConsentCamelModel]] = None
+    responses: Optional[int] = None
+    deletion_requests: Optional[int] = None
+    groups: Optional[List[ResponderGroupDto]] = None
+    imported_by: Optional[str] = None
+    importer_details: Optional[FormImporterDetails] = None
+    fields: Optional[List[StandardFormFieldCamelModel]] = None
+    version: Optional[str] = None
+    updated_at: Optional[dt.datetime] = None
+    actions: Optional[Dict[Trigger, List[ActionState]]] = None
+    parameters: Optional[Dict[str, List[ParameterValue]]] = None
+    secrets: Optional[Dict[str, List[ParameterValue]]] = None
+    theme: Optional[Theme] = None
+    welcome_page: Optional[WelcomePageField] = None
+    thankyou_page: Optional[List[ThankYouPageField]] = None
+    unauthorized: Optional[bool] = None

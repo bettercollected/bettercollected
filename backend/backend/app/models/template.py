@@ -23,29 +23,29 @@ class StandardTemplateSettingsCamelModel(StandardTemplateSetting, CamelModel):
 
 
 class StandardFormTemplate(BaseModel):
-    id: Optional[PydanticObjectId]
-    builder_version: Optional[str]
-    workspace_id: Optional[PydanticObjectId]
-    type: Optional[str]
-    title: Optional[str]
-    description: Optional[str]
-    logo: Optional[str]
-    cover_image: Optional[str]
-    category: Optional[TemplateCategory]
-    button_text: Optional[str]
-    fields: Optional[List[StandardFormField]]
+    id: Optional[PydanticObjectId] = None
+    builder_version: Optional[str] = None
+    workspace_id: Optional[PydanticObjectId] = None
+    type: Optional[str] = None
+    title: Optional[str] = None
+    description: Optional[str] = None
+    logo: Optional[str] = None
+    cover_image: Optional[str] = None
+    category: Optional[TemplateCategory] = None
+    button_text: Optional[str] = None
+    fields: Optional[List[StandardFormField]] = None
     settings: Optional[StandardTemplateSetting] = StandardTemplateSetting()
-    created_by: Optional[str]
-    imported_from: Optional[PydanticObjectId]
-    preview_image: Optional[str]
-    theme: Optional[Theme]
-    welcome_page: Optional[WelcomePageField]
-    thankyou_page: Optional[List[ThankYouPageField]]
+    created_by: Optional[str] = None
+    imported_from: Optional[PydanticObjectId] = None
+    preview_image: Optional[str] = None
+    theme: Optional[Theme] = None
+    welcome_page: Optional[WelcomePageField] = None
+    thankyou_page: Optional[List[ThankYouPageField]] = None
 
 
 class StandardFormTemplateResponse(StandardFormTemplate):
-    imported_from: Optional[str]
-    fields: Optional[List[StandardFormFieldCamelModel]]
+    imported_from: Optional[str] = None
+    fields: Optional[List[StandardFormFieldCamelModel]] = None
 
 
 class StandardFormTemplateResponseCamelModel(CamelModel, StandardFormTemplateResponse):

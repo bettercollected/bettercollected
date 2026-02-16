@@ -60,7 +60,7 @@ class WorkspaceService:
         workspace = await self._workspace_repo.get_workspace_by_id(
             workspace_id=workspace_id
         )
-        return WorkspaceResponseDto(**workspace.dict())
+        return WorkspaceResponseDto(**workspace.model_dump())
 
     async def get_workspace_by_query(self, query: str, user: User):
         workspace = await self._workspace_repo.get_workspace_by_query(query)
@@ -69,10 +69,12 @@ class WorkspaceService:
                 await self._workspace_user_service.check_user_has_access_in_workspace(
                     workspace_id=workspace.id, user=user
                 )
-                return WorkspaceResponseDto(**workspace.dict(), dashboard_access=True)
+                return WorkspaceResponseDto(
+                    **workspace.model_dump(), dashboard_access=True
+                )
             except HTTPException:
                 pass
-        return WorkspaceResponseDto(**workspace.dict())
+        return WorkspaceResponseDto(**workspace.model_dump())
 
     async def create_non_default_workspace(
         self,
@@ -129,7 +131,7 @@ class WorkspaceService:
                 roles=[WorkspaceRoles.ADMIN],
             )
             await workspace_user.save()
-        return WorkspaceResponseDto(**workspace_document.dict())
+        return WorkspaceResponseDto(**workspace_document.model_dump())
 
     async def patch_workspace(
         self,
@@ -251,7 +253,7 @@ class WorkspaceService:
         saved_workspace = await self._workspace_repo.update(
             workspace_document.id, workspace_document
         )
-        return WorkspaceResponseDto(**saved_workspace.dict())
+        return WorkspaceResponseDto(**saved_workspace.model_dump())
 
     async def delete_custom_domain_of_workspace(
         self, workspace_id: PydanticObjectId, user: User
@@ -274,7 +276,7 @@ class WorkspaceService:
         )
         workspace_document.custom_domain = ""
         saved_workspace = await workspace_document.save()
-        return WorkspaceResponseDto(**saved_workspace.dict())
+        return WorkspaceResponseDto(**saved_workspace.model_dump())
 
     async def generate_unique_names_from_the_workspace_handle(
         self, workspace_name: str, workspace_id: Optional[PydanticObjectId]
@@ -321,7 +323,9 @@ class WorkspaceService:
         workspaces = await self._workspace_repo.get_workspace_by_ids(
             workspace_ids=workspace_ids
         )
-        return [WorkspaceResponseDto(**workspace.dict()) for workspace in workspaces]
+        return [
+            WorkspaceResponseDto(**workspace.model_dump()) for workspace in workspaces
+        ]
 
     async def send_otp_for_workspace(
         self, workspace_id: PydanticObjectId, receiver_email: EmailStr

@@ -24,33 +24,33 @@ from backend.app.schemas.standard_form_response import (
 
 
 class WorkspaceFormSettingsCamelModal(WorkspaceFormSettings, CamelModel):
-    is_published: Optional[bool]
+    is_published: Optional[bool] = None
     pass
 
 
 class StandardFormCamelModel(StandardForm, CamelModel):
-    settings: Optional[WorkspaceFormSettingsCamelModal]
+    settings: Optional[WorkspaceFormSettingsCamelModal] = None
     responses: Optional[int] = 0
-    version: Optional[int]
+    version: Optional[int] = None
 
 
 class StandardChoice(CamelModel):
-    id: Optional[str]
-    ref: Optional[str]
-    value: Optional[str]
-    label: Optional[str]
-    attachment: Optional[StandardFieldAttachment]
+    id: Optional[str] = None
+    ref: Optional[str] = None
+    value: Optional[str] = None
+    label: Optional[str] = None
+    attachment: Optional[StandardFieldAttachment] = None
 
 
 class StandardFieldValidationsCamelModal(CamelModel):
-    required: Optional[bool]
-    max_length: Optional[int]
-    min_length: Optional[int]
-    min_value: Optional[float]
-    max_value: Optional[float]
-    min_choices: Optional[int]
-    max_choices: Optional[int]
-    regex: Optional[str]
+    required: Optional[bool] = None
+    max_length: Optional[int] = None
+    min_length: Optional[int] = None
+    min_value: Optional[float] = None
+    max_value: Optional[float] = None
+    min_choices: Optional[int] = None
+    max_choices: Optional[int] = None
+    regex: Optional[str] = None
 
 
 class ConditionCamelModel(Condition, CamelModel):
@@ -62,54 +62,54 @@ class ConditionalActionsCamelModel(ConditionalActions, CamelModel):
 
 
 class StandardFieldPropertyCamelModel(CamelModel):
-    hidden: Optional[bool]
-    description: Optional[str]
-    choices: Optional[List[StandardChoice]]
-    fields: Optional[List["StandardFormFieldCamelModel"]]
-    allow_multiple_selection: Optional[bool]
-    allow_other_choice: Optional[bool]
-    hide_marks: Optional[bool]
-    button_text: Optional[str]
-    placeholder: Optional[str]
-    steps: Optional[int]
-    start_from: Optional[int]
-    rating_shape: Optional[str]
-    labels: Optional[Dict[str, str]]
-    date_format: Optional[str]
-    update_id: Optional[str]
-    actions: Optional[List[ConditionalActionsCamelModel]]
-    conditions: Optional[List[ConditionCamelModel]]
-    logical_operator: Optional[LogicalOperator]
-    mentions: Optional[Dict[str, str]]
-    theme: Optional[Theme]
-    layout: Optional[LayoutType]
+    hidden: Optional[bool] = None
+    description: Optional[str] = None
+    choices: Optional[List[StandardChoice]] = None
+    fields: Optional[List["StandardFormFieldCamelModel"]] = None
+    allow_multiple_selection: Optional[bool] = None
+    allow_other_choice: Optional[bool] = None
+    hide_marks: Optional[bool] = None
+    button_text: Optional[str] = None
+    placeholder: Optional[str] = None
+    steps: Optional[int] = None
+    start_from: Optional[int] = None
+    rating_shape: Optional[str] = None
+    labels: Optional[Dict[str, str]] = None
+    date_format: Optional[str] = None
+    update_id: Optional[str] = None
+    actions: Optional[List[ConditionalActionsCamelModel]] = None
+    conditions: Optional[List[ConditionCamelModel]] = None
+    logical_operator: Optional[LogicalOperator] = None
+    mentions: Optional[Dict[str, str]] = None
+    theme: Optional[Theme] = None
+    layout: Optional[LayoutType] = None
 
 
 class StandardFormFieldCamelModel(CamelModel):
-    id: Optional[str]
-    ref: Optional[str]
-    title: Optional[str | Dict[str, Any]]
-    description: Optional[str]
-    value: Optional[str]
-    index: Optional[int]
-    type: Optional[StandardFormFieldType]
-    tag: Optional[FormBuilderTagTypes]
-    properties: Optional[StandardFieldPropertyCamelModel]
-    validations: Optional[StandardFieldValidationsCamelModal]
+    id: Optional[str] = None
+    ref: Optional[str] = None
+    title: Optional[str | Dict[str, Any]] = None
+    description: Optional[str] = None
+    value: Optional[str] = None
+    index: Optional[int] = None
+    type: Optional[StandardFormFieldType] = None
+    tag: Optional[FormBuilderTagTypes] = None
+    properties: Optional[StandardFieldPropertyCamelModel] = None
+    validations: Optional[StandardFieldValidationsCamelModal] = None
     attachment: Optional[StandardFieldAttachment] = None
-    image_url: Optional[str]
+    image_url: Optional[str] = None
 
 
 StandardFieldPropertyCamelModel.model_rebuild()
 
 
 class StandardFormResponseCamelModel(FormResponseDocument, CamelModel):
-    form_title: Optional[str]
-    status: Optional[str]
-    form_imported_by: Optional[str]
-    consent: Optional[List[ConsentResponseCamelModel]]
-    deletion_status: Optional[DeletionRequestStatus]
-    anonymize: Optional[bool]
+    form_title: Optional[str] = None
+    status: Optional[str] = None
+    form_imported_by: Optional[str] = None
+    consent: Optional[List[ConsentResponseCamelModel]] = None
+    deletion_status: Optional[DeletionRequestStatus] = None
+    anonymize: Optional[bool] = None
 
 
 class FormFileResponse(BaseModel):

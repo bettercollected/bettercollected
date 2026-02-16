@@ -182,7 +182,10 @@ class WorkspaceFormService:
             event_type=UserEventType.FORM_IMPORTED, user_id=user.id, email=user.sub
         )
 
-        response_dict = {**standard_form.dict(), "settings": workspace_form.settings}
+        response_dict = {
+            **standard_form.model_dump(),
+            "settings": workspace_form.settings,
+        }
         return StandardFormCamelModel(**response_dict)
 
     async def convert_form(self, *, provider, request, form_import):

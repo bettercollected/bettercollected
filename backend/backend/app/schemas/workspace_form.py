@@ -29,8 +29,8 @@ class WorkspaceFormDocument(MongoDocument):
     workspace_id: PydanticObjectId
     form_id: str
     user_id: str
-    settings: Optional[WorkspaceFormSettings]
-    last_update_status: UpdateStatus = None
+    settings: Optional[WorkspaceFormSettings] = None
+    last_update_status: Optional[UpdateStatus] = None
 
     class Settings:
         name = "workspace_forms"

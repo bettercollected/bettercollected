@@ -200,12 +200,12 @@ class FormResponseService:
         ):
             raise HTTPException(403, "You are not authorized to perform this action.")
 
-        response = StandardFormResponseCamelModel(**response.dict())
+        response = StandardFormResponseCamelModel(**response.model_dump())
         if response.consent is None:
             response.consent = default_consent_responses
         if deletion_request is not None:
             response.deletion_status = deletion_request.status
-        form = FormDtoCamelModel(**form.dict())
+        form = FormDtoCamelModel(**form.model_dump())
         form.settings = workspace_form.settings
         response.form_title = form.title
         decrypted_response = self.decrypt_form_response(
@@ -213,7 +213,7 @@ class FormResponseService:
         )
         for key, decrypted_answer in decrypted_response.answers.items():
             decrypted_answer = (
-                decrypted_answer.dict()
+                decrypted_answer.model_dump()
                 if isinstance(decrypted_answer, StandardFormResponseAnswer)
                 else decrypted_answer
             )
@@ -395,8 +395,10 @@ class FormResponseService:
         )
 
         return {
-            "form": StandardFormCamelModel(**form.dict()),
-            "response": StandardFormResponseCamelModel(**decrypted_response.dict()),
+            "form": StandardFormCamelModel(**form.model_dump()),
+            "response": StandardFormResponseCamelModel(
+                **decrypted_response.model_dump()
+            ),
         }
 
     async def request_for_response_deletion_by_uuid(

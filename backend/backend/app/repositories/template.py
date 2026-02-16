@@ -19,52 +19,47 @@ class FormTemplateRepository:
     ):
         query = {"workspace_id": workspace_id}
         if predefined_workspace:
-            query["settings"] = {"is_public": True}
+            query["settings.is_public"] = True
         if template_id:
-            query["template_id"] = template_id
+            query["_id"] = template_id
 
-        return (
-            await FormTemplateDocument.find(query)
-            .aggregate(
-                [
-                    {
-                        "$match": {
-                            "$or": (
-                                [{"builder_version": "v2"}]
-                                if v2
-                                else [
-                                    {
-                                        "$or": [
-                                            {"builder_version": {"$ne": "v2"}},
-                                            {"builder_version": {"$exists": False}},
-                                            {"builder_version": None},
-                                        ]
-                                    }
+        pipeline = [
+            {
+                "$match": {
+                    "$or": (
+                        [{"builder_version": "v2"}]
+                        if v2
+                        else [
+                            {
+                                "$or": [
+                                    {"builder_version": {"$ne": "v2"}},
+                                    {"builder_version": {"$exists": False}},
+                                    {"builder_version": None},
                                 ]
-                            )
-                        }
-                    },
-                    {"$set": {"id": "$_id"}},
-                    {
-                        "$lookup": {
-                            "from": "workspaces",
-                            "localField": "imported_from",
-                            "foreignField": "_id",
-                            "as": "workspace",
-                        }
-                    },
-                    {
-                        "$unwind": {
-                            "path": "$workspace",
-                            "preserveNullAndEmptyArrays": True,
-                        }
-                    },
-                    {"$set": {"imported_from": "$workspace.title"}},
-                    {"$sort": {"created_at": -1}},
-                ]
-            )
-            .to_list()
-        )
+                            }
+                        ]
+                    )
+                }
+            },
+            {"$set": {"id": "$_id"}},
+            {
+                "$lookup": {
+                    "from": "workspaces",
+                    "localField": "imported_from",
+                    "foreignField": "_id",
+                    "as": "workspace",
+                }
+            },
+            {
+                "$unwind": {
+                    "path": "$workspace",
+                    "preserveNullAndEmptyArrays": True,
+                }
+            },
+            {"$set": {"imported_from": "$workspace.title"}},
+            {"$sort": {"created_at": -1}},
+        ]
+        return await FormTemplateDocument.find(query).aggregate(pipeline).to_list()
 
     async def get_template_by_id(self, template_id: PydanticObjectId):
         return await FormTemplateDocument.find_one({"_id": template_id})
@@ -92,7 +87,7 @@ class FormTemplateRepository:
         self, workspace_id: PydanticObjectId, template_id: PydanticObjectId
     ):
         template = await self.get_template_by_id(template_id)
-        imported_template = FormTemplateDocument(**template.dict())
+        imported_template = FormTemplateDocument(**template.model_dump())
         imported_template.id = None
         imported_template.imported_from = template.workspace_id
         imported_template.workspace_id = workspace_id
@@ -106,7 +101,7 @@ class FormTemplateRepository:
         template_body: StandardFormTemplate,
         user: User,
     ):
-        template = FormTemplateDocument(**template_body.dict())
+        template = FormTemplateDocument(**template_body.model_dump())
         template.workspace_id = workspace_id
         template.created_by = user.id
         return await template.save()
@@ -129,4 +124,4 @@ class FormTemplateRepository:
         if not template:
             raise HTTPException(HTTPStatus.NOT_FOUND, "Template not found")
         await template.delete()
-        return template_id
+        return str(template_id)

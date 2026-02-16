@@ -38,7 +38,7 @@ class ActionRouter(Routable):
     # async def create_action(self, workspace_id: PydanticObjectId,
     #                         action: ActionDto, user: User = Depends(get_logged_user)):
     #     action = await self.action_service.create_action(workspace_id=workspace_id, action=action, user=user)
-    #     return ActionResponse(**action.dict())
+    #     return ActionResponse(**action.model_dump())
 
     @post("/actions")
     async def create_action(
@@ -55,7 +55,7 @@ class ActionRouter(Routable):
     )
     async def get_all_actions(self, user: User = Depends(get_logged_user)):
         actions = await self.action_service.get_all_actions()
-        return [ActionResponse(**action.dict()) for action in actions]
+        return [ActionResponse(**action.model_dump()) for action in actions]
 
     @get("/actions/{action_id}", response_model=ActionResponse)
     async def get_action_by_id(
@@ -64,7 +64,7 @@ class ActionRouter(Routable):
         action = await self.action_service.get_action_by_id(action_id=action_id)
         if not action:
             raise HTTPException(HTTPStatus.NOT_FOUND, "Action not found")
-        return ActionResponse(**action.dict())
+        return ActionResponse(**action.model_dump())
 
     @delete("/actions/{action_id}")
     async def delete_action(

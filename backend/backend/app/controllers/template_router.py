@@ -75,7 +75,7 @@ class FormTemplateRouter(Routable):
         response = await self.form_template_service.get_template_by_id(
             workspace_id=workspace_id, user=user, template_id=template_id
         )
-        return StandardFormTemplateCamelModel(**response.dict())
+        return StandardFormTemplateCamelModel(**response.model_dump())
 
     @patch("/template/{template_id}/preview")
     async def patch_template_preview_image(
@@ -107,7 +107,7 @@ class FormTemplateRouter(Routable):
             user=user,
             user_tokens=user_tokens,
         )
-        return StandardFormTemplateResponse(**response.dict())
+        return StandardFormTemplateResponse(**response.model_dump())
 
     @post(
         "/workspaces/{workspace_id}/template",
@@ -129,7 +129,7 @@ class FormTemplateRouter(Routable):
             logo=logo,
             cover_image=cover_image,
         )
-        return StandardFormTemplateResponse(**response.dict())
+        return StandardFormTemplateResponse(**response.model_dump())
 
     @post(
         "/workspaces/{workspace_id}/template/{template_id}/import",
@@ -144,7 +144,7 @@ class FormTemplateRouter(Routable):
         response = await self.form_template_service.import_form_template_to_workspace(
             workspace_id, user, template_id
         )
-        return StandardFormTemplateCamelModel(**response.dict())
+        return StandardFormTemplateCamelModel(**response.model_dump())
 
     @post(
         "/workspaces/{workspace_id}/template/{template_id}",
