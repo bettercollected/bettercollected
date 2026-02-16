@@ -66,7 +66,7 @@ class FormResponseRepository(BaseRepository):
         form_responses_query = FormResponseDocument.find(find_query).aggregate(
             aggregate_query,
         )
-        return await fastapi_pagination.ext.beanie.paginate(form_responses_query)
+        return await fastapi_pagination.ext.beanie.apaginate(form_responses_query)
 
     async def get_workspace_responders(
         self,

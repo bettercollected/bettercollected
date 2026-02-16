@@ -43,7 +43,7 @@ class FormDtoCamelModel(CamelModel):
     imported_by: Optional[str] = None
     importer_details: Optional[FormImporterDetails] = None
     fields: Optional[List[StandardFormFieldCamelModel]] = None
-    version: Optional[str] = None
+    version: Optional[str | int] = None
     updated_at: Optional[dt.datetime] = None
     actions: Optional[Dict[Trigger, List[ActionState]]] = None
     parameters: Optional[Dict[str, List[ParameterValue]]] = None

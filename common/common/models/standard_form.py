@@ -354,22 +354,8 @@ StandardFormField.model_rebuild()
 
 
 class State(BaseModel):
-    global_state: Optional[Dict[str, Any]] = Field(
-        None,
-        example={
-            "global_var1": "default value",
-            "global_var2": 0,
-            "global_var3": True,
-        },
-    )
-    processor_state: Optional[Dict[str, Any]] = Field(
-        None,
-        example={
-            "processor_var1": "default value",
-            "processor_var2": 0,
-            "processor_var3": True,
-        },
-    )
+    global_state: Optional[Dict[str, Any]] = Field(None)
+    processor_state: Optional[Dict[str, Any]] = Field(None)
     # Is form response locked at submission by default can be set otherwise
     # by default it will be in locked state
     is_locked: Optional[bool] = Field(None)
