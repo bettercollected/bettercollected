@@ -1,13 +1,14 @@
-from pydantic import BaseSettings
+from typing import Optional
+
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class StripeSettings(BaseSettings):
-    product_id: str = ""
-    secret: str = ""
-    webhook_secret: str = ""
-    cancel_url: str = ""
-    success_url: str = ""
-    return_url: str = ""
+    product_id: Optional[str] = ""
+    secret: Optional[str] = ""
+    webhook_secret: Optional[str] = ""
+    cancel_url: Optional[str] = ""
+    success_url: Optional[str] = ""
+    return_url: Optional[str] = ""
 
-    class Config:
-        env_prefix = "STRIPE_"
+    model_config = SettingsConfigDict(env_prefix="STRIPE_")

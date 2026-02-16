@@ -1,14 +1,13 @@
 from typing import Optional
 
-from pydantic import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class MailSettings(BaseSettings):
-    user: str = ""
-    password: str = ""
-    smtp_server: str = ""
+    user: Optional[str] = ""
+    password: Optional[str] = ""
+    smtp_server: Optional[str] = ""
     smtp_port: Optional[int] = 587
-    sender: str = ""
+    sender: Optional[str] = ""
 
-    class Config:
-        env_prefix = "MAIL_"
+    model_config = SettingsConfigDict(env_prefix="MAIL_")
