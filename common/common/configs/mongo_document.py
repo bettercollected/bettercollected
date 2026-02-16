@@ -121,7 +121,7 @@ class MongoDocument(Document):
         Raises:
             NotFoundError: If the document does not exist.
         """
-        collection: Collection = cls.get_motor_collection().delegate
+        collection: Collection = cls.get_pymongo_collection()
         documents = collection.find({"_id": document_id})
         if not documents.count():
             raise NotFoundError(
@@ -139,7 +139,7 @@ class MongoDocument(Document):
         Returns:
             A list of documents matching the given criteria.
         """
-        collection: Collection = cls.get_motor_collection().delegate
+        collection: Collection = cls.get_pymongo_collection()
         documents = collection.find(find_by)
         return [cls(**document) for document in documents]
 

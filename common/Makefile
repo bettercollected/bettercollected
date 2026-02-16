@@ -1,3 +1,3 @@
 format:
-	black . --exclude=venv
-	flake8 . --exclude=venv
+	uv run black . --exclude=.venv
+	uv run flake8 . --exclude=.venv
