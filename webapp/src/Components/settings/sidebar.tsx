@@ -1,6 +1,6 @@
 import { useTranslation } from 'next-i18next';
 import Link from 'next/link';
-import { useRouter } from 'next/router';
+import { usePathname } from 'next/navigation';
 
 import { ChevronRight } from '@mui/icons-material';
 
@@ -20,11 +20,11 @@ interface IMenuItemProps {
 }
 
 const MenuItem = ({ children, active = false, href, className = '' }: IMenuItemProps) => {
-    const router = useRouter();
+    const pathname = usePathname();
 
     return (
         <Link href={href} legacyBehavior>
-            <div className={`w-full body4 cursor-pointer py-5 px-4 ${router.asPath === href ? 'bg-brand-200' : ''}` + ' ' + className}>{children}</div>
+            <div className={`w-full body4 cursor-pointer py-5 px-4 ${pathname === href ? 'bg-brand-200' : ''}` + ' ' + className}>{children}</div>
         </Link>
     );
 };

@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
-import { useRouter } from 'next/router';
 
 import PublishIcon from '@Components/Common/Icons/FormBuilder/PublishIcon';
 import AppButton from '@Components/Common/Input/Button/AppButton';
@@ -29,7 +28,6 @@ export default function FormBuilderPreviewModal({ publish, isFormSubmitted = fal
     const builderState = useAppSelector(selectBuilderState);
     const consentState = useAppSelector(selectConsentState);
     const { headerImages } = useFormBuilderAtom();
-    const router = useRouter();
     const { t } = useTranslation();
 
     const workspace = useAppSelector(selectWorkspace);

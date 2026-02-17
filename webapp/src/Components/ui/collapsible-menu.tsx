@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 
-import { useRouter } from 'next/router';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
 import cn from 'classnames';
 import { motion } from 'framer-motion';
@@ -27,7 +27,9 @@ type DropdownItemProps = {
 export function MenuItem({ name, icon, href, link, dropdownItems }: MenuItemProps) {
     let [isOpen, setIsOpen] = useState(false);
     let [ref, { height }] = useMeasure<HTMLUListElement>();
-    let { asPath } = useRouter();
+    const pathname = usePathname();
+    const searchParams = useSearchParams();
+    const asPath = `${pathname}${searchParams?.toString() ? '?' + searchParams.toString() : ''}`;
 
     const workspace = useAppSelector((state) => state.workspace);
 

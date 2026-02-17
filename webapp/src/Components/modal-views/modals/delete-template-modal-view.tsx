@@ -1,7 +1,7 @@
 import React from 'react';
 
 import { useTranslation } from 'next-i18next';
-import { useRouter } from 'next/router';
+import { useRouter } from 'next/navigation';
 
 import GenericHalfModal from '@Components/Common/Modals/GenericHalfModal';
 import { toast } from 'react-toastify';

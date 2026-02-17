@@ -13,7 +13,7 @@ import { toast } from '@app/shadcn/components/ui/use-toast';
 import { toastMessage } from '@app/constants/locales/toast-message';
 import { useRespondToWorkspaceInvitationMutation } from '@app/store/workspaces/members-n-invitations-api';
 import { useState } from 'react';
-import { useRouter } from 'node_modules/next/router';
+import { useRouter } from 'next/navigation';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { WorkspaceInvitationDto } from '@app/models/dtos/WorkspaceMembersDto';
 

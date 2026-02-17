@@ -2,7 +2,7 @@ import React from 'react';
 
 import { useTranslation } from 'next-i18next';
 import Image from 'next/legacy/image';
-import { useRouter } from 'next/router';
+import { useRouter } from 'next/navigation';
 
 import EditIcon from '@Components/Common/Icons/Common/Edit';
 import EllipsisOption from '@Components/Common/Icons/Common/EllipsisOption';

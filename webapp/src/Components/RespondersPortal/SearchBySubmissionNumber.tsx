@@ -1,7 +1,7 @@
 import React, { FormEvent, useState } from 'react';
 
 import Image from "next/legacy/image";
-import { useRouter } from 'next/router';
+import { useRouter } from 'next/navigation';
 
 import InfoIcon from '@Components/Common/Icons/FormBuilder/infoIcon';
 import AppTextField from '@Components/Common/Input/AppTextField';

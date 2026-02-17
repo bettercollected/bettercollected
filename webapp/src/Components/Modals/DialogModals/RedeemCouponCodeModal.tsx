@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-import { useRouter } from 'next/router';
+import { useRouter } from 'next/navigation';
 
 import CircularCheck from '@Components/Common/Icons/Common/CircularCheck';
 import AppTextField from '@Components/Common/Input/AppTextField';
@@ -31,9 +31,7 @@ export default function RedeemCouponCodeModal({ showSuccess = false }: { showSuc
         const response: any = await redeemCouponReward({ code: redeemCode });
         if (response.data) {
             fireworks();
-            router.push(router.asPath, undefined, { shallow: true }).then(() => {
-                openModal('REDEEM_CODE_MODAL', { showSuccess: true });
-            });
+            openModal('REDEEM_CODE_MODAL', { showSuccess: true });
         }
         if (response.error) {
             setError('Invalid coupon code');

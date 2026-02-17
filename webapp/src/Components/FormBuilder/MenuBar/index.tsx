@@ -1,7 +1,7 @@
 import * as React from 'react';
 
 import { useTranslation } from 'next-i18next';
-import { useRouter } from 'next/router';
+import { useRouter } from 'next/navigation';
 
 import CustomPopover from '@Components/Common/CustomPopover';
 import Divider from '@Components/Common/DataDisplay/Divider';

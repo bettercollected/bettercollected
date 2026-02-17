@@ -1,7 +1,7 @@
 import React from 'react';
 
 import { useTranslation } from 'next-i18next';
-import { useRouter } from 'next/router';
+import { useRouter } from 'next/navigation';
 
 import { Typography } from '@mui/material';
 

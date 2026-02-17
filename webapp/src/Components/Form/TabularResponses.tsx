@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
-import { useRouter } from 'next/router';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
 import StyledPagination from '@Components/Common/Pagination';
 import { Typography } from '@mui/material';
@@ -51,6 +51,8 @@ interface TabularResponsesProps {
 
 export default function TabularResponses({ form }: TabularResponsesProps) {
     const router = useRouter();
+    const pathname = usePathname();
+    const searchParams = useSearchParams();
     const { openModal } = useFullScreenModal();
     const workspace = useAppSelector(selectWorkspace);
     const [page, setPage] = useState(1);
@@ -99,14 +101,9 @@ export default function TabularResponses({ form }: TabularResponsesProps) {
     };
 
     const onRowClicked = (response: StandardFormResponseDto) => {
-        router.push(
-            {
-                pathname: router.pathname,
-                query: { ...router.query, sub_id: response.responseId }
-            },
-            undefined,
-            { scroll: true, shallow: true }
-        );
+        const params = new URLSearchParams(searchParams?.toString());
+        params.set('sub_id', response.responseId);
+        router.push(`${pathname}?${params.toString()}`);
     };
 
     const responseDataOwnerField = (response: StandardFormResponseDto) => (

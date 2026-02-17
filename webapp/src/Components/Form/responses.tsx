@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
-import { useRouter } from 'next/router';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
 import { ChevronLeft } from '@mui/icons-material';
 import { Button } from '@mui/material';
@@ -20,7 +20,9 @@ import { utcToLocalDateTIme } from '@app/utils/dateUtils';
 
 export default function FormResponses() {
     const router = useRouter();
-    let submissionId: string = (router?.query?.sub_id as string) ?? '';
+    const pathname = usePathname();
+    const searchParams = useSearchParams();
+    let submissionId: string = (searchParams?.get('sub_id') as string) ?? '';
     const [trigger] = useLazyGetWorkspaceSubmissionQuery();
     const { t } = useTranslation();
     const form = useAppSelector(selectForm);
@@ -55,12 +57,9 @@ export default function FormResponses() {
                             <span
                                 className="flex gap-2 cursor-pointer"
                                 onClick={() => {
-                                    const { sub_id, ...otherQuery } = router.query;
-
-                                    router.push({
-                                        pathname: router.pathname,
-                                        query: otherQuery
-                                    });
+                                    const params = new URLSearchParams(searchParams?.toString());
+                                    params.delete('sub_id');
+                                    router.push(`${pathname}${params.toString() ? '?' + params.toString() : ''}`);
                                 }}
                             >
                                 <ChevronLeft width={24} height={24} />

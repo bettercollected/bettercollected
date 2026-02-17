@@ -1,4 +1,4 @@
-import { useRouter } from 'next/router';
+import { useRouter } from 'next/navigation';
 
 import environments from '@app/configs/environments';
 import { setBuilderState } from '@app/store/form-builder/actions';

@@ -1,7 +1,7 @@
 import React from 'react';
 
 import { useTranslation } from 'next-i18next';
-import { useRouter } from 'next/router';
+import { usePathname, useRouter } from 'next/navigation';
 
 import DeleteIcon from '@Components/Common/Icons/Common/Delete';
 import MembersIcon from '@Components/Common/Icons/Dashboard/Members';
@@ -52,6 +52,7 @@ export default function SidebarLayout({ children, DrawerComponent = DashboardDra
     };
 
     const router = useRouter();
+    const pathname = usePathname();
 
     const workspace: WorkspaceDto = useAppSelector(selectWorkspace);
     const { t } = useTranslation();
@@ -114,9 +115,9 @@ export default function SidebarLayout({ children, DrawerComponent = DashboardDra
     const allNavList = [...topNavList, ...bottomNavList];
 
     const getHeader = () => {
-        const matchingNavList = allNavList.filter((item) => router.asPath.includes(item.url));
+        const matchingNavList = allNavList.filter((item) => pathname?.includes(item.url));
         if (matchingNavList.length > 0) {
-            return matchingNavList[matchingNavList.length - 2]?.name;
+            return matchingNavList[matchingNavList.length - 1]?.name;
         }
         return 'My Workspace';
     };

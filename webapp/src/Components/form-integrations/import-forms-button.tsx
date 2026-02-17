@@ -1,7 +1,7 @@
 import React, { useContext, useEffect, useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
-import { useRouter } from 'next/router';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
 import Tooltip from '@Components/Common/DataDisplay/Tooltip';
 import AppButton from '@Components/Common/Input/Button/AppButton';
@@ -24,17 +24,22 @@ export default function ImportFormsButton({ size, className = '' }: { size?: But
 
     const workspace = useAppSelector(selectWorkspace);
     const router = useRouter();
+    const pathname = usePathname();
+    const searchParams = useSearchParams();
+
     const [providers, setProviders] = useState<Record<string, boolean>>({
         google: false,
         typeform: false
     });
 
     useEffect(() => {
-        const { modal, ...other } = router.query;
-        if (typeof modal === 'string' && modal === 'true') {
-            router.push({ query: other }, undefined, { shallow: true }).then(() => {
-                openModal('IMPORT_FORMS', { nonClosable: true });
-            });
+        const modal = searchParams?.get('modal');
+        if (modal === 'true') {
+            const params = new URLSearchParams(searchParams?.toString());
+            params.delete('modal');
+            const newQuery = params.toString();
+            router.push(pathname + (newQuery ? `?${newQuery}` : ''));
+            openModal('IMPORT_FORMS', { nonClosable: true });
         }
     }, []);
 

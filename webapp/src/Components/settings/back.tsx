@@ -1,7 +1,7 @@
 import React from 'react';
 
 import { useTranslation } from 'next-i18next';
-import { useRouter } from 'next/router';
+import { useRouter } from 'next/navigation';
 
 import Back from '@app/Components/icons/back';
 import { buttonConstant } from '@app/constants/locales/button';
@@ -11,8 +11,8 @@ export default function BackButton() {
     const router = useRouter();
     const { t } = useTranslation();
 
-    const handleBackClick = async () => {
-        await router.back();
+    const handleBackClick = () => {
+        router.back();
     };
     return (
         <div className="paragraph text-black-900 cursor-pointer flex items-center gap-1 py-4 hover:text-brand-500 hover:underline" onClick={handleBackClick}>

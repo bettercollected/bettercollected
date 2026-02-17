@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
-import { useRouter } from 'next/router';
+import { useRouter } from 'next/navigation';
 
 import AppTextField from '@Components/Common/Input/AppTextField';
 import AppButton from '@Components/Common/Input/Button/AppButton';
@@ -74,9 +74,8 @@ export default function UpdateWorkspaceHandle() {
         if (response.data) {
             // dispatch(setWorkspace(response.data));
             toast.info(t(updateWorkspace.handle).toString(), { toastId: ToastId.SUCCESS_TOAST });
-            router.replace(`/${response.data.workspaceName}/dashboard`).then(() => {
-                openBottomSheetModal('WORKSPACE_SETTINGS', { initialIndex: 1 });
-            });
+            router.replace(`/${response.data.workspaceName}/dashboard`);
+            openBottomSheetModal('WORKSPACE_SETTINGS', { initialIndex: 1 });
             closeModal();
         } else if (response.error) {
             toast.error(response.error.data?.message || response.error.data || t(toastMessage.somethingWentWrong), { toastId: ToastId.ERROR_TOAST });

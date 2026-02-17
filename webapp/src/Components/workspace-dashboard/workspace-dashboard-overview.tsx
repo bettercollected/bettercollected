@@ -1,7 +1,6 @@
 import React from 'react';
 
 import { useTranslation } from 'next-i18next';
-import { useRouter } from 'next/router';
 
 import PlusIcon from '@Components/Common/Icons/Common/Plus';
 import SettingsIcon from '@Components/Common/Icons/Common/Settings';
@@ -31,9 +30,8 @@ const WorkspaceDashboardOverview = ({ workspace }: IWorkspaceDashboardOverviewPr
     const { openModal } = useModal();
     const { openBottomSheetModal } = useBottomSheetModal();
     const isAdmin = useAppSelector(selectIsAdmin);
-    const router = useRouter();
-    const { t } = useTranslation();
-    const language = router?.locale === 'en' ? '' : `${router?.locale}/`;
+    const { t, i18n } = useTranslation();
+    const language = i18n.language === 'en' ? '' : `${i18n.language}/`;
     const { data } = useGetWorkspaceMembersQuery({ workspaceId: workspace.id });
     const auth = useAppSelector(selectAuth);
 

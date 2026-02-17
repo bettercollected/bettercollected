@@ -1,4 +1,4 @@
-import { useRouter } from 'next/router';
+import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 
 import AppButton from '@Components/Common/Input/Button/AppButton';
@@ -92,7 +92,7 @@ export default function FormIntegrations() {
                                                 });
 
                                                 if (response?.data) {
-                                                    router.push(router.asPath);
+                                                    router.refresh();
                                                     toast('Updated', { type: 'success' });
                                                 } else if (response?.error) {
                                                     toast('Could not update', { type: 'error' });

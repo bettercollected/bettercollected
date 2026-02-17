@@ -1,6 +1,6 @@
 import React from 'react';
 
-import { useRouter } from 'next/router';
+import { useRouter } from 'next/navigation';
 
 import CheckedCircle from '@Components/Common/Icons/Common/CheckedCircle';
 import AppButton from '@Components/Common/Input/Button/AppButton';

@@ -1,7 +1,7 @@
 import React, { BaseSyntheticEvent, useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
-import { useRouter } from 'next/router';
+import { useRouter } from 'next/navigation';
 
 import AppButton from '@Components/Common/Input/Button/AppButton';
 import { Popover, TextField } from '@mui/material';
@@ -100,7 +100,7 @@ export default function SettingsProfile() {
 
         try {
             await patchTheme({ workspace_id: workspace.id, body: formData });
-            router.push(router.asPath, undefined);
+            router.refresh();
             toast('Theme updated!!!', { type: 'success', toastId: ToastId.SUCCESS_TOAST });
         } catch (e) {
             toast(t(toastMessage.somethingWentWrong).toString(), { type: 'error', toastId: ToastId.ERROR_TOAST });

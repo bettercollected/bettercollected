@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 
-import { useRouter } from 'next/router';
+import { useRouter } from 'next/navigation';
 
 import AppButton from '@Components/Common/Input/Button/AppButton';
 import ConsentModalTopBar from '@Components/Consent/ConsentModalTopBar';

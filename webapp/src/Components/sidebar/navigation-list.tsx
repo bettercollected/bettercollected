@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 
-import { useRouter } from 'next/router';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
 import { List, ListItem, ListItemButton, ListItemIcon, SxProps, Theme } from '@mui/material';
 
@@ -15,6 +15,7 @@ interface INavigationListProps {
 
 export default function NavigationList({ navigationList, className = '', sx = {} }: INavigationListProps) {
     const router = useRouter();
+    const pathname = usePathname();
 
     useEffect(() => {
         navigationList?.forEach((lst) => {
@@ -25,7 +26,7 @@ export default function NavigationList({ navigationList, className = '', sx = {}
     return (
         <List disablePadding sx={sx} className={className}>
             {navigationList?.map((element) => {
-                const active = element.url == router.asPath;
+                const active = element.url == pathname;
                 return (
                     <div key={element.key} className={`body4 mt-1 rounded-lg ${active ? 'bg-black-200 !text-black-800' : 'text-black-600 hover:bg-black-100'}`}>
                         <ListItem
@@ -34,7 +35,7 @@ export default function NavigationList({ navigationList, className = '', sx = {}
                                 if (element.onClick) {
                                     element.onClick();
                                 } else {
-                                    router.push(element.url, undefined, { shallow: true });
+                                    router.push(element.url);
                                 }
                             }}
                         >

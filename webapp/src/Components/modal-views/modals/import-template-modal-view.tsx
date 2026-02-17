@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
-import { useRouter } from 'next/router';
+import { useRouter } from 'next/navigation';
 
 import Divider from '@Components/Common/DataDisplay/Divider';
 import AppTextField from '@Components/Common/Input/AppTextField';

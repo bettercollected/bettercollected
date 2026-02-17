@@ -1,5 +1,5 @@
 import { useTranslation } from 'next-i18next';
-import { useRouter } from 'next/router';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
 import Divider from '@Components/Common/DataDisplay/Divider';
 import AppButton from '@Components/Common/Input/Button/AppButton';
@@ -30,8 +30,12 @@ export default function ResponderPortalContainer(props: { workspace: WorkspaceDt
     const isClientDomain = window?.location?.origin !== environments.ADMIN_DOMAIN;
 
     const router = useRouter();
+    const pathname = usePathname();
+    const searchParams = useSearchParams();
 
     const { openModal } = useModal();
+
+    const asPath = `${pathname}${searchParams?.toString() ? '?' + searchParams.toString() : ''}`;
 
     const handleLogout = () => {
         openModal('LOGOUT_VIEW', { workspace, isClientDomain });
@@ -49,14 +53,12 @@ export default function ResponderPortalContainer(props: { workspace: WorkspaceDt
                             className="mt-6"
                             size={ButtonSize.Small}
                             onClick={() => {
-                                router.push({
-                                    pathname: '/login',
-                                    query: {
-                                        type: 'responder',
-                                        workspace_id: workspace.id,
-                                        redirect_to: router.asPath
-                                    }
+                                const params = new URLSearchParams({
+                                    type: 'responder',
+                                    workspace_id: workspace.id,
+                                    redirect_to: asPath
                                 });
+                                router.push(`/login?${params.toString()}`);
                             }}
                         >
                             Verify Now

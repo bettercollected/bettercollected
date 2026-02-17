@@ -1,7 +1,7 @@
 import React from 'react';
 
 import { useTranslation } from 'next-i18next';
-import { useRouter } from 'next/router';
+import { useParams, useRouter } from 'next/navigation';
 
 import Divider from '@Components/Common/DataDisplay/Divider';
 import Tooltip from '@Components/Common/DataDisplay/Tooltip';
@@ -42,7 +42,6 @@ export default function Submission({ hasCustomDomain, data, handleRequestForDele
     const { t } = useTranslation();
     const { openModal, closeModal } = useModal();
 
-    const fullScreenModal = useFullScreenModal();
 
     const paramTabs = [
         {
@@ -57,25 +56,17 @@ export default function Submission({ hasCustomDomain, data, handleRequestForDele
         }
     ];
 
+    const params = useParams();
+
     const goToSubmissions = () => {
         let pathName;
         if (hasCustomDomain) {
             pathName = '/';
         } else {
-            pathName = `/${router.query.workspace_name}`;
+            pathName = `/${params?.workspace_name}`;
         }
 
-        router
-            .push(
-                {
-                    pathname: pathName,
-                    query: { view: 'mySubmissions' }
-                },
-                undefined,
-                { scroll: true, shallow: true }
-            )
-            .then((r) => r)
-            .catch((e) => e);
+        router.push(`${pathName}?view=mySubmissions`);
     };
 
     const deletionStatus = !!form?.response?.deletionStatus;

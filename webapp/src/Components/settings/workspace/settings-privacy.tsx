@@ -1,7 +1,7 @@
 import React, { MutableRefObject, useEffect, useRef, useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
-import { useRouter } from 'next/router';
+import { useRouter } from 'next/navigation';
 
 import Tooltip from '@Components/Common/DataDisplay/Tooltip';
 import styled from '@emotion/styled';
@@ -131,7 +131,7 @@ export default function Settingsprivacy({ className = '', childClassName = '' }:
         try {
             await patchWorkspacePolicies({ workspace_id: workspace.id, body: formData });
             setEditMode({ ...editMode, privacy_policy_editMode: false });
-            router.push(router.asPath, undefined);
+            router.refresh();
             toast(t(toastMessage.updated).toString(), { type: 'success', toastId: ToastId.SUCCESS_TOAST });
         } catch (e) {
             toast(t(toastMessage.somethingWentWrong).toString(), { type: 'error', toastId: ToastId.ERROR_TOAST });
@@ -155,7 +155,7 @@ export default function Settingsprivacy({ className = '', childClassName = '' }:
         try {
             await patchWorkspacePolicies({ workspace_id: workspace.id, body: formData });
             setEditMode({ ...editMode, terms_of_service_editMode: false });
-            router.push(router.asPath, undefined);
+            router.refresh();
             toast(t(toastMessage.updated).toString(), { type: 'success', toastId: ToastId.SUCCESS_TOAST });
         } catch (e) {
             toast(t(toastMessage.somethingWentWrong).toString(), { type: 'error', toastId: ToastId.ERROR_TOAST });

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 
-import { useRouter } from 'next/router';
+import { useRouter } from 'next/navigation';
 
 import AppTextField from '@Components/Common/Input/AppTextField';
 import AppButton from '@Components/Common/Input/Button/AppButton';
@@ -121,7 +121,7 @@ export default function AddActionToFormModal({ action, form, ...props }: any) {
             }
         });
         if (response?.data) {
-            router.push(router.asPath);
+            router.refresh();
             toast('Added', { type: 'success' });
             closeModal();
         } else if (response?.error) {
