@@ -13,7 +13,7 @@ from common.models.standard_form import (
 )
 from fastapi import UploadFile
 from fastapi_camelcase import CamelModel
-from pydantic import BaseModel, model_serializer
+from pydantic import BaseModel
 
 from backend.app.models.dtos.consent import ConsentResponseCamelModel
 from backend.app.models.workspace import WorkspaceFormSettings

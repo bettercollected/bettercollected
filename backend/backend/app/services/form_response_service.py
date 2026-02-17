@@ -1,10 +1,9 @@
 import json
 from http import HTTPStatus
-from typing import List, Optional, Sequence
+from typing import List, Sequence
 
 from beanie import PydanticObjectId
 from beanie.odm.enums import SortDirection
-
 from common.constants import MESSAGE_FORBIDDEN, MESSAGE_NOT_FOUND
 from common.models.standard_form import (
     StandardFormResponse,
@@ -18,6 +17,7 @@ from fastapi_pagination import Page
 
 from backend.app.constants.consents import default_consent_responses
 from backend.app.exceptions import HTTPException
+from backend.app.models.dtos.form_response_dto import SingleSubmissionResponse
 from backend.app.models.dtos.minified_form import FormDtoCamelModel
 from backend.app.models.dtos.response_dtos import (
     StandardFormCamelModel,
@@ -221,10 +221,7 @@ class FormResponseService:
                 )
                 decrypted_response.answers[key]["file_metadata"]["url"] = file_url
 
-        return {
-            "form": form.model_dump(mode="json"),
-            "response": decrypted_response.model_dump(mode="json"),
-        }
+        return SingleSubmissionResponse(form=form, response=decrypted_response)
 
     async def request_for_response_deletion(
         self, workspace_id: PydanticObjectId, response_id: str, user: User
