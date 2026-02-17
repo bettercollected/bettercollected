@@ -15,7 +15,7 @@ services:
   backend:
     image: backend:0.1.0
     env_file:
-      - .env
+      - .env.backup
     ports:
       - "8000:8000"
     networks:

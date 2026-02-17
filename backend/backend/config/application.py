@@ -25,7 +25,7 @@ from backend.config.UmamiSettings import UmamiSettings
 default_dot_env_path = (
     Path(os.path.abspath(os.path.dirname(__file__)))
     .parent.parent.absolute()
-    .joinpath(".env")
+    .joinpath(".env.backup")
 )
 load_dotenv(os.getenv("DOTENV_PATH", default_dot_env_path))
 
