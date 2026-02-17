@@ -21,6 +21,7 @@ const ConditionalLayout: React.FC<{ children: React.ReactNode }> = ({ children }
         || pathname === `/${workspace?.workspaceName}/dashboard/members`
         || pathname === `/${workspace?.workspaceName}/dashboard/custom-domain`
         || pathname === `/${workspace?.workspaceName}/dashboard/deletion-requests`
+        || pathname === `/${workspace?.workspaceName}/dashboard/account-settings`
 
     if (!showSidebar) {
         return <>{children}</>;
