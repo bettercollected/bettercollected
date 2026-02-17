@@ -20,6 +20,7 @@ import { cn } from '@app/shadcn/util/lib';
 import AuthProvider from '@app/shared/hocs/AuthProvider';
 import ReduxProvider from '@app/shared/hocs/ReduxProvider';
 import ThemeProvider from '@app/shared/hocs/ThemeProvider';
+import I18nProvider from '@app/shared/hocs/I18nProvider';
 import SetClarityUserId from '@app/utils/clarityUtils';
 
 const inter = Inter({ subsets: ['latin'] });
@@ -43,17 +44,19 @@ export default function RootLayout({
             </head>
             <body className={cn('max-h-screen overflow-hidden', inter.className)}>
                 <ThemeProvider>
-                    <ToastContainer position="bottom-center" autoClose={5000} hideProgressBar newestOnTop closeOnClick rtl={false} pauseOnFocusLoss={false} draggable pauseOnHover={false} theme="dark" />
-                    <Toaster />
-                    <AuthProvider>
-                        <ReduxProvider>
-                            {children}
-                            <DialogModalContainer />
-                            <SecondaryDialogModalContainer />
-                            <BaseModalContainer />
-                            <SetClarityUserId />
-                        </ReduxProvider>
-                    </AuthProvider>
+                    <I18nProvider>
+                        <ToastContainer position="bottom-center" autoClose={5000} hideProgressBar newestOnTop closeOnClick rtl={false} pauseOnFocusLoss={false} draggable pauseOnHover={false} theme="dark" />
+                        <Toaster />
+                        <AuthProvider>
+                            <ReduxProvider>
+                                {children}
+                                <DialogModalContainer />
+                                <SecondaryDialogModalContainer />
+                                <BaseModalContainer />
+                                <SetClarityUserId />
+                            </ReduxProvider>
+                        </AuthProvider>
+                    </I18nProvider>
                 </ThemeProvider>
             </body>
         </html>
