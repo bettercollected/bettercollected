@@ -1,21 +1,10 @@
+"use client";
+
 import AddWorkspaceDomainForm from '@Components/CustomDomain/AddWorkspaceDomainForm';
 import WorkspaceDomainStatus from '@Components/CustomDomain/WorkspaceDomainStatus';
-import DashboardLayout from '@app/Components/sidebar/dashboard-layout';
 import { ProLogo } from '@app/Components/ui/logo';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
-
-export default function CustomDomainSettings() {
-    return (
-        <>
-            <DashboardLayout boxClassName="px-5 pt-10 lg:px-10">
-                <div className="max-w-[664px] rounded-2xl bg-white p-8">
-                    <CustomDomainCard />
-                </div>
-            </DashboardLayout>
-        </>
-    );
-}
 
 export const CustomDomainCard = () => {
     const workspace = useAppSelector(selectWorkspace);
@@ -32,4 +21,10 @@ export const CustomDomainCard = () => {
     );
 };
 
-export { getServerSidePropsForWorkspaceAdmin as getServerSideProps } from '@app/lib/serverSideProps';
+export default function CustomDomainSettings() {
+    return (
+        <div className="max-w-[664px] rounded-2xl bg-white p-8">
+            <CustomDomainCard />
+        </div>
+    );
+}

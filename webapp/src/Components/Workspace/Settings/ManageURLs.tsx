@@ -17,7 +17,7 @@ import { selectAuth, selectIsAdmin, selectIsProPlan } from '@app/store/auth/slic
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { useRouter } from 'next/router';
-import { CustomDomainCard } from '@app/pages/[workspace_name]/dashboard/custom-domain';
+import { CustomDomainCard } from '@app/app/[workspace_name]/dashboard/custom-domain/page';
 
 export default function ManageURLs() {
     const { t } = useTranslation();
