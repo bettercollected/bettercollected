@@ -36,7 +36,7 @@ class FormImportService:
         form_response_data_owner: str,
         workspace_id: PydanticObjectId,
     ) -> StandardForm | None:
-        form_data = FormImportResponse.parse_obj(response_data)
+        form_data = FormImportResponse.model_validate(response_data)
         if not (form_data.form or form_data.responses):
             return None
         standard_form = await self.form_service.save_form(form_data.form)

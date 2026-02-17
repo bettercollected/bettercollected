@@ -16,7 +16,7 @@ from common.models.standard_form import (
 from common.models.user import User
 from common.services.http_client import HttpClient
 from fastapi_pagination import Page
-from fastapi_pagination.ext.beanie import paginate
+from fastapi_pagination.ext.beanie import paginate, apaginate
 from starlette.requests import Request
 
 from backend.app.constants.consents import default_consents
@@ -104,7 +104,7 @@ class FormService:
                 sort=sort,
             )
 
-        forms_page = await paginate(forms_query)
+        forms_page = await apaginate(forms_query)
 
         if not published:
             user_ids = [form.imported_by for form in forms_page.items]
