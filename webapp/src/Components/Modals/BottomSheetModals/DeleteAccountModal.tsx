@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
-import { useRouter } from 'next/router';
+import { useRouter } from 'next/navigation';
 
 import AppTextField from '@Components/Common/Input/AppTextField';
 import AppButton from '@Components/Common/Input/Button/AppButton';
@@ -44,11 +44,10 @@ export default function DeleteAccountModal() {
             feedback: feedback
         }).then((response) => {
             if ('data' in response) {
-                router.push(`/`).then(() => {
-                    toast(t(toastMessage.accountDeletion.success).toString(), {
-                        toastId: ToastId.SUCCESS_TOAST,
-                        type: 'success'
-                    });
+                router.push(`/`)
+                toast(t(toastMessage.accountDeletion.success).toString(), {
+                    toastId: ToastId.SUCCESS_TOAST,
+                    type: 'success'
                 });
             } else {
                 toast(t(toastMessage.accountDeletion.failed).toString(), {

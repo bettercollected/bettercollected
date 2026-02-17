@@ -1,46 +1,69 @@
-import { useState } from 'react';
+"use client";
 
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'next-i18next';
-import { NextSeo } from 'next-seo';
 
 import SearchInput from '@Components/Common/Search/SearchInput';
 
 import ResponsesTable from '@app/Components/datatable/responses';
-import DashboardLayout from '@app/Components/sidebar/dashboard-layout';
 import Loader from '@app/Components/ui/loader';
 import globalConstants from '@app/constants/global';
 import { localesCommon } from '@app/constants/locales/common';
 import { formConstant } from '@app/constants/locales/form';
-import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { useAppSelector } from '@app/store/hooks';
 import { useGetWorkspaceAllSubmissionsQuery, useGetWorkspaceStatsQuery } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { IGetAllSubmissionsQuery } from '@app/store/workspaces/types';
 
-
-export default function DeletionRequests({ workspace }: { workspace: WorkspaceDto }) {
+export default function DeletionRequests() {
     const { t } = useTranslation();
+    const workspace = useAppSelector(selectWorkspace);
     const [page, setPage] = useState(1);
-    const workspaceStats = useGetWorkspaceStatsQuery(workspace.id, { pollingInterval: 30000 });
+
+    const workspaceId = workspace?.id || '';
+
+    const workspaceStats = useGetWorkspaceStatsQuery(workspaceId, {
+        pollingInterval: 30000,
+        skip: !workspaceId
+    });
+
     const [query, setQuery] = useState<IGetAllSubmissionsQuery>({
-        workspaceId: workspace.id,
+        workspaceId: workspaceId,
         requestedForDeletionOly: true,
         page: page,
         size: globalConstants.pageSize
     });
+
+    // Update query when workspaceId or page changes
+    useEffect(() => {
+        if (workspaceId) {
+            setQuery((prev) => ({
+                ...prev,
+                workspaceId: workspaceId,
+                page: page
+            }));
+        }
+    }, [workspaceId, page]);
+
     const handleSearch = (event: any) => {
-        if (event.target.value) setQuery({ ...query, dataOwnerIdentifier: event.target.value });
-        else {
+        if (event.target.value) {
+            setQuery({ ...query, dataOwnerIdentifier: event.target.value, page: 1 });
+            setPage(1);
+        } else {
             const { dataOwnerIdentifier, ...removedQuery } = query;
-            setQuery(removedQuery);
+            setQuery({ ...removedQuery, page: 1 });
+            setPage(1);
         }
     };
-    const { data, isLoading } = useGetWorkspaceAllSubmissionsQuery(query);
-    const { workspaceName } = useAppSelector(selectWorkspace);
+
+    const { data, isLoading } = useGetWorkspaceAllSubmissionsQuery(query, {
+        skip: !workspaceId
+    });
+
+    if (!workspaceId) return null;
 
     return (
-        <DashboardLayout boxClassName="px-5 pt-10 lg:px-10">
-            <NextSeo title={t(formConstant.deletionRequests) + ' | ' + workspaceName} noindex={true} nofollow={true} />
+        <div className="flex flex-col">
             {isLoading && (
                 <div className=" w-full py-10 flex justify-center">
                     <Loader />
@@ -58,8 +81,6 @@ export default function DeletionRequests({ workspace }: { workspace: WorkspaceDt
                     <ResponsesTable requestForDeletion={true} page={page} setPage={setPage} submissions={data} />
                 </>
             )}
-        </DashboardLayout>
+        </div>
     );
 }
-
-export { getAuthUserPropsWithWorkspace as getServerSideProps } from '@app/lib/serverSideProps';

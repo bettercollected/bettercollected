@@ -1,7 +1,5 @@
 import { useEffect } from 'react';
 
-import { useRouter } from 'next/router';
-
 import CreateGroupModal from '@Components/Modals/BottomSheetModals/CreateGroupModal';
 import DeleteAccountModal from '@Components/Modals/BottomSheetModals/DeleteAccountModal';
 import TemplateSettingsModal from '@Components/Modals/BottomSheetModals/TemplateSettingsModal';

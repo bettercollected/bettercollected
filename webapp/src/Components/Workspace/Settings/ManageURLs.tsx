@@ -16,7 +16,6 @@ import { useCopyToClipboard } from '@app/lib/hooks/use-copy-to-clipboard';
 import { selectAuth, selectIsAdmin, selectIsProPlan } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
-import { useRouter } from 'next/router';
 import { CustomDomainCard } from '@app/app/[workspace_name]/dashboard/custom-domain/page';
 
 export default function ManageURLs() {
@@ -26,7 +25,6 @@ export default function ManageURLs() {
     const { openModal: openFullScreenModal } = useFullScreenModal();
     const auth = useAppSelector(selectAuth);
 
-    const router = useRouter();
     const isAdmin = useAppSelector(selectIsAdmin);
 
     const isProWorkspace = useAppSelector(selectIsProPlan);

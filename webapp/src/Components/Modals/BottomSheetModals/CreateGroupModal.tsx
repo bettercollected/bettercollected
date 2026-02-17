@@ -1,7 +1,7 @@
 import { useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
-import { useRouter } from 'next/router';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 import AppButton from '@Components/Common/Input/Button/AppButton';
 import { ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
@@ -29,7 +29,8 @@ import { selectWorkspace } from '@app/store/workspaces/slice';
 
 export default function CreateGroupModal() {
     const router = useRouter();
-    let formId: string = (router?.query?.formId as string) ?? '';
+    const searchParams = useSearchParams();
+    let formId: string = (searchParams?.get('formId') as string) ?? '';
     const { closeBottomSheetModal } = useBottomSheetModal();
     const { t } = useTranslation();
     const { closeModal } = useModal();

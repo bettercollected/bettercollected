@@ -1,7 +1,8 @@
+"use client";
 import React from 'react';
 
 import { useTranslation } from 'next-i18next';
-import { useRouter } from 'next/router';
+import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 
 import AppButton from '@Components/Common/Input/Button/AppButton';
 import { ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
@@ -51,6 +52,9 @@ interface IResponsetableProps {
 
 const ResponsesTable = ({ requestForDeletion, submissions, formId, page, setPage }: IResponsetableProps) => {
     const router = useRouter();
+    const pathname = usePathname();
+    const searchParams = useSearchParams();
+
     const user = useAppSelector(selectAuth);
     const workspace = useAppSelector(selectWorkspace);
     const googleFormHostUrl = 'https://docs.google.com/';
@@ -60,15 +64,11 @@ const ResponsesTable = ({ requestForDeletion, submissions, formId, page, setPage
     };
     const { t } = useTranslation();
     const onRowClicked = (response: StandardFormResponseDto) => {
-        if (!requestForDeletion)
-            router.push(
-                {
-                    pathname: router.pathname,
-                    query: { ...router.query, sub_id: response.responseId }
-                },
-                undefined,
-                { scroll: true, shallow: true }
-            );
+        if (!requestForDeletion) {
+            const params = new URLSearchParams(searchParams?.toString() || '');
+            params.set('sub_id', response.responseId);
+            router.push(`${pathname}?${params.toString()}`, { scroll: true });
+        }
     };
     const responseDataOwnerField = (response: StandardFormResponseDto) => (
         <div aria-hidden className="w-fit">
