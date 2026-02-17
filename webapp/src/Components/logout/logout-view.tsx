@@ -1,4 +1,4 @@
-import { useRouter } from 'next/router';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
 import GenericHalfModal from '@Components/Common/Modals/GenericHalfModal';
 
@@ -16,13 +16,17 @@ export default function LogoutView(props: any) {
     const workspace = props?.workspace;
 
     const router = useRouter();
-    const language = router?.locale === 'en' ? '' : `${router.locale}/`;
+    const pathname = usePathname();
+    const searchParams = useSearchParams();
+
+    const asPath = `${pathname}${searchParams?.toString() ? '?' + searchParams.toString() : ''}`;
+
     const handleLogout = async () => {
         await trigger().then(async () => {
             await authTrigger();
             if (!props?.skipRedirect) {
-                if (!!workspace && !!workspace?.workspaceName && props?.isClientDomain) router.push(router.asPath);
-                else router.push(`/${language}login`);
+                if (!!workspace && !!workspace?.workspaceName && props?.isClientDomain) router.push(asPath);
+                else router.push('/login');
             }
             dispatch(setAuth(initialAuthState));
             closeModal();
