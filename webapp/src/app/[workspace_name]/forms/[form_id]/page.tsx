@@ -3,7 +3,7 @@
 import Loader from '@app/Components/ui/loader';
 import environments from '@app/configs/environments';
 import ReduxWrapperAppRouter from '@app/containers/ReduxWrapperAppRouter';
-import SingleFormPage from '@app/pages/forms/v1/[id]';
+import SingleFormPage from '@app/Components/Form/v1/SingleFormPage';
 import { setForm } from '@app/store/forms/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { useFormState } from '@app/store/jotai/form';
