@@ -1,3 +1,5 @@
+'use client';
+
 import { selectIsAdmin } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 

@@ -1,6 +1,8 @@
+'use client';
+
 import React from 'react';
 
-import { useTranslation } from 'next-i18next';
+import { useTranslation } from 'react-i18next';
 
 import Loader from '@app/Components/ui/loader';
 import WorkspaceDashboardFormsCard from '@app/Components/workspace-dashboard/workspace-dashboard-form-cards';

@@ -1,7 +1,7 @@
 import React from 'react';
 
 import { useTranslation } from 'next-i18next';
-import { useRouter } from 'next/router';
+import { useRouter } from 'next/navigation';
 
 import Divider from '@Components/Common/DataDisplay/Divider';
 import Tooltip from '@Components/Common/DataDisplay/Tooltip';
@@ -9,14 +9,12 @@ import MenuDropdown from '@Components/Common/Navigation/MenuDropdown/MenuDropdow
 import { IconButton, ListItem, Typography } from '@mui/material';
 
 import AuthAccountProfileImage from '@app/Components/auth/account-profile-image';
-import ProPlanHoc from '@app/Components/HOCs/pro-plan-hoc';
 import { Check } from '@app/Components/icons/check';
 import { Plus } from '@app/Components/icons/plus';
 import { useFullScreenModal } from '@app/Components/modal-views/full-screen-modal-context';
 import Loader from '@app/Components/ui/loader';
 import environments from '@app/configs/environments';
 import dashboardConstants from '@app/constants/locales/dashboard';
-import { Features } from '@app/constants/locales/feature';
 import { menuDropdown } from '@app/constants/locales/menu-dropdown';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { selectAuthStatus } from '@app/store/auth/selectors';
@@ -125,7 +123,7 @@ function WorkspaceMenuDropdown({ fullWidth }: IWorkspaceMenuDropdownProps) {
                                             image={space?.profileImage}
                                             name={space?.title || 'Untitled'}
                                             className={color}
-                                            // style={{ background: `${color} !important` }}
+                                        // style={{ background: `${color} !important` }}
                                         />
                                         <div className="flex w-full flex-col items-start">
                                             <Tooltip title={trimTooltipTitle(space?.title)}>

@@ -47,15 +47,15 @@ export default function RootLayout({
                     <I18nProvider>
                         <ToastContainer position="bottom-center" autoClose={5000} hideProgressBar newestOnTop closeOnClick rtl={false} pauseOnFocusLoss={false} draggable pauseOnHover={false} theme="dark" />
                         <Toaster />
-                        <AuthProvider>
-                            <ReduxProvider>
+                        <ReduxProvider>
+                            <AuthProvider>
                                 {children}
                                 <DialogModalContainer />
                                 <SecondaryDialogModalContainer />
                                 <BaseModalContainer />
                                 <SetClarityUserId />
-                            </ReduxProvider>
-                        </AuthProvider>
+                            </AuthProvider>
+                        </ReduxProvider>
                     </I18nProvider>
                 </ThemeProvider>
             </body>

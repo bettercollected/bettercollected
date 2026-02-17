@@ -19,7 +19,7 @@ MuiDrawer.defaultProps = {
     desktopDrawerDisplayProps: { xs: 'none', sm: 'none', md: 'none', lg: 'block', xl: 'block' }
 };
 export default function MuiDrawer({ drawerWidth, mobileOpen, children, handleDrawerToggle, anchor = 'left', mobileDrawerDisplayProps, desktopDrawerDisplayProps }: IMuiDrawerProps) {
-    const container = window !== undefined ? () => window.document.body : undefined;
+    const container = typeof window !== 'undefined' ? () => window.document.body : undefined;
 
     return (
         <>
