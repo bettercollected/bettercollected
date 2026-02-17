@@ -1,8 +1,7 @@
 import React from 'react';
 import { useTranslation } from 'next-i18next';
-import { NextSeo } from 'next-seo';
 import AuthNavbar from '@app/Components/auth/navbar';
-import { useRouter } from 'next/router';
+import { useRouter } from 'next/navigation';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 
@@ -17,7 +16,6 @@ const ExpiredInvitation: React.FC = () => {
 
     return (
         <div className="flex min-h-screen flex-col items-center justify-center bg-gray-100">
-            <NextSeo title={`${t('Invitation Expired')} | ${workspaceName}`} noindex={true} nofollow={true} />
             <AuthNavbar showHamburgerIcon={false} showPlans={false} />
             <div className="mx-6 flex w-full flex-col items-center rounded-lg border bg-white p-10 shadow-lg md:max-w-[520px]">
                 <div className="text-center text-xl font-semibold text-red-600">{t('Invitation Expired')}</div>

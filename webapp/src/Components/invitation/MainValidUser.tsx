@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'next-i18next';
-import { NextSeo } from 'next-seo';
-import { useRouter } from 'next/router';
+import { useRouter } from 'next/navigation';
 
 import AppButton from '@Components/Common/Input/Button/AppButton';
 import { ButtonSize, ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
@@ -68,7 +67,6 @@ const MainValidUser: React.FC<Props> = ({ workspace, user, invitation }: Props) 
 
     return (
         <div className="absolute w-full px-4 py-10">
-            <NextSeo title={`${t(invitationConstant.title)} | ${workspaceName}`} noindex={true} nofollow={true} />
             <AuthNavbar showHamburgerIcon={false} showPlans={false} />
 
             <div className="mt-36 flex w-full flex-col items-center rounded">
