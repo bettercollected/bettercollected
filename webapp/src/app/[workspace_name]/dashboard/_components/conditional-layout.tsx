@@ -14,7 +14,10 @@ const ConditionalLayout: React.FC<{ children: React.ReactNode }> = ({ children }
 
     const workspace = useAppSelector(selectWorkspace);
 
-    const showSidebar = pathname === `/${workspace?.workspaceName}/dashboard/forms` || pathname === `/${workspace?.workspaceName}/dashboard/overview`;
+    const showSidebar = pathname === `/${workspace?.workspaceName}/dashboard/forms`
+        || pathname === `/${workspace?.workspaceName}/dashboard/overview`
+        || pathname === `/${workspace?.workspaceName}/dashboard/responders-groups`
+        || pathname === `/${workspace?.workspaceName}/dashboard/settings`
 
     if (!showSidebar) {
         return <>{children}</>;

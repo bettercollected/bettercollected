@@ -1,7 +1,7 @@
+"use client";
 import React, { useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
-import { useRouter } from 'next/router';
 
 import Tooltip from '@Components/Common/DataDisplay/Tooltip';
 import MenuDropdown from '@Components/Common/Navigation/MenuDropdown/MenuDropdown';
@@ -48,7 +48,6 @@ export default function WorkspaceResponses({ workspace }: { workspace: Workspace
     const isAdmin = useAppSelector(selectIsAdmin);
     const { openModal } = useModal();
     const { t } = useTranslation();
-    const router = useRouter();
 
     const handlePageChange = (e: any, page: number) => {
         setQuery({ ...query, page: page });
@@ -86,7 +85,7 @@ export default function WorkspaceResponses({ workspace }: { workspace: Workspace
             {responderGroupsQuery.data && responderGroupsQuery.data?.length === 0 && isAdmin && AddButton()}
             {responderGroupsQuery.data && responderGroupsQuery.data?.filter((group: ResponderGroupDto) => group.emails?.includes(email)).length === 0 && !isAdmin && <p className="body5 text-black-800">{t(groupConstant.notInAnyGroup)}</p>}
             {responderGroupsQuery.data && responderGroupsQuery.data?.length > 0 && isAdmin && (
-                <MenuDropdown showExpandMore={false} className="cursor-pointer" width={180} id="group-option" menuTitle={''} menuContent={AddButton(() => {})}>
+                <MenuDropdown showExpandMore={false} className="cursor-pointer" width={180} id="group-option" menuTitle={''} menuContent={AddButton(() => { })}>
                     {responderGroupsQuery.data?.map((group: ResponderGroupDto) => (
                         <MenuItem disabled={isEmailInGroup(group, email)} onClick={() => addMembersOnGroup({ email, group, workspaceId: workspace.id })} key={group.id} className="hover:bg-black-200 flex justify-between py-3">
                             <Typography className="body4" noWrap>
