@@ -1,6 +1,6 @@
+import { NextResponse } from 'next/server';
 import * as Sentry from '@sentry/nextjs';
 import * as url from 'url';
-
 
 // Change host appropriately if you run your own Sentry instance.
 const sentryHost = 'sentry.sireto.io';
@@ -9,9 +9,9 @@ const sentryHost = 'sentry.sireto.io';
 // want to accept through this proxy.
 const knownProjectIds: Array<any> = ['/24'];
 
-async function handler(req: any, res: any) {
+export async function POST(request: Request) {
     try {
-        const envelope = req.body;
+        const envelope = await request.text();
         const pieces = envelope.split('\n');
 
         const header = JSON.parse(pieces[0]);
@@ -33,16 +33,11 @@ async function handler(req: any, res: any) {
         }).catch((err) => {
             throw new Error(`API call stalled: ${err}`);
         });
-        return response.json();
+
+        const data = await response.json();
+        return NextResponse.json(data, { status: 200 });
     } catch (e) {
         Sentry.captureException(e);
-        return { status: 'Invalid request' };
+        return NextResponse.json({ status: 'Invalid request' }, { status: 200 });
     }
 }
-
-const withSentry = (fn: any) => async (req: any, res: any) => {
-    await Sentry.withSentry(fn)(req, res);
-    return res.status(200).end();
-};
-
-export default withSentry(handler);

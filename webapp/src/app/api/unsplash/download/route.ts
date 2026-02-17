@@ -1,16 +1,16 @@
-import { NextApiRequest, NextApiResponse } from 'next';
+import { NextResponse } from 'next/server';
 import { createApi } from 'unsplash-js';
 
 const unsplashAccessKey = process.env.UNSPLASH_ACCESS_KEY || '';
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-    const photo: any = JSON.parse(req.body);
+export async function POST(request: Request) {
     try {
+        const photo: any = await request.json();
         const unsplash = createApi({ accessKey: unsplashAccessKey });
         const response = await unsplash.photos.trackDownload({ downloadLocation: photo.links.download_location });
-        return res.status(200).json(response);
+        return NextResponse.json(response, { status: 200 });
     } catch (e) {
         console.log(e);
-        return res.status(500).json({ error: e });
+        return NextResponse.json({ error: e }, { status: 500 });
     }
 }
