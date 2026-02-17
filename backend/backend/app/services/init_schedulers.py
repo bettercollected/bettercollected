@@ -28,7 +28,7 @@ async def migrate_schedule_to_temporal():
                 return
 
 
-async def update_schedule_intervals(interval_in_minutes: Optional[int]):
+async def update_schedule_intervals(interval_in_minutes: Optional[int] = None):
     temporal_service = container.temporal_service()
     workspace_forms = await WorkspaceFormDocument.find().to_list()
     for workspace_form in workspace_forms:

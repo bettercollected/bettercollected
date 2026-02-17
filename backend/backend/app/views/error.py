@@ -23,7 +23,7 @@ class ErrorModel(BaseModel):
 
     code: int
     message: str
-    details: Optional[List[Dict[str, Any]]]
+    details: Optional[List[Dict[str, Any]]] = None
     status: Optional[str] = None
 
     @model_validator(mode="after")

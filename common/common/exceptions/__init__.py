@@ -18,7 +18,7 @@ class ForbiddenError(Exception):
     This exception is raised when a client makes a request that is not allowed by the server.
     """
 
-    def __init__(self, message: Optional[str]):
+    def __init__(self, message: Optional[str] = None):
         """
         Initializes a ForbiddenError instance.
 
@@ -41,7 +41,7 @@ class NotFoundError(Exception):
     This exception is raised when a client makes a request for a resource that is not available on the server.
     """
 
-    def __init__(self, message: Optional[str]):
+    def __init__(self, message: Optional[str] = None):
         """
         Initializes a NotFoundError instance.
 
@@ -65,7 +65,7 @@ class KeyFoundError(Exception):
     but it was not expected to be present.
     """
 
-    def __init__(self, message: Optional[str]):
+    def __init__(self, message: Optional[str] = None):
         """
         Initializes a KeyFoundError instance.
 
@@ -88,7 +88,7 @@ class ItemToDataError(ValueError):
     This exception is raised when an error occurs while attempting to convert an item to a data representation.
     """
 
-    def __init__(self, message: Optional[str]):
+    def __init__(self, message: Optional[str] = None):
         """
         Initializes an ItemToDataError instance.
 
@@ -111,7 +111,7 @@ class DataToItemError(ValueError):
     This exception is raised when an error occurs while attempting to convert data to an item representation.
     """
 
-    def __init__(self, message: Optional[str]):
+    def __init__(self, message: Optional[str] = None):
         """
         Initializes a DataToItemError instance.
 
@@ -135,7 +135,7 @@ class ConversionWarning(UserWarning):
     but the conversion can still proceed with potentially degraded results.
     """
 
-    def __init__(self, message: Optional[str]):
+    def __init__(self, message: Optional[str] = None):
         """
         Initializes a ConversionWarning instance.
 

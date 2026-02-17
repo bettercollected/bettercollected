@@ -36,7 +36,7 @@ class FormTemplateService:
         self.temporal_service = temporal_service
 
     async def get_templates(
-        self, v2: Optional[bool], workspace_id: PydanticObjectId, user: User
+        self, v2: Optional[bool] = None, workspace_id: PydanticObjectId = None, user: User = None
     ):
         predefined_workspace = False
         if not workspace_id:

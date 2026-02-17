@@ -23,7 +23,7 @@ class ErrorModel(BaseModel):
 
     code: int
     message: str
-    details: Optional[List[Dict[str, Any]]]
+    details: Optional[List[Dict[str, Any]]] = None
 
     @root_validator(pre=False, skip_on_failure=True)
     def _set_status(cls, values: dict) -> dict:

@@ -31,8 +31,8 @@ class ActionResponse(ActionDto, CamelModel):
 class AddActionToFormDto(BaseModel):
     action_id: PydanticObjectId
     trigger: Trigger = Trigger.on_submit
-    parameters: Optional[List[ParameterValue]]
-    secrets: Optional[List[ParameterValue]]
+    parameters: Optional[List[ParameterValue]] = None
+    secrets: Optional[List[ParameterValue]] = None
 
 
 class ActionUpdateType(str, enum.Enum):

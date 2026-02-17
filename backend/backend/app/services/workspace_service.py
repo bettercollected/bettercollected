@@ -279,7 +279,7 @@ class WorkspaceService:
         return WorkspaceResponseDto(**saved_workspace.model_dump(mode='json'))
 
     async def generate_unique_names_from_the_workspace_handle(
-        self, workspace_name: str, workspace_id: Optional[PydanticObjectId]
+        self, workspace_name: str, workspace_id: Optional[PydanticObjectId] = None
     ):
         suggestions = []
         clean_workspace_name = re.sub(r"\W+", "", workspace_name)
@@ -302,7 +302,7 @@ class WorkspaceService:
         return suggestions
 
     async def check_if_workspace_handle_is_unique(
-        self, workspace_name: str, workspace_id: Optional[PydanticObjectId]
+        self, workspace_name: str, workspace_id: Optional[PydanticObjectId] = None
     ):
         predefined_workspace_name = ["submissions", "forms", "templates"]
         if workspace_name in predefined_workspace_name:

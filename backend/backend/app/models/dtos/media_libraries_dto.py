@@ -19,11 +19,11 @@ class MediaLibraryRequestDto(CamelModel):
 
 
 class MediaLibraryDto(BaseModel):
-    media_id: Optional[PydanticObjectId]
-    workspace_id: Optional[str]
-    media_url: Optional[str]
-    media_type: Optional[MediaType]
-    media_name: Optional[str]
+    media_id: Optional[PydanticObjectId] = None
+    workspace_id: Optional[str] = None
+    media_url: Optional[str] = None
+    media_type: Optional[MediaType] = None
+    media_name: Optional[str] = None
 
 
 class MediaLibraryCamelModel(CamelModel, MediaLibraryDto):
@@ -31,5 +31,5 @@ class MediaLibraryCamelModel(CamelModel, MediaLibraryDto):
 
 
 class MediaLibrary(MediaLibraryDto):
-    s3_key: Optional[str]
+    s3_key: Optional[str] = None
     pass

@@ -27,9 +27,9 @@ class ParameterValue(BaseModel):
 
 
 class WorkspaceRequestWithActionDto(WorkspaceRequestDto):
-    id: Optional[PydanticObjectId]
-    parameters: Optional[Dict[str, Optional[List[ParameterValue]]]]
-    secrets: Optional[Dict[str, Optional[List[ParameterValue]]]]
+    id: Optional[PydanticObjectId] = None
+    parameters: Optional[Dict[str, Optional[List[ParameterValue]]]] = None
+    secrets: Optional[Dict[str, Optional[List[ParameterValue]]]] = None
 
 
 class WorkspaceRequestDtoCamel(WorkspaceRequestDto, CamelModel):

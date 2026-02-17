@@ -12,8 +12,8 @@ from backend.app.schemas.template import FormTemplateDocument
 class FormTemplateRepository:
     async def get_templates_with_creator(
         self,
-        v2: Optional[bool],
-        workspace_id: PydanticObjectId,
+        v2: Optional[bool] = None,
+        workspace_id: PydanticObjectId = None,
         template_id: PydanticObjectId = None,
         predefined_workspace: bool = False,
     ):

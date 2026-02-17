@@ -362,7 +362,7 @@ class TestWorkspaceFormSubmission:
         )
 
         expected_response_id = workspace_form_response["response_id"]
-        actual_response_id = single_form_response.json()["response"]["response_id"]
+        actual_response_id = single_form_response.json()["response"]["responseId"]
         assert single_form_response.status_code == 200
         assert actual_response_id == expected_response_id
 
