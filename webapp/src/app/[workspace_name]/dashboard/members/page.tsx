@@ -1,18 +1,17 @@
+"use client";
+
 import { useTranslation } from 'next-i18next';
-import { NextSeo } from 'next-seo';
 
 import MembersIcon from '@Components/Common/Icons/Dashboard/Members';
 
 import Collaborators from '@app/Components/member/collaborators';
 import Invitations from '@app/Components/member/invitations';
-import DashboardLayout from '@app/Components/sidebar/dashboard-layout';
 import ParamTab, { TabPanel } from '@app/Components/ui/param-tab';
 import { members } from '@app/constants/locales/members';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 
-
-export default function ManageMembers({ workspace }: any) {
+export default function ManageMembers() {
     const { t } = useTranslation();
     const { workspaceName } = useAppSelector(selectWorkspace);
     const paramTabs = [
@@ -27,9 +26,9 @@ export default function ManageMembers({ workspace }: any) {
             path: 'Pending Requests'
         }
     ];
+
     return (
-        <DashboardLayout boxClassName="px-5 pt-10 lg:px-10">
-            <NextSeo title={t(members.default) + ' | ' + workspaceName} noindex={true} nofollow={true} />
+        <div className="flex flex-col">
             <div className="flex justify-between">
                 <div className="h4">{t(members.default)}</div>
             </div>
@@ -41,8 +40,6 @@ export default function ManageMembers({ workspace }: any) {
                     <Invitations />
                 </TabPanel>
             </ParamTab>
-        </DashboardLayout>
+        </div>
     );
 }
-
-export { getServerSidePropsForWorkspaceAdmin as getServerSideProps } from '@app/lib/serverSideProps';
