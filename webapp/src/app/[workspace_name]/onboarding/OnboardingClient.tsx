@@ -1,6 +1,7 @@
+'use client';
+
 import React, { useState } from 'react';
 
-import { GetServerSidePropsContext } from 'next';
 import { useTranslation } from 'next-i18next';
 
 import AppButton from '@Components/Common/Input/Button/AppButton';
@@ -11,7 +12,6 @@ import Logo from '@app/Components/ui/logo';
 import { localesCommon } from '@app/constants/locales/common';
 import { onBoarding } from '@app/constants/locales/onboarding-screen';
 import OnboardingContainer from '@app/containers/Onboarding';
-import { getAuthUserPropsWithWorkspace } from '@app/lib/serverSideProps';
 import { UserStatus } from '@app/models/dtos/UserStatus';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { selectAuth } from '@app/store/auth/slice';
@@ -22,30 +22,7 @@ interface onBoardingProps {
     createWorkspace?: boolean;
 }
 
-export async function getServerSideProps(_context: GetServerSidePropsContext) {
-    const authUserProps = (await getAuthUserPropsWithWorkspace(_context)).props;
-    if (!authUserProps) {
-        return {
-            redirect: {
-                permanent: false,
-                destination: '/'
-            }
-        };
-    }
-    if (authUserProps && authUserProps?.workspace?.title && authUserProps?.workspace?.title.toLowerCase() !== 'untitled') {
-        return {
-            redirect: {
-                permanent: false,
-                destination: `/${authUserProps.workspace.workspaceName}/dashboard`
-            }
-        };
-    }
-    return {
-        props: { ...authUserProps }
-    };
-}
-
-export default function Onboarding({ workspace, createWorkspace }: onBoardingProps) {
+export default function OnboardingClient({ workspace, createWorkspace }: onBoardingProps) {
     const { t } = useTranslation();
     const authStatus = useAppSelector(selectAuth);
     const user: UserStatus = !!authStatus ? authStatus : null;
@@ -73,6 +50,7 @@ export default function Onboarding({ workspace, createWorkspace }: onBoardingPro
             </div>
         </>
     );
+
     const StepOneContent = <OnboardingContainer workspace={workspace} createWorkspace={createWorkspace} />;
 
     return (
