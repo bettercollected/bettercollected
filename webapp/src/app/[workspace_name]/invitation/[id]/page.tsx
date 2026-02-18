@@ -8,7 +8,7 @@ import { useParams, useRouter } from 'next/navigation';
 import ExpiredInvitation from '@app/Components/invitation/expired';
 import InvalidUserInvitation from '@app/Components/invitation/sender';
 import MainValidUser from '@app/Components/invitation/MainValidUser';
-import LoginComponent from '@app/Components/Login/login-component';
+import LoginView from '@app/app/(auth)/_components/login-view';
 import AuthNavbar from '@app/Components/auth/navbar';
 import { invitationConstant } from '@app/constants/locales/invitations';
 import { workspaceConstant } from '@app/constants/locales/workspace';
@@ -55,7 +55,7 @@ export default function InvitationPage() {
     }
 
     if (!user?.id) {
-        return <LoginComponent />;
+        return <LoginView />;
     }
 
     if (!invitation) {

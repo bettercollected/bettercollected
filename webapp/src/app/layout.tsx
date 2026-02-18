@@ -4,8 +4,6 @@ import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 
 import 'nprogress/nprogress.css';
-import { ToastContainer } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
 import 'swiper/css';
 import 'swiper/css/navigation';
 import 'vanilla-cookieconsent/dist/cookieconsent.css';
@@ -18,10 +16,9 @@ import { SecondaryDialogModalContainer } from '@app/lib/hooks/useSecondaryDialog
 import { Toaster } from '@app/shadcn/components/ui/toaster';
 import { cn } from '@app/shadcn/util/lib';
 import AuthProvider from '@app/shared/hocs/AuthProvider';
+import I18nProvider from '@app/shared/hocs/I18nProvider';
 import ReduxProvider from '@app/shared/hocs/ReduxProvider';
 import ThemeProvider from '@app/shared/hocs/ThemeProvider';
-import I18nProvider from '@app/shared/hocs/I18nProvider';
-import SetClarityUserId from '@app/utils/clarityUtils';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -45,7 +42,6 @@ export default function RootLayout({
             <body className={cn('max-h-screen overflow-hidden', inter.className)}>
                 <ThemeProvider>
                     <I18nProvider>
-                        <ToastContainer position="bottom-center" autoClose={5000} hideProgressBar newestOnTop closeOnClick rtl={false} pauseOnFocusLoss={false} draggable pauseOnHover={false} theme="dark" />
                         <Toaster />
                         <ReduxProvider>
                             <AuthProvider>
@@ -53,7 +49,6 @@ export default function RootLayout({
                                 <DialogModalContainer />
                                 <SecondaryDialogModalContainer />
                                 <BaseModalContainer />
-                                <SetClarityUserId />
                             </AuthProvider>
                         </ReduxProvider>
                     </I18nProvider>
