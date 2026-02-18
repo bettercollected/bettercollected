@@ -1,14 +1,14 @@
-import React, { useEffect } from 'react';
+'use client';
 
-import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
-import { useRouter } from 'next/router';
+import React, { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { toast } from 'react-toastify';
+import { MenuItem } from '@mui/material';
 
 import AppButton from '@Components/Common/Input/Button/AppButton';
 import { ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
 import MenuDropdown from '@Components/Common/Navigation/MenuDropdown/MenuDropdown';
 import BetterCollectedForm from '@Components/Form/BetterCollectedForm';
-import { MenuItem } from '@mui/material';
-import { toast } from 'react-toastify';
 
 import ActiveLink from '@app/Components/ui/links/active-link';
 import Layout from '@app/layouts/_layout';
@@ -17,11 +17,9 @@ import { useGetStatusQuery } from '@app/store/auth/api';
 import { useCreateFormFromTemplateMutation, useGetTemplateByIdQuery, useImportTemplateMutation } from '@app/store/template/api';
 import { useGetAllMineWorkspacesQuery } from '@app/store/workspaces/api';
 import { convertFormTemplateToStandardForm } from '@app/utils/convertDataType';
-import { checkHasAdminDomain, getRequestHost } from '@app/utils/serverSidePropsUtils';
 import environments from '@app/configs/environments';
 
-export default function TemplatePage(props: any) {
-    const { templateId } = props;
+export default function TemplatePageClient({ templateId }: { templateId: string }) {
     const { data } = useGetTemplateByIdQuery({
         template_id: templateId
     });
@@ -35,7 +33,7 @@ export default function TemplatePage(props: any) {
     const [importTemplate] = useImportTemplateMutation();
     const [createFormFromTemplate] = useCreateFormFromTemplateMutation();
 
-    const { data: myWorkspaces, isLoading: myWorkspaceLoading, refetch } = useGetAllMineWorkspacesQuery();
+    const { data: myWorkspaces, refetch } = useGetAllMineWorkspacesQuery();
 
     useEffect(() => {
         refetch();
@@ -50,12 +48,12 @@ export default function TemplatePage(props: any) {
             const response: any = await importTemplate(request);
             if (response?.data) {
                 toast('Imported Successfully', { type: 'success' });
-                await router.replace(`/${workspace.workspaceName}/templates/${response?.data?.id}`);
+                router.replace(`/${workspace.workspaceName}/templates/${response?.data?.id}`);
             } else {
-                toast('Error Occurred').toString(), { type: 'error' };
+                toast('Error Occurred', { type: 'error' });
             }
         } catch (err) {
-            toast('Error Occurred').toString(), { type: 'error' };
+            toast('Error Occurred', { type: 'error' });
         }
     };
 
@@ -70,15 +68,15 @@ export default function TemplatePage(props: any) {
                 toast('Created Form Successfully', { type: 'success' });
                 const editFormUrl = `/${workspace.workspaceName}/dashboard/forms/${response?.data?.formId}/edit`;
                 if (response?.data?.builderVersion === 'v2') {
-                    router.push(environments.HTTP_SCHEME + environments.DASHBOARD_DOMAIN + editFormUrl);
+                    window.location.href = environments.HTTP_SCHEME + environments.DASHBOARD_DOMAIN + editFormUrl;
                 } else {
                     router.push(editFormUrl);
                 }
             } else {
-                toast('Error Occurred').toString(), { type: 'error' };
+                toast('Error Occurred', { type: 'error' });
             }
         } catch (err) {
-            toast('Error Occurred').toString(), { type: 'error' };
+            toast('Error Occurred', { type: 'error' });
         }
     };
 
@@ -142,24 +140,4 @@ const ButtonActionWrapper = ({ children, handleAction, workspaces }: any) => {
             )}
         </div>
     );
-};
-
-export async function getServerSideProps(_context: any) {
-    const hasAdminDomain = checkHasAdminDomain(getRequestHost(_context));
-
-    if (!hasAdminDomain) {
-        return {
-            redirect: {
-                path: '/',
-                permanent: false
-            }
-        };
-    }
-    const { id } = _context.params;
-    return {
-        props: {
-            ...(await serverSideTranslations(_context.locale, ['common', 'builder'], null, ['en', 'nl'])),
-            templateId: id
-        }
-    };
 }
