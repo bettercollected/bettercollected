@@ -12,7 +12,6 @@ import { useResponderState } from '@app/store/jotai/responderFormState';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import UserAvatarDropDown from '@app/views/molecules/UserAvatarDropdown';
 import LockIcon from '@Components/Common/Icons/lock';
-import { ButtonSize } from '@Components/Common/Input/Button/AppButtonProps';
 
 export default function WelcomePage({
     isPreviewMode,
@@ -87,7 +86,7 @@ export default function WelcomePage({
                                         This form is limited to certain people only. Please verify your identity to get access.
                                         <span>
                                             <Link href={isPreviewMode ? '' : responderSignInUrl} className="text-black-800 font-medium underline">
-                                                <Button className="mt-4 px-6" size={ButtonSize.Medium}>
+                                                <Button className="mt-4 px-6" size="medium">
                                                     {' '}
                                                     Verify now
                                                 </Button>

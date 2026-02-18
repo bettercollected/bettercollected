@@ -4,13 +4,10 @@ import { useTranslation } from 'next-i18next';
 
 import PlusIcon from '@Components/Common/Icons/Common/Plus';
 import AppTextField from '@Components/Common/Input/AppTextField';
-import AppButton from '@Components/Common/Input/Button/AppButton';
-import { ButtonSize, ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
-import ModalButton from '@Components/Common/Input/Button/ModalButton';
 import HeaderModalWrapper from '@Components/Modals/ModalWrappers/HeaderModalWrapper';
 import cn from 'classnames';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
-
+import { Button } from '@app/shadcn/components/ui/button';
 import { Close } from '@app/Components/icons/close';
 import { useModal } from '@app/Components/modal-views/context';
 import { buttonConstant } from '@app/constants/locales/button';
@@ -54,7 +51,9 @@ export default function AddMembersModal({ handleAddMembers, group }: IAddMemberM
                     <div className="    ">
                         <AppTextField value={email} type="email" id="email" placeholder={t(placeHolder.memberEmail)} onChange={handleInput} />
                     </div>
-                    <AppButton size={ButtonSize.Medium} variant={ButtonVariant.Ghost} icon={<PlusIcon width={24} height={24} />} disabled={!email} className={cn('font-semibold', !email && 'opacity-30')}></AppButton>
+                    <Button size="medium" variant="ghost" disabled={!email} className={cn('font-semibold', !email && 'opacity-30')}>
+                        <PlusIcon width={24} height={24} />
+                    </Button>
                 </form>
                 {emails.length !== 0 && (
                     <>
@@ -76,9 +75,9 @@ export default function AddMembersModal({ handleAddMembers, group }: IAddMemberM
                     </>
                 )}
                 <div className="flex w-full mt-8 justify-end">
-                    <ModalButton buttonType={'Modal'} onClick={() => handleAddMembers(emails)} size={ButtonSize.Medium} disabled={emails.length === 0} type="submit">
+                    <Button className="w-full" onClick={() => handleAddMembers(emails)} size="medium" disabled={emails.length === 0} type="submit">
                         {t(buttonConstant.addMembers)}
-                    </ModalButton>
+                    </Button>
                 </div>
             </div>
         </HeaderModalWrapper>

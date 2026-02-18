@@ -6,8 +6,7 @@ import Divider from '@Components/Common/DataDisplay/Divider';
 import CopyIcon from '@Components/Common/Icons/Common/Copy';
 import LockIcon from '@Components/Common/Icons/lock';
 import AppTextField from '@Components/Common/Input/AppTextField';
-import AppButton from '@Components/Common/Input/Button/AppButton';
-import { ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
+import { Button } from '@app/shadcn/components/ui/button';
 import { FormControlLabel, Radio, RadioGroup } from '@mui/material';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 import useCopyToClipboard from 'react-use/lib/useCopyToClipboard';
@@ -114,9 +113,9 @@ const TemplateSettings = ({ template, showTitle }: { template: IFormTemplateDto;
                 <Divider className={'text-black-200'} />
 
                 <p className={'text-sm font-normal text-black-700'}>{t('TEMPLATE.SETTINGS.DELETE_DESCRIPTION')}</p>
-                <AppButton className={'md: w-[140px]'} variant={ButtonVariant.Danger} onClick={() => openModal('DELETE_TEMPLATE_CONFIRMATION_MODAL_VIEW', { template })}>
+                <Button className="w-full md:w-[140px]" variant="danger" onClick={() => openModal('DELETE_TEMPLATE_CONFIRMATION_MODAL_VIEW', { template })}>
                     {t('TEMPLATE.DELETE_TEMPLATE')}
-                </AppButton>
+                </Button>
                 <Divider className={'text-black-200'} />
             </div>
         </div>
@@ -139,9 +138,10 @@ const ShareLinkOptions = ({ adminHost }: { adminHost: string }) => {
             <div className="cursor-pointer" onClick={handleOnCopy}>
                 <AppTextField className={'mt-4 mb-2 w-3/4'} isDisabled disabledColor={'#1D1D1D'} value={adminHost} />
             </div>
-            <AppButton variant={ButtonVariant.Secondary} icon={<CopyIcon />} onClick={handleOnCopy}>
+            <Button variant="secondary" className="gap-2" onClick={handleOnCopy}>
+                <CopyIcon />
                 {t('TOOLTIP.COPY_LINK')}
-            </AppButton>
+            </Button>
         </div>
     );
 };

@@ -4,14 +4,13 @@ import React from 'react';
 import { useTranslation } from 'next-i18next';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 
-import AppButton from '@Components/Common/Input/Button/AppButton';
-import { ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
 import StyledPagination from '@Components/Common/Pagination';
 import { Typography } from '@mui/material';
 import cn from 'classnames';
 import DataTable from 'react-data-table-component';
 
 import StatusBadge from '@Components/badge/status-badge';
+import { Button } from '@app/shadcn/components/ui/button';
 import { dataTableCustomStyles } from '@app/Components/datatable/form/datatable-styles';
 import { ChevronForward } from '@app/Components/icons/chevron-forward';
 import EmptyResponse from '@app/Components/ui/empty-response';
@@ -111,9 +110,10 @@ const ResponsesTable = ({ requestForDeletion, submissions, formId, page, setPage
         return status.toLowerCase() === 'pending' && (response.provider === 'self' || response.formImportedBy === user.id) ? (
             <Typography noWrap>
                 <AnchorLink target={response.provider !== 'self' ? '_blank' : '_self'} href={getResponseUrl(response)}>
-                    <AppButton postFixIcon={<ChevronForward className={'text-brand-500 h-6 w-6'} />} variant={ButtonVariant.Ghost} className="!p-0">
+                    <Button variant="ghost" className="!p-0">
                         {t(localesCommon.goToResponse)}
-                    </AppButton>
+                        <ChevronForward className={'text-brand-500 h-6 w-6 ml-2'} />
+                    </Button>
                 </AnchorLink>
             </Typography>
         ) : (

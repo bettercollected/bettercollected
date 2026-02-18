@@ -3,8 +3,7 @@ import { useState } from 'react';
 import { useTranslation } from 'next-i18next';
 
 import AppTextField from '@Components/Common/Input/AppTextField';
-import AppButton from '@Components/Common/Input/Button/AppButton';
-import { ButtonSize } from '@Components/Common/Input/Button/AppButtonProps';
+import { Button } from '@app/shadcn/components/ui/button';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 
 import { Close } from '@app/Components/icons/close';
@@ -79,9 +78,9 @@ export default function InviteMemberModal() {
                     }}
                 />
                 <div className="mt-4 flex w-full flex-col justify-end">
-                    <AppButton size={ButtonSize.Medium} disabled={isLoading} isLoading={isLoading} type="submit">
+                    <Button size="medium" disabled={isLoading} isLoading={isLoading} type="submit">
                         {t(buttonConstant.sendInvitation)}
-                    </AppButton>
+                    </Button>
                 </div>
             </form>
         </SettingsCard>

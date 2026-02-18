@@ -3,7 +3,6 @@
 import React from 'react';
 
 import CreateFormButton from '@Components/Common/CreateFormButton';
-import { ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
 
 import ActiveLink from '@app/Components/ui/links/active-link';
 import WorkspaceFormCard from '@app/Components/workspace-dashboard/workspace-form-card';
@@ -33,7 +32,7 @@ export default function WorkspaceDashboardFormsCard({ workspaceForms, workspace,
                         <p className="h3-new text-black-800 font-semibold">You haven&apos;t created or imported any forms.</p>
                         <p className="p1-new text-black-700 mb-6 mt-2">Create your first privacy friendly form.</p>
                         <div ref={ref} className="relative">
-                            <CreateFormButton variant={ButtonVariant.Tertiary} />
+                            <CreateFormButton variant="ghost" />
                         </div>
                     </div>
                 )

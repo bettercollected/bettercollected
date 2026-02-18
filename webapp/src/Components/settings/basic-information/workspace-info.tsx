@@ -3,8 +3,7 @@ import { ChangeEvent, FormEvent, useState } from 'react';
 import { useTranslation } from 'next-i18next';
 
 import AppTextField from '@Components/Common/Input/AppTextField';
-import AppButton from '@Components/Common/Input/Button/AppButton';
-import { ButtonSize, ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
+import { Button } from '@app/shadcn/components/ui/button';
 import UploadLogo from '@Components/Common/UploadLogo';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 
@@ -119,18 +118,18 @@ export default function WorkspaceInfo({ workspace }: { workspace: WorkspaceDto }
                 <AppTextField fullWidth onChange={onChange} value={workspaceInfo.terms_of_service} name="terms_of_service" placeholder={'Privacy Policy URL'} />
             </div>
 
-            <AppButton
+            <Button
                 data-umami-event="Update Workspace Info From Workspace Settings"
                 data-umami-event-email={auth.email}
                 className="mt-4 w-full"
                 type="submit"
-                size={ButtonSize.Medium}
-                variant={ButtonVariant.Secondary}
+                size="medium"
+                variant="secondary"
                 disabled={!workspaceInfo.title}
                 isLoading={isLoading}
             >
                 {t('BUTTON.SAVE_CHANGES')}
-            </AppButton>
+            </Button>
         </form>
     );
 }

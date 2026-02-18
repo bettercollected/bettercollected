@@ -1,5 +1,4 @@
-import AppButton from '@Components/Common/Input/Button/AppButton';
-import { ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
+import { Button } from '@app/shadcn/components/ui/button';
 import { useBottomSheetModal } from '@Components/Modals/Contexts/BottomSheetModalContext';
 import BottomSheetModalWrapper from '@Components/Modals/ModalWrappers/BottomSheetModalWrapper';
 import { format } from 'date-fns';
@@ -65,15 +64,15 @@ const ScheduleFormCloseDateModal: React.FC<IScheduleFormCloseDateModalProps> = (
                     </Popover>
                 </div>
                 <div>
-                    <AppButton
-                        variant={ButtonVariant.Secondary}
+                    <Button
+                        variant="secondary"
                         onClick={() => {
                             onFormClosedChange(moment(value?.toISOString()));
                             closeBottomSheetModal();
                         }}
                     >
                         Schedule Now
-                    </AppButton>
+                    </Button>
                 </div>
             </div>
         </BottomSheetModalWrapper>

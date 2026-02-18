@@ -1,7 +1,5 @@
 import type {Meta, StoryObj} from '@storybook/react';
-import AppButton from "@Components/Common/Input/Button/AppButton";
-import AppTextField from "@Components/Common/Input/AppTextField";
-import {ButtonSize} from "@Components/Common/Input/Button/AppButtonProps";
+import { Button } from '@app/shadcn/components/ui/button';
 import GenericHalfModal from "@Components/Common/Modals/GenericHalfModal";
 
 

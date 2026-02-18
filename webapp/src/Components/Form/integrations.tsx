@@ -1,8 +1,7 @@
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 
-import AppButton from '@Components/Common/Input/Button/AppButton';
-import { ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
+import { Button } from '@app/shadcn/components/ui/button';
 import MuiSwitch from '@Components/Common/Input/Switch';
 
 import { useToast } from '@app/shadcn/components/ui/use-toast';
@@ -141,17 +140,17 @@ export default function FormIntegrations() {
                                         </div>
                                     </div>
                                     <div className="mt-4 sm:mt-0">
-                                        <AppButton
+                                        <Button
                                             data-umami-event="Add Integrations Button"
                                             data-umami-event-email={auth.email}
-                                            variant={ButtonVariant.Primary}
+                                            variant="primary"
                                             onClick={() => {
                                                 openModal('ADD_ACTION_TO_FORM', { action: integration, form: form });
                                             }}
                                         >
                                             {' '}
                                             Add to Form
-                                        </AppButton>
+                                        </Button>
                                     </div>
                                 </div>
                             )}

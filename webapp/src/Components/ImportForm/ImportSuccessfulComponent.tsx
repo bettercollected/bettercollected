@@ -8,13 +8,12 @@ import { debounce } from 'lodash';
 import CircularCheck from '@Components/Common/Icons/Common/CircularCheck';
 import CopyIcon from '@Components/Common/Icons/Common/Copy';
 import ProLogo from '@Components/Common/Icons/Common/ProLogo';
-import AppButton from '@Components/Common/Input/Button/AppButton';
-import { ButtonSize, ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
 import { useBottomSheetModal } from '@Components/Modals/Contexts/BottomSheetModalContext';
 import { CircularProgress } from '@mui/material';
 import { AnimatePresence, motion } from 'framer-motion';
 import ContentEditable from 'react-contenteditable';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
+import { Button } from '@app/shadcn/components/ui/button';
 
 import GoogleFolder from '@app/assets/images/google_folder.png';
 import { Close } from '@app/Components/icons/close';

@@ -3,8 +3,7 @@ import React, { useState } from 'react';
 import { useTranslation } from 'next-i18next';
 
 import Tooltip from '@Components/Common/DataDisplay/Tooltip';
-import { ButtonSize } from '@Components/Common/Input/Button/AppButtonProps';
-import ModalButton from '@Components/Common/Input/Button/ModalButton';
+import { Button } from '@app/shadcn/components/ui/button';
 import { CheckCircle } from '@mui/icons-material';
 import { Autocomplete, Box, createFilterOptions, TextField } from '@mui/material';
 import cn from 'classnames';
@@ -68,9 +67,9 @@ export default function AddGroupOnForm({ responderGroups, form }: IAddGroupOnFor
                                 title={
                                     isFormAlreadyInGroup(form.groups, option.id)
                                         ? t(toolTipConstant.formIsAlreadyOnGroup, {
-                                              form: form.title,
-                                              group: option.name
-                                          })
+                                            form: form.title,
+                                            group: option.name
+                                        })
                                         : ''
                                 }
                                 key={option.id}
@@ -91,9 +90,9 @@ export default function AddGroupOnForm({ responderGroups, form }: IAddGroupOnFor
             )}
 
             <div className="flex justify-end">
-                <ModalButton disabled={!selectedGroup} size={ButtonSize.Medium} onClick={handleAddForm}>
+                <Button disabled={!selectedGroup} onClick={handleAddForm}>
                     {t(buttonConstant.add)}
-                </ModalButton>
+                </Button>
             </div>
         </div>
     );

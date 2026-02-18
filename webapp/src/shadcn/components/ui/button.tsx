@@ -1,8 +1,8 @@
 import * as React from 'react';
 import { ReactNode } from 'react';
 
-import { CircularProgress } from '@mui/material';
 import { type VariantProps, cva } from 'class-variance-authority';
+import { Loader2 } from 'lucide-react';
 
 import { cn } from '@app/shadcn/util/lib';
 
@@ -55,7 +55,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(({ className, va
             {...props}
         >
             {!isLoading && icon}
-            {!disabled && isLoading && <CircularProgress size={14} color="inherit" />}
+            {!disabled && isLoading && <Loader2 className="animate-spin" size={14} color="currentColor" />}
             {children}
             {!isLoading && postFixIcon}
         </button>

@@ -1,6 +1,6 @@
 import { Fragment, useCallback } from 'react';
 
-import { Button } from '@mui/material';
+import { Button } from '@app/shadcn/components/ui/button';
 
 import { Close } from '@app/Components/icons/close';
 import ModalContainer from '@app/Components/modal-views/container';
@@ -51,7 +51,7 @@ export default function FullScreenModalContainer() {
 
                     {/* This element is need to fix FocusTap headless-ui warning issue */}
                     <div className="sr-only">
-                        <Button size="small" onClick={closeModalHandler} className="opacity-50 hover:opacity-80 ">
+                        <Button variant="ghost" size="sm" onClick={closeModalHandler} className="opacity-50 hover:opacity-80 ">
                             <Close className="h-auto w-[13px]" />
                         </Button>
                     </div>

@@ -3,8 +3,7 @@ import React, { useState } from 'react';
 import { useTranslation } from 'next-i18next';
 
 import AppTextField from '@Components/Common/Input/AppTextField';
-import AppButton from '@Components/Common/Input/Button/AppButton';
-import { ButtonSize } from '@Components/Common/Input/Button/AppButtonProps';
+import { Button } from '@app/shadcn/components/ui/button';
 import HeaderModalWrapper from '@Components/Modals/ModalWrappers/HeaderModalWrapper';
 
 import { useModal } from '@app/Components/modal-views/context';
@@ -42,9 +41,9 @@ export default function AddRegexModal({ handleRegex }: { handleRegex: (regex: st
                     {t(groupConstant.regex.modal.label)}
                 </AppTextField>
                 <div className="flex justify-end mt-4">
-                    <AppButton size={ButtonSize.Medium} className={'w-full'} disabled={!regex}>
+                    <Button size="medium" className={'w-full'} disabled={!regex}>
                         {t(buttonConstant.addRegex)}
-                    </AppButton>
+                    </Button>
                 </div>
             </form>
         </HeaderModalWrapper>

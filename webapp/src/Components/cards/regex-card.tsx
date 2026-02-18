@@ -3,10 +3,9 @@ import React from 'react';
 import { useTranslation } from 'next-i18next';
 
 import Plus from '@Components/Common/Icons/Common/Plus';
-import AppButton from '@Components/Common/Input/Button/AppButton';
-import { ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
 import { Typography } from '@mui/material';
 
+import { Button } from '@app/shadcn/components/ui/button';
 import { useModal } from '@app/Components/modal-views/context';
 import { buttonConstant } from '@app/constants/locales/button';
 import { localesCommon } from '@app/constants/locales/common';
@@ -41,9 +40,10 @@ export default function RegexCard({ handleRegex, regex }: IRegexCardProps) {
                         </p>
                     </div>
                     {regex?.length === 0 && isAdmin && (
-                        <AppButton variant={ButtonVariant.Ghost} icon={<Plus className="h-4 w-4" />} onClick={() => openModal('ADD_REGEX', { handleRegex: handleRegex })}>
+                        <Button variant="ghost" onClick={() => openModal('ADD_REGEX', { handleRegex: handleRegex })}>
+                            <Plus className="h-4 w-4 mr-2" />
                             {t(buttonConstant.addRegex)}
-                        </AppButton>
+                        </Button>
                     )}
                 </div>
                 {!!regex && !isEmptyString(regex) && (

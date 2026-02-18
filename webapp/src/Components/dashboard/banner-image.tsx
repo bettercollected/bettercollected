@@ -2,7 +2,7 @@ import React, { useRef, useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
 
-import AppButton from '@Components/Common/Input/Button/AppButton';
+import { Button } from '@app/shadcn/components/ui/button';
 import cn from 'classnames';
 import html2canvas from 'html2canvas';
 
@@ -122,17 +122,17 @@ function UpdateImageOptions({ getUpdateOptionsClassName, isLoading, onClickFileU
     return (
         <div className={`absolute bottom-2 right-2 hidden ${getUpdateOptionsClassName()}`}>
             <div className="flex justify-between">
-                {!isLoading && !image && <AppButton onClick={onClickFileUploadButton}>{t(buttonConstant.update)}</AppButton>}
+                {!isLoading && !image && <Button onClick={onClickFileUploadButton}>{t(buttonConstant.update)}</Button>}
                 {!isLoading && image && (
-                    <AppButton className="!text-white flex !bg-black-600 hover:!bg-black-700 mr-2" onClick={onCLickCancelButton}>
+                    <Button className="!text-white flex !bg-black-600 hover:!bg-black-700 mr-2" onClick={onCLickCancelButton}>
                         {t(buttonConstant.cancel)}
-                    </AppButton>
+                    </Button>
                 )}
                 {!!image && (
                     <>
-                        <AppButton isLoading={isLoading} onClick={onClickFileSaveButton}>
+                        <Button isLoading={isLoading} onClick={onClickFileSaveButton}>
                             {isLoading ? t(buttonConstant.saving) : t(buttonConstant.save)}
-                        </AppButton>
+                        </Button>
                     </>
                 )}
             </div>

@@ -2,8 +2,7 @@ import React, { ReactNode } from 'react';
 
 import { useTranslation } from 'next-i18next';
 
-import AppButton from '@Components/Common/Input/Button/AppButton';
-import { ButtonSize, ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
+import { Button } from '@app/shadcn/components/ui/button';
 import HeaderModalWrapper from '@Components/Modals/ModalWrappers/HeaderModalWrapper';
 
 import { useModal } from '@app/Components/modal-views/context';
@@ -30,12 +29,12 @@ export default function GenericHalfModal({ headerTitle, title, subTitle, type, p
             {subTitle && <span className="p2-new text-sm mt-2 text-black-700">{subTitle}</span>}
             {children}
             <div className="flex w-full gap-4 mt-6">
-                <AppButton className="flex-1" size={ButtonSize.Medium} onClick={closeModal} variant={ButtonVariant.Secondary}>
+                <Button className="flex-1" size="medium" onClick={closeModal} variant="secondary">
                     {!negativeText ? t('BUTTON.CANCEL') : negativeText}
-                </AppButton>
-                <AppButton className="flex-1" size={ButtonSize.Medium} isLoading={loading} variant={type === 'danger' ? ButtonVariant.Danger : ButtonVariant.Primary} onClick={positiveAction}>
+                </Button>
+                <Button className="flex-1" size="medium" isLoading={loading} variant={type === 'danger' ? 'danger' : 'primary'} onClick={positiveAction}>
                     {type === 'danger' && !positiveText ? t('BUTTON.DELETE') : positiveText}
-                </AppButton>
+                </Button>
             </div>
         </HeaderModalWrapper>
     );

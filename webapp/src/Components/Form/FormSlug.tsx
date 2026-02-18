@@ -3,8 +3,7 @@ import React, { useState } from 'react';
 import { useTranslation } from 'next-i18next';
 
 import AppTextField from '@Components/Common/Input/AppTextField';
-import AppButton from '@Components/Common/Input/Button/AppButton';
-import { ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
+import { Button } from '@app/shadcn/components/ui/button';
 
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { IFormCreateSlugFullModalViewProps } from '@app/Components/modal-views/full-screen-modals/create-form-slug-full-modal-view';
@@ -79,9 +78,9 @@ export const FormSlug = ({ customSlug, link, onSave }: IFormSlugProps) => {
                 <AppTextField isError={isError} value={slug} onChange={(event) => handleOnchange(event)} />
                 {!slug.match(slugRegex) && isError && <p className="body4 !text-red-500 h-[10px]">{t(validationMessage.slug)}</p>}
             </div>
-            <AppButton type={'submit'} onClick={handleUpdate} isLoading={isLoading} className={'w-[130px]'} variant={ButtonVariant.Secondary}>
+            <Button type={'submit'} onClick={handleUpdate} isLoading={isLoading} className={'w-[130px]'} variant="secondary">
                 {t(formPage.linksSlugSaveChanges)}
-            </AppButton>
+            </Button>
         </div>
     );
 };

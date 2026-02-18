@@ -4,8 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
 import Divider from '@Components/Common/DataDisplay/Divider';
-import AppButton from '@Components/Common/Input/Button/AppButton';
-import { ButtonSize } from '@Components/Common/Input/Button/AppButtonProps';
+import { Button } from '@app/shadcn/components/ui/button';
 import { Disclosure } from '@headlessui/react';
 
 import AuthAccountProfileImage from '@app/Components/auth/account-profile-image';
@@ -51,9 +50,9 @@ export default function ResponderPortalContainer(props: { workspace: WorkspaceDt
                     <div className="mt-6 flex flex-col rounded-xl bg-white p-6">
                         <div className="h4-new">Check my data</div>
                         <div className="p2-new text-black-600 mt-2">Verify your email address to view all the data associated with you.</div>
-                        <AppButton
+                        <Button
                             className="mt-6"
-                            size={ButtonSize.Small}
+                            size="sm"
                             onClick={() => {
                                 const params = new URLSearchParams({
                                     type: 'responder',
@@ -64,7 +63,7 @@ export default function ResponderPortalContainer(props: { workspace: WorkspaceDt
                             }}
                         >
                             Verify Now
-                        </AppButton>
+                        </Button>
                     </div>
                 )}
                 {auth.id && (

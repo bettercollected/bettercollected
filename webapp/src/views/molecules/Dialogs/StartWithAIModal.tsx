@@ -1,4 +1,3 @@
-import { ButtonSize } from '@Components/Common/Input/Button/AppButtonProps';
 import { Button } from '@app/shadcn/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@app/shadcn/components/ui/collapsible';
 import { cn } from '@app/shadcn/util/lib';
@@ -139,7 +138,7 @@ export default function StartWithAi() {
                             </CollapsibleContent>
                         </Collapsible>
                     </div>
-                    <GenerateButton data-umami-event={'Creating Form with AI'} data-umami-event-email={authState.email} className="group" size={ButtonSize.Medium} variant={'primary'} type="submit">
+                    <GenerateButton data-umami-event={'Creating Form with AI'} data-umami-event-email={authState.email} className="group" type="submit">
                         <div className="z-10 flex items-center gap-2">
                             <AIIcon className="transition-all group-hover:scale-125" />
                             Generate

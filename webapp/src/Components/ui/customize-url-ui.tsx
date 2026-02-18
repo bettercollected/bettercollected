@@ -3,10 +3,9 @@ import React, { useState } from 'react';
 import { useTranslation } from 'next-i18next';
 
 import AppTextField from '@Components/Common/Input/AppTextField';
-import AppButton from '@Components/Common/Input/Button/AppButton';
-import { ButtonSize } from '@Components/Common/Input/Button/AppButtonProps';
 
 import { useToast } from '@app/shadcn/components/ui/use-toast';
+import { Button } from '@app/shadcn/components/ui/button';
 import { buttonConstant } from '@app/constants/locales/button';
 import { localesCommon } from '@app/constants/locales/common';
 import { customize } from '@app/constants/locales/customize';
@@ -81,9 +80,9 @@ export default function CustomizeUrlUi({ url, form }: ICustomizeUrlModalProps) {
                 </p>
             </div>
             <div className="mt-5 flex flex-col w-full ">
-                <AppButton size={ButtonSize.Medium} isLoading={isLoading} disabled={!slug.match(slugRegex)}>
+                <Button size="medium" isLoading={isLoading} disabled={!slug.match(slugRegex)}>
                     {t(buttonConstant.updateNow)}
-                </AppButton>
+                </Button>
             </div>
         </form>
     );

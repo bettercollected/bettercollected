@@ -3,10 +3,9 @@ import React from 'react';
 import { useRouter } from 'next/navigation';
 
 import CheckedCircle from '@Components/Common/Icons/Common/CheckedCircle';
-import AppButton from '@Components/Common/Input/Button/AppButton';
-import { ButtonSize, ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
 
 import FormSettingsTab from '@Components/dashboard/form-settings';
+import { Button } from '@app/shadcn/components/ui/button';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 
@@ -24,15 +23,15 @@ export default function ChangeSlugComponent() {
             <FormSettingsTab view="LINKS" />
             <div className="mt-[72px] flex flex-col">
                 <div className="text-black-700 mb-4 p2-new">You can always customize your form link later</div>
-                <AppButton
-                    variant={ButtonVariant.Primary}
-                    size={ButtonSize.Medium}
+                <Button
+                    variant="primary"
+                    size="medium"
                     onClick={() => {
                         router.push(`/${workspace.workspaceName}/dashboard`);
                     }}
                 >
                     Done, Go to Dashboard
-                </AppButton>
+                </Button>
             </div>
         </div>
     );

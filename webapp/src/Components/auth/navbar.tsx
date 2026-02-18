@@ -2,7 +2,7 @@ import React from 'react';
 
 import { useTranslation } from 'next-i18next';
 
-import AppButton from '@Components/Common/Input/Button/AppButton';
+import { Button } from '@app/shadcn/components/ui/button';
 
 import AuthAccountMenuDropdown from '@app/Components/auth/account-menu-dropdown';
 import ProPlanHoc from '@app/Components/HOCs/pro-plan-hoc';
@@ -67,7 +67,7 @@ function AuthNavbar({ showHamburgerIcon, showPlans, mobileOpen, handleDrawerTogg
                             <LocaleDropdownUi />
                             {showPlans && (
                                 <ProPlanHoc hideChildrenIfPro={true}>
-                                    <AppButton>{t(buttonConstant.upgrade)}</AppButton>
+                                    <Button>{t(buttonConstant.upgrade)}</Button>
                                 </ProPlanHoc>
                             )}
                         </>

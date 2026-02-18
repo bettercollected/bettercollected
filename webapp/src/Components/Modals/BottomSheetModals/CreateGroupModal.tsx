@@ -3,8 +3,7 @@ import { useState } from 'react';
 import { useTranslation } from 'next-i18next';
 import { useRouter, useSearchParams } from 'next/navigation';
 
-import AppButton from '@Components/Common/Input/Button/AppButton';
-import { ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
+import { Button } from '@app/shadcn/components/ui/button';
 import { useBottomSheetModal } from '@Components/Modals/Contexts/BottomSheetModalContext';
 import BottomSheetModalWrapper from '@Components/Modals/ModalWrappers/BottomSheetModalWrapper';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
@@ -131,16 +130,16 @@ export default function CreateGroupModal() {
                                 {groupInfo.emails && <GroupMember emails={groupInfo.emails} handleAddMembers={handleAddMembers} handleRemoveMember={handleRemoveMember} />}
                             </div>
                             <div>
-                                <AppButton
+                                <Button
                                     data-umami-event={'Add New Group Button'}
                                     data-umami-event-email={authState.email}
                                     isLoading={isLoading}
-                                    variant={ButtonVariant.Secondary}
+                                    variant="secondary"
                                     disabled={!groupInfo.name || (groupInfo.emails?.length === 0 && groupInfo.regex?.length === 0)}
                                     onClick={handleCreateGroup}
                                 >
                                     {t(buttonConstant.saveGroup)}
-                                </AppButton>
+                                </Button>
                             </div>
                         </div>
                     </div>

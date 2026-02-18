@@ -3,8 +3,7 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'next-i18next';
 
 import AppTextField from '@Components/Common/Input/AppTextField';
-import AppButton from '@Components/Common/Input/Button/AppButton';
-import { ButtonSize, ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
+import { Button } from '@app/shadcn/components/ui/button';
 import HeaderModalWrapper from '@app/Components/Modals/ModalWrappers/HeaderModalWrapper';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 
@@ -73,9 +72,9 @@ export default function UpdateCustomDomainModal() {
                         setUpdateText(e.target.value);
                     }}
                 />
-                <AppButton className="w-full mt-4" data-testid="save-button" type="submit" isLoading={isLoading} size={ButtonSize.Medium} variant={ButtonVariant.Primary}>
+                <Button className="w-full mt-4" data-testid="save-button" type="submit" isLoading={isLoading} size="medium" variant="primary">
                     {t(buttonConstant.updateNow)}
-                </AppButton>
+                </Button>
             </form>
         </HeaderModalWrapper>
     );

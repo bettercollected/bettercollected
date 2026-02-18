@@ -3,10 +3,9 @@ import { useTranslation } from 'next-i18next';
 import CopyIcon from '@Components/Common/Icons/Common/Copy';
 import DeleteIcon from '@Components/Common/Icons/Common/Delete';
 import EditIcon from '@Components/Common/Icons/Common/Edit';
-import AppButton from '@Components/Common/Input/Button/AppButton';
-import { ButtonSize, ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
 
 import { useToast } from '@app/shadcn/components/ui/use-toast';
+import { Button } from '@app/shadcn/components/ui/button';
 import Globe from '@app/Components/icons/flags/globe';
 import { useModal } from '@app/Components/modal-views/context';
 import { useFullScreenModal } from '@app/Components/modal-views/full-screen-modal-context';
@@ -37,17 +36,17 @@ export default function ManageURLs() {
                 <div className="h3-new mb-2">{t('WORKSPACE.SETTINGS.URLS.TITLE')}</div>
                 <div className="flex flex-col gap-6 md:flex-row">
                     <span className="p2-new text-black-700">{t('WORKSPACE.SETTINGS.URLS.DESCRIPTION')}</span>
-                    <AppButton
+                    <Button
                         data-umami-event="Customize Workspace Link"
                         data-umami-event-email={auth.email}
-                        icon={<EditIcon />}
-                        variant={ButtonVariant.Ghost}
+                        variant="ghost"
                         onClick={() => {
                             openModal('UPDATE_WORKSPACE_HANDLE');
                         }}
                     >
+                        <EditIcon className="mr-2" />
                         {t('FORM_PAGE.SETTINGS.LINKS.CHANGE_SLUG')}
-                    </AppButton>
+                    </Button>
                 </div>
             </div>
             <div className="mt-[72px]">
@@ -58,19 +57,19 @@ export default function ManageURLs() {
                         {environments.CLIENT_DOMAIN}/<span className="text-pink">{workspace.workspaceName}</span>
                     </span>
                     <div>
-                        <AppButton
+                        <Button
                             data-umami-event="Copy Default Workspace Link From Workspace Setting"
                             data-umami-event-email={auth.email}
-                            size={ButtonSize.Tiny}
-                            variant={ButtonVariant.Ghost}
-                            icon={<CopyIcon width={16} height={16} />}
+                            size="icon"
+                            variant="ghost"
                             onClick={() => {
                                 copyToClipboard(`${environments.HTTP_SCHEME}${environments.CLIENT_DOMAIN}/${workspace.workspaceName}`);
                                 toast({ description: 'Copied' });
                             }}
                         >
+                            <CopyIcon width={16} height={16} />{/* check if I need children here, original was Copy */}
                             {t('BUTTON.COPY')}
-                        </AppButton>
+                        </Button>
                     </div>
                 </div>
             </div>

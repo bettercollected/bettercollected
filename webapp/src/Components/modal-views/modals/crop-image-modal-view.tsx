@@ -2,8 +2,7 @@ import React, { useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
 
-import AppButton from '@Components/Common/Input/Button/AppButton';
-import { ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
+import { Button } from '@app/shadcn/components/ui/button';
 import cn from 'classnames';
 import AvatarEditor from 'react-avatar-editor';
 
@@ -35,7 +34,7 @@ export default function CropImageModalView({ profileEditorRef, uploadImage, clos
                     <span>+</span>
                 </div>
                 <div className="flex gap-2 justify-around w-full">
-                    <AppButton
+                    <Button
                         data-testid="save-button"
                         isLoading={isLoading}
                         className="w-full"
@@ -46,10 +45,10 @@ export default function CropImageModalView({ profileEditorRef, uploadImage, clos
                         }}
                     >
                         {t(buttonConstant.saveImage)}
-                    </AppButton>
-                    <AppButton disabled={isLoading} variant={ButtonVariant.Secondary} className="w-full" onClick={closeModal}>
+                    </Button>
+                    <Button disabled={isLoading} variant="secondary" className="w-full" onClick={closeModal}>
                         {t(buttonConstant.cancel)}
-                    </AppButton>
+                    </Button>
                 </div>
             </div>
         </div>

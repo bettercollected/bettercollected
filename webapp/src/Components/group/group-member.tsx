@@ -2,8 +2,7 @@ import React from 'react';
 
 import { useTranslation } from 'next-i18next';
 
-import AppButton from '@Components/Common/Input/Button/AppButton';
-import { ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
+import { Button } from '@app/shadcn/components/ui/button';
 import SearchInput from '@Components/Common/Search/SearchInput';
 
 import MemberCard from '@Components/cards/member-card';
@@ -56,9 +55,9 @@ export default function GroupMember({ group, emails, handleSearch, handleAddMemb
                         <p className="text-black-700 leading-none body4">{t(groupConstant.members.description)} </p>
                     </div>
                     {isAdmin && (
-                        <AppButton variant={ButtonVariant.Ghost} icon={<Plus className="h-4 w-4" />} onClick={() => openModal('ADD_MEMBERS', { handleAddMembers, group })}>
+                        <Button variant="ghost" icon={<Plus className="h-4 w-4" />} onClick={() => openModal('ADD_MEMBERS', { handleAddMembers, group })}>
                             {t(buttonConstant.addMember)}
-                        </AppButton>
+                        </Button>
                     )}
                 </div>
                 {handleMemberList()}

@@ -4,8 +4,7 @@ import React from 'react';
 import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/navigation';
 
-import AppButton from '@Components/Common/Input/Button/AppButton';
-import { ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
+import { Button } from '@app/shadcn/components/ui/button';
 import { useBottomSheetModal } from '@Components/Modals/Contexts/BottomSheetModalContext';
 import { Typography } from '@mui/material';
 import DataTable from 'react-data-table-component';
@@ -135,8 +134,8 @@ export default function WorkspaceGroups({ workspace }: { workspace: WorkspaceDto
                         <p className="body4 text-black-700 mt-2">{t(groupConstant.description)}</p>
                     </div>
                     {isAdmin && (
-                        <AppButton
-                            variant={ButtonVariant.Ghost}
+                        <Button
+                            variant="ghost"
                             className="w-fit"
                             icon={<Plus className="h-4 w-4" />}
                             onClick={() => {
@@ -144,7 +143,7 @@ export default function WorkspaceGroups({ workspace }: { workspace: WorkspaceDto
                             }}
                         >
                             <Typography className="!text-brand-500  body6"> {t(groupConstant.createGroup)}</Typography>
-                        </AppButton>
+                        </Button>
                     )}
                 </div>
             </div>

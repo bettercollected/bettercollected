@@ -4,7 +4,7 @@ import { useTranslation } from 'next-i18next';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
 import { ChevronLeft } from '@mui/icons-material';
-import { Button } from '@mui/material';
+import { Button } from '@app/shadcn/components/ui/button';
 
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 import FormResponsesTable from '@app/Components/datatable/form/form-responses';
@@ -70,9 +70,8 @@ export default function FormResponses() {
 
                         {form?.settings?.provider === 'self' && (
                             <Button
-                                style={{ textTransform: 'none' }}
-                                className="bg-red-100 px-4 !leading-none py-3 body6 rounded hover:bg-red-200 hover:drop-shadow-sm  !text-red-500"
-                                size="medium"
+                                variant="ghost"
+                                className="bg-red-100 px-4 !leading-none py-3 body6 rounded hover:bg-red-200 hover:drop-shadow-sm !text-red-500"
                                 onClick={() => {
                                     openModal('DELETE_RESPONSE', {
                                         workspace: workspace,

@@ -1,4 +1,3 @@
-import { ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
 import { useFullScreenModal } from '@app/Components/modal-views/full-screen-modal-context';
 import { toastMessage } from '@app/constants/locales/toast-message';
 import { ToastId } from '@app/constants/toastId';
@@ -92,7 +91,7 @@ const AddWorkspaceDomainForm = () => {
             <div className="max-w-[400px]">
                 {message.message && <div className={cn(message.error ? 'text-red-500' : 'text-[#FFA716]', 'whitespace-pre-wrap text-wrap text-xs	')}>{message.message}</div>}
                 {warned && (
-                    <Button variant={ButtonVariant.Ghost} isLoading={isLoading} className="mt-2 cursor-pointer text-xs text-blue-500" onClick={addDomain}>
+                    <Button variant="ghost" isLoading={isLoading} className="mt-2 cursor-pointer text-xs text-blue-500" onClick={addDomain}>
                         Add Anyway
                     </Button>
                 )}

@@ -1,7 +1,6 @@
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 
 import environments from '@app/configs/environments';
-import { ButtonSize } from '@app/models/enums/button';
 import { Button } from '@app/shadcn/components/ui/button';
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
@@ -62,7 +61,7 @@ export default function FormPublishedModal(props: any) {
                 <div className="mb-5 mt-5">
                     <button data-umami-event={'PublishModal Goto Dashboard Link'} data-umami-event-email={authState.email}>
                         <a href={`${environments.HTTP_SCHEME}${environments.DASHBOARD_DOMAIN}/${workspace.workspaceName}/dashboard/forms`}>
-                            <Button size={ButtonSize.Medium}>Done! Go to dashboard</Button>
+                            <Button size="medium">Done! Go to dashboard</Button>
                         </a>
                     </button>
                 </div>

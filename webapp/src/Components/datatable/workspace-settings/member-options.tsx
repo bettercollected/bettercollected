@@ -3,12 +3,13 @@ import { useTranslation } from 'next-i18next';
 import Tooltip from '@Components/Common/DataDisplay/Tooltip';
 import Delete from '@Components/Common/Icons/Common/Delete';
 import { MoreHoriz, Refresh } from '@mui/icons-material';
-import { IconButton, ListItemIcon, Menu, MenuItem, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, Button, Divider } from '@mui/material';
+import { IconButton, ListItemIcon, Menu, MenuItem, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, Divider } from '@mui/material';
 import { useModal } from '@app/Components/modal-views/context';
 import { buttonConstant } from '@app/constants/locales/button';
 import { toolTipConstant } from '@app/constants/locales/tooltip';
 import { WorkspaceInvitationDto, WorkspaceMembersDto } from '@app/models/dtos/WorkspaceMembersDto';
 import { useResendWorkspaceInvitationMutation } from '@app/store/workspaces/members-n-invitations-api';
+import { Button } from '@app/shadcn/components/ui/button';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 
 interface IMemberOptionProps {
@@ -170,32 +171,13 @@ export default function MemberOptions({ member, invitation }: IMemberOptionProps
                 <DialogActions sx={{ display: 'flex', justifyContent: 'center', gap: 2, paddingY: 3 }}>
                     <Button
                         onClick={handleCloseConfirmDialog}
-                        sx={{
-                            backgroundColor: '#4D4D4D',
-                            color: 'white',
-                            '&:hover': {
-                                backgroundColor: '#1D1D1D'
-                            },
-                            fontSize: '14px',
-                            padding: '10px 20px',
-                            minWidth: '120px'
-                        }}
+                        className="bg-[#4D4D4D] text-white hover:bg-[#1D1D1D] text-sm py-[10px] px-[20px] min-w-[120px]"
                     >
                         {t('No')}
                     </Button>
                     <Button
                         onClick={handleConfirmResendInvitation}
-                        sx={{
-                            backgroundColor: '#007BFF', // Blue color for Yes button
-                            color: 'white',
-                            '&:hover': {
-                                backgroundColor: '#0055ff' // Darker blue on hover
-                            },
-                            fontSize: '14px',
-                            padding: '10px 20px',
-                            minWidth: '120px',
-                            position: 'relative'
-                        }}
+                        className="bg-[#007BFF] text-white hover:bg-[#0055ff] text-sm py-[10px] px-[20px] min-w-[120px] relative"
                         disabled={loading}
                         autoFocus
                     >

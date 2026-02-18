@@ -4,8 +4,7 @@ import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/navigation';
 
 import AppTextField from '@Components/Common/Input/AppTextField';
-import AppButton from '@Components/Common/Input/Button/AppButton';
-import { ButtonSize, ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
+import { Button } from '@app/shadcn/components/ui/button';
 import CheckBox from '@Components/Common/Input/CheckBox';
 import TextArea from '@Components/Common/Input/TextArea';
 import BottomSheetModalWrapper from '@Components/Modals/ModalWrappers/BottomSheetModalWrapper';
@@ -183,9 +182,9 @@ export default function DeleteAccountModal() {
                 </FormGroup>
                 <div className="mt-[72px]">
                     {error && <div className="mb-4 text-sm text-red-500">* Please fill in all required fields or check CONFIRM field.</div>}
-                    <AppButton variant={ButtonVariant.Danger} size={ButtonSize.Medium} onClick={onClickDelete}>
+                    <Button variant="danger" size="medium" onClick={onClickDelete}>
                         {t('DELETE_ACCOUNT.DELETE_NOW')}
-                    </AppButton>
+                    </Button>
                 </div>
             </div>
         </BottomSheetModalWrapper>

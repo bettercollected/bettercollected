@@ -4,8 +4,7 @@ import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/navigation';
 
 import AppTextField from '@Components/Common/Input/AppTextField';
-import AppButton from '@Components/Common/Input/Button/AppButton';
-import { ButtonSize, ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
+import { Button } from '@app/shadcn/components/ui/button';
 import { useBottomSheetModal } from '@Components/Modals/Contexts/BottomSheetModalContext';
 import HeaderModalWrapper from '@app/Components/Modals/ModalWrappers/HeaderModalWrapper';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
@@ -93,9 +92,9 @@ export default function UpdateWorkspaceHandle() {
                 </div>
                 <AppTextField value={updateText} onChange={handleUpdateChange} isError={error} error={error} />
                 {error && <span className={'text-sm text-red-500 font-normal'}>{errorMessage}</span>}
-                <AppButton className="w-full mt-2" disabled={error} data-testid="save-button" type="submit" isLoading={isLoading} size={ButtonSize.Medium} variant={ButtonVariant.Primary}>
+                <Button className="w-full mt-2" disabled={error || isLoading} data-testid="save-button" type="submit" >
                     {t(buttonConstant.updateNow)}
-                </AppButton>
+                </Button>
             </form>
         </HeaderModalWrapper>
     );

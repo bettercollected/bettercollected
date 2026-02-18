@@ -2,8 +2,7 @@ import { useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
 
-import AppButton from '@Components/Common/Input/Button/AppButton';
-import { ButtonSize, ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
+import { Button } from '@app/shadcn/components/ui/button';
 import { useBottomSheetModal } from '@Components/Modals/Contexts/BottomSheetModalContext';
 import DataTable from 'react-data-table-component';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
@@ -163,15 +162,15 @@ const SelectGroup = () => {
                     <h1 className={'h2-new !text-black-800'}>Select Group</h1>
                     <p className={'text-black-700 text-sm font-normal'}>Only members of the specific groups be able to see the form. You can also create groups with whom you want to share this form.</p>
                 </div>
-                <AppButton variant={ButtonVariant.Secondary} onClick={() => openBottomSheetModal('CREATE_GROUP')} icon={<GroupIcon className={'text-white'} />} size={ButtonSize.Medium}>
+                <Button variant="secondary" onClick={() => openBottomSheetModal('CREATE_GROUP')} icon={<GroupIcon className={'text-white'} />} size="medium">
                     Create New Group
-                </AppButton>
+                </Button>
             </div>
             <DataTable className="mt-2 h-full !overflow-auto p-0" columns={groupColumns} data={data || []} customStyles={dataTableCustomStyles} highlightOnHover={false} pointerOnHover={false} />
             <div className={'flex flex-row'}>
-                <AppButton className="" onClick={handleOnSave} icon={<SaveIcon className={'text-white'} />} size={ButtonSize.Medium}>
+                <Button className="" onClick={handleOnSave} icon={<SaveIcon className={'text-white'} />} size="medium">
                     Save Changes
-                </AppButton>
+                </Button>
             </div>
         </div>
     );

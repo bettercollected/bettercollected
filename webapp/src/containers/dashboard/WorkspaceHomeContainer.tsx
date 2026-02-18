@@ -3,7 +3,7 @@ import React from 'react';
 import { useTranslation } from 'next-i18next';
 
 import Divider from '@Components/Common/DataDisplay/Divider';
-import { Button } from '@mui/material';
+import { Button } from '@app/shadcn/components/ui/button';
 
 import AuthAccountMenuDropdown from '@app/Components/auth/account-menu-dropdown';
 import AuthAccountProfileImage from '@app/Components/auth/account-profile-image';
@@ -89,7 +89,7 @@ export default function WorkspaceHomeContainer({ isCustomDomain, showProTag = tr
                         <div className="md:hidden">
                             {isError && (
                                 <div className="">
-                                    <Button size="small" variant="contained" className="rounded body4 px-4 py-[13px] !leading-none !normal-case !text-white !bg-brand-500 hover:!bg-brand-600 shadow-none hover:shadow-none" onClick={handleCheckMyData}>
+                                    <Button size="sm" className="rounded body4 px-4 py-[13px] !leading-none !normal-case !text-white !bg-brand-500 hover:!bg-brand-600 shadow-none hover:shadow-none" onClick={handleCheckMyData}>
                                         {t(buttonConstant.checkMyData)}
                                     </Button>
                                 </div>
@@ -104,7 +104,7 @@ export default function WorkspaceHomeContainer({ isCustomDomain, showProTag = tr
                 <div className="hidden md:flex">
                     {isError && (
                         <div className="">
-                            <Button size="small" variant="contained" className="rounded body4 px-4 py-[13px] !leading-none !normal-case !text-white !bg-brand-500 hover:!bg-brand-600 shadow-none hover:shadow-none" onClick={handleCheckMyData}>
+                            <Button size="sm" className="rounded body4 px-4 py-[13px] !leading-none !normal-case !text-white !bg-brand-500 hover:!bg-brand-600 shadow-none hover:shadow-none" onClick={handleCheckMyData}>
                                 {t(buttonConstant.checkMyData)}
                             </Button>
                         </div>

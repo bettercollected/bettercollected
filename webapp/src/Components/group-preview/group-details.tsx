@@ -2,9 +2,7 @@ import React, { useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
 
-import { useToast } from '@app/shadcn/components/ui/use-toast';
-import AppButton from '@Components/Common/Input/Button/AppButton';
-import { ButtonSize, ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
+import { Button } from '@app/shadcn/components/ui/button';
 
 import GroupInfo from '@app/Components/group/group-info';
 import { buttonConstant } from '@app/constants/locales/button';
@@ -14,6 +12,7 @@ import { GroupInfoDto, ResponderGroupDto } from '@app/models/dtos/groups';
 import { selectIsAdmin } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { useUpdateResponderGroupMutation } from '@app/store/workspaces/api';
+import { useToast } from '@app/shadcn/components/ui/use-toast';
 
 export default function GroupDetailsTab({ group }: { group: ResponderGroupDto }) {
     const { t } = useTranslation();
@@ -52,9 +51,9 @@ export default function GroupDetailsTab({ group }: { group: ResponderGroupDto })
             <GroupInfo handleInput={handleInput} groupInfo={groupInfo} />
             {isAdmin && (
                 <div className="flex justify-start mt-10">
-                    <AppButton variant={ButtonVariant.Secondary} size={ButtonSize.Medium} isLoading={updateGroupResponse.isLoading}>
+                    <Button variant="secondary" size="medium" isLoading={updateGroupResponse.isLoading}>
                         {t(buttonConstant.saveChanges)}
-                    </AppButton>
+                    </Button>
                 </div>
             )}
         </form>

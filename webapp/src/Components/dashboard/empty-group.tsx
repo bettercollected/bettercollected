@@ -3,7 +3,7 @@ import React from 'react';
 import { useTranslation } from 'next-i18next';
 
 import Tooltip from '@Components/Common/DataDisplay/Tooltip';
-import AppButton from '@Components/Common/Input/Button/AppButton';
+import { Button } from '@app/shadcn/components/ui/button';
 import { useBottomSheetModal } from '@Components/Modals/Contexts/BottomSheetModalContext';
 
 import UserMore from '@app/Components/icons/user-more';
@@ -22,14 +22,14 @@ export default function EmptyGroup({ formId }: { formId?: string }) {
             <UserMore />
             <p className="body2 text-center !font-medium sm:w-[252px] mt-7 mb-6">{t(groupConstant.title)}</p>
             <Tooltip title={!isAdmin ? t(toolTipConstant.noAccessToGroup) : ''}>
-                <AppButton
+                <Button
                     disabled={!isAdmin}
                     onClick={() => {
                         openBottomSheetModal('CREATE_GROUP');
                     }}
                 >
                     {t(groupConstant.createNewGroup.default)}
-                </AppButton>
+                </Button>
             </Tooltip>
         </div>
     );

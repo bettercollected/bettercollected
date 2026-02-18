@@ -5,12 +5,11 @@ import { useTranslation } from 'next-i18next';
 import PrivateFormButtonWrapper from '@Components/Common/FormVisibility/PrivateFormButtonWrapper';
 import CopyIcon from '@Components/Common/Icons/Common/Copy';
 import AppTextField from '@Components/Common/Input/AppTextField';
-import AppButton from '@Components/Common/Input/Button/AppButton';
-import { ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
 import { useBottomSheetModal } from '@Components/Modals/Contexts/BottomSheetModalContext';
 import useCopyToClipboard from 'react-use/lib/useCopyToClipboard';
 
 import { useToast } from '@app/shadcn/components/ui/use-toast';
+import { Button } from '@app/shadcn/components/ui/button';
 import Globe from '@app/Components/icons/flags/globe';
 import { useFullScreenModal } from '@app/Components/modal-views/full-screen-modal-context';
 import { formPage } from '@app/constants/locales/form-page';
@@ -57,14 +56,16 @@ export default function FormLinkUpdateView({ link, isCustomDomain = false, isDis
                     <AppTextField isDisabled={true} disabledColor={'#1D1D1D'} className={'w-full'} onClick={handleOnCopy} value={link} />
                     <div className="flex flex-row gap-4 items-center w-full">
                         <PrivateFormButtonWrapper isPrivate={isPrivate}>
-                            <AppButton variant={ButtonVariant.Secondary} disabled={isPrivate} onClick={handleOnCopy} icon={<CopyIcon className="cursor-pointer" />}>
+                            <Button variant="secondary" disabled={isPrivate} onClick={handleOnCopy}>
+                                <CopyIcon className="cursor-pointer mr-2" />
                                 {t(formPage.linkCopyLink)}
-                            </AppButton>
+                            </Button>
                         </PrivateFormButtonWrapper>
                         {(!isProUser || !workspace?.customDomain) && (
-                            <AppButton variant={ButtonVariant.Tertiary} icon={<Globe className="h-[18px] w-[18px]" />} disabled={isDisable} onClick={handleOnClickCustomDomain}>
+                            <Button variant="tertiary" disabled={isDisable} onClick={handleOnClickCustomDomain}>
+                                <Globe className="h-[18px] w-[18px] mr-2" />
                                 {t(formPage.linksUseCustomDomain)}
-                            </AppButton>
+                            </Button>
                         )}
                     </div>
                 </div>

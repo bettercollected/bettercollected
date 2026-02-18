@@ -11,8 +11,7 @@ import { DotIcon } from '@Components/Common/Icons/Common/DotIcon';
 import SettingsIcon from '@Components/Common/Icons/Common/Settings';
 import FormProviderIcon from '@Components/Common/Icons/Form/FormProviderIcon';
 import Preview from '@Components/Common/Icons/Form/Preview';
-import AppButton from '@Components/Common/Input/Button/AppButton';
-import { ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
+import { Button } from '@app/shadcn/components/ui/button';
 import { ChevronLeft } from '@mui/icons-material';
 
 import FormRenderer from '@app/Components/Form/renderer/form-renderer';
@@ -119,9 +118,9 @@ export default function Submission({ hasCustomDomain, data, handleRequestForDele
                                 {!form?.response?.deletionStatus ? (
                                     <div>
                                         <Tooltip title={deletionStatus ? t(toolTipConstant.alreadyRequestedForDeletion) : t(toolTipConstant.requestForDeletion)}>
-                                            <AppButton className={`w-fit`} variant={ButtonVariant.Danger} onClick={handleRequestForDeletionModal}>
+                                            <Button className={`w-fit`} variant="danger" onClick={handleRequestForDeletionModal}>
                                                 {t(buttonConstant.requestForDeletion)}
-                                            </AppButton>
+                                            </Button>
                                         </Tooltip>
                                     </div>
                                 ) : (

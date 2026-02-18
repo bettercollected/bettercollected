@@ -10,8 +10,7 @@ import ShareIcon from '@Components/Common/Icons/Common/ShareIcon';
 import FormProviderIcon from '@Components/Common/Icons/Form/FormProviderIcon';
 import PrivateIcon from '@Components/Common/Icons/Form/Private';
 import PublicIcon from '@Components/Common/Icons/Form/Public';
-import AppButton from '@Components/Common/Input/Button/AppButton';
-import { ButtonSize, ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
+import { Button } from '@app/shadcn/components/ui/button';
 import { Typography } from '@mui/material';
 import moment from 'moment/moment';
 
@@ -140,23 +139,23 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, group, worksp
                 {!isResponderPortal && !group && (
                     <div className="hidden items-center gap-2 lg:invisible lg:flex lg:group-hover:visible">
                         {form?.isPublished && !form?.settings?.hidden && isFormOpen && (
-                            <AppButton onClick={handleShareClick} variant={ButtonVariant.Ghost} size={ButtonSize.Small} icon={<ShareIcon width={16} height={16} />}>
+                            <Button onClick={handleShareClick} variant="ghost" size="sm" icon={<ShareIcon width={16} height={16} />}>
                                 {t('BUTTON.SHARE')}
-                            </AppButton>
+                            </Button>
                         )}
                         {form?.settings?.provider === 'self' && form?.builderVersion === 'v2' && (
-                            <AppButton
+                            <Button
                                 onClick={(event: any) => {
                                     event.preventDefault();
                                     event.stopPropagation();
                                     router.push(getEditFormURL(workspace, form));
                                 }}
-                                variant={ButtonVariant.Ghost}
-                                size={ButtonSize.Small}
+                                variant="ghost"
+                                size="sm"
                                 icon={<EditIcon width={16} height={16} />}
                             >
                                 {t('BUTTON.EDIT')}
-                            </AppButton>
+                            </Button>
                         )}
                         <FormOptionsDropdownMenu redirectToDashboard={true} form={form} hasCustomDomain={hasCustomDomain} workspace={workspace} />
                     </div>

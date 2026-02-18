@@ -6,10 +6,9 @@ import { useTranslation } from 'react-i18next';
 import { useRouter } from 'next/navigation';
 
 import AppTextField from '@Components/Common/Input/AppTextField';
-import AppButton from '@Components/Common/Input/Button/AppButton';
-import { ButtonSize } from '@Components/Common/Input/Button/AppButtonProps';
 import UploadLogo from '@Components/Common/UploadLogo';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
+import { Button } from '@app/shadcn/components/ui/button';
 
 import AuthNavbar from '@app/Components/auth/navbar';
 import TextFieldHandler from '@app/Components/onboarding/TextFieldHandler';
@@ -172,9 +171,9 @@ const OnboardingContainer = ({ workspace, createWorkspace }: onBoardingProps) =>
                     <AppTextField onBlur={onWorkspaceTitleBlur} required title="Organization Name" id="title" placeholder="Enter name of your workspace" value={formData.title} onChange={handleOnchange} />
                     <TextFieldHandler formData={formData} setFormData={setFormData} handleOnChange={handleOnchange} createWorkspace={createWorkspace} />
                     <AppTextField title="Add Your Organization Description" id="description" placeholder="Write Description" multiline value={formData.description} onChange={handleOnchange} />
-                    <AppButton size={ButtonSize.Medium} className="w-full " type="submit" disabled={!formData.title || !formData.workspaceName}>
+                    <Button size="medium" className="w-full " type="submit" disabled={!formData.title || !formData.workspaceName}>
                         {t(onBoarding.addNowButton)}
-                    </AppButton>
+                    </Button>
                 </form>
             </div>
         </div>

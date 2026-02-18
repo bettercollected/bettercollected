@@ -11,8 +11,6 @@ import EditIcon from '@Components/Common/Icons/Common/Edit';
 import SettingsIcon from '@Components/Common/Icons/Common/Settings';
 import FormProviderIcon from '@Components/Common/Icons/Form/FormProviderIcon';
 import Preview from '@Components/Common/Icons/Form/Preview';
-import AppButton from '@Components/Common/Input/Button/AppButton';
-import { ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
 import { Group, IntegrationInstructions, Share } from '@mui/icons-material';
 
 import { ChevronForward } from '@app/Components/icons/chevron-forward';
@@ -139,21 +137,21 @@ export default function FormDashboardClient(props: any) {
                             </div>
                             <div className="hidden gap-4 lg:flex">
                                 {form?.settings?.provider === 'self' && form?.builderVersion === 'v2' && (
-                                    <AppButton
+                                    <Button
                                         icon={<EditIcon className="h-6 w-6" />}
-                                        variant={['sm', 'md', 'lg', 'xl', '2xl'].indexOf(breakpoint) !== -1 ? ButtonVariant.Secondary : ButtonVariant.Ghost}
+                                        variant={['sm', 'md', 'lg', 'xl', '2xl'].indexOf(breakpoint) !== -1 ? 'secondary' : 'ghost'}
                                         className="!px-0 sm:!px-5"
                                         onClick={() => {
                                             router.push(getEditFormURL(workspace, form));
                                         }}
                                     >
                                         <span className="hidden sm:block">{t(formPage.editForm)}</span>
-                                    </AppButton>
+                                    </Button>
                                 )}
                                 {form?.isPublished && isFormOpen && (
                                     <PrivateFormButtonWrapper isPrivate={workspaceForm?.settings?.hidden}>
-                                        <AppButton
-                                            variant={['sm', 'md', 'lg', 'xl', '2xl'].indexOf(breakpoint) !== -1 ? ButtonVariant.Primary : ButtonVariant.Ghost}
+                                        <Button
+                                            variant={['sm', 'md', 'lg', 'xl', '2xl'].indexOf(breakpoint) !== -1 ? 'primary' : 'ghost'}
                                             icon={<Share />}
                                             className="!px-0 sm:!px-5"
                                             disabled={workspaceForm?.settings?.hidden}
@@ -165,7 +163,7 @@ export default function FormDashboardClient(props: any) {
                                             }
                                         >
                                             <span className="hidden sm:block">{t(formPage.shareForm)}</span>
-                                        </AppButton>
+                                        </Button>
                                     </PrivateFormButtonWrapper>
                                 )}
                             </div>

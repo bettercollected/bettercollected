@@ -6,8 +6,7 @@ import Divider from '@Components/Common/DataDisplay/Divider';
 import Tooltip from '@Components/Common/DataDisplay/Tooltip';
 import EditIcon from '@Components/Common/Icons/Common/Edit';
 import LockIcon from '@Components/Common/Icons/lock';
-import AppButton from '@Components/Common/Input/Button/AppButton';
-import { ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
+import { Button } from '@app/shadcn/components/ui/button';
 import { useBottomSheetModal } from '@Components/Modals/Contexts/BottomSheetModalContext';
 import { QrCode } from '@mui/icons-material';
 import { FormControlLabel, Radio, RadioGroup } from '@mui/material';
@@ -272,7 +271,7 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                                 </p>
                             </Tooltip>
                             <div className={'flex gap-8'}>
-                                <AppButton
+                                <Button
                                     data-umami-event="Customize Form Link Button"
                                     data-umami-event-email={auth.email}
                                     className={'!py-0'}
@@ -283,12 +282,12 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                                             customSlug: customUrl
                                         });
                                     }}
-                                    variant={ButtonVariant.Ghost}
+                                    variant="ghost"
                                 >
                                     {t(formPage.linksChangeSlug)}
-                                </AppButton>
+                                </Button>
                                 {environments.ENABLE_FORM_QR && !form?.settings?.hidden && (
-                                    <AppButton
+                                    <Button
                                         data-umami-event="Generate QR button"
                                         data-umami-event-email={auth.email}
                                         className={'!py-0'}
@@ -296,10 +295,10 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                                         onClick={() => {
                                             openModal('GENERATE_QR');
                                         }}
-                                        variant={ButtonVariant.Ghost}
+                                        variant="ghost"
                                     >
                                         Generate QR Code
-                                    </AppButton>
+                                    </Button>
                                 )}
                             </div>
                         </div>
@@ -464,11 +463,11 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                                                 />
                                             </div>
                                             {!closeFormChecked && !moment(form?.settings?.formCloseDate).isAfter(moment.utc()) && (
-                                                <AppButton
+                                                <Button
                                                     data-umami-event="Select Form Close Date Button"
                                                     data-umami-event-email={auth.email}
                                                     className="mt-2"
-                                                    variant={ButtonVariant.Ghost}
+                                                    variant="ghost"
                                                     onClick={() => {
                                                         openBottomSheetModal('SELECT_FORM_CLOSE_DATE', {
                                                             onFormClosedChange: onFormClosedChange,
@@ -477,7 +476,7 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                                                     }}
                                                 >
                                                     {t(formPage.schedule)}
-                                                </AppButton>
+                                                </Button>
                                             )}
                                         </>
                                     )}
@@ -499,16 +498,16 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                             </FormSettingsCard>
                         )}
                         <div className="mt-6">
-                            <AppButton
+                            <Button
                                 data-umami-event="Delete Form From Preview Section"
                                 data-umami-event-email={auth.email}
                                 onClick={() => {
                                     openModal('DELETE_FORM_MODAL', { form, redirectToDashboard: true });
                                 }}
-                                variant={ButtonVariant.Danger}
+                                variant="danger"
                             >
                                 {t(buttonConstant.deleteForm)}
-                            </AppButton>
+                            </Button>
                         </div>
                     </div>
                 );
@@ -537,9 +536,9 @@ const FormGroups = ({ groups }: { groups: ResponderGroupDto[] }) => {
                 );
             })}
             <div className={'mt-2'}>
-                <AppButton onClick={() => openBottomSheetModal('SELECT_GROUP_FULL_MODAL_VIEW')} icon={<GroupIcon />} variant={ButtonVariant.Secondary}>
+                <Button onClick={() => openBottomSheetModal('SELECT_GROUP_FULL_MODAL_VIEW')} icon={<GroupIcon />} variant="secondary">
                     {t(formPage.visibilityAddOrRemove)}
-                </AppButton>
+                </Button>
             </div>
         </div>
     );

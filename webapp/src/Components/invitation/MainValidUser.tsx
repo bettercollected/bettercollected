@@ -2,10 +2,8 @@ import React, { useState } from 'react';
 import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/navigation';
 
-import AppButton from '@Components/Common/Input/Button/AppButton';
-import { ButtonSize, ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
-
 import { useToast } from '@app/shadcn/components/ui/use-toast';
+import { Button } from '@app/shadcn/components/ui/button';
 import AuthNavbar from '@app/Components/auth/navbar';
 import { buttonConstant } from '@app/constants/locales/button';
 import { invitationConstant } from '@app/constants/locales/invitations';
@@ -88,12 +86,12 @@ const MainValidUser: React.FC<Props> = ({ workspace, user, invitation }: Props) 
 
                         <div className="flex flex-col items-center space-y-4">
                             <div className="flex flex-col items-center justify-between gap-5 sm:flex-row">
-                                <AppButton disabled={isLoading} size={ButtonSize.Big} onClick={onAccept}>
+                                <Button disabled={isLoading} size="lg" onClick={onAccept}>
                                     {t(buttonConstant.joinWorkspace)}
-                                </AppButton>
-                                <AppButton variant={ButtonVariant.Secondary} disabled={isLoading} size={ButtonSize.Big} onClick={onDecline}>
+                                </Button>
+                                <Button variant="secondary" disabled={isLoading} size="lg" onClick={onDecline}>
                                     {t(buttonConstant.decline)}
-                                </AppButton>
+                                </Button>
                             </div>
                             <div className="body3 !text-black-700 mt-5">{t(invitationConstant.expiryLink)}</div>
                         </div>

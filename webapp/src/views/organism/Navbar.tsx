@@ -6,7 +6,6 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { v4 } from 'uuid';
 
 import { FieldTypes } from '@app/models/dtos/form';
-import { ButtonVariant } from '@app/models/enums/button';
 import { Button } from '@app/shadcn/components/ui/button';
 import { DropdownMenu, DropdownMenuContent } from '@app/shadcn/components/ui/dropdown-menu';
 import { Sheet, SheetClose, SheetContent, SheetFooter, SheetTrigger } from '@app/shadcn/components/ui/sheet';
@@ -220,7 +219,7 @@ const Navbar = () => {
                     </SheetContent>
                 </Sheet>
                 {authState?.roles?.includes('ADMIN') && (
-                    <Button variant={ButtonVariant.Secondary} isLoading={isCreatingTemplate} onClick={makeTemplate}>
+                    <Button variant="secondary" isLoading={isCreatingTemplate} onClick={makeTemplate}>
                         Make Template
                     </Button>
                 )}

@@ -4,8 +4,7 @@ import { useRouter } from 'next/navigation';
 
 import CircularCheck from '@Components/Common/Icons/Common/CircularCheck';
 import AppTextField from '@Components/Common/Input/AppTextField';
-import AppButton from '@Components/Common/Input/Button/AppButton';
-import { ButtonSize } from '@Components/Common/Input/Button/AppButtonProps';
+import { Button } from '@app/shadcn/components/ui/button';
 import CloseModal from '@Components/Modals/CloseModal';
 
 import { useModal } from '@app/Components/modal-views/context';
@@ -50,15 +49,15 @@ export default function RedeemCouponCodeModal({ showSuccess = false }: { showSuc
                     <CircularCheck className="mb-2 mt-12" height={41} width={41} />
                     <div className="h3-new mb-2">Congratulations!</div>
                     <div className="p2-new text-black-700 mb-10 max-w-[420px] !text-center">Your code has been successfully redeemed, and your account is now upgraded to PRO.</div>
-                    <AppButton
-                        size={ButtonSize.Medium}
+                    <Button
+                        size="medium"
                         className="min-w-[120px]"
                         onClick={() => {
                             closeModal();
                         }}
                     >
                         Done
-                    </AppButton>
+                    </Button>
                 </>
             ) : (
                 <>
@@ -97,10 +96,10 @@ export default function RedeemCouponCodeModal({ showSuccess = false }: { showSuc
                             />
                             <div className="mt-2 h-[18px] text-left text-sm text-red-500">{error && error}</div>
                         </div>
-                        <AppButton type="submit" className="min-w-[120px]" isLoading={isLoading} size={ButtonSize.Medium}>
+                        <Button type="submit" className="min-w-[120px]" isLoading={isLoading} size="medium">
                             {' '}
                             Redeem{' '}
-                        </AppButton>
+                        </Button>
                     </form>
                 </>
             )}

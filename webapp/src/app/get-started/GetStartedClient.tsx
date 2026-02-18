@@ -6,9 +6,9 @@ import { useTranslation } from 'next-i18next';
 import Image from "next/image";
 import { useRouter } from 'next/navigation';
 
-import AppButton from '@Components/Common/Input/Button/AppButton';
 import GetStartedStepper from '@Components/GetStarted/Stepper';
 import cn from 'classnames';
+import { Button } from '@app/shadcn/components/ui/button';
 
 import GetStartedDataRights from '@app/assets/images/getstarted-datarights.png';
 import GetStartedFormBrand from '@app/assets/images/getstarted-formbrand.png';
@@ -154,8 +154,8 @@ export default function GetStartedClient({ locale }: { locale: string }) {
     };
 
     const previewGetStartedStep = (step: IGetStartedStep) => {
-        const nextButton = !!step.nextButtonProps?.nextBtn && <AppButton onClick={() => handleNext({ id: step.id, answer: 'yes' })}>{step.nextButtonProps.nextBtn.btnText}</AppButton>;
-        const noButton = !!step.nextButtonProps?.noBtn && <AppButton onClick={() => handleNext({ id: step.id, answer: 'no' })}>{step.nextButtonProps.noBtn.btnText}</AppButton>;
+        const nextButton = !!step.nextButtonProps?.nextBtn && <Button onClick={() => handleNext({ id: step.id, answer: 'yes' })}>{step.nextButtonProps.nextBtn.btnText}</Button>;
+        const noButton = !!step.nextButtonProps?.noBtn && <Button onClick={() => handleNext({ id: step.id, answer: 'no' })}>{step.nextButtonProps.noBtn.btnText}</Button>;
         const hasYesNoBoth = !!step.nextButtonProps?.nextBtn?.btnText && !!step.nextButtonProps?.noBtn?.btnText;
 
         return (
@@ -197,7 +197,7 @@ export default function GetStartedClient({ locale }: { locale: string }) {
                 <div className="relative h-40 my-10 flex items-center justify-center">
                     <Image src={UserFitImage} alt="User Fit" width={300} height={160} style={{ objectFit: 'contain' }} />
                 </div>
-                <AppButton onClick={() => router.push(signUpLink)}>{t(getStarted.userIsFit.buttonText)}</AppButton>
+                <Button onClick={() => router.push(signUpLink)}>{t(getStarted.userIsFit.buttonText)}</Button>
             </div>
         </div>
     );
@@ -211,7 +211,7 @@ export default function GetStartedClient({ locale }: { locale: string }) {
                 <div className="relative h-40 my-10 flex items-center justify-center">
                     <Image src={UserNotFitImage} alt="User not fit" width={300} height={160} style={{ objectFit: 'contain' }} />
                 </div>
-                <AppButton onClick={() => router.push(signUpLink)}>{t(getStarted.userIsNotFit.buttonText)}</AppButton>
+                <Button onClick={() => router.push(signUpLink)}>{t(getStarted.userIsNotFit.buttonText)}</Button>
             </div>
         </div>
     );

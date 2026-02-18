@@ -4,8 +4,7 @@ import { useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
 
-import AppButton from '@Components/Common/Input/Button/AppButton';
-import { ButtonSize } from '@Components/Common/Input/Button/AppButtonProps';
+import { Button } from '@app/shadcn/components/ui/button';
 import { useFullScreenModal } from '@app/Components/modal-views/full-screen-modal-context';
 import Logo, { ProLogo } from '@app/Components/ui/logo';
 import { upgradeConst } from '@app/constants/locales/upgrade';
@@ -117,10 +116,9 @@ export default function UpgradeToProContainer({ featureText, isModal = true, cal
                     </div>
                 </div>
                 <div className="mt-10">
-                    <AppButton
-                        isLoading={isSuggesting}
+                    <Button
+                        disabled={isSuggesting}
                         className="mb-2"
-                        size={ButtonSize.Medium}
                         onClick={async () => {
                             if (activeSuggestion === null && !customPrice) {
                                 toast({ description: 'Please select a price first' });
@@ -155,7 +153,7 @@ export default function UpgradeToProContainer({ featureText, isModal = true, cal
                         }}
                     >
                         Start Pro account
-                    </AppButton>
+                    </Button>
                     <div className="p2-new text-black-600 text-center italic">Free for 90 days!</div>
                 </div>
             </>

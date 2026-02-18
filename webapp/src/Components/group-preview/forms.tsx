@@ -3,8 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/navigation';
 
-import AppButton from '@Components/Common/Input/Button/AppButton';
-import { ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
+import { Button } from '@app/shadcn/components/ui/button';
 import SearchInput from '@Components/Common/Search/SearchInput';
 import { Typography } from '@mui/material';
 
@@ -59,10 +58,10 @@ export default function GroupFormsTab({ group, workspaceForms }: { group: Respon
                     </p>
                     <p className="body4 leading-none   !text-black-700 ">{t(groupConstant.form.description)}</p>
                 </div>
-                <AppButton disabled={workspaceForms.length === 0} onClick={() => openModal('ADD_FORM_GROUP', { forms: workspaceForms, group })} variant={ButtonVariant.Ghost}>
+                <Button disabled={workspaceForms.length === 0} onClick={() => openModal('ADD_FORM_GROUP', { forms: workspaceForms, group })} variant="ghost">
                     <Plus className="h-4 w-4" />
                     <Typography className="!text-brand-500 min-w-[65px]  body6"> {t(buttonConstant.addForm)}</Typography>
-                </AppButton>
+                </Button>
             </div>
             {group.forms.length > 0 && (
                 <div className="gap-6 flex flex-col">

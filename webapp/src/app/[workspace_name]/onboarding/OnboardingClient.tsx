@@ -3,9 +3,7 @@
 import React, { useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
-
-import AppButton from '@Components/Common/Input/Button/AppButton';
-import { ButtonSize } from '@Components/Common/Input/Button/AppButtonProps';
+import { Button } from '@app/shadcn/components/ui/button';
 
 import AuthAccountProfileImage from '@app/Components/auth/account-profile-image';
 import Logo from '@app/Components/ui/logo';
@@ -44,9 +42,9 @@ export default function OnboardingClient({ workspace, createWorkspace }: onBoard
                     {t(localesCommon.hey)} {user?.firstName || user?.email}!
                 </p>
                 <p className="text-black-800 pt-2 text-base">{t(onBoarding.welcomeMessage)}</p>
-                <AppButton className="bg-new-blue-500 hover:bg-brand-600 mt-12 !py-3 px-8" size={ButtonSize.Medium} onClick={increaseStep}>
+                <Button className="bg-new-blue-500 hover:bg-brand-600 mt-12 !py-3 px-8" size="medium" onClick={increaseStep}>
                     {t(onBoarding.addYourOrganization)}
-                </AppButton>
+                </Button>
             </div>
         </>
     );

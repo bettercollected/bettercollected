@@ -5,7 +5,7 @@ import React from 'react';
 import { useTranslation } from 'next-i18next';
 
 import { useBottomSheetModal } from '@Components/Modals/Contexts/BottomSheetModalContext';
-import { Button } from '@mui/material';
+import { Button } from '@app/shadcn/components/ui/button';
 
 import AuthAccountProfileImage from '@app/Components/auth/account-profile-image';
 import SettingCard from '@Components/cards/setting-card';
@@ -38,9 +38,8 @@ export default function AccountSettings() {
                 <SettingCard title={t(localesCommon.termsOfServices.title)} description={t(localesCommon.termsOfServices.description)} link="https://bettercollected.com/terms-of-service" />
                 <div className="my-6">
                     <Button
-                        style={{ textTransform: 'none' }}
-                        className="bg-red-100 px-4 !leading-none py-3 body6 rounded hover:bg-red-200 hover:drop-shadow-sm  !text-red-500"
-                        size="medium"
+                        variant="ghost"
+                        className="bg-red-100 px-4 !leading-none py-3 body6 rounded hover:bg-red-200 hover:drop-shadow-sm !text-red-500"
                         onClick={() => {
                             openBottomSheetModal('DELETE_ACCOUNT');
                         }}

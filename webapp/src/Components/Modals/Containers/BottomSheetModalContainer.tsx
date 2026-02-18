@@ -5,7 +5,7 @@ import DeleteAccountModal from '@Components/Modals/BottomSheetModals/DeleteAccou
 import TemplateSettingsModal from '@Components/Modals/BottomSheetModals/TemplateSettingsModal';
 import WorkspaceSettingsModal from '@Components/Modals/BottomSheetModals/WorkspaceSettingsModal';
 import { BOTTOM_SCREEN_MODALS, useBottomSheetModal } from '@Components/Modals/Contexts/BottomSheetModalContext';
-import { Button } from '@mui/material';
+import { Button } from '@app/shadcn/components/ui/button';
 import { AnimatePresence, motion } from 'framer-motion';
 
 import { Close } from '@app/Components/icons/close';
@@ -59,7 +59,7 @@ export default function BottomSheetModalContainer() {
                     )}
                 </AnimatePresence>
                 <div className="sr-only">
-                    <Button size="small" onClick={closeBottomSheetModal} className="opacity-50 hover:opacity-80 ">
+                    <Button variant="ghost" size="sm" onClick={closeBottomSheetModal} className="opacity-50 hover:opacity-80 ">
                         <Close className="h-auto w-[13px]" />
                     </Button>
                 </div>

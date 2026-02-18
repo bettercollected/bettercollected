@@ -3,11 +3,10 @@ import React from 'react';
 import { useTranslation } from 'next-i18next';
 
 import Tooltip from '@Components/Common/DataDisplay/Tooltip';
-import AppButton from '@Components/Common/Input/Button/AppButton';
-import { ButtonSize } from '@Components/Common/Input/Button/AppButtonProps';
 import { Typography } from '@mui/material';
 import cn from 'classnames';
 
+import { Button } from '@app/shadcn/components/ui/button';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { buttonConstant } from '@app/constants/locales/button';
 import { useCopyToClipboard } from '@app/lib/hooks/use-copy-to-clipboard';
@@ -30,15 +29,15 @@ export default function LinkView({ url, toastMessage, className, buttonClassName
                 </Tooltip>
             </div>
             <div className="flex w-full justify-end">
-                <AppButton
-                    size={ButtonSize.Medium}
+                <Button
+                    size="medium"
                     onClick={() => {
                         copyToClipboard(url);
                         toast({ description: toastMessage });
                     }}
                 >
                     {'Copy Link'}
-                </AppButton>
+                </Button>
             </div>
         </div>
     );

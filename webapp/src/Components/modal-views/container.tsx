@@ -1,6 +1,5 @@
 import { Fragment, useCallback } from 'react';
 
-import Button from '@Components/Common/Input/Button';
 import AddActionToFormModal from '@Components/Modals/DialogModals/AddActionToFormModal';
 import ImportFormModal from '@Components/Modals/DialogModals/ImportFormModal';
 import OauthErrorModal from '@Components/Modals/DialogModals/OauthErrorModal';
@@ -37,6 +36,7 @@ import CropImageModalView from './modals/crop-image-modal-view';
 import DeleteConfirmationModal from './modals/delete-confirmation-modal';
 import EditWorkspaceModal from './modals/edit-workspace-modal';
 import VisibilityConfirmationModalView from './modals/visibility-confirmation-modal-view';
+import { Button } from '@app/shadcn/components/ui/button';
 
 function renderModalContent(view: MODAL_VIEW, modalProps: any) {
     switch (view) {
@@ -128,7 +128,7 @@ export default function ModalContainer() {
 
                 {/* This element is need to fix FocusTap headless-ui warning issue */}
                 <div className="sr-only">
-                    <Button size="small" onClick={closeModalHandler} className="opacity-50 hover:opacity-80 ">
+                    <Button size="sm" onClick={closeModalHandler} className="opacity-50 hover:opacity-80 ">
                         <Close className="h-auto w-[13px]" />
                     </Button>
                 </div>

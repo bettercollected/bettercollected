@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 
-import AppButton from '@Components/Common/Input/Button/AppButton';
-import { ButtonSize, ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
+import { Button } from '@app/shadcn/components/ui/button';
 import ImportFormLoading from '@Components/ImportForm/ImportFormLoading';
 import ImportSuccessfulComponent from '@Components/ImportForm/ImportSuccessfulComponent';
 import useDrivePicker from '@fyelci/react-google-drive-picker';
@@ -125,17 +124,17 @@ export default function ImportFormModal() {
         <div className="start relative flex   w-full  flex-col items-center rounded-md bg-white">
             {formTitle && !form?.formId && <ImportFormLoading loadingText={singleFormFromProviderResult.isLoading ? 'Fetching Form' : 'Importing'} formTitle={formTitle} />}
             {!form?.formId && !formTitle && (
-                <AppButton
+                <Button
                     data-umami-event={'Imported Google Form'}
                     data-umami-event-email={auth.email}
-                    variant={ButtonVariant.Primary}
-                    size={ButtonSize.Big}
+                    variant="primary"
+                    size="lg"
                     onClick={() => {
                         openGoogleFilePicker();
                     }}
                 >
                     Open Google File Picker
-                </AppButton>
+                </Button>
             )}
             {form?.formId && <ImportSuccessfulComponent form={form} />}
         </div>
