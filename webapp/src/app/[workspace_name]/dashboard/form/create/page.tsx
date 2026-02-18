@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, use } from 'react';
 
 import { useRouter } from 'next-nprogress-bar';
 
@@ -34,7 +34,8 @@ const CardVariants = {
     pink: 'text-pink-500 hover:bg-pink-100 hover:border-pink-100 transition-all'
 };
 
-export default function CreateFormPage({ searchParams }: { searchParams: { modal?: string } }) {
+export default function CreateFormPage(props: { searchParams: Promise<{ modal?: string }> }) {
+    const searchParams = use(props.searchParams);
     const [createV2Form] = useCreateV2FormMutation();
     const { resetFields } = useFormFieldsAtom();
     const workspace = useAppSelector(selectWorkspace);

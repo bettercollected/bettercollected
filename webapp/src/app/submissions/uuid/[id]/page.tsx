@@ -17,7 +17,7 @@ async function getWorkspaceByDomain(domain: string) {
     }
 }
 
-export default async function SubmissionUUIDPage({ params }: { params: { id: string } }) {
+export default async function SubmissionUUIDPage({ params }: { params: Promise<{ id: string }> }) {
     const headerList = await headers();
     const host = headerList.get('x-forwarded-host') || headerList.get('host') || '';
     const hasCustomDomain = host !== environments.ADMIN_DOMAIN && host !== environments.CLIENT_DOMAIN;

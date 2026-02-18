@@ -7,13 +7,22 @@ import FullScreenLoader from '@app/views/atoms/Loaders/FullScreenLoader';
 import { WorkspaceDispatcher } from './_dispatcher/WorkspaceDispatcher';
 import environments from '@app/configs/environments';
 
-export async function generateMetadata({ params }: { params: { workspace_name: string } }) {
+export async function generateMetadata(props: { params: Promise<{ workspace_name: string }> }) {
+    const params = await props.params;
     return {
         title: 'Create | ' + params.workspace_name
     };
 }
 
-export default function WorkspaceLayout({ children, params }: Readonly<{ children: React.ReactNode; params: { workspace_name: string } }>) {
+export default async function WorkspaceLayout(
+    props: { children: React.ReactNode; params: Promise<{ workspace_name: string }> }
+) {
+    const params = await props.params;
+
+    const {
+        children
+    } = props;
+
     return (
         <>
             <WorkspaceWrapper workspaceName={params.workspace_name}>{children}</WorkspaceWrapper>

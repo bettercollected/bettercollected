@@ -4,7 +4,7 @@ import ServerSideWorkspaceDispatcher from '@app/Components/HOCs/ServerSideWorksp
 import { getWorkspaceByName } from '../layout';
 import RespondersGroupsClient from './RespondersGroupsClient';
 
-export default async function RespondersGroupsPage({ params }: { params: { workspace_name: string } }) {
+export default async function RespondersGroupsPage({ params }: { params: Promise<{ workspace_name: string }> }) {
     const { workspace_name } = await params;
     const workspace = await getWorkspaceByName(workspace_name);
 

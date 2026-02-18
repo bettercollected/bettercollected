@@ -6,7 +6,7 @@ import { notFound } from 'next/navigation';
 import React, { Suspense } from 'react';
 
 export async function generateMetadata() {
-    const domain = headers().get('x-forwarded-host') || headers().get('host') || '';
+    const domain = (await headers()).get('x-forwarded-host') || (await headers()).get('host') || '';
     const workspaceResponse = await fetch(environments.INTERNAL_DOCKER_API_ENDPOINT_HOST + '/workspaces?custom_domain=' + domain, { next: { revalidate: 300 } });
     const workspace = await workspaceResponse.json();
 
@@ -52,7 +52,7 @@ async function WorkspaceWrapper({ domain, children }: { domain: string; children
     );
 }
 
-export default function Layout({ children }: { children: React.ReactNode }) {
-    const domain = headers().get('x-forwarded-host') || headers().get('host') || '';
+export default async function Layout({ children }: { children: React.ReactNode }) {
+    const domain = (await headers()).get('x-forwarded-host') || (await headers()).get('host') || '';
     return <WorkspaceWrapper domain={domain}>{children}</WorkspaceWrapper>;
 }

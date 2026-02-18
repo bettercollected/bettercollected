@@ -22,8 +22,9 @@ async function getForm(workspaceId: string, formId: string) {
     }
 }
 
-export async function generateMetadata({ params }: { params: { id: string } }) {
-    const host = headers().get('x-forwarded-host') || headers().get('host') || '';
+export async function generateMetadata(props: { params: Promise<{ id: string }> }) {
+    const params = await props.params;
+    const host = (await headers()).get('x-forwarded-host') || (await headers()).get('host') || '';
     const workspace = await getWorkspaceByDomain(host);
 
     if (!workspace?.id) return {};
@@ -46,8 +47,12 @@ export async function generateMetadata({ params }: { params: { id: string } }) {
     };
 }
 
-export default async function Page({ params, searchParams }: { params: { id: string }; searchParams: { [key: string]: string | string[] | undefined } }) {
-    const host = headers().get('x-forwarded-host') || headers().get('host') || '';
+export default async function Page(
+    props: { params: Promise<{ id: string }>; searchParams: Promise<{ [key: string]: string | string[] | undefined }> }
+) {
+    const searchParams = await props.searchParams;
+    const params = await props.params;
+    const host = (await headers()).get('x-forwarded-host') || (await headers()).get('host') || '';
     const hasCustomDomain = host !== environments.FORM_DOMAIN;
 
     if (!hasCustomDomain) {

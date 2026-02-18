@@ -248,7 +248,7 @@ function CustomContentEditable({ id, tagName, type, placeholder, value, position
             id={id}
             contentEditable
             spellCheck={false}
-            innerRef={contentEditableRef}
+            innerRef={contentEditableRef as any}
             html={value || ''}
             tagName={tagName}
             data-placeholder={!showHideHolder ? placeholder : ''}

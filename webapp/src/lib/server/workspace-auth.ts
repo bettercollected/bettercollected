@@ -3,7 +3,7 @@ import environments from '@app/configs/environments';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 
 export async function getWorkspaceByServerContext(workspaceName: string) {
-    const cookieStore = cookies();
+    const cookieStore = await cookies();
     const authCookie = cookieStore.get('Authorization');
     const refreshCookie = cookieStore.get('RefreshToken');
     const cookieHeader = `${authCookie ? `Authorization=${authCookie.value};` : ''}${refreshCookie ? `RefreshToken=${refreshCookie.value};` : ''}`;
@@ -31,7 +31,7 @@ export async function getWorkspaceByServerContext(workspaceName: string) {
 }
 
 export async function checkUserWorkspaceAuth(workspace: WorkspaceDto) {
-    const cookieStore = cookies();
+    const cookieStore = await cookies();
     const authCookie = cookieStore.get('Authorization');
     const refreshCookie = cookieStore.get('RefreshToken');
     const cookieHeader = `${authCookie ? `Authorization=${authCookie.value};` : ''}${refreshCookie ? `RefreshToken=${refreshCookie.value};` : ''}`;

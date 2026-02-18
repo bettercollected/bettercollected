@@ -33,7 +33,7 @@ async function getTemplate(templateId: string, workspaceId: string, cookieHeader
     }
 }
 
-export default async function EditTemplatePage({ params }: { params: { workspace_name: string, template_id: string } }) {
+export default async function EditTemplatePage({ params }: { params: Promise<{ workspace_name: string, template_id: string }> }) {
     const { workspace_name, template_id } = await params;
 
     const workspace = await getWorkspaceByName(workspace_name);

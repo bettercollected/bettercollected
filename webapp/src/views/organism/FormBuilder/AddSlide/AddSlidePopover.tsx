@@ -33,7 +33,14 @@ export default function AddSlidePopover() {
                     </PopoverTrigger>
                     <PopoverContent side="right" align="start" asChild className="w-[391px] p-0">
                         {open && (
-                            <motion.div key="addSlide" initial={{ opacity: 0, x: '-10%' }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.2 }}>
+                            <motion.div
+                                {...({
+                                    key: 'addSlide',
+                                    initial: { opacity: 0, x: '-10%' },
+                                    animate: { opacity: 1, x: 0 },
+                                    transition: { duration: 0.2 }
+                                } as any)}
+                            >
                                 <div className="!z-[1000] max-h-[640px] w-full rounded bg-white shadow-lg">
                                     <Tabs defaultValue="layout" className="h-full w-full">
                                         <TabsList className=" flex h-auto w-full gap-2 p-4">

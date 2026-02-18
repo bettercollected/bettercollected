@@ -5,11 +5,12 @@ import {selectWorkspace} from '@app/store/workspaces/slice';
 import {useGetWorkspaceFormQuery} from "@app/store/workspaces/api";
 import Form from "@app/views/organism/Form/Form";
 import FullScreenLoader from "@app/views/atoms/Loaders/FullScreenLoader";
-import {useEffect} from "react";
+import { useEffect, use } from "react";
 import {setForm} from "@app/store/forms/slice";
 import {useFormState} from "@app/store/jotai/form";
 
-export default function FormPreview({params}: { params: { form_id: string } }) {
+export default function FormPreview(props: { params: Promise<{ form_id: string }> }) {
+    const params = use(props.params);
 
     const dispatch = useAppDispatch();
     const {updateFormTheme} = useFormState();
@@ -37,5 +38,4 @@ export default function FormPreview({params}: { params: { form_id: string } }) {
     return <div className="h-screen w-screen">
         <Form isPreviewMode/>
     </div>
-
 }

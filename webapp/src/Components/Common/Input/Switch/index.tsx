@@ -3,8 +3,7 @@ import * as React from 'react';
 
 
 import { Switch, SwitchProps } from '@mui/material';
-import { styled } from '@mui/material/styles';
-import PropTypes from 'prop-types';
+import { styled, Theme } from '@mui/material/styles';
 
 
 // Define prop types for customization
@@ -17,8 +16,26 @@ interface CustomSwitchProps extends SwitchProps {
     trackBorderRadius?: number;
 }
 
+interface MuiSwitchProps {
+    theme: Theme;
+    thumbColorChecked?: string;
+    thumbColorUnchecked?: string;
+    trackColorChecked?: string;
+    trackColorUnchecked?: string;
+    thumbSize?: number;
+    trackBorderRadius?: number;
+}
+
 const MuiSwitch = styled((props: CustomSwitchProps) => <Switch focusVisibleClassName=".Mui-focusVisible" disableRipple {...props} />)(
-    ({ theme, thumbColorChecked, thumbColorUnchecked, trackColorChecked, trackColorUnchecked, thumbSize, trackBorderRadius }) => ({
+    ({
+        theme,
+        thumbColorChecked,
+        thumbColorUnchecked,
+        trackColorChecked,
+        trackColorUnchecked,
+        thumbSize,
+        trackBorderRadius
+    }: any) => ({
         width: thumbSize ? thumbSize * 2 + 2 : 42,
         height: thumbSize ? thumbSize + 4 : 26,
         padding: 0,
@@ -65,14 +82,5 @@ const MuiSwitch = styled((props: CustomSwitchProps) => <Switch focusVisibleClass
         }
     })
 );
-
-MuiSwitch.propTypes = {
-    thumbColorChecked: PropTypes.string,
-    thumbColorUnchecked: PropTypes.string,
-    trackColorChecked: PropTypes.string,
-    trackColorUnchecked: PropTypes.string,
-    thumbSize: PropTypes.number,
-    trackBorderRadius: PropTypes.number
-};
 
 export default MuiSwitch;

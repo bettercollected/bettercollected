@@ -4,7 +4,7 @@ import { redirect } from 'next/navigation';
 import environments from '@app/configs/environments';
 import TemplatePreviewClient from './TemplatePreviewClient';
 
-export default async function TemplatePreviewPage({ params }: { params: { id: string } }) {
+export default async function TemplatePreviewPage({ params }: { params: Promise<{ id: string }> }) {
     const headerList = await headers();
     const host = headerList.get('host') || '';
     const forwardedHost = headerList.get('x-forwarded-host');

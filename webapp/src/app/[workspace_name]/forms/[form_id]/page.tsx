@@ -11,11 +11,12 @@ import { useGetWorkspaceFormQuery } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import FullScreenLoader from '@app/views/atoms/Loaders/FullScreenLoader';
 import Form from '@app/views/organism/Form/Form';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 
-export default function FormPage({ params }: { params: { form_id: string; workspace_name: string } }) {
+export default function FormPage(props: { params: Promise<{ form_id: string; workspace_name: string }> }) {
+    const params = use(props.params);
     const slug = params.form_id;
 
     return (

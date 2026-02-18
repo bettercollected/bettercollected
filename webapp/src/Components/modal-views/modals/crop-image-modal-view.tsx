@@ -12,7 +12,7 @@ import { localesCommon } from '@app/constants/locales/common';
 
 
 interface ICropImageModalViewProps {
-    profileEditorRef: React.LegacyRef<AvatarEditor> | undefined;
+    profileEditorRef: React.Ref<AvatarEditor> | undefined;
     uploadImage: string | File;
     profileInputRef: any;
     modalIndex: number;

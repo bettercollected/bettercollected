@@ -19,7 +19,7 @@ async function getPredefinedTemplates(cookieHeader: string) {
     }
 }
 
-export default async function TemplatesPage({ params }: { params: { workspace_name: string } }) {
+export default async function TemplatesPage({ params }: { params: Promise<{ workspace_name: string }> }) {
     const { workspace_name } = await params;
     
     const cookieStore = await cookies();

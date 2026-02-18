@@ -75,7 +75,7 @@ function WorkspaceMenuDropdown({ fullWidth }: IWorkspaceMenuDropdownProps) {
         const usersWorkspaces = data.filter((space: WorkspaceDto) => {
             return space.ownerId === auth?.id;
         });
-        return usersWorkspaces.length < environments.MAX_WORKSPACES;
+        return usersWorkspaces.length < Number(environments.MAX_WORKSPACES);
     };
 
     const getWorkspaceRole = (space: WorkspaceDto) => {

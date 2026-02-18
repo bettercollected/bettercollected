@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, use } from 'react';
 
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
@@ -23,7 +23,8 @@ import ThankYouSlide from '@app/views/organism/FormBuilder/ThankYouPage';
 import WelcomeSlide from '@app/views/organism/FormBuilder/WelcomePage';
 import Navbar from '@app/views/organism/Navbar';
 
-export default function FormPage({ params }: { params: { form_id: string } }) {
+export default function FormPage(props: { params: Promise<{ form_id: string }> }) {
+    const params = use(props.params);
     const { formFields, setFormFields } = useFormFieldsAtom();
     const { setFormState, formState } = useFormState();
 

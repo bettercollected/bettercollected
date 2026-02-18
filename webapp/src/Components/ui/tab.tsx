@@ -63,7 +63,14 @@ export function TabPanels({ children, className }: React.PropsWithChildren<{ cla
 export function TabPanel({ children, className }: React.PropsWithChildren<{ className?: string }>) {
     return (
         <Tab.Panel className={'focus:outline-none ' + className}>
-            <motion.div animate={{ opacity: 1, y: 0 }} initial={{ opacity: 0, y: 32 }} exit={{ opacity: 0, y: -32 }} transition={{ duration: 0.2 }}>
+            <motion.div
+                {...({
+                    animate: { opacity: 1, y: 0 },
+                    initial: { opacity: 0, y: 32 },
+                    exit: { opacity: 0, y: -32 },
+                    transition: { duration: 0.2 }
+                } as any)}
+            >
                 {children}
             </motion.div>
         </Tab.Panel>

@@ -5,7 +5,7 @@ import environments from '@app/configs/environments';
 import Onboarding from '@app/containers/Onboarding';
 
 async function getUserStatus() {
-    const cookieStore = cookies();
+    const cookieStore = await cookies();
     const auth = cookieStore.get('Authorization')?.value;
     const refresh = cookieStore.get('RefreshToken')?.value;
 

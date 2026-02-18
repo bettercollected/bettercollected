@@ -29,7 +29,7 @@ async function getForm(workspaceId: string, formId: string) {
     }
 }
 
-export default async function FormDashboardPage({ params }: { params: { workspace_name: string; form_id: string } }) {
+export default async function FormDashboardPage({ params }: { params: Promise<{ workspace_name: string; form_id: string }> }) {
     const { workspace_name, form_id } = await params;
     const workspace = await getWorkspaceByName(workspace_name);
     if (!workspace) return notFound();

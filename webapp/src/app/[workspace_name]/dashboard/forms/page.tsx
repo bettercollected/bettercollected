@@ -6,11 +6,12 @@ import { headers } from 'next/headers';
 import environments from '@app/configs/environments';
 import { Metadata } from 'next';
 
-export async function generateMetadata({
-    params
-}: {
-    params: { workspace_name: string }
-}): Promise<Metadata> {
+export async function generateMetadata(
+    props: {
+        params: Promise<{ workspace_name: string }>
+    }
+): Promise<Metadata> {
+    const params = await props.params;
     const workspace = await getWorkspaceByServerContext(params.workspace_name);
     return {
         title: `Forms | ${workspace?.title || workspace?.workspaceName || 'Workspace'}`,
@@ -18,15 +19,16 @@ export async function generateMetadata({
     };
 }
 
-export default async function FormsPage({
-    params
-}: {
-    params: { workspace_name: string }
-}) {
+export default async function FormsPage(
+    props: {
+        params: Promise<{ workspace_name: string }>
+    }
+) {
+    const params = await props.params;
     const workspace = await getWorkspaceByServerContext(params.workspace_name);
     if (!workspace) return notFound();
 
-    const headersList = headers();
+    const headersList = await headers();
     const host = headersList.get('host') || '';
     const hasCustomDomain = host !== environments.CLIENT_DOMAIN && host !== environments.ADMIN_DOMAIN;
 

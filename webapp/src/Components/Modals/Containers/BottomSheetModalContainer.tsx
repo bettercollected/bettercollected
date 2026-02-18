@@ -45,7 +45,15 @@ export default function BottomSheetModalContainer() {
                 {/* This element is need to fix FocusTap headless-ui warning issue */}
                 <AnimatePresence mode="wait">
                     {view && (
-                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ ease: 'easeOut', duration: 0.5 }} className="!w-screen">
+                        <motion.div
+                            {...({
+                                initial: { opacity: 0 },
+                                animate: { opacity: 1 },
+                                exit: { opacity: 0 },
+                                transition: { ease: 'easeOut', duration: 0.5 },
+                                className: '!w-screen'
+                            } as any)}
+                        >
                             <Dialog.Overlay className={`fixed inset-0  cursor-pointer bg-gray-700  bg-opacity-60`} />
                         </motion.div>
                     )}
@@ -58,7 +66,15 @@ export default function BottomSheetModalContainer() {
                 <div data-testid="modal-view" className={`relative z-50 flex min-h-screen !w-full flex-col content-center  items-center text-left align-middle md:w-fit`}>
                     <AnimatePresence mode="wait">
                         {view && (
-                            <motion.div initial={{ opacity: 0, y: '100%' }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: '100%' }} transition={{ ease: 'easeOut', duration: 0.5 }} className="!w-screen">
+                            <motion.div
+                                {...({
+                                    initial: { opacity: 0, y: '100%' },
+                                    animate: { opacity: 1, y: 0 },
+                                    exit: { opacity: 0, y: '100%' },
+                                    transition: { ease: 'easeOut', duration: 0.5 },
+                                    className: '!w-screen'
+                                } as any)}
+                            >
                                 {renderModalContent(view, modalProps)}
                             </motion.div>
                         )}

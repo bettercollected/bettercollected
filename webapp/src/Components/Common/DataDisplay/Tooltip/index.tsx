@@ -4,7 +4,7 @@ import { PopperProps, SxProps, Theme, Tooltip as MuiTooltip } from '@mui/materia
 
 interface ITooltipProps {
     title: React.ReactNode;
-    children: React.ReactElement;
+    children: React.ReactElement<any>;
     className?: string;
     onClick?: any;
     components?: { Arrow?: any; Popper?: any; Tooltip?: any; Transition?: any };

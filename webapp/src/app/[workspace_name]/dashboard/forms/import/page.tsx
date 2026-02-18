@@ -4,7 +4,7 @@ import ServerSideWorkspaceDispatcher from '@app/Components/HOCs/ServerSideWorksp
 import { getWorkspaceByName } from '../../layout';
 import ImportFormClient from './ImportFormClient';
 
-export default async function ImportFormPage({ params }: { params: { workspace_name: string } }) {
+export default async function ImportFormPage({ params }: { params: Promise<{ workspace_name: string }> }) {
     const { workspace_name } = await params;
     const workspace = await getWorkspaceByName(workspace_name);
 
@@ -17,7 +17,7 @@ export default async function ImportFormPage({ params }: { params: { workspace_n
     );
 }
 
-export async function generateMetadata({ params }: { params: { workspace_name: string } }) {
+export async function generateMetadata({ params }: { params: Promise<{ workspace_name: string }> }) {
     const { workspace_name } = await params;
     return {
         title: 'Import Form | ' + workspace_name

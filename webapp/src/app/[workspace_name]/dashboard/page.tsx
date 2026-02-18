@@ -6,7 +6,7 @@ import ServerSideWorkspaceDispatcher from '@app/Components/HOCs/ServerSideWorksp
 import { getWorkspaceByName } from './layout';
 import CreatorDashboardClient from './CreatorDashboardClient';
 
-export default async function CreatorDashboardPage({ params }: { params: { workspace_name: string } }) {
+export default async function CreatorDashboardPage({ params }: { params: Promise<{ workspace_name: string }> }) {
     const { workspace_name } = await params;
     const cookieStore = await cookies();
     const headerList = await headers();

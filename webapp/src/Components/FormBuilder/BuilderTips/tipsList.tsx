@@ -3,8 +3,8 @@ import React from 'react';
 import useBuilderTranslation from '@app/lib/hooks/use-builder-translation';
 
 interface ITipElement {
-    Icon: React.ReactElement;
-    TextComponent: React.ReactElement;
+    Icon: React.ReactElement<any>;
+    TextComponent: React.ReactElement<any>;
 }
 
 interface ITipListProps {

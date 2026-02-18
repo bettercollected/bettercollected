@@ -1,8 +1,7 @@
 import { StandardFormFieldDto } from '@app/models/dtos/form';
 import { FieldInput, Input } from '@app/shadcn/components/ui/input';
 import { IThemeState, useFormState } from '@app/store/jotai/form';
-import { useEffect, useState } from 'react';
-import { CSSProperties } from 'styled-components';
+import React, { CSSProperties, useEffect, useState } from 'react';
 import styled from 'styled-components';
 import { useDebounceValue } from 'usehooks-ts';
 

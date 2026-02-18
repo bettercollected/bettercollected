@@ -139,12 +139,14 @@ const Navbar = () => {
                             {insertDropdownOpen && (
                                 <DropdownMenuContent key="insert-dropdown" className=" w-[410px] border-none p-0">
                                     <motion.div
-                                        key="insert-dropdown"
-                                        className="shadow-bubble border"
-                                        initial={{ opacity: 0, height: '350px', overflow: 'hidden' }}
-                                        animate={{ opacity: 1, height: '554px' }}
-                                        exit={{ opacity: 0, height: '350px', overflow: 'hidden' }}
-                                        transition={{ duration: 0.2 }}
+                                        {...({
+                                            key: 'insert-dropdown',
+                                            className: 'shadow-bubble border',
+                                            initial: { opacity: 0, height: '350px', overflow: 'hidden' },
+                                            animate: { opacity: 1, height: '554px' },
+                                            exit: { opacity: 0, height: '350px', overflow: 'hidden' },
+                                            transition: { duration: 0.2 }
+                                        } as any)}
                                     >
                                         <InsertFieldComponent
                                             formFields={formFields}
@@ -184,7 +186,7 @@ const Navbar = () => {
                 </DropdownMenu> */}
 
                     <DropdownMenu>
-                        <DropdownMenu.Trigger onClick={() => {}}>
+                        <DropdownMenu.Trigger onClick={() => { }}>
                             <div className={'flex items-center hover:bg-inherit'}>
                                 <div className="!text-black-500 hover:!text-black-900 flex flex-row items-center gap-1 text-xs font-semibold ">
                                     <LogicOutlinedIcon />

@@ -32,9 +32,10 @@ async function getAuthStatus(cookieStore: any) {
     }
 }
 
-export default async function OnboardingPage({ params }: { params: { workspace_name: string } }) {
-    const headerList = headers();
-    const cookieStore = cookies();
+export default async function OnboardingPage(props: { params: Promise<{ workspace_name: string }> }) {
+    const params = await props.params;
+    const headerList = await headers();
+    const cookieStore = await cookies();
     const host = headerList.get('x-forwarded-host') || headerList.get('host') || '';
 
     const isCustomDomain = host !== environments.ADMIN_DOMAIN && host !== environments.CLIENT_DOMAIN;

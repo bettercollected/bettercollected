@@ -45,7 +45,7 @@ async function getAuthUser(cookieHeader: string) {
     }
 }
 
-export default async function DashboardLayout({ children, params }: { children: React.ReactNode; params: { workspace_name: string } }) {
+export default async function DashboardLayout({ children, params }: { children: React.ReactNode; params: Promise<{ workspace_name: string }> }) {
     const { workspace_name } = await params;
     const cookieStore = await cookies();
     const headerList = await headers();

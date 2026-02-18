@@ -27,10 +27,12 @@ const ViewResponseFullModalView = ({ response, formFields, formId, workspaceId }
 
     return (
         <motion.div
-            initial={{ x: '100%', opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            transition={{ ease: 'easeInOut', duration: 0.5 }}
-            className="h-response-view absolute bottom-0 right-0 flex w-full flex-col overflow-hidden rounded-tl-xl !bg-white md:w-[420px]"
+            {...({
+                initial: { x: '100%', opacity: 0 },
+                animate: { x: 0, opacity: 1 },
+                transition: { ease: 'easeInOut', duration: 0.5 },
+                className: 'h-response-view absolute bottom-0 right-0 flex w-full flex-col overflow-hidden rounded-tl-xl !bg-white md:w-[420px]'
+            } as any)}
         >
             <div className="flex flex-row justify-between p-4">
                 <div className="flex flex-col">

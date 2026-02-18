@@ -19,9 +19,9 @@ async function getPredefinedTemplates(cookieHeader: string) {
     }
 }
 
-export default async function TemplatesAllPage({ params }: { params: { workspace_name: string } }) {
+export default async function TemplatesAllPage({ params }: { params: Promise<{ workspace_name: string }> }) {
     const { workspace_name } = await params;
-    
+
     const cookieStore = await cookies();
     const auth = cookieStore.get('Authorization')?.value;
     const refresh = cookieStore.get('RefreshToken')?.value;
@@ -31,7 +31,7 @@ export default async function TemplatesAllPage({ params }: { params: { workspace
     ].filter(Boolean).join(';');
 
     const predefined_templates = await getPredefinedTemplates(cookieHeader);
-    
+
     if (!predefined_templates) {
         notFound();
     }

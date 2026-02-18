@@ -40,8 +40,8 @@ async function getMyWorkspaces(cookieStore: any) {
 }
 
 export default async function GetStartedPage() {
-    const headerList = headers();
-    const cookieStore = cookies();
+    const headerList = await headers();
+    const cookieStore = await cookies();
     const host = headerList.get('x-forwarded-host') || headerList.get('host') || '';
 
     const isCustomDomain = host !== environments.ADMIN_DOMAIN && host !== environments.CLIENT_DOMAIN;

@@ -150,15 +150,17 @@ export default function SidebarLayoutApp({ children, DrawerComponent = Dashboard
                     </div>
 
                     <motion.div
-                        initial={{ x: 0, opacity: 0 }}
-                        animate={{ x: 0, opacity: 1 }}
-                        exit={{ x: 300, opacity: 0 }}
-                        transition={{
-                            ease: 'linear',
-                            duration: 0.5,
-                            x: { duration: 0.5 }
-                        }}
-                        className={cn(`h-full w-full`)}
+                        {...({
+                            initial: { x: 0, opacity: 0 },
+                            animate: { x: 0, opacity: 1 },
+                            exit: { x: 300, opacity: 0 },
+                            transition: {
+                                ease: 'linear',
+                                duration: 0.5,
+                                x: { duration: 0.5 }
+                            },
+                            className: cn(`h-full w-full`)
+                        } as any)}
                     >
                         <div className={cn('bg-black-100 h-full w-full', boxClassName)}>{children}</div>
                     </motion.div>

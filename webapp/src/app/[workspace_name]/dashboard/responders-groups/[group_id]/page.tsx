@@ -4,7 +4,7 @@ import ServerSideWorkspaceDispatcher from '@app/Components/HOCs/ServerSideWorksp
 import { getWorkspaceByName } from '../../layout';
 import GroupPreviewClient from './GroupPreviewClient';
 
-export default async function GroupPreviewPage({ params }: { params: { workspace_name: string, group_id: string } }) {
+export default async function GroupPreviewPage({ params }: { params: Promise<{ workspace_name: string, group_id: string }> }) {
     const { workspace_name, group_id } = await params;
     const workspace = await getWorkspaceByName(workspace_name);
 

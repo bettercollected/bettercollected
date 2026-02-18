@@ -378,7 +378,7 @@ export default function FormBuilder({ workspace, _nextI18Next, isTemplate = fals
     return (
         <div>
             <FormBuilderMenuBar
-                onAddNewPage={() => {}}
+                onAddNewPage={() => { }}
                 onAddFormLogo={onAddFormLogo}
                 onAddFormCover={onAddFormCover}
                 onPreview={onPreview}
@@ -404,8 +404,8 @@ export default function FormBuilder({ workspace, _nextI18Next, isTemplate = fals
                         droppableId="form-builder"
                         droppableItems={Object.values(builderState.fields || {})}
                         droppableClassName="pt-6"
-                        onDragStartHandlerCallback={(start: DragStart, provided: ResponderProvided) => {}}
-                        onDragUpdateHandlerCallback={(update: DragUpdate, provided: ResponderProvided) => {}}
+                        onDragStartHandlerCallback={(start: DragStart, provided: ResponderProvided) => { }}
+                        onDragUpdateHandlerCallback={(update: DragUpdate, provided: ResponderProvided) => { }}
                         onDragEndHandlerCallback={(result: DropResult, provided: ResponderProvided) => {
                             if (!result.destination) {
                                 return;
@@ -445,7 +445,7 @@ export default function FormBuilder({ workspace, _nextI18Next, isTemplate = fals
                             id={'form-builder-button'}
                             className="w-fit rounded py-3 px-5 text-white !text-[14px] !font-semibold bg-black-900 min-w-[130px] text-center focus-visible:border-0 focus-visible:outline-none"
                             html={builderState.buttonText || ''}
-                            onKeyDown={(event) => {
+                            onKeyDown={(event: React.KeyboardEvent<HTMLDivElement>) => {
                                 event.stopPropagation();
                                 if (event.key === 'Backspace' && (!event.metaKey || !event.ctrlKey)) {
                                     if (!event.currentTarget.innerText) {
@@ -467,14 +467,16 @@ export default function FormBuilder({ workspace, _nextI18Next, isTemplate = fals
                 <AnimatePresence mode="wait" initial={false}>
                     {showSaving.status && (
                         <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            transition={{
-                                ease: 'linear',
-                                duration: 0.5,
-                                x: { duration: 0.5 }
-                            }}
+                            {...({
+                                initial: { opacity: 0 },
+                                animate: { opacity: 1 },
+                                exit: { opacity: 0 },
+                                transition: {
+                                    ease: 'linear',
+                                    duration: 0.5,
+                                    x: { duration: 0.5 }
+                                }
+                            } as any)}
                         >
                             <div className="fixed px-5 py-2 rounded  bg-black-200 text-black-800 bottom-5 right-5 flex justify-center w-[120px] gap-2 lg:bottom-10 lg:right-10">
                                 {showSaving.text === 'Saving' ? <CircularProgress size={24} /> : <Check className="text-green-500" height={24} width={24} />}

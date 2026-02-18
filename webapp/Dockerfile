@@ -10,7 +10,7 @@ RUN yarn install --prod --frozen-lockfile
 
 
 # Rebuild the source code only when needed
-FROM prod as builder
+FROM prod AS builder
 ARG BASE_DEPLOY_PATH
 ARG NEXT_PUBLIC_API_ENDPOINT_HOST
 ARG NEXT_PUBLIC_DASHBOARD_DOMAIN

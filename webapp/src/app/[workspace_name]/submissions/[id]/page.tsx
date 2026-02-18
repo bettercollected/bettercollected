@@ -16,7 +16,7 @@ async function getWorkspaceByName(name: string) {
     }
 }
 
-export default async function WorkspaceSubmissionPage({ params }: { params: { workspace_name: string, id: string } }) {
+export default async function WorkspaceSubmissionPage({ params }: { params: Promise<{ workspace_name: string, id: string }> }) {
     const { workspace_name, id } = await params;
 
     const workspace = await getWorkspaceByName(workspace_name);
