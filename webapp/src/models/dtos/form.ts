@@ -3,7 +3,7 @@ import { JSONContent } from '@tiptap/react';
 import { FormTheme } from '@app/constants/theme';
 import { UserStatus } from '@app/models/dtos/UserStatus';
 import { Parameters } from '@app/models/dtos/actions';
-import { ActionType, Comparison, Condition, ConditionalActions, FieldType, LogicalOperator, IFormFieldValidation } from '@app/models/types/form-builder-shared';
+import { IFormFieldValidation } from '@app/models/types/form-builder-shared';
 
 import { FormSlideLayout } from '../enums/form';
 import { FileMetadata } from '../types/fileTypes';
@@ -46,11 +46,11 @@ export interface StandardFormFieldDto {
     title?: string | JSONContent;
     description?: string | null;
     type:
-        | {
-              type: string;
-              options: Array<any>;
-          }
-        | any;
+    | {
+        type: string;
+        options: Array<any>;
+    }
+    | any;
     isMediaContent?: boolean;
     mediaContent?: boolean;
     isGroupQuestion?: boolean;
@@ -137,7 +137,7 @@ export interface StandardFormResponseDto {
     status?: string;
     requestForDeletion?: boolean;
     expiration?: string;
-    expirationType?: ResponseRetentionType;
+    expirationType?: any;
     dataOwnerIdentifier?: string | null | undefined;
     responses?: Array<{ questionId: string; answer: any }>;
 }
