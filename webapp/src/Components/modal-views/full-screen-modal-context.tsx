@@ -4,7 +4,6 @@ import { atom } from 'jotai';
 export type FULL_SCREEN_MODALS =
     | ''
     | 'LOGIN_VIEW'
-    | 'FORM_BUILDER_PREVIEW'
     | 'CROP_IMAGE'
     | 'UPGRADE_TO_PRO'
     | 'WORKSPACE_PREVIEW'

@@ -1,10 +1,8 @@
-import React from 'react';
 
-import FormRenderer from '@app/Components/Form/renderer/form-renderer';
 import { StandardFormDto } from '@app/models/dtos/form';
 import WelcomePage from '@app/views/organism/Form/WelcomePage';
-import LayoutWrapper from '@app/views/organism/Layout/LayoutWrapper';
 import FormSlidePreview from '@app/views/organism/FormPreview/FormSlidePreview';
+import LayoutWrapper from '@app/views/organism/Layout/LayoutWrapper';
 
 export const FormTabContent = ({ form }: { form: StandardFormDto }) => {
     const getContainerWidth = () => {
@@ -51,9 +49,5 @@ export const FormTabContent = ({ form }: { form: StandardFormDto }) => {
             </>
         );
     }
-    return (
-        <div className="max-w-screen flex w-full items-center overflow-x-auto rounded bg-white ">
-            <FormRenderer form={form} enabled={false} isDisabled={true} />
-        </div>
-    );
+    return null;
 };

@@ -3,7 +3,7 @@ import { v4 } from 'uuid';
 
 import { FieldTypes, StandardFormDto, StandardFormFieldDto, StandardFormResponseDto } from '@app/models/dtos/form';
 import { FormBuilderTagNames, LabelFormBuilderTagNames } from '@app/models/enums/formBuilder';
-import { IChoiceFieldState, IFormFieldState } from '@app/store/form-builder/types';
+import { IChoiceFieldState, IFormFieldState, Condition, ConditionalActions, FieldType, LogicalOperator } from '@app/models/types/form-builder-shared';
 import { getFieldsFromV2Form } from './formUtils';
 import { extractTextfromJSON } from './richTextEditorExtenstion/getHtmlFromJson';
 

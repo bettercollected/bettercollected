@@ -2,7 +2,6 @@ import { Fragment, useCallback, useEffect } from 'react';
 
 import Button from '@Components/Common/Input/Button';
 import AddActionToFormModal from '@Components/Modals/DialogModals/AddActionToFormModal';
-import BuilderVersionSelectorModal from '@Components/Modals/DialogModals/BuilderVersion';
 import ImportFormModal from '@Components/Modals/DialogModals/ImportFormModal';
 import OauthErrorModal from '@Components/Modals/DialogModals/OauthErrorModal';
 import RedeemCouponCodeModal from '@Components/Modals/DialogModals/RedeemCouponCodeModal';
@@ -23,16 +22,12 @@ import DeleteInvitationModal from '@app/Components/modal-views/modals/delete-inv
 import DeleteMemberModal from '@app/Components/modal-views/modals/delete-member-modal';
 import DeleteResponseModal from '@app/Components/modal-views/modals/delete-response-modal';
 import DeleteTemplateConfirmationModalView from '@app/Components/modal-views/modals/delete-template-modal-view';
-import FormBuilderAddFieldModal from '@app/Components/modal-views/modals/form-builder-add-field-modal';
-import ImportTemplateModalView from '@app/Components/modal-views/modals/import-template-modal-view';
 import InviteMemberModal from '@app/Components/modal-views/modals/invite-member-modal';
-import MobileInsertMenu from '@app/Components/modal-views/modals/mobile-insert-menu';
 import ReopenFormConfirmationModal from '@app/Components/modal-views/modals/reopen-form-confirmation-modal';
 import ShareModalView from '@app/Components/modal-views/modals/share-modal-view';
 import RequestForDeletionView from '@app/Components/submission-request-for-deletion';
 import { Dialog } from '@app/Components/ui/dialog';
 import { Transition } from '@app/Components/ui/transition';
-import { resetBuilderMenuState } from '@app/store/form-builder/actions';
 import { useAppDispatch } from '@app/store/hooks';
 
 import { usePathname } from 'next/navigation';
@@ -40,15 +35,12 @@ import AddFormOnGroup from './modals/add-form-group-modal';
 import AddGroupOnForm from './modals/add-group-form-modal';
 import AddMembersModal from './modals/add-members-modal';
 import AddRegexModal from './modals/add-regex-modal';
-import ConsentBuilderConfirmationModalView from './modals/consent-builder-confirmation-modal-view';
 import ConsentConfirmationModalView from './modals/consent-confirmation-modal-view';
 import ConsentPurposeModalView from './modals/consent-purpose-modal-view';
 import ConsentRetentionModalView from './modals/consent-retention-modal-view';
 import CropImageModalView from './modals/crop-image-modal-view';
 import DeleteConfirmationModal from './modals/delete-confirmation-modal';
 import EditWorkspaceModal from './modals/edit-workspace-modal';
-import FormBuilderSpotlightModal from './modals/form-builder-spotlight-modal';
-import FormBuilderTipsModalView from './modals/form-builder-tips-modal-view';
 import VisibilityConfirmationModalView from './modals/visibility-confirmation-modal-view';
 
 function renderModalContent(view: MODAL_VIEW, modalProps: any) {
@@ -63,8 +55,6 @@ function renderModalContent(view: MODAL_VIEW, modalProps: any) {
             return <AddMembersModal {...modalProps} />;
         case 'ADD_REGEX':
             return <AddRegexModal {...modalProps} />;
-        case 'CONSENT_BUILDER_CONFIRMATION_MODAL_VIEW':
-            return <ConsentBuilderConfirmationModalView {...modalProps} />;
         case 'CONSENT_CONFIRMATION_MODAL_VIEW':
             return <ConsentConfirmationModalView {...modalProps} />;
         case 'CONSENT_PURPOSE_MODAL_VIEW':
@@ -89,20 +79,12 @@ function renderModalContent(view: MODAL_VIEW, modalProps: any) {
             return <DeleteResponseModal {...modalProps} />;
         case 'EDIT_WORKSPACE_MODAL':
             return <EditWorkspaceModal />;
-        case 'FORM_BUILDER_ADD_FIELD_VIEW':
-            return <FormBuilderAddFieldModal {...modalProps} />;
-        case 'FORM_BUILDER_SPOTLIGHT_VIEW':
-            return <FormBuilderSpotlightModal {...modalProps} />;
-        case 'FORM_BUILDER_TIPS_MODAL_VIEW':
-            return <FormBuilderTipsModalView {...modalProps} />;
         case 'INVITE_MEMBER':
             return <InviteMemberModal />;
         case 'IMPORT_FORMS':
             return <ImportFormModal {...modalProps} />;
         case 'LOGOUT_VIEW':
             return <LogoutView {...modalProps} />; // Done
-        case 'MOBILE_INSERT_MENU':
-            return <MobileInsertMenu {...modalProps} />;
         case 'REQUEST_FOR_DELETION_VIEW':
             return <RequestForDeletionView {...modalProps} />;
         case 'SHARE_VIEW':
@@ -119,8 +101,6 @@ function renderModalContent(view: MODAL_VIEW, modalProps: any) {
             return <ReopenFormConfirmationModal {...modalProps} />;
         case 'DELETE_TEMPLATE_CONFIRMATION_MODAL_VIEW':
             return <DeleteTemplateConfirmationModalView {...modalProps} />;
-        case 'IMPORT_TEMPLATE_MODAL_VIEW':
-            return <ImportTemplateModalView {...modalProps} />;
         case 'ADD_ACTION_TO_FORM':
             return <AddActionToFormModal {...modalProps} />;
         case 'OAUTH_ERROR_VIEW':
@@ -131,8 +111,6 @@ function renderModalContent(view: MODAL_VIEW, modalProps: any) {
             return <SignInToFillFormModal {...modalProps} />;
         case 'SEARCH_BY_SUBMISSION_NUMBER':
             return <SearchBySubmissionNumberModal {...modalProps} />;
-        case 'BUILDER_SELECTOR':
-            return <BuilderVersionSelectorModal {...modalProps} />;
         default:
             return <></>;
     }
@@ -144,7 +122,6 @@ export default function ModalContainer() {
     const dispatch = useAppDispatch();
 
     const closeModalHandler = useCallback(() => {
-        dispatch(resetBuilderMenuState());
         if (!modalProps?.nonClosable) closeModal();
     }, [closeModal]);
 

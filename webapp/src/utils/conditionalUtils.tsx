@@ -7,7 +7,7 @@ import LinkIcon from '@mui/icons-material/Link';
 import RadioButtonUncheckedIcon from '@mui/icons-material/RadioButtonUnchecked';
 
 import { FormBuilderTagNames, LabelFormBuilderTagNames } from '@app/models/enums/formBuilder';
-import { ActionType, Comparison, IFormFieldState } from '@app/store/form-builder/types';
+import { ActionType, Comparison, IFormFieldState } from '@app/models/types/form-builder-shared';
 import { convertPlaceholderToDisplayValue } from '@app/utils/formBuilderBlockUtils';
 
 export function getComparisonText(comparison: Comparison): string {

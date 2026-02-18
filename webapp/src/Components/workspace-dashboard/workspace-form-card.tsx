@@ -158,7 +158,7 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, group, worksp
                                 {t('BUTTON.EDIT')}
                             </AppButton>
                         )}
-                        <FormOptionsDropdownMenu className={JOYRIDE_CLASS.WORKSPACE_ADMIN_FORM_CARD_NAVIGATION_OPTIONS} redirectToDashboard={true} form={form} hasCustomDomain={hasCustomDomain} workspace={workspace} />
+                        <FormOptionsDropdownMenu redirectToDashboard={true} form={form} hasCustomDomain={hasCustomDomain} workspace={workspace} />
                     </div>
                 )}
                 {!!group && (

@@ -4,7 +4,7 @@ import { FormTheme } from '@app/constants/theme';
 import { UserStatus } from '@app/models/dtos/UserStatus';
 import { Parameters } from '@app/models/dtos/actions';
 import { IConsentField } from '@app/store/consent/types';
-import { IFormFieldValidation } from '@app/store/form-builder/types';
+import { ActionType, Comparison, Condition, ConditionalActions, FieldType, LogicalOperator, IFormFieldValidation } from '@app/models/types/form-builder-shared';
 
 import { ResponseRetentionType } from '../enums/consentEnum';
 import { FormSlideLayout } from '../enums/form';

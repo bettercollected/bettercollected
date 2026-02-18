@@ -3,7 +3,6 @@
 import Loader from '@app/Components/ui/loader';
 import environments from '@app/configs/environments';
 import ReduxWrapperAppRouter from '@app/containers/ReduxWrapperAppRouter';
-import SingleFormPage from '@app/Components/Form/v1/SingleFormPage';
 import { setForm } from '@app/store/forms/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { useFormState } from '@app/store/jotai/form';
@@ -43,23 +42,6 @@ const FetchFormWrapper = ({ slug }: { slug: string }) => {
 
     const router = useRouter();
 
-    useEffect(() => {
-        if (data?.formId) {
-            dispatch(setForm(data));
-            data.theme && updateFormTheme(data.theme);
-        }
-    }, [data]);
-
-    useEffect(() => {
-        if (data?.importedFormId && data.settings?.showOriginalForm && hasFileUpload(data?.fields || [])) {
-            router.push(data?.settings?.embedUrl || '');
-        }
-    }, [data]);
-
-    const hasCustomDomain = window.location.host !== environments.FORM_DOMAIN;
-
-    const responderUri = data?.settings?.embedUrl || '';
-
     const hasFileUpload = (fields: Array<any>) => {
         let isUploadField = false;
         if (fields && Array.isArray(fields) && fields.length > 0) {
@@ -80,11 +62,20 @@ const FetchFormWrapper = ({ slug }: { slug: string }) => {
         return isUploadField;
     };
 
-    if (data?.settings?.hidden) {
-        return <></>;
-    }
+    useEffect(() => {
+        if (data?.formId) {
+            dispatch(setForm(data));
+            data.theme && updateFormTheme(data.theme);
+        }
+    }, [data]);
 
-    if (isLoading || error || (data?.importedFormId && data.settings?.showOriginalForm && hasFileUpload(data?.fields))) {
+    useEffect(() => {
+        if (data?.importedFormId && data.settings?.showOriginalForm && hasFileUpload(data?.fields || [])) {
+            router.push(data?.settings?.embedUrl || '');
+        }
+    }, [data]);
+
+    if (isLoading || error || (data?.importedFormId && data.settings?.showOriginalForm && hasFileUpload(data?.fields || []))) {
         return <FullScreenLoader />;
     }
 
@@ -93,7 +84,7 @@ const FetchFormWrapper = ({ slug }: { slug: string }) => {
             <>
                 <div className="relative !min-h-screen">
                     <div className="!m-0' absolute bottom-0 left-0 right-0 top-0 !p-0">
-                        <iframe ref={iframeRef} src={`${responderUri}?embedded=true`} width="100%" height="100%">
+                        <iframe ref={iframeRef} src={`${data?.settings?.embedUrl}?embedded=true`} width="100%" height="100%">
                             <Loader />
                         </iframe>
                     </div>
@@ -105,7 +96,6 @@ const FetchFormWrapper = ({ slug }: { slug: string }) => {
     return (
         <div className="h-screen w-screen">
             {data?.builderVersion === 'v2' && <Form />}
-            {data?.builderVersion !== 'v2' && <SingleFormPage hasCustomDomain={hasCustomDomain} slug={slug} form={data} workspace={workspace} />}
         </div>
     );
 };

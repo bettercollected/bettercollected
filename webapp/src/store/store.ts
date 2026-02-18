@@ -8,7 +8,6 @@ import { authApi } from '@app/store/auth/api';
 import authSlice from '@app/store/auth/slice';
 import { couponCodeApi } from '@app/store/coupon-code/api';
 import fillFormSlice from '@app/store/fill-form/slice';
-import builder from '@app/store/form-builder/builderSlice';
 import formSlice from '@app/store/forms/slice';
 import { plansApi } from '@app/store/plans/api';
 import { providerApi } from '@app/store/providers/api';
@@ -58,7 +57,6 @@ const reducers = {
     [authSlice.reducerPath]: authSlice.reducer,
     [formSlice.reducerPath]: formSlice.reducer,
     [workspaceSlice.reducerPath]: workspaceSlice.reducer,
-    [builder.reducerPath]: builder.reducer,
     [fillFormSlice.reducerPath]: fillFormSlice.reducer,
     [authApi.reducerPath]: authApi.reducer,
     [membersNInvitationsApi.reducerPath]: membersNInvitationsApi.reducer,
