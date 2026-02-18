@@ -1,3 +1,4 @@
+'use client';
 import ChatwootWidget from '@Components/Common/ChatwootWidget';
 
 import SidebarLayout from '@app/Components/sidebar/sidebar-layout';

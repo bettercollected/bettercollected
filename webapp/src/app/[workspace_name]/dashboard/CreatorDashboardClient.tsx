@@ -1,13 +1,13 @@
 'use client';
 
-import { useTranslation } from 'next-i18next';
+import React from 'react';
+import { useTranslation } from 'react-i18next';
+import { toast } from 'react-toastify';
 
 import Joyride from '@Components/Joyride';
 import { JoyrideStepContent, JoyrideStepTitle } from '@Components/Joyride/JoyrideStepTitleAndContent';
-
 import { useBottomSheetModal } from '@Components/Modals/Contexts/BottomSheetModalContext';
 import WorkspaceDetailsCard from '@Components/RespondersPortal/WorkspaceDetailsCard';
-import DashboardLayout from '@app/Components/sidebar/dashboard-layout';
 import { ProLogo } from '@app/Components/ui/logo';
 import WorkspaceDashboardForms from '@app/Components/workspace-dashboard/workspace-dashboard-forms';
 import WorkspaceDashboardPinnedForms from '@app/Components/workspace-dashboard/workspace-dashboard-pinned-forms';
@@ -21,25 +21,22 @@ import { selectWorkspace } from '@app/store/workspaces/slice';
 import { getWorkspaceShareURL } from '@app/utils/workspaceUtils';
 import EditIcon from '@app/views/atoms/Icons/Edit';
 import OpenLinkIcon from '@app/views/atoms/Icons/OpenLink';
-import { toast } from 'react-toastify';
 
-export default function CreatorDashboard({ hasCustomDomain, ...props }: { workspace: WorkspaceDto; hasCustomDomain: boolean }) {
+export default function CreatorDashboardClient({ hasCustomDomain }: { hasCustomDomain: boolean }) {
     const { t } = useTranslation();
-
     const workspace = useAppSelector(selectWorkspace);
-
     const { openBottomSheetModal } = useBottomSheetModal();
 
     const pinnedFormsQuery = {
-        workspace_id: props.workspace.id,
+        workspace_id: workspace?.id ?? '',
         pinned_only: true
     };
 
-    const pinnedFormsResponse = useGetWorkspaceFormsQuery(pinnedFormsQuery, { skip: !workspace.id });
+    const pinnedFormsResponse = useGetWorkspaceFormsQuery(pinnedFormsQuery, { skip: !workspace?.id });
     const pinnedForms = pinnedFormsResponse?.data?.items || [];
 
     return (
-        <DashboardLayout boxClassName="bg-black-100" dashboardContentClassName="flex flex-col md:flex-row p-6 gap-4">
+        <div className="flex flex-col md:flex-row p-6 gap-4">
             {environments.ENABLE_JOYRIDE_TOURS && (
                 <Joyride
                     id={JOYRIDE_ID.WORKSPACE_ADMIN_DASHBOARD_OVERVIEW}
@@ -90,7 +87,7 @@ export default function CreatorDashboard({ hasCustomDomain, ...props }: { worksp
                 />
             )}
             <div className="relative flex flex-col gap-4 md:w-[320px] md:max-w-[320px]">
-                <div className="absolute right-4 top-4 z-[1000] bg-white/30">
+                <div className="absolute right-4 top-4 z-[50] bg-white/30">
                     <EditIcon
                         width={32}
                         height={32}
@@ -104,14 +101,11 @@ export default function CreatorDashboard({ hasCustomDomain, ...props }: { worksp
                 <WorkspaceLinkCard />
                 {workspace?.customDomain && workspace?.customDomainVerified && <WorkspaceLinkCard customDomain />}
             </div>
-            {/* <div className="bg-white pt-4 pb-5 px-5 lg:px-10 shadow-overview">
-                <WorkspaceDashboardOverview workspace={props.workspace} />
-            </div> */}
             <div className="flex-1">
                 {pinnedForms?.length > 0 && <WorkspaceDashboardPinnedForms workspacePinnedForms={pinnedFormsResponse} title={t('PINNED_FORMS')} workspace={workspace} hasCustomDomain={hasCustomDomain} />}
                 <WorkspaceDashboardForms isWorkspace showButtons={pinnedForms?.length === 0} workspace={workspace} hasCustomDomain={hasCustomDomain} />
             </div>
-        </DashboardLayout>
+        </div>
     );
 }
 
@@ -146,5 +140,3 @@ const WorkspaceLinkCard = ({ customDomain = false }: { customDomain?: boolean })
         </div>
     );
 };
-
-export { getAuthUserPropsWithWorkspace as getServerSideProps } from '@app/lib/serverSideProps';

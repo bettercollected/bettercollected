@@ -28,7 +28,7 @@ export async function getGlobalServerSidePropsByDomain({ locale, ..._context }: 
         const workspaceResponse = await fetch(`${environments.INTERNAL_DOCKER_API_ENDPOINT_HOST}/workspaces?custom_domain=${domain}`).catch((e) => e);
         workspace = (await workspaceResponse?.json().catch((e: any) => e)) ?? null;
         workspaceId = workspace?.id || null;
-    } catch (e) {}
+    } catch (e) { }
 
     return {
         props: {
@@ -42,8 +42,8 @@ export async function getGlobalServerSidePropsByDomain({ locale, ..._context }: 
 
 export async function getGlobalServerSidePropsByWorkspaceName({ locale, ..._context }: any): Promise<
     | {
-          props: IServerSideProps;
-      }
+        props: IServerSideProps;
+    }
     | any
 > {
     const hasCustomDomain = checkHasCustomDomain(_context);
@@ -67,7 +67,7 @@ export async function getGlobalServerSidePropsByWorkspaceName({ locale, ..._cont
         const workspaceResponse = await fetch(`${environments.INTERNAL_DOCKER_API_ENDPOINT_HOST}/workspaces?workspace_name=${workspace_name}`, config).catch((e) => e);
         workspace = (await workspaceResponse?.json().catch((e: any) => e)) ?? null;
         workspaceId = workspace.id;
-    } catch (e) {}
+    } catch (e) { }
     return {
         props: {
             ...(await serverSideTranslations(locale, ['common', 'builder'], null, ['en', 'nl'])),

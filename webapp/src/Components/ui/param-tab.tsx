@@ -29,7 +29,12 @@ export default function ParamTab({ tabMenu, children, isRouteChangeable = true, 
     const pathname = usePathname();
     const searchParams = useSearchParams();
 
-    const [selectedTabIndex, setSelectedTabIndex] = useState(initialIndex ?? tabMenu.findIndex((item) => searchParams?.get('view') === item.path));
+    const [selectedTabIndex, setSelectedTabIndex] = useState(() => {
+        if (initialIndex !== undefined) return initialIndex;
+        const view = searchParams?.get('view');
+        const index = tabMenu.findIndex((item) => view === item.path);
+        return index === -1 ? 0 : index;
+    });
     const statusQuerySelect = useMemo(() => authApi.endpoints.getStatus.select(), []);
     const selectGetStatus = useAppSelector(statusQuerySelect);
 

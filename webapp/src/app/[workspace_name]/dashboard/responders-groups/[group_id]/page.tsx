@@ -1,18 +1,18 @@
 import React from 'react';
 import { notFound } from 'next/navigation';
 import ServerSideWorkspaceDispatcher from '@app/Components/HOCs/ServerSideWorkspaceDispatcher';
-import { getWorkspaceByName } from '../layout';
-import RespondersGroupsClient from './RespondersGroupsClient';
+import { getWorkspaceByName } from '../../layout';
+import GroupPreviewClient from './GroupPreviewClient';
 
-export default async function RespondersGroupsPage({ params }: { params: { workspace_name: string } }) {
-    const { workspace_name } = await params;
+export default async function GroupPreviewPage({ params }: { params: { workspace_name: string, group_id: string } }) {
+    const { workspace_name, group_id } = await params;
     const workspace = await getWorkspaceByName(workspace_name);
 
     if (!workspace) return notFound();
 
     return (
         <ServerSideWorkspaceDispatcher workspace={workspace}>
-            <RespondersGroupsClient />
+            <GroupPreviewClient groupId={group_id} />
         </ServerSideWorkspaceDispatcher>
     );
 }
