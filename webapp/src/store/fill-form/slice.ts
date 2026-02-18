@@ -1,20 +1,14 @@
-import { PayloadAction, createSlice } from '@reduxjs/toolkit';
+import { createSlice } from '@reduxjs/toolkit';
 import { persistReducer } from 'redux-persist';
 import storage from 'redux-persist/lib/storage';
 
 import { RootState } from '@app/store/store';
 
-import { IConsentAnswer } from '../consent/types';
-
-interface FillIBuilderState {
-    consentAnswers: {
-        [consentId: string]: IConsentAnswer;
-    };
+interface FillFormState {
     anonymize?: boolean;
 }
 
-const initialState: FillIBuilderState = {
-    consentAnswers: {},
+const initialState: FillFormState = {
     anonymize: false
 };
 
@@ -24,9 +18,6 @@ const slice = createSlice({
     reducers: {
         resetFillForm: () => {
             return initialState;
-        },
-        addConsentAnswer: (state, action: PayloadAction<IConsentAnswer>) => {
-            return { ...state, consentAnswers: { ...state.consentAnswers, [action.payload.consentId]: action.payload } };
         },
         setAnonymize: (state, action) => {
             return {
@@ -45,7 +36,7 @@ const fillFormReducer = persistReducer(
     slice.reducer
 );
 
-export const { setAnonymize, resetFillForm, addConsentAnswer } = slice.actions;
+export const { setAnonymize, resetFillForm } = slice.actions;
 
 const reducerObj = { reducerPath: slice.name, reducer: fillFormReducer };
 

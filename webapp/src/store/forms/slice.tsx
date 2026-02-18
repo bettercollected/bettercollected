@@ -28,7 +28,6 @@ export const initFormState: StandardFormDto = {
         roles: [],
         plan: Plan.FREE
     },
-    consent: [],
     fields: [],
     modifiedTime: '',
     groups: [],

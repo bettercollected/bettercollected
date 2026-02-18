@@ -42,7 +42,6 @@
     "src/**/*.jsx",
     "src/**/*.ts",
     "src/**/*.tsx",
-    "src/Components/Consent/ConsentModalTopBar.tsx",
     ".next-dev/dev/types/**/*.ts",
     ".next/dev/types/**/*.ts"
   ],

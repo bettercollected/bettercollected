@@ -17,8 +17,6 @@ import { membersNInvitationsApi } from '@app/store/workspaces/members-n-invitati
 import workspaceSlice from '@app/store/workspaces/slice';
 
 import { apiActionsApi } from './api-actions-api';
-import { consentApi } from './consent/api';
-import consentSlice from './consent/consentSlice';
 import mutationStatusSlice from './mutations/slice';
 import { priceSuggestionApi } from './price-suggestion/api';
 
@@ -38,7 +36,6 @@ const middlewares = [
     plansApi.middleware,
     providerApi.middleware,
     workspacesApi.middleware,
-    consentApi.middleware,
     templateApi.middleware,
     apiActionsApi.middleware,
     couponCodeApi.middleware,
@@ -64,8 +61,6 @@ const reducers = {
     [plansApi.reducerPath]: plansApi.reducer,
     [workspacesApi.reducerPath]: workspacesApi.reducer,
     [apiActionsApi.reducerPath]: apiActionsApi.reducer,
-    [consentSlice.reducerPath]: consentSlice.reducer,
-    [consentApi.reducerPath]: consentApi.reducer,
     [templateApi.reducerPath]: templateApi.reducer,
     [couponCodeApi.reducerPath]: couponCodeApi.reducer,
     [priceSuggestionApi.reducerPath]: priceSuggestionApi.reducer,

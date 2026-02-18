@@ -55,7 +55,6 @@ export interface FormResponse {
             file_metadata?: FileMetadata;
         };
     };
-    consent?: Array<any>;
     invalidFields?: Record<string, Array<Invalidations>>;
     anonymize?: boolean;
 }

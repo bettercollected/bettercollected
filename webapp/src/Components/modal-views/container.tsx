@@ -1,4 +1,4 @@
-import { Fragment, useCallback, useEffect } from 'react';
+import { Fragment, useCallback } from 'react';
 
 import Button from '@Components/Common/Input/Button';
 import AddActionToFormModal from '@Components/Modals/DialogModals/AddActionToFormModal';
@@ -6,7 +6,6 @@ import ImportFormModal from '@Components/Modals/DialogModals/ImportFormModal';
 import OauthErrorModal from '@Components/Modals/DialogModals/OauthErrorModal';
 import RedeemCouponCodeModal from '@Components/Modals/DialogModals/RedeemCouponCodeModal';
 import SearchBySubmissionNumberModal from '@Components/Modals/DialogModals/SearchBySubmissionNumberModal';
-import SignInToFillFormModal from '@Components/Modals/DialogModals/SignInToFillFormModal';
 import UpdateCustomDomainModal from '@Components/Modals/DialogModals/UpdateCustomDomainModal';
 import UpdateWorkspaceHandle from '@Components/Modals/DialogModals/UpdateWorkspaceHandle';
 
@@ -30,14 +29,10 @@ import { Dialog } from '@app/Components/ui/dialog';
 import { Transition } from '@app/Components/ui/transition';
 import { useAppDispatch } from '@app/store/hooks';
 
-import { usePathname } from 'next/navigation';
 import AddFormOnGroup from './modals/add-form-group-modal';
 import AddGroupOnForm from './modals/add-group-form-modal';
 import AddMembersModal from './modals/add-members-modal';
 import AddRegexModal from './modals/add-regex-modal';
-import ConsentConfirmationModalView from './modals/consent-confirmation-modal-view';
-import ConsentPurposeModalView from './modals/consent-purpose-modal-view';
-import ConsentRetentionModalView from './modals/consent-retention-modal-view';
 import CropImageModalView from './modals/crop-image-modal-view';
 import DeleteConfirmationModal from './modals/delete-confirmation-modal';
 import EditWorkspaceModal from './modals/edit-workspace-modal';
@@ -55,12 +50,6 @@ function renderModalContent(view: MODAL_VIEW, modalProps: any) {
             return <AddMembersModal {...modalProps} />;
         case 'ADD_REGEX':
             return <AddRegexModal {...modalProps} />;
-        case 'CONSENT_CONFIRMATION_MODAL_VIEW':
-            return <ConsentConfirmationModalView {...modalProps} />;
-        case 'CONSENT_PURPOSE_MODAL_VIEW':
-            return <ConsentPurposeModalView />;
-        case 'CONSENT_RETENTION_MODAL_VIEW':
-            return <ConsentRetentionModalView {...modalProps} />;
         case 'CROP_IMAGE':
             return <CropImageModalView {...modalProps} />;
         case 'CUSTOMIZE_URL':
@@ -107,8 +96,6 @@ function renderModalContent(view: MODAL_VIEW, modalProps: any) {
             return <OauthErrorModal {...modalProps} />;
         case 'GENERATE_QR':
             return <GenerateQRModalView {...modalProps} />;
-        case 'SIGN_IN_TO_FILL_FORM':
-            return <SignInToFillFormModal {...modalProps} />;
         case 'SEARCH_BY_SUBMISSION_NUMBER':
             return <SearchBySubmissionNumberModal {...modalProps} />;
         default:

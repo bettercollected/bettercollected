@@ -443,32 +443,6 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                                 </FormSettingsCard>
                             </>
                         )}
-                        {form?.settings?.provider === 'self' && form?.builderVersion !== 'v2' && (
-                            <FormSettingsCard>
-                                <div className="flex w-full flex-col items-start">
-                                    <div className="body1">{t(formPage.formPurposeTitle)}</div>
-                                    <Divider className={'my-2 w-full'} />
-                                    <div className=" flex w-full flex-row items-center justify-between gap-4">
-                                        <div className="!text-black-700 text-sm">{t(formPage.formPurposeDescription)}</div>
-                                        <AppButton
-                                            data-umami-event="View Form Consent Button"
-                                            data-umami-event-email={auth.email}
-                                            variant={ButtonVariant.Ghost}
-                                            className="h5-new !text-new-blue-500 w-60 cursor-pointer"
-                                            onClick={() => {
-                                                fullScreenModal.openModal('CREATE_CONSENT_FULL_MODAL_VIEW', {
-                                                    form,
-                                                    isPreview: true
-                                                });
-                                            }}
-                                        >
-                                            {t(formPage.formPurposeSeeDetails)}
-                                        </AppButton>
-                                    </div>
-                                    <Divider className={'my-2 w-full'} />
-                                </div>
-                            </FormSettingsCard>
-                        )}
                         {form?.settings?.provider === 'self' && form?.isPublished && (
                             <FormSettingsCard>
                                 <div className="flex w-full flex-col items-start">

@@ -26,7 +26,6 @@ const formData = {
         disableBranding: true
     },
     isPublished: false,
-    consent: [],
     fields: [
         {
             id: '651a4e28588b3f432a942b61',

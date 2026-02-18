@@ -5,7 +5,7 @@ import moment from 'moment/moment';
 import { formConstant } from '@app/constants/locales/form';
 import { AnswerDto, StandardFormDto, StandardFormFieldDto } from '@app/models/dtos/form';
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
-import { FormValidationError } from '@app/store/fill-form/type';
+import { FormValidationError } from '@app/models/enums/formValidation';
 import { ActionType, Comparison, Condition, ConditionalActions, FieldType, LogicalOperator } from '@app/models/types/form-builder-shared';
 
 /**

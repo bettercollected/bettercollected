@@ -8,7 +8,6 @@ export const convertFormTemplateToStandardForm = (template: IFormTemplateDto) =>
         description: template.description,
         buttonText: template.buttonText,
         groups: [],
-        consent: [],
         fields: template.fields,
         coverImage: template.coverImage,
         logo: template.logo

@@ -11,8 +11,6 @@ import { Dialog } from '@app/Components/ui/dialog';
 import { Transition } from '@app/Components/ui/transition';
 import { useAppDispatch } from '@app/store/hooks';
 
-import ConsentFullModalView from './full-screen-modals/consent-full-modal-view';
-import CreateConsentFullModalView from './full-screen-modals/create-consent-full-modal-view';
 import ViewResponseFullModalView from './full-screen-modals/view-response-full-modal-view';
 import CropImageModalView from './modals/crop-image-modal-view';
 import { PreviewFullModalView } from './full-screen-modals/v2preview-modal';
@@ -28,10 +26,6 @@ function renderModalContent(view: FULL_SCREEN_MODALS, modalProps: any) {
             return <UpgradeToProModal {...modalProps} />;
         case 'WORKSPACE_PREVIEW':
             return <WorkspacePreviewModal />;
-        case 'CREATE_CONSENT_FULL_MODAL_VIEW':
-            return <CreateConsentFullModalView {...modalProps} />;
-        case 'CONSENT_FULL_MODAL_VIEW':
-            return <ConsentFullModalView {...modalProps} />;
         case 'VIEW_RESPONSE':
             return <ViewResponseFullModalView {...modalProps} />;
         case 'PREVIEW_MODAL':
