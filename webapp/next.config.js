@@ -1,13 +1,4 @@
-const runtimeCaching = require('next-pwa/cache');
-
 const { i18n } = require('./next-i18next.config');
-
-const withPWA = require('next-pwa')({
-    dest: 'public',
-    disable: process.env.NODE_ENV === 'development',
-    runtimeCaching,
-    buildExcludes: [/middleware-manifest\.json$/]
-});
 
 const nextConfig = {
     productionBrowserSourceMaps: true,
@@ -149,12 +140,6 @@ const nextConfig = {
         ENABLE_SUGGEST_PRICE: process.env.ENABLE_SUGGEST_PRICE,
         MAX_WORKSPACES: process.env.MAX_WORKSPACES || '5',
         API_ENDPOINT_HOST: process.env.API_ENDPOINT_HOST,
-        SENTRY_DSN: process.env.SENTRY_DSN,
-        SENTRY_URL: process.env.SENTRY_URL,
-        SENTRY_ORG: process.env.SENTRY_ORG,
-        SENTRY_PROJECT: process.env.SENTRY_PROJECT,
-        SENTRY_AUTH_TOKEN: process.env.SENTRY_AUTH_TOKEN,
-        SENTRY_RELEASE: process.env.SENTRY_RELEASE,
         METATAG_TITLE: process.env.METATAG_TITLE,
         METATAG_DESCRIPTION: process.env.METATAG_DESCRIPTION,
         METATAG_IMAGE: process.env.METATAG_IMAGE,
@@ -180,7 +165,7 @@ if (process.env.BASE_DEPLOY_PATH) {
     nextConfig['basePath'] = process.env.BASE_DEPLOY_PATH;
 }
 
-const nextConfigWithPWA = withPWA({
+module.exports = {
     ...nextConfig,
     ...(process.env.NODE_ENV === 'production' && {
         typescript: {
@@ -190,6 +175,4 @@ const nextConfigWithPWA = withPWA({
             ignoreDuringBuilds: false
         }
     })
-});
-
-module.exports = nextConfigWithPWA;
+};

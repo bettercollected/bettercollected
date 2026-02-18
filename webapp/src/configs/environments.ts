@@ -19,12 +19,6 @@ const environments = {
     // run-time config
     GA_MEASUREMENT_ID: process.env.GA_MEASUREMENT_ID,
     MICROSOFT_CLARITY_TRACKING_CODE: process.env.NEXT_PUBLIC_MICROSOFT_CLARITY_TRACKING_CODE || process.env.MICROSOFT_CLARITY_TRACKING_CODE,
-    SENTRY_DSN: process.env.SENTRY_DSN,
-    SENTRY_URL: process.env.SENTRY_URL,
-    SENTRY_ORG: process.env.SENTRY_ORG,
-    SENTRY_PROJECT: process.env.SENTRY_PROJECT,
-    SENTRY_AUTH_TOKEN: process.env.SENTRY_AUTH_TOKEN,
-    SENTRY_RELEASE: process.env.SENTRY_RELEASE,
 
     //workspaces
     MAX_WORKSPACES: process.env.MAX_WORKSPACES || 5,
