@@ -1,35 +1,35 @@
-import React from 'react';
+'use client';
 
-import {useTranslation} from 'next-i18next';
-import {NextSeo} from 'next-seo';
-import {useRouter} from 'next/router';
+import React from 'react';
+import { useTranslation } from 'react-i18next';
+import { useRouter } from 'next/navigation';
+import { toast } from 'react-toastify';
+import { ListItemIcon, MenuItem } from '@mui/material';
+
 import EllipsisOption from '@Components/Common/Icons/Common/EllipsisOption';
 import SettingsIcon from '@Components/Common/Icons/Common/Settings';
 import AppButton from '@Components/Common/Input/Button/AppButton';
-import {ButtonVariant} from '@Components/Common/Input/Button/AppButtonProps';
+import { ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
 import MenuDropdown from '@Components/Common/Navigation/MenuDropdown/MenuDropdown';
-import {useBottomSheetModal} from '@Components/Modals/Contexts/BottomSheetModalContext';
-import {ListItemIcon, MenuItem} from '@mui/material';
-import {toast} from 'react-toastify';
+import { useBottomSheetModal } from '@Components/Modals/Contexts/BottomSheetModalContext';
 
 import FormRenderer from '@app/Components/Form/renderer/form-renderer';
-import {ArrowUp} from '@app/Components/icons/arrow-up';
-import {ChevronForward} from '@app/Components/icons/chevron-forward';
+import { ArrowUp } from '@app/Components/icons/arrow-up';
+import { ChevronForward } from '@app/Components/icons/chevron-forward';
 import environments from '@app/configs/environments';
 import Layout from '@app/layouts/_layout';
-import {useIsMobile} from '@app/lib/hooks/use-breakpoint';
-import {getAuthUserPropsWithWorkspace} from '@app/lib/serverSideProps';
+import { useIsMobile } from '@app/lib/hooks/use-breakpoint';
 import {
     useCreateFormFromTemplateMutation,
     useGetTemplateByIdQuery,
     useImportTemplateMutation
 } from '@app/store/template/api';
-import {convertFormTemplateToStandardForm} from '@app/utils/convertDataType';
-import {IFormTemplateDto} from '@app/models/dtos/template';
+import { convertFormTemplateToStandardForm } from '@app/utils/convertDataType';
+import { IFormTemplateDto } from '@app/models/dtos/template';
+import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import FormSlidePreview from '@app/views/organism/FormPreview/FormSlidePreview';
 
-const SingleTemplate = (props: any) => {
-    const { workspace, templateId } = props;
+export default function SingleTemplateClient({ workspace, templateId }: { workspace: WorkspaceDto, templateId: string }) {
     const router = useRouter();
     const { openBottomSheetModal } = useBottomSheetModal();
     const { t } = useTranslation();
@@ -56,12 +56,12 @@ const SingleTemplate = (props: any) => {
             const response: any = await importTemplate(request);
             if (response?.data) {
                 toast('Imported Successfully', { type: 'success' });
-                await router.replace(`/${workspace.workspaceName}/dashboard/templates`);
+                router.replace(`/${workspace.workspaceName}/dashboard/templates`);
             } else {
-                toast('Error Occurred').toString(), { type: 'error' };
+                toast('Error Occurred', { type: 'error' });
             }
         } catch (err) {
-            toast('Error Occurred').toString(), { type: 'error' };
+            toast('Error Occurred', { type: 'error' });
         }
     };
 
@@ -72,30 +72,24 @@ const SingleTemplate = (props: any) => {
                 toast('Created Form Successfully', { type: 'success' });
                 const editFormUrl = `/${workspace.workspaceName}/dashboard/forms/${response?.data?.formId}/edit`;
                 if (response?.data?.builderVersion === 'v2') {
-                    router.push(environments.HTTP_SCHEME + environments.DASHBOARD_DOMAIN + editFormUrl);
+                    window.location.href = environments.HTTP_SCHEME + environments.DASHBOARD_DOMAIN + editFormUrl;
                 } else {
                     router.push(editFormUrl);
                 }
             } else {
-                toast('Error Occurred').toString(), { type: 'error' };
+                toast('Error Occurred', { type: 'error' });
             }
         } catch (err) {
-            toast('Error Occurred').toString(), { type: 'error' };
+            toast('Error Occurred', { type: 'error' });
         }
-    };
-
-    const handleEditTemplate = () => {
-        router.push(`/${workspace.workspaceName}/templates/${templateId}/edit`);
     };
 
     const handleClickSetting = () => {
         openBottomSheetModal('TEMPLATE_SETTINGS_FULL_MODAL_VIEW', { template: data });
     };
 
-    // @ts-ignore
     return (
         <Layout showNavbar className={'bg-white !px-0'} childClassName={'!h-screen'}>
-            <NextSeo title={data?.title + ' | ' + workspace.workspaceName} noindex={false} nofollow={false} />
             <div className={'flex items-center justify-between px-5 py-3'}>
                 <div className="flex cursor-pointer items-center gap-1 pt-0 md:pt-2" onClick={handleClickBack}>
                     <ChevronForward className=" h-6 w-6 rotate-180  p-[2px]" />
@@ -110,18 +104,10 @@ const SingleTemplate = (props: any) => {
                                         {t('SETTINGS')}
                                     </AppButton>
                                 )
-                                // : (
-                                //     <AppButton variant={ButtonVariant.Secondary} onClick={handleImportTemplate}>
-                                //         {t('TEMPLATE.BUTTONS.IMPORT_TEMPLATE')}
-                                //     </AppButton>
-                                // )
                             }
-                            {/* {data?.builderVersion !== 'v2' && <EditTemplateButton templateId={templateId} />}
-                            <AppButton onClick={handleUseTemplate}> {t('TEMPLATE.BUTTONS.USE_TEMPLATE')}</AppButton> */}
                         </>
                     ) : (
                         <>
-                            {/* <AppButton onClick={handleUseTemplate}> {t('TEMPLATE.BUTTONS.USE_TEMPLATE')}</AppButton> */}
                             <MenuDropdown
                                 width={180}
                                 showExpandMore={false}
@@ -139,12 +125,6 @@ const SingleTemplate = (props: any) => {
                                     </div>
                                 }
                             >
-                                {/* <MenuItem onClick={handleEditTemplate} className="body4">
-                                    <ListItemIcon>
-                                        <EditIcon />
-                                    </ListItemIcon>
-                                    <span>{t('BUTTON.EDIT')}</span>
-                                </MenuItem> */}
                                 {data?.workspaceId === workspace.id && (
                                     <MenuItem onClick={data?.workspaceId === workspace.id ? handleClickSetting : handleImportTemplate} className="body4">
                                         <ListItemIcon>{data?.workspaceId === workspace.id ? <SettingsIcon /> : <ArrowUp height={16} width={16} />}</ListItemIcon>
@@ -178,20 +158,3 @@ const TemplatePreview = ({ template }: { template: IFormTemplateDto }) => {
         </div>
     );
 };
-
-export default SingleTemplate;
-
-export async function getServerSideProps(_context: any) {
-    const props = await getAuthUserPropsWithWorkspace(_context);
-    const { template_id } = _context.params;
-    if (!props.props) {
-        return props;
-    }
-    const globalProps = props.props;
-    return {
-        props: {
-            ...globalProps,
-            templateId: template_id
-        }
-    };
-}

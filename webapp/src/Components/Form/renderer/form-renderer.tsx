@@ -1,3 +1,5 @@
+'use client';
+
 import React from 'react';
 
 import AppTextField from '@Components/Common/Input/AppTextField';
