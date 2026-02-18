@@ -29,17 +29,15 @@ export default function RespondersGroupsClient() {
     ];
 
     return (
-        <DashboardLayout dashboardContentClassName="-mt-14" boxClassName="p-0">
-            <div className="flex flex-col">
-                <ParamTab className="mb-[30px] py-0" tabMenu={paramTabs}>
-                    <TabPanel className="focus:outline-none" key="All Responders">
-                        <WorkspaceResponses workspace={workspace} />
-                    </TabPanel>
-                    <TabPanel className="focus:outline-none" key="Groups">
-                        <WorkspaceGroups workspace={workspace} />
-                    </TabPanel>
-                </ParamTab>
-            </div>
-        </DashboardLayout>
+        <div className="flex flex-col">
+            <ParamTab className="mb-[30px] py-0" tabMenu={paramTabs}>
+                <TabPanel className="focus:outline-none" key="All Responders">
+                    <WorkspaceResponses workspace={workspace} />
+                </TabPanel>
+                <TabPanel className="focus:outline-none" key="Groups">
+                    <WorkspaceGroups workspace={workspace} />
+                </TabPanel>
+            </ParamTab>
+        </div>
     );
 }

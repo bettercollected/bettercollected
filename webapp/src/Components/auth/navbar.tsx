@@ -14,6 +14,7 @@ import { useIsMounted } from '@app/lib/hooks/use-is-mounted';
 import { useWindowScroll } from '@app/lib/hooks/use-window-scroll';
 
 import LocaleDropdownUi from '../ui/locale-dropdown-ui';
+import AuthAccountMenuDropdownApp from './AccountMenuDropdownApp';
 
 
 interface IAuthNavbarProps {
@@ -37,7 +38,7 @@ AuthNavbar.defaultProps = {
     showHamburgerIcon: true,
     isMobileView: false,
     showAuthAccount: true,
-    handleDrawerToggle: () => {}
+    handleDrawerToggle: () => { }
 };
 
 export function Header(props: any) {
@@ -71,7 +72,7 @@ function AuthNavbar({ showHamburgerIcon, showPlans, mobileOpen, handleDrawerTogg
                             )}
                         </>
                     )}
-                    {showAuthAccount && <AuthAccountMenuDropdown hideMenu={hideMenu} isClientDomain={isClientDomain} />}
+                    {showAuthAccount && <AuthAccountMenuDropdownApp hideMenu={hideMenu} isClientDomain={isClientDomain} />}
                 </div>
             </div>
         </Header>
