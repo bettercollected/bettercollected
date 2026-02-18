@@ -7,8 +7,8 @@ import AppTextField from '@Components/Common/Input/AppTextField';
 import AppButton from '@Components/Common/Input/Button/AppButton';
 import { ButtonSize, ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
 import { useBottomSheetModal } from '@Components/Modals/Contexts/BottomSheetModalContext';
-import HeaderModalWrapper from '@Components/Modals/ModalWrappers/HeaderModalWrapper';
-import { toast } from 'react-toastify';
+import HeaderModalWrapper from '@app/Components/Modals/ModalWrappers/HeaderModalWrapper';
+import { useToast } from '@app/shadcn/components/ui/use-toast';
 
 import { useModal } from '@app/Components/modal-views/context';
 import environments from '@app/configs/environments';
@@ -23,6 +23,7 @@ import { selectWorkspace } from '@app/store/workspaces/slice';
 import { checkErrorForWorkspaceName, checkIfPredefinedWorkspaceName } from '@app/utils/workspaceUtils';
 
 export default function UpdateWorkspaceHandle() {
+    const { toast } = useToast();
     const [patchExistingWorkspace, { isLoading }] = usePatchExistingWorkspaceMutation();
 
     const { closeModal } = useModal();
@@ -73,12 +74,12 @@ export default function UpdateWorkspaceHandle() {
         const response: any = await patchExistingWorkspace(body);
         if (response.data) {
             // dispatch(setWorkspace(response.data));
-            toast.info(t(updateWorkspace.handle).toString(), { toastId: ToastId.SUCCESS_TOAST });
+            toast({ description: t(updateWorkspace.handle).toString() });
             router.replace(`/${response.data.workspaceName}/dashboard`);
             openBottomSheetModal('WORKSPACE_SETTINGS', { initialIndex: 1 });
             closeModal();
         } else if (response.error) {
-            toast.error(response.error.data?.message || response.error.data || t(toastMessage.somethingWentWrong), { toastId: ToastId.ERROR_TOAST });
+            toast({ description: response.error.data?.message || response.error.data || t(toastMessage.somethingWentWrong), variant: 'destructive' });
         }
     };
     return (

@@ -5,8 +5,8 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
 import { ChevronLeft } from '@mui/icons-material';
 import { Button } from '@mui/material';
-import { toast } from 'react-toastify';
 
+import { useToast } from '@app/shadcn/components/ui/use-toast';
 import FormResponsesTable from '@app/Components/datatable/form/form-responses';
 import FormRenderer from '@app/Components/Form/renderer/form-renderer';
 import { useModal } from '@app/Components/modal-views/context';
@@ -22,6 +22,7 @@ export default function FormResponses() {
     const router = useRouter();
     const pathname = usePathname();
     const searchParams = useSearchParams();
+    const { toast } = useToast();
     let submissionId: string = (searchParams?.get('sub_id') as string) ?? '';
     const [trigger] = useLazyGetWorkspaceSubmissionQuery();
     const { t } = useTranslation();
@@ -42,7 +43,7 @@ export default function FormResponses() {
                     setSubmissionForm(d.data);
                 })
                 .catch((e) => {
-                    toast.error('Error fetching submission data.', { toastId: 'errorToast' });
+                    toast({ description: 'Error fetching submission data.', variant: 'destructive' });
                 });
         }
     }, [submissionId, workspace?.id]);

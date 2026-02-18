@@ -11,7 +11,7 @@ import { utcToLocalDateTIme } from '@app/utils/dateUtils';
 import { getAnswerForField, getTitleForHeader } from '@app/utils/formBuilderBlockUtils';
 import DeleteIcon from '@app/views/atoms/Icons/Delete';
 import { motion } from 'framer-motion';
-import { toast } from 'react-toastify';
+import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { useFullScreenModal } from '../full-screen-modal-context';
 import { downloadFile } from '@app/utils/fileUtils';
 
@@ -23,6 +23,7 @@ export interface IViewResponseFullModalView {
 }
 
 const ViewResponseFullModalView = ({ response, formFields, formId, workspaceId }: IViewResponseFullModalView) => {
+    const { toast } = useToast();
     const { closeModal } = useFullScreenModal();
 
     return (
@@ -51,6 +52,9 @@ const ViewResponseFullModalView = ({ response, formFields, formId, workspaceId }
 };
 
 export const IndividualFormResponse = ({ formFields, response, form }: { formFields: Array<StandardFormFieldDto>; response: StandardFormResponseDto; form?: StandardFormDto }) => {
+
+    const { toast } = useToast();
+
     const reduxForm = useAppSelector(selectForm);
     const standardForm = form ? form : reduxForm;
     function getTitleForHeaderForTable(field: StandardFormFieldDto) {
@@ -63,7 +67,7 @@ export const IndividualFormResponse = ({ formFields, response, form }: { formFie
             if (!ans?.file_metadata?.url) return;
             downloadFile(ans?.file_metadata?.url, ans?.file_metadata.name ?? ans?.file_metadata.id);
         } catch (err) {
-            toast('Error downloading file', { type: 'error' });
+            toast({ description: 'Error downloading file', variant: 'destructive' });
         }
     };
     return (
@@ -92,16 +96,17 @@ export const IndividualFormResponse = ({ formFields, response, form }: { formFie
 };
 
 const EllipsisSection = ({ formId, workspaceId, responseId }: { formId: string; workspaceId: string; responseId: string }) => {
+    const { toast } = useToast();
     const [deleteResponse] = useDeleteResponseMutation();
     const { closeModal } = useFullScreenModal();
 
     const handleDelete = async () => {
         const response: any = await deleteResponse({ workspaceId, formId, responseId });
         if (response?.data) {
-            toast('Response Deleted', { type: 'success' });
+            toast({ description: 'Response Deleted' });
             closeModal();
         } else {
-            toast('Error Deleting Response', { type: 'error' });
+            toast({ description: 'Error Deleting Response', variant: 'destructive' });
         }
     };
     return (

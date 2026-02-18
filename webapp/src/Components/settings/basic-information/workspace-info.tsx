@@ -6,7 +6,7 @@ import AppTextField from '@Components/Common/Input/AppTextField';
 import AppButton from '@Components/Common/Input/Button/AppButton';
 import { ButtonSize, ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
 import UploadLogo from '@Components/Common/UploadLogo';
-import { toast } from 'react-toastify';
+import { useToast } from '@app/shadcn/components/ui/use-toast';
 
 import { useBottomSheetModal } from '@Components/Modals/Contexts/BottomSheetModalContext';
 import environments from '@app/configs/environments';
@@ -23,6 +23,7 @@ import { selectAuth } from '@app/store/auth/slice';
 export default function WorkspaceInfo({ workspace }: { workspace: WorkspaceDto }) {
     const dispatch = useAppDispatch();
     const { t } = useTranslation();
+    const { toast } = useToast();
     const [patchExistingWorkspace, { isLoading }] = usePatchExistingWorkspaceMutation();
     const { closeBottomSheetModal } = useBottomSheetModal();
     const [workspaceInfo, setWorkspaceInfo] = useState({
@@ -56,12 +57,12 @@ export default function WorkspaceInfo({ workspace }: { workspace: WorkspaceDto }
         const response: any = await patchExistingWorkspace({ workspace_id: workspace.id, body: formData });
 
         if (response.error) {
-            toast(response.error.data || t(toastMessage.somethingWentWrong).toString(), { toastId: ToastId.ERROR_TOAST });
+            toast({ description: response.error.data || t(toastMessage.somethingWentWrong).toString(), variant: 'destructive' });
         }
         if (response.data) {
             dispatch(setWorkspace(response.data));
             closeBottomSheetModal();
-            toast(t(toastMessage.workspaceUpdate).toString(), { type: 'success', toastId: ToastId.SUCCESS_TOAST });
+            toast({ description: t(toastMessage.workspaceUpdate).toString() });
         }
     };
 
@@ -75,9 +76,9 @@ export default function WorkspaceInfo({ workspace }: { workspace: WorkspaceDto }
         });
 
         if (response.error) {
-            toast(response.error?.data || t(toastMessage.somethingWentWrong), {
-                toastId: ToastId.ERROR_TOAST,
-                type: 'error'
+            toast({
+                description: response.error?.data || t(toastMessage.somethingWentWrong),
+                variant: 'destructive'
             });
         }
 

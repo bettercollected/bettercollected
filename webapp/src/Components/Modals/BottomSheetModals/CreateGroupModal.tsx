@@ -7,7 +7,7 @@ import AppButton from '@Components/Common/Input/Button/AppButton';
 import { ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
 import { useBottomSheetModal } from '@Components/Modals/Contexts/BottomSheetModalContext';
 import BottomSheetModalWrapper from '@Components/Modals/ModalWrappers/BottomSheetModalWrapper';
-import { toast } from 'react-toastify';
+import { useToast } from '@app/shadcn/components/ui/use-toast';
 
 import RegexCard from '@Components/cards/regex-card';
 import GroupInfo from '@app/Components/group/group-info';
@@ -30,6 +30,7 @@ import { selectWorkspace } from '@app/store/workspaces/slice';
 export default function CreateGroupModal() {
     const router = useRouter();
     const searchParams = useSearchParams();
+    const { toast } = useToast();
     let formId: string = (searchParams?.get('formId') as string) ?? '';
     const { closeBottomSheetModal } = useBottomSheetModal();
     const { t } = useTranslation();
@@ -76,10 +77,7 @@ export default function CreateGroupModal() {
                 workspace_id: workspace.id
             }).then((response: any) => {
                 if ('data' in response) {
-                    toast(t(toastMessage.workspaceSuccess).toString(), {
-                        toastId: ToastId.SUCCESS_TOAST,
-                        type: 'success'
-                    });
+                    toast({ description: t(toastMessage.workspaceSuccess).toString() });
                     addFormOnGroup({
                         groups: [],
                         groupsForUpdate: [...existingGroups, { ...response.data, id: response.data._id }],
@@ -88,13 +86,13 @@ export default function CreateGroupModal() {
                     });
                     closeBottomSheetModal();
                 } else
-                    toast(t(toastMessage.somethingWentWrong).toString(), {
-                        toastId: ToastId.ERROR_TOAST,
-                        type: 'error'
+                    toast({
+                        description: t(toastMessage.somethingWentWrong).toString(),
+                        variant: 'destructive'
                     });
             });
         } catch (error) {
-            toast(t(toastMessage.somethingWentWrong).toString(), { toastId: ToastId.ERROR_TOAST, type: 'error' });
+            toast({ description: t(toastMessage.somethingWentWrong).toString(), variant: 'destructive' });
         }
     };
 
@@ -106,7 +104,7 @@ export default function CreateGroupModal() {
             });
             closeModal();
         } else {
-            toast(t(toastMessage.somethingWentWrong).toString(), { toastId: ToastId.ERROR_TOAST, type: 'error' });
+            toast({ description: t(toastMessage.somethingWentWrong).toString(), variant: 'destructive' });
         }
     };
 

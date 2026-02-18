@@ -11,8 +11,8 @@ import TextArea from '@Components/Common/Input/TextArea';
 import BottomSheetModalWrapper from '@Components/Modals/ModalWrappers/BottomSheetModalWrapper';
 import { FormControlLabel, FormGroup, Select } from '@mui/material';
 import MenuItem from '@mui/material/MenuItem';
-import { toast } from 'react-toastify';
 
+import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { toastMessage } from '@app/constants/locales/toast-message';
 import { ToastId } from '@app/constants/toastId';
 import { useDeleteAccountMutation } from '@app/store/auth/api';
@@ -21,6 +21,7 @@ import { useDeleteAccountMutation } from '@app/store/auth/api';
 export default function DeleteAccountModal() {
     const [deleteAccount] = useDeleteAccountMutation();
     const router = useRouter();
+    const { toast } = useToast();
 
     const { t } = useTranslation();
     const [dropdownValue, setDropdownValue] = useState('');
@@ -45,15 +46,9 @@ export default function DeleteAccountModal() {
         }).then((response) => {
             if ('data' in response) {
                 router.push(`/`)
-                toast(t(toastMessage.accountDeletion.success).toString(), {
-                    toastId: ToastId.SUCCESS_TOAST,
-                    type: 'success'
-                });
+                toast({ description: t(toastMessage.accountDeletion.success).toString() });
             } else {
-                toast(t(toastMessage.accountDeletion.failed).toString(), {
-                    toastId: ToastId.ERROR_TOAST,
-                    type: 'error'
-                });
+                toast({ description: t(toastMessage.accountDeletion.failed).toString(), variant: 'destructive' });
             }
         });
         setError(false);

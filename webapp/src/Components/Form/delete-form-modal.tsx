@@ -2,8 +2,8 @@ import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/navigation';
 
 import GenericHalfModal from '@Components/Common/Modals/GenericHalfModal';
-import { toast } from 'react-toastify';
 
+import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { useModal } from '@Components/modal-views/context';
 import { toastMessage } from '@app/constants/locales/toast-message';
 import { useAppSelector } from '@app/store/hooks';
@@ -13,6 +13,7 @@ import { useDeleteFormMutation } from '@app/store/workspaces/api';
 export default function DeleteFormModal(props: any) {
     const { closeModal } = useModal();
     const { t } = useTranslation();
+    const { toast } = useToast();
 
     const [trigger] = useDeleteFormMutation();
     const workspace = useAppSelector((state) => state.workspace);
@@ -25,10 +26,10 @@ export default function DeleteFormModal(props: any) {
         }).finally(() => closeModal());
         if (response?.data && !!props?.redirectToDashboard) {
             router.push(`/${workspace.workspaceName}/dashboard/forms`);
-            toast(t(toastMessage.formDeleted).toString(), { type: 'success' });
+            toast({ description: t(toastMessage.formDeleted).toString() });
         }
         if (response?.error) {
-            toast(t(toastMessage.formDeletionFail).toString(), { type: 'error' });
+            toast({ description: t(toastMessage.formDeletionFail).toString(), variant: 'destructive' });
         }
     };
     return <GenericHalfModal type="danger" positiveText="Delete" positiveAction={handleDelete} headerTitle="Delete Form" title={`Are you sure to delete the form "${props?.form?.title || 'Untitled Form'}"?`} />;

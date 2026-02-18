@@ -4,8 +4,8 @@ import { useRouter } from 'next/navigation';
 
 import AppButton from '@Components/Common/Input/Button/AppButton';
 import { ButtonSize, ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
-import { toast } from 'react-toastify';
 
+import { useToast } from '@app/shadcn/components/ui/use-toast';
 import AuthNavbar from '@app/Components/auth/navbar';
 import { buttonConstant } from '@app/constants/locales/button';
 import { invitationConstant } from '@app/constants/locales/invitations';
@@ -26,6 +26,7 @@ const MainValidUser: React.FC<Props> = ({ workspace, user, invitation }: Props) 
     const [trigger, { isLoading }] = useRespondToWorkspaceInvitationMutation();
     const { t } = useTranslation();
     const router = useRouter();
+    const { toast } = useToast();
     const { workspaceName } = useAppSelector(selectWorkspace);
 
     const [isSwitchOn, setSwitchOn] = useState(false);
@@ -59,8 +60,9 @@ const MainValidUser: React.FC<Props> = ({ workspace, user, invitation }: Props) 
             }
         }
         if (response.error) {
-            toast(response.error?.data || t('Something went wrong'), {
-                type: 'error'
+            toast({
+                description: response.error?.data || t('Something went wrong'),
+                variant: 'destructive'
             });
         }
     };

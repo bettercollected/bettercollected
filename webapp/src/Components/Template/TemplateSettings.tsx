@@ -9,7 +9,7 @@ import AppTextField from '@Components/Common/Input/AppTextField';
 import AppButton from '@Components/Common/Input/Button/AppButton';
 import { ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
 import { FormControlLabel, Radio, RadioGroup } from '@mui/material';
-import { toast } from 'react-toastify';
+import { useToast } from '@app/shadcn/components/ui/use-toast';
 import useCopyToClipboard from 'react-use/lib/useCopyToClipboard';
 
 import Globe from '@app/Components/icons/flags/globe';
@@ -25,6 +25,7 @@ import { selectWorkspace } from '@app/store/workspaces/slice';
 
 
 const TemplateSettings = ({ template, showTitle }: { template: IFormTemplateDto; showTitle: boolean }) => {
+    const { toast } = useToast();
     const { t } = useTranslation();
     const [templateVisibility, setTemplateVisibility] = useState(template?.settings?.isPublic ? 'Public' : 'Private');
     const { openModal } = useModal();
@@ -43,10 +44,10 @@ const TemplateSettings = ({ template, showTitle }: { template: IFormTemplateDto;
         };
         const response: any = await updateTemplateSettings(request);
         if (response?.data) {
-            toast(t(localesCommon.updated).toString(), { type: 'success' });
+            toast({ description: t(localesCommon.updated).toString() });
             setTemplateVisibility(response?.data?.settings?.isPublic ? 'Public' : 'Private');
         } else {
-            toast('Error Occurred').toString(), { type: 'error' };
+            toast({ description: 'Error Occurred', variant: 'destructive' });
         }
     };
 
@@ -125,14 +126,13 @@ const TemplateSettings = ({ template, showTitle }: { template: IFormTemplateDto;
 export default TemplateSettings;
 
 const ShareLinkOptions = ({ adminHost }: { adminHost: string }) => {
+    const { toast } = useToast();
     const [_, copyToClipboard] = useCopyToClipboard();
     const { t } = useTranslation();
 
     const handleOnCopy = () => {
         copyToClipboard(adminHost);
-        toast(t(toastMessage.copied).toString(), {
-            type: 'info'
-        });
+        toast({ description: t(toastMessage.copied).toString() });
     };
     return (
         <div>

@@ -9,7 +9,7 @@ import { ButtonSize, ButtonVariant } from '@Components/Common/Input/Button/AppBu
 import ModalButton from '@Components/Common/Input/Button/ModalButton';
 import HeaderModalWrapper from '@Components/Modals/ModalWrappers/HeaderModalWrapper';
 import cn from 'classnames';
-import { toast } from 'react-toastify';
+import { useToast } from '@app/shadcn/components/ui/use-toast';
 
 import { Close } from '@app/Components/icons/close';
 import { useModal } from '@app/Components/modal-views/context';
@@ -26,6 +26,7 @@ interface IAddMemberModalProps {
 }
 
 export default function AddMembersModal({ handleAddMembers, group }: IAddMemberModalProps) {
+    const { toast } = useToast();
     const { t } = useTranslation();
     const { closeModal } = useModal();
     const [emails, setEmails] = useState<Array<string>>([]);
@@ -36,10 +37,10 @@ export default function AddMembersModal({ handleAddMembers, group }: IAddMemberM
     const addEmail = (event: any) => {
         event.preventDefault();
         if (emails.includes(email.toLowerCase())) {
-            toast(t(toastMessage.emailAlreadyExist).toString(), { toastId: ToastId.ERROR_TOAST, type: 'error' });
+            toast({ description: t(toastMessage.emailAlreadyExist).toString(), variant: 'destructive' });
             return;
         } else if (group && group.emails?.includes(email.toLowerCase())) {
-            toast(t(toastMessage.alreadyInGroup).toString(), { toastId: ToastId.ERROR_TOAST, type: 'error' });
+            toast({ description: t(toastMessage.alreadyInGroup).toString(), variant: 'destructive' });
             return;
         }
         setEmails([...emails, email.toLowerCase()]);

@@ -1,4 +1,4 @@
-import { toast } from 'react-toastify';
+import { useToast } from '@app/shadcn/components/ui/use-toast';
 
 import environments from '@app/configs/environments';
 import { ButtonSize } from '@app/models/enums/button';
@@ -11,6 +11,7 @@ import getFormShareURL from '@app/utils/formUtils';
 import { useAuthAtom } from '@app/store/jotai/auth';
 
 export default function FormPublishedModal(props: any) {
+    const { toast } = useToast();
     const workspace = useAppSelector(selectWorkspace);
 
     const standardForm = useAppSelector(selectForm);
@@ -41,7 +42,7 @@ export default function FormPublishedModal(props: any) {
                         variant={'v2Button'}
                         onClick={() => {
                             navigator.clipboard.writeText(getFormShareURL(standardForm, workspace));
-                            toast('Copied!');
+                            toast({ description: 'Copied!' });
                         }}
                     >
                         Copy

@@ -11,7 +11,7 @@ import { Button } from '@app/shadcn/components/ui/button';
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
 import html2canvas from 'html2canvas';
-import { toast } from 'react-toastify';
+import { useToast } from '@app/shadcn/components/ui/use-toast';
 import useCopyToClipboard from 'react-use/lib/useCopyToClipboard';
 import { selectAuth } from '@app/store/auth/slice';
 
@@ -20,6 +20,7 @@ export interface IGenerateQR {
 }
 
 const GenerateQRModalView = ({ form }: IGenerateQR) => {
+    const { toast } = useToast();
     const { closeModal } = useModal();
     const { t } = useTranslation();
     const workspaceForm = useAppSelector(selectForm);
@@ -30,9 +31,7 @@ const GenerateQRModalView = ({ form }: IGenerateQR) => {
 
     const handleOnCopy = (text: any) => {
         copyToClipboard(text);
-        toast(t(toastMessage.copied).toString(), {
-            type: 'info'
-        });
+        toast({ description: t(toastMessage.copied).toString() });
     };
 
     const onDownload = async () => {
@@ -47,9 +46,7 @@ const GenerateQRModalView = ({ form }: IGenerateQR) => {
             link.click();
             document.body.removeChild(link);
         } catch (error) {
-            toast("Couldn't download because of the error.", {
-                type: 'info'
-            });
+            toast({ description: "Couldn't download because of the error." });
             console.log(error);
         }
     };
@@ -65,13 +62,9 @@ const GenerateQRModalView = ({ form }: IGenerateQR) => {
                         navigator.clipboard.write([item]);
                     }
                 }, 'image/png');
-            toast('QR Image Copied.', {
-                type: 'info'
-            });
+            toast({ description: 'QR Image Copied.' });
         } catch (error) {
-            toast('Error Occured', {
-                type: 'info'
-            });
+            toast({ description: 'Error Occured' });
             console.log(error);
         }
     };

@@ -13,10 +13,10 @@ import Pin from '@Components/Common/Icons/Form/Pin';
 import MenuDropdown from '@Components/Common/Navigation/MenuDropdown/MenuDropdown';
 import { QrCode } from '@mui/icons-material';
 import { ListItemIcon, MenuItem } from '@mui/material';
-import { toast } from 'react-toastify';
 
 import { LinkIcon } from '@app/Components/icons/link-icon';
 import { useModal } from '@app/Components/modal-views/context';
+import { useToast } from '@app/shadcn/components/ui/use-toast';
 import ActiveLink from '@app/Components/ui/links/active-link';
 import environments from '@app/configs/environments';
 import { buttonConstant } from '@app/constants/locales/button';
@@ -46,6 +46,7 @@ interface IFormOptionsDropdownMenuProps {
 
 export default function FormOptionsDropdownMenu({ workspace, form, hasCustomDomain, className = '', redirectToDashboard = false, showShare = false }: IFormOptionsDropdownMenuProps) {
     const { openModal } = useModal();
+    const { toast } = useToast();
 
     const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
     const [currentActiveForm, setCurrentActiveForm] = React.useState<{
@@ -87,17 +88,17 @@ export default function FormOptionsDropdownMenu({ workspace, form, hasCustomDoma
             const settings = response.data.settings;
             dispatch(setFormSettings(settings));
         } else {
-            toast(t(toastMessage.formSettingUpdateError).toString(), { type: 'error' });
+            toast({ description: t(toastMessage.formSettingUpdateError).toString(), variant: 'destructive' });
             return response.error;
         }
     };
 
     const onPinnedChange = (event: any, f?: StandardFormDto) => {
-        if (!f) return toast(t(toastMessage.formSettingUpdateError).toString(), { type: 'error', toastId: 'errorToast' });
+        if (!f) return toast({ description: t(toastMessage.formSettingUpdateError).toString(), variant: 'destructive' });
         patchSettings({ pinned: !f?.settings?.pinned }, f)
-            .then((res) => {})
+            .then((res) => { })
             .catch((e) => {
-                toast(e.data, { type: 'error', toastId: 'errorToast' });
+                toast({ description: e.data, variant: 'destructive' });
             });
     };
 
@@ -105,7 +106,7 @@ export default function FormOptionsDropdownMenu({ workspace, form, hasCustomDoma
         duplicateForm({ workspaceId: workspace.id, formId: form.formId })
             .then()
             .catch((e: any) => {
-                toast('Could not duplicate form', { type: 'error', toastId: 'errorToast' });
+                toast({ description: 'Could not duplicate form', variant: 'destructive' });
             });
     };
     const menuItemPinSettings = (
@@ -151,7 +152,7 @@ export default function FormOptionsDropdownMenu({ workspace, form, hasCustomDoma
             onClick={() => {
                 if (currentActiveForm?.shareUrl) {
                     copyToClipboard(currentActiveForm?.shareUrl);
-                    toast(t(toastMessage.formUrlCopied).toString(), { type: 'success' });
+                    toast({ description: t(toastMessage.formUrlCopied).toString() });
                 }
             }}
         >

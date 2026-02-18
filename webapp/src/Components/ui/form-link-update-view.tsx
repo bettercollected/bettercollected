@@ -8,9 +8,9 @@ import AppTextField from '@Components/Common/Input/AppTextField';
 import AppButton from '@Components/Common/Input/Button/AppButton';
 import { ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
 import { useBottomSheetModal } from '@Components/Modals/Contexts/BottomSheetModalContext';
-import { toast } from 'react-toastify';
 import useCopyToClipboard from 'react-use/lib/useCopyToClipboard';
 
+import { useToast } from '@app/shadcn/components/ui/use-toast';
 import Globe from '@app/Components/icons/flags/globe';
 import { useFullScreenModal } from '@app/Components/modal-views/full-screen-modal-context';
 import { formPage } from '@app/constants/locales/form-page';
@@ -30,6 +30,7 @@ interface ICurrentLinkUpdate {
 export default function FormLinkUpdateView({ link, isCustomDomain = false, isDisable = false, isProUser, isPrivate = false }: ICurrentLinkUpdate) {
     const { openModal: openFullScreenModal } = useFullScreenModal();
     const { openBottomSheetModal } = useBottomSheetModal();
+    const { toast } = useToast();
     const [_, copyToClipboard] = useCopyToClipboard();
     const workspace = useAppSelector(selectWorkspace);
     const { t } = useTranslation();
@@ -45,9 +46,7 @@ export default function FormLinkUpdateView({ link, isCustomDomain = false, isDis
     const handleOnCopy = () => {
         if (isPrivate) return;
         copyToClipboard(link);
-        toast(t(toastMessage.copied).toString(), {
-            type: 'info'
-        });
+        toast({ description: t(toastMessage.copied).toString() });
     };
 
     return (

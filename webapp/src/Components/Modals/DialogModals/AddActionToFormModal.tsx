@@ -5,8 +5,8 @@ import { useRouter } from 'next/navigation';
 import AppTextField from '@Components/Common/Input/AppTextField';
 import AppButton from '@Components/Common/Input/Button/AppButton';
 import { ButtonSize, ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
-import HeaderModalWrapper from '@Components/Modals/ModalWrappers/HeaderModalWrapper';
-import { toast } from 'react-toastify';
+import HeaderModalWrapper from '@app/Components/Modals/ModalWrappers/HeaderModalWrapper';
+import { useToast } from '@app/shadcn/components/ui/use-toast';
 
 import { useHandleIntegrationOauthCallbackMutation, useLazyGetIntegrationOauthUrlQuery } from '@app/store/integrationApi';
 import { useModal } from '@app/Components/modal-views/context';
@@ -19,6 +19,7 @@ import environments from '@app/configs/environments';
 import Image from 'next/image';
 
 export default function AddActionToFormModal({ action, form, ...props }: any) {
+    const { toast } = useToast();
     const { closeModal } = useModal();
     const [addActionToForm, { isLoading }] = useAddActionToFormMutation();
     const [fetchOauthUrl, { data }] = useLazyGetIntegrationOauthUrlQuery();
@@ -122,10 +123,10 @@ export default function AddActionToFormModal({ action, form, ...props }: any) {
         });
         if (response?.data) {
             router.refresh();
-            toast('Added', { type: 'success' });
+            toast({ description: 'Added' });
             closeModal();
         } else if (response?.error) {
-            toast('Error', { type: 'error' });
+            toast({ description: 'Error', variant: 'destructive' });
         }
         setError(error);
     };

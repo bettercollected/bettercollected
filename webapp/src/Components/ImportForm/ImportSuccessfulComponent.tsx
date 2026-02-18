@@ -14,7 +14,7 @@ import { useBottomSheetModal } from '@Components/Modals/Contexts/BottomSheetModa
 import { CircularProgress } from '@mui/material';
 import { AnimatePresence, motion } from 'framer-motion';
 import ContentEditable from 'react-contenteditable';
-import { toast } from 'react-toastify';
+import { useToast } from '@app/shadcn/components/ui/use-toast';
 
 import GoogleFolder from '@app/assets/images/google_folder.png';
 import { Close } from '@app/Components/icons/close';

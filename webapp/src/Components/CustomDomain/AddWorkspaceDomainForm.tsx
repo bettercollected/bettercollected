@@ -10,10 +10,12 @@ import { usePatchExistingWorkspaceMutation } from '@app/store/workspaces/api';
 import { selectWorkspace, setWorkspace } from '@app/store/workspaces/slice';
 import { useTranslation } from 'next-i18next';
 import { useState } from 'react';
-import { toast } from 'react-toastify';
+
+import { useToast } from '@app/shadcn/components/ui/use-toast';
 
 const AddWorkspaceDomainForm = () => {
     const [patchExistingWorkspace, { isLoading }] = usePatchExistingWorkspaceMutation();
+    const { toast } = useToast();
 
     const workspace = useAppSelector(selectWorkspace);
     const { openModal } = useFullScreenModal();
@@ -52,7 +54,10 @@ const AddWorkspaceDomainForm = () => {
             if (response.data) {
                 dispatch(setWorkspace(response.data));
             } else if (response.error) {
-                toast.error(response.error.data?.message || response.error.data || t(toastMessage.somethingWentWrong), { toastId: ToastId.ERROR_TOAST });
+                toast({
+                    description: response.error.data?.message || response.error.data || t(toastMessage.somethingWentWrong),
+                    variant: 'destructive'
+                });
             }
         }
     };

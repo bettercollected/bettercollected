@@ -1,7 +1,7 @@
 'use client';
 
 import { Controller } from 'react-scrollmagic';
-import { toast } from 'react-toastify';
+import { useToast } from '@app/shadcn/components/ui/use-toast';
 
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import { FormSlideLayout } from '@app/models/enums/form';
@@ -84,6 +84,7 @@ export function FormFieldComponent({ field, slideIndex }: { field: StandardFormF
 }
 
 export default function FormSlide({ index, formSlideData, isPreviewMode = false, showDesktopLayout }: { index: number; isPreviewMode: boolean; formSlideData?: any; showDesktopLayout?: boolean }) {
+    const { toast } = useToast();
     const standardForm = useAppSelector(selectForm);
     const formSlideFromState = standardForm.fields[index];
     const formSlide = formSlideData ? formSlideData : formSlideFromState;
@@ -140,7 +141,7 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
                         })
                         .catch((e) => {
                             debugger;
-                            toast('Error Submitting Response');
+                            toast({ description: 'Error Submitting Response', variant: 'destructive' });
                         });
             } else {
                 nextSlide();

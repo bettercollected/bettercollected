@@ -3,8 +3,8 @@ import React, { useRef, useState } from 'react';
 import { useTranslation } from 'next-i18next';
 
 import AvatarEditor from 'react-avatar-editor';
-import { toast } from 'react-toastify';
 
+import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { useFullScreenModal } from '@app/Components/modal-views/full-screen-modal-context';
 import { toastMessage } from '@app/constants/locales/toast-message';
 import { ToastId } from '@app/constants/toastId';
@@ -19,6 +19,7 @@ import AuthAccountProfileImage from '../auth/account-profile-image';
 export default function ProfileImageComponent(props: BannerImageComponentPropType) {
     const { workspace, isFormCreator, size } = props;
     const { t } = useTranslation();
+    const { toast } = useToast();
     const [uploadImage, setUploadImage] = useState(workspace.profileImage);
     const profileInputRef = useRef<HTMLInputElement>(null);
     const profileEditorRef = useRef<AvatarEditor>(null);
@@ -51,10 +52,10 @@ export default function ProfileImageComponent(props: BannerImageComponentPropTyp
 
             const response: any = await patchExistingWorkspace({ workspace_id: workspace.id, body: formData });
             if (response.error) {
-                toast(t(toastMessage.somethingWentWrong).toString(), { toastId: ToastId.ERROR_TOAST });
+                toast({ description: t(toastMessage.somethingWentWrong).toString(), variant: 'destructive' });
             }
             if (response.data) {
-                toast(t(toastMessage.workspaceUpdate).toString(), { type: 'success', toastId: ToastId.SUCCESS_TOAST });
+                toast({ description: t(toastMessage.workspaceUpdate).toString() });
 
                 dispatch(setWorkspace(response.data));
                 setUploadImage(response.data.profileImage);

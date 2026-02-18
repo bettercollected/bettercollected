@@ -3,7 +3,7 @@ import { NextSeo } from 'next-seo';
 import AuthNavbar from '@app/Components/auth/navbar';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
-import { toast } from 'react-toastify';
+import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { FaCheckCircle } from 'react-icons/fa';
 import environments from '@app/configs/environments';
 
@@ -16,6 +16,7 @@ interface Props {
 }
 
 export default function InvalidUserInvitation({ invitation, workspaceId }: Props) {
+    const { toast } = useToast();
     const { workspaceName } = useAppSelector(selectWorkspace);
     const [invitationSent, setInvitationSent] = useState(false);
     const [loading, setLoading] = useState(false);
@@ -33,14 +34,14 @@ export default function InvalidUserInvitation({ invitation, workspaceId }: Props
             });
 
             if (response.ok) {
-                toast.success('Invitation resent successfully!');
+                toast({ description: 'Invitation resent successfully!' });
                 setInvitationSent(true);
             } else {
                 const errorText = await response.text();
                 throw new Error(errorText || 'Failed to resend invitation');
             }
         } catch (error: any) {
-            toast.error(`Error resending invitation: ${error.message}`);
+            toast({ description: `Error resending invitation: ${error.message}`, variant: 'destructive' });
         } finally {
             setLoading(false);
         }

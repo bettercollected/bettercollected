@@ -1,7 +1,7 @@
 import { useTranslation } from 'next-i18next';
 
 import GenericHalfModal from '@Components/Common/Modals/GenericHalfModal';
-import { toast } from 'react-toastify';
+import { useToast } from '@app/shadcn/components/ui/use-toast';
 
 import { useModal } from '@app/Components/modal-views/context';
 import { toastMessage } from '@app/constants/locales/toast-message';
@@ -12,6 +12,7 @@ import { setWorkspace } from '@app/store/workspaces/slice';
 
 
 export default function DeleteCustomDomainModal() {
+    const { toast } = useToast();
     const { closeModal } = useModal();
     const [deleteWorkspaceDomain, result] = useDeleteWorkspaceDomainMutation();
     const dispatch = useAppDispatch();
@@ -25,7 +26,7 @@ export default function DeleteCustomDomainModal() {
         if (res.data) {
             dispatch(setWorkspace(res.data));
         } else {
-            toast.error(t(toastMessage.customDomainDeletionError).toString());
+            toast({ description: t(toastMessage.customDomainDeletionError).toString(), variant: 'destructive' });
         }
         closeModal();
     };

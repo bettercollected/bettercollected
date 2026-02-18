@@ -10,7 +10,7 @@ import { ChevronDown } from '@app/views/atoms/Icons/ChevronDown';
 import { useRouter } from 'next-nprogress-bar';
 import Image from 'next/image';
 import React, { FormEvent, useState } from 'react';
-import { toast } from 'react-toastify';
+import { useToast } from '@app/shadcn/components/ui/use-toast';
 import styled from 'styled-components';
 
 const GenerateButton = styled(Button)`
@@ -56,6 +56,7 @@ const GradiantBorderDiv = styled.div`
 
 const examples = ["Contact form to gather user’s information. Include fields for the user's name, email address, and phone number among others.", 'A form to collect suggestions for improving the design and functionality of an marketing app.'];
 export default function StartWithAi() {
+    const { toast } = useToast();
     const [prompt, setPrompt] = React.useState('');
     const [isOpen, setIsOpen] = React.useState(false);
     const workspace = useAppSelector(selectWorkspace);
@@ -76,7 +77,7 @@ export default function StartWithAi() {
         if (response.data) router.replace(`/${workspace?.workspaceName}/dashboard/forms/${response?.data?.form_id}/edit`);
         if (response.error) {
             setIsGenerationStarted(false);
-            toast('Could not create form, please try again');
+            toast({ description: 'Could not create form, please try again', variant: 'destructive' });
         }
     };
 

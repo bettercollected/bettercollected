@@ -5,8 +5,8 @@ import { useTranslation } from 'next-i18next';
 import AppTextField from '@Components/Common/Input/AppTextField';
 import AppButton from '@Components/Common/Input/Button/AppButton';
 import { ButtonSize, ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
-import HeaderModalWrapper from '@Components/Modals/ModalWrappers/HeaderModalWrapper';
-import { toast } from 'react-toastify';
+import HeaderModalWrapper from '@app/Components/Modals/ModalWrappers/HeaderModalWrapper';
+import { useToast } from '@app/shadcn/components/ui/use-toast';
 
 import { useModal } from '@app/Components/modal-views/context';
 import { buttonConstant } from '@app/constants/locales/button';
@@ -20,6 +20,7 @@ import environments from '@app/configs/environments';
 
 
 export default function UpdateCustomDomainModal() {
+    const { toast } = useToast();
     const workspace = useAppSelector(selectWorkspace);
     const [patchExistingWorkspace, { isLoading }] = usePatchExistingWorkspaceMutation();
 
@@ -51,17 +52,17 @@ export default function UpdateCustomDomainModal() {
         const response: any = await patchExistingWorkspace(body);
         if (response.data) {
             dispatch(setWorkspace(response.data));
-            toast.info(t(toastMessage.customDomainUpdated).toString(), { toastId: ToastId.SUCCESS_TOAST });
+            toast({ description: t(toastMessage.customDomainUpdated).toString() });
             closeModal();
         } else if (response.error) {
-            toast.error(response.error.data?.message || response.error.data || t(toastMessage.somethingWentWrong), { toastId: ToastId.ERROR_TOAST });
+            toast({ description: response.error.data?.message || response.error.data || t(toastMessage.somethingWentWrong), variant: 'destructive' });
         }
     };
 
     return (
         <HeaderModalWrapper headerTitle="Add Custom Domain">
             <form onSubmit={handleSubmit}>
-                <div className="text-start max-w-full mb-4 body4 !text-pink-500">{t('UPGRADE.FEATURES.CUSTOM_DOMAIN.NOTE', {domain: environments.CUSTOM_DOMAIN_IP})}</div>
+                <div className="text-start max-w-full mb-4 body4 !text-pink-500">{t('UPGRADE.FEATURES.CUSTOM_DOMAIN.NOTE', { domain: environments.CUSTOM_DOMAIN_IP })}</div>
                 <h1 className={'body3 !text-black-800 mb-1'}>{t('UPGRADE.FEATURES.CUSTOM_DOMAIN.TEXT_FIELD_TITLE')}</h1>
                 <AppTextField
                     isError={error}

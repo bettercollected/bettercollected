@@ -5,7 +5,7 @@ import { useTranslation } from 'next-i18next';
 import AppTextField from '@Components/Common/Input/AppTextField';
 import AppButton from '@Components/Common/Input/Button/AppButton';
 import { ButtonSize } from '@Components/Common/Input/Button/AppButtonProps';
-import { toast } from 'react-toastify';
+import { useToast } from '@app/shadcn/components/ui/use-toast';
 
 import { Close } from '@app/Components/icons/close';
 import { useModal } from '@app/Components/modal-views/context';
@@ -18,6 +18,7 @@ import { useAppSelector } from '@app/store/hooks';
 import { useGetWorkspaceMembersQuery, useInviteToWorkspaceMutation } from '@app/store/workspaces/members-n-invitations-api';
 
 export default function InviteMemberModal() {
+    const { toast } = useToast();
     const [trigger, { data, isLoading }] = useInviteToWorkspaceMutation();
     const workspace = useAppSelector((state) => state.workspace);
 
@@ -39,7 +40,7 @@ export default function InviteMemberModal() {
         }
 
         if (isMemberExist()) {
-            toast(t(toastMessage.emailAlreadyExist).toString(), { type: 'error' });
+            toast({ description: t(toastMessage.emailAlreadyExist).toString(), variant: 'destructive' });
         } else {
             const response: any = await trigger({
                 workspaceId: workspace.id,
@@ -51,9 +52,9 @@ export default function InviteMemberModal() {
 
             if (response.data) {
                 setInvitationMail('');
-                toast(t(toastMessage.invitationSent).toString(), { type: 'success' });
+                toast({ description: t(toastMessage.invitationSent).toString() });
             } else if (response.error) {
-                toast(t(toastMessage.failedToSentEmail).toString(), { type: 'error' });
+                toast({ description: t(toastMessage.failedToSentEmail).toString(), variant: 'destructive' });
             }
         }
 

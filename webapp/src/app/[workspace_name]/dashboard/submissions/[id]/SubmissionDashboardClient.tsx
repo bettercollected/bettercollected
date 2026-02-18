@@ -9,13 +9,14 @@ import { useAppSelector } from '@app/store/hooks';
 import { useGetWorkspaceSubmissionQuery } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import Submission from '@Components/RespondersPortal/Submission';
-import { toast } from 'react-toastify';
+import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { useModal } from '@app/Components/modal-views/context';
 import { toastMessage } from '@app/constants/locales/toast-message';
 import { ToastId } from '@app/constants/toastId';
 import { useRequestWorkspaceSubmissionDeletionMutation } from '@app/store/workspaces/api';
 
 export default function SubmissionDashboardClient({ submissionId }: { submissionId: string }) {
+    const { toast } = useToast();
     const { t } = useTranslation();
     const { id: workspaceId, workspaceName } = useAppSelector(selectWorkspace);
     const { closeModal } = useModal();
@@ -36,10 +37,10 @@ export default function SubmissionDashboardClient({ submissionId }: { submission
                     submission_id: submissionId
                 };
                 await requestWorkspaceSubmissionDeletion(query);
-                toast(t(toastMessage.workspaceSuccess).toString(), { toastId: ToastId.SUCCESS_TOAST, type: 'success' });
+                toast({ description: t(toastMessage.workspaceSuccess).toString() });
                 closeModal();
             } catch (e) {
-                toast(t(toastMessage.somethingWentWrong).toString(), { toastId: ToastId.ERROR_TOAST, type: 'error' });
+                toast({ description: t(toastMessage.somethingWentWrong).toString(), variant: 'destructive' });
             }
         }
     };

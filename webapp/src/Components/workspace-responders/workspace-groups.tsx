@@ -9,7 +9,7 @@ import { ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
 import { useBottomSheetModal } from '@Components/Modals/Contexts/BottomSheetModalContext';
 import { Typography } from '@mui/material';
 import DataTable from 'react-data-table-component';
-import { toast } from 'react-toastify';
+import { useToast } from '@app/shadcn/components/ui/use-toast';
 
 import EmptyGroup from '@Components/dashboard/empty-group';
 import { dataTableCustomStyles } from '@app/Components/datatable/form/datatable-styles';
@@ -31,6 +31,7 @@ const customGroupTableStyles: any = { ...dataTableCustomStyles };
 
 customGroupTableStyles.rows.style.cursor = 'pointer';
 export default function WorkspaceGroups({ workspace }: { workspace: WorkspaceDto }) {
+    const { toast } = useToast();
     const { openModal, closeModal } = useModal();
     const { t } = useTranslation();
 
@@ -48,10 +49,10 @@ export default function WorkspaceGroups({ workspace }: { workspace: WorkspaceDto
                 workspaceId: workspace.id,
                 groupId: group.id
             });
-            toast(t(toastMessage.groupDeleted).toString(), { toastId: ToastId.SUCCESS_TOAST, type: 'success' });
+            toast({ description: t(toastMessage.groupDeleted).toString() });
             closeModal();
         } catch (error) {
-            toast(t(toastMessage.somethingWentWrong).toString(), { toastId: ToastId.ERROR_TOAST, type: 'error' });
+            toast({ description: t(toastMessage.somethingWentWrong).toString(), variant: 'destructive' });
         }
     };
 

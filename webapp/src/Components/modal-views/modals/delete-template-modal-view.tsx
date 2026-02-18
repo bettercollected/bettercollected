@@ -4,7 +4,7 @@ import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/navigation';
 
 import GenericHalfModal from '@Components/Common/Modals/GenericHalfModal';
-import { toast } from 'react-toastify';
+import { useToast } from '@app/shadcn/components/ui/use-toast';
 
 import { IFormTemplateDto } from '@app/models/dtos/template';
 import { useAppSelector } from '@app/store/hooks';
@@ -13,6 +13,7 @@ import { selectWorkspace } from '@app/store/workspaces/slice';
 
 
 export default function DeleteTemplateConfirmationModalView({ template }: { template: IFormTemplateDto }) {
+    const { toast } = useToast();
     const { t } = useTranslation();
     const [deleteTemplate] = useDeleteTemplateMutation();
     const router = useRouter();
@@ -24,13 +25,13 @@ export default function DeleteTemplateConfirmationModalView({ template }: { temp
                 template_id: template?.id
             });
             if (response?.data) {
-                toast('Deleted Successfully', { type: 'success' });
+                toast({ description: 'Deleted Successfully' });
                 router.replace(`/${workspace.workspaceName}/dashboard/templates`);
             } else {
-                toast('Error Occurred').toString(), { type: 'error' };
+                toast({ description: 'Error Occurred', variant: 'destructive' });
             }
         } catch (err) {
-            toast('Error Occurred').toString(), { type: 'error' };
+            toast({ description: 'Error Occurred', variant: 'destructive' });
         }
     };
     return <GenericHalfModal headerTitle={t('TEMPLATE.DELETE_MODAL.HEADER')} positiveAction={handleDeleteTemplate} positiveText={t('BUTTON.DELETE')} type="danger" title={t('TEMPLATE.DELETE_MODAL.TITLE')} subTitle={t('TEMPLATE.DELETE_MODAL.SUBTITLE')} />;

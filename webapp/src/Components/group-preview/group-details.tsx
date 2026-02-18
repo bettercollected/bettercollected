@@ -2,9 +2,9 @@ import React, { useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
 
+import { useToast } from '@app/shadcn/components/ui/use-toast';
 import AppButton from '@Components/Common/Input/Button/AppButton';
 import { ButtonSize, ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
-import { toast } from 'react-toastify';
 
 import GroupInfo from '@app/Components/group/group-info';
 import { buttonConstant } from '@app/constants/locales/button';
@@ -17,6 +17,7 @@ import { useUpdateResponderGroupMutation } from '@app/store/workspaces/api';
 
 export default function GroupDetailsTab({ group }: { group: ResponderGroupDto }) {
     const { t } = useTranslation();
+    const { toast } = useToast();
     const [updateResponderGroup, updateGroupResponse] = useUpdateResponderGroupMutation();
     const [groupInfo, setGroupInfo] = useState<GroupInfoDto>({
         name: group.name,
@@ -41,9 +42,9 @@ export default function GroupDetailsTab({ group }: { group: ResponderGroupDto })
                 workspaceId: workspace.id,
                 groupId: group.id
             }).unwrap();
-            toast(t(toastMessage.updated).toString(), { toastId: ToastId.SUCCESS_TOAST, type: 'success' });
+            toast({ description: t(toastMessage.updated).toString() });
         } catch (error) {
-            toast(t(toastMessage.somethingWentWrong).toString(), { toastId: ToastId.ERROR_TOAST, type: 'error' });
+            toast({ description: t(toastMessage.somethingWentWrong).toString(), variant: 'destructive' });
         }
     };
     return (

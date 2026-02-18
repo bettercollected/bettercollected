@@ -8,9 +8,8 @@ import { useModal } from '@app/Components/modal-views/context';
 import { buttonConstant } from '@app/constants/locales/button';
 import { toolTipConstant } from '@app/constants/locales/tooltip';
 import { WorkspaceInvitationDto, WorkspaceMembersDto } from '@app/models/dtos/WorkspaceMembersDto';
-import { toast } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
 import { useResendWorkspaceInvitationMutation } from '@app/store/workspaces/members-n-invitations-api';
+import { useToast } from '@app/shadcn/components/ui/use-toast';
 
 interface IMemberOptionProps {
     member?: WorkspaceMembersDto;
@@ -19,6 +18,7 @@ interface IMemberOptionProps {
 }
 
 export default function MemberOptions({ member, invitation }: IMemberOptionProps) {
+    const { toast } = useToast();
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
     const [loading, setLoading] = useState(false);
     const [openConfirmDialog, setOpenConfirmDialog] = useState(false);
@@ -56,9 +56,9 @@ export default function MemberOptions({ member, invitation }: IMemberOptionProps
                 invitationToken: selectedInvitation.invitationToken
             }).unwrap();
 
-            toast.success('Invitation resent successfully!');
+            toast({ description: 'Invitation resent successfully!' });
         } catch (error: any) {
-            toast.error(`Error resending invitation: ${error.message}`);
+            toast({ description: `Error resending invitation: ${error.message}`, variant: 'destructive' });
         } finally {
             setLoading(false);
             handleCloseConfirmDialog();

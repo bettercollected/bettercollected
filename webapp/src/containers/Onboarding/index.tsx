@@ -9,7 +9,7 @@ import AppTextField from '@Components/Common/Input/AppTextField';
 import AppButton from '@Components/Common/Input/Button/AppButton';
 import { ButtonSize } from '@Components/Common/Input/Button/AppButtonProps';
 import UploadLogo from '@Components/Common/UploadLogo';
-import { toast } from 'react-toastify';
+import { useToast } from '@app/shadcn/components/ui/use-toast';
 
 import AuthNavbar from '@app/Components/auth/navbar';
 import TextFieldHandler from '@app/Components/onboarding/TextFieldHandler';
@@ -36,6 +36,7 @@ export interface FormDataDto {
 }
 
 const OnboardingContainer = ({ workspace, createWorkspace }: onBoardingProps) => {
+    const { toast } = useToast();
     const { t } = useTranslation();
     const dispatch = useAppDispatch();
     const router = useRouter();
@@ -80,13 +81,13 @@ const OnboardingContainer = ({ workspace, createWorkspace }: onBoardingProps) =>
         createFormData.append('workspace_name', formData.workspaceName as string);
         const response: any = await createWorkspaceRequest(createFormData);
         if (response.error) {
-            toast(response.error?.data || t(toastMessage.somethingWentWrong), {
-                toastId: ToastId.ERROR_TOAST,
-                type: 'error'
+            toast({
+                description: response.error?.data || t(toastMessage.somethingWentWrong),
+                variant: 'destructive'
             });
         }
         if (response.data) {
-            toast(t(toastMessage.workspaceUpdate).toString(), { type: 'success', toastId: ToastId.SUCCESS_TOAST });
+            toast({ description: t(toastMessage.workspaceUpdate).toString() });
             dispatch(setWorkspace(response.data));
             router.replace(`/${response.data?.workspaceName}/dashboard/forms`);
         }
@@ -102,13 +103,13 @@ const OnboardingContainer = ({ workspace, createWorkspace }: onBoardingProps) =>
         updateFormData.append('workspace_name', formData.workspaceName as string);
         const response: any = await patchExistingWorkspace({ workspace_id: workspace?.id, body: updateFormData });
         if (response.error) {
-            toast(response.error?.data || t(toastMessage.somethingWentWrong), {
-                toastId: ToastId.ERROR_TOAST,
-                type: 'error'
+            toast({
+                description: response.error?.data || t(toastMessage.somethingWentWrong),
+                variant: 'destructive'
             });
         }
         if (response.data) {
-            toast(t(toastMessage.workspaceUpdate).toString(), { type: 'success', toastId: ToastId.SUCCESS_TOAST });
+            toast({ description: t(toastMessage.workspaceUpdate).toString() });
             dispatch(setWorkspace(response.data));
             router.replace(`/${response.data?.workspaceName}/dashboard/forms`);
         }

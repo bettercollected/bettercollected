@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 
-import { toast } from 'react-toastify';
+import { useToast } from '@app/shadcn/components/ui/use-toast';
 import styled from 'styled-components';
 import { v4 } from 'uuid';
 
@@ -29,6 +29,7 @@ const StyledLabel = styled.label<{ $theme: any }>(({ $theme }) => {
 });
 
 export default function FileUpload({ field }: { field: StandardFormFieldDto }) {
+    const { toast } = useToast();
     const { formResponse, addFieldFileAnswer, removeAnswer } = useFormResponse();
     const { theme } = useFormState();
 
@@ -61,7 +62,7 @@ export default function FileUpload({ field }: { field: StandardFormFieldDto }) {
     const updateAndDispatchFile = (file: File) => {
         const fMetaData = generateFileMetaData(file, fileMetaData.id);
         if (fMetaData.size! > 25.0) {
-            toast('File must be less than 25 MB', { type: 'error' });
+            toast({ description: 'File must be less than 25 MB', variant: 'destructive' });
             return;
         }
         setFileMetadata({ ...fMetaData });
@@ -91,7 +92,7 @@ export default function FileUpload({ field }: { field: StandardFormFieldDto }) {
         try {
             ans?.file_metadata?.url && downloadFile(ans?.file_metadata?.url, fileMetaData.name ?? fileMetaData.id);
         } catch (err) {
-            toast('Error downloading file', { type: 'error' });
+            toast({ description: 'Error downloading file', variant: 'destructive' });
         }
     };
     const handleDeleteFile = () => {

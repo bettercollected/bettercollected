@@ -5,8 +5,8 @@ import { useTranslation } from 'next-i18next';
 import AppTextField from '@Components/Common/Input/AppTextField';
 import AppButton from '@Components/Common/Input/Button/AppButton';
 import { ButtonSize } from '@Components/Common/Input/Button/AppButtonProps';
-import { toast } from 'react-toastify';
 
+import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { buttonConstant } from '@app/constants/locales/button';
 import { localesCommon } from '@app/constants/locales/common';
 import { customize } from '@app/constants/locales/customize';
@@ -23,6 +23,7 @@ import { ICustomizeUrlModalProps } from '../modal-views/modals/customize-url-mod
 export default function CustomizeUrlUi({ url, form }: ICustomizeUrlModalProps) {
     const workspace = useAppSelector((state) => state.workspace);
     const { t } = useTranslation();
+    const { toast } = useToast();
     const customUrl = form?.settings?.customUrl || '';
     const [slug, setSlug] = useState(customUrl);
     const [isError, setIsError] = useState(false);
@@ -51,9 +52,9 @@ export default function CustomizeUrlUi({ url, form }: ICustomizeUrlModalProps) {
             if (response.data) {
                 const settings = response.data.settings;
                 dispatch(setFormSettings(settings));
-                toast(t(localesCommon.updated).toString(), { type: 'success' });
+                toast({ description: t(localesCommon.updated).toString() });
             } else {
-                toast(t(toastMessage.formSettingUpdateError).toString(), { type: 'error' });
+                toast({ description: t(toastMessage.formSettingUpdateError).toString(), variant: 'destructive' });
                 return response.error;
             }
             closeModal();

@@ -1,7 +1,7 @@
 'use client';
 
 import { useTranslation } from 'react-i18next';
-import { toast } from 'react-toastify';
+import { useToast } from '@app/shadcn/components/ui/use-toast';
 
 import { useBottomSheetModal } from '@Components/Modals/Contexts/BottomSheetModalContext';
 import WorkspaceDetailsCard from '@Components/RespondersPortal/WorkspaceDetailsCard';
@@ -55,6 +55,7 @@ export default function CreatorDashboardClient({ hasCustomDomain }: { hasCustomD
 }
 
 const WorkspaceLinkCard = ({ customDomain = false }: { customDomain?: boolean }) => {
+    const { toast } = useToast();
     const workspace = useAppSelector(selectWorkspace);
     return (
         <div className=" flex flex-col gap-2 rounded-lg bg-white p-4">
@@ -71,7 +72,7 @@ const WorkspaceLinkCard = ({ customDomain = false }: { customDomain?: boolean })
                     variant={'v2Button'}
                     onClick={() => {
                         navigator.clipboard.writeText(getWorkspaceShareURL(workspace, customDomain));
-                        toast('Copied');
+                        toast({ description: 'Copied' });
                     }}
                 >
                     Copy

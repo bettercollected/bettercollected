@@ -14,7 +14,7 @@ import { useAppSelector } from '@app/store/hooks';
 import { useSuggestPriceAndUpgradeUserToProMutation } from '@app/store/price-suggestion/api';
 import cn from 'classnames';
 import { useRouter } from 'next/navigation';
-import { toast } from 'react-toastify';
+import { useToast } from '@app/shadcn/components/ui/use-toast';
 
 export interface IUpgradeToProModal {
     featureText?: string;
@@ -25,6 +25,7 @@ export interface IUpgradeToProModal {
 const prices = [0, 5, 15, 25, 50];
 
 export default function UpgradeToProContainer({ featureText, isModal = true, callback }: IUpgradeToProModal) {
+    const { toast } = useToast();
     const { t } = useTranslation();
     const auth = useAppSelector(selectAuthStatus);
 
@@ -122,7 +123,7 @@ export default function UpgradeToProContainer({ featureText, isModal = true, cal
                         size={ButtonSize.Medium}
                         onClick={async () => {
                             if (activeSuggestion === null && !customPrice) {
-                                toast('Please select a price first', { type: 'warning' });
+                                toast({ description: 'Please select a price first' });
                                 return;
                             }
                             let price = 0;
@@ -142,11 +143,12 @@ export default function UpgradeToProContainer({ featureText, isModal = true, cal
                                     } else {
                                         router.refresh();
                                     }
-                                    toast('Congratulations! You have been upgraded to PRO', { type: 'success' });
+                                    toast({ description: 'Congratulations! You have been upgraded to PRO' });
                                 }
                                 if (response.error) {
-                                    toast('Something went wrong', {
-                                        type: 'error'
+                                    toast({
+                                        description: 'Something went wrong',
+                                        variant: 'destructive'
                                     });
                                 }
                             });

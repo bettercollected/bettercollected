@@ -1,7 +1,7 @@
 import { useTranslation } from 'next-i18next';
 
 import GenericHalfModal from '@Components/Common/Modals/GenericHalfModal';
-import { toast } from 'react-toastify';
+import { useToast } from '@app/shadcn/components/ui/use-toast';
 
 import { useModal } from '@app/Components/modal-views/context';
 import { toastMessage } from '@app/constants/locales/toast-message';
@@ -16,6 +16,7 @@ interface IDeleteInvitationModalProps {
 }
 
 export default function DeleteInvitationModal({ invitation }: IDeleteInvitationModalProps) {
+    const { toast } = useToast();
     const { closeModal } = useModal();
     const { t } = useTranslation();
     const workspace = useAppSelector(selectWorkspace);
@@ -24,10 +25,10 @@ export default function DeleteInvitationModal({ invitation }: IDeleteInvitationM
     const handleDelete = async () => {
         const response: any = await trigger({ workspaceId: workspace.id, invitationToken: invitation.invitationToken });
         if (response.data) {
-            toast(t(toastMessage.invitationDeleted).toString(), { type: 'success' });
+            toast({ description: t(toastMessage.invitationDeleted).toString() });
         }
         if (response.error) {
-            toast(t(toastMessage.failedInvitationDeletion).toString(), { type: 'error' });
+            toast({ description: t(toastMessage.failedInvitationDeletion).toString(), variant: 'destructive' });
         }
         closeModal();
     };

@@ -7,8 +7,8 @@ import StyledPagination from '@Components/Common/Pagination';
 import { Typography } from '@mui/material';
 import cn from 'classnames';
 import DataTable from 'react-data-table-component';
-import { toast } from 'react-toastify';
 
+import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { dataTableCustomStyles } from '@app/Components/datatable/form/datatable-styles';
 import { useFullScreenModal } from '@app/Components/modal-views/full-screen-modal-context';
 import globalConstants from '@app/constants/global';
@@ -53,6 +53,7 @@ export default function TabularResponses({ form }: TabularResponsesProps) {
     const router = useRouter();
     const pathname = usePathname();
     const searchParams = useSearchParams();
+    const { toast } = useToast();
     const { openModal } = useFullScreenModal();
     const workspace = useAppSelector(selectWorkspace);
     const [page, setPage] = useState(1);
@@ -78,7 +79,7 @@ export default function TabularResponses({ form }: TabularResponsesProps) {
             if (!ans?.file_metadata?.url) return;
             downloadFile(ans?.file_metadata?.url, ans?.file_metadata.name ?? ans?.file_metadata.id);
         } catch (err) {
-            toast('Error downloading file', { type: 'error' });
+            toast({ description: 'Error downloading file', variant: 'destructive' });
         }
     };
 

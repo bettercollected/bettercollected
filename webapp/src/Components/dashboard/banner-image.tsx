@@ -5,7 +5,8 @@ import { useTranslation } from 'next-i18next';
 import AppButton from '@Components/Common/Input/Button/AppButton';
 import cn from 'classnames';
 import html2canvas from 'html2canvas';
-import { toast } from 'react-toastify';
+
+import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { TransformComponent, TransformWrapper } from 'react-zoom-pan-pinch';
 
 import Image from '@app/Components/ui/image';
@@ -19,6 +20,7 @@ import { setWorkspace } from '@app/store/workspaces/slice';
 
 export default function BannerImageComponent(props: BannerImageComponentPropType) {
     const { workspace, isFormCreator, className } = props;
+    const { toast } = useToast();
     const transformComponentRef = useRef(null);
     const [patchExistingWorkspace, { isLoading }] = usePatchExistingWorkspaceMutation();
     const [image, setImage] = useState('');
@@ -51,13 +53,10 @@ export default function BannerImageComponent(props: BannerImageComponentPropType
                 formData.append('banner_image', file);
                 const response: any = await patchExistingWorkspace({ workspace_id: workspace.id, body: formData });
                 if (response.error) {
-                    toast(response.error.data || t(toastMessage.somethingWentWrong).toString(), { toastId: ToastId.ERROR_TOAST });
+                    toast({ description: response.error.data || t(toastMessage.somethingWentWrong).toString(), variant: 'destructive' });
                 }
                 if (response.data) {
-                    toast(t(toastMessage.workspaceUpdate).toString(), {
-                        type: 'success',
-                        toastId: ToastId.SUCCESS_TOAST
-                    });
+                    toast({ description: t(toastMessage.workspaceUpdate).toString() });
                     setImage('');
                     dispatch(setWorkspace(response.data));
                 }

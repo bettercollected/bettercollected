@@ -5,8 +5,8 @@ import DeleteIcon from '@Components/Common/Icons/Common/Delete';
 import EditIcon from '@Components/Common/Icons/Common/Edit';
 import AppButton from '@Components/Common/Input/Button/AppButton';
 import { ButtonSize, ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
-import { toast } from 'react-toastify';
 
+import { useToast } from '@app/shadcn/components/ui/use-toast';
 import Globe from '@app/Components/icons/flags/globe';
 import { useModal } from '@app/Components/modal-views/context';
 import { useFullScreenModal } from '@app/Components/modal-views/full-screen-modal-context';
@@ -21,6 +21,7 @@ import { CustomDomainCard } from '@app/app/[workspace_name]/dashboard/custom-dom
 export default function ManageURLs() {
     const { t } = useTranslation();
     const workspace = useAppSelector(selectWorkspace);
+    const { toast } = useToast();
     const { openModal } = useModal();
     const { openModal: openFullScreenModal } = useFullScreenModal();
     const auth = useAppSelector(selectAuth);
@@ -65,7 +66,7 @@ export default function ManageURLs() {
                             icon={<CopyIcon width={16} height={16} />}
                             onClick={() => {
                                 copyToClipboard(`${environments.HTTP_SCHEME}${environments.CLIENT_DOMAIN}/${workspace.workspaceName}`);
-                                toast('Copied', { type: 'info' });
+                                toast({ description: 'Copied' });
                             }}
                         >
                             {t('BUTTON.COPY')}

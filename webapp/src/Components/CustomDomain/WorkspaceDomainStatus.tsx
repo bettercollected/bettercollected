@@ -15,13 +15,15 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import DataTable from 'react-data-table-component';
-import { toast } from 'react-toastify';
+
+import { useToast } from '@app/shadcn/components/ui/use-toast';
 import DeleteDomainDropdown from './DeleteDomainDropdown';
 
 const WorkspaceDomainStatus = () => {
     const workspace = useAppSelector(selectWorkspace);
     const router = useRouter();
     const pathname = usePathname();
+    const { toast } = useToast();
 
     const { data, isLoading, isFetching, refetch } = useVerifyWorkspaceDomainQuery(workspace.id, { skip: !workspace.id, refetchOnMountOrArgChange: false, refetchOnReconnect: true, refetchOnFocus: false });
 
@@ -70,6 +72,7 @@ const WorkspaceDomainStatus = () => {
 };
 
 const DomainVerifiedStatus = ({ workspace }: { workspace: WorkspaceDto }) => {
+    const { toast } = useToast();
     return (
         <div className=" flex flex-col">
             <span className="text-black-700 mt-4 text-xs">You can use your own domain name to have a custom URL for your published forms. Consider using a subdomain, such as : forms.yourdomain.com</span>
@@ -85,7 +88,7 @@ const DomainVerifiedStatus = ({ workspace }: { workspace: WorkspaceDto }) => {
                     variant={'v2Button'}
                     onClick={() => {
                         navigator.clipboard.writeText(`${environments.HTTP_SCHEME}${workspace.customDomain}`);
-                        toast('Copied', { type: 'success' });
+                        toast({ description: 'Copied' });
                     }}
                 >
                     {' '}
@@ -105,6 +108,8 @@ const DomainVerifiedStatus = ({ workspace }: { workspace: WorkspaceDto }) => {
 };
 
 const DomainVerificationPending = ({ workspace, dnsData, isFetching, refetch }: { workspace: WorkspaceDto; dnsData: Array<any>; isFetching: boolean; refetch: () => void }) => {
+    const { toast } = useToast();
+
     const columns: any = [
         {
             name: 'Name',
@@ -114,7 +119,7 @@ const DomainVerificationPending = ({ workspace, dnsData, isFetching, refetch }: 
                     className="flex cursor-pointer gap-2"
                     onClick={() => {
                         navigator.clipboard.writeText(record.name);
-                        toast('Copied', { type: 'info' });
+                        toast({ description: 'Copied' });
                     }}
                 >
                     <ToolTip label={record.name} triggerClassName="!max-w-[150px] truncate">
@@ -137,7 +142,7 @@ const DomainVerificationPending = ({ workspace, dnsData, isFetching, refetch }: 
                     className="flex cursor-pointer gap-2"
                     onClick={() => {
                         navigator.clipboard.writeText(record.value);
-                        toast('Copied', { type: 'info' });
+                        toast({ description: 'Copied' });
                     }}
                 >
                     <ToolTip label={record.value} triggerClassName="!max-w-[150px] truncate">

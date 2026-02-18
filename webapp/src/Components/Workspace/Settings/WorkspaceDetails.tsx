@@ -1,8 +1,8 @@
 import CopyIcon from '@Components/Common/Icons/Common/Copy';
 import AppButton from '@Components/Common/Input/Button/AppButton';
 import { ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
-import { toast } from 'react-toastify';
 
+import { useToast } from '@app/shadcn/components/ui/use-toast';
 import BannerImageComponent from '@Components/dashboard/banner-image';
 import { EyeIcon } from '@app/Components/icons/eye-icon';
 import Globe from '@app/Components/icons/flags/globe';
@@ -18,6 +18,7 @@ import { useRouter } from 'next/navigation';
 export default function WorkspaceDetails() {
     const workspace: WorkspaceState = useAppSelector(selectWorkspace);
     const router = useRouter();
+    const { toast } = useToast();
 
     const { openModal: openFullScreenModal } = useFullScreenModal();
     const [_, copyToClipboard] = useCopyToClipboard();
@@ -29,7 +30,7 @@ export default function WorkspaceDetails() {
                     className="mr-4 flex cursor-pointer items-center gap-4"
                     onClick={() => {
                         copyToClipboard(getWorkspaceShareURL(workspace));
-                        toast('Copied', { type: 'info' });
+                        toast({ description: 'Copied' });
                     }}
                 >
                     <span className="p2-new text-black-700">{getWorkspaceShareURL(workspace)}</span>

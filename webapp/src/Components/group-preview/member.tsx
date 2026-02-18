@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
 
-import { toast } from 'react-toastify';
+import { useToast } from '@app/shadcn/components/ui/use-toast';
 
 import RegexCard from '@Components/cards/regex-card';
 import GroupMember from '@app/Components/group/group-member';
@@ -28,6 +28,7 @@ interface IGroupMemberTabProps {
 export default function GroupMembersTab({ group, workspace }: IGroupMemberTabProps) {
     const [emails, setEmails] = useState(group.emails);
     const { t } = useTranslation();
+    const { toast } = useToast();
     const isAdmin = useAppSelector(selectIsAdmin);
 
     const { openModal, closeModal } = useModal();
@@ -65,16 +66,16 @@ export default function GroupMembersTab({ group, workspace }: IGroupMemberTabPro
                 groupId: group.id
             }).then((response) => {
                 if (`data` in response) {
-                    toast(t(toastMessage.updated).toString(), { toastId: ToastId.SUCCESS_TOAST, type: 'success' });
+                    toast({ description: t(toastMessage.updated).toString() });
                     closeModal();
                 } else
-                    toast(t(toastMessage.somethingWentWrong).toString(), {
-                        toastId: ToastId.ERROR_TOAST,
-                        type: 'error'
+                    toast({
+                        description: t(toastMessage.somethingWentWrong).toString(),
+                        variant: 'destructive'
                     });
             });
         } catch (error) {
-            toast(t(toastMessage.somethingWentWrong).toString(), { toastId: ToastId.ERROR_TOAST, type: 'error' });
+            toast({ description: t(toastMessage.somethingWentWrong).toString(), variant: 'destructive' });
         }
     };
     useEffect(() => {

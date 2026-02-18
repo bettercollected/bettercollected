@@ -1,20 +1,18 @@
 import { ReactNode, useEffect, useState } from 'react';
 
-import { motion } from 'framer-motion';
-import { toast } from 'react-toastify';
+import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { v4 } from 'uuid';
 
 import { formFieldsList } from '@app/constants/form-fields';
+import globalConstants from '@app/constants/global';
 import { FieldTypes, StandardFormFieldDto, V2InputFields } from '@app/models/dtos/form';
 import { FormSlideLayout } from '@app/models/enums/form';
 import { ScrollArea } from '@app/shadcn/components/ui/scroll-area';
 import { useActiveFieldComponent, useActiveSlideComponent } from '@app/store/jotai/activeBuilderComponent';
+import { useAuthAtom } from '@app/store/jotai/auth';
 import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
 import { useNavbarState } from '@app/store/jotai/navbar';
-import { useDialogModal } from '@app/lib/hooks/useDialogModal';
 import styled from 'styled-components';
-import globalConstants from '@app/constants/global';
-import { useAuthAtom } from '@app/store/jotai/auth';
 
 const StyledDiv = styled.div<{ $hoverColor: string }>(({ $hoverColor }) => {
     return {
@@ -25,6 +23,7 @@ const StyledDiv = styled.div<{ $hoverColor: string }>(({ $hoverColor }) => {
 });
 
 const InsertFieldComponent = ({ formFields, activeSlideComponent, closeDropdown }: { formFields: any; activeSlideComponent: any; closeDropdown: () => void }) => {
+    const { toast } = useToast();
     const { setActiveSlideComponent } = useActiveSlideComponent();
     const { setActiveFieldComponent } = useActiveFieldComponent();
     const { addField, addSlide, getNewField } = useFormFieldsAtom();
@@ -52,7 +51,7 @@ const InsertFieldComponent = ({ formFields, activeSlideComponent, closeDropdown 
     const handleAddField = (field: any) => {
         const slideId = currentPage && slide !== undefined ? slide.id : v4();
         if (activeSlideComponent === null) {
-            toast('Add a slide to add fields');
+            toast({ description: 'Add a slide to add fields' });
             return;
         }
         if (!currentPage || formFields.length === 0) {
@@ -107,7 +106,7 @@ const InsertFieldComponent = ({ formFields, activeSlideComponent, closeDropdown 
                             type="radio"
                             id="multi-page"
                             checked={!currentPage}
-                            onChange={() => {}}
+                            onChange={() => { }}
                             name="multi-page"
                             className="h-5 w-5 cursor-pointer focus:ring-0 focus:ring-offset-0"
                             onClick={(e: any) => {
@@ -134,7 +133,7 @@ const InsertFieldComponent = ({ formFields, activeSlideComponent, closeDropdown 
                                     multiplePages: false
                                 });
                             }}
-                            onChange={() => {}}
+                            onChange={() => { }}
                             checked={currentPage}
                             name="multi-page"
                             value={'False'}

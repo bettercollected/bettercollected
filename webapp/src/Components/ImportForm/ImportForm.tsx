@@ -6,9 +6,9 @@ import Image from "next/legacy/image";
 import _ from 'lodash';
 
 import AppTextField from '@Components/Common/Input/AppTextField';
-import ChangeSlugComponent from '@Components/ImportForm/ChangeSlugComponent';
+import ChangeSlugComponent from '@app/Components/ImportForm/ChangeSlugComponent';
 import { CircularProgress } from '@mui/material';
-import { toast } from 'react-toastify';
+import { useToast } from '@app/shadcn/components/ui/use-toast';
 
 import GoogleFolder from '@app/assets/images/google_folder.png';
 import GoogleForm from '@app/assets/images/google_form.png';
@@ -22,6 +22,7 @@ import { fireworks } from '@app/utils/confetti';
 
 const ImportForm = () => {
     const { t } = useTranslation();
+    const { toast } = useToast();
 
     const dispatch = useAppDispatch();
 
@@ -80,13 +81,13 @@ const ImportForm = () => {
             workspaceId: workspace.id
         });
         if (response.data) {
-            toast.success(t(toastMessage.formImportedSuccessfully).toString());
+            toast({ description: t(toastMessage.formImportedSuccessfully).toString() });
             dispatch(setForm(response?.data));
             fireworks();
         } else {
             setError(true);
             setErrorMessage('error');
-            toast.error(response.error?.data || t(toastMessage.couldNotImportedForm));
+            toast({ description: response.error?.data || t(toastMessage.couldNotImportedForm), variant: 'destructive' });
         }
     };
 

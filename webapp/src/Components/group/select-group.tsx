@@ -6,7 +6,7 @@ import AppButton from '@Components/Common/Input/Button/AppButton';
 import { ButtonSize, ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
 import { useBottomSheetModal } from '@Components/Modals/Contexts/BottomSheetModalContext';
 import DataTable from 'react-data-table-component';
-import { toast } from 'react-toastify';
+import { useToast } from '@app/shadcn/components/ui/use-toast';
 
 import { dataTableCustomStyles } from '@app/Components/datatable/form/datatable-styles';
 import { GroupIcon } from '@app/Components/icons/group-icon';
@@ -23,6 +23,7 @@ import { useGetAllRespondersGroupQuery, usePatchFormSettingsMutation } from '@ap
 import { selectWorkspace } from '@app/store/workspaces/slice';
 
 const SelectGroup = () => {
+    const { toast } = useToast();
     const workspace = useAppSelector(selectWorkspace);
     const form = useAppSelector(selectForm);
     const { data, isLoading } = useGetAllRespondersGroupQuery(workspace.id);
@@ -45,9 +46,9 @@ const SelectGroup = () => {
             dispatch(setForm({ ...form, settings }));
         } else {
             if (response.error.status === 409) {
-                toast(t('TOAST.SLUG_ALREADY_EXISTS').toString(), { type: 'error' });
+                toast({ description: t('TOAST.SLUG_ALREADY_EXISTS').toString(), variant: 'destructive' });
             } else {
-                toast(t(toastMessage.formSettingUpdateError).toString(), { type: 'error' });
+                toast({ description: t(toastMessage.formSettingUpdateError).toString(), variant: 'destructive' });
             }
             return response.error;
         }

@@ -5,7 +5,7 @@ import { ButtonSize, ButtonVariant } from '@Components/Common/Input/Button/AppBu
 import ImportFormLoading from '@Components/ImportForm/ImportFormLoading';
 import ImportSuccessfulComponent from '@Components/ImportForm/ImportSuccessfulComponent';
 import useDrivePicker from '@fyelci/react-google-drive-picker';
-import { toast } from 'react-toastify';
+import { useToast } from '@app/shadcn/components/ui/use-toast';
 
 import ImportErrorView from '@app/Components/form-integrations/import-error-view';
 import { useModal } from '@app/Components/modal-views/context';
@@ -23,6 +23,7 @@ import { useIsMobile } from '@app/lib/hooks/use-breakpoint';
 import { selectAuth } from '@app/store/auth/slice';
 
 export default function ImportFormModal() {
+    const { toast } = useToast();
     const router = useRouter();
     const { closeModal } = useModal();
 
@@ -49,7 +50,7 @@ export default function ImportFormModal() {
         const form: any = { ...singleForm?.data, provider: 'google' };
         delete form['clientFormItems'];
         if (singleForm.error) {
-            toast.success('Error fetching form');
+            toast({ description: 'Error fetching form', variant: 'destructive' });
             return;
             closeModal();
         }
@@ -59,11 +60,11 @@ export default function ImportFormModal() {
             workspaceId: workspace.id
         });
         if (response.error) {
-            toast.error('Something went wrong!!');
+            toast({ description: 'Something went wrong!!', variant: 'destructive' });
             closeModal();
         }
         if (response.data) {
-            toast.success('Form Imported Successfully');
+            toast({ description: 'Form Imported Successfully' });
             setForm(response.data);
             fireworks();
         }

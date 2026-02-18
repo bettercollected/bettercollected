@@ -12,11 +12,12 @@ import { useAppSelector } from '@app/store/hooks';
 import { useResponderState } from '@app/store/jotai/responderFormState';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import UserAvatarDropDown from '@app/views/molecules/UserAvatarDropdown';
-import { toast } from 'react-toastify';
+import { useToast } from '@app/shadcn/components/ui/use-toast';
 import useCopyToClipboard from 'react-use/lib/useCopyToClipboard';
 import { useFormResponse } from '@app/store/jotai/responderFormResponse';
 
 export default function ThankyouPage({ isPreviewMode }: { isPreviewMode: boolean }) {
+    const { toast } = useToast();
     const standardForm = useAppSelector(selectForm);
     const workspace = useAppSelector(selectWorkspace);
     const auth = useAppSelector(selectAuth);
@@ -31,8 +32,8 @@ export default function ThankyouPage({ isPreviewMode }: { isPreviewMode: boolean
 
     const handleOnCopy = (copyValue: string) => {
         copyToClipboard(copyValue);
-        toast('Copied', {
-            type: 'info'
+        toast({
+            description: 'Copied'
         });
     };
     return (

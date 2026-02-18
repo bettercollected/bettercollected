@@ -8,11 +8,12 @@ import { useAddPhotoInWorkspaceMediaLibraryMutation, useGetWorkspaceMediaLibrary
 import { MediaLibrary } from '@app/store/media-library/type';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import EmptyGallerIcon from '@app/views/atoms/Icons/EmptyGalleryIcon';
-import { toast } from 'react-toastify';
+import { useToast } from '@app/shadcn/components/ui/use-toast';
 import MediaItem from './MediaItem';
 import SearchBar from './PhotoSearch';
 
 const UploadMediaComponent = ({ updatePageImage }: { updatePageImage: (args: any) => void }) => {
+    const { toast } = useToast();
     const [query, setQuery] = useState('');
     const workspace = useAppSelector(selectWorkspace);
 
@@ -40,8 +41,9 @@ const UploadMediaComponent = ({ updatePageImage }: { updatePageImage: (args: any
             if (result.data) {
                 updatePageImage(result.data.mediaUrl);
             } else {
-                toast(result?.error?.data, {
-                    type: 'error'
+                toast({
+                    description: result?.error?.data,
+                    variant: 'destructive'
                 });
             }
         });

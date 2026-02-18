@@ -5,8 +5,8 @@ import { useTranslation } from 'next-i18next';
 import AppTextField from '@Components/Common/Input/AppTextField';
 import AppButton from '@Components/Common/Input/Button/AppButton';
 import { ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
-import { toast } from 'react-toastify';
 
+import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { IFormCreateSlugFullModalViewProps } from '@app/Components/modal-views/full-screen-modals/create-form-slug-full-modal-view';
 import { localesCommon } from '@app/constants/locales/common';
 import { formPage } from '@app/constants/locales/form-page';
@@ -23,6 +23,7 @@ interface IFormSlugProps extends IFormCreateSlugFullModalViewProps {
 
 export const FormSlug = ({ customSlug, link, onSave }: IFormSlugProps) => {
     const formId = customSlug;
+    const { toast } = useToast();
     const [slug, setSlug] = useState(customSlug);
     const [isError, setIsError] = useState(false);
     const workspace = useAppSelector((state) => state.workspace);
@@ -53,9 +54,9 @@ export const FormSlug = ({ customSlug, link, onSave }: IFormSlugProps) => {
             if (response.data) {
                 const settings = response.data.settings;
                 dispatch(setFormSettings(settings));
-                toast(t(localesCommon.updated).toString(), { type: 'success' });
+                toast({ description: t(localesCommon.updated).toString() });
             } else {
-                toast(response?.error?.data || t(toastMessage.formSettingUpdateError).toString(), { type: 'error' });
+                toast({ description: response?.error?.data || t(toastMessage.formSettingUpdateError).toString(), variant: 'destructive' });
                 return response.error;
             }
             onSave();

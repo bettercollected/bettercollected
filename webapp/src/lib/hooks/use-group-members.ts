@@ -1,6 +1,6 @@
 import { useTranslation } from 'next-i18next';
 
-import { toast } from 'react-toastify';
+import { useToast } from '@app/shadcn/components/ui/use-toast';
 
 import { useModal } from '@app/Components/modal-views/context';
 import { toastMessage } from '@app/constants/locales/toast-message';
@@ -17,6 +17,7 @@ interface IGroupMembersprops {
 }
 
 export function useGroupMember() {
+    const { toast } = useToast();
     const [addMember, addMemberResponse] = useAddResponderOnGroupMutation();
     const [removeMember, removeMemberResponse] = useDeleteResponderFromGroupMutation();
     const { closeModal } = useModal();
@@ -29,17 +30,17 @@ export function useGroupMember() {
                 emails: [email]
             });
 
-            toast(t(toastMessage.removeFromGroup).toString(), { toastId: ToastId.SUCCESS_TOAST, type: 'success' });
+            toast({ description: t(toastMessage.removeFromGroup).toString() });
             closeModal();
         } catch (error) {
-            toast(t(toastMessage.somethingWentWrong).toString(), { toastId: ToastId.ERROR_TOAST, type: 'error' });
+            toast({ description: t(toastMessage.somethingWentWrong).toString(), variant: 'destructive' });
         }
     };
 
     const addMembersOnGroup = async ({ emails, email, group, workspaceId }: IGroupMembersprops) => {
         try {
             if (emails && group.emails?.some((groupEmail) => emails?.includes(groupEmail))) {
-                toast(t(toastMessage.alreadyInGroup).toString(), { toastId: ToastId.ERROR_TOAST, type: 'error' });
+                toast({ description: t(toastMessage.alreadyInGroup).toString(), variant: 'destructive' });
                 return;
             }
             await addMember({
@@ -47,10 +48,10 @@ export function useGroupMember() {
                 groupId: group.id,
                 emails: emails ?? [email]
             });
-            toast(t(toastMessage.addedOnGroup).toString(), { toastId: ToastId.SUCCESS_TOAST, type: 'success' });
+            toast({ description: t(toastMessage.addedOnGroup).toString() });
             closeModal();
         } catch (error) {
-            toast(t(toastMessage.somethingWentWrong).toString(), { toastId: ToastId.ERROR_TOAST, type: 'error' });
+            toast({ description: t(toastMessage.somethingWentWrong).toString(), variant: 'destructive' });
         }
     };
     return {

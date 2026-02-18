@@ -1,46 +1,46 @@
-import React, {useEffect, useState} from 'react';
+import React, { useEffect, useState } from 'react';
 
-import {useTranslation} from 'next-i18next';
+import { useTranslation } from 'next-i18next';
 
 import Divider from '@Components/Common/DataDisplay/Divider';
 import Tooltip from '@Components/Common/DataDisplay/Tooltip';
 import EditIcon from '@Components/Common/Icons/Common/Edit';
 import LockIcon from '@Components/Common/Icons/lock';
 import AppButton from '@Components/Common/Input/Button/AppButton';
-import {ButtonVariant} from '@Components/Common/Input/Button/AppButtonProps';
-import {useBottomSheetModal} from '@Components/Modals/Contexts/BottomSheetModalContext';
-import {QrCode} from '@mui/icons-material';
-import {FormControlLabel, Radio, RadioGroup} from '@mui/material';
+import { ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
+import { useBottomSheetModal } from '@Components/Modals/Contexts/BottomSheetModalContext';
+import { QrCode } from '@mui/icons-material';
+import { FormControlLabel, Radio, RadioGroup } from '@mui/material';
 import Switch from '@mui/material/Switch';
 import cn from 'classnames';
 import moment from 'moment/moment';
-import {toast} from 'react-toastify';
+import { useToast } from '@app/shadcn/components/ui/use-toast';
 import useCopyToClipboard from 'react-use/lib/useCopyToClipboard';
 
-import {Close} from '@app/Components/icons/close';
-import {GroupIcon} from '@app/Components/icons/group-icon';
-import {useModal} from '@app/Components/modal-views/context';
-import {FormSettingsCard} from '@app/Components/settings/card';
+import { Close } from '@app/Components/icons/close';
+import { GroupIcon } from '@app/Components/icons/group-icon';
+import { useModal } from '@app/Components/modal-views/context';
+import { FormSettingsCard } from '@app/Components/settings/card';
 import environments from '@app/configs/environments';
-import {buttonConstant} from '@app/constants/locales/button';
-import {localesCommon} from '@app/constants/locales/common';
-import {formConstant} from '@app/constants/locales/form';
-import {formPage} from '@app/constants/locales/form-page';
-import {toastMessage} from '@app/constants/locales/toast-message';
-import {StandardFormDto} from '@app/models/dtos/form';
-import {ResponderGroupDto} from '@app/models/dtos/groups';
-import {selectAuth, selectIsAdmin} from '@app/store/auth/slice';
-import {selectForm, setFormSettings} from '@app/store/forms/slice';
-import {useAppDispatch, useAppSelector} from '@app/store/hooks';
-import {usePatchFormSettingsMutation} from '@app/store/workspaces/api';
-import {selectWorkspace} from '@app/store/workspaces/slice';
-import {utcToLocalDateTIme} from '@app/utils/dateUtils';
+import { buttonConstant } from '@app/constants/locales/button';
+import { localesCommon } from '@app/constants/locales/common';
+import { formConstant } from '@app/constants/locales/form';
+import { formPage } from '@app/constants/locales/form-page';
+import { toastMessage } from '@app/constants/locales/toast-message';
+import { StandardFormDto } from '@app/models/dtos/form';
+import { ResponderGroupDto } from '@app/models/dtos/groups';
+import { selectAuth, selectIsAdmin } from '@app/store/auth/slice';
+import { selectForm, setFormSettings } from '@app/store/forms/slice';
+import { useAppDispatch, useAppSelector } from '@app/store/hooks';
+import { usePatchFormSettingsMutation } from '@app/store/workspaces/api';
+import { selectWorkspace } from '@app/store/workspaces/slice';
+import { utcToLocalDateTIme } from '@app/utils/dateUtils';
 import getFormShareURL from '@app/utils/formUtils';
-import {validateFormOpen} from '@app/utils/validationUtils';
-import {useFullScreenModal} from "@Components/modal-views/full-screen-modal-context";
+import { validateFormOpen } from '@app/utils/validationUtils';
+import { useFullScreenModal } from "@Components/modal-views/full-screen-modal-context";
 import Globe from "@Components/icons/flags/globe";
 import FormLinkUpdateView from "@Components/ui/form-link-update-view";
-import {ProLogo} from "@Components/ui/logo";
+import { ProLogo } from "@Components/ui/logo";
 
 interface IFormSettingsTabProps {
     view?: FormSettingsTabView;
@@ -49,6 +49,7 @@ interface IFormSettingsTabProps {
 export type FormSettingsTabView = 'VISIBILITY' | 'LINKS' | 'DEFAULT';
 
 export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabProps) {
+    const { toast } = useToast();
     const { t } = useTranslation();
     const form = useAppSelector(selectForm);
     const [patchFormSettings] = usePatchFormSettingsMutation();
@@ -68,9 +69,7 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
     const handleOnCopy = () => {
         const link = getFormShareURL(form, workspace);
         copyToClipboard(link);
-        toast(t(toastMessage.copied).toString(), {
-            type: 'info'
-        });
+        toast({ description: t(toastMessage.copied).toString() });
     };
 
     const defaultValueForVisibility = () => {
@@ -94,23 +93,23 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
         if (response.data) {
             const settings = response.data.settings;
             dispatch(setFormSettings(settings));
-            toast(t(localesCommon.updated).toString(), { type: 'success' });
+            toast({ description: t(localesCommon.updated).toString() });
         } else {
             if (response.error.status === 409) {
-                toast(t('TOAST.SLUG_ALREADY_EXISTS').toString(), { type: 'error' });
+                toast({ description: t('TOAST.SLUG_ALREADY_EXISTS').toString(), variant: 'destructive' });
             } else {
-                toast(t(toastMessage.formSettingUpdateError).toString(), { type: 'error' });
+                toast({ description: t(toastMessage.formSettingUpdateError).toString(), variant: 'destructive' });
             }
             return response.error;
         }
     };
 
     const onPinnedChange = (event: any, f?: StandardFormDto) => {
-        if (!f) return toast(t(toastMessage.formSettingUpdateError).toString(), { type: 'error', toastId: 'errorToast' });
+        if (!f) return toast({ description: t(toastMessage.formSettingUpdateError).toString(), variant: 'destructive' });
         patchSettings({ pinned: !f?.settings?.pinned }, f)
-            .then((res) => {})
+            .then((res) => { })
             .catch((e) => {
-                toast(e.data, { type: 'error', toastId: 'errorToast' });
+                toast({ description: e.data, variant: 'destructive' });
             });
     };
 
@@ -118,7 +117,7 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
         patchSettings({ requireVerifiedIdentity: !f?.settings?.requireVerifiedIdentity }, f)
             .then()
             .catch((e) => {
-                toast(e.data, { type: 'error', toastId: 'errorToast' });
+                toast({ description: e.data, variant: 'destructive' });
             });
     };
 
@@ -130,7 +129,7 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
         patchSettings({ showSubmissionNumber: !f?.settings?.showSubmissionNumber }, f)
             .then()
             .catch((e) => {
-                toast(e.data, { type: 'error', toastId: 'errorToast' });
+                toast({ description: e.data, variant: 'destructive' });
             });
     };
 
@@ -138,7 +137,7 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
         patchSettings({ allowEditingResponse: !f?.settings?.allowEditingResponse }, f)
             .then()
             .catch((e) => {
-                toast(e.data, { type: 'error', toastId: 'errorToast' });
+                toast({ description: e.data, variant: 'destructive' });
             });
     };
 
@@ -150,15 +149,12 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
         };
         const handleOnConfirm = () => {
             if (!f)
-                return toast(t(toastMessage.formSettingUpdateError).toString(), {
-                    type: 'error',
-                    toastId: 'errorToast'
-                });
+                return toast({ description: t(toastMessage.formSettingUpdateError).toString(), variant: 'destructive' });
             const patchBody = { private: isPrivate, pinned: false, hidden: isHidden };
             patchSettings(patchBody, f)
-                .then((res) => {})
+                .then((res) => { })
                 .catch((e: any) => {
-                    toast(e.data, { type: 'error', toastId: 'errorToast' });
+                    toast({ description: e.data, variant: 'destructive' });
                 });
         };
         openModal('VISIBILITY_CONFIRMATION_MODAL_VIEW', { visibilityType: visibilityType(), handleOnConfirm });
@@ -167,18 +163,18 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
     const onFormClosedChange = (date: moment.Moment | string) => {
         const patchBody = { formCloseDate: date };
         patchSettings(patchBody, form)
-            .then(() => {})
+            .then(() => { })
             .catch(() => {
-                toast('Something went wrong!!!', { type: 'error' });
+                toast({ description: 'Something went wrong!!!', variant: 'destructive' });
             });
     };
 
     const onDisableBrandingChange = (event: any, f?: StandardFormDto) => {
-        if (!f) return toast(t(toastMessage.formSettingUpdateError).toString(), { type: 'error', toastId: 'errorToast' });
+        if (!f) return toast({ description: t(toastMessage.formSettingUpdateError).toString(), variant: 'destructive' });
         patchSettings({ disableBranding: !f?.settings?.disableBranding }, f)
-            .then((res) => {})
+            .then((res) => { })
             .catch((e) => {
-                toast(e.data, { type: 'error', toastId: 'errorToast' });
+                toast({ description: e.data, variant: 'destructive' });
             });
     };
 
