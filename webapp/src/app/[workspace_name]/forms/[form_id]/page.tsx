@@ -14,7 +14,6 @@ import Form from '@app/views/organism/Form/Form';
 import { useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
-import FourOhFour from '@app/pages/404';
 
 export default function FormPage({ params }: { params: { form_id: string; workspace_name: string } }) {
     const slug = params.form_id;
@@ -81,7 +80,7 @@ const FetchFormWrapper = ({ slug }: { slug: string }) => {
     };
 
     if (data?.settings?.hidden) {
-        return <FourOhFour />;
+        return <></>;
     }
 
     if (isLoading || error || (data?.importedFormId && data.settings?.showOriginalForm && hasFileUpload(data?.fields))) {
