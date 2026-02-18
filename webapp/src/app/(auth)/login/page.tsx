@@ -1,13 +1,13 @@
 import React from 'react';
-import { cookies, headers } from 'next/headers';
-import { notFound, redirect } from 'next/navigation';
+import { cookies } from 'next/headers';
+import { redirect } from 'next/navigation';
 import LoginClient from './LoginClient';
 import environments from '@app/configs/environments';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
+import { isRedirectError } from 'next/dist/client/components/redirect';
 
 export default async function LoginPage() {
     const cookieStore = cookies();
-
     const authCookie = cookieStore.get('Authorization');
     const refreshCookie = cookieStore.get('RefreshToken');
     const cookieHeader = `${authCookie ? `Authorization=${authCookie.value};` : ''}${refreshCookie ? `RefreshToken=${refreshCookie.value};` : ''}`;
@@ -47,6 +47,9 @@ export default async function LoginPage() {
             }
         }
     } catch (e) {
+        if (isRedirectError(e)) {
+            throw e;
+        }
         console.error('Error during server-side auth check:', e);
     }
 

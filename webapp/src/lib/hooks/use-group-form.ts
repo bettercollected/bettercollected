@@ -1,5 +1,5 @@
 import { useTranslation } from 'next-i18next';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 
 import { toast } from 'react-toastify';
 
@@ -32,6 +32,7 @@ export function useGroupForm() {
     const [removeForm] = useDeleteGroupFormMutation();
     const dispatch = useAppDispatch();
     const router = useRouter();
+    const pathname = usePathname();
     const { closeModal } = useModal();
     const fullScreenModal = useFullScreenModal();
     const { t } = useTranslation();
@@ -68,7 +69,7 @@ export function useGroupForm() {
             //     const dataArray = Array.from(data);
             //     dispatch(setForm({ ...form, groups: [...groups, ...dataArray] }));
             // });
-            router.push(router.asPath);
+            router.push(pathname);
             toast(t(toastMessage.addedOnGroup).toString(), { toastId: ToastId.SUCCESS_TOAST, type: 'success' });
             // closeModal();
             // fullScreenModal.closeModal();
