@@ -167,7 +167,6 @@ export default function SingleFormPage(props: any) {
         return <FullScreenLoader />;
     }
 
-    // TODO: Update this component to be reusable
     if (form?.settings?.provider && form.settings?.provider === 'google' && form?.fields && hasFileUpload(form?.fields)) {
         return (
             <div className="relative !min-h-screen !bg-white">
@@ -217,20 +216,5 @@ export default function SingleFormPage(props: any) {
             </div>
         );
     }
-
-    const isFormDisabled = environments.ENABLE_COLLECT_EMAILS && form?.settings?.requireVerifiedIdentity && !auth.email;
-    return (
-        <Layout showNavbar={false} isCustomDomain={hasCustomDomain} isClientDomain={!hasCustomDomain} showAuthAccount={true} className="relative !min-h-screen !bg-white">
-            <div className={`absolute bottom-0 left-0 right-0 top-0 !m-0 !bg-white !p-0 ${showBranding ? '!mb-6' : ''}`}>
-                {form?.settings?.provider === 'typeform' && <Widget id={form?.formId} style={{ height: '100vh' }} className="my-form" />}
-                {form?.settings?.provider === 'self' && (
-                    <div className="flex h-full w-full justify-center overflow-auto !bg-white pb-6">
-                        <BetterCollectedForm form={form} enabled={!isFormDisabled} isCustomDomain={hasCustomDomain} />
-                    </div>
-                )}
-            </div>
-            {showBranding && <PoweredBy />}
-        </Layout>
-    );
 }
 

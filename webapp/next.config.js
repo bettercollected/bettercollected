@@ -5,7 +5,6 @@ const nextConfig = {
     compress: true,
     distDir: process.env.NODE_ENV === 'development' ? '.next-dev' : '.next',
     reactStrictMode: true,
-    i18n,
     turbopack: {},
     compiler: {
         emotion: true,
