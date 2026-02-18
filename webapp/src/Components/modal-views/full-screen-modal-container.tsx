@@ -9,12 +9,11 @@ import UpgradeToProModal from '@app/Components/modal-views/modals/upgrade-to-pro
 import WorkspacePreviewModal from '@app/Components/modal-views/modals/workspace-preview-modal';
 import { Dialog } from '@app/Components/ui/dialog';
 import { Transition } from '@app/Components/ui/transition';
-import { useAppDispatch } from '@app/store/hooks';
 
+import LoginView from '@Components/Login/login-view';
+import { PreviewFullModalView } from './full-screen-modals/v2preview-modal';
 import ViewResponseFullModalView from './full-screen-modals/view-response-full-modal-view';
 import CropImageModalView from './modals/crop-image-modal-view';
-import { PreviewFullModalView } from './full-screen-modals/v2preview-modal';
-import LoginView from '@Components/Login/login-view';
 
 function renderModalContent(view: FULL_SCREEN_MODALS, modalProps: any) {
     switch (view) {
@@ -37,7 +36,6 @@ function renderModalContent(view: FULL_SCREEN_MODALS, modalProps: any) {
 
 export default function FullScreenModalContainer() {
     const { isOpen, closeModal, modalProps, view } = useFullScreenModal();
-    const dispatch = useAppDispatch();
 
     const closeModalHandler = useCallback(() => {
         if (!modalProps?.nonClosable) closeModal();
