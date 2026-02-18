@@ -219,7 +219,7 @@ export default function FormDashboardClient(props: any) {
                             <FormSettings />
                         </TabPanel>
 
-                        {form?.isPublished && form?.settings?.provider === 'self' && form?.builderVersion === 'v2' && (
+                        {form?.isPublished && form?.settings?.provider === 'self' && (
                             <TabPanel className="focus:outline-none" key="Integrations">
                                 <FormIntegrations />
                             </TabPanel>
