@@ -13,7 +13,6 @@ import formSlice from '@app/store/forms/slice';
 import { plansApi } from '@app/store/plans/api';
 import { providerApi } from '@app/store/providers/api';
 import { templateApi } from '@app/store/template/api';
-import joyrideSlice from '@app/store/tours/slice';
 import { workspacesApi } from '@app/store/workspaces/api';
 import { membersNInvitationsApi } from '@app/store/workspaces/members-n-invitations-api';
 import workspaceSlice from '@app/store/workspaces/slice';
@@ -58,7 +57,6 @@ const reducers = {
     [mutationStatusSlice.reducerPath]: mutationStatusSlice.reducer,
     [authSlice.reducerPath]: authSlice.reducer,
     [formSlice.reducerPath]: formSlice.reducer,
-    [joyrideSlice.reducerPath]: joyrideSlice.reducer,
     [workspaceSlice.reducerPath]: workspaceSlice.reducer,
     [builder.reducerPath]: builder.reducer,
     [fillFormSlice.reducerPath]: fillFormSlice.reducer,

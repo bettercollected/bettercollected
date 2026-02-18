@@ -1,21 +1,15 @@
 'use client';
 
-import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
 
-import Joyride from '@Components/Joyride';
-import { JoyrideStepContent, JoyrideStepTitle } from '@Components/Joyride/JoyrideStepTitleAndContent';
 import { useBottomSheetModal } from '@Components/Modals/Contexts/BottomSheetModalContext';
 import WorkspaceDetailsCard from '@Components/RespondersPortal/WorkspaceDetailsCard';
 import { ProLogo } from '@app/Components/ui/logo';
 import WorkspaceDashboardForms from '@app/Components/workspace-dashboard/workspace-dashboard-forms';
 import WorkspaceDashboardPinnedForms from '@app/Components/workspace-dashboard/workspace-dashboard-pinned-forms';
-import environments from '@app/configs/environments';
-import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { Button } from '@app/shadcn/components/ui/button';
 import { useAppSelector } from '@app/store/hooks';
-import { JOYRIDE_CLASS, JOYRIDE_ID } from '@app/store/tours/types';
 import { useGetWorkspaceFormsQuery } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { getWorkspaceShareURL } from '@app/utils/workspaceUtils';
@@ -37,55 +31,6 @@ export default function CreatorDashboardClient({ hasCustomDomain }: { hasCustomD
 
     return (
         <div className="flex flex-col md:flex-row p-6 gap-4">
-            {environments.ENABLE_JOYRIDE_TOURS && (
-                <Joyride
-                    id={JOYRIDE_ID.WORKSPACE_ADMIN_DASHBOARD_OVERVIEW}
-                    scrollOffset={68}
-                    placement="bottom-end"
-                    steps={[
-                        {
-                            title: <JoyrideStepTitle text="Your workspace profile and title" />,
-                            content: <JoyrideStepContent>This is your workspace profile image and title. You can later change this in &quot;Manage workspace&quot; settings page.</JoyrideStepContent>,
-                            target: `.${JOYRIDE_CLASS.WORKSPACE_ADMIN_DASHBOARD_INFO}`,
-                            placementBeacon: 'bottom-end',
-                            disableBeacon: false
-                        },
-                        {
-                            title: <JoyrideStepTitle text="Workspace Collaborators" />,
-                            content: <JoyrideStepContent>Invite others to collaborate on your workspace.</JoyrideStepContent>,
-                            target: `.${JOYRIDE_CLASS.WORKSPACE_ADMIN_DASHBOARD_COLLABORATORS}`,
-                            placementBeacon: 'bottom-end',
-                            disableBeacon: false
-                        },
-
-                        {
-                            title: <JoyrideStepTitle text="Share your workspace" />,
-                            content: <JoyrideStepContent>Share your workspace in different social media platforms, or copy the link via &quot;Share&quot; button.</JoyrideStepContent>,
-                            target: `.${JOYRIDE_CLASS.WORKSPACE_ADMIN_DASHBOARD_SHARE}`,
-                            placementBeacon: 'bottom-end',
-                            disableBeacon: false
-                        },
-                        {
-                            title: <JoyrideStepTitle text="Preview your public workspace" />,
-                            content: (
-                                <JoyrideStepContent>
-                                    This link navigates you to your public workspace portal. <br /> <br /> Public workspace portal can be viewed by everyone.
-                                </JoyrideStepContent>
-                            ),
-                            target: `.${JOYRIDE_CLASS.WORKSPACE_ADMIN_DASHBOARD_PREVIEW}`,
-                            placementBeacon: 'bottom-end',
-                            disableBeacon: false
-                        },
-                        {
-                            title: <JoyrideStepTitle text="Edit your workspace" />,
-                            content: <JoyrideStepContent>Customize your workspace with your own name and logo.</JoyrideStepContent>,
-                            target: `.${JOYRIDE_CLASS.WORKSPACE_ADMIN_DASHBOARD_EDIT}`,
-                            placementBeacon: 'bottom-end',
-                            disableBeacon: false
-                        }
-                    ]}
-                />
-            )}
             <div className="relative flex flex-col gap-4 md:w-[320px] md:max-w-[320px]">
                 <div className="absolute right-4 top-4 z-[50] bg-white/30">
                     <EditIcon

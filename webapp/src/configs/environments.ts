@@ -27,7 +27,6 @@ const environments = {
     ENABLE_GOOGLE: (process.env.ENABLE_GOOGLE && process.env.ENABLE_GOOGLE === 'true') ?? true,
     ENABLE_TYPEFORM: (process.env.ENABLE_TYPEFORM && process.env.ENABLE_TYPEFORM === 'true') ?? true,
     ENABLE_BRAND_COLORS: (process.env.ENABLE_BRAND_COLORS && process.env.ENABLE_BRAND_COLORS === 'true') ?? false,
-    ENABLE_JOYRIDE_TOURS: (process.env.ENABLE_JOYRIDE_TOURS && process.env.ENABLE_JOYRIDE_TOURS === 'true') ?? false,
     ENABLE_COMMAND_FORM_BUILDERS: (process.env.ENABLE_COMMAND_FORM_BUILDERS && process.env.ENABLE_COMMAND_FORM_BUILDERS === 'true') ?? false,
     ENABLE_FORM_BUILDER: (process.env.ENABLE_FORM_BUILDER && process.env.ENABLE_FORM_BUILDER === 'true') ?? false,
     ENABLE_EXPORT_CSV: (process.env.ENABLE_EXPORT_CSV && process.env.ENABLE_EXPORT_CSV === 'true') ?? false,

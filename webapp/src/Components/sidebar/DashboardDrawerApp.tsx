@@ -17,7 +17,6 @@ import { toolTipConstant } from '@app/constants/locales/tooltip';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { selectIsProPlan, selectIsAdmin } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
-import { JOYRIDE_CLASS } from '@app/store/tours/types';
 import { useGetWorkspaceStatsQuery } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import Globe from '@app/views/atoms/Icons/Flags/Globe';
@@ -61,7 +60,7 @@ const Drawer = ({ topNavList, isAdmin, bottomNavList }: any) => {
             <Box sx={{ overflow: 'auto', height: '100%' }}>
                 <div className="flex h-full flex-col justify-between">
                     <div className="px-4">
-                        <List disablePadding sx={{ paddingTop: '20px' }} className={JOYRIDE_CLASS.WORKSPACE_SWITCHER}>
+                        <List disablePadding sx={{ paddingTop: '20px' }}>
                             <ListItem disablePadding>
                                 <WorkspaceMenuDropdown fullWidth />
                             </ListItem>
@@ -72,11 +71,11 @@ const Drawer = ({ topNavList, isAdmin, bottomNavList }: any) => {
                             <GradientBgDiv className="p3-new">Public Workspace</GradientBgDiv>
                         </Link>
                         <hr className="mt-3" />
-                        <NavigationListApp className={JOYRIDE_CLASS.WORKSPACE_NAVIGATION} sx={{ paddingY: '8px' }} navigationList={topNavList} />
+                        <NavigationListApp sx={{ paddingY: '8px' }} navigationList={topNavList} />
                         {isAdmin && (
                             <>
                                 <Divider className="text-black-600" />
-                                <NavigationListApp className={JOYRIDE_CLASS.WORKSPACE_ADVANCE_NAVIGATION} sx={{ paddingY: '8px' }} navigationList={bottomNavList} />
+                                <NavigationListApp sx={{ paddingY: '8px' }} navigationList={bottomNavList} />
                             </>
                         )}
                     </div>

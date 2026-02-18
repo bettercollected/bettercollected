@@ -13,8 +13,6 @@ import FormProviderIcon from '@Components/Common/Icons/Form/FormProviderIcon';
 import Preview from '@Components/Common/Icons/Form/Preview';
 import AppButton from '@Components/Common/Input/Button/AppButton';
 import { ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
-import Joyride from '@Components/Joyride';
-import { JoyrideStepContent, JoyrideStepTitle } from '@Components/Joyride/JoyrideStepTitleAndContent';
 import { ChevronLeft } from '@mui/icons-material';
 
 import FormRenderer from '@app/Components/Form/renderer/form-renderer';
@@ -27,7 +25,6 @@ import { buttonConstant } from '@app/constants/locales/button';
 import { localesCommon } from '@app/constants/locales/common';
 import { toolTipConstant } from '@app/constants/locales/tooltip';
 import Layout from '@app/layouts/_layout';
-import { JOYRIDE_CLASS, JOYRIDE_ID } from '@app/store/tours/types';
 import { utcToLocalDate } from '@app/utils/dateUtils';
 
 interface SubmissionProps {
@@ -83,24 +80,6 @@ export default function Submission({ hasCustomDomain, data, handleRequestForDele
                 <FullScreenLoader />
             ) : (
                 <div className="mt-5 flex flex-col pb-6">
-                    {environments.ENABLE_JOYRIDE_TOURS && (
-                        <Joyride
-                            id={JOYRIDE_ID.RESPONDERS_PORTAL}
-                            scrollOffset={68}
-                            placement="bottom-end"
-                            floaterProps={{ autoOpen: true }}
-                            steps={[
-                                {
-                                    title: <JoyrideStepTitle text="Deletion Request" />,
-                                    content: <JoyrideStepContent>You can request for submission deletion.</JoyrideStepContent>,
-                                    target: `.${JOYRIDE_CLASS.RESPONDERS_SUBMISSION_DELETE}`,
-                                    placementBeacon: 'bottom-end',
-                                    disableBeacon: false
-                                }
-                            ]}
-                        />
-                    )}
-
                     <div className="w-full px-5">
                         <div className="flex w-fit items-center justify-start gap-2 " onClick={goToSubmissions}>
                             <ChevronLeft className="cursor-pointer" strokeWidth={2} width={24} height={24} />
@@ -159,7 +138,7 @@ export default function Submission({ hasCustomDomain, data, handleRequestForDele
                                 {!form?.response?.deletionStatus ? (
                                     <div>
                                         <Tooltip title={deletionStatus ? t(toolTipConstant.alreadyRequestedForDeletion) : t(toolTipConstant.requestForDeletion)}>
-                                            <AppButton className={`w-fit ${JOYRIDE_CLASS.RESPONDERS_SUBMISSION_DELETE}`} variant={ButtonVariant.Danger} onClick={handleRequestForDeletionModal}>
+                                            <AppButton className={`w-fit`} variant={ButtonVariant.Danger} onClick={handleRequestForDeletionModal}>
                                                 {t(buttonConstant.requestForDeletion)}
                                             </AppButton>
                                         </Tooltip>

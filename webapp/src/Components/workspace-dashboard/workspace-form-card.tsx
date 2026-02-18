@@ -26,7 +26,6 @@ import { useGroupForm } from '@app/lib/hooks/use-group-form';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { ResponderGroupDto } from '@app/models/dtos/groups';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
-import { JOYRIDE_CLASS } from '@app/store/tours/types';
 import getFormShareURL from '@app/utils/formUtils';
 import { getEditFormURL } from '@app/utils/urlUtils';
 import { validateFormOpen } from '@app/utils/validationUtils';
@@ -97,7 +96,7 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, group, worksp
                         </div>
                         {!group && !isResponderPortal && (
                             <div className="flex-1 lg:hidden">
-                                <FormOptionsDropdownMenu className={JOYRIDE_CLASS.WORKSPACE_ADMIN_FORM_CARD_NAVIGATION_OPTIONS} redirectToDashboard={true} form={form} hasCustomDomain={hasCustomDomain} workspace={workspace} />
+                                <FormOptionsDropdownMenu redirectToDashboard={true} form={form} hasCustomDomain={hasCustomDomain} workspace={workspace} />
                             </div>
                         )}
                     </div>
