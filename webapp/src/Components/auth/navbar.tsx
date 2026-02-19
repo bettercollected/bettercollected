@@ -63,7 +63,7 @@ function AuthNavbar({ showHamburgerIcon, showPlans, mobileOpen, handleDrawerTogg
                 <div className="flex items-center justify-center gap-7">
                     {!inMobile && (
                         <>
-                            <LocaleDropdownUiApp />
+                            {/* <LocaleDropdownUiApp /> */}
                             {showPlans && (
                                 <ProPlanHoc hideChildrenIfPro={true}>
                                     <Button>{t(buttonConstant.upgrade)}</Button>

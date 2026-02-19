@@ -18,8 +18,9 @@ const ConditionalLayout: React.FC<{ children: React.ReactNode }> = ({ children }
         || pathname === `/${workspace?.workspaceName}/dashboard/forms`
         || pathname === `/${workspace?.workspaceName}/dashboard/overview`
         || pathname === `/${workspace?.workspaceName}/dashboard/responders-groups`
+        || pathname.startsWith(`/${workspace?.workspaceName}/dashboard/responders-groups/`)
         || pathname === `/${workspace?.workspaceName}/dashboard/settings`
-        || pathname === `/${workspace?.workspaceName}/dashboard/members`
+        || pathname.startsWith(`/${workspace?.workspaceName}/dashboard/members`)
         || pathname === `/${workspace?.workspaceName}/dashboard/custom-domain`
         || pathname === `/${workspace?.workspaceName}/dashboard/deletion-requests`
         || pathname === `/${workspace?.workspaceName}/dashboard/account-settings`

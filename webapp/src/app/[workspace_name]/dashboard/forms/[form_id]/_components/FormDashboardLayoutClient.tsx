@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import dynamic from 'next/dynamic';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
+import Link from 'next/link';
+import cn from 'classnames';
 
 import Divider from '@Components/Common/DataDisplay/Divider';
 import PrivateFormButtonWrapper from '@Components/Common/FormVisibility/PrivateFormButtonWrapper';
@@ -18,7 +19,6 @@ import { HistoryIcon } from '@app/Components/icons/history';
 import { TrashIcon } from '@app/Components/icons/trash';
 import { useModal } from '@app/Components/modal-views/context';
 import { useFullScreenModal } from '@app/Components/modal-views/full-screen-modal-context';
-import ParamTab, { TabPanel } from '@app/Components/ui/param-tab';
 import { localesCommon } from '@app/constants/locales/common';
 import { formConstant } from '@app/constants/locales/form';
 import { formPage } from '@app/constants/locales/form-page';
@@ -35,22 +35,21 @@ import { validateFormOpen } from '@app/utils/validationUtils';
 import PlayIcon from '@app/views/atoms/Icons/PlayIcon';
 import PublishButton from '@app/views/molecules/FormBuilder/PublishButton';
 
-const FormResponses = dynamic(() => import('@app/Components/Form/responses'));
-const FormResponsesTable = dynamic(() => import('@app/Components/datatable/form/form-responses'));
-const FormVisibilities = dynamic(() => import('@app/Components/Form/visibility'));
-const FormLinks = dynamic(() => import('@app/Components/Form/links'));
-const FormSettings = dynamic(() => import('@app/Components/Form/settings'));
-const FormPreview = dynamic(() => import('@app/Components/Form/preview'));
-const FormAnalyticsDashboard = dynamic(() => import('@app/Components/Form/analyticsDashboard'));
-const FormIntegrations = dynamic(() => import('@app/Components/Form/integrations'));
-
-export default function FormDashboardClient(props: any) {
-    const { form }: { form: StandardFormDto } = props;
+export default function FormDashboardLayoutClient({
+    form,
+    children,
+    params
+}: {
+    form: StandardFormDto;
+    children: React.ReactNode;
+    params: { workspace_name: string; form_id: string }
+}) {
     const { t } = useTranslation();
     const dispatch = useAppDispatch();
-    const reduxStoreForm = useAppSelector(selectForm);
+    const reduxStoreForm = useAppSelector(selectForm); // Check if this updates after dispatch(setForm(form))
     const breakpoint = useBreakpoint();
     const router = useRouter();
+    const pathname = usePathname();
     const { openModal } = useModal();
     const { openModal: openFullScreenModal } = useFullScreenModal();
     const workspace = useAppSelector(selectWorkspace);
@@ -59,67 +58,80 @@ export default function FormDashboardClient(props: any) {
     const isMobile = useIsMobile();
     const isFormOpen = validateFormOpen(reduxStoreForm?.settings?.formCloseDate);
 
-    const paramTabs = [
-        {
-            icon: <Preview className="h-5 w-5" />,
-            title: t(formConstant.preview),
-            path: 'Preview'
-        },
-        {
-            icon: <SettingsIcon className="h-5 w-5" />,
-            title: t(localesCommon.settings),
-            path: 'Settings'
-        }
-    ];
-
-    if (form?.isPublished) {
-        if (form?.settings?.provider === 'self' && form?.builderVersion === 'v2') {
-            paramTabs.push({
-                icon: <IntegrationInstructions className="h-5 w-5" />,
-                title: 'Integrations',
-                path: 'Integrations'
-            });
-        }
-        paramTabs.push({
-            icon: <HistoryIcon className="h-5 w-5" />,
-            title: t(formConstant.responders) + ' (' + form.responses + ')',
-            path: 'Responses'
-        });
-        paramTabs.push({
-            icon: <TrashIcon className="h-5 w-5" />,
-            title: t(formConstant.deletionRequests) + ' (' + (form as any).deletionRequests + ')',
-            path: 'DeletionRequests'
-        });
-        paramTabs.push({
-            icon: <Group className="h-5 w-5" />,
-            title: t(formConstant.settings.visibility.title),
-            path: 'FormVisibility'
-        });
-
-        if (isFormOpen) {
-            paramTabs.push({
-                icon: <Group className="h-5 w-5" />,
-                title: t(formConstant.settings.formLink.title),
-                path: 'FormLinks'
-            });
-            paramTabs.push({
-                icon: <Group className="h-5 w-5" />,
-                title: 'Analytics',
-                path: 'AnalyticsDashboard'
-            });
-        }
-    }
-
+    // Initial load set form
     useEffect(() => {
-        dispatch(setForm(props.form));
+        dispatch(setForm(form));
         return () => {
             dispatch(resetSingleForm());
         };
-    }, [props.form]);
+    }, [form, dispatch]);
 
-    const handleBackClick = async () => {
+
+
+    const tabMenu = useMemo(() => {
+        const tabs = [
+            {
+                icon: <Preview className="h-5 w-5" />,
+                title: t(formConstant.preview),
+                path: 'preview'
+            },
+            {
+                icon: <SettingsIcon className="h-5 w-5" />,
+                title: t(localesCommon.settings),
+                path: 'settings'
+            }
+        ];
+
+        if (form?.isPublished) {
+            if (form?.settings?.provider === 'self' && form?.builderVersion === 'v2') {
+                tabs.push({
+                    icon: <IntegrationInstructions className="h-5 w-5" />,
+                    title: 'Integrations',
+                    path: 'integrations'
+                });
+            }
+            tabs.push({
+                icon: <HistoryIcon className="h-5 w-5" />,
+                title: t(formConstant.responders) + ' (' + form.responses + ')',
+                path: 'responses'
+            });
+            tabs.push({
+                icon: <TrashIcon className="h-5 w-5" />,
+                title: t(formConstant.deletionRequests) + ' (' + (form as any).deletionRequests + ')',
+                path: 'deletion-requests'
+            });
+            tabs.push({
+                icon: <Group className="h-5 w-5" />,
+                title: t(formConstant.settings.visibility.title),
+                path: 'visibility'
+            });
+
+            if (isFormOpen) {
+                tabs.push({
+                    icon: <Group className="h-5 w-5" />,
+                    title: t(formConstant.settings.formLink.title),
+                    path: 'links'
+                });
+                tabs.push({
+                    icon: <Group className="h-5 w-5" />,
+                    title: 'Analytics',
+                    path: 'analytics'
+                });
+            }
+        }
+        return tabs;
+    }, [form, t, isFormOpen]);
+
+    const handleBackClick = () => {
         router.push(`/${workspace?.workspaceName}/dashboard/forms`);
     };
+
+
+    if (pathname.endsWith("/edit")) {
+        return (
+            <>{children}</>
+        )
+    }
 
     if (!form?.formId) {
         return <></>;
@@ -127,13 +139,13 @@ export default function FormDashboardClient(props: any) {
 
     return (
         <Layout isCustomDomain={false} isClientDomain={false} showNavbar={true} hideMenu={false} showAuthAccount={true} className="flex w-full flex-col !bg-white !p-0">
-            <div className="my-2  w-full ">
+            <div className="my-2 w-full">
                 <div className="mt-6 flex flex-col gap-1 sm:mt-12">
-                    <FormPageLayer className=" px-4 md:px-10 lg:px-28 ">
+                    <FormPageLayer className="px-4 md:px-10 lg:px-28">
                         <div className="flex justify-between">
                             <div className="flex flex-row items-center gap-1 cursor-pointer" onClick={handleBackClick}>
-                                {isMobile && <ChevronForward className=" h-6 w-6 rotate-180 p-[2px] " />}
-                                {isMobile ? <h1 className="hp3-new">{form?.title}</h1> : <h1 className="h2-new text-pink ">{form?.title}</h1>}
+                                {isMobile && <ChevronForward className="h-6 w-6 rotate-180 p-[2px]" />}
+                                {isMobile ? <h1 className="hp3-new">{form?.title}</h1> : <h1 className="h2-new text-pink">{form?.title}</h1>}
                             </div>
                             <div className="hidden gap-4 lg:flex">
                                 {form?.settings?.provider === 'self' && form?.builderVersion === 'v2' && (
@@ -203,54 +215,35 @@ export default function FormDashboardClient(props: any) {
                             </div>
                         </div>
                         {!isMobile && (
-                            <div className="flex flex-row items-center gap-1">
+                            <div className="flex flex-row items-center gap-1 mb-4">
                                 <FormProviderIcon provider={form.settings?.provider === 'self' && form.importedFormId && form.settings.showOriginalForm ? 'google' : form?.settings?.provider} />
                             </div>
                         )}
                         <Divider className="mt-6 hidden md:flex" />
                     </FormPageLayer>
-                    <Divider className="mt-6 flex md:hidden" />
+                    <Divider className="py-6 flex md:hidden" />
 
-                    <ParamTab showInfo={true} className="md:px-10 lg:px-28" tabMenu={paramTabs}>
-                        <TabPanel className="focus:outline-none px-4 md:px-10 lg:px-28" key="Preview">
-                            <FormPreview />
-                        </TabPanel>
-                        <TabPanel className="focus:outline-none px-2 md:px-32" key="Settings">
-                            <FormSettings />
-                        </TabPanel>
-
-                        {form?.isPublished && form?.settings?.provider === 'self' && (
-                            <TabPanel className="focus:outline-none" key="Integrations">
-                                <FormIntegrations />
-                            </TabPanel>
-                        )}
-                        {form?.isPublished && (
-                            <TabPanel className="focus:outline-none" key="Responses">
-                                <FormResponses />
-                            </TabPanel>
-                        )}
-                        {form?.isPublished && (
-                            <TabPanel className="focus:outline-none" key="DeletionRequests">
-                                {/* @ts-ignore */}
-                                <FormResponsesTable props={{ workspace, requestForDeletion: true }} />
-                            </TabPanel>
-                        )}
-                        {form?.isPublished && (
-                            <TabPanel className="focus:outline-none px-2 md:px-32" key="FormVisibility">
-                                <FormVisibilities />
-                            </TabPanel>
-                        )}
-                        {form?.isPublished && isFormOpen && (
-                            <TabPanel className="focus:outline-none px-2 md:px-32" key="FormLinks">
-                                <FormLinks />
-                            </TabPanel>
-                        )}
-                        {form?.isPublished && isFormOpen && (
-                            <TabPanel className="focus:outline-none px-2 md:px-32" key="AnalyticsDashboard">
-                                <FormAnalyticsDashboard />
-                            </TabPanel>
-                        )}
-                    </ParamTab>
+                    <div className="md:px-10 lg:px-28 pt-4">
+                        <div className="flex space-x-1 border-b border-gray-200 overflow-x-auto">
+                            {tabMenu.map((tab) => {
+                                const isActive = pathname?.includes(`/${tab.path}`);
+                                return (
+                                    <Link key={tab.path} href={`/${params.workspace_name}/dashboard/forms/${params.form_id}/${tab.path}`} className={cn(
+                                        'flex items-center gap-2 px-4 py-2 text-sm font-medium cursor-pointer hover:bg-black-200 hover:rounded whitespace-nowrap',
+                                        isActive
+                                            ? 'border-b-2 border-black-900 text-black-900 bg-gray-100 rounded-t'
+                                            : 'text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                    )}>
+                                        {tab.icon}
+                                        {tab.title}
+                                    </Link>
+                                );
+                            })}
+                        </div>
+                    </div>
+                    <div className="w-full pt-5">
+                        {children}
+                    </div>
                 </div>
             </div>
         </Layout>

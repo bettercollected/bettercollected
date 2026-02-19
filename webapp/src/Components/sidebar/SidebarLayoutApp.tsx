@@ -144,7 +144,7 @@ export default function SidebarLayoutApp({ children, DrawerComponent = Dashboard
                                     </div>
                                 </PopoverContent>
                             </Popover>
-                            <LocaleDropdownUiApp />
+                            {/* <LocaleDropdownUiApp /> */}
                             <AuthAccountMenuDropdown hideMenu={false} isClientDomain={false} />
                         </div>
                     </div>

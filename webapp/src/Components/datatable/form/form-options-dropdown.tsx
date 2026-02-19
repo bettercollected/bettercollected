@@ -240,12 +240,13 @@ export default function FormOptionsDropdownMenu({ workspace, form, hasCustomDoma
 
     return (
         <Popover open={open} onOpenChange={setOpen}>
-            <PopoverTrigger asChild>
-                <div className={`${className} !text-black-900 cursor-pointer`} onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation()
-                }}>
-                    <EllipsisOption />
+            <PopoverTrigger asChild onClick={(e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                setOpen((open) => !open);
+            }}>
+                <div className={`${className} !text-black-900 cursor-pointer p-2 hover:bg-gray-100 rounded-md`}>
+                    <EllipsisOption className="w-4 h-4" />
                 </div>
             </PopoverTrigger>
             <PopoverContent

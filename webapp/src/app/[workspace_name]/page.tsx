@@ -1,17 +1,6 @@
-'use client';
+import { redirect } from 'next/navigation';
 
-import React from 'react';
-import { useAppSelector } from '@app/store/hooks';
-import { selectWorkspace } from '@app/store/workspaces/slice';
-import ResponderPortalContainer from '@Components/RespondersPortal/ResponderPortalContainer';
-
-export default function WorkspaceIndexPage() {
-    const workspace = useAppSelector(selectWorkspace);
-
-    return (
-        <ResponderPortalContainer
-            workspace={workspace}
-            hasCustomDomain={false}
-        />
-    );
+export default async function WorkspaceIndexPage({ params }: { params: Promise<{ workspace_name: string }> }) {
+    const { workspace_name } = await params;
+    redirect(`/${workspace_name}/forms`);
 }

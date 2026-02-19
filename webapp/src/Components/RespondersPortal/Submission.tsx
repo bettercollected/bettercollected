@@ -1,9 +1,10 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 
 import { useTranslation } from 'react-i18next';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams, usePathname } from 'next/navigation';
+import cn from 'classnames';
 
 import Divider from '@Components/Common/DataDisplay/Divider';
 import Tooltip from '@Components/Common/DataDisplay/Tooltip';
@@ -16,9 +17,7 @@ import { ChevronLeft } from '@mui/icons-material';
 
 import FormRenderer from '@app/Components/Form/renderer/form-renderer';
 import { useModal } from '@app/Components/modal-views/context';
-import { useFullScreenModal } from '@app/Components/modal-views/full-screen-modal-context';
 import FullScreenLoader from '@app/Components/ui/fullscreen-loader';
-import ParamTab, { TabPanel } from '@app/Components/ui/param-tab';
 import environments from '@app/configs/environments';
 import { buttonConstant } from '@app/constants/locales/button';
 import { localesCommon } from '@app/constants/locales/common';
@@ -36,6 +35,8 @@ export default function Submission({ hasCustomDomain, data, handleRequestForDele
     const { isLoading, isError } = data;
     const form: any = data ?? {};
     const router = useRouter();
+    const searchParams = useSearchParams();
+    const pathname = usePathname();
 
     const { t } = useTranslation();
     const { openModal, closeModal } = useModal();
@@ -73,6 +74,15 @@ export default function Submission({ hasCustomDomain, data, handleRequestForDele
         openModal('REQUEST_FOR_DELETION_VIEW', { handleRequestForDeletion: handleRequestForDeletion });
     };
 
+    const initialTab = searchParams?.get('view') || 'Form';
+    const activeTab = initialTab;
+
+    const handleTabChange = (path: string) => {
+         const newParams = new URLSearchParams(searchParams?.toString());
+         newParams.set('view', path);
+         router.push(`${pathname}?${newParams.toString()}`, { scroll: false });
+    };
+
     return (
         <Layout className="bg-white !px-0" showAuthAccount={false} isCustomDomain={hasCustomDomain} isClientDomain={!hasCustomDomain} showNavbar={true}>
             {isLoading || isError || !data ? (
@@ -96,42 +106,67 @@ export default function Submission({ hasCustomDomain, data, handleRequestForDele
                         </div>
                         <Divider className="mt-6" />
                     </div>
-                    <ParamTab showInfo={true} className="w-full px-5 md:px-10 lg:px-28" tabMenu={paramTabs}>
-                        <div className="mt-12 w-full">
-                            <TabPanel key="Form">
-                                <FormRenderer form={form.form} response={form.response} isDisabled />
-                            </TabPanel>
+                    
+                     <div className="w-full px-5 md:px-10 lg:px-28">
+                        <div className="flex space-x-1 border-b border-gray-200 overflow-x-auto pb-0">
+                            {paramTabs.map((tab) => {
+                                const isActive = activeTab === tab.path;
+                                return (
+                                    <button
+                                        key={tab.path}
+                                        onClick={() => handleTabChange(tab.path)}
+                                        className={cn(
+                                            'flex items-center gap-2 px-4 py-2 text-sm font-medium mb-[-1px] cursor-pointer hover:bg-black-200 hover:rounded whitespace-nowrap focus:outline-none',
+                                            isActive
+                                                ? 'border-b-2 border-black-900 text-black-900'
+                                                : 'text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                        )}
+                                    >
+                                        {tab.icon}
+                                        {tab.title}
+                                    </button>
+                                );
+                            })}
                         </div>
-                        <TabPanel key="Settings">
-                            <div className="flex flex-col gap-[72px] px-5 md:px-10 lg:px-28">
-                                <div className="flex flex-col gap-2">
-                                    <span className="h3-new">Settings</span>
-                                    <span className="p2-new text-black-700"> Review your data usage permissions</span>
+                        
+                        <div className="mt-4">
+                            {activeTab === 'Form' && (
+                                <div className="mt-12 w-full">
+                                    <FormRenderer form={form.form} response={form.response} isDisabled />
                                 </div>
-                                {form?.settings?.provider !== 'self' && (
-                                    <div className="flex max-w-[800px] flex-col gap-4">
-                                        <Divider />
-                                        <div className="h4-new">You can request for deletion of your data in this form.</div>
-                                        <Divider />
-                                    </div>
-                                )}
-                                {!form?.response?.deletionStatus ? (
-                                    <div>
-                                        <Tooltip title={deletionStatus ? t(toolTipConstant.alreadyRequestedForDeletion) : t(toolTipConstant.requestForDeletion)}>
-                                            <Button className={`w-fit`} variant="danger" onClick={handleRequestForDeletionModal}>
-                                                {t(buttonConstant.requestForDeletion)}
-                                            </Button>
-                                        </Tooltip>
-                                    </div>
-                                ) : (
+                            )}
+
+                            {activeTab === 'Settings' && (
+                                <div className="flex flex-col gap-[72px] px-5 md:px-10 lg:px-28">
                                     <div className="flex flex-col gap-2">
-                                        <span className="h4-new !text-red-500 ">You have requested for deletion of your response.</span>
-                                        <span>Status: Pending</span>
+                                        <span className="h3-new">Settings</span>
+                                        <span className="p2-new text-black-700"> Review your data usage permissions</span>
                                     </div>
-                                )}
-                            </div>
-                        </TabPanel>
-                    </ParamTab>
+                                    {form?.settings?.provider !== 'self' && (
+                                        <div className="flex max-w-[800px] flex-col gap-4">
+                                            <Divider />
+                                            <div className="h4-new">You can request for deletion of your data in this form.</div>
+                                            <Divider />
+                                        </div>
+                                    )}
+                                    {!form?.response?.deletionStatus ? (
+                                        <div>
+                                            <Tooltip title={deletionStatus ? t(toolTipConstant.alreadyRequestedForDeletion) : t(toolTipConstant.requestForDeletion)}>
+                                                <Button className={`w-fit`} variant="danger" onClick={handleRequestForDeletionModal}>
+                                                    {t(buttonConstant.requestForDeletion)}
+                                                </Button>
+                                            </Tooltip>
+                                        </div>
+                                    ) : (
+                                        <div className="flex flex-col gap-2">
+                                            <span className="h4-new !text-red-500 ">You have requested for deletion of your response.</span>
+                                            <span>Status: Pending</span>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    </div>
                 </div>
             )}
         </Layout>

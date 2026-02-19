@@ -1,14 +1,16 @@
 'use client';
 
+import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
+import cn from 'classnames';
 
 import Divider from '@Components/Common/DataDisplay/Divider';
 import { Button } from '@app/shadcn/components/ui/button';
 import { Disclosure } from '@headlessui/react';
 
 import AuthAccountProfileImage from '@app/Components/auth/account-profile-image';
-import FormsAndSubmissionsTabContainer from '@app/Components/forms-and-submisions-tabs/forms-and-submisisons-tab-container';
 import { ChevronDown } from '@app/Components/icons/chevron-down';
 import { Logout } from '@app/Components/icons/logout-icon';
 import { useModal } from '@app/Components/modal-views/context';
@@ -18,29 +20,61 @@ import PoweredBy from '@app/Components/ui/powered-by';
 import environments from '@app/configs/environments';
 import { profileMenu } from '@app/constants/locales/profile-menu';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
-import { selectAuth } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
+import { selectAuth } from '@app/store/auth/slice';
 import { getFullNameFromUser } from '@app/utils/userUtils';
-import WorkspaceDetailsCard from './WorkspaceDetailsCard';
+import { FormIcon } from '@Components/Common/Icons/Form/FormIcon';
+import { HistoryIcon } from '@app/Components/icons/history';
+import { TrashIcon } from '@app/Components/icons/trash';
+import { localesCommon } from '@app/constants/locales/common';
+import { formConstant } from '@app/constants/locales/form';
+import WorkspaceDetailsCard from '@Components/RespondersPortal/WorkspaceDetailsCard';
 
-export default function ResponderPortalContainer(props: { workspace: WorkspaceDto; hasCustomDomain: boolean }) {
-    const { workspace, hasCustomDomain } = props;
+export default function ResponderPortalLayoutClient({
+    children,
+    workspace,
+    hasCustomDomain
+}: {
+    children: React.ReactNode;
+    workspace: WorkspaceDto;
+    hasCustomDomain: boolean;
+}) {
     const { t } = useTranslation();
     const auth = useAppSelector(selectAuth);
-
-    const isClientDomain = window?.location?.origin !== environments.ADMIN_DOMAIN;
-
     const router = useRouter();
     const pathname = usePathname();
     const searchParams = useSearchParams();
-
     const { openModal } = useModal();
 
+    const isClientDomain = typeof window !== 'undefined' && window.location.origin !== environments.ADMIN_DOMAIN;
     const asPath = `${pathname}${searchParams?.toString() ? '?' + searchParams.toString() : ''}`;
 
     const handleLogout = () => {
         openModal('LOGOUT_VIEW', { workspace, isClientDomain });
     };
+
+    const tabs = [
+        {
+            icon: <FormIcon />,
+            title: t(localesCommon.forms),
+            path: 'forms'
+        },
+        {
+            icon: <HistoryIcon className="w-5 h-5" />,
+            title: t(formConstant.submittedForms),
+            path: 'my-submissions'
+        }
+    ];
+
+    if (auth.id) {
+        tabs.push({
+            icon: <TrashIcon className="w-5 h-5" />,
+            title: t(formConstant.deletionRequests),
+            path: 'deletion-requests'
+        });
+    }
+
+    const basePath = hasCustomDomain ? '' : `/${workspace.workspaceName}`;
 
     return (
         <div className={`!bg-new-white-200 max-w-screen flex h-screen max-h-screen w-screen flex-col overflow-auto p-5 opacity-100 md:flex-row md:p-10 ${!hasCustomDomain ? '!pb-20' : ''}`}>
@@ -121,8 +155,30 @@ export default function ResponderPortalContainer(props: { workspace: WorkspaceDt
                     </div>
                 )}
             </div>
-            <div className="flex-1">
-                <FormsAndSubmissionsTabContainer isFormCreator={false} workspace={workspace} workspaceId={workspace.id} showResponseBar={!!auth.id} />
+            <div className="flex-1 md:pl-12 !pb-4">
+                <div className="flex space-x-1 border-b border-gray-200 overflow-x-auto pb-0">
+                    {tabs.map((tab) => {
+                        const isActive = pathname.includes(tab.path) || (tab.path === 'forms' && (pathname === basePath || pathname === `${basePath}/`));
+                        return (
+                            <Link
+                                key={tab.path}
+                                href={`${basePath}/${tab.path}`}
+                                className={cn(
+                                    'flex items-center gap-2 px-4 py-2 text-sm font-medium mb-[-1px] cursor-pointer hover:bg-black-200 hover:rounded whitespace-nowrap focus:outline-none',
+                                    isActive
+                                        ? 'border-b-2 border-black-900 text-black-900'
+                                        : 'text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                )}
+                            >
+                                {tab.icon}
+                                {tab.title}
+                            </Link>
+                        );
+                    })}
+                </div>
+                <div className="mt-4">
+                    {children}
+                </div>
             </div>
             <div className="lg:hidden">
                 <PoweredBy />
@@ -130,3 +186,4 @@ export default function ResponderPortalContainer(props: { workspace: WorkspaceDt
         </div>
     );
 }
+

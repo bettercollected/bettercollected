@@ -8,6 +8,7 @@ import ActiveLink from '@app/Components/ui/links/active-link';
 import WorkspaceFormCard from '@app/Components/workspace-dashboard/workspace-form-card';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
+import { useRouter } from 'next/navigation';
 
 interface IWorkspaceDashboardFormsCardProps {
     workspaceForms: any;
@@ -20,6 +21,7 @@ interface IWorkspaceDashboardFormsCardProps {
 export default function WorkspaceDashboardFormsCard({ workspaceForms, workspace, hasCustomDomain, showPinned = false, showEmpty = false }: IWorkspaceDashboardFormsCardProps) {
     const forms = workspaceForms;
     const ref = React.useRef<HTMLDivElement>(null);
+    const router = useRouter()
 
     // @ts-ignore
     return (
@@ -40,9 +42,13 @@ export default function WorkspaceDashboardFormsCard({ workspaceForms, workspace,
                 <div className="flex flex-col gap-6">
                     {forms?.length !== 0 &&
                         forms?.map((form: StandardFormDto, index: number) => (
-                            <ActiveLink key={form.formId} href={`/${workspace.workspaceName}/dashboard/forms/${form.formId}`}>
+                            <div key={form.formId} onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                router.push(`/${workspace.workspaceName}/dashboard/forms/${form.formId}?view=Responses`)
+                            }}>
                                 <WorkspaceFormCard index={index} showPinned={showPinned} form={form} workspace={workspace} hasCustomDomain={hasCustomDomain} />
-                            </ActiveLink>
+                            </div>
                         ))}
                 </div>
             )}

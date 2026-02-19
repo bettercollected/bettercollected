@@ -6,7 +6,6 @@ import Netherland from '@app/Components/icons/flags/netherland';
 import USA from '@app/Components/icons/flags/usa';
 import { Popover, PopoverContent, PopoverTrigger } from '@app/shadcn/components/ui/popover';
 import cn from 'classnames';
-import { usePathname, useRouter } from 'next/navigation';
 import React, { useState } from 'react';
 
 export default function LocaleDropdownUiApp() {

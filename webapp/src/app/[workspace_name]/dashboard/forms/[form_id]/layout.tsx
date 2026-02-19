@@ -1,4 +1,6 @@
 import React, { Suspense } from 'react';
+import { notFound } from 'next/navigation';
+import FormDashboardLayoutClient from './_components/FormDashboardLayoutClient';
 
 import { FormDispatcher } from '@app/app/[workspace_name]/forms/[form_id]/_dispatcher/FormDispatcher';
 import environments from '@app/configs/environments';
@@ -34,25 +36,30 @@ export default async function Layout(
     } = props;
 
     return (
-        <FormWrapper workspaceName={params.workspace_name} formId={params.form_id}>
+        <FormWrapper workspaceName={params.workspace_name} formId={params.form_id} params={params}>
             {children}
         </FormWrapper>
     );
 }
 
-async function FormWrapper({ workspaceName, formId, children }: { workspaceName: string; formId: string; children: React.ReactNode }) {
+async function FormWrapper({ workspaceName, formId, children, params }: { workspaceName: string; formId: string; children: React.ReactNode; params: { workspace_name: string; form_id: string } }) {
     const config = {
         method: 'GET'
     };
 
     const workspaceResponse = await fetch(environments.INTERNAL_DOCKER_API_ENDPOINT_HOST + '/workspaces?workspace_name=' + workspaceName, { next: { revalidate: 300 } });
+    if (!workspaceResponse.ok) return notFound();
     const workspace = await workspaceResponse.json();
 
-    const form = await fetchWithCookies(environments.INTERNAL_DOCKER_API_ENDPOINT_HOST + '/workspaces/' + workspace.id + '/forms/' + formId, config);
+    const form = await fetchWithCookies(environments.INTERNAL_DOCKER_API_ENDPOINT_HOST + '/workspaces/' + workspace.id + '/forms/' + formId + '?published=true&draft=true', config); // Added query params to match page.tsx logic
+    
+    if (!form) return notFound();
 
     return (
         <Suspense fallback={<FullScreenLoader />}>
-            <FormDispatcher form={form}>{children}</FormDispatcher>
+                <FormDashboardLayoutClient form={form} params={params}>
+                    {children}
+                </FormDashboardLayoutClient>
         </Suspense>
     );
 }
