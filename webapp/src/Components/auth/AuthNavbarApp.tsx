@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { AppBar, IconButton, Toolbar } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
 import LogoApp from '@app/Components/ui/LogoApp';
-import AuthAccountMenuDropdownApp from '@app/Components/auth/AccountMenuDropdownApp';
+import AuthAccountMenuDropdown from '@app/Components/auth/account-menu-dropdown';
 
 export default function AuthNavbarApp({ handleDrawerToggle }: any) {
 
@@ -35,7 +35,7 @@ export default function AuthNavbarApp({ handleDrawerToggle }: any) {
                     <LogoApp isCustomDomain={false} isFooter={false} isClientDomain={false} />
                 </div>
                 <div className="flex items-center gap-4">
-                    <AuthAccountMenuDropdownApp hideMenu={false} isClientDomain={false} />
+                    <AuthAccountMenuDropdown hideMenu={false} isClientDomain={false} />
                 </div>
             </Toolbar>
         </AppBar>

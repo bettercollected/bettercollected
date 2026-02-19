@@ -13,8 +13,7 @@ import { useIsMobile } from '@app/lib/hooks/use-breakpoint';
 import { useIsMounted } from '@app/lib/hooks/use-is-mounted';
 import { useWindowScroll } from '@app/lib/hooks/use-window-scroll';
 
-import LocaleDropdownUi from '../ui/locale-dropdown-ui';
-import AuthAccountMenuDropdownApp from './AccountMenuDropdownApp';
+import LocaleDropdownUiApp from '@Components/ui/LocaleDropdownUiApp';
 
 
 interface IAuthNavbarProps {
@@ -64,7 +63,7 @@ function AuthNavbar({ showHamburgerIcon, showPlans, mobileOpen, handleDrawerTogg
                 <div className="flex items-center justify-center gap-7">
                     {!inMobile && (
                         <>
-                            <LocaleDropdownUi />
+                            <LocaleDropdownUiApp />
                             {showPlans && (
                                 <ProPlanHoc hideChildrenIfPro={true}>
                                     <Button>{t(buttonConstant.upgrade)}</Button>
@@ -72,7 +71,7 @@ function AuthNavbar({ showHamburgerIcon, showPlans, mobileOpen, handleDrawerTogg
                             )}
                         </>
                     )}
-                    {showAuthAccount && <AuthAccountMenuDropdownApp hideMenu={hideMenu} isClientDomain={isClientDomain} />}
+                    {showAuthAccount && <AuthAccountMenuDropdown hideMenu={hideMenu} isClientDomain={isClientDomain} />}
                 </div>
             </div>
         </Header>

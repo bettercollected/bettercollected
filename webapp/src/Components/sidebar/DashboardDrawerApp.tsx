@@ -11,7 +11,6 @@ import { useFullScreenModal } from '@app/Components/modal-views/full-screen-moda
 import MuiDrawer from '@app/Components/sidebar/mui-drawer';
 import NavigationListApp from '@app/Components/sidebar/NavigationListApp';
 import LogoApp from '@app/Components/ui/LogoApp';
-import WorkspaceMenuDropdownApp from '@app/Components/Workspace/WorkspaceMenuDropdownApp';
 import { pricingPlan } from '@app/constants/locales/pricingplan';
 import { toolTipConstant } from '@app/constants/locales/tooltip';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';

@@ -1,62 +1,47 @@
 import React, { useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
+import { MoreHorizontal } from 'lucide-react';
 
 import Delete from '@Components/Common/Icons/Common/Delete';
-import MenuDropdown from '@Components/Common/Navigation/MenuDropdown/MenuDropdown';
-import { MoreHoriz } from '@mui/icons-material';
-import { MenuItem } from '@mui/material';
+import { Popover, PopoverContent, PopoverTrigger } from '@app/shadcn/components/ui/popover';
 
 import { localesCommon } from '@app/constants/locales/common';
-import { toolTipConstant } from '@app/constants/locales/tooltip';
 
 
 export default function DeleteDropDown({ onDropDownItemClick, className, label }: { onDropDownItemClick: (event?: any) => void; className?: string; label?: string }) {
     const { t } = useTranslation();
 
-    const [open, setOpen] = useState(true);
+    const [open, setOpen] = useState(false);
     return (
-        <MenuDropdown
-            showExpandMore={false}
-            width={200}
-            className={className}
-            onClick={(event: any) => {
-                event.stopPropagation();
-                event.preventDefault();
-            }}
-            PaperProps={{
-                elevation: 0,
-                sx: {
-                    width: 200,
-                    overflow: 'hidden',
-                    borderRadius: 2,
-                    filter: 'drop-shadow(0px 0px 15px rgba(0, 0, 0, 0.15))',
-                    mt: 0.5,
-                    padding: 0
-                }
-            }}
-            open={open}
-            id="language-menu"
-            menuTitle={t(toolTipConstant.Options)}
-            menuContent={
-                <MoreHoriz
-                    onClick={(event) => {
-                        setOpen(true);
+        <Popover open={open} onOpenChange={setOpen}>
+            <PopoverTrigger asChild>
+                <div
+                    className={`${className} cursor-pointer`}
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        e.preventDefault();
                     }}
-                />
-            }
-            closeOnClick
-        >
-            <MenuItem
-                className="body4 flex gap-4"
-                onClick={(event) => {
-                    setOpen(false);
-                    onDropDownItemClick(event);
-                }}
+                >
+                    <MoreHorizontal className="text-black-600 w-5 h-5" />
+                </div>
+            </PopoverTrigger>
+            <PopoverContent
+                className="w-[200px] p-0 rounded-lg drop-shadow-xl"
+                align="end"
+                onClick={() => setOpen(false)}
             >
-                <Delete width={20} height={20} />
-                {label ?? t(localesCommon.remove)}
-            </MenuItem>
-        </MenuDropdown>
+                <div
+                    className="flex items-center gap-4 px-4 py-3 hover:bg-black-100 cursor-pointer text-sm"
+                    onClick={(event) => {
+                        event.stopPropagation();
+                        onDropDownItemClick(event);
+                    }}
+                >
+                    <Delete width={20} height={20} />
+                    {label ?? t(localesCommon.remove)}
+                </div>
+            </PopoverContent>
+        </Popover>
     );
 }

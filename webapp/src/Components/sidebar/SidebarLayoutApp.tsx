@@ -13,7 +13,7 @@ import { Box } from '@mui/material';
 import cn from 'classnames';
 import { AnimatePresence, motion } from 'framer-motion';
 
-import AuthAccountMenuDropdownApp from '@app/Components/auth/AccountMenuDropdownApp';
+import AuthAccountMenuDropdown from '@app/Components/auth/account-menu-dropdown';
 import AuthNavbarApp from '@app/Components/auth/AuthNavbarApp';
 import Globe from '@app/Components/icons/flags/globe';
 import { TemplateIcon } from '@app/Components/icons/template';
@@ -145,7 +145,7 @@ export default function SidebarLayoutApp({ children, DrawerComponent = Dashboard
                                 </PopoverContent>
                             </Popover>
                             <LocaleDropdownUiApp />
-                            <AuthAccountMenuDropdownApp hideMenu={false} isClientDomain={false} />
+                            <AuthAccountMenuDropdown hideMenu={false} isClientDomain={false} />
                         </div>
                     </div>
 

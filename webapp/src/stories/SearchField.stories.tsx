@@ -1,7 +1,5 @@
-import type {Meta, StoryObj} from '@storybook/react';
-import MenuDropdown from "@Components/Common/Navigation/MenuDropdown/MenuDropdown";
-import React from "react";
 import SearchInput from "@Components/Common/Search/SearchInput";
+import type { Meta, StoryObj } from '@storybook/react';
 
 const meta: Meta<typeof SearchInput> = {
     title: 'Common/SearchField',

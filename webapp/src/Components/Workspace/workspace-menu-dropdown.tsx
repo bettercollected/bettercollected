@@ -1,12 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/navigation';
 
 import Divider from '@Components/Common/DataDisplay/Divider';
 import Tooltip from '@Components/Common/DataDisplay/Tooltip';
-import MenuDropdown from '@Components/Common/Navigation/MenuDropdown/MenuDropdown';
-import { IconButton, ListItem, Typography } from '@mui/material';
 
 import AuthAccountProfileImage from '@app/Components/auth/account-profile-image';
 import { Check } from '@app/Components/icons/check';
@@ -17,6 +15,7 @@ import environments from '@app/configs/environments';
 import dashboardConstants from '@app/constants/locales/dashboard';
 import { menuDropdown } from '@app/constants/locales/menu-dropdown';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
+import { Popover, PopoverContent, PopoverTrigger } from '@app/shadcn/components/ui/popover';
 import { selectAuthStatus } from '@app/store/auth/selectors';
 import { selectAuth, selectIsProPlan } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
@@ -24,6 +23,8 @@ import { useGetAllMineWorkspacesQuery } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { generateRandomBgColor } from '@app/utils/backgroundColors';
 import { toEndDottedStr, trimTooltipTitle } from '@app/utils/stringUtils';
+import Chevron from '@Components/Common/Icons/Common/Chevron';
+
 
 interface IWorkspaceMenuDropdownProps {
     fullWidth?: boolean;
@@ -33,16 +34,20 @@ WorkspaceMenuDropdown.defaultProps = {
     fullWidth: false
 };
 
-function WorkspaceMenuDropdown({ fullWidth }: IWorkspaceMenuDropdownProps) {
+export default function WorkspaceMenuDropdown({ fullWidth }: IWorkspaceMenuDropdownProps) {
     const workspace = useAppSelector(selectWorkspace);
     const { data, isLoading } = useGetAllMineWorkspacesQuery();
     const router = useRouter();
     const isProPlan = useAppSelector(selectIsProPlan);
     const { openModal } = useFullScreenModal();
+    const [open, setOpen] = useState(false);
 
     const { t } = useTranslation();
     const handleChangeWorkspace = (space: WorkspaceDto) => {
-        if (!space?.disabled) router.push(`/${space.workspaceName}/dashboard/forms`);
+        if (!space?.disabled) {
+            router.push(`/${space.workspaceName}/dashboard/forms`);
+            setOpen(false);
+        }
     };
     const auth = useAppSelector(selectAuthStatus);
     const user = useAppSelector(selectAuth);
@@ -84,46 +89,55 @@ function WorkspaceMenuDropdown({ fullWidth }: IWorkspaceMenuDropdownProps) {
     };
 
     return (
-        <MenuDropdown
-            id="workspace-menu"
-            menuTitle={trimTooltipTitle(fullWorkspaceName)}
-            fullWidth={fullWidth}
-            className={`hover:!bg-black-100 !rounded-lg ${showExpandMore ? 'pr-4' : ''}`}
-            showExpandMore={showExpandMore}
-            width={320}
-            menuContent={
-                <div className="flex w-[200px] items-center gap-2 px-3 py-1">
-                    <AuthAccountProfileImage size={40} image={workspace?.profileImage} name={workspace?.title || 'Untitled'} variant="circular" />
-                    <div className="flex w-full flex-col items-start truncate">
-                        <Typography className="body3 truncate">{toEndDottedStr(workspace?.title || 'Untitled', 14)}</Typography>
-
-                        <p className="text-black-700 text-[12px] leading-none">{getWorkspaceRole(workspace)}</p>
+        <Popover open={open} onOpenChange={setOpen}>
+            <PopoverTrigger asChild>
+                <div
+                    className={`${fullWidth ? 'w-full' : 'w-fit'} flex cursor-pointer items-center justify-between overflow-hidden rounded-lg pr-4 hover:bg-black-100 ${open ? 'bg-black-100' : ''
+                        }`}
+                >
+                    <div className="flex w-[200px] items-center gap-2 px-3 py-1">
+                        <AuthAccountProfileImage size={40} image={workspace?.profileImage} name={workspace?.title || 'Untitled'} variant="circular" />
+                        <div className="flex w-full flex-col items-start truncate">
+                            <span className="body3 truncate">{toEndDottedStr(workspace?.title || 'Untitled', 14)}</span>
+                            <p className="text-black-700 text-[12px] leading-none">{getWorkspaceRole(workspace)}</p>
+                        </div>
                     </div>
+                    {showExpandMore && (
+                        <div className={`${open ? '!rotate-180' : '!-rotate-0'} transition-all duration-300`}>
+                            <Chevron />
+                        </div>
+                    )}
                 </div>
-            }
-        >
-            {isLoading ? (
-                <ListItem disablePadding className="flex items-center justify-center px-5 py-3" alignItems="center">
-                    <Loader />
-                </ListItem>
-            ) : !!data && Array.isArray(data) ? (
-                data.map((space: WorkspaceDto) => {
-                    const color = generateRandomBgColor();
-                    return (
-                        <ListItem key={space.id} disablePadding alignItems="flex-start">
-                            <IconButton
-                                className={`hover:bg-black-100 rounded px-5 py-3 hover:rounded-none ${space?.disabled && 'cursor-not-allowed'} ${fullWidth ? 'flex w-full justify-between' : 'w-fit'}`}
-                                onClick={() => handleChangeWorkspace(space)}
-                                size="small"
-                            >
-                                <div className="flex w-full items-center justify-between gap-4">
+            </PopoverTrigger>
+            <PopoverContent
+                className="w-[320px] p-0 overflow-hidden z-[999999] bg-white"
+                align="start"
+                onClick={() => setOpen(false)}
+                onInteractOutside={() => setOpen(false)}
+            >
+                <div className="max-h-[300px] overflow-auto">
+                    {isLoading ? (
+                        <div className="flex items-center justify-center px-5 py-3">
+                            <Loader />
+                        </div>
+                    ) : !!data && Array.isArray(data) ? (
+                        data.map((space: WorkspaceDto) => {
+                            const color = generateRandomBgColor();
+                            return (
+                                <div
+                                    key={space.id}
+                                    className={`flex items-center justify-between gap-4 px-5 py-3 hover:bg-black-100 cursor-pointer ${space?.disabled && 'cursor-not-allowed'}`}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleChangeWorkspace(space);
+                                    }}
+                                >
                                     <div className="flex items-center gap-3">
                                         <AuthAccountProfileImage
                                             size={40}
                                             image={space?.profileImage}
                                             name={space?.title || 'Untitled'}
                                             className={color}
-                                        // style={{ background: `${color} !important` }}
                                         />
                                         <div className="flex w-full flex-col items-start">
                                             <Tooltip title={trimTooltipTitle(space?.title)}>
@@ -134,14 +148,16 @@ function WorkspaceMenuDropdown({ fullWidth }: IWorkspaceMenuDropdownProps) {
                                     </div>
                                     {workspace.id === space.id && <Check color="#0764EB" />}
                                 </div>
-                            </IconButton>
-                        </ListItem>
-                    );
-                })
-            ) : (
-                <ListItem disablePadding alignItems="center">
-                    <IconButton className={`hover:bg-black-100 rounded px-5 py-3 ${fullWidth ? 'flex w-full justify-between' : 'w-fit'}`} onClick={() => handleChangeWorkspace(workspace)} size="small">
-                        <div className="flex w-full items-center justify-between gap-4">
+                            );
+                        })
+                    ) : (
+                        <div
+                            className="flex items-center justify-between gap-4 px-5 py-3 hover:bg-black-100 cursor-pointer"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                handleChangeWorkspace(workspace);
+                            }}
+                        >
                             <div className="flex items-center gap-3">
                                 <AuthAccountProfileImage size={40} image={workspace?.profileImage} name={workspaceName} />
                                 <div className="flex w-full flex-col items-start">
@@ -153,34 +169,31 @@ function WorkspaceMenuDropdown({ fullWidth }: IWorkspaceMenuDropdownProps) {
                             </div>
                             <Check color="#0764EB" />
                         </div>
-                    </IconButton>
-                </ListItem>
-            )}
-            {!isLoading && (
-                <div>
-                    <Divider className="my-2" />
-                    <div>
-                        <ListItem onClick={redirectToUpgradeIfNotProPlan} disablePadding alignItems="center" className={``}>
-                            <IconButton
-                                data-umami-event={'Create New Workspace Button'}
-                                data-umami-event-email={user.email}
-                                className={`hover:bg-black-100 rounded px-5 py-3 ${fullWidth ? 'flex w-full justify-between' : 'w-fit'} ${!enableCreateWorkspaceButton() && isProPlan ? '!text-black-500 cursor-not-allowed' : '!text-black-800'}`}
-                                onClick={handleCreateWorkspace}
-                                size="small"
-                            >
-                                <span className="flex w-full items-center justify-between gap-4">
-                                    <div className="flex items-center gap-3">
-                                        <Plus />
-                                        <p className={`body3 !not-italic  `}>{t(menuDropdown.createWorkspace)}</p>
-                                    </div>
-                                </span>
-                            </IconButton>
-                        </ListItem>
-                    </div>
+                    )}
                 </div>
-            )}
-        </MenuDropdown>
+                {!isLoading && (
+                    <div>
+                        <Divider className="my-2" />
+                        <div
+                            className={`flex items-center justify-between gap-4 px-5 py-3 hover:bg-black-100 cursor-pointer ${!enableCreateWorkspaceButton() && isProPlan ? '!text-black-500 cursor-not-allowed' : '!text-black-800'
+                                }`}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                redirectToUpgradeIfNotProPlan();
+                                handleCreateWorkspace();
+                                setOpen(false);
+                            }}
+                            data-umami-event={'Create New Workspace Button'}
+                            data-umami-event-email={user.email}
+                        >
+                            <div className="flex items-center gap-3">
+                                <Plus />
+                                <p className={`body3 !not-italic`}>{t(menuDropdown.createWorkspace)}</p>
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </PopoverContent>
+        </Popover>
     );
 }
-
-export default React.memo(WorkspaceMenuDropdown);

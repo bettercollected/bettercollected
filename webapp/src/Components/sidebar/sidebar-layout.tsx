@@ -18,7 +18,6 @@ import AuthNavbar from '@app/Components/auth/navbar';
 import Globe from '@app/Components/icons/flags/globe';
 import { TemplateIcon } from '@app/Components/icons/template';
 import DashboardDrawer from '@app/Components/sidebar/dashboard-drawer';
-import LocaleDropdownUi from '@app/Components/ui/locale-dropdown-ui';
 import { localesCommon } from '@app/constants/locales/common';
 import { formConstant } from '@app/constants/locales/form';
 import { members } from '@app/constants/locales/members';
@@ -33,6 +32,7 @@ import HelpMenuComponent from './HelpMenuComponent';
 import HelpMenuItem from './HelpMenuItem';
 import { ProLogo } from '../ui/logo';
 import { useFullScreenModal } from '../modal-views/full-screen-modal-context';
+import LocaleDropdownUiApp from '@Components/ui/LocaleDropdownUiApp';
 
 interface ISidebarLayout {
     children: any;
@@ -145,7 +145,7 @@ export default function SidebarLayout({ children, DrawerComponent = DashboardDra
                                         </div>
                                     </PopoverContent>
                                 </Popover>
-                                <LocaleDropdownUi />
+                                <LocaleDropdownUiApp />
                                 <AuthAccountMenuDropdown hideMenu={false} isClientDomain={false} />
                             </div>
                         </div>
