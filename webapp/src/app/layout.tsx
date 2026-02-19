@@ -3,13 +3,8 @@ import React from 'react';
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 
-import 'nprogress/nprogress.css';
-import 'swiper/css';
-import 'swiper/css/navigation';
-import 'vanilla-cookieconsent/dist/cookieconsent.css';
-
-import BaseModalContainer from '@Components/Modals/Containers/BaseModalContainer';
 import '@app/assets/css/globals.css';
+import BaseModalContainer from '@Components/Modals/Containers/BaseModalContainer';
 import environments from '@app/configs/environments';
 import { DialogModalContainer } from '@app/lib/hooks/useDialogModal';
 import { SecondaryDialogModalContainer } from '@app/lib/hooks/useSecondaryDialogModal';
