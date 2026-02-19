@@ -5,6 +5,7 @@ import { notFound, redirect } from 'next/navigation';
 import Alert from '@mui/material/Alert';
 import ServerSideWorkspaceDispatcher from '@Components/HOCs/ServerSideWorkspaceDispatcher';
 import ResponderPortalLayoutClient from '@Components/RespondersPortal/_components/ResponderPortalLayoutClient';
+import { WorkspaceDispatcher } from '../_dispatcher/WorkspaceDispatcher';
 
 async function getWorkspaceByDomain(domain: string) {
     try {
@@ -45,10 +46,10 @@ export default async function CustomDomainLayout({ children }: { children: React
     }
 
     return (
-        <ServerSideWorkspaceDispatcher workspace={workspace}>
+        <WorkspaceDispatcher workspace={workspace}>
             <ResponderPortalLayoutClient workspace={workspace} hasCustomDomain={true}>
                 {children}
             </ResponderPortalLayoutClient>
-        </ServerSideWorkspaceDispatcher>
+        </WorkspaceDispatcher>
     );
 }
