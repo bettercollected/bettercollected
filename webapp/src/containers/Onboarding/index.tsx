@@ -1,20 +1,19 @@
 'use client';
 
-import React, { FormEvent, useState } from 'react';
+import { FormEvent, useState } from 'react';
 
-import { useTranslation } from 'react-i18next';
 import { useRouter } from 'next/navigation';
+import { useTranslation } from 'react-i18next';
 
 import AppTextField from '@Components/Common/Input/AppTextField';
 import UploadLogo from '@Components/Common/UploadLogo';
-import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { Button } from '@app/shadcn/components/ui/button';
+import { useToast } from '@app/shadcn/components/ui/use-toast';
 
 import AuthNavbar from '@app/Components/auth/navbar';
 import TextFieldHandler from '@app/Components/onboarding/TextFieldHandler';
 import { onBoarding } from '@app/constants/locales/onboarding-screen';
 import { toastMessage } from '@app/constants/locales/toast-message';
-import { ToastId } from '@app/constants/toastId';
 import { UserStatus } from '@app/models/dtos/UserStatus';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { selectAuth } from '@app/store/auth/slice';

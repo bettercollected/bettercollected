@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react';
 
 import { useModal } from '@app/Components/modal-views/context';
+import FloatingPopOverButton from '@app/Components/sidebar/FloatingPopOverButton';
+import HelpMenuComponent from '@app/Components/sidebar/HelpMenuComponent';
+import HelpMenuItem from '@app/Components/sidebar/HelpMenuItem';
 import environments from '@app/configs/environments';
 import { formConstant } from '@app/constants/locales/form';
 import { useIsMobile } from '@app/lib/hooks/use-breakpoint';
@@ -10,7 +13,7 @@ import { Skeleton } from '@app/shadcn/components/ui/skeleton';
 import { cn } from '@app/shadcn/util/lib';
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
-import { useResponderState } from '@app/store/jotai/responderFormState';
+import { useAuthAtom } from '@app/store/jotai/auth';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import getFormShareURL from '@app/utils/formUtils';
 import { DesktopIcon } from '@app/views/atoms/Icons/DesktopIcon';
@@ -18,10 +21,6 @@ import { MobileIcon } from '@app/views/atoms/Icons/MobileIcon';
 import ShareIcon from '@app/views/atoms/Icons/ShareIcon';
 import { useTranslation } from 'next-i18next';
 import PublishButton from './PublishButton';
-import { useAuthAtom } from '@app/store/jotai/auth';
-import FloatingPopOverButton from '@app/Components/sidebar/FloatingPopOverButton';
-import HelpMenuItem from '@app/Components/sidebar/HelpMenuItem';
-import HelpMenuComponent from '@app/Components/sidebar/HelpMenuComponent';
 
 const PreviewWrapper = ({ children, handleResetResponderState }: { children: React.ReactNode; handleResetResponderState: () => void }) => {
     const [key, setKey] = useState(1);
@@ -32,7 +31,6 @@ const PreviewWrapper = ({ children, handleResetResponderState }: { children: Rea
     const workspace = useAppSelector(selectWorkspace);
     const isMobile = useIsMobile();
     const { openModal } = useModal();
-    const { setResponderState, responderState } = useResponderState();
     const { authState } = useAuthAtom();
 
     useEffect(() => {
@@ -95,18 +93,6 @@ const PreviewWrapper = ({ children, handleResetResponderState }: { children: Rea
             <div className=" h-full drop-shadow-xl lg:mx-10 lg:py-10 lg:pb-24 ">
                 {isDesktopView ? (
                     <div className={`flex aspect-video max-w-full flex-col gap-2 lg:mx-auto lg:!max-h-full ${isMobile ? 'h-preview-page' : 'h-screen'}`}>
-                        {/* <div className="flex justify-center gap-4">
-                            {standardForm.fields.map((_, index: number) => (
-                                <span
-                                    key={index}
-                                    onClick={() => setResponderState({ ...responderState, currentSlide: index, currentField: 0 })}
-                                    className="cursor-pointer rounded px-4 py-1 text-white active:brightness-90"
-                                    style={{ background: standardForm.theme?.secondary }}
-                                >
-                                    {index + 1}
-                                </span>
-                            ))}
-                        </div> */}
                         {children}
                     </div>
                 ) : (

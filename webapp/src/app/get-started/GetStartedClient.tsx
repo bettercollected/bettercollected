@@ -47,7 +47,7 @@ interface IGetStartedStep {
     additionalComponent?: React.ReactNode;
 }
 
-export default function GetStartedClient({ locale }: { locale: string }) {
+export default function GetStartedClient() {
     const router = useRouter();
     const [activeStep, setActiveStep] = React.useState(0);
     const [stepAnswers, setStepAnswers] = React.useState({});

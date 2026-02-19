@@ -16,7 +16,7 @@ export default function NewFormButton() {
             className="min-w-[115px]"
             size="medium"
             onClick={async () => {
-                router.push(`${environments.HTTP_SCHEME}${environments.DASHBOARD_DOMAIN}/${workspace?.workspaceName}/dashboard/form/create`);
+                router.push(`${environments.HTTP_SCHEME}${environments.DASHBOARD_DOMAIN}/${workspace?.workspaceName}/dashboard/forms/create`);
             }}
         >
             New Form

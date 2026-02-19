@@ -4,7 +4,7 @@ import environments from '@app/configs/environments';
 import { notFound, redirect } from 'next/navigation';
 import Alert from '@mui/material/Alert';
 import ServerSideWorkspaceDispatcher from '@Components/HOCs/ServerSideWorkspaceDispatcher';
-import ResponderPortalLayoutClient from '../[workspace_name]/(portal)/_components/ResponderPortalLayoutClient';
+import ResponderPortalLayoutClient from '@Components/RespondersPortal/_components/ResponderPortalLayoutClient';
 
 async function getWorkspaceByDomain(domain: string) {
     try {

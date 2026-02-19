@@ -15,7 +15,7 @@ import { useCopyToClipboard } from '@app/lib/hooks/use-copy-to-clipboard';
 import { selectAuth, selectIsAdmin, selectIsProPlan } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
-import { CustomDomainCard } from '@app/app/[workspace_name]/dashboard/custom-domain/page';
+import { CustomDomainCard } from '@app/app/(admin-portal)/(side-top-nav-layout)/[workspace_name]/dashboard/custom-domain/page';
 
 export default function ManageURLs() {
     const { t } = useTranslation();

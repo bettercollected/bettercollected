@@ -46,12 +46,9 @@ export default async function GetStartedPage() {
 
     const isCustomDomain = host !== environments.ADMIN_DOMAIN && host !== environments.CLIENT_DOMAIN;
 
-    // Translation locale (defaulting to en for now as per other App Router components)
-    // In a full implementation, this might come from middleware/params
-    const locale = '';
 
     if (isCustomDomain) {
-        redirect(`/${locale}`);
+        redirect(`/`);
     }
 
     const user = await getAuthStatus(cookieStore);
@@ -62,12 +59,12 @@ export default async function GetStartedPage() {
             const defaultWorkspace = userWorkspaces.find((ws: WorkspaceDto) => ws.ownerId === user.id) || userWorkspaces[0];
 
             if (!defaultWorkspace?.title || defaultWorkspace.title.toLowerCase() === 'untitled') {
-                redirect(`/${locale}${defaultWorkspace.workspaceName}/onboarding`);
+                redirect(`/${defaultWorkspace.workspaceName}/onboarding`);
             } else {
-                redirect(`/${locale}${defaultWorkspace.workspaceName}/dashboard`);
+                redirect(`/${defaultWorkspace.workspaceName}/dashboard`);
             }
         }
     }
 
-    return <GetStartedClient locale={locale} />;
+    return <GetStartedClient  />;
 }
