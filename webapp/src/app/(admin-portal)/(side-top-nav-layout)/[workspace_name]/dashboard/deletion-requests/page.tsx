@@ -37,11 +37,13 @@ export default function DeletionRequests() {
     // Update query when workspaceId or page changes
     useEffect(() => {
         if (workspaceId) {
-            setQuery((prev) => ({
-                ...prev,
-                workspaceId: workspaceId,
-                page: page
-            }));
+            setTimeout(() => {
+                setQuery((prev) => ({
+                    ...prev,
+                    workspaceId: workspaceId,
+                    page: page
+                }));
+            }, 0);
         }
     }, [workspaceId, page]);
 

@@ -2,7 +2,6 @@
 import React from 'react';
 
 import { useTranslation } from 'next-i18next';
-import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 
 import StyledPagination from '@Components/Common/Pagination';
 import { Typography } from '@mui/material';
@@ -49,10 +48,13 @@ interface IResponsetableProps {
     setPage: (page: number) => void;
 }
 
+import { useFullScreenModal } from '@app/Components/modal-views/full-screen-modal-context';
+import { useLazyGetWorkspaceSubmissionQuery } from '@app/store/workspaces/api';
+import { getFormFields } from '@app/utils/formBuilderBlockUtils';
+
 const ResponsesTable = ({ requestForDeletion, submissions, formId, page, setPage }: IResponsetableProps) => {
-    const router = useRouter();
-    const pathname = usePathname();
-    const searchParams = useSearchParams();
+    const { openModal } = useFullScreenModal();
+    const [triggerSingleResponse] = useLazyGetWorkspaceSubmissionQuery();
 
     const user = useAppSelector(selectAuth);
     const workspace = useAppSelector(selectWorkspace);
@@ -64,9 +66,12 @@ const ResponsesTable = ({ requestForDeletion, submissions, formId, page, setPage
     const { t } = useTranslation();
     const onRowClicked = (response: StandardFormResponseDto) => {
         if (!requestForDeletion) {
-            const params = new URLSearchParams(searchParams?.toString() || '');
-            params.set('sub_id', response.responseId);
-            router.push(`${pathname}?${params.toString()}`, { scroll: true });
+            triggerSingleResponse({
+                workspace_id: workspace?.id ?? '',
+                submission_id: response.responseId
+            }).then((result: any) => {
+                openModal('VIEW_RESPONSE', { response: result.data.response, formFields: getFormFields(result.data.form), formId: result.data.form.formId, workspaceId: workspace.id });
+            });
         }
     };
     const responseDataOwnerField = (response: StandardFormResponseDto) => (
@@ -107,7 +112,34 @@ const ResponsesTable = ({ requestForDeletion, submissions, formId, page, setPage
     };
 
     const GoToResponse = ({ status, response }: { status: string; response: StandardFormResponseDto }) => {
-        return status.toLowerCase() === 'pending' && (response.provider === 'self' || response.formImportedBy === user.id) ? (
+        const isSelf = response.provider === 'self' || response.formImportedBy === user.id;
+
+        if (status.toLowerCase() !== 'pending' || !isSelf) return <></>;
+
+        if (requestForDeletion && response.provider === 'self') {
+            return (
+                <Typography noWrap>
+                    <div
+                        className="cursor-pointer inline-flex"
+                        onClick={() => {
+                            triggerSingleResponse({
+                                workspace_id: workspace?.id ?? '',
+                                submission_id: response.responseId
+                            }).then((result: any) => {
+                                openModal('VIEW_RESPONSE', { response: result.data.response, formFields: getFormFields(result.data.form), formId: result.data.form.formId, workspaceId: workspace.id });
+                            });
+                        }}
+                    >
+                        <Button variant="ghost" className="!p-0">
+                            {t(localesCommon.goToResponse)}
+                            <ChevronForward className={'text-brand-500 h-6 w-6 ml-2'} />
+                        </Button>
+                    </div>
+                </Typography>
+            );
+        }
+
+        return (
             <Typography noWrap>
                 <AnchorLink target={response.provider !== 'self' ? '_blank' : '_self'} href={getResponseUrl(response)}>
                     <Button variant="ghost" className="!p-0">
@@ -116,8 +148,6 @@ const ResponsesTable = ({ requestForDeletion, submissions, formId, page, setPage
                     </Button>
                 </AnchorLink>
             </Typography>
-        ) : (
-            <></>
         );
     };
 

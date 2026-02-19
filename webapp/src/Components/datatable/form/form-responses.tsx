@@ -1,11 +1,9 @@
 import { useEffect, useState } from 'react';
 
-import { useTranslation } from 'next-i18next';
 
 import SearchInput from '@Components/Common/Search/SearchInput';
 import TabularResponses from '@Components/Form/TabularResponses';
 
-import { useModal } from '@app/Components/modal-views/context';
 import Loader from '@app/Components/ui/loader';
 import environments from '@app/configs/environments';
 import globalConstants from '@app/constants/global';
@@ -18,15 +16,13 @@ import EmptyResponseIcon from '@app/views/atoms/Icons/EmptyResponseIcon';
 import { DownloadIcon } from 'lucide-react';
 import ResponsesTable from '../responses';
 //@ts-ignore
-import { CSVLink } from 'react-csv';
 import { StandardFormResponseDto } from '@app/models/dtos/form';
-import { getAnswerForField, getFormFields, getTitleForHeader } from '@app/utils/formBuilderBlockUtils';
 import { selectAuth } from '@app/store/auth/slice';
+import { getAnswerForField, getFormFields, getTitleForHeader } from '@app/utils/formBuilderBlockUtils';
+import { CSVLink } from 'react-csv';
 
 export default function FormResponsesTable({ props }: any) {
-    const { t } = useTranslation();
     const form = useAppSelector(selectForm);
-    const { openModal } = useModal();
     const auth = useAppSelector(selectAuth);
 
     const { workspace, requestForDeletion, isSubmission = false } = props;
@@ -38,9 +34,10 @@ export default function FormResponsesTable({ props }: any) {
         page: page,
         size: globalConstants.pageSize
     });
-
     useEffect(() => {
-        setQuery({ ...query, page });
+        setTimeout(() => {
+            setQuery({ ...query, page });
+        }, 0);
     }, [page]);
 
     const { data, isLoading } = useGetFormsSubmissionsQuery(query);
@@ -88,7 +85,9 @@ export default function FormResponsesTable({ props }: any) {
     useEffect(() => {
         if (csvDatas.length > 0) {
             document.getElementById('csv_link')?.click();
-            setCsvDatas([]);
+            setTimeout(() => {
+                setCsvDatas([]);
+            }, 0);
         }
     }, [csvDatas]);
 
