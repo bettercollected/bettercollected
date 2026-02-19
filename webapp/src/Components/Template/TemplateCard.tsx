@@ -8,7 +8,7 @@ import EditIcon from '@Components/Common/Icons/Common/Edit';
 import EllipsisOption from '@Components/Common/Icons/Common/EllipsisOption';
 import SettingsIcon from '@Components/Common/Icons/Common/Settings';
 import { useBottomSheetModal } from '@Components/Modals/Contexts/BottomSheetModalContext';
-import { CircularProgress } from '@mui/material';
+import { Loader2 } from 'lucide-react';
 
 import { IFormTemplateDto } from '@app/models/dtos/template';
 import { Popover, PopoverContent, PopoverTrigger } from '@app/shadcn/components/ui/popover';
@@ -51,12 +51,7 @@ const TemplateCard = ({ template, isPredefinedTemplate }: ITemplateCardProps) =>
                         {template?.previewImage ? (
                             <Image alt={template.title} src={template.previewImage} layout={'fill'} />
                         ) : (
-                            <CircularProgress
-                                sx={{
-                                    color: '#F2F7FF'
-                                }}
-                                size={24}
-                            />
+                            <Loader2 className="animate-spin text-[#F2F7FF]" size={24} />
                         )}
                     </>
                 )}

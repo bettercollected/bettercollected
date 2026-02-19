@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'next-i18next';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
-import { ChevronLeft } from '@mui/icons-material';
+import { ChevronLeft } from 'lucide-react';
 import { Button } from '@app/shadcn/components/ui/button';
 
 import { useToast } from '@app/shadcn/components/ui/use-toast';

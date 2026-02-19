@@ -8,9 +8,10 @@ import EditIcon from '@Components/Common/Icons/Common/Edit';
 import LockIcon from '@Components/Common/Icons/lock';
 import { Button } from '@app/shadcn/components/ui/button';
 import { useBottomSheetModal } from '@Components/Modals/Contexts/BottomSheetModalContext';
-import { QrCode } from '@mui/icons-material';
-import { FormControlLabel, Radio, RadioGroup } from '@mui/material';
-import Switch from '@mui/material/Switch';
+import { QrCode } from 'lucide-react';
+import { RadioGroup, RadioGroupItem } from '@app/shadcn/components/ui/radio-group';
+import { Label } from '@app/shadcn/components/ui/label';
+import { Switch } from '@app/shadcn/components/ui/switch';
 import cn from 'classnames';
 import moment from 'moment/moment';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
@@ -200,56 +201,48 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                 return (
                     <FormSettingsCard className={'mb-4'}>
                         <Divider />
-                        <RadioGroup className="flex flex-col gap-6" value={currentVisibility}>
+                        <RadioGroup className="flex flex-col gap-6" value={currentVisibility} onValueChange={(val) => {
+                            if (val === 'Public') onVisibilityChanged({ f: form });
+                            if (val === 'Private') onVisibilityChanged({ isHidden: true, f: form });
+                            if (val === 'Group') patchSettings({ hidden: false, pinned: false, private: true }, form);
+                        }}>
                             <div className="flex flex-col">
-                                <FormControlLabel
-                                    onChange={() => onVisibilityChanged({ f: form })}
-                                    value="Public"
-                                    control={<Radio />}
-                                    label={
-                                        <button data-umami-event="Make Form Public" data-umami-event-email={auth.email}>
-                                            <div className="body6 !text-black-800 flex items-center gap-[6px]">
-                                                <Globe className="h-[18px] w-[18px]" />
-                                                {t(formConstant.settings.visibility.public)}
-                                            </div>
-                                        </button>
-                                    }
-                                />
-                                <span className="body4 !text-black-700 ml-8">{t(formPage.visibilityPublic)}</span>
+                                <div className="flex items-center space-x-2">
+                                    <RadioGroupItem value="Public" id="public" />
+                                    <Label htmlFor="public" className="cursor-pointer">
+                                        <div className="body6 !text-black-800 flex items-center gap-[6px]">
+                                            <Globe className="h-[18px] w-[18px]" />
+                                            {t(formConstant.settings.visibility.public)}
+                                        </div>
+                                    </Label>
+                                </div>
+                                <span className="body4 !text-black-700 ml-6 mt-1">{t(formPage.visibilityPublic)}</span>
                             </div>
                             <Divider />
                             <div className="flex flex-col">
-                                <FormControlLabel
-                                    onChange={() => onVisibilityChanged({ isHidden: true, f: form })}
-                                    value="Private"
-                                    control={<Radio />}
-                                    label={
-                                        <button data-umami-event="Make Form Private" data-umami-event-email={auth.email}>
-                                            <div className="body6 !text-black-800 flex items-center gap-[6px]">
-                                                <LockIcon className="h-[18px] w-[18px]" />
-                                                {t(formConstant.settings.visibility.private)}
-                                            </div>
-                                        </button>
-                                    }
-                                />
-                                <span className="body4 !text-black-700 ml-8">{t(formPage.visibilityPrivate)}</span>
+                                <div className="flex items-center space-x-2">
+                                    <RadioGroupItem value="Private" id="private" />
+                                    <Label htmlFor="private" className="cursor-pointer">
+                                        <div className="body6 !text-black-800 flex items-center gap-[6px]">
+                                            <LockIcon className="h-[18px] w-[18px]" />
+                                            {t(formConstant.settings.visibility.private)}
+                                        </div>
+                                    </Label>
+                                </div>
+                                <span className="body4 !text-black-700 ml-6 mt-1">{t(formPage.visibilityPrivate)}</span>
                             </div>
                             <Divider />
                             <div className="flex flex-col">
-                                <FormControlLabel
-                                    onChange={() => patchSettings({ hidden: false, pinned: false, private: true }, form)}
-                                    value="Group"
-                                    control={<Radio />}
-                                    label={
-                                        <button data-umami-event="Make Form Only For Certain Groups" data-umami-event-email={auth.email}>
-                                            <div className="body6 !text-black-800 flex items-center gap-[6px]">
-                                                <GroupIcon className="h-[18px] w-[18px]" />
-                                                {t(formPage.visibilityGroupsTitle)}
-                                            </div>
-                                        </button>
-                                    }
-                                />
-                                <span className="body4 !text-black-700 ml-8">{!(form?.groups?.length === 0) ? t(formPage.visibilityGroups1) : t(formPage.visibilityGroups0)}</span>
+                                <div className="flex items-center space-x-2">
+                                    <RadioGroupItem value="Group" id="group" />
+                                    <Label htmlFor="group" className="cursor-pointer">
+                                        <div className="body6 !text-black-800 flex items-center gap-[6px]">
+                                            <GroupIcon className="h-[18px] w-[18px]" />
+                                            {t(formPage.visibilityGroupsTitle)}
+                                        </div>
+                                    </Label>
+                                </div>
+                                <span className="body4 !text-black-700 ml-6 mt-1">{!(form?.groups?.length === 0) ? t(formPage.visibilityGroups1) : t(formPage.visibilityGroups0)}</span>
                                 {currentVisibility === 'Group' && <FormGroups groups={form?.groups || []} />}
                             </div>
                             <Divider />
@@ -325,8 +318,8 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                                             data-umami-event-email={auth.email}
                                             data-testid="show-original-form-switch"
                                             checked={!!form?.settings?.showOriginalForm}
-                                            onClick={(e) => {
-                                                onShowOriginalFormChange(e, form);
+                                            onCheckedChange={(checked) => {
+                                                onShowOriginalFormChange(checked, form);
                                             }}
                                         />
                                     </div>
@@ -349,8 +342,8 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                                             data-umami-event-email={auth.email}
                                             data-testid="require-verified-identity-switch"
                                             checked={!!form?.settings?.requireVerifiedIdentity}
-                                            onClick={(e) => {
-                                                onCollectEmailsChange(e, form);
+                                            onCheckedChange={(checked) => {
+                                                onCollectEmailsChange(checked, form);
                                             }}
                                         />
                                     </div>
@@ -370,8 +363,8 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                                             data-umami-event-email={auth.email}
                                             data-testid="show-submission-number-switch"
                                             checked={!!form?.settings?.showSubmissionNumber}
-                                            onClick={(e) => {
-                                                onShowSubmissionNumberChange(e, form);
+                                            onCheckedChange={(checked) => {
+                                                onShowSubmissionNumberChange(checked, form);
                                             }}
                                         />
                                     </div>
@@ -391,8 +384,8 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                                             data-umami-event-email={auth.email}
                                             data-testid="pinned-switch"
                                             checked={!!form?.settings?.allowEditingResponse}
-                                            onClick={(e) => {
-                                                onAllowResponseEditingChange(e, form);
+                                            onCheckedChange={(checked) => {
+                                                onAllowResponseEditingChange(checked, form);
                                             }}
                                         />
                                     </div>
@@ -409,7 +402,7 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                                             <Divider className={'my-2 w-full'} />
                                             <div className="flex flex-row items-center justify-between md:gap-4">
                                                 <div className="body4 !text-black-700 w-3/4">{t(formPage.pinFormDescription)}</div>
-                                                <Switch data-umami-event="Pin Form Switch" data-umami-event-email={auth.email} data-testid="pinned-switch" checked={!!form?.settings?.pinned} onClick={(e) => onPinnedChange(e, form)} />
+                                                <Switch data-umami-event="Pin Form Switch" data-umami-event-email={auth.email} data-testid="pinned-switch" checked={!!form?.settings?.pinned} onCheckedChange={(checked) => onPinnedChange(checked, form)} />
                                             </div>
                                             <Divider className={'my-2 w-full'} />
                                         </div>
@@ -430,7 +423,7 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                                                 data-umami-event-email={auth.email}
                                                 data-testid="disable-branding-switch"
                                                 checked={!form?.settings?.disableBranding}
-                                                onClick={(e) => onDisableBrandingChange(e, form)}
+                                                onCheckedChange={(checked) => onDisableBrandingChange(checked, form)}
                                             />
                                         </div>
                                         <Divider className={'my-2 w-full'} />
@@ -453,7 +446,7 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                                                     data-testid="close-form-switch"
                                                     // checked={false}
                                                     checked={closeFormChecked}
-                                                    onClick={(event) => {
+                                                    onCheckedChange={(checked) => {
                                                         if (closeFormChecked) {
                                                             openModal('REOPEN_FORM_CONFIRMATION_MODAL', { reopenForm });
                                                         } else {

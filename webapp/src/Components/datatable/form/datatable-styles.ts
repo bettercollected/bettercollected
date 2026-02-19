@@ -1,5 +1,3 @@
-import { BorderLeft, BorderRight, Padding } from '@mui/icons-material';
-
 export const dataTableCustomStyles = {
     table: {
         style: {

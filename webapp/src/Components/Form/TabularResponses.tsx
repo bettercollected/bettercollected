@@ -4,7 +4,6 @@ import { useTranslation } from 'next-i18next';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
 import StyledPagination from '@Components/Common/Pagination';
-import { Typography } from '@mui/material';
 import cn from 'classnames';
 import DataTable from 'react-data-table-component';
 
@@ -94,9 +93,9 @@ export default function TabularResponses({ form }: TabularResponsesProps) {
         }
         return (
             <>
-                <Typography className={cn('!text-black-600 p2-new  w-[140px] truncate')} noWrap>
+                <div className={cn('!text-black-600 p2-new  w-[140px] truncate')}>
                     {getAnswerForField(response, field)}
-                </Typography>
+                </div>
             </>
         );
     };
@@ -109,9 +108,9 @@ export default function TabularResponses({ form }: TabularResponsesProps) {
 
     const responseDataOwnerField = (response: StandardFormResponseDto) => (
         <div aria-hidden className="flex w-fit flex-col gap-1 ">
-            <Typography className={cn('!text-black-800 p2-new w-fit truncate')} noWrap>
+            <p className={cn('!text-black-800 p2-new w-fit truncate')}>
                 {response?.dataOwnerIdentifier || '- -'}
-            </Typography>
+            </p>
             <span className="text-black-600 text-[10px] font-normal">{utcToLocalDateTIme(response?.createdAt)}</span>
         </div>
     );
@@ -129,7 +128,6 @@ export default function TabularResponses({ form }: TabularResponsesProps) {
                         workspace_id: workspace?.id ?? '',
                         submission_id: response.responseId
                     }).then((result: any) => {
-                        console.log('Read', result);
                         openModal('VIEW_RESPONSE', { response: result.data.response, formFields: getFormFields(result.data.form), formId: result.data.form.formId, workspaceId: workspace.id });
                     });
                 }}

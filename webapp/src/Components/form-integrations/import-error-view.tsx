@@ -5,7 +5,7 @@ import _ from 'lodash';
 import CheckedCircle from '@Components/Common/Icons/Common/CheckedCircle';
 import CloseModal from '@Components/Modals/CloseModal';
 import { Disclosure } from '@headlessui/react';
-import { Checkbox, FormControlLabel } from '@mui/material';
+import { Checkbox } from '@app/shadcn/components/ui/checkbox';
 
 import { ChevronDown } from '@app/Components/icons/chevron-down';
 import ConnectWithProviderButton from '@app/Components/Login/login-with-google-button';
@@ -84,9 +84,7 @@ export default function ImportErrorView({ provider, closable = true, unauthorize
         permissions: provider === 'google' ? googlePermissions : typeformPermissions
     });
 
-    const handleUserConsent = (e: any) => {
-        setIsConsentGiven(e.target.checked);
-    };
+
 
     return (
         <div className="relative flex w-full flex-col items-center justify-center space-y-5 rounded-md bg-white py-10 text-sm shadow-md md:max-w-[560px]">
@@ -123,25 +121,28 @@ export default function ImportErrorView({ provider, closable = true, unauthorize
                     , including the Limited Use requirements.
                 </p>
             )}
-            <div className="!mt-3 flex w-full px-8">
-                <FormControlLabel
+            <div className="!mt-3 flex w-full px-8 items-center space-x-3">
+                <Checkbox
+                    id="consent"
                     checked={isConsentGiven}
-                    onChange={handleUserConsent}
-                    control={<Checkbox />}
-                    label={
-                        <div className="body4">
-                            By signing in, you agree to our{' '}
-                            <a href="https://bettercollected.com/terms-of-service/" target="_blank" rel="noreferrer" className="text-blue-500 hover:text-blue-400">
-                                Terms of Service
-                            </a>{' '}
-                            and{' '}
-                            <a href="https://bettercollected.com/privacy-policy/" target="_blank" rel="noreferrer" className="text-blue-500 hover:text-blue-400">
-                                Privacy Policy
-                            </a>
-                            .
-                        </div>
-                    }
+                    onCheckedChange={(checked) => setIsConsentGiven(!!checked)}
                 />
+                <label
+                    htmlFor="consent"
+                    className="cursor-pointer"
+                >
+                    <div className="body4">
+                        By signing in, you agree to our{' '}
+                        <a href="https://bettercollected.com/terms-of-service/" target="_blank" rel="noreferrer" className="text-blue-500 hover:text-blue-400">
+                            Terms of Service
+                        </a>{' '}
+                        and{' '}
+                        <a href="https://bettercollected.com/privacy-policy/" target="_blank" rel="noreferrer" className="text-blue-500 hover:text-blue-400">
+                            Privacy Policy
+                        </a>
+                        .
+                    </div>
+                </label>
             </div>
             <div className="w-[230px]">
                 <ConnectWithProviderButton disabled={!isConsentGiven} type={defaultContent.type} url={`${environments.API_ENDPOINT_HOST}/auth/${provider}/oauth`} text={`Authorize ${_.capitalize(provider)}`} creator />

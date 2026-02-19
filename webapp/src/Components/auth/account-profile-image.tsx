@@ -1,30 +1,39 @@
 import React from 'react';
-
-import { Avatar, SxProps, Theme } from '@mui/material';
-import { AvatarPropsVariantOverrides } from '@mui/material/Avatar/Avatar';
-import { OverridableStringUnion } from '@mui/types';
-import cn from 'classnames';
+import { Avatar, AvatarFallback, AvatarImage } from '@app/shadcn/components/ui/avatar';
+import { cn } from '@app/shadcn/util/lib';
 
 interface IAuthAccountProfileImageProps {
     size?: number;
     image?: string;
-    name: string;
+    name?: string;
     typography?: string;
     className?: string;
-    style?: SxProps<Theme>;
-    variant?: OverridableStringUnion<'circular' | 'rounded' | 'square', AvatarPropsVariantOverrides>;
+    style?: any;
+    variant?: 'circular' | 'rounded' | 'square';
 }
 
-AuthAccountProfileImage.defaultProps = {
-    size: 36
-};
+export default function AuthAccountProfileImage({
+    size = 36,
+    image,
+    name = ' ',
+    className = '',
+    typography = 'text-sm',
+    style = {},
+    variant = 'rounded'
+}: IAuthAccountProfileImageProps) {
 
-export default function AuthAccountProfileImage({ size, image, name = ' ', className = '', typography = 'sh1', style = {}, variant = 'rounded' }: IAuthAccountProfileImageProps) {
-    if (image) return <Avatar sx={{ width: size, height: size, borderRadius: 1, ...style }} variant={variant} src={image} className={`${variant === 'circular' ? '!rounded-full' : 'rounded'} !mr-0 overflow-hidden ${className}`} />;
+    // Map variant to Tailwind rounded classes
+    const roundedClass = variant === 'circular' ? 'rounded-full' : variant === 'rounded' ? 'rounded-md' : 'rounded-none';
 
     return (
-        <Avatar sx={{ width: size, height: size, borderRadius: 1, ...style }} variant={variant} className={cn(`overflow-hidden rounded bg-green-500 ${className}`, variant === 'circular' && '!rounded-full')}>
-            <span className={cn('font-semibold !text-white', typography)}>{name[0]?.toUpperCase()}</span>
+        <Avatar
+            className={cn(roundedClass, "overflow-hidden", className)}
+            style={{ width: size, height: size, ...style }}
+        >
+            <AvatarImage src={image} className="object-cover" />
+            <AvatarFallback className={cn("bg-green-500 text-white font-semibold flex items-center justify-center h-full w-full", roundedClass)}>
+                <span className={cn(typography)}>{name?.[0]?.toUpperCase()}</span>
+            </AvatarFallback>
         </Avatar>
     );
 }

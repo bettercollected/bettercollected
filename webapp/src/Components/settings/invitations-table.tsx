@@ -3,7 +3,6 @@ import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'next-i18next';
 
 import InfoCircle from '@Components/Common/Icons/InfoCircle';
-import { Typography } from '@mui/material';
 import DataTable from 'react-data-table-component';
 
 import StatusBadge from '@Components/badge/status-badge';
@@ -62,11 +61,11 @@ export default function InvitationsTable({ data }: IInvitationTableProps) {
             <div className="flex items-center gap-5">
                 <StatusBadge status={status} />
                 {status.toLowerCase() === 'expired' && (
-                    <Typography noWrap>
+                    <div className="truncate">
                         <span className="body4 !text-brand-500 cursor-pointer" onClick={() => handleInvitation({ email })}>
                             Resend Invitation
                         </span>
-                    </Typography>
+                    </div>
                 )}
             </div>
         );

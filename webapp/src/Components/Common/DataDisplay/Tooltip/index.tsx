@@ -1,103 +1,46 @@
 import React from 'react';
-
-import { PopperProps, SxProps, Theme, Tooltip as MuiTooltip } from '@mui/material';
+import { Tooltip as ShadcnTooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@app/shadcn/components/ui/tooltip';
 
 interface ITooltipProps {
     title: React.ReactNode;
     children: React.ReactElement<any>;
     className?: string;
-    onClick?: any;
-    components?: { Arrow?: any; Popper?: any; Tooltip?: any; Transition?: any };
-    componentsProps?: { arrow?: object; popper?: object; tooltip?: object; transition?: object };
-    arrow?: boolean;
-    describeChild?: boolean;
-    disableFocusListener?: boolean;
-    disableHoverListener?: boolean;
-    disableInteractive?: boolean;
-    disableTouchListener?: boolean;
-    enterDelay?: number;
-    enterNextDelay?: number;
-    enterTouchDelay?: number;
-    followCursor?: boolean;
-    leaveDelay?: number;
-    leaveTouchDelay?: number;
     placement?: 'bottom' | 'bottom-end' | 'bottom-start' | 'left-end' | 'left-start' | 'left' | 'right-end' | 'right-start' | 'right' | 'top-end' | 'top-start' | 'top';
-    PopperProps?: Partial<PopperProps>;
-    slotProps?: { arrow?: object; popper?: object; tooltip?: object; transition?: object };
-    slots?: { arrow?: any; popper?: any; tooltip?: any; transition?: any };
-    sx?: SxProps<Theme>;
+    // Keeping other props optional to avoid breaking types, but might not implement all
+    [key: string]: any;
 }
 
 export default function Tooltip({
-                                    title,
-                                    children,
-                                    components = {},
-                                    className = '',
-                                    onClick = () => {
-                                    },
-                                    componentsProps = {
-                                        tooltip: {
-                                            sx: {
-                                                padding: '4px 12px',
-                                                fontSize: '14px',
-                                                lineHeight: '21px',
-                                                color: '#F2F7FF',
-                                                backgroundColor: '#343A40',
-                                                opacity: '0.7 !important',
-                                                borderRadius: '4px',
-                                                '& .MuiTooltip-arrow': {
-                                                    color: 'common.black',
-                                                    opacity: '0.7 !important'
-                                                }
-                                            }
-                                        }
-                                    },
-                                    arrow = false,
-                                    describeChild = false,
-                                    disableFocusListener = false,
-                                    disableHoverListener = false,
-                                    disableInteractive = false,
-                                    disableTouchListener = false,
-                                    enterDelay = 100,
-                                    enterNextDelay = 0,
-                                    enterTouchDelay = 100,
-                                    followCursor = false,
-                                    leaveDelay = 0,
-                                    leaveTouchDelay = 100,
-                                    placement = 'bottom',
-                                    PopperProps = {},
-                                    slotProps = {},
-                                    slots = {},
-                                    sx = {}
-                                }: ITooltipProps) {
+    title,
+    children,
+    className = '',
+    placement = 'bottom',
+    enterDelay = 100,
+    disableHoverListener = false,
+    ...props
+}: ITooltipProps) {
+    if (!title || disableHoverListener) return <>{children}</>;
+
+    const getSideAndAlign = (placement: string) => {
+        const [side, align] = placement.split('-');
+        return {
+            side: side as "top" | "right" | "bottom" | "left",
+            align: (align as "start" | "center" | "end") || "center"
+        };
+    };
+
+    const { side, align } = getSideAndAlign(placement);
+
     return (
-        <MuiTooltip
-            title={title}
-            sx={sx}
-            className={className}
-            onClick={onClick}
-            components={components}
-            componentsProps={componentsProps}
-            arrow={arrow}
-            describeChild={describeChild}
-            disableFocusListener={disableFocusListener}
-            disableHoverListener={disableHoverListener}
-            disableInteractive={disableInteractive}
-            disableTouchListener={disableTouchListener}
-            enterDelay={enterDelay}
-            enterNextDelay={enterNextDelay}
-            enterTouchDelay={enterTouchDelay}
-            followCursor={followCursor}
-            leaveDelay={leaveDelay}
-            leaveTouchDelay={leaveTouchDelay}
-            placement={placement}
-            PopperProps={PopperProps}
-            slotProps={slotProps}
-            slots={slots}
-        >
-            {/*<div className={'max-w-full'}>*/}
-            {children}
-            {/*</div>*/}
-        </MuiTooltip>
+        <TooltipProvider delayDuration={enterDelay}>
+            <ShadcnTooltip>
+                <TooltipTrigger asChild>
+                    <span className={className}>{children}</span>
+                </TooltipTrigger>
+                <TooltipContent side={side} align={align} className="z-[50]">
+                    {title}
+                </TooltipContent>
+            </ShadcnTooltip>
+        </TooltipProvider>
     );
 }

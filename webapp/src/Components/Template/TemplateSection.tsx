@@ -4,7 +4,7 @@ import { useTranslation } from 'next-i18next';
 import Link from 'next/link';
 
 import Empty from '@Components/Common/Icons/Common/Empty';
-import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
+import { Eye } from 'lucide-react';
 
 import { IFormTemplateDto } from '@app/models/dtos/template';
 import { useAppSelector } from '@app/store/hooks';
@@ -40,7 +40,7 @@ const TemplateSection = ({ templates, title = '', className, showButtons = true 
                             ) : isPredefinedTemplate ? (
                                 <Link href={`/${workspace.workspaceName}/dashboard/templates/all`} legacyBehavior>
                                     <div className={'flex cursor-pointer flex-row items-center gap-2 text-blue-500'}>
-                                        <VisibilityOutlinedIcon />
+                                        <Eye className="w-5 h-5" />
                                         <p className={'text-sm font-medium text-blue-500'}>{t('TEMPLATE.SHOW_ALL')}</p>
                                     </div>
                                 </Link>

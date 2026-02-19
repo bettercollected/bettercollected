@@ -7,7 +7,7 @@ import { useSearchParams } from 'next/navigation';
 
 import { Input } from '@app/shadcn/components/ui/input';
 import { Button } from '@app/shadcn/components/ui/button';
-import { Divider } from '@mui/material'; // I'll keep Divider from MUI for now, or use a custom one if available
+import { Separator } from '@app/shadcn/components/ui/separator';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 
 import ConnectWithProviderButton from '@app/Components/Login/login-with-google-button';
@@ -90,9 +90,11 @@ export default function OtpEmailForm({ isModal, isSignup, setEmail: setParentEma
                             ))}
                         </div>
                     </div>
-                    <Divider orientation="horizontal" flexItem className="body4 !text-black-700 pt-8 my-10">
-                        {constants.orSignInUsing}
-                    </Divider>
+                    <div className="flex w-full items-center gap-4 my-10 pt-8">
+                        <Separator className="flex-1 shrink-0 bg-black-200" />
+                        <span className="body4 !text-black-700 whitespace-nowrap">{constants.orSignInUsing}</span>
+                        <Separator className="flex-1 shrink-0 bg-black-200" />
+                    </div>
                 </>
             )}
 

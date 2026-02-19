@@ -6,7 +6,6 @@ import { useRouter } from 'next/navigation';
 
 import { Button } from '@app/shadcn/components/ui/button';
 import { useBottomSheetModal } from '@Components/Modals/Contexts/BottomSheetModalContext';
-import { Typography } from '@mui/material';
 import DataTable from 'react-data-table-component';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 
@@ -142,7 +141,7 @@ export default function WorkspaceGroups({ workspace }: { workspace: WorkspaceDto
                                 openBottomSheetModal('CREATE_GROUP');
                             }}
                         >
-                            <Typography className="!text-brand-500  body6"> {t(groupConstant.createGroup)}</Typography>
+                            <span className="!text-brand-500  body6"> {t(groupConstant.createGroup)}</span>
                         </Button>
                     )}
                 </div>

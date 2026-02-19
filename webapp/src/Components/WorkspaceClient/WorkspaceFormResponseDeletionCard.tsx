@@ -2,7 +2,6 @@ import { useTranslation } from 'next-i18next';
 
 import { DotIcon } from '@Components/Common/Icons/Common/DotIcon';
 import FormProviderIcon from '@Components/Common/Icons/Form/FormProviderIcon';
-import styled from '@emotion/styled';
 
 import ActiveLink from '@app/Components/ui/links/active-link';
 import { localesCommon } from '@app/constants/locales/common';
@@ -18,7 +17,7 @@ interface IWorkspaceFormResponseDeletionCardProps {
     workspaceName: string;
 }
 
-const DefaultDiv = styled.div``;
+const DefaultDiv = (props: any) => <div {...props} />;
 
 export default function WorkspaceFormResponseDeletionCard({ response, deletionRequests = false, className = '', workspaceName, isCustomDomain = false }: IWorkspaceFormResponseDeletionCardProps) {
     const submittedAt = `${utcToLocalDate(response.updatedAt)}`;

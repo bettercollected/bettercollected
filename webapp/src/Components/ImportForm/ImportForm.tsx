@@ -7,7 +7,7 @@ import _ from 'lodash';
 
 import AppTextField from '@Components/Common/Input/AppTextField';
 import ChangeSlugComponent from '@app/Components/ImportForm/ChangeSlugComponent';
-import { CircularProgress } from '@mui/material';
+import { Loader2 } from 'lucide-react';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 
 import GoogleFolder from '@app/assets/images/google_folder.png';
@@ -133,8 +133,8 @@ export default ImportForm;
 
 const LoadingIconWithText = ({ text }: { text: string }) => {
     return (
-        <div className={'flex gap-2'}>
-            <CircularProgress size={20} /> <span className={'body4 !text-black-700'}>{text}</span>
+        <div className={'flex gap-2 items-center'}>
+            <Loader2 className="h-5 w-5 animate-spin" /> <span className={'body4 !text-black-700'}>{text}</span>
         </div>
     );
 };

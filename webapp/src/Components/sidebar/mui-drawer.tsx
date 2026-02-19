@@ -1,76 +1,52 @@
 import React from 'react';
 
-import { Drawer } from '@mui/material';
+import { Sheet, SheetContent } from '@app/shadcn/components/ui/sheet';
+import { cn } from '@app/shadcn/util/lib';
 
 interface IMuiDrawerProps {
     drawerWidth?: number;
     mobileOpen?: boolean;
     handleDrawerToggle: () => void;
     anchor?: 'left' | 'top' | 'right' | 'bottom';
-    mobileDrawerDisplayProps?: any;
-    desktopDrawerDisplayProps?: any;
+    mobileDrawerDisplayProps?: any; // kept for compatibility signature
+    desktopDrawerDisplayProps?: any; // kept for compatibility signature
     children?: any;
 }
 
-MuiDrawer.defaultProps = {
-    drawerWidth: 289,
-    mobileOpen: false,
-    mobileDrawerDisplayProps: { xs: 'block', sm: 'block', md: 'block', lg: 'none', xl: 'none' },
-    desktopDrawerDisplayProps: { xs: 'none', sm: 'none', md: 'none', lg: 'block', xl: 'block' }
-};
-export default function MuiDrawer({ drawerWidth, mobileOpen, children, handleDrawerToggle, anchor = 'left', mobileDrawerDisplayProps, desktopDrawerDisplayProps }: IMuiDrawerProps) {
-    const container = typeof window !== 'undefined' ? () => window.document.body : undefined;
+// Shadcn Sheet is controlled. We need to map `mobileOpen` to `open` and `handleDrawerToggle` to `onOpenChange`.
+// We replicate the responsive behavior:
+// Mobile: Sheet (visible xs-lg, hidden lg+)
+// Desktop: Fixed Div (hidden xs-lg, visible lg+)
+
+export default function MuiDrawer({ drawerWidth = 289, mobileOpen, children, handleDrawerToggle, anchor = 'left' }: IMuiDrawerProps) {
 
     return (
         <>
-            {/* Mobile drawer */}
-            <Drawer
-                container={container}
-                variant="temporary"
-                className="border-r border-r-black-200"
-                open={mobileOpen}
-                onClose={handleDrawerToggle}
-                anchor={anchor}
-                ModalProps={{
-                    keepMounted: true // Better open performance on mobile.
-                }}
-                sx={{
-                    width: drawerWidth,
-                    flexShrink: 0,
-                    [`& .MuiDrawer-paper`]: {
-                        width: drawerWidth,
-                        borderRadius: 0,
-                        boxSizing: 'border-box',
-                        borderWidth: '0px 1px 0px 0px',
-                        borderColor: '#EEEEEE'
-                    },
-                    display: mobileDrawerDisplayProps
-                }}
-            >
-                {children}
-            </Drawer>
+            {/* Mobile drawer (Sheet) - Visible on small screens, hidden on large */}
+            <div className="lg:hidden">
+                <Sheet open={mobileOpen} onOpenChange={(open) => !open && handleDrawerToggle()}>
+                    <SheetContent side={anchor === 'right' ? 'right' : 'left'} className="p-0 bg-white border-r border-r-black-200" style={{ width: drawerWidth, maxWidth: '100vw' }}>
+                        {children}
+                    </SheetContent>
+                </Sheet>
+            </div>
 
-            {/* Desktop drawer */}
-            <Drawer
-                variant="permanent"
-                className="border-r border-r-black-200"
-                anchor={anchor}
-                sx={{
-                    width: drawerWidth,
-                    flexShrink: 0,
-                    [`& .MuiDrawer-paper`]: {
-                        width: drawerWidth,
-                        borderRadius: 0,
-                        boxSizing: 'border-box',
-                        borderWidth: '0px 1px 0px 0px',
-                        borderColor: '#EEEEEE'
-                    },
-                    display: desktopDrawerDisplayProps
-                }}
-                open
+            {/* Desktop drawer (Permanent) - Hidden on small screens, visible on large */}
+            <div
+                className={cn(
+                    "hidden lg:block fixed top-0 h-full bg-white shrink-0 scrollbar-hide py-3",
+                    anchor === 'right' ? 'right-0 border-l' : 'left-0 border-r border-r-black-200'
+                )}
+                style={{ width: drawerWidth }}
             >
                 {children}
-            </Drawer>
+            </div>
         </>
     );
 }
+
+// Keep defaultProps for compatibility if needed, though simpler now
+MuiDrawer.defaultProps = {
+    drawerWidth: 289,
+    mobileOpen: false,
+};

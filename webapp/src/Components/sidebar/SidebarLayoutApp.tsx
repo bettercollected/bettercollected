@@ -9,9 +9,9 @@ import DeleteIcon from '@Components/Common/Icons/Common/Delete';
 import MembersIcon from '@Components/Common/Icons/Dashboard/Members';
 import ResponderIcon from '@Components/Common/Icons/Dashboard/Responder';
 import { FormIcon } from '@Components/Common/Icons/Form/FormIcon';
-import { Box } from '@mui/material';
-import cn from 'classnames';
 import { AnimatePresence, motion } from 'framer-motion';
+
+import { cn } from '@app/shadcn/util/lib';
 
 import AuthAccountMenuDropdown from '@app/Components/auth/account-menu-dropdown';
 import AuthNavbarApp from '@app/Components/auth/AuthNavbarApp';
@@ -129,7 +129,12 @@ export default function SidebarLayoutApp({ children, DrawerComponent = Dashboard
                 <AuthNavbarApp handleDrawerToggle={handleDrawerToggle} mobileOpen={mobileOpen} />
             </div>
             <DrawerComponent drawerWidth={drawerWidth} mobileOpen={mobileOpen} handleDrawerToggle={handleDrawerToggle} topNavList={topNavList} bottomNavList={bottomNavList} />
-            <Box className={`bg-black-100 min-h-calc-68 float-none mt-[68px] lg:float-right lg:mt-0 lg:min-h-screen`} component="main" sx={{ display: 'flex', width: { lg: `calc(100% - ${drawerWidth}px)` } }}>
+            <main
+                className={cn(
+                    "bg-black-100 float-none mt-[68px] flex min-h-[calc(100vh-68px)]",
+                    "lg:float-right lg:mt-0 lg:min-h-screen lg:w-[calc(100%-289px)]"
+                )}
+            >
                 <div className="flex w-full flex-col">
                     <div className="border-b-black-200 sticky top-[68px] z-[1000] flex w-full items-center justify-between border-b bg-white px-5 py-3 lg:top-0 lg:px-10">
                         <span className="h3-new">{getHeader()}</span>
@@ -165,7 +170,7 @@ export default function SidebarLayoutApp({ children, DrawerComponent = Dashboard
                         <div className={cn('bg-black-100 h-full w-full', boxClassName)}>{children}</div>
                     </motion.div>
                 </div>
-            </Box>
+            </main>
         </div>
     );
 }

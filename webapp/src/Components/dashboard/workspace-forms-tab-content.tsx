@@ -8,7 +8,6 @@ import Divider from '@Components/Common/DataDisplay/Divider';
 import ZeroElement from '@Components/Common/DataDisplay/Empty/ZeroElement';
 import SearchInput from '@Components/Common/Search/SearchInput';
 import SearchByUUIDWrapper from '@Components/RespondersPortal/SearchByUUIDWrapper';
-import styled from '@emotion/styled';
 
 import FormCards from '@Components/dashboard/form-cards';
 import Loader from '@app/Components/ui/loader';
@@ -22,37 +21,6 @@ interface IWorkspaceFormsTabContentProps {
     workspace: WorkspaceDto;
     isFormCreator?: boolean;
 }
-
-export const StyledTextField = styled.div`
-    .MuiFormControl-root {
-        background: white;
-        border-radius: 8px;
-        outline: none;
-    }
-
-    .MuiOutlinedInput-notchedOutline {
-        border-radius: 8px;
-        border: 1px solid #ced4da;
-    }
-
-    .MuiInputBase-input,
-    .MuiOutlinedInput-root {
-        height: 46px;
-    }
-
-    .MuiInputBase-input,
-    .MuiOutlinedInput-input,
-    .MuiInputBase-inputSizeSmall,
-    .MuiInputBase-inputAdornedEnd {
-        padding: 0;
-    }
-
-    @media screen and (max-width: 640px) {
-        .MuiFormControl-root {
-            width: 100%;
-        }
-    }
-`;
 
 export default function WorkspaceFormsTabContent({ workspace, isFormCreator = false }: IWorkspaceFormsTabContentProps) {
     const workspaceId = workspace.id;

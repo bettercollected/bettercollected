@@ -3,8 +3,7 @@
 import { useTranslation } from 'next-i18next';
 
 import StyledPagination from '@Components/Common/Pagination';
-import { Typography } from '@mui/material';
-import cn from 'classnames';
+import { cn } from '@app/shadcn/util/lib';
 import DataTable from 'react-data-table-component';
 
 import StatusBadge from '@Components/badge/status-badge';
@@ -75,17 +74,17 @@ const ResponsesTable = ({ requestForDeletion, submissions, formId, page, setPage
     };
     const responseDataOwnerField = (response: StandardFormResponseDto) => (
         <div aria-hidden className="w-fit">
-            <Typography className={cn('!text-black-900 body3 ', !requestForDeletion && 'hover:!text-brand-500 cursor-pointer hover:underline')} noWrap>
+            <div className={cn('!text-black-900 body3 truncate', !requestForDeletion && 'hover:!text-brand-500 cursor-pointer hover:underline')}>
                 {!requestForDeletion && <span onClick={() => onRowClicked(response)}>{response?.dataOwnerIdentifier ?? 'Anonymous'}</span>}
                 {requestForDeletion && (response?.dataOwnerIdentifier ?? 'Anonymous')}
-            </Typography>
+            </div>
         </div>
     );
     const responseFormTitle = (response: StandardFormResponseDto) => (
         <div aria-hidden className="w-fit">
-            <Typography className="!text-black-900 body3" noWrap>
+            <div className="!text-black-900 body3 truncate">
                 {response?.formTitle ?? 'Untitled'}
-            </Typography>
+            </div>
         </div>
     );
 
@@ -117,7 +116,7 @@ const ResponsesTable = ({ requestForDeletion, submissions, formId, page, setPage
 
         if (requestForDeletion && response.provider === 'self') {
             return (
-                <Typography noWrap>
+                <div className="truncate">
                     <div
                         className="cursor-pointer inline-flex"
                         onClick={() => {
@@ -134,19 +133,19 @@ const ResponsesTable = ({ requestForDeletion, submissions, formId, page, setPage
                             <ChevronForward className={'text-brand-500 h-6 w-6 ml-2'} />
                         </Button>
                     </div>
-                </Typography>
+                </div>
             );
         }
 
         return (
-            <Typography noWrap>
+            <div className="truncate">
                 <AnchorLink target={response.provider !== 'self' ? '_blank' : '_self'} href={getResponseUrl(response)}>
                     <Button variant="ghost" className="!p-0">
                         {t(localesCommon.goToResponse)}
                         <ChevronForward className={'text-brand-500 h-6 w-6 ml-2'} />
                     </Button>
                 </AnchorLink>
-            </Typography>
+            </div>
         );
     };
 

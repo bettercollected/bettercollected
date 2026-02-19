@@ -11,7 +11,6 @@ import FormProviderIcon from '@Components/Common/Icons/Form/FormProviderIcon';
 import PrivateIcon from '@Components/Common/Icons/Form/Private';
 import PublicIcon from '@Components/Common/Icons/Form/Public';
 import { Button } from '@app/shadcn/components/ui/button';
-import { Typography } from '@mui/material';
 import moment from 'moment/moment';
 
 import FormOptionsDropdownMenu from '@app/Components/datatable/form/form-options-dropdown';
@@ -87,7 +86,7 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, group, worksp
                     <div className="flex flex-1 items-center justify-between gap-4">
                         <div className="form-title gap-2">
                             <Tooltip title="">
-                                <Typography className="h4-new mr-1 inline">{form?.title || t(localesCommon.untitled)}</Typography>
+                                <span className="h4-new mr-1 inline">{form?.title || t(localesCommon.untitled)}</span>
                             </Tooltip>
                             {!isResponderPortal && !form?.isPublished && <div className="text-black-600 right-2 mx-1 inline-block rounded bg-gray-100 px-2 py-1 text-xs font-semibold">{t('FORM.DRAFT')}</div>}
                             {!isResponderPortal && form?.isPublished && !isFormOpen && <div className="text-black-600 right-2 mx-1 inline-block rounded bg-gray-100 px-2 py-1 text-xs font-semibold">{t('FORM.CLOSED')}</div>}

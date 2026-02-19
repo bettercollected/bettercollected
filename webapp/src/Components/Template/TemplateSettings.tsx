@@ -7,7 +7,8 @@ import CopyIcon from '@Components/Common/Icons/Common/Copy';
 import LockIcon from '@Components/Common/Icons/lock';
 import AppTextField from '@Components/Common/Input/AppTextField';
 import { Button } from '@app/shadcn/components/ui/button';
-import { FormControlLabel, Radio, RadioGroup } from '@mui/material';
+import { RadioGroup, RadioGroupItem } from '@app/shadcn/components/ui/radio-group';
+import { Label } from '@app/shadcn/components/ui/label';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 import useCopyToClipboard from 'react-use/lib/useCopyToClipboard';
 
@@ -73,37 +74,33 @@ const TemplateSettings = ({ template, showTitle }: { template: IFormTemplateDto;
             </div>
             <div className={'pt-[56px] pb-8 flex flex-col md:w-3/4'}>
                 <h1 className={'text-base font-medium text-black-800 pb-4'}>{t('TEMPLATE.SETTINGS.VISIBILITY.TEMPLATE_VISIBILITY')}</h1>
-                <RadioGroup className="flex flex-col gap-4" value={templateVisibility}>
+                <RadioGroup className="flex flex-col gap-4" value={templateVisibility} onValueChange={(val) => handleVisibilityChange(val)}>
                     <Divider className={'text-black-300'} />
-                    <div className="flex flex-col">
-                        <FormControlLabel
-                            value="Public"
-                            control={<Radio />}
-                            onChange={() => handleVisibilityChange('Public')}
-                            label={
+                    <div className="flex flex-col gap-2">
+                        <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="Public" id="public" />
+                            <Label htmlFor="public" className="cursor-pointer">
                                 <div className="flex body6 !text-black-800 items-center gap-[6px]">
                                     <Globe className="h-[18px] w-[18px]" />
                                     {t(formConstant.settings.visibility.public)}
                                 </div>
-                            }
-                        />
-                        <span className=" body4 !text-black-700">{t('TEMPLATE.SETTINGS.VISIBILITY.PUBLIC')}</span>
+                            </Label>
+                        </div>
+                        <span className=" body4 !text-black-700 ml-6">{t('TEMPLATE.SETTINGS.VISIBILITY.PUBLIC')}</span>
                         {templateVisibility == 'Public' && <ShareLinkOptions adminHost={adminHost} />}
                     </div>
                     <Divider className={'text-black-200'} />
-                    <div className="flex flex-col">
-                        <FormControlLabel
-                            value="Private"
-                            control={<Radio />}
-                            onChange={() => handleVisibilityChange('Private')}
-                            label={
+                    <div className="flex flex-col gap-2">
+                        <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="Private" id="private" />
+                            <Label htmlFor="private" className="cursor-pointer">
                                 <div className="flex body6 !text-black-800 items-center gap-[6px]">
                                     <LockIcon className="h-[18px] w-[18px]" />
                                     {t(formConstant.settings.visibility.private)}
                                 </div>
-                            }
-                        />
-                        <span className="body4 !text-black-700">{t('TEMPLATE.SETTINGS.VISIBILITY.PRIVATE')}</span>
+                            </Label>
+                        </div>
+                        <span className="body4 !text-black-700 ml-6">{t('TEMPLATE.SETTINGS.VISIBILITY.PRIVATE')}</span>
                     </div>
                     <Divider className={'text-black-200'} />
                 </RadioGroup>

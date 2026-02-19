@@ -8,15 +8,20 @@ import cn from 'classnames';
 
 import Divider from '@Components/Common/DataDisplay/Divider';
 import PrivateFormButtonWrapper from '@Components/Common/FormVisibility/PrivateFormButtonWrapper';
-import EditIcon from '@Components/Common/Icons/Common/Edit';
-import SettingsIcon from '@Components/Common/Icons/Common/Settings';
 import FormProviderIcon from '@Components/Common/Icons/Form/FormProviderIcon';
-import Preview from '@Components/Common/Icons/Form/Preview';
-import { Group, IntegrationInstructions, Share } from '@mui/icons-material';
+import {
+    Blocks,
+    ChevronRight,
+    Edit2,
+    Eye,
+    History,
+    Play,
+    Settings,
+    Share2,
+    Trash2,
+    Users
+} from 'lucide-react';
 
-import { ChevronForward } from '@app/Components/icons/chevron-forward';
-import { HistoryIcon } from '@app/Components/icons/history';
-import { TrashIcon } from '@app/Components/icons/trash';
 import { useModal } from '@app/Components/modal-views/context';
 import { useFullScreenModal } from '@app/Components/modal-views/full-screen-modal-context';
 import { localesCommon } from '@app/constants/locales/common';
@@ -32,7 +37,6 @@ import { selectWorkspace } from '@app/store/workspaces/slice';
 import getFormShareURL from '@app/utils/formUtils';
 import { getEditFormURL } from '@app/utils/urlUtils';
 import { validateFormOpen } from '@app/utils/validationUtils';
-import PlayIcon from '@app/views/atoms/Icons/PlayIcon';
 import PublishButton from '@app/views/molecules/FormBuilder/PublishButton';
 
 export default function FormDashboardLayoutClient({
@@ -71,12 +75,12 @@ export default function FormDashboardLayoutClient({
     const tabMenu = useMemo(() => {
         const tabs = [
             {
-                icon: <Preview className="h-5 w-5" />,
+                icon: <Eye className="h-5 w-5" />,
                 title: t(formConstant.preview),
                 path: 'preview'
             },
             {
-                icon: <SettingsIcon className="h-5 w-5" />,
+                icon: <Settings className="h-5 w-5" />,
                 title: t(localesCommon.settings),
                 path: 'settings'
             }
@@ -85,35 +89,35 @@ export default function FormDashboardLayoutClient({
         if (form?.isPublished) {
             if (form?.settings?.provider === 'self' && form?.builderVersion === 'v2') {
                 tabs.push({
-                    icon: <IntegrationInstructions className="h-5 w-5" />,
+                    icon: <Blocks className="h-5 w-5" />,
                     title: 'Integrations',
                     path: 'integrations'
                 });
             }
             tabs.push({
-                icon: <HistoryIcon className="h-5 w-5" />,
+                icon: <History className="h-5 w-5" />,
                 title: t(formConstant.responders) + ' (' + form.responses + ')',
                 path: 'responses'
             });
             tabs.push({
-                icon: <TrashIcon className="h-5 w-5" />,
+                icon: <Trash2 className="h-5 w-5" />,
                 title: t(formConstant.deletionRequests) + ' (' + (form as any).deletionRequests + ')',
                 path: 'deletion-requests'
             });
             tabs.push({
-                icon: <Group className="h-5 w-5" />,
+                icon: <Users className="h-5 w-5" />,
                 title: t(formConstant.settings.visibility.title),
                 path: 'visibility'
             });
 
             if (isFormOpen) {
                 tabs.push({
-                    icon: <Group className="h-5 w-5" />,
+                    icon: <Users className="h-5 w-5" />,
                     title: t(formConstant.settings.formLink.title),
                     path: 'links'
                 });
                 tabs.push({
-                    icon: <Group className="h-5 w-5" />,
+                    icon: <Users className="h-5 w-5" />,
                     title: 'Analytics',
                     path: 'analytics'
                 });
@@ -144,13 +148,13 @@ export default function FormDashboardLayoutClient({
                     <FormPageLayer className="px-4 md:px-10 lg:px-28">
                         <div className="flex justify-between">
                             <div className="flex flex-row items-center gap-1 cursor-pointer" onClick={handleBackClick}>
-                                {isMobile && <ChevronForward className="h-6 w-6 rotate-180 p-[2px]" />}
+                                {isMobile && <ChevronRight className="h-6 w-6 rotate-180 p-[2px]" />}
                                 {isMobile ? <h1 className="hp3-new">{form?.title}</h1> : <h1 className="h2-new text-pink">{form?.title}</h1>}
                             </div>
                             <div className="hidden gap-4 lg:flex">
                                 {form?.settings?.provider === 'self' && form?.builderVersion === 'v2' && (
                                     <Button
-                                        icon={<EditIcon className="h-6 w-6" />}
+                                        icon={<Edit2 className="h-6 w-6" />}
                                         variant={['sm', 'md', 'lg', 'xl', '2xl'].indexOf(breakpoint) !== -1 ? 'secondary' : 'ghost'}
                                         className="!px-0 sm:!px-5"
                                         onClick={() => {
@@ -164,7 +168,7 @@ export default function FormDashboardLayoutClient({
                                     <PrivateFormButtonWrapper isPrivate={workspaceForm?.settings?.hidden}>
                                         <Button
                                             variant={['sm', 'md', 'lg', 'xl', '2xl'].indexOf(breakpoint) !== -1 ? 'primary' : 'ghost'}
-                                            icon={<Share />}
+                                            icon={<Share2 className="h-5 w-5" />}
                                             className="!px-0 sm:!px-5"
                                             disabled={workspaceForm?.settings?.hidden}
                                             onClick={() =>
@@ -182,11 +186,11 @@ export default function FormDashboardLayoutClient({
                             <div className="flex gap-2 lg:hidden">
                                 {form.builderVersion === 'v2' && (
                                     <Button
-                                        icon={<PlayIcon />}
+                                        icon={<Play className="h-5 w-5" />}
                                         onClick={() => {
                                             openFullScreenModal('PREVIEW_MODAL');
                                         }}
-                                        className="text-[10px"
+                                        className="text-[10px]"
                                         variant={'v2Button'}
                                     >
                                         Preview
@@ -197,7 +201,7 @@ export default function FormDashboardLayoutClient({
                                     <PrivateFormButtonWrapper isPrivate={workspaceForm?.settings?.hidden}>
                                         <Button
                                             variant={'primary'}
-                                            icon={<Share />}
+                                            icon={<Share2 className="h-5 w-5" />}
                                             disabled={workspaceForm?.settings?.hidden}
                                             onClick={() =>
                                                 openModal('SHARE_VIEW', {

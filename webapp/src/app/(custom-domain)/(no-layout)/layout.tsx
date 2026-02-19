@@ -1,11 +1,10 @@
-import React from 'react';
-import { headers } from 'next/headers';
 import environments from '@app/configs/environments';
-import { notFound, redirect } from 'next/navigation';
-import Alert from '@mui/material/Alert';
-import ServerSideWorkspaceDispatcher from '@Components/HOCs/ServerSideWorkspaceDispatcher';
-import ResponderPortalLayoutClient from '@Components/RespondersPortal/_components/ResponderPortalLayoutClient';
-import { WorkspaceDispatcher } from '../_dispatcher/WorkspaceDispatcher';
+import { Alert, AlertDescription, AlertTitle } from '@app/shadcn/components/ui/alert';
+import { AlertCircle } from 'lucide-react';
+import { headers } from 'next/headers';
+import { redirect } from 'next/navigation';
+import React from 'react';
+import { WorkspaceDispatcher } from '../../_dispatcher/WorkspaceDispatcher';
 
 async function getWorkspaceByDomain(domain: string) {
     try {
@@ -39,17 +38,21 @@ export default async function CustomDomainLayout({ children }: { children: React
 
     if (!workspace?.id) {
         return (
-            <div className="flex h-screen items-center justify-center">
-                <Alert severity="error">Workspace not found or custom domain not configured properly.</Alert>
+            <div className="flex h-screen items-center justify-center p-4">
+                <Alert variant="destructive" className="max-w-md">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertTitle>Error</AlertTitle>
+                    <AlertDescription>
+                        Workspace not found or custom domain not configured properly.
+                    </AlertDescription>
+                </Alert>
             </div>
         );
     }
 
     return (
         <WorkspaceDispatcher workspace={workspace}>
-            <ResponderPortalLayoutClient workspace={workspace} hasCustomDomain={true}>
-                {children}
-            </ResponderPortalLayoutClient>
+            {children}
         </WorkspaceDispatcher>
     );
 }

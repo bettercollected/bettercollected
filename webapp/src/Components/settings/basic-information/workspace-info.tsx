@@ -16,7 +16,7 @@ import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { usePatchExistingWorkspaceMutation } from '@app/store/workspaces/api';
 import { setWorkspace } from '@app/store/workspaces/slice';
-import { TextareaAutosize } from '@mui/material';
+import { Textarea } from '@app/shadcn/components/ui/textarea';
 import { selectAuth } from '@app/store/auth/slice';
 
 export default function WorkspaceInfo({ workspace }: { workspace: WorkspaceDto }) {
@@ -97,12 +97,9 @@ export default function WorkspaceInfo({ workspace }: { workspace: WorkspaceDto }
             </div>
             <div className="flex w-full flex-col gap-2">
                 <div className="body1">{t('WORKSPACE.SETTINGS.DETAILS.DESCRIPTION')}</div>
-                <TextareaAutosize
-                    className="border-black-300 focus:shadow-input rounded focus:!border-[#B8E8FF] focus:outline-transparent focus:ring-transparent"
-                    minRows={3}
-                    style={{
-                        resize: 'none'
-                    }}
+                <Textarea
+                    className="border-black-300 focus:shadow-input rounded focus:!border-[#B8E8FF] focus:outline-transparent focus:ring-transparent resize-none"
+                    rows={3}
                     onChange={onChange}
                     value={workspaceInfo.description}
                     name="description"

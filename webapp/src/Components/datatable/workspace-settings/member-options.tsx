@@ -2,8 +2,9 @@ import React, { useState } from 'react';
 import { useTranslation } from 'next-i18next';
 import Tooltip from '@Components/Common/DataDisplay/Tooltip';
 import Delete from '@Components/Common/Icons/Common/Delete';
-import { MoreHoriz, Refresh } from '@mui/icons-material';
-import { IconButton, ListItemIcon, Menu, MenuItem, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, Divider } from '@mui/material';
+import { MoreHorizontal, RefreshCw, Loader2 } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@app/shadcn/components/ui/dropdown-menu';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@app/shadcn/components/ui/alert-dialog';
 import { useModal } from '@app/Components/modal-views/context';
 import { buttonConstant } from '@app/constants/locales/button';
 import { toolTipConstant } from '@app/constants/locales/tooltip';
@@ -20,22 +21,14 @@ interface IMemberOptionProps {
 
 export default function MemberOptions({ member, invitation }: IMemberOptionProps) {
     const { toast } = useToast();
-    const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
     const [loading, setLoading] = useState(false);
     const [openConfirmDialog, setOpenConfirmDialog] = useState(false);
     const [selectedInvitation, setSelectedInvitation] = useState<WorkspaceInvitationDto | null>(null);
-    const open = Boolean(anchorEl);
     const { t } = useTranslation();
     const { openModal } = useModal();
 
     // Use the mutation hook
     const [resendWorkspaceInvitation] = useResendWorkspaceInvitationMutation();
-
-    const handleClick = (event: React.MouseEvent<HTMLElement>, f: any) => {
-        event.preventDefault();
-        event.stopPropagation();
-        setAnchorEl(event.currentTarget);
-    };
 
     const handleResendInvitationClick = (invitation: WorkspaceInvitationDto) => {
         setSelectedInvitation(invitation);
@@ -68,123 +61,59 @@ export default function MemberOptions({ member, invitation }: IMemberOptionProps
 
     return (
         <>
-            <Tooltip title={t(toolTipConstant.Options)}>
-                <IconButton
-                    className="text-black-900 hover:bg-black-200 rounded-[4px] hover:rounded-[4px]"
-                    onClick={(e) => handleClick(e, member)}
-                    size="small"
-                    aria-controls={open ? 'forms-menu' : undefined}
-                    aria-haspopup="true"
-                    aria-expanded={open ? 'true' : undefined}
-                >
-                    <MoreHoriz />
-                </IconButton>
-            </Tooltip>
+            <AlertDialog open={openConfirmDialog} onOpenChange={setOpenConfirmDialog}>
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" className="h-8 w-8 p-0 hover:bg-black-200">
+                            <span className="sr-only">Open menu</span>
+                            <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                        {invitation && (
+                            <DropdownMenuItem
+                                onClick={() => handleResendInvitationClick(invitation)}
+                                disabled={loading}
+                                className="cursor-pointer"
+                            >
+                                {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4 text-blue-600" />}
+                                <span className={loading ? "text-gray-400" : "text-blue-600"}>{t(buttonConstant.resendInvitation)}</span>
+                            </DropdownMenuItem>
+                        )}
+                        <DropdownMenuItem
+                            onClick={() => {
+                                if (member) {
+                                    openModal('DELETE_MEMBER', { member });
+                                } else {
+                                    openModal('DELETE_INVITATION', { invitation });
+                                }
+                            }}
+                            className="cursor-pointer text-red-500 hover:text-red-500 focus:text-red-500"
+                        >
+                            <Delete className="mr-2 h-4 w-4 text-red-500" />
+                            <span>{t(member ? buttonConstant.deleteMember : buttonConstant.removeInvitation)}</span>
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
 
-            <Menu
-                anchorEl={anchorEl}
-                id="forms-menu"
-                open={open}
-                onClose={() => setAnchorEl(null)}
-                onClick={() => setAnchorEl(null)}
-                disableScrollLock={true}
-                PaperProps={{
-                    elevation: 0,
-                    sx: {
-                        width: 230,
-                        overflow: 'hidden',
-                        borderRadius: 1,
-                        filter: 'drop-shadow(0px 0px 15px rgba(0,0,0,0.15))',
-                        mt: 1.5,
-                        '& .MuiAvatar-root': {
-                            width: 32,
-                            height: 32,
-                            ml: -0.5,
-                            mr: 2,
-                            borderRadius: 1
-                        },
-                        '&:before': {
-                            content: '""',
-                            display: 'block',
-                            position: 'absolute',
-                            top: 0,
-                            right: 14,
-                            width: 10,
-                            height: 10,
-                            bgcolor: 'background.paper',
-                            transform: 'translateY(-50%) rotate(45deg)',
-                            zIndex: 0
-                        }
-                    }
-                }}
-                transformOrigin={{ horizontal: 'right', vertical: 'top' }}
-                anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
-            >
-                {invitation && (
-                    <MenuItem
-                        onClick={() => handleResendInvitationClick(invitation)}
-                        sx={{ paddingX: '20px', paddingY: '10px', height: '36px' }}
-                        className={`body4 ${loading ? 'cursor-not-allowed text-gray-400' : 'text-blue-600 hover:bg-blue-100'}`}
-                        style={{ fontSize: '14px' }}
-                        disabled={loading}
-                    >
-                        <ListItemIcon>{loading ? <CircularProgress size={24} /> : <Refresh className={`text-blue-600`} />}</ListItemIcon>
-                        <span>{t(buttonConstant.resendInvitation)}</span>
-                    </MenuItem>
-                )}
-
-                <MenuItem
-                    onClick={() => {
-                        if (member) {
-                            openModal('DELETE_MEMBER', { member });
-                        } else {
-                            openModal('DELETE_INVITATION', { invitation });
-                        }
-                    }}
-                    sx={{ paddingX: '20px', paddingY: '10px', height: '36px' }}
-                    className="body4 !text-red-500 hover:bg-red-100"
-                >
-                    <ListItemIcon>
-                        <Delete className="text-red-500" width={20} height={20} />
-                    </ListItemIcon>
-                    <span>{t(member ? buttonConstant.deleteMember : buttonConstant.removeInvitation)}</span>
-                </MenuItem>
-            </Menu>
-
-            {/* Confirmation Dialog */}
-            <Dialog
-                open={openConfirmDialog}
-                onClose={handleCloseConfirmDialog}
-                aria-labelledby="confirm-dialog-title"
-                PaperProps={{
-                    sx: {
-                        borderRadius: 2
-                    }
-                }}
-            >
-                <DialogTitle id="confirm-dialog-title" sx={{ borderBottom: '1px solid #ddd', paddingBottom: 2 }}>
-                    {t('Are you sure?')}
-                </DialogTitle>
-                <Divider sx={{ marginY: 0 }} />
-                <DialogContent sx={{ paddingTop: 2 }}>{t('Do you really want to resend the invitation?')}</DialogContent>
-
-                <DialogActions sx={{ display: 'flex', justifyContent: 'center', gap: 2, paddingY: 3 }}>
-                    <Button
-                        onClick={handleCloseConfirmDialog}
-                        className="bg-[#4D4D4D] text-white hover:bg-[#1D1D1D] text-sm py-[10px] px-[20px] min-w-[120px]"
-                    >
-                        {t('No')}
-                    </Button>
-                    <Button
-                        onClick={handleConfirmResendInvitation}
-                        className="bg-[#007BFF] text-white hover:bg-[#0055ff] text-sm py-[10px] px-[20px] min-w-[120px] relative"
-                        disabled={loading}
-                        autoFocus
-                    >
-                        {loading ? <CircularProgress size={20} sx={{ color: 'white' }} /> : t('Yes')}
-                    </Button>
-                </DialogActions>
-            </Dialog>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>{t('Are you sure?')}</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            {t('Do you really want to resend the invitation?')}
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel disabled={loading} onClick={handleCloseConfirmDialog}>{t('No')}</AlertDialogCancel>
+                        <AlertDialogAction disabled={loading} onClick={(e) => {
+                            e.preventDefault();
+                            handleConfirmResendInvitation();
+                        }}>
+                            {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : t('Yes')}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </>
     );
 }

@@ -25,7 +25,6 @@ export default async function RootPage() {
 
     if (hasCustomDomain) {
         const workspace = await getWorkspaceByDomain(host);
-        console.log('Workspace fetched for custom domain:', workspace);
 
         if (!workspace?.id) {
             notFound();

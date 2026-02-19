@@ -8,7 +8,6 @@ import { useTranslation } from 'react-i18next';
 
 import MembersIcon from '@Components/Common/Icons/Dashboard/Members';
 import { FormIcon } from '@Components/Common/Icons/Form/FormIcon';
-import { Groups } from '@mui/icons-material';
 
 import { groupConstant } from '@app/constants/locales/group';
 import { members } from '@app/constants/locales/members';
@@ -19,6 +18,7 @@ import { useGetRespondersGroupQuery } from '@app/store/workspaces/api';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import Loader from '@app/Components/ui/loader';
+import { Users } from 'lucide-react';
 
 interface GroupPreviewLayoutClientProps {
     children: React.ReactNode;
@@ -53,7 +53,7 @@ export default function GroupPreviewLayoutClient({ children, workspaceName, grou
 
     const tabs = [
         {
-            icon: <Groups className="w-5 h-5" />,
+            icon: <Users className="w-5 h-5" />,
             title: t(groupConstant.details),
             path: 'details'
         },

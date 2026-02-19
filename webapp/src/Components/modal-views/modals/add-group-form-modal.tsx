@@ -4,8 +4,9 @@ import { useTranslation } from 'next-i18next';
 
 import Tooltip from '@Components/Common/DataDisplay/Tooltip';
 import { Button } from '@app/shadcn/components/ui/button';
-import { CheckCircle } from '@mui/icons-material';
-import { Autocomplete, Box, createFilterOptions, TextField } from '@mui/material';
+import { Check, CheckCircle, ChevronsUpDown } from "lucide-react"
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@app/shadcn/components/ui/command"
+import { Popover, PopoverContent, PopoverTrigger } from "@app/shadcn/components/ui/popover"
 import cn from 'classnames';
 
 import { Close } from '@app/Components/icons/close';
@@ -29,6 +30,7 @@ export default function AddGroupOnForm({ responderGroups, form }: IAddGroupOnFor
     const { closeModal } = useModal();
     const { t } = useTranslation();
     const [selectedGroup, setSelectedGroup] = useState<ResponderGroupDto | null>(null);
+    const [open, setOpen] = useState(false);
     const { addFormOnGroup } = useGroupForm();
     const workspace = useAppSelector(selectWorkspace);
     const handleAddForm = () => {
@@ -46,47 +48,53 @@ export default function AddGroupOnForm({ responderGroups, form }: IAddGroupOnFor
             <h4 className="h4">{t(formConstant.addgroup.title, { form: form.title })}</h4>
             <p className="body4 !text-black-700 mb-8  mt-2">{t(formConstant.addgroup.description)}</p>
             {responderGroups && (
-                <Autocomplete
-                    disablePortal
-                    id="form_list"
-                    className="mb-6 mt-5 bg-white"
-                    fullWidth
-                    onChange={(e, value) => setSelectedGroup(value)}
-                    value={selectedGroup}
-                    filterOptions={createFilterOptions({
-                        matchFrom: 'start',
-                        stringify: (option: ResponderGroupDto) => option.name
-                    })}
-                    isOptionEqualToValue={(option: ResponderGroupDto, value: ResponderGroupDto) => option.name === value.name}
-                    getOptionLabel={(option: ResponderGroupDto) => option.name}
-                    options={responderGroups}
-                    sx={{ width: '100%' }}
-                    renderOption={(props, option: ResponderGroupDto) => {
-                        return (
-                            <Tooltip
-                                title={
-                                    isFormAlreadyInGroup(form.groups, option.id)
-                                        ? t(toolTipConstant.formIsAlreadyOnGroup, {
-                                            form: form.title,
-                                            group: option.name
-                                        })
-                                        : ''
-                                }
-                                key={option.id}
+                <div className="mb-6 mt-5">
+                    <Popover open={open} onOpenChange={setOpen}>
+                        <PopoverTrigger asChild>
+                            <Button
+                                variant="secondary"
+                                role="combobox"
+                                aria-expanded={open}
+                                className={cn("w-full justify-between font-normal", !selectedGroup && "text-muted-foreground")}
                             >
-                                <div>
-                                    <Box component="li" {...props} className={cn(' MuiAutocomplete-option !py-2', isFormAlreadyInGroup(form.groups, option.id) && 'pointer-events-none cursor-not-allowed opacity-30')}>
-                                        <div className="flex w-full items-center justify-between">
-                                            {option.name}
-                                            {isFormAlreadyInGroup(form.groups, option.id) && <CheckCircle className="h-6 w-6" />}
-                                        </div>
-                                    </Box>
-                                </div>
-                            </Tooltip>
-                        );
-                    }}
-                    renderInput={(params) => <TextField {...params} label={t(formConstant.addgroup.label)} />}
-                />
+                                {selectedGroup ? selectedGroup.name : t(formConstant.addgroup.label)}
+                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                            </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[570px] p-0" align="start">
+                            <Command>
+                                <CommandInput placeholder={t(formConstant.addgroup.label)} />
+                                <CommandList>
+                                    <CommandEmpty>No group found.</CommandEmpty>
+                                    <CommandGroup>
+                                        {responderGroups.map((group) => (
+                                            <CommandItem
+                                                key={group.id}
+                                                value={group.name}
+                                                onSelect={() => {
+                                                    if (isFormAlreadyInGroup(form.groups, group.id)) return;
+                                                    setSelectedGroup(group)
+                                                    setOpen(false)
+                                                }}
+                                                disabled={isFormAlreadyInGroup(form.groups, group.id)}
+                                                className={cn(isFormAlreadyInGroup(form.groups, group.id) && "opacity-50 cursor-not-allowed pointer-events-none")}
+                                            >
+                                                <Check
+                                                    className={cn(
+                                                        "mr-2 h-4 w-4",
+                                                        selectedGroup?.id === group.id ? "opacity-100" : "opacity-0"
+                                                    )}
+                                                />
+                                                {group.name}
+                                                {isFormAlreadyInGroup(form.groups, group.id) && <CheckCircle className="ml-auto h-4 w-4" />}
+                                            </CommandItem>
+                                        ))}
+                                    </CommandGroup>
+                                </CommandList>
+                            </Command>
+                        </PopoverContent>
+                    </Popover>
+                </div>
             )}
 
             <div className="flex justify-end">

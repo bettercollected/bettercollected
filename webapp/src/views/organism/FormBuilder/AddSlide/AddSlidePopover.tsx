@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import { Divider } from '@mui/material';
+import { Separator } from '@app/shadcn/components/ui/separator';
 import { AnimatePresence, motion } from 'framer-motion';
 
 import { Popover, PopoverContent, PopoverTrigger } from '@app/shadcn/components/ui/popover';
@@ -47,7 +47,7 @@ export default function AddSlidePopover() {
                                             <TabsTrigger value="layout">Layout</TabsTrigger>
                                             <TabsTrigger value="template">Template</TabsTrigger>
                                         </TabsList>
-                                        <Divider />
+                                        <Separator />
                                         <TabsContent value="layout" className="p-4 !pr-0">
                                             <LayoutsTab closePopover={closePopover} />
                                         </TabsContent>

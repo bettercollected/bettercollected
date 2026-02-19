@@ -23,7 +23,7 @@ import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { NewBetterCollectedSmallLogo } from '@app/views/atoms/Icons/BetterCollectedSmallLogo';
 import { LogicOutlinedIcon } from '@app/views/atoms/Icons/LogicOutlinedIcon';
-import { TextareaAutosize } from '@mui/material';
+import { Textarea } from '@app/shadcn/components/ui/textarea';
 import { useState } from 'react';
 import PlayIcon from '../atoms/Icons/PlayIcon';
 import { PlusOutlined } from '../atoms/Icons/PlusOutlined';
@@ -107,15 +107,14 @@ const Navbar = () => {
                 >
                     <NewBetterCollectedSmallLogo width={17} height={19} />
                 </div>
-                <TextareaAutosize
-                    maxRows={2}
-                    style={{ resize: 'none' }}
+                <Textarea
+                    rows={1}
                     placeholder="Form Title"
                     value={formState.title}
                     onChange={(event) => {
                         setFormTitle(event.target.value);
                     }}
-                    className="w-full overflow-clip text-ellipsis border-0"
+                    className="w-full overflow-clip text-ellipsis border-0 resize-none"
                 />
             </div>
             {activeSlideComponent && activeSlideComponent.index >= 0 && (

@@ -3,7 +3,6 @@ import React from 'react';
 import { useTranslation } from 'next-i18next';
 
 import Plus from '@Components/Common/Icons/Common/Plus';
-import { Typography } from '@mui/material';
 
 import { Button } from '@app/shadcn/components/ui/button';
 import { useModal } from '@app/Components/modal-views/context';
@@ -50,9 +49,9 @@ export default function RegexCard({ handleRegex, regex }: IRegexCardProps) {
                     <>
                         <p className="body1 mt-7 mb-3">{t(localesCommon.added)}</p>
                         <div className="px-2 py-3 border-2 border-black-400  rounded flex items-center justify-between md:w-[400px] body4">
-                            <Typography noWrap className="!text-black-800">
+                            <p className="!text-black-800 truncate">
                                 {regex}
-                            </Typography>
+                            </p>
                             {isAdmin && (
                                 <span onClick={() => handleRegex(regex, handleRegexType.REMOVE)} className="text-red-500 cursor-pointer">
                                     {t(localesCommon.remove)}

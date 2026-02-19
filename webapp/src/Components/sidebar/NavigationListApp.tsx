@@ -1,15 +1,15 @@
-'use client';
-
 import React, { useEffect } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
-import { List, ListItem, ListItemButton, ListItemIcon, SxProps, Theme } from '@mui/material';
+
+import { usePathname, useRouter } from 'next/navigation';
+
 import { INavbarItem } from '@app/models/props/navbar';
 import { isValidRelativeURL } from '@app/utils/urlUtils';
+import { cn } from '@app/shadcn/util/lib';
 
 interface INavigationListProps {
     navigationList: Array<INavbarItem>;
     className?: string;
-    sx?: SxProps<Theme>;
+    sx?: any;
 }
 
 export default function NavigationListApp({ navigationList, className = '', sx = {} }: INavigationListProps) {
@@ -23,33 +23,34 @@ export default function NavigationListApp({ navigationList, className = '', sx =
     }, [navigationList, router]);
 
     return (
-        <List disablePadding sx={sx} className={className}>
+        <ul className={cn("flex flex-col gap-1 p-0 m-0 list-none", className)}>
             {navigationList?.map((element) => {
-                const active = element.url === pathname;
+                const active = element.url == pathname;
                 return (
-                    <div key={element.key} className={`body4 mt-1 rounded-lg ${active ? 'bg-black-200 !text-black-800' : 'text-black-600 hover:bg-black-100'}`}>
-                        <ListItem
-                            disablePadding
-                            onClick={() => {
-                                if (element.onClick) {
-                                    element.onClick();
-                                } else {
-                                    router.push(element.url);
-                                }
-                            }}
-                        >
-                            <ListItemButton sx={{ paddingY: '8px', paddingX: '20px' }} className={`hover:!bg-transparent`}>
-                                {element.icon && (
-                                    <ListItemIcon sx={{ minWidth: '36px' }} className={`${active ? 'text-black-800' : 'text-black-600'}`}>
-                                        {element?.icon}
-                                    </ListItemIcon>
-                                )}
-                                <div className="text-sm"> {element.name}</div>
-                            </ListItemButton>
-                        </ListItem>
-                    </div>
+                    <li key={element.key}
+                        className={cn(
+                            "cursor-pointer rounded-lg text-sm transition-colors",
+                            active ? "bg-slate-100 text-slate-900 font-medium" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                        )}
+                        onClick={() => {
+                            if (element.onClick) {
+                                element.onClick();
+                            } else if (isValidRelativeURL(element.url)) {
+                                router.push(element.url);
+                            }
+                        }}
+                    >
+                        <div className="flex items-center px-4 py-2 w-full">
+                            {element.icon && (
+                                <span className={cn("mr-3 flex h-5 w-5 items-center justify-center", active ? "text-slate-900" : "text-slate-500")}>
+                                    {element?.icon}
+                                </span>
+                            )}
+                            <span className="truncate">{element.name}</span>
+                        </div>
+                    </li>
                 );
             })}
-        </List>
+        </ul>
     );
 }

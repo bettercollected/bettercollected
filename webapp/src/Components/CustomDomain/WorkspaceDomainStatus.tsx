@@ -29,7 +29,6 @@ const WorkspaceDomainStatus = () => {
 
     useEffect(() => {
         if (data?.domain_verified && data?.txt_verified) {
-            console.log(pathname);
             router.push(pathname || '');
         }
     }, [data]);

@@ -5,7 +5,7 @@ import Image from "next/legacy/image";
 
 import OtpCodeForm from '@app/app/(auth)/_components/otp-code-form';
 import OtpEmailForm from '@app/app/(auth)/_components/otp-email-form';
-import { Check } from '@mui/icons-material';
+import { Check } from 'lucide-react';
 
 import ImageWorkspacePreview from '@app/assets/images/workspace-preview1.png';
 import Logo from '@app/Components/ui/logo';

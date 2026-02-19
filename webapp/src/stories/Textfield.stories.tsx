@@ -51,9 +51,4 @@ export const TextFieldWithIcon: Story = {
     }
 };
 
-export const FocusedTextField: Story = {
-    args: {
-        focused: true,
-        placeholder: 'Focused TextField'
-    }
-};
+

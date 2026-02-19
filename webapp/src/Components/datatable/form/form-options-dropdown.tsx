@@ -10,7 +10,7 @@ import EllipsisOption from '@Components/Common/Icons/Common/EllipsisOption';
 import AddMember from '@Components/Common/Icons/Dashboard/Add-member';
 import Eye from '@Components/Common/Icons/Form/Eye';
 import Pin from '@Components/Common/Icons/Form/Pin';
-import { QrCode } from '@mui/icons-material';
+import { QrCode } from 'lucide-react';
 
 import { LinkIcon } from '@app/Components/icons/link-icon';
 import { useModal } from '@app/Components/modal-views/context';
@@ -205,7 +205,7 @@ export default function FormOptionsDropdownMenu({ workspace, form, hasCustomDoma
             }}
         >
             <div className="flex items-center justify-center">
-                <QrCode style={{ width: 20, height: 20 }} className={'text-black-600'} />
+                <QrCode size={20} className={'text-black-600'} />
             </div>
             Generate QR
         </li>

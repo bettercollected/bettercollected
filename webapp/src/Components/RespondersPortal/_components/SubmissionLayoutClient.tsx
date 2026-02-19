@@ -11,7 +11,7 @@ import { DotIcon } from '@Components/Common/Icons/Common/DotIcon';
 import SettingsIcon from '@Components/Common/Icons/Common/Settings';
 import FormProviderIcon from '@Components/Common/Icons/Form/FormProviderIcon';
 import Preview from '@Components/Common/Icons/Form/Preview';
-import { ChevronLeft } from '@mui/icons-material';
+import { ChevronLeft } from 'lucide-react';
 
 import { localesCommon } from '@app/constants/locales/common';
 import Layout from '@app/layouts/_layout';

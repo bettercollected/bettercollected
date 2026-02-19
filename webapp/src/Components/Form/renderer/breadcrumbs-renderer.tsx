@@ -1,6 +1,6 @@
 import React from 'react';
 
-import { ChevronRight } from '@mui/icons-material';
+import { ChevronRight } from 'lucide-react';
 
 import { BreadcrumbsItem } from '@app/models/props/breadcrumbs-item';
 
