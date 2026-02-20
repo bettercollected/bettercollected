@@ -1,11 +1,10 @@
 'use client';
 
-import React from 'react';
 import { Menu } from 'lucide-react';
 
 import AuthAccountMenuDropdown from '@app/Components/auth/account-menu-dropdown';
-import LogoApp from '@app/Components/ui/LogoApp';
 import { Button } from '@app/shadcn/components/ui/button';
+import Logo from '@Components/ui/logo';
 
 export default function AuthNavbarApp({ handleDrawerToggle }: any) {
     return (
@@ -20,7 +19,7 @@ export default function AuthNavbarApp({ handleDrawerToggle }: any) {
                     <Menu className="h-6 w-6" />
                     <span className="sr-only">Open menu</span>
                 </Button>
-                <LogoApp isCustomDomain={false} isFooter={false} isClientDomain={false} />
+                <Logo isCustomDomain={false} isFooter={false} isClientDomain={false} />
             </div>
             <div className="flex items-center gap-4">
                 <AuthAccountMenuDropdown hideMenu={false} isClientDomain={false} />

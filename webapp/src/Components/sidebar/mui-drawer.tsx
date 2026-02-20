@@ -1,6 +1,9 @@
+"use client";
 
 import { Sheet, SheetContent } from '@app/shadcn/components/ui/sheet';
 import { cn } from '@app/shadcn/util/lib';
+import { usePathname } from 'next/navigation';
+import { useEffect } from 'react';
 
 interface IMuiDrawerProps {
     drawerWidth?: number;
@@ -14,18 +17,23 @@ interface IMuiDrawerProps {
 
 export default function MuiDrawer({ drawerWidth = 289, mobileOpen, children, handleDrawerToggle, anchor = 'left' }: IMuiDrawerProps) {
 
+    const pathname = usePathname();
+
+    useEffect(() => {
+        handleDrawerToggle();
+    }, [pathname])
+
     return (
         <>
             {/* Mobile drawer (Sheet) - Visible on small screens, hidden on large */}
             <div className="lg:hidden">
-                <Sheet open={mobileOpen} onOpenChange={(open) => !open && handleDrawerToggle()}>
-                    <SheetContent side={anchor === 'right' ? 'right' : 'left'} className="p-0 bg-white border-r border-r-black-200" style={{ width: drawerWidth, maxWidth: '100vw' }}>
+                <Sheet open={mobileOpen} onOpenChange={(open) => !open && handleDrawerToggle()} >
+                    <SheetContent hideCloseIcon side={anchor === 'right' ? 'right' : 'left'} className="p-0 bg-white border-r border-r-black-200 z-[9999999999]" style={{ width: drawerWidth, maxWidth: '100vw' }}>
                         {children}
                     </SheetContent>
                 </Sheet>
             </div>
 
-            {/* Desktop drawer (Permanent) - Hidden on small screens, visible on large */}
             <div
                 className={cn(
                     "hidden lg:block fixed top-0 h-full bg-white shrink-0 scrollbar-hide py-3",
