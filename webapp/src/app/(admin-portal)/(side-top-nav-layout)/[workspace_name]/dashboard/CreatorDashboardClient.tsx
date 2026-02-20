@@ -1,7 +1,7 @@
 'use client';
 
-import { useTranslation } from 'react-i18next';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
+import { useTranslation } from 'react-i18next';
 
 import { useBottomSheetModal } from '@Components/Modals/Contexts/BottomSheetModalContext';
 import WorkspaceDetailsCard from '@Components/RespondersPortal/WorkspaceDetailsCard';
@@ -30,7 +30,7 @@ export default function CreatorDashboardClient({ hasCustomDomain }: { hasCustomD
     const pinnedForms = pinnedFormsResponse?.data?.items || [];
 
     return (
-        <div className="flex flex-col md:flex-row p-6 gap-4">
+        <div className="flex flex-col md:flex-row gap-4">
             <div className="relative flex flex-col gap-4 md:w-[320px] md:max-w-[320px]">
                 <div className="absolute right-4 top-4 z-[50] bg-white/30">
                     <EditIcon

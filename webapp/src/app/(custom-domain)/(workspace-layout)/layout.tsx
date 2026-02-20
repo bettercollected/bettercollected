@@ -1,6 +1,6 @@
 import environments from '@app/configs/environments';
-import ResponderPortalLayoutClient from '@Components/RespondersPortal/_components/ResponderPortalLayoutClient';
 import { Alert, AlertDescription, AlertTitle } from '@app/shadcn/components/ui/alert';
+import ResponderPortalLayoutClient from '@Components/RespondersPortal/_components/ResponderPortalLayoutClient';
 import { AlertCircle } from 'lucide-react';
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
@@ -53,7 +53,7 @@ export default async function CustomDomainLayout({ children }: { children: React
 
     return (
         <WorkspaceDispatcher workspace={workspace}>
-            <ResponderPortalLayoutClient workspace={workspace} hasCustomDomain={true}>
+            <ResponderPortalLayoutClient hasCustomDomain={true}>
                 {children}
             </ResponderPortalLayoutClient>
         </WorkspaceDispatcher>

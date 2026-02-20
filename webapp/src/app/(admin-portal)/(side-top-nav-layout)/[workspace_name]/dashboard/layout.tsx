@@ -1,7 +1,7 @@
-import React from 'react';
+import environments from '@app/configs/environments';
 import { cookies, headers } from 'next/headers';
 import { notFound, redirect } from 'next/navigation';
-import environments from '@app/configs/environments';
+import React from 'react';
 import WorkspaceDashboardLayout from "./_components/WorkspaceDashboardLayout";
 
 export async function getWorkspaceByName(name: string) {
@@ -45,8 +45,7 @@ async function getAuthUser(cookieHeader: string) {
     }
 }
 
-export default async function DashboardLayout({ children, params }: { children: React.ReactNode; params: Promise<{ workspace_name: string }> }) {
-    const { workspace_name } = await params;
+export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
     const cookieStore = await cookies();
     const headerList = await headers();
 

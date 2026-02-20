@@ -1,53 +1,50 @@
 'use client';
 
+import cn from 'classnames';
+import Link from 'next/link';
+import { usePathname, useRouter } from 'next/navigation';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import Link from 'next/link';
-import cn from 'classnames';
 
 import Divider from '@Components/Common/DataDisplay/Divider';
 import { Button } from '@app/shadcn/components/ui/button';
 import { Disclosure } from '@headlessui/react';
 
+import { FormIcon } from '@Components/Common/Icons/Form/FormIcon';
+import WorkspaceDetailsCard from '@Components/RespondersPortal/WorkspaceDetailsCard';
 import AuthAccountProfileImage from '@app/Components/auth/account-profile-image';
 import { ChevronDown } from '@app/Components/icons/chevron-down';
+import { HistoryIcon } from '@app/Components/icons/history';
 import { Logout } from '@app/Components/icons/logout-icon';
+import { TrashIcon } from '@app/Components/icons/trash';
 import { useModal } from '@app/Components/modal-views/context';
 import ActiveLink from '@app/Components/ui/links/active-link';
 import Logo from '@app/Components/ui/logo';
 import PoweredBy from '@app/Components/ui/powered-by';
 import environments from '@app/configs/environments';
-import { profileMenu } from '@app/constants/locales/profile-menu';
-import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
-import { useAppSelector } from '@app/store/hooks';
-import { selectAuth } from '@app/store/auth/slice';
-import { getFullNameFromUser } from '@app/utils/userUtils';
-import { FormIcon } from '@Components/Common/Icons/Form/FormIcon';
-import { HistoryIcon } from '@app/Components/icons/history';
-import { TrashIcon } from '@app/Components/icons/trash';
 import { localesCommon } from '@app/constants/locales/common';
 import { formConstant } from '@app/constants/locales/form';
-import WorkspaceDetailsCard from '@Components/RespondersPortal/WorkspaceDetailsCard';
+import { profileMenu } from '@app/constants/locales/profile-menu';
+import { selectAuth } from '@app/store/auth/slice';
+import { useAppSelector } from '@app/store/hooks';
+import { selectWorkspace } from '@app/store/workspaces/slice';
+import { getFullNameFromUser } from '@app/utils/userUtils';
 
 export default function ResponderPortalLayoutClient({
     children,
-    workspace,
     hasCustomDomain
 }: {
     children: React.ReactNode;
-    workspace: WorkspaceDto;
     hasCustomDomain: boolean;
 }) {
     const { t } = useTranslation();
     const auth = useAppSelector(selectAuth);
     const router = useRouter();
+    const workspace = useAppSelector(selectWorkspace);
     const pathname = usePathname();
-    const searchParams = useSearchParams();
     const { openModal } = useModal();
 
     const isClientDomain = typeof window !== 'undefined' && window.location.origin !== environments.ADMIN_DOMAIN;
-    const asPath = `${pathname}${searchParams?.toString() ? '?' + searchParams.toString() : ''}`;
 
     const handleLogout = () => {
         openModal('LOGOUT_VIEW', { workspace, isClientDomain });
@@ -91,7 +88,7 @@ export default function ResponderPortalLayoutClient({
                                 const params = new URLSearchParams({
                                     type: 'responder',
                                     workspace_id: workspace.id,
-                                    redirect_to: asPath
+                                    redirect_to: pathname
                                 });
                                 router.push(`/login?${params.toString()}`);
                             }}

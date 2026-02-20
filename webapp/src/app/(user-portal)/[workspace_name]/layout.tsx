@@ -1,21 +1,19 @@
-'use client';
-
-import React from 'react';
-import { useAppSelector } from '@app/store/hooks';
-import { selectWorkspace } from '@app/store/workspaces/slice';
-import ResponderPortalLayoutClient from '@Components/RespondersPortal/_components/ResponderPortalLayoutClient';
+import { getWorkspaceByName } from '@app/app/(admin-portal)/(side-top-nav-layout)/[workspace_name]/dashboard/layout';
 import { WorkspaceDispatcher } from '@app/app/_dispatcher/WorkspaceDispatcher';
+import ResponderPortalLayoutClient from '@Components/RespondersPortal/_components/ResponderPortalLayoutClient';
+import React from 'react';
 
-export default function ResponderPortalLayout({
-    children
+export default async function ResponderPortalLayout({
+    children, params
 }: {
-    children: React.ReactNode
+    children: React.ReactNode,
+    params: Promise<{ workspace_name: string }>
 }) {
-    const workspace = useAppSelector(selectWorkspace);
-
+    const { workspace_name } = await params;
+    const workspace = await getWorkspaceByName(workspace_name);
     return (
         <WorkspaceDispatcher workspace={workspace}>
-            <ResponderPortalLayoutClient workspace={workspace} hasCustomDomain={false}>
+            <ResponderPortalLayoutClient hasCustomDomain={false}>
                 {children}
             </ResponderPortalLayoutClient>
         </WorkspaceDispatcher>

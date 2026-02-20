@@ -1,10 +1,8 @@
-import React from 'react';
+import environments from '@app/configs/environments';
 import { cookies, headers } from 'next/headers';
 import { notFound, redirect } from 'next/navigation';
-import environments from '@app/configs/environments';
-import ServerSideWorkspaceDispatcher from '@app/Components/HOCs/ServerSideWorkspaceDispatcher';
-import { getWorkspaceByName } from './layout';
 import CreatorDashboardClient from './CreatorDashboardClient';
+import { getWorkspaceByName } from './layout';
 
 export default async function CreatorDashboardPage({ params }: { params: Promise<{ workspace_name: string }> }) {
     const { workspace_name } = await params;
@@ -19,7 +17,7 @@ export default async function CreatorDashboardPage({ params }: { params: Promise
         redirect('/');
     }
 
-    const auth = (await cookieStore.get('Authorization'))?.value;
+    const auth = (cookieStore.get('Authorization'))?.value;
     const workspace = await getWorkspaceByName(workspace_name);
 
     if (!workspace?.id) {
@@ -32,8 +30,6 @@ export default async function CreatorDashboardPage({ params }: { params: Promise
     }
 
     return (
-        <ServerSideWorkspaceDispatcher workspace={workspace}>
-            <CreatorDashboardClient hasCustomDomain={!hasAdminDomain} />
-        </ServerSideWorkspaceDispatcher>
+        <CreatorDashboardClient hasCustomDomain={!hasAdminDomain} />
     );
 }
