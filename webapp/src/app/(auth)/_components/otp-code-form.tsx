@@ -2,17 +2,17 @@
 
 import React, { Dispatch, SetStateAction, useEffect, useState } from 'react';
 
-import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'next/navigation';
+import { useTranslation } from 'react-i18next';
 
-import { Input } from '@app/shadcn/components/ui/input';
 import { Button } from '@app/shadcn/components/ui/button';
+import { Input } from '@app/shadcn/components/ui/input';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 
 import { useFullScreenModal } from '@app/Components/modal-views/full-screen-modal-context';
 import { formResponderLogin } from '@app/constants/locales/form-responder-login';
 import { signInScreen } from '@app/constants/locales/signin-screen';
-import { usePostSendOtpForCreatorMutation, usePostVerifyOtpMutation } from '@app/store/auth/api';
+import { usePostSendOtpMutation, usePostVerifyOtpMutation } from '@app/store/auth/api';
 
 interface OtpCodeFormProps {
     email: string;
@@ -36,9 +36,10 @@ export default function OtpCodeForm({ email, isModal, setEmail: setParentEmail }
     }, [counter]);
 
     const [postVerifyOtp, { isLoading }] = usePostVerifyOtpMutation();
-    const [postSendOtpForCreator] = usePostSendOtpForCreatorMutation();
+    const [postSendOtp] = usePostSendOtpMutation();
     const searchParams = useSearchParams();
     const fromProPlan = searchParams?.get('fromProPlan');
+    const workspace_id = searchParams?.get('workspace_id');
 
     const constants = {
         otpVerificationSuccess: t(formResponderLogin.verificationSuccessMessage),
@@ -55,7 +56,7 @@ export default function OtpCodeForm({ email, isModal, setEmail: setParentEmail }
 
         const data = {
             body: { email, otp_code: otp },
-            params: { prospective_pro_user: fromProPlan! }
+            params: { prospective_pro_user: Boolean(fromProPlan) }
         };
         const res = await postVerifyOtp(data);
 
@@ -72,7 +73,7 @@ export default function OtpCodeForm({ email, isModal, setEmail: setParentEmail }
     };
 
     const resendOtpCode = async () => {
-        const res = await postSendOtpForCreator({ receiver_email: email });
+        const res = await postSendOtp({ receiver_email: email, workspace_id: workspace_id || "" });
         if ('data' in res && !!res.data) {
             setCounter(60);
         }

@@ -19,7 +19,7 @@ const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
     title: 'BetterCollected',
-    description: 'Bettercollected V2 formBuilder'
+    description: 'Bettercollected formBuilder'
 };
 
 export default function RootLayout({

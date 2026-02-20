@@ -1,11 +1,15 @@
 import environments from '@app/configs/environments';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { isRedirectError } from 'next/dist/client/components/redirect-error';
-import { cookies } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import LoginView from '../_components/login-view';
 
-export default async function LoginPage() {
+export default async function LoginPage({ searchParams }: { searchParams: { redirect_to?: string; type?: string; workspace_id?: string } }) {
+
+    const headerList = await headers();
+    const host = headerList.get('x-forwarded-host') || headerList.get('host') || '';
+
     const cookieStore = await cookies();
     const authCookie = cookieStore.get('Authorization');
     const refreshCookie = cookieStore.get('RefreshToken');
@@ -21,28 +25,34 @@ export default async function LoginPage() {
         });
 
         if (userStatus.ok) {
-            const user = await userStatus.json();
-            if (user?.roles?.includes('FORM_CREATOR')) {
-                const userWorkspaceResponse = await fetch(`${environments.INTERNAL_DOCKER_API_ENDPOINT_HOST}/workspaces/mine`, {
-                    method: 'GET',
-                    headers: {
-                        cookie: cookieHeader
-                    },
-                    cache: 'no-store'
-                });
+            if (host === environments.ADMIN_DOMAIN) {
+                const user = await userStatus.json();
+                if (user?.roles?.includes('FORM_CREATOR')) {
+                    const userWorkspaceResponse = await fetch(`${environments.INTERNAL_DOCKER_API_ENDPOINT_HOST}/workspaces/mine`, {
+                        method: 'GET',
+                        headers: {
+                            cookie: cookieHeader
+                        },
+                        cache: 'no-store'
+                    });
 
-                if (userWorkspaceResponse.ok) {
-                    const userWorkspaces = await userWorkspaceResponse.json();
-                    const defaultWorkspace = (userWorkspaces as WorkspaceDto[]).find((w) => w.ownerId === user.id && w.default);
-                    const redirectWorkspace = defaultWorkspace || (userWorkspaces as WorkspaceDto[])[0];
+                    if (userWorkspaceResponse.ok) {
+                        const userWorkspaces = await userWorkspaceResponse.json();
+                        const defaultWorkspace = (userWorkspaces as WorkspaceDto[]).find((w) => w.ownerId === user.id && w.default);
+                        const redirectWorkspace = defaultWorkspace || (userWorkspaces as WorkspaceDto[])[0];
 
-                    if (redirectWorkspace) {
-                        if (!redirectWorkspace.title || redirectWorkspace.title === '' || redirectWorkspace.title.toLowerCase() === 'untitled') {
-                            return redirect(`/${redirectWorkspace.workspaceName}/onboarding`);
+                        if (redirectWorkspace) {
+                            if (!redirectWorkspace.title || redirectWorkspace.title === '' || redirectWorkspace.title.toLowerCase() === 'untitled') {
+                                return redirect(`/${redirectWorkspace.workspaceName}/onboarding`);
+                            }
+                            return redirect(`/${redirectWorkspace.workspaceName}/dashboard/forms`);
                         }
-                        return redirect(`/${redirectWorkspace.workspaceName}/dashboard/forms`);
                     }
                 }
+            } else {
+                const { redirect_to } = await searchParams;
+                if (redirect_to)
+                    redirect(redirect_to);
             }
         }
     } catch (e) {

@@ -42,14 +42,6 @@ export const authApi = createApi({
             }),
             invalidatesTags: [AUTH_OTP_TAGS]
         }),
-        postSendOtpForCreator: builder.mutation<any, { receiver_email: string }>({
-            query: (body) => ({
-                url: `/auth/creator/otp/send`,
-                method: 'POST',
-                params: { receiver_email: body.receiver_email }
-            }),
-            invalidatesTags: [AUTH_OTP_TAGS]
-        }),
         postVerifyOtp: builder.mutation<any, VerifyOtp>({
             query: (data) => ({
                 url: '/auth/otp/validate',
@@ -76,4 +68,4 @@ export const authApi = createApi({
     })
 });
 
-export const { useGetStatusQuery, useDeleteAccountMutation, useLazyGetStatusQuery, usePostSendOtpMutation, usePostSendOtpForCreatorMutation, usePostVerifyOtpMutation, useLogoutMutation, useRefreshTokenMutation } = authApi;
+export const { useGetStatusQuery, useDeleteAccountMutation, useLazyGetStatusQuery, usePostSendOtpMutation, usePostVerifyOtpMutation, useLogoutMutation, useRefreshTokenMutation } = authApi;

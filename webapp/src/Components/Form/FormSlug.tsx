@@ -75,7 +75,7 @@ export const FormSlug = ({ customSlug, link, onSave }: IFormSlugProps) => {
                     {' '}
                     {link}/<span className={'text-pink-500'}>{slug}</span>
                 </p>
-                <AppInput value={slug} onChange={(event) => handleOnchange(event)} />
+                <AppInput value={slug} onChange={(event) => handleOnchange(event)} className="w-full" />
                 {!slug.match(slugRegex) && isError && <p className="body4 !text-red-500 h-[10px]">{t(validationMessage.slug)}</p>}
             </div>
             <Button type={'submit'} onClick={handleUpdate} isLoading={isLoading} className={'w-[130px]'} variant="secondary">

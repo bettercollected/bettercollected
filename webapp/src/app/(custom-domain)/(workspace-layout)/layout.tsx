@@ -27,9 +27,6 @@ export default async function CustomDomainLayout({ children }: { children: React
 
     const hasCustomDomain = host !== environments.ADMIN_DOMAIN && host !== environments.CLIENT_DOMAIN && !host.includes(environments.ADMIN_DOMAIN);
 
-    // If not custom domain (e.g. localhost), we usually don't support these routes unless we map localhost to a custom domain.
-    // For development, we assume localhost is admin domain usually.
-
     if (!hasCustomDomain) {
         // Redirect to login if accessed directly on admin domain
         redirect('/login');

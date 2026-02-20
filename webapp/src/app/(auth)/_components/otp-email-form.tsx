@@ -2,11 +2,11 @@
 
 import React, { Dispatch, SetStateAction, useState } from 'react';
 
-import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'next/navigation';
+import { useTranslation } from 'react-i18next';
 
-import { Input } from '@app/shadcn/components/ui/input';
 import { Button } from '@app/shadcn/components/ui/button';
+import { Input } from '@app/shadcn/components/ui/input';
 import { Separator } from '@app/shadcn/components/ui/separator';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 
@@ -15,7 +15,7 @@ import environments from '@app/configs/environments';
 import { formResponderLogin } from '@app/constants/locales/form-responder-login';
 import { signInScreen } from '@app/constants/locales/signin-screen';
 import { signUpScreen } from '@app/constants/locales/signup-screen';
-import { usePostSendOtpForCreatorMutation } from '@app/store/auth/api';
+import { usePostSendOtpMutation } from '@app/store/auth/api';
 import { capitalize } from '@app/utils/stringUtils';
 
 interface OtpEmailFormProps {
@@ -30,11 +30,13 @@ if (environments.ENABLE_GOOGLE) providers.push('google');
 export default function OtpEmailForm({ isModal, isSignup, setEmail: setParentEmail }: OtpEmailFormProps) {
     const { t } = useTranslation();
     const { toast } = useToast();
-    const [postSendOtpForCreator, { isLoading }] = usePostSendOtpForCreatorMutation();
+    const [postSendOtp, { isLoading }] = usePostSendOtpMutation();
     const [email, setEmail] = useState('');
     const searchParams = useSearchParams();
     const fromProPlan = searchParams?.get('fromProPlan');
-
+    const type = searchParams?.get('type');
+    const isCreator = type !== 'responder';
+    const workspace_id = searchParams?.get('workspace_id');
     const constants = {
         welcomeBack: t(signInScreen.welcomeBack),
         signUp: t(signUpScreen.signUp),
@@ -53,7 +55,7 @@ export default function OtpEmailForm({ isModal, isSignup, setEmail: setParentEma
         e.preventDefault();
         if (!email) return;
 
-        const res = await postSendOtpForCreator({ receiver_email: email });
+        const res = await postSendOtp({ receiver_email: email, workspace_id: workspace_id || "" });
 
         if ('data' in res && !!res.data) {
             toast({ description: constants.otpSuccessMessage });
@@ -84,7 +86,7 @@ export default function OtpEmailForm({ isModal, isSignup, setEmail: setParentEma
                                     type="dark"
                                     url={`${environments.API_ENDPOINT_HOST}/auth/${provider}/basic`}
                                     text={`Sign in with ${capitalize(provider)}`}
-                                    creator={true}
+                                    creator={isCreator}
                                     fromProPlan={fromProPlan!}
                                 />
                             ))}
@@ -106,7 +108,7 @@ export default function OtpEmailForm({ isModal, isSignup, setEmail: setParentEma
                 placeholder={constants.enterYourEmail}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="!text-base lg:!text-base" // Overriding the default large text in ShadCNInput if it's too big
+                className="!text-base lg:!text-base"
             />
             <Button
                 type="submit"
