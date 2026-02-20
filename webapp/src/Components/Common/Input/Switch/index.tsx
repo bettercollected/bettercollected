@@ -5,7 +5,7 @@ import { cn } from '@app/shadcn/util/lib';
 
 // Define prop types for customization
 // We maintain interface for compatibility but might not implement all style overrides perfectly without custom CSS
-export interface CustomSwitchProps extends Omit<React.ComponentPropsWithoutRef<typeof ShadcnSwitch>, 'onChange'> {
+interface CustomSwitchProps extends Omit<React.ComponentPropsWithoutRef<typeof ShadcnSwitch>, 'onChange'> {
     thumbColorChecked?: string;
     thumbColorUnchecked?: string;
     trackColorChecked?: string;

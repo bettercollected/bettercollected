@@ -18,7 +18,7 @@ import UnsplashImagePicker from '@app/views/molecules/UnsplashImagePicker';
 
 export type DIALOG_MODALS = 'ADD_FORM_TITLE' | 'UNSPLASH_IMAGE_PICKER' | 'FORM_PUBLISHED' | 'SHARE_FORM_MODAL' | 'START_WITH_AI' | '';
 
-export interface ModalState {
+interface ModalState {
     isOpen: boolean;
     view?: DIALOG_MODALS | '';
     props?: any;
@@ -121,7 +121,7 @@ export function DialogModalContainer() {
     );
 }
 
-export function DialogModalTrigger({ view, children, ...props }: { view: DIALOG_MODALS; children: React.ReactNode; [key: string]: any }) {
+export function DialogModalTrigger({ view, children, ...props }: { view: DIALOG_MODALS; children: React.ReactNode;[key: string]: any }) {
     const { openDialogModal } = useDialogModal();
     return (
         <div

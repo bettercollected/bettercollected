@@ -1,4 +1,3 @@
-import { set } from 'lodash';
 
 import { atom, useAtom } from 'jotai';
 

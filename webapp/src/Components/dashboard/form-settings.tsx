@@ -1,20 +1,20 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
 
+import { Button } from '@app/shadcn/components/ui/button';
+import { Label } from '@app/shadcn/components/ui/label';
+import { RadioGroup, RadioGroupItem } from '@app/shadcn/components/ui/radio-group';
+import { Switch } from '@app/shadcn/components/ui/switch';
+import { useToast } from '@app/shadcn/components/ui/use-toast';
 import Divider from '@Components/Common/DataDisplay/Divider';
 import Tooltip from '@Components/Common/DataDisplay/Tooltip';
 import EditIcon from '@Components/Common/Icons/Common/Edit';
 import LockIcon from '@Components/Common/Icons/lock';
-import { Button } from '@app/shadcn/components/ui/button';
 import { useBottomSheetModal } from '@Components/Modals/Contexts/BottomSheetModalContext';
-import { QrCode } from 'lucide-react';
-import { RadioGroup, RadioGroupItem } from '@app/shadcn/components/ui/radio-group';
-import { Label } from '@app/shadcn/components/ui/label';
-import { Switch } from '@app/shadcn/components/ui/switch';
 import cn from 'classnames';
+import { QrCode } from 'lucide-react';
 import moment from 'moment/moment';
-import { useToast } from '@app/shadcn/components/ui/use-toast';
 import useCopyToClipboard from 'react-use/lib/useCopyToClipboard';
 
 import { Close } from '@app/Components/icons/close';
@@ -37,8 +37,8 @@ import { selectWorkspace } from '@app/store/workspaces/slice';
 import { utcToLocalDateTIme } from '@app/utils/dateUtils';
 import getFormShareURL from '@app/utils/formUtils';
 import { validateFormOpen } from '@app/utils/validationUtils';
-import { useFullScreenModal } from "@Components/modal-views/full-screen-modal-context";
 import Globe from "@Components/icons/flags/globe";
+import { useFullScreenModal } from "@Components/modal-views/full-screen-modal-context";
 import FormLinkUpdateView from "@Components/ui/form-link-update-view";
 import { ProLogo } from "@Components/ui/logo";
 
@@ -46,7 +46,7 @@ interface IFormSettingsTabProps {
     view?: FormSettingsTabView;
 }
 
-export type FormSettingsTabView = 'VISIBILITY' | 'LINKS' | 'DEFAULT';
+type FormSettingsTabView = 'VISIBILITY' | 'LINKS' | 'DEFAULT';
 
 export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabProps) {
     const { toast } = useToast();

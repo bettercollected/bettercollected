@@ -262,46 +262,6 @@ p {
     @apply bg-brand-200 flex h-[26px] items-center justify-center gap-1 rounded-[50px] p-2 text-[14px] font-normal leading-[24px];
 }
 
-.swiper {
-    @apply flex flex-col;
-}
-
-.swiper-wrapper {
-    @apply order-first;
-}
-
-.swiper-scrollbar {
-    @apply relative rounded bg-gray-200 dark:bg-gray-600;
-}
-
-.swiper-horizontal > .swiper-scrollbar {
-    @apply z-10 mb-0 mt-4 h-0.5 w-full sm:mt-6;
-}
-
-.swiper-vertical > .swiper-scrollbar {
-    @apply absolute right-1 top-0 z-10 h-full w-0.5;
-}
-
-.swiper-scrollbar-drag {
-    @apply dark:bg-light-dark relative rounded bg-gray-900;
-}
-
-.swiper-horizontal .swiper-scrollbar-drag {
-    @apply left-0 top-[-1px] h-[3px] w-full shadow-sm;
-}
-
-.swiper-vertical .swiper-scrollbar-drag {
-    @apply left-[-1px] top-0 h-full w-[3px] shadow-sm;
-}
-
-.swiper-scrollbar-cursor-drag {
-    @apply cursor-move;
-}
-
-.swiper-scrollbar-lock {
-    @apply hidden;
-}
-
 .transaction-table {
     border-spacing: 0 12px;
     margin-top: -12px;

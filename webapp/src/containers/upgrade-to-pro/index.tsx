@@ -4,18 +4,18 @@ import { useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
 
-import { Button } from '@app/shadcn/components/ui/button';
 import { useFullScreenModal } from '@app/Components/modal-views/full-screen-modal-context';
 import Logo, { ProLogo } from '@app/Components/ui/logo';
 import { upgradeConst } from '@app/constants/locales/upgrade';
+import { Button } from '@app/shadcn/components/ui/button';
+import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { selectAuthStatus } from '@app/store/auth/selectors';
 import { useAppSelector } from '@app/store/hooks';
 import { useSuggestPriceAndUpgradeUserToProMutation } from '@app/store/price-suggestion/api';
 import cn from 'classnames';
 import { useRouter } from 'next/navigation';
-import { useToast } from '@app/shadcn/components/ui/use-toast';
 
-export interface IUpgradeToProModal {
+interface IUpgradeToProModal {
     featureText?: string;
     isModal?: boolean;
     callback?: () => void;

@@ -3,19 +3,19 @@ import { Close } from '@app/Components/icons/close';
 import { FieldTypes, StandardFormDto, StandardFormFieldDto, StandardFormResponseDto } from '@app/models/dtos/form';
 import { Popover, PopoverContent, PopoverTrigger } from '@app/shadcn/components/ui/popover';
 import { Separator } from '@app/shadcn/components/ui/separator';
+import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { cn } from '@app/shadcn/util/lib';
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { useDeleteResponseMutation } from '@app/store/workspaces/api';
 import { utcToLocalDateTIme } from '@app/utils/dateUtils';
+import { downloadFile } from '@app/utils/fileUtils';
 import { getAnswerForField, getTitleForHeader } from '@app/utils/formBuilderBlockUtils';
 import DeleteIcon from '@app/views/atoms/Icons/Delete';
 import { motion } from 'framer-motion';
-import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { useFullScreenModal } from '../full-screen-modal-context';
-import { downloadFile } from '@app/utils/fileUtils';
 
-export interface IViewResponseFullModalView {
+interface IViewResponseFullModalView {
     response: StandardFormResponseDto;
     formFields: StandardFormFieldDto[];
     formId: string;

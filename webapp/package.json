@@ -118,7 +118,6 @@
     "sanitize-html": "^2.13.0",
     "sharp": "^0.32.6",
     "styled-components": "^6.1.13",
-    "swiper": "^8.3.2",
     "tailwind-merge": "^2.2.1",
     "tailwindcss-animate": "^1.0.7",
     "unsplash-js": "^7.0.19",

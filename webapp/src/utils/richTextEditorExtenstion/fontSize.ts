@@ -1,7 +1,7 @@
 import { Extension } from '@tiptap/core';
 import '@tiptap/extension-text-style';
 
-export type FontSizeOptions = {
+type FontSizeOptions = {
     types: string[];
 };
 
@@ -60,17 +60,17 @@ export const FontSize = Extension.create<FontSizeOptions>({
         return {
             setFontSize:
                 (fontSize) =>
-                ({ chain }) => {
-                    return chain().setMark('textStyle', { fontSize }).run();
-                },
+                    ({ chain }) => {
+                        return chain().setMark('textStyle', { fontSize }).run();
+                    },
             unsetFontSize:
                 () =>
-                ({ chain }) => {
-                    return chain()
-                        .setMark('textStyle', { fontSize: '16px' })
-                        .removeEmptyTextStyle()
-                        .run();
-                }
+                    ({ chain }) => {
+                        return chain()
+                            .setMark('textStyle', { fontSize: '16px' })
+                            .removeEmptyTextStyle()
+                            .run();
+                    }
         };
     }
 });
