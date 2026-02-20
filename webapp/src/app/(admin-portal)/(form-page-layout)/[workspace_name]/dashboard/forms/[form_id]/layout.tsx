@@ -49,7 +49,7 @@ async function FormWrapper({ workspaceName, formId, children, params }: { worksp
     if (!workspaceResponse.ok) return notFound();
     const workspace = await workspaceResponse.json();
 
-    const form = await fetchWithCookies(environments.INTERNAL_DOCKER_API_ENDPOINT_HOST + '/workspaces/' + workspace.id + '/forms/' + formId + '?published=true&draft=true', config); // Added query params to match page.tsx logic
+    const form = await fetchWithCookies(environments.INTERNAL_DOCKER_API_ENDPOINT_HOST + '/workspaces/' + workspace.id + '/forms/' + formId + '?published=true&draft=true', config);
 
     if (!form) return notFound();
 

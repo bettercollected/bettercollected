@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect } from 'react';
-import { useFormState } from '@app/store/jotai/form';
-import { useAppDispatch } from '@app/store/hooks';
 import { setForm } from '@app/store/forms/slice';
+import { useAppDispatch } from '@app/store/hooks';
+import { useFormState } from '@app/store/jotai/form';
+import { useEffect } from 'react';
 
 export function FormDispatcher({ form, children }: { form: any; children?: React.ReactNode }) {
     const { updateFormTheme } = useFormState();
@@ -13,6 +13,7 @@ export function FormDispatcher({ form, children }: { form: any; children?: React
         if (form.formId) {
             dispatch(setForm(form));
             updateFormTheme(form.theme);
+            dispatch(setForm(form));
         }
     }, [form.formId]);
 
