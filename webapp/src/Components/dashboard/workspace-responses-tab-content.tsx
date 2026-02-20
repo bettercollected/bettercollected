@@ -1,9 +1,7 @@
-import React from 'react';
 
 import { useTranslation } from 'next-i18next';
 
 import ZeroElement from '@Components/Common/DataDisplay/Empty/ZeroElement';
-import SearchByUUIDWrapper from '@Components/RespondersPortal/SearchByUUIDWrapper';
 import WorkspaceFormResponseDeletionCard from '@Components/WorkspaceClient/WorkspaceFormResponseDeletionCard';
 
 import Loader from '@app/Components/ui/loader';
@@ -49,7 +47,7 @@ export default function WorkspaceResponsesTabContent({ workspace, deletionReques
     };
 
     return (
-        <SearchByUUIDWrapper>
+        <>
             {submissions?.length === 0 && <ZeroElement title={deletionRequests ? t(formConstant.empty.deletionRequest.title) : '0 submissions'} description={getEmptyMessage()} className="!pb-[20px]" />}
 
             {submissions?.length !== 0 && (
@@ -61,6 +59,6 @@ export default function WorkspaceResponsesTabContent({ workspace, deletionReques
                     </div>
                 </div>
             )}
-        </SearchByUUIDWrapper>
+        </>
     );
 }

@@ -1,12 +1,13 @@
+"use client";
 import { useTranslation } from 'next-i18next';
 
 import { DotIcon } from '@Components/Common/Icons/Common/DotIcon';
 import FormProviderIcon from '@Components/Common/Icons/Form/FormProviderIcon';
 
-import ActiveLink from '@app/Components/ui/links/active-link';
 import { localesCommon } from '@app/constants/locales/common';
 import { StandardFormResponseDto } from '@app/models/dtos/form';
 import { utcToLocalDate } from '@app/utils/dateUtils';
+import Link from 'next/link';
 
 
 interface IWorkspaceFormResponseDeletionCardProps {
@@ -25,16 +26,16 @@ export default function WorkspaceFormResponseDeletionCard({ response, deletionRe
 
     const disabled = deletionRequests && response.status === 'success';
 
-    const Component = disabled ? DefaultDiv : ActiveLink;
+    const Component = disabled ? DefaultDiv : Link;
+
+    const pathname = disabled ? '' : isCustomDomain ? `/submissions/${response.responseId}` : `/${workspaceName}/submissions/${response.responseId}`
+
 
     return (
         <Component
-            href={{
-                pathname: disabled ? '' : isCustomDomain ? `/submissions/${response.responseId}` : `${workspaceName}/submissions/${response.responseId}`
-            }}
-            className={`relative flex flex-col items-start justify-between h-full bg-white border-[1px] border-brand-100 ${
-                disabled ? 'opacity-60 !text-black-600' : 'shadow-formCardDefault hover:border-brand-200  hover:shadow-formCard'
-            } rounded ${className}`}
+            href={pathname}
+            className={`relative flex flex-col items-start justify-between h-full bg-white border-[1px] border-brand-100 ${disabled ? 'opacity-60 !text-black-600' : 'shadow-formCardDefault hover:border-brand-200  hover:shadow-formCard'
+                } rounded ${className}`}
         >
             <div className="rounded w-full px-5 py-4 flex flex-col gap-4 items-start justify-between">
                 <div>{response?.formTitle || t(localesCommon.untitled)}</div>

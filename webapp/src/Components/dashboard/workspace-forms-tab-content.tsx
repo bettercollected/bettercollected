@@ -7,7 +7,6 @@ import { escapeRegExp } from 'lodash';
 import Divider from '@Components/Common/DataDisplay/Divider';
 import ZeroElement from '@Components/Common/DataDisplay/Empty/ZeroElement';
 import SearchInput from '@Components/Common/Search/SearchInput';
-import SearchByUUIDWrapper from '@Components/RespondersPortal/SearchByUUIDWrapper';
 
 import FormCards from '@Components/dashboard/form-cards';
 import Loader from '@app/Components/ui/loader';
@@ -75,21 +74,21 @@ export default function WorkspaceFormsTabContent({ workspace, isFormCreator = fa
 
     if ((data && Array.isArray(data) && data.length === 0) || isError || forms.length === 0)
         return (
-            <SearchByUUIDWrapper>
-                <ZeroElement title={t(workspaceConstant.preview.emptyFormTitle)} description={t(workspaceConstant.preview.emptyFormDescription)} className="!pb-[20px]" />
-            </SearchByUUIDWrapper>
+            // <SearchByUUIDWrapper>
+            <ZeroElement title={t(workspaceConstant.preview.emptyFormTitle)} description={t(workspaceConstant.preview.emptyFormDescription)} className="!pb-[20px]" />
+            // </SearchByUUIDWrapper>
         );
 
     return (
-        <SearchByUUIDWrapper>
-            <div className="flex w-full flex-col gap-6">
-                {pinnedForms?.items?.length !== 0 && <FormCards title={t(formConstant.pinnedforms)} showPinned={false} isFormCreator={isFormCreator} showVisibility={false} workspace={workspace} formsArray={pinnedForms?.items || []} />}
-                {pinnedForms?.items?.length !== 0 && <Divider />}
-                <div className={`w-full md:w-[282px]`}>
-                    <SearchInput handleSearch={handleSearch} />
-                </div>
-                {allForms.length !== 0 && <FormCards title={pinnedForms?.items?.length !== 0 ? t(formConstant.all) : ''} isFormCreator={isFormCreator} formsArray={allForms} workspace={workspace} />}
+        // <SearchByUUIDWrapper>
+        <div className="flex w-full flex-col gap-6">
+            {pinnedForms?.items?.length !== 0 && <FormCards title={t(formConstant.pinnedforms)} showPinned={false} isFormCreator={isFormCreator} showVisibility={false} workspace={workspace} formsArray={pinnedForms?.items || []} />}
+            {pinnedForms?.items?.length !== 0 && <Divider />}
+            <div className={`w-full md:w-[282px]`}>
+                <SearchInput handleSearch={handleSearch} />
             </div>
-        </SearchByUUIDWrapper>
+            {allForms.length !== 0 && <FormCards title={pinnedForms?.items?.length !== 0 ? t(formConstant.all) : ''} isFormCreator={isFormCreator} formsArray={allForms} workspace={workspace} />}
+        </div>
+        // </SearchByUUIDWrapper>
     );
 }

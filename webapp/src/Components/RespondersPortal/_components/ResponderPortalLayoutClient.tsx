@@ -29,6 +29,7 @@ import { selectAuth } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { getFullNameFromUser } from '@app/utils/userUtils';
+import SearchBySubmissionNumber from '../SearchBySubmissionNumber';
 
 export default function ResponderPortalLayoutClient({
     children,
@@ -173,8 +174,9 @@ export default function ResponderPortalLayoutClient({
                         );
                     })}
                 </div>
-                <div className="mt-4">
+                <div className="mt-4 flex gap-6 flex-col xl:flex-row">
                     {children}
+                    <SearchBySubmissionNumber className='hidden xl:block' />
                 </div>
             </div>
             <div className="lg:hidden">

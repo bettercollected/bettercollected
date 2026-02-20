@@ -21,7 +21,7 @@ async function getWorkspaceByDomain(domain: string) {
     }
 }
 
-export default async function CustomDomainLayout({ children, params }: { children: React.ReactNode, params: Promise<{ workspace_name: string }> }) {
+export default async function ClientDomainLayout({ children, params }: { children: React.ReactNode, params: Promise<{ workspace_name: string }> }) {
     const headerList = await headers();
     const host = headerList.get('x-forwarded-host') || headerList.get('host') || '';
 

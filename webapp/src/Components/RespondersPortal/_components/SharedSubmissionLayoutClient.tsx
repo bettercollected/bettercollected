@@ -1,34 +1,36 @@
 'use client';
 
-import React from 'react';
-import { useTranslation } from 'react-i18next';
-import { useGetWorkspaceSubmissionQuery, useGetWorkspaceSubmissionByUUIDQuery, useRequestWorkspaceSubmissionDeletionMutation, useRequestWorkspaceSubmissionDeletionByUUIDMutation } from '@app/store/workspaces/api';
-import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { useModal } from '@app/Components/modal-views/context';
 import { toastMessage } from '@app/constants/locales/toast-message';
+import { useToast } from '@app/shadcn/components/ui/use-toast';
+import { useAppSelector } from '@app/store/hooks';
+import { useGetWorkspaceSubmissionByUUIDQuery, useGetWorkspaceSubmissionQuery, useRequestWorkspaceSubmissionDeletionByUUIDMutation, useRequestWorkspaceSubmissionDeletionMutation } from '@app/store/workspaces/api';
+import { selectWorkspace } from '@app/store/workspaces/slice';
+import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { SubmissionProvider } from './SubmissionContext';
 import SubmissionLayoutClient from './SubmissionLayoutClient';
 
 interface SharedSubmissionLayoutClientProps {
     children: React.ReactNode;
-    workspaceId?: string;
     submissionId: string;
     isUUID?: boolean;
     hasCustomDomain?: boolean;
-    workspaceName?: string;
 }
 
 export default function SharedSubmissionLayoutClient({
     children,
-    workspaceId,
     submissionId,
     isUUID = false,
     hasCustomDomain = false,
-    workspaceName
 }: SharedSubmissionLayoutClientProps) {
     const { toast } = useToast();
     const { t } = useTranslation();
     const { closeModal } = useModal();
+
+    const workspace = useAppSelector(selectWorkspace);
+    const workspaceId = workspace?.id;
+    const workspaceName = workspace?.workspaceName;
 
     // Mutations
     const [requestWorkspaceSubmissionDeletion] = useRequestWorkspaceSubmissionDeletionMutation();
