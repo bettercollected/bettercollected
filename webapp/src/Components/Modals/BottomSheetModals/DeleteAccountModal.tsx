@@ -1,19 +1,18 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/navigation';
 
-import AppTextField from '@Components/Common/Input/AppTextField';
-import { Button } from '@app/shadcn/components/ui/button';
 import CheckBox from '@Components/Common/Input/CheckBox';
 import TextArea from '@Components/Common/Input/TextArea';
 import BottomSheetModalWrapper from '@Components/Modals/ModalWrappers/BottomSheetModalWrapper';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@app/shadcn/components/ui/select';
+import { Button } from '@app/shadcn/components/ui/button';
 import { Label } from '@app/shadcn/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@app/shadcn/components/ui/select';
 
-import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { toastMessage } from '@app/constants/locales/toast-message';
-import { ToastId } from '@app/constants/toastId';
+import { AppInput } from '@app/shadcn/components/ui/input';
+import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { useDeleteAccountMutation } from '@app/store/auth/api';
 
 
@@ -136,7 +135,7 @@ export default function DeleteAccountModal() {
                         {t('DELETE_ACCOUNT.TYPE_CONFIRM')}
                         <span className="text-red-500 ml-2">*</span>
                     </div>
-                    <AppTextField
+                    <AppInput
                         onCut={handleCopyPaste}
                         onPaste={handleCopyPaste}
                         onCopy={handleCopyPaste}

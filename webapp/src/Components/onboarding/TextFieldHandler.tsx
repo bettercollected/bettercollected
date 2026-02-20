@@ -1,10 +1,9 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
 
 import _ from 'lodash';
 
-import AppTextField from '@Components/Common/Input/AppTextField';
 
 import environments from '@app/configs/environments';
 import { onBoarding } from '@app/constants/locales/onboarding-screen';
@@ -14,6 +13,8 @@ import { useLazyGetWorkspaceNameAvailabilityQuery, useLazyGetWorkspaceNameSugges
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { checkIfPredefinedWorkspaceName } from '@app/utils/workspaceUtils';
 
+import { AppInput } from '@app/shadcn/components/ui/input';
+import { Label } from '@app/shadcn/components/ui/label';
 import { InfoIcon } from '../icons/info-icon';
 
 interface ITextFieldHandler {
@@ -126,12 +127,11 @@ const TextFieldHandler = ({ formData, setFormData, handleOnChange, createWorkspa
 
     return (
         <div>
-            <AppTextField required title="Handle Name" id="workspaceName" placeholder="Enter workspace handle name" value={formData.workspaceName?.toLowerCase()} onChange={handleOnChange} isError={!!errorMessage && !!formData.workspaceName}>
-                <AppTextField.Description>
-                    {t(onBoarding.useSmallCase)} (eg: abc) <br />
-                    https://{environments.CLIENT_DOMAIN}/<span className="text-pink-500">{formData.workspaceName?.toLowerCase()}</span>
-                </AppTextField.Description>
-            </AppTextField>
+            <AppInput required title="Handle Name" id="workspaceName" placeholder="Enter workspace handle name" value={formData.workspaceName?.toLowerCase()} onChange={handleOnChange} />
+            <Label>
+                {t(onBoarding.useSmallCase)} (eg: abc) <br />
+                https://{environments.CLIENT_DOMAIN}/<span className="text-pink-500">{formData.workspaceName?.toLowerCase()}</span>
+            </Label>
             {errorMessage && formData.workspaceName && (
                 <>
                     <div className={'text-red-600 text-xs md:text-sm !mt-2 flex items-center gap-2'}>

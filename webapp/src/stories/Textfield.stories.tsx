@@ -1,11 +1,11 @@
+import { AppInput } from '@app/shadcn/components/ui/input';
 import Icon from '@Components/Common/Icons/Common/Plus';
-import AppTextField from '@Components/Common/Input/AppTextField';
 import type { Meta, StoryObj } from '@storybook/react';
 import { StoryFn } from '@storybook/react';
 
-const meta: Meta<typeof AppTextField> = {
+const meta: Meta<typeof AppInput> = {
     title: 'Common/TextField',
-    component: AppTextField,
+    component: AppInput,
     parameters: {
         layout: 'centered'
     },
@@ -15,9 +15,9 @@ const meta: Meta<typeof AppTextField> = {
 
 export default meta;
 
-const Template: StoryFn<typeof AppTextField> = (args) => <AppTextField {...args} />;
+const Template: StoryFn<typeof AppInput> = (args) => <AppInput {...args} />;
 
-type Story = StoryObj<typeof AppTextField>;
+type Story = StoryObj<typeof AppInput>;
 
 export const DateTextField = Template.bind({});
 export const TextField = Template.bind({});
@@ -34,12 +34,11 @@ DateTextField.args = {
 
 TextFieldWithError.args = {
     placeholder: 'Error TextField Placeholder',
-    isError: true
 };
 
 export const DisabledTextFieldWithCustomTextColor: Story = {
     args: {
-        isDisabled: true,
+        disabled: true,
         placeholder: 'Disabled Textfield Placeholder'
     }
 };

@@ -1,14 +1,13 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
 
 import Divider from '@Components/Common/DataDisplay/Divider';
 import CopyIcon from '@Components/Common/Icons/Common/Copy';
 import LockIcon from '@Components/Common/Icons/lock';
-import AppTextField from '@Components/Common/Input/AppTextField';
 import { Button } from '@app/shadcn/components/ui/button';
-import { RadioGroup, RadioGroupItem } from '@app/shadcn/components/ui/radio-group';
 import { Label } from '@app/shadcn/components/ui/label';
+import { RadioGroup, RadioGroupItem } from '@app/shadcn/components/ui/radio-group';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 import useCopyToClipboard from 'react-use/lib/useCopyToClipboard';
 
@@ -19,6 +18,7 @@ import { localesCommon } from '@app/constants/locales/common';
 import { formConstant } from '@app/constants/locales/form';
 import { toastMessage } from '@app/constants/locales/toast-message';
 import { IFormTemplateDto } from '@app/models/dtos/template';
+import { AppInput } from '@app/shadcn/components/ui/input';
 import { useAppSelector } from '@app/store/hooks';
 import { usePatchTemplateSettingsMutation } from '@app/store/template/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
@@ -133,7 +133,7 @@ const ShareLinkOptions = ({ adminHost }: { adminHost: string }) => {
     return (
         <div>
             <div className="cursor-pointer" onClick={handleOnCopy}>
-                <AppTextField className={'mt-4 mb-2 w-3/4'} isDisabled disabledColor={'#1D1D1D'} value={adminHost} />
+                <AppInput className={'mt-4 mb-2 w-3/4'} disabled value={adminHost} />
             </div>
             <Button variant="secondary" className="gap-2" onClick={handleOnCopy}>
                 <CopyIcon />

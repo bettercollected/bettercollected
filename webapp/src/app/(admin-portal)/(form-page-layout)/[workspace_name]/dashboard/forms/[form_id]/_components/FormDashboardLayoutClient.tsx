@@ -1,25 +1,26 @@
 'use client';
 
+import cn from 'classnames';
+import Link from 'next/link';
+import { usePathname, useRouter } from 'next/navigation';
 import React, { useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useRouter, usePathname } from 'next/navigation';
-import Link from 'next/link';
-import cn from 'classnames';
 
 import Divider from '@Components/Common/DataDisplay/Divider';
 import PrivateFormButtonWrapper from '@Components/Common/FormVisibility/PrivateFormButtonWrapper';
 import FormProviderIcon from '@Components/Common/Icons/Form/FormProviderIcon';
 import {
+    BarChart,
     Blocks,
     ChevronRight,
     Edit2,
     Eye,
     History,
+    Link2Icon,
     Play,
     Settings,
     Share2,
-    Trash2,
-    Users
+    Trash2
 } from 'lucide-react';
 
 import { useModal } from '@app/Components/modal-views/context';
@@ -38,6 +39,7 @@ import getFormShareURL from '@app/utils/formUtils';
 import { getEditFormURL } from '@app/utils/urlUtils';
 import { validateFormOpen } from '@app/utils/validationUtils';
 import PublishButton from '@app/views/molecules/FormBuilder/PublishButton';
+import FullScreenLoader from '@Components/ui/fullscreen-loader';
 
 export default function FormDashboardLayoutClient({
     form,
@@ -69,6 +71,9 @@ export default function FormDashboardLayoutClient({
             dispatch(resetSingleForm());
         };
     }, [form, dispatch]);
+
+
+    const storeForm = useAppSelector(selectForm);
 
 
 
@@ -105,19 +110,19 @@ export default function FormDashboardLayoutClient({
                 path: 'deletion-requests'
             });
             tabs.push({
-                icon: <Users className="h-5 w-5" />,
+                icon: <Eye className="h-5 w-5" />,
                 title: t(formConstant.settings.visibility.title),
                 path: 'visibility'
             });
 
             if (isFormOpen) {
                 tabs.push({
-                    icon: <Users className="h-5 w-5" />,
+                    icon: <Link2Icon className="h-5 w-5" />,
                     title: t(formConstant.settings.formLink.title),
                     path: 'links'
                 });
                 tabs.push({
-                    icon: <Users className="h-5 w-5" />,
+                    icon: <BarChart className="h-5 w-5" />,
                     title: 'Analytics',
                     path: 'analytics'
                 });
@@ -139,6 +144,10 @@ export default function FormDashboardLayoutClient({
 
     if (!form?.formId) {
         return <></>;
+    }
+
+    if (!storeForm?.formId) {
+        return <FullScreenLoader />
     }
 
     return (

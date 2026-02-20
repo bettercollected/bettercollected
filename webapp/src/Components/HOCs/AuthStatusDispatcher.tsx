@@ -49,7 +49,7 @@ export default function AuthStatusDispatcher({ workspace, children, isCustomDoma
                 router.replace(window.location.href);
             }
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+         
     }, [isLoading, is401, workspace]);
 
     return <>{children}</>;

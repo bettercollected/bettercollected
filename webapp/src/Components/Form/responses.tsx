@@ -1,22 +1,17 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
-import { ChevronLeft } from 'lucide-react';
-import { Button } from '@app/shadcn/components/ui/button';
 
-import { useToast } from '@app/shadcn/components/ui/use-toast';
 import FormResponsesTable from '@app/Components/datatable/form/form-responses';
-import FormRenderer from '@app/Components/Form/renderer/form-renderer';
 import { useModal } from '@app/Components/modal-views/context';
-import { formPage } from '@app/constants/locales/form-page';
+import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { useLazyGetWorkspaceSubmissionQuery } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { IGetWorkspaceSubmissionQuery } from '@app/store/workspaces/types';
-import { utcToLocalDateTIme } from '@app/utils/dateUtils';
 
 export default function FormResponses() {
     const router = useRouter();
@@ -50,52 +45,7 @@ export default function FormResponses() {
 
     return (
         <>
-            {!submissionId && <FormResponsesTable props={{ formId: form.formId, workspace, requestForDeletion, isSubmission: true }} />}
-            {!!submissionForm && !!submissionId && (
-                <div className="flex flex-col px-2 md:px-10 lg:px-28">
-                    <div className="flex items-center justify-between ">
-                        <div className="flex flex-col">
-                            <span
-                                className="flex gap-2 cursor-pointer"
-                                onClick={() => {
-                                    const params = new URLSearchParams(searchParams?.toString());
-                                    params.delete('sub_id');
-                                    router.push(`${pathname}${params.toString() ? '?' + params.toString() : ''}`);
-                                }}
-                            >
-                                <ChevronLeft width={24} height={24} />
-                                {t(formPage.responsesBackToResponses)}
-                            </span>
-                        </div>
-
-                        {form?.settings?.provider === 'self' && (
-                            <Button
-                                variant="ghost"
-                                className="bg-red-100 px-4 !leading-none py-3 body6 rounded hover:bg-red-200 hover:drop-shadow-sm !text-red-500"
-                                onClick={() => {
-                                    openModal('DELETE_RESPONSE', {
-                                        workspace: workspace,
-                                        formId: form.formId,
-                                        responseId: submissionId,
-                                        navigateToForm: true
-                                    });
-                                }}
-                            >
-                                {t(formPage.responsesDeletedResponse)}
-                            </Button>
-                        )}
-                    </div>
-                    <div className="gap-2 flex flex-col my-5">
-                        <div className="text-sm text-black-700">
-                            {t(formPage.responsesSubmittedBy)}: <b>{submissionForm?.response?.dataOwnerIdentifier || t(formPage.responsesAnonymous)}</b>
-                        </div>
-                        <div className="text-sm text-black-700">
-                            {t(formPage.responsesSubmittedAt)}: <b>{utcToLocalDateTIme(submissionForm?.response?.createdAt) || t(formPage.responsesAnonymous)}</b>
-                        </div>
-                    </div>
-                    <FormRenderer form={submissionForm.form} response={submissionForm.response} isDisabled />
-                </div>
-            )}
+            {<FormResponsesTable props={{ formId: form.formId, workspace, requestForDeletion, isSubmission: true }} />}
         </>
     );
 }

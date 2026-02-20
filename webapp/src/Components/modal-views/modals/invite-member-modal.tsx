@@ -2,7 +2,6 @@ import { useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
 
-import AppTextField from '@Components/Common/Input/AppTextField';
 import { Button } from '@app/shadcn/components/ui/button';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 
@@ -13,6 +12,7 @@ import { buttonConstant } from '@app/constants/locales/button';
 import { localesCommon } from '@app/constants/locales/common';
 import { inviteCollaborator } from '@app/constants/locales/inviteCollaborator';
 import { toastMessage } from '@app/constants/locales/toast-message';
+import { AppInput } from '@app/shadcn/components/ui/input';
 import { useAppSelector } from '@app/store/hooks';
 import { useGetWorkspaceMembersQuery, useInviteToWorkspaceMutation } from '@app/store/workspaces/members-n-invitations-api';
 
@@ -66,7 +66,7 @@ export default function InviteMemberModal() {
             <div className="body4 pt-6 !leading-none ">{t(inviteCollaborator.description)}</div>
             <form onSubmit={handleSendInvitation} className="flex flex-col  justify-start pt-8">
                 <div className="body1 mb-3 !leading-none">{t(localesCommon.enterEmail)}</div>
-                <AppTextField
+                <AppInput
                     disabled={isLoading}
                     data-testid="otp-input"
                     spellCheck={false}

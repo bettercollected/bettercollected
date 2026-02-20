@@ -2,19 +2,18 @@ import { useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
 
-import PlusIcon from '@Components/Common/Icons/Common/Plus';
-import AppTextField from '@Components/Common/Input/AppTextField';
-import HeaderModalWrapper from '@Components/Modals/ModalWrappers/HeaderModalWrapper';
-import cn from 'classnames';
-import { useToast } from '@app/shadcn/components/ui/use-toast';
-import { Button } from '@app/shadcn/components/ui/button';
 import { Close } from '@app/Components/icons/close';
 import { useModal } from '@app/Components/modal-views/context';
 import { buttonConstant } from '@app/constants/locales/button';
 import { placeHolder } from '@app/constants/locales/placeholder';
 import { toastMessage } from '@app/constants/locales/toast-message';
-import { ToastId } from '@app/constants/toastId';
 import { ResponderGroupDto } from '@app/models/dtos/groups';
+import { Button } from '@app/shadcn/components/ui/button';
+import { AppInput } from '@app/shadcn/components/ui/input';
+import { useToast } from '@app/shadcn/components/ui/use-toast';
+import PlusIcon from '@Components/Common/Icons/Common/Plus';
+import HeaderModalWrapper from '@Components/Modals/ModalWrappers/HeaderModalWrapper';
+import cn from 'classnames';
 
 
 interface IAddMemberModalProps {
@@ -49,10 +48,10 @@ export default function AddMembersModal({ handleAddMembers, group }: IAddMemberM
                 <div className="h4-new">{t('EMAIL_ADDRESS')}</div>
                 <form onSubmit={addEmail} className="flex gap-2 mt-2">
                     <div className="    ">
-                        <AppTextField value={email} type="email" id="email" placeholder={t(placeHolder.memberEmail)} onChange={handleInput} />
+                        <AppInput className="w-full" value={email} type="email" id="email" placeholder={t(placeHolder.memberEmail)} onChange={handleInput} />
                     </div>
-                    <Button size="medium" variant="ghost" disabled={!email} className={cn('font-semibold', !email && 'opacity-30')}>
-                        <PlusIcon width={24} height={24} />
+                    <Button size="sm" variant="ghost" disabled={!email} className={cn('font-semibold', !email && 'opacity-30')}>
+                        <PlusIcon width={16} height={16} />
                     </Button>
                 </form>
                 {emails.length !== 0 && (

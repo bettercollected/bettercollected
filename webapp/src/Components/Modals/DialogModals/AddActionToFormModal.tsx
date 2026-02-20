@@ -2,19 +2,19 @@ import { useEffect, useState } from 'react';
 
 import { useRouter } from 'next/navigation';
 
-import AppTextField from '@Components/Common/Input/AppTextField';
-import { Button } from '@app/shadcn/components/ui/button';
 import HeaderModalWrapper from '@app/Components/Modals/ModalWrappers/HeaderModalWrapper';
+import { Button } from '@app/shadcn/components/ui/button';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 
-import { useHandleIntegrationOauthCallbackMutation, useLazyGetIntegrationOauthUrlQuery } from '@app/store/integrationApi';
 import { useModal } from '@app/Components/modal-views/context';
+import environments from '@app/configs/environments';
+import { IntegrationType } from '@app/models/enums/IntegrationTypeEnum';
+import { AppInput } from '@app/shadcn/components/ui/input';
 import { useAddActionToFormMutation } from '@app/store/api-actions-api';
 import { selectAuth } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
+import { useHandleIntegrationOauthCallbackMutation, useLazyGetIntegrationOauthUrlQuery } from '@app/store/integrationApi';
 import { selectWorkspace } from '@app/store/workspaces/slice';
-import { IntegrationType } from '@app/models/enums/IntegrationTypeEnum';
-import environments from '@app/configs/environments';
 import Image from 'next/image';
 
 export default function AddActionToFormModal({ action, form, ...props }: any) {
@@ -152,7 +152,7 @@ export default function AddActionToFormModal({ action, form, ...props }: any) {
                             {action?.parameters?.map((parameter: any, index: number) =>
                                 parameter?.required ? (
                                     <div key={index} className="relative">
-                                        <AppTextField
+                                        <AppInput
                                             className="w-full"
                                             placeholder={parameter.name}
                                             value={parameters[parameter.name]}

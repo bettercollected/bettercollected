@@ -2,22 +2,21 @@ import { ChangeEvent, FormEvent, useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
 
-import AppTextField from '@Components/Common/Input/AppTextField';
-import { Button } from '@app/shadcn/components/ui/button';
 import UploadLogo from '@Components/Common/UploadLogo';
+import { Button } from '@app/shadcn/components/ui/button';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 
 import { useBottomSheetModal } from '@Components/Modals/Contexts/BottomSheetModalContext';
 import environments from '@app/configs/environments';
 import { placeHolder } from '@app/constants/locales/placeholder';
 import { toastMessage } from '@app/constants/locales/toast-message';
-import { ToastId } from '@app/constants/toastId';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
+import { AppInput } from '@app/shadcn/components/ui/input';
+import { Textarea } from '@app/shadcn/components/ui/textarea';
+import { selectAuth } from '@app/store/auth/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { usePatchExistingWorkspaceMutation } from '@app/store/workspaces/api';
 import { setWorkspace } from '@app/store/workspaces/slice';
-import { Textarea } from '@app/shadcn/components/ui/textarea';
-import { selectAuth } from '@app/store/auth/slice';
 
 export default function WorkspaceInfo({ workspace }: { workspace: WorkspaceDto }) {
     const dispatch = useAppDispatch();
@@ -93,7 +92,7 @@ export default function WorkspaceInfo({ workspace }: { workspace: WorkspaceDto }
             </div>
             <div className="flex w-full flex-col gap-2">
                 <div className="body1">{t('WORKSPACE.SETTINGS.DETAILS.TITLE')}</div>
-                <AppTextField onChange={onChange} value={workspaceInfo.title} name="title" placeholder={t(placeHolder.workspaceTitle)} />
+                <AppInput onChange={onChange} value={workspaceInfo.title} name="title" placeholder={t(placeHolder.workspaceTitle)} />
             </div>
             <div className="flex w-full flex-col gap-2">
                 <div className="body1">{t('WORKSPACE.SETTINGS.DETAILS.DESCRIPTION')}</div>
@@ -108,11 +107,11 @@ export default function WorkspaceInfo({ workspace }: { workspace: WorkspaceDto }
             </div>
             <div className="flex w-full flex-col gap-2">
                 <div className="body1">Organization&apos;s Privacy Policy URL</div>
-                <AppTextField fullWidth onChange={onChange} value={workspaceInfo.privacy_policy} name="privacy_policy" placeholder={'Privacy Policy URL'} />
+                <AppInput onChange={onChange} value={workspaceInfo.privacy_policy} name="privacy_policy" placeholder={'Privacy Policy URL'} />
             </div>
             <div className="flex w-full flex-col gap-2">
                 <div className="body1">Organization&apos;s Terms of Service URL</div>
-                <AppTextField fullWidth onChange={onChange} value={workspaceInfo.terms_of_service} name="terms_of_service" placeholder={'Privacy Policy URL'} />
+                <AppInput onChange={onChange} value={workspaceInfo.terms_of_service} name="terms_of_service" placeholder={'Terms of Service URL'} />
             </div>
 
             <Button

@@ -1,8 +1,7 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
 
-import AppTextField from '@Components/Common/Input/AppTextField';
 import { Button } from '@app/shadcn/components/ui/button';
 import HeaderModalWrapper from '@Components/Modals/ModalWrappers/HeaderModalWrapper';
 
@@ -10,7 +9,9 @@ import { useModal } from '@app/Components/modal-views/context';
 import { buttonConstant } from '@app/constants/locales/button';
 import { groupConstant } from '@app/constants/locales/group';
 import { handleRegexType } from '@app/models/enums/groupRegex';
+import { AppInput } from '@app/shadcn/components/ui/input';
 import { isEmptyString } from '@app/utils/stringUtils';
+import { Label } from '@radix-ui/react-label';
 
 
 export default function AddRegexModal({ handleRegex }: { handleRegex: (regex: string, type: handleRegexType) => void }) {
@@ -37,9 +38,10 @@ export default function AddRegexModal({ handleRegex }: { handleRegex: (regex: st
                         Use <span className="text-pink-500">*@yourcompany.com</span> to add all employees with email addresses ending in &apos;@yourcompany.com&apos;.{' '}
                     </span>
                 </p>
-                <AppTextField onChange={handleInput} autoFocus placeholder="*@example.com">
+                <Label className="h4-new mb-2 !font-medium" htmlFor="regex">
                     {t(groupConstant.regex.modal.label)}
-                </AppTextField>
+                </Label>
+                <AppInput onChange={handleInput} placeholder="*@example.com" />
                 <div className="flex justify-end mt-4">
                     <Button size="medium" className={'w-full'} disabled={!regex}>
                         {t(buttonConstant.addRegex)}

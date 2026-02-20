@@ -2,14 +2,14 @@ import React, { useState } from 'react';
 
 import { useRouter } from 'next/navigation';
 
-import CircularCheck from '@Components/Common/Icons/Common/CircularCheck';
-import AppTextField from '@Components/Common/Input/AppTextField';
 import { Button } from '@app/shadcn/components/ui/button';
+import CircularCheck from '@Components/Common/Icons/Common/CircularCheck';
 import CloseModal from '@Components/Modals/CloseModal';
 
 import { useModal } from '@app/Components/modal-views/context';
 import { ProLogo } from '@app/Components/ui/logo';
 import environments from '@app/configs/environments';
+import { AppInput } from '@app/shadcn/components/ui/input';
 import { useRedeemCouponCodeMutation } from '@app/store/coupon-code/api';
 import { fireworks } from '@app/utils/confetti';
 import BetterCollectedLogo from '@app/views/atoms/Icons/BetterCollectedLogo';
@@ -86,7 +86,7 @@ export default function RedeemCouponCodeModal({ showSuccess = false }: { showSuc
                     </div>
                     <form className="flex gap-4" onSubmit={onSubmit}>
                         <div>
-                            <AppTextField
+                            <AppInput
                                 value={redeemCode}
                                 onChange={(event) => {
                                     setError('');

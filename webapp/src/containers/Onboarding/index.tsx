@@ -5,7 +5,6 @@ import { FormEvent, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslation } from 'react-i18next';
 
-import AppTextField from '@Components/Common/Input/AppTextField';
 import UploadLogo from '@Components/Common/UploadLogo';
 import { Button } from '@app/shadcn/components/ui/button';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
@@ -16,6 +15,8 @@ import { onBoarding } from '@app/constants/locales/onboarding-screen';
 import { toastMessage } from '@app/constants/locales/toast-message';
 import { UserStatus } from '@app/models/dtos/UserStatus';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
+import { AppInput } from '@app/shadcn/components/ui/input';
+import { Textarea } from '@app/shadcn/components/ui/textarea';
 import { selectAuth } from '@app/store/auth/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { useCreateWorkspaceMutation, useLazyGetWorkspaceNameSuggestionsQuery, usePatchExistingWorkspaceMutation } from '@app/store/workspaces/api';
@@ -167,9 +168,9 @@ const OnboardingContainer = ({ workspace, createWorkspace }: onBoardingProps) =>
                 <div className="h3-new">{t(onBoarding.addYourOrganization)}</div>
                 <UploadLogo logoImageUrl={workspace?.profileImage ?? ''} className="mt-12" onUpload={handleUploadLogo} onRemove={handleRemoveLogo} />
                 <form className="mt-12 w-full space-y-8 md:w-[541px] " onSubmit={onSubmitForm}>
-                    <AppTextField onBlur={onWorkspaceTitleBlur} required title="Organization Name" id="title" placeholder="Enter name of your workspace" value={formData.title} onChange={handleOnchange} />
+                    <AppInput onBlur={onWorkspaceTitleBlur} required title="Organization Name" id="title" placeholder="Enter name of your workspace" value={formData.title} onChange={handleOnchange} />
                     <TextFieldHandler formData={formData} setFormData={setFormData} handleOnChange={handleOnchange} createWorkspace={createWorkspace} />
-                    <AppTextField title="Add Your Organization Description" id="description" placeholder="Write Description" multiline value={formData.description} onChange={handleOnchange} />
+                    <Textarea title="Add Your Organization Description" id="description" placeholder="Write Description" value={formData.description} onChange={handleOnchange} />
                     <Button size="medium" className="w-full " type="submit" disabled={!formData.title || !formData.workspaceName}>
                         {t(onBoarding.addNowButton)}
                     </Button>

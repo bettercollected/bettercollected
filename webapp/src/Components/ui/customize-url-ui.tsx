@@ -1,20 +1,20 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
 
-import AppTextField from '@Components/Common/Input/AppTextField';
 
-import { useToast } from '@app/shadcn/components/ui/use-toast';
-import { Button } from '@app/shadcn/components/ui/button';
 import { buttonConstant } from '@app/constants/locales/button';
 import { localesCommon } from '@app/constants/locales/common';
 import { customize } from '@app/constants/locales/customize';
 import { toastMessage } from '@app/constants/locales/toast-message';
 import { validationMessage } from '@app/constants/locales/validation-message';
+import { Button } from '@app/shadcn/components/ui/button';
+import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { setFormSettings } from '@app/store/forms/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { usePatchFormSettingsMutation } from '@app/store/workspaces/api';
 
+import { AppInput } from '@app/shadcn/components/ui/input';
 import { useModal } from '../modal-views/context';
 import { ICustomizeUrlModalProps } from '../modal-views/modals/customize-url-modal';
 
@@ -71,7 +71,7 @@ export default function CustomizeUrlUi({ url, form }: ICustomizeUrlModalProps) {
                 {t(localesCommon.slug)}
                 <span className="text-red-500">*</span>
             </p>
-            <AppTextField id="title" isError={!slug.match(slugRegex)} value={slug} onChange={handleOnchange} />
+            <AppInput id="title" value={slug} onChange={handleOnchange} />
             {!slug.match(slugRegex) && isError && <p className="body4 !text-red-500 h-[10px]">{t(validationMessage.slug)}</p>}
             <div className="px-10 py-6 gap-6 bg-blue-100 mt-8 md:w-[535px] w-full md:-ml-10 break-all">
                 <p className="body1">{t(localesCommon.newLink)}</p>

@@ -23,7 +23,7 @@ const buttonVariants = cva('rounded-lg gap-2 min-w-fit flex justify-center items
         size: {
             medium: 'h-[48px] text-sm font-medium',
             xs: 'h-[21px] text-xs',
-            sm: 'h-[36px] text-sm',
+            sm: 'h-[40px] text-sm',
             lg: 'h-[64px] font-medium',
             icon: 'h-[28px] text-sm'
         }

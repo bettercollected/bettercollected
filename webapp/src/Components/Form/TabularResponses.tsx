@@ -70,7 +70,7 @@ export default function TabularResponses({ form }: TabularResponsesProps) {
     });
 
     useEffect(() => {
-        setQuery({ ...query, page: page });
+        setTimeout(() => setQuery({ ...query, page: page }), 0);
     }, [page]);
 
     const downloadFormFile = async (ans: any) => {

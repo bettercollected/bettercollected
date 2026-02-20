@@ -18,12 +18,12 @@ import { useFormResponse } from '@app/store/jotai/responderFormResponse';
 import { useResponderState } from '@app/store/jotai/responderFormState';
 import { useCreateTemplateFromFormMutation } from '@app/store/redux/templateApi';
 
+import { AppInput } from '@app/shadcn/components/ui/input';
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { NewBetterCollectedSmallLogo } from '@app/views/atoms/Icons/BetterCollectedSmallLogo';
 import { LogicOutlinedIcon } from '@app/views/atoms/Icons/LogicOutlinedIcon';
-import { Textarea } from '@app/shadcn/components/ui/textarea';
 import { useState } from 'react';
 import PlayIcon from '../atoms/Icons/PlayIcon';
 import { PlusOutlined } from '../atoms/Icons/PlusOutlined';
@@ -107,8 +107,7 @@ const Navbar = () => {
                 >
                     <NewBetterCollectedSmallLogo width={17} height={19} />
                 </div>
-                <Textarea
-                    rows={1}
+                <AppInput
                     placeholder="Form Title"
                     value={formState.title}
                     onChange={(event) => {

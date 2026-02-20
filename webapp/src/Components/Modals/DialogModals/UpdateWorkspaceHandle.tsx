@@ -3,10 +3,9 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/navigation';
 
-import AppTextField from '@Components/Common/Input/AppTextField';
-import { Button } from '@app/shadcn/components/ui/button';
 import { useBottomSheetModal } from '@Components/Modals/Contexts/BottomSheetModalContext';
 import HeaderModalWrapper from '@app/Components/Modals/ModalWrappers/HeaderModalWrapper';
+import { Button } from '@app/shadcn/components/ui/button';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 
 import { useModal } from '@app/Components/modal-views/context';
@@ -15,7 +14,7 @@ import { buttonConstant } from '@app/constants/locales/button';
 import { onBoarding } from '@app/constants/locales/onboarding-screen';
 import { toastMessage } from '@app/constants/locales/toast-message';
 import { updateWorkspace } from '@app/constants/locales/update-workspace';
-import { ToastId } from '@app/constants/toastId';
+import { AppInput } from '@app/shadcn/components/ui/input';
 import { useAppSelector } from '@app/store/hooks';
 import { usePatchExistingWorkspaceMutation } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
@@ -90,7 +89,8 @@ export default function UpdateWorkspaceHandle() {
                     {environments.HTTP_SCHEME}
                     {environments.CLIENT_DOMAIN}/<span className="p2-new text-pink">{updateText}</span>
                 </div>
-                <AppTextField value={updateText} onChange={handleUpdateChange} isError={error} error={error} />
+                <AppInput value={updateText} onChange={handleUpdateChange} />
+                {errorMessage && <span className={'text-sm text-red-500 font-normal'}>{errorMessage}</span>}
                 {error && <span className={'text-sm text-red-500 font-normal'}>{errorMessage}</span>}
                 <Button className="w-full mt-2" disabled={error || isLoading} data-testid="save-button" type="submit" >
                     {t(buttonConstant.updateNow)}

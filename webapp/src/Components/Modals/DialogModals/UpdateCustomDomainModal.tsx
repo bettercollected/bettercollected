@@ -2,20 +2,19 @@ import { useEffect, useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
 
-import AppTextField from '@Components/Common/Input/AppTextField';
-import { Button } from '@app/shadcn/components/ui/button';
 import HeaderModalWrapper from '@app/Components/Modals/ModalWrappers/HeaderModalWrapper';
+import { Button } from '@app/shadcn/components/ui/button';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 
 import { useModal } from '@app/Components/modal-views/context';
+import environments from '@app/configs/environments';
 import { buttonConstant } from '@app/constants/locales/button';
 import { placeHolder } from '@app/constants/locales/placeholder';
 import { toastMessage } from '@app/constants/locales/toast-message';
-import { ToastId } from '@app/constants/toastId';
+import { AppInput } from '@app/shadcn/components/ui/input';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { usePatchExistingWorkspaceMutation } from '@app/store/workspaces/api';
 import { selectWorkspace, setWorkspace } from '@app/store/workspaces/slice';
-import environments from '@app/configs/environments';
 
 
 export default function UpdateCustomDomainModal() {
@@ -32,7 +31,10 @@ export default function UpdateCustomDomainModal() {
     const { closeModal } = useModal();
 
     useEffect(() => {
-        setError(!!updateText && !updateText.match('(([a-zA-Z]{1})|([a-zA-Z]{1}[a-zA-Z]{1})|([a-zA-Z]{1}[0-9]{1})|([0-9]{1}[a-zA-Z]{1})|([a-zA-Z0-9][a-zA-Z0-9-_]{1,61}[a-zA-Z0-9]))\\.([a-zA-Z]{2,6}|[a-zA-Z0-9-]{2,30}\\.[a-zA-Z]{2,3})'));
+        setTimeout(() => {
+
+            setError(!!updateText && !updateText.match('(([a-zA-Z]{1})|([a-zA-Z]{1}[a-zA-Z]{1})|([a-zA-Z]{1}[0-9]{1})|([0-9]{1}[a-zA-Z]{1})|([a-zA-Z0-9][a-zA-Z0-9-_]{1,61}[a-zA-Z0-9]))\\.([a-zA-Z]{2,6}|[a-zA-Z0-9-]{2,30}\\.[a-zA-Z]{2,3})'));
+        }, 0);
     }, [updateText]);
 
     const handleSubmit = async (event: any) => {
@@ -63,9 +65,7 @@ export default function UpdateCustomDomainModal() {
             <form onSubmit={handleSubmit}>
                 <div className="text-start max-w-full mb-4 body4 !text-pink-500">{t('UPGRADE.FEATURES.CUSTOM_DOMAIN.NOTE', { domain: environments.CUSTOM_DOMAIN_IP })}</div>
                 <h1 className={'body3 !text-black-800 mb-1'}>{t('UPGRADE.FEATURES.CUSTOM_DOMAIN.TEXT_FIELD_TITLE')}</h1>
-                <AppTextField
-                    isError={error}
-                    dataTestId={'update-button'}
+                <AppInput
                     placeholder={t(placeHolder.enterCustomDomain)}
                     value={updateText}
                     onChange={(e) => {
