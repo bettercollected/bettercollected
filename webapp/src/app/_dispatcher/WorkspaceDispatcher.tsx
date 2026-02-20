@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { selectWorkspace, setWorkspace } from '@app/store/workspaces/slice';
+import AuthStatusDispatcher from '@Components/HOCs/AuthStatusDispatcher';
 import FullScreenLoader from '@Components/ui/fullscreen-loader';
 
 export function WorkspaceDispatcher({ workspace, children }: { workspace: any; children: React.ReactNode }) {
@@ -19,5 +20,5 @@ export function WorkspaceDispatcher({ workspace, children }: { workspace: any; c
         return <FullScreenLoader />;
     }
 
-    return <>{children}</>;
+    return <AuthStatusDispatcher workspace={workspace}>{children}</AuthStatusDispatcher>;
 }

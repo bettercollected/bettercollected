@@ -1,15 +1,15 @@
 import { Button } from '@app/shadcn/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@app/shadcn/components/ui/collapsible';
+import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { cn } from '@app/shadcn/util/lib';
+import { selectAuth } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
-import { useAuthAtom } from '@app/store/jotai/auth';
 import { useCreateFormWithAIMutation } from '@app/store/redux/formApi';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { ChevronDown } from '@app/views/atoms/Icons/ChevronDown';
 import { useRouter } from 'next-nprogress-bar';
 import Image from 'next/image';
 import React, { FormEvent, useState } from 'react';
-import { useToast } from '@app/shadcn/components/ui/use-toast';
 import styled from 'styled-components';
 
 const GenerateButton = styled(Button)`
@@ -61,7 +61,7 @@ export default function StartWithAi() {
     const workspace = useAppSelector(selectWorkspace);
     const [generateWithAI, { isLoading }] = useCreateFormWithAIMutation();
     const [isGenerationStarted, setIsGenerationStarted] = useState(false);
-    const { authState } = useAuthAtom();
+    const authState = useAppSelector(selectAuth);
 
     const router = useRouter();
     const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {

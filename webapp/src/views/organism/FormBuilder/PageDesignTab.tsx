@@ -2,12 +2,13 @@ import { ThemeColors } from '@app/constants/theme';
 import { ScrollArea } from '@app/shadcn/components/ui/scroll-area';
 import { Separator } from '@app/shadcn/components/ui/separator';
 import { cn } from '@app/shadcn/util/lib';
-import { useAuthAtom } from '@app/store/jotai/auth';
+import { selectAuth } from '@app/store/auth/slice';
+import { useAppSelector } from '@app/store/hooks';
 import { useFormState } from '@app/store/jotai/form';
 
 export default function PageDesignTab() {
     const { updateFormTheme, theme } = useFormState();
-    const { authState } = useAuthAtom();
+    const authState = useAppSelector(selectAuth);
     return (
         <div className="flex h-full flex-col ">
             <span className="text-black-700 px-4 font-medium ">Theme</span>

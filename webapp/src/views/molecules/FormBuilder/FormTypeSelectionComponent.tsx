@@ -1,4 +1,5 @@
-import { useAuthAtom } from '@app/store/jotai/auth';
+import { selectAuth } from '@app/store/auth/slice';
+import { useAppSelector } from '@app/store/hooks';
 import { MultiPageFormIcon } from '@app/views/atoms/Icons/MultipageFormIcon';
 import { SinglePageFormIcon } from '@app/views/atoms/Icons/SinglePageFormIcon';
 
@@ -27,7 +28,7 @@ const FormTypes: IFormTypes[] = [
 ];
 
 const FormTypeSelectionComponent = ({ handleCreateForm }: { handleCreateForm: (type: any) => void }) => {
-    const { authState } = useAuthAtom();
+    const authState = useAppSelector(selectAuth);
 
     return (
         <div className="flex flex-col items-center gap-20 py-12">

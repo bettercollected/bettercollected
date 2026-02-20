@@ -1,6 +1,6 @@
-import React from 'react';
+import { WorkspaceDispatcher } from '@app/app/_dispatcher/WorkspaceDispatcher';
 import { notFound } from 'next/navigation';
-import ServerSideWorkspaceDispatcher from '@app/Components/HOCs/ServerSideWorkspaceDispatcher';
+import React from 'react';
 import { getWorkspaceByName } from '../../layout';
 import GroupPreviewLayoutClient from './_components/GroupPreviewLayoutClient';
 
@@ -17,10 +17,10 @@ export default async function GroupPreviewLayout({
     if (!workspace) return notFound();
 
     return (
-        <ServerSideWorkspaceDispatcher workspace={workspace}>
+        <WorkspaceDispatcher workspace={workspace}>
             <GroupPreviewLayoutClient workspaceName={workspace_name} groupId={group_id}>
                 {children}
             </GroupPreviewLayoutClient>
-        </ServerSideWorkspaceDispatcher>
+        </WorkspaceDispatcher>
     );
 }

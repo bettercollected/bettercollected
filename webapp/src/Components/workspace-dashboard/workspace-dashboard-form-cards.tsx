@@ -4,7 +4,6 @@ import React from 'react';
 
 import CreateFormButton from '@Components/Common/CreateFormButton';
 
-import ActiveLink from '@app/Components/ui/links/active-link';
 import WorkspaceFormCard from '@app/Components/workspace-dashboard/workspace-form-card';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
@@ -23,7 +22,6 @@ export default function WorkspaceDashboardFormsCard({ workspaceForms, workspace,
     const ref = React.useRef<HTMLDivElement>(null);
     const router = useRouter()
 
-    // @ts-ignore
     return (
         <div className="w-full mb-4 flex flex-col gap-5 h-fit">
             {forms?.length === 0 ? (

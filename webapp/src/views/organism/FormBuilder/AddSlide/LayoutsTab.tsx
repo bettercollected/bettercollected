@@ -6,8 +6,9 @@ import globalConstants from '@app/constants/global';
 import { FieldTypes } from '@app/models/dtos/form';
 import { FormSlideLayout } from '@app/models/enums/form';
 import { ScrollArea } from '@app/shadcn/components/ui/scroll-area';
+import { selectAuth } from '@app/store/auth/slice';
+import { useAppSelector } from '@app/store/hooks';
 import { useActiveSlideComponent } from '@app/store/jotai/activeBuilderComponent';
-import { useAuthAtom } from '@app/store/jotai/auth';
 import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
 import SlideLayoutBackgroundImage from '@app/views/atoms/Icons/SlideLayoutBackgroundImage';
 import SlideLayoutLeftImage from '@app/views/atoms/Icons/SlideLayoutLeftImage';
@@ -17,7 +18,7 @@ import SlideLayoutRightImage from '@app/views/atoms/Icons/SlideLayoutRightImage'
 import Image from 'next/image';
 
 const Layout = (props: { Icon: any; name: string; image: string; style?: FormSlideLayout; onClick?: (event?: React.MouseEvent<HTMLDivElement, MouseEvent>) => void }) => {
-    const { authState } = useAuthAtom();
+    const authState = useAppSelector(selectAuth);
     return (
         <button data-umami-event={`${props.name} Button`} data-umami-event-email={authState.email}>
             <div className="cursor-pointer rounded-lg border border-transparent" onClick={props.onClick}>
@@ -40,7 +41,7 @@ const Layout = (props: { Icon: any; name: string; image: string; style?: FormSli
 export default function LayoutsTab({ closePopover }: { closePopover: () => void }) {
     const { formFields, addSlide } = useFormFieldsAtom();
     const { setActiveSlideComponent, activeSlideComponent } = useActiveSlideComponent();
-    const { authState } = useAuthAtom();
+    const authState = useAppSelector(selectAuth);
 
     const NO_IMAGE_LAYOUTS = [FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND, FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND_LEFT_ALIGN];
 
@@ -58,16 +59,16 @@ export default function LayoutsTab({ closePopover }: { closePopover: () => void 
                         ...(blank
                             ? []
                             : [
-                                  {
-                                      id: v4(),
-                                      index: 0,
-                                      type: FieldTypes.SHORT_TEXT,
-                                      value: 'Enter Question',
-                                      properties: {
-                                          placeholder: 'Answer'
-                                      }
-                                  }
-                              ])
+                                {
+                                    id: v4(),
+                                    index: 0,
+                                    type: FieldTypes.SHORT_TEXT,
+                                    value: 'Enter Question',
+                                    properties: {
+                                        placeholder: 'Answer'
+                                    }
+                                }
+                            ])
                     ]
                 },
                 imageUrl: NO_IMAGE_LAYOUTS.includes(style) ? '' : globalConstants.defaultImage

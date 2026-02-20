@@ -12,8 +12,8 @@ import globalConstants from '@app/constants/global';
 import { useIsMobile } from '@app/lib/hooks/use-breakpoint';
 import { useDialogModal } from '@app/lib/hooks/useDialogModal';
 import { Sheet, SheetContent, SheetTrigger } from '@app/shadcn/components/ui/sheet';
+import { selectAuth } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
-import { useAuthAtom } from '@app/store/jotai/auth';
 import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
 import { useCreateV2FormMutation } from '@app/store/redux/formApi';
 import { useCreateFormFromTemplateMutation, useGetTemplatesQuery } from '@app/store/redux/templateApi';
@@ -42,7 +42,7 @@ export default function CreateFormPage(props: { searchParams: Promise<{ modal?: 
     const { openModal } = useModal();
     const { openDialogModal } = useDialogModal();
     const isMobile = useIsMobile();
-    const { authState } = useAuthAtom();
+    const authState = useAppSelector(selectAuth);
 
     const showModal = searchParams.modal;
 
@@ -166,7 +166,7 @@ interface CardWrapperProps {
 }
 
 const Card = ({ icon, content, onClick, variant, addSoon, soonMsg }: CardWrapperProps) => {
-    const { authState } = useAuthAtom();
+    const authState = useAppSelector(selectAuth);
 
     return (
         <div

@@ -11,9 +11,9 @@ import { Button } from '@app/shadcn/components/ui/button';
 import { Separator } from '@app/shadcn/components/ui/separator';
 import { Skeleton } from '@app/shadcn/components/ui/skeleton';
 import { cn } from '@app/shadcn/util/lib';
+import { selectAuth } from '@app/store/auth/slice';
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
-import { useAuthAtom } from '@app/store/jotai/auth';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import getFormShareURL from '@app/utils/formUtils';
 import { DesktopIcon } from '@app/views/atoms/Icons/DesktopIcon';
@@ -31,7 +31,7 @@ const PreviewWrapper = ({ children, handleResetResponderState }: { children: Rea
     const workspace = useAppSelector(selectWorkspace);
     const isMobile = useIsMobile();
     const { openModal } = useModal();
-    const { authState } = useAuthAtom();
+    const authState = useAppSelector(selectAuth);
 
     useEffect(() => {
         setIFrameLoaded(false);

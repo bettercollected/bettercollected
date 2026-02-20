@@ -10,8 +10,8 @@ import { Button } from '@app/shadcn/components/ui/button';
 import { DropdownMenu, DropdownMenuContent } from '@app/shadcn/components/ui/dropdown-menu';
 import { Sheet, SheetClose, SheetContent, SheetFooter, SheetTrigger } from '@app/shadcn/components/ui/sheet';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
+import { selectAuth } from '@app/store/auth/slice';
 import { useActiveSlideComponent } from '@app/store/jotai/activeBuilderComponent';
-import { useAuthAtom } from '@app/store/jotai/auth';
 import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
 import { useFormState } from '@app/store/jotai/form';
 import { useFormResponse } from '@app/store/jotai/responderFormResponse';
@@ -49,7 +49,7 @@ const Navbar = () => {
 
     const router = useRouter();
 
-    const { authState } = useAuthAtom();
+    const authState = useAppSelector(selectAuth);
 
     const handleAddText = () => {
         if (activeSlideComponent === null) {

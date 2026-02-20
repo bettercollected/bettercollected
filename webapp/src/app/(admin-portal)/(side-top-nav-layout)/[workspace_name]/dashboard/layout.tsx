@@ -18,7 +18,7 @@ export async function getWorkspaceByName(name: string) {
             headers: {
                 cookie: cookieHeader
             },
-            next: { revalidate: 0 }
+            next: { revalidate: 1 }
         });
         if (!response.ok) return null;
         const data = await response.json();

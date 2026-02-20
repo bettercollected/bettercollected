@@ -8,7 +8,7 @@ import { FormSlideLayout } from '@app/models/enums/form';
 import { Button } from '@app/shadcn/components/ui/button';
 import { FieldInput } from '@app/shadcn/components/ui/input';
 import { cn } from '@app/shadcn/util/lib';
-import { useAuthAtom } from '@app/store/jotai/auth';
+import { selectAuth } from '@app/store/auth/slice';
 import useFormAtom from '@app/store/jotai/formFile';
 import { useFormResponse } from '@app/store/jotai/responderFormResponse';
 import { useResponderState } from '@app/store/jotai/responderFormState';
@@ -95,7 +95,7 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
     const workspace = useAppSelector(selectWorkspace);
     const [submitResponse, { isLoading }] = useSubmitResponseMutation();
     const { files } = useFormAtom();
-    const { authState } = useAuthAtom();
+    const authState = useAppSelector(selectAuth);
 
     const submitFormResponse = async () => {
         const formData = new FormData();

@@ -1,4 +1,3 @@
-import { useEffect } from 'react';
 
 import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/navigation';
@@ -45,9 +44,6 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, group, worksp
     const router = useRouter();
     const { t } = useTranslation();
     const { deleteFormFromGroup } = useGroupForm();
-    useEffect(() => {
-        router.prefetch(`/${workspace?.workspaceName}/dashboard/forms/${form.formId}?view=Responses`);
-    }, [router]);
 
     const handleShareClick = (event: any) => {
         event.preventDefault();

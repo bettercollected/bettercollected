@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
 
@@ -59,7 +59,9 @@ export default function WorkspaceFormsTabContent({ workspace, isFormCreator = fa
 
     useEffect(() => {
         if (!!data) {
-            setAllForms(data.items);
+            setTimeout(() => {
+                setAllForms(data.items);
+            }, 0);
         }
     }, [data]);
 

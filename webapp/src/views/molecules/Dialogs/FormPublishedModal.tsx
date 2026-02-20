@@ -2,19 +2,19 @@ import { useToast } from '@app/shadcn/components/ui/use-toast';
 
 import environments from '@app/configs/environments';
 import { Button } from '@app/shadcn/components/ui/button';
+import { selectAuth } from '@app/store/auth/slice';
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
-import GreenCheckedCircle from '@app/views/atoms/Icons/GreenCheckedCircle';
 import getFormShareURL from '@app/utils/formUtils';
-import { useAuthAtom } from '@app/store/jotai/auth';
+import GreenCheckedCircle from '@app/views/atoms/Icons/GreenCheckedCircle';
 
 export default function FormPublishedModal(props: any) {
     const { toast } = useToast();
     const workspace = useAppSelector(selectWorkspace);
 
     const standardForm = useAppSelector(selectForm);
-    const { authState } = useAuthAtom();
+    const authState = useAppSelector(selectAuth);
 
     return (
         <div className="w-full">

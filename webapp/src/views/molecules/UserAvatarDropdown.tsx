@@ -5,14 +5,14 @@ import { useRouter } from 'next/navigation';
 
 import { ChevronDown, UserRoundPlus } from 'lucide-react';
 
+import { UserStatus } from '@app/models/dtos/UserStatus';
 import { Popover, PopoverContent, PopoverTrigger } from '@app/shadcn/components/ui/popover';
 import { cn } from '@app/shadcn/util/lib';
-import { UserStatus, useAuthAtom } from '@app/store/jotai/auth';
 import { useLazyLogOutQuery } from '@app/store/redux/formApi';
 
-import { SwitchIcon } from '../atoms/Icons/SwitchIcon';
-import { useAppSelector } from '@app/store/hooks';
 import { selectAuth } from '@app/store/auth/slice';
+import { useAppSelector } from '@app/store/hooks';
+import { SwitchIcon } from '../atoms/Icons/SwitchIcon';
 
 export default function UserAvatarDropDown({ responderSignInUrl = '', disabled = false }: { responderSignInUrl?: string; disabled?: boolean }) {
     const [popOverOpen, setPopoverOpen] = useState(false);

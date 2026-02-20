@@ -1,6 +1,5 @@
 'use client';
 
-import React from 'react';
 import WorkspaceResponsesTabContent from '@Components/dashboard/workspace-responses-tab-content';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';

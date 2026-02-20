@@ -1,8 +1,7 @@
 'use client';
 
 import Loader from '@app/Components/ui/loader';
-import environments from '@app/configs/environments';
-import ReduxWrapperAppRouter from '@app/containers/ReduxWrapperAppRouter';
+import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import { setForm } from '@app/store/forms/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { useFormState } from '@app/store/jotai/form';
@@ -10,18 +9,15 @@ import { useGetWorkspaceFormQuery } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import FullScreenLoader from '@app/views/atoms/Loaders/FullScreenLoader';
 import Form from '@app/views/organism/Form/Form';
-import { useEffect, useRef, use } from 'react';
 import { useRouter } from 'next/navigation';
-import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
+import { use, useEffect, useRef } from 'react';
 
 export default function FormPage(props: { params: Promise<{ form_id: string; workspace_name: string }> }) {
     const params = use(props.params);
     const slug = params.form_id;
 
     return (
-        <ReduxWrapperAppRouter>
-            <FetchFormWrapper slug={slug} />
-        </ReduxWrapperAppRouter>
+        <FetchFormWrapper slug={slug} />
     );
 }
 

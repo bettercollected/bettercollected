@@ -1,10 +1,9 @@
-import React from 'react';
 
-import ActiveLink from '@app/Components/ui/links/active-link';
-import WorkspaceFormCard from '@app/Components/workspace-dashboard/workspace-form-card';
 import environments from '@app/configs/environments';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
+import WorkspaceFormCard from '@Components/workspace-dashboard/workspace-form-card';
+import Link from 'next/link';
 
 interface FormCardsProps {
     title: string;
@@ -25,16 +24,14 @@ const FormCards = ({ title, formsArray, workspace, showPinned = true, showVisibi
             <div className="flex flex-col gap-4">
                 {formsArray.map((form: StandardFormDto, idx: number) => {
                     const slug = form.settings?.customUrl;
+                    const pathname = isCustomDomain ? `/forms/${slug}` : `/${workspace.workspaceName}/forms/${slug}`;
                     return (
-                        <ActiveLink
+                        <Link
                             key={form.formId + idx}
-                            href={{
-                                pathname: isCustomDomain ? `/forms/${slug}` : `${workspace.workspaceName}/forms/${slug}`,
-                                query: { back: true }
-                            }}
+                            href={pathname}
                         >
                             <WorkspaceFormCard isResponderPortal showVisibility={showVisibility} showPinned={showPinned} form={form} hasCustomDomain={isCustomDomain} workspace={workspace} />
-                        </ActiveLink>
+                        </Link>
                     );
                 })}
             </div>

@@ -8,8 +8,9 @@ import globalConstants from '@app/constants/global';
 import { FieldTypes, StandardFormFieldDto, V2InputFields } from '@app/models/dtos/form';
 import { FormSlideLayout } from '@app/models/enums/form';
 import { ScrollArea } from '@app/shadcn/components/ui/scroll-area';
+import { selectAuth } from '@app/store/auth/slice';
+import { useAppSelector } from '@app/store/hooks';
 import { useActiveFieldComponent, useActiveSlideComponent } from '@app/store/jotai/activeBuilderComponent';
-import { useAuthAtom } from '@app/store/jotai/auth';
 import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
 import { useNavbarState } from '@app/store/jotai/navbar';
 import styled from 'styled-components';
@@ -29,7 +30,7 @@ const InsertFieldComponent = ({ formFields, activeSlideComponent, closeDropdown 
     const { addField, addSlide, getNewField } = useFormFieldsAtom();
     const { navbarState, setNavbarState } = useNavbarState();
     const fieldId = v4();
-    const { authState } = useAuthAtom();
+    const authState = useAppSelector(selectAuth);
 
     function checkIfInputFieldExistsInSlide(slide: StandardFormFieldDto) {
         if (!slide?.properties?.fields?.length) return false;
