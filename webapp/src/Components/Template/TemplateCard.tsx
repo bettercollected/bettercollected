@@ -1,8 +1,7 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
 import Image from 'next/legacy/image';
-import { useRouter } from 'next/navigation';
 
 import EditIcon from '@Components/Common/Icons/Common/Edit';
 import EllipsisOption from '@Components/Common/Icons/Common/EllipsisOption';
@@ -12,10 +11,8 @@ import { Loader2 } from 'lucide-react';
 
 import { IFormTemplateDto } from '@app/models/dtos/template';
 import { Popover, PopoverContent, PopoverTrigger } from '@app/shadcn/components/ui/popover';
-import { useAppSelector } from '@app/store/hooks';
-import { selectWorkspace } from '@app/store/workspaces/slice';
-import LayoutWrapper from '@app/views/organism/Layout/LayoutWrapper';
 import WelcomePage from '@app/views/organism/Form/WelcomePage';
+import LayoutWrapper from '@app/views/organism/Layout/LayoutWrapper';
 
 interface ITemplateCardProps {
     template: IFormTemplateDto;
@@ -23,28 +20,20 @@ interface ITemplateCardProps {
 }
 
 const TemplateCard = ({ template, isPredefinedTemplate }: ITemplateCardProps) => {
-    const router = useRouter();
-    const workspace = useAppSelector(selectWorkspace);
+    // const router = useRouter();
+    // const workspace = useAppSelector(selectWorkspace);
 
     const { t } = useTranslation();
 
     const { openBottomSheetModal } = useBottomSheetModal();
     const [open, setOpen] = useState(false);
 
-    const handleClickCard = () => {
-        router.push(`/${workspace.workspaceName}/templates/${template.id}`);
-    };
-
-    const handleClickEditCard = () => {
-        router.push(`/${workspace.workspaceName}/templates/${template.id}/edit`);
-    };
-
     return (
         <div className={`flex min-w-[150px] flex-col gap-2 md:min-w-[186px] ${template?.builderVersion !== 'v2' && 'w-[150px]'}`}>
             <div
                 className={`border-black-200  hover:shadow-hover relative  cursor-pointer overflow-hidden rounded border md:h-[192px] ${!template.previewImage && template?.builderVersion === 'v2' ? '!h-[157px] w-[281px]' : 'flex h-[170px] items-center justify-center bg-gradient-to-b from-blue-400 to-blue-800 '
                     }`}
-                onClick={handleClickCard}
+            // onClick={handleClickCard}
             >
                 {template?.builderVersion !== 'v2' && (
                     <>
@@ -96,7 +85,7 @@ const TemplateCard = ({ template, isPredefinedTemplate }: ITemplateCardProps) =>
                                     <li
                                         onClick={(e) => {
                                             e.stopPropagation();
-                                            handleClickEditCard();
+                                            // handleClickEditCard();
                                             setOpen(false);
                                         }}
                                         className="flex items-center gap-2 px-4 py-2 hover:bg-black-100 cursor-pointer body4"

@@ -3,10 +3,7 @@ import { atom } from 'jotai';
 
 export type FULL_SCREEN_MODALS =
     | ''
-    | 'LOGIN_VIEW'
-    | 'CROP_IMAGE'
     | 'UPGRADE_TO_PRO'
-    | 'WORKSPACE_PREVIEW'
     | 'FORM_SETTINGS_FULL_MODAL_VIEW'
     | 'FORM_CREATE_SLUG_VIEW'
     | 'SELECT_GROUP_FULL_MODAL_VIEW'

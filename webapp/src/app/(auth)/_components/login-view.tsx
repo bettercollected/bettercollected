@@ -1,24 +1,23 @@
 'use client';
 
-import { useState } from 'react';
 import Image from "next/legacy/image";
 import { useSearchParams } from 'next/navigation';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import cn from 'classnames';
 
 import Logo from '@app/Components/ui/logo';
-import Layout from '@app/layouts/_layout';
 import { localesCommon } from '@app/constants/locales/common';
 import { signInScreen } from '@app/constants/locales/signin-screen';
 import { signUpScreen } from '@app/constants/locales/signup-screen';
+import Layout from '@app/layouts/_layout';
 
 import ImageSignInPreview from '@app/assets/images/sign-in-image.png';
 import ImageSignInVerification from '@app/assets/images/sign-in-verification.png';
 import ImageSignUpPreview from '@app/assets/images/sign-up-image.png';
 import ImageSignUpValidation from '@app/assets/images/sign-up-verification.png';
 
-import OtpEmailForm from './otp-email-form';
 import OtpCodeForm from './otp-code-form';
+import OtpEmailForm from './otp-email-form';
 
 export default function LoginView() {
     const { t } = useTranslation();

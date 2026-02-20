@@ -6,25 +6,16 @@ import { Close } from '@app/Components/icons/close';
 import ModalContainer from '@app/Components/modal-views/container';
 import { FULL_SCREEN_MODALS, useFullScreenModal } from '@app/Components/modal-views/full-screen-modal-context';
 import UpgradeToProModal from '@app/Components/modal-views/modals/upgrade-to-pro-modal';
-import WorkspacePreviewModal from '@app/Components/modal-views/modals/workspace-preview-modal';
 import { Dialog } from '@app/Components/ui/dialog';
 import { Transition } from '@app/Components/ui/transition';
 
-import LoginView from '@Components/Login/login-view';
 import { PreviewFullModalView } from './full-screen-modals/v2preview-modal';
 import ViewResponseFullModalView from './full-screen-modals/view-response-full-modal-view';
-import CropImageModalView from './modals/crop-image-modal-view';
 
 function renderModalContent(view: FULL_SCREEN_MODALS, modalProps: any) {
     switch (view) {
-        case 'LOGIN_VIEW':
-            return <LoginView {...modalProps} />; // Done
-        case 'CROP_IMAGE':
-            return <CropImageModalView {...modalProps} />;
         case 'UPGRADE_TO_PRO':
             return <UpgradeToProModal {...modalProps} />;
-        case 'WORKSPACE_PREVIEW':
-            return <WorkspacePreviewModal />;
         case 'VIEW_RESPONSE':
             return <ViewResponseFullModalView {...modalProps} />;
         case 'PREVIEW_MODAL':
@@ -39,7 +30,7 @@ export default function FullScreenModalContainer() {
 
     const closeModalHandler = useCallback(() => {
         if (!modalProps?.nonClosable) closeModal();
-    }, [closeModal]);
+    }, [closeModal, modalProps]);
 
     return (
         <>

@@ -86,8 +86,8 @@ const TemplateSettings = ({ template, showTitle }: { template: IFormTemplateDto;
                                 </div>
                             </Label>
                         </div>
-                        <span className=" body4 !text-black-700 ml-6">{t('TEMPLATE.SETTINGS.VISIBILITY.PUBLIC')}</span>
-                        {templateVisibility == 'Public' && <ShareLinkOptions adminHost={adminHost} />}
+                        {/* <span className=" body4 !text-black-700 ml-6">{t('TEMPLATE.SETTINGS.VISIBILITY.PUBLIC')}</span> */}
+                        {/* {templateVisibility == 'Public' && <ShareLinkOptions adminHost={adminHost} />} */}
                     </div>
                     <Divider className={'text-black-200'} />
                     <div className="flex flex-col gap-2">
@@ -100,7 +100,7 @@ const TemplateSettings = ({ template, showTitle }: { template: IFormTemplateDto;
                                 </div>
                             </Label>
                         </div>
-                        <span className="body4 !text-black-700 ml-6">{t('TEMPLATE.SETTINGS.VISIBILITY.PRIVATE')}</span>
+                        {/* <span className="body4 !text-black-700 ml-6">{t('TEMPLATE.SETTINGS.VISIBILITY.PRIVATE')}</span> */}
                     </div>
                     <Divider className={'text-black-200'} />
                 </RadioGroup>

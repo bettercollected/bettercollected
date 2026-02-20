@@ -32,7 +32,6 @@ import AddFormOnGroup from './modals/add-form-group-modal';
 import AddGroupOnForm from './modals/add-group-form-modal';
 import AddMembersModal from './modals/add-members-modal';
 import AddRegexModal from './modals/add-regex-modal';
-import CropImageModalView from './modals/crop-image-modal-view';
 import DeleteConfirmationModal from './modals/delete-confirmation-modal';
 import EditWorkspaceModal from './modals/edit-workspace-modal';
 import VisibilityConfirmationModalView from './modals/visibility-confirmation-modal-view';
@@ -49,8 +48,6 @@ function renderModalContent(view: MODAL_VIEW, modalProps: any) {
             return <AddMembersModal {...modalProps} />;
         case 'ADD_REGEX':
             return <AddRegexModal {...modalProps} />;
-        case 'CROP_IMAGE':
-            return <CropImageModalView {...modalProps} />;
         case 'CUSTOMIZE_URL':
             return <CustomizeUrlModal {...modalProps} />;
         case 'DELETE_CONFIRMATION':

@@ -1,9 +1,9 @@
 import environments from '@app/configs/environments';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
-import LoginView from '@Components/Login/login-view';
 import { isRedirectError } from 'next/dist/client/components/redirect-error';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
+import LoginView from '../_components/login-view';
 
 export default async function LoginPage() {
     const cookieStore = await cookies();
