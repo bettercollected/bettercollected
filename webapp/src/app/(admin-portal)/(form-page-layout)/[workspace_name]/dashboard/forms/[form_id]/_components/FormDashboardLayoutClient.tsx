@@ -234,8 +234,6 @@ export default function FormDashboardLayoutClient({
                         )}
                         <Divider className="mt-6 hidden md:flex" />
                     </FormPageLayer>
-                    <Divider className="py-6 flex md:hidden" />
-
                     <div className="md:px-10 lg:px-28 pt-4">
                         <div className="flex space-x-1 border-b border-gray-200 overflow-x-auto">
                             {tabMenu.map((tab) => {
