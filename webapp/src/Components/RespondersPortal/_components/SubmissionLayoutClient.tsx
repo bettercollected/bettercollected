@@ -1,10 +1,10 @@
 'use client';
 
+import cn from 'classnames';
+import Link from 'next/link';
+import { usePathname, useRouter } from 'next/navigation';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { useParams, useRouter, usePathname } from 'next/navigation';
-import Link from 'next/link';
-import cn from 'classnames';
 
 import Divider from '@Components/Common/DataDisplay/Divider';
 import { DotIcon } from '@Components/Common/Icons/Common/DotIcon';
@@ -13,10 +13,10 @@ import FormProviderIcon from '@Components/Common/Icons/Form/FormProviderIcon';
 import Preview from '@Components/Common/Icons/Form/Preview';
 import { ChevronLeft } from 'lucide-react';
 
+import FullScreenLoader from '@app/Components/ui/fullscreen-loader';
 import { localesCommon } from '@app/constants/locales/common';
 import Layout from '@app/layouts/_layout';
 import { utcToLocalDate } from '@app/utils/dateUtils';
-import FullScreenLoader from '@app/Components/ui/fullscreen-loader';
 import { useSubmissionContext } from './SubmissionContext';
 
 export default function SubmissionLayoutClient({ children }: { children: React.ReactNode }) {
@@ -59,9 +59,7 @@ export default function SubmissionLayoutClient({ children }: { children: React.R
 
     if (isLoading || isError || !data) {
         return (
-            <Layout className="bg-white !px-0" showAuthAccount={false} isCustomDomain={hasCustomDomain} isClientDomain={!hasCustomDomain} showNavbar={true}>
-                <FullScreenLoader />
-            </Layout>
+            <FullScreenLoader />
         );
     }
 
@@ -83,10 +81,10 @@ export default function SubmissionLayoutClient({ children }: { children: React.R
                         <DotIcon />
                         <div className="min-w-fit">Submitted: {utcToLocalDate(form?.response?.createdAt)}</div>
                     </div>
-                    <Divider className="mt-6" />
+                    <Divider className="mt-2" />
                 </div>
 
-                <div className="w-full px-5 md:px-10 lg:px-28">
+                <div className="w-full mt-3 px-5 md:px-10 lg:px-28">
                     <div className="flex space-x-1 border-b border-gray-200 overflow-x-auto pb-0">
                         {tabs.map((tab) => {
                             const isActive = pathname?.endsWith(`/${tab.path}`);
@@ -95,10 +93,10 @@ export default function SubmissionLayoutClient({ children }: { children: React.R
                                     key={tab.path}
                                     href={`${basePath}/${tab.path}`}
                                     className={cn(
-                                        'flex items-center gap-2 px-4 py-2 text-sm font-medium mb-[-1px] cursor-pointer hover:bg-black-200 hover:rounded whitespace-nowrap focus:outline-none',
+                                        'flex items-center border-b-2 gap-2 px-4 py-2 text-sm font-medium cursor-pointer hover:bg-black-200 hover:rounded whitespace-nowrap focus:outline-none',
                                         isActive
-                                            ? 'border-b-2 border-black-900 text-black-900'
-                                            : 'text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                            ? 'border-black-900 text-black-900'
+                                            : 'text-gray-500 border-transparent hover:text-gray-700'
                                     )}
                                 >
                                     {tab.icon}

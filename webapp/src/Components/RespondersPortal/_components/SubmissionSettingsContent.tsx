@@ -1,13 +1,12 @@
 'use client';
 
-import React from 'react';
-import { useTranslation } from 'react-i18next';
 import Divider from '@Components/Common/DataDisplay/Divider';
 import Tooltip from '@Components/Common/DataDisplay/Tooltip';
-import { Button } from '@app/shadcn/components/ui/button';
 import { useModal } from '@app/Components/modal-views/context';
 import { buttonConstant } from '@app/constants/locales/button';
 import { toolTipConstant } from '@app/constants/locales/tooltip';
+import { Button } from '@app/shadcn/components/ui/button';
+import { useTranslation } from 'react-i18next';
 import { useSubmissionContext } from './SubmissionContext';
 
 export default function SubmissionSettingsContent() {
@@ -23,7 +22,7 @@ export default function SubmissionSettingsContent() {
     };
 
     return (
-        <div className="flex flex-col gap-[72px] px-5 md:px-10 lg:px-28">
+        <div className="flex flex-col gap-[72px] px-5">
             <div className="flex flex-col gap-2">
                 <span className="h3-new">Settings</span>
                 <span className="p2-new text-black-700"> Review your data usage permissions</span>
