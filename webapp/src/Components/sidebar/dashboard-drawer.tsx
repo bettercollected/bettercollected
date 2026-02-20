@@ -19,13 +19,13 @@ import { toolTipConstant } from '@app/constants/locales/tooltip';
 import { upgradeConst } from '@app/constants/locales/upgrade';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { IDrawerProps } from '@app/models/props/navbar';
+import { Progress } from '@app/shadcn/components/ui/progress';
+import { cn } from '@app/shadcn/util/lib';
 import { selectIsAdmin, selectIsProPlan } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { useGetWorkspaceStatsQuery } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import Globe from '@app/views/atoms/Icons/Flags/Globe';
-import { cn } from '@app/shadcn/util/lib';
-import { Progress } from '@app/shadcn/components/ui/progress';
 
 const GradientBgDiv = ({ className, children }: { className?: string, children: React.ReactNode }) => (
     <div
@@ -127,7 +127,7 @@ const Drawer = ({ topNavList, isAdmin, bottomNavList }: any) => {
 
                                     <div className="flex items-center justify-end text-xs font-semibold mt-2">
                                         <span
-                                            className="text-brand-500 cursor-pointer hover:underline text-blue-600"
+                                            className="cursor-pointer hover:underline text-blue-600"
                                             onClick={() => {
                                                 openModal('REDEEM_CODE_MODAL');
                                             }}

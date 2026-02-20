@@ -26,8 +26,8 @@ import ShareModalView from '@app/Components/modal-views/modals/share-modal-view'
 import RequestForDeletionView from '@app/Components/submission-request-for-deletion';
 import { Dialog } from '@app/Components/ui/dialog';
 import { Transition } from '@app/Components/ui/transition';
-import { useAppDispatch } from '@app/store/hooks';
 
+import { Button } from '@app/shadcn/components/ui/button';
 import AddFormOnGroup from './modals/add-form-group-modal';
 import AddGroupOnForm from './modals/add-group-form-modal';
 import AddMembersModal from './modals/add-members-modal';
@@ -36,7 +36,6 @@ import CropImageModalView from './modals/crop-image-modal-view';
 import DeleteConfirmationModal from './modals/delete-confirmation-modal';
 import EditWorkspaceModal from './modals/edit-workspace-modal';
 import VisibilityConfirmationModalView from './modals/visibility-confirmation-modal-view';
-import { Button } from '@app/shadcn/components/ui/button';
 
 function renderModalContent(view: MODAL_VIEW, modalProps: any) {
     switch (view) {
@@ -106,11 +105,9 @@ function renderModalContent(view: MODAL_VIEW, modalProps: any) {
 export default function ModalContainer() {
     const { view, isOpen, closeModal, modalProps } = useModal();
 
-    const dispatch = useAppDispatch();
-
     const closeModalHandler = useCallback(() => {
         if (!modalProps?.nonClosable) closeModal();
-    }, [closeModal]);
+    }, [closeModal, modalProps]);
 
     return (
         <Transition appear show={isOpen} as={Fragment}>

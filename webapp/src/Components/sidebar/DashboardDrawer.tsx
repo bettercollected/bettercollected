@@ -1,11 +1,9 @@
-// @ts-nocheck
-import React from 'react';
+'use client';
 
-import { useTranslation } from 'react-i18next';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-
-import Divider from '@Components/Common/DataDisplay/Divider';
+import React from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { useModal } from '@app/Components/modal-views/context';
 import { useFullScreenModal } from '@app/Components/modal-views/full-screen-modal-context';
@@ -19,13 +17,14 @@ import { toolTipConstant } from '@app/constants/locales/tooltip';
 import { upgradeConst } from '@app/constants/locales/upgrade';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { IDrawerProps } from '@app/models/props/navbar';
+import { Progress } from '@app/shadcn/components/ui/progress';
+import { cn } from '@app/shadcn/util/lib';
 import { selectIsAdmin, selectIsProPlan } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { useGetWorkspaceStatsQuery } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import Globe from '@app/views/atoms/Icons/Flags/Globe';
-import { cn } from '@app/shadcn/util/lib';
-import { Progress } from '@app/shadcn/components/ui/progress';
+import Divider from '@Components/Common/DataDisplay/Divider';
 
 const GradientBgDiv = ({ className, children }: { className?: string, children: React.ReactNode }) => (
     <div
@@ -41,12 +40,17 @@ const GradientBgDiv = ({ className, children }: { className?: string, children: 
     </div>
 );
 
-const Drawer = ({ topNavList, isAdmin, bottomNavList }: any) => {
+interface DashboardDrawerProps extends IDrawerProps {
+    className?: string;
+}
+
+const DrawerContent = ({ topNavList, bottomNavList }: { topNavList: any[], bottomNavList: any[] }) => {
     const { t } = useTranslation();
     const workspace: WorkspaceDto = useAppSelector(selectWorkspace);
     const { data } = useGetWorkspaceStatsQuery(workspace?.id || '', { skip: !workspace?.id });
     const { openModal: openFullScreenModal } = useFullScreenModal();
     const { openModal } = useModal();
+    const isAdmin = useAppSelector(selectIsAdmin);
     const isProPlan = useAppSelector(selectIsProPlan);
     const pathname = usePathname();
     const commonWorkspaceUrl = `/${workspace?.workspaceName}/dashboard`;
@@ -59,7 +63,6 @@ const Drawer = ({ topNavList, isAdmin, bottomNavList }: any) => {
             <div className="flex-1 overflow-auto h-full scrollbar-hide">
                 <div className="flex h-full flex-col justify-between">
                     <div className="px-4">
-                        {/* Replacement for List/ListItem containing WorkspaceMenuDropdown */}
                         <div className="pt-5 pb-0">
                             <WorkspaceMenuDropdown fullWidth />
                         </div>
@@ -85,14 +88,12 @@ const Drawer = ({ topNavList, isAdmin, bottomNavList }: any) => {
                         )}
                     </div>
 
-                    {/* Bottom section for free plan / ads */}
                     {isAdmin && !isProPlan && (
                         <div className="mt-4 pb-4">
                             <div className="bg-slate-50 mx-4 mb-4 rounded-md p-4">
                                 <div className="h5-new mb-2">{t(pricingPlan.title)}</div>
                                 <div className="text-black-600 text-sm">For unlimited forms and many more features</div>
 
-                                {/* Shadcn Progress */}
                                 <Progress
                                     className="mb-2 mt-4 h-2.5 bg-white border border-gray-100"
                                     value={data?.forms || 0}
@@ -127,7 +128,7 @@ const Drawer = ({ topNavList, isAdmin, bottomNavList }: any) => {
 
                                     <div className="flex items-center justify-end text-xs font-semibold mt-2">
                                         <span
-                                            className="text-brand-500 cursor-pointer hover:underline text-blue-600"
+                                            className=" cursor-pointer hover:underline text-blue-600"
                                             onClick={() => {
                                                 openModal('REDEEM_CODE_MODAL');
                                             }}
@@ -145,12 +146,10 @@ const Drawer = ({ topNavList, isAdmin, bottomNavList }: any) => {
     );
 };
 
-export default function DashboardDrawerApp({ drawerWidth, mobileOpen, handleDrawerToggle, bottomNavList, topNavList }: IDrawerProps) {
-    const isAdmin = useAppSelector(selectIsAdmin);
-
+export default function DashboardDrawer({ drawerWidth, mobileOpen, handleDrawerToggle, topNavList, bottomNavList }: DashboardDrawerProps) {
     return (
         <MuiDrawer handleDrawerToggle={handleDrawerToggle} drawerWidth={drawerWidth} mobileOpen={mobileOpen}>
-            <Drawer topNavList={topNavList} isAdmin={isAdmin} bottomNavList={bottomNavList} />
+            <DrawerContent topNavList={topNavList} bottomNavList={bottomNavList} />
         </MuiDrawer>
     );
 }

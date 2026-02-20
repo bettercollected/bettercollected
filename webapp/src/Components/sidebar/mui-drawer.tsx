@@ -1,4 +1,3 @@
-import React from 'react';
 
 import { Sheet, SheetContent } from '@app/shadcn/components/ui/sheet';
 import { cn } from '@app/shadcn/util/lib';
@@ -12,11 +11,6 @@ interface IMuiDrawerProps {
     desktopDrawerDisplayProps?: any; // kept for compatibility signature
     children?: any;
 }
-
-// Shadcn Sheet is controlled. We need to map `mobileOpen` to `open` and `handleDrawerToggle` to `onOpenChange`.
-// We replicate the responsive behavior:
-// Mobile: Sheet (visible xs-lg, hidden lg+)
-// Desktop: Fixed Div (hidden xs-lg, visible lg+)
 
 export default function MuiDrawer({ drawerWidth = 289, mobileOpen, children, handleDrawerToggle, anchor = 'left' }: IMuiDrawerProps) {
 
