@@ -12,7 +12,7 @@ export default async function Layout(
         children
     } = props;
 
-    const workspaceResponse = await fetch(environments.INTERNAL_DOCKER_API_ENDPOINT_HOST + '/workspaces?workspace_name=' + workspace_name, { next: { revalidate: 300 } });
+    const workspaceResponse = await fetch(environments.INTERNAL_DOCKER_API_ENDPOINT_HOST + '/workspaces?workspace_name=' + workspace_name, { cache: 'no-store' });
     if (!workspaceResponse.ok) return notFound();
     const workspace = await workspaceResponse.json();
 

@@ -5,12 +5,12 @@ import environments from '@app/configs/environments';
 import OnboardingClient from './OnboardingClient';
 
 async function getWorkspaceByDomain(domain: string) {
-    const response = await fetch(`${environments.INTERNAL_DOCKER_API_ENDPOINT_HOST}/workspaces?custom_domain=${domain}`, { next: { revalidate: 300 } });
+    const response = await fetch(`${environments.INTERNAL_DOCKER_API_ENDPOINT_HOST}/workspaces?custom_domain=${domain}`, { cache: 'no-store' });
     return await response.json();
 }
 
 async function getWorkspaceByName(name: string) {
-    const response = await fetch(`${environments.INTERNAL_DOCKER_API_ENDPOINT_HOST}/workspaces?workspace_name=${name}`, { next: { revalidate: 300 } });
+    const response = await fetch(`${environments.INTERNAL_DOCKER_API_ENDPOINT_HOST}/workspaces?workspace_name=${name}`, { cache: 'no-store' });
     return await response.json();
 }
 

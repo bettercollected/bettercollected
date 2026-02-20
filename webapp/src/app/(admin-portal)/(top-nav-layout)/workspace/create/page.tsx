@@ -19,7 +19,7 @@ async function getUserStatus() {
             headers: {
                 cookie: cookieHeader
             },
-            next: { revalidate: 0 } // Don't cache auth status
+            cache: 'no-store' // Don't cache auth status
         });
 
         if (!response.ok) return null;

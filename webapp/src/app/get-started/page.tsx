@@ -15,7 +15,8 @@ async function getAuthStatus(cookieStore: any) {
         const response = await fetch(`${environments.INTERNAL_DOCKER_API_ENDPOINT_HOST}/auth/status`, {
             headers: {
                 cookie: `Authorization=${auth}; RefreshToken=${refresh}`
-            }
+            },
+            cache: 'no-store'
         });
         return await response.json();
     } catch (error) {
@@ -31,7 +32,8 @@ async function getMyWorkspaces(cookieStore: any) {
         const response = await fetch(`${environments.INTERNAL_DOCKER_API_ENDPOINT_HOST}/workspaces/mine`, {
             headers: {
                 cookie: `Authorization=${auth}; RefreshToken=${refresh}`
-            }
+            },
+            cache: 'no-store'
         });
         return await response.json();
     } catch (error) {

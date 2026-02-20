@@ -18,7 +18,7 @@ export async function getWorkspaceByName(name: string) {
             headers: {
                 cookie: cookieHeader
             },
-            next: { revalidate: 1 }
+            cache: 'no-store'
         });
         if (!response.ok) return null;
         const data = await response.json();
@@ -35,7 +35,7 @@ async function getAuthUser(cookieHeader: string) {
             headers: {
                 cookie: cookieHeader
             },
-            next: { revalidate: 0 }
+            cache: 'no-store'
         });
         if (!response.ok) return null;
         return await response.json();

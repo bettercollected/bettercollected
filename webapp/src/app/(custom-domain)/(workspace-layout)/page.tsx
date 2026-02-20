@@ -6,7 +6,7 @@ import environments from '@app/configs/environments';
 async function getWorkspaceByDomain(domain: string) {
     try {
         const response = await fetch(`${environments.INTERNAL_DOCKER_API_ENDPOINT_HOST}/workspaces?custom_domain=${domain}`, {
-            next: { revalidate: 1 } // Cache for 1 second
+            cache: 'no-store' // Cache for 1 second
         });
         if (!response.ok) return null;
         const data = await response.json();

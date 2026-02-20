@@ -9,7 +9,7 @@ import { WorkspaceDispatcher } from '../../_dispatcher/WorkspaceDispatcher';
 async function getWorkspaceByDomain(domain: string) {
     try {
         const response = await fetch(`${environments.INTERNAL_DOCKER_API_ENDPOINT_HOST}/workspaces?custom_domain=${domain}`, {
-            next: { revalidate: 300 } // Cache for 5 minutes
+            cache: 'no-store'
         });
         if (!response.ok) return null;
         const data = await response.json();

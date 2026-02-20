@@ -1,12 +1,12 @@
-import React from 'react';
-import { notFound } from 'next/navigation';
 import environments from '@app/configs/environments';
 import SharedSubmissionLayoutClient from '@Components/RespondersPortal/_components/SharedSubmissionLayoutClient';
+import { notFound } from 'next/navigation';
+import React from 'react';
 
 async function getWorkspaceByName(name: string) {
     try {
         const response = await fetch(`${environments.INTERNAL_DOCKER_API_ENDPOINT_HOST}/workspaces?workspace_name=${name}`, {
-            next: { revalidate: 300 }
+            cache: 'no-store'
         });
         if (!response.ok) return null;
         const data = await response.json();
@@ -33,8 +33,6 @@ export default async function WorkspaceSubmissionUUIDLayout({
 
     return (
         <SharedSubmissionLayoutClient
-            workspaceId={workspace.id}
-            workspaceName={workspace_name}
             submissionId={id}
             hasCustomDomain={false}
             isUUID={true}

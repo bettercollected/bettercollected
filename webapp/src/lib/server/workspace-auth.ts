@@ -1,6 +1,6 @@
-import { cookies, headers } from 'next/headers';
 import environments from '@app/configs/environments';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
+import { cookies } from 'next/headers';
 
 export async function getWorkspaceByServerContext(workspaceName: string) {
     const cookieStore = await cookies();
@@ -8,18 +8,17 @@ export async function getWorkspaceByServerContext(workspaceName: string) {
     const refreshCookie = cookieStore.get('RefreshToken');
     const cookieHeader = `${authCookie ? `Authorization=${authCookie.value};` : ''}${refreshCookie ? `RefreshToken=${refreshCookie.value};` : ''}`;
 
-    const config = {
-        method: 'GET',
-        headers: {
-            cookie: cookieHeader
-        },
-        next: { revalidate: 0 }
-    };
 
     try {
         const workspaceResponse = await fetch(
             `${environments.INTERNAL_DOCKER_API_ENDPOINT_HOST}/workspaces?workspace_name=${workspaceName}`,
-            config
+            {
+                method: 'GET',
+                headers: {
+                    cookie: cookieHeader
+                },
+                cache: 'no-store'
+            }
         );
         if (!workspaceResponse.ok) return null;
         const workspace: WorkspaceDto = await workspaceResponse.json();
@@ -36,18 +35,16 @@ export async function checkUserWorkspaceAuth(workspace: WorkspaceDto) {
     const refreshCookie = cookieStore.get('RefreshToken');
     const cookieHeader = `${authCookie ? `Authorization=${authCookie.value};` : ''}${refreshCookie ? `RefreshToken=${refreshCookie.value};` : ''}`;
 
-    const config = {
-        method: 'GET',
-        headers: {
-            cookie: cookieHeader
-        },
-        next: { revalidate: 0 }
-    };
-
     try {
         const userStatusResponse = await fetch(
             `${environments.INTERNAL_DOCKER_API_ENDPOINT_HOST}/auth/status`,
-            config
+            {
+                method: 'GET',
+                headers: {
+                    cookie: cookieHeader
+                },
+                cache: 'no-store'
+            }
         );
         if (!userStatusResponse.ok) return false;
         const user = await userStatusResponse.json();

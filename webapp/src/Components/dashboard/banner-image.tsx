@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
 
@@ -12,13 +12,11 @@ import { TransformComponent, TransformWrapper } from 'react-zoom-pan-pinch';
 import Image from '@app/Components/ui/image';
 import { buttonConstant } from '@app/constants/locales/button';
 import { toastMessage } from '@app/constants/locales/toast-message';
-import { ToastId } from '@app/constants/toastId';
-import { BannerImageComponentPropType } from '@app/containers/dashboard/WorkspaceHomeContainer';
 import { useAppDispatch } from '@app/store/hooks';
 import { usePatchExistingWorkspaceMutation } from '@app/store/workspaces/api';
 import { setWorkspace } from '@app/store/workspaces/slice';
 
-export default function BannerImageComponent(props: BannerImageComponentPropType) {
+export default function BannerImageComponent(props: { workspace: any; isFormCreator: boolean; className?: string }) {
     const { workspace, isFormCreator, className } = props;
     const { toast } = useToast();
     const transformComponentRef = useRef(null);

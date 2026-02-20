@@ -8,7 +8,7 @@ import FullScreenLoader from '@app/views/atoms/Loaders/FullScreenLoader';
 
 export async function generateMetadata(props: { params: Promise<{ workspace_name: string; form_id: string }> }) {
     const params = await props.params;
-    const workspaceResponse = await fetch(environments.INTERNAL_DOCKER_API_ENDPOINT_HOST + '/workspaces?workspace_name=' + params.workspace_name, { next: { revalidate: 300 } });
+    const workspaceResponse = await fetch(environments.INTERNAL_DOCKER_API_ENDPOINT_HOST + '/workspaces?workspace_name=' + params.workspace_name, { cache: 'no-store' });
     const workspace = await workspaceResponse.json();
 
     const config = {
@@ -45,7 +45,7 @@ async function FormWrapper({ workspaceName, formId, children, params }: { worksp
         method: 'GET'
     };
 
-    const workspaceResponse = await fetch(environments.INTERNAL_DOCKER_API_ENDPOINT_HOST + '/workspaces?workspace_name=' + workspaceName, { next: { revalidate: 300 } });
+    const workspaceResponse = await fetch(environments.INTERNAL_DOCKER_API_ENDPOINT_HOST + '/workspaces?workspace_name=' + workspaceName, { cache: 'no-store' });
     if (!workspaceResponse.ok) return notFound();
     const workspace = await workspaceResponse.json();
 

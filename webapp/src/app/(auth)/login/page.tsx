@@ -17,7 +17,7 @@ export default async function LoginPage() {
             headers: {
                 cookie: cookieHeader
             },
-            next: { revalidate: 0 }
+            cache: 'no-store'
         });
 
         if (userStatus.ok) {
@@ -28,7 +28,7 @@ export default async function LoginPage() {
                     headers: {
                         cookie: cookieHeader
                     },
-                    next: { revalidate: 0 }
+                    cache: 'no-store'
                 });
 
                 if (userWorkspaceResponse.ok) {
