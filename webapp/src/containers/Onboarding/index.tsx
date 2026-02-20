@@ -16,11 +16,13 @@ import { toastMessage } from '@app/constants/locales/toast-message';
 import { UserStatus } from '@app/models/dtos/UserStatus';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { AppInput } from '@app/shadcn/components/ui/input';
+import { Label } from '@app/shadcn/components/ui/label';
 import { Textarea } from '@app/shadcn/components/ui/textarea';
 import { selectAuth } from '@app/store/auth/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { useCreateWorkspaceMutation, useLazyGetWorkspaceNameSuggestionsQuery, usePatchExistingWorkspaceMutation } from '@app/store/workspaces/api';
 import { setWorkspace } from '@app/store/workspaces/slice';
+import { InfoIcon } from 'lucide-react';
 
 interface onBoardingProps {
     workspace?: WorkspaceDto;
@@ -56,6 +58,9 @@ const OnboardingContainer = ({ workspace, createWorkspace }: onBoardingProps) =>
         workspaceName: createWorkspace ? '' : workspaceName
     });
 
+    const [errors, setErrors] = useState<{ title?: string }>({});
+
+    // Handle logo upload
     const handleUploadLogo = (logo: File) => {
         setFormData({
             ...formData,
@@ -127,16 +132,25 @@ const OnboardingContainer = ({ workspace, createWorkspace }: onBoardingProps) =>
             ...formData,
             [e.target.id]: e.target.value
         });
+        if (!!errors?.title && e.target.id === 'title') {
+            setErrors({ ...errors, title: '' });
+        }
     };
 
     const onSubmitForm = async (event: FormEvent) => {
         event.preventDefault();
         if (formData.title && formData.workspaceName) {
             await onClickDone();
+        } else {
+            if (!formData.title) setErrors({ ...errors, title: 'Please enter organization name' });
         }
     };
 
     const onWorkspaceTitleBlur = async (event: any) => {
+        if (!event.target.value) {
+            setErrors({ ...errors, title: 'Please enter organization name' });
+            return;
+        }
         if (createWorkspace && !formData.workspaceName) {
             const suggestion = await fetchSuggestionsForWorkspaceHandle(event.target.value || '');
             setFormData({ ...formData, workspaceName: suggestion });
@@ -162,15 +176,50 @@ const OnboardingContainer = ({ workspace, createWorkspace }: onBoardingProps) =>
     };
 
     return (
-        <div className="flex w-full flex-col items-center bg-white px-4 md:px-0">
+        <div className="flex w-full flex-col items-center bg-white px-4 h-screen md:px-0">
             <AuthNavbar showPlans={false} showHamburgerIcon />
             <div className="mt-32 flex flex-col">
                 <div className="h3-new">{t(onBoarding.addYourOrganization)}</div>
                 <UploadLogo logoImageUrl={workspace?.profileImage ?? ''} className="mt-12" onUpload={handleUploadLogo} onRemove={handleRemoveLogo} />
                 <form className="mt-12 w-full space-y-8 md:w-[541px] " onSubmit={onSubmitForm}>
-                    <AppInput onBlur={onWorkspaceTitleBlur} required title="Organization Name" id="title" placeholder="Enter name of your workspace" value={formData.title} onChange={handleOnchange} />
+                    {/* Organization Name Input Section */}
+                    <div className="flex flex-col gap-1.5 w-full relative">
+                        <Label htmlFor="title" className="text-sm font-medium ml-1 mb-1 text-gray-700">
+                            Organization Name
+                        </Label>
+                        <AppInput
+                            onBlur={onWorkspaceTitleBlur}
+                            required
+                            id="title"
+                            placeholder="Enter name of your workspace"
+                            value={formData.title}
+                            onChange={handleOnchange}
+                            className={!!errors?.title ? 'border-red-500 focus-visible:ring-red-500 w-full' : 'w-full'}
+                        />
+                        {/* Error Message for Organization Name */}
+                        {!!errors?.title && (
+                            <span className="flex items-center gap-1 text-xs text-red-600 absolute -bottom-6 left-1">
+                                <InfoIcon className="h-3 w-3" /> {errors.title}
+                            </span>
+                        )}
+                    </div>
+
+                    {/* Workspace/Handle Name Input Section */}
                     <TextFieldHandler formData={formData} setFormData={setFormData} handleOnChange={handleOnchange} createWorkspace={createWorkspace} />
-                    <Textarea title="Add Your Organization Description" id="description" placeholder="Write Description" value={formData.description} onChange={handleOnchange} />
+
+                    {/* Description Textarea Section */}
+                    <div className="flex flex-col gap-1.5 w-full">
+                        <Label htmlFor="description" className="text-sm font-medium ml-1 mb-1 text-gray-700">
+                            Add Your Organization Description
+                        </Label>
+                        <Textarea
+                            id="description"
+                            placeholder="Write Description"
+                            value={formData.description}
+                            onChange={handleOnchange}
+                        />
+                    </div>
+
                     <Button size="medium" className="w-full " type="submit" disabled={!formData.title || !formData.workspaceName}>
                         {t(onBoarding.addNowButton)}
                     </Button>
