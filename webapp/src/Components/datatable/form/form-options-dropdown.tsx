@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
 
@@ -14,7 +14,6 @@ import { QrCode } from 'lucide-react';
 
 import { LinkIcon } from '@app/Components/icons/link-icon';
 import { useModal } from '@app/Components/modal-views/context';
-import { useToast } from '@app/shadcn/components/ui/use-toast';
 import ActiveLink from '@app/Components/ui/links/active-link';
 import environments from '@app/configs/environments';
 import { buttonConstant } from '@app/constants/locales/button';
@@ -22,17 +21,18 @@ import { localesCommon } from '@app/constants/locales/common';
 import { formConstant } from '@app/constants/locales/form';
 import { toastMessage } from '@app/constants/locales/toast-message';
 import { toolTipConstant } from '@app/constants/locales/tooltip';
+import { useIsMobile } from '@app/lib/hooks/use-breakpoint';
 import { useCopyToClipboard } from '@app/lib/hooks/use-copy-to-clipboard';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
+import { Popover, PopoverContent, PopoverTrigger } from '@app/shadcn/components/ui/popover';
+import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { setFormSettings } from '@app/store/forms/slice';
 import { useAppDispatch } from '@app/store/hooks';
 import { useDuplicateFormMutation, useGetAllRespondersGroupQuery, usePatchFormSettingsMutation } from '@app/store/workspaces/api';
 import getFormShareURL from '@app/utils/formUtils';
-import { validateFormOpen } from '@app/utils/validationUtils';
-import { Popover, PopoverContent, PopoverTrigger } from '@app/shadcn/components/ui/popover';
 import { getEditFormURL } from '@app/utils/urlUtils';
-import { useIsMobile } from '@app/lib/hooks/use-breakpoint';
+import { validateFormOpen } from '@app/utils/validationUtils';
 
 interface IFormOptionsDropdownMenuProps {
     workspace: WorkspaceDto;
@@ -252,7 +252,7 @@ export default function FormOptionsDropdownMenu({ workspace, form, hasCustomDoma
             <PopoverContent
                 className="w-[210px] p-0 bg-white"
                 align="end"
-                onClick={() => setOpen(false)}
+                onClick={(e) => { e.stopPropagation(); setOpen(false); }}
                 onInteractOutside={() => setOpen(false)}
             >
                 <ul className="list-none m-0 p-0 flex flex-col">
@@ -271,7 +271,7 @@ export default function FormOptionsDropdownMenu({ workspace, form, hasCustomDoma
                     {form?.settings?.provider === 'self' && form?.builderVersion === 'v2' && environments.ENABLE_FORM_BUILDER && !isMobile && menuItemEdit}
                     {form?.isPublished && !form?.settings?.hidden && isFormOpen && menuItemCopy}
                     {form?.isPublished && !form?.settings?.hidden && isFormOpen && menuItemCustomizeLink}
-                    {form?.isPublished && menuItemAddToGroup}
+                    {/* {form?.isPublished && menuItemAddToGroup} */}
                     {form?.isPublished && !form?.settings?.hidden && isFormOpen && environments.ENABLE_FORM_QR && menuItemGenerateQR}
                     {form?.settings?.provider === 'self' && menuItemDuplicate}
                     {menuItemDelete}
