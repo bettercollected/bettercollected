@@ -1,5 +1,6 @@
 "use client";
 
+import { useIsMobile } from '@app/lib/hooks/use-breakpoint';
 import { Sheet, SheetContent } from '@app/shadcn/components/ui/sheet';
 import { cn } from '@app/shadcn/util/lib';
 import { usePathname } from 'next/navigation';
@@ -17,10 +18,13 @@ interface IMuiDrawerProps {
 
 export default function MuiDrawer({ drawerWidth = 289, mobileOpen, children, handleDrawerToggle, anchor = 'left' }: IMuiDrawerProps) {
 
+    const isMobile = useIsMobile()
     const pathname = usePathname();
 
     useEffect(() => {
-        handleDrawerToggle();
+        if (isMobile && mobileOpen) {
+            handleDrawerToggle();
+        }
     }, [pathname])
 
     return (
