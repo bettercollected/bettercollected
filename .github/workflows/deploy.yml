@@ -22,7 +22,6 @@ jobs:
                     - webapp
                     - temporal/worker
                     - temporal/actions-executor
-                    - temporal/csv-worker
         runs-on: ubuntu-latest
         steps:
             - name: Checkout code with submodules
