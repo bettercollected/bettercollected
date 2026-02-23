@@ -101,21 +101,29 @@ jobs:
                     - temporal/actions-executor
         runs-on: builder
         steps:
-            - name: Deploy built Image
-              id: docker_deploy
-              uses: appleboy/ssh-action@v0.1.10
-              with:
-                  host: ${{ secrets.SIRETO_BASTION_HOST }}
-                  username: ${{ secrets.SIRETO_BASTION_USERNAME }}
-                  key: ${{ secrets.SIRETO_BASTION_SSH_KEY }}
-                  port: ${{ secrets.SIRETO_BASTION_PORT }}
-                  script: |
-                      SERVICE_TAG=$(echo ${{ matrix.service }} | tr '/' '-')
-                      if [[ "${{ github.ref }}" = "refs/heads/develop" ]]; then
-                        DOCKER_STACK=${{ vars.DEVELOP_STACK }}
-                        DOCKER_HOST=${{ vars.DEVELOP_HOST }} docker service update --image  bettercollected/${SERVICE_TAG}:${{ github.sha }} ${DOCKER_STACK}_${SERVICE_TAG}
-                      fi
-                      if [[ "${{ github.ref }}" = "refs/tags/"* ]]; then
-                        DOCKER_STACK=${{ vars.PROD_STACK }}
-                        DOCKER_HOST=${{ vars.PROD_HOST }} docker service update --image  bettercollected/${SERVICE_TAG}:${{ github.ref_name }} ${DOCKER_STACK}_${SERVICE_TAG}
-                      fi
+            - name: Deploy / update service
+              run: |
+                  SERVICE_TAG=$(echo "${{ matrix.service }}" | tr '/' '-')
+
+                  if [[ "${{ github.ref }}" == "refs/heads/develop" ]]; then
+                    DOCKER_STACK="${{ vars.DEVELOP_STACK }}"
+
+                    echo "Updating develop stack → ${DOCKER_STACK}_${SERVICE_TAG} with image SHA ${{ github.sha }}"
+
+                    docker service update \
+                      --image bettercollected/${SERVICE_TAG}:${{ github.sha }} \
+                      ${DOCKER_STACK}_${SERVICE_TAG}
+
+                  elif [[ "${{ github.ref }}" == "refs/tags/"* ]]; then
+                    DOCKER_STACK="${{ vars.PROD_STACK }}"
+
+                    echo "Updating production stack → ${DOCKER_STACK}_${SERVICE_TAG} with tag ${{ github.ref_name }}"
+
+                    docker service update \
+                      --image bettercollected/${SERVICE_TAG}:${{ github.ref_name }} \
+                      ${DOCKER_STACK}_${SERVICE_TAG}
+
+                  else
+                    echo "Not develop branch nor a tag → skipping deployment"
+                    exit 0
+                  fi
