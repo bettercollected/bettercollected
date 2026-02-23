@@ -1,0 +1,54 @@
+name: Run Tests
+
+on:
+    push:
+        branches:
+            - tests
+
+permissions:
+    contents: read
+
+jobs:
+    backend-test:
+        runs-on: ubuntu-latest
+        defaults:
+            run:
+                working-directory: backend
+        steps:
+            - name: Checkout code with submodules
+              uses: actions/checkout@v2
+              with:
+                  submodules: "recursive"
+
+            - name: Set up uv
+              uses: astral-sh/setup-uv@v5
+              with:
+                  python-version: 3.11.12
+                  enable-cache: true
+
+            - name: Install dependencies
+              env:
+                  VIRTUAL_ENV: ""
+              run: uv sync --frozen
+
+            - name: Run test cases on backend
+              id: test-backend
+              env:
+                  VIRTUAL_ENV: ""
+                  AUTH_AES_HEX_KEY: L5HuSlk0ijI3xzaccuy2x1jnzHNjtTw3zW53tjGHZG0=
+                  AUTH_JWT_SECRET: c3c66ff889b1deabc35ebb3cf07374f1fd934f0f0185eec076b5bcd874de86d5
+                  SCHEDULAR_ENABLED: "False"
+                  API_ENABLE_FORM_CREATION: "True"
+                  MASTER_ENCRYPTION_KEYSET: "ewogICAgICAgICAgImtleSI6IFt7CiAgICAgICAgICAgICAgImtleURhdGEiOiB7CiAgICAgICAgICAgICAgICAgICJrZXlNYXRlcmlhbFR5cGUiOgogICAgICAgICAgICAgICAgICAgICAgIlNZTU1FVFJJQyIsCiAgICAgICAgICAgICAgICAgICJ0eXBlVXJsIjoKICAgICAgICAgICAgICAgICAgICAgICJ0eXBlLmdvb2dsZWFwaXMuY29tL2dvb2dsZS5jcnlwdG8udGluay5BZXNHY21LZXkiLAogICAgICAgICAgICAgICAgICAidmFsdWUiOgogICAgICAgICAgICAgICAgICAgICAgIkdpQld5VWZHZ1lrM1JUUmhqL0xJVXpTdWRJV2x5akNmdENPeXBUcjBqQ05TTGc9PSIKICAgICAgICAgICAgICB9LAogICAgICAgICAgICAgICJrZXlJZCI6IDI5NDQwNjUwNCwKICAgICAgICAgICAgICAib3V0cHV0UHJlZml4VHlwZSI6ICJUSU5LIiwKICAgICAgICAgICAgICAic3RhdHVzIjogIkVOQUJMRUQiCiAgICAgICAgICB9XSwKICAgICAgICAgICJwcmltYXJ5S2V5SWQiOiAyOTQ0MDY1MDQKICAgICAgfQ=="
+              run: uv run pytest
+
+    schemathesis:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Configure schemathesis using action
+              uses: schemathesis/action@v1
+              with:
+                  schema: "https://bettercollected-admin.sireto.dev/api/v1/openapi.json"
+                  max-examples: 30
+                  version: "latest"
+                  report: false
