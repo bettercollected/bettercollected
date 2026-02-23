@@ -1,10 +1,9 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
 
 import _ from 'lodash';
 
-import AppTextField from '@Components/Common/Input/AppTextField';
 
 import environments from '@app/configs/environments';
 import { onBoarding } from '@app/constants/locales/onboarding-screen';
@@ -14,6 +13,8 @@ import { useLazyGetWorkspaceNameAvailabilityQuery, useLazyGetWorkspaceNameSugges
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { checkIfPredefinedWorkspaceName } from '@app/utils/workspaceUtils';
 
+import { AppInput } from '@app/shadcn/components/ui/input';
+import { Label } from '@app/shadcn/components/ui/label';
 import { InfoIcon } from '../icons/info-icon';
 
 interface ITextFieldHandler {
@@ -46,9 +47,9 @@ const TextFieldHandler = ({ formData, setFormData, handleOnChange, createWorkspa
         }
     }
 
-    const checkWorkspaceNameAvailability = useCallback(
+    const checkWorkspaceNameAvailability = useCallback((value: string) =>
         _.debounce((value: string) => getAvailability(value), 200),
-        []
+        [getAvailability]
     );
 
     const getAvailabilityStatusOfWorkspaceName = async (workspace_name: string | null) => {
@@ -125,16 +126,25 @@ const TextFieldHandler = ({ formData, setFormData, handleOnChange, createWorkspa
     };
 
     return (
-        <div>
-            <AppTextField required title="Handle Name" id="workspaceName" placeholder="Enter workspace handle name" value={formData.workspaceName?.toLowerCase()} onChange={handleOnChange} isError={!!errorMessage && !!formData.workspaceName}>
-                <AppTextField.Description>
-                    {t(onBoarding.useSmallCase)} (eg: abc) <br />
-                    https://{environments.CLIENT_DOMAIN}/<span className="text-pink-500">{formData.workspaceName?.toLowerCase()}</span>
-                </AppTextField.Description>
-            </AppTextField>
+        <div className="flex flex-col gap-1.5 w-full relative">
+            <Label htmlFor="workspaceName" className="text-sm font-medium ml-1 mb-1 text-gray-700">
+                Handle Name
+            </Label>
+            <AppInput
+                required
+                id="workspaceName"
+                placeholder="Enter workspace handle name"
+                value={formData.workspaceName?.toLowerCase()}
+                onChange={handleOnChange}
+                className={errorMessage && formData.workspaceName ? 'border-red-500 focus-visible:ring-red-500 w-full' : 'w-full'}
+            />
+            <p className="text-xs text-gray-500 ml-1 mt-1">
+                {t(onBoarding.useSmallCase)} (eg: abc) <br />
+                https://{environments.CLIENT_DOMAIN}/<span className="text-pink-500 font-medium">{formData.workspaceName?.toLowerCase()}</span>
+            </p>
             {errorMessage && formData.workspaceName && (
                 <>
-                    <div className={'text-red-600 text-xs md:text-sm !mt-2 flex items-center gap-2'}>
+                    <div className={'text-red-600 text-xs md:text-sm mt-2 flex items-center gap-2'}>
                         <InfoIcon className="w-4 h-4" />
                         {errorMessage}
                     </div>

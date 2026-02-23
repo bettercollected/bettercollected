@@ -3,8 +3,7 @@ import React from 'react';
 import { useTranslation } from 'next-i18next';
 
 import Plus from '@Components/Common/Icons/Common/Plus';
-import AppButton from '@Components/Common/Input/Button/AppButton';
-import { ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
+import { Button } from '@app/shadcn/components/ui/button';
 
 import { useModal } from '@app/Components/modal-views/context';
 import { inviteCollaborator } from '@app/constants/locales/inviteCollaborator';
@@ -34,15 +33,15 @@ export default function Collaborators() {
                 <p className="body1 ">
                     {t(members.collaborators.default)} ({data?.length})
                 </p>
-                <AppButton
-                    variant={ButtonVariant.Ghost}
+                <Button
+                    variant="ghost"
                     onClick={() => {
                         openModal('INVITE_MEMBER');
                     }}
                     icon={<Plus className="h-4 w-4" />}
                 >
                     {t(inviteCollaborator.default)}
-                </AppButton>
+                </Button>
             </div>
 
             <p className="body4 mb-6 md:max-w-[301px] text-black-700">{t(members.collaborators.description)}</p>

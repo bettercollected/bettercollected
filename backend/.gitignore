@@ -2,8 +2,8 @@
 __pycache__/
 *.py[cod]
 *$py.class
-
 .env
+.env.backup
 .env.local
 *.egg-info/
 .installed.cfg
@@ -42,4 +42,4 @@ site/
 
 # Nix build result
 result
-.env
+.env.backup

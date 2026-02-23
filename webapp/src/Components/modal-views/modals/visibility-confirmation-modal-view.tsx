@@ -2,8 +2,7 @@
 import { useTranslation } from 'next-i18next';
 
 import Divider from '@Components/Common/DataDisplay/Divider';
-import { ButtonSize, ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
-import ModalButton from '@Components/Common/Input/Button/ModalButton';
+import { Button } from '@app/shadcn/components/ui/button';
 
 import { Close } from '@app/Components/icons/close';
 import { useModal } from '@app/Components/modal-views/context';
@@ -55,12 +54,12 @@ const VisibilityConfirmationModalView = ({ visibilityType, handleOnConfirm, isTe
                 </h1>
                 <h2 className={'text-black-700 mb-3 text-sm font-normal'}>{description[visibilityType]}</h2>
                 <div className={'flex w-full flex-row gap-4'}>
-                    <ModalButton buttonType={'Modal'} size={ButtonSize.Medium} variant={ButtonVariant.Secondary} onClick={closeModal}>
+                    <Button size="medium" variant="secondary" onClick={closeModal}>
                         {t('BUTTON.CANCEL')}
-                    </ModalButton>
-                    <ModalButton buttonType={'Modal'} size={ButtonSize.Medium} onClick={onClickConfirm}>
+                    </Button>
+                    <Button size="medium" onClick={onClickConfirm}>
                         {t('BUTTON.CONFIRM')}
-                    </ModalButton>
+                    </Button>
                 </div>
             </div>
         </div>

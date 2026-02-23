@@ -1,26 +1,25 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
-import { useRouter } from 'next/router';
+import { useRouter } from 'next/navigation';
 
-import AppTextField from '@Components/Common/Input/AppTextField';
-import AppButton from '@Components/Common/Input/Button/AppButton';
-import { ButtonSize, ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
 import CheckBox from '@Components/Common/Input/CheckBox';
 import TextArea from '@Components/Common/Input/TextArea';
 import BottomSheetModalWrapper from '@Components/Modals/ModalWrappers/BottomSheetModalWrapper';
-import { FormControlLabel, FormGroup, Select } from '@mui/material';
-import MenuItem from '@mui/material/MenuItem';
-import { toast } from 'react-toastify';
+import { Button } from '@app/shadcn/components/ui/button';
+import { Label } from '@app/shadcn/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@app/shadcn/components/ui/select';
 
 import { toastMessage } from '@app/constants/locales/toast-message';
-import { ToastId } from '@app/constants/toastId';
+import { AppInput } from '@app/shadcn/components/ui/input';
+import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { useDeleteAccountMutation } from '@app/store/auth/api';
 
 
 export default function DeleteAccountModal() {
     const [deleteAccount] = useDeleteAccountMutation();
     const router = useRouter();
+    const { toast } = useToast();
 
     const { t } = useTranslation();
     const [dropdownValue, setDropdownValue] = useState('');
@@ -30,9 +29,6 @@ export default function DeleteAccountModal() {
     const [checked, setChecked] = useState(false);
 
     const [error, setError] = useState(false);
-    const onDropdownChange = (event: any) => {
-        setDropdownValue(event.target.value);
-    };
 
     const onClickDelete = async () => {
         if (!dropdownValue || !confirm || !checked || confirm.toUpperCase() !== 'CONFIRM' || ((dropdownValue === 'Something else' || dropdownValue === 'I have found a better alternative.') && !feedback)) {
@@ -44,17 +40,10 @@ export default function DeleteAccountModal() {
             feedback: feedback
         }).then((response) => {
             if ('data' in response) {
-                router.push(`/`).then(() => {
-                    toast(t(toastMessage.accountDeletion.success).toString(), {
-                        toastId: ToastId.SUCCESS_TOAST,
-                        type: 'success'
-                    });
-                });
+                router.push(`/`)
+                toast({ description: t(toastMessage.accountDeletion.success).toString() });
             } else {
-                toast(t(toastMessage.accountDeletion.failed).toString(), {
-                    toastId: ToastId.ERROR_TOAST,
-                    type: 'error'
-                });
+                toast({ description: t(toastMessage.accountDeletion.failed).toString(), variant: 'destructive' });
             }
         });
         setError(false);
@@ -107,31 +96,17 @@ export default function DeleteAccountModal() {
                     <span className="text-red-500 ml-2">*</span>
                 </div>
                 <div className="w-full">
-                    <Select
-                        size="small"
-                        MenuProps={{
-                            style: { zIndex: 35001 }
-                        }}
-                        sx={{
-                            '.MuiSelect-select.Mui-disabled': {
-                                WebkitTextFillColor: '#1D1D1D'
-                            }
-                        }}
-                        style={{
-                            paddingTop: '3.5px',
-                            paddingBottom: '3.5px',
-                            paddingLeft: '2px',
-                            fontSize: '14px'
-                        }}
-                        value={dropdownValue}
-                        onChange={onDropdownChange}
-                        className="w-full min-w-[167px] !rounded-md !border-gray-600 !mb-0 text-black-900 !bg-white"
-                    >
-                        {Reasons.map((reason: any, index: number) => (
-                            <MenuItem key={reason.value} value={reason.value} className="relative">
-                                {reason.title}
-                            </MenuItem>
-                        ))}
+                    <Select value={dropdownValue} onValueChange={(val) => setDropdownValue(val)}>
+                        <SelectTrigger className="w-full min-w-[167px] !rounded-md !border-gray-600 !mb-0 text-black-900 !bg-white">
+                            <SelectValue placeholder="Select a reason" />
+                        </SelectTrigger>
+                        <SelectContent className="z-[35001]">
+                            {Reasons.map((reason: any, index: number) => (
+                                <SelectItem key={reason.value} value={reason.value} className="relative">
+                                    {reason.title}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
                     </Select>
                 </div>
                 <div className="mt-10">
@@ -160,7 +135,7 @@ export default function DeleteAccountModal() {
                         {t('DELETE_ACCOUNT.TYPE_CONFIRM')}
                         <span className="text-red-500 ml-2">*</span>
                     </div>
-                    <AppTextField
+                    <AppInput
                         onCut={handleCopyPaste}
                         onPaste={handleCopyPaste}
                         onCopy={handleCopyPaste}
@@ -171,27 +146,27 @@ export default function DeleteAccountModal() {
                         placeholder={'CONFIRM'}
                     />
                 </div>
-                <FormGroup className="mt-10 pl-2">
-                    <FormControlLabel
+                <div className="mt-10 pl-2 flex items-start">
+                    <CheckBox
                         checked={checked}
-                        onChange={(event, checked) => {
-                            setChecked(checked);
+                        onCheckedChange={(checked) => {
+                            setChecked(!!checked);
                         }}
-                        className="flex items-start"
-                        control={<CheckBox className="mr-2" />}
-                        label={
-                            <div>
-                                {t('DELETE_ACCOUNT.I_UNDERSTAND_CONSEQUENCES')}
-                                <span className="text-red-500 ml-2">*</span>
-                            </div>
-                        }
+                        className="mr-2"
+                        id="check"
                     />
-                </FormGroup>
+                    <Label htmlFor="check" className="cursor-pointer">
+                        <div>
+                            {t('DELETE_ACCOUNT.I_UNDERSTAND_CONSEQUENCES')}
+                            <span className="text-red-500 ml-2">*</span>
+                        </div>
+                    </Label>
+                </div>
                 <div className="mt-[72px]">
                     {error && <div className="mb-4 text-sm text-red-500">* Please fill in all required fields or check CONFIRM field.</div>}
-                    <AppButton variant={ButtonVariant.Danger} size={ButtonSize.Medium} onClick={onClickDelete}>
+                    <Button variant="danger" size="medium" onClick={onClickDelete}>
                         {t('DELETE_ACCOUNT.DELETE_NOW')}
-                    </AppButton>
+                    </Button>
                 </div>
             </div>
         </BottomSheetModalWrapper>

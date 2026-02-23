@@ -1,73 +1,55 @@
-[tool.poetry]
+[project]
 name = "auth"
 version = "0.1.0"
 description = "This project was generated with fastapi-mvc."
-authors = ["nabin6246 <nabin62246@gmail.com>"]
-license = "no"
 readme = "README.md"
-repository = "https://your.repo.url.here"
-classifiers = [
-    "Intended Audience :: Developers",
-    "Natural Language :: English",
-    "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.8",
-    "Programming Language :: Python :: 3.9",
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
+requires-python = ">=3.10"
+authors = [
+    { name = "nabin6246", email = "nabin62246@gmail.com" },
+]
+dependencies = [
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.30.0",
+    "fastapi-users[beanie,oauth]>=14.0.0",
+    "dependency-injector>=4.45.0",
+    "classy-fastapi>=0.6.0",
+    "httpx>=0.27.0",
+    "pyjwt>=2.10.0",
+    "google-auth-oauthlib>=1.1.0",
+    "google-api-python-client>=2.150.0",
+    "fastapi-mail>=1.4.1",
+    "stripe>=10.0.0",
+    "sentry-sdk[fastapi]>=2.21.0",
+    "loguru>=0.7.2",
+    "elastic-apm>=6.23.0",
+    "cryptography>=44.0.0",
+    "requests>=2.32.3",
+    "common",
+    "pydantic-settings>=2.13.0",
 ]
 
-[tool.poetry.dependencies]
-python = "^3.10"
-fastapi = "~0.94.1"
-uvicorn = {extras = ["standard"], version = "~0.21.0"}
-gunicorn = "~22.0.0"
-click = "~8.1.3"
-fastapi-users = {extras = ["beanie", "oauth"], version = "^10.3.0"}
-dependency-injector = "^4.41.0"
-classy-fastapi = "^0.3.0"
-httpx = "^0.23.3"
-pyjwt = "^2.6.0"
-google-auth-oauthlib = "^1.0.0"
-google-api-python-client = "^2.79.0"
-fastapi-mail = "^1.2.6"
-mongomock-motor = "^0.0.17"
-stripe = "^5.4.0"
-sentry-sdk = {extras = ["fastapi"], version = "^2.8.0"}
-loguru = "^0.7.0"
-elastic-apm = "^6.17.0"
-common = {path = "../common", develop = true}
-aiohttp = "3.10.5"
-cryptography = "43.0.1"
-requests = "2.32.3"
+[dependency-groups]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-cov>=6.0.0",
+    "pytest-asyncio>=0.25.0",
+    "black>=25.1.0",
+    "pre-commit>=4.0.0",
+    "mongomock-motor>=0.0.30",
+]
 
-[tool.poetry.group.dev.dependencies]
-pytest = "~7.2.0"
-pytest-cov = "~4.0.0"
-pytest-asyncio = "~0.20.3"
-httpx = "^0.23.3"
-flake8 = "~5.0.4"
-flake8-docstrings = "~1.6.0"
-flake8-import-order = "~0.18.1"
-flake8-todo = "^0.7"
-black = "~24.8.0"
-Sphinx = "~5.3.0"
-Pallets-Sphinx-Themes = "~2.0.2"
-myst-parser = "~0.18.1"
-pre-commit = "^3.2.0"
+[tool.uv]
+managed = true
 
-[tool.poetry.scripts]
-auth = 'auth.cli:cli'
-
-[tool.poetry.urls]
-"Issues" = "https://your.repo.url.here/issues"
+[tool.uv.sources]
+common = { path = "../common" }
 
 [build-system]
-requires = ["poetry-core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [tool.coverage.run]
 omit = [
-    "auth/config/gunicorn.py",
     "auth/__main__.py",
 ]
 

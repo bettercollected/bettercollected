@@ -3,14 +3,6 @@ import React from 'react';
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 
-import 'nprogress/nprogress.css';
-import { ToastContainer } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
-import 'swiper/css';
-import 'swiper/css/navigation';
-import 'vanilla-cookieconsent/dist/cookieconsent.css';
-
-import BaseModalContainer from '@Components/Modals/Containers/BaseModalContainer';
 import '@app/assets/css/globals.css';
 import environments from '@app/configs/environments';
 import { DialogModalContainer } from '@app/lib/hooks/useDialogModal';
@@ -18,15 +10,16 @@ import { SecondaryDialogModalContainer } from '@app/lib/hooks/useSecondaryDialog
 import { Toaster } from '@app/shadcn/components/ui/toaster';
 import { cn } from '@app/shadcn/util/lib';
 import AuthProvider from '@app/shared/hocs/AuthProvider';
+import I18nProvider from '@app/shared/hocs/I18nProvider';
 import ReduxProvider from '@app/shared/hocs/ReduxProvider';
 import ThemeProvider from '@app/shared/hocs/ThemeProvider';
-import SetClarityUserId from '@app/utils/clarityUtils';
+import BaseModalContainer from '@Components/Modals/Containers/BaseModalContainer';
 
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
     title: 'BetterCollected',
-    description: 'Bettercollected V2 formBuilder'
+    description: 'Bettercollected formBuilder'
 };
 
 export default function RootLayout({
@@ -35,46 +28,26 @@ export default function RootLayout({
     children: React.ReactNode;
 }>) {
     return (
-        <html lang="en">
+        <html>
             <head>
                 {environments.NEXT_PUBLIC_NODE_ENV === 'production' && environments.UMAMI_WEBSITE_ID && <script defer src="https://umami.sireto.io/script.js" data-website-id={environments.UMAMI_WEBSITE_ID}></script>}
                 <script src="/api/config" defer></script>
-                {embedMicrosoftClarityScript()}
             </head>
-            <body className={cn('max-h-screen overflow-hidden', inter.className)}>
+            <body className={cn('max-h-screen overflow-auto', inter.className)}>
                 <ThemeProvider>
-                    <ToastContainer position="bottom-center" autoClose={5000} hideProgressBar newestOnTop closeOnClick rtl={false} pauseOnFocusLoss={false} draggable pauseOnHover={false} theme="dark" />
-                    <Toaster />
-                    <AuthProvider>
+                    <I18nProvider>
+                        <Toaster />
                         <ReduxProvider>
-                            {children}
-                            <DialogModalContainer />
-                            <SecondaryDialogModalContainer />
-                            <BaseModalContainer />
-                            <SetClarityUserId />
+                            <AuthProvider>
+                                {children}
+                                <DialogModalContainer />
+                                <SecondaryDialogModalContainer />
+                                <BaseModalContainer />
+                            </AuthProvider>
                         </ReduxProvider>
-                    </AuthProvider>
+                    </I18nProvider>
                 </ThemeProvider>
             </body>
         </html>
     );
-}
-
-function embedMicrosoftClarityScript() {
-    if (environments.MICROSOFT_CLARITY_TRACKING_CODE)
-        return (
-            <script
-                type="text/javascript"
-                dangerouslySetInnerHTML={{
-                    __html: `
-                (function(c,l,a,r,i,t,y){
-                    c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
-                    t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
-                    y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
-                })(window, document, "clarity", "script", "${environments.MICROSOFT_CLARITY_TRACKING_CODE}");
-            `
-                }}
-            />
-        );
-    return <></>;
 }

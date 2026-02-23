@@ -1,13 +1,13 @@
-import React from 'react';
 
 import { useTranslation } from 'next-i18next';
 
-import AppTextField from '@Components/Common/Input/AppTextField';
 
 import { localesCommon } from '@app/constants/locales/common';
 import { groupConstant } from '@app/constants/locales/group';
 import { placeHolder } from '@app/constants/locales/placeholder';
 import { GroupInfoDto } from '@app/models/dtos/groups';
+import { AppInput } from '@app/shadcn/components/ui/input';
+import { Textarea } from '@app/shadcn/components/ui/textarea';
 import { selectIsAdmin } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 
@@ -27,9 +27,9 @@ export default function GroupInfo({ handleInput, groupInfo }: IGroupInfoProps) {
                 {t(groupConstant.name)}
                 <span className="text-red-800">*</span>
             </p>
-            <AppTextField disabled={!isAdmin} value={groupInfo.name} id="name" placeholder={t(placeHolder.groupName)} onChange={handleInput} />
+            <AppInput className='w-full' disabled={!isAdmin} value={groupInfo.name} id="name" placeholder={t(placeHolder.groupName)} onChange={handleInput} />
             <p className="h4-new leading-none mt-8 !font-medium mb-2">{t(localesCommon.description)}</p>
-            <AppTextField disabled={!isAdmin} value={groupInfo.description} id="description" placeholder={t(placeHolder.description)} multiline rows={1} onChange={handleInput} />
+            <Textarea disabled={!isAdmin} value={groupInfo.description} id="description" placeholder={t(placeHolder.description)} onChange={handleInput} />
         </div>
     );
 }

@@ -1,7 +1,7 @@
 import { useTranslation } from 'next-i18next';
 
 import GenericHalfModal from '@Components/Common/Modals/GenericHalfModal';
-import { toast } from 'react-toastify';
+import { useToast } from '@app/shadcn/components/ui/use-toast';
 
 import { useModal } from '@app/Components/modal-views/context';
 import { localesCommon } from '@app/constants/locales/common';
@@ -18,6 +18,7 @@ interface IDeleteMemberModalProps {
 }
 
 export default function DeleteMemberModal({ member }: IDeleteMemberModalProps) {
+    const { toast } = useToast();
     const { closeModal } = useModal();
     const { t } = useTranslation();
     const workspace = useAppSelector(selectWorkspace);
@@ -26,10 +27,10 @@ export default function DeleteMemberModal({ member }: IDeleteMemberModalProps) {
     const handleDelete = () => {
         const response: any = trigger({ workspaceId: workspace.id, userId: member.id });
         if (response.data) {
-            toast(t(toastMessage.memberRemovedFromWorkspace).toString(), { type: 'success' });
+            toast({ description: t(toastMessage.memberRemovedFromWorkspace).toString() });
         }
         if (response.error) {
-            toast(t(toastMessage.failedToRemoveUser).toString(), { type: 'error' });
+            toast({ description: t(toastMessage.failedToRemoveUser).toString(), variant: 'destructive' });
         }
         closeModal();
     };

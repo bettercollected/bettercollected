@@ -1,5 +1,6 @@
 """Application implementation - ASGI."""
 
+from backend.config import settings
 import common.exceptions.http
 import sentry_sdk
 from elasticapm.contrib.starlette import ElasticAPM, make_apm_client
@@ -17,10 +18,8 @@ from backend.app.handlers import init_logging
 from backend.app.handlers.database import close_db, init_db
 from backend.app.middlewares import DynamicCORSMiddleware, include_middlewares
 from backend.app.router import root_api_router
-from backend.app.services.brevo_service import event_logger_service
 from backend.app.services.init_schedulers import migrate_schedule_to_temporal
 from backend.app.utils import AiohttpClient
-from backend.config import settings
 
 
 async def on_startup():

@@ -26,7 +26,7 @@ from tests.app.controllers.data import (
     testUser2,
     proUser,
     invited_user,
-    formData_test
+    formData_test,
 )
 
 
@@ -147,18 +147,15 @@ async def workspace_form_response_1(
     )
     return dict(response)
 
+
 @pytest.fixture()
 async def workspace_form_response_test_1(
     workspace: Coroutine[Any, Any, WorkspaceDocument],
-    workspace_form: Coroutine[
-        Any, Any, FormDocument
-    ],
+    workspace_form: Coroutine[Any, Any, FormDocument],
 ):
     # standard_form_response = StandardFormResponse(**formResponse)
     response = await container.form_response_service().submit_form_response(
-        workspace_form.form_id,
-        StandardFormResponse(**formResponse),
-        workspace.id
+        workspace_form.form_id, StandardFormResponse(**formResponse), workspace.id
     )
     return dict(response)
 
@@ -236,10 +233,7 @@ def mock_aiohttp_post_request(
     workspace_form_response: Coroutine[Any, Any, dict],
 ):
     async def mock_post(*args, **kwargs):
-        return {
-            "form":formData_test,
-            "responses":[formResponse]
-        }
+        return {"form": formData_test, "responses": [formResponse]}
         # responses = StandardFormResponse(**formData_test)
         # form = StandardForm(**dict(workspace_form))
         # return FormImportResponse(form=form, responses=[responses])
@@ -259,7 +253,7 @@ def mock_aiohttp_post_request_for_pro(
             workspace_pro.id, StandardForm(**formData), proUser
         )
         return FormImportResponse(
-            form=StandardForm(**form.dict()),
+            form=StandardForm(**form.model_dump()),
             responses=[StandardFormResponse(**formResponse)],
         )
 
@@ -280,7 +274,7 @@ def mock_send_otp_get_request():
 @pytest.fixture()
 def mock_validate_otp():
     async def get_user_after_validation_of_otp(*args, **kwargs):
-        return httpx.Response(200, json={"user": testUser.dict()})
+        return httpx.Response(200, json={"user": testUser.model_dump()})
 
     yield patch(
         "httpx.AsyncClient.get",
@@ -310,6 +304,6 @@ def mock_create_invitation_request():
 @pytest.fixture()
 def mock_get_workspace_by_query():
     def get_workspace_by_query(*args, **kwargs):
-        return httpx.Response(200, json={"workspace_owner": proUser.dict()})
+        return httpx.Response(200, json={"workspace_owner": proUser.model_dump()})
 
     return patch("httpx.AsyncClient.get", side_effect=get_workspace_by_query)

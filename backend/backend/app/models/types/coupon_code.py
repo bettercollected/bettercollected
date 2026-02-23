@@ -2,6 +2,14 @@ import random
 import string
 
 
+import random
+import string
+from typing import Any
+
+from pydantic import GetCoreSchemaHandler
+from pydantic_core import core_schema
+
+
 class CouponCode(str):
     def __new__(cls, value=None, *args, **kwargs):
         if value is None:
@@ -34,5 +42,10 @@ class CouponCode(str):
         return cls(value)
 
     @classmethod
-    def __get_validators__(cls):
-        yield cls.validate
+    def __get_pydantic_core_schema__(
+        cls, source_type: Any, handler: GetCoreSchemaHandler
+    ) -> core_schema.CoreSchema:
+        return core_schema.no_info_after_validator_function(
+            cls.validate,
+            core_schema.str_schema(),
+        )

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
 
@@ -7,8 +7,6 @@ import { escapeRegExp } from 'lodash';
 import Divider from '@Components/Common/DataDisplay/Divider';
 import ZeroElement from '@Components/Common/DataDisplay/Empty/ZeroElement';
 import SearchInput from '@Components/Common/Search/SearchInput';
-import SearchByUUIDWrapper from '@Components/RespondersPortal/SearchByUUIDWrapper';
-import styled from '@emotion/styled';
 
 import FormCards from '@Components/dashboard/form-cards';
 import Loader from '@app/Components/ui/loader';
@@ -22,37 +20,6 @@ interface IWorkspaceFormsTabContentProps {
     workspace: WorkspaceDto;
     isFormCreator?: boolean;
 }
-
-export const StyledTextField = styled.div`
-    .MuiFormControl-root {
-        background: white;
-        border-radius: 8px;
-        outline: none;
-    }
-
-    .MuiOutlinedInput-notchedOutline {
-        border-radius: 8px;
-        border: 1px solid #ced4da;
-    }
-
-    .MuiInputBase-input,
-    .MuiOutlinedInput-root {
-        height: 46px;
-    }
-
-    .MuiInputBase-input,
-    .MuiOutlinedInput-input,
-    .MuiInputBase-inputSizeSmall,
-    .MuiInputBase-inputAdornedEnd {
-        padding: 0;
-    }
-
-    @media screen and (max-width: 640px) {
-        .MuiFormControl-root {
-            width: 100%;
-        }
-    }
-`;
 
 export default function WorkspaceFormsTabContent({ workspace, isFormCreator = false }: IWorkspaceFormsTabContentProps) {
     const workspaceId = workspace.id;
@@ -91,7 +58,9 @@ export default function WorkspaceFormsTabContent({ workspace, isFormCreator = fa
 
     useEffect(() => {
         if (!!data) {
-            setAllForms(data.items);
+            setTimeout(() => {
+                setAllForms(data.items);
+            }, 0);
         }
     }, [data]);
 
@@ -105,21 +74,21 @@ export default function WorkspaceFormsTabContent({ workspace, isFormCreator = fa
 
     if ((data && Array.isArray(data) && data.length === 0) || isError || forms.length === 0)
         return (
-            <SearchByUUIDWrapper>
-                <ZeroElement title={t(workspaceConstant.preview.emptyFormTitle)} description={t(workspaceConstant.preview.emptyFormDescription)} className="!pb-[20px]" />
-            </SearchByUUIDWrapper>
+            // <SearchByUUIDWrapper>
+            <ZeroElement title={t(workspaceConstant.preview.emptyFormTitle)} description={t(workspaceConstant.preview.emptyFormDescription)} className="!pb-[20px]" />
+            // </SearchByUUIDWrapper>
         );
 
     return (
-        <SearchByUUIDWrapper>
-            <div className="flex w-full flex-col gap-6">
-                {pinnedForms?.items?.length !== 0 && <FormCards title={t(formConstant.pinnedforms)} showPinned={false} isFormCreator={isFormCreator} showVisibility={false} workspace={workspace} formsArray={pinnedForms?.items || []} />}
-                {pinnedForms?.items?.length !== 0 && <Divider />}
-                <div className={`w-full md:w-[282px]`}>
-                    <SearchInput handleSearch={handleSearch} />
-                </div>
-                {allForms.length !== 0 && <FormCards title={pinnedForms?.items?.length !== 0 ? t(formConstant.all) : ''} isFormCreator={isFormCreator} formsArray={allForms} workspace={workspace} />}
+        // <SearchByUUIDWrapper>
+        <div className="flex w-full flex-col gap-6">
+            {pinnedForms?.items?.length !== 0 && <FormCards title={t(formConstant.pinnedforms)} showPinned={false} isFormCreator={isFormCreator} showVisibility={false} workspace={workspace} formsArray={pinnedForms?.items || []} />}
+            {pinnedForms?.items?.length !== 0 && <Divider />}
+            <div className={`w-full md:w-[282px]`}>
+                <SearchInput handleSearch={handleSearch} />
             </div>
-        </SearchByUUIDWrapper>
+            {allForms.length !== 0 && <FormCards title={pinnedForms?.items?.length !== 0 ? t(formConstant.all) : ''} isFormCreator={isFormCreator} formsArray={allForms} workspace={workspace} />}
+        </div>
+        // </SearchByUUIDWrapper>
     );
 }

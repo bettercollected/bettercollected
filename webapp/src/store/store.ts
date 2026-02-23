@@ -8,19 +8,15 @@ import { authApi } from '@app/store/auth/api';
 import authSlice from '@app/store/auth/slice';
 import { couponCodeApi } from '@app/store/coupon-code/api';
 import fillFormSlice from '@app/store/fill-form/slice';
-import builder from '@app/store/form-builder/builderSlice';
 import formSlice from '@app/store/forms/slice';
 import { plansApi } from '@app/store/plans/api';
 import { providerApi } from '@app/store/providers/api';
 import { templateApi } from '@app/store/template/api';
-import joyrideSlice from '@app/store/tours/slice';
 import { workspacesApi } from '@app/store/workspaces/api';
 import { membersNInvitationsApi } from '@app/store/workspaces/members-n-invitations-api';
 import workspaceSlice from '@app/store/workspaces/slice';
 
 import { apiActionsApi } from './api-actions-api';
-import { consentApi } from './consent/api';
-import consentSlice from './consent/consentSlice';
 import mutationStatusSlice from './mutations/slice';
 import { priceSuggestionApi } from './price-suggestion/api';
 
@@ -40,7 +36,6 @@ const middlewares = [
     plansApi.middleware,
     providerApi.middleware,
     workspacesApi.middleware,
-    consentApi.middleware,
     templateApi.middleware,
     apiActionsApi.middleware,
     couponCodeApi.middleware,
@@ -58,9 +53,7 @@ const reducers = {
     [mutationStatusSlice.reducerPath]: mutationStatusSlice.reducer,
     [authSlice.reducerPath]: authSlice.reducer,
     [formSlice.reducerPath]: formSlice.reducer,
-    [joyrideSlice.reducerPath]: joyrideSlice.reducer,
     [workspaceSlice.reducerPath]: workspaceSlice.reducer,
-    [builder.reducerPath]: builder.reducer,
     [fillFormSlice.reducerPath]: fillFormSlice.reducer,
     [authApi.reducerPath]: authApi.reducer,
     [membersNInvitationsApi.reducerPath]: membersNInvitationsApi.reducer,
@@ -68,8 +61,6 @@ const reducers = {
     [plansApi.reducerPath]: plansApi.reducer,
     [workspacesApi.reducerPath]: workspacesApi.reducer,
     [apiActionsApi.reducerPath]: apiActionsApi.reducer,
-    [consentSlice.reducerPath]: consentSlice.reducer,
-    [consentApi.reducerPath]: consentApi.reducer,
     [templateApi.reducerPath]: templateApi.reducer,
     [couponCodeApi.reducerPath]: couponCodeApi.reducer,
     [priceSuggestionApi.reducerPath]: priceSuggestionApi.reducer,

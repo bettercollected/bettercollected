@@ -1,23 +1,23 @@
+'use client';
 import React from 'react';
 
-import { useTranslation } from 'next-i18next';
-import { useRouter } from 'next/router';
+import { useTranslation } from 'react-i18next';
+import { usePathname, useRouter } from 'next/navigation';
 
 import DeleteIcon from '@Components/Common/Icons/Common/Delete';
 import MembersIcon from '@Components/Common/Icons/Dashboard/Members';
 import ResponderIcon from '@Components/Common/Icons/Dashboard/Responder';
 import { FormIcon } from '@Components/Common/Icons/Form/FormIcon';
 import { useBottomSheetModal } from '@Components/Modals/Contexts/BottomSheetModalContext';
-import { Box } from '@mui/material';
-import cn from 'classnames';
 import { AnimatePresence, motion } from 'framer-motion';
+
+import { cn } from '@app/shadcn/util/lib';
 
 import AuthAccountMenuDropdown from '@app/Components/auth/account-menu-dropdown';
 import AuthNavbar from '@app/Components/auth/navbar';
 import Globe from '@app/Components/icons/flags/globe';
 import { TemplateIcon } from '@app/Components/icons/template';
 import DashboardDrawer from '@app/Components/sidebar/dashboard-drawer';
-import LocaleDropdownUi from '@app/Components/ui/locale-dropdown-ui';
 import { localesCommon } from '@app/constants/locales/common';
 import { formConstant } from '@app/constants/locales/form';
 import { members } from '@app/constants/locales/members';
@@ -32,6 +32,7 @@ import HelpMenuComponent from './HelpMenuComponent';
 import HelpMenuItem from './HelpMenuItem';
 import { ProLogo } from '../ui/logo';
 import { useFullScreenModal } from '../modal-views/full-screen-modal-context';
+import LocaleDropdownUiApp from '@Components/ui/LocaleDropdownUiApp';
 
 interface ISidebarLayout {
     children: any;
@@ -52,6 +53,7 @@ export default function SidebarLayout({ children, DrawerComponent = DashboardDra
     };
 
     const router = useRouter();
+    const pathname = usePathname();
 
     const workspace: WorkspaceDto = useAppSelector(selectWorkspace);
     const { t } = useTranslation();
@@ -114,9 +116,9 @@ export default function SidebarLayout({ children, DrawerComponent = DashboardDra
     const allNavList = [...topNavList, ...bottomNavList];
 
     const getHeader = () => {
-        const matchingNavList = allNavList.filter((item) => router.asPath.includes(item.url));
+        const matchingNavList = allNavList.filter((item) => pathname?.includes(item.url));
         if (matchingNavList.length > 0) {
-            return matchingNavList[matchingNavList.length - 2]?.name;
+            return matchingNavList[matchingNavList.length - 1]?.name;
         }
         return 'My Workspace';
     };
@@ -128,7 +130,12 @@ export default function SidebarLayout({ children, DrawerComponent = DashboardDra
                     <AuthNavbar handleDrawerToggle={handleDrawerToggle} mobileOpen={mobileOpen} />
                 </div>
                 <DrawerComponent drawerWidth={drawerWidth} mobileOpen={mobileOpen} handleDrawerToggle={handleDrawerToggle} topNavList={topNavList} bottomNavList={bottomNavList} />
-                <Box className={`bg-black-100 min-h-calc-68 float-none mt-[68px] lg:float-right lg:mt-0 lg:min-h-screen`} component="main" sx={{ display: 'flex', width: { lg: `calc(100% - ${drawerWidth}px)` } }}>
+                <main
+                    className={cn(
+                        "bg-black-100 float-none mt-[68px] flex min-h-[calc(100vh-68px)]",
+                        "lg:float-right lg:mt-0 lg:min-h-screen lg:w-[calc(100%-289px)]"
+                    )}
+                >
                     <div className="flex w-full flex-col">
                         <div className="border-b-black-200 sticky top-[68px] z-[1000] flex w-full items-center justify-between border-b bg-white px-5 py-3 lg:top-0 lg:px-10">
                             <span className="h3-new">{getHeader()}</span>
@@ -143,26 +150,28 @@ export default function SidebarLayout({ children, DrawerComponent = DashboardDra
                                         </div>
                                     </PopoverContent>
                                 </Popover>
-                                <LocaleDropdownUi />
+                                {/* <LocaleDropdownUiApp /> */}
                                 <AuthAccountMenuDropdown hideMenu={false} isClientDomain={false} />
                             </div>
                         </div>
 
                         <motion.div
-                            initial={{ x: 0, opacity: 0 }}
-                            animate={{ x: 0, opacity: 1 }}
-                            exit={{ x: 300, opacity: 0 }}
-                            transition={{
-                                ease: 'linear',
-                                duration: 0.5,
-                                x: { duration: 0.5 }
-                            }}
-                            className={cn(`h-full w-full`)}
+                            {...({
+                                initial: { x: 0, opacity: 0 },
+                                animate: { x: 0, opacity: 1 },
+                                exit: { x: 300, opacity: 0 },
+                                transition: {
+                                    ease: 'linear',
+                                    duration: 0.5,
+                                    x: { duration: 0.5 }
+                                },
+                                className: cn(`h-full w-full`)
+                            } as any)}
                         >
                             <div className={cn('bg-black-100 h-full w-full', boxClassName)}>{children}</div>
                         </motion.div>
                     </div>
-                </Box>
+                </main>
             </div>
         </AnimatePresence>
     );

@@ -1,24 +1,24 @@
-import React, { useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
 
-import AppButton from '@Components/Common/Input/Button/AppButton';
+import { Button } from '@app/shadcn/components/ui/button';
 import cn from 'classnames';
 import html2canvas from 'html2canvas';
-import { toast } from 'react-toastify';
+
+import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { TransformComponent, TransformWrapper } from 'react-zoom-pan-pinch';
 
 import Image from '@app/Components/ui/image';
 import { buttonConstant } from '@app/constants/locales/button';
 import { toastMessage } from '@app/constants/locales/toast-message';
-import { ToastId } from '@app/constants/toastId';
-import { BannerImageComponentPropType } from '@app/containers/dashboard/WorkspaceHomeContainer';
 import { useAppDispatch } from '@app/store/hooks';
 import { usePatchExistingWorkspaceMutation } from '@app/store/workspaces/api';
 import { setWorkspace } from '@app/store/workspaces/slice';
 
-export default function BannerImageComponent(props: BannerImageComponentPropType) {
+export default function BannerImageComponent(props: { workspace: any; isFormCreator: boolean; className?: string }) {
     const { workspace, isFormCreator, className } = props;
+    const { toast } = useToast();
     const transformComponentRef = useRef(null);
     const [patchExistingWorkspace, { isLoading }] = usePatchExistingWorkspaceMutation();
     const [image, setImage] = useState('');
@@ -51,13 +51,10 @@ export default function BannerImageComponent(props: BannerImageComponentPropType
                 formData.append('banner_image', file);
                 const response: any = await patchExistingWorkspace({ workspace_id: workspace.id, body: formData });
                 if (response.error) {
-                    toast(response.error.data || t(toastMessage.somethingWentWrong).toString(), { toastId: ToastId.ERROR_TOAST });
+                    toast({ description: response.error.data || t(toastMessage.somethingWentWrong).toString(), variant: 'destructive' });
                 }
                 if (response.data) {
-                    toast(t(toastMessage.workspaceUpdate).toString(), {
-                        type: 'success',
-                        toastId: ToastId.SUCCESS_TOAST
-                    });
+                    toast({ description: t(toastMessage.workspaceUpdate).toString() });
                     setImage('');
                     dispatch(setWorkspace(response.data));
                 }
@@ -123,17 +120,17 @@ function UpdateImageOptions({ getUpdateOptionsClassName, isLoading, onClickFileU
     return (
         <div className={`absolute bottom-2 right-2 hidden ${getUpdateOptionsClassName()}`}>
             <div className="flex justify-between">
-                {!isLoading && !image && <AppButton onClick={onClickFileUploadButton}>{t(buttonConstant.update)}</AppButton>}
+                {!isLoading && !image && <Button onClick={onClickFileUploadButton}>{t(buttonConstant.update)}</Button>}
                 {!isLoading && image && (
-                    <AppButton className="!text-white flex !bg-black-600 hover:!bg-black-700 mr-2" onClick={onCLickCancelButton}>
+                    <Button className="!text-white flex !bg-black-600 hover:!bg-black-700 mr-2" onClick={onCLickCancelButton}>
                         {t(buttonConstant.cancel)}
-                    </AppButton>
+                    </Button>
                 )}
                 {!!image && (
                     <>
-                        <AppButton isLoading={isLoading} onClick={onClickFileSaveButton}>
+                        <Button isLoading={isLoading} onClick={onClickFileSaveButton}>
                             {isLoading ? t(buttonConstant.saving) : t(buttonConstant.save)}
-                        </AppButton>
+                        </Button>
                     </>
                 )}
             </div>

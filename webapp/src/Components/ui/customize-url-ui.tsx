@@ -1,21 +1,20 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
 
-import AppTextField from '@Components/Common/Input/AppTextField';
-import AppButton from '@Components/Common/Input/Button/AppButton';
-import { ButtonSize } from '@Components/Common/Input/Button/AppButtonProps';
-import { toast } from 'react-toastify';
 
 import { buttonConstant } from '@app/constants/locales/button';
 import { localesCommon } from '@app/constants/locales/common';
 import { customize } from '@app/constants/locales/customize';
 import { toastMessage } from '@app/constants/locales/toast-message';
 import { validationMessage } from '@app/constants/locales/validation-message';
+import { Button } from '@app/shadcn/components/ui/button';
+import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { setFormSettings } from '@app/store/forms/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { usePatchFormSettingsMutation } from '@app/store/workspaces/api';
 
+import { AppInput } from '@app/shadcn/components/ui/input';
 import { useModal } from '../modal-views/context';
 import { ICustomizeUrlModalProps } from '../modal-views/modals/customize-url-modal';
 
@@ -23,6 +22,7 @@ import { ICustomizeUrlModalProps } from '../modal-views/modals/customize-url-mod
 export default function CustomizeUrlUi({ url, form }: ICustomizeUrlModalProps) {
     const workspace = useAppSelector((state) => state.workspace);
     const { t } = useTranslation();
+    const { toast } = useToast();
     const customUrl = form?.settings?.customUrl || '';
     const [slug, setSlug] = useState(customUrl);
     const [isError, setIsError] = useState(false);
@@ -51,9 +51,9 @@ export default function CustomizeUrlUi({ url, form }: ICustomizeUrlModalProps) {
             if (response.data) {
                 const settings = response.data.settings;
                 dispatch(setFormSettings(settings));
-                toast(t(localesCommon.updated).toString(), { type: 'success' });
+                toast({ description: t(localesCommon.updated).toString() });
             } else {
-                toast(t(toastMessage.formSettingUpdateError).toString(), { type: 'error' });
+                toast({ description: t(toastMessage.formSettingUpdateError).toString(), variant: 'destructive' });
                 return response.error;
             }
             closeModal();
@@ -71,7 +71,7 @@ export default function CustomizeUrlUi({ url, form }: ICustomizeUrlModalProps) {
                 {t(localesCommon.slug)}
                 <span className="text-red-500">*</span>
             </p>
-            <AppTextField id="title" isError={!slug.match(slugRegex)} value={slug} onChange={handleOnchange} />
+            <AppInput id="title" value={slug} onChange={handleOnchange} />
             {!slug.match(slugRegex) && isError && <p className="body4 !text-red-500 h-[10px]">{t(validationMessage.slug)}</p>}
             <div className="px-10 py-6 gap-6 bg-blue-100 mt-8 md:w-[535px] w-full md:-ml-10 break-all">
                 <p className="body1">{t(localesCommon.newLink)}</p>
@@ -80,9 +80,9 @@ export default function CustomizeUrlUi({ url, form }: ICustomizeUrlModalProps) {
                 </p>
             </div>
             <div className="mt-5 flex flex-col w-full ">
-                <AppButton size={ButtonSize.Medium} isLoading={isLoading} disabled={!slug.match(slugRegex)}>
+                <Button size="medium" isLoading={isLoading} disabled={!slug.match(slugRegex)}>
                     {t(buttonConstant.updateNow)}
-                </AppButton>
+                </Button>
             </div>
         </form>
     );

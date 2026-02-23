@@ -67,7 +67,7 @@ class TestFormTemplates:
         template = client.post(create_template_url, cookies=test_user_cookies)
 
         expected_template_id = (
-            ((await FormTemplateDocument.find().to_list())[0]).dict().get("id")
+            ((await FormTemplateDocument.find().to_list())[0]).model_dump().get("id")
         )
 
         assert template.status_code == 200

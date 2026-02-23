@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 
 import { ChevronLeft } from 'lucide-react';
 
 import { ScrollArea } from '@app/shadcn/components/ui/scroll-area';
+import { selectAuth } from '@app/store/auth/slice';
+import { useAppSelector } from '@app/store/hooks';
 import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
 import { useFormState } from '@app/store/jotai/form';
 import { useGetTemplatesQuery } from '@app/store/redux/templateApi';
@@ -10,7 +12,6 @@ import { IFormTemplateDto } from '@app/store/redux/types';
 import WelcomePage from '@app/views/organism/Form/WelcomePage';
 import FormSlidePreview from '@app/views/organism/FormPreview/FormSlidePreview';
 import LayoutWrapper from '@app/views/organism/Layout/LayoutWrapper';
-import { useAuthAtom } from '@app/store/jotai/auth';
 
 export default function TemplateTab({ closePopover }: { closePopover: () => void }) {
     const [selectedTemplate, setSelectedTemplate] = useState<IFormTemplateDto | undefined>();
@@ -18,7 +19,7 @@ export default function TemplateTab({ closePopover }: { closePopover: () => void
     const { addSlideFormTemplate } = useFormFieldsAtom();
     const { theme } = useFormState();
     const { data: templates } = useGetTemplatesQuery({ v2: true });
-    const { authState } = useAuthAtom();
+    const authState = useAppSelector(selectAuth);
 
     return (
         <>

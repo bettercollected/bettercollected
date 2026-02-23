@@ -1,16 +1,13 @@
-import React from 'react';
+"use client";
 
 import { useTranslation } from 'next-i18next';
-import { useRouter } from 'next/router';
+import { useRouter } from 'next/navigation';
 
-import AppButton from '@Components/Common/Input/Button/AppButton';
-import { ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
+import { Button } from '@app/shadcn/components/ui/button';
+import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { useBottomSheetModal } from '@Components/Modals/Contexts/BottomSheetModalContext';
-import { Typography } from '@mui/material';
 import DataTable from 'react-data-table-component';
-import { toast } from 'react-toastify';
 
-import EmptyGroup from '@Components/dashboard/empty-group';
 import { dataTableCustomStyles } from '@app/Components/datatable/form/datatable-styles';
 import { Plus } from '@app/Components/icons/plus';
 import { useModal } from '@app/Components/modal-views/context';
@@ -19,17 +16,18 @@ import Loader from '@app/Components/ui/loader';
 import { localesCommon } from '@app/constants/locales/common';
 import { groupConstant } from '@app/constants/locales/group';
 import { toastMessage } from '@app/constants/locales/toast-message';
-import { ToastId } from '@app/constants/toastId';
 import { ResponderGroupDto } from '@app/models/dtos/groups';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { selectIsAdmin } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { useDeleteResponderGroupMutation, useGetAllRespondersGroupQuery } from '@app/store/workspaces/api';
+import EmptyGroup from '@Components/dashboard/empty-group';
 
 const customGroupTableStyles: any = { ...dataTableCustomStyles };
 
 customGroupTableStyles.rows.style.cursor = 'pointer';
 export default function WorkspaceGroups({ workspace }: { workspace: WorkspaceDto }) {
+    const { toast } = useToast();
     const { openModal, closeModal } = useModal();
     const { t } = useTranslation();
 
@@ -47,10 +45,10 @@ export default function WorkspaceGroups({ workspace }: { workspace: WorkspaceDto
                 workspaceId: workspace.id,
                 groupId: group.id
             });
-            toast(t(toastMessage.groupDeleted).toString(), { toastId: ToastId.SUCCESS_TOAST, type: 'success' });
+            toast({ description: t(toastMessage.groupDeleted).toString() });
             closeModal();
         } catch (error) {
-            toast(t(toastMessage.somethingWentWrong).toString(), { toastId: ToastId.ERROR_TOAST, type: 'error' });
+            toast({ description: t(toastMessage.somethingWentWrong).toString(), variant: 'destructive' });
         }
     };
 
@@ -133,16 +131,16 @@ export default function WorkspaceGroups({ workspace }: { workspace: WorkspaceDto
                         <p className="body4 text-black-700 mt-2">{t(groupConstant.description)}</p>
                     </div>
                     {isAdmin && (
-                        <AppButton
-                            variant={ButtonVariant.Ghost}
+                        <Button
+                            variant="ghost"
                             className="w-fit"
                             icon={<Plus className="h-4 w-4" />}
                             onClick={() => {
                                 openBottomSheetModal('CREATE_GROUP');
                             }}
                         >
-                            <Typography className="!text-brand-500  body6"> {t(groupConstant.createGroup)}</Typography>
-                        </AppButton>
+                            <span className="!text-brand-500  body6"> {t(groupConstant.createGroup)}</span>
+                        </Button>
                     )}
                 </div>
             </div>

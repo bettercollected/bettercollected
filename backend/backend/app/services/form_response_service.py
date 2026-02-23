@@ -1,10 +1,9 @@
 import json
 from http import HTTPStatus
-from typing import List, Optional, Sequence
+from typing import List, Sequence
 
 from beanie import PydanticObjectId
 from beanie.odm.enums import SortDirection
-
 from common.constants import MESSAGE_FORBIDDEN, MESSAGE_NOT_FOUND
 from common.models.standard_form import (
     StandardFormResponse,
@@ -15,10 +14,10 @@ from common.models.standard_form import (
 from common.models.user import User
 from common.services.crypto_service import crypto_service
 from fastapi_pagination import Page
-from questionary import FormField
 
 from backend.app.constants.consents import default_consent_responses
 from backend.app.exceptions import HTTPException
+from backend.app.models.dtos.form_response_dto import SingleSubmissionResponse
 from backend.app.models.dtos.minified_form import FormDtoCamelModel
 from backend.app.models.dtos.response_dtos import (
     StandardFormCamelModel,
@@ -161,8 +160,6 @@ class FormResponseService:
         is_admin = await self._workspace_user_repo.has_user_access_in_workspace(
             workspace_id, user
         )
-        # TODO : Handle case for multiple form import by other user
-        # TODO : Combine all queries to one
         response = await FormResponseDocument.find_one({"response_id": response_id})
         if not response:
             raise HTTPException(HTTPStatus.NOT_FOUND, MESSAGE_NOT_FOUND)
@@ -201,12 +198,12 @@ class FormResponseService:
         ):
             raise HTTPException(403, "You are not authorized to perform this action.")
 
-        response = StandardFormResponseCamelModel(**response.dict())
+        response = StandardFormResponseCamelModel(**response.model_dump())
         if response.consent is None:
             response.consent = default_consent_responses
         if deletion_request is not None:
             response.deletion_status = deletion_request.status
-        form = FormDtoCamelModel(**form.dict())
+        form = FormDtoCamelModel(**form.model_dump())
         form.settings = workspace_form.settings
         response.form_title = form.title
         decrypted_response = self.decrypt_form_response(
@@ -214,7 +211,7 @@ class FormResponseService:
         )
         for key, decrypted_answer in decrypted_response.answers.items():
             decrypted_answer = (
-                decrypted_answer.dict()
+                decrypted_answer.model_dump(mode="json")
                 if isinstance(decrypted_answer, StandardFormResponseAnswer)
                 else decrypted_answer
             )
@@ -224,10 +221,7 @@ class FormResponseService:
                 )
                 decrypted_response.answers[key]["file_metadata"]["url"] = file_url
 
-        return {
-            "form": form,
-            "response": decrypted_response,
-        }
+        return SingleSubmissionResponse(form=form, response=decrypted_response)
 
     async def request_for_response_deletion(
         self, workspace_id: PydanticObjectId, response_id: str, user: User
@@ -256,6 +250,7 @@ class FormResponseService:
             response_id=response_id,
             dataOwnerIdentifier=response.dataOwnerIdentifier,
             provider=response.provider,
+            deleted_at=None,
         ).save()
 
     async def get_responses_count_in_workspace(self, workspace_form_ids: List[str]):
@@ -396,8 +391,10 @@ class FormResponseService:
         )
 
         return {
-            "form": StandardFormCamelModel(**form.dict()),
-            "response": StandardFormResponseCamelModel(**decrypted_response.dict()),
+            "form": StandardFormCamelModel(**form.model_dump(mode="json")),
+            "response": StandardFormResponseCamelModel(
+                **decrypted_response.model_dump(mode="json")
+            ),
         }
 
     async def request_for_response_deletion_by_uuid(
@@ -425,6 +422,7 @@ class FormResponseService:
             response_id=response_id,
             dataOwnerIdentifier=response.dataOwnerIdentifier,
             provider=response.provider,
+            deleted_at=None,
         ).save()
         pass
 

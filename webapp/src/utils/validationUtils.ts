@@ -5,8 +5,8 @@ import moment from 'moment/moment';
 import { formConstant } from '@app/constants/locales/form';
 import { AnswerDto, StandardFormDto, StandardFormFieldDto } from '@app/models/dtos/form';
 import { FormBuilderTagNames } from '@app/models/enums/formBuilder';
-import { FormValidationError } from '@app/store/fill-form/type';
-import { ActionType, Comparison, Condition, ConditionalActions, FieldType, LogicalOperator } from '@app/store/form-builder/types';
+import { FormValidationError } from '@app/models/enums/formValidation';
+import { ActionType, Comparison, Condition, ConditionalActions, FieldType, LogicalOperator } from '@app/models/types/form-builder-shared';
 
 /**
  * Validation method to check if the given value is undefined or not.

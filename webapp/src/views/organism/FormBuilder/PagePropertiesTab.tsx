@@ -13,7 +13,8 @@ import { SlideLayoutNoImageLeftAlign } from '@app/views/atoms/Icons/SlideLayoutN
 
 import { useDialogModal } from '@app/lib/hooks/useDialogModal';
 import { FieldTypes } from '@app/models/dtos/form';
-import { useAuthAtom } from '@app/store/jotai/auth';
+import { selectAuth } from '@app/store/auth/slice';
+import { useAppSelector } from '@app/store/hooks';
 import { IsValidString } from '@app/utils/stringUtils';
 import DeleteIcon from '@app/views/atoms/Icons/Delete';
 import { PlusIcon } from '@app/views/atoms/Icons/Plus';
@@ -24,12 +25,12 @@ import SlideLayoutLeftImage from '../../atoms/Icons/SlideLayoutLeftImage';
 import SlideLayoutNoImage from '../../atoms/Icons/SlideLayoutNoImage';
 import SlideLayoutRightImage from '../../atoms/Icons/SlideLayoutRightImage';
 
-export default function PagePropertiesTab({}: {}) {
+export default function PagePropertiesTab({ }: {}) {
     const { formFields, activeSlide, updateSlideLayout, updateSlideImage, setFormFields } = useFormFieldsAtom();
     const { activeSlideComponent } = useActiveSlideComponent();
     const { setActiveFieldComponent } = useActiveFieldComponent();
     const { activeThankYouPageComponent } = useActiveThankYouPageComponent();
-    const { authState } = useAuthAtom();
+    const authState = useAppSelector(selectAuth);
     const {
         formState,
         setFormState,

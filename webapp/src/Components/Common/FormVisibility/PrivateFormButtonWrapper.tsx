@@ -4,7 +4,7 @@ import Tooltip from '@Components/Common/DataDisplay/Tooltip';
 
 interface PrivateFormButtonWrapperProps {
     isPrivate?: boolean;
-    children: React.ReactElement;
+    children: React.ReactElement<any>;
 }
 
 export default function PrivateFormButtonWrapper({ isPrivate, children }: PrivateFormButtonWrapperProps) {

@@ -1,13 +1,9 @@
-import React from 'react';
+"use client";
 
 import { useTranslation } from 'next-i18next';
-import { useRouter } from 'next/router';
 
-import AppButton from '@Components/Common/Input/Button/AppButton';
-import { ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
 import StyledPagination from '@Components/Common/Pagination';
-import { Typography } from '@mui/material';
-import cn from 'classnames';
+import { cn } from '@app/shadcn/util/lib';
 import DataTable from 'react-data-table-component';
 
 import StatusBadge from '@Components/badge/status-badge';
@@ -20,6 +16,7 @@ import { localesCommon } from '@app/constants/locales/common';
 import { formConstant } from '@app/constants/locales/form';
 import { StandardFormResponseDto } from '@app/models/dtos/form';
 import { Page } from '@app/models/dtos/page';
+import { Button } from '@app/shadcn/components/ui/button';
 import { selectAuth } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
@@ -49,8 +46,14 @@ interface IResponsetableProps {
     setPage: (page: number) => void;
 }
 
+import { useFullScreenModal } from '@app/Components/modal-views/full-screen-modal-context';
+import { useLazyGetWorkspaceSubmissionQuery } from '@app/store/workspaces/api';
+import { getFormFields } from '@app/utils/formBuilderBlockUtils';
+
 const ResponsesTable = ({ requestForDeletion, submissions, formId, page, setPage }: IResponsetableProps) => {
-    const router = useRouter();
+    const { openModal } = useFullScreenModal();
+    const [triggerSingleResponse] = useLazyGetWorkspaceSubmissionQuery();
+
     const user = useAppSelector(selectAuth);
     const workspace = useAppSelector(selectWorkspace);
     const googleFormHostUrl = 'https://docs.google.com/';
@@ -60,29 +63,28 @@ const ResponsesTable = ({ requestForDeletion, submissions, formId, page, setPage
     };
     const { t } = useTranslation();
     const onRowClicked = (response: StandardFormResponseDto) => {
-        if (!requestForDeletion)
-            router.push(
-                {
-                    pathname: router.pathname,
-                    query: { ...router.query, sub_id: response.responseId }
-                },
-                undefined,
-                { scroll: true, shallow: true }
-            );
+        if (!requestForDeletion) {
+            triggerSingleResponse({
+                workspace_id: workspace?.id ?? '',
+                submission_id: response.responseId
+            }).then((result: any) => {
+                openModal('VIEW_RESPONSE', { response: result.data.response, formFields: getFormFields(result.data.form), formId: result.data.form.formId, workspaceId: workspace.id });
+            });
+        }
     };
     const responseDataOwnerField = (response: StandardFormResponseDto) => (
         <div aria-hidden className="w-fit">
-            <Typography className={cn('!text-black-900 body3 ', !requestForDeletion && 'hover:!text-brand-500 cursor-pointer hover:underline')} noWrap>
+            <div className={cn('!text-black-900 body3 truncate', !requestForDeletion && 'hover:!text-brand-500 cursor-pointer hover:underline')}>
                 {!requestForDeletion && <span onClick={() => onRowClicked(response)}>{response?.dataOwnerIdentifier ?? 'Anonymous'}</span>}
                 {requestForDeletion && (response?.dataOwnerIdentifier ?? 'Anonymous')}
-            </Typography>
+            </div>
         </div>
     );
     const responseFormTitle = (response: StandardFormResponseDto) => (
         <div aria-hidden className="w-fit">
-            <Typography className="!text-black-900 body3" noWrap>
+            <div className="!text-black-900 body3 truncate">
                 {response?.formTitle ?? 'Untitled'}
-            </Typography>
+            </div>
         </div>
     );
 
@@ -108,16 +110,42 @@ const ResponsesTable = ({ requestForDeletion, submissions, formId, page, setPage
     };
 
     const GoToResponse = ({ status, response }: { status: string; response: StandardFormResponseDto }) => {
-        return status.toLowerCase() === 'pending' && (response.provider === 'self' || response.formImportedBy === user.id) ? (
-            <Typography noWrap>
+        const isSelf = response.provider === 'self' || response.formImportedBy === user.id;
+
+        if (status.toLowerCase() !== 'pending' || !isSelf) return <></>;
+
+        if (requestForDeletion && response.provider === 'self') {
+            return (
+                <div className="truncate">
+                    <div
+                        className="cursor-pointer inline-flex"
+                        onClick={() => {
+                            triggerSingleResponse({
+                                workspace_id: workspace?.id ?? '',
+                                submission_id: response.responseId
+                            }).then((result: any) => {
+                                openModal('VIEW_RESPONSE', { response: result.data.response, formFields: getFormFields(result.data.form), formId: result.data.form.formId, workspaceId: workspace.id });
+                            });
+                        }}
+                    >
+                        <Button variant="ghost" className="!p-0">
+                            {t(localesCommon.goToResponse)}
+                            <ChevronForward className={'text-brand-500 h-6 w-6 ml-2'} />
+                        </Button>
+                    </div>
+                </div>
+            );
+        }
+
+        return (
+            <div className="truncate">
                 <AnchorLink target={response.provider !== 'self' ? '_blank' : '_self'} href={getResponseUrl(response)}>
-                    <AppButton postFixIcon={<ChevronForward className={'text-brand-500 h-6 w-6'} />} variant={ButtonVariant.Ghost} className="!p-0">
+                    <Button variant="ghost" className="!p-0">
                         {t(localesCommon.goToResponse)}
-                    </AppButton>
+                        <ChevronForward className={'text-brand-500 h-6 w-6 ml-2'} />
+                    </Button>
                 </AnchorLink>
-            </Typography>
-        ) : (
-            <></>
+            </div>
         );
     };
 

@@ -1,23 +1,3 @@
-export enum KeyType {
-    Escape = 'Escape',
-    ArrowDown = 'ArrowDown',
-    ArrowUp = 'ArrowUp',
-    Backspace = 'Backspace',
-    Command = '/',
-    CommandKey = 'CommandKey',
-    Enter = 'Enter',
-    Shift = 'Shift',
-    Tab = 'Tab',
-    ShiftTab = 'Shift + Tab'
-}
-
-export enum BlockTypes {
-    INPUT_BLOCKS = 'Without Label',
-    LAYOUT_BLOCKS = 'Headings',
-    QUESTION_INPUT_BLOCKS = 'With Label',
-    ADVANCED_FIELDS = 'Advanced Fields'
-}
-
 export enum FormBuilderTagNames {
     LAYOUT_HEADER1 = 'h1',
     LAYOUT_HEADER2 = 'h2',

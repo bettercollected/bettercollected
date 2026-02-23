@@ -21,6 +21,7 @@ const MarkdownText = ({ text, className, markDownClassName }: IMarkdownText) => 
     return (
         <div className={cn('w-full', className)}>
             <ReactMarkdown
+                // @ts-ignore
                 remarkPlugins={[remarkGfm]}
                 // @ts-ignore
                 rehypePlugins={[rehypeRaw]}

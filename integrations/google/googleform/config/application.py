@@ -4,12 +4,13 @@ import os
 from pathlib import Path
 
 from dotenv import load_dotenv
-from pydantic import BaseSettings
 
 from googleform.config.apm_settings import APMSettings
 from googleform.config.database import MongoSettings
 from googleform.config.sentry_setting import SentrySettings
 from googleform.version import __version__
+
+from pydantic_settings import BaseSettings
 
 default_dot_env_path = (
     Path(os.path.abspath(os.path.dirname(__file__)))
@@ -31,7 +32,6 @@ class Application(BaseSettings):
         * FASTAPI_PROJECT_NAME
         * FASTAPI_VERSION
         * FASTAPI_DOCS_URL
-        * FASTAPI_USE_REDIS
 
     Attributes:
         DEBUG (bool): FastAPI logging level. You should disable this for
@@ -39,14 +39,12 @@ class Application(BaseSettings):
         PROJECT_NAME (str): FastAPI project name.
         VERSION (str): Application version.
         DOCS_URL (str): Path where swagger ui will be served at.
-        USE_REDIS (bool): Whether or not to use Redis.
 
     """
 
     DEBUG: bool = True
     PROJECT_NAME: str = "googleform"
     VERSION: str = __version__
-    USE_REDIS: bool = False
 
     API_ROOT_PATH: str = "/api/v1"
     API_VERSION: str = "1.0.0"
@@ -55,24 +53,32 @@ class Application(BaseSettings):
 
     AUTH_JWT_SECRET: str
     AUTH_SERVER_URL: str = "http://auth:8000/api/v1"
-    AUTH_AES_HEX_KEY = ""
+    AUTH_AES_HEX_KEY: str = ""
 
-    GOOGLE_CLIENT_TYPE = "web"
-    GOOGLE_CLIENT_ID = ""
-    GOOGLE_PROJECT_ID = ""
-    GOOGLE_AUTH_URI = "https://accounts.google.com/o/oauth2/auth"
-    GOOGLE_TOKEN_URI = "https://oauth2.googleapis.com/token"
-    GOOGLE_AUTH_PROVIDER_X509_CERT_URL = "https://www.googleapis.com/oauth2/v1/certs"
-    GOOGLE_CLIENT_SECRET = ""
-    GOOGLE_REDIRECT_URIS = ""
-    GOOGLE_JAVASCRIPT_ORIGINS = ""
-    GOOGLE_SCOPES = "openid https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/forms.body.readonly https://www.googleapis.com/auth/forms.responses.readonly"
-    GOOGLE_SHEET_SCOPE = "https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive"
-    GOOGLE_SHEET_REDIRECT_URL = "http://localhost:3000/integrations/google/callback"
-    GOOGLE_API_SERVICE_NAME = "drive"
-    GOOGLE_API_VERSION = "v2"
-    GOOGLE_REVOKE_CREDENTIALS_URL = "https://oauth2.googleapis.com/revoke"
-    MAX_THREAD_POOL_EXECUTORS = 150
+    GOOGLE_CLIENT_TYPE: str = "web"
+    GOOGLE_CLIENT_ID: str = ""
+    GOOGLE_PROJECT_ID: str = ""
+    GOOGLE_AUTH_URI: str = "https://accounts.google.com/o/oauth2/auth"
+    GOOGLE_TOKEN_URI: str = "https://oauth2.googleapis.com/token"
+    GOOGLE_AUTH_PROVIDER_X509_CERT_URL: str = (
+        "https://www.googleapis.com/oauth2/v1/certs"
+    )
+    GOOGLE_CLIENT_SECRET: str = ""
+    GOOGLE_REDIRECT_URIS: str = ""
+    GOOGLE_JAVASCRIPT_ORIGINS: str = ""
+    GOOGLE_SCOPES: str = (
+        "openid https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/forms.body.readonly https://www.googleapis.com/auth/forms.responses.readonly"
+    )
+    GOOGLE_SHEET_SCOPE: str = (
+        "https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive"
+    )
+    GOOGLE_SHEET_REDIRECT_URL: str = (
+        "http://localhost:3000/integrations/google/callback"
+    )
+    GOOGLE_API_SERVICE_NAME: str = "drive"
+    GOOGLE_API_VERSION: str = "v2"
+    GOOGLE_REVOKE_CREDENTIALS_URL: str = "https://oauth2.googleapis.com/revoke"
+    MAX_THREAD_POOL_EXECUTORS: int = 150
 
     apm_settings: APMSettings = APMSettings()
     mongo_settings: MongoSettings = MongoSettings()

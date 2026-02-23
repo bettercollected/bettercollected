@@ -1,12 +1,11 @@
 import { useTranslation } from 'next-i18next';
-import { useRouter } from 'next/router';
+import { usePathname, useRouter } from 'next/navigation';
 
-import { toast } from 'react-toastify';
+import { useToast } from '@app/shadcn/components/ui/use-toast';
 
 import { useModal } from '@app/Components/modal-views/context';
 import { useFullScreenModal } from '@app/Components/modal-views/full-screen-modal-context';
 import { toastMessage } from '@app/constants/locales/toast-message';
-import { ToastId } from '@app/constants/toastId';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { ResponderGroupDto } from '@app/models/dtos/groups';
 import { setForm } from '@app/store/forms/slice';
@@ -28,10 +27,12 @@ interface IAddFormOnGroupProps {
 }
 
 export function useGroupForm() {
+    const { toast } = useToast();
     const [addForm] = useAddFormOnGroupMutation();
     const [removeForm] = useDeleteGroupFormMutation();
     const dispatch = useAppDispatch();
     const router = useRouter();
+    const pathname = usePathname();
     const { closeModal } = useModal();
     const fullScreenModal = useFullScreenModal();
     const { t } = useTranslation();
@@ -44,10 +45,10 @@ export function useGroupForm() {
             }).unwrap();
             dispatch(setForm({ ...form, groups: form.groups?.filter((formGroup) => formGroup.id !== group?.id) }));
 
-            toast(t(toastMessage.removed).toString(), { toastId: ToastId.SUCCESS_TOAST, type: 'success' });
+            toast({ description: t(toastMessage.removed).toString() });
             closeModal();
         } catch (error) {
-            toast(t(toastMessage.somethingWentWrong).toString(), { toastId: ToastId.ERROR_TOAST, type: 'error' });
+            toast({ description: t(toastMessage.somethingWentWrong).toString(), variant: 'destructive' });
         }
     };
 
@@ -68,12 +69,12 @@ export function useGroupForm() {
             //     const dataArray = Array.from(data);
             //     dispatch(setForm({ ...form, groups: [...groups, ...dataArray] }));
             // });
-            router.push(router.asPath);
-            toast(t(toastMessage.addedOnGroup).toString(), { toastId: ToastId.SUCCESS_TOAST, type: 'success' });
+            router.push(pathname);
+            toast({ description: t(toastMessage.addedOnGroup).toString() });
             // closeModal();
             // fullScreenModal.closeModal();
         } catch (error) {
-            toast(t(toastMessage.somethingWentWrong).toString(), { toastId: ToastId.ERROR_TOAST, type: 'error' });
+            toast({ description: t(toastMessage.somethingWentWrong).toString(), variant: 'destructive' });
         }
     };
     return {

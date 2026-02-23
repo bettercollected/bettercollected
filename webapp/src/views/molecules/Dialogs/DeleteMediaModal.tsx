@@ -1,5 +1,4 @@
-import AppButton from '@Components/Common/Input/Button/AppButton';
-import { ButtonSize, ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
+import { Button } from '@app/shadcn/components/ui/button';
 import { useSecondaryDialogModal } from '@app/lib/hooks/useSecondaryDialogModal';
 import { Separator } from '@app/shadcn/components/ui/separator';
 import { useDeletePhotoFromWorkspaceMediaLibraryMutation } from '@app/store/media-library/api';
@@ -22,12 +21,12 @@ const DeleteMediaModal = ({ workspace_id, media_id }: { workspace_id: string; me
                 <span className="p2-new">Are you sure you want to delete?</span>
                 <span className="p4-new text-black-600">Deleting this media will break the layout of all pages and forms using this image.</span>
                 <div className="mt-2 flex flex-row gap-6">
-                    <AppButton size={ButtonSize.Medium} className="w-full" variant={ButtonVariant.Secondary} onClick={() => closeSecondaryDialogModal()}>
+                    <Button size="medium" className="w-full" variant="secondary" onClick={() => closeSecondaryDialogModal()}>
                         Cancel
-                    </AppButton>
-                    <AppButton size={ButtonSize.Medium} className="w-full" isLoading={isLoading} variant={ButtonVariant.Danger} onClick={handleClickDelete}>
+                    </Button>
+                    <Button size="medium" className="w-full" isLoading={isLoading} variant="danger" onClick={handleClickDelete}>
                         Delete
-                    </AppButton>
+                    </Button>
                 </div>
             </div>
         </div>

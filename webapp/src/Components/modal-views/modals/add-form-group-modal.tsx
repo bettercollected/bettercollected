@@ -1,20 +1,18 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
 
-import Tooltip from '@Components/Common/DataDisplay/Tooltip';
-import { ButtonSize } from '@Components/Common/Input/Button/AppButtonProps';
-import ModalButton from '@Components/Common/Input/Button/ModalButton';
-import { CheckCircle } from '@mui/icons-material';
-import { Autocomplete, Box, createFilterOptions, TextField } from '@mui/material';
+import { Button } from '@app/shadcn/components/ui/button';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@app/shadcn/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@app/shadcn/components/ui/popover";
 import cn from 'classnames';
+import { Check, CheckCircle, ChevronsUpDown } from "lucide-react";
 
 import { Close } from '@app/Components/icons/close';
 import { useModal } from '@app/Components/modal-views/context';
 import { buttonConstant } from '@app/constants/locales/button';
 import { localesCommon } from '@app/constants/locales/common';
 import { groupConstant } from '@app/constants/locales/group';
-import { toolTipConstant } from '@app/constants/locales/tooltip';
 import { useGroupForm } from '@app/lib/hooks/use-group-form';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { ResponderGroupDto } from '@app/models/dtos/groups';
@@ -31,6 +29,7 @@ export default function AddFormOnGroup({ forms, group }: IAddFormOnGroupProps) {
     const { closeModal } = useModal();
     const { t } = useTranslation();
     const [selectedForm, setSelectedForm] = useState<StandardFormDto | null>();
+    const [open, setOpen] = useState(false);
     const { addFormOnGroup } = useGroupForm();
     const workspace = useAppSelector(selectWorkspace);
     const handleAddForm = () => {
@@ -49,53 +48,59 @@ export default function AddFormOnGroup({ forms, group }: IAddFormOnGroupProps) {
             <h4 className="h4">{t(buttonConstant.addForm)}</h4>
             <p className="body4 !text-black-700 mb-8  mt-2">{t(groupConstant.form.description)}</p>
             {forms && (
-                <Autocomplete
-                    disablePortal
-                    id="form_list"
-                    className="mb-6 mt-5 bg-white"
-                    fullWidth
-                    onChange={(e, value) => setSelectedForm(value)}
-                    value={selectedForm}
-                    filterOptions={createFilterOptions({
-                        matchFrom: 'start',
-                        stringify: (option: StandardFormDto) => option.title
-                    })}
-                    isOptionEqualToValue={(option: StandardFormDto, value: StandardFormDto) => option.title === value.title}
-                    getOptionLabel={(option: StandardFormDto) => option.title}
-                    options={forms}
-                    sx={{ width: '100%' }}
-                    renderOption={(props, option: StandardFormDto) => {
-                        return (
-                            <Tooltip
-                                title={
-                                    isFormAlreadyInGroup(option.groups, group.id)
-                                        ? t(toolTipConstant.formIsAlreadyOnGroup, {
-                                              form: option.title,
-                                              group: group.name
-                                          })
-                                        : ''
-                                }
-                                key={option.formId}
+                <div className="mb-6 mt-5">
+                    <Popover open={open} onOpenChange={setOpen}>
+                        <PopoverTrigger asChild>
+                            <Button
+                                variant="ghost"
+                                role="combobox"
+                                aria-expanded={open}
+                                className={cn("w-full justify-between font-normal", !selectedForm && "text-muted-foreground")}
                             >
-                                <div>
-                                    <Box component="li" {...props} className={cn(' MuiAutocomplete-option !py-2', isFormAlreadyInGroup(option.groups, group.id) && 'pointer-events-none cursor-not-allowed opacity-30')}>
-                                        <div className="flex w-full items-center justify-between">
-                                            {option.title}
-                                            {isFormAlreadyInGroup(option.groups, group.id) && <CheckCircle className="h-6 w-6" />}
-                                        </div>
-                                    </Box>
-                                </div>
-                            </Tooltip>
-                        );
-                    }}
-                    renderInput={(params) => <TextField {...params} label={t(localesCommon.chooseYourForm)} />}
-                />
+                                {selectedForm ? selectedForm.title : t(localesCommon.chooseYourForm)}
+                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                            </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[570px] p-0" align="start">
+                            <Command>
+                                <CommandInput placeholder={"Search forms..."} />
+                                <CommandList>
+                                    <CommandEmpty>No form found.</CommandEmpty>
+                                    <CommandGroup>
+                                        {forms.map((form) => (
+                                            <CommandItem
+                                                key={form.formId}
+                                                value={form.title}
+                                                onSelect={() => {
+                                                    if (isFormAlreadyInGroup(form.groups, group.id)) return;
+                                                    setSelectedForm(form)
+                                                    setOpen(false)
+                                                }}
+                                                className={cn(isFormAlreadyInGroup(form.groups, group.id) && "opacity-50 cursor-not-allowed pointer-events-none")}
+                                                disabled={isFormAlreadyInGroup(form.groups, group.id)}
+                                            >
+                                                <Check
+                                                    className={cn(
+                                                        "mr-2 h-4 w-4",
+                                                        selectedForm?.formId === form.formId ? "opacity-100" : "opacity-0"
+                                                    )}
+                                                />
+                                                {form.title}
+                                                {isFormAlreadyInGroup(form.groups, group.id) && <CheckCircle className="ml-auto h-4 w-4" />}
+                                            </CommandItem>
+                                        ))}
+                                    </CommandGroup>
+                                </CommandList>
+                            </Command>
+                        </PopoverContent>
+                    </Popover>
+                </div>
             )}
 
             <div className="flex justify-end">
-                <ModalButton disabled={!selectedForm} size={ButtonSize.Medium} onClick={handleAddForm}>
+                <Button disabled={!selectedForm} onClick={handleAddForm}>
                     {t(buttonConstant.add)}
-                </ModalButton>
+                </Button>
             </div>
         </div>
     );

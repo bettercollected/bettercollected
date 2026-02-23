@@ -1,13 +1,12 @@
 import { useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
-import { useRouter } from 'next/router';
+import { useRouter, useSearchParams } from 'next/navigation';
 
-import AppButton from '@Components/Common/Input/Button/AppButton';
-import { ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
 import { useBottomSheetModal } from '@Components/Modals/Contexts/BottomSheetModalContext';
 import BottomSheetModalWrapper from '@Components/Modals/ModalWrappers/BottomSheetModalWrapper';
-import { toast } from 'react-toastify';
+import { Button } from '@app/shadcn/components/ui/button';
+import { useToast } from '@app/shadcn/components/ui/use-toast';
 
 import RegexCard from '@Components/cards/regex-card';
 import GroupInfo from '@app/Components/group/group-info';
@@ -16,7 +15,6 @@ import { useModal } from '@app/Components/modal-views/context';
 import { buttonConstant } from '@app/constants/locales/button';
 import { groupConstant } from '@app/constants/locales/group';
 import { toastMessage } from '@app/constants/locales/toast-message';
-import { ToastId } from '@app/constants/toastId';
 import { useGroupForm } from '@app/lib/hooks/use-group-form';
 import { GroupInfoDto } from '@app/models/dtos/groups';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
@@ -29,7 +27,9 @@ import { selectWorkspace } from '@app/store/workspaces/slice';
 
 export default function CreateGroupModal() {
     const router = useRouter();
-    let formId: string = (router?.query?.formId as string) ?? '';
+    const searchParams = useSearchParams();
+    const { toast } = useToast();
+    let formId: string = (searchParams?.get('formId') as string) ?? '';
     const { closeBottomSheetModal } = useBottomSheetModal();
     const { t } = useTranslation();
     const { closeModal } = useModal();
@@ -75,10 +75,7 @@ export default function CreateGroupModal() {
                 workspace_id: workspace.id
             }).then((response: any) => {
                 if ('data' in response) {
-                    toast(t(toastMessage.workspaceSuccess).toString(), {
-                        toastId: ToastId.SUCCESS_TOAST,
-                        type: 'success'
-                    });
+                    toast({ description: t(toastMessage.workspaceSuccess).toString() });
                     addFormOnGroup({
                         groups: [],
                         groupsForUpdate: [...existingGroups, { ...response.data, id: response.data._id }],
@@ -87,13 +84,13 @@ export default function CreateGroupModal() {
                     });
                     closeBottomSheetModal();
                 } else
-                    toast(t(toastMessage.somethingWentWrong).toString(), {
-                        toastId: ToastId.ERROR_TOAST,
-                        type: 'error'
+                    toast({
+                        description: t(toastMessage.somethingWentWrong).toString(),
+                        variant: 'destructive'
                     });
             });
         } catch (error) {
-            toast(t(toastMessage.somethingWentWrong).toString(), { toastId: ToastId.ERROR_TOAST, type: 'error' });
+            toast({ description: t(toastMessage.somethingWentWrong).toString(), variant: 'destructive' });
         }
     };
 
@@ -105,7 +102,7 @@ export default function CreateGroupModal() {
             });
             closeModal();
         } else {
-            toast(t(toastMessage.somethingWentWrong).toString(), { toastId: ToastId.ERROR_TOAST, type: 'error' });
+            toast({ description: t(toastMessage.somethingWentWrong).toString(), variant: 'destructive' });
         }
     };
 
@@ -132,16 +129,16 @@ export default function CreateGroupModal() {
                                 {groupInfo.emails && <GroupMember emails={groupInfo.emails} handleAddMembers={handleAddMembers} handleRemoveMember={handleRemoveMember} />}
                             </div>
                             <div>
-                                <AppButton
+                                <Button
                                     data-umami-event={'Add New Group Button'}
                                     data-umami-event-email={authState.email}
                                     isLoading={isLoading}
-                                    variant={ButtonVariant.Secondary}
+                                    variant="secondary"
                                     disabled={!groupInfo.name || (groupInfo.emails?.length === 0 && groupInfo.regex?.length === 0)}
                                     onClick={handleCreateGroup}
                                 >
                                     {t(buttonConstant.saveGroup)}
-                                </AppButton>
+                                </Button>
                             </div>
                         </div>
                     </div>

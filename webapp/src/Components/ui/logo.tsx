@@ -1,8 +1,8 @@
-import AnchorLink from '@app/Components/ui/links/anchor-link';
 import { selectAuth } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import BetterCollectedLogo from '@app/views/atoms/Icons/BetterCollectedLogo';
+import Link from 'next/link';
 
 interface ILogo {
     className?: string;
@@ -35,9 +35,9 @@ const Logo = ({ className, isLink = true, isClientDomain = false, isCustomDomain
     );
 
     return isLink ? (
-        <AnchorLink href={url} target={isCustomDomain && isFooter ? '_blank' : undefined} className="w-fit outline-none" {...props}>
+        <Link href={url} target={isCustomDomain && isFooter ? '_blank' : undefined} className="w-fit outline-none" {...props}>
             {logo}
-        </AnchorLink>
+        </Link>
     ) : (
         logo
     );

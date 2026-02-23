@@ -26,7 +26,7 @@ class Oauth2CredentialDocument(BaseDocument):
     """
 
     user_id: Optional[str] = None
-    email: Optional[str]
-    state: Optional[str]
-    provider: Optional[str]
-    credentials: Optional[GoogleCredentialResponse] | bytes
+    email: Optional[str] = None
+    state: Optional[str] = None
+    provider: Optional[str] = None
+    credentials: Optional[GoogleCredentialResponse] | bytes = None

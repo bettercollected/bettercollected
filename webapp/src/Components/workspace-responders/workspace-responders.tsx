@@ -1,20 +1,17 @@
+"use client";
 import React, { useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
-import { useRouter } from 'next/router';
+import { Check, Plus } from 'lucide-react';
 
 import Tooltip from '@Components/Common/DataDisplay/Tooltip';
-import MenuDropdown from '@Components/Common/Navigation/MenuDropdown/MenuDropdown';
 import StyledPagination from '@Components/Common/Pagination';
 import SearchInput from '@Components/Common/Search/SearchInput';
-import { CheckCircle } from '@mui/icons-material';
-import { MenuItem, Typography } from '@mui/material';
 import cn from 'classnames';
 import DataTable from 'react-data-table-component';
 
 import { dataTableCustomStyles } from '@app/Components/datatable/form/datatable-styles';
 import { Close } from '@app/Components/icons/close';
-import { Plus } from '@app/Components/icons/plus';
 import { useModal } from '@app/Components/modal-views/context';
 import EmptyResponse from '@app/Components/ui/empty-response';
 import Loader from '@app/Components/ui/loader';
@@ -33,6 +30,53 @@ import { useAppSelector } from '@app/store/hooks';
 import { useGetAllRespondersGroupQuery, useGetWorkspaceRespondersQuery } from '@app/store/workspaces/api';
 import { IGetAllSubmissionsQuery } from '@app/store/workspaces/types';
 import { isEmailInGroup } from '@app/utils/groupUtils';
+import { Popover, PopoverContent, PopoverTrigger } from '@app/shadcn/components/ui/popover';
+
+const ResponderGroupDropdown = ({
+    email,
+    groups,
+    onAddMember,
+    t
+}: {
+    email: string,
+    groups: ResponderGroupDto[],
+    onAddMember: (params: { email: string, group: ResponderGroupDto, workspaceId: string }) => void,
+    t: any
+}) => {
+    const [open, setOpen] = useState(false);
+
+    return (
+        <Popover open={open} onOpenChange={setOpen}>
+            <PopoverTrigger asChild>
+                <div className="text-black-600 flex items-center gap-1 cursor-pointer">
+                    <Plus className="h-4 w-4" />
+                    <p className="body5 !text-black-600">{t(buttonConstant.add)}</p>
+                </div>
+            </PopoverTrigger>
+            <PopoverContent className="w-[180px] p-0 bg-white" align="start">
+                <div className="flex flex-col max-h-[200px] overflow-y-auto">
+                    {groups?.map((group) => (
+                        <div
+                            key={group.id}
+                            className={cn(
+                                "flex items-center justify-between px-3 py-2 hover:bg-black-100 cursor-pointer text-sm",
+                                isEmailInGroup(group, email) && "opacity-50 pointer-events-none"
+                            )}
+                            onClick={() => {
+                                onAddMember({ email, group, workspaceId: '' }); // workspaceId handled by parent wrapper if possible or passed down
+                                setOpen(false);
+                            }}
+                        >
+                            <span className="truncate pr-2">{group.name}</span>
+                            {isEmailInGroup(group, email) && <Check className="h-4 w-4 text-brand-500 flex-shrink-0" />}
+                        </div>
+                    ))}
+                </div>
+            </PopoverContent>
+        </Popover>
+    );
+};
+
 
 const customStyles = { ...dataTableCustomStyles };
 customStyles.rows.style.backgroundColor = 'white';
@@ -48,7 +92,6 @@ export default function WorkspaceResponses({ workspace }: { workspace: Workspace
     const isAdmin = useAppSelector(selectIsAdmin);
     const { openModal } = useModal();
     const { t } = useTranslation();
-    const router = useRouter();
 
     const handlePageChange = (e: any, page: number) => {
         setQuery({ ...query, page: page });
@@ -86,16 +129,12 @@ export default function WorkspaceResponses({ workspace }: { workspace: Workspace
             {responderGroupsQuery.data && responderGroupsQuery.data?.length === 0 && isAdmin && AddButton()}
             {responderGroupsQuery.data && responderGroupsQuery.data?.filter((group: ResponderGroupDto) => group.emails?.includes(email)).length === 0 && !isAdmin && <p className="body5 text-black-800">{t(groupConstant.notInAnyGroup)}</p>}
             {responderGroupsQuery.data && responderGroupsQuery.data?.length > 0 && isAdmin && (
-                <MenuDropdown showExpandMore={false} className="cursor-pointer" width={180} id="group-option" menuTitle={''} menuContent={AddButton(() => {})}>
-                    {responderGroupsQuery.data?.map((group: ResponderGroupDto) => (
-                        <MenuItem disabled={isEmailInGroup(group, email)} onClick={() => addMembersOnGroup({ email, group, workspaceId: workspace.id })} key={group.id} className="hover:bg-black-200 flex justify-between py-3">
-                            <Typography className="body4" noWrap>
-                                {group.name}
-                            </Typography>
-                            {isEmailInGroup(group, email) && <CheckCircle className="text-brand-500 h-5 w-5" />}
-                        </MenuItem>
-                    ))}
-                </MenuDropdown>
+                <ResponderGroupDropdown
+                    email={email}
+                    groups={responderGroupsQuery.data}
+                    t={t}
+                    onAddMember={(params) => addMembersOnGroup({ ...params, workspaceId: workspace.id })}
+                />
             )}
         </div>
     );

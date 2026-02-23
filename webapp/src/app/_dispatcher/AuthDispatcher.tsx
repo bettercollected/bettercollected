@@ -2,7 +2,8 @@
 
 import { useEffect } from 'react';
 
-import { initialAuthState, useAuthAtom } from '@app/store/jotai/auth';
+import { initialAuthState, setAuth } from '@app/store/auth/slice';
+import { useAppDispatch } from '@app/store/hooks';
 
 const AuthDispatcher = ({
     auth,
@@ -11,12 +12,13 @@ const AuthDispatcher = ({
     auth: any;
     children: React.ReactNode;
 }) => {
-    const { setAuthState } = useAuthAtom();
+    const dispatch = useAppDispatch()
+
     useEffect(() => {
         if (auth instanceof Object) {
-            setAuthState(auth);
+            dispatch(setAuth(auth));
         } else {
-            setAuthState(initialAuthState);
+            dispatch(setAuth(initialAuthState));
         }
     }, [auth]);
     return <>{children}</>;

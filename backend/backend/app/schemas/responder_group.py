@@ -8,10 +8,10 @@ from common.configs.mongo_document import MongoDocument
 
 
 class ResponderGroupDocument(MongoDocument):
-    name: Optional[str]
+    name: Optional[str] = None
     workspace_id: PydanticObjectId
     description: Optional[str] = None
-    regex: Optional[str]
+    regex: Optional[str] = None
 
     class Settings:
         name = "responder_group"

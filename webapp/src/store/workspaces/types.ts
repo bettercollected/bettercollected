@@ -4,11 +4,6 @@ export interface IGetWorkspaceFormQuery {
     published?: boolean;
 }
 
-export interface IGetWorkspaceFileUrlQuery {
-    workspace_id: string;
-    file_id: string;
-}
-
 export interface IGetWorkspaceSubmissionQuery {
     workspace_id: string;
     submission_id: string;

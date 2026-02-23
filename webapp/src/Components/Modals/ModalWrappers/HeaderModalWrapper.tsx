@@ -1,7 +1,7 @@
 import React, { ReactNode } from 'react';
 
-import Divider from '@mui/material/Divider';
-import cn from 'classnames';
+import Divider from '@Components/Common/DataDisplay/Divider';
+import { cn } from '@app/shadcn/util/lib';
 
 import { Close } from '@app/Components/icons/close';
 import { useModal } from '@app/Components/modal-views/context';

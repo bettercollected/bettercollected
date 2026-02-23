@@ -1,16 +1,15 @@
-import { ButtonSize } from '@Components/Common/Input/Button/AppButtonProps';
 import { Button } from '@app/shadcn/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@app/shadcn/components/ui/collapsible';
+import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { cn } from '@app/shadcn/util/lib';
+import { selectAuth } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
-import { useAuthAtom } from '@app/store/jotai/auth';
 import { useCreateFormWithAIMutation } from '@app/store/redux/formApi';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { ChevronDown } from '@app/views/atoms/Icons/ChevronDown';
 import { useRouter } from 'next-nprogress-bar';
 import Image from 'next/image';
 import React, { FormEvent, useState } from 'react';
-import { toast } from 'react-toastify';
 import styled from 'styled-components';
 
 const GenerateButton = styled(Button)`
@@ -56,12 +55,13 @@ const GradiantBorderDiv = styled.div`
 
 const examples = ["Contact form to gather user’s information. Include fields for the user's name, email address, and phone number among others.", 'A form to collect suggestions for improving the design and functionality of an marketing app.'];
 export default function StartWithAi() {
+    const { toast } = useToast();
     const [prompt, setPrompt] = React.useState('');
     const [isOpen, setIsOpen] = React.useState(false);
     const workspace = useAppSelector(selectWorkspace);
     const [generateWithAI, { isLoading }] = useCreateFormWithAIMutation();
     const [isGenerationStarted, setIsGenerationStarted] = useState(false);
-    const { authState } = useAuthAtom();
+    const authState = useAppSelector(selectAuth);
 
     const router = useRouter();
     const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -76,7 +76,7 @@ export default function StartWithAi() {
         if (response.data) router.replace(`/${workspace?.workspaceName}/dashboard/forms/${response?.data?.form_id}/edit`);
         if (response.error) {
             setIsGenerationStarted(false);
-            toast('Could not create form, please try again');
+            toast({ description: 'Could not create form, please try again', variant: 'destructive' });
         }
     };
 
@@ -138,7 +138,7 @@ export default function StartWithAi() {
                             </CollapsibleContent>
                         </Collapsible>
                     </div>
-                    <GenerateButton data-umami-event={'Creating Form with AI'} data-umami-event-email={authState.email} className="group" size={ButtonSize.Medium} variant={'primary'} type="submit">
+                    <GenerateButton data-umami-event={'Creating Form with AI'} data-umami-event-email={authState.email} className="group" type="submit">
                         <div className="z-10 flex items-center gap-2">
                             <AIIcon className="transition-all group-hover:scale-125" />
                             Generate

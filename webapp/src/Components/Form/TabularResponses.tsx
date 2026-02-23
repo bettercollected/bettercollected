@@ -1,14 +1,13 @@
 import { useEffect, useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
-import { useRouter } from 'next/router';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
 import StyledPagination from '@Components/Common/Pagination';
-import { Typography } from '@mui/material';
 import cn from 'classnames';
 import DataTable from 'react-data-table-component';
-import { toast } from 'react-toastify';
 
+import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { dataTableCustomStyles } from '@app/Components/datatable/form/datatable-styles';
 import { useFullScreenModal } from '@app/Components/modal-views/full-screen-modal-context';
 import globalConstants from '@app/constants/global';
@@ -51,6 +50,9 @@ interface TabularResponsesProps {
 
 export default function TabularResponses({ form }: TabularResponsesProps) {
     const router = useRouter();
+    const pathname = usePathname();
+    const searchParams = useSearchParams();
+    const { toast } = useToast();
     const { openModal } = useFullScreenModal();
     const workspace = useAppSelector(selectWorkspace);
     const [page, setPage] = useState(1);
@@ -68,7 +70,7 @@ export default function TabularResponses({ form }: TabularResponsesProps) {
     });
 
     useEffect(() => {
-        setQuery({ ...query, page: page });
+        setTimeout(() => setQuery({ ...query, page: page }), 0);
     }, [page]);
 
     const downloadFormFile = async (ans: any) => {
@@ -76,7 +78,7 @@ export default function TabularResponses({ form }: TabularResponsesProps) {
             if (!ans?.file_metadata?.url) return;
             downloadFile(ans?.file_metadata?.url, ans?.file_metadata.name ?? ans?.file_metadata.id);
         } catch (err) {
-            toast('Error downloading file', { type: 'error' });
+            toast({ description: 'Error downloading file', variant: 'destructive' });
         }
     };
 
@@ -91,29 +93,24 @@ export default function TabularResponses({ form }: TabularResponsesProps) {
         }
         return (
             <>
-                <Typography className={cn('!text-black-600 p2-new  w-[140px] truncate')} noWrap>
+                <div className={cn('!text-black-600 p2-new  w-[140px] truncate')}>
                     {getAnswerForField(response, field)}
-                </Typography>
+                </div>
             </>
         );
     };
 
     const onRowClicked = (response: StandardFormResponseDto) => {
-        router.push(
-            {
-                pathname: router.pathname,
-                query: { ...router.query, sub_id: response.responseId }
-            },
-            undefined,
-            { scroll: true, shallow: true }
-        );
+        const params = new URLSearchParams(searchParams?.toString());
+        params.set('sub_id', response.responseId);
+        router.push(`${pathname}?${params.toString()}`);
     };
 
     const responseDataOwnerField = (response: StandardFormResponseDto) => (
         <div aria-hidden className="flex w-fit flex-col gap-1 ">
-            <Typography className={cn('!text-black-800 p2-new w-fit truncate')} noWrap>
+            <p className={cn('!text-black-800 p2-new w-fit truncate')}>
                 {response?.dataOwnerIdentifier || '- -'}
-            </Typography>
+            </p>
             <span className="text-black-600 text-[10px] font-normal">{utcToLocalDateTIme(response?.createdAt)}</span>
         </div>
     );
@@ -131,7 +128,6 @@ export default function TabularResponses({ form }: TabularResponsesProps) {
                         workspace_id: workspace?.id ?? '',
                         submission_id: response.responseId
                     }).then((result: any) => {
-                        console.log('Read', result);
                         openModal('VIEW_RESPONSE', { response: result.data.response, formFields: getFormFields(result.data.form), formId: result.data.form.formId, workspaceId: workspace.id });
                     });
                 }}

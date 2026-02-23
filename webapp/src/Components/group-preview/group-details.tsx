@@ -1,22 +1,21 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
 
-import AppButton from '@Components/Common/Input/Button/AppButton';
-import { ButtonSize, ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
-import { toast } from 'react-toastify';
+import { Button } from '@app/shadcn/components/ui/button';
 
 import GroupInfo from '@app/Components/group/group-info';
 import { buttonConstant } from '@app/constants/locales/button';
 import { toastMessage } from '@app/constants/locales/toast-message';
-import { ToastId } from '@app/constants/toastId';
 import { GroupInfoDto, ResponderGroupDto } from '@app/models/dtos/groups';
+import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { selectIsAdmin } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { useUpdateResponderGroupMutation } from '@app/store/workspaces/api';
 
 export default function GroupDetailsTab({ group }: { group: ResponderGroupDto }) {
     const { t } = useTranslation();
+    const { toast } = useToast();
     const [updateResponderGroup, updateGroupResponse] = useUpdateResponderGroupMutation();
     const [groupInfo, setGroupInfo] = useState<GroupInfoDto>({
         name: group.name,
@@ -41,9 +40,9 @@ export default function GroupDetailsTab({ group }: { group: ResponderGroupDto })
                 workspaceId: workspace.id,
                 groupId: group.id
             }).unwrap();
-            toast(t(toastMessage.updated).toString(), { toastId: ToastId.SUCCESS_TOAST, type: 'success' });
+            toast({ description: t(toastMessage.updated).toString() });
         } catch (error) {
-            toast(t(toastMessage.somethingWentWrong).toString(), { toastId: ToastId.ERROR_TOAST, type: 'error' });
+            toast({ description: t(toastMessage.somethingWentWrong).toString(), variant: 'destructive' });
         }
     };
     return (
@@ -51,9 +50,9 @@ export default function GroupDetailsTab({ group }: { group: ResponderGroupDto })
             <GroupInfo handleInput={handleInput} groupInfo={groupInfo} />
             {isAdmin && (
                 <div className="flex justify-start mt-10">
-                    <AppButton variant={ButtonVariant.Secondary} size={ButtonSize.Medium} isLoading={updateGroupResponse.isLoading}>
+                    <Button variant="secondary" size="medium" isLoading={updateGroupResponse.isLoading}>
                         {t(buttonConstant.saveChanges)}
-                    </AppButton>
+                    </Button>
                 </div>
             )}
         </form>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, type JSX } from 'react';
 import Metrics from '@Components/analytics/Metrics';
 import DataTable from '@Components/analytics/DataTable';
 import TimeRangeSelector from '@Components/analytics/timeRange';

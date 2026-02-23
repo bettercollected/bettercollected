@@ -1,17 +1,16 @@
-import React from 'react';
+"use client";
+import React, { useEffect, useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
 
 import _ from 'lodash';
 
-import Divider from '@Components/Common/DataDisplay/Divider';
+import Chevron from '@Components/Common/Icons/Common/Chevron';
 import SettingsIcon from '@Components/Common/Icons/Common/Settings';
 import Billing from '@Components/Common/Icons/Dashboard/Billing';
 import DashboardIcon from '@Components/Common/Icons/Dashboard/Dashboard';
 import Logout from '@Components/Common/Icons/Dashboard/Logout';
-import MenuDropdown from '@Components/Common/Navigation/MenuDropdown/MenuDropdown';
 import WorkspaceAdminSelector from '@Components/HOCs/WorkspaceAdminSelector';
-import { ListItem, ListItemIcon, ListItemText, MenuItem } from '@mui/material';
 
 import AuthAccountProfileImage from '@app/Components/auth/account-profile-image';
 import { useModal } from '@app/Components/modal-views/context';
@@ -19,9 +18,11 @@ import ActiveLink from '@app/Components/ui/links/active-link';
 import environments from '@app/configs/environments';
 import { profileMenu } from '@app/constants/locales/profile-menu';
 import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';
-import { UserStatus } from '@app/models/dtos/UserStatus';
-import { selectAuth, selectIsAdmin } from '@app/store/auth/slice';
-import { useAppSelector } from '@app/store/hooks';
+import { Popover, PopoverContent, PopoverTrigger } from '@app/shadcn/components/ui/popover';
+import { Separator } from '@app/shadcn/components/ui/separator';
+import { useGetStatusQuery } from '@app/store/auth/api';
+import { setAuth } from '@app/store/auth/slice';
+import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 
 interface IAuthAccountMenuDropdownProps {
@@ -44,14 +45,25 @@ AuthAccountMenuDropdown.defaultProps = {
 export default function AuthAccountMenuDropdown({ isClientDomain, fullWidth, hideMenu, className, showExpandMore, menuContent }: IAuthAccountMenuDropdownProps) {
     const workspace = useAppSelector(selectWorkspace);
     const { t } = useTranslation();
-    const authStatus = useAppSelector(selectAuth);
-    const isAdmin = useAppSelector(selectIsAdmin);
-    const user: UserStatus = authStatus ?? null;
+    const dispatch = useAppDispatch();
+    const { data } = useGetStatusQuery();
+    const user = data ?? null;
+
+    useEffect(() => {
+        if (user && user?.id) {
+            dispatch(setAuth({ ...user, isAdmin: workspace?.ownerId == user.id }));
+        }
+    }, [user?.id]);
+
+    // const authStatus = useAppSelector(selectAuth);
+    // const user: UserStatus = authStatus ?? null;
 
     const screenSize = useBreakpoint();
     const { openModal } = useModal();
+    const [open, setOpen] = useState(false);
 
     const handleLogout = () => {
+        setOpen(false);
         openModal('LOGOUT_VIEW', { workspace, isClientDomain: isClientDomain });
     };
 
@@ -64,62 +76,102 @@ export default function AuthAccountMenuDropdown({ isClientDomain, fullWidth, hid
         <>
             <AuthAccountProfileImage size={['xs', '2xs'].indexOf(screenSize) === -1 ? 36 : 28} image={user?.profileImage} name={user?.firstName || user?.lastName || user.email} />
             {['xs', '2xs', 'sm'].indexOf(screenSize) === -1 && (profileName?.trim() || user?.email || '')}
-        </>
-    );
+        </>)
+    const shouldShowExpandMore = showExpandMore ?? ['xs', '2xs', 'sm'].indexOf(screenSize) === -1;
 
     return (
-        <MenuDropdown className={className} id="account-menu" menuTitle={t(profileMenu.accountSettings)} fullWidth={fullWidth} menuContent={newMenuContent} showExpandMore={showExpandMore ?? ['xs', '2xs', 'sm'].indexOf(screenSize) === -1}>
-            <ListItem className="hover:bg-brand-100 flex items-center px-5 py-3" alignItems="flex-start">
-                <ListItemIcon sx={{ margin: 0 }}>
-                    <AuthAccountProfileImage size={40} image={user?.profileImage} name={profileName ?? ''} />
-                </ListItemIcon>
-                <ListItemText
-                    sx={{ margin: 0 }}
-                    primaryTypographyProps={{ fontSize: '16px', lineHeight: '24px', color: '#212529' }}
-                    primary={profileName ?? 'Signed in as'}
-                    secondary={user?.email}
-                    secondaryTypographyProps={{ fontSize: '12px', lineHeight: '20px', color: '#6C757D' }}
-                />
-            </ListItem>
-            <WorkspaceAdminSelector>
-                <Divider className="my-2" />
-                {isClientDomain && (
-                    <ActiveLink href={`${environments.ADMIN_DOMAIN.includes('localhost') ? 'http://' : 'https://'}${environments.ADMIN_DOMAIN}/${workspace.workspaceName}/dashboard`} referrerPolicy="no-referrer">
-                        <MenuItem sx={{ paddingX: '20px', paddingY: '10px', height: '36px' }} className="body4 hover:bg-brand-100">
-                            <ListItemIcon className="text-black-900">
-                                <DashboardIcon width={20} height={20} />
-                            </ListItemIcon>
-                            <span>{t(profileMenu.myDashboard)}</span>
-                        </MenuItem>
-                    </ActiveLink>
-                )}
-                {user.stripeCustomerId && (
-                    <ActiveLink href={`${environments.API_ENDPOINT_HOST}/stripe/session/create/portal`} referrerPolicy="no-referrer">
-                        <MenuItem sx={{ paddingX: '20px', paddingY: '10px', height: '36px' }} className="body4 hover:bg-brand-100">
-                            <ListItemIcon className="text-black-900">
-                                <Billing width={20} height={20} />
-                            </ListItemIcon>
-                            <span>{t(profileMenu.billing)}</span>
-                        </MenuItem>
-                    </ActiveLink>
-                )}
-            </WorkspaceAdminSelector>
-            <ActiveLink href={`${environments.ADMIN_DOMAIN.includes('localhost') ? 'http://' : 'https://'}${environments.ADMIN_DOMAIN}/${workspace.workspaceName}/account-settings`} referrerPolicy="no-referrer">
-                <MenuItem sx={{ paddingX: '20px', paddingY: '10px', height: '36px' }} className="body4 hover:bg-brand-100">
-                    <ListItemIcon className="text-black-900">
-                        <SettingsIcon width={20} height={20} />
-                    </ListItemIcon>
-                    <span>{t(profileMenu.accountSettings)}</span>
-                </MenuItem>
-            </ActiveLink>
+        <Popover open={open} onOpenChange={setOpen}>
+            <PopoverTrigger asChild>
+                <div
+                    className={`${fullWidth ? 'w-full' : 'w-fit'} flex cursor-pointer items-center justify-between gap-2 rounded p-2 hover:rounded hover:bg-brand-100 body3 ${className}`}
+                    id="account-menu"
+                    role="button"
+                    title={t(profileMenu.accountSettings)}
+                >
+                    <span className="flex items-center gap-2">{newMenuContent}</span>
+                    {shouldShowExpandMore && (
+                        <div className={`${open ? '!rotate-180' : '!-rotate-0'} transition-all duration-300`}>
+                            <Chevron />
+                        </div>
+                    )}
+                </div>
+            </PopoverTrigger>
+            <PopoverContent
+                className="w-full min-w-[289px] p-0 z-[999999] bg-white"
+                align="end"
+                onClick={() => setOpen(false)}
+                onInteractOutside={() => setOpen(false)}
+            >
+                <ul className="list-none m-0 p-0">
+                    <li className="flex items-center px-5 py-3 hover:bg-brand-100 gap-4">
+                        <div className="m-0">
+                            <AuthAccountProfileImage size={40} image={user?.profileImage} name={profileName ?? ''} />
+                        </div>
+                        <div className="flex flex-col m-0">
+                            <span className="text-[16px] leading-[24px] text-[#212529] font-normal">{profileName ?? 'Signed in as'}</span>
+                            <span className="text-[12px] leading-[20px] text-[#6C757D] font-normal">{user?.email}</span>
+                        </div>
+                    </li>
+                    <WorkspaceAdminSelector>
+                        <li className="list-none">
+                            <Separator className="my-2" />
+                        </li>
+                        {isClientDomain && (
+                            <li className="list-none">
+                                <ActiveLink
+                                    href={`${environments.ADMIN_DOMAIN.includes('localhost') ? 'http://' : 'https://'}${environments.ADMIN_DOMAIN}/${workspace.workspaceName}/dashboard`}
+                                    referrerPolicy="no-referrer"
+                                >
+                                    <div className="flex items-center gap-4 px-[20px] py-[10px] h-[36px] body4 hover:bg-brand-100 cursor-pointer">
+                                        <div className="text-black-900 flex items-center justify-center">
+                                            <DashboardIcon width={20} height={20} />
+                                        </div>
+                                        <span>{t(profileMenu.myDashboard)}</span>
+                                    </div>
+                                </ActiveLink>
+                            </li>
+                        )}
+                        {user.stripeCustomerId && (
+                            <li className="list-none">
+                                <ActiveLink href={`${environments.API_ENDPOINT_HOST}/stripe/session/create/portal`} referrerPolicy="no-referrer">
+                                    <div className="flex items-center gap-4 px-[20px] py-[10px] h-[36px] body4 hover:bg-brand-100 cursor-pointer">
+                                        <div className="text-black-900 flex items-center justify-center">
+                                            <Billing width={20} height={20} />
+                                        </div>
+                                        <span>{t(profileMenu.billing)}</span>
+                                    </div>
+                                </ActiveLink>
+                            </li>
+                        )}
+                    </WorkspaceAdminSelector>
+                    <li className="list-none">
+                        <ActiveLink
+                            href={`${environments.ADMIN_DOMAIN.includes('localhost') ? 'http://' : 'https://'}${environments.ADMIN_DOMAIN}/${workspace.workspaceName}/dashboard/account-settings`}
+                            referrerPolicy="no-referrer"
+                        >
+                            <div className="flex items-center gap-4 px-[20px] py-[10px] h-[36px] body4 hover:bg-brand-100 cursor-pointer">
+                                <div className="text-black-900 flex items-center justify-center">
+                                    <SettingsIcon width={20} height={20} />
+                                </div>
+                                <span>{t(profileMenu.accountSettings)}</span>
+                            </div>
+                        </ActiveLink>
+                    </li>
 
-            {/* <Divider className="my-2" /> */}
-            <MenuItem onClick={handleLogout} sx={{ paddingX: '20px', paddingY: '10px', height: '36px' }} className="body4 !text-red-500 hover:bg-red-100">
-                <ListItemIcon>
-                    <Logout width={20} height={20} />
-                </ListItemIcon>
-                <span>{t(profileMenu.logout)}</span>
-            </MenuItem>
-        </MenuDropdown>
+                    <li className="list-none">
+                        <Separator className="my-2" />
+                    </li>
+                    <li
+                        onClick={handleLogout}
+                        className="flex items-center gap-4 px-[20px] py-[10px] h-[36px] body4 !text-red-500 hover:bg-red-100 cursor-pointer"
+                    >
+                        <div className="flex items-center justify-center">
+                            <Logout width={20} height={20} />
+                        </div>
+                        <span>{t(profileMenu.logout)}</span>
+                    </li>
+                </ul>
+            </PopoverContent>
+        </Popover>
     );
 }

@@ -10,5 +10,5 @@ export function isValidRelativeURL(url: string): boolean {
 }
 
 export function getEditFormURL(workspace: WorkspaceDto, form: StandardFormDto): string {
-    return form?.builderVersion === 'v2' ? `/${workspace.workspaceName}/dashboard/forms/${form.formId}/edit` : `/${workspace.workspaceName}/dashboard/forms/${form.formId}/v1/edit`;
+    return `/${workspace.workspaceName}/dashboard/forms/${form.formId}/edit`;
 }

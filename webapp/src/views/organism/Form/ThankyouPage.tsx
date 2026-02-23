@@ -12,27 +12,28 @@ import { useAppSelector } from '@app/store/hooks';
 import { useResponderState } from '@app/store/jotai/responderFormState';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import UserAvatarDropDown from '@app/views/molecules/UserAvatarDropdown';
-import { toast } from 'react-toastify';
+import { useToast } from '@app/shadcn/components/ui/use-toast';
 import useCopyToClipboard from 'react-use/lib/useCopyToClipboard';
-import { selectAnonymize } from '@app/store/fill-form/slice';
+import { useFormResponse } from '@app/store/jotai/responderFormResponse';
 
 export default function ThankyouPage({ isPreviewMode }: { isPreviewMode: boolean }) {
+    const { toast } = useToast();
     const standardForm = useAppSelector(selectForm);
     const workspace = useAppSelector(selectWorkspace);
     const auth = useAppSelector(selectAuth);
     const submissionUrl = environments.HTTP_SCHEME + environments.FORM_DOMAIN + '/' + workspace.workspaceName;
     const { responderId } = useResponderState();
     const [_, copyToClipboard] = useCopyToClipboard();
-    const anonymize = useAppSelector(selectAnonymize);
+    const { formResponse } = useFormResponse();
 
     function getThankYouMessage() {
-        return standardForm?.thankyouPage?.[0]?.message ? standardForm?.thankyouPage?.[0]?.message : anonymize ? 'Your response is anonymously submitted.' : 'Your response is successfully submitted.';
+        return standardForm?.thankyouPage?.[0]?.message ? standardForm?.thankyouPage?.[0]?.message : formResponse.anonymize ? 'Your response is anonymously submitted.' : 'Your response is successfully submitted.';
     }
 
     const handleOnCopy = (copyValue: string) => {
         copyToClipboard(copyValue);
-        toast('Copied', {
-            type: 'info'
+        toast({
+            description: 'Copied'
         });
     };
     return (
@@ -76,7 +77,6 @@ export default function ThankyouPage({ isPreviewMode }: { isPreviewMode: boolean
                         <Logo showProTag={false} isLink={false} isCustomDomain className="h-[14px] w-fit" />
                     </div>
                 </Link>
-                {/* </div> */}
             </div>
         </div>
     );

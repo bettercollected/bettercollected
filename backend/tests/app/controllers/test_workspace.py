@@ -198,7 +198,7 @@ class TestWorkspaces:
             check_handle_url, cookies=test_user_cookies
         )
 
-        expected_response = "True"
+        expected_response = True
         actual_response = check_handle_availability.json()
         assert actual_response == expected_response
 
@@ -216,7 +216,7 @@ class TestWorkspaces:
             check_handle_url, cookies=test_user_cookies
         )
 
-        expected_response = "True"
+        expected_response = True
         actual_response = check_handle_availability.json()
         assert actual_response == expected_response
 
@@ -235,7 +235,7 @@ class TestWorkspaces:
             check_handle_url, cookies=test_user_cookies
         )
 
-        expected_response = "False"
+        expected_response = False
         actual_response = check_handle_availability.json()
         assert actual_response == expected_response
 

@@ -1,14 +1,12 @@
 import { useEffect, useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
-import { useRouter } from 'next/router';
+import { useRouter } from 'next/navigation';
 
-import AppTextField from '@Components/Common/Input/AppTextField';
-import AppButton from '@Components/Common/Input/Button/AppButton';
-import { ButtonSize, ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
 import { useBottomSheetModal } from '@Components/Modals/Contexts/BottomSheetModalContext';
-import HeaderModalWrapper from '@Components/Modals/ModalWrappers/HeaderModalWrapper';
-import { toast } from 'react-toastify';
+import HeaderModalWrapper from '@app/Components/Modals/ModalWrappers/HeaderModalWrapper';
+import { Button } from '@app/shadcn/components/ui/button';
+import { useToast } from '@app/shadcn/components/ui/use-toast';
 
 import { useModal } from '@app/Components/modal-views/context';
 import environments from '@app/configs/environments';
@@ -16,13 +14,14 @@ import { buttonConstant } from '@app/constants/locales/button';
 import { onBoarding } from '@app/constants/locales/onboarding-screen';
 import { toastMessage } from '@app/constants/locales/toast-message';
 import { updateWorkspace } from '@app/constants/locales/update-workspace';
-import { ToastId } from '@app/constants/toastId';
+import { AppInput } from '@app/shadcn/components/ui/input';
 import { useAppSelector } from '@app/store/hooks';
 import { usePatchExistingWorkspaceMutation } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { checkErrorForWorkspaceName, checkIfPredefinedWorkspaceName } from '@app/utils/workspaceUtils';
 
 export default function UpdateWorkspaceHandle() {
+    const { toast } = useToast();
     const [patchExistingWorkspace, { isLoading }] = usePatchExistingWorkspaceMutation();
 
     const { closeModal } = useModal();
@@ -73,13 +72,12 @@ export default function UpdateWorkspaceHandle() {
         const response: any = await patchExistingWorkspace(body);
         if (response.data) {
             // dispatch(setWorkspace(response.data));
-            toast.info(t(updateWorkspace.handle).toString(), { toastId: ToastId.SUCCESS_TOAST });
-            router.replace(`/${response.data.workspaceName}/dashboard`).then(() => {
-                openBottomSheetModal('WORKSPACE_SETTINGS', { initialIndex: 1 });
-            });
+            toast({ description: t(updateWorkspace.handle).toString() });
+            router.replace(`/${response.data.workspaceName}/dashboard`);
+            openBottomSheetModal('WORKSPACE_SETTINGS', { initialIndex: 1 });
             closeModal();
         } else if (response.error) {
-            toast.error(response.error.data?.message || response.error.data || t(toastMessage.somethingWentWrong), { toastId: ToastId.ERROR_TOAST });
+            toast({ description: response.error.data?.message || response.error.data || t(toastMessage.somethingWentWrong), variant: 'destructive' });
         }
     };
     return (
@@ -91,11 +89,12 @@ export default function UpdateWorkspaceHandle() {
                     {environments.HTTP_SCHEME}
                     {environments.CLIENT_DOMAIN}/<span className="p2-new text-pink">{updateText}</span>
                 </div>
-                <AppTextField value={updateText} onChange={handleUpdateChange} isError={error} error={error} />
+                <AppInput value={updateText} onChange={handleUpdateChange} />
+                {errorMessage && <span className={'text-sm text-red-500 font-normal'}>{errorMessage}</span>}
                 {error && <span className={'text-sm text-red-500 font-normal'}>{errorMessage}</span>}
-                <AppButton className="w-full mt-2" disabled={error} data-testid="save-button" type="submit" isLoading={isLoading} size={ButtonSize.Medium} variant={ButtonVariant.Primary}>
+                <Button className="w-full mt-2" disabled={error || isLoading} data-testid="save-button" type="submit" >
                     {t(buttonConstant.updateNow)}
-                </AppButton>
+                </Button>
             </form>
         </HeaderModalWrapper>
     );

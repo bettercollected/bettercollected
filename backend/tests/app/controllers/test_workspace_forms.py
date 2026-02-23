@@ -51,7 +51,7 @@ def get_workspace_group_url(
 
 async def create_form_request_body():
     form = (await FormDocument.find().to_list())[0]
-    form_dict = {**form.dict(), "formId": form.dict().get("form_id")}
+    form_dict = {**form.model_dump(), "formId": form.model_dump().get("form_id")}
     unwanted_keys = ["id", "updated_at", "created_at", "fields"]
     for key in unwanted_keys:
         del form_dict[key]
@@ -593,14 +593,14 @@ class TestWorkspaceForm:
         assert actual_response_message == expected_response_message
 
     async def test_import_form_to_workspace(
-            self,
-            client: TestClient,
-            workspace: Coroutine[Any, Any, WorkspaceDocument],
-            test_user_cookies: dict[str, str],
-            workspace_form: Coroutine[Any, Any, FormDocument],
-            workspace_form_common_url: str,
-            workspace_form_response_for_test: Coroutine[Any, Any, dict],
-            mock_aiohttp_post_request,
+        self,
+        client: TestClient,
+        workspace: Coroutine[Any, Any, WorkspaceDocument],
+        test_user_cookies: dict[str, str],
+        workspace_form: Coroutine[Any, Any, FormDocument],
+        workspace_form_common_url: str,
+        workspace_form_response_for_test: Coroutine[Any, Any, dict],
+        mock_aiohttp_post_request,
     ):
         with mock_aiohttp_post_request:
             form_body = await create_form_request_body()

@@ -1,20 +1,21 @@
+"use client";
+
 import { useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
 
-import AppButton from '@Components/Common/Input/Button/AppButton';
-import { ButtonSize } from '@Components/Common/Input/Button/AppButtonProps';
 import { useFullScreenModal } from '@app/Components/modal-views/full-screen-modal-context';
 import Logo, { ProLogo } from '@app/Components/ui/logo';
 import { upgradeConst } from '@app/constants/locales/upgrade';
+import { Button } from '@app/shadcn/components/ui/button';
+import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { selectAuthStatus } from '@app/store/auth/selectors';
 import { useAppSelector } from '@app/store/hooks';
 import { useSuggestPriceAndUpgradeUserToProMutation } from '@app/store/price-suggestion/api';
 import cn from 'classnames';
 import { useRouter } from 'next/navigation';
-import { toast } from 'react-toastify';
 
-export interface IUpgradeToProModal {
+interface IUpgradeToProModal {
     featureText?: string;
     isModal?: boolean;
     callback?: () => void;
@@ -23,6 +24,7 @@ export interface IUpgradeToProModal {
 const prices = [0, 5, 15, 25, 50];
 
 export default function UpgradeToProContainer({ featureText, isModal = true, callback }: IUpgradeToProModal) {
+    const { toast } = useToast();
     const { t } = useTranslation();
     const auth = useAppSelector(selectAuthStatus);
 
@@ -114,13 +116,12 @@ export default function UpgradeToProContainer({ featureText, isModal = true, cal
                     </div>
                 </div>
                 <div className="mt-10">
-                    <AppButton
-                        isLoading={isSuggesting}
+                    <Button
+                        disabled={isSuggesting}
                         className="mb-2"
-                        size={ButtonSize.Medium}
                         onClick={async () => {
                             if (activeSuggestion === null && !customPrice) {
-                                toast('Please select a price first', { type: 'warning' });
+                                toast({ description: 'Please select a price first' });
                                 return;
                             }
                             let price = 0;
@@ -140,18 +141,19 @@ export default function UpgradeToProContainer({ featureText, isModal = true, cal
                                     } else {
                                         router.refresh();
                                     }
-                                    toast('Congratulations! You have been upgraded to PRO', { type: 'success' });
+                                    toast({ description: 'Congratulations! You have been upgraded to PRO' });
                                 }
                                 if (response.error) {
-                                    toast('Something went wrong', {
-                                        type: 'error'
+                                    toast({
+                                        description: 'Something went wrong',
+                                        variant: 'destructive'
                                     });
                                 }
                             });
                         }}
                     >
                         Start Pro account
-                    </AppButton>
+                    </Button>
                     <div className="p2-new text-black-600 text-center italic">Free for 90 days!</div>
                 </div>
             </>

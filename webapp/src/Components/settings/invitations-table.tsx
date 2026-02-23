@@ -3,12 +3,11 @@ import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'next-i18next';
 
 import InfoCircle from '@Components/Common/Icons/InfoCircle';
-import { Typography } from '@mui/material';
 import DataTable from 'react-data-table-component';
-import { toast } from 'react-toastify';
 
 import StatusBadge from '@Components/badge/status-badge';
 import { dataTableCustomStyles } from '@app/Components/datatable/form/datatable-styles';
+import { useToast } from '@app/shadcn/components/ui/use-toast';
 import MemberOptions from '@app/Components/datatable/workspace-settings/member-options';
 import { localesCommon } from '@app/constants/locales/common';
 import { members } from '@app/constants/locales/members';
@@ -27,6 +26,7 @@ interface IInvitationTableProps {
 
 export default function InvitationsTable({ data }: IInvitationTableProps) {
     const { t } = useTranslation();
+    const { toast } = useToast();
     const [trigger] = useInviteToWorkspaceMutation();
     const [invitations, setInvitations] = useState<Array<any>>([]);
     const workspace = useAppSelector((state) => state.workspace);
@@ -50,9 +50,9 @@ export default function InvitationsTable({ data }: IInvitationTableProps) {
                     email: email
                 }
             });
-            toast(t(toastMessage.invitationSent).toString(), { type: 'success' });
+            toast({ description: t(toastMessage.invitationSent).toString() });
         } catch (error) {
-            toast(t(toastMessage.failedToSentEmail).toString(), { type: 'error' });
+            toast({ description: t(toastMessage.failedToSentEmail).toString(), variant: 'destructive' });
         }
     };
 
@@ -61,11 +61,11 @@ export default function InvitationsTable({ data }: IInvitationTableProps) {
             <div className="flex items-center gap-5">
                 <StatusBadge status={status} />
                 {status.toLowerCase() === 'expired' && (
-                    <Typography noWrap>
+                    <div className="truncate">
                         <span className="body4 !text-brand-500 cursor-pointer" onClick={() => handleInvitation({ email })}>
                             Resend Invitation
                         </span>
-                    </Typography>
+                    </div>
                 )}
             </div>
         );

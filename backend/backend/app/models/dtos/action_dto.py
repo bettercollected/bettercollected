@@ -5,34 +5,34 @@ from typing import Optional
 from beanie import PydanticObjectId
 from common.models.standard_form import Trigger
 from fastapi_camelcase import CamelModel
-from pydantic import BaseModel
+from pydantic import BaseModel, model_serializer
 
 from backend.app.schemas.action_document import ParameterValue, ActionSettings
 
 
 class ActionDto(CamelModel):
-    action_code: Optional[str]
-    parameters: Optional[List[ParameterValue]]
-    secrets: Optional[List[ParameterValue]]
+    action_code: Optional[str] = None
+    parameters: Optional[List[ParameterValue]] = None
+    secrets: Optional[List[ParameterValue]] = None
     name: str
-    title: Optional[str]
-    description: Optional[str]
-    type: Optional[str]
-    predefined: Optional[bool]
-    url: Optional[str]
+    title: Optional[str] = None
+    description: Optional[str] = None
+    type: Optional[str] = None
+    predefined: Optional[bool] = None
+    url: Optional[str] = None
 
 
 class ActionResponse(ActionDto, CamelModel):
     id: PydanticObjectId
     settings: Optional[ActionSettings] = None
-    workspace_id: Optional[PydanticObjectId]
+    workspace_id: Optional[PydanticObjectId] = None
 
 
 class AddActionToFormDto(BaseModel):
     action_id: PydanticObjectId
     trigger: Trigger = Trigger.on_submit
-    parameters: Optional[List[ParameterValue]]
-    secrets: Optional[List[ParameterValue]]
+    parameters: Optional[List[ParameterValue]] = None
+    secrets: Optional[List[ParameterValue]] = None
 
 
 class ActionUpdateType(str, enum.Enum):

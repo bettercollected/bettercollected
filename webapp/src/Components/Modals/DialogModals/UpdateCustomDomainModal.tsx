@@ -2,24 +2,23 @@ import { useEffect, useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
 
-import AppTextField from '@Components/Common/Input/AppTextField';
-import AppButton from '@Components/Common/Input/Button/AppButton';
-import { ButtonSize, ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
-import HeaderModalWrapper from '@Components/Modals/ModalWrappers/HeaderModalWrapper';
-import { toast } from 'react-toastify';
+import HeaderModalWrapper from '@app/Components/Modals/ModalWrappers/HeaderModalWrapper';
+import { Button } from '@app/shadcn/components/ui/button';
+import { useToast } from '@app/shadcn/components/ui/use-toast';
 
 import { useModal } from '@app/Components/modal-views/context';
+import environments from '@app/configs/environments';
 import { buttonConstant } from '@app/constants/locales/button';
 import { placeHolder } from '@app/constants/locales/placeholder';
 import { toastMessage } from '@app/constants/locales/toast-message';
-import { ToastId } from '@app/constants/toastId';
+import { AppInput } from '@app/shadcn/components/ui/input';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { usePatchExistingWorkspaceMutation } from '@app/store/workspaces/api';
 import { selectWorkspace, setWorkspace } from '@app/store/workspaces/slice';
-import environments from '@app/configs/environments';
 
 
 export default function UpdateCustomDomainModal() {
+    const { toast } = useToast();
     const workspace = useAppSelector(selectWorkspace);
     const [patchExistingWorkspace, { isLoading }] = usePatchExistingWorkspaceMutation();
 
@@ -32,7 +31,10 @@ export default function UpdateCustomDomainModal() {
     const { closeModal } = useModal();
 
     useEffect(() => {
-        setError(!!updateText && !updateText.match('(([a-zA-Z]{1})|([a-zA-Z]{1}[a-zA-Z]{1})|([a-zA-Z]{1}[0-9]{1})|([0-9]{1}[a-zA-Z]{1})|([a-zA-Z0-9][a-zA-Z0-9-_]{1,61}[a-zA-Z0-9]))\\.([a-zA-Z]{2,6}|[a-zA-Z0-9-]{2,30}\\.[a-zA-Z]{2,3})'));
+        setTimeout(() => {
+
+            setError(!!updateText && !updateText.match('(([a-zA-Z]{1})|([a-zA-Z]{1}[a-zA-Z]{1})|([a-zA-Z]{1}[0-9]{1})|([0-9]{1}[a-zA-Z]{1})|([a-zA-Z0-9][a-zA-Z0-9-_]{1,61}[a-zA-Z0-9]))\\.([a-zA-Z]{2,6}|[a-zA-Z0-9-]{2,30}\\.[a-zA-Z]{2,3})'));
+        }, 0);
     }, [updateText]);
 
     const handleSubmit = async (event: any) => {
@@ -51,30 +53,28 @@ export default function UpdateCustomDomainModal() {
         const response: any = await patchExistingWorkspace(body);
         if (response.data) {
             dispatch(setWorkspace(response.data));
-            toast.info(t(toastMessage.customDomainUpdated).toString(), { toastId: ToastId.SUCCESS_TOAST });
+            toast({ description: t(toastMessage.customDomainUpdated).toString() });
             closeModal();
         } else if (response.error) {
-            toast.error(response.error.data?.message || response.error.data || t(toastMessage.somethingWentWrong), { toastId: ToastId.ERROR_TOAST });
+            toast({ description: response.error.data?.message || response.error.data || t(toastMessage.somethingWentWrong), variant: 'destructive' });
         }
     };
 
     return (
         <HeaderModalWrapper headerTitle="Add Custom Domain">
             <form onSubmit={handleSubmit}>
-                <div className="text-start max-w-full mb-4 body4 !text-pink-500">{t('UPGRADE.FEATURES.CUSTOM_DOMAIN.NOTE', {domain: environments.CUSTOM_DOMAIN_IP})}</div>
+                <div className="text-start max-w-full mb-4 body4 !text-pink-500">{t('UPGRADE.FEATURES.CUSTOM_DOMAIN.NOTE', { domain: environments.CUSTOM_DOMAIN_IP })}</div>
                 <h1 className={'body3 !text-black-800 mb-1'}>{t('UPGRADE.FEATURES.CUSTOM_DOMAIN.TEXT_FIELD_TITLE')}</h1>
-                <AppTextField
-                    isError={error}
-                    dataTestId={'update-button'}
+                <AppInput
                     placeholder={t(placeHolder.enterCustomDomain)}
                     value={updateText}
                     onChange={(e) => {
                         setUpdateText(e.target.value);
                     }}
                 />
-                <AppButton className="w-full mt-4" data-testid="save-button" type="submit" isLoading={isLoading} size={ButtonSize.Medium} variant={ButtonVariant.Primary}>
+                <Button className="w-full mt-4" data-testid="save-button" type="submit" isLoading={isLoading} size="medium" variant="primary">
                     {t(buttonConstant.updateNow)}
-                </AppButton>
+                </Button>
             </form>
         </HeaderModalWrapper>
     );

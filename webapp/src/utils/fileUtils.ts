@@ -1,4 +1,4 @@
-import { uuidv4 } from '@mswjs/interceptors/lib/utils/uuid';
+import { v4 as uuidv4 } from 'uuid';
 
 import { FileMetadata } from '@app/models/types/fileTypes';
 

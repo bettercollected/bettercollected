@@ -1,8 +1,7 @@
 import CopyIcon from '@Components/Common/Icons/Common/Copy';
-import AppButton from '@Components/Common/Input/Button/AppButton';
-import { ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
-import { toast } from 'react-toastify';
 
+import { useToast } from '@app/shadcn/components/ui/use-toast';
+import { Button } from '@app/shadcn/components/ui/button';
 import BannerImageComponent from '@Components/dashboard/banner-image';
 import { EyeIcon } from '@app/Components/icons/eye-icon';
 import Globe from '@app/Components/icons/flags/globe';
@@ -18,6 +17,7 @@ import { useRouter } from 'next/navigation';
 export default function WorkspaceDetails() {
     const workspace: WorkspaceState = useAppSelector(selectWorkspace);
     const router = useRouter();
+    const { toast } = useToast();
 
     const { openModal: openFullScreenModal } = useFullScreenModal();
     const [_, copyToClipboard] = useCopyToClipboard();
@@ -29,7 +29,7 @@ export default function WorkspaceDetails() {
                     className="mr-4 flex cursor-pointer items-center gap-4"
                     onClick={() => {
                         copyToClipboard(getWorkspaceShareURL(workspace));
-                        toast('Copied', { type: 'info' });
+                        toast({ description: 'Copied' });
                     }}
                 >
                     <span className="p2-new text-black-700">{getWorkspaceShareURL(workspace)}</span>
@@ -37,9 +37,8 @@ export default function WorkspaceDetails() {
                 </div>
                 <div className="flex gap-2 md:gap-6">
                     {(!workspace.isPro || !workspace.customDomain || !workspace.customDomainVerified) && (
-                        <AppButton
-                            variant={ButtonVariant.Ghost}
-                            icon={<Globe width={20} height={20} strokeWidth={1} />}
+                        <Button
+                            variant="ghost"
                             onClick={() => {
                                 if (workspace?.isPro) {
                                     router.push(`/${workspace.workspaceName}/dashboard/custom-domain`);
@@ -48,13 +47,15 @@ export default function WorkspaceDetails() {
                                 }
                             }}
                         >
+                            <Globe width={20} height={20} strokeWidth={1} className="mr-2" />
                             Use Custom Domain
-                        </AppButton>
+                        </Button>
                     )}
                     <ActiveLink href={getWorkspaceShareURL(workspace)} target="_blank" referrerPolicy="no-referrer">
-                        <AppButton variant={ButtonVariant.Ghost} icon={<EyeIcon width={20} height={20} />}>
+                        <Button variant="ghost">
+                            <EyeIcon width={20} height={20} className="mr-2" />
                             Preview as audience
-                        </AppButton>
+                        </Button>
                     </ActiveLink>
                 </div>
             </div>

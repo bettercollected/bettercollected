@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 
 import { usePathname } from 'next/navigation';
 
@@ -10,9 +10,9 @@ import { Dialog, DialogContent } from '@app/shadcn/components/ui/dialog';
 import { cn } from '@app/shadcn/util/lib';
 import DeleteMediaModal from '@app/views/molecules/Dialogs/DeleteMediaModal';
 
-export type DIALOG_MODALS = 'DELETE_MEDIA' | '';
+type DIALOG_MODALS = 'DELETE_MEDIA' | '';
 
-export interface ModalState {
+interface ModalState {
     isOpen: boolean;
     view?: DIALOG_MODALS | '';
     props?: any;

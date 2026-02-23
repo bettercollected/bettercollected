@@ -2,11 +2,10 @@ import { useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
 
-import AppButton from '@Components/Common/Input/Button/AppButton';
-import { ButtonSize, ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
+import { Button } from '@app/shadcn/components/ui/button';
 import { useBottomSheetModal } from '@Components/Modals/Contexts/BottomSheetModalContext';
 import DataTable from 'react-data-table-component';
-import { toast } from 'react-toastify';
+import { useToast } from '@app/shadcn/components/ui/use-toast';
 
 import { dataTableCustomStyles } from '@app/Components/datatable/form/datatable-styles';
 import { GroupIcon } from '@app/Components/icons/group-icon';
@@ -23,6 +22,7 @@ import { useGetAllRespondersGroupQuery, usePatchFormSettingsMutation } from '@ap
 import { selectWorkspace } from '@app/store/workspaces/slice';
 
 const SelectGroup = () => {
+    const { toast } = useToast();
     const workspace = useAppSelector(selectWorkspace);
     const form = useAppSelector(selectForm);
     const { data, isLoading } = useGetAllRespondersGroupQuery(workspace.id);
@@ -45,9 +45,9 @@ const SelectGroup = () => {
             dispatch(setForm({ ...form, settings }));
         } else {
             if (response.error.status === 409) {
-                toast(t('TOAST.SLUG_ALREADY_EXISTS').toString(), { type: 'error' });
+                toast({ description: t('TOAST.SLUG_ALREADY_EXISTS').toString(), variant: 'destructive' });
             } else {
-                toast(t(toastMessage.formSettingUpdateError).toString(), { type: 'error' });
+                toast({ description: t(toastMessage.formSettingUpdateError).toString(), variant: 'destructive' });
             }
             return response.error;
         }
@@ -162,15 +162,15 @@ const SelectGroup = () => {
                     <h1 className={'h2-new !text-black-800'}>Select Group</h1>
                     <p className={'text-black-700 text-sm font-normal'}>Only members of the specific groups be able to see the form. You can also create groups with whom you want to share this form.</p>
                 </div>
-                <AppButton variant={ButtonVariant.Secondary} onClick={() => openBottomSheetModal('CREATE_GROUP')} icon={<GroupIcon className={'text-white'} />} size={ButtonSize.Medium}>
+                <Button variant="secondary" onClick={() => openBottomSheetModal('CREATE_GROUP')} icon={<GroupIcon className={'text-white'} />} size="medium">
                     Create New Group
-                </AppButton>
+                </Button>
             </div>
             <DataTable className="mt-2 h-full !overflow-auto p-0" columns={groupColumns} data={data || []} customStyles={dataTableCustomStyles} highlightOnHover={false} pointerOnHover={false} />
             <div className={'flex flex-row'}>
-                <AppButton className="" onClick={handleOnSave} icon={<SaveIcon className={'text-white'} />} size={ButtonSize.Medium}>
+                <Button className="" onClick={handleOnSave} icon={<SaveIcon className={'text-white'} />} size="medium">
                     Save Changes
-                </AppButton>
+                </Button>
             </div>
         </div>
     );

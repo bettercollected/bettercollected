@@ -1,16 +1,15 @@
 import React, { useState } from 'react';
 
-import { useRouter } from 'next/router';
+import { useRouter } from 'next/navigation';
 
+import { Button } from '@app/shadcn/components/ui/button';
 import CircularCheck from '@Components/Common/Icons/Common/CircularCheck';
-import AppTextField from '@Components/Common/Input/AppTextField';
-import AppButton from '@Components/Common/Input/Button/AppButton';
-import { ButtonSize } from '@Components/Common/Input/Button/AppButtonProps';
 import CloseModal from '@Components/Modals/CloseModal';
 
 import { useModal } from '@app/Components/modal-views/context';
 import { ProLogo } from '@app/Components/ui/logo';
 import environments from '@app/configs/environments';
+import { AppInput } from '@app/shadcn/components/ui/input';
 import { useRedeemCouponCodeMutation } from '@app/store/coupon-code/api';
 import { fireworks } from '@app/utils/confetti';
 import BetterCollectedLogo from '@app/views/atoms/Icons/BetterCollectedLogo';
@@ -31,9 +30,7 @@ export default function RedeemCouponCodeModal({ showSuccess = false }: { showSuc
         const response: any = await redeemCouponReward({ code: redeemCode });
         if (response.data) {
             fireworks();
-            router.push(router.asPath, undefined, { shallow: true }).then(() => {
-                openModal('REDEEM_CODE_MODAL', { showSuccess: true });
-            });
+            openModal('REDEEM_CODE_MODAL', { showSuccess: true });
         }
         if (response.error) {
             setError('Invalid coupon code');
@@ -52,15 +49,15 @@ export default function RedeemCouponCodeModal({ showSuccess = false }: { showSuc
                     <CircularCheck className="mb-2 mt-12" height={41} width={41} />
                     <div className="h3-new mb-2">Congratulations!</div>
                     <div className="p2-new text-black-700 mb-10 max-w-[420px] !text-center">Your code has been successfully redeemed, and your account is now upgraded to PRO.</div>
-                    <AppButton
-                        size={ButtonSize.Medium}
+                    <Button
+                        size="medium"
                         className="min-w-[120px]"
                         onClick={() => {
                             closeModal();
                         }}
                     >
                         Done
-                    </AppButton>
+                    </Button>
                 </>
             ) : (
                 <>
@@ -89,7 +86,7 @@ export default function RedeemCouponCodeModal({ showSuccess = false }: { showSuc
                     </div>
                     <form className="flex gap-4" onSubmit={onSubmit}>
                         <div>
-                            <AppTextField
+                            <AppInput
                                 value={redeemCode}
                                 onChange={(event) => {
                                     setError('');
@@ -99,10 +96,10 @@ export default function RedeemCouponCodeModal({ showSuccess = false }: { showSuc
                             />
                             <div className="mt-2 h-[18px] text-left text-sm text-red-500">{error && error}</div>
                         </div>
-                        <AppButton type="submit" className="min-w-[120px]" isLoading={isLoading} size={ButtonSize.Medium}>
+                        <Button type="submit" className="min-w-[120px]" isLoading={isLoading} size="medium">
                             {' '}
                             Redeem{' '}
-                        </AppButton>
+                        </Button>
                     </form>
                 </>
             )}

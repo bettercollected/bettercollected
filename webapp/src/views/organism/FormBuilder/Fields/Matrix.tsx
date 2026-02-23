@@ -5,7 +5,7 @@ import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
 import { IThemeState, useFormState } from '@app/store/jotai/form';
 import { useFormResponse } from '@app/store/jotai/responderFormResponse';
 import { Close } from '@app/views/atoms/Icons/Close';
-import { TextareaAutosize } from '@mui/material';
+import { Textarea } from '@app/shadcn/components/ui/textarea';
 import * as CheckboxPrimitive from '@radix-ui/react-checkbox';
 import * as RadioGroupPrimitive from '@radix-ui/react-radio-group';
 import { Check, Circle } from 'lucide-react';
@@ -202,7 +202,7 @@ const MatrixHeaderInput = ({ value, onChange, disabled, placeholder }: { value: 
         />
     );
 };
-const StyledMatrixHeaderInput = styled(TextareaAutosize)<{ $theme?: IThemeState }>(() => {
+const StyledMatrixHeaderInput = styled(Textarea)<{ $theme?: IThemeState }>(() => {
     const { theme } = useFormState();
     const themeColor = theme?.tertiary;
     const secondaryColor = theme?.secondary;

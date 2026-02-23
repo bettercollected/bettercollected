@@ -1,54 +1,55 @@
-import React, {useEffect, useState} from 'react';
+import { useEffect, useState } from 'react';
 
-import {useTranslation} from 'next-i18next';
+import { useTranslation } from 'next-i18next';
 
+import { Button } from '@app/shadcn/components/ui/button';
+import { Label } from '@app/shadcn/components/ui/label';
+import { RadioGroup, RadioGroupItem } from '@app/shadcn/components/ui/radio-group';
+import { Switch } from '@app/shadcn/components/ui/switch';
+import { useToast } from '@app/shadcn/components/ui/use-toast';
 import Divider from '@Components/Common/DataDisplay/Divider';
 import Tooltip from '@Components/Common/DataDisplay/Tooltip';
 import EditIcon from '@Components/Common/Icons/Common/Edit';
 import LockIcon from '@Components/Common/Icons/lock';
-import AppButton from '@Components/Common/Input/Button/AppButton';
-import {ButtonVariant} from '@Components/Common/Input/Button/AppButtonProps';
-import {useBottomSheetModal} from '@Components/Modals/Contexts/BottomSheetModalContext';
-import {QrCode} from '@mui/icons-material';
-import {FormControlLabel, Radio, RadioGroup} from '@mui/material';
-import Switch from '@mui/material/Switch';
+import { useBottomSheetModal } from '@Components/Modals/Contexts/BottomSheetModalContext';
 import cn from 'classnames';
+import { QrCode } from 'lucide-react';
 import moment from 'moment/moment';
-import {toast} from 'react-toastify';
 import useCopyToClipboard from 'react-use/lib/useCopyToClipboard';
 
-import {Close} from '@app/Components/icons/close';
-import {GroupIcon} from '@app/Components/icons/group-icon';
-import {useModal} from '@app/Components/modal-views/context';
-import {FormSettingsCard} from '@app/Components/settings/card';
+import { Close } from '@app/Components/icons/close';
+import { GroupIcon } from '@app/Components/icons/group-icon';
+import { useModal } from '@app/Components/modal-views/context';
+import { FormSettingsCard } from '@app/Components/settings/card';
 import environments from '@app/configs/environments';
-import {buttonConstant} from '@app/constants/locales/button';
-import {localesCommon} from '@app/constants/locales/common';
-import {formConstant} from '@app/constants/locales/form';
-import {formPage} from '@app/constants/locales/form-page';
-import {toastMessage} from '@app/constants/locales/toast-message';
-import {StandardFormDto} from '@app/models/dtos/form';
-import {ResponderGroupDto} from '@app/models/dtos/groups';
-import {selectAuth, selectIsAdmin} from '@app/store/auth/slice';
-import {selectForm, setFormSettings} from '@app/store/forms/slice';
-import {useAppDispatch, useAppSelector} from '@app/store/hooks';
-import {usePatchFormSettingsMutation} from '@app/store/workspaces/api';
-import {selectWorkspace} from '@app/store/workspaces/slice';
-import {utcToLocalDateTIme} from '@app/utils/dateUtils';
+import { buttonConstant } from '@app/constants/locales/button';
+import { localesCommon } from '@app/constants/locales/common';
+import { formConstant } from '@app/constants/locales/form';
+import { formPage } from '@app/constants/locales/form-page';
+import { toastMessage } from '@app/constants/locales/toast-message';
+import { StandardFormDto } from '@app/models/dtos/form';
+import { ResponderGroupDto } from '@app/models/dtos/groups';
+import { selectAuth, selectIsAdmin } from '@app/store/auth/slice';
+import { selectForm, setFormSettings } from '@app/store/forms/slice';
+import { useAppDispatch, useAppSelector } from '@app/store/hooks';
+import { usePatchFormSettingsMutation } from '@app/store/workspaces/api';
+import { selectWorkspace } from '@app/store/workspaces/slice';
+import { utcToLocalDateTIme } from '@app/utils/dateUtils';
 import getFormShareURL from '@app/utils/formUtils';
-import {validateFormOpen} from '@app/utils/validationUtils';
-import {useFullScreenModal} from "@Components/modal-views/full-screen-modal-context";
+import { validateFormOpen } from '@app/utils/validationUtils';
 import Globe from "@Components/icons/flags/globe";
+import { useFullScreenModal } from "@Components/modal-views/full-screen-modal-context";
 import FormLinkUpdateView from "@Components/ui/form-link-update-view";
-import {ProLogo} from "@Components/ui/logo";
+import { ProLogo } from "@Components/ui/logo";
 
 interface IFormSettingsTabProps {
     view?: FormSettingsTabView;
 }
 
-export type FormSettingsTabView = 'VISIBILITY' | 'LINKS' | 'DEFAULT';
+type FormSettingsTabView = 'VISIBILITY' | 'LINKS' | 'DEFAULT';
 
 export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabProps) {
+    const { toast } = useToast();
     const { t } = useTranslation();
     const form = useAppSelector(selectForm);
     const [patchFormSettings] = usePatchFormSettingsMutation();
@@ -68,9 +69,7 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
     const handleOnCopy = () => {
         const link = getFormShareURL(form, workspace);
         copyToClipboard(link);
-        toast(t(toastMessage.copied).toString(), {
-            type: 'info'
-        });
+        toast({ description: t(toastMessage.copied).toString() });
     };
 
     const defaultValueForVisibility = () => {
@@ -94,23 +93,23 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
         if (response.data) {
             const settings = response.data.settings;
             dispatch(setFormSettings(settings));
-            toast(t(localesCommon.updated).toString(), { type: 'success' });
+            toast({ description: t(localesCommon.updated).toString() });
         } else {
             if (response.error.status === 409) {
-                toast(t('TOAST.SLUG_ALREADY_EXISTS').toString(), { type: 'error' });
+                toast({ description: t('TOAST.SLUG_ALREADY_EXISTS').toString(), variant: 'destructive' });
             } else {
-                toast(t(toastMessage.formSettingUpdateError).toString(), { type: 'error' });
+                toast({ description: t(toastMessage.formSettingUpdateError).toString(), variant: 'destructive' });
             }
             return response.error;
         }
     };
 
     const onPinnedChange = (event: any, f?: StandardFormDto) => {
-        if (!f) return toast(t(toastMessage.formSettingUpdateError).toString(), { type: 'error', toastId: 'errorToast' });
+        if (!f) return toast({ description: t(toastMessage.formSettingUpdateError).toString(), variant: 'destructive' });
         patchSettings({ pinned: !f?.settings?.pinned }, f)
-            .then((res) => {})
+            .then((res) => { })
             .catch((e) => {
-                toast(e.data, { type: 'error', toastId: 'errorToast' });
+                toast({ description: e.data, variant: 'destructive' });
             });
     };
 
@@ -118,7 +117,7 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
         patchSettings({ requireVerifiedIdentity: !f?.settings?.requireVerifiedIdentity }, f)
             .then()
             .catch((e) => {
-                toast(e.data, { type: 'error', toastId: 'errorToast' });
+                toast({ description: e.data, variant: 'destructive' });
             });
     };
 
@@ -130,7 +129,7 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
         patchSettings({ showSubmissionNumber: !f?.settings?.showSubmissionNumber }, f)
             .then()
             .catch((e) => {
-                toast(e.data, { type: 'error', toastId: 'errorToast' });
+                toast({ description: e.data, variant: 'destructive' });
             });
     };
 
@@ -138,7 +137,7 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
         patchSettings({ allowEditingResponse: !f?.settings?.allowEditingResponse }, f)
             .then()
             .catch((e) => {
-                toast(e.data, { type: 'error', toastId: 'errorToast' });
+                toast({ description: e.data, variant: 'destructive' });
             });
     };
 
@@ -150,15 +149,12 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
         };
         const handleOnConfirm = () => {
             if (!f)
-                return toast(t(toastMessage.formSettingUpdateError).toString(), {
-                    type: 'error',
-                    toastId: 'errorToast'
-                });
+                return toast({ description: t(toastMessage.formSettingUpdateError).toString(), variant: 'destructive' });
             const patchBody = { private: isPrivate, pinned: false, hidden: isHidden };
             patchSettings(patchBody, f)
-                .then((res) => {})
+                .then((res) => { })
                 .catch((e: any) => {
-                    toast(e.data, { type: 'error', toastId: 'errorToast' });
+                    toast({ description: e.data, variant: 'destructive' });
                 });
         };
         openModal('VISIBILITY_CONFIRMATION_MODAL_VIEW', { visibilityType: visibilityType(), handleOnConfirm });
@@ -167,18 +163,18 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
     const onFormClosedChange = (date: moment.Moment | string) => {
         const patchBody = { formCloseDate: date };
         patchSettings(patchBody, form)
-            .then(() => {})
+            .then(() => { })
             .catch(() => {
-                toast('Something went wrong!!!', { type: 'error' });
+                toast({ description: 'Something went wrong!!!', variant: 'destructive' });
             });
     };
 
     const onDisableBrandingChange = (event: any, f?: StandardFormDto) => {
-        if (!f) return toast(t(toastMessage.formSettingUpdateError).toString(), { type: 'error', toastId: 'errorToast' });
+        if (!f) return toast({ description: t(toastMessage.formSettingUpdateError).toString(), variant: 'destructive' });
         patchSettings({ disableBranding: !f?.settings?.disableBranding }, f)
-            .then((res) => {})
+            .then((res) => { })
             .catch((e) => {
-                toast(e.data, { type: 'error', toastId: 'errorToast' });
+                toast({ description: e.data, variant: 'destructive' });
             });
     };
 
@@ -205,56 +201,48 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                 return (
                     <FormSettingsCard className={'mb-4'}>
                         <Divider />
-                        <RadioGroup className="flex flex-col gap-6" value={currentVisibility}>
+                        <RadioGroup className="flex flex-col gap-6" value={currentVisibility} onValueChange={(val) => {
+                            if (val === 'Public') onVisibilityChanged({ f: form });
+                            if (val === 'Private') onVisibilityChanged({ isHidden: true, f: form });
+                            if (val === 'Group') patchSettings({ hidden: false, pinned: false, private: true }, form);
+                        }}>
                             <div className="flex flex-col">
-                                <FormControlLabel
-                                    onChange={() => onVisibilityChanged({ f: form })}
-                                    value="Public"
-                                    control={<Radio />}
-                                    label={
-                                        <button data-umami-event="Make Form Public" data-umami-event-email={auth.email}>
-                                            <div className="body6 !text-black-800 flex items-center gap-[6px]">
-                                                <Globe className="h-[18px] w-[18px]" />
-                                                {t(formConstant.settings.visibility.public)}
-                                            </div>
-                                        </button>
-                                    }
-                                />
-                                <span className="body4 !text-black-700 ml-8">{t(formPage.visibilityPublic)}</span>
+                                <div className="flex items-center space-x-2">
+                                    <RadioGroupItem value="Public" id="public" />
+                                    <Label htmlFor="public" className="cursor-pointer">
+                                        <div className="body6 !text-black-800 flex items-center gap-[6px]">
+                                            <Globe className="h-[18px] w-[18px]" />
+                                            {t(formConstant.settings.visibility.public)}
+                                        </div>
+                                    </Label>
+                                </div>
+                                <span className="body4 !text-black-700 ml-6 mt-1">{t(formPage.visibilityPublic)}</span>
                             </div>
                             <Divider />
                             <div className="flex flex-col">
-                                <FormControlLabel
-                                    onChange={() => onVisibilityChanged({ isHidden: true, f: form })}
-                                    value="Private"
-                                    control={<Radio />}
-                                    label={
-                                        <button data-umami-event="Make Form Private" data-umami-event-email={auth.email}>
-                                            <div className="body6 !text-black-800 flex items-center gap-[6px]">
-                                                <LockIcon className="h-[18px] w-[18px]" />
-                                                {t(formConstant.settings.visibility.private)}
-                                            </div>
-                                        </button>
-                                    }
-                                />
-                                <span className="body4 !text-black-700 ml-8">{t(formPage.visibilityPrivate)}</span>
+                                <div className="flex items-center space-x-2">
+                                    <RadioGroupItem value="Private" id="private" />
+                                    <Label htmlFor="private" className="cursor-pointer">
+                                        <div className="body6 !text-black-800 flex items-center gap-[6px]">
+                                            <LockIcon className="h-[18px] w-[18px]" />
+                                            {t(formConstant.settings.visibility.private)}
+                                        </div>
+                                    </Label>
+                                </div>
+                                <span className="body4 !text-black-700 ml-6 mt-1">{t(formPage.visibilityPrivate)}</span>
                             </div>
                             <Divider />
                             <div className="flex flex-col">
-                                <FormControlLabel
-                                    onChange={() => patchSettings({ hidden: false, pinned: false, private: true }, form)}
-                                    value="Group"
-                                    control={<Radio />}
-                                    label={
-                                        <button data-umami-event="Make Form Only For Certain Groups" data-umami-event-email={auth.email}>
-                                            <div className="body6 !text-black-800 flex items-center gap-[6px]">
-                                                <GroupIcon className="h-[18px] w-[18px]" />
-                                                {t(formPage.visibilityGroupsTitle)}
-                                            </div>
-                                        </button>
-                                    }
-                                />
-                                <span className="body4 !text-black-700 ml-8">{!(form?.groups?.length === 0) ? t(formPage.visibilityGroups1) : t(formPage.visibilityGroups0)}</span>
+                                <div className="flex items-center space-x-2">
+                                    <RadioGroupItem value="Group" id="group" />
+                                    <Label htmlFor="group" className="cursor-pointer">
+                                        <div className="body6 !text-black-800 flex items-center gap-[6px]">
+                                            <GroupIcon className="h-[18px] w-[18px]" />
+                                            {t(formPage.visibilityGroupsTitle)}
+                                        </div>
+                                    </Label>
+                                </div>
+                                <span className="body4 !text-black-700 ml-6 mt-1">{!(form?.groups?.length === 0) ? t(formPage.visibilityGroups1) : t(formPage.visibilityGroups0)}</span>
                                 {currentVisibility === 'Group' && <FormGroups groups={form?.groups || []} />}
                             </div>
                             <Divider />
@@ -276,7 +264,7 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                                 </p>
                             </Tooltip>
                             <div className={'flex gap-8'}>
-                                <AppButton
+                                <Button
                                     data-umami-event="Customize Form Link Button"
                                     data-umami-event-email={auth.email}
                                     className={'!py-0'}
@@ -287,12 +275,12 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                                             customSlug: customUrl
                                         });
                                     }}
-                                    variant={ButtonVariant.Ghost}
+                                    variant="ghost"
                                 >
                                     {t(formPage.linksChangeSlug)}
-                                </AppButton>
+                                </Button>
                                 {environments.ENABLE_FORM_QR && !form?.settings?.hidden && (
-                                    <AppButton
+                                    <Button
                                         data-umami-event="Generate QR button"
                                         data-umami-event-email={auth.email}
                                         className={'!py-0'}
@@ -300,10 +288,10 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                                         onClick={() => {
                                             openModal('GENERATE_QR');
                                         }}
-                                        variant={ButtonVariant.Ghost}
+                                        variant="ghost"
                                     >
                                         Generate QR Code
-                                    </AppButton>
+                                    </Button>
                                 )}
                             </div>
                         </div>
@@ -330,8 +318,8 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                                             data-umami-event-email={auth.email}
                                             data-testid="show-original-form-switch"
                                             checked={!!form?.settings?.showOriginalForm}
-                                            onClick={(e) => {
-                                                onShowOriginalFormChange(e, form);
+                                            onCheckedChange={(checked) => {
+                                                onShowOriginalFormChange(checked, form);
                                             }}
                                         />
                                     </div>
@@ -354,8 +342,8 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                                             data-umami-event-email={auth.email}
                                             data-testid="require-verified-identity-switch"
                                             checked={!!form?.settings?.requireVerifiedIdentity}
-                                            onClick={(e) => {
-                                                onCollectEmailsChange(e, form);
+                                            onCheckedChange={(checked) => {
+                                                onCollectEmailsChange(checked, form);
                                             }}
                                         />
                                     </div>
@@ -375,8 +363,8 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                                             data-umami-event-email={auth.email}
                                             data-testid="show-submission-number-switch"
                                             checked={!!form?.settings?.showSubmissionNumber}
-                                            onClick={(e) => {
-                                                onShowSubmissionNumberChange(e, form);
+                                            onCheckedChange={(checked) => {
+                                                onShowSubmissionNumberChange(checked, form);
                                             }}
                                         />
                                     </div>
@@ -396,8 +384,8 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                                             data-umami-event-email={auth.email}
                                             data-testid="pinned-switch"
                                             checked={!!form?.settings?.allowEditingResponse}
-                                            onClick={(e) => {
-                                                onAllowResponseEditingChange(e, form);
+                                            onCheckedChange={(checked) => {
+                                                onAllowResponseEditingChange(checked, form);
                                             }}
                                         />
                                     </div>
@@ -414,7 +402,7 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                                             <Divider className={'my-2 w-full'} />
                                             <div className="flex flex-row items-center justify-between md:gap-4">
                                                 <div className="body4 !text-black-700 w-3/4">{t(formPage.pinFormDescription)}</div>
-                                                <Switch data-umami-event="Pin Form Switch" data-umami-event-email={auth.email} data-testid="pinned-switch" checked={!!form?.settings?.pinned} onClick={(e) => onPinnedChange(e, form)} />
+                                                <Switch data-umami-event="Pin Form Switch" data-umami-event-email={auth.email} data-testid="pinned-switch" checked={!!form?.settings?.pinned} onCheckedChange={(checked) => onPinnedChange(checked, form)} />
                                             </div>
                                             <Divider className={'my-2 w-full'} />
                                         </div>
@@ -435,39 +423,13 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                                                 data-umami-event-email={auth.email}
                                                 data-testid="disable-branding-switch"
                                                 checked={!form?.settings?.disableBranding}
-                                                onClick={(e) => onDisableBrandingChange(e, form)}
+                                                onCheckedChange={(checked) => onDisableBrandingChange(checked, form)}
                                             />
                                         </div>
                                         <Divider className={'my-2 w-full'} />
                                     </div>
                                 </FormSettingsCard>
                             </>
-                        )}
-                        {form?.settings?.provider === 'self' && form?.builderVersion !== 'v2' && (
-                            <FormSettingsCard>
-                                <div className="flex w-full flex-col items-start">
-                                    <div className="body1">{t(formPage.formPurposeTitle)}</div>
-                                    <Divider className={'my-2 w-full'} />
-                                    <div className=" flex w-full flex-row items-center justify-between gap-4">
-                                        <div className="!text-black-700 text-sm">{t(formPage.formPurposeDescription)}</div>
-                                        <AppButton
-                                            data-umami-event="View Form Consent Button"
-                                            data-umami-event-email={auth.email}
-                                            variant={ButtonVariant.Ghost}
-                                            className="h5-new !text-new-blue-500 w-60 cursor-pointer"
-                                            onClick={() => {
-                                                fullScreenModal.openModal('CREATE_CONSENT_FULL_MODAL_VIEW', {
-                                                    form,
-                                                    isPreview: true
-                                                });
-                                            }}
-                                        >
-                                            {t(formPage.formPurposeSeeDetails)}
-                                        </AppButton>
-                                    </div>
-                                    <Divider className={'my-2 w-full'} />
-                                </div>
-                            </FormSettingsCard>
                         )}
                         {form?.settings?.provider === 'self' && form?.isPublished && (
                             <FormSettingsCard>
@@ -484,7 +446,7 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                                                     data-testid="close-form-switch"
                                                     // checked={false}
                                                     checked={closeFormChecked}
-                                                    onClick={(event) => {
+                                                    onCheckedChange={(checked) => {
                                                         if (closeFormChecked) {
                                                             openModal('REOPEN_FORM_CONFIRMATION_MODAL', { reopenForm });
                                                         } else {
@@ -494,11 +456,11 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                                                 />
                                             </div>
                                             {!closeFormChecked && !moment(form?.settings?.formCloseDate).isAfter(moment.utc()) && (
-                                                <AppButton
+                                                <Button
                                                     data-umami-event="Select Form Close Date Button"
                                                     data-umami-event-email={auth.email}
                                                     className="mt-2"
-                                                    variant={ButtonVariant.Ghost}
+                                                    variant="ghost"
                                                     onClick={() => {
                                                         openBottomSheetModal('SELECT_FORM_CLOSE_DATE', {
                                                             onFormClosedChange: onFormClosedChange,
@@ -507,7 +469,7 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                                                     }}
                                                 >
                                                     {t(formPage.schedule)}
-                                                </AppButton>
+                                                </Button>
                                             )}
                                         </>
                                     )}
@@ -529,16 +491,16 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                             </FormSettingsCard>
                         )}
                         <div className="mt-6">
-                            <AppButton
+                            <Button
                                 data-umami-event="Delete Form From Preview Section"
                                 data-umami-event-email={auth.email}
                                 onClick={() => {
                                     openModal('DELETE_FORM_MODAL', { form, redirectToDashboard: true });
                                 }}
-                                variant={ButtonVariant.Danger}
+                                variant="danger"
                             >
                                 {t(buttonConstant.deleteForm)}
-                            </AppButton>
+                            </Button>
                         </div>
                     </div>
                 );
@@ -567,9 +529,9 @@ const FormGroups = ({ groups }: { groups: ResponderGroupDto[] }) => {
                 );
             })}
             <div className={'mt-2'}>
-                <AppButton onClick={() => openBottomSheetModal('SELECT_GROUP_FULL_MODAL_VIEW')} icon={<GroupIcon />} variant={ButtonVariant.Secondary}>
+                <Button onClick={() => openBottomSheetModal('SELECT_GROUP_FULL_MODAL_VIEW')} icon={<GroupIcon />} variant="secondary">
                     {t(formPage.visibilityAddOrRemove)}
-                </AppButton>
+                </Button>
             </div>
         </div>
     );

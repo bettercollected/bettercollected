@@ -1,17 +1,16 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
 
-import AppTextField from '@Components/Common/Input/AppTextField';
-import AppButton from '@Components/Common/Input/Button/AppButton';
-import { ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
-import { toast } from 'react-toastify';
+import { Button } from '@app/shadcn/components/ui/button';
 
 import { IFormCreateSlugFullModalViewProps } from '@app/Components/modal-views/full-screen-modals/create-form-slug-full-modal-view';
 import { localesCommon } from '@app/constants/locales/common';
 import { formPage } from '@app/constants/locales/form-page';
 import { toastMessage } from '@app/constants/locales/toast-message';
 import { validationMessage } from '@app/constants/locales/validation-message';
+import { AppInput } from '@app/shadcn/components/ui/input';
+import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { setFormSettings } from '@app/store/forms/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { usePatchFormSettingsMutation } from '@app/store/workspaces/api';
@@ -23,6 +22,7 @@ interface IFormSlugProps extends IFormCreateSlugFullModalViewProps {
 
 export const FormSlug = ({ customSlug, link, onSave }: IFormSlugProps) => {
     const formId = customSlug;
+    const { toast } = useToast();
     const [slug, setSlug] = useState(customSlug);
     const [isError, setIsError] = useState(false);
     const workspace = useAppSelector((state) => state.workspace);
@@ -53,9 +53,9 @@ export const FormSlug = ({ customSlug, link, onSave }: IFormSlugProps) => {
             if (response.data) {
                 const settings = response.data.settings;
                 dispatch(setFormSettings(settings));
-                toast(t(localesCommon.updated).toString(), { type: 'success' });
+                toast({ description: t(localesCommon.updated).toString() });
             } else {
-                toast(response?.error?.data || t(toastMessage.formSettingUpdateError).toString(), { type: 'error' });
+                toast({ description: response?.error?.data || t(toastMessage.formSettingUpdateError).toString(), variant: 'destructive' });
                 return response.error;
             }
             onSave();
@@ -75,12 +75,12 @@ export const FormSlug = ({ customSlug, link, onSave }: IFormSlugProps) => {
                     {' '}
                     {link}/<span className={'text-pink-500'}>{slug}</span>
                 </p>
-                <AppTextField isError={isError} value={slug} onChange={(event) => handleOnchange(event)} />
+                <AppInput value={slug} onChange={(event) => handleOnchange(event)} className="w-full" />
                 {!slug.match(slugRegex) && isError && <p className="body4 !text-red-500 h-[10px]">{t(validationMessage.slug)}</p>}
             </div>
-            <AppButton type={'submit'} onClick={handleUpdate} isLoading={isLoading} className={'w-[130px]'} variant={ButtonVariant.Secondary}>
+            <Button type={'submit'} onClick={handleUpdate} isLoading={isLoading} className={'w-[130px]'} variant="secondary">
                 {t(formPage.linksSlugSaveChanges)}
-            </AppButton>
+            </Button>
         </div>
     );
 };

@@ -1,0 +1,88 @@
+'use client';
+
+import { useToast } from '@app/shadcn/components/ui/use-toast';
+import { useTranslation } from 'react-i18next';
+
+import { useBottomSheetModal } from '@Components/Modals/Contexts/BottomSheetModalContext';
+import WorkspaceDetailsCard from '@Components/RespondersPortal/WorkspaceDetailsCard';
+import { ProLogo } from '@app/Components/ui/logo';
+import WorkspaceDashboardForms from '@app/Components/workspace-dashboard/workspace-dashboard-forms';
+import WorkspaceDashboardPinnedForms from '@app/Components/workspace-dashboard/workspace-dashboard-pinned-forms';
+import { Button } from '@app/shadcn/components/ui/button';
+import { useAppSelector } from '@app/store/hooks';
+import { useGetWorkspaceFormsQuery } from '@app/store/workspaces/api';
+import { selectWorkspace } from '@app/store/workspaces/slice';
+import { getWorkspaceShareURL } from '@app/utils/workspaceUtils';
+import EditIcon from '@app/views/atoms/Icons/Edit';
+import OpenLinkIcon from '@app/views/atoms/Icons/OpenLink';
+
+export default function CreatorDashboardClient({ hasCustomDomain }: { hasCustomDomain: boolean }) {
+    const { t } = useTranslation();
+    const workspace = useAppSelector(selectWorkspace);
+    const { openBottomSheetModal } = useBottomSheetModal();
+
+    const pinnedFormsQuery = {
+        workspace_id: workspace?.id ?? '',
+        pinned_only: true
+    };
+
+    const pinnedFormsResponse = useGetWorkspaceFormsQuery(pinnedFormsQuery, { skip: !workspace?.id });
+    const pinnedForms = pinnedFormsResponse?.data?.items || [];
+
+    return (
+        <div className="flex flex-col md:flex-row gap-4">
+            <div className="relative flex flex-col gap-4 md:w-[320px] md:max-w-[320px]">
+                <div className="absolute right-4 top-4 z-[50] bg-white/30">
+                    <EditIcon
+                        width={32}
+                        height={32}
+                        onClick={() => {
+                            openBottomSheetModal('WORKSPACE_SETTINGS');
+                        }}
+                        className="text-black-600 hover:text-black-700 hover:bg-black-100 cursor-pointer rounded p-2"
+                    />
+                </div>
+                <WorkspaceDetailsCard workspace={workspace} />
+                <WorkspaceLinkCard />
+                {workspace?.customDomain && workspace?.customDomainVerified && <WorkspaceLinkCard customDomain />}
+            </div>
+            <div className="flex-1">
+                {pinnedForms?.length > 0 && <WorkspaceDashboardPinnedForms workspacePinnedForms={pinnedFormsResponse} title={t('PINNED_FORMS')} workspace={workspace} hasCustomDomain={hasCustomDomain} />}
+                <WorkspaceDashboardForms isWorkspace showButtons={pinnedForms?.length === 0} workspace={workspace} hasCustomDomain={hasCustomDomain} />
+            </div>
+        </div>
+    );
+}
+
+const WorkspaceLinkCard = ({ customDomain = false }: { customDomain?: boolean }) => {
+    const { toast } = useToast();
+    const workspace = useAppSelector(selectWorkspace);
+    return (
+        <div className=" flex flex-col gap-2 rounded-lg bg-white p-4">
+            <div className="p5 text-black-600 flex justify-between">
+                <span className=" ">Workspace Link</span>
+                <a className="hover:text-black-800 flex items-center gap-2" target="_blank" referrerPolicy="no-referrer" href={getWorkspaceShareURL(workspace, customDomain)}>
+                    <OpenLinkIcon className="inline" />
+                    <span>Go to link</span>
+                </a>
+            </div>
+            <div className="bg-black-100 text-black-800 break-all rounded-lg px-3 py-2 text-xs">{getWorkspaceShareURL(workspace, customDomain)}</div>
+            <div className="flex justify-between">
+                <Button
+                    variant={'v2Button'}
+                    onClick={() => {
+                        navigator.clipboard.writeText(getWorkspaceShareURL(workspace, customDomain));
+                        toast({ description: 'Copied' });
+                    }}
+                >
+                    Copy
+                </Button>
+                {(!workspace?.customDomain || !workspace.customDomainVerified) && !customDomain && (
+                    <a href={`/${workspace.workspaceName}/dashboard/custom-domain`} className="text-black-600 hover:text-black-800 flex cursor-pointer items-center gap-2 text-xs">
+                        Use Custom Domain <ProLogo />
+                    </a>
+                )}
+            </div>
+        </div>
+    );
+};

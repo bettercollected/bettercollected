@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import { Divider } from '@mui/material';
+import { Separator } from '@app/shadcn/components/ui/separator';
 import { AnimatePresence, motion } from 'framer-motion';
 
 import { Popover, PopoverContent, PopoverTrigger } from '@app/shadcn/components/ui/popover';
@@ -33,14 +33,21 @@ export default function AddSlidePopover() {
                     </PopoverTrigger>
                     <PopoverContent side="right" align="start" asChild className="w-[391px] p-0">
                         {open && (
-                            <motion.div key="addSlide" initial={{ opacity: 0, x: '-10%' }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.2 }}>
+                            <motion.div
+                                {...({
+                                    key: 'addSlide',
+                                    initial: { opacity: 0, x: '-10%' },
+                                    animate: { opacity: 1, x: 0 },
+                                    transition: { duration: 0.2 }
+                                } as any)}
+                            >
                                 <div className="!z-[1000] max-h-[640px] w-full rounded bg-white shadow-lg">
                                     <Tabs defaultValue="layout" className="h-full w-full">
                                         <TabsList className=" flex h-auto w-full gap-2 p-4">
                                             <TabsTrigger value="layout">Layout</TabsTrigger>
                                             <TabsTrigger value="template">Template</TabsTrigger>
                                         </TabsList>
-                                        <Divider />
+                                        <Separator />
                                         <TabsContent value="layout" className="p-4 !pr-0">
                                             <LayoutsTab closePopover={closePopover} />
                                         </TabsContent>

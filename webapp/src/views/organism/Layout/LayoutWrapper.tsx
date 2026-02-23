@@ -61,8 +61,8 @@ const LayoutWrapper = ({ layout, theme, imageUrl, updatePageImage, updatePageLay
                     loader={
                         imageUrl.includes('images.unsplash.com')
                             ? ({ src, width, quality }) => {
-                                  return src + `&q=${quality || '0.5'}&w=${width}&cs=tinysrgb&auto=format&dpr=1`;
-                              }
+                                return src + `&q=${quality || '0.5'}&w=${width}&cs=tinysrgb&auto=format&dpr=1`;
+                            }
                             : undefined
                     }
                     fill
@@ -126,8 +126,8 @@ const LayoutWrapper = ({ layout, theme, imageUrl, updatePageImage, updatePageLay
                             imageUrl && !disabled ? 'hover:cursor-pointer hover:!bg-black/30' : 'bg-neutral-100 shadow hover:cursor-default'
                         )}
                         // onClick={disabled ? () => {} : handleGridClick}
-                        onMouseOver={disabled ? () => {} : () => setShowControls(true)}
-                        onMouseLeave={disabled ? () => {} : () => setShowControls(false)}
+                        onMouseOver={disabled ? () => { } : () => setShowControls(true)}
+                        onMouseLeave={disabled ? () => { } : () => setShowControls(false)}
                         {...(disabled ? { tabIndex: -1, 'aria-disabled': true } : {})}
                     >
                         {imageUrl ? (
@@ -154,7 +154,7 @@ const LayoutWrapper = ({ layout, theme, imageUrl, updatePageImage, updatePageLay
                         layout === FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND ? 'absolute inset-0' : '',
                         disabled ? 'h-full' : ''
                     )}
-                    onClick={disabled ? () => {} : handleGridClick}
+                    onClick={disabled ? () => { } : handleGridClick}
                     role="button"
                     {...(disabled ? { tabIndex: -1, 'aria-disabled': true } : {})}
                 >

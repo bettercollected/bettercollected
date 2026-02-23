@@ -1,11 +1,10 @@
-import { useRouter } from 'next/router';
+import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 
-import AppButton from '@Components/Common/Input/Button/AppButton';
-import { ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
+import { Button } from '@app/shadcn/components/ui/button';
 import MuiSwitch from '@Components/Common/Input/Switch';
-import { toast } from 'react-toastify';
 
+import { useToast } from '@app/shadcn/components/ui/use-toast';
 import EmptyFormsView from '@Components/dashboard/empty-form';
 import { useModal } from '@app/Components/modal-views/context';
 import DeleteDropDown from '@app/Components/ui/delete-dropdown';
@@ -18,6 +17,7 @@ import { selectAuth } from '@app/store/auth/slice';
 
 export default function FormIntegrations() {
     const { data } = useGetAllIntegrationsQuery({});
+    const { toast } = useToast();
     const [removeActionFromForm] = useRemoveActionFromFormMutation();
     const workspace = useAppSelector(selectWorkspace);
     const form = useAppSelector(selectForm);
@@ -92,10 +92,10 @@ export default function FormIntegrations() {
                                                 });
 
                                                 if (response?.data) {
-                                                    router.push(router.asPath);
-                                                    toast('Updated', { type: 'success' });
+                                                    router.refresh();
+                                                    toast({ description: 'Updated' });
                                                 } else if (response?.error) {
-                                                    toast('Could not update', { type: 'error' });
+                                                    toast({ description: 'Could not update', variant: 'destructive' });
                                                 }
                                             }}
                                         />
@@ -110,9 +110,9 @@ export default function FormIntegrations() {
 
                                                 if (response?.data) {
                                                     dispatch(setForm({ ...form, actions: response?.data }));
-                                                    toast('Removed', { type: 'success' });
+                                                    toast({ description: 'Removed' });
                                                 } else if (response?.error) {
-                                                    toast('Error', { type: 'error' });
+                                                    toast({ description: 'Error', variant: 'destructive' });
                                                 }
                                             }}
                                         />
@@ -140,17 +140,17 @@ export default function FormIntegrations() {
                                         </div>
                                     </div>
                                     <div className="mt-4 sm:mt-0">
-                                        <AppButton
+                                        <Button
                                             data-umami-event="Add Integrations Button"
                                             data-umami-event-email={auth.email}
-                                            variant={ButtonVariant.Primary}
+                                            variant="primary"
                                             onClick={() => {
                                                 openModal('ADD_ACTION_TO_FORM', { action: integration, form: form });
                                             }}
                                         >
                                             {' '}
                                             Add to Form
-                                        </AppButton>
+                                        </Button>
                                     </div>
                                 </div>
                             )}

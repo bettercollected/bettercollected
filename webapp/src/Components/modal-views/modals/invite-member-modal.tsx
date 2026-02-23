@@ -2,10 +2,8 @@ import { useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
 
-import AppTextField from '@Components/Common/Input/AppTextField';
-import AppButton from '@Components/Common/Input/Button/AppButton';
-import { ButtonSize } from '@Components/Common/Input/Button/AppButtonProps';
-import { toast } from 'react-toastify';
+import { Button } from '@app/shadcn/components/ui/button';
+import { useToast } from '@app/shadcn/components/ui/use-toast';
 
 import { Close } from '@app/Components/icons/close';
 import { useModal } from '@app/Components/modal-views/context';
@@ -14,10 +12,12 @@ import { buttonConstant } from '@app/constants/locales/button';
 import { localesCommon } from '@app/constants/locales/common';
 import { inviteCollaborator } from '@app/constants/locales/inviteCollaborator';
 import { toastMessage } from '@app/constants/locales/toast-message';
+import { AppInput } from '@app/shadcn/components/ui/input';
 import { useAppSelector } from '@app/store/hooks';
 import { useGetWorkspaceMembersQuery, useInviteToWorkspaceMutation } from '@app/store/workspaces/members-n-invitations-api';
 
 export default function InviteMemberModal() {
+    const { toast } = useToast();
     const [trigger, { data, isLoading }] = useInviteToWorkspaceMutation();
     const workspace = useAppSelector((state) => state.workspace);
 
@@ -39,7 +39,7 @@ export default function InviteMemberModal() {
         }
 
         if (isMemberExist()) {
-            toast(t(toastMessage.emailAlreadyExist).toString(), { type: 'error' });
+            toast({ description: t(toastMessage.emailAlreadyExist).toString(), variant: 'destructive' });
         } else {
             const response: any = await trigger({
                 workspaceId: workspace.id,
@@ -51,9 +51,9 @@ export default function InviteMemberModal() {
 
             if (response.data) {
                 setInvitationMail('');
-                toast(t(toastMessage.invitationSent).toString(), { type: 'success' });
+                toast({ description: t(toastMessage.invitationSent).toString() });
             } else if (response.error) {
-                toast(t(toastMessage.failedToSentEmail).toString(), { type: 'error' });
+                toast({ description: t(toastMessage.failedToSentEmail).toString(), variant: 'destructive' });
             }
         }
 
@@ -66,7 +66,7 @@ export default function InviteMemberModal() {
             <div className="body4 pt-6 !leading-none ">{t(inviteCollaborator.description)}</div>
             <form onSubmit={handleSendInvitation} className="flex flex-col  justify-start pt-8">
                 <div className="body1 mb-3 !leading-none">{t(localesCommon.enterEmail)}</div>
-                <AppTextField
+                <AppInput
                     disabled={isLoading}
                     data-testid="otp-input"
                     spellCheck={false}
@@ -78,9 +78,9 @@ export default function InviteMemberModal() {
                     }}
                 />
                 <div className="mt-4 flex w-full flex-col justify-end">
-                    <AppButton size={ButtonSize.Medium} disabled={isLoading} isLoading={isLoading} type="submit">
+                    <Button size="medium" disabled={isLoading} isLoading={isLoading} type="submit">
                         {t(buttonConstant.sendInvitation)}
-                    </AppButton>
+                    </Button>
                 </div>
             </form>
         </SettingsCard>

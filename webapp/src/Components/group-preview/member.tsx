@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
 
-import { toast } from 'react-toastify';
+import { useToast } from '@app/shadcn/components/ui/use-toast';
 
 import RegexCard from '@Components/cards/regex-card';
 import GroupMember from '@app/Components/group/group-member';
@@ -10,7 +10,6 @@ import { useModal } from '@app/Components/modal-views/context';
 import { localesCommon } from '@app/constants/locales/common';
 import { members } from '@app/constants/locales/members';
 import { toastMessage } from '@app/constants/locales/toast-message';
-import { ToastId } from '@app/constants/toastId';
 import { useGroupMember } from '@app/lib/hooks/use-group-members';
 import { ResponderGroupDto } from '@app/models/dtos/groups';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
@@ -28,6 +27,7 @@ interface IGroupMemberTabProps {
 export default function GroupMembersTab({ group, workspace }: IGroupMemberTabProps) {
     const [emails, setEmails] = useState(group.emails);
     const { t } = useTranslation();
+    const { toast } = useToast();
     const isAdmin = useAppSelector(selectIsAdmin);
 
     const { openModal, closeModal } = useModal();
@@ -65,16 +65,16 @@ export default function GroupMembersTab({ group, workspace }: IGroupMemberTabPro
                 groupId: group.id
             }).then((response) => {
                 if (`data` in response) {
-                    toast(t(toastMessage.updated).toString(), { toastId: ToastId.SUCCESS_TOAST, type: 'success' });
+                    toast({ description: t(toastMessage.updated).toString() });
                     closeModal();
                 } else
-                    toast(t(toastMessage.somethingWentWrong).toString(), {
-                        toastId: ToastId.ERROR_TOAST,
-                        type: 'error'
+                    toast({
+                        description: t(toastMessage.somethingWentWrong).toString(),
+                        variant: 'destructive'
                     });
             });
         } catch (error) {
-            toast(t(toastMessage.somethingWentWrong).toString(), { toastId: ToastId.ERROR_TOAST, type: 'error' });
+            toast({ description: t(toastMessage.somethingWentWrong).toString(), variant: 'destructive' });
         }
     };
     useEffect(() => {

@@ -2,7 +2,7 @@ import React from 'react';
 
 import { useTranslation } from 'next-i18next';
 
-import AppButton from '@Components/Common/Input/Button/AppButton';
+import { Button } from '@app/shadcn/components/ui/button';
 
 import AuthAccountMenuDropdown from '@app/Components/auth/account-menu-dropdown';
 import ProPlanHoc from '@app/Components/HOCs/pro-plan-hoc';
@@ -13,7 +13,7 @@ import { useIsMobile } from '@app/lib/hooks/use-breakpoint';
 import { useIsMounted } from '@app/lib/hooks/use-is-mounted';
 import { useWindowScroll } from '@app/lib/hooks/use-window-scroll';
 
-import LocaleDropdownUi from '../ui/locale-dropdown-ui';
+import LocaleDropdownUiApp from '@Components/ui/LocaleDropdownUiApp';
 
 
 interface IAuthNavbarProps {
@@ -37,7 +37,7 @@ AuthNavbar.defaultProps = {
     showHamburgerIcon: true,
     isMobileView: false,
     showAuthAccount: true,
-    handleDrawerToggle: () => {}
+    handleDrawerToggle: () => { }
 };
 
 export function Header(props: any) {
@@ -63,10 +63,10 @@ function AuthNavbar({ showHamburgerIcon, showPlans, mobileOpen, handleDrawerTogg
                 <div className="flex items-center justify-center gap-7">
                     {!inMobile && (
                         <>
-                            <LocaleDropdownUi />
+                            {/* <LocaleDropdownUiApp /> */}
                             {showPlans && (
                                 <ProPlanHoc hideChildrenIfPro={true}>
-                                    <AppButton>{t(buttonConstant.upgrade)}</AppButton>
+                                    <Button>{t(buttonConstant.upgrade)}</Button>
                                 </ProPlanHoc>
                             )}
                         </>

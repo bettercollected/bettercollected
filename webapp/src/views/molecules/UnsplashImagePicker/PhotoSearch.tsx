@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 
 import { SearchIcon } from '@app/views/atoms/Icons/Search';
-import { TextField } from '@mui/material';
+import { Input } from '@app/shadcn/components/ui/input';
 import { useDebounceValue } from 'usehooks-ts';
 
 interface Props {
@@ -33,39 +33,15 @@ function PhotoSearch({ setQuery, query, onSearch, initialPhotoSearchQuery, place
 
     return (
         <form onSubmit={handleSubmit} className={`flex h-10 items-center  space-x-2 md:w-[248px] ${className}`}>
-            <label className=" w-full">
-                <TextField
-                    sx={{
-                        height: '40px',
-                        padding: 0,
-                        '& .MuiOutlinedInput-root': {
-                            borderRadius: '8px',
-                            '& fieldset': {
-                                borderColor: '#EEEEEE'
-                            },
-                            '&.Mui-focused fieldset': {
-                                borderColor: '#4D4D4D',
-                                borderWidth: '1px'
-                            },
-                            '&:hover fieldset': {
-                                borderColor: '#4D4D4D'
-                            }
-                        },
-                        '& .MuiInputBase-root': {
-                            height: '40px',
-                            gap: '4px'
-                        }
-                    }}
-                    InputProps={{
-                      
-                        startAdornment: <SearchIcon className="text-black-900 h-4 w-4 stroke-[2px] mr-2" />
-                    }}
-                    className="placeholder:text-black-400 border-black-200 focus:ring-none h-full w-full rounded-lg border bg-white py-2 px-3 focus:outline-none sm:text-sm"
+            <label className=" w-full relative">
+                <SearchIcon className="text-black-900 h-4 w-4 stroke-[2px] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <Input
+                    className="placeholder:text-black-400 border-black-200 focus-visible:ring-0 focus-visible:border-black-400 h-10 w-full rounded-lg pl-9 py-2 pr-3 sm:text-sm bg-white"
                     placeholder={placeholder ? placeholder : 'Search'}
                     type="text"
                     name="search"
                     value={inputVal}
-                    onChange={(e) => setInputVal(e.target.value)}
+                    onChange={(e: any) => setInputVal(e.target.value)}
                     autoFocus={true}
                 />
             </label>

@@ -3,9 +3,9 @@ import React, { useState } from 'react';
 import { useTranslation } from 'next-i18next';
 import Image from "next/legacy/image";
 
-import OtpCodeComponent from '@Components/Login/otp-code-component';
-import OtpEmailInput from '@Components/Login/otp-email-input';
-import { Check } from '@mui/icons-material';
+import OtpCodeForm from '@app/app/(auth)/_components/otp-code-form';
+import OtpEmailForm from '@app/app/(auth)/_components/otp-email-form';
+import { Check } from 'lucide-react';
 
 import ImageWorkspacePreview from '@app/assets/images/workspace-preview1.png';
 import Logo from '@app/Components/ui/logo';
@@ -64,7 +64,7 @@ export function SignInModal(props: MyLoginProps) {
                 </div>
                 <div className="flex flex-col order-1 !bg-brand-100 xl:order-2 items-start justify-between py-5 px-8 xl:py-[28px] h-screen xl:h-[687px] w-screen xl:w-[547px]">
                     <Logo isLink={false} />
-                    {!email ? <OtpEmailInput isCreator={props.isCreator} setEmail={setEmail} isModal={true} /> : <OtpCodeComponent email={email} setEmail={setEmail} isCreator={props.isCreator} isModal={true} />}
+                    {!email ? <OtpEmailForm setEmail={setEmail} isModal={true} /> : <OtpCodeForm email={email} setEmail={setEmail} isModal={true} />}
                     <TermsAndCondition />
                 </div>
             </div>

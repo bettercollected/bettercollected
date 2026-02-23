@@ -5,7 +5,7 @@ export default async function fetchWithCookies(
     input: string | URL | globalThis.Request,
     init?: RequestInit
 ) {
-    const cookieStore = cookies();
+    const cookieStore = await cookies();
     const Authorization = cookieStore.get('Authorization')?.value;
     const RefreshToken = cookieStore.get('RefreshToken')?.value;
 

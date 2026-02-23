@@ -10,7 +10,7 @@ from common.models.consent import Consent
 
 @entity
 class WorkspaceConsentDocument(Consent, MongoDocument):
-    workspace_id: Optional[PydanticObjectId]
+    workspace_id: Optional[PydanticObjectId] = None
 
     class Settings:
         name = "workspace_consent"

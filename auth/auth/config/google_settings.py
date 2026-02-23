@@ -1,16 +1,19 @@
-from pydantic import BaseSettings
+from typing import Optional
+
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class GoogleSettings(BaseSettings):
-    client_id: str = ""
-    project_id: str = ""
-    auth_uri: str = "https://accounts.google.com/o/oauth2/auth"
-    token_uri: str = "https://oauth2.googleapis.com/token"
-    auth_provider_x509_cert_url: str = "https://www.googleapis.com/oauth2/v1/certs"
-    client_secret: str = ""
-    redirect_uris: str = ""
-    basic_auth_redirect: str = ""
-    javascript_origins: str = ""
+    client_id: Optional[str] = ""
+    project_id: Optional[str] = ""
+    auth_uri: Optional[str] = "https://accounts.google.com/o/oauth2/auth"
+    token_uri: Optional[str] = "https://oauth2.googleapis.com/token"
+    auth_provider_x509_cert_url: Optional[str] = (
+        "https://www.googleapis.com/oauth2/v1/certs"
+    )
+    client_secret: Optional[str] = ""
+    redirect_uris: Optional[str] = ""
+    basic_auth_redirect: Optional[str] = ""
+    javascript_origins: Optional[str] = ""
 
-    class Config:
-        env_prefix = "GOOGLE_"
+    model_config = SettingsConfigDict(env_prefix="GOOGLE_")

@@ -1,3 +1,5 @@
+'use client';
+
 import { FormTheme } from '@app/constants/theme';
 import { StandardFormFieldDto } from '@app/models/dtos/form';
 import SlideLayoutWrapper from '@app/views/organism/Layout/SlideLayoutWrapper';

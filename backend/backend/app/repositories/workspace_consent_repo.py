@@ -13,6 +13,6 @@ class WorkspaceConsentRepo:
     async def create_workspace_consent(
         self, workspace_id: PydanticObjectId, consent: ConsentCamelModel
     ):
-        consent_document = WorkspaceConsentDocument(**consent.dict())
+        consent_document = WorkspaceConsentDocument(**consent.model_dump(mode='json'))
         consent_document.workspace_id = workspace_id
         return await consent_document.save()

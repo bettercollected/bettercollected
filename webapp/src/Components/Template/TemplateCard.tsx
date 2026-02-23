@@ -1,21 +1,18 @@
-import React from 'react';
+import { useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
 import Image from 'next/legacy/image';
-import { useRouter } from 'next/router';
 
 import EditIcon from '@Components/Common/Icons/Common/Edit';
 import EllipsisOption from '@Components/Common/Icons/Common/EllipsisOption';
 import SettingsIcon from '@Components/Common/Icons/Common/Settings';
-import MenuDropdown from '@Components/Common/Navigation/MenuDropdown/MenuDropdown';
 import { useBottomSheetModal } from '@Components/Modals/Contexts/BottomSheetModalContext';
-import { CircularProgress, ListItemIcon, MenuItem } from '@mui/material';
+import { Loader2 } from 'lucide-react';
 
 import { IFormTemplateDto } from '@app/models/dtos/template';
-import { useAppSelector } from '@app/store/hooks';
-import { selectWorkspace } from '@app/store/workspaces/slice';
-import LayoutWrapper from '@app/views/organism/Layout/LayoutWrapper';
+import { Popover, PopoverContent, PopoverTrigger } from '@app/shadcn/components/ui/popover';
 import WelcomePage from '@app/views/organism/Form/WelcomePage';
+import LayoutWrapper from '@app/views/organism/Layout/LayoutWrapper';
 
 interface ITemplateCardProps {
     template: IFormTemplateDto;
@@ -23,40 +20,27 @@ interface ITemplateCardProps {
 }
 
 const TemplateCard = ({ template, isPredefinedTemplate }: ITemplateCardProps) => {
-    const router = useRouter();
-    const workspace = useAppSelector(selectWorkspace);
+    // const router = useRouter();
+    // const workspace = useAppSelector(selectWorkspace);
 
     const { t } = useTranslation();
 
     const { openBottomSheetModal } = useBottomSheetModal();
-
-    const handleClickCard = () => {
-        router.push(`/${workspace.workspaceName}/templates/${template.id}`);
-    };
-
-    const handleClickEditCard = () => {
-        router.push(`/${workspace.workspaceName}/templates/${template.id}/edit`);
-    };
+    const [open, setOpen] = useState(false);
 
     return (
         <div className={`flex min-w-[150px] flex-col gap-2 md:min-w-[186px] ${template?.builderVersion !== 'v2' && 'w-[150px]'}`}>
             <div
-                className={`border-black-200  hover:shadow-hover relative  cursor-pointer overflow-hidden rounded border md:h-[192px] ${
-                    !template.previewImage && template?.builderVersion === 'v2' ? '!h-[157px] w-[281px]' : 'flex h-[170px] items-center justify-center bg-gradient-to-b from-blue-400 to-blue-800 '
-                }`}
-                onClick={handleClickCard}
+                className={`border-black-200  hover:shadow-hover relative  cursor-pointer overflow-hidden rounded border md:h-[192px] ${!template.previewImage && template?.builderVersion === 'v2' ? '!h-[157px] w-[281px]' : 'flex h-[170px] items-center justify-center bg-gradient-to-b from-blue-400 to-blue-800 '
+                    }`}
+            // onClick={handleClickCard}
             >
                 {template?.builderVersion !== 'v2' && (
                     <>
                         {template?.previewImage ? (
                             <Image alt={template.title} src={template.previewImage} layout={'fill'} />
                         ) : (
-                            <CircularProgress
-                                sx={{
-                                    color: '#F2F7FF'
-                                }}
-                                size={24}
-                            />
+                            <Loader2 className="animate-spin text-[#F2F7FF]" size={24} />
                         )}
                     </>
                 )}
@@ -84,46 +68,50 @@ const TemplateCard = ({ template, isPredefinedTemplate }: ITemplateCardProps) =>
                     )}
                 </div>
                 {!isPredefinedTemplate && (
-                    <MenuDropdown
-                        width={180}
-                        showExpandMore={false}
-                        id="template-options"
-                        menuTitle={''}
-                        showIconBtnEffect
-                        PaperProps={{
-                            sx: {
-                                boxShadow: '0px 0px 12px 0px rgba(7, 100, 235, 0.45)'
-                            }
-                        }}
-                        menuContent={
-                            <div>
+                    <Popover open={open} onOpenChange={setOpen}>
+                        <PopoverTrigger asChild>
+                            <div className="cursor-pointer">
                                 <EllipsisOption />
                             </div>
-                        }
-                    >
-                        {template?.builderVersion !== 'v2' && (
-                            <MenuItem onClick={handleClickEditCard} className="body4">
-                                <ListItemIcon>
-                                    <EditIcon width={20} height={20} className="text-black-600" strokeWidth={2} />
-                                </ListItemIcon>
-                                <span>{t('BUTTON.EDIT')}</span>
-                            </MenuItem>
-                        )}
-                        <MenuItem
-                            onClick={() =>
-                                openBottomSheetModal('TEMPLATE_SETTINGS_FULL_MODAL_VIEW', {
-                                    template,
-                                    showTitle: true
-                                })
-                            }
-                            className="body4"
+                        </PopoverTrigger>
+                        <PopoverContent
+                            align="end"
+                            className="w-[180px] p-0"
+                            onClick={() => setOpen(false)}
+                            onInteractOutside={() => setOpen(false)}
                         >
-                            <ListItemIcon>
-                                <SettingsIcon width={20} height={20} className="text-black-600" />
-                            </ListItemIcon>
-                            <span>{t('SETTINGS')}</span>
-                        </MenuItem>
-                    </MenuDropdown>
+                            <ul className="list-none m-0 p-0 bg-white rounded shadow-[0px_0px_12px_0px_rgba(7,100,235,0.45)]">
+                                {template?.builderVersion !== 'v2' && (
+                                    <li
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            // handleClickEditCard();
+                                            setOpen(false);
+                                        }}
+                                        className="flex items-center gap-2 px-4 py-2 hover:bg-black-100 cursor-pointer body4"
+                                    >
+                                        <div className="text-black-600 flex items-center justify-center">
+                                            <EditIcon width={20} height={20} strokeWidth={2} />
+                                        </div>
+                                        <span>{t('BUTTON.EDIT')}</span>
+                                    </li>
+                                )}
+                                <li
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        openBottomSheetModal('TEMPLATE_SETTINGS_FULL_MODAL_VIEW', { template, showTitle: true });
+                                        setOpen(false);
+                                    }}
+                                    className="flex items-center gap-2 px-4 py-2 hover:bg-black-100 cursor-pointer body4"
+                                >
+                                    <div className="text-black-600 flex items-center justify-center">
+                                        <SettingsIcon width={20} height={20} />
+                                    </div>
+                                    <span>{t('SETTINGS')}</span>
+                                </li>
+                            </ul>
+                        </PopoverContent>
+                    </Popover>
                 )}
             </div>
         </div>

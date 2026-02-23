@@ -1,6 +1,8 @@
+'use client';
+
 import { useEffect, useState } from 'react';
 
-import { useTranslation } from 'next-i18next';
+import { useTranslation } from 'react-i18next';
 
 import { escapeRegExp } from 'lodash';
 
@@ -112,13 +114,7 @@ export default function WorkspaceDashboardForms({ title, showButtons, hasCustomD
                             </div>
                             <SearchInput placeholder={'Search Form'} handleSearch={handleSearch} />
                         </div>
-                        {showButtons && (
-                            <NewFormButton />
-                            // <div className="flex gap-3">
-                            //     <ImportFormsButton className={JOYRIDE_CLASS.WORKSPACE_ADMIN_DASHBOARD_STATS_IMPORT_FORM_BUTTON} />
-                            //     <CreateFormButton />
-                            // </div>
-                        )}
+                        {showButtons && <NewFormButton />}
                     </div>
                     <WorkspaceDashboardFormsCard showPinned={true} showEmpty={showSearchedResults} workspaceForms={showSearchedResults ? searchedForms : [...workspaceForms?.data?.items]} workspace={workspace} hasCustomDomain={hasCustomDomain} />
                     {showPagination && !showSearchedResults && Array.isArray(workspaceForms?.data?.items) && workspaceForms?.data?.total > globalConstants.pageSize && (

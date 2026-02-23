@@ -7,7 +7,6 @@
 @import './tailwind.css';
 @import './range-slider.css';
 @import './scrollbar.css';
-@import './mui.css';
 @import './tiptap.css';
 
 :root {
@@ -32,6 +31,18 @@ body {
     --font-sans-serif: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
     --font-serif: Georgia, Times, serif;
     --font-mono: Menlo, Courier, monospace;
+}
+
+body {
+    background: #f2f7ff;
+    background-color: #f2f7ff;
+    color: #121212;
+}
+
+[data-theme='dark'] body {
+    background: #121212;
+    background-color: #121212;
+    color: #fff;
 }
 
 .mark-down-text {

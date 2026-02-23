@@ -19,7 +19,7 @@ from common.exceptions import NotFoundError
 
 from pymongo.client_session import ClientSession
 from pymongo.collection import Collection
-from datetime import datetime as dt , timezone
+from datetime import datetime as dt, timezone
 
 IntStr = Union[int, str]
 AbstractSetIntStr = AbstractSet[IntStr]
@@ -34,8 +34,8 @@ class MongoDocument(Document):
     This class defines common methods and attributes for interacting with MongoDB documents.
     """
 
-    created_at: Optional[dt]
-    updated_at: Optional[dt]
+    created_at: Optional[dt] = None
+    updated_at: Optional[dt] = None
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -121,7 +121,7 @@ class MongoDocument(Document):
         Raises:
             NotFoundError: If the document does not exist.
         """
-        collection: Collection = cls.get_motor_collection().delegate
+        collection: Collection = cls.get_pymongo_collection()
         documents = collection.find({"_id": document_id})
         if not documents.count():
             raise NotFoundError(
@@ -139,7 +139,7 @@ class MongoDocument(Document):
         Returns:
             A list of documents matching the given criteria.
         """
-        collection: Collection = cls.get_motor_collection().delegate
+        collection: Collection = cls.get_pymongo_collection()
         documents = collection.find(find_by)
         return [cls(**document) for document in documents]
 

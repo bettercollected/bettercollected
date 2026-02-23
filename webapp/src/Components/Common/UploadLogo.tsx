@@ -3,10 +3,10 @@ import React, { useRef, useState } from 'react';
 import { useTranslation } from 'next-i18next';
 import Image from "next/legacy/image";
 
-import AppButton from '@Components/Common/Input/Button/AppButton';
+import { Button } from '@app/shadcn/components/ui/button';
 import cn from 'classnames';
 import Camera from "@Components/icons/camera";
-import {Close} from "@Components/icons/close";
+import { Close } from "@Components/icons/close";
 
 
 interface IUploadLogo {
@@ -79,9 +79,9 @@ const UploadLogo = ({ className, onUpload, onRemove, logoImageUrl, showRemove = 
                         <span className="text-black-100 text-xs sm:text-sm">{t('LOGO.UPDATE')}</span>
                     </label>
                     {showRemove && (
-                        <AppButton className="!text-black-900 font-semibold !bg-black-300 hover:!bg-black-400 " onClick={onRemoveLogo}>
+                        <Button className="!text-black-900 font-semibold !bg-black-300 hover:!bg-black-400 " onClick={onRemoveLogo}>
                             {t('LOGO.REMOVE')}
-                        </AppButton>
+                        </Button>
                     )}
                 </div>
             )}

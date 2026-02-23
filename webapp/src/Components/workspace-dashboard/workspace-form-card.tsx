@@ -1,7 +1,6 @@
-import { useEffect } from 'react';
 
 import { useTranslation } from 'next-i18next';
-import { useRouter } from 'next/router';
+import { useRouter } from 'next/navigation';
 
 import Tooltip from '@Components/Common/DataDisplay/Tooltip';
 import { DotIcon } from '@Components/Common/Icons/Common/DotIcon';
@@ -10,9 +9,7 @@ import ShareIcon from '@Components/Common/Icons/Common/ShareIcon';
 import FormProviderIcon from '@Components/Common/Icons/Form/FormProviderIcon';
 import PrivateIcon from '@Components/Common/Icons/Form/Private';
 import PublicIcon from '@Components/Common/Icons/Form/Public';
-import AppButton from '@Components/Common/Input/Button/AppButton';
-import { ButtonSize, ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
-import { Typography } from '@mui/material';
+import { Button } from '@app/shadcn/components/ui/button';
 import moment from 'moment/moment';
 
 import FormOptionsDropdownMenu from '@app/Components/datatable/form/form-options-dropdown';
@@ -26,7 +23,6 @@ import { useGroupForm } from '@app/lib/hooks/use-group-form';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { ResponderGroupDto } from '@app/models/dtos/groups';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
-import { JOYRIDE_CLASS } from '@app/store/tours/types';
 import getFormShareURL from '@app/utils/formUtils';
 import { getEditFormURL } from '@app/utils/urlUtils';
 import { validateFormOpen } from '@app/utils/validationUtils';
@@ -48,9 +44,6 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, group, worksp
     const router = useRouter();
     const { t } = useTranslation();
     const { deleteFormFromGroup } = useGroupForm();
-    useEffect(() => {
-        router.prefetch(`/${workspace?.workspaceName}/dashboard/forms/${form.formId}?view=Responses`);
-    }, [router]);
 
     const handleShareClick = (event: any) => {
         event.preventDefault();
@@ -89,7 +82,7 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, group, worksp
                     <div className="flex flex-1 items-center justify-between gap-4">
                         <div className="form-title gap-2">
                             <Tooltip title="">
-                                <Typography className="h4-new mr-1 inline">{form?.title || t(localesCommon.untitled)}</Typography>
+                                <span className="h4-new mr-1 inline">{form?.title || t(localesCommon.untitled)}</span>
                             </Tooltip>
                             {!isResponderPortal && !form?.isPublished && <div className="text-black-600 right-2 mx-1 inline-block rounded bg-gray-100 px-2 py-1 text-xs font-semibold">{t('FORM.DRAFT')}</div>}
                             {!isResponderPortal && form?.isPublished && !isFormOpen && <div className="text-black-600 right-2 mx-1 inline-block rounded bg-gray-100 px-2 py-1 text-xs font-semibold">{t('FORM.CLOSED')}</div>}
@@ -97,7 +90,7 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, group, worksp
                         </div>
                         {!group && !isResponderPortal && (
                             <div className="flex-1 lg:hidden">
-                                <FormOptionsDropdownMenu className={JOYRIDE_CLASS.WORKSPACE_ADMIN_FORM_CARD_NAVIGATION_OPTIONS} redirectToDashboard={true} form={form} hasCustomDomain={hasCustomDomain} workspace={workspace} />
+                                <FormOptionsDropdownMenu redirectToDashboard={true} form={form} hasCustomDomain={hasCustomDomain} workspace={workspace} />
                             </div>
                         )}
                     </div>
@@ -141,25 +134,25 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, group, worksp
                 {!isResponderPortal && !group && (
                     <div className="hidden items-center gap-2 lg:invisible lg:flex lg:group-hover:visible">
                         {form?.isPublished && !form?.settings?.hidden && isFormOpen && (
-                            <AppButton onClick={handleShareClick} variant={ButtonVariant.Ghost} size={ButtonSize.Small} icon={<ShareIcon width={16} height={16} />}>
+                            <Button onClick={handleShareClick} variant="ghost" size="sm" icon={<ShareIcon width={16} height={16} />}>
                                 {t('BUTTON.SHARE')}
-                            </AppButton>
+                            </Button>
                         )}
                         {form?.settings?.provider === 'self' && form?.builderVersion === 'v2' && (
-                            <AppButton
+                            <Button
                                 onClick={(event: any) => {
                                     event.preventDefault();
                                     event.stopPropagation();
                                     router.push(getEditFormURL(workspace, form));
                                 }}
-                                variant={ButtonVariant.Ghost}
-                                size={ButtonSize.Small}
+                                variant="ghost"
+                                size="sm"
                                 icon={<EditIcon width={16} height={16} />}
                             >
                                 {t('BUTTON.EDIT')}
-                            </AppButton>
+                            </Button>
                         )}
-                        <FormOptionsDropdownMenu className={JOYRIDE_CLASS.WORKSPACE_ADMIN_FORM_CARD_NAVIGATION_OPTIONS} redirectToDashboard={true} form={form} hasCustomDomain={hasCustomDomain} workspace={workspace} />
+                        <FormOptionsDropdownMenu redirectToDashboard={true} form={form} hasCustomDomain={hasCustomDomain} workspace={workspace} />
                     </div>
                 )}
                 {!!group && (

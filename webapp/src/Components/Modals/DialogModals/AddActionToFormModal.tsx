@@ -1,24 +1,24 @@
 import { useEffect, useState } from 'react';
 
-import { useRouter } from 'next/router';
+import { useRouter } from 'next/navigation';
 
-import AppTextField from '@Components/Common/Input/AppTextField';
-import AppButton from '@Components/Common/Input/Button/AppButton';
-import { ButtonSize, ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
-import HeaderModalWrapper from '@Components/Modals/ModalWrappers/HeaderModalWrapper';
-import { toast } from 'react-toastify';
+import HeaderModalWrapper from '@app/Components/Modals/ModalWrappers/HeaderModalWrapper';
+import { Button } from '@app/shadcn/components/ui/button';
+import { useToast } from '@app/shadcn/components/ui/use-toast';
 
-import { useHandleIntegrationOauthCallbackMutation, useLazyGetIntegrationOauthUrlQuery } from '@app/store/integrationApi';
 import { useModal } from '@app/Components/modal-views/context';
+import environments from '@app/configs/environments';
+import { IntegrationType } from '@app/models/enums/IntegrationTypeEnum';
+import { AppInput } from '@app/shadcn/components/ui/input';
 import { useAddActionToFormMutation } from '@app/store/api-actions-api';
 import { selectAuth } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
+import { useHandleIntegrationOauthCallbackMutation, useLazyGetIntegrationOauthUrlQuery } from '@app/store/integrationApi';
 import { selectWorkspace } from '@app/store/workspaces/slice';
-import { IntegrationType } from '@app/models/enums/IntegrationTypeEnum';
-import environments from '@app/configs/environments';
 import Image from 'next/image';
 
 export default function AddActionToFormModal({ action, form, ...props }: any) {
+    const { toast } = useToast();
     const { closeModal } = useModal();
     const [addActionToForm, { isLoading }] = useAddActionToFormMutation();
     const [fetchOauthUrl, { data }] = useLazyGetIntegrationOauthUrlQuery();
@@ -75,9 +75,9 @@ export default function AddActionToFormModal({ action, form, ...props }: any) {
                         <span className="text-blue-600">{action?.title || 'Untitled'}</span> to the form <span className="text-blue-600">{form?.title || 'Untitled'}</span>
                     </div>
                     <p className="text-center text-sm text-gray-600 ">Send your BetterCollected form responses to your Google Sheets</p>
-                    <AppButton className="mt-4" onClick={handleClick}>
+                    <Button className="mt-4" onClick={handleClick}>
                         Connect to Google{' '}
-                    </AppButton>
+                    </Button>
                     {errorMessage && <h1 className={'mt-4 text-red-500'}>{errorMessage}</h1>}
                 </div>
             </HeaderModalWrapper>
@@ -121,11 +121,11 @@ export default function AddActionToFormModal({ action, form, ...props }: any) {
             }
         });
         if (response?.data) {
-            router.push(router.asPath);
-            toast('Added', { type: 'success' });
+            router.refresh();
+            toast({ description: 'Added' });
             closeModal();
         } else if (response?.error) {
-            toast('Error', { type: 'error' });
+            toast({ description: 'Error', variant: 'destructive' });
         }
         setError(error);
     };
@@ -152,7 +152,7 @@ export default function AddActionToFormModal({ action, form, ...props }: any) {
                             {action?.parameters?.map((parameter: any, index: number) =>
                                 parameter?.required ? (
                                     <div key={index} className="relative">
-                                        <AppTextField
+                                        <AppInput
                                             className="w-full"
                                             placeholder={parameter.name}
                                             value={parameters[parameter.name]}
@@ -171,9 +171,9 @@ export default function AddActionToFormModal({ action, form, ...props }: any) {
                 )}
 
                 {/* Add Integration Button */}
-                <AppButton data-umami-event={`Add ${action?.title} Integration`} data-umami-event-email={user.email} variant={ButtonVariant.Primary} size={ButtonSize.Medium} onClick={onAddIntegration} className="mt-4">
+                <Button data-umami-event={`Add ${action?.title} Integration`} data-umami-event-email={user.email} variant="primary" size="medium" onClick={onAddIntegration} className="mt-4">
                     Add Integration
-                </AppButton>
+                </Button>
             </div>
         </HeaderModalWrapper>
     );

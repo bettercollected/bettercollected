@@ -1,5 +1,4 @@
-import React from 'react';
-
+"use client";
 import { FormTabContent } from '@Components/dashboard/form-tab-content';
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';

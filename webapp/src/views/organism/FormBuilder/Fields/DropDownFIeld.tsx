@@ -1,13 +1,11 @@
 import FieldInputWrapper from '@Components/HOCs/FieldInputWrapper';
 import { Close } from '@app/Components/icons/close';
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
-import { Input } from '@app/shadcn/components/ui/input';
 import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
-import { IThemeState, useFormState } from '@app/store/jotai/form';
+import { useFormState } from '@app/store/jotai/form';
 import { ArrowDown } from '@app/views/atoms/Icons/ArrowDown';
 import { PlusIcon } from '@app/views/atoms/Icons/Plus';
 import { useState } from 'react';
-import styled from 'styled-components';
 
 const DropDownField = ({ field, slide, disabled }: { field: StandardFormFieldDto; slide: StandardFormFieldDto; disabled: boolean }) => {
     const { updateChoiceFieldValue, addChoiceField, removeChoiceField } = useFormFieldsAtom();

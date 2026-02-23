@@ -1,15 +1,14 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
 
 import Divider from '@Components/Common/DataDisplay/Divider';
 import CopyIcon from '@Components/Common/Icons/Common/Copy';
 import LockIcon from '@Components/Common/Icons/lock';
-import AppTextField from '@Components/Common/Input/AppTextField';
-import AppButton from '@Components/Common/Input/Button/AppButton';
-import { ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
-import { FormControlLabel, Radio, RadioGroup } from '@mui/material';
-import { toast } from 'react-toastify';
+import { Button } from '@app/shadcn/components/ui/button';
+import { Label } from '@app/shadcn/components/ui/label';
+import { RadioGroup, RadioGroupItem } from '@app/shadcn/components/ui/radio-group';
+import { useToast } from '@app/shadcn/components/ui/use-toast';
 import useCopyToClipboard from 'react-use/lib/useCopyToClipboard';
 
 import Globe from '@app/Components/icons/flags/globe';
@@ -19,12 +18,14 @@ import { localesCommon } from '@app/constants/locales/common';
 import { formConstant } from '@app/constants/locales/form';
 import { toastMessage } from '@app/constants/locales/toast-message';
 import { IFormTemplateDto } from '@app/models/dtos/template';
+import { AppInput } from '@app/shadcn/components/ui/input';
 import { useAppSelector } from '@app/store/hooks';
 import { usePatchTemplateSettingsMutation } from '@app/store/template/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 
 
 const TemplateSettings = ({ template, showTitle }: { template: IFormTemplateDto; showTitle: boolean }) => {
+    const { toast } = useToast();
     const { t } = useTranslation();
     const [templateVisibility, setTemplateVisibility] = useState(template?.settings?.isPublic ? 'Public' : 'Private');
     const { openModal } = useModal();
@@ -43,10 +44,10 @@ const TemplateSettings = ({ template, showTitle }: { template: IFormTemplateDto;
         };
         const response: any = await updateTemplateSettings(request);
         if (response?.data) {
-            toast(t(localesCommon.updated).toString(), { type: 'success' });
+            toast({ description: t(localesCommon.updated).toString() });
             setTemplateVisibility(response?.data?.settings?.isPublic ? 'Public' : 'Private');
         } else {
-            toast('Error Occurred').toString(), { type: 'error' };
+            toast({ description: 'Error Occurred', variant: 'destructive' });
         }
     };
 
@@ -73,37 +74,33 @@ const TemplateSettings = ({ template, showTitle }: { template: IFormTemplateDto;
             </div>
             <div className={'pt-[56px] pb-8 flex flex-col md:w-3/4'}>
                 <h1 className={'text-base font-medium text-black-800 pb-4'}>{t('TEMPLATE.SETTINGS.VISIBILITY.TEMPLATE_VISIBILITY')}</h1>
-                <RadioGroup className="flex flex-col gap-4" value={templateVisibility}>
+                <RadioGroup className="flex flex-col gap-4" value={templateVisibility} onValueChange={(val) => handleVisibilityChange(val)}>
                     <Divider className={'text-black-300'} />
-                    <div className="flex flex-col">
-                        <FormControlLabel
-                            value="Public"
-                            control={<Radio />}
-                            onChange={() => handleVisibilityChange('Public')}
-                            label={
+                    <div className="flex flex-col gap-2">
+                        <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="Public" id="public" />
+                            <Label htmlFor="public" className="cursor-pointer">
                                 <div className="flex body6 !text-black-800 items-center gap-[6px]">
                                     <Globe className="h-[18px] w-[18px]" />
                                     {t(formConstant.settings.visibility.public)}
                                 </div>
-                            }
-                        />
-                        <span className=" body4 !text-black-700">{t('TEMPLATE.SETTINGS.VISIBILITY.PUBLIC')}</span>
-                        {templateVisibility == 'Public' && <ShareLinkOptions adminHost={adminHost} />}
+                            </Label>
+                        </div>
+                        {/* <span className=" body4 !text-black-700 ml-6">{t('TEMPLATE.SETTINGS.VISIBILITY.PUBLIC')}</span> */}
+                        {/* {templateVisibility == 'Public' && <ShareLinkOptions adminHost={adminHost} />} */}
                     </div>
                     <Divider className={'text-black-200'} />
-                    <div className="flex flex-col">
-                        <FormControlLabel
-                            value="Private"
-                            control={<Radio />}
-                            onChange={() => handleVisibilityChange('Private')}
-                            label={
+                    <div className="flex flex-col gap-2">
+                        <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="Private" id="private" />
+                            <Label htmlFor="private" className="cursor-pointer">
                                 <div className="flex body6 !text-black-800 items-center gap-[6px]">
                                     <LockIcon className="h-[18px] w-[18px]" />
                                     {t(formConstant.settings.visibility.private)}
                                 </div>
-                            }
-                        />
-                        <span className="body4 !text-black-700">{t('TEMPLATE.SETTINGS.VISIBILITY.PRIVATE')}</span>
+                            </Label>
+                        </div>
+                        {/* <span className="body4 !text-black-700 ml-6">{t('TEMPLATE.SETTINGS.VISIBILITY.PRIVATE')}</span> */}
                     </div>
                     <Divider className={'text-black-200'} />
                 </RadioGroup>
@@ -113,9 +110,9 @@ const TemplateSettings = ({ template, showTitle }: { template: IFormTemplateDto;
                 <Divider className={'text-black-200'} />
 
                 <p className={'text-sm font-normal text-black-700'}>{t('TEMPLATE.SETTINGS.DELETE_DESCRIPTION')}</p>
-                <AppButton className={'md: w-[140px]'} variant={ButtonVariant.Danger} onClick={() => openModal('DELETE_TEMPLATE_CONFIRMATION_MODAL_VIEW', { template })}>
+                <Button className="w-full md:w-[140px]" variant="danger" onClick={() => openModal('DELETE_TEMPLATE_CONFIRMATION_MODAL_VIEW', { template })}>
                     {t('TEMPLATE.DELETE_TEMPLATE')}
-                </AppButton>
+                </Button>
                 <Divider className={'text-black-200'} />
             </div>
         </div>
@@ -125,23 +122,23 @@ const TemplateSettings = ({ template, showTitle }: { template: IFormTemplateDto;
 export default TemplateSettings;
 
 const ShareLinkOptions = ({ adminHost }: { adminHost: string }) => {
+    const { toast } = useToast();
     const [_, copyToClipboard] = useCopyToClipboard();
     const { t } = useTranslation();
 
     const handleOnCopy = () => {
         copyToClipboard(adminHost);
-        toast(t(toastMessage.copied).toString(), {
-            type: 'info'
-        });
+        toast({ description: t(toastMessage.copied).toString() });
     };
     return (
         <div>
             <div className="cursor-pointer" onClick={handleOnCopy}>
-                <AppTextField className={'mt-4 mb-2 w-3/4'} isDisabled disabledColor={'#1D1D1D'} value={adminHost} />
+                <AppInput className={'mt-4 mb-2 w-3/4'} disabled value={adminHost} />
             </div>
-            <AppButton variant={ButtonVariant.Secondary} icon={<CopyIcon />} onClick={handleOnCopy}>
+            <Button variant="secondary" className="gap-2" onClick={handleOnCopy}>
+                <CopyIcon />
                 {t('TOOLTIP.COPY_LINK')}
-            </AppButton>
+            </Button>
         </div>
     );
 };

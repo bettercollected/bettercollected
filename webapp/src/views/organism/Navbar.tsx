@@ -6,25 +6,24 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { v4 } from 'uuid';
 
 import { FieldTypes } from '@app/models/dtos/form';
-import { ButtonVariant } from '@app/models/enums/button';
 import { Button } from '@app/shadcn/components/ui/button';
 import { DropdownMenu, DropdownMenuContent } from '@app/shadcn/components/ui/dropdown-menu';
 import { Sheet, SheetClose, SheetContent, SheetFooter, SheetTrigger } from '@app/shadcn/components/ui/sheet';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
+import { selectAuth } from '@app/store/auth/slice';
 import { useActiveSlideComponent } from '@app/store/jotai/activeBuilderComponent';
-import { useAuthAtom } from '@app/store/jotai/auth';
 import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
 import { useFormState } from '@app/store/jotai/form';
 import { useFormResponse } from '@app/store/jotai/responderFormResponse';
 import { useResponderState } from '@app/store/jotai/responderFormState';
 import { useCreateTemplateFromFormMutation } from '@app/store/redux/templateApi';
 
+import { AppInput } from '@app/shadcn/components/ui/input';
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { NewBetterCollectedSmallLogo } from '@app/views/atoms/Icons/BetterCollectedSmallLogo';
 import { LogicOutlinedIcon } from '@app/views/atoms/Icons/LogicOutlinedIcon';
-import { TextareaAutosize } from '@mui/material';
 import { useState } from 'react';
 import PlayIcon from '../atoms/Icons/PlayIcon';
 import { PlusOutlined } from '../atoms/Icons/PlusOutlined';
@@ -50,7 +49,7 @@ const Navbar = () => {
 
     const router = useRouter();
 
-    const { authState } = useAuthAtom();
+    const authState = useAppSelector(selectAuth);
 
     const handleAddText = () => {
         if (activeSlideComponent === null) {
@@ -108,15 +107,13 @@ const Navbar = () => {
                 >
                     <NewBetterCollectedSmallLogo width={17} height={19} />
                 </div>
-                <TextareaAutosize
-                    maxRows={2}
-                    style={{ resize: 'none' }}
+                <AppInput
                     placeholder="Form Title"
                     value={formState.title}
                     onChange={(event) => {
                         setFormTitle(event.target.value);
                     }}
-                    className="w-full overflow-clip text-ellipsis border-0"
+                    className="w-full overflow-clip text-ellipsis border-0 resize-none"
                 />
             </div>
             {activeSlideComponent && activeSlideComponent.index >= 0 && (
@@ -139,12 +136,14 @@ const Navbar = () => {
                             {insertDropdownOpen && (
                                 <DropdownMenuContent key="insert-dropdown" className=" w-[410px] border-none p-0">
                                     <motion.div
-                                        key="insert-dropdown"
-                                        className="shadow-bubble border"
-                                        initial={{ opacity: 0, height: '350px', overflow: 'hidden' }}
-                                        animate={{ opacity: 1, height: '554px' }}
-                                        exit={{ opacity: 0, height: '350px', overflow: 'hidden' }}
-                                        transition={{ duration: 0.2 }}
+                                        {...({
+                                            key: 'insert-dropdown',
+                                            className: 'shadow-bubble border',
+                                            initial: { opacity: 0, height: '350px', overflow: 'hidden' },
+                                            animate: { opacity: 1, height: '554px' },
+                                            exit: { opacity: 0, height: '350px', overflow: 'hidden' },
+                                            transition: { duration: 0.2 }
+                                        } as any)}
                                     >
                                         <InsertFieldComponent
                                             formFields={formFields}
@@ -184,7 +183,7 @@ const Navbar = () => {
                 </DropdownMenu> */}
 
                     <DropdownMenu>
-                        <DropdownMenu.Trigger onClick={() => {}}>
+                        <DropdownMenu.Trigger onClick={() => { }}>
                             <div className={'flex items-center hover:bg-inherit'}>
                                 <div className="!text-black-500 hover:!text-black-900 flex flex-row items-center gap-1 text-xs font-semibold ">
                                     <LogicOutlinedIcon />
@@ -218,7 +217,7 @@ const Navbar = () => {
                     </SheetContent>
                 </Sheet>
                 {authState?.roles?.includes('ADMIN') && (
-                    <Button variant={ButtonVariant.Secondary} isLoading={isCreatingTemplate} onClick={makeTemplate}>
+                    <Button variant="secondary" isLoading={isCreatingTemplate} onClick={makeTemplate}>
                         Make Template
                     </Button>
                 )}

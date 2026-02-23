@@ -10,6 +10,6 @@ export interface VerifyOtp {
         otp_code: string;
     };
     params: {
-        prospective_pro_user?: string | string[] | undefined;
+        prospective_pro_user?: boolean;
     };
 }

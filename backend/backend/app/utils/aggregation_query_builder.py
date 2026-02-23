@@ -8,7 +8,7 @@ def create_filter_pipeline(
 ):
     pipeline = []
     if filter_object:
-        matching_dict = filter_object.dict(exclude_unset=True, exclude_none=True)
+        matching_dict = filter_object.model_dump(exclude_unset=True, exclude_none=True)
         if matching_dict:
             all_matchers = []
             for k, v in matching_dict.items():

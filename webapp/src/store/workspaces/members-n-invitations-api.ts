@@ -61,6 +61,13 @@ export const membersNInvitationsApi = createApi({
             }),
             providesTags: [WORKSPACE_INVITATIONS_TAG]
         }),
+        getWorkspaceInvitation: builder.query<WorkspaceInvitationDto, { workspaceId: string; invitationToken: string }>({
+            query: (request) => ({
+                url: `/${request.workspaceId}/members/invitations/${request.invitationToken}`,
+                method: 'GET'
+            }),
+            providesTags: [WORKSPACE_INVITATIONS_TAG]
+        }),
         inviteToWorkspace: builder.mutation<any, any>({
             query: (request) => ({
                 url: `/${request.workspaceId}/members/invitations`,
@@ -92,6 +99,7 @@ export const {
     useRespondToWorkspaceInvitationMutation,
     useGetWorkspaceMembersQuery,
     useGetWorkspaceMembersInvitationsQuery,
+    useGetWorkspaceInvitationQuery,
     useInviteToWorkspaceMutation,
     useDeleteWorkspaceMemberMutation,
     useDeleteWorkspaceInvitationMutation,

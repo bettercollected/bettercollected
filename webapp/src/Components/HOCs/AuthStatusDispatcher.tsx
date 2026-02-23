@@ -1,11 +1,11 @@
-import React, { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { UserStatus } from '@app/models/dtos/UserStatus';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { useGetStatusQuery } from '@app/store/auth/api';
 import { initialAuthState, setAuth } from '@app/store/auth/slice';
 import { useAppDispatch } from '@app/store/hooks';
 import { isAdminDomain } from '@app/utils/domainUtils';
+import { useRouter } from 'next/navigation';
+import React, { useEffect, useState } from 'react';
 
 interface IAuthStatusDispatcherProps {
     workspace: WorkspaceDto | null | undefined;
@@ -13,7 +13,7 @@ interface IAuthStatusDispatcherProps {
     isCustomDomain?: boolean;
 }
 
-export default function AuthStatusDispatcher({ workspace, children, isCustomDomain = false }: IAuthStatusDispatcherProps) {
+export default function AuthStatusDispatcher({ workspace, children }: IAuthStatusDispatcherProps) {
     const router = useRouter();
     const dispatch = useAppDispatch();
     const [is401, setIs401] = useState(false);
@@ -49,7 +49,7 @@ export default function AuthStatusDispatcher({ workspace, children, isCustomDoma
                 router.replace(window.location.href);
             }
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+
     }, [isLoading, is401, workspace]);
 
     return <>{children}</>;

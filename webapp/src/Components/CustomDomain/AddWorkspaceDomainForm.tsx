@@ -1,7 +1,5 @@
-import { ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
 import { useFullScreenModal } from '@app/Components/modal-views/full-screen-modal-context';
 import { toastMessage } from '@app/constants/locales/toast-message';
-import { ToastId } from '@app/constants/toastId';
 import { Button } from '@app/shadcn/components/ui/button';
 import { AppInput } from '@app/shadcn/components/ui/input';
 import { cn } from '@app/shadcn/util/lib';
@@ -10,10 +8,12 @@ import { usePatchExistingWorkspaceMutation } from '@app/store/workspaces/api';
 import { selectWorkspace, setWorkspace } from '@app/store/workspaces/slice';
 import { useTranslation } from 'next-i18next';
 import { useState } from 'react';
-import { toast } from 'react-toastify';
+
+import { useToast } from '@app/shadcn/components/ui/use-toast';
 
 const AddWorkspaceDomainForm = () => {
     const [patchExistingWorkspace, { isLoading }] = usePatchExistingWorkspaceMutation();
+    const { toast } = useToast();
 
     const workspace = useAppSelector(selectWorkspace);
     const { openModal } = useFullScreenModal();
@@ -52,7 +52,10 @@ const AddWorkspaceDomainForm = () => {
             if (response.data) {
                 dispatch(setWorkspace(response.data));
             } else if (response.error) {
-                toast.error(response.error.data?.message || response.error.data || t(toastMessage.somethingWentWrong), { toastId: ToastId.ERROR_TOAST });
+                toast({
+                    description: response.error.data?.message || response.error.data || t(toastMessage.somethingWentWrong),
+                    variant: 'destructive'
+                });
             }
         }
     };
@@ -87,7 +90,7 @@ const AddWorkspaceDomainForm = () => {
             <div className="max-w-[400px]">
                 {message.message && <div className={cn(message.error ? 'text-red-500' : 'text-[#FFA716]', 'whitespace-pre-wrap text-wrap text-xs	')}>{message.message}</div>}
                 {warned && (
-                    <Button variant={ButtonVariant.Ghost} isLoading={isLoading} className="mt-2 cursor-pointer text-xs text-blue-500" onClick={addDomain}>
+                    <Button variant="ghost" isLoading={isLoading} className="mt-2 cursor-pointer text-xs text-blue-500" onClick={addDomain}>
                         Add Anyway
                     </Button>
                 )}

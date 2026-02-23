@@ -1,11 +1,10 @@
 import { useEffect, useState } from 'react';
 
-import AppButton from '@Components/Common/Input/Button/AppButton';
-import { ButtonSize, ButtonVariant } from '@Components/Common/Input/Button/AppButtonProps';
+import { Button } from '@app/shadcn/components/ui/button';
 import ImportFormLoading from '@Components/ImportForm/ImportFormLoading';
 import ImportSuccessfulComponent from '@Components/ImportForm/ImportSuccessfulComponent';
 import useDrivePicker from '@fyelci/react-google-drive-picker';
-import { toast } from 'react-toastify';
+import { useToast } from '@app/shadcn/components/ui/use-toast';
 
 import ImportErrorView from '@app/Components/form-integrations/import-error-view';
 import { useModal } from '@app/Components/modal-views/context';
@@ -23,6 +22,7 @@ import { useIsMobile } from '@app/lib/hooks/use-breakpoint';
 import { selectAuth } from '@app/store/auth/slice';
 
 export default function ImportFormModal() {
+    const { toast } = useToast();
     const router = useRouter();
     const { closeModal } = useModal();
 
@@ -49,7 +49,7 @@ export default function ImportFormModal() {
         const form: any = { ...singleForm?.data, provider: 'google' };
         delete form['clientFormItems'];
         if (singleForm.error) {
-            toast.success('Error fetching form');
+            toast({ description: 'Error fetching form', variant: 'destructive' });
             return;
             closeModal();
         }
@@ -59,11 +59,11 @@ export default function ImportFormModal() {
             workspaceId: workspace.id
         });
         if (response.error) {
-            toast.error('Something went wrong!!');
+            toast({ description: 'Something went wrong!!', variant: 'destructive' });
             closeModal();
         }
         if (response.data) {
-            toast.success('Form Imported Successfully');
+            toast({ description: 'Form Imported Successfully' });
             setForm(response.data);
             fireworks();
         }
@@ -124,17 +124,17 @@ export default function ImportFormModal() {
         <div className="start relative flex   w-full  flex-col items-center rounded-md bg-white">
             {formTitle && !form?.formId && <ImportFormLoading loadingText={singleFormFromProviderResult.isLoading ? 'Fetching Form' : 'Importing'} formTitle={formTitle} />}
             {!form?.formId && !formTitle && (
-                <AppButton
+                <Button
                     data-umami-event={'Imported Google Form'}
                     data-umami-event-email={auth.email}
-                    variant={ButtonVariant.Primary}
-                    size={ButtonSize.Big}
+                    variant="primary"
+                    size="lg"
                     onClick={() => {
                         openGoogleFilePicker();
                     }}
                 >
                     Open Google File Picker
-                </AppButton>
+                </Button>
             )}
             {form?.formId && <ImportSuccessfulComponent form={form} />}
         </div>
