@@ -34,7 +34,6 @@ dependencies = [
     "google-auth-httplib2>=0.2.0",
     "google-auth-oauthlib>=1.2.0",
     "googleapis-common-protos>=1.63.0",
-    "sentry-sdk[fastapi]>=2.10.0",
     "elastic-apm>=6.22.0",
     "common",
     "pydantic[email]>=1.10.0",

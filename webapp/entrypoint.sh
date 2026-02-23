@@ -1,27 +1,35 @@
 #!/bin/sh
-if ! [  -z "$ELASTIC_APM_SERVER_URL" ] && ! [ -z "$ELASTIC_APM_SERVICE_NAME"  ] && ! [ -z "$ELASTIC_APM_API_KEY"  ]
-then
-    export ENV NODE_OPTIONS=--require=elastic-apm-node/start-next.js
-    echo "Confugured APM service for host:" $ELASTIC_APM_SERVER_URL
-else
-    if  ! [  -z "$ELASTIC_APM_SERVER_URL" ] || ! [ -z "$ELASTIC_APM_SERVICE_NAME"  ] || ! [ -z "$ELASTIC_APM_API_KEY"  ]
-    then
-        MISSING=""    
-        if  [ -z "$ELASTIC_APM_SERVER_URL" ] 
-        then    
-            MISSING="ELASTIC_APM_SERVER_URL" 
-        fi
 
-        if  [ -z "$ELASTIC_APM_SERVICE_NAME" ] 
-        then    
-             MISSING="$MISSING ELASTIC_APM_SERVICE_NAME" 
-        fi
+# ────────────────────────────────────────────────────────────────
+# Elastic APM configuration check & setup for Next.js (elastic-apm-node 4.x)
+# ────────────────────────────────────────────────────────────────
 
-        if  [ -z "$ELASTIC_APM_API_KEY" ] 
-        then    
-            MISSING="$MISSING ELASTIC_APM_API_KEY" 
-        fi
-        echo "[WARN] Apm Service partially Confuguired. Missing: " "${MISSING}" 1>&2
-    fi
+MISSING=""
+
+if [ -z "$ELASTIC_APM_SERVER_URL" ]; then
+    MISSING="$MISSING ELASTIC_APM_SERVER_URL"
 fi
-exec "./node_modules/.bin/next" "start"
+
+if [ -z "$ELASTIC_APM_SERVICE_NAME" ]; then
+    MISSING="$MISSING ELASTIC_APM_SERVICE_NAME"
+fi
+
+# API key is preferred in 4.x (secretToken is legacy/deprecated in many setups)
+if [ -z "$ELASTIC_APM_API_KEY" ] && [ -z "$ELASTIC_APM_SECRET_TOKEN" ]; then
+    MISSING="$MISSING ELASTIC_APM_API_KEY (or ELASTIC_APM_SECRET_TOKEN)"
+fi
+
+if [ -n "$MISSING" ]; then
+    echo "[WARN] Elastic APM NOT fully configured. Missing:${MISSING}" >&2
+    # You can decide to continue anyway or exit 1 — usually continue
+else
+    # ─── Modern way: just --require the agent (no start-next.js anymore) ───
+    # This starts the agent **very early** — best for auto-instrumentation
+    export NODE_OPTIONS="--require elastic-apm-node ${NODE_OPTIONS:-}"
+    ELASTIC_APM_ENVIRONMENT=${ELASTIC_APM_ENVIRONMENT:-production}
+
+    echo "Elastic APM configured (v4.x) → server: ${ELASTIC_APM_SERVER_URL}"
+fi
+
+# Start Next.js
+exec ./node_modules/.bin/next start
