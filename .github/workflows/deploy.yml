@@ -62,8 +62,8 @@ jobs:
                   docker build --build-arg NEXT_PUBLIC_UMAMI_WEBSITE_ID=${UMAMI_WEBSITE_ID} \
                     --build-arg NEXT_PUBLIC_API_ENDPOINT_HOST=${API_ENDPOINT_HOST} \
                     --build-arg NEXT_PUBLIC_DASHBOARD_DOMAIN=${DASHBOARD_DOMAIN} \
-                    --build-arg NEXT_PUBLIC_FORM_DOMAIN=${FORM_DOMAIN} \ 
-                    -f ${{ matrix.service }}/Dockerfile \ 
+                    --build-arg NEXT_PUBLIC_FORM_DOMAIN=${FORM_DOMAIN} \
+                    -f ${{ matrix.service }}/Dockerfile \
                     -t bettercollected/${SERVICE_TAG}:${{ github.sha }} .
                   docker push bettercollected/${SERVICE_TAG}:${{ github.sha }}
 
