@@ -1,5 +1,4 @@
 FROM python:3.12 AS builder
-LABEL maintainer="Bibishan Pandey, bibishan.b.pandey@gmail.com"
 
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
@@ -21,7 +20,5 @@ WORKDIR $PYSETUP_PATH
 RUN uv sync --no-dev --no-editable
 
 EXPOSE 8000/tcp
-
-HEALTHCHECK CMD curl http://localhost:8000/ready
 
 CMD ["python3", "-m", "googleform"]
