@@ -1,18 +1,21 @@
 name: Test endpoints using schemathesis
 
 on:
-  schedule:
-    - cron: "0 0 * * *"
+    schedule:
+        - cron: "0 0 * * *"
+
+permissions:
+    contents: read
 
 jobs:
-  schemathesis:
-    runs-on: ubuntu-latest
+    schemathesis:
+        runs-on: ubuntu-latest
 
-    steps:
-      - name: Configure schemathesis using action
-        uses: schemathesis/action@v1
-        with:
-          schema: "https://bettercollected-admin.sireto.dev/api/v1/openapi.json"
-          max-examples: 30
-          version: "latest"
-          report: false
+        steps:
+            - name: Configure schemathesis using action
+              uses: schemathesis/action@v1
+              with:
+                  schema: "https://bettercollected-admin.sireto.dev/api/v1/openapi.json"
+                  max-examples: 30
+                  version: "latest"
+                  report: false

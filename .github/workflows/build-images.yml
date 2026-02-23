@@ -1,5 +1,8 @@
 name: Build Docker Images
 
+permissions:
+    contents: read
+
 on:
     push:
         branches:
