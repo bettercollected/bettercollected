@@ -1,6 +1,6 @@
 from typing import Any, Coroutine
 
-from aiohttp.test_utils import TestClient
+from httpx import AsyncClient
 from common.constants import MESSAGE_FORBIDDEN
 
 from backend.app.schemas.standard_form import FormDocument
@@ -17,9 +17,9 @@ common_url = "/api/v1/workspaces"
 
 
 class TestWorkspaces:
-    def test_get_workspace_by_query(
+    async def test_get_workspace_by_query(
         self,
-        client: TestClient,
+        client: AsyncClient,
         workspace: Coroutine[Any, Any, WorkspaceDocument],
         workspace_1: Coroutine[Any, Any, WorkspaceDocument],
         test_user_cookies: dict[str, str],
@@ -27,16 +27,16 @@ class TestWorkspaces:
     ):
         get_workspace_url = f"{common_url}?workspace_name={testUser.id}"
         with mock_get_workspace_by_query:
-            fetched_workspace = client.get(get_workspace_url, cookies=test_user_cookies)
+            fetched_workspace = await client.get(get_workspace_url, cookies=test_user_cookies)
 
             expected_workspace_id = str(workspace.id)
             actual_workspace_id = fetched_workspace.json().get("id")
             assert actual_workspace_id == expected_workspace_id
 
-    def test_create_workspace(
-        self, client: TestClient, test_pro_user_cookies: dict[str, str]
+    async def test_create_workspace(
+        self, client: AsyncClient, test_pro_user_cookies: dict[str, str]
     ):
-        created_workspace = client.post(
+        created_workspace = await client.post(
             common_url, cookies=test_pro_user_cookies, data=workspace_attribute_1
         )
 
@@ -48,10 +48,10 @@ class TestWorkspaces:
         }
         assert actual_workspace_attribute == expected_workspace_attribute
 
-    def test_create_workspace_fails_for_normal_user(
-        self, client: TestClient, test_user_cookies: dict[str, str]
+    async def test_create_workspace_fails_for_normal_user(
+        self, client: AsyncClient, test_user_cookies: dict[str, str]
     ):
-        free_user_workspace = client.post(
+        free_user_workspace = await client.post(
             common_url, cookies=test_user_cookies, data=workspace_attribute
         )
 
@@ -60,15 +60,15 @@ class TestWorkspaces:
         assert free_user_workspace.status_code == 403
         assert actual_response_message == expected_response_message
 
-    def test_pro_user_can_only_create_specified_workspace(
-        self, client: TestClient, test_pro_user_cookies: dict[str, str]
+    async def test_pro_user_can_only_create_specified_workspace(
+        self, client: AsyncClient, test_pro_user_cookies: dict[str, str]
     ):
         for i in range(settings.api_settings.ALLOWED_WORKSPACES):
-            client.post(
+            await client.post(
                 common_url, cookies=test_pro_user_cookies, data=workspace_attribute_1
             )
 
-        max_limit_workspace = client.post(
+        max_limit_workspace = await client.post(
             common_url, cookies=test_pro_user_cookies, data=workspace_attribute_1
         )
 
@@ -77,15 +77,15 @@ class TestWorkspaces:
         assert max_limit_workspace.status_code == 409
         assert actual_response_message == expected_response_message
 
-    def test_get_mine_workspaces_for_normal_user(
+    async def test_get_mine_workspaces_for_normal_user(
         self,
-        client: TestClient,
+        client: AsyncClient,
         workspace: Coroutine[Any, Any, WorkspaceDocument],
         test_user_cookies: dict[str, str],
     ):
         get_mine_workspace_url = f"{common_url}/mine"
 
-        normal_user_workspaces = client.get(
+        normal_user_workspaces = await client.get(
             get_mine_workspace_url, cookies=test_user_cookies
         )
 
@@ -93,16 +93,16 @@ class TestWorkspaces:
         actual_workspace_owner_id = normal_user_workspaces.json()[0].get("ownerId")
         assert actual_workspace_owner_id == expected_workspace_owner_id
 
-    def test_get_mine_workspaces_for_pro_user(
-        self, client: TestClient, test_pro_user_cookies: dict[str, str]
+    async def test_get_mine_workspaces_for_pro_user(
+        self, client: AsyncClient, test_pro_user_cookies: dict[str, str]
     ):
         get_mine_workspace_url = f"{common_url}/mine"
-        client.post(common_url, cookies=test_pro_user_cookies, data=workspace_attribute)
-        client.post(
+        await client.post(common_url, cookies=test_pro_user_cookies, data=workspace_attribute)
+        await client.post(
             common_url, cookies=test_pro_user_cookies, data=workspace_attribute_1
         )
 
-        pro_user_workspaces = client.get(
+        pro_user_workspaces = await client.get(
             get_mine_workspace_url, cookies=test_pro_user_cookies
         )
 
@@ -112,15 +112,15 @@ class TestWorkspaces:
         ]
         assert actual_workspace_owner_id == expected_workspace_owner_id
 
-    def test_get_workspace_by_id(
+    async def test_get_workspace_by_id(
         self,
-        client: TestClient,
+        client: AsyncClient,
         workspace: Coroutine[Any, Any, WorkspaceDocument],
         test_user_cookies: dict[str, str],
     ):
         get_workspace_by_id_url = f"{common_url}/{workspace.id}"
 
-        fetched_workspace = client.get(
+        fetched_workspace = await client.get(
             get_workspace_by_id_url, cookies=test_user_cookies
         )
 
@@ -129,15 +129,15 @@ class TestWorkspaces:
         assert fetched_workspace.status_code == 200
         assert actual_workspace_id == expected_workspace_id
 
-    def test_patch_workspace_with_custom_domain_for_pro_user(
+    async def test_patch_workspace_with_custom_domain_for_pro_user(
         self,
-        client: TestClient,
+        client: AsyncClient,
         workspace_pro: Coroutine[Any, Any, WorkspaceDocument],
         test_pro_user_cookies: dict[str, str],
     ):
         patch_workspace_url = f"{common_url}/{workspace_pro.id}"
 
-        patched_workspace = client.patch(
+        patched_workspace = await client.patch(
             patch_workspace_url, cookies=test_pro_user_cookies, data=workspace_attribute
         )
 
@@ -152,15 +152,15 @@ class TestWorkspaces:
             actual_updated_workspace_attribute == expected_updated_workspace_attribute
         )
 
-    def test_patch_workspace_with_custom_domain_for_normal_user_fails(
+    async def test_patch_workspace_with_custom_domain_for_normal_user_fails(
         self,
-        client: TestClient,
+        client: AsyncClient,
         workspace: Coroutine[Any, Any, WorkspaceDocument],
         test_user_cookies: dict[str, str],
     ):
         patch_workspace_url = f"{common_url}/{workspace.id}"
 
-        patched_workspace = client.patch(
+        patched_workspace = await client.patch(
             patch_workspace_url, cookies=test_user_cookies, data=workspace_attribute
         )
 
@@ -169,15 +169,15 @@ class TestWorkspaces:
         assert patched_workspace.status_code == 403
         assert actual_response_message == expected_response_message
 
-    def test_unauthorized_client_patch_workspace_false(
+    async def test_unauthorized_client_patch_workspace_false(
         self,
-        client: TestClient,
+        client: AsyncClient,
         workspace: Coroutine[Any, Any, WorkspaceDocument],
         test_user_cookies_1: dict[str, str],
     ):
         patch_workspace_url = f"{common_url}/{workspace.id}"
 
-        patched_workspace = client.patch(
+        patched_workspace = await client.patch(
             patch_workspace_url, cookies=test_user_cookies_1, data=workspace_attribute
         )
 
@@ -186,15 +186,15 @@ class TestWorkspaces:
         assert patched_workspace.status_code == 403
         assert actual_response_message == expected_response_message
 
-    def test_check_handle_availability_using_workspace_name(
+    async def test_check_handle_availability_using_workspace_name(
         self,
-        client: TestClient,
+        client: AsyncClient,
         workspace: Coroutine[Any, Any, WorkspaceDocument],
         test_user_cookies: dict[str, str],
     ):
         check_handle_url = f"{common_url}/check-handle-availability/sireto"
 
-        check_handle_availability = client.get(
+        check_handle_availability = await client.get(
             check_handle_url, cookies=test_user_cookies
         )
 
@@ -202,9 +202,9 @@ class TestWorkspaces:
         actual_response = check_handle_availability.json()
         assert actual_response == expected_response
 
-    def test_check_handle_availability_using_workspace_name_and_workspace_id(
+    async def test_check_handle_availability_using_workspace_name_and_workspace_id(
         self,
-        client: TestClient,
+        client: AsyncClient,
         workspace: Coroutine[Any, Any, WorkspaceDocument],
         test_user_cookies: dict[str, str],
     ):
@@ -212,7 +212,7 @@ class TestWorkspaces:
             f"{common_url}/check-handle-availability/sireto?workspace_id={workspace.id}"
         )
 
-        check_handle_availability = client.get(
+        check_handle_availability = await client.get(
             check_handle_url, cookies=test_user_cookies
         )
 
@@ -220,9 +220,9 @@ class TestWorkspaces:
         actual_response = check_handle_availability.json()
         assert actual_response == expected_response
 
-    def test_check_handle_availability_fails_for_existing_handle(
+    async def test_check_handle_availability_fails_for_existing_handle(
         self,
-        client: TestClient,
+        client: AsyncClient,
         workspace: Coroutine[Any, Any, WorkspaceDocument],
         workspace_1: Coroutine[Any, Any, WorkspaceDocument],
         test_user_cookies: dict[str, str],
@@ -231,7 +231,7 @@ class TestWorkspaces:
             f"{common_url}/check-handle-availability/{workspace_1.workspace_name}"
         )
 
-        check_handle_availability = client.get(
+        check_handle_availability = await client.get(
             check_handle_url, cookies=test_user_cookies
         )
 
@@ -239,23 +239,23 @@ class TestWorkspaces:
         actual_response = check_handle_availability.json()
         assert actual_response == expected_response
 
-    def test_suggest_handles(
+    async def test_suggest_handles(
         self,
-        client: TestClient,
+        client: AsyncClient,
         workspace: Coroutine[Any, Any, WorkspaceDocument],
         test_user_cookies: dict[str, str],
     ):
         suggest_handles_url = f"{common_url}/suggest-handle/test"
 
-        suggest_handle = client.get(suggest_handles_url, cookies=test_user_cookies)
+        suggest_handle = await client.get(suggest_handles_url, cookies=test_user_cookies)
 
         expected_response = ["test", "test1", "test2", "test3", "test4", "test5"]
         actual_response = suggest_handle.json()
         assert actual_response == expected_response
 
-    def test_send_otp_for_workspace(
+    async def test_send_otp_for_workspace(
         self,
-        client: TestClient,
+        client: AsyncClient,
         workspace: Coroutine[Any, Any, WorkspaceDocument],
         test_user_cookies: dict[str, str],
         mock_send_otp_get_request,
@@ -263,7 +263,7 @@ class TestWorkspaces:
         with mock_send_otp_get_request:
             send_otp_url = f"{common_url}/{workspace.id}/auth/otp/send?receiver_email=johndoe@gmail.com"
 
-            send_otp_for_workspace = client.post(
+            send_otp_for_workspace = await client.post(
                 send_otp_url, cookies=test_user_cookies
             )
 
@@ -274,17 +274,17 @@ class TestWorkspaces:
 
     async def test_delete_custom_domain(
         self,
-        client: TestClient,
+        client: AsyncClient,
         workspace_pro: Coroutine[Any, Any, WorkspaceDocument],
         test_pro_user_cookies: dict[str, str],
     ):
         patch_workspace_url = f"{common_url}/{workspace_pro.id}"
-        patched_workspace_custom_domain = client.patch(
+        patched_workspace_custom_domain = await client.patch(
             patch_workspace_url, cookies=test_pro_user_cookies, data=workspace_attribute
         )
         delete_custom_domain_url = f"{common_url}/{workspace_pro.id}/custom-domain"
 
-        deleted_custom_domain_workspace = client.delete(
+        deleted_custom_domain_workspace = await client.delete(
             delete_custom_domain_url, cookies=test_pro_user_cookies
         )
 
@@ -294,15 +294,15 @@ class TestWorkspaces:
         )
         assert actual_custom_domain == expected_custom_domain
 
-    def test_delete_custom_domain_for_normal_user_fails(
+    async def test_delete_custom_domain_for_normal_user_fails(
         self,
-        client: TestClient,
+        client: AsyncClient,
         workspace: Coroutine[Any, Any, WorkspaceDocument],
         test_user_cookies: dict[str, str],
     ):
         delete_custom_domain_url = f"{common_url}/{workspace.id}/custom-domain"
 
-        deleted_custom_domain_workspace = client.delete(
+        deleted_custom_domain_workspace = await client.delete(
             delete_custom_domain_url, cookies=test_user_cookies
         )
 
@@ -311,9 +311,9 @@ class TestWorkspaces:
         assert deleted_custom_domain_workspace.status_code == 403
         assert actual_response_message == expected_response_message
 
-    def test_get_workspace_stats(
+    async def test_get_workspace_stats(
         self,
-        client: TestClient,
+        client: AsyncClient,
         workspace: Coroutine[Any, Any, WorkspaceDocument],
         workspace_form: Coroutine[Any, Any, FormDocument],
         workspace_form_response: Coroutine[Any, Any, dict],
@@ -321,7 +321,7 @@ class TestWorkspaces:
     ):
         workspace_stats_url = f"{common_url}/{workspace.id}/stats"
 
-        workspace_stats = client.get(workspace_stats_url, cookies=test_user_cookies)
+        workspace_stats = await client.get(workspace_stats_url, cookies=test_user_cookies)
 
         expected_response = {
             "deletionRequests": {"pending": 0, "success": 0, "total": 0},
@@ -331,9 +331,9 @@ class TestWorkspaces:
         actual_response = workspace_stats.json()
         assert actual_response == expected_response
 
-    def test_unauthorized_client_get_workspace_stats_fails(
+    async def test_unauthorized_client_get_workspace_stats_fails(
         self,
-        client: TestClient,
+        client: AsyncClient,
         workspace: Coroutine[Any, Any, WorkspaceDocument],
         workspace_form: Coroutine[Any, Any, FormDocument],
         workspace_form_response: Coroutine[Any, Any, dict],
@@ -341,7 +341,7 @@ class TestWorkspaces:
     ):
         workspace_stats_url = f"{common_url}/{workspace.id}/stats"
 
-        workspace_stats = client.get(workspace_stats_url, cookies=test_user_cookies_1)
+        workspace_stats = await client.get(workspace_stats_url, cookies=test_user_cookies_1)
 
         expected_response_message = MESSAGE_FORBIDDEN
         actual_response_message = workspace_stats.json()

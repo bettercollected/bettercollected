@@ -1,15 +1,16 @@
+import os
 from typing import Any, Coroutine
 from unittest.mock import patch
 
 import httpx
+import pymongo
 import pytest
 from common.models.form_import import FormImportResponse
 from common.models.standard_form import StandardForm, StandardFormResponse
-from dependency_injector import providers
-from fastapi.testclient import TestClient
-from mongomock_motor import AsyncMongoMockClient
+from dotenv import load_dotenv
 
 from backend.app import get_application
+from backend.app.asgi import lifespan
 from backend.app.container import container
 from backend.app.models.enum.workspace_roles import WorkspaceRoles
 from backend.app.schemas.standard_form import FormDocument
@@ -17,6 +18,7 @@ from backend.app.schemas.standard_form_response import FormResponseDocument
 from backend.app.schemas.workspace import WorkspaceDocument
 from backend.app.schemas.workspace_user import WorkspaceUserDocument
 from backend.app.services import workspace_service
+from backend.config import settings
 from tests.app.controllers.data import (
     formData,
     formResponse,
@@ -29,20 +31,47 @@ from tests.app.controllers.data import (
     formData_test,
 )
 
+load_dotenv(os.getenv("DOTENV_PATH", ".env.test"))
 
-TEST_MONGO_URI_NOTE = "Set MONGO_URI env var to point to your test MongoDB instance."
+TEST_MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost")
+TEST_MONGO_DB = os.getenv("MONGO_TEST_DB", "bettercollected_test")
 
 
-@pytest.fixture
-def client():
-    # Override the database client with an in-memory mock so that tests are
-    # event-loop-agnostic (avoids "AsyncMongoClient in different event loop").
-    # A fresh AsyncMongoMockClient per fixture call gives each test an empty DB.
-    mock_client = AsyncMongoMockClient()
-    container.database_client.override(providers.Object(mock_client))
+def _drop_test_db() -> None:
+    """Drop the test database using a synchronous pymongo client.
+
+    Using a sync client avoids any asyncio event-loop binding issues.
+    """
+    sync_client = pymongo.MongoClient(TEST_MONGO_URI)
+    sync_client.drop_database(TEST_MONGO_DB)
+    sync_client.close()
+
+
+@pytest.fixture()
+async def client():
+    # Everything runs in pytest-asyncio's event loop so AsyncMongoClient is
+    # never passed between event loops (avoids the "different event loop" error).
+    original_uri = settings.mongo_settings.URI
+    original_db = settings.mongo_settings.DB
+    settings.mongo_settings.URI = TEST_MONGO_URI
+    settings.mongo_settings.DB = TEST_MONGO_DB
+    container.database_client.reset_override()
+
+    _drop_test_db()
+
     app = get_application(is_test_mode=True)
-    with TestClient(app) as test_client:
-        yield test_client
+    # Manually run the ASGI lifespan in the current (pytest) event loop.
+    # This creates the AsyncMongoClient and initialises beanie here, so all
+    # fixtures that do DB work share the same event loop.
+    async with lifespan(app):
+        async with httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=app), base_url="http://test"
+        ) as ac:
+            yield ac
+
+    _drop_test_db()
+    settings.mongo_settings.URI = original_uri
+    settings.mongo_settings.DB = original_db
     container.database_client.reset_override()
 
 
@@ -282,10 +311,10 @@ def mock_send_otp_get_request():
 @pytest.fixture()
 def mock_validate_otp():
     async def get_user_after_validation_of_otp(*args, **kwargs):
-        return httpx.Response(200, json={"user": testUser.model_dump()})
+        return {"user": testUser.model_dump()}
 
     yield patch(
-        "httpx.AsyncClient.get",
+        "common.services.http_client.HttpClient.get",
         side_effect=get_user_after_validation_of_otp,
     )
 
@@ -293,25 +322,31 @@ def mock_validate_otp():
 @pytest.fixture()
 def mock_get_user_info():
     async def get_user_info_from_ids(*args, **kwargs):
-        return httpx.Response(200, json=user_info)
+        return user_info
 
     return patch(
-        "httpx.AsyncClient.get",
+        "common.services.http_client.HttpClient.get",
         side_effect=get_user_info_from_ids,
     )
 
 
 @pytest.fixture()
 def mock_create_invitation_request():
-    def send_email_for_invitation(*args, **kwargs):
-        return httpx.Response(200, json={"data": "Mail sent successfully!!"})
+    async def send_email_for_invitation(*args, **kwargs):
+        return {"data": "Mail sent successfully!!"}
 
-    return patch("httpx.AsyncClient.get", side_effect=send_email_for_invitation)
+    return patch(
+        "common.services.http_client.HttpClient.get",
+        side_effect=send_email_for_invitation,
+    )
 
 
 @pytest.fixture()
 def mock_get_workspace_by_query():
-    def get_workspace_by_query(*args, **kwargs):
-        return httpx.Response(200, json={"workspace_owner": proUser.model_dump()})
+    async def get_workspace_by_query(*args, **kwargs):
+        return {"workspace_owner": proUser.model_dump()}
 
-    return patch("httpx.AsyncClient.get", side_effect=get_workspace_by_query)
+    return patch(
+        "common.services.http_client.HttpClient.get",
+        side_effect=get_workspace_by_query,
+    )

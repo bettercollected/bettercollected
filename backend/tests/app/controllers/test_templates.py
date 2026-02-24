@@ -1,7 +1,7 @@
 import json
 
 import pytest
-from aiohttp.test_utils import TestClient
+from httpx import AsyncClient
 from beanie import PydanticObjectId
 from common.constants import MESSAGE_FORBIDDEN, MESSAGE_NOT_FOUND
 
@@ -55,7 +55,7 @@ async def workspace_1_private_template(workspace_1: WorkspaceDocument):
 class TestFormTemplates:
     async def test_create_template_from_form(
         self,
-        client: TestClient,
+        client: AsyncClient,
         workspace: WorkspaceDocument,
         workspace_form: WorkspaceFormDocument,
         test_user_cookies: dict[str, str],
@@ -64,7 +64,7 @@ class TestFormTemplates:
             f"/api/v1/workspaces/{workspace.id}/form/{workspace_form.form_id}/template"
         )
 
-        template = client.post(create_template_url, cookies=test_user_cookies)
+        template = await client.post(create_template_url, cookies=test_user_cookies)
 
         expected_template_id = (
             ((await FormTemplateDocument.find().to_list())[0]).model_dump().get("id")
@@ -74,9 +74,9 @@ class TestFormTemplates:
         actual_template_id = template.json().get("id")
         assert actual_template_id == str(expected_template_id)
 
-    def test_unauthorized_user_create_template_from_form_fails(
+    async def test_unauthorized_user_create_template_from_form_fails(
         self,
-        client: TestClient,
+        client: AsyncClient,
         workspace: WorkspaceDocument,
         workspace_form: WorkspaceFormDocument,
         test_user_cookies_1: dict[str, str],
@@ -85,7 +85,7 @@ class TestFormTemplates:
             f"/api/v1/workspaces/{workspace.id}/form/{workspace_form.form_id}/template"
         )
 
-        template = client.post(create_template_url, cookies=test_user_cookies_1)
+        template = await client.post(create_template_url, cookies=test_user_cookies_1)
 
         expected_response_message = MESSAGE_FORBIDDEN
         actual_response_message = template.json()
@@ -94,14 +94,14 @@ class TestFormTemplates:
 
     async def test_import_public_template_in_workspace(
         self,
-        client: TestClient,
+        client: AsyncClient,
         workspace: WorkspaceDocument,
         test_user_cookies: dict[str, str],
         workspace_1_public_template: FormTemplateDocument,
     ):
         import_url = f"/api/v1/workspaces/{workspace.id}/template/{workspace_1_public_template.id}/import"
 
-        imported_template = client.post(import_url, cookies=test_user_cookies)
+        imported_template = await client.post(import_url, cookies=test_user_cookies)
 
         expected_template_id = str(
             (await FormTemplateDocument.find({"workspace_id": workspace.id}).to_list())[
@@ -111,32 +111,32 @@ class TestFormTemplates:
         actual_template_id = imported_template.json().get("id")
         assert actual_template_id == expected_template_id
 
-    def test_import_private_template_in_workspace(
+    async def test_import_private_template_in_workspace(
         self,
-        client: TestClient,
+        client: AsyncClient,
         workspace: WorkspaceDocument,
         test_user_cookies: dict[str, str],
         workspace_1_private_template: FormTemplateDocument,
     ):
         import_url = f"/api/v1/workspaces/{workspace.id}/template/{workspace_1_private_template.id}/import"
 
-        imported_template = client.post(import_url, cookies=test_user_cookies)
+        imported_template = await client.post(import_url, cookies=test_user_cookies)
 
         expected_response_message = MESSAGE_FORBIDDEN
         actual_response_message = imported_template.json()
         assert imported_template.status_code == 403
         assert actual_response_message == expected_response_message
 
-    def test_unauthorized_user_import_template_in_workspace(
+    async def test_unauthorized_user_import_template_in_workspace(
         self,
-        client: TestClient,
+        client: AsyncClient,
         workspace: WorkspaceDocument,
         test_user_cookies_1: dict[str, str],
         workspace_1_public_template: FormTemplateDocument,
     ):
         import_url = f"/api/v1/workspaces/{workspace.id}/template/{workspace_1_public_template.id}/import"
 
-        imported_template = client.post(import_url, cookies=test_user_cookies_1)
+        imported_template = await client.post(import_url, cookies=test_user_cookies_1)
 
         expected_response_message = MESSAGE_FORBIDDEN
         actual_response_message = imported_template.json()
@@ -145,13 +145,13 @@ class TestFormTemplates:
 
     async def test_create_new_template(
         self,
-        client: TestClient,
+        client: AsyncClient,
         workspace: WorkspaceDocument,
         test_user_cookies: dict[str, str],
     ):
         create_url = f"/api/v1/workspaces/{workspace.id}/template"
 
-        created_template = client.post(
+        created_template = await client.post(
             create_url,
             cookies=test_user_cookies,
             data={"template_body": json.dumps(template)},
@@ -162,15 +162,15 @@ class TestFormTemplates:
         ).to_list()
         assert expected_response is not None
 
-    def test_unauthorized_user_create_new_template(
+    async def test_unauthorized_user_create_new_template(
         self,
-        client: TestClient,
+        client: AsyncClient,
         workspace: WorkspaceDocument,
         test_user_cookies_1: dict[str, str],
     ):
         create_url = f"/api/v1/workspaces/{workspace.id}/template"
 
-        created_template = client.post(
+        created_template = await client.post(
             create_url,
             cookies=test_user_cookies_1,
             data={"template_body": json.dumps(template)},
@@ -181,9 +181,9 @@ class TestFormTemplates:
         assert created_template.status_code == 403
         assert actual_response_message == expected_response_message
 
-    def test_update_template(
+    async def test_update_template(
         self,
-        client: TestClient,
+        client: AsyncClient,
         workspace: WorkspaceDocument,
         test_user_cookies: dict[str, str],
         workspace_template: FormTemplateDocument,
@@ -192,7 +192,7 @@ class TestFormTemplates:
             f"/api/v1/workspaces/{workspace.id}/template/{workspace_template.id}"
         )
 
-        updated_template = client.patch(
+        updated_template = await client.patch(
             update_url,
             cookies=test_user_cookies,
             data={"template_body": json.dumps({"title": "updated_template"})},
@@ -202,16 +202,16 @@ class TestFormTemplates:
         actual_updated_title = updated_template.json().get("title")
         assert actual_updated_title == expected_updated_title
 
-    def test_update_other_workspace_template_fails(
+    async def test_update_other_workspace_template_fails(
         self,
-        client: TestClient,
+        client: AsyncClient,
         workspace: WorkspaceDocument,
         test_user_cookies: dict[str, str],
         workspace_1_public_template: FormTemplateDocument,
     ):
         update_url = f"/api/v1/workspaces/{workspace.id}/template/{workspace_1_public_template.id}"
 
-        updated_template = client.patch(
+        updated_template = await client.patch(
             update_url,
             cookies=test_user_cookies,
             data={"template_body": json.dumps({"title": "updated_template"})},
@@ -222,9 +222,9 @@ class TestFormTemplates:
         assert updated_template.status_code == 403
         assert actual_response_message == expected_response_message
 
-    def test_unauthorized_user_update_template_fails(
+    async def test_unauthorized_user_update_template_fails(
         self,
-        client: TestClient,
+        client: AsyncClient,
         workspace: WorkspaceDocument,
         test_user_cookies_1: dict[str, str],
         workspace_template: FormTemplateDocument,
@@ -233,7 +233,7 @@ class TestFormTemplates:
             f"/api/v1/workspaces/{workspace.id}/template/{workspace_template.id}"
         )
 
-        updated_template = client.patch(
+        updated_template = await client.patch(
             update_url,
             cookies=test_user_cookies_1,
             data={"template_body": json.dumps({"title": "updated_template"})},
@@ -244,16 +244,16 @@ class TestFormTemplates:
         assert updated_template.status_code == 403
         assert actual_response_message == expected_response_message
 
-    def test_update_template_settings(
+    async def test_update_template_settings(
         self,
-        client: TestClient,
+        client: AsyncClient,
         workspace_1: WorkspaceDocument,
         test_user_cookies_1: dict[str, str],
         workspace_1_public_template: FormTemplateDocument,
     ):
         update_url = f"/api/v1/workspaces/{workspace_1.id}/template/{workspace_1_public_template.id}/settings"
 
-        updated_template = client.patch(
+        updated_template = await client.patch(
             update_url,
             cookies=test_user_cookies_1,
             json={"is_public": False},
@@ -267,16 +267,16 @@ class TestFormTemplates:
             expected_updated_settings_visibility == actual_updated_settings_visibility
         )
 
-    def test_update_other_workspace_template_settings_fails(
+    async def test_update_other_workspace_template_settings_fails(
         self,
-        client: TestClient,
+        client: AsyncClient,
         workspace: WorkspaceDocument,
         test_user_cookies: dict[str, str],
         workspace_1_public_template: FormTemplateDocument,
     ):
         update_url = f"/api/v1/workspaces/{workspace.id}/template/{workspace_1_public_template.id}/settings"
 
-        updated_template = client.patch(
+        updated_template = await client.patch(
             update_url,
             cookies=test_user_cookies,
             json={"is_public": False},
@@ -287,16 +287,16 @@ class TestFormTemplates:
         assert updated_template.status_code == 403
         assert actual_response_message == expected_response_message
 
-    def test_unauthorized_user_update_template_settings_fails(
+    async def test_unauthorized_user_update_template_settings_fails(
         self,
-        client: TestClient,
+        client: AsyncClient,
         workspace: WorkspaceDocument,
         test_user_cookies_1: dict[str, str],
         workspace_template: FormTemplateDocument,
     ):
         update_url = f"/api/v1/workspaces/{workspace.id}/template/{workspace_template.id}/settings"
 
-        updated_template = client.patch(
+        updated_template = await client.patch(
             update_url,
             cookies=test_user_cookies_1,
             json={"is_public": False},
@@ -307,9 +307,9 @@ class TestFormTemplates:
         assert updated_template.status_code == 403
         assert actual_response_message == expected_response_message
 
-    def test_delete_template(
+    async def test_delete_template(
         self,
-        client: TestClient,
+        client: AsyncClient,
         workspace: WorkspaceDocument,
         workspace_template: FormTemplateDocument,
         test_user_cookies: dict[str, str],
@@ -318,31 +318,31 @@ class TestFormTemplates:
             f"/api/v1/workspaces/{workspace.id}/template/{workspace_template.id}"
         )
 
-        deleted_template = client.delete(delete_url, cookies=test_user_cookies)
+        deleted_template = await client.delete(delete_url, cookies=test_user_cookies)
 
         expected_deleted_template_id = str(workspace_template.id)
         actual_deleted_template_id = deleted_template.json()
         assert actual_deleted_template_id == expected_deleted_template_id
 
-    def test_delete_other_workspace_template_fails(
+    async def test_delete_other_workspace_template_fails(
         self,
-        client: TestClient,
+        client: AsyncClient,
         workspace: WorkspaceDocument,
         workspace_1_public_template: FormTemplateDocument,
         test_user_cookies: dict[str, str],
     ):
         delete_url = f"/api/v1/workspaces/{workspace.id}/template/{workspace_1_public_template.id}"
 
-        deleted_template = client.delete(delete_url, cookies=test_user_cookies)
+        deleted_template = await client.delete(delete_url, cookies=test_user_cookies)
 
         expected_response_message = "You are not allowed to perform this action."
         actual_response_message = deleted_template.json()
         assert deleted_template.status_code == 403
         assert actual_response_message == expected_response_message
 
-    def test_unauthorized_user_delete_template_fails(
+    async def test_unauthorized_user_delete_template_fails(
         self,
-        client: TestClient,
+        client: AsyncClient,
         workspace: WorkspaceDocument,
         workspace_template: FormTemplateDocument,
         test_user_cookies_1: dict[str, str],
@@ -351,7 +351,7 @@ class TestFormTemplates:
             f"/api/v1/workspaces/{workspace.id}/template/{workspace_template.id}"
         )
 
-        deleted_template = client.delete(delete_url, cookies=test_user_cookies_1)
+        deleted_template = await client.delete(delete_url, cookies=test_user_cookies_1)
 
         expected_response_message = MESSAGE_FORBIDDEN
         actual_response_message = deleted_template.json()
@@ -360,7 +360,7 @@ class TestFormTemplates:
 
     async def test_create_form_from_template(
         self,
-        client: TestClient,
+        client: AsyncClient,
         workspace: WorkspaceDocument,
         workspace_template: FormTemplateDocument,
         test_user_cookies: dict[str, str],
@@ -369,15 +369,15 @@ class TestFormTemplates:
             f"/api/v1/workspaces/{workspace.id}/template/{workspace_template.id}"
         )
 
-        created_form = client.post(create_url, cookies=test_user_cookies)
+        created_form = await client.post(create_url, cookies=test_user_cookies)
 
         expected_form_title = workspace_template.title
         actual_form_title = created_form.json().get("title")
         assert actual_form_title == expected_form_title
 
-    def test_unauthorized_user_create_form_from_template_fails(
+    async def test_unauthorized_user_create_form_from_template_fails(
         self,
-        client: TestClient,
+        client: AsyncClient,
         workspace: WorkspaceDocument,
         workspace_template: FormTemplateDocument,
         test_user_cookies_1: dict[str, str],
@@ -386,16 +386,16 @@ class TestFormTemplates:
             f"/api/v1/workspaces/{workspace.id}/template/{workspace_template.id}"
         )
 
-        created_form = client.post(create_url, cookies=test_user_cookies_1)
+        created_form = await client.post(create_url, cookies=test_user_cookies_1)
 
         expected_response_message = MESSAGE_FORBIDDEN
         actual_response_message = created_form.json()
         assert created_form.status_code == 403
         assert actual_response_message == expected_response_message
 
-    def test_get_templates_of_predefined_workspaces(
+    async def test_get_templates_of_predefined_workspaces(
         self,
-        client: TestClient,
+        client: AsyncClient,
         test_user_cookies: dict[str, str],
         workspace: WorkspaceDocument,
         predefined_workspace_template: FormTemplateDocument,
@@ -403,15 +403,15 @@ class TestFormTemplates:
     ):
         get_url = f"/api/v1/templates"
 
-        templates = client.get(get_url, cookies=test_user_cookies)
+        templates = await client.get(get_url, cookies=test_user_cookies)
 
         expected_template_id = str(predefined_workspace_template.id)
         actual_template_id = templates.json()[0].get("id")
         assert actual_template_id == expected_template_id
 
-    def test_get_templates(
+    async def test_get_templates(
         self,
-        client: TestClient,
+        client: AsyncClient,
         test_user_cookies: dict[str, str],
         workspace: WorkspaceDocument,
         predefined_workspace_template: FormTemplateDocument,
@@ -419,15 +419,15 @@ class TestFormTemplates:
     ):
         get_url = f"/api/v1/templates?workspace_id={workspace.id}"
 
-        templates = client.get(get_url, cookies=test_user_cookies)
+        templates = await client.get(get_url, cookies=test_user_cookies)
 
         expected_template_id = str(workspace_template.id)
         actual_template_id = templates.json()[0].get("id")
         assert actual_template_id == expected_template_id
 
-    def test_unauthorized_user_get_templates_fails(
+    async def test_unauthorized_user_get_templates_fails(
         self,
-        client: TestClient,
+        client: AsyncClient,
         test_user_cookies_1: dict[str, str],
         workspace: WorkspaceDocument,
         predefined_workspace_template: FormTemplateDocument,
@@ -435,16 +435,16 @@ class TestFormTemplates:
     ):
         get_url = f"/api/v1/templates?workspace_id={workspace.id}"
 
-        templates = client.get(get_url, cookies=test_user_cookies_1)
+        templates = await client.get(get_url, cookies=test_user_cookies_1)
 
         expected_response_message = MESSAGE_FORBIDDEN
         actual_response_message = templates.json()
         assert templates.status_code == 403
         assert actual_response_message == expected_response_message
 
-    def test_get_template_of_predefined_workspace_by_id(
+    async def test_get_template_of_predefined_workspace_by_id(
         self,
-        client: TestClient,
+        client: AsyncClient,
         test_user_cookies: dict[str, str],
         workspace: WorkspaceDocument,
         predefined_workspace_template: FormTemplateDocument,
@@ -452,15 +452,15 @@ class TestFormTemplates:
     ):
         get_url = f"/api/v1/templates/{predefined_workspace_template.id}"
 
-        template_by_id = client.get(get_url, cookies=test_user_cookies)
+        template_by_id = await client.get(get_url, cookies=test_user_cookies)
 
         expected_template_id = str(predefined_workspace_template.id)
         actual_template_id = template_by_id.json().get("id")
         assert actual_template_id == expected_template_id
 
-    def test_get_template_by_id(
+    async def test_get_template_by_id(
         self,
-        client: TestClient,
+        client: AsyncClient,
         test_user_cookies: dict[str, str],
         workspace: WorkspaceDocument,
         predefined_workspace_template: FormTemplateDocument,
@@ -470,46 +470,46 @@ class TestFormTemplates:
             f"/api/v1/templates/{workspace_template.id}?workspace_id={workspace.id}"
         )
 
-        template_by_id = client.get(get_url, cookies=test_user_cookies)
+        template_by_id = await client.get(get_url, cookies=test_user_cookies)
 
         expected_template_id = str(workspace_template.id)
         actual_template_id = template_by_id.json().get("id")
         assert actual_template_id == expected_template_id
 
-    def test_unauthorized_user_get_private_template_by_id_fails(
+    async def test_unauthorized_user_get_private_template_by_id_fails(
         self,
-        client: TestClient,
+        client: AsyncClient,
         test_user_cookies_1: dict[str, str],
         workspace: WorkspaceDocument,
         workspace_1_private_template: FormTemplateDocument,
     ):
         get_url = f"/api/v1/templates/{workspace_1_private_template.id}?workspace_id={workspace.id}"
-        template_by_id = client.get(get_url, cookies=test_user_cookies_1)
+        template_by_id = await client.get(get_url, cookies=test_user_cookies_1)
 
         expected_response_message = MESSAGE_NOT_FOUND
         actual_response_message = template_by_id.json()
         assert template_by_id.status_code == 404
         assert actual_response_message == expected_response_message
 
-    def test_unauthorized_user_get_public_template_by_id(
+    async def test_unauthorized_user_get_public_template_by_id(
         self,
-        client: TestClient,
+        client: AsyncClient,
         test_user_cookies_1: dict[str, str],
         workspace_1: WorkspaceDocument,
         workspace_1_public_template: FormTemplateDocument,
     ):
         get_url = f"/api/v1/templates/{workspace_1_public_template.id}?workspace_id={workspace_1.id}"
 
-        template_by_id = client.get(get_url, cookies=test_user_cookies_1)
+        template_by_id = await client.get(get_url, cookies=test_user_cookies_1)
 
         expected_response_message = workspace_1_public_template
         actual_response_message = template_by_id.json()
         assert template_by_id.status_code == 200
         assert actual_response_message.get("id") == str(expected_response_message.id)
 
-    def test_get_non_existent_template_by_id(
+    async def test_get_non_existent_template_by_id(
         self,
-        client: TestClient,
+        client: AsyncClient,
         test_user_cookies: dict[str, str],
         workspace: WorkspaceDocument,
         predefined_workspace_template: FormTemplateDocument,
@@ -517,38 +517,38 @@ class TestFormTemplates:
     ):
         get_url = f"/api/v1/templates/{PydanticObjectId()}?workspace_id={workspace.id}"
 
-        template_by_id = client.get(get_url, cookies=test_user_cookies)
+        template_by_id = await client.get(get_url, cookies=test_user_cookies)
 
         actual_response = template_by_id.json()
         assert template_by_id.status_code == 404
         assert actual_response == MESSAGE_NOT_FOUND
 
-    def test_get_other_workspace_private_template_by_id(
+    async def test_get_other_workspace_private_template_by_id(
         self,
-        client: TestClient,
+        client: AsyncClient,
         test_user_cookies: dict[str, str],
         workspace: WorkspaceDocument,
         workspace_1_private_template: FormTemplateDocument,
     ):
         get_url = f"/api/v1/templates/{workspace_1_private_template.id}?workspace_id={workspace.id}"
 
-        template_by_id = client.get(get_url, cookies=test_user_cookies)
+        template_by_id = await client.get(get_url, cookies=test_user_cookies)
 
         expected_response_message = MESSAGE_NOT_FOUND
         actual_response_message = template_by_id.json()
         assert template_by_id.status_code == 404
         assert actual_response_message == expected_response_message
 
-    def test_get_other_workspace_public_template_by_id(
+    async def test_get_other_workspace_public_template_by_id(
         self,
-        client: TestClient,
+        client: AsyncClient,
         test_user_cookies: dict[str, str],
         workspace: WorkspaceDocument,
         workspace_1_public_template: FormTemplateDocument,
     ):
         get_url = f"/api/v1/templates/{workspace_1_public_template.id}?workspace_id={workspace.id}"
 
-        template_by_id = client.get(get_url, cookies=test_user_cookies)
+        template_by_id = await client.get(get_url, cookies=test_user_cookies)
 
         actual_response = template_by_id.json()
         assert template_by_id.status_code == 404
