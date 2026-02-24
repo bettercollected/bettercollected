@@ -30,12 +30,20 @@ from tests.app.controllers.data import (
 )
 
 
+TEST_MONGO_URI_NOTE = "Set MONGO_URI env var to point to your test MongoDB instance."
+
+
 @pytest.fixture
 def client():
-    container.database_client.override(providers.Singleton(AsyncMongoMockClient))
+    # Override the database client with an in-memory mock so that tests are
+    # event-loop-agnostic (avoids "AsyncMongoClient in different event loop").
+    # A fresh AsyncMongoMockClient per fixture call gives each test an empty DB.
+    mock_client = AsyncMongoMockClient()
+    container.database_client.override(providers.Object(mock_client))
     app = get_application(is_test_mode=True)
     with TestClient(app) as test_client:
-        return test_client
+        yield test_client
+    container.database_client.reset_override()
 
 
 @pytest.fixture()
