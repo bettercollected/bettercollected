@@ -3,7 +3,7 @@ import json
 from typing import Any, Coroutine
 
 import pytest
-from aiohttp.test_utils import TestClient
+from httpx import AsyncClient
 from common.constants import MESSAGE_FORBIDDEN
 from common.models.standard_form import StandardForm
 
@@ -59,9 +59,9 @@ async def create_form_request_body():
 
 
 class TestWorkspaceForm:
-    def test_publishing_form(
+    async def test_publishing_form(
         self,
-        client: TestClient,
+        client: AsyncClient,
         workspace: Coroutine[Any, Any, WorkspaceDocument],
         workspace_form_common_url: str,
         workspace_form: Coroutine[Any, Any, FormDocument],
@@ -71,14 +71,14 @@ class TestWorkspaceForm:
             f"/api/v1/workspaces/{workspace.id}/forms/{workspace_form.form_id}/publish"
         )
 
-        published_form = client.post(publish_form_url, cookies=test_user_cookies)
+        published_form = await client.post(publish_form_url, cookies=test_user_cookies)
         actual_response = StandardFormCamelModel(**published_form.json())
         assert workspace_form.form_id == actual_response.form_id
         assert actual_response.version is not None
 
-    def test_duplicate_form(
+    async def test_duplicate_form(
         self,
-        client: TestClient,
+        client: AsyncClient,
         workspace: Coroutine[Any, Any, WorkspaceDocument],
         workspace_form_common_url: str,
         workspace_form: Coroutine[Any, Any, FormDocument],
@@ -86,7 +86,7 @@ class TestWorkspaceForm:
     ):
         duplicate_form_api = f"/api/v1/workspaces/{workspace.id}/forms/{workspace_form.form_id}/duplicate"
 
-        duplicate_form_response = client.post(
+        duplicate_form_response = await client.post(
             duplicate_form_api, cookies=test_user_cookies
         )
 
@@ -99,9 +99,9 @@ class TestWorkspaceForm:
         assert workspace_form.logo == actual_response.logo
         assert workspace_form.cover_image == actual_response.cover_image
 
-    def test_unauthorized_user_form_duplication_fails(
+    async def test_unauthorized_user_form_duplication_fails(
         self,
-        client: TestClient,
+        client: AsyncClient,
         workspace: Coroutine[Any, Any, WorkspaceDocument],
         workspace_form_common_url: str,
         workspace_form: Coroutine[Any, Any, FormDocument],
@@ -109,15 +109,15 @@ class TestWorkspaceForm:
     ):
         duplicate_form_api = f"/api/v1/workspaces/{workspace.id}/forms/{workspace_form.form_id}/duplicate"
 
-        duplicate_form_response = client.post(
+        duplicate_form_response = await client.post(
             duplicate_form_api, cookies=test_user_cookies_1
         )
 
         assert duplicate_form_response.status_code == 403
 
-    def test_unauthorized_user_form_duplication_fails(
+    async def test_unauthorized_user_form_duplication_fails(
         self,
-        client: TestClient,
+        client: AsyncClient,
         workspace: Coroutine[Any, Any, WorkspaceDocument],
         workspace_form_common_url: str,
         workspace_form_1: Coroutine[Any, Any, FormDocument],
@@ -125,22 +125,22 @@ class TestWorkspaceForm:
     ):
         duplicate_form_api = f"/api/v1/workspaces/{workspace.id}/forms/{workspace_form_1.form_id}/duplicate"
 
-        duplicate_form_response = client.post(
+        duplicate_form_response = await client.post(
             duplicate_form_api, cookies=test_user_cookies
         )
 
         assert duplicate_form_response.status_code == 404
 
-    def test_get_workspace_forms(
+    async def test_get_workspace_forms(
         self,
-        client: TestClient,
+        client: AsyncClient,
         workspace_form_common_url: str,
         test_user_cookies: dict[str, str],
         workspace_form: Coroutine[Any, Any, FormDocument],
         mock_aiohttp_get_request,
     ):
         with mock_aiohttp_get_request:
-            forms = client.get(workspace_form_common_url, cookies=test_user_cookies)
+            forms = await client.get(workspace_form_common_url, cookies=test_user_cookies)
 
             expected_form_id = workspace_form.form_id
             actual_form_id = forms.json()["items"][0]["formId"]
@@ -148,12 +148,12 @@ class TestWorkspaceForm:
 
     async def test_create_form(
         self,
-        client: TestClient,
+        client: AsyncClient,
         test_user_cookies: dict[str, str],
         workspace_form_common_url: str,
         workspace: Coroutine[Any, Any, WorkspaceDocument],
     ):
-        response = client.post(
+        response = await client.post(
             workspace_form_common_url,
             cookies=test_user_cookies,
             data={"form_body": json.dumps(formData)},
@@ -168,13 +168,13 @@ class TestWorkspaceForm:
         assert response.status_code == 200
         assert actual_form_id in expected_form_ids
 
-    def test_unauthorized_user_create_form_fails(
+    async def test_unauthorized_user_create_form_fails(
         self,
-        client: TestClient,
+        client: AsyncClient,
         workspace_form_common_url: str,
         test_user_cookies_1: dict[str, str],
     ):
-        unauthorized_client = client.post(
+        unauthorized_client = await client.post(
             workspace_form_common_url,
             cookies=test_user_cookies_1,
             data={"form_body": json.dumps(formData)},
@@ -185,16 +185,16 @@ class TestWorkspaceForm:
         assert unauthorized_client.status_code == 403
         assert actual_response_message == expected_response_message
 
-    def test_get_workspace_form_by_id(
+    async def test_get_workspace_form_by_id(
         self,
-        client: TestClient,
+        client: AsyncClient,
         workspace_form_url: str,
         test_user_cookies: dict[str, str],
         workspace_form: Coroutine[Any, Any, FormDocument],
         mock_aiohttp_get_request,
     ):
         with mock_aiohttp_get_request:
-            form = client.get(workspace_form_url, cookies=test_user_cookies)
+            form = await client.get(workspace_form_url, cookies=test_user_cookies)
 
             expected_form_id = workspace_form.form_id
             actual_form_id = form.json().get("formId")
@@ -203,14 +203,14 @@ class TestWorkspaceForm:
 
     async def test_delete_workspace_form(
         self,
-        client: TestClient,
+        client: AsyncClient,
         test_user_cookies: dict[str, str],
         workspace: Coroutine[Any, Any, WorkspaceDocument],
         published_form: Coroutine[Any, Any, FormDocument],
         workspace_form_response: Coroutine[Any, Any, dict],
         workspace_form_url: str,
     ):
-        delete_form = client.delete(workspace_form_url, cookies=test_user_cookies)
+        delete_form = await client.delete(workspace_form_url, cookies=test_user_cookies)
 
         expected_response_message = "Form deleted from workspace."
         actual_response_message = delete_form.json()
@@ -222,13 +222,13 @@ class TestWorkspaceForm:
 
     async def test_delete_workspace_form_deletes_responses(
         self,
-        client: TestClient,
+        client: AsyncClient,
         test_user_cookies: dict[str, str],
         workspace: Coroutine[Any, Any, WorkspaceDocument],
         workspace_form: Coroutine[Any, Any, FormDocument],
         workspace_form_url: str,
     ):
-        delete_form = client.delete(workspace_form_url, cookies=test_user_cookies)
+        delete_form = await client.delete(workspace_form_url, cookies=test_user_cookies)
 
         actual_response = await FormResponseDocument.find_one(
             {"form_id": workspace_form.form_id}
@@ -238,7 +238,7 @@ class TestWorkspaceForm:
 
     async def test_delete_workspace_form_also_deletes_request_response_deletion(
         self,
-        client: TestClient,
+        client: AsyncClient,
         test_user_cookies: dict[str, str],
         workspace: Coroutine[Any, Any, WorkspaceDocument],
         published_form: Coroutine[Any, Any, FormDocument],
@@ -249,7 +249,7 @@ class TestWorkspaceForm:
             workspace.id, workspace_form_response["response_id"], testUser
         )
 
-        delete_form = client.delete(workspace_form_url, cookies=test_user_cookies)
+        delete_form = await client.delete(workspace_form_url, cookies=test_user_cookies)
 
         actual_request_response_deletion = await FormResponseDeletionRequest.find_one(
             {"response_id": workspace_form_response["response_id"]}
@@ -259,12 +259,12 @@ class TestWorkspaceForm:
 
     async def test_unauthorized_user_delete_workspace_form_fails(
         self,
-        client: TestClient,
+        client: AsyncClient,
         test_user_cookies_1: dict[str, str],
         workspace_form: Coroutine[Any, Any, FormDocument],
         workspace_form_url: str,
     ):
-        unauthorized_client = client.delete(
+        unauthorized_client = await client.delete(
             workspace_form_url, cookies=test_user_cookies_1
         )
 
@@ -273,14 +273,14 @@ class TestWorkspaceForm:
         assert unauthorized_client.status_code == 403
         assert actual_response_message == expected_response_message
 
-    def test_update_workspace_form(
+    async def test_update_workspace_form(
         self,
-        client: TestClient,
+        client: AsyncClient,
         test_user_cookies: dict[str, str],
         workspace_form_url: str,
         workspace_form: Coroutine[Any, Any, FormDocument],
     ):
-        update_form = client.patch(
+        update_form = await client.patch(
             workspace_form_url,
             cookies=test_user_cookies,
             data={"form_body": json.dumps({"description": "updated_form"})},
@@ -290,14 +290,14 @@ class TestWorkspaceForm:
         actual_updated_form_description = update_form.json()["description"]
         assert actual_updated_form_description == expected_updated_form_description
 
-    def test_unauthorized_user_update_workspace_form_fails(
+    async def test_unauthorized_user_update_workspace_form_fails(
         self,
-        client: TestClient,
+        client: AsyncClient,
         test_user_cookies_1: dict[str, str],
         workspace_form_url: str,
         workspace_form: Coroutine[Any, Any, FormDocument],
     ):
-        unauthorized_client = client.patch(
+        unauthorized_client = await client.patch(
             workspace_form_url,
             cookies=test_user_cookies_1,
             data={"form_body": json.dumps({"description": "updated_form"})},
@@ -310,14 +310,14 @@ class TestWorkspaceForm:
 
     async def test_submit_workspace_form_response(
         self,
-        client: TestClient,
+        client: AsyncClient,
         test_user_cookies: dict[str, str],
         workspace_form_url: str,
         published_form: Coroutine[Any, Any, FormDocument],
     ):
         submit_response_url = f"{workspace_form_url}/response"
 
-        response = client.post(
+        response = await client.post(
             submit_response_url,
             cookies=test_user_cookies,
             data={"response": json.dumps(formResponse)},
@@ -331,14 +331,14 @@ class TestWorkspaceForm:
 
     async def test_submit_non_workspace_form_response(
         self,
-        client: TestClient,
+        client: AsyncClient,
         test_user_cookies: dict[str, str],
         workspace_form_common_url: str,
     ):
         form = await container.form_service().create_form(StandardForm(**formData))
         submit_response_url = f"{workspace_form_common_url}/{form.id}/response"
 
-        response = client.post(
+        response = await client.post(
             submit_response_url,
             cookies=test_user_cookies,
             data={"response": json.dumps(formResponse)},
@@ -351,7 +351,7 @@ class TestWorkspaceForm:
 
     async def test_delete_form_response(
         self,
-        client: TestClient,
+        client: AsyncClient,
         test_user_cookies: dict[str, str],
         workspace_form_url: str,
         published_form: Coroutine[Any, Any, FormDocument],
@@ -361,7 +361,7 @@ class TestWorkspaceForm:
             f"{workspace_form_url}/response/{workspace_form_response['response_id']}"
         )
 
-        delete_response = client.delete(delete_response_url, cookies=test_user_cookies)
+        delete_response = await client.delete(delete_response_url, cookies=test_user_cookies)
 
         expected_deleted_response_id = workspace_form_response["response_id"]
         actual_deleted_response_id = delete_response.json()
@@ -370,7 +370,7 @@ class TestWorkspaceForm:
 
     async def test_delete_form_response_also_deletes_request_response_deletion(
         self,
-        client: TestClient,
+        client: AsyncClient,
         test_user_cookies: dict[str, str],
         workspace_form_url: str,
         published_form: Coroutine[Any, Any, FormDocument],
@@ -380,7 +380,7 @@ class TestWorkspaceForm:
             f"{workspace_form_url}/response/{workspace_form_response['response_id']}"
         )
 
-        delete_response = client.delete(delete_response_url, cookies=test_user_cookies)
+        delete_response = await client.delete(delete_response_url, cookies=test_user_cookies)
 
         actual_form_response_deletion_request = (
             await FormResponseDeletionRequest.find_one(
@@ -395,7 +395,7 @@ class TestWorkspaceForm:
 
     async def test_search_form_in_workspace(
         self,
-        client: TestClient,
+        client: AsyncClient,
         test_user_cookies: dict[str, str],
         workspace_form_common_url: str,
         workspace: Coroutine[Any, Any, WorkspaceDocument],
@@ -407,7 +407,7 @@ class TestWorkspaceForm:
                 workspace.id, StandardForm(**formData_2), testUser
             )
 
-            search_form = client.post(search_form_url, cookies=test_user_cookies)
+            search_form = await client.post(search_form_url, cookies=test_user_cookies)
 
             expected_title_and_form_id = ["search_form", form.form_id]
             actual_title_and_form_id = [
@@ -417,9 +417,9 @@ class TestWorkspaceForm:
             assert search_form.status_code == 200
             assert actual_title_and_form_id == expected_title_and_form_id
 
-    def test_patch_setting_in_workspace(
+    async def test_patch_setting_in_workspace(
         self,
-        client: TestClient,
+        client: AsyncClient,
         workspace: Coroutine[Any, Any, WorkspaceDocument],
         workspace_form_common_url: str,
         workspace_form: Coroutine[Any, Any, FormDocument],
@@ -429,7 +429,7 @@ class TestWorkspaceForm:
             f"{workspace_form_common_url}/{workspace_form.form_id}/settings"
         )
 
-        patch_settings = client.patch(
+        patch_settings = await client.patch(
             patch_setting_url, cookies=test_user_cookies, json=workspace_settings
         )
 
@@ -442,7 +442,7 @@ class TestWorkspaceForm:
 
     async def test_patch_form_close_date_in_workspace_form(
         self,
-        client: TestClient,
+        client: AsyncClient,
         workspace: WorkspaceDocument,
         workspace_form_common_url: str,
         workspace_form: FormDocument,
@@ -451,7 +451,7 @@ class TestWorkspaceForm:
         patch_url = f"{workspace_form_common_url}/{workspace_form.form_id}/settings"
         close_date = datetime.datetime.now(datetime.timezone.utc).isoformat()
 
-        patch_settings = client.patch(
+        patch_settings = await client.patch(
             patch_url, cookies=test_user_cookies, json={"formCloseDate": close_date}
         )
 
@@ -459,9 +459,9 @@ class TestWorkspaceForm:
         assert patch_settings.status_code == 200
         assert close_date == actual_response.get("settings").get("formCloseDate")
 
-    def test_multiple_same_patch_setting_in_workspace_fails(
+    async def test_multiple_same_patch_setting_in_workspace_fails(
         self,
-        client: TestClient,
+        client: AsyncClient,
         workspace: Coroutine[Any, Any, WorkspaceDocument],
         workspace_form_common_url: str,
         workspace_form: Coroutine[Any, Any, FormDocument],
@@ -470,11 +470,11 @@ class TestWorkspaceForm:
         patch_setting_url = (
             f"{workspace_form_common_url}/{workspace_form.form_id}/settings"
         )
-        patch_settings = client.patch(
+        patch_settings = await client.patch(
             patch_setting_url, cookies=test_user_cookies, json=workspace_settings
         )
 
-        same_patch_settings = client.patch(
+        same_patch_settings = await client.patch(
             patch_setting_url, cookies=test_user_cookies, json=workspace_settings
         )
 
@@ -487,7 +487,7 @@ class TestWorkspaceForm:
 
     async def test_patch_setting_on_non_workspace_form_fails(
         self,
-        client: TestClient,
+        client: AsyncClient,
         workspace: Coroutine[Any, Any, WorkspaceDocument],
         workspace_form_common_url: str,
         test_user_cookies: dict[str, str],
@@ -495,7 +495,7 @@ class TestWorkspaceForm:
         form = await container.form_service().create_form(StandardForm(**formData))
         patch_setting_url = f"{workspace_form_common_url}/{form.form_id}/settings"
 
-        non_workspace_form_setting = client.patch(
+        non_workspace_form_setting = await client.patch(
             patch_setting_url, cookies=test_user_cookies, json=workspace_settings
         )
 
@@ -506,14 +506,14 @@ class TestWorkspaceForm:
 
     async def test_add_form_in_group(
         self,
-        client: TestClient,
+        client: AsyncClient,
         workspace: Coroutine[Any, Any, WorkspaceDocument],
         workspace_form: Coroutine[Any, Any, FormDocument],
         get_workspace_group_url: str,
         workspace_group: Coroutine,
         test_user_cookies: dict[str, str],
     ):
-        group_form = client.patch(
+        group_form = await client.patch(
             get_workspace_group_url,
             cookies=test_user_cookies,
             json={"group_ids": [str(workspace_group.id)]},
@@ -526,16 +526,16 @@ class TestWorkspaceForm:
         assert group_form.status_code == 200
         assert actual_added_form == expected_added_form
 
-    def test_unauthorized_user_add_form_in_group_fails(
+    async def test_unauthorized_user_add_form_in_group_fails(
         self,
-        client: TestClient,
+        client: AsyncClient,
         workspace: Coroutine[Any, Any, WorkspaceDocument],
         workspace_group: Coroutine,
         workspace_form: Coroutine[Any, Any, FormDocument],
         get_workspace_group_url: str,
         test_user_cookies_1: dict[str, str],
     ):
-        unauthorized_client = client.patch(
+        unauthorized_client = await client.patch(
             get_workspace_group_url,
             cookies=test_user_cookies_1,
             json={"group_ids": [str(workspace_group.id)]},
@@ -548,7 +548,7 @@ class TestWorkspaceForm:
 
     async def test_delete_form_from_group(
         self,
-        client: TestClient,
+        client: AsyncClient,
         workspace: Coroutine[Any, Any, WorkspaceDocument],
         workspace_form: Coroutine[Any, Any, FormDocument],
         workspace_form_url: str,
@@ -559,7 +559,7 @@ class TestWorkspaceForm:
             f"{workspace_form_url}/groups?group_id={workspace_group.id}"
         )
 
-        group_form = client.delete(
+        group_form = await client.delete(
             delete_form_from_group_url, cookies=test_user_cookies
         )
 
@@ -570,9 +570,9 @@ class TestWorkspaceForm:
         assert group_form.status_code == 200
         assert actual_form == expected_form
 
-    def test_unauthorized_user_delete_form_from_group_fails(
+    async def test_unauthorized_user_delete_form_from_group_fails(
         self,
-        client: TestClient,
+        client: AsyncClient,
         workspace: Coroutine[Any, Any, WorkspaceDocument],
         workspace_group: Coroutine,
         workspace_form: Coroutine[Any, Any, FormDocument],
@@ -583,7 +583,7 @@ class TestWorkspaceForm:
             f"{workspace_form_url}/groups?group_id={workspace_group.id}"
         )
 
-        unauthorized_client = client.delete(
+        unauthorized_client = await client.delete(
             delete_form_from_group_url, cookies=test_user_cookies_1
         )
 
@@ -594,7 +594,7 @@ class TestWorkspaceForm:
 
     async def test_import_form_to_workspace(
         self,
-        client: TestClient,
+        client: AsyncClient,
         workspace: Coroutine[Any, Any, WorkspaceDocument],
         test_user_cookies: dict[str, str],
         workspace_form: Coroutine[Any, Any, FormDocument],
@@ -606,7 +606,7 @@ class TestWorkspaceForm:
             form_body = await create_form_request_body()
             import_form_url = f"{workspace_form_common_url}/import/google"
 
-            import_form = client.post(
+            import_form = await client.post(
                 import_form_url, cookies=test_user_cookies, json=form_body
             )
 
@@ -614,15 +614,15 @@ class TestWorkspaceForm:
             assert import_form.status_code == 200
             assert actual_response.get("title") == form_body.get("form").get("title")
 
-    def test_unauthorized_user_import_form_to_workspace_fails(
+    async def test_unauthorized_user_import_form_to_workspace_fails(
         self,
-        client: TestClient,
+        client: AsyncClient,
         test_user_cookies_1: dict[str, str],
         workspace_form_common_url: str,
     ):
         import_form_url = f"{workspace_form_common_url}/import/google"
 
-        unauthorized_client = client.post(
+        unauthorized_client = await client.post(
             import_form_url, cookies=test_user_cookies_1, json=test_form_import_data
         )
 
@@ -633,7 +633,7 @@ class TestWorkspaceForm:
 
     async def test_import_form_imported_in_other_workspace_fails(
         self,
-        client: TestClient,
+        client: AsyncClient,
         workspace: Coroutine[Any, Any, WorkspaceDocument],
         # published_form: Coroutine[Any, Any, FormDocument],
         test_user_cookies: dict[str, str],
@@ -646,7 +646,7 @@ class TestWorkspaceForm:
             form_body = await create_form_request_body()
             import_form_url = f"{workspace_form_common_url}/import/google"
 
-            import_form = client.post(
+            import_form = await client.post(
                 import_form_url, cookies=test_user_cookies, json=form_body
             )
 
@@ -657,7 +657,7 @@ class TestWorkspaceForm:
 
     async def test_pro_user_can_import_more_than_100_form(
         self,
-        client: TestClient,
+        client: AsyncClient,
         workspace_pro: Coroutine[Any, Any, WorkspaceDocument],
         test_pro_user_cookies: dict[str, str],
         mock_aiohttp_post_request_for_pro,
@@ -670,7 +670,7 @@ class TestWorkspaceForm:
         import_form_url = f"/api/v1/workspaces/{workspace_pro.id}/forms/import/google"
 
         with mock_aiohttp_post_request_for_pro:
-            import_form = client.post(
+            import_form = await client.post(
                 import_form_url, cookies=test_pro_user_cookies, json=form_body
             )
 
@@ -680,7 +680,7 @@ class TestWorkspaceForm:
 
     async def test_normal_user_importing_more_than_100_form_fails(
         self,
-        client: TestClient,
+        client: AsyncClient,
         workspace: Coroutine[Any, Any, WorkspaceDocument],
         published_form: Coroutine[Any, Any, FormDocument],
         test_user_cookies: dict[str, str],
@@ -695,7 +695,7 @@ class TestWorkspaceForm:
         import_form_url = f"{workspace_form_common_url}/import/google"
 
         with mock_aiohttp_post_request:
-            import_form = client.post(
+            import_form = await client.post(
                 import_form_url, cookies=test_user_cookies, json=form_body
             )
             expected_response = "Upgrade plan to import more forms"

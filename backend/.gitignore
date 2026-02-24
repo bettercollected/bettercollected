@@ -9,6 +9,8 @@ __pycache__/
 .installed.cfg
 *.egg
 
+.env.test
+
 # Unit test / coverage reports
 htmlcov/
 .tox/
