@@ -1,8 +1,6 @@
-import asyncio
-
 from beanie import init_beanie
 from loguru import logger
-from motor.motor_asyncio import AsyncIOMotorClient
+from pymongo import AsyncMongoClient
 from pymongo.errors import InvalidOperation
 
 from backend.app.schemas.allowed_origin import (
@@ -40,34 +38,28 @@ def entity(cls):
     return cls
 
 
-async def init_scheduler_db(client: AsyncIOMotorClient):
-    client.get_io_loop = asyncio.get_running_loop
+async def init_scheduler_db(client: AsyncMongoClient):
     db = client["apscheduler"]
     await init_beanie(database=db, document_models=[APSchedulerDocument])
     pass
 
 
-async def init_db(db: str, client: AsyncIOMotorClient):
+async def init_db(db: str, client: AsyncMongoClient):
     """
     Asynchronously initializes the database connection and beanie for the app.
 
-    This function uses an asyncio loop to get the running loop, and uses it
-    to create a MotorClient instance with the specified MongoDB settings. It
-    then initializes beanie using the specified database and document models.
+    This function initializes beanie using the specified database and document models.
 
     Args:
         db: Database name
-        client: Database URI
+        client: AsyncMongoClient instance
 
     Returns:
         None
     """
-    client.get_io_loop = asyncio.get_running_loop
     db = client[db]
     document_models.extend(
         [
-            # TODO Merge on extend below
-            # Add mongo schemas here
             AllowedOriginsDocument,
             FormDocument,
             FormResponseDocument,
@@ -90,18 +82,15 @@ async def init_db(db: str, client: AsyncIOMotorClient):
     logger.info("Database connected successfully.")
 
 
-async def close_db(client: AsyncIOMotorClient):
+async def close_db(client: AsyncMongoClient):
     """
-    Asynchronously closes the database connection.
-
-    This function attempts to close the MotorClient instance, and logs a success
-    or failure message.
+    Closes the database connection.
 
     Returns:
         None
     """
     try:
-        client.close()
+        await client.close()
         logger.info("Database disconnected successfully.")
     except InvalidOperation as error:
         logger.error("Database disconnect failure.")

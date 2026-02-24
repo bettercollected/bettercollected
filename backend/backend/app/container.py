@@ -9,7 +9,7 @@ from common.configs.crypto import Crypto
 from common.services.http_client import HttpClient
 from common.services.jwt_service import JwtService
 from dependency_injector import containers, providers
-from motor.motor_asyncio import AsyncIOMotorClient
+from pymongo import AsyncMongoClient
 
 from backend.app.repositories.action_repository import ActionRepository
 from backend.app.repositories.coupon_repository import CouponRepository
@@ -73,9 +73,7 @@ current_path = Path(os.path.abspath(os.path.dirname(__file__))).absolute()
 class AppContainer(containers.DeclarativeContainer):
     http_client: HttpClient = providers.Singleton(HttpClient)
 
-    database_client: AsyncIOMotorClient = providers.Singleton(
-        AsyncIOMotorClient, settings.mongo_settings.URI
-    )
+    database_client: AsyncMongoClient = providers.Object(None)
 
     user_tags_repo = providers.Singleton(UserTagsRepository)
     user_tags_service = providers.Singleton(

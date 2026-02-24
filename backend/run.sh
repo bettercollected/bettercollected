@@ -1,2 +1,2 @@
 #!/bin/bash
-python3 -m backend
+uv run python3 -m uvicorn backend.app:get_application --host 0.0.0.0 --port 8000  

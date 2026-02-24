@@ -5,9 +5,7 @@ import httpx
 import pytest
 from common.models.form_import import FormImportResponse
 from common.models.standard_form import StandardForm, StandardFormResponse
-from dependency_injector import providers
 from fastapi.testclient import TestClient
-from mongomock_motor import AsyncMongoMockClient
 
 from backend.app import get_application
 from backend.app.container import container
@@ -30,9 +28,11 @@ from tests.app.controllers.data import (
 )
 
 
+TEST_MONGO_URI_NOTE = "Set MONGO_URI env var to point to your test MongoDB instance."
+
+
 @pytest.fixture
 def client():
-    container.database_client.override(providers.Singleton(AsyncMongoMockClient))
     app = get_application(is_test_mode=True)
     with TestClient(app) as test_client:
         return test_client
