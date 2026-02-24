@@ -1,3 +1,5 @@
+import inspect
+
 from beanie import init_beanie
 from loguru import logger
 from pymongo import AsyncMongoClient
@@ -90,7 +92,9 @@ async def close_db(client: AsyncMongoClient):
         None
     """
     try:
-        await client.close()
+        result = client.close()
+        if inspect.isawaitable(result):
+            await result
         logger.info("Database disconnected successfully.")
     except InvalidOperation as error:
         logger.error("Database disconnect failure.")

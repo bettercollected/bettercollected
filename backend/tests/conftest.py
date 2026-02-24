@@ -5,7 +5,9 @@ import httpx
 import pytest
 from common.models.form_import import FormImportResponse
 from common.models.standard_form import StandardForm, StandardFormResponse
+from dependency_injector import providers
 from fastapi.testclient import TestClient
+from mongomock_motor import AsyncMongoMockClient
 
 from backend.app import get_application
 from backend.app.container import container
@@ -33,9 +35,15 @@ TEST_MONGO_URI_NOTE = "Set MONGO_URI env var to point to your test MongoDB insta
 
 @pytest.fixture
 def client():
+    # Override the database client with an in-memory mock so that tests are
+    # event-loop-agnostic (avoids "AsyncMongoClient in different event loop").
+    # A fresh AsyncMongoMockClient per fixture call gives each test an empty DB.
+    mock_client = AsyncMongoMockClient()
+    container.database_client.override(providers.Object(mock_client))
     app = get_application(is_test_mode=True)
     with TestClient(app) as test_client:
-        return test_client
+        yield test_client
+    container.database_client.reset_override()
 
 
 @pytest.fixture()

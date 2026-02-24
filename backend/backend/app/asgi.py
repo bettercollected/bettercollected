@@ -34,10 +34,14 @@ async def lifespan(app: FastAPI):
 
     AiohttpClient.get_aiohttp_client()
 
-    # Create the client inside the running event loop to avoid the
+    # Use a pre-configured client (e.g. AsyncMongoMockClient injected by tests)
+    # if one has already been set on the container; otherwise create a real one
+    # inside the running event loop to avoid the
     # "AsyncMongoClient in different event loop" RuntimeError.
-    client = AsyncMongoClient(settings.mongo_settings.URI)
-    container.database_client.override(providers.Object(client))
+    client = container.database_client()
+    if client is None:
+        client = AsyncMongoClient(settings.mongo_settings.URI)
+        container.database_client.override(providers.Object(client))
     await init_db(settings.mongo_settings.DB, client)
 
     if settings.temporal_settings.add_import_schedules:
