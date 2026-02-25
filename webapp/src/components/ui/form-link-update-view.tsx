@@ -2,7 +2,6 @@
 import { useTranslation } from 'next-i18next';
 
 import PrivateFormButtonWrapper from '@Components/Common/private-form-button-wrapper';
-import CopyIcon from '@app/components/Common/Icons/Common/Copy';
 import { useBottomSheetModal } from '@app/components/Modals/Contexts/BottomSheetModalContext';
 import useCopyToClipboard from 'react-use/lib/useCopyToClipboard';
 
@@ -15,6 +14,7 @@ import { AppInput } from '@app/shadcn/components/ui/input';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
+import { Copy } from 'lucide-react';
 
 
 interface ICurrentLinkUpdate {
@@ -56,7 +56,7 @@ export default function FormLinkUpdateView({ link, isCustomDomain = false, isDis
                     <div className="flex flex-row gap-4 items-center w-full">
                         <PrivateFormButtonWrapper isPrivate={isPrivate}>
                             <Button variant="secondary" disabled={isPrivate} onClick={handleOnCopy}>
-                                <CopyIcon className="cursor-pointer mr-2" />
+                                <Copy className="cursor-pointer mr-2" />
                                 {t(formPage.linkCopyLink)}
                             </Button>
                         </PrivateFormButtonWrapper>

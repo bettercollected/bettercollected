@@ -1,5 +1,3 @@
-import CopyIcon from '@app/components/Common/Icons/Common/Copy';
-
 import BannerImageComponent from '@app/components/dashboard/banner-image';
 import { EyeIcon } from '@app/components/icons/eye-icon';
 import Globe from '@app/components/icons/flags/globe';
@@ -12,6 +10,7 @@ import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { useAppSelector } from '@app/store/hooks';
 import { WorkspaceState, selectWorkspace } from '@app/store/workspaces/slice';
 import { getWorkspaceShareURL } from '@app/utils/workspaceUtils';
+import { Copy } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 export default function WorkspaceDetails() {
@@ -33,7 +32,7 @@ export default function WorkspaceDetails() {
                     }}
                 >
                     <span className="p2-new text-black-700">{getWorkspaceShareURL(workspace)}</span>
-                    <CopyIcon className="text-black-700" />
+                    <Copy className="text-black-700" />
                 </div>
                 <div className="flex gap-2 md:gap-6">
                     {(!workspace.isPro || !workspace.customDomain || !workspace.customDomainVerified) && (

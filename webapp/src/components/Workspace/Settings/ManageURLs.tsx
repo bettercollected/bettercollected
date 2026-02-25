@@ -1,6 +1,5 @@
 import { useTranslation } from 'next-i18next';
 
-import CopyIcon from '@app/components/Common/Icons/Common/Copy';
 import EditIcon from '@app/components/Common/Icons/Common/Edit';
 
 import { CustomDomainCard } from '@app/app/(admin-portal)/(side-top-nav-layout)/[workspace_name]/dashboard/custom-domain/page';
@@ -12,6 +11,7 @@ import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { selectAuth, selectIsAdmin, selectIsProPlan } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
+import { Copy } from 'lucide-react';
 
 export default function ManageURLs() {
     const { t } = useTranslation();
@@ -63,7 +63,7 @@ export default function ManageURLs() {
                                 toast({ description: 'Copied' });
                             }}
                         >
-                            <CopyIcon width={16} height={16} />{/* check if I need children here, original was Copy */}
+                            <Copy width={16} height={16} />{/* check if I need children here, original was Copy */}
                             {t('BUTTON.COPY')}
                         </Button>
                     </div>

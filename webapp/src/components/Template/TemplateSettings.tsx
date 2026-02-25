@@ -3,7 +3,6 @@ import { useState } from 'react';
 import { useTranslation } from 'next-i18next';
 
 import Divider from '@Components/Common/divider';
-import CopyIcon from '@app/components/Common/Icons/Common/Copy';
 import { Button } from '@app/shadcn/components/ui/button';
 import { Label } from '@app/shadcn/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@app/shadcn/components/ui/radio-group';
@@ -21,7 +20,7 @@ import { AppInput } from '@app/shadcn/components/ui/input';
 import { useAppSelector } from '@app/store/hooks';
 import { usePatchTemplateSettingsMutation } from '@app/store/template/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
-import { Lock } from 'lucide-react';
+import { Copy, Lock } from 'lucide-react';
 
 
 const TemplateSettings = ({ template, showTitle }: { template: IFormTemplateDto; showTitle: boolean }) => {
@@ -136,7 +135,7 @@ const ShareLinkOptions = ({ adminHost }: { adminHost: string }) => {
                 <AppInput className={'mt-4 mb-2 w-3/4'} disabled value={adminHost} />
             </div>
             <Button variant="secondary" className="gap-2" onClick={handleOnCopy}>
-                <CopyIcon />
+                <Copy />
                 {t('TOOLTIP.COPY_LINK')}
             </Button>
         </div>

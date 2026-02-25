@@ -3,7 +3,6 @@ import { useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
 
-import CopyIcon from '@app/components/Common/Icons/Common/Copy';
 import DeleteIcon from '@app/components/Common/Icons/Common/Delete';
 import EditIcon from '@app/components/Common/Icons/Common/Edit';
 import EllipsisOption from '@app/components/Common/Icons/Common/EllipsisOption';
@@ -11,7 +10,7 @@ import AddMember from '@app/components/Common/Icons/Dashboard/Add-member';
 import Eye from '@app/components/Common/Icons/Form/Eye';
 import Pin from '@app/components/Common/Icons/Form/Pin';
 import Tooltip from '@app/shadcn/components/ui/tooltip';
-import { QrCode } from 'lucide-react';
+import { Copy, QrCode } from 'lucide-react';
 
 import { LinkIcon } from '@app/components/icons/link-icon';
 import { useModal } from '@app/components/modal-views/context';
@@ -217,7 +216,7 @@ export default function FormOptionsDropdownMenu({ workspace, form, hasCustomDoma
             onClick={handleDuplicateFrom}
         >
             <div className="flex items-center justify-center">
-                <CopyIcon width={20} height={20} className={'text-black-600'} />
+                <Copy width={20} height={20} className={'text-black-600'} />
             </div>
             <span>Duplicate form</span>
         </li>

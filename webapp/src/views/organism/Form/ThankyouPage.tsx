@@ -1,7 +1,6 @@
 "use client";
 import Link from 'next/link';
 
-import Copy from '@app/components/Common/Icons/Common/Copy';
 import Logo from '@app/components/ui/logo';
 import { FormSlideLayout } from '@app/models/enums/form';
 import { Button } from '@app/shadcn/components/ui/button';
@@ -14,6 +13,7 @@ import { useFormResponse } from '@app/store/jotai/responderFormResponse';
 import { useResponderState } from '@app/store/jotai/responderFormState';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import UserAvatarDropDown from '@app/views/molecules/UserAvatarDropdown';
+import { Copy } from 'lucide-react';
 import useCopyToClipboard from 'react-use/lib/useCopyToClipboard';
 
 export default function ThankyouPage({ isPreviewMode }: { isPreviewMode: boolean }) {
