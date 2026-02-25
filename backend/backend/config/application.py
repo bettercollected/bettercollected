@@ -15,8 +15,10 @@ from backend.config.coupon_code_settings import CouponCodeSettings
 from backend.config.database import MongoSettings
 from backend.config.events_webhook import EventsWebhook
 from backend.config.https_certificate import HttpsCertificateApiSettings
+from backend.config.google_ai_settings import GoogleAISettings
 from backend.config.OpenAISettings import OpenAISettings
 from backend.config.schedular_settings import SchedularSettings
+from backend.config.unsplash_settings import UnsplashSettings
 from backend.config.sentry_setting import SentrySettings
 from backend.config.template_settings import DefaultResourcesWorkspaceSettings
 from backend.config.temporal_settings import TemporalSettings
@@ -59,6 +61,8 @@ class Application(BaseSettings):
     event_webhook_settings: EventsWebhook = EventsWebhook()
     coupon_settings: CouponCodeSettings = CouponCodeSettings()
     open_ai: OpenAISettings = OpenAISettings()
+    google_ai: GoogleAISettings = GoogleAISettings()
+    unsplash: UnsplashSettings = UnsplashSettings()
     brevo_settings: BrevoSettings = BrevoSettings()
     umami_settings: UmamiSettings = UmamiSettings()
     # All your additional application configuration should go either here or in
