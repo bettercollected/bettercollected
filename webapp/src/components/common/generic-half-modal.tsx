@@ -2,7 +2,7 @@ import { ReactNode } from 'react';
 
 import { useTranslation } from 'next-i18next';
 
-import HeaderModalWrapper from '@app/components/Modals/ModalWrappers/HeaderModalWrapper';
+import HeaderModalWrapper from '@Components/modals/modal-wrapper/header-modal-wrapper';
 import { Button } from '@app/shadcn/components/ui/button';
 
 import { useModal } from '@app/components/modal-views/context';

@@ -3,12 +3,12 @@
 import { useTranslation } from 'next-i18next';
 
 import ZeroElement from '@Components/common/zero-elament';
-import WorkspaceFormResponseDeletionCard from '@app/components/WorkspaceClient/WorkspaceFormResponseDeletionCard';
+import WorkspaceFormResponseDeletionCard from '@Components/workspace-client/workspace-form-response-deletion-card';
 
 import Loader from '@app/components/ui/loader';
 import { formConstant } from '@app/constants/locales/form';
 import { StandardFormResponseDto } from '@app/models/dtos/form';
-import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
+import { WorkspaceDto } from '@app/models/dtos/workspace-dto';
 import { selectAuth } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { useGetWorkspaceSubmissionsQuery } from '@app/store/workspaces/api';

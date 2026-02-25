@@ -1,6 +1,5 @@
-import { useBottomSheetModal } from '@app/components/Modals/Contexts/BottomSheetModalContext';
-import BottomSheetModalWrapper from '@app/components/Modals/ModalWrappers/BottomSheetModalWrapper';
 import { Button } from '@app/shadcn/components/ui/button';
+import BottomSheetModalWrapper from '@Components/modals/modal-wrapper/bottom-sheet-modal-wrapper';
 import { format } from 'date-fns';
 import dayjs from 'dayjs';
 import { Calendar as CalendarIcon } from 'lucide-react';
@@ -9,6 +8,7 @@ import React, { useState } from 'react';
 
 import { Calendar } from '@app/shadcn/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@app/shadcn/components/ui/popover';
+import { useBottomSheetModal } from '@Components/modals/contexts/bottom-sheet-modal-context';
 
 interface IScheduleFormCloseDateModalProps {
     onFormClosedChange: (date: string | moment.Moment) => void;

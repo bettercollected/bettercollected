@@ -4,8 +4,8 @@ import environments from '@app/configs/environments';
 import { StandardFormDto, StandardFormResponseDto, WorkspaceResponderDto } from '@app/models/dtos/form';
 import { ResponderGroupDto } from '@app/models/dtos/groups';
 import { Page } from '@app/models/dtos/page';
-import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
-import { WorkspaceStatsDto } from '@app/models/dtos/workspaceStatsDto';
+import { WorkspaceDto } from '@app/models/dtos/workspace-dto';
+import { WorkspaceStatsDto } from '@app/models/dtos/workspace-stats-dto';
 import { IGetAllSubmissionsQuery, IGetFormSubmissionsQuery, IGetWorkspaceFormQuery, IGetWorkspaceSubmissionQuery, IPatchFormSettingsRequest, ISearchWorkspaceFormsQuery } from '@app/store/workspaces/types';
 
 export const WORKSPACES_REDUCER_PATH = 'workspacesApi';

@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'next-i18next';
 
 
-import { useBottomSheetModal } from '@app/components/Modals/Contexts/BottomSheetModalContext';
 import { Button } from '@app/shadcn/components/ui/button';
 import { Label } from '@app/shadcn/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@app/shadcn/components/ui/radio-group';
@@ -37,9 +36,10 @@ import { selectForm, setFormSettings } from '@app/store/forms/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { usePatchFormSettingsMutation } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
-import { utcToLocalDateTIme } from '@app/utils/dateUtils';
-import getFormShareURL from '@app/utils/formUtils';
-import { validateFormOpen } from '@app/utils/validationUtils';
+import { utcToLocalDateTIme } from '@app/utils/date-utils';
+import getFormShareURL from '@app/utils/form-utils';
+import { validateFormOpen } from '@app/utils/vvalidation-utils';
+import { useBottomSheetModal } from '@Components/modals/contexts/bottom-sheet-modal-context';
 
 interface IFormSettingsTabProps {
     view?: FormSettingsTabView;

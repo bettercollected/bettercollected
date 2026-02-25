@@ -1,7 +1,7 @@
 
-import { FormSlug } from '@app/components/Form/FormSlug';
-import { useBottomSheetModal } from '@app/components/Modals/Contexts/BottomSheetModalContext';
-import BottomSheetModalWrapper from '@app/components/Modals/ModalWrappers/BottomSheetModalWrapper';
+import { FormSlug } from '@Components/form/form-slug';
+import { useBottomSheetModal } from '@Components/modals/contexts/bottom-sheet-modal-context';
+import BottomSheetModalWrapper from '@Components/modals/modal-wrapper/bottom-sheet-modal-wrapper';
 
 
 export interface IFormCreateSlugFullModalViewProps {

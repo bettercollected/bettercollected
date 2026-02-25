@@ -1,7 +1,7 @@
 import parse from 'html-react-parser';
 
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
-import { useFormResponse } from '@app/store/jotai/responderFormResponse';
+import { useFormResponse } from '@app/store/jotai/responder-form-response';
 import { getHtmlFromJson } from '@app/utils/richTextEditorExtenstion/getHtmlFromJson';
 import RequiredIcon from '@app/views/atoms/Icons/Required';
 

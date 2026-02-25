@@ -1,13 +1,13 @@
 import { StandardFormDto, StandardFormFieldDto } from '@app/models/dtos/form';
-import { useFormResponse } from '@app/store/jotai/responderFormResponse';
+import { useFormResponse } from '@app/store/jotai/responder-form-response';
 
 import { AutosizeTextarea } from '@app/shadcn/components/ui/autosize-textarea';
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { IThemeState, useFormState } from '@app/store/jotai/form';
-import { useResponderState } from '@app/store/jotai/responderFormState';
-import { getPlaceholderValueForField } from '@app/utils/formUtils';
-import { scrollToDivById } from '@app/utils/scrollUtils';
+import { useResponderState } from '@app/store/jotai/responder-form-state';
+import { getPlaceholderValueForField } from '@app/utils/form-utils';
+import { scrollToDivById } from '@app/utils/scroll-utils';
 import { useEffect, useState } from 'react';
 import styled from 'styled-components';
 import { useDebounceValue } from 'usehooks-ts';
@@ -16,7 +16,7 @@ import QuestionWrapper from './QuestionQwrapper';
 const StyledAutoSizeTextArea = styled(AutosizeTextarea)<{
     $slide?: StandardFormFieldDto;
     $formTheme?: IThemeState;
-}>(({}) => {
+}>(({ }) => {
     const { theme } = useFormState();
     const themeColor = theme?.tertiary;
     const secondaryColor = theme?.secondary;

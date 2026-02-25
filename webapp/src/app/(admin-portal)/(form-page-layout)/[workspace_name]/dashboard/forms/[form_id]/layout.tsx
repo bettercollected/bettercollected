@@ -1,9 +1,9 @@
 import { notFound } from 'next/navigation';
 import React, { Suspense } from 'react';
-import FormDashboardLayoutClient from './_components/FormDashboardLayoutClient';
+import FormDashboardLayoutClient from './_components/form-dashboard-layout-client';
 
 import environments from '@app/configs/environments';
-import fetchWithCookies from '@app/utils/fetchUtils';
+import fetchWithCookies from '@app/utils/fetch-utils';
 import FullScreenLoader from '@app/views/atoms/Loaders/FullScreenLoader';
 
 export async function generateMetadata(props: { params: Promise<{ workspace_name: string; form_id: string }> }) {

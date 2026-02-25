@@ -1,5 +1,5 @@
 import { getWorkspaceByName } from '@app/app/(admin-portal)/(side-top-nav-layout)/[workspace_name]/dashboard/layout';
-import { WorkspaceDispatcher } from '@app/app/_dispatcher/WorkspaceDispatcher';
+import { WorkspaceDispatcher } from '@app/app/_dispatcher/workspace-dispatcher';
 import environments from '@app/configs/environments';
 import { Alert, AlertDescription, AlertTitle } from '@app/shadcn/components/ui/alert';
 import { AlertCircle } from 'lucide-react';

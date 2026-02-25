@@ -1,6 +1,6 @@
 import { StandardFormFieldDto } from '@app/models/dtos/form';
-import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
 import { Textarea } from '@app/shadcn/components/ui/textarea';
+import useFormFieldsAtom from '@app/store/jotai/field-selectors';
 
 export default function FieldDescription({ field, disabled = false }: { field: StandardFormFieldDto; disabled?: boolean }) {
     const { activeSlide: slide, updateDescription } = useFormFieldsAtom();

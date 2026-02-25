@@ -1,12 +1,12 @@
 'use client';
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@app/shadcn/components/ui/tabs';
-import { useActiveFieldComponent, useActiveSlideComponent } from '@app/store/jotai/activeBuilderComponent';
+import { useActiveFieldComponent, useActiveSlideComponent } from '@app/store/jotai/active-builder-component';
 import FieldSettings from '@app/views/organism/FieldSettings';
 import PageDesignTab from '@app/views/organism/FormBuilder/PageDesignTab';
 import PagePropertiesTab from '@app/views/organism/FormBuilder/PagePropertiesTab';
 
-export default function PropertiesDrawer({}: {}) {
+export default function PropertiesDrawer({ }: {}) {
     const { activeSlideComponent } = useActiveSlideComponent();
     const { activeFieldComponent } = useActiveFieldComponent();
     return (

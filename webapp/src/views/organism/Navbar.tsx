@@ -11,12 +11,12 @@ import { DropdownMenu, DropdownMenuContent } from '@app/shadcn/components/ui/dro
 import { Sheet, SheetClose, SheetContent, SheetFooter, SheetTrigger } from '@app/shadcn/components/ui/sheet';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { selectAuth } from '@app/store/auth/slice';
-import { useActiveSlideComponent } from '@app/store/jotai/activeBuilderComponent';
-import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
+import { useActiveSlideComponent } from '@app/store/jotai/active-builder-component';
+import useFormFieldsAtom from '@app/store/jotai/field-selectors';
 import { useFormState } from '@app/store/jotai/form';
-import { useFormResponse } from '@app/store/jotai/responderFormResponse';
-import { useResponderState } from '@app/store/jotai/responderFormState';
-import { useCreateTemplateFromFormMutation } from '@app/store/redux/templateApi';
+import { useFormResponse } from '@app/store/jotai/responder-form-response';
+import { useResponderState } from '@app/store/jotai/responder-form-state';
+import { useCreateTemplateFromFormMutation } from '@app/store/redux/template-api';
 
 import { AppInput } from '@app/shadcn/components/ui/input';
 import { selectForm } from '@app/store/forms/slice';

@@ -9,7 +9,7 @@ import UpgradeToProModal from '@app/components/modal-views/modals/upgrade-to-pro
 import { Dialog } from '@app/components/ui/dialog';
 import { Transition } from '@app/components/ui/transition';
 
-import { PreviewFullModalView } from './full-screen-modals/v2preview-modal';
+import { PreviewFullModalView } from './full-screen-modals/v2-preview-modal';
 import ViewResponseFullModalView from './full-screen-modals/view-response-full-modal-view';
 
 function renderModalContent(view: FULL_SCREEN_MODALS, modalProps: any) {

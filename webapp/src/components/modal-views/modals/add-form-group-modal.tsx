@@ -18,7 +18,7 @@ import { StandardFormDto } from '@app/models/dtos/form';
 import { ResponderGroupDto } from '@app/models/dtos/groups';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
-import { isFormAlreadyInGroup } from '@app/utils/groupUtils';
+import { isFormAlreadyInGroup } from '@app/utils/group-utils';
 
 interface IAddFormOnGroupProps {
     forms: Array<StandardFormDto>;

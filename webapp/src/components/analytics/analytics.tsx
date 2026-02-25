@@ -2,7 +2,7 @@ import AnalyticsDataTable from '@app/components/analytics/analytics-data-table';
 import BarChart from '@app/components/analytics/bar-chart';
 import Metrics from '@app/components/analytics/metrics';
 import TimeRangeSelector from '@app/components/analytics/time-range';
-import { useFormAnalyticsData } from '@app/store/analytics/analyticsHook';
+import { useFormAnalyticsData } from '@app/store/analytics/analytics-hooks';
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
 import EmptyResponseIcon from '@app/views/atoms/Icons/EmptyResponseIcon';

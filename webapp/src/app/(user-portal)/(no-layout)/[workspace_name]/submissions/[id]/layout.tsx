@@ -1,4 +1,4 @@
-import SharedSubmissionLayoutClient from '@app/components/RespondersPortal/_components/SharedSubmissionLayoutClient';
+import SharedSubmissionLayoutClient from '@Components/responder-portal/shared-submission-layout-client';
 import React from 'react';
 
 

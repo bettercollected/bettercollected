@@ -2,11 +2,11 @@ import { FormSlideLayout } from '@app/models/enums/form';
 import { AutosizeTextarea } from '@app/shadcn/components/ui/autosize-textarea';
 import { Button } from '@app/shadcn/components/ui/button';
 import { cn } from '@app/shadcn/util/lib';
-import { useActiveThankYouPageComponent } from '@app/store/jotai/activeBuilderComponent';
+import { useActiveThankYouPageComponent } from '@app/store/jotai/active-builder-component';
 import { useFormState } from '@app/store/jotai/form';
 
+import { IsValidString } from '@app/utils/string-utils';
 import GreetingLayoutWrapper from '../Layout/GreetingLayoutWrapper';
-import { IsValidString } from '@app/utils/stringUtils';
 
 const ThankYouSlide = ({ disabled }: { disabled?: boolean }) => {
     const { formState, theme, setThankYouPageDescription } = useFormState();

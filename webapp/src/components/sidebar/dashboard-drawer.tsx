@@ -12,12 +12,11 @@ import { useFullScreenModal } from '@app/components/modal-views/full-screen-moda
 import MuiDrawer from '@app/components/sidebar/mui-drawer';
 import NavigationList from '@app/components/sidebar/navigation-list';
 import Logo from '@app/components/ui/logo';
-import WorkspaceMenuDropdown from '@app/components/Workspace/workspace-menu-dropdown';
 import environments from '@app/configs/environments';
 import { pricingPlan } from '@app/constants/locales/pricingplan';
 import { toolTipConstant } from '@app/constants/locales/tooltip';
 import { upgradeConst } from '@app/constants/locales/upgrade';
-import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
+import { WorkspaceDto } from '@app/models/dtos/workspace-dto';
 import { IDrawerProps } from '@app/models/props/navbar';
 import { Progress } from '@app/shadcn/components/ui/progress';
 import { cn } from '@app/shadcn/util/lib';
@@ -26,6 +25,7 @@ import { useAppSelector } from '@app/store/hooks';
 import { useGetWorkspaceStatsQuery } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import Globe from '@app/views/atoms/Icons/Flags/Globe';
+import WorkspaceMenuDropdown from '@Components/workspace/workspace-menu-dropdown';
 
 const GradientBgDiv = ({ className, children }: { className?: string, children: React.ReactNode }) => (
     <div

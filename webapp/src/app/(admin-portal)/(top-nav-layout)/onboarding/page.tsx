@@ -1,7 +1,7 @@
 import environments from '@app/configs/environments';
 import { cookies, headers } from 'next/headers';
 import { notFound, redirect } from 'next/navigation';
-import OnboardingClient from './OnboardingClient';
+import OnboardingClient from './_components/onbaording-client';
 
 async function getWorkspaceByDomain(domain: string) {
     const response = await fetch(`${environments.INTERNAL_DOCKER_API_ENDPOINT_HOST}/workspaces?custom_domain=${domain}`, { cache: 'no-store' });

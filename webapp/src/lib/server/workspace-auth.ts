@@ -1,5 +1,5 @@
 import environments from '@app/configs/environments';
-import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
+import { WorkspaceDto } from '@app/models/dtos/workspace-dto';
 import { cookies } from 'next/headers';
 
 export async function getWorkspaceByServerContext(workspaceName: string) {

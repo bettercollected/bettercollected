@@ -8,7 +8,7 @@ import { cn } from '@app/shadcn/util/lib';
 import { selectAuth } from '@app/store/auth/slice';
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
-import { useResponderState } from '@app/store/jotai/responderFormState';
+import { useResponderState } from '@app/store/jotai/responder-form-state';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import UserAvatarDropDown from '@app/views/molecules/UserAvatarDropdown';
 import { Lock } from 'lucide-react';

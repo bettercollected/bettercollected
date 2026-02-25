@@ -2,9 +2,6 @@
 import { useEffect, useState } from 'react';
 
 import { useModal } from '@app/components/modal-views/context';
-import FloatingPopOverButton from '@app/components/sidebar/FloatingPopOverButton';
-import HelpMenuComponent from '@app/components/sidebar/HelpMenuComponent';
-import HelpMenuItem from '@app/components/sidebar/HelpMenuItem';
 import { formConstant } from '@app/constants/locales/form';
 import { useIsMobile } from '@app/lib/hooks/use-breakpoint';
 import { Button } from '@app/shadcn/components/ui/button';
@@ -15,10 +12,13 @@ import { selectAuth } from '@app/store/auth/slice';
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
-import getFormShareURL from '@app/utils/formUtils';
+import getFormShareURL from '@app/utils/form-utils';
 import { DesktopIcon } from '@app/views/atoms/Icons/DesktopIcon';
 import { MobileIcon } from '@app/views/atoms/Icons/MobileIcon';
 import ShareIcon from '@app/views/atoms/Icons/ShareIcon';
+import FloatingPopOverButton from '@Components/sidebar/floating-pop-over-button';
+import HelpMenuComponent from '@Components/sidebar/help-menu-component';
+import HelpMenuItem from '@Components/sidebar/help-menu-item';
 import { useTranslation } from 'next-i18next';
 import PublishButton from './PublishButton';
 

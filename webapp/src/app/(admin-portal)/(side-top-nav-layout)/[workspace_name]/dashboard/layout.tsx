@@ -2,7 +2,7 @@ import environments from '@app/configs/environments';
 import { cookies, headers } from 'next/headers';
 import { notFound, redirect } from 'next/navigation';
 import React from 'react';
-import WorkspaceDashboardLayout from "./_components/WorkspaceDashboardLayout";
+import WorkspaceDashboardLayout from "./_components/workspace-dashboard-layout";
 
 export async function getWorkspaceByName(name: string) {
     const cookieStore = await cookies();

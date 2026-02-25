@@ -1,5 +1,5 @@
 import environments from '@app/configs/environments';
-import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
+import { WorkspaceDto } from '@app/models/dtos/workspace-dto';
 import { isRedirectError } from 'next/dist/client/components/redirect-error';
 import { cookies, headers } from 'next/headers';
 import { redirect } from 'next/navigation';

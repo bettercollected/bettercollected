@@ -1,5 +1,5 @@
 
-import BottomSheetModalWrapper from '@app/components/Modals/ModalWrappers/BottomSheetModalWrapper';
+import BottomSheetModalWrapper from '@Components/modals/modal-wrapper/bottom-sheet-modal-wrapper';
 
 import SelectGroup from '@app/components/group/select-group';
 

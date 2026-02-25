@@ -23,13 +23,13 @@ import { workspaceConstant } from '@app/constants/locales/workspace';
 import { useGroupMember } from '@app/lib/hooks/use-group-members';
 import { WorkspaceResponderDto } from '@app/models/dtos/form';
 import { ResponderGroupDto } from '@app/models/dtos/groups';
-import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
+import { WorkspaceDto } from '@app/models/dtos/workspace-dto';
 import { Popover, PopoverContent, PopoverTrigger } from '@app/shadcn/components/ui/popover';
 import { selectIsAdmin } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { useGetAllRespondersGroupQuery, useGetWorkspaceRespondersQuery } from '@app/store/workspaces/api';
 import { IGetAllSubmissionsQuery } from '@app/store/workspaces/types';
-import { isEmailInGroup } from '@app/utils/groupUtils';
+import { isEmailInGroup } from '@app/utils/group-utils';
 import { dataTableCustomStyles } from '@Components/datatable/datatable-styles';
 
 const ResponderGroupDropdown = ({

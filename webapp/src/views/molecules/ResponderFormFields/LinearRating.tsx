@@ -4,12 +4,12 @@ import styled from 'styled-components';
 
 import { StandardFormFieldDto } from '@app/models/dtos/form';
 import { useFormState } from '@app/store/jotai/form';
-import { useFormResponse } from '@app/store/jotai/responderFormResponse';
-import { useResponderState } from '@app/store/jotai/responderFormState';
+import { useFormResponse } from '@app/store/jotai/responder-form-response';
+import { useResponderState } from '@app/store/jotai/responder-form-state';
 
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
-import { scrollToDivById } from '@app/utils/scrollUtils';
+import { scrollToDivById } from '@app/utils/scroll-utils';
 import QuestionWrapper from './QuestionQwrapper';
 
 const StyledDiv = styled.div<{

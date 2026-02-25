@@ -1,7 +1,7 @@
 "use client";
 import { simpleDataTableStyles } from '@Components/datatable/datatable-styles';
 import environments from '@app/configs/environments';
-import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
+import { WorkspaceDto } from '@app/models/dtos/workspace-dto';
 import { Button } from '@app/shadcn/components/ui/button';
 import { Skeleton } from '@app/shadcn/components/ui/skeleton';
 import ToolTip from '@app/shadcn/components/ui/tooltip';

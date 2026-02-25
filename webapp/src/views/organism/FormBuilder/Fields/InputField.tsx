@@ -1,8 +1,8 @@
-import FieldInputWrapper from '@app/components/HOCs/FieldInputWrapper';
+import FieldInputWrapper from '@Components/hocs/field-input-wrapper';
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
-import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
+import useFormFieldsAtom from '@app/store/jotai/field-selectors';
 import { useFormState } from '@app/store/jotai/form';
-import { getPlaceholderValueForField } from '@app/utils/formUtils';
+import { getPlaceholderValueForField } from '@app/utils/form-utils';
 
 const InputField = ({ field, slide, disabled }: { field: StandardFormFieldDto; slide: StandardFormFieldDto; disabled: boolean }) => {
     const { updateFieldPlaceholder } = useFormFieldsAtom();

@@ -4,7 +4,7 @@ import { AlertCircle } from 'lucide-react';
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import React from 'react';
-import { WorkspaceDispatcher } from '../../_dispatcher/WorkspaceDispatcher';
+import { WorkspaceDispatcher } from '../../_dispatcher/workspace-dispatcher';
 
 async function getWorkspaceByDomain(domain: string) {
     try {

@@ -2,7 +2,7 @@
 
 import React from 'react';
 
-import { useDialogModal } from '@app/lib/hooks/useDialogModal';
+import { useDialogModal } from '@app/lib/hooks/use-dialog-modal';
 
 import { Separator } from '@app/shadcn/components/ui/separator';
 import { selectForm } from '@app/store/forms/slice';
@@ -19,7 +19,7 @@ interface IUnsplashImagePickerProps {
     [key: string]: any;
 }
 
-export default function UnsplashImagePicker({ initialPhotoSearchQuery = '', onPhotoSelect = (_: any) => {}, ...props }: IUnsplashImagePickerProps) {
+export default function UnsplashImagePicker({ initialPhotoSearchQuery = '', onPhotoSelect = (_: any) => { }, ...props }: IUnsplashImagePickerProps) {
     const [pics, setPics] = React.useState<any[]>([]);
     const [total, setTotal] = React.useState<number | undefined>();
     const [query, setQuery] = React.useState('');
@@ -31,7 +31,7 @@ export default function UnsplashImagePicker({ initialPhotoSearchQuery = '', onPh
 
     const { closeDialogModal } = useDialogModal();
 
-    const updatePageImage = props?.updatePageImage ?? (() => {});
+    const updatePageImage = props?.updatePageImage ?? (() => { });
 
     React.useEffect(() => {
         if (initialPhotoSearchQuery !== '') {

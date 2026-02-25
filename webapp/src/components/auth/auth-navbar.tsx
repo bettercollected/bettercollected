@@ -5,13 +5,13 @@ import { useTranslation } from 'next-i18next';
 import { Button } from '@app/shadcn/components/ui/button';
 
 import AuthAccountMenuDropdown from '@app/components/auth/account-menu-dropdown';
-import ProPlanHoc from '@app/components/HOCs/pro-plan-hoc';
 import Hamburger from '@app/components/ui/hamburger';
 import Logo from '@app/components/ui/logo';
 import { buttonConstant } from '@app/constants/locales/button';
 import { useIsMobile } from '@app/lib/hooks/use-breakpoint';
 import { useIsMounted } from '@app/lib/hooks/use-is-mounted';
 import { useWindowScroll } from '@app/lib/hooks/use-window-scroll';
+import ProPlanHoc from '@Components/hocs/pro-plan-hoc';
 
 
 interface IAuthNavbarProps {

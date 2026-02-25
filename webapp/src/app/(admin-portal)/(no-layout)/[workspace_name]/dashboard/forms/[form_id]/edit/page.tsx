@@ -4,17 +4,17 @@ import { use, useEffect, useState } from 'react';
 
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
-import FloatingPopOverButton from '@app/components/sidebar/FloatingPopOverButton';
-import HelpMenuComponent from '@app/components/sidebar/HelpMenuComponent';
-import HelpMenuItem from '@app/components/sidebar/HelpMenuItem';
-import { useDialogModal } from '@app/lib/hooks/useDialogModal';
+import FloatingPopOverButton from '@Components/sidebar/floating-pop-over-button';
+import HelpMenuComponent from '@Components/sidebar/help-menu-component';
+import HelpMenuItem from '@Components/sidebar/help-menu-item';
+import { useDialogModal } from '@app/lib/hooks/use-dialog-modal';
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
-import { useActiveFieldComponent, useActiveSlideComponent } from '@app/store/jotai/activeBuilderComponent';
-import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
+import { useActiveFieldComponent, useActiveSlideComponent } from '@app/store/jotai/active-builder-component';
+import useFormFieldsAtom from '@app/store/jotai/field-selectors';
 import { useFormState } from '@app/store/jotai/form';
 import { useNavbarState } from '@app/store/jotai/navbar';
-import { deepCopy } from '@app/utils/objectUtils';
+import { deepCopy } from '@app/utils/object-utils';
 import AutoSaveForm from '@app/views/molecules/FormBuilder/AutoSaveForm';
 import LeftDrawer from '@app/views/organism/FormBuilder/LeftDrawer';
 import PropertiesDrawer from '@app/views/organism/FormBuilder/PropertiesDrawer';

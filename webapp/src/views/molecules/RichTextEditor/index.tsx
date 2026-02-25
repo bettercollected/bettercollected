@@ -6,13 +6,13 @@ import StarterKit from '@tiptap/starter-kit';
 
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import { cn } from '@app/shadcn/util/lib';
+import useFormFieldsAtom from '@app/store/jotai/field-selectors';
 import { FontSize } from '@app/utils/richTextEditorExtenstion/fontSize';
 import { getHtmlFromJson } from '@app/utils/richTextEditorExtenstion/getHtmlFromJson';
 import { ArrowDown } from '@app/views/atoms/Icons/ArrowDown';
 import RequiredIcon from '@app/views/atoms/Icons/Required';
 import { useEffect, useRef, useState } from 'react';
 import { useDebounceValue } from 'usehooks-ts';
-import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
 
 export function getPlaceholderValueForTitle(fieldType: FieldTypes) {
     switch (fieldType) {

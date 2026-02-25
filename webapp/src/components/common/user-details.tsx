@@ -1,7 +1,7 @@
 
 import AuthAccountProfileImage from '@app/components/auth/account-profile-image';
-import { UserStatus } from '@app/models/dtos/UserStatus';
-import { getFullNameFromUser } from '@app/utils/userUtils';
+import { UserStatus } from '@app/models/dtos/user-status';
+import { getFullNameFromUser } from '@app/utils/user-utils';
 
 interface IUserDetailsProps {
     user: UserStatus;

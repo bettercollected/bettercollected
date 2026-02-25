@@ -9,7 +9,7 @@ import _ from 'lodash';
 import Billing from '@Components/icons/billing';
 import DashboardIcon from '@Components/icons/dashboard';
 
-import WorkspaceAdminSelector from '@app/components/HOCs/WorkspaceAdminSelector';
+import WorkspaceAdminSelector from '@Components/hocs/workspace-admin-selector';
 
 import AuthAccountProfileImage from '@app/components/auth/account-profile-image';
 import { useModal } from '@app/components/modal-views/context';

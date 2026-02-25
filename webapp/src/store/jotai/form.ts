@@ -3,7 +3,7 @@ import { atom, useAtom } from 'jotai';
 import { ThemeColor } from '@app/constants/theme';
 import { FormSlideLayout } from '@app/models/enums/form';
 
-import { useActiveThankYouPageComponent } from './activeBuilderComponent';
+import { useActiveThankYouPageComponent } from './active-builder-component';
 
 export interface IFormState {
     title: string;

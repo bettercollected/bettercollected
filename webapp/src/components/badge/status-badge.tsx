@@ -1,10 +1,9 @@
-import React from 'react';
 
 import { useTranslation } from 'next-i18next';
 
 import _ from 'lodash';
 
-import { statusProps } from '@app/utils/validationUtils';
+import { statusProps } from '@app/utils/vvalidation-utils';
 
 
 export default function StatusBadge({ status, className = '' }: { status: string; className?: string }) {

@@ -1,15 +1,13 @@
 import { StandardFormFieldDto } from '@app/models/dtos/form';
 import { ScrollArea } from '@app/shadcn/components/ui/scroll-area';
 import { cn } from '@app/shadcn/util/lib';
-import { useActiveFieldComponent, useActiveSlideComponent } from '@app/store/jotai/activeBuilderComponent';
-import { useNavbarState } from '@app/store/jotai/navbar';
+import { useActiveFieldComponent, useActiveSlideComponent } from '@app/store/jotai/active-builder-component';
 
 import AddSlidePopover from './AddSlide/AddSlidePopover';
 import SlideBuilder from './SlideBuilder';
 import SlideOptions from './SlideOptions';
 import ThankYouSlide from './ThankYouPage';
 import WelcomeSlide from './WelcomePage';
-import { AnimatePresence } from 'framer-motion';
 
 function LeftDrawer({ formFields, activeSlideComponent }: { formFields: Array<StandardFormFieldDto>; activeSlideComponent: any }) {
     const { setActiveFieldComponent } = useActiveFieldComponent();

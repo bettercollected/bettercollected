@@ -16,15 +16,15 @@ import { toolTipConstant } from '@app/constants/locales/tooltip';
 import { useIsMobile } from '@app/lib/hooks/use-breakpoint';
 import { useCopyToClipboard } from '@app/lib/hooks/use-copy-to-clipboard';
 import { StandardFormDto } from '@app/models/dtos/form';
-import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
+import { WorkspaceDto } from '@app/models/dtos/workspace-dto';
 import { Popover, PopoverContent, PopoverTrigger } from '@app/shadcn/components/ui/popover';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { setFormSettings } from '@app/store/forms/slice';
 import { useAppDispatch } from '@app/store/hooks';
 import { useDuplicateFormMutation, useGetAllRespondersGroupQuery, usePatchFormSettingsMutation } from '@app/store/workspaces/api';
-import getFormShareURL from '@app/utils/formUtils';
-import { getEditFormURL } from '@app/utils/urlUtils';
-import { validateFormOpen } from '@app/utils/validationUtils';
+import getFormShareURL from '@app/utils/form-utils';
+import { getEditFormURL } from '@app/utils/url-utils';
+import { validateFormOpen } from '@app/utils/vvalidation-utils';
 import AddMember from '@Components/icons/add-member';
 
 interface IFormOptionsDropdownMenuProps {

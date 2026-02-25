@@ -2,15 +2,15 @@ import { useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
 
-import HeaderModalWrapper from '@app/components/Modals/ModalWrappers/HeaderModalWrapper';
+import HeaderModalWrapper from '@Components/modals/modal-wrapper/header-modal-wrapper';
 import { Button } from '@app/shadcn/components/ui/button';
 
 import { useModal } from '@app/components/modal-views/context';
 import { buttonConstant } from '@app/constants/locales/button';
 import { groupConstant } from '@app/constants/locales/group';
-import { handleRegexType } from '@app/models/enums/groupRegex';
+import { handleRegexType } from '@app/models/enums/group-regex';
 import { AppInput } from '@app/shadcn/components/ui/input';
-import { isEmptyString } from '@app/utils/stringUtils';
+import { isEmptyString } from '@app/utils/string-utils';
 import { Label } from '@radix-ui/react-label';
 
 

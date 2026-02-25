@@ -5,19 +5,19 @@ import styled from 'styled-components';
 import { v4 } from 'uuid';
 
 import { StandardFormFieldDto } from '@app/models/dtos/form';
-import { FileMetadata } from '@app/models/types/fieldTypes';
+import { FileMetadata } from '@app/models/types/field-types';
 import { useFormState } from '@app/store/jotai/form';
-import useFormAtom from '@app/store/jotai/formFile';
-import { useFormResponse } from '@app/store/jotai/responderFormResponse';
-import { useResponderState } from '@app/store/jotai/responderFormState';
-import { downloadFile, generateFileMetaData } from '@app/utils/fileUtils';
+import useFormAtom from '@app/store/jotai/form-file';
+import { useFormResponse } from '@app/store/jotai/responder-form-response';
+import { useResponderState } from '@app/store/jotai/responder-form-state';
+import { downloadFile, generateFileMetaData } from '@app/utils/file-utils';
 import DeleteIcon from '@app/views/atoms/Icons/Delete';
 import { FolderUploadIcon } from '@app/views/atoms/Icons/FolderUploadIcon';
 
-import QuestionWrapper from './QuestionQwrapper';
-import { scrollToDivById } from '@app/utils/scrollUtils';
-import { useAppSelector } from '@app/store/hooks';
 import { selectForm } from '@app/store/forms/slice';
+import { useAppSelector } from '@app/store/hooks';
+import { scrollToDivById } from '@app/utils/scroll-utils';
+import QuestionWrapper from './QuestionQwrapper';
 
 const StyledLabel = styled.label<{ $theme: any }>(({ $theme }) => {
     const secondaryColor = $theme?.secondary;

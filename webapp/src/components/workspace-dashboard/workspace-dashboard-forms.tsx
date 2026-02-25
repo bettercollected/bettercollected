@@ -15,7 +15,7 @@ import WorkspaceDashboardFormsCard from '@app/components/workspace-dashboard/wor
 import globalConstants from '@app/constants/global';
 import { localesCommon } from '@app/constants/locales/common';
 import { StandardFormDto } from '@app/models/dtos/form';
-import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
+import { WorkspaceDto } from '@app/models/dtos/workspace-dto';
 import { useAppSelector } from '@app/store/hooks';
 import { useGetWorkspaceFormsQuery, useLazySearchWorkspaceFormsQuery } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';

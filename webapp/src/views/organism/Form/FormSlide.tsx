@@ -1,7 +1,7 @@
 'use client';
 
-import { Controller } from 'react-scrollmagic';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
+import { Controller } from 'react-scrollmagic';
 
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import { FormSlideLayout } from '@app/models/enums/form';
@@ -9,11 +9,11 @@ import { Button } from '@app/shadcn/components/ui/button';
 import { FieldInput } from '@app/shadcn/components/ui/input';
 import { cn } from '@app/shadcn/util/lib';
 import { selectAuth } from '@app/store/auth/slice';
-import useFormAtom from '@app/store/jotai/formFile';
-import { useFormResponse } from '@app/store/jotai/responderFormResponse';
-import { useResponderState } from '@app/store/jotai/responderFormState';
-import { useSubmitResponseMutation } from '@app/store/redux/formApi';
-import { validateSlide } from '@app/utils/validationUtils';
+import useFormAtom from '@app/store/jotai/form-file';
+import { useFormResponse } from '@app/store/jotai/responder-form-response';
+import { useResponderState } from '@app/store/jotai/responder-form-state';
+import { useSubmitResponseMutation } from '@app/store/redux/form-api';
+import { validateSlide } from '@app/utils/vvalidation-utils';
 import FullScreenLoader from '@app/views/atoms/Loaders/FullScreenLoader';
 import DateField from '@app/views/molecules/ResponderFormFields/DateField';
 import DropDownField from '@app/views/molecules/ResponderFormFields/DropDownField';
@@ -30,7 +30,7 @@ import YesNoField from '@app/views/molecules/ResponderFormFields/YesNoField';
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
-import { scrollToDivById } from '@app/utils/scrollUtils';
+import { scrollToDivById } from '@app/utils/scroll-utils';
 import BackButton from '@app/views/molecules/FormBuilder/BackButton';
 import TextAreaField from '@app/views/molecules/ResponderFormFields/TextAreaField';
 import ImageField from '../FormBuilder/Fields/Imagefield';

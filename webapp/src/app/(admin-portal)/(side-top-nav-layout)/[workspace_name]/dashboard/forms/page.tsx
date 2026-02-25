@@ -3,7 +3,7 @@ import { getWorkspaceByServerContext } from '@app/lib/server/workspace-auth';
 import { Metadata } from 'next';
 import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
-import FormsClient from './FormsClient';
+import FormsClient from './_components/form-client';
 
 export async function generateMetadata(
     props: {

@@ -1,7 +1,7 @@
 'use client';
 
-import { useDialogModal } from '@app/lib/hooks/useDialogModal';
-import { useSecondaryDialogModal } from '@app/lib/hooks/useSecondaryDialogModal';
+import { useDialogModal } from '@app/lib/hooks/use-dialog-modal';
+import { useSecondaryDialogModal } from '@app/lib/hooks/use-secondary-dialog-modal';
 import { Skeleton } from '@app/shadcn/components/ui/skeleton';
 import { cn } from '@app/shadcn/util/lib';
 import { useAppSelector } from '@app/store/hooks';

@@ -1,6 +1,6 @@
 'use client';
 
-import FormIntegrations from '@app/components/Form/integrations';
+import FormIntegrations from '@Components/form/integrations';
 
 export default function Page() {
     return <FormIntegrations />;

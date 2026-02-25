@@ -20,7 +20,7 @@ import DashboardDrawer from '@app/components/sidebar/dashboard-drawer';
 import { localesCommon } from '@app/constants/locales/common';
 import { formConstant } from '@app/constants/locales/form';
 import { members } from '@app/constants/locales/members';
-import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
+import { WorkspaceDto } from '@app/models/dtos/workspace-dto';
 import { INavbarItem } from '@app/models/props/navbar';
 import { Popover, PopoverContent } from '@app/shadcn/components/ui/popover';
 import { selectAuth } from '@app/store/auth/slice';
@@ -29,8 +29,8 @@ import { selectWorkspace } from '@app/store/workspaces/slice';
 import { PopoverTrigger } from '@radix-ui/react-popover';
 import { useFullScreenModal } from '../modal-views/full-screen-modal-context';
 import { ProLogo } from '../ui/logo';
-import HelpMenuComponent from './HelpMenuComponent';
-import HelpMenuItem from './HelpMenuItem';
+import HelpMenuComponent from './help-menu-component';
+import HelpMenuItem from './help-menu-item';
 
 interface ISidebarLayout {
     children: any;

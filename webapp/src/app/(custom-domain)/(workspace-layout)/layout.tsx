@@ -1,11 +1,11 @@
-import ResponderPortalLayoutClient from '@app/components/RespondersPortal/_components/ResponderPortalLayoutClient';
+import ResponderPortalLayoutClient from '@Components/responder-portal/responder-portal-layout-client';
 import environments from '@app/configs/environments';
 import { Alert, AlertDescription, AlertTitle } from '@app/shadcn/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import React from 'react';
-import { WorkspaceDispatcher } from '../../_dispatcher/WorkspaceDispatcher';
+import { WorkspaceDispatcher } from '../../_dispatcher/workspace-dispatcher';
 
 async function getWorkspaceByDomain(domain: string) {
     try {

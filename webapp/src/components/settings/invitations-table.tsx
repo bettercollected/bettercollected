@@ -11,12 +11,12 @@ import StatusBadge from '@app/components/badge/status-badge';
 import { localesCommon } from '@app/constants/locales/common';
 import { members } from '@app/constants/locales/members';
 import { toastMessage } from '@app/constants/locales/toast-message';
-import { WorkspaceInvitationDto } from '@app/models/dtos/WorkspaceMembersDto';
 import { Page } from '@app/models/dtos/page';
+import { WorkspaceInvitationDto } from '@app/models/dtos/workspace-member-dto';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { useAppSelector } from '@app/store/hooks';
 import { useInviteToWorkspaceMutation } from '@app/store/workspaces/members-n-invitations-api';
-import { utcToLocalDate, utcToLocalTime } from '@app/utils/dateUtils';
+import { utcToLocalDate, utcToLocalTime } from '@app/utils/date-utils';
 
 interface IInvitationTableProps {
     data: Page<WorkspaceInvitationDto>;

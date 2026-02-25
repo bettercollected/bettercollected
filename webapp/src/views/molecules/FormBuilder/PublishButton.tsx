@@ -1,10 +1,10 @@
-import { useDialogModal } from '@app/lib/hooks/useDialogModal';
+import { useDialogModal } from '@app/lib/hooks/use-dialog-modal';
 import { Button } from '@app/shadcn/components/ui/button';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { selectAuth } from '@app/store/auth/slice';
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
-import { usePublishV2FormMutation } from '@app/store/redux/formApi';
+import { usePublishV2FormMutation } from '@app/store/redux/form-api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { usePathname, useRouter } from 'next/navigation';
 

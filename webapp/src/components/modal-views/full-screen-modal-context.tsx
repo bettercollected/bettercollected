@@ -1,4 +1,4 @@
-import { useBaseModal } from '@app/components/Modals/Contexts/UseBaseModal';
+import { useBaseModal } from '@Components/modals/contexts/use-base-modal';
 import { atom } from 'jotai';
 
 export type FULL_SCREEN_MODALS =

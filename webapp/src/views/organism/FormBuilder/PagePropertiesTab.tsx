@@ -1,21 +1,21 @@
 'use client';
 
-import useGetPageAttributes from '@app/lib/hooks/useGetPageAttributes';
+import useGetPageAttributes from '@app/lib/hooks/use-get-page-attributes';
 import { FormSlideLayout } from '@app/models/enums/form';
 import { Switch } from '@app/shadcn/components/ui/switch';
 import { cn } from '@app/shadcn/util/lib';
-import { useActiveFieldComponent, useActiveSlideComponent, useActiveThankYouPageComponent } from '@app/store/jotai/activeBuilderComponent';
-import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
+import { useActiveFieldComponent, useActiveSlideComponent, useActiveThankYouPageComponent } from '@app/store/jotai/active-builder-component';
+import useFormFieldsAtom from '@app/store/jotai/field-selectors';
 import { useFormState } from '@app/store/jotai/form';
 import { extractTextfromJSON } from '@app/utils/richTextEditorExtenstion/getHtmlFromJson';
 import RequiredIcon from '@app/views/atoms/Icons/Required';
 import { SlideLayoutNoImageLeftAlign } from '@app/views/atoms/Icons/SlideLayoutNoImageLeftAlign';
 
-import { useDialogModal } from '@app/lib/hooks/useDialogModal';
+import { useDialogModal } from '@app/lib/hooks/use-dialog-modal';
 import { FieldTypes } from '@app/models/dtos/form';
 import { selectAuth } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
-import { IsValidString } from '@app/utils/stringUtils';
+import { IsValidString } from '@app/utils/string-utils';
 import DeleteIcon from '@app/views/atoms/Icons/Delete';
 import { PlusIcon } from '@app/views/atoms/Icons/Plus';
 import { SwitchIcon } from '@app/views/atoms/Icons/SwitchIcon';

@@ -1,7 +1,7 @@
 import environments from '@app/configs/environments';
 import { cookies, headers } from 'next/headers';
 import { notFound, redirect } from 'next/navigation';
-import CreatorDashboardClient from './CreatorDashboardClient';
+import CreatorDashboardClient from './_components/creator-dashboard-client';
 import { getWorkspaceByName } from './layout';
 
 export default async function CreatorDashboardPage({ params }: { params: Promise<{ workspace_name: string }> }) {

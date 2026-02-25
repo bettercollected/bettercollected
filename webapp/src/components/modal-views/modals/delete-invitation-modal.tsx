@@ -5,7 +5,7 @@ import { useToast } from '@app/shadcn/components/ui/use-toast';
 
 import { useModal } from '@app/components/modal-views/context';
 import { toastMessage } from '@app/constants/locales/toast-message';
-import { WorkspaceInvitationDto } from '@app/models/dtos/WorkspaceMembersDto';
+import { WorkspaceInvitationDto } from '@app/models/dtos/workspace-member-dto';
 import { useAppSelector } from '@app/store/hooks';
 import { useDeleteWorkspaceInvitationMutation } from '@app/store/workspaces/members-n-invitations-api';
 import { selectWorkspace } from '@app/store/workspaces/slice';

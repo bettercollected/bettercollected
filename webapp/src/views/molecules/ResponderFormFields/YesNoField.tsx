@@ -4,14 +4,14 @@ import { RadioGroup } from '@headlessui/react';
 import styled from 'styled-components';
 
 import { StandardFormFieldDto } from '@app/models/dtos/form';
-import { useFormResponse } from '@app/store/jotai/responderFormResponse';
-import { useResponderState } from '@app/store/jotai/responderFormState';
+import { useFormResponse } from '@app/store/jotai/responder-form-response';
+import { useResponderState } from '@app/store/jotai/responder-form-state';
 import { Check } from '@app/views/atoms/Icons/Check';
 
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { useFormState } from '@app/store/jotai/form';
-import { scrollToDivById } from '@app/utils/scrollUtils';
+import { scrollToDivById } from '@app/utils/scroll-utils';
 import QuestionWrapper from './QuestionQwrapper';
 
 const StyledDiv = styled.div<{ $theme: any }>(({ $theme }) => {

@@ -9,7 +9,7 @@ import { dataTableCustomStyles } from '@Components/datatable/datatable-styles';
 import MemberOptions from '@Components/datatable/member-options';
 import { members } from '@app/constants/locales/members';
 import { useAppSelector } from '@app/store/hooks';
-import { utcToLocalDate, utcToLocalTime } from '@app/utils/dateUtils';
+import { utcToLocalDate, utcToLocalTime } from '@app/utils/date-utils';
 
 const customDataTableStyles = { ...dataTableCustomStyles };
 

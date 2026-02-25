@@ -2,7 +2,6 @@
 import { useTranslation } from 'next-i18next';
 
 import PrivateFormButtonWrapper from '@Components/common/private-form-button-wrapper';
-import { useBottomSheetModal } from '@app/components/Modals/Contexts/BottomSheetModalContext';
 import useCopyToClipboard from 'react-use/lib/useCopyToClipboard';
 
 import Globe from '@app/components/icons/flags/globe';
@@ -14,6 +13,7 @@ import { AppInput } from '@app/shadcn/components/ui/input';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
+import { useBottomSheetModal } from '@Components/modals/contexts/bottom-sheet-modal-context';
 import { Copy } from 'lucide-react';
 
 

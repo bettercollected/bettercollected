@@ -3,7 +3,6 @@
 
 import { useTranslation } from 'next-i18next';
 
-import { useBottomSheetModal } from '@app/components/Modals/Contexts/BottomSheetModalContext';
 import { Button } from '@app/shadcn/components/ui/button';
 
 import AuthAccountProfileImage from '@app/components/auth/account-profile-image';
@@ -11,10 +10,11 @@ import SettingCard from '@app/components/cards/setting-card';
 import { buttonConstant } from '@app/constants/locales/button';
 import { localesCommon } from '@app/constants/locales/common';
 import { profileMenu } from '@app/constants/locales/profile-menu';
-import { UserStatus } from '@app/models/dtos/UserStatus';
+import { UserStatus } from '@app/models/dtos/user-status';
 import { selectAuth } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
-import { getFullNameFromUser } from '@app/utils/userUtils';
+import { getFullNameFromUser } from '@app/utils/user-utils';
+import { useBottomSheetModal } from '@Components/modals/contexts/bottom-sheet-modal-context';
 
 export default function AccountSettings() {
     const { t } = useTranslation();

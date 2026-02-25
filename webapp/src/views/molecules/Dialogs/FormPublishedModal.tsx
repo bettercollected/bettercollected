@@ -6,7 +6,7 @@ import { selectAuth } from '@app/store/auth/slice';
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
-import getFormShareURL from '@app/utils/formUtils';
+import getFormShareURL from '@app/utils/form-utils';
 import GreenCheckedCircle from '@app/views/atoms/Icons/GreenCheckedCircle';
 
 export default function FormPublishedModal(props: any) {

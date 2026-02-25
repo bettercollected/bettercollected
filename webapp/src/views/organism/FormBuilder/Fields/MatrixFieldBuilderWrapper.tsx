@@ -1,8 +1,8 @@
 import { StandardFormFieldDto } from '@app/models/dtos/form';
-import MatrixField from './Matrix';
-import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
 import { cn } from '@app/shadcn/util/lib';
+import useFormFieldsAtom from '@app/store/jotai/field-selectors';
 import { useFormState } from '@app/store/jotai/form';
+import MatrixField from './Matrix';
 
 export default function MatrixFieldBuilderWrapper({ field }: { field: StandardFormFieldDto }) {
     const { theme } = useFormState();

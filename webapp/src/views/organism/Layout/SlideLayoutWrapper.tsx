@@ -4,7 +4,7 @@ import React from 'react';
 
 import { FormTheme } from '@app/constants/theme';
 import { StandardFormFieldDto } from '@app/models/dtos/form';
-import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
+import useFormFieldsAtom from '@app/store/jotai/field-selectors';
 
 import LayoutWrapper from './LayoutWrapper';
 

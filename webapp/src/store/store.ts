@@ -2,7 +2,7 @@ import { combineReducers, configureStore, Reducer } from '@reduxjs/toolkit';
 import { setupListeners } from '@reduxjs/toolkit/query';
 import { persistStore } from 'redux-persist';
 
-import { RESET_STATE_ACTION_TYPE } from '@app/store/actions/resetState';
+import { RESET_STATE_ACTION_TYPE } from '@app/store/actions/reset-state';
 import { authApi } from '@app/store/auth/api';
 import authSlice from '@app/store/auth/slice';
 import { couponCodeApi } from '@app/store/coupon-code/api';
@@ -20,10 +20,10 @@ import mutationStatusSlice from './mutations/slice';
 import { priceSuggestionApi } from './price-suggestion/api';
 
 import { integrationApi } from '@app/store/integrationApi';
-import { templatesApi } from '@app/store/redux/templateApi';
+import { templatesApi } from '@app/store/redux/template-api';
 
-import { formsApi } from '@app/store/redux/formApi';
-import { importApi } from '@app/store/redux/importApi';
+import { formsApi } from '@app/store/redux/form-api';
+import { importApi } from '@app/store/redux/import-api';
 import { analyticsApi } from './analytics/api';
 import { mediaLibraryApi } from './media-library/api';
 // Add more middlewares here

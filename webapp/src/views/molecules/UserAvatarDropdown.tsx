@@ -5,10 +5,10 @@ import { useRouter } from 'next/navigation';
 
 import { ChevronDown, UserRoundPlus } from 'lucide-react';
 
-import { UserStatus } from '@app/models/dtos/UserStatus';
+import { UserStatus } from '@app/models/dtos/user-status';
 import { Popover, PopoverContent, PopoverTrigger } from '@app/shadcn/components/ui/popover';
 import { cn } from '@app/shadcn/util/lib';
-import { useLazyLogOutQuery } from '@app/store/redux/formApi';
+import { useLazyLogOutQuery } from '@app/store/redux/form-api';
 
 import { selectAuth } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';

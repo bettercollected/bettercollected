@@ -1,17 +1,18 @@
 import { Fragment, useCallback } from 'react';
 
-import AddActionToFormModal from '@app/components/Modals/DialogModals/AddActionToFormModal';
-import ImportFormModal from '@app/components/Modals/DialogModals/ImportFormModal';
-import OauthErrorModal from '@app/components/Modals/DialogModals/OauthErrorModal';
-import SearchBySubmissionNumberModal from '@app/components/Modals/DialogModals/SearchBySubmissionNumberModal';
-import UpdateCustomDomainModal from '@app/components/Modals/DialogModals/UpdateCustomDomainModal';
-import UpdateWorkspaceHandle from '@app/components/Modals/DialogModals/UpdateWorkspaceHandle';
+import AddActionToFormModal from '@Components/modals/dialog-modals/add-action-to-form-modal';
+import ImportFormModal from '@Components/modals/dialog-modals/import-form-modal';
+import OauthErrorModal from '@Components/modals/dialog-modals/oauth-error-modal';
+import SearchBySubmissionNumberModal from '@Components/modals/dialog-modals/search-by-submission-modal';
+import UpdateCustomDomainModal from '@Components/modals/dialog-modals/update-custom-domain-modal';
+import UpdateWorkspaceHandle from '@Components/modals/dialog-modals/update-workspace-handle-modal';
 
-import DeleteFormModal from '@app/components/Form/delete-form-modal';
+import DeleteFormModal from '@Components/form/delete-form-modal';
+import GenerateQRModalView from '@Components/modal-views/modals/generate-qr-modal-view';
+import RequestForDeletionView from '@Components/submission-request-for-deletion/submission-request-for-deletion';
 import { Close } from '@app/components/icons/close';
 import LogoutView from '@app/components/logout/logout-view';
 import { MODAL_VIEW, useModal } from '@app/components/modal-views/context';
-import GenerateQRModalView from '@app/components/modal-views/modals/GenrateQRModalView';
 import CloseFormConfirmationModal from '@app/components/modal-views/modals/close-form-confirmation-modal';
 import CustomizeUrlModal from '@app/components/modal-views/modals/customize-url-modal';
 import DeleteCustomDomainModal from '@app/components/modal-views/modals/delete-custom-domain-modal';
@@ -22,7 +23,6 @@ import DeleteTemplateConfirmationModalView from '@app/components/modal-views/mod
 import InviteMemberModal from '@app/components/modal-views/modals/invite-member-modal';
 import ReopenFormConfirmationModal from '@app/components/modal-views/modals/reopen-form-confirmation-modal';
 import ShareModalView from '@app/components/modal-views/modals/share-modal-view';
-import RequestForDeletionView from '@app/components/submission-request-for-deletion';
 import { Dialog } from '@app/components/ui/dialog';
 import { Transition } from '@app/components/ui/transition';
 

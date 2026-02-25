@@ -2,14 +2,14 @@ import React, { useState } from 'react';
 
 import _ from 'lodash';
 
-import CloseModal from '@app/components/Modals/CloseModal';
 import { Checkbox } from '@app/shadcn/components/ui/checkbox';
+import CloseModal from '@Components/common/close-modal';
 import CheckedCircle from '@Components/icons/checked-circle';
 import { Disclosure } from '@headlessui/react';
 
 import { ChevronDown } from '@app/components/icons/chevron-down';
-import ConnectWithProviderButton from '@app/components/Login/login-with-google-button';
 import environments from '@app/configs/environments';
+import ConnectWithProviderButton from '@Components/login/login-with-google-button';
 
 interface ImportErrorViewProps {
     provider: string;

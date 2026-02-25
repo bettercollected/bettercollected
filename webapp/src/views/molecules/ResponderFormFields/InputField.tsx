@@ -1,12 +1,12 @@
 import { FieldTypes, StandardFormDto, StandardFormFieldDto } from '@app/models/dtos/form';
-import { useFormResponse } from '@app/store/jotai/responderFormResponse';
-import { getPlaceholderValueForField } from '@app/utils/formUtils';
+import { useFormResponse } from '@app/store/jotai/responder-form-response';
+import { getPlaceholderValueForField } from '@app/utils/form-utils';
 
-import FieldInputWrapper from '@app/components/HOCs/FieldInputWrapper';
+import FieldInputWrapper from '@Components/hocs/field-input-wrapper';
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
-import { useResponderState } from '@app/store/jotai/responderFormState';
-import { scrollToDivById } from '@app/utils/scrollUtils';
+import { useResponderState } from '@app/store/jotai/responder-form-state';
+import { scrollToDivById } from '@app/utils/scroll-utils';
 import QuestionWrapper from './QuestionQwrapper';
 
 export default function InputField({ field }: { field: StandardFormFieldDto }) {

@@ -4,7 +4,6 @@ import { useTranslation } from 'next-i18next';
 
 import { Close } from '@app/components/icons/close';
 import { useModal } from '@app/components/modal-views/context';
-import HeaderModalWrapper from '@app/components/Modals/ModalWrappers/HeaderModalWrapper';
 import { buttonConstant } from '@app/constants/locales/button';
 import { placeHolder } from '@app/constants/locales/placeholder';
 import { toastMessage } from '@app/constants/locales/toast-message';
@@ -12,6 +11,7 @@ import { ResponderGroupDto } from '@app/models/dtos/groups';
 import { Button } from '@app/shadcn/components/ui/button';
 import { AppInput } from '@app/shadcn/components/ui/input';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
+import HeaderModalWrapper from '@Components/modals/modal-wrapper/header-modal-wrapper';
 import cn from 'classnames';
 import { Plus } from 'lucide-react';
 

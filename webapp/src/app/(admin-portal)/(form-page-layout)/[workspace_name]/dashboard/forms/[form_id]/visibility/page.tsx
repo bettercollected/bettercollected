@@ -1,6 +1,6 @@
 'use client';
 
-import FormVisibilities from '@app/components/Form/visibility';
+import FormVisibilities from '@Components/form/visibility';
 
 export default function Page() {
     return (

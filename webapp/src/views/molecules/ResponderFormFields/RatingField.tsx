@@ -4,14 +4,14 @@ import _ from 'lodash';
 
 import { StandardFormFieldDto } from '@app/models/dtos/form';
 import { useFormState } from '@app/store/jotai/form';
-import { useFormResponse } from '@app/store/jotai/responderFormResponse';
-import { useResponderState } from '@app/store/jotai/responderFormState';
+import { useFormResponse } from '@app/store/jotai/responder-form-response';
+import { useResponderState } from '@app/store/jotai/responder-form-state';
 import { StarIcon } from '@app/views/atoms/Icons/Star';
 
-import QuestionWrapper from './QuestionQwrapper';
-import { useAppSelector } from '@app/store/hooks';
 import { selectForm } from '@app/store/forms/slice';
-import { scrollToDivById } from '@app/utils/scrollUtils';
+import { useAppSelector } from '@app/store/hooks';
+import { scrollToDivById } from '@app/utils/scroll-utils';
+import QuestionWrapper from './QuestionQwrapper';
 
 export default function RatingField({ field, slide, isBuilder = false }: { field: StandardFormFieldDto; slide?: StandardFormFieldDto; isBuilder?: boolean }) {
     const { addFieldRatingAnswer, formResponse } = useFormResponse();

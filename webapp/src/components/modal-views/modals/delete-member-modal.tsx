@@ -6,11 +6,11 @@ import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { useModal } from '@app/components/modal-views/context';
 import { localesCommon } from '@app/constants/locales/common';
 import { toastMessage } from '@app/constants/locales/toast-message';
-import { WorkspaceMembersDto } from '@app/models/dtos/WorkspaceMembersDto';
+import { WorkspaceMembersDto } from '@app/models/dtos/workspace-member-dto';
 import { useAppSelector } from '@app/store/hooks';
 import { useDeleteWorkspaceMemberMutation } from '@app/store/workspaces/members-n-invitations-api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
-import { getFullNameFromUser } from '@app/utils/userUtils';
+import { getFullNameFromUser } from '@app/utils/user-utils';
 
 
 interface IDeleteMemberModalProps {

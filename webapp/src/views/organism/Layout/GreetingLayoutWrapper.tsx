@@ -3,8 +3,8 @@
 import React from 'react';
 
 import { FormTheme } from '@app/constants/theme';
-import useGetPageAttributes from '@app/lib/hooks/useGetPageAttributes';
-import { useActiveSlideComponent } from '@app/store/jotai/activeBuilderComponent';
+import useGetPageAttributes from '@app/lib/hooks/use-get-page-attributes';
+import { useActiveSlideComponent } from '@app/store/jotai/active-builder-component';
 import { useFormState } from '@app/store/jotai/form';
 
 import LayoutWrapper from './LayoutWrapper';

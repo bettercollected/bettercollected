@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 
 
 import SearchInput from '@Components/common/search-input';
-import TabularResponses from '@app/components/Form/TabularResponses';
+import TabularResponses from '@Components/form/tabular-responses';
 
 import Loader from '@app/components/ui/loader';
 import globalConstants from '@app/constants/global';
@@ -17,7 +17,7 @@ import ResponsesTable from './responses-table';
 //@ts-ignore
 import { StandardFormResponseDto } from '@app/models/dtos/form';
 import { selectAuth } from '@app/store/auth/slice';
-import { getAnswerForField, getFormFields, getTitleForHeader } from '@app/utils/formBuilderBlockUtils';
+import { getAnswerForField, getFormFields, getTitleForHeader } from '@app/utils/form-builder-block-utils';
 import { CSVLink } from 'react-csv';
 
 export default function FormResponsesTable({ props }: any) {

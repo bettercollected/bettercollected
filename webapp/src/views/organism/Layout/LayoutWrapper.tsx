@@ -5,7 +5,7 @@ import { useState } from 'react';
 import Image from 'next/image';
 
 import { FormTheme } from '@app/constants/theme';
-import { useDialogModal } from '@app/lib/hooks/useDialogModal';
+import { useDialogModal } from '@app/lib/hooks/use-dialog-modal';
 import { FormSlideLayout } from '@app/models/enums/form';
 import { Button } from '@app/shadcn/components/ui/button';
 import { ScrollArea } from '@app/shadcn/components/ui/scroll-area';

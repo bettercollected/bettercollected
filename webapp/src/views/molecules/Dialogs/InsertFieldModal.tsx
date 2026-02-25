@@ -10,8 +10,8 @@ import { FormSlideLayout } from '@app/models/enums/form';
 import { ScrollArea } from '@app/shadcn/components/ui/scroll-area';
 import { selectAuth } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
-import { useActiveFieldComponent, useActiveSlideComponent } from '@app/store/jotai/activeBuilderComponent';
-import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
+import { useActiveFieldComponent, useActiveSlideComponent } from '@app/store/jotai/active-builder-component';
+import useFormFieldsAtom from '@app/store/jotai/field-selectors';
 import { useNavbarState } from '@app/store/jotai/navbar';
 import styled from 'styled-components';
 

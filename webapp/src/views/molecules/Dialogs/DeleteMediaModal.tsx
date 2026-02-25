@@ -1,5 +1,5 @@
+import { useSecondaryDialogModal } from '@app/lib/hooks/use-secondary-dialog-modal';
 import { Button } from '@app/shadcn/components/ui/button';
-import { useSecondaryDialogModal } from '@app/lib/hooks/useSecondaryDialogModal';
 import { Separator } from '@app/shadcn/components/ui/separator';
 import { useDeletePhotoFromWorkspaceMediaLibraryMutation } from '@app/store/media-library/api';
 

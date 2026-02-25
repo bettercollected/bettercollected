@@ -4,16 +4,16 @@ import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 
 import '@app/assets/css/globals.css';
-import BaseModalContainer from '@app/components/Modals/Containers/BaseModalContainer';
 import environments from '@app/configs/environments';
-import { DialogModalContainer } from '@app/lib/hooks/useDialogModal';
-import { SecondaryDialogModalContainer } from '@app/lib/hooks/useSecondaryDialogModal';
+import { DialogModalContainer } from '@app/lib/hooks/use-dialog-modal';
+import { SecondaryDialogModalContainer } from '@app/lib/hooks/use-secondary-dialog-modal';
 import { Toaster } from '@app/shadcn/components/ui/toaster';
 import { cn } from '@app/shadcn/util/lib';
-import AuthProvider from '@app/shared/hocs/AuthProvider';
-import I18nProvider from '@app/shared/hocs/I18nProvider';
-import ReduxProvider from '@app/shared/hocs/ReduxProvider';
-import ThemeProvider from '@app/shared/hocs/ThemeProvider';
+import AuthProvider from '@app/shared/hocs/auth-provider';
+import I18nProvider from '@app/shared/hocs/i18n-provider';
+import ReduxProvider from '@app/shared/hocs/redux-provider';
+import ThemeProvider from '@app/shared/hocs/theme-provider';
+import BaseModalContainer from '@Components/modals/containers/base-modal-container';
 import Head from 'next/head';
 
 const inter = Inter({ subsets: ['latin'] });

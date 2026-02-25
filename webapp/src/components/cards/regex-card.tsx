@@ -7,11 +7,11 @@ import { useModal } from '@app/components/modal-views/context';
 import { buttonConstant } from '@app/constants/locales/button';
 import { localesCommon } from '@app/constants/locales/common';
 import { groupConstant } from '@app/constants/locales/group';
-import { handleRegexType } from '@app/models/enums/groupRegex';
+import { handleRegexType } from '@app/models/enums/group-regex';
 import { Button } from '@app/shadcn/components/ui/button';
 import { selectIsAdmin } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
-import { isEmptyString } from '@app/utils/stringUtils';
+import { isEmptyString } from '@app/utils/string-utils';
 
 
 interface IRegexCardProps {

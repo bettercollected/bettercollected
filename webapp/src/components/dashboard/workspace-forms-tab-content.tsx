@@ -13,7 +13,7 @@ import Loader from '@app/components/ui/loader';
 import { formConstant } from '@app/constants/locales/form';
 import { workspaceConstant } from '@app/constants/locales/workspace';
 import { StandardFormDto } from '@app/models/dtos/form';
-import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
+import { WorkspaceDto } from '@app/models/dtos/workspace-dto';
 import { useGetWorkspaceFormsQuery, useLazySearchWorkspaceFormsQuery } from '@app/store/workspaces/api';
 
 interface IWorkspaceFormsTabContentProps {

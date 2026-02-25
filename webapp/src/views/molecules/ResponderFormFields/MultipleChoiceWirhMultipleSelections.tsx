@@ -1,6 +1,6 @@
 import { StandardFormFieldDto } from '@app/models/dtos/form';
 import { FieldInput } from '@app/shadcn/components/ui/input';
-import { useFormResponse } from '@app/store/jotai/responderFormResponse';
+import { useFormResponse } from '@app/store/jotai/responder-form-response';
 import Choice from '@app/views/atoms/ResponderFormFields/Choice';
 
 import { selectForm } from '@app/store/forms/slice';

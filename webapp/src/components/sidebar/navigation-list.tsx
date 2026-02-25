@@ -1,10 +1,10 @@
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 
 import { usePathname, useRouter } from 'next/navigation';
 
 import { INavbarItem } from '@app/models/props/navbar';
-import { isValidRelativeURL } from '@app/utils/urlUtils';
 import { cn } from '@app/shadcn/util/lib';
+import { isValidRelativeURL } from '@app/utils/url-utils';
 
 interface INavigationListProps {
     navigationList: Array<INavbarItem>;

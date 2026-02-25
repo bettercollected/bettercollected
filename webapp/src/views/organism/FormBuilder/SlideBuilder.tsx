@@ -2,19 +2,19 @@
 
 import cn from 'classnames';
 
-import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
+import { StandardFormFieldDto } from '@app/models/dtos/form';
 import { FormSlideLayout } from '@app/models/enums/form';
-import { useActiveFieldComponent, useActiveSlideComponent } from '@app/store/jotai/activeBuilderComponent';
-import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
+import { useActiveFieldComponent, useActiveSlideComponent } from '@app/store/jotai/active-builder-component';
+import useFormFieldsAtom from '@app/store/jotai/field-selectors';
 import { useFormState } from '@app/store/jotai/form';
 import { useNavbarState } from '@app/store/jotai/navbar';
+import MoveUpDown from '@app/views/molecules/FormBuilder/MoveUpDown';
 import { AnimatePresence, motion } from 'framer-motion';
 import DeleteIcon from '../../atoms/Icons/Delete';
 import { RichTextEditor } from '../../molecules/RichTextEditor';
 import SlideLayoutWrapper from '../Layout/SlideLayoutWrapper';
 import FieldDescription from './Fields/FieldDescrption';
 import renderFieldWrapper from './Fields/renderField';
-import MoveUpDown from '@app/views/molecules/FormBuilder/MoveUpDown';
 
 const SlideBuilder = ({ slide, isScaledDown = false, disabled = false }: { slide: StandardFormFieldDto; isScaledDown?: boolean; disabled?: boolean }) => {
     const slideFields = slide?.properties?.fields;

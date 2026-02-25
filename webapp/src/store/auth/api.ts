@@ -1,7 +1,7 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 
 import environments from '@app/configs/environments';
-import { UserStatus } from '@app/models/dtos/UserStatus';
+import { UserStatus } from '@app/models/dtos/user-status';
 
 import { AUTH_OTP_TAGS, AUTH_REFRESH_TAG, AUTH_TAG_TYPES, VerifyOtp } from './types';
 

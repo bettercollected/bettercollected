@@ -1,7 +1,6 @@
-import React from 'react';
 
 
-import { ButtonProps } from '@app/models/props/buttonProps';
+import { ButtonProps } from '@app/models/props/button-props';
 
 
 interface HamburgerProps extends ButtonProps {

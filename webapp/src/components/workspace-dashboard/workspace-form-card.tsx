@@ -7,13 +7,13 @@ import Tooltip from '@app/shadcn/components/ui/tooltip';
 import { Pencil, Share2 } from 'lucide-react';
 
 
-import FormProviderIcon from '@Components/Common/Icons/Form/form-provider-icon';
 import PrivateIcon from '@Components/icons/private';
 import PublicIcon from '@Components/icons/public';
 import { Button } from '@app/shadcn/components/ui/button';
 import moment from 'moment/moment';
 
-import FormOptionsDropdownMenu from '@app/components/datatable/form/form-options-dropdown';
+import FormOptionsDropdownMenu from '@Components/datatable/form-options-dropdown';
+import FormProviderIcon from '@Components/icons/form-provider-icon';
 import { GroupIcon } from '@app/components/icons/group-icon';
 import { useModal } from '@app/components/modal-views/context';
 import DeleteDropDown from '@app/components/ui/delete-dropdown';
@@ -23,10 +23,10 @@ import { toolTipConstant } from '@app/constants/locales/tooltip';
 import { useGroupForm } from '@app/lib/hooks/use-group-form';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { ResponderGroupDto } from '@app/models/dtos/groups';
-import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
-import getFormShareURL from '@app/utils/formUtils';
-import { getEditFormURL } from '@app/utils/urlUtils';
-import { validateFormOpen } from '@app/utils/validationUtils';
+import { WorkspaceDto } from '@app/models/dtos/workspace-dto';
+import getFormShareURL from '@app/utils/form-utils';
+import { getEditFormURL } from '@app/utils/url-utils';
+import { validateFormOpen } from '@app/utils/vvalidation-utils';
 
 interface IWorkspaceFormCardProps {
     form: StandardFormDto;

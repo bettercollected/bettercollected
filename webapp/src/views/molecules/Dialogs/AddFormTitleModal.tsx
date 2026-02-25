@@ -2,11 +2,11 @@
 
 import { useState } from 'react';
 
-import { useDialogModal } from '@app/lib/hooks/useDialogModal';
+import { useDialogModal } from '@app/lib/hooks/use-dialog-modal';
 import { Button } from '@app/shadcn/components/ui/button';
 import { Input } from '@app/shadcn/components/ui/input';
-import { useActiveSlideComponent } from '@app/store/jotai/activeBuilderComponent';
-import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
+import { useActiveSlideComponent } from '@app/store/jotai/active-builder-component';
+import useFormFieldsAtom from '@app/store/jotai/field-selectors';
 import { useFormState } from '@app/store/jotai/form';
 
 export default function AddFormTitleModal() {

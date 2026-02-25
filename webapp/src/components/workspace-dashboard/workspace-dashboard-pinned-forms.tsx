@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next';
 import Loader from '@app/components/ui/loader';
 import WorkspaceDashboardFormsCard from '@app/components/workspace-dashboard/workspace-dashboard-form-cards';
 import { localesCommon } from '@app/constants/locales/common';
-import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
+import { WorkspaceDto } from '@app/models/dtos/workspace-dto';
 import NewFormButton from '@app/views/atoms/NewFormButton';
 import { useRouter } from 'next/navigation';
 

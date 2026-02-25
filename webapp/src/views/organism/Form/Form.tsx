@@ -2,7 +2,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 
 import { Progress } from '@app/shadcn/components/ui/progress';
 import { cn } from '@app/shadcn/util/lib';
-import { useResponderState } from '@app/store/jotai/responderFormState';
+import { useResponderState } from '@app/store/jotai/responder-form-state';
 
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';

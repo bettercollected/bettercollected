@@ -2,12 +2,10 @@ import { useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
 
-import { useBottomSheetModal } from '@app/components/Modals/Contexts/BottomSheetModalContext';
 import { Button } from '@app/shadcn/components/ui/button';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 import DataTable from 'react-data-table-component';
 
-import { dataTableCustomStyles } from '@Components/datatable/datatable-styles';
 import { GroupIcon } from '@app/components/icons/group-icon';
 import SaveIcon from '@app/components/icons/save';
 import { useModal } from '@app/components/modal-views/context';
@@ -20,6 +18,8 @@ import { selectForm, setForm } from '@app/store/forms/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { useGetAllRespondersGroupQuery, usePatchFormSettingsMutation } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
+import { dataTableCustomStyles } from '@Components/datatable/datatable-styles';
+import { useBottomSheetModal } from '@Components/modals/contexts/bottom-sheet-modal-context';
 
 const SelectGroup = () => {
     const { toast } = useToast();

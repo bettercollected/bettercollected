@@ -3,7 +3,6 @@
 import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/navigation';
 
-import { useBottomSheetModal } from '@app/components/Modals/Contexts/BottomSheetModalContext';
 import { Button } from '@app/shadcn/components/ui/button';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 import DataTable from 'react-data-table-component';
@@ -17,11 +16,12 @@ import { localesCommon } from '@app/constants/locales/common';
 import { groupConstant } from '@app/constants/locales/group';
 import { toastMessage } from '@app/constants/locales/toast-message';
 import { ResponderGroupDto } from '@app/models/dtos/groups';
-import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
+import { WorkspaceDto } from '@app/models/dtos/workspace-dto';
 import { selectIsAdmin } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { useDeleteResponderGroupMutation, useGetAllRespondersGroupQuery } from '@app/store/workspaces/api';
 import { dataTableCustomStyles } from '@Components/datatable/datatable-styles';
+import { useBottomSheetModal } from '@Components/modals/contexts/bottom-sheet-modal-context';
 
 const customGroupTableStyles: any = { ...dataTableCustomStyles };
 

@@ -6,7 +6,7 @@ import Divider from '@Components/common/divider';
 
 import { Close } from '@app/components/icons/close';
 import { useModal } from '@app/components/modal-views/context';
-import { useBottomSheetModal } from '@app/components/Modals/Contexts/BottomSheetModalContext';
+import { useBottomSheetModal } from '@Components/modals/contexts/bottom-sheet-modal-context';
 
 interface IVisibilityConfirmationModalViewProps {
     visibilityType: string;

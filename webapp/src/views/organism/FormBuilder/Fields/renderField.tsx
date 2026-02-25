@@ -3,9 +3,9 @@ import DateField from '@app/views/molecules/ResponderFormFields/DateField';
 import LinearRatingField from '@app/views/molecules/ResponderFormFields/LinearRating';
 import RatingField from '@app/views/molecules/ResponderFormFields/RatingField';
 
-import { useDialogModal } from '@app/lib/hooks/useDialogModal';
+import { useDialogModal } from '@app/lib/hooks/use-dialog-modal';
 import { cn } from '@app/shadcn/util/lib';
-import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
+import useFormFieldsAtom from '@app/store/jotai/field-selectors';
 import DeleteIcon from '@app/views/atoms/Icons/Delete';
 import { SwitchIcon } from '@app/views/atoms/Icons/SwitchIcon';
 import Image from 'next/image';

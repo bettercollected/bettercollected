@@ -20,7 +20,7 @@ import { Button } from '@app/shadcn/components/ui/button';
 import { selectAuth } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
-import { utcToLocalDateTIme } from '@app/utils/dateUtils';
+import { utcToLocalDateTIme } from '@app/utils/date-utils';
 
 const responseTableStyles = {
     ...dataTableCustomStyles,
@@ -48,7 +48,7 @@ interface IResponsetableProps {
 
 import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
 import { useLazyGetWorkspaceSubmissionQuery } from '@app/store/workspaces/api';
-import { getFormFields } from '@app/utils/formBuilderBlockUtils';
+import { getFormFields } from '@app/utils/form-builder-block-utils';
 
 const ResponsesTable = ({ requestForDeletion, submissions, formId, page, setPage }: IResponsetableProps) => {
     const { openModal } = useFullScreenModal();

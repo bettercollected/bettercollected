@@ -1,6 +1,6 @@
 import Divider from '@Components/common/divider';
 import { StandardFormFieldDto } from '@app/models/dtos/form';
-import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
+import useFormFieldsAtom from '@app/store/jotai/field-selectors';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 
 export default function MoveUpDown({ field, slideIndex }: { field: StandardFormFieldDto; slideIndex: number }) {
