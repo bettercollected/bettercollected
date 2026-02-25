@@ -7,7 +7,6 @@ import Tooltip from '@app/shadcn/components/ui/tooltip';
 import Divider from '@Components/Common/divider';
 
 import AuthAccountProfileImage from '@app/components/auth/account-profile-image';
-import Chevron from '@app/components/Common/Icons/Common/Chevron';
 import { Check } from '@app/components/icons/check';
 import { Plus } from '@app/components/icons/plus';
 import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
@@ -23,6 +22,7 @@ import { useGetAllMineWorkspacesQuery } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { generateRandomBgColor } from '@app/utils/backgroundColors';
 import { toEndDottedStr, trimTooltipTitle } from '@app/utils/stringUtils';
+import { ChevronRight } from 'lucide-react';
 
 
 interface IWorkspaceMenuDropdownProps {
@@ -103,7 +103,7 @@ export default function WorkspaceMenuDropdown({ fullWidth }: IWorkspaceMenuDropd
                     </div>
                     {showExpandMore && (
                         <div className={`${open ? '!rotate-180' : '!-rotate-0'} transition-all duration-300`}>
-                            <Chevron />
+                            <ChevronRight />
                         </div>
                     )}
                 </div>

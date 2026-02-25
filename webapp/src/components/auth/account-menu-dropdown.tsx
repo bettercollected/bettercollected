@@ -5,7 +5,6 @@ import { useTranslation } from 'next-i18next';
 
 import _ from 'lodash';
 
-import Chevron from '@app/components/Common/Icons/Common/Chevron';
 import SettingsIcon from '@app/components/Common/Icons/Common/Settings';
 import Billing from '@app/components/Common/Icons/Dashboard/Billing';
 import DashboardIcon from '@app/components/Common/Icons/Dashboard/Dashboard';
@@ -24,6 +23,7 @@ import { useGetStatusQuery } from '@app/store/auth/api';
 import { setAuth } from '@app/store/auth/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
+import { ChevronRight } from 'lucide-react';
 
 interface IAuthAccountMenuDropdownProps {
     isClientDomain?: boolean;
@@ -91,7 +91,7 @@ export default function AuthAccountMenuDropdown({ isClientDomain, fullWidth, hid
                     <span className="flex items-center gap-2">{newMenuContent}</span>
                     {shouldShowExpandMore && (
                         <div className={`${open ? '!rotate-180' : '!-rotate-0'} transition-all duration-300`}>
-                            <Chevron />
+                            <ChevronRight />
                         </div>
                     )}
                 </div>
