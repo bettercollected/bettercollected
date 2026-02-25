@@ -1,6 +1,6 @@
 'use client';
 
-import FormAnalyticsDashboard from '@app/Components/Form/analyticsDashboard';
+import FormAnalyticsDashboard from '@app/components/Form/analyticsDashboard';
 
 export default function Page() {
     return (

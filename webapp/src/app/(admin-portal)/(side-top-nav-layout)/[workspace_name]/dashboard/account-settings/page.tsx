@@ -1,14 +1,13 @@
 "use client";
 
-import React from 'react';
 
 import { useTranslation } from 'next-i18next';
 
-import { useBottomSheetModal } from '@Components/Modals/Contexts/BottomSheetModalContext';
+import { useBottomSheetModal } from '@app/components/Modals/Contexts/BottomSheetModalContext';
 import { Button } from '@app/shadcn/components/ui/button';
 
-import AuthAccountProfileImage from '@app/Components/auth/account-profile-image';
-import SettingCard from '@Components/cards/setting-card';
+import AuthAccountProfileImage from '@app/components/auth/account-profile-image';
+import SettingCard from '@app/components/cards/setting-card';
 import { buttonConstant } from '@app/constants/locales/button';
 import { localesCommon } from '@app/constants/locales/common';
 import { profileMenu } from '@app/constants/locales/profile-menu';

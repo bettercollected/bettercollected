@@ -1,7 +1,6 @@
 'use client';
 
-import React from 'react';
-import SubmissionSettingsContent from '@Components/RespondersPortal/_components/SubmissionSettingsContent';
+import SubmissionSettingsContent from '@app/components/RespondersPortal/_components/SubmissionSettingsContent';
 
 export default function SubmissionUUIDSettingsPage() {
     return <SubmissionSettingsContent />;

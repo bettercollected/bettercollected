@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useEffect } from 'react';
 import { useTranslation } from 'next-i18next';
+import { useEffect, useState } from 'react';
 
-import SearchInput from '@Components/Common/Search/SearchInput';
+import SearchInput from '@app/components/Common/Search/SearchInput';
 
-import ResponsesTable from '@app/Components/datatable/responses';
-import Loader from '@app/Components/ui/loader';
+import ResponsesTable from '@app/components/datatable/responses';
+import Loader from '@app/components/ui/loader';
 import globalConstants from '@app/constants/global';
 import { localesCommon } from '@app/constants/locales/common';
 import { formConstant } from '@app/constants/locales/form';

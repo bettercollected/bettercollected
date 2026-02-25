@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 
-import MembersIcon from '@Components/Common/Icons/Dashboard/Members';
+import MembersIcon from '@app/components/Common/Icons/Dashboard/Members';
 import { members } from '@app/constants/locales/members';
 
 export default function MembersLayout({

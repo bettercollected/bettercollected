@@ -5,19 +5,20 @@ import { usePathname, useRouter } from 'next/navigation';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 
-import AuthAccountMenuDropdown from '@app/Components/auth/account-menu-dropdown';
-import Globe from '@app/Components/icons/flags/globe';
-import { TemplateIcon } from '@app/Components/icons/template';
-import { useFullScreenModal } from '@app/Components/modal-views/full-screen-modal-context';
-import DashboardDrawer from '@app/Components/sidebar/DashboardDrawer';
-import HelpMenuComponent from '@app/Components/sidebar/HelpMenuComponent';
-import HelpMenuItem from '@app/Components/sidebar/HelpMenuItem';
-import { ProLogo } from '@app/Components/ui/logo';
-import DeleteIcon from '@Components/Common/Icons/Common/Delete';
-import MembersIcon from '@Components/Common/Icons/Dashboard/Members';
-import ResponderIcon from '@Components/Common/Icons/Dashboard/Responder';
-import { FormIcon } from '@Components/Common/Icons/Form/FormIcon';
+import AuthAccountMenuDropdown from '@app/components/auth/account-menu-dropdown';
+import DeleteIcon from '@app/components/Common/Icons/Common/Delete';
+import MembersIcon from '@app/components/Common/Icons/Dashboard/Members';
+import ResponderIcon from '@app/components/Common/Icons/Dashboard/Responder';
+import { FormIcon } from '@app/components/Common/Icons/Form/FormIcon';
+import Globe from '@app/components/icons/flags/globe';
+import { TemplateIcon } from '@app/components/icons/template';
+import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
+import DashboardDrawer from '@app/components/sidebar/DashboardDrawer';
+import HelpMenuComponent from '@app/components/sidebar/HelpMenuComponent';
+import HelpMenuItem from '@app/components/sidebar/HelpMenuItem';
+import { ProLogo } from '@app/components/ui/logo';
 
+import AuthNavbar from '@app/components/auth/auth-navbar';
 import { localesCommon } from '@app/constants/locales/common';
 import { formConstant } from '@app/constants/locales/form';
 import { members } from '@app/constants/locales/members';
@@ -27,7 +28,6 @@ import { cn } from '@app/shadcn/util/lib';
 import { selectAuth } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
-import AuthNavbar from '@Components/auth/auth-navbar';
 
 const WorkspaceDashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const drawerWidth = 289;

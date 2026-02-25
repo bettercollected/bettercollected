@@ -5,12 +5,12 @@ import { FormEvent, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslation } from 'react-i18next';
 
-import UploadLogo from '@Components/Common/UploadLogo';
+import UploadLogo from '@app/components/Common/UploadLogo';
 import { Button } from '@app/shadcn/components/ui/button';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 
-import AuthNavbar from '@Components/auth/auth-navbar';
-import TextFieldHandler from '@app/Components/onboarding/TextFieldHandler';
+import AuthNavbar from '@app/components/auth/auth-navbar';
+import TextFieldHandler from '@app/components/onboarding/TextFieldHandler';
 import { onBoarding } from '@app/constants/locales/onboarding-screen';
 import { toastMessage } from '@app/constants/locales/toast-message';
 import { UserStatus } from '@app/models/dtos/UserStatus';

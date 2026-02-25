@@ -1,7 +1,6 @@
 'use client';
 
-import React from 'react';
-import WorkspaceFormsTabContent from '@Components/dashboard/workspace-forms-tab-content';
+import WorkspaceFormsTabContent from '@app/components/dashboard/workspace-forms-tab-content';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 

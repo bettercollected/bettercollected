@@ -5,7 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import Logo from '@app/Components/ui/logo';
+import Logo from '@app/components/ui/logo';
 import { localesCommon } from '@app/constants/locales/common';
 import { signInScreen } from '@app/constants/locales/signin-screen';
 import { signUpScreen } from '@app/constants/locales/signup-screen';

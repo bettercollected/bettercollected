@@ -1,6 +1,6 @@
 'use client';
 
-import TemplateSection from '@Components/Template/TemplateSection';
+import TemplateSection from '@app/components/Template/TemplateSection';
 import { selectAuth } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { useGetTemplatesQuery } from '@app/store/template/api';

@@ -6,9 +6,9 @@ import { usePathname, useRouter } from 'next/navigation';
 import React, { useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import Divider from '@Components/Common/DataDisplay/Divider';
-import PrivateFormButtonWrapper from '@Components/Common/FormVisibility/PrivateFormButtonWrapper';
-import FormProviderIcon from '@Components/Common/Icons/Form/FormProviderIcon';
+import Divider from '@app/components/Common/DataDisplay/Divider';
+import PrivateFormButtonWrapper from '@app/components/Common/FormVisibility/PrivateFormButtonWrapper';
+import FormProviderIcon from '@app/components/Common/Icons/Form/FormProviderIcon';
 import {
     BarChart,
     Blocks,
@@ -23,8 +23,9 @@ import {
     Trash2
 } from 'lucide-react';
 
-import { useModal } from '@app/Components/modal-views/context';
-import { useFullScreenModal } from '@app/Components/modal-views/full-screen-modal-context';
+import { useModal } from '@app/components/modal-views/context';
+import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
+import FullScreenLoader from '@app/components/ui/fullscreen-loader';
 import { localesCommon } from '@app/constants/locales/common';
 import { formConstant } from '@app/constants/locales/form';
 import { formPage } from '@app/constants/locales/form-page';
@@ -39,7 +40,6 @@ import getFormShareURL from '@app/utils/formUtils';
 import { getEditFormURL } from '@app/utils/urlUtils';
 import { validateFormOpen } from '@app/utils/validationUtils';
 import PublishButton from '@app/views/molecules/FormBuilder/PublishButton';
-import FullScreenLoader from '@Components/ui/fullscreen-loader';
 
 export default function FormDashboardLayoutClient({
     form,

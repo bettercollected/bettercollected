@@ -9,7 +9,7 @@ import { Button } from '@app/shadcn/components/ui/button';
 import { Input } from '@app/shadcn/components/ui/input';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 
-import { useFullScreenModal } from '@app/Components/modal-views/full-screen-modal-context';
+import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
 import { formResponderLogin } from '@app/constants/locales/form-responder-login';
 import { signInScreen } from '@app/constants/locales/signin-screen';
 import { usePostSendOtpMutation, usePostVerifyOtpMutation } from '@app/store/auth/api';

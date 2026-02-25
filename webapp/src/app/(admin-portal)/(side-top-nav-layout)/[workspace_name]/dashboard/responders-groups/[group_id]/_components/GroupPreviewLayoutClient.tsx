@@ -1,23 +1,23 @@
 'use client';
 
-import React from 'react';
+import cn from 'classnames';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import cn from 'classnames';
+import React from 'react';
 import { useTranslation } from 'react-i18next';
 
-import MembersIcon from '@Components/Common/Icons/Dashboard/Members';
-import { FormIcon } from '@Components/Common/Icons/Form/FormIcon';
+import MembersIcon from '@app/components/Common/Icons/Dashboard/Members';
+import { FormIcon } from '@app/components/Common/Icons/Form/FormIcon';
 
+import BreadcrumbsRenderer from '@app/components/Form/renderer/breadcrumbs-renderer';
+import Loader from '@app/components/ui/loader';
+import { localesCommon } from '@app/constants/locales/common';
 import { groupConstant } from '@app/constants/locales/group';
 import { members } from '@app/constants/locales/members';
-import { localesCommon } from '@app/constants/locales/common';
-import BreadcrumbsRenderer from '@app/Components/Form/renderer/breadcrumbs-renderer';
 import { BreadcrumbsItem } from '@app/models/props/breadcrumbs-item';
-import { useGetRespondersGroupQuery } from '@app/store/workspaces/api';
 import { useAppSelector } from '@app/store/hooks';
+import { useGetRespondersGroupQuery } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
-import Loader from '@app/Components/ui/loader';
 import { Users } from 'lucide-react';
 
 interface GroupPreviewLayoutClientProps {

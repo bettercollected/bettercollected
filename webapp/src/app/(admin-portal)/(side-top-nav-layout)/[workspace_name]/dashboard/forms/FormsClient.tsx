@@ -1,7 +1,7 @@
 'use client';
 
-import WorkspaceDashboardForms from '@app/Components/workspace-dashboard/workspace-dashboard-forms';
-import WorkspaceDashboardPinnedForms from '@app/Components/workspace-dashboard/workspace-dashboard-pinned-forms';
+import WorkspaceDashboardForms from '@app/components/workspace-dashboard/workspace-dashboard-forms';
+import WorkspaceDashboardPinnedForms from '@app/components/workspace-dashboard/workspace-dashboard-pinned-forms';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { useAppSelector } from '@app/store/hooks';
 import { useGetWorkspaceFormsQuery } from '@app/store/workspaces/api';

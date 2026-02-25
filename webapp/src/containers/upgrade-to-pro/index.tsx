@@ -4,8 +4,8 @@ import { useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
 
-import { useFullScreenModal } from '@app/Components/modal-views/full-screen-modal-context';
-import Logo, { ProLogo } from '@app/Components/ui/logo';
+import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
+import Logo, { ProLogo } from '@app/components/ui/logo';
 import { upgradeConst } from '@app/constants/locales/upgrade';
 import { Button } from '@app/shadcn/components/ui/button';
 import { useToast } from '@app/shadcn/components/ui/use-toast';

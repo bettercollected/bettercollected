@@ -10,7 +10,7 @@ import { Input } from '@app/shadcn/components/ui/input';
 import { Separator } from '@app/shadcn/components/ui/separator';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 
-import ConnectWithProviderButton from '@app/Components/Login/login-with-google-button';
+import ConnectWithProviderButton from '@app/components/Login/login-with-google-button';
 import environments from '@app/configs/environments';
 import { formResponderLogin } from '@app/constants/locales/form-responder-login';
 import { signInScreen } from '@app/constants/locales/signin-screen';

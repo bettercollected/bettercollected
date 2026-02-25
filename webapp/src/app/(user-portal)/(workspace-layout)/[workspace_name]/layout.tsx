@@ -1,6 +1,6 @@
 import { getWorkspaceByName } from '@app/app/(admin-portal)/(side-top-nav-layout)/[workspace_name]/dashboard/layout';
 import { WorkspaceDispatcher } from '@app/app/_dispatcher/WorkspaceDispatcher';
-import ResponderPortalLayoutClient from '@Components/RespondersPortal/_components/ResponderPortalLayoutClient';
+import ResponderPortalLayoutClient from '@app/components/RespondersPortal/_components/ResponderPortalLayoutClient';
 import React from 'react';
 
 export default async function ResponderPortalLayout({

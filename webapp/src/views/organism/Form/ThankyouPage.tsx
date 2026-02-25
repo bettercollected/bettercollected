@@ -1,8 +1,8 @@
 "use client";
 import Link from 'next/link';
 
-import Copy from '@Components/Common/Icons/Common/Copy';
-import Logo from '@app/Components/ui/logo';
+import Copy from '@app/components/Common/Icons/Common/Copy';
+import Logo from '@app/components/ui/logo';
 import { FormSlideLayout } from '@app/models/enums/form';
 import { Button } from '@app/shadcn/components/ui/button';
 import { useToast } from '@app/shadcn/components/ui/use-toast';

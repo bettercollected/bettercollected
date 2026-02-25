@@ -1,6 +1,6 @@
 'use client';
 
-import WorkspaceResponsesTabContent from '@Components/dashboard/workspace-responses-tab-content';
+import WorkspaceResponsesTabContent from '@app/components/dashboard/workspace-responses-tab-content';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 

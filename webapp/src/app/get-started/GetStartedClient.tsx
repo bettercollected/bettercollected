@@ -6,8 +6,8 @@ import { useTranslation } from 'next-i18next';
 import Image from "next/image";
 import { useRouter } from 'next/navigation';
 
+import GetStartedStepper from '@app/components/GetStarted/Stepper';
 import { Button } from '@app/shadcn/components/ui/button';
-import GetStartedStepper from '@Components/GetStarted/Stepper';
 import cn from 'classnames';
 
 import GetStartedDataRights from '@app/assets/images/getstarted-datarights.png';
@@ -15,8 +15,8 @@ import GetStartedFormBrand from '@app/assets/images/getstarted-formbrand.png';
 import GetStartedProvidersImage from '@app/assets/images/getstarted-providers.png';
 import UserFitImage from '@app/assets/images/happy.png';
 import UserNotFitImage from '@app/assets/images/sad.png';
-import ActiveLink from '@app/Components/ui/links/active-link';
-import Logo from '@app/Components/ui/logo';
+import ActiveLink from '@app/components/ui/links/active-link';
+import Logo from '@app/components/ui/logo';
 import { buttonConstant } from '@app/constants/locales/button';
 import { getStarted } from '@app/constants/locales/get-started';
 import TopNavLayout from '@app/layouts/top-navbar-layout';

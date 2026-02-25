@@ -3,11 +3,11 @@
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { useTranslation } from 'react-i18next';
 
-import { useBottomSheetModal } from '@Components/Modals/Contexts/BottomSheetModalContext';
-import WorkspaceDetailsCard from '@Components/RespondersPortal/WorkspaceDetailsCard';
-import { ProLogo } from '@app/Components/ui/logo';
-import WorkspaceDashboardForms from '@app/Components/workspace-dashboard/workspace-dashboard-forms';
-import WorkspaceDashboardPinnedForms from '@app/Components/workspace-dashboard/workspace-dashboard-pinned-forms';
+import { useBottomSheetModal } from '@app/components/Modals/Contexts/BottomSheetModalContext';
+import WorkspaceDetailsCard from '@app/components/RespondersPortal/WorkspaceDetailsCard';
+import { ProLogo } from '@app/components/ui/logo';
+import WorkspaceDashboardForms from '@app/components/workspace-dashboard/workspace-dashboard-forms';
+import WorkspaceDashboardPinnedForms from '@app/components/workspace-dashboard/workspace-dashboard-pinned-forms';
 import { Button } from '@app/shadcn/components/ui/button';
 import { useAppSelector } from '@app/store/hooks';
 import { useGetWorkspaceFormsQuery } from '@app/store/workspaces/api';

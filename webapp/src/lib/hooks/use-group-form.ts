@@ -3,8 +3,8 @@ import { usePathname, useRouter } from 'next/navigation';
 
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 
-import { useModal } from '@app/Components/modal-views/context';
-import { useFullScreenModal } from '@app/Components/modal-views/full-screen-modal-context';
+import { useModal } from '@app/components/modal-views/context';
+import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
 import { toastMessage } from '@app/constants/locales/toast-message';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { ResponderGroupDto } from '@app/models/dtos/groups';

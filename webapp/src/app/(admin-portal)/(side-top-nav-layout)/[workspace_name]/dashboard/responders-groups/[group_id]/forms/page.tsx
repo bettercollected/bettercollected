@@ -1,11 +1,10 @@
 'use client';
 
-import React from 'react';
+import GroupFormsTab from '@app/components/group-preview/forms';
+import Loader from '@app/components/ui/loader';
 import { useAppSelector } from '@app/store/hooks';
-import { selectWorkspace } from '@app/store/workspaces/slice';
 import { useGetRespondersGroupQuery, useGetWorkspaceFormsQuery } from '@app/store/workspaces/api';
-import GroupFormsTab from '@app/Components/group-preview/forms';
-import Loader from '@app/Components/ui/loader';
+import { selectWorkspace } from '@app/store/workspaces/slice';
 import { useParams } from 'next/navigation';
 
 export default function GroupFormsPage() {

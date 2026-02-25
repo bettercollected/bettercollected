@@ -2,10 +2,10 @@
 
 import { useEffect } from 'react';
 
+import AuthStatusDispatcher from '@app/components/HOCs/AuthStatusDispatcher';
+import FullScreenLoader from '@app/components/ui/fullscreen-loader';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { selectWorkspace, setWorkspace } from '@app/store/workspaces/slice';
-import AuthStatusDispatcher from '@Components/HOCs/AuthStatusDispatcher';
-import FullScreenLoader from '@Components/ui/fullscreen-loader';
 
 export function WorkspaceDispatcher({ workspace, children }: { workspace: any; children: React.ReactNode }) {
     const dispatch = useAppDispatch();

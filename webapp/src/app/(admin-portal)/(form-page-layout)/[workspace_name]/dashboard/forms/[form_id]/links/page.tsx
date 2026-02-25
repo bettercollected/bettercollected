@@ -1,6 +1,6 @@
 'use client';
 
-import FormLinks from '@app/Components/Form/links';
+import FormLinks from '@app/components/Form/links';
 
 export default function Page() {
     return (

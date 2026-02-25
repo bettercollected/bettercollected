@@ -1,6 +1,6 @@
 'use client';
 
-import Loader from '@app/Components/ui/loader';
+import Loader from '@app/components/ui/loader';
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import { setForm } from '@app/store/forms/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';

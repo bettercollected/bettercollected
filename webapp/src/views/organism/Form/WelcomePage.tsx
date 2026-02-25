@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 
+import LockIcon from '@app/components/Common/Icons/lock';
 import { FormTheme } from '@app/constants/theme';
 import { FormSlideLayout } from '@app/models/enums/form';
 import { Button } from '@app/shadcn/components/ui/button';
@@ -11,7 +12,6 @@ import { useAppSelector } from '@app/store/hooks';
 import { useResponderState } from '@app/store/jotai/responderFormState';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import UserAvatarDropDown from '@app/views/molecules/UserAvatarDropdown';
-import LockIcon from '@Components/Common/Icons/lock';
 
 export default function WelcomePage({
     isPreviewMode,

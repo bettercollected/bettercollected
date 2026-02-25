@@ -2,7 +2,7 @@ import React from 'react';
 
 import { cn } from '@app/shadcn/util/lib';
 
-import AuthNavbar from '@Components/auth/auth-navbar';
+import AuthNavbar from '@app/components/auth/auth-navbar';
 
 interface LayoutProps {
     isCustomDomain?: boolean;

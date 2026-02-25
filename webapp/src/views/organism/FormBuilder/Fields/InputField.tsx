@@ -1,4 +1,4 @@
-import FieldInputWrapper from '@Components/HOCs/FieldInputWrapper';
+import FieldInputWrapper from '@app/components/HOCs/FieldInputWrapper';
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
 import { useFormState } from '@app/store/jotai/form';

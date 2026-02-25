@@ -1,6 +1,6 @@
+import ResponderPortalLayoutClient from '@app/components/RespondersPortal/_components/ResponderPortalLayoutClient';
 import environments from '@app/configs/environments';
 import { Alert, AlertDescription, AlertTitle } from '@app/shadcn/components/ui/alert';
-import ResponderPortalLayoutClient from '@Components/RespondersPortal/_components/ResponderPortalLayoutClient';
 import { AlertCircle } from 'lucide-react';
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';

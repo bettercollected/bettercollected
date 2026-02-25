@@ -4,11 +4,11 @@
 import { useTranslation } from 'next-i18next';
 import { useParams, useRouter } from 'next/navigation';
 
-import AuthNavbar from '@Components/auth/auth-navbar';
-import MainValidUser from '@app/Components/invitation/MainValidUser';
-import ExpiredInvitation from '@app/Components/invitation/expired';
-import InvalidUserInvitation from '@app/Components/invitation/sender';
 import LoginView from '@app/app/(auth)/_components/login-view';
+import AuthNavbar from '@app/components/auth/auth-navbar';
+import MainValidUser from '@app/components/invitation/MainValidUser';
+import ExpiredInvitation from '@app/components/invitation/expired';
+import InvalidUserInvitation from '@app/components/invitation/sender';
 import { invitationConstant } from '@app/constants/locales/invitations';
 import { workspaceConstant } from '@app/constants/locales/workspace';
 import { useLazyGetStatusQuery, useLogoutMutation } from '@app/store/auth/api';
