@@ -18,12 +18,12 @@ import useFormFieldsAtom from '@app/store/jotai/field-selectors';
 import { useCreateV2FormMutation } from '@app/store/redux/form-api';
 import { useCreateFormFromTemplateMutation, useGetTemplatesQuery } from '@app/store/redux/template-api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
-import AIIcon from '@app/views/atoms/Icons/AIIcon';
-import { GoogleFormIcon } from '@app/views/atoms/Icons/GoogleForm';
 import FormTypeSelectionComponent from '@app/views/molecules/FormBuilder/FormTypeSelectionComponent';
 import NavBar from '@app/views/molecules/FormBuilder/Navbar';
 import WelcomePage from '@app/views/organism/Form/WelcomePage';
 import LayoutWrapper from '@app/views/organism/Layout/LayoutWrapper';
+import AIIcon from '@Components/icons/ai-icon';
+import { GoogleFormIcon } from '@Components/icons/google-form';
 import useDrivePicker from '@fyelci/react-google-drive-picker';
 
 const CardVariants = {

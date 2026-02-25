@@ -1,15 +1,15 @@
 'use client';
 
-import React from 'react';
+import cn from 'classnames';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import cn from 'classnames';
+import React from 'react';
 import { useTranslation } from 'react-i18next';
 
-import ResponderIcon from '@app/views/atoms/Icons/Responder';
-import UserMore from '@app/views/atoms/Icons/UserMore';
 import { groupConstant } from '@app/constants/locales/group';
 import { workspaceConstant } from '@app/constants/locales/workspace';
+import ResponderIcon from '@Components/icons/responder';
+import UserMore from '@Components/icons/user-more';
 
 interface RespondersGroupsLayoutClientProps {
     children: React.ReactNode;

@@ -4,7 +4,7 @@
 import { Loader2 } from 'lucide-react';
 
 import { StandardFormDto } from '@app/models/dtos/form';
-import GreenCheckedCircle from '@app/views/atoms/Icons/GreenCheckedCircle';
+import GreenCheckedCircle from '@Components/icons/green-checked-circle';
 
 export default function ImportSuccessfulComponent({ form }: { form: StandardFormDto }) {
     return (

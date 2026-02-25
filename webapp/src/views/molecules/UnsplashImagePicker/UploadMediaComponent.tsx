@@ -3,12 +3,12 @@
 import { useEffect, useState } from 'react';
 
 import { Skeleton } from '@app/shadcn/components/ui/skeleton';
+import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { useAppSelector } from '@app/store/hooks';
 import { useAddPhotoInWorkspaceMediaLibraryMutation, useGetWorkspaceMediaLibraryQuery, useLazyGetWorkspaceMediaLibraryQuery } from '@app/store/media-library/api';
 import { MediaLibrary } from '@app/store/media-library/type';
 import { selectWorkspace } from '@app/store/workspaces/slice';
-import EmptyGallerIcon from '@app/views/atoms/Icons/EmptyGalleryIcon';
-import { useToast } from '@app/shadcn/components/ui/use-toast';
+import EmptyGallerIcon from '@Components/icons/empty-gallery-icon';
 import MediaItem from './MediaItem';
 import SearchBar from './PhotoSearch';
 

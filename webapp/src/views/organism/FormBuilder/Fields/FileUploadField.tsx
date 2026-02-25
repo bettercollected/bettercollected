@@ -1,6 +1,6 @@
 import { StandardFormFieldDto } from '@app/models/dtos/form';
 import { useFormState } from '@app/store/jotai/form';
-import { FolderUploadIcon } from '@app/views/atoms/Icons/FolderUploadIcon';
+import { FolderUploadIcon } from '@Components/icons/folder-upload-icon';
 
 const FileUpload = ({ field, slide, disabled }: { field: StandardFormFieldDto; slide: StandardFormFieldDto; disabled: boolean }) => {
     const { theme } = useFormState();

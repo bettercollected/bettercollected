@@ -9,8 +9,8 @@ import { cn } from '@app/shadcn/util/lib';
 import useFormFieldsAtom from '@app/store/jotai/field-selectors';
 import { FontSize } from '@app/utils/richTextEditorExtenstion/font-size';
 import { getHtmlFromJson } from '@app/utils/richTextEditorExtenstion/get-html-from-json';
-import { ArrowDown } from '@app/views/atoms/Icons/ArrowDown';
-import RequiredIcon from '@app/views/atoms/Icons/Required';
+import { ArrowDown } from '@Components/icons/arrow-down';
+import RequiredIcon from '@Components/icons/required';
 import { useEffect, useRef, useState } from 'react';
 import { useDebounceValue } from 'usehooks-ts';
 

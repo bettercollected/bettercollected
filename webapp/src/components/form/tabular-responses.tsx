@@ -7,7 +7,6 @@ import StyledPagination from '@Components/common/pagination';
 import cn from 'classnames';
 import DataTable from 'react-data-table-component';
 
-import { dataTableCustomStyles } from '@Components/datatable/datatable-styles';
 import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
 import globalConstants from '@app/constants/global';
 import { FieldTypes, StandardFormDto, StandardFormFieldDto, StandardFormResponseDto } from '@app/models/dtos/form';
@@ -19,7 +18,8 @@ import { IGetFormSubmissionsQuery } from '@app/store/workspaces/types';
 import { utcToLocalDateTIme } from '@app/utils/date-utils';
 import { downloadFile } from '@app/utils/file-utils';
 import { getAnswerForField, getFormFields, getTitleForHeader } from '@app/utils/form-builder-block-utils';
-import { ExpandIcon } from '@app/views/atoms/Icons/ExpandIcon';
+import { dataTableCustomStyles } from '@Components/datatable/datatable-styles';
+import { ExpandIcon } from '@Components/icons/expanded-icon';
 
 const customTableStyles = {
     ...dataTableCustomStyles,

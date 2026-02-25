@@ -10,7 +10,7 @@ import { useFormState } from '@app/store/jotai/form';
 import { useNavbarState } from '@app/store/jotai/navbar';
 import MoveUpDown from '@app/views/molecules/FormBuilder/MoveUpDown';
 import { AnimatePresence, motion } from 'framer-motion';
-import DeleteIcon from '../../atoms/Icons/Delete';
+import { DeleteIcon } from 'lucide-react';
 import { RichTextEditor } from '../../molecules/RichTextEditor';
 import SlideLayoutWrapper from '../Layout/SlideLayoutWrapper';
 import FieldDescription from './Fields/FieldDescrption';

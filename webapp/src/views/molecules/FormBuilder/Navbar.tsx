@@ -2,9 +2,8 @@
 
 import { useRouter } from 'next/navigation';
 
-import environments from '@app/configs/environments';
 import { SheetClose } from '@app/shadcn/components/ui/sheet';
-import BetterCollectedSmallLogo, { NewBetterCollectedSmallLogo } from '@app/views/atoms/Icons/BetterCollectedSmallLogo';
+import { NewBetterCollectedSmallLogo } from '@Components/icons/bettercollected-small-logo';
 
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';

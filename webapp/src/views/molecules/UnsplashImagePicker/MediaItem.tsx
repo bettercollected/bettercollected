@@ -7,7 +7,7 @@ import { cn } from '@app/shadcn/util/lib';
 import { useAppSelector } from '@app/store/hooks';
 import { MediaLibrary } from '@app/store/media-library/type';
 import { selectWorkspace } from '@app/store/workspaces/slice';
-import DeleteIcon from '@app/views/atoms/Icons/Delete';
+import DeleteIcon from '@Components/icons/delete';
 import Image from 'next/image';
 import { useState } from 'react';
 

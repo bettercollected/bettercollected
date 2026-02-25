@@ -10,7 +10,7 @@ import { useDeleteResponseMutation } from '@app/store/workspaces/api';
 import { utcToLocalDateTIme } from '@app/utils/date-utils';
 import { downloadFile } from '@app/utils/file-utils';
 import { getAnswerForField, getTitleForHeader } from '@app/utils/form-builder-block-utils';
-import DeleteIcon from '@app/views/atoms/Icons/Delete';
+import DeleteIcon from '@Components/icons/delete';
 import { motion } from 'framer-motion';
 import { MoreVertical } from 'lucide-react';
 import { useFullScreenModal } from '../full-screen-modal-context';

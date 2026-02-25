@@ -1,5 +1,4 @@
 "use client";
-import { simpleDataTableStyles } from '@Components/datatable/datatable-styles';
 import environments from '@app/configs/environments';
 import { WorkspaceDto } from '@app/models/dtos/workspace-dto';
 import { Button } from '@app/shadcn/components/ui/button';
@@ -9,8 +8,9 @@ import { cn } from '@app/shadcn/util/lib';
 import { useAppSelector } from '@app/store/hooks';
 import { useVerifyWorkspaceDomainQuery } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
-import CopyIcon from '@app/views/atoms/Icons/Copy copy';
-import OpenLinkIcon from '@app/views/atoms/Icons/OpenLink';
+import { simpleDataTableStyles } from '@Components/datatable/datatable-styles';
+import CopyIcon from '@Components/icons/copy';
+import OpenLinkIcon from '@Components/icons/open-link';
 import { RefreshCcw } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';

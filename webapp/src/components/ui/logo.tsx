@@ -1,7 +1,7 @@
 import { selectAuth } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
-import BetterCollectedLogo from '@app/views/atoms/Icons/BetterCollectedLogo';
+import BetterCollectedLogo from '@Components/icons/bettercollected-logo';
 import Link from 'next/link';
 
 interface ILogo {

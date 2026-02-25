@@ -7,12 +7,12 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@app/shadcn
 import { useFormState } from '@app/store/jotai/form';
 import { useFormResponse } from '@app/store/jotai/responder-form-response';
 import { useResponderState } from '@app/store/jotai/responder-form-state';
-import { ChevronDown } from '@app/views/atoms/Icons/ChevronDown';
 import Choice from '@app/views/atoms/ResponderFormFields/Choice';
 
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { scrollToDivById } from '@app/utils/scroll-utils';
+import { ChevronDown } from 'lucide-react';
 import QuestionWrapper from './QuestionQwrapper';
 
 export default function DropDownField({ field, slideIndex }: { field: StandardFormFieldDto; slideIndex: number }) {

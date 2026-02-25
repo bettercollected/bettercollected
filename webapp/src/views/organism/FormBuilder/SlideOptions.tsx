@@ -6,8 +6,8 @@ import {
 import { cn } from '@app/shadcn/util/lib';
 import { useActiveSlideComponent } from '@app/store/jotai/active-builder-component';
 import useFormFieldsAtom from '@app/store/jotai/field-selectors';
-import DeleteIcon from '@app/views/atoms/Icons/Delete';
-import EllipsisOption from '@app/views/atoms/Icons/EllipsisOption';
+import DeleteIcon from '@Components/icons/delete';
+import EllipsisOption from '@Components/icons/ellipsis-option';
 
 export default function SlideOptions({ slideIndex }: { slideIndex: number }) {
     const { deleteSlide } = useFormFieldsAtom();

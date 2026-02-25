@@ -7,7 +7,7 @@ import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import getFormShareURL from '@app/utils/form-utils';
-import GreenCheckedCircle from '@app/views/atoms/Icons/GreenCheckedCircle';
+import GreenCheckedCircle from '@Components/icons/green-checked-circle';
 
 export default function FormPublishedModal(props: any) {
     const { toast } = useToast();

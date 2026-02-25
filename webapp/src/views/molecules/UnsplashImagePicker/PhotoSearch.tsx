@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 
-import { SearchIcon } from '@app/views/atoms/Icons/Search';
 import { Input } from '@app/shadcn/components/ui/input';
+import { SearchIcon } from 'lucide-react';
 import { useDebounceValue } from 'usehooks-ts';
 
 interface Props {

@@ -10,11 +10,11 @@ import { selectAuth } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { useActiveSlideComponent } from '@app/store/jotai/active-builder-component';
 import useFormFieldsAtom from '@app/store/jotai/field-selectors';
-import SlideLayoutBackgroundImage from '@app/views/atoms/Icons/SlideLayoutBackgroundImage';
-import SlideLayoutLeftImage from '@app/views/atoms/Icons/SlideLayoutLeftImage';
-import SlideLayoutNoImage from '@app/views/atoms/Icons/SlideLayoutNoImage';
-import { SlideLayoutNoImageLeftAlign } from '@app/views/atoms/Icons/SlideLayoutNoImageLeftAlign';
-import SlideLayoutRightImage from '@app/views/atoms/Icons/SlideLayoutRightImage';
+import SlideLayoutBackgroundImage from '@Components/icons/slide-layout-background-image';
+import SlideLayoutLeftImage from '@Components/icons/slide-layout-left-image';
+import SlideLayoutNoImage from '@Components/icons/slide-layout-no-image';
+import { SlideLayoutNoImageLeftAlign } from '@Components/icons/slide-layout-no-image-left-align';
+import SlideLayoutRightImage from '@Components/icons/slide-layout-right-image';
 import Image from 'next/image';
 
 const Layout = (props: { Icon: any; name: string; image: string; style?: FormSlideLayout; onClick?: (event?: React.MouseEvent<HTMLDivElement, MouseEvent>) => void }) => {

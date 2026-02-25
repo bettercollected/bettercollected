@@ -11,7 +11,7 @@ import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { useGetFormsSubmissionsQuery, useLazyGetFormAllSubmissionsQuery } from '@app/store/workspaces/api';
 import { IGetFormSubmissionsQuery } from '@app/store/workspaces/types';
-import EmptyResponseIcon from '@app/views/atoms/Icons/EmptyResponseIcon';
+import EmptyResponseIcon from '@Components/icons/expty-response-icon';
 import { DownloadIcon } from 'lucide-react';
 import ResponsesTable from './responses-table';
 //@ts-ignore

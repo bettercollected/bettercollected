@@ -1,4 +1,4 @@
-import BetterCollectedSmallLogo from '../Icons/BetterCollectedSmallLogo';
+import BetterCollectedSmallLogo from "@Components/icons/bettercollected-small-logo";
 
 export default function FullScreenLoader() {
     return (

@@ -1,5 +1,5 @@
 import { cn } from '@app/shadcn/util/lib';
-import BackChevron from '@app/views/atoms/Icons/BackChevron';
+import BackChevron from '@Components/icons/back-chevron';
 import { CSSProperties } from 'react';
 
 export default function BackButton({ handleClick, className, hideForSmallScreen = false, style }: { handleClick?: () => void; className?: string; hideForSmallScreen?: boolean; style?: CSSProperties }) {

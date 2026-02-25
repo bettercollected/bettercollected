@@ -3,7 +3,7 @@ import parse from 'html-react-parser';
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import { useFormResponse } from '@app/store/jotai/responder-form-response';
 import { getHtmlFromJson } from '@app/utils/richTextEditorExtenstion/get-html-from-json';
-import RequiredIcon from '@app/views/atoms/Icons/Required';
+import RequiredIcon from '@Components/icons/required';
 
 import { RenderImage } from '@app/views/organism/FormBuilder/Fields/renderField';
 import { getPlaceholderValueForTitle } from '../RichTextEditor';

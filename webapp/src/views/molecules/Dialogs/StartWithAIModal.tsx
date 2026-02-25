@@ -6,7 +6,7 @@ import { selectAuth } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { useCreateFormWithAIMutation } from '@app/store/redux/form-api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
-import { ChevronDown } from '@app/views/atoms/Icons/ChevronDown';
+import { ChevronDown } from 'lucide-react';
 import { useRouter } from 'next-nprogress-bar';
 import Image from 'next/image';
 import React, { FormEvent, useState } from 'react';

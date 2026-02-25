@@ -1,7 +1,7 @@
 import { useModal } from '@app/components/modal-views/context';
 import { Button } from '@app/shadcn/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@app/shadcn/components/ui/dropdown-menu';
-import DeleteIcon from '@app/views/atoms/Icons/Delete';
+import DeleteIcon from '@Components/icons/delete';
 import { MoreVertical } from 'lucide-react';
 
 const DeleteDomainDropdown = () => {

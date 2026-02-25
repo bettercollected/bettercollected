@@ -1,6 +1,6 @@
 import React from 'react';
 
-import EmptyGallerIcon from '@app/views/atoms/Icons/EmptyGalleryIcon';
+import EmptyGallerIcon from '@Components/icons/empty-gallery-icon';
 import UnsplashPhotoCard from './PhotoCard';
 import { SkeletonLoadingComponent } from './UploadMediaComponent';
 

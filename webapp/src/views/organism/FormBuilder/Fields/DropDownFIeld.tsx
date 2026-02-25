@@ -1,10 +1,10 @@
-import FieldInputWrapper from '@Components/hocs/field-input-wrapper';
 import { Close } from '@app/components/icons/close';
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import useFormFieldsAtom from '@app/store/jotai/field-selectors';
 import { useFormState } from '@app/store/jotai/form';
-import { ArrowDown } from '@app/views/atoms/Icons/ArrowDown';
-import { PlusIcon } from '@app/views/atoms/Icons/Plus';
+import FieldInputWrapper from '@Components/hocs/field-input-wrapper';
+import { ArrowDown } from '@Components/icons/arrow-down';
+import { PlusIcon } from 'lucide-react';
 import { useState } from 'react';
 
 const DropDownField = ({ field, slide, disabled }: { field: StandardFormFieldDto; slide: StandardFormFieldDto; disabled: boolean }) => {

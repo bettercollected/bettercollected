@@ -12,7 +12,7 @@ import { useLazyLogOutQuery } from '@app/store/redux/form-api';
 
 import { selectAuth } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
-import { SwitchIcon } from '../atoms/Icons/SwitchIcon';
+import { SwitchIcon } from '@Components/icons/switch-icon';
 
 export default function UserAvatarDropDown({ responderSignInUrl = '', disabled = false }: { responderSignInUrl?: string; disabled?: boolean }) {
     const [popOverOpen, setPopoverOpen] = useState(false);

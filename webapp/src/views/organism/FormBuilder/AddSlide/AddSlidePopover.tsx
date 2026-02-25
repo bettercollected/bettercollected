@@ -6,9 +6,9 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { Popover, PopoverContent, PopoverTrigger } from '@app/shadcn/components/ui/popover';
 import TemplateTab from '@app/views/organism/FormBuilder/AddSlide/TemplateTab';
 
-import { PlusIcon } from '@app/views/atoms/Icons/PlusIcon';
+import { PlusIcon } from '@Components/icons/plus-icon';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from './AddSlideTabs';
 import LayoutsTab from './LayoutsTab';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from './AddSlideTabs';
 
 export default function AddSlidePopover() {
     const [open, setOpen] = useState(false);

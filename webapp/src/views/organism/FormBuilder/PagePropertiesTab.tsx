@@ -8,22 +8,22 @@ import { useActiveFieldComponent, useActiveSlideComponent, useActiveThankYouPage
 import useFormFieldsAtom from '@app/store/jotai/field-selectors';
 import { useFormState } from '@app/store/jotai/form';
 import { extractTextfromJSON } from '@app/utils/richTextEditorExtenstion/get-html-from-json';
-import RequiredIcon from '@app/views/atoms/Icons/Required';
-import { SlideLayoutNoImageLeftAlign } from '@app/views/atoms/Icons/SlideLayoutNoImageLeftAlign';
+import RequiredIcon from '@Components/icons/required';
+import { SlideLayoutNoImageLeftAlign } from '@Components/icons/slide-layout-no-image-left-align';
 
 import { useDialogModal } from '@app/lib/hooks/use-dialog-modal';
 import { FieldTypes } from '@app/models/dtos/form';
 import { selectAuth } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { IsValidString } from '@app/utils/string-utils';
-import DeleteIcon from '@app/views/atoms/Icons/Delete';
-import { PlusIcon } from '@app/views/atoms/Icons/Plus';
-import { SwitchIcon } from '@app/views/atoms/Icons/SwitchIcon';
+import DeleteIcon from '@Components/icons/delete';
+import SlideLayoutBackgroundImage from '@Components/icons/slide-layout-background-image';
+import SlideLayoutLeftImage from '@Components/icons/slide-layout-left-image';
+import SlideLayoutNoImage from '@Components/icons/slide-layout-no-image';
+import SlideLayoutRightImage from '@Components/icons/slide-layout-right-image';
+import { SwitchIcon } from '@Components/icons/switch-icon';
+import { PlusIcon } from 'lucide-react';
 import Image from 'next/image';
-import SlideLayoutBackgroundImage from '../../atoms/Icons/SlideLayoutBackgroundImage';
-import SlideLayoutLeftImage from '../../atoms/Icons/SlideLayoutLeftImage';
-import SlideLayoutNoImage from '../../atoms/Icons/SlideLayoutNoImage';
-import SlideLayoutRightImage from '../../atoms/Icons/SlideLayoutRightImage';
 
 export default function PagePropertiesTab({ }: {}) {
     const { formFields, activeSlide, updateSlideLayout, updateSlideImage, setFormFields } = useFormFieldsAtom();

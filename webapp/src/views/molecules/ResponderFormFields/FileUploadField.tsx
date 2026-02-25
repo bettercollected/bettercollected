@@ -11,8 +11,8 @@ import useFormAtom from '@app/store/jotai/form-file';
 import { useFormResponse } from '@app/store/jotai/responder-form-response';
 import { useResponderState } from '@app/store/jotai/responder-form-state';
 import { downloadFile, generateFileMetaData } from '@app/utils/file-utils';
-import DeleteIcon from '@app/views/atoms/Icons/Delete';
-import { FolderUploadIcon } from '@app/views/atoms/Icons/FolderUploadIcon';
+import DeleteIcon from '@Components/icons/delete';
+import { FolderUploadIcon } from '@Components/icons/folder-upload-icon';
 
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';

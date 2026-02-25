@@ -10,8 +10,8 @@ import { FormSlideLayout } from '@app/models/enums/form';
 import { Button } from '@app/shadcn/components/ui/button';
 import { ScrollArea } from '@app/shadcn/components/ui/scroll-area';
 import { cn } from '@app/shadcn/util/lib';
-import DeleteIcon from '@app/views/atoms/Icons/Delete';
-import { SwitchIcon } from '@app/views/atoms/Icons/SwitchIcon';
+import DeleteIcon from '@Components/icons/delete';
+import { SwitchIcon } from '@Components/icons/switch-icon';
 
 interface ILayoutWrapper {
     layout?: FormSlideLayout;

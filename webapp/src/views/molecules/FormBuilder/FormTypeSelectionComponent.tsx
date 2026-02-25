@@ -1,7 +1,7 @@
 import { selectAuth } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
-import { MultiPageFormIcon } from '@app/views/atoms/Icons/MultipageFormIcon';
-import { SinglePageFormIcon } from '@app/views/atoms/Icons/SinglePageFormIcon';
+import { MultiPageFormIcon } from '@Components/icons/multipage-form-icon';
+import { SinglePageFormIcon } from '@Components/icons/single-page-form-icon';
 
 interface IFormTypes {
     type: string;

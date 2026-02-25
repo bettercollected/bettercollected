@@ -5,7 +5,7 @@ import TimeRangeSelector from '@app/components/analytics/time-range';
 import { useFormAnalyticsData } from '@app/store/analytics/analytics-hooks';
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
-import EmptyResponseIcon from '@app/views/atoms/Icons/EmptyResponseIcon';
+import EmptyResponseIcon from '@Components/icons/expty-response-icon';
 import { useEffect, useState, type JSX } from 'react';
 
 export default function FormAnalytics() {

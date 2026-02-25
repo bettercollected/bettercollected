@@ -11,8 +11,8 @@ import { useAppSelector } from '@app/store/hooks';
 import { useGetWorkspaceFormsQuery } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { getWorkspaceShareURL } from '@app/utils/workspace-utils';
-import EditIcon from '@app/views/atoms/Icons/Edit';
-import OpenLinkIcon from '@app/views/atoms/Icons/OpenLink';
+import EditIcon from '@Components/icons/edit';
+import OpenLinkIcon from '@Components/icons/open-link';
 import { useBottomSheetModal } from '@Components/modals/contexts/bottom-sheet-modal-context';
 import WorkspaceDetailsCard from '@Components/responder-portal/workspace-details-card';
 
