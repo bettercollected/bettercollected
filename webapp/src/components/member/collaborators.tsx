@@ -1,11 +1,10 @@
-import React from 'react';
 
 import { useTranslation } from 'next-i18next';
 
-import Plus from '@Components/Common/Icons/Common/Plus';
+import Plus from '@app/components/Common/Icons/Common/Plus';
 import { Button } from '@app/shadcn/components/ui/button';
 
-import { useModal } from '@app/Components/modal-views/context';
+import { useModal } from '@app/components/modal-views/context';
 import { inviteCollaborator } from '@app/constants/locales/inviteCollaborator';
 import { members } from '@app/constants/locales/members';
 import { useAppSelector } from '@app/store/hooks';

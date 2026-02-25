@@ -1,10 +1,10 @@
-import { useState } from 'react';
-import { useTranslation } from 'next-i18next';
 import cn from 'classnames';
+import { useTranslation } from 'next-i18next';
+import { useState } from 'react';
 
-import BottomSheetModalWrapper from '@Components/Modals/ModalWrappers/BottomSheetModalWrapper';
-import ManageURLs from '@Components/Workspace/Settings/ManageURLs';
-import WorkspaceDetails from '@Components/Workspace/Settings/WorkspaceDetails';
+import BottomSheetModalWrapper from '@app/components/Modals/ModalWrappers/BottomSheetModalWrapper';
+import ManageURLs from '@app/components/Workspace/Settings/ManageURLs';
+import WorkspaceDetails from '@app/components/Workspace/Settings/WorkspaceDetails';
 
 export default function WorkspaceSettingsModal({ initialIndex = 0 }: { initialIndex?: number }) {
     const { t } = useTranslation();

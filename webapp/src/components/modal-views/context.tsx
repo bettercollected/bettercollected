@@ -1,4 +1,4 @@
-import { useBaseModal } from '@Components/Modals/Contexts/UseBaseModal';
+import { useBaseModal } from '@app/components/Modals/Contexts/UseBaseModal';
 import { PrimitiveAtom, atom } from 'jotai';
 
 export type MODAL_VIEW =

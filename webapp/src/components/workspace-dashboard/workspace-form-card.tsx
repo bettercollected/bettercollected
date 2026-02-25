@@ -2,7 +2,7 @@
 import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/navigation';
 
-import Tooltip from '@Components/Common/DataDisplay/Tooltip/tooltip';
+import Tooltip from '@app/shadcn/components/ui/tooltip';
 import { DotIcon } from '@app/components/Common/Icons/Common/DotIcon';
 import EditIcon from '@app/components/Common/Icons/Common/Edit';
 import ShareIcon from '@app/components/Common/Icons/Common/ShareIcon';
@@ -81,7 +81,7 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, group, worksp
                 <div className=" flex w-full flex-col gap-2">
                     <div className="flex flex-1 items-center justify-between gap-4">
                         <div className="form-title gap-2">
-                            <Tooltip title="">
+                            <Tooltip label="">
                                 <span className="h4-new mr-1 inline">{form?.title || t(localesCommon.untitled)}</span>
                             </Tooltip>
                             {!isResponderPortal && !form?.isPublished && <div className="text-black-600 right-2 mx-1 inline-block rounded bg-gray-100 px-2 py-1 text-xs font-semibold">{t('FORM.DRAFT')}</div>}
@@ -97,7 +97,7 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, group, worksp
                     <div className="flex max-w-full flex-wrap items-center gap-2">
                         <FormProviderIcon provider={form.settings?.provider === 'self' && form.importedFormId && form.settings.showOriginalForm ? 'google' : form?.settings?.provider} />
                         {showVisibility && (
-                            <Tooltip title={form?.settings?.private ? t(toolTipConstant.hideForm) : ''}>
+                            <Tooltip label={form?.settings?.private ? t(toolTipConstant.hideForm) : ''}>
                                 <div className="fap-2 flex items-center">
                                     <DotIcon />
                                     {form?.isPublished || isResponderPortal ? (

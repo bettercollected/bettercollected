@@ -2,10 +2,10 @@ import { useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
 
+import HeaderModalWrapper from '@app/components/Modals/ModalWrappers/HeaderModalWrapper';
 import { Button } from '@app/shadcn/components/ui/button';
-import HeaderModalWrapper from '@Components/Modals/ModalWrappers/HeaderModalWrapper';
 
-import { useModal } from '@app/Components/modal-views/context';
+import { useModal } from '@app/components/modal-views/context';
 import { buttonConstant } from '@app/constants/locales/button';
 import { groupConstant } from '@app/constants/locales/group';
 import { handleRegexType } from '@app/models/enums/groupRegex';

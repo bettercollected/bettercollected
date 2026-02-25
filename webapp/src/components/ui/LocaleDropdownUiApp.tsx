@@ -1,9 +1,9 @@
 'use client';
 
-import { Check } from '@app/Components/icons/check';
-import Globe from '@app/Components/icons/flags/globe';
-import Netherland from '@app/Components/icons/flags/netherland';
-import USA from '@app/Components/icons/flags/usa';
+import { Check } from '@app/components/icons/check';
+import Globe from '@app/components/icons/flags/globe';
+import Netherland from '@app/components/icons/flags/netherland';
+import USA from '@app/components/icons/flags/usa';
 import { Popover, PopoverContent, PopoverTrigger } from '@app/shadcn/components/ui/popover';
 import cn from 'classnames';
 import React, { useState } from 'react';

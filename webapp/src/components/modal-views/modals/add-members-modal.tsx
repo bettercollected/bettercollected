@@ -2,8 +2,10 @@ import { useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
 
-import { Close } from '@app/Components/icons/close';
-import { useModal } from '@app/Components/modal-views/context';
+import PlusIcon from '@app/components/Common/Icons/Common/Plus';
+import { Close } from '@app/components/icons/close';
+import { useModal } from '@app/components/modal-views/context';
+import HeaderModalWrapper from '@app/components/Modals/ModalWrappers/HeaderModalWrapper';
 import { buttonConstant } from '@app/constants/locales/button';
 import { placeHolder } from '@app/constants/locales/placeholder';
 import { toastMessage } from '@app/constants/locales/toast-message';
@@ -11,8 +13,6 @@ import { ResponderGroupDto } from '@app/models/dtos/groups';
 import { Button } from '@app/shadcn/components/ui/button';
 import { AppInput } from '@app/shadcn/components/ui/input';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
-import PlusIcon from '@Components/Common/Icons/Common/Plus';
-import HeaderModalWrapper from '@Components/Modals/ModalWrappers/HeaderModalWrapper';
 import cn from 'classnames';
 
 

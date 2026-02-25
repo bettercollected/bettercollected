@@ -1,7 +1,6 @@
-import React from 'react';
 
-import { Close } from '@app/Components/icons/close';
-import { useFullScreenModal } from '@app/Components/modal-views/full-screen-modal-context';
+import { Close } from '@app/components/icons/close';
+import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
 import UpgradeToProContainer from '@app/containers/upgrade-to-pro';
 
 export default function UpgradeToProModal({ callback }: { callback?: () => void }) {

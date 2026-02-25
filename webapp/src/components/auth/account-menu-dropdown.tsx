@@ -5,16 +5,16 @@ import { useTranslation } from 'next-i18next';
 
 import _ from 'lodash';
 
-import Chevron from '@Components/Common/Icons/Common/Chevron';
-import SettingsIcon from '@Components/Common/Icons/Common/Settings';
-import Billing from '@Components/Common/Icons/Dashboard/Billing';
-import DashboardIcon from '@Components/Common/Icons/Dashboard/Dashboard';
-import Logout from '@Components/Common/Icons/Dashboard/Logout';
-import WorkspaceAdminSelector from '@Components/HOCs/WorkspaceAdminSelector';
+import Chevron from '@app/components/Common/Icons/Common/Chevron';
+import SettingsIcon from '@app/components/Common/Icons/Common/Settings';
+import Billing from '@app/components/Common/Icons/Dashboard/Billing';
+import DashboardIcon from '@app/components/Common/Icons/Dashboard/Dashboard';
+import Logout from '@app/components/Common/Icons/Dashboard/Logout';
+import WorkspaceAdminSelector from '@app/components/HOCs/WorkspaceAdminSelector';
 
-import AuthAccountProfileImage from '@app/Components/auth/account-profile-image';
-import { useModal } from '@app/Components/modal-views/context';
-import ActiveLink from '@app/Components/ui/links/active-link';
+import AuthAccountProfileImage from '@app/components/auth/account-profile-image';
+import { useModal } from '@app/components/modal-views/context';
+import ActiveLink from '@app/components/ui/links/active-link';
 import environments from '@app/configs/environments';
 import { profileMenu } from '@app/constants/locales/profile-menu';
 import { useBreakpoint } from '@app/lib/hooks/use-breakpoint';

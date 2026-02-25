@@ -1,5 +1,5 @@
-import EllipsisOption from '@Components/Common/Icons/Common/EllipsisOption';
-import { Close } from '@app/Components/icons/close';
+import EllipsisOption from '@app/components/Common/Icons/Common/EllipsisOption';
+import { Close } from '@app/components/icons/close';
 import { FieldTypes, StandardFormDto, StandardFormFieldDto, StandardFormResponseDto } from '@app/models/dtos/form';
 import { Popover, PopoverContent, PopoverTrigger } from '@app/shadcn/components/ui/popover';
 import { Separator } from '@app/shadcn/components/ui/separator';

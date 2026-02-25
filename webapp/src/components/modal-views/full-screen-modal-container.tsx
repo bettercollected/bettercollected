@@ -2,12 +2,12 @@ import { Fragment, useCallback } from 'react';
 
 import { Button } from '@app/shadcn/components/ui/button';
 
-import { Close } from '@app/Components/icons/close';
-import ModalContainer from '@app/Components/modal-views/container';
-import { FULL_SCREEN_MODALS, useFullScreenModal } from '@app/Components/modal-views/full-screen-modal-context';
-import UpgradeToProModal from '@app/Components/modal-views/modals/upgrade-to-pro-modal';
-import { Dialog } from '@app/Components/ui/dialog';
-import { Transition } from '@app/Components/ui/transition';
+import { Close } from '@app/components/icons/close';
+import ModalContainer from '@app/components/modal-views/container';
+import { FULL_SCREEN_MODALS, useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
+import UpgradeToProModal from '@app/components/modal-views/modals/upgrade-to-pro-modal';
+import { Dialog } from '@app/components/ui/dialog';
+import { Transition } from '@app/components/ui/transition';
 
 import { PreviewFullModalView } from './full-screen-modals/v2preview-modal';
 import ViewResponseFullModalView from './full-screen-modals/view-response-full-modal-view';

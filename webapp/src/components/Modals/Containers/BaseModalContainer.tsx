@@ -1,11 +1,11 @@
 'use client';
 
-import { useBottomSheetModal } from '@Components/Modals/Contexts/BottomSheetModalContext';
-import FullScreenModalContainer from '@Components/modal-views/full-screen-modal-container';
+import { useBottomSheetModal } from '@app/components/Modals/Contexts/BottomSheetModalContext';
+import FullScreenModalContainer from '@app/components/modal-views/full-screen-modal-container';
 
-import ModalContainer from '@Components/modal-views/container';
-import { useModal } from '@app/Components/modal-views/context';
-import { useFullScreenModal } from '@app/Components/modal-views/full-screen-modal-context';
+import ModalContainer from '@app/components/modal-views/container';
+import { useModal } from '@app/components/modal-views/context';
+import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
 import { usePathname } from 'next/navigation';
 import { useEffect } from 'react';
 import BottomSheetModalContainer from './BottomSheetModalContainer';

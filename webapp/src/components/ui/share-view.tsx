@@ -3,10 +3,10 @@ import { ReactNode } from 'react';
 import cn from 'classnames';
 import { FacebookShareButton, LinkedinShareButton, TwitterShareButton } from 'react-share';
 
-import { Facebook } from '@app/Components/icons/brands/facebook';
-import { Linkedin } from '@app/Components/icons/brands/linkedin';
-import { Twitter } from '@app/Components/icons/brands/twitter';
-import LinkView from '@app/Components/ui/link-view';
+import { Facebook } from '@app/components/icons/brands/facebook';
+import { Linkedin } from '@app/components/icons/brands/linkedin';
+import { Twitter } from '@app/components/icons/brands/twitter';
+import LinkView from '@app/components/ui/link-view';
 
 type SizeNames = 'large' | 'small';
 

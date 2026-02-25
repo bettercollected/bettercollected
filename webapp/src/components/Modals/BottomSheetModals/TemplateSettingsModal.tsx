@@ -1,7 +1,6 @@
-import React from 'react';
 
-import BottomSheetModalWrapper from '@Components/Modals/ModalWrappers/BottomSheetModalWrapper';
-import TemplateSettings from '@Components/Template/TemplateSettings';
+import BottomSheetModalWrapper from '@app/components/Modals/ModalWrappers/BottomSheetModalWrapper';
+import TemplateSettings from '@app/components/Template/TemplateSettings';
 
 import { IFormTemplateDto } from '@app/models/dtos/template';
 

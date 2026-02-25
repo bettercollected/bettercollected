@@ -11,7 +11,7 @@ import { Label } from '@app/shadcn/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@app/shadcn/components/ui/radio-group';
 import { Switch } from '@app/shadcn/components/ui/switch';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
-import Tooltip from '@Components/Common/DataDisplay/Tooltip/tooltip';
+import Tooltip from '@app/shadcn/components/ui/tooltip';
 import Divider from '@Components/Common/divider';
 import cn from 'classnames';
 import { QrCode } from 'lucide-react';
@@ -258,7 +258,7 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                     <FormSettingsCard className={'!mt-0 !space-y-0'}>
                         <p className="body4 !text-black-700 w-full lg:max-w-[564px]">{t(formPage.linksDescription)}</p>
                         <div className={'mt-1 flex flex-col items-start  gap-2 py-1 '}>
-                            <Tooltip title={t('CLICK_TO_COPY')}>
+                            <Tooltip label={t('CLICK_TO_COPY')}>
                                 <p className="body4 !text-black-700 max-w-full cursor-pointer truncate" onClick={handleOnCopy}>
                                     {firstPart}/ <span className="text-pink-500">{lastPart}</span>
                                 </p>

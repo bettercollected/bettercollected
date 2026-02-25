@@ -4,9 +4,9 @@ import { useTranslation } from 'next-i18next';
 
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 
-import RegexCard from '@Components/cards/regex-card';
-import GroupMember from '@app/Components/group/group-member';
-import { useModal } from '@app/Components/modal-views/context';
+import RegexCard from '@app/components/cards/regex-card';
+import GroupMember from '@app/components/group/group-member';
+import { useModal } from '@app/components/modal-views/context';
 import { localesCommon } from '@app/constants/locales/common';
 import { members } from '@app/constants/locales/members';
 import { toastMessage } from '@app/constants/locales/toast-message';

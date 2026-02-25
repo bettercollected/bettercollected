@@ -1,11 +1,9 @@
 // @ts-nocheck
-import React from 'react';
 
 import { useTranslation } from 'next-i18next';
 
-import Chevron from '@Components/Common/Icons/Common/Chevron';
+import Chevron from '@app/components/Common/Icons/Common/Chevron';
 import { Button } from '@app/shadcn/components/ui/button';
-import { cn } from '@app/shadcn/util/lib';
 
 import { buttonConstant } from '@app/constants/locales/button';
 

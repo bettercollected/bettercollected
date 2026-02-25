@@ -1,8 +1,7 @@
-import React from 'react';
 
 import { useTranslation } from 'next-i18next';
 
-import Inbox from '@app/Components/icons/inbox';
+import Inbox from '@app/components/icons/inbox';
 
 interface IEmptyResponseProps {
     title: string;

@@ -1,6 +1,6 @@
 import React from 'react';
 
-import Tooltip from '@Components/Common/DataDisplay/Tooltip/tooltip';
+import Tooltip from '@app/shadcn/components/ui/tooltip';
 
 interface PrivateFormButtonWrapperProps {
     isPrivate?: boolean;
@@ -12,7 +12,7 @@ export default function PrivateFormButtonWrapper({ isPrivate, children }: Privat
         return children;
     }
     return (
-        <Tooltip leaveDelay={300} title="Form is private">
+        <Tooltip label="Form is private">
             {children}
         </Tooltip>
     );

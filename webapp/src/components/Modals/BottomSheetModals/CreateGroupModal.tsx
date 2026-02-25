@@ -3,15 +3,15 @@ import { useState } from 'react';
 import { useTranslation } from 'next-i18next';
 import { useRouter, useSearchParams } from 'next/navigation';
 
-import { useBottomSheetModal } from '@Components/Modals/Contexts/BottomSheetModalContext';
-import BottomSheetModalWrapper from '@Components/Modals/ModalWrappers/BottomSheetModalWrapper';
+import { useBottomSheetModal } from '@app/components/Modals/Contexts/BottomSheetModalContext';
+import BottomSheetModalWrapper from '@app/components/Modals/ModalWrappers/BottomSheetModalWrapper';
 import { Button } from '@app/shadcn/components/ui/button';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 
-import RegexCard from '@Components/cards/regex-card';
-import GroupInfo from '@app/Components/group/group-info';
-import GroupMember from '@app/Components/group/group-member';
-import { useModal } from '@app/Components/modal-views/context';
+import RegexCard from '@app/components/cards/regex-card';
+import GroupInfo from '@app/components/group/group-info';
+import GroupMember from '@app/components/group/group-member';
+import { useModal } from '@app/components/modal-views/context';
 import { buttonConstant } from '@app/constants/locales/button';
 import { groupConstant } from '@app/constants/locales/group';
 import { toastMessage } from '@app/constants/locales/toast-message';

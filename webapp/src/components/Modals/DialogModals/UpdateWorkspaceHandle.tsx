@@ -4,12 +4,12 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/navigation';
 
-import { useBottomSheetModal } from '@Components/Modals/Contexts/BottomSheetModalContext';
-import HeaderModalWrapper from '@app/Components/Modals/ModalWrappers/HeaderModalWrapper';
+import { useBottomSheetModal } from '@app/components/Modals/Contexts/BottomSheetModalContext';
+import HeaderModalWrapper from '@app/components/Modals/ModalWrappers/HeaderModalWrapper';
 import { Button } from '@app/shadcn/components/ui/button';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 
-import { useModal } from '@app/Components/modal-views/context';
+import { useModal } from '@app/components/modal-views/context';
 import { buttonConstant } from '@app/constants/locales/button';
 import { onBoarding } from '@app/constants/locales/onboarding-screen';
 import { toastMessage } from '@app/constants/locales/toast-message';

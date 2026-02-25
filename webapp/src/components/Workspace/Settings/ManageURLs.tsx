@@ -1,11 +1,11 @@
 import { useTranslation } from 'next-i18next';
 
-import CopyIcon from '@Components/Common/Icons/Common/Copy';
-import EditIcon from '@Components/Common/Icons/Common/Edit';
+import CopyIcon from '@app/components/Common/Icons/Common/Copy';
+import EditIcon from '@app/components/Common/Icons/Common/Edit';
 
 import { CustomDomainCard } from '@app/app/(admin-portal)/(side-top-nav-layout)/[workspace_name]/dashboard/custom-domain/page';
-import { useModal } from '@app/Components/modal-views/context';
-import { useFullScreenModal } from '@app/Components/modal-views/full-screen-modal-context';
+import { useModal } from '@app/components/modal-views/context';
+import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
 import { useCopyToClipboard } from '@app/lib/hooks/use-copy-to-clipboard';
 import { Button } from '@app/shadcn/components/ui/button';
 import { useToast } from '@app/shadcn/components/ui/use-toast';

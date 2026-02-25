@@ -1,6 +1,6 @@
 import React, { ReactNode } from 'react';
 
-import { useFullScreenModal } from '@app/Components/modal-views/full-screen-modal-context';
+import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
 import { Features } from '@app/constants/locales/feature';
 import { selectIsProPlan } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';

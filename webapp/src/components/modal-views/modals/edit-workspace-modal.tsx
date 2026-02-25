@@ -1,10 +1,9 @@
-import React from 'react';
 
 import { useTranslation } from 'next-i18next';
 
-import { Close } from '@app/Components/icons/close';
-import WorkspaceBanner from '@app/Components/settings/basic-information/workspace-banner';
-import WorkspaceInfo from '@app/Components/settings/basic-information/workspace-info';
+import { Close } from '@app/components/icons/close';
+import WorkspaceBanner from '@app/components/settings/basic-information/workspace-banner';
+import WorkspaceInfo from '@app/components/settings/basic-information/workspace-info';
 import editWorkspace from '@app/constants/locales/edit-workpsace';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { useAppSelector } from '@app/store/hooks';

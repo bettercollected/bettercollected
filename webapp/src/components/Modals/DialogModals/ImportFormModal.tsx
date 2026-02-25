@@ -1,25 +1,25 @@
 import { useEffect, useState } from 'react';
 
+import ImportFormLoading from '@app/components/ImportForm/ImportFormLoading';
+import ImportSuccessfulComponent from '@app/components/ImportForm/ImportSuccessfulComponent';
 import { Button } from '@app/shadcn/components/ui/button';
-import ImportFormLoading from '@Components/ImportForm/ImportFormLoading';
-import ImportSuccessfulComponent from '@Components/ImportForm/ImportSuccessfulComponent';
-import useDrivePicker from '@fyelci/react-google-drive-picker';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
+import useDrivePicker from '@fyelci/react-google-drive-picker';
 
-import ImportErrorView from '@app/Components/form-integrations/import-error-view';
-import { useModal } from '@app/Components/modal-views/context';
-import FullScreenLoader from '@app/Components/ui/fullscreen-loader';
+import ImportErrorView from '@app/components/form-integrations/import-error-view';
+import { useModal } from '@app/components/modal-views/context';
+import FullScreenLoader from '@app/components/ui/fullscreen-loader';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { initFormState } from '@app/store/forms/slice';
 
+import { useIsMobile } from '@app/lib/hooks/use-breakpoint';
+import { selectAuth } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { useImportFormMutation, useLazyGetSingleFormFromProviderQuery, useVerifyFormTokenMutation } from '@app/store/redux/importApi';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { fireworks } from '@app/utils/confetti';
 import { getEditFormURL } from '@app/utils/urlUtils';
 import { useRouter } from 'next/navigation';
-import { useIsMobile } from '@app/lib/hooks/use-breakpoint';
-import { selectAuth } from '@app/store/auth/slice';
 
 export default function ImportFormModal() {
     const { toast } = useToast();

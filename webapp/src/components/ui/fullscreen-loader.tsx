@@ -1,6 +1,5 @@
-import React from 'react';
 
-import Loader from '@app/Components/ui/loader';
+import Loader from '@app/components/ui/loader';
 
 export default function FullScreenLoader() {
     return (

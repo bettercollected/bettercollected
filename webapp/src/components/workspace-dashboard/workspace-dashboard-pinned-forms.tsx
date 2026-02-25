@@ -1,17 +1,14 @@
 'use client';
 
-import React from 'react';
 
 import { useTranslation } from 'react-i18next';
 
-import Loader from '@app/Components/ui/loader';
-import WorkspaceDashboardFormsCard from '@app/Components/workspace-dashboard/workspace-dashboard-form-cards';
+import Loader from '@app/components/ui/loader';
+import WorkspaceDashboardFormsCard from '@app/components/workspace-dashboard/workspace-dashboard-form-cards';
 import { localesCommon } from '@app/constants/locales/common';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
-import { Button } from '@app/shadcn/components/ui/button';
-import { useRouter } from 'next/navigation';
-import environments from '@app/configs/environments';
 import NewFormButton from '@app/views/atoms/NewFormButton';
+import { useRouter } from 'next/navigation';
 
 interface IWorkspaceDashboardPinnedFormsProps {
     workspacePinnedForms: any;

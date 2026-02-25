@@ -9,7 +9,7 @@ import html2canvas from 'html2canvas';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { TransformComponent, TransformWrapper } from 'react-zoom-pan-pinch';
 
-import Image from '@app/Components/ui/image';
+import Image from '@app/components/ui/image';
 import { buttonConstant } from '@app/constants/locales/button';
 import { toastMessage } from '@app/constants/locales/toast-message';
 import { useAppDispatch } from '@app/store/hooks';

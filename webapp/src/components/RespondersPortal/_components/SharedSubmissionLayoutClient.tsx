@@ -1,6 +1,6 @@
 'use client';
 
-import { useModal } from '@app/Components/modal-views/context';
+import { useModal } from '@app/components/modal-views/context';
 import { toastMessage } from '@app/constants/locales/toast-message';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { useAppSelector } from '@app/store/hooks';

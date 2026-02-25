@@ -3,10 +3,10 @@ import { useState } from 'react';
 import { useTranslation } from 'next-i18next';
 import Image from 'next/legacy/image';
 
-import EditIcon from '@Components/Common/Icons/Common/Edit';
-import EllipsisOption from '@Components/Common/Icons/Common/EllipsisOption';
-import SettingsIcon from '@Components/Common/Icons/Common/Settings';
-import { useBottomSheetModal } from '@Components/Modals/Contexts/BottomSheetModalContext';
+import EditIcon from '@app/components/Common/Icons/Common/Edit';
+import EllipsisOption from '@app/components/Common/Icons/Common/EllipsisOption';
+import SettingsIcon from '@app/components/Common/Icons/Common/Settings';
+import { useBottomSheetModal } from '@app/components/Modals/Contexts/BottomSheetModalContext';
 import { Loader2 } from 'lucide-react';
 
 import { IFormTemplateDto } from '@app/models/dtos/template';

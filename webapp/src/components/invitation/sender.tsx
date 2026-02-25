@@ -1,4 +1,4 @@
-import AuthNavbar from '@Components/auth/auth-navbar';
+import AuthNavbar from '@app/components/auth/auth-navbar';
 import environments from '@app/configs/environments';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { useAppSelector } from '@app/store/hooks';

@@ -4,7 +4,7 @@ import { useTranslation } from 'next-i18next';
 
 import { Button } from '@app/shadcn/components/ui/button';
 
-import GroupInfo from '@app/Components/group/group-info';
+import GroupInfo from '@app/components/group/group-info';
 import { buttonConstant } from '@app/constants/locales/button';
 import { toastMessage } from '@app/constants/locales/toast-message';
 import { GroupInfoDto, ResponderGroupDto } from '@app/models/dtos/groups';

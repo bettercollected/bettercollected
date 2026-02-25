@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 
-import { useTranslation } from 'next-i18next';
 import { MoreHorizontal } from 'lucide-react';
+import { useTranslation } from 'next-i18next';
 
-import Delete from '@Components/Common/Icons/Common/Delete';
+import Delete from '@app/components/Common/Icons/Common/Delete';
 import { Popover, PopoverContent, PopoverTrigger } from '@app/shadcn/components/ui/popover';
 
 import { localesCommon } from '@app/constants/locales/common';

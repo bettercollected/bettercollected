@@ -1,14 +1,14 @@
-import { useState } from 'react';
+import cn from 'classnames';
 import { useTranslation } from 'next-i18next';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import cn from 'classnames';
+import { useState } from 'react';
 
-import { FormIcon } from '@Components/Common/Icons/Form/FormIcon';
+import { FormIcon } from '@app/components/Common/Icons/Form/FormIcon';
 
-import WorkspaceFormsTabContent from '@Components/dashboard/workspace-forms-tab-content';
-import WorkspaceResponsesTabContent from '@Components/dashboard/workspace-responses-tab-content';
-import { HistoryIcon } from '@app/Components/icons/history';
-import { TrashIcon } from '@app/Components/icons/trash';
+import WorkspaceFormsTabContent from '@app/components/dashboard/workspace-forms-tab-content';
+import WorkspaceResponsesTabContent from '@app/components/dashboard/workspace-responses-tab-content';
+import { HistoryIcon } from '@app/components/icons/history';
+import { TrashIcon } from '@app/components/icons/trash';
 import { localesCommon } from '@app/constants/locales/common';
 import { formConstant } from '@app/constants/locales/form';
 

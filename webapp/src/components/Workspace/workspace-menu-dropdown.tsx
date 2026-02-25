@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/navigation';
 
-import Tooltip from '@Components/Common/DataDisplay/Tooltip/tooltip';
+import Tooltip from '@app/shadcn/components/ui/tooltip';
 import Divider from '@Components/Common/divider';
 
 import AuthAccountProfileImage from '@app/components/auth/account-profile-image';
@@ -139,7 +139,7 @@ export default function WorkspaceMenuDropdown({ fullWidth }: IWorkspaceMenuDropd
                                             className={color}
                                         />
                                         <div className="flex w-full flex-col items-start">
-                                            <Tooltip title={trimTooltipTitle(space?.title)}>
+                                            <Tooltip label={trimTooltipTitle(space?.title)}>
                                                 <p className="body3">{toEndDottedStr(space?.title || 'Untitled', 20)}</p>
                                             </Tooltip>
                                             <p className="text-black-700 text-[12px] leading-none">{getWorkspaceRole(space)}</p>
@@ -160,7 +160,7 @@ export default function WorkspaceMenuDropdown({ fullWidth }: IWorkspaceMenuDropd
                             <div className="flex items-center gap-3">
                                 <AuthAccountProfileImage size={40} image={workspace?.profileImage} name={workspaceName} />
                                 <div className="flex w-full flex-col items-start">
-                                    <Tooltip title={trimTooltipTitle(fullWorkspaceName)}>
+                                    <Tooltip label={trimTooltipTitle(fullWorkspaceName)}>
                                         <p className="body3">{workspaceName}</p>
                                     </Tooltip>
                                     <p className="text-black-700 text-[12px] leading-none">{getWorkspaceRole(workspace)}</p>

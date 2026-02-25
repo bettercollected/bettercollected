@@ -1,7 +1,6 @@
 'use client';
 
-import React from 'react';
-import FormRenderer from '@app/Components/Form/renderer/form-renderer';
+import FormRenderer from '@app/components/Form/renderer/form-renderer';
 import { useSubmissionContext } from './SubmissionContext';
 
 export default function SubmissionFormContent() {

@@ -1,9 +1,9 @@
-import React, { PureComponent } from 'react';
+import { PureComponent } from 'react';
 
-import { GoogleIcon } from '@Components/Common/Icons/Google/google';
+import { GoogleIcon } from '@app/components/Common/Icons/Google/google';
 
-import { ProviderIcon } from '@app/Components/icons/brands/provider';
-import { darkStyle, disabledStyle, hoverStyle, lightStyle, typeformDarkStyle } from '@app/Components/icons/brands/styles/google';
+import { ProviderIcon } from '@app/components/icons/brands/provider';
+import { darkStyle, disabledStyle, hoverStyle, lightStyle, typeformDarkStyle } from '@app/components/icons/brands/styles/google';
 
 interface IPropTypes {
     label: string;
@@ -28,7 +28,7 @@ export default class ProviderLoginButton extends PureComponent<IPropTypes, IStat
         type: 'light',
         tabIndex: 0,
         className: '',
-        onClick: () => {}
+        onClick: () => { }
     };
 
     state = {

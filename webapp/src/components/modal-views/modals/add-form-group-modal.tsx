@@ -8,8 +8,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@app/shadcn/components/
 import cn from 'classnames';
 import { Check, CheckCircle, ChevronsUpDown } from "lucide-react";
 
-import { Close } from '@app/Components/icons/close';
-import { useModal } from '@app/Components/modal-views/context';
+import { Close } from '@app/components/icons/close';
+import { useModal } from '@app/components/modal-views/context';
 import { buttonConstant } from '@app/constants/locales/button';
 import { localesCommon } from '@app/constants/locales/common';
 import { groupConstant } from '@app/constants/locales/group';

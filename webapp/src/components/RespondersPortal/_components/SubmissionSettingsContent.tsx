@@ -4,7 +4,7 @@ import { useModal } from '@app/components/modal-views/context';
 import { buttonConstant } from '@app/constants/locales/button';
 import { toolTipConstant } from '@app/constants/locales/tooltip';
 import { Button } from '@app/shadcn/components/ui/button';
-import Tooltip from '@Components/Common/DataDisplay/Tooltip/tooltip';
+import Tooltip from '@app/shadcn/components/ui/tooltip';
 import Divider from '@Components/Common/divider';
 import { useTranslation } from 'react-i18next';
 import { useSubmissionContext } from './SubmissionContext';
@@ -36,7 +36,7 @@ export default function SubmissionSettingsContent() {
             )}
             {!form?.response?.deletionStatus ? (
                 <div>
-                    <Tooltip title={deletionStatus ? t(toolTipConstant.alreadyRequestedForDeletion) : t(toolTipConstant.requestForDeletion)}>
+                    <Tooltip label={deletionStatus ? t(toolTipConstant.alreadyRequestedForDeletion) : t(toolTipConstant.requestForDeletion)}>
                         <Button className={`w-fit`} variant="danger" onClick={handleRequestForDeletionModal}>
                             {t(buttonConstant.requestForDeletion)}
                         </Button>

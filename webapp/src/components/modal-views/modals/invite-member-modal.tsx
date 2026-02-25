@@ -5,9 +5,9 @@ import { useTranslation } from 'next-i18next';
 import { Button } from '@app/shadcn/components/ui/button';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 
-import { Close } from '@app/Components/icons/close';
-import { useModal } from '@app/Components/modal-views/context';
-import SettingsCard from '@app/Components/settings/card';
+import { Close } from '@app/components/icons/close';
+import { useModal } from '@app/components/modal-views/context';
+import SettingsCard from '@app/components/settings/card';
 import { buttonConstant } from '@app/constants/locales/button';
 import { localesCommon } from '@app/constants/locales/common';
 import { inviteCollaborator } from '@app/constants/locales/inviteCollaborator';

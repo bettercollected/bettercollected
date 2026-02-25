@@ -1,6 +1,6 @@
 import React from 'react';
 
-import Tooltip from '@Components/Common/DataDisplay/Tooltip/tooltip';
+import Tooltip from '@app/shadcn/components/ui/tooltip';
 
 import Logo from '@app/components/ui/logo';
 import { useAppSelector } from '@app/store/hooks';
@@ -69,7 +69,7 @@ const componentsProps = {
 const ToolTipBranding = ({ title }: { title: React.ReactNode }) => {
     return (
         <div className="px-3 fixed lg:bottom-10 lg:right-20 lg:left-auto  right-0 bottom-0 left-0 justify-center py-2 flex gap-2 bg-white items-center rounded shadow-hover cursor-pointer">
-            <Tooltip title={title} enterDelay={100} leaveDelay={100} enterTouchDelay={300} arrow placement="top" componentsProps={componentsProps}>
+            <Tooltip label={title} side="top">
                 <div className={'flex'}>
                     <span className="body3 text-black-700">Powered by:</span>
                     <Logo showProTag={false} isLink={false} isCustomDomain className="h-[14px] w-fit" />

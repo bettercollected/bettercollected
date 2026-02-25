@@ -1,6 +1,6 @@
-import { Close } from '@app/Components/icons/close';
-import { useModal } from '@app/Components/modal-views/context';
-import ShareView from '@app/Components/ui/share-view';
+import { Close } from '@app/components/icons/close';
+import { useModal } from '@app/components/modal-views/context';
+import ShareView from '@app/components/ui/share-view';
 
 interface Props {
     url: string;

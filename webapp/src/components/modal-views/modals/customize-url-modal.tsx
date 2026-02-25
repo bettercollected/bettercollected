@@ -1,8 +1,7 @@
-import React from 'react';
 
-import { Close } from '@app/Components/icons/close';
-import { useModal } from '@app/Components/modal-views/context';
-import CustomizeUrlUi from '@app/Components/ui/customize-url-ui';
+import { Close } from '@app/components/icons/close';
+import { useModal } from '@app/components/modal-views/context';
+import CustomizeUrlUi from '@app/components/ui/customize-url-ui';
 import { StandardFormDto } from '@app/models/dtos/form';
 
 

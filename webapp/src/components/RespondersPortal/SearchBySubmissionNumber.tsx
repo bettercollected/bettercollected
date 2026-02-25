@@ -4,9 +4,9 @@ import { FormEvent, useState } from 'react';
 import Image from 'next/legacy/image';
 import { useRouter } from 'next/navigation';
 
-import InfoIcon from '@Components/Common/Icons/FormBuilder/infoIcon';
+import InfoIcon from '@app/components/Common/Icons/FormBuilder/infoIcon';
 
-import { SearchIcon } from '@app/Components/icons/search';
+import { SearchIcon } from '@app/components/icons/search';
 import { AppInput } from '@app/shadcn/components/ui/input';
 import { useAppSelector } from '@app/store/hooks';
 import { useLazyGetWorkspaceSubmissionByUUIDQuery } from '@app/store/workspaces/api';

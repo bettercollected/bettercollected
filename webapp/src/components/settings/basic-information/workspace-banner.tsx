@@ -1,4 +1,4 @@
-import BannerImageComponent from '@Components/dashboard/banner-image';
+import BannerImageComponent from '@app/components/dashboard/banner-image';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { useAppSelector } from '@app/store/hooks';
 

@@ -1,7 +1,7 @@
 import { useTranslation } from 'next-i18next';
 
-import InvitationsTable from '@app/Components/settings/invitations-table';
-import Loader from '@app/Components/ui/loader';
+import InvitationsTable from '@app/components/settings/invitations-table';
+import Loader from '@app/components/ui/loader';
 import { members } from '@app/constants/locales/members';
 import { useAppSelector } from '@app/store/hooks';
 import { useGetWorkspaceMembersInvitationsQuery } from '@app/store/workspaces/members-n-invitations-api';

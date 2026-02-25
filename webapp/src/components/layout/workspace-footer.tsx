@@ -1,9 +1,8 @@
-import React from 'react';
 
 import { useTranslation } from 'next-i18next';
 
-import ActiveLink from '@app/Components/ui/links/active-link';
-import PoweredBy from '@app/Components/ui/powered-by';
+import ActiveLink from '@app/components/ui/links/active-link';
+import PoweredBy from '@app/components/ui/powered-by';
 import { localesCommon } from '@app/constants/locales/common';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 

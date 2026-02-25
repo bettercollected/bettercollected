@@ -1,8 +1,7 @@
-import React from 'react';
 
-import BottomSheetModalWrapper from '@Components/Modals/ModalWrappers/BottomSheetModalWrapper';
+import BottomSheetModalWrapper from '@app/components/Modals/ModalWrappers/BottomSheetModalWrapper';
 
-import SelectGroup from '@app/Components/group/select-group';
+import SelectGroup from '@app/components/group/select-group';
 
 
 const SelectGroupFullModalView = () => {

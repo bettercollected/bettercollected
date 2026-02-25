@@ -1,9 +1,8 @@
-import React from 'react';
 
 import { useTranslation } from 'next-i18next';
 
 
-import AnchorLink from '@app/Components/ui/links/anchor-link';
+import AnchorLink from '@app/components/ui/links/anchor-link';
 
 
 interface ISettingCard {

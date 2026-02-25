@@ -2,6 +2,7 @@ import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/navigation';
 import React, { useState } from 'react';
 
+import AuthNavbar from '@app/components/auth/auth-navbar';
 import { buttonConstant } from '@app/constants/locales/button';
 import { invitationConstant } from '@app/constants/locales/invitations';
 import { UserStatus } from '@app/models/dtos/UserStatus';
@@ -11,7 +12,6 @@ import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { useAppSelector } from '@app/store/hooks';
 import { useRespondToWorkspaceInvitationMutation } from '@app/store/workspaces/members-n-invitations-api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
-import AuthNavbar from '@Components/auth/auth-navbar';
 
 interface Props {
     workspace: WorkspaceDto;

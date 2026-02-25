@@ -1,19 +1,18 @@
-import { useEffect } from 'react';
 
-import CreateGroupModal from '@Components/Modals/BottomSheetModals/CreateGroupModal';
-import DeleteAccountModal from '@Components/Modals/BottomSheetModals/DeleteAccountModal';
-import TemplateSettingsModal from '@Components/Modals/BottomSheetModals/TemplateSettingsModal';
-import WorkspaceSettingsModal from '@Components/Modals/BottomSheetModals/WorkspaceSettingsModal';
-import { BOTTOM_SCREEN_MODALS, useBottomSheetModal } from '@Components/Modals/Contexts/BottomSheetModalContext';
+import CreateGroupModal from '@app/components/Modals/BottomSheetModals/CreateGroupModal';
+import DeleteAccountModal from '@app/components/Modals/BottomSheetModals/DeleteAccountModal';
+import TemplateSettingsModal from '@app/components/Modals/BottomSheetModals/TemplateSettingsModal';
+import WorkspaceSettingsModal from '@app/components/Modals/BottomSheetModals/WorkspaceSettingsModal';
+import { BOTTOM_SCREEN_MODALS, useBottomSheetModal } from '@app/components/Modals/Contexts/BottomSheetModalContext';
 import { Button } from '@app/shadcn/components/ui/button';
 import { AnimatePresence, motion } from 'framer-motion';
 
-import { Close } from '@app/Components/icons/close';
-import ModalContainer from '@app/Components/modal-views/container';
-import FormCreateSlugFullModalView from '@app/Components/modal-views/full-screen-modals/create-form-slug-full-modal-view';
-import SelectGroupFullModalView from '@app/Components/modal-views/full-screen-modals/select-group-modal-view';
-import ScheduleFormCloseDateModal from '@app/Components/modal-views/modals/schedule-form-close-date-modal';
-import { Dialog } from '@app/Components/ui/dialog';
+import { Close } from '@app/components/icons/close';
+import ModalContainer from '@app/components/modal-views/container';
+import FormCreateSlugFullModalView from '@app/components/modal-views/full-screen-modals/create-form-slug-full-modal-view';
+import SelectGroupFullModalView from '@app/components/modal-views/full-screen-modals/select-group-modal-view';
+import ScheduleFormCloseDateModal from '@app/components/modal-views/modals/schedule-form-close-date-modal';
+import { Dialog } from '@app/components/ui/dialog';
 
 const renderModalContent = (view: BOTTOM_SCREEN_MODALS, modalProps: any) => {
     switch (view) {

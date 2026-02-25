@@ -1,4 +1,4 @@
-import { useBaseModal } from '@Components/Modals/Contexts/UseBaseModal';
+import { useBaseModal } from '@app/components/Modals/Contexts/UseBaseModal';
 import { atom } from 'jotai';
 
 export type BOTTOM_SCREEN_MODALS = 'DELETE_ACCOUNT' | 'CREATE_GROUP' | 'SELECT_GROUP_FULL_MODAL_VIEW' | 'WORKSPACE_SETTINGS' | 'SELECT_FORM_CLOSE_DATE' | 'TEMPLATE_SETTINGS_FULL_MODAL_VIEW' | 'FORM_CREATE_SLUG_VIEW' | '';

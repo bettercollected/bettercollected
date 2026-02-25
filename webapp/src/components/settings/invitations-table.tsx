@@ -1,24 +1,22 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
 
-import InfoCircle from '@Components/Common/Icons/InfoCircle';
+import InfoCircle from '@app/components/Common/Icons/InfoCircle';
 import DataTable from 'react-data-table-component';
 
-import StatusBadge from '@Components/badge/status-badge';
-import { dataTableCustomStyles } from '@app/Components/datatable/form/datatable-styles';
-import { useToast } from '@app/shadcn/components/ui/use-toast';
-import MemberOptions from '@app/Components/datatable/workspace-settings/member-options';
+import StatusBadge from '@app/components/badge/status-badge';
+import { dataTableCustomStyles } from '@app/components/datatable/form/datatable-styles';
+import MemberOptions from '@app/components/datatable/workspace-settings/member-options';
 import { localesCommon } from '@app/constants/locales/common';
 import { members } from '@app/constants/locales/members';
 import { toastMessage } from '@app/constants/locales/toast-message';
 import { WorkspaceInvitationDto } from '@app/models/dtos/WorkspaceMembersDto';
 import { Page } from '@app/models/dtos/page';
+import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { useAppSelector } from '@app/store/hooks';
 import { useInviteToWorkspaceMutation } from '@app/store/workspaces/members-n-invitations-api';
 import { utcToLocalDate, utcToLocalTime } from '@app/utils/dateUtils';
-import { min } from 'lodash';
-import { overflow } from 'html2canvas/dist/types/css/property-descriptors/overflow';
 
 interface IInvitationTableProps {
     data: Page<WorkspaceInvitationDto>;

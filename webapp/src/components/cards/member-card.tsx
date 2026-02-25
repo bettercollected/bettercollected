@@ -1,6 +1,5 @@
-import React from 'react';
 
-import DeleteDropDown from '@app/Components/ui/delete-dropdown';
+import DeleteDropDown from '@app/components/ui/delete-dropdown';
 import { selectIsAdmin } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 

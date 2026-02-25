@@ -1,14 +1,14 @@
-import CopyIcon from '@Components/Common/Icons/Common/Copy';
+import CopyIcon from '@app/components/Common/Icons/Common/Copy';
 
-import { useToast } from '@app/shadcn/components/ui/use-toast';
-import { Button } from '@app/shadcn/components/ui/button';
-import BannerImageComponent from '@Components/dashboard/banner-image';
-import { EyeIcon } from '@app/Components/icons/eye-icon';
-import Globe from '@app/Components/icons/flags/globe';
-import { useFullScreenModal } from '@app/Components/modal-views/full-screen-modal-context';
-import WorkspaceInfo from '@app/Components/settings/basic-information/workspace-info';
-import ActiveLink from '@app/Components/ui/links/active-link';
+import BannerImageComponent from '@app/components/dashboard/banner-image';
+import { EyeIcon } from '@app/components/icons/eye-icon';
+import Globe from '@app/components/icons/flags/globe';
+import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
+import WorkspaceInfo from '@app/components/settings/basic-information/workspace-info';
+import ActiveLink from '@app/components/ui/links/active-link';
 import { useCopyToClipboard } from '@app/lib/hooks/use-copy-to-clipboard';
+import { Button } from '@app/shadcn/components/ui/button';
+import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { useAppSelector } from '@app/store/hooks';
 import { WorkspaceState, selectWorkspace } from '@app/store/workspaces/slice';
 import { getWorkspaceShareURL } from '@app/utils/workspaceUtils';

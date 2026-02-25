@@ -1,6 +1,6 @@
 
 
-import Tooltip from '@Components/Common/DataDisplay/Tooltip/tooltip';
+import Tooltip from '@app/shadcn/components/ui/tooltip';
 import cn from 'classnames';
 
 import { useCopyToClipboard } from '@app/lib/hooks/use-copy-to-clipboard';
@@ -20,7 +20,7 @@ export default function LinkView({ url, toastMessage, className, buttonClassName
     return (
         <div className={cn('gap-2', className)}>
             <div className="text-black-900 body4 bg-brand-100 flex   h-[46px] w-full max-w-[444px] items-center space-x-4 rounded p-4">
-                <Tooltip title={url}>
+                <Tooltip label={url}>
                     <p className="body4 w-full truncate md:min-w-[200px] ">{url}</p>
                 </Tooltip>
             </div>

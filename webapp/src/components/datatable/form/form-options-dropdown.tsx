@@ -3,7 +3,6 @@ import { useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
 
-import Tooltip from '@Components/Common/DataDisplay/Tooltip/tooltip';
 import CopyIcon from '@app/components/Common/Icons/Common/Copy';
 import DeleteIcon from '@app/components/Common/Icons/Common/Delete';
 import EditIcon from '@app/components/Common/Icons/Common/Edit';
@@ -11,6 +10,7 @@ import EllipsisOption from '@app/components/Common/Icons/Common/EllipsisOption';
 import AddMember from '@app/components/Common/Icons/Dashboard/Add-member';
 import Eye from '@app/components/Common/Icons/Form/Eye';
 import Pin from '@app/components/Common/Icons/Form/Pin';
+import Tooltip from '@app/shadcn/components/ui/tooltip';
 import { QrCode } from 'lucide-react';
 
 import { LinkIcon } from '@app/components/icons/link-icon';
@@ -177,7 +177,7 @@ export default function FormOptionsDropdownMenu({ workspace, form, hasCustomDoma
         </li>
     );
     const menuItemAddToGroup = (
-        <Tooltip title={data?.length === 0 ? t(localesCommon.noGroupFound) : ''}>
+        <Tooltip label={data?.length === 0 ? t(localesCommon.noGroupFound) : ''}>
             <li
                 className={`flex items-center gap-2 px-[20px] py-[10px] h-[36px] body4 hover:bg-brand-100 cursor-pointer ${data?.length === 0 ? 'pointer-events-none opacity-50' : ''
                     }`}
@@ -259,7 +259,7 @@ export default function FormOptionsDropdownMenu({ workspace, form, hasCustomDoma
                     {form?.isPublished && isFormOpen && (
                         <div className="w-full">
                             {!!form?.settings?.private || !!form?.settings?.hidden ? (
-                                <Tooltip title={t(toolTipConstant.visibility)} placement={'top'}>
+                                <Tooltip label={t(toolTipConstant.visibility)} side="top">
                                     <div>{menuItemPinSettings}</div>
                                 </Tooltip>
                             ) : (
@@ -271,7 +271,6 @@ export default function FormOptionsDropdownMenu({ workspace, form, hasCustomDoma
                     {form?.settings?.provider === 'self' && form?.builderVersion === 'v2' && !isMobile && menuItemEdit}
                     {form?.isPublished && !form?.settings?.hidden && isFormOpen && menuItemCopy}
                     {form?.isPublished && !form?.settings?.hidden && isFormOpen && menuItemCustomizeLink}
-                    {/* {form?.isPublished && menuItemAddToGroup} */}
                     {form?.isPublished && !form?.settings?.hidden && isFormOpen && menuItemGenerateQR}
                     {form?.settings?.provider === 'self' && menuItemDuplicate}
                     {menuItemDelete}

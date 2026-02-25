@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Check, Plus } from 'lucide-react';
 import { useTranslation } from 'next-i18next';
 
-import Tooltip from '@Components/Common/DataDisplay/Tooltip/tooltip';
+import Tooltip from '@app/shadcn/components/ui/tooltip';
 import StyledPagination from '@Components/Common/pagination';
 import SearchInput from '@Components/Common/search-input';
 import cn from 'classnames';
@@ -98,7 +98,7 @@ export default function WorkspaceResponses({ workspace }: { workspace: Workspace
     };
 
     const AddButton = (onClick?: () => void) => (
-        <Tooltip title={!onClick ? t(localesCommon.noGroupFound) : ''}>
+        <Tooltip label={!onClick ? t(localesCommon.noGroupFound) : ''}>
             <div onClick={onClick} className={cn('text-black-600 flex items-center  gap-1', !onClick && 'cursor-not-allowed opacity-30')}>
                 <Plus className="h-4 w-4 " />
                 <p className="body5 !text-black-600">{t(buttonConstant.add)}</p>

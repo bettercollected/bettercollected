@@ -1,5 +1,5 @@
 
-import Tooltip from '@Components/Common/DataDisplay/Tooltip/tooltip';
+import Tooltip from '@app/shadcn/components/ui/tooltip';
 import MarkdownText from '@Components/Common/markdown';
 
 import { useAppSelector } from '@app/store/hooks';
@@ -19,7 +19,7 @@ export default function PublicWorkspaceTitleAndDescription({ className = '' }: I
     return (
         <div className={`h-full w-full ${className}`}>
             <div className="w-full flex flex-col gap-2">
-                <Tooltip title={trimTooltipTitle(fullWorkspaceName)}>
+                <Tooltip label={trimTooltipTitle(fullWorkspaceName)}>
                     <h4 className="h5 w-fit">{fullWorkspaceName}</h4>
                 </Tooltip>
                 <MarkdownText className="lg:max-w-[700px] overflow-hidden " markDownClassName={'mt-0 text-sm text-black-600 font-normal'} text={toEndDottedStr(workspace.description, 277)} />

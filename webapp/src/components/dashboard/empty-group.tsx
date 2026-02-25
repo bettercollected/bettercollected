@@ -1,7 +1,7 @@
 
 import { useTranslation } from 'next-i18next';
 
-import Tooltip from '@Components/Common/DataDisplay/Tooltip/tooltip';
+import Tooltip from '@app/shadcn/components/ui/tooltip';
 import { useBottomSheetModal } from '@app/components/Modals/Contexts/BottomSheetModalContext';
 import { Button } from '@app/shadcn/components/ui/button';
 
@@ -20,7 +20,7 @@ export default function EmptyGroup({ formId }: { formId?: string }) {
         <div className="my-[119px] flex flex-col items-center">
             <UserMore />
             <p className="body2 text-center !font-medium sm:w-[252px] mt-7 mb-6">{t(groupConstant.title)}</p>
-            <Tooltip title={!isAdmin ? t(toolTipConstant.noAccessToGroup) : ''}>
+            <Tooltip label={!isAdmin ? t(toolTipConstant.noAccessToGroup) : ''}>
                 <Button
                     disabled={!isAdmin}
                     onClick={() => {

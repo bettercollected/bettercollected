@@ -3,11 +3,11 @@ import { useEffect, useState } from 'react';
 
 import { useRouter } from 'next/navigation';
 
-import HeaderModalWrapper from '@app/Components/Modals/ModalWrappers/HeaderModalWrapper';
+import HeaderModalWrapper from '@app/components/Modals/ModalWrappers/HeaderModalWrapper';
 import { Button } from '@app/shadcn/components/ui/button';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 
-import { useModal } from '@app/Components/modal-views/context';
+import { useModal } from '@app/components/modal-views/context';
 import { IntegrationType } from '@app/models/enums/IntegrationTypeEnum';
 import { AppInput } from '@app/shadcn/components/ui/input';
 import { useAddActionToFormMutation } from '@app/store/api-actions-api';

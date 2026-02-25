@@ -1,8 +1,8 @@
 
 "use client";
+import WorkspaceFormCard from '@app/components/workspace-dashboard/workspace-form-card';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
-import WorkspaceFormCard from '@Components/workspace-dashboard/workspace-form-card';
 import Link from 'next/link';
 
 interface FormCardsProps {
