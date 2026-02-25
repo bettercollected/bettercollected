@@ -140,7 +140,7 @@ const TextFieldHandler = ({ formData, setFormData, handleOnChange, createWorkspa
             />
             <p className="text-xs text-gray-500 ml-1 mt-1">
                 {t(onBoarding.useSmallCase)} (eg: abc) <br />
-                https://{environments.CLIENT_DOMAIN}/<span className="text-pink-500 font-medium">{formData.workspaceName?.toLowerCase()}</span>
+                https://{environments.FORM_DOMAIN}/<span className="text-pink-500 font-medium">{formData.workspaceName?.toLowerCase()}</span>
             </p>
             {errorMessage && formData.workspaceName && (
                 <>

@@ -38,7 +38,7 @@ export default function WorkspaceResponsesTabContent({ workspace, deletionReques
 
     const submissions: Array<StandardFormResponseDto> = data?.items ?? [];
 
-    const isCustomDomain = window?.location.host !== environments.CLIENT_DOMAIN;
+    const isCustomDomain = window?.location.host !== environments.FORM_DOMAIN;
 
     const getEmptyMessage = () => {
         if (!auth.id) return 'Verify your email or enter your submission number you to view all your form responses.';

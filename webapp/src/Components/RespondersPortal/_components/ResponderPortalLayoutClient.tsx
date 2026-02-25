@@ -45,7 +45,7 @@ export default function ResponderPortalLayoutClient({
     const pathname = usePathname();
     const { openModal } = useModal();
 
-    const isClientDomain = typeof window !== 'undefined' && window.location.origin !== environments.ADMIN_DOMAIN;
+    const isClientDomain = typeof window !== 'undefined' && window.location.origin !== environments.DASHBOARD_DOMAIN;
 
     const handleLogout = () => {
         openModal('LOGOUT_VIEW', { workspace, isClientDomain });

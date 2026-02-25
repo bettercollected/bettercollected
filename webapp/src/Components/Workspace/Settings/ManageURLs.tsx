@@ -1,21 +1,18 @@
 import { useTranslation } from 'next-i18next';
 
 import CopyIcon from '@Components/Common/Icons/Common/Copy';
-import DeleteIcon from '@Components/Common/Icons/Common/Delete';
 import EditIcon from '@Components/Common/Icons/Common/Edit';
 
-import { useToast } from '@app/shadcn/components/ui/use-toast';
-import { Button } from '@app/shadcn/components/ui/button';
-import Globe from '@app/Components/icons/flags/globe';
+import { CustomDomainCard } from '@app/app/(admin-portal)/(side-top-nav-layout)/[workspace_name]/dashboard/custom-domain/page';
 import { useModal } from '@app/Components/modal-views/context';
 import { useFullScreenModal } from '@app/Components/modal-views/full-screen-modal-context';
-import { ProLogo } from '@app/Components/ui/logo';
 import environments from '@app/configs/environments';
 import { useCopyToClipboard } from '@app/lib/hooks/use-copy-to-clipboard';
+import { Button } from '@app/shadcn/components/ui/button';
+import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { selectAuth, selectIsAdmin, selectIsProPlan } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
-import { CustomDomainCard } from '@app/app/(admin-portal)/(side-top-nav-layout)/[workspace_name]/dashboard/custom-domain/page';
 
 export default function ManageURLs() {
     const { t } = useTranslation();
@@ -54,7 +51,7 @@ export default function ManageURLs() {
                 <div className="p2-new flex items-center gap-4">
                     <span>
                         {environments.HTTP_SCHEME}
-                        {environments.CLIENT_DOMAIN}/<span className="text-pink">{workspace.workspaceName}</span>
+                        {environments.FORM_DOMAIN}/<span className="text-pink">{workspace.workspaceName}</span>
                     </span>
                     <div>
                         <Button
@@ -63,7 +60,7 @@ export default function ManageURLs() {
                             size="icon"
                             variant="ghost"
                             onClick={() => {
-                                copyToClipboard(`${environments.HTTP_SCHEME}${environments.CLIENT_DOMAIN}/${workspace.workspaceName}`);
+                                copyToClipboard(`${environments.HTTP_SCHEME}${environments.FORM_DOMAIN}/${workspace.workspaceName}`);
                                 toast({ description: 'Copied' });
                             }}
                         >

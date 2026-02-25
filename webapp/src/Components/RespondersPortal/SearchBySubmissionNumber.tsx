@@ -1,4 +1,4 @@
-import React, { FormEvent, useState } from 'react';
+import { FormEvent, useState } from 'react';
 
 import Image from 'next/legacy/image';
 import { useRouter } from 'next/navigation';
@@ -7,16 +7,16 @@ import InfoIcon from '@Components/Common/Icons/FormBuilder/infoIcon';
 
 import { SearchIcon } from '@app/Components/icons/search';
 import environments from '@app/configs/environments';
+import { AppInput } from '@app/shadcn/components/ui/input';
 import { useAppSelector } from '@app/store/hooks';
 import { useLazyGetWorkspaceSubmissionByUUIDQuery } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
-import { AppInput } from '@app/shadcn/components/ui/input';
 
 const SearchBySubmissionNumber = ({ className }: { className?: string }) => {
     const workspace = useAppSelector(selectWorkspace);
     const [submissionNumber, setSubmissionNumber] = useState('');
     const [getSubmissionByUUID, { isLoading }] = useLazyGetWorkspaceSubmissionByUUIDQuery();
-    const isCustomDomain = window?.location?.host !== environments.CLIENT_DOMAIN;
+    const isCustomDomain = window?.location?.host !== environments.FORM_DOMAIN;
 
     const [error, setError] = useState(false);
 

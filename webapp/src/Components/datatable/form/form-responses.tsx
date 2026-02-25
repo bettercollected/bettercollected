@@ -5,7 +5,6 @@ import SearchInput from '@Components/Common/Search/SearchInput';
 import TabularResponses from '@Components/Form/TabularResponses';
 
 import Loader from '@app/Components/ui/loader';
-import environments from '@app/configs/environments';
 import globalConstants from '@app/constants/global';
 import { Button } from '@app/shadcn/components/ui/button';
 import { selectForm } from '@app/store/forms/slice';
@@ -110,7 +109,7 @@ export default function FormResponsesTable({ props }: any) {
                     ) : (
                         <></>
                     )}
-                    {environments.ENABLE_EXPORT_CSV && isSubmission && (
+                    {isSubmission && (
                         <Button data-umami-event="Export CSV Button" data-umami-event-email={auth.email} isLoading={csvLoading} variant="v2Button" icon={<DownloadIcon className="h-4 w-4" />} onClick={handleClickExportCSV} className={''}>
                             Export CSV
                         </Button>

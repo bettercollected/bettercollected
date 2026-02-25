@@ -15,7 +15,7 @@ interface FormCardsProps {
 }
 
 const FormCards = ({ title, formsArray, workspace, showPinned = true, showVisibility }: FormCardsProps) => {
-    const isCustomDomain = window?.location.host !== environments.CLIENT_DOMAIN;
+    const isCustomDomain = window?.location.host !== environments.FORM_DOMAIN;
 
     if (formsArray.length === 0) return <></>;
     return (

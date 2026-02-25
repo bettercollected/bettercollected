@@ -1,8 +1,7 @@
-import React from 'react';
-import { cookies, headers } from 'next/headers';
-import { redirect } from 'next/navigation';
 import environments from '@app/configs/environments';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
+import { cookies, headers } from 'next/headers';
+import { redirect } from 'next/navigation';
 import GetStartedClient from './GetStartedClient';
 
 async function getAuthStatus(cookieStore: any) {
@@ -46,7 +45,7 @@ export default async function GetStartedPage() {
     const cookieStore = await cookies();
     const host = headerList.get('x-forwarded-host') || headerList.get('host') || '';
 
-    const isCustomDomain = host !== environments.ADMIN_DOMAIN && host !== environments.CLIENT_DOMAIN;
+    const isCustomDomain = host !== environments.DASHBOARD_DOMAIN && host !== environments.FORM_DOMAIN;
 
 
     if (isCustomDomain) {
@@ -68,5 +67,5 @@ export default async function GetStartedPage() {
         }
     }
 
-    return <GetStartedClient  />;
+    return <GetStartedClient />;
 }

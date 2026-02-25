@@ -87,7 +87,7 @@ export default function UpdateWorkspaceHandle() {
                 <div className="p2-new text-black-700">Avoid using spaces or special characters. Only “-” and “_” is accepted.</div>
                 <div className="p2-new">
                     {environments.HTTP_SCHEME}
-                    {environments.CLIENT_DOMAIN}/<span className="p2-new text-pink">{updateText}</span>
+                    {environments.FORM_DOMAIN}/<span className="p2-new text-pink">{updateText}</span>
                 </div>
                 <AppInput value={updateText} onChange={handleUpdateChange} />
                 {errorMessage && <span className={'text-sm text-red-500 font-normal'}>{errorMessage}</span>}

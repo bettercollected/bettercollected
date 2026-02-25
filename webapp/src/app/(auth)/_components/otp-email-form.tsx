@@ -24,8 +24,7 @@ interface OtpEmailFormProps {
     setEmail: Dispatch<SetStateAction<string>>;
 }
 
-const providers: Array<string> = [];
-if (environments.ENABLE_GOOGLE) providers.push('google');
+const providers: Array<string> = ["google"];
 
 export default function OtpEmailForm({ isModal, isSignup, setEmail: setParentEmail }: OtpEmailFormProps) {
     const { t } = useTranslation();

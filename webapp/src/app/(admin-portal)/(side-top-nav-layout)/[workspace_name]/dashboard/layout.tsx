@@ -51,7 +51,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
     // Check for admin domain
     const host = headerList.get('x-forwarded-host') || headerList.get('host') || '';
-    const isDomainAllowed = host === (process.env.ADMIN_DOMAIN || environments.ADMIN_DOMAIN) || host === (process.env.CLIENT_DOMAIN || environments.CLIENT_DOMAIN) || host.includes('localhost');
+    const isDomainAllowed = host === (environments.DASHBOARD_DOMAIN) || host === (environments.FORM_DOMAIN) || host.includes('localhost');
 
     if (!isDomainAllowed) {
         redirect('/');

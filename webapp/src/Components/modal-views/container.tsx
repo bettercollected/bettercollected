@@ -3,7 +3,6 @@ import { Fragment, useCallback } from 'react';
 import AddActionToFormModal from '@Components/Modals/DialogModals/AddActionToFormModal';
 import ImportFormModal from '@Components/Modals/DialogModals/ImportFormModal';
 import OauthErrorModal from '@Components/Modals/DialogModals/OauthErrorModal';
-import RedeemCouponCodeModal from '@Components/Modals/DialogModals/RedeemCouponCodeModal';
 import SearchBySubmissionNumberModal from '@Components/Modals/DialogModals/SearchBySubmissionNumberModal';
 import UpdateCustomDomainModal from '@Components/Modals/DialogModals/UpdateCustomDomainModal';
 import UpdateWorkspaceHandle from '@Components/Modals/DialogModals/UpdateWorkspaceHandle';
@@ -38,8 +37,6 @@ import VisibilityConfirmationModalView from './modals/visibility-confirmation-mo
 
 function renderModalContent(view: MODAL_VIEW, modalProps: any) {
     switch (view) {
-        case 'REDEEM_CODE_MODAL':
-            return <RedeemCouponCodeModal {...modalProps} />;
         case 'ADD_FORM_GROUP':
             return <AddFormOnGroup {...modalProps} />;
         case 'ADD_GROUP_FORM':

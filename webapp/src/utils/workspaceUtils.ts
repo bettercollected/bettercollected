@@ -18,6 +18,6 @@ export function getWorkspaceShareURL(workspace: WorkspaceDto, customDomain: bool
     if (workspace.isPro && workspace.customDomain && customDomain) {
         return `${environments.HTTP_SCHEME}${workspace.customDomain}`;
     } else {
-        return `${environments.HTTP_SCHEME}${environments.CLIENT_DOMAIN}/${workspace.workspaceName}`;
+        return `${environments.HTTP_SCHEME}${environments.FORM_DOMAIN}/${workspace.workspaceName}`;
     }
 }

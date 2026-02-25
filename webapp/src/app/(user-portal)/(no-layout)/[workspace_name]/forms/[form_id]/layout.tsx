@@ -11,7 +11,7 @@ export default async function CustomDomainLayout({ children, params }: { childre
     const headerList = await headers();
     const host = headerList.get('x-forwarded-host') || headerList.get('host') || '';
 
-    const hasClientDomain = host === environments.CLIENT_DOMAIN;
+    const hasClientDomain = host === environments.FORM_DOMAIN;
     const { workspace_name } = await params;
 
     if (!hasClientDomain) {

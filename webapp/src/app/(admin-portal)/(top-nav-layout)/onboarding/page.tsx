@@ -1,7 +1,6 @@
-import React from 'react';
-import { cookies, headers } from 'next/headers';
-import { redirect, notFound } from 'next/navigation';
 import environments from '@app/configs/environments';
+import { cookies, headers } from 'next/headers';
+import { notFound, redirect } from 'next/navigation';
 import OnboardingClient from './OnboardingClient';
 
 async function getWorkspaceByDomain(domain: string) {
@@ -38,7 +37,7 @@ export default async function OnboardingPage(props: { params: Promise<{ workspac
     const cookieStore = await cookies();
     const host = headerList.get('x-forwarded-host') || headerList.get('host') || '';
 
-    const isCustomDomain = host !== environments.ADMIN_DOMAIN && host !== environments.CLIENT_DOMAIN;
+    const isCustomDomain = host !== environments.DASHBOARD_DOMAIN && host !== environments.FORM_DOMAIN;
 
     if (isCustomDomain) {
         redirect('/');

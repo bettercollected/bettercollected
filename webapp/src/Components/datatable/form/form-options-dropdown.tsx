@@ -60,8 +60,8 @@ export default function FormOptionsDropdownMenu({ workspace, form, hasCustomDoma
     const isCustomDomain = !!workspace.customDomain;
     const isMobile = useIsMobile();
 
-    const clientHost = `${environments.CLIENT_DOMAIN.includes('localhost') ? 'http' : 'https'}://${environments.CLIENT_DOMAIN}/${workspace.workspaceName}/forms`;
-    const customDomain = `${environments.CLIENT_DOMAIN.includes('localhost') ? 'http' : 'https'}://${workspace.customDomain}/forms`;
+    const clientHost = `${environments.FORM_DOMAIN.includes('localhost') ? 'http' : 'https'}://${environments.FORM_DOMAIN}/${workspace.workspaceName}/forms`;
+    const customDomain = `${environments.FORM_DOMAIN.includes('localhost') ? 'http' : 'https'}://${workspace.customDomain}/forms`;
 
     const isFormOpen = validateFormOpen(form?.settings?.formCloseDate);
 
@@ -268,11 +268,11 @@ export default function FormOptionsDropdownMenu({ workspace, form, hasCustomDoma
                         </div>
                     )}
                     {menuItemOpen}
-                    {form?.settings?.provider === 'self' && form?.builderVersion === 'v2' && environments.ENABLE_FORM_BUILDER && !isMobile && menuItemEdit}
+                    {form?.settings?.provider === 'self' && form?.builderVersion === 'v2' && !isMobile && menuItemEdit}
                     {form?.isPublished && !form?.settings?.hidden && isFormOpen && menuItemCopy}
                     {form?.isPublished && !form?.settings?.hidden && isFormOpen && menuItemCustomizeLink}
                     {/* {form?.isPublished && menuItemAddToGroup} */}
-                    {form?.isPublished && !form?.settings?.hidden && isFormOpen && environments.ENABLE_FORM_QR && menuItemGenerateQR}
+                    {form?.isPublished && !form?.settings?.hidden && isFormOpen && menuItemGenerateQR}
                     {form?.settings?.provider === 'self' && menuItemDuplicate}
                     {menuItemDelete}
                 </ul>

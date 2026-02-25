@@ -86,7 +86,7 @@ export default function AddActionToFormModal({ action, form, ...props }: any) {
 
     // listen for oauth event
     window.addEventListener('message', function (event) {
-        if (event.origin === `${environments.HTTP_SCHEME}${environments.ADMIN_DOMAIN}`) {
+        if (event.origin === `${environments.HTTP_SCHEME}${environments.DASHBOARD_DOMAIN}`) {
             if (event.data?.error) {
                 setErrorMessage('Access has been denied');
             } else if (event.data?.state && event.data?.code) {

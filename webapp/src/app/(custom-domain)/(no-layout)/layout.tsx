@@ -24,7 +24,7 @@ export default async function CustomDomainLayout({ children }: { children: React
     const headerList = await headers();
     const host = headerList.get('x-forwarded-host') || headerList.get('host') || '';
 
-    const hasCustomDomain = host !== environments.ADMIN_DOMAIN && host !== environments.CLIENT_DOMAIN && !host.includes(environments.ADMIN_DOMAIN);
+    const hasCustomDomain = host !== environments.DASHBOARD_DOMAIN && host !== environments.FORM_DOMAIN && !host.includes(environments.DASHBOARD_DOMAIN);
 
     // If not custom domain (e.g. localhost), we usually don't support these routes unless we map localhost to a custom domain.
     // For development, we assume localhost is admin domain usually.

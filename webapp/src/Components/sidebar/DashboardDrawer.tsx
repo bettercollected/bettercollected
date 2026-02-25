@@ -11,7 +11,6 @@ import MuiDrawer from '@app/Components/sidebar/mui-drawer';
 import NavigationListApp from '@app/Components/sidebar/NavigationListApp';
 import Logo from '@app/Components/ui/logo';
 import WorkspaceMenuDropdown from '@app/Components/Workspace/workspace-menu-dropdown';
-import environments from '@app/configs/environments';
 import { pricingPlan } from '@app/constants/locales/pricingplan';
 import { toolTipConstant } from '@app/constants/locales/tooltip';
 import { upgradeConst } from '@app/constants/locales/upgrade';
@@ -115,29 +114,6 @@ const DrawerContent = ({ topNavList, bottomNavList }: { topNavList: any[], botto
                                 </div>
                             </div>
 
-                            {environments.ENABLE_COUPON_CODES && (
-                                <div className="bg-slate-50 mx-4 mb-6 rounded-md p-4">
-                                    <div className="h5-new mb-2">Pro Lifetime Deal</div>
-                                    <div className="text-black-600 text-sm">
-                                        Redeem{' '}
-                                        <a href={environments.APP_SUMO_PRODUCT_URL} target="_blank" rel="noreferrer" className="text-black-800 cursor-pointer underline">
-                                            AppSumo code
-                                        </a>{' '}
-                                        to get a lifetime pro account.
-                                    </div>
-
-                                    <div className="flex items-center justify-end text-xs font-semibold mt-2">
-                                        <span
-                                            className=" cursor-pointer hover:underline text-blue-600"
-                                            onClick={() => {
-                                                openModal('REDEEM_CODE_MODAL');
-                                            }}
-                                        >
-                                            Redeem Code
-                                        </span>
-                                    </div>
-                                </div>
-                            )}
                         </div>
                     )}
                 </div>

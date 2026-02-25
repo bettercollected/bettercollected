@@ -60,7 +60,7 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
     const fullScreenModal = useFullScreenModal();
     const isCustomDomain = workspace?.isPro && !!workspace.customDomain;
     const customUrl = form?.settings?.customUrl || '';
-    const clientHost = `${environments.HTTP_SCHEME}${environments.CLIENT_DOMAIN}/${workspace.workspaceName}/forms`;
+    const clientHost = `${environments.HTTP_SCHEME}${environments.FORM_DOMAIN}/${workspace.workspaceName}/forms`;
     const customDomain = `${environments.HTTP_SCHEME}${workspace.customDomain}/forms`;
     const V2FormDomain = `${environments.HTTP_SCHEME}${environments.FORM_DOMAIN}/${workspace.workspaceName}/forms`;
 
@@ -279,7 +279,7 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                                 >
                                     {t(formPage.linksChangeSlug)}
                                 </Button>
-                                {environments.ENABLE_FORM_QR && !form?.settings?.hidden && (
+                                {!form?.settings?.hidden && (
                                     <Button
                                         data-umami-event="Generate QR button"
                                         data-umami-event-email={auth.email}
@@ -328,7 +328,7 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                             </FormSettingsCard>
                         )}
 
-                        {environments.ENABLE_COLLECT_EMAILS && form?.settings?.provider === 'self' && (
+                        {form?.settings?.provider === 'self' && (
                             <FormSettingsCard>
                                 <div className=" flex w-full flex-col items-start">
                                     {/*<div className="h5-new !text-black-800">{t('FORM_PAGE.SETTINGS.DEFAULT.COLLECT_EMAILS.TITLE')}</div>*/}
@@ -372,7 +372,7 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                                 </div>
                             </FormSettingsCard>
                         )}
-                        {environments.ENABLE_RESPONSE_EDITING && form?.settings?.provider === 'self' && form?.settings?.requireVerifiedIdentity && (
+                        {form?.settings?.provider === 'self' && form?.settings?.requireVerifiedIdentity && (
                             <FormSettingsCard>
                                 <div className=" flex w-full flex-col items-start">
                                     <div className="h5-new !text-black-800">Allow Response Editing</div>

@@ -25,7 +25,7 @@ export default async function LoginPage({ searchParams }: { searchParams: { redi
         });
 
         if (userStatus.ok) {
-            if (host === environments.ADMIN_DOMAIN) {
+            if (host === environments.DASHBOARD_DOMAIN) {
                 const user = await userStatus.json();
                 if (user?.roles?.includes('FORM_CREATOR')) {
                     const userWorkspaceResponse = await fetch(`${environments.INTERNAL_DOCKER_API_ENDPOINT_HOST}/workspaces/mine`, {

@@ -30,7 +30,7 @@ const TemplateSettings = ({ template, showTitle }: { template: IFormTemplateDto;
     const [templateVisibility, setTemplateVisibility] = useState(template?.settings?.isPublic ? 'Public' : 'Private');
     const { openModal } = useModal();
     const workspace = useAppSelector(selectWorkspace);
-    const adminHost = `${environments.ADMIN_DOMAIN.includes('localhost') ? 'http' : 'https'}://${environments.ADMIN_DOMAIN}/templates/${template.id}`;
+    const adminHost = `${environments.DASHBOARD_DOMAIN.includes('localhost') ? 'http' : 'https'}://${environments.DASHBOARD_DOMAIN}/templates/${template.id}`;
 
     const [updateTemplateSettings] = usePatchTemplateSettingsMutation();
 

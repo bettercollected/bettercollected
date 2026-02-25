@@ -1,10 +1,9 @@
-import React from 'react';
-import { getWorkspaceByServerContext } from '@app/lib/server/workspace-auth';
-import FormsClient from './FormsClient';
-import { notFound } from 'next/navigation';
-import { headers } from 'next/headers';
 import environments from '@app/configs/environments';
+import { getWorkspaceByServerContext } from '@app/lib/server/workspace-auth';
 import { Metadata } from 'next';
+import { headers } from 'next/headers';
+import { notFound } from 'next/navigation';
+import FormsClient from './FormsClient';
 
 export async function generateMetadata(
     props: {
@@ -30,7 +29,7 @@ export default async function FormsPage(
 
     const headersList = await headers();
     const host = headersList.get('host') || '';
-    const hasCustomDomain = host !== environments.CLIENT_DOMAIN && host !== environments.ADMIN_DOMAIN;
+    const hasCustomDomain = host !== environments.FORM_DOMAIN && host !== environments.DASHBOARD_DOMAIN;
 
     return <FormsClient workspace={workspace} hasCustomDomain={hasCustomDomain} />;
 }
