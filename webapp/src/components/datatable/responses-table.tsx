@@ -6,8 +6,8 @@ import StyledPagination from '@Components/common/pagination';
 import { cn } from '@app/shadcn/util/lib';
 import DataTable from 'react-data-table-component';
 
+import { dataTableCustomStyles } from '@Components/datatable/datatable-styles';
 import StatusBadge from '@app/components/badge/status-badge';
-import { dataTableCustomStyles } from '@app/components/datatable/form/datatable-styles';
 import { ChevronForward } from '@app/components/icons/chevron-forward';
 import EmptyResponse from '@app/components/ui/empty-response';
 import AnchorLink from '@app/components/ui/links/anchor-link';

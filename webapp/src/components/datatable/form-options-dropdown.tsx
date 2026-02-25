@@ -1,15 +1,9 @@
 "use client";
 import { useState } from 'react';
 
-import { useTranslation } from 'next-i18next';
-
-
-
-
-import Pin from '@Components/common/icons/pin';
-import AddMember @Components/icons/pinmember';
 import Tooltip from '@app/shadcn/components/ui/tooltip';
-import { Copy, Eye, MoreVertical, Pencil, QrCode, Trash2 } from 'lucide-react';
+import { Copy, Eye, MoreVertical, Pencil, Pin, QrCode, Trash2 } from 'lucide-react';
+import { useTranslation } from 'next-i18next';
 
 import { LinkIcon } from '@app/components/icons/link-icon';
 import { useModal } from '@app/components/modal-views/context';
@@ -31,6 +25,7 @@ import { useDuplicateFormMutation, useGetAllRespondersGroupQuery, usePatchFormSe
 import getFormShareURL from '@app/utils/formUtils';
 import { getEditFormURL } from '@app/utils/urlUtils';
 import { validateFormOpen } from '@app/utils/validationUtils';
+import AddMember from '@Components/icons/add-member';
 
 interface IFormOptionsDropdownMenuProps {
     workspace: WorkspaceDto;

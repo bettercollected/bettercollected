@@ -5,9 +5,9 @@ import { useTranslation } from 'next-i18next';
 import { Info } from 'lucide-react';
 import DataTable from 'react-data-table-component';
 
+import { dataTableCustomStyles } from '@Components/datatable/datatable-styles';
+import MemberOptions from '@Components/datatable/member-options';
 import StatusBadge from '@app/components/badge/status-badge';
-import { dataTableCustomStyles } from '@app/components/datatable/form/datatable-styles';
-import MemberOptions from '@app/components/datatable/workspace-settings/member-options';
 import { localesCommon } from '@app/constants/locales/common';
 import { members } from '@app/constants/locales/members';
 import { toastMessage } from '@app/constants/locales/toast-message';

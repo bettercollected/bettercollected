@@ -9,7 +9,6 @@ import { useToast } from '@app/shadcn/components/ui/use-toast';
 import DataTable from 'react-data-table-component';
 
 import EmptyGroup from '@app/components/dashboard/empty-group';
-import { dataTableCustomStyles } from '@app/components/datatable/form/datatable-styles';
 import { Plus } from '@app/components/icons/plus';
 import { useModal } from '@app/components/modal-views/context';
 import DeleteDropDown from '@app/components/ui/delete-dropdown';
@@ -22,6 +21,7 @@ import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { selectIsAdmin } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { useDeleteResponderGroupMutation, useGetAllRespondersGroupQuery } from '@app/store/workspaces/api';
+import { dataTableCustomStyles } from '@Components/datatable/datatable-styles';
 
 const customGroupTableStyles: any = { ...dataTableCustomStyles };
 

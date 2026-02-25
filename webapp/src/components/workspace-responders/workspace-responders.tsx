@@ -10,7 +10,6 @@ import SearchInput from '@Components/common/search-input';
 import cn from 'classnames';
 import DataTable from 'react-data-table-component';
 
-import { dataTableCustomStyles } from '@app/components/datatable/form/datatable-styles';
 import { Close } from '@app/components/icons/close';
 import { useModal } from '@app/components/modal-views/context';
 import EmptyResponse from '@app/components/ui/empty-response';
@@ -31,6 +30,7 @@ import { useAppSelector } from '@app/store/hooks';
 import { useGetAllRespondersGroupQuery, useGetWorkspaceRespondersQuery } from '@app/store/workspaces/api';
 import { IGetAllSubmissionsQuery } from '@app/store/workspaces/types';
 import { isEmailInGroup } from '@app/utils/groupUtils';
+import { dataTableCustomStyles } from '@Components/datatable/datatable-styles';
 
 const ResponderGroupDropdown = ({
     email,

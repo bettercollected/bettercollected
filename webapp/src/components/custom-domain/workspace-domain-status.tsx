@@ -1,5 +1,5 @@
 "use client";
-import { simpleDataTableStyles } from '@app/components/datatable/form/datatable-styles';
+import { simpleDataTableStyles } from '@Components/datatable/datatable-styles';
 import environments from '@app/configs/environments';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { Button } from '@app/shadcn/components/ui/button';
@@ -18,7 +18,7 @@ import { useEffect } from 'react';
 import DataTable from 'react-data-table-component';
 
 import { useToast } from '@app/shadcn/components/ui/use-toast';
-import DeleteDomainDropdown from './DeleteDomainDropdown';
+import DeleteDomainDropdown from './delete-domain-dropdown';
 
 const WorkspaceDomainStatus = () => {
     const workspace = useAppSelector(selectWorkspace);

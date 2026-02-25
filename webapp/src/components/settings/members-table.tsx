@@ -5,8 +5,8 @@ import _ from 'lodash';
 import UserDetails from '@Components/common/user-details';
 import DataTable from 'react-data-table-component';
 
-import { dataTableCustomStyles } from '@app/components/datatable/form/datatable-styles';
-import MemberOptions from '@app/components/datatable/workspace-settings/member-options';
+import { dataTableCustomStyles } from '@Components/datatable/datatable-styles';
+import MemberOptions from '@Components/datatable/member-options';
 import { members } from '@app/constants/locales/members';
 import { useAppSelector } from '@app/store/hooks';
 import { utcToLocalDate, utcToLocalTime } from '@app/utils/dateUtils';

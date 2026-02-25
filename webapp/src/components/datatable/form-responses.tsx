@@ -13,7 +13,7 @@ import { useGetFormsSubmissionsQuery, useLazyGetFormAllSubmissionsQuery } from '
 import { IGetFormSubmissionsQuery } from '@app/store/workspaces/types';
 import EmptyResponseIcon from '@app/views/atoms/Icons/EmptyResponseIcon';
 import { DownloadIcon } from 'lucide-react';
-import ResponsesTable from '../responses';
+import ResponsesTable from './responses-table';
 //@ts-ignore
 import { StandardFormResponseDto } from '@app/models/dtos/form';
 import { selectAuth } from '@app/store/auth/slice';

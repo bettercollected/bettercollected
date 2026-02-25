@@ -7,7 +7,7 @@ import StyledPagination from '@Components/common/pagination';
 import cn from 'classnames';
 import DataTable from 'react-data-table-component';
 
-import { dataTableCustomStyles } from '@app/components/datatable/form/datatable-styles';
+import { dataTableCustomStyles } from '@Components/datatable/datatable-styles';
 import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
 import globalConstants from '@app/constants/global';
 import { FieldTypes, StandardFormDto, StandardFormFieldDto, StandardFormResponseDto } from '@app/models/dtos/form';

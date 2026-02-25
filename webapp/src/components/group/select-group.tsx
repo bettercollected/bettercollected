@@ -7,7 +7,7 @@ import { Button } from '@app/shadcn/components/ui/button';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 import DataTable from 'react-data-table-component';
 
-import { dataTableCustomStyles } from '@app/components/datatable/form/datatable-styles';
+import { dataTableCustomStyles } from '@Components/datatable/datatable-styles';
 import { GroupIcon } from '@app/components/icons/group-icon';
 import SaveIcon from '@app/components/icons/save';
 import { useModal } from '@app/components/modal-views/context';

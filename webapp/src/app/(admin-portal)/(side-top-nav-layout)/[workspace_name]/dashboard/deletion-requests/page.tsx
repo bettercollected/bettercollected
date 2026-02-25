@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 
 import SearchInput from '@Components/common/search-input';
 
-import ResponsesTable from '@app/components/datatable/responses';
+import ResponsesTable from '@Components/datatable/responses-table';
 import Loader from '@app/components/ui/loader';
 import globalConstants from '@app/constants/global';
 import { localesCommon } from '@app/constants/locales/common';
