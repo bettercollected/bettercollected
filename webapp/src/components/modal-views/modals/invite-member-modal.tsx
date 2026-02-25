@@ -10,7 +10,7 @@ import { useModal } from '@app/components/modal-views/context';
 import SettingsCard from '@app/components/settings/card';
 import { buttonConstant } from '@app/constants/locales/button';
 import { localesCommon } from '@app/constants/locales/common';
-import { inviteCollaborator } from '@app/constants/locales/inviteCollaborator';
+import { inviteCollaborator } from '@app/constants/locales/invite-collaborators';
 import { toastMessage } from '@app/constants/locales/toast-message';
 import { AppInput } from '@app/shadcn/components/ui/input';
 import { useAppSelector } from '@app/store/hooks';

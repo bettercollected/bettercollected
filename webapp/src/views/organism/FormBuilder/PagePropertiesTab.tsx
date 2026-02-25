@@ -7,7 +7,7 @@ import { cn } from '@app/shadcn/util/lib';
 import { useActiveFieldComponent, useActiveSlideComponent, useActiveThankYouPageComponent } from '@app/store/jotai/active-builder-component';
 import useFormFieldsAtom from '@app/store/jotai/field-selectors';
 import { useFormState } from '@app/store/jotai/form';
-import { extractTextfromJSON } from '@app/utils/richTextEditorExtenstion/getHtmlFromJson';
+import { extractTextfromJSON } from '@app/utils/richTextEditorExtenstion/get-html-from-json';
 import RequiredIcon from '@app/views/atoms/Icons/Required';
 import { SlideLayoutNoImageLeftAlign } from '@app/views/atoms/Icons/SlideLayoutNoImageLeftAlign';
 

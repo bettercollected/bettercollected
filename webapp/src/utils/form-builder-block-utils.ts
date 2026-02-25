@@ -2,7 +2,7 @@
 import { FieldTypes, StandardFormDto, StandardFormFieldDto, StandardFormResponseDto } from '@app/models/dtos/form';
 import { FormBuilderTagNames } from '@app/models/enums/form-builder';
 import { getFieldsFromV2Form } from './form-utils';
-import { extractTextfromJSON } from './richTextEditorExtenstion/getHtmlFromJson';
+import { extractTextfromJSON } from './richTextEditorExtenstion/get-html-from-json';
 
 
 export function getAnswerForField(response: StandardFormResponseDto, field: StandardFormFieldDto) {

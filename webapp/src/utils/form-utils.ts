@@ -1,7 +1,7 @@
 "use client";
 import { FieldTypes, StandardFormDto, StandardFormFieldDto } from '@app/models/dtos/form';
 import { WorkspaceDto } from '@app/models/dtos/workspace-dto';
-import { extractTextfromJSON } from './richTextEditorExtenstion/getHtmlFromJson';
+import { extractTextfromJSON } from './richTextEditorExtenstion/get-html-from-json';
 
 export default function getFormShareURL(form: StandardFormDto, workspace: WorkspaceDto, defaultLink: boolean = false) {
     const slug = form?.settings?.customUrl || form?.formId;

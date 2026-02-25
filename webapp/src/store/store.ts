@@ -19,7 +19,7 @@ import { apiActionsApi } from './api-actions-api';
 import mutationStatusSlice from './mutations/slice';
 import { priceSuggestionApi } from './price-suggestion/api';
 
-import { integrationApi } from '@app/store/integrationApi';
+import { integrationApi } from '@app/store/integration-apis';
 import { templatesApi } from '@app/store/redux/template-api';
 
 import { formsApi } from '@app/store/redux/form-api';

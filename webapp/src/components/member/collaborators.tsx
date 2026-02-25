@@ -5,7 +5,7 @@ import { Button } from '@app/shadcn/components/ui/button';
 import { Plus } from 'lucide-react';
 
 import { useModal } from '@app/components/modal-views/context';
-import { inviteCollaborator } from '@app/constants/locales/inviteCollaborator';
+import { inviteCollaborator } from '@app/constants/locales/invite-collaborators';
 import { members } from '@app/constants/locales/members';
 import { useAppSelector } from '@app/store/hooks';
 import { useGetWorkspaceMembersQuery } from '@app/store/workspaces/members-n-invitations-api';

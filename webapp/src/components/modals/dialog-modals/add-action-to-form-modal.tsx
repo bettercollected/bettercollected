@@ -13,7 +13,7 @@ import { AppInput } from '@app/shadcn/components/ui/input';
 import { useAddActionToFormMutation } from '@app/store/api-actions-api';
 import { selectAuth } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
-import { useHandleIntegrationOauthCallbackMutation, useLazyGetIntegrationOauthUrlQuery } from '@app/store/integrationApi';
+import { useHandleIntegrationOauthCallbackMutation, useLazyGetIntegrationOauthUrlQuery } from '@app/store/integration-apis';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import Image from 'next/image';
 
