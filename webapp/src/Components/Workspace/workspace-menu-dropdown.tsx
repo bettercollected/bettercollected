@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/navigation';
@@ -11,7 +11,6 @@ import { Check } from '@app/Components/icons/check';
 import { Plus } from '@app/Components/icons/plus';
 import { useFullScreenModal } from '@app/Components/modal-views/full-screen-modal-context';
 import Loader from '@app/Components/ui/loader';
-import environments from '@app/configs/environments';
 import dashboardConstants from '@app/constants/locales/dashboard';
 import { menuDropdown } from '@app/constants/locales/menu-dropdown';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
@@ -80,7 +79,7 @@ export default function WorkspaceMenuDropdown({ fullWidth }: IWorkspaceMenuDropd
         const usersWorkspaces = data.filter((space: WorkspaceDto) => {
             return space.ownerId === auth?.id;
         });
-        return usersWorkspaces.length < Number(environments.MAX_WORKSPACES);
+        return usersWorkspaces.length < Number(5);
     };
 
     const getWorkspaceRole = (space: WorkspaceDto) => {

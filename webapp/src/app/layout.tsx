@@ -14,6 +14,7 @@ import I18nProvider from '@app/shared/hocs/I18nProvider';
 import ReduxProvider from '@app/shared/hocs/ReduxProvider';
 import ThemeProvider from '@app/shared/hocs/ThemeProvider';
 import BaseModalContainer from '@Components/Modals/Containers/BaseModalContainer';
+import Head from 'next/head';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -29,10 +30,10 @@ export default function RootLayout({
 }>) {
     return (
         <html>
-            <head>
+            <Head>
                 {environments.NEXT_PUBLIC_NODE_ENV === 'production' && environments.UMAMI_WEBSITE_ID && <script defer src="https://umami.sireto.io/script.js" data-website-id={environments.UMAMI_WEBSITE_ID}></script>}
                 <script src="/api/config" defer></script>
-            </head>
+            </Head>
             <body className={cn('max-h-screen overflow-auto', inter.className)}>
                 <ThemeProvider>
                     <I18nProvider>
