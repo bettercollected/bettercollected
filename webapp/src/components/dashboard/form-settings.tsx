@@ -4,17 +4,16 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'next-i18next';
 
 import EditIcon from '@app/components/Common/Icons/Common/Edit';
-import LockIcon from '@app/components/Common/Icons/lock';
 import { useBottomSheetModal } from '@app/components/Modals/Contexts/BottomSheetModalContext';
 import { Button } from '@app/shadcn/components/ui/button';
 import { Label } from '@app/shadcn/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@app/shadcn/components/ui/radio-group';
 import { Switch } from '@app/shadcn/components/ui/switch';
-import { useToast } from '@app/shadcn/components/ui/use-toast';
 import Tooltip from '@app/shadcn/components/ui/tooltip';
+import { useToast } from '@app/shadcn/components/ui/use-toast';
 import Divider from '@Components/Common/divider';
 import cn from 'classnames';
-import { QrCode } from 'lucide-react';
+import { Lock, QrCode } from 'lucide-react';
 import moment from 'moment/moment';
 import useCopyToClipboard from 'react-use/lib/useCopyToClipboard';
 
@@ -224,7 +223,7 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                                     <RadioGroupItem value="Private" id="private" />
                                     <Label htmlFor="private" className="cursor-pointer">
                                         <div className="body6 !text-black-800 flex items-center gap-[6px]">
-                                            <LockIcon className="h-[18px] w-[18px]" />
+                                            <Lock className="h-[18px] w-[18px]" />
                                             {t(formConstant.settings.visibility.private)}
                                         </div>
                                     </Label>

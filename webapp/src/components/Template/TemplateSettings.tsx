@@ -4,7 +4,6 @@ import { useTranslation } from 'next-i18next';
 
 import Divider from '@Components/Common/divider';
 import CopyIcon from '@app/components/Common/Icons/Common/Copy';
-import LockIcon from '@app/components/Common/Icons/lock';
 import { Button } from '@app/shadcn/components/ui/button';
 import { Label } from '@app/shadcn/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@app/shadcn/components/ui/radio-group';
@@ -22,6 +21,7 @@ import { AppInput } from '@app/shadcn/components/ui/input';
 import { useAppSelector } from '@app/store/hooks';
 import { usePatchTemplateSettingsMutation } from '@app/store/template/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
+import { Lock } from 'lucide-react';
 
 
 const TemplateSettings = ({ template, showTitle }: { template: IFormTemplateDto; showTitle: boolean }) => {
@@ -95,7 +95,7 @@ const TemplateSettings = ({ template, showTitle }: { template: IFormTemplateDto;
                             <RadioGroupItem value="Private" id="private" />
                             <Label htmlFor="private" className="cursor-pointer">
                                 <div className="flex body6 !text-black-800 items-center gap-[6px]">
-                                    <LockIcon className="h-[18px] w-[18px]" />
+                                    <Lock className="h-[18px] w-[18px]" />
                                     {t(formConstant.settings.visibility.private)}
                                 </div>
                             </Label>

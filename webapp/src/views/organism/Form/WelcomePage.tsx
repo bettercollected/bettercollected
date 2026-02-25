@@ -1,7 +1,6 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 
-import LockIcon from '@app/components/Common/Icons/lock';
 import { FormTheme } from '@app/constants/theme';
 import { FormSlideLayout } from '@app/models/enums/form';
 import { Button } from '@app/shadcn/components/ui/button';
@@ -12,6 +11,7 @@ import { useAppSelector } from '@app/store/hooks';
 import { useResponderState } from '@app/store/jotai/responderFormState';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import UserAvatarDropDown from '@app/views/molecules/UserAvatarDropdown';
+import { Lock } from 'lucide-react';
 
 export default function WelcomePage({
     isPreviewMode,
@@ -78,7 +78,7 @@ export default function WelcomePage({
                                 <div className="flex flex-col gap-2">
                                     <div className="flex items-center gap-4">
                                         <div className="bg-black-900 rounded-full p-2 text-white">
-                                            <LockIcon width={24} height={24} className="text-white" />
+                                            <Lock width={24} height={24} className="text-white" />
                                         </div>
                                         <span>Private Form</span>
                                     </div>
