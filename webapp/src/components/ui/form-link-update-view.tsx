@@ -1,7 +1,7 @@
 
 import { useTranslation } from 'next-i18next';
 
-import PrivateFormButtonWrapper from '@Components/Common/private-form-button-wrapper';
+import PrivateFormButtonWrapper from '@Components/common/private-form-button-wrapper';
 import { useBottomSheetModal } from '@app/components/Modals/Contexts/BottomSheetModalContext';
 import useCopyToClipboard from 'react-use/lib/useCopyToClipboard';
 

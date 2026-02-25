@@ -1,6 +1,6 @@
 
 import Tooltip from '@app/shadcn/components/ui/tooltip';
-import MarkdownText from '@Components/Common/markdown';
+import MarkdownText from '@Components/common/markdown';
 
 import { useAppSelector } from '@app/store/hooks';
 import { toEndDottedStr, trimTooltipTitle } from '@app/utils/stringUtils';

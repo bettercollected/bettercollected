@@ -1,6 +1,6 @@
 import { useTranslation } from 'next-i18next';
 
-import Divider from '@Components/Common/divider';
+import Divider from '@Components/common/divider';
 
 import QRGenerator from '@app/components/Form/QRGenerator';
 import { Close } from '@app/components/icons/close';

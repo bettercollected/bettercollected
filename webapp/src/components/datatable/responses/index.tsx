@@ -2,7 +2,7 @@
 
 import { useTranslation } from 'next-i18next';
 
-import StyledPagination from '@Components/Common/pagination';
+import StyledPagination from '@Components/common/pagination';
 import { cn } from '@app/shadcn/util/lib';
 import DataTable from 'react-data-table-component';
 

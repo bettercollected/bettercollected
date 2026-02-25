@@ -6,9 +6,9 @@ import { useTranslation } from 'react-i18next';
 
 import { escapeRegExp } from 'lodash';
 
-import EmptyFormIcon from '@app/components/Common/Icons/Form/EmptyForm';
-import StyledPagination from '@Components/Common/pagination';
-import SearchInput from '@Components/Common/search-input';
+import StyledPagination from '@Components/common/pagination';
+import SearchInput from '@Components/common/search-input';
+import EmptyFormIcon from '@Components/icons/empty-form';
 
 import Loader from '@app/components/ui/loader';
 import WorkspaceDashboardFormsCard from '@app/components/workspace-dashboard/workspace-dashboard-form-cards';

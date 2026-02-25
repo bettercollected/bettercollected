@@ -5,8 +5,8 @@ import { Check, Plus } from 'lucide-react';
 import { useTranslation } from 'next-i18next';
 
 import Tooltip from '@app/shadcn/components/ui/tooltip';
-import StyledPagination from '@Components/Common/pagination';
-import SearchInput from '@Components/Common/search-input';
+import StyledPagination from '@Components/common/pagination';
+import SearchInput from '@Components/common/search-input';
 import cn from 'classnames';
 import DataTable from 'react-data-table-component';
 

@@ -1,7 +1,7 @@
 import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/navigation';
 
-import GenericHalfModal from '@Components/Common/generic-half-modal';
+import GenericHalfModal from '@Components/common/generic-half-modal';
 
 import { useModal } from '@app/components/modal-views/context';
 import { toastMessage } from '@app/constants/locales/toast-message';

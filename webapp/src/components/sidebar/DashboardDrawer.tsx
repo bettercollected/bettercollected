@@ -23,7 +23,7 @@ import { useAppSelector } from '@app/store/hooks';
 import { useGetWorkspaceStatsQuery } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import Globe from '@app/views/atoms/Icons/Flags/Globe';
-import Divider from '@Components/Common/divider';
+import Divider from '@Components/common/divider';
 
 const GradientBgDiv = ({ className, children }: { className?: string, children: React.ReactNode }) => (
     <div

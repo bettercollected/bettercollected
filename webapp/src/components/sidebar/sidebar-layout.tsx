@@ -4,9 +4,9 @@ import React from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useTranslation } from 'react-i18next';
 
-import MembersIcon from '@app/components/Common/Icons/Dashboard/Members';
-import ResponderIcon from '@app/components/Common/Icons/Dashboard/Responder';
-import { FormIcon } from '@app/components/Common/Icons/Form/FormIcon';
+import { FormIcon } from '@Components/icons/form-icon';
+import MembersIcon from '@Components/icons/members';
+import ResponderIcon from '@Components/icons/responder';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Trash2 } from 'lucide-react';
 

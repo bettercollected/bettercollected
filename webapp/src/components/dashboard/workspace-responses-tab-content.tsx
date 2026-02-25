@@ -2,7 +2,7 @@
 "use client";
 import { useTranslation } from 'next-i18next';
 
-import ZeroElement from '@Components/Common/zero-elament';
+import ZeroElement from '@Components/common/zero-elament';
 import WorkspaceFormResponseDeletionCard from '@app/components/WorkspaceClient/WorkspaceFormResponseDeletionCard';
 
 import Loader from '@app/components/ui/loader';

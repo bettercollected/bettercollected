@@ -4,9 +4,9 @@ import { useTranslation } from 'next-i18next';
 
 import { escapeRegExp } from 'lodash';
 
-import Divider from '@Components/Common/divider';
-import SearchInput from '@Components/Common/search-input';
-import ZeroElement from '@Components/Common/zero-elament';
+import Divider from '@Components/common/divider';
+import SearchInput from '@Components/common/search-input';
+import ZeroElement from '@Components/common/zero-elament';
 
 import FormCards from '@app/components/dashboard/form-cards';
 import Loader from '@app/components/ui/loader';

@@ -1,7 +1,7 @@
 
 import { useTranslation } from 'next-i18next';
 
-import GenericHalfModal from '@Components/Common/generic-half-modal';
+import GenericHalfModal from '@Components/common/generic-half-modal';
 
 import { formConstant } from '@app/constants/locales/form';
 

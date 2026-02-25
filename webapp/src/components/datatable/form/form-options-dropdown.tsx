@@ -6,8 +6,8 @@ import { useTranslation } from 'next-i18next';
 
 
 
-import AddMember from '@app/components/Common/Icons/Dashboard/Add-member';
-import Pin from '@app/components/Common/Icons/Form/Pin';
+import Pin from '@Components/common/icons/pin';
+import AddMember @Components/icons/pinmember';
 import Tooltip from '@app/shadcn/components/ui/tooltip';
 import { Copy, Eye, MoreVertical, Pencil, QrCode, Trash2 } from 'lucide-react';
 

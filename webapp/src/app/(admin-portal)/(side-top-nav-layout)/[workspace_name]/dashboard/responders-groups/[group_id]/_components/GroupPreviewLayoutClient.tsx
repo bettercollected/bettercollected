@@ -6,8 +6,8 @@ import { usePathname } from 'next/navigation';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 
-import MembersIcon from '@app/components/Common/Icons/Dashboard/Members';
-import { FormIcon } from '@app/components/Common/Icons/Form/FormIcon';
+import { FormIcon } from '@Components/icons/form-icon';
+import MembersIcon from '@Components/icons/members';
 
 import BreadcrumbsRenderer from '@app/components/Form/renderer/breadcrumbs-renderer';
 import Loader from '@app/components/ui/loader';

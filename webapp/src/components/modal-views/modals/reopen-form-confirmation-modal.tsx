@@ -1,4 +1,4 @@
-import GenericHalfModal from '@Components/Common/generic-half-modal';
+import GenericHalfModal from '@Components/common/generic-half-modal';
 
 export default function ReopenFormConfirmationModal({ reopenForm }: any) {
     return (

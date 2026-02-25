@@ -6,11 +6,11 @@ import { usePathname, useRouter } from 'next/navigation';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 
-import Divider from '@Components/Common/divider';
+import Divider from '@Components/common/divider';
 import { Button } from '@app/shadcn/components/ui/button';
 import { Disclosure } from '@headlessui/react';
 
-import { FormIcon } from '@app/components/Common/Icons/Form/FormIcon';
+import { FormIcon } from '@Components/icons/form-icon';
 import WorkspaceDetailsCard from '@app/components/RespondersPortal/WorkspaceDetailsCard';
 import AuthAccountProfileImage from '@app/components/auth/account-profile-image';
 import { ChevronDown } from '@app/components/icons/chevron-down';

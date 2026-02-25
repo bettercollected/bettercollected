@@ -2,7 +2,7 @@ import { useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
 
-import Divider from '@Components/Common/divider';
+import Divider from '@Components/common/divider';
 import { Button } from '@app/shadcn/components/ui/button';
 import { Label } from '@app/shadcn/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@app/shadcn/components/ui/radio-group';

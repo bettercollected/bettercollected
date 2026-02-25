@@ -1,7 +1,7 @@
 
 import { useTranslation } from 'next-i18next';
 
-import Empty from '@app/components/Common/Icons/Common/Empty';
+import Empty from '@Components/icons/empty';
 
 import { IFormTemplateDto } from '@app/models/dtos/template';
 import { useAppSelector } from '@app/store/hooks';

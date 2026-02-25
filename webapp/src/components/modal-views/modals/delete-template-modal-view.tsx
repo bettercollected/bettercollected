@@ -2,7 +2,7 @@
 import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/navigation';
 
-import GenericHalfModal from '@Components/Common/generic-half-modal';
+import GenericHalfModal from '@Components/common/generic-half-modal';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 
 import { IFormTemplateDto } from '@app/models/dtos/template';

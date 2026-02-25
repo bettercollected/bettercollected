@@ -6,9 +6,6 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 
 import AuthAccountMenuDropdown from '@app/components/auth/account-menu-dropdown';
-import MembersIcon from '@app/components/Common/Icons/Dashboard/Members';
-import ResponderIcon from '@app/components/Common/Icons/Dashboard/Responder';
-import { FormIcon } from '@app/components/Common/Icons/Form/FormIcon';
 import Globe from '@app/components/icons/flags/globe';
 import { TemplateIcon } from '@app/components/icons/template';
 import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
@@ -16,6 +13,9 @@ import DashboardDrawer from '@app/components/sidebar/DashboardDrawer';
 import HelpMenuComponent from '@app/components/sidebar/HelpMenuComponent';
 import HelpMenuItem from '@app/components/sidebar/HelpMenuItem';
 import { ProLogo } from '@app/components/ui/logo';
+import { FormIcon } from '@Components/icons/form-icon';
+import MembersIcon from '@Components/icons/members';
+import ResponderIcon from '@Components/icons/responder';
 import { Trash2 } from 'lucide-react';
 
 import AuthNavbar from '@app/components/auth/auth-navbar';

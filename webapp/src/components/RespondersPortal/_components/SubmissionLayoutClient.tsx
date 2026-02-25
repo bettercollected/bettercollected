@@ -6,10 +6,10 @@ import { usePathname, useRouter } from 'next/navigation';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 
-import Divider from '@Components/Common/divider';
-import { DotIcon } from '@app/components/Common/Icons/Common/DotIcon';
+import Divider from '@Components/common/divider';
+import { DotIcon } from '@Components/icons/dot-icon';
 
-import FormProviderIcon from '@app/components/Common/Icons/Form/FormProviderIcon';
+import FormProviderIcon from '@Components/Common/Icons/Form/form-provider-icon';
 
 import { ChevronLeft, Eye, Settings } from 'lucide-react';
 

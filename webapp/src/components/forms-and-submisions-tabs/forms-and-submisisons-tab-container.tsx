@@ -3,7 +3,7 @@ import { useTranslation } from 'next-i18next';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useState } from 'react';
 
-import { FormIcon } from '@app/components/Common/Icons/Form/FormIcon';
+import { FormIcon } from '@Components/icons/form-icon';
 
 import WorkspaceFormsTabContent from '@app/components/dashboard/workspace-forms-tab-content';
 import WorkspaceResponsesTabContent from '@app/components/dashboard/workspace-responses-tab-content';

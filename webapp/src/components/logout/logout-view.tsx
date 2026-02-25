@@ -1,6 +1,6 @@
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
-import GenericHalfModal from '@Components/Common/generic-half-modal';
+import GenericHalfModal from '@Components/common/generic-half-modal';
 
 import { useModal } from '@app/components/modal-views/context';
 import { useLazyGetStatusQuery, useLogoutMutation } from '@app/store/auth/api';

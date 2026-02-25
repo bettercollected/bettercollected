@@ -6,8 +6,8 @@ import { useTranslation } from 'next-i18next';
 import _ from 'lodash';
 
 
-import Billing from '@app/components/Common/Icons/Dashboard/Billing';
-import DashboardIcon from '@app/components/Common/Icons/Dashboard/Dashboard';
+import Billing from '@Components/icons/billing';
+import DashboardIcon from '@Components/icons/dashboard';
 
 import WorkspaceAdminSelector from '@app/components/HOCs/WorkspaceAdminSelector';
 

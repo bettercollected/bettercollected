@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 
 
-import SearchInput from '@Components/Common/search-input';
+import SearchInput from '@Components/common/search-input';
 import TabularResponses from '@app/components/Form/TabularResponses';
 
 import Loader from '@app/components/ui/loader';

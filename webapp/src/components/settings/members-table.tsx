@@ -2,7 +2,7 @@ import { useTranslation } from 'next-i18next';
 
 import _ from 'lodash';
 
-import UserDetails from '@Components/Common/user-details';
+import UserDetails from '@Components/common/user-details';
 import DataTable from 'react-data-table-component';
 
 import { dataTableCustomStyles } from '@app/components/datatable/form/datatable-styles';

@@ -1,5 +1,5 @@
 
-import EmptyFormIcon from '@app/components/Common/Icons/Form/EmptyForm';
+import EmptyFormIcon from '@Components/icons/empty-form';
 
 interface IZeroElementProps {
     title: string;

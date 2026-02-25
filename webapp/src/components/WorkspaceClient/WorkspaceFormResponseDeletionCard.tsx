@@ -1,8 +1,8 @@
 "use client";
 import { useTranslation } from 'next-i18next';
 
-import { DotIcon } from '@app/components/Common/Icons/Common/DotIcon';
-import FormProviderIcon from '@app/components/Common/Icons/Form/FormProviderIcon';
+import FormProviderIcon from '@Components/Common/Icons/Form/form-provider-icon';
+import { DotIcon } from '@Components/icons/dot-icon';
 
 import { localesCommon } from '@app/constants/locales/common';
 import { StandardFormResponseDto } from '@app/models/dtos/form';

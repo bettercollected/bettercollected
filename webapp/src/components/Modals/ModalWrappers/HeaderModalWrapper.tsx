@@ -1,6 +1,6 @@
 import { ReactNode } from 'react';
 
-import Divider from '@Components/Common/divider';
+import Divider from '@Components/common/divider';
 import { cn } from '@app/shadcn/util/lib';
 
 import { Close } from '@app/components/icons/close';

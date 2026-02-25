@@ -14,7 +14,7 @@ import { Button } from '@app/shadcn/components/ui/button';
 import { selectIsAdmin } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
-import SearchInput from '@Components/Common/search-input';
+import SearchInput from '@Components/common/search-input';
 
 import { useModal } from '../modal-views/context';
 

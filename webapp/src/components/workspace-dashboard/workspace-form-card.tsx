@@ -2,14 +2,14 @@
 import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/navigation';
 
-import { DotIcon } from '@app/components/Common/Icons/Common/DotIcon';
+import { DotIcon } from '@Components/icons/dot-icon';
 import Tooltip from '@app/shadcn/components/ui/tooltip';
 import { Pencil, Share2 } from 'lucide-react';
 
 
-import FormProviderIcon from '@app/components/Common/Icons/Form/FormProviderIcon';
-import PrivateIcon from '@app/components/Common/Icons/Form/Private';
-import PublicIcon from '@app/components/Common/Icons/Form/Public';
+import FormProviderIcon from '@Components/Common/Icons/Form/form-provider-icon';
+import PrivateIcon from '@Components/icons/private';
+import PublicIcon from '@Components/icons/public';
 import { Button } from '@app/shadcn/components/ui/button';
 import moment from 'moment/moment';
 

@@ -1,5 +1,5 @@
 
-import Pro from '@app/components/Common/Icons/Dashboard/Pro';
+import Pro from '@Components/icons/pro';
 
 export default function ProLogo() {
     return (

@@ -2,7 +2,7 @@
 import { useTranslation } from 'next-i18next';
 
 import { Button } from '@app/shadcn/components/ui/button';
-import Divider from '@Components/Common/divider';
+import Divider from '@Components/common/divider';
 
 import { Close } from '@app/components/icons/close';
 import { useModal } from '@app/components/modal-views/context';

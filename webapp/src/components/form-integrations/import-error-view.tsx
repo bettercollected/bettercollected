@@ -2,9 +2,9 @@ import React, { useState } from 'react';
 
 import _ from 'lodash';
 
-import CheckedCircle from '@app/components/Common/Icons/Common/CheckedCircle';
 import CloseModal from '@app/components/Modals/CloseModal';
 import { Checkbox } from '@app/shadcn/components/ui/checkbox';
+import CheckedCircle from '@Components/icons/checked-circle';
 import { Disclosure } from '@headlessui/react';
 
 import { ChevronDown } from '@app/components/icons/chevron-down';

@@ -1,6 +1,6 @@
 import { PureComponent } from 'react';
 
-import { GoogleIcon } from '@app/components/Common/Icons/Google/google';
+import { GoogleIcon } from '@Components/icons/google';
 
 import { ProviderIcon } from '@app/components/icons/brands/provider';
 import { darkStyle, disabledStyle, hoverStyle, lightStyle, typeformDarkStyle } from '@app/components/icons/brands/styles/google';

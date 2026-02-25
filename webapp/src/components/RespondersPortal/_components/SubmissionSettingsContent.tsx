@@ -5,7 +5,7 @@ import { buttonConstant } from '@app/constants/locales/button';
 import { toolTipConstant } from '@app/constants/locales/tooltip';
 import { Button } from '@app/shadcn/components/ui/button';
 import Tooltip from '@app/shadcn/components/ui/tooltip';
-import Divider from '@Components/Common/divider';
+import Divider from '@Components/common/divider';
 import { useTranslation } from 'react-i18next';
 import { useSubmissionContext } from './SubmissionContext';
 

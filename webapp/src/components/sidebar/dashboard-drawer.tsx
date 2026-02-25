@@ -5,7 +5,7 @@ import { useTranslation } from 'next-i18next';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
-import Divider from '@Components/Common/divider';
+import Divider from '@Components/common/divider';
 
 import { useModal } from '@app/components/modal-views/context';
 import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';

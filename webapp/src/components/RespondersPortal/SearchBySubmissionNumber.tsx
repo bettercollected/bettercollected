@@ -4,7 +4,7 @@ import { FormEvent, useState } from 'react';
 import Image from 'next/legacy/image';
 import { useRouter } from 'next/navigation';
 
-import InfoIcon from '@app/components/Common/Icons/FormBuilder/infoIcon';
+import InfoIcon from '@Components/icons/info.icon';
 
 import { SearchIcon } from '@app/components/icons/search';
 import { AppInput } from '@app/shadcn/components/ui/input';

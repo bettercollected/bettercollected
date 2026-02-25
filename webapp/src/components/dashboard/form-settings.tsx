@@ -11,7 +11,7 @@ import { RadioGroup, RadioGroupItem } from '@app/shadcn/components/ui/radio-grou
 import { Switch } from '@app/shadcn/components/ui/switch';
 import Tooltip from '@app/shadcn/components/ui/tooltip';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
-import Divider from '@Components/Common/divider';
+import Divider from '@Components/common/divider';
 import cn from 'classnames';
 import { Lock, Pencil, QrCode } from 'lucide-react';
 import moment from 'moment/moment';

@@ -4,7 +4,7 @@ import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/navigation';
 
 import Tooltip from '@app/shadcn/components/ui/tooltip';
-import Divider from '@Components/Common/divider';
+import Divider from '@Components/common/divider';
 
 import AuthAccountProfileImage from '@app/components/auth/account-profile-image';
 import { Check } from '@app/components/icons/check';

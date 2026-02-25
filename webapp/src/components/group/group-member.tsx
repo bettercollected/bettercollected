@@ -2,7 +2,7 @@
 import { useTranslation } from 'next-i18next';
 
 import { Button } from '@app/shadcn/components/ui/button';
-import SearchInput from '@Components/Common/search-input';
+import SearchInput from '@Components/common/search-input';
 
 import MemberCard from '@app/components/cards/member-card';
 import { Plus } from '@app/components/icons/plus';
