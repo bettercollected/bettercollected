@@ -1,9 +1,8 @@
 import { useState } from 'react';
 
-import { MoreHorizontal } from 'lucide-react';
+import { MoreHorizontal, Trash2 } from 'lucide-react';
 import { useTranslation } from 'next-i18next';
 
-import Delete from '@app/components/Common/Icons/Common/Delete';
 import { Popover, PopoverContent, PopoverTrigger } from '@app/shadcn/components/ui/popover';
 
 import { localesCommon } from '@app/constants/locales/common';
@@ -38,7 +37,7 @@ export default function DeleteDropDown({ onDropDownItemClick, className, label }
                         onDropDownItemClick(event);
                     }}
                 >
-                    <Delete width={20} height={20} />
+                    <Trash2 width={20} height={20} />
                     {label ?? t(localesCommon.remove)}
                 </div>
             </PopoverContent>

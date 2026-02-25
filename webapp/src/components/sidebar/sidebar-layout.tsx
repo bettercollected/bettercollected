@@ -4,11 +4,11 @@ import React from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useTranslation } from 'react-i18next';
 
-import DeleteIcon from '@app/components/Common/Icons/Common/Delete';
 import MembersIcon from '@app/components/Common/Icons/Dashboard/Members';
 import ResponderIcon from '@app/components/Common/Icons/Dashboard/Responder';
 import { FormIcon } from '@app/components/Common/Icons/Form/FormIcon';
 import { AnimatePresence, motion } from 'framer-motion';
+import { Trash2 } from 'lucide-react';
 
 import { cn } from '@app/shadcn/util/lib';
 
@@ -74,7 +74,7 @@ export default function SidebarLayout({ children, DrawerComponent = DashboardDra
             key: 'deletion_requests',
             name: t(formConstant.deletionRequests),
             url: `${commonWorkspaceUrl}/deletion-requests`,
-            icon: <DeleteIcon className="stroke-2" />
+            icon: <Trash2 className="stroke-2" />
         }
     ];
     auth?.roles?.includes('ADMIN') &&

@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
 
-import EditIcon from '@app/components/Common/Icons/Common/Edit';
+
 import { useBottomSheetModal } from '@app/components/Modals/Contexts/BottomSheetModalContext';
 import { Button } from '@app/shadcn/components/ui/button';
 import { Label } from '@app/shadcn/components/ui/label';
@@ -13,7 +13,7 @@ import Tooltip from '@app/shadcn/components/ui/tooltip';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 import Divider from '@Components/Common/divider';
 import cn from 'classnames';
-import { Lock, QrCode } from 'lucide-react';
+import { Lock, Pencil, QrCode } from 'lucide-react';
 import moment from 'moment/moment';
 import useCopyToClipboard from 'react-use/lib/useCopyToClipboard';
 
@@ -267,7 +267,7 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                                     data-umami-event="Customize Form Link Button"
                                     data-umami-event-email={auth.email}
                                     className={'!py-0'}
-                                    icon={<EditIcon className="h-4 w-4" />}
+                                    icon={<Pencil className="h-4 w-4" />}
                                     onClick={() => {
                                         openBottomSheetModal('FORM_CREATE_SLUG_VIEW', {
                                             link: isCustomDomain ? customDomain : form?.builderVersion === 'v2' ? V2FormDomain : clientHost,

@@ -1,4 +1,3 @@
-import EllipsisOption from '@app/components/Common/Icons/Common/EllipsisOption';
 import { Close } from '@app/components/icons/close';
 import { FieldTypes, StandardFormDto, StandardFormFieldDto, StandardFormResponseDto } from '@app/models/dtos/form';
 import { Popover, PopoverContent, PopoverTrigger } from '@app/shadcn/components/ui/popover';
@@ -13,6 +12,7 @@ import { downloadFile } from '@app/utils/fileUtils';
 import { getAnswerForField, getTitleForHeader } from '@app/utils/formBuilderBlockUtils';
 import DeleteIcon from '@app/views/atoms/Icons/Delete';
 import { motion } from 'framer-motion';
+import { MoreVertical } from 'lucide-react';
 import { useFullScreenModal } from '../full-screen-modal-context';
 
 interface IViewResponseFullModalView {
@@ -113,7 +113,7 @@ const EllipsisSection = ({ formId, workspaceId, responseId }: { formId: string; 
         <Popover>
             <PopoverTrigger>
                 <div className="hover:bg-black-200 flex h-fit w-fit items-center justify-center rounded-md p-2">
-                    <EllipsisOption className={cn('hidden cursor-pointer')} width={16} height={16} />
+                    <MoreVertical className={cn('hidden cursor-pointer')} width={16} height={16} />
                 </div>
             </PopoverTrigger>
             <PopoverContent side="left" align="start" className=" !z-[10000]  w-[150px] bg-white p-0 shadow-lg">

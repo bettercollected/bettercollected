@@ -1,8 +1,8 @@
 
 import { useTranslation } from 'next-i18next';
 
-import Plus from '@app/components/Common/Icons/Common/Plus';
 import { Button } from '@app/shadcn/components/ui/button';
+import { Plus } from 'lucide-react';
 
 import { useModal } from '@app/components/modal-views/context';
 import { inviteCollaborator } from '@app/constants/locales/inviteCollaborator';

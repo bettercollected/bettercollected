@@ -5,10 +5,10 @@ import { useTranslation } from 'next-i18next';
 
 import _ from 'lodash';
 
-import SettingsIcon from '@app/components/Common/Icons/Common/Settings';
+
 import Billing from '@app/components/Common/Icons/Dashboard/Billing';
 import DashboardIcon from '@app/components/Common/Icons/Dashboard/Dashboard';
-import Logout from '@app/components/Common/Icons/Dashboard/Logout';
+
 import WorkspaceAdminSelector from '@app/components/HOCs/WorkspaceAdminSelector';
 
 import AuthAccountProfileImage from '@app/components/auth/account-profile-image';
@@ -23,7 +23,7 @@ import { useGetStatusQuery } from '@app/store/auth/api';
 import { setAuth } from '@app/store/auth/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, LogOut, Settings } from 'lucide-react';
 
 interface IAuthAccountMenuDropdownProps {
     isClientDomain?: boolean;
@@ -151,7 +151,7 @@ export default function AuthAccountMenuDropdown({ isClientDomain, fullWidth, hid
                         >
                             <div className="flex items-center gap-4 px-[20px] py-[10px] h-[36px] body4 hover:bg-brand-100 cursor-pointer">
                                 <div className="text-black-900 flex items-center justify-center">
-                                    <SettingsIcon width={20} height={20} />
+                                    <Settings width={20} height={20} />
                                 </div>
                                 <span>{t(profileMenu.accountSettings)}</span>
                             </div>
@@ -166,7 +166,7 @@ export default function AuthAccountMenuDropdown({ isClientDomain, fullWidth, hid
                         className="flex items-center gap-4 px-[20px] py-[10px] h-[36px] body4 !text-red-500 hover:bg-red-100 cursor-pointer"
                     >
                         <div className="flex items-center justify-center">
-                            <Logout width={20} height={20} />
+                            <LogOut width={20} height={20} />
                         </div>
                         <span>{t(profileMenu.logout)}</span>
                     </li>

@@ -2,10 +2,11 @@
 import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/navigation';
 
-import Tooltip from '@app/shadcn/components/ui/tooltip';
 import { DotIcon } from '@app/components/Common/Icons/Common/DotIcon';
-import EditIcon from '@app/components/Common/Icons/Common/Edit';
-import ShareIcon from '@app/components/Common/Icons/Common/ShareIcon';
+import Tooltip from '@app/shadcn/components/ui/tooltip';
+import { Pencil, Share2 } from 'lucide-react';
+
+
 import FormProviderIcon from '@app/components/Common/Icons/Form/FormProviderIcon';
 import PrivateIcon from '@app/components/Common/Icons/Form/Private';
 import PublicIcon from '@app/components/Common/Icons/Form/Public';
@@ -134,7 +135,7 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, group, worksp
                 {!isResponderPortal && !group && (
                     <div className="hidden items-center gap-2 lg:invisible lg:flex lg:group-hover:visible">
                         {form?.isPublished && !form?.settings?.hidden && isFormOpen && (
-                            <Button onClick={handleShareClick} variant="ghost" size="sm" icon={<ShareIcon width={16} height={16} />}>
+                            <Button onClick={handleShareClick} variant="ghost" size="sm" icon={<Share2 width={16} height={16} />}>
                                 {t('BUTTON.SHARE')}
                             </Button>
                         )}
@@ -147,7 +148,7 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, group, worksp
                                 }}
                                 variant="ghost"
                                 size="sm"
-                                icon={<EditIcon width={16} height={16} />}
+                                icon={<Pencil width={16} height={16} />}
                             >
                                 {t('BUTTON.EDIT')}
                             </Button>

@@ -3,11 +3,11 @@ import { useState } from 'react';
 import { useTranslation } from 'next-i18next';
 import Image from 'next/legacy/image';
 
-import EditIcon from '@app/components/Common/Icons/Common/Edit';
-import EllipsisOption from '@app/components/Common/Icons/Common/EllipsisOption';
-import SettingsIcon from '@app/components/Common/Icons/Common/Settings';
+
+
+
 import { useBottomSheetModal } from '@app/components/Modals/Contexts/BottomSheetModalContext';
-import { Loader2 } from 'lucide-react';
+import { Loader2, MoreVertical, Pencil, Settings } from 'lucide-react';
 
 import { IFormTemplateDto } from '@app/models/dtos/template';
 import { Popover, PopoverContent, PopoverTrigger } from '@app/shadcn/components/ui/popover';
@@ -71,7 +71,7 @@ const TemplateCard = ({ template, isPredefinedTemplate }: ITemplateCardProps) =>
                     <Popover open={open} onOpenChange={setOpen}>
                         <PopoverTrigger asChild>
                             <div className="cursor-pointer">
-                                <EllipsisOption />
+                                <MoreVertical width={24} height={24} className="text-black-800" />
                             </div>
                         </PopoverTrigger>
                         <PopoverContent
@@ -91,7 +91,7 @@ const TemplateCard = ({ template, isPredefinedTemplate }: ITemplateCardProps) =>
                                         className="flex items-center gap-2 px-4 py-2 hover:bg-black-100 cursor-pointer body4"
                                     >
                                         <div className="text-black-600 flex items-center justify-center">
-                                            <EditIcon width={20} height={20} strokeWidth={2} />
+                                            <Pencil width={20} height={20} strokeWidth={2} />
                                         </div>
                                         <span>{t('BUTTON.EDIT')}</span>
                                     </li>
@@ -105,7 +105,7 @@ const TemplateCard = ({ template, isPredefinedTemplate }: ITemplateCardProps) =>
                                     className="flex items-center gap-2 px-4 py-2 hover:bg-black-100 cursor-pointer body4"
                                 >
                                     <div className="text-black-600 flex items-center justify-center">
-                                        <SettingsIcon width={20} height={20} />
+                                        <Settings width={20} height={20} />
                                     </div>
                                     <span>{t('SETTINGS')}</span>
                                 </li>

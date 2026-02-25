@@ -8,10 +8,10 @@ import { useTranslation } from 'react-i18next';
 
 import Divider from '@Components/Common/divider';
 import { DotIcon } from '@app/components/Common/Icons/Common/DotIcon';
-import SettingsIcon from '@app/components/Common/Icons/Common/Settings';
+
 import FormProviderIcon from '@app/components/Common/Icons/Form/FormProviderIcon';
-import Preview from '@app/components/Common/Icons/Form/Preview';
-import { ChevronLeft } from 'lucide-react';
+
+import { ChevronLeft, Eye, Settings } from 'lucide-react';
 
 import FullScreenLoader from '@app/components/ui/fullscreen-loader';
 import { localesCommon } from '@app/constants/locales/common';
@@ -46,12 +46,12 @@ export default function SubmissionLayoutClient({ children }: { children: React.R
 
     const tabs = [
         {
-            icon: <Preview className="h-5 w-5" />,
+            icon: <Eye className="h-5 w-5" />,
             title: 'Form',
             path: 'form'
         },
         {
-            icon: <SettingsIcon className="h-5 w-5" />,
+            icon: <Settings className="h-5 w-5" />,
             title: t(localesCommon.settings),
             path: 'settings'
         }

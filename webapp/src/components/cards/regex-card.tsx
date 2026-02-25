@@ -1,7 +1,7 @@
 
 import { useTranslation } from 'next-i18next';
 
-import Plus from '@app/components/Common/Icons/Common/Plus';
+import { Plus } from 'lucide-react';
 
 import { useModal } from '@app/components/modal-views/context';
 import { buttonConstant } from '@app/constants/locales/button';

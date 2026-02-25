@@ -1,4 +1,3 @@
-import Delete from '@app/components/Common/Icons/Common/Delete';
 import { useModal } from '@app/components/modal-views/context';
 import { buttonConstant } from '@app/constants/locales/button';
 import { WorkspaceInvitationDto, WorkspaceMembersDto } from '@app/models/dtos/WorkspaceMembersDto';
@@ -7,7 +6,7 @@ import { Button } from '@app/shadcn/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@app/shadcn/components/ui/dropdown-menu';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { useResendWorkspaceInvitationMutation } from '@app/store/workspaces/members-n-invitations-api';
-import { Loader2, MoreHorizontal, RefreshCw } from 'lucide-react';
+import { Loader2, MoreHorizontal, RefreshCw, Trash2 } from 'lucide-react';
 import { useTranslation } from 'next-i18next';
 import { useState } from 'react';
 
@@ -88,7 +87,7 @@ export default function MemberOptions({ member, invitation }: IMemberOptionProps
                             }}
                             className="cursor-pointer text-red-500 hover:text-red-500 focus:text-red-500"
                         >
-                            <Delete className="mr-2 h-4 w-4 text-red-500" />
+                            <Trash2 className="mr-2 h-4 w-4 text-red-500" />
                             <span>{t(member ? buttonConstant.deleteMember : buttonConstant.removeInvitation)}</span>
                         </DropdownMenuItem>
                     </DropdownMenuContent>

@@ -1,6 +1,6 @@
 import { useTranslation } from 'next-i18next';
 
-import EditIcon from '@app/components/Common/Icons/Common/Edit';
+
 
 import { CustomDomainCard } from '@app/app/(admin-portal)/(side-top-nav-layout)/[workspace_name]/dashboard/custom-domain/page';
 import { useModal } from '@app/components/modal-views/context';
@@ -11,7 +11,7 @@ import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { selectAuth, selectIsAdmin, selectIsProPlan } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
-import { Copy } from 'lucide-react';
+import { Copy, Pencil } from 'lucide-react';
 
 export default function ManageURLs() {
     const { t } = useTranslation();
@@ -40,7 +40,7 @@ export default function ManageURLs() {
                             openModal('UPDATE_WORKSPACE_HANDLE');
                         }}
                     >
-                        <EditIcon className="mr-2" />
+                        <Pencil className="mr-2 w-4 h-4" />
                         {t('FORM_PAGE.SETTINGS.LINKS.CHANGE_SLUG')}
                     </Button>
                 </div>

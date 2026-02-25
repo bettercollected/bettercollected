@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
 
-import InfoCircle from '@app/components/Common/Icons/InfoCircle';
+import { Info } from 'lucide-react';
 import DataTable from 'react-data-table-component';
 
 import StatusBadge from '@app/components/badge/status-badge';
@@ -35,7 +35,7 @@ export default function InvitationsTable({ data }: IInvitationTableProps) {
 
     const EmptyPendingRequest = () => (
         <div className="my-16 flex flex-col items-center gap-6">
-            <InfoCircle className="h-8 w-8" />
+            <Info className="h-8 w-8" />
             <p className="body2"> {t(members.pendingRequests.empty)}</p>
         </div>
     );

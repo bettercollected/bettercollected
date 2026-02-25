@@ -1,8 +1,8 @@
-import EllipsisOption from '@app/components/Common/Icons/Common/EllipsisOption';
 import { useModal } from '@app/components/modal-views/context';
 import { Button } from '@app/shadcn/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@app/shadcn/components/ui/dropdown-menu';
 import DeleteIcon from '@app/views/atoms/Icons/Delete';
+import { MoreVertical } from 'lucide-react';
 
 const DeleteDomainDropdown = () => {
     const { openModal } = useModal();
@@ -11,7 +11,7 @@ const DeleteDomainDropdown = () => {
         <div>
             <DropdownMenu>
                 <DropdownMenuTrigger className="outline-none">
-                    <Button className="!p-1 outline-none" variant={'v2GhostButton'} icon={<EllipsisOption width={24} height={24} className="text-black-700" />}></Button>
+                    <Button className="!p-1 outline-none" variant={'v2GhostButton'} icon={<MoreVertical width={24} height={24} className="text-black-700" />}></Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="!z-[1000000] bg-white">
                     <DropdownMenuItem

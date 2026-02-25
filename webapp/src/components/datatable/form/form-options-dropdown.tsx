@@ -3,14 +3,13 @@ import { useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
 
-import DeleteIcon from '@app/components/Common/Icons/Common/Delete';
-import EditIcon from '@app/components/Common/Icons/Common/Edit';
-import EllipsisOption from '@app/components/Common/Icons/Common/EllipsisOption';
+
+
+
 import AddMember from '@app/components/Common/Icons/Dashboard/Add-member';
-import Eye from '@app/components/Common/Icons/Form/Eye';
 import Pin from '@app/components/Common/Icons/Form/Pin';
 import Tooltip from '@app/shadcn/components/ui/tooltip';
-import { Copy, QrCode } from 'lucide-react';
+import { Copy, Eye, MoreVertical, Pencil, QrCode, Trash2 } from 'lucide-react';
 
 import { LinkIcon } from '@app/components/icons/link-icon';
 import { useModal } from '@app/components/modal-views/context';
@@ -131,7 +130,7 @@ export default function FormOptionsDropdownMenu({ workspace, form, hasCustomDoma
             <ActiveLink key={'edit'} href={getEditFormURL(workspace, form)}>
                 <div className="flex items-center gap-2 px-[20px] py-[10px] h-[36px] body4 hover:bg-brand-100 cursor-pointer">
                     <div className="flex items-center justify-center">
-                        <EditIcon width={20} height={20} className="text-black-600" />
+                        <Pencil width={20} height={20} className="text-black-600" />
                     </div>
                     {t(buttonConstant.edit)}
                 </div>
@@ -170,7 +169,7 @@ export default function FormOptionsDropdownMenu({ workspace, form, hasCustomDoma
             }}
         >
             <div className="flex items-center justify-center">
-                <EditIcon width={20} height={20} className={'text-black-600'} />
+                <Pencil width={20} height={20} className={'text-black-600'} />
             </div>
             {t(buttonConstant.customizeLink)}
         </li>
@@ -231,7 +230,7 @@ export default function FormOptionsDropdownMenu({ workspace, form, hasCustomDoma
             }}
         >
             <div className="flex items-center justify-center">
-                <DeleteIcon width={20} height={20} className="text-black-600" />
+                <Trash2 width={20} height={20} className="text-black-600" />
             </div>
             <span>{t(formConstant.menu.deleteForm)}</span>
         </li>
@@ -245,7 +244,7 @@ export default function FormOptionsDropdownMenu({ workspace, form, hasCustomDoma
                 setOpen((open) => !open);
             }}>
                 <div className={`${className} !text-black-900 cursor-pointer p-2 hover:bg-gray-100 rounded-md`}>
-                    <EllipsisOption className="w-4 h-4" />
+                    <MoreVertical className="w-4 h-4" />
                 </div>
             </PopoverTrigger>
             <PopoverContent

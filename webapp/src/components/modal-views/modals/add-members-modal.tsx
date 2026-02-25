@@ -2,7 +2,6 @@ import { useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
 
-import PlusIcon from '@app/components/Common/Icons/Common/Plus';
 import { Close } from '@app/components/icons/close';
 import { useModal } from '@app/components/modal-views/context';
 import HeaderModalWrapper from '@app/components/Modals/ModalWrappers/HeaderModalWrapper';
@@ -14,6 +13,7 @@ import { Button } from '@app/shadcn/components/ui/button';
 import { AppInput } from '@app/shadcn/components/ui/input';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 import cn from 'classnames';
+import { Plus } from 'lucide-react';
 
 
 interface IAddMemberModalProps {
@@ -51,7 +51,7 @@ export default function AddMembersModal({ handleAddMembers, group }: IAddMemberM
                         <AppInput className="w-full" value={email} type="email" id="email" placeholder={t(placeHolder.memberEmail)} onChange={handleInput} />
                     </div>
                     <Button size="sm" variant="ghost" disabled={!email} className={cn('font-semibold', !email && 'opacity-30')}>
-                        <PlusIcon width={16} height={16} />
+                        <Plus width={16} height={16} />
                     </Button>
                 </form>
                 {emails.length !== 0 && (

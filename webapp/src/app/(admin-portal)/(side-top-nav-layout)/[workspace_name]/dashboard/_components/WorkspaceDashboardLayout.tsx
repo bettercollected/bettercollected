@@ -6,7 +6,6 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 
 import AuthAccountMenuDropdown from '@app/components/auth/account-menu-dropdown';
-import DeleteIcon from '@app/components/Common/Icons/Common/Delete';
 import MembersIcon from '@app/components/Common/Icons/Dashboard/Members';
 import ResponderIcon from '@app/components/Common/Icons/Dashboard/Responder';
 import { FormIcon } from '@app/components/Common/Icons/Form/FormIcon';
@@ -17,6 +16,7 @@ import DashboardDrawer from '@app/components/sidebar/DashboardDrawer';
 import HelpMenuComponent from '@app/components/sidebar/HelpMenuComponent';
 import HelpMenuItem from '@app/components/sidebar/HelpMenuItem';
 import { ProLogo } from '@app/components/ui/logo';
+import { Trash2 } from 'lucide-react';
 
 import AuthNavbar from '@app/components/auth/auth-navbar';
 import { localesCommon } from '@app/constants/locales/common';
@@ -64,7 +64,7 @@ const WorkspaceDashboardLayout: React.FC<{ children: React.ReactNode }> = ({ chi
             key: 'deletion_requests',
             name: t(formConstant.deletionRequests),
             url: `${commonWorkspaceUrl}/deletion-requests`,
-            icon: <DeleteIcon className="stroke-2" />
+            icon: <Trash2 className="stroke-2" />
         }
     ];
 
