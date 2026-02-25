@@ -1,5 +1,6 @@
 """Thin async wrapper around the Unsplash REST API."""
 
+import traceback
 from typing import Optional
 
 import httpx
@@ -17,7 +18,8 @@ class UnsplashService:
     _BASE = "https://api.unsplash.com"
 
     def __init__(self) -> None:
-        self._access_key = settings.unsplash.ACCESS_KEY
+        raw_key = settings.unsplash.ACCESS_KEY or ""
+        self._access_key = raw_key.strip()
 
     # ------------------------------------------------------------------
     # Public helpers
@@ -36,9 +38,11 @@ class UnsplashService:
 
         Returns an empty list if the key is missing or the request fails.
         """
-        if not self._access_key:
-            return []
-
+        masked = (
+            self._access_key[:4] + "..." + self._access_key[-4:]
+            if len(self._access_key) > 8
+            else "<short>"
+        )
         params = {
             "query": query,
             "per_page": per_page,
@@ -53,8 +57,11 @@ class UnsplashService:
                     params=params,
                     headers=headers,
                 )
+
                 resp.raise_for_status()
                 data = resp.json()
+                results = data.get("results", [])
+
                 return [
                     {
                         "id": p["id"],
@@ -64,9 +71,16 @@ class UnsplashService:
                         "photographer": p["user"]["name"],
                         "download_location": p["links"]["download_location"],
                     }
-                    for p in data.get("results", [])
+                    for p in results
                 ]
-        except Exception:  # noqa: BLE001
+        except httpx.HTTPStatusError as exc:
+            print(
+                f"[UnsplashService] HTTP error {exc.response.status_code}: {exc.response.text}"
+            )
+            return []
+        except Exception as exc:
+            print(f"[UnsplashService] Unexpected error during search: {exc}")
+            traceback.print_exc()
             return []
 
     async def get_first_photo_url(
@@ -76,4 +90,5 @@ class UnsplashService:
     ) -> Optional[str]:
         """Convenience method – return the URL of the best matching photo."""
         results = await self.search_photos(query, per_page=3, orientation=orientation)
-        return results[0]["url"] if results else None
+        url = results[0]["url"] if results else None
+        return url

@@ -27,7 +27,7 @@ from backend.config.UmamiSettings import UmamiSettings
 default_dot_env_path = (
     Path(os.path.abspath(os.path.dirname(__file__)))
     .parent.parent.absolute()
-    .joinpath(".env.backup")
+    .joinpath(".env")
 )
 load_dotenv(os.getenv("DOTENV_PATH", default_dot_env_path))
 
@@ -68,7 +68,7 @@ class Application(BaseSettings):
     # All your additional application configuration should go either here or in
     # separate file in this submodule.
 
-    model_config = SettingsConfigDict(case_sensitive=True)
+    model_config = SettingsConfigDict(case_sensitive=False)
 
 
 settings = Application()

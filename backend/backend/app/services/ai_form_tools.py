@@ -51,10 +51,13 @@ TOOL_DEFINITIONS = [
         "name": "search_images",
         "description": (
             "Searches Unsplash for royalty-free images matching the given query. "
-            "Call this to find a relevant image for the form's welcome page and/or "
-            "cover image. Returns a list of photo objects. Pick the most relevant "
-            "one and include its 'url' in your final JSON under 'welcome_image_url' "
-            "and/or 'cover_image_url'."
+            "Call this tool ONCE for the welcome page and then ONCE PER SLIDE using "
+            "a query that combines the chosen theme name with the slide topic, e.g. "
+            "'purple minimal personal information' or 'blue corporate team feedback'. "
+            "If results are returned, take the first photo's 'url' and include it as "
+            "'image_url' on that slide field and set the slide layout to "
+            "TWO_COLUMN_IMAGE_LEFT or TWO_COLUMN_IMAGE_RIGHT. "
+            "If results are empty, omit image_url and use SINGLE_COLUMN_NO_BACKGROUND."
         ),
         "parameters": {
             "type": "object",
@@ -62,8 +65,9 @@ TOOL_DEFINITIONS = [
                 "query": {
                     "type": "string",
                     "description": (
-                        "A concise, descriptive keyword query for the image search, "
-                        "e.g. 'medical clinic patients' or 'startup office team'."
+                        "Keyword query combining the chosen theme and the slide topic, "
+                        "e.g. 'purple minimal healthcare patients' or "
+                        "'blue corporate office team survey'."
                     ),
                 },
                 "orientation": {

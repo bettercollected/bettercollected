@@ -101,6 +101,13 @@ class OpenAIService:
         welcome_image_url: Optional[str] = openai_form.get("welcome_image_url")
         cover_image_url: Optional[str] = openai_form.get("cover_image_url")
 
+        # Auto-select welcome layout: use image-side layout when image present
+        welcome_layout = (
+            LayoutType.TWO_COLUMN_IMAGE_LEFT
+            if welcome_image_url
+            else LayoutType.SINGLE_COLUMN_NO_BACKGROUND
+        )
+
         standard_form = StandardForm()
         standard_form.builder_version = "v2"
         standard_form.title = openai_form.get("title")
@@ -109,15 +116,12 @@ class OpenAIService:
         standard_form.welcome_page = WelcomePageField(
             title=openai_form.get("title"),
             description=openai_form.get("description"),
-            layout=LayoutType.SINGLE_COLUMN_NO_BACKGROUND,
+            layout=welcome_layout,
             imageUrl=welcome_image_url,
         )
-        slide_layouts: List[str] = openai_form.get("slide_layouts") or []
         standard_form.fields = [
             StandardFormField(**field)
-            for field in self.convert_fields(
-                openai_form.get("fields", []), slide_layouts
-            )
+            for field in self.convert_fields(openai_form.get("fields", []))
         ]
         standard_form.thankyou_page = [
             ThankYouPageField(layout=LayoutType.SINGLE_COLUMN_NO_BACKGROUND)
@@ -127,17 +131,25 @@ class OpenAIService:
     def convert_fields(
         self,
         openai_fields: List[Dict[str, Any]],
-        slide_layouts: Optional[List[str]] = None,
     ):
-        if slide_layouts is None:
-            slide_layouts = []
         fields = []
         for index, field in enumerate(openai_fields):
-            layout_value = slide_layouts[index] if index < len(slide_layouts) else None
+            # Per-field layout: read directly from the AI-generated field dict.
+            # Fall back to image-aware default: if image_url present use TWO_COLUMN_IMAGE_LEFT.
+            image_url: Optional[str] = field.get("image_url") or None
+            layout_value: Optional[str] = field.get("layout")
+            if not layout_value:
+                layout_value = (
+                    LayoutType.TWO_COLUMN_IMAGE_LEFT.value
+                    if image_url
+                    else _DEFAULT_LAYOUT.value
+                )
             try:
-                layout = LayoutType(layout_value) if layout_value else _DEFAULT_LAYOUT
+                layout = LayoutType(layout_value)
             except ValueError:
-                layout = _DEFAULT_LAYOUT
+                layout = (
+                    LayoutType.TWO_COLUMN_IMAGE_LEFT if image_url else _DEFAULT_LAYOUT
+                )
 
             slide_fields = []
             if field.get("type") != "group":
@@ -193,6 +205,7 @@ class OpenAIService:
                     "id": str(uuid.uuid4()),
                     "type": StandardFormFieldType.SLIDE,
                     "index": index,
+                    "image_url": image_url,
                     "properties": {
                         "fields": slide_fields,
                         "layout": layout,
