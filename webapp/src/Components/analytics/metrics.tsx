@@ -1,5 +1,5 @@
 import React from 'react';
-import MetricCard from './MetricCard';
+import MetricCard from './metric-card';
 
 const formatDuration = (seconds: number) => {
     const hrs = Math.floor(seconds / 3600);

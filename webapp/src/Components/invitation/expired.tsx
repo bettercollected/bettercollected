@@ -1,9 +1,9 @@
-import React from 'react';
-import { useTranslation } from 'next-i18next';
-import AuthNavbar from '@app/Components/auth/navbar';
-import { useRouter } from 'next/navigation';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
+import AuthNavbar from '@Components/auth/auth-navbar';
+import { useTranslation } from 'next-i18next';
+import { useRouter } from 'next/navigation';
+import React from 'react';
 
 const ExpiredInvitation: React.FC = () => {
     const { t } = useTranslation();

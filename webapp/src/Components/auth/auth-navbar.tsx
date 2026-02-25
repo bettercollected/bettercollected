@@ -13,8 +13,6 @@ import { useIsMobile } from '@app/lib/hooks/use-breakpoint';
 import { useIsMounted } from '@app/lib/hooks/use-is-mounted';
 import { useWindowScroll } from '@app/lib/hooks/use-window-scroll';
 
-import LocaleDropdownUiApp from '@Components/ui/LocaleDropdownUiApp';
-
 
 interface IAuthNavbarProps {
     hideMenu?: boolean;

@@ -1,20 +1,18 @@
 'use client';
 import React from 'react';
 
-import { useTranslation } from 'react-i18next';
 import { usePathname, useRouter } from 'next/navigation';
+import { useTranslation } from 'react-i18next';
 
 import DeleteIcon from '@Components/Common/Icons/Common/Delete';
 import MembersIcon from '@Components/Common/Icons/Dashboard/Members';
 import ResponderIcon from '@Components/Common/Icons/Dashboard/Responder';
 import { FormIcon } from '@Components/Common/Icons/Form/FormIcon';
-import { useBottomSheetModal } from '@Components/Modals/Contexts/BottomSheetModalContext';
 import { AnimatePresence, motion } from 'framer-motion';
 
 import { cn } from '@app/shadcn/util/lib';
 
 import AuthAccountMenuDropdown from '@app/Components/auth/account-menu-dropdown';
-import AuthNavbar from '@app/Components/auth/navbar';
 import Globe from '@app/Components/icons/flags/globe';
 import { TemplateIcon } from '@app/Components/icons/template';
 import DashboardDrawer from '@app/Components/sidebar/dashboard-drawer';
@@ -27,12 +25,12 @@ import { Popover, PopoverContent } from '@app/shadcn/components/ui/popover';
 import { selectAuth } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
+import AuthNavbar from '@Components/auth/auth-navbar';
 import { PopoverTrigger } from '@radix-ui/react-popover';
+import { useFullScreenModal } from '../modal-views/full-screen-modal-context';
+import { ProLogo } from '../ui/logo';
 import HelpMenuComponent from './HelpMenuComponent';
 import HelpMenuItem from './HelpMenuItem';
-import { ProLogo } from '../ui/logo';
-import { useFullScreenModal } from '../modal-views/full-screen-modal-context';
-import LocaleDropdownUiApp from '@Components/ui/LocaleDropdownUiApp';
 
 interface ISidebarLayout {
     children: any;

@@ -6,7 +6,6 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 
 import AuthAccountMenuDropdown from '@app/Components/auth/account-menu-dropdown';
-import AuthNavbarApp from '@app/Components/auth/AuthNavbarApp';
 import Globe from '@app/Components/icons/flags/globe';
 import { TemplateIcon } from '@app/Components/icons/template';
 import { useFullScreenModal } from '@app/Components/modal-views/full-screen-modal-context';
@@ -28,6 +27,7 @@ import { cn } from '@app/shadcn/util/lib';
 import { selectAuth } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
+import AuthNavbar from '@Components/auth/auth-navbar';
 
 const WorkspaceDashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const drawerWidth = 289;
@@ -118,7 +118,7 @@ const WorkspaceDashboardLayout: React.FC<{ children: React.ReactNode }> = ({ chi
     return (
         <div className="relative min-h-screen w-full">
             <div className="lg:hidden">
-                <AuthNavbarApp handleDrawerToggle={handleDrawerToggle} mobileOpen={mobileOpen} />
+                <AuthNavbar handleDrawerToggle={handleDrawerToggle} mobileOpen={mobileOpen} />
             </div>
             <DashboardDrawer
                 drawerWidth={drawerWidth}

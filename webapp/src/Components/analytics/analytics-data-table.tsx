@@ -1,7 +1,7 @@
 import React from 'react';
+import { FaGlobe } from 'react-icons/fa';
 import Flag from 'react-world-flags';
 import { getBrowserIcon, getDeviceIcon, getOSIcon } from './icons';
-import { FaGlobe } from 'react-icons/fa';
 
 interface DataTableProps {
     title: string;
@@ -9,7 +9,7 @@ interface DataTableProps {
     showCountryFlag?: boolean;
 }
 
-const DataTable: React.FC<DataTableProps> = ({ title, data, showCountryFlag = false }) => {
+const AnalyticsDataTable: React.FC<DataTableProps> = ({ title, data, showCountryFlag = false }) => {
     const regionNames = new Intl.DisplayNames(['en'], { type: 'region' });
 
     const getIcon = (item: string): React.ElementType => {
@@ -38,15 +38,15 @@ const DataTable: React.FC<DataTableProps> = ({ title, data, showCountryFlag = fa
                             <span className="font-medium">
                                 {showCountryFlag
                                     ? (() => {
-                                          try {
-                                              return regionNames.of(item.x) || 'Unknown';
-                                          } catch (error) {
-                                              if (error instanceof RangeError) {
-                                                  return 'Unknown';
-                                              }
-                                              throw error;
-                                          }
-                                      })()
+                                        try {
+                                            return regionNames.of(item.x) || 'Unknown';
+                                        } catch (error) {
+                                            if (error instanceof RangeError) {
+                                                return 'Unknown';
+                                            }
+                                            throw error;
+                                        }
+                                    })()
                                     : item.x || 'None'}
                             </span>
                             <span className="ml-auto text-gray-500">{item.y}</span>
@@ -58,4 +58,4 @@ const DataTable: React.FC<DataTableProps> = ({ title, data, showCountryFlag = fa
     );
 };
 
-export default DataTable;
+export default AnalyticsDataTable;

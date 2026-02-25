@@ -2,7 +2,7 @@ import React from 'react';
 
 import { cn } from '@app/shadcn/util/lib';
 
-import AuthNavbar from '@app/Components/auth/navbar';
+import AuthNavbar from '@Components/auth/auth-navbar';
 
 interface LayoutProps {
     isCustomDomain?: boolean;
@@ -17,7 +17,7 @@ interface LayoutProps {
     isFooter?: boolean;
 }
 
-export default function Layout({
+export default function TopNavLayout({
     children,
     isCustomDomain = false,
     isClientDomain = false,

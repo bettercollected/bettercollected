@@ -15,7 +15,7 @@ import { ChevronLeft } from 'lucide-react';
 
 import FullScreenLoader from '@app/Components/ui/fullscreen-loader';
 import { localesCommon } from '@app/constants/locales/common';
-import Layout from '@app/layouts/_layout';
+import TopNavLayout from '@app/layouts/top-navbar-layout';
 import { utcToLocalDate } from '@app/utils/dateUtils';
 import { useSubmissionContext } from './SubmissionContext';
 
@@ -64,7 +64,7 @@ export default function SubmissionLayoutClient({ children }: { children: React.R
     }
 
     return (
-        <Layout className="bg-white !px-0" showAuthAccount={false} isCustomDomain={hasCustomDomain} isClientDomain={!hasCustomDomain} showNavbar={true}>
+        <TopNavLayout className="bg-white !px-0" showAuthAccount={false} isCustomDomain={hasCustomDomain} isClientDomain={!hasCustomDomain} showNavbar={true}>
             <div className="mt-5 flex flex-col pb-6">
                 <div className="w-full px-5">
                     <div className="flex w-fit items-center justify-start gap-2 " onClick={goToSubmissions}>
@@ -111,6 +111,6 @@ export default function SubmissionLayoutClient({ children }: { children: React.R
                     </div>
                 </div>
             </div>
-        </Layout>
+        </TopNavLayout>
     );
 }

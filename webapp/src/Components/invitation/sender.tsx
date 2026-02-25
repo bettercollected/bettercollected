@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
-import { NextSeo } from 'next-seo';
-import AuthNavbar from '@app/Components/auth/navbar';
+import AuthNavbar from '@Components/auth/auth-navbar';
+import environments from '@app/configs/environments';
+import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
-import { useToast } from '@app/shadcn/components/ui/use-toast';
+import { NextSeo } from 'next-seo';
+import { useState } from 'react';
 import { FaCheckCircle } from 'react-icons/fa';
-import environments from '@app/configs/environments';
 
 interface Props {
     invitation: {

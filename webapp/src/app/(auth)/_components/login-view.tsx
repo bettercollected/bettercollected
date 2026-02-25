@@ -9,7 +9,7 @@ import Logo from '@app/Components/ui/logo';
 import { localesCommon } from '@app/constants/locales/common';
 import { signInScreen } from '@app/constants/locales/signin-screen';
 import { signUpScreen } from '@app/constants/locales/signup-screen';
-import Layout from '@app/layouts/_layout';
+import TopNavLayout from '@app/layouts/top-navbar-layout';
 
 import ImageSignInPreview from '@app/assets/images/sign-in-image.png';
 import ImageSignInVerification from '@app/assets/images/sign-in-verification.png';
@@ -39,7 +39,7 @@ export default function LoginView() {
     };
 
     return (
-        <Layout className="min-h-screen !mt-0 !p-0">
+        <TopNavLayout className="min-h-screen !mt-0 !p-0">
             <div className="h-full w-full flex flex-col lg:flex-row">
                 <div className="bg-sign-in bg-no-repeat bg-cover relative min-h-fit sm:min-h-screen order-2 lg:order-1 overflow-hidden w-full lg:w-[50%] flex flex-col justify-start">
                     {email ? (
@@ -74,7 +74,7 @@ export default function LoginView() {
                     <TermsAndCondition isSignup={isSignup} constants={constants} />
                 </div>
             </div>
-        </Layout>
+        </TopNavLayout>
     );
 }
 

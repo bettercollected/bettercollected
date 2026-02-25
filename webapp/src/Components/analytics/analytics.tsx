@@ -1,12 +1,12 @@
-import React, { useState, useEffect, type JSX } from 'react';
 import Metrics from '@Components/analytics/Metrics';
-import DataTable from '@Components/analytics/DataTable';
+import AnalyticsDataTable from '@Components/analytics/analytics-data-table';
+import BarChart from '@Components/analytics/bar-chart';
 import TimeRangeSelector from '@Components/analytics/timeRange';
-import { useAppSelector } from '@app/store/hooks';
-import { selectForm } from '@app/store/forms/slice';
-import BarChart from '@Components/analytics/BarChart';
 import { useFormAnalyticsData } from '@app/store/analytics/analyticsHook';
+import { selectForm } from '@app/store/forms/slice';
+import { useAppSelector } from '@app/store/hooks';
 import EmptyResponseIcon from '@app/views/atoms/Icons/EmptyResponseIcon';
+import { useEffect, useState, type JSX } from 'react';
 
 export default function FormAnalytics() {
     interface Metric {
@@ -246,11 +246,11 @@ export default function FormAnalytics() {
             <Metrics analyticsData={analyticsData} />
             <BarChart workspaceId={workspaceId} slug={slug} startAt={startAt} endAt={endAt} unit={unit} timezone={timezone} range={range} />
             <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
-                <DataTable title="Referrers" data={analyticsData.detailedData.referrers} />
-                <DataTable title="Browsers" data={analyticsData.detailedData.browsers} />
-                <DataTable title="Operating System" data={analyticsData.detailedData.os} />
-                <DataTable title="Devices" data={analyticsData.detailedData.devices} />
-                <DataTable title="Countries" data={analyticsData.detailedData.countries} showCountryFlag={true} />
+                <AnalyticsDataTable title="Referrers" data={analyticsData.detailedData.referrers} />
+                <AnalyticsDataTable title="Browsers" data={analyticsData.detailedData.browsers} />
+                <AnalyticsDataTable title="Operating System" data={analyticsData.detailedData.os} />
+                <AnalyticsDataTable title="Devices" data={analyticsData.detailedData.devices} />
+                <AnalyticsDataTable title="Countries" data={analyticsData.detailedData.countries} showCountryFlag={true} />
             </div>
         </main>
     );

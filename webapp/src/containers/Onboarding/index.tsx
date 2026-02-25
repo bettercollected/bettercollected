@@ -9,7 +9,7 @@ import UploadLogo from '@Components/Common/UploadLogo';
 import { Button } from '@app/shadcn/components/ui/button';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 
-import AuthNavbar from '@app/Components/auth/navbar';
+import AuthNavbar from '@Components/auth/auth-navbar';
 import TextFieldHandler from '@app/Components/onboarding/TextFieldHandler';
 import { onBoarding } from '@app/constants/locales/onboarding-screen';
 import { toastMessage } from '@app/constants/locales/toast-message';

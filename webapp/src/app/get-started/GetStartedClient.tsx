@@ -19,7 +19,7 @@ import ActiveLink from '@app/Components/ui/links/active-link';
 import Logo from '@app/Components/ui/logo';
 import { buttonConstant } from '@app/constants/locales/button';
 import { getStarted } from '@app/constants/locales/get-started';
-import Layout from '@app/layouts/_layout';
+import TopNavLayout from '@app/layouts/top-navbar-layout';
 
 interface IGetStartedStep {
     id: string;
@@ -214,11 +214,11 @@ export default function GetStartedClient() {
     );
 
     return (
-        <Layout showNavbar isCustomDomain isFooter className="flex justify-center" childClassName="flex flex-col justify-center items-center container my-10 gap-11">
+        <TopNavLayout showNavbar isCustomDomain isFooter className="flex justify-center" childClassName="flex flex-col justify-center items-center container my-10 gap-11">
             {activeStep < steps.length && <GetStartedStepper steps={steps.length} activeStep={activeStep} handleBack={handleBack} />}
             {steps.map((step, idx) => idx === activeStep && previewGetStartedStep(step))}
             {activeStep >= steps.length && isFit && userIsFit()}
             {activeStep >= steps.length && !isFit && userIsNotFit()}
-        </Layout>
+        </TopNavLayout>
     );
 }

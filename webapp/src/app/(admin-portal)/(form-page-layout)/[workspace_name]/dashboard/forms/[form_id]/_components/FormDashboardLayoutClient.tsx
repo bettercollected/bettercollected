@@ -28,7 +28,7 @@ import { useFullScreenModal } from '@app/Components/modal-views/full-screen-moda
 import { localesCommon } from '@app/constants/locales/common';
 import { formConstant } from '@app/constants/locales/form';
 import { formPage } from '@app/constants/locales/form-page';
-import Layout from '@app/layouts/_layout';
+import TopNavLayout from '@app/layouts/top-navbar-layout';
 import { useBreakpoint, useIsMobile } from '@app/lib/hooks/use-breakpoint';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { Button } from '@app/shadcn/components/ui/button';
@@ -151,7 +151,7 @@ export default function FormDashboardLayoutClient({
     }
 
     return (
-        <Layout isCustomDomain={false} isClientDomain={false} showNavbar={true} hideMenu={false} showAuthAccount={true} className="flex w-full flex-col !bg-white !p-0">
+        <TopNavLayout isCustomDomain={false} isClientDomain={false} showNavbar={true} hideMenu={false} showAuthAccount={true} className="flex w-full flex-col !bg-white !p-0">
             <div className="my-2 w-full">
                 <div className="mt-6 flex flex-col gap-1 sm:mt-12">
                     <FormPageLayer className="px-4 md:px-10 lg:px-28">
@@ -257,7 +257,7 @@ export default function FormDashboardLayoutClient({
                     </div>
                 </div>
             </div>
-        </Layout>
+        </TopNavLayout>
     );
 }
 
