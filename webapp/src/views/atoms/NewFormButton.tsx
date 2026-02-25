@@ -1,5 +1,5 @@
-import { Button } from '@app/shadcn/components/ui/button';
 import environments from '@app/configs/environments';
+import { Button } from '@app/shadcn/components/ui/button';
 import { selectAuth } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';

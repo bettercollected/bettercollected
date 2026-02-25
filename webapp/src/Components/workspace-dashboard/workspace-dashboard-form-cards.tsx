@@ -2,11 +2,11 @@
 
 import React from 'react';
 
-import CreateFormButton from '@Components/Common/CreateFormButton';
 
 import WorkspaceFormCard from '@app/Components/workspace-dashboard/workspace-form-card';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
+import NewFormButton from '@app/views/atoms/NewFormButton';
 import { useRouter } from 'next/navigation';
 
 interface IWorkspaceDashboardFormsCardProps {
@@ -32,7 +32,7 @@ export default function WorkspaceDashboardFormsCard({ workspaceForms, workspace,
                         <p className="h3-new text-black-800 font-semibold">You haven&apos;t created or imported any forms.</p>
                         <p className="p1-new text-black-700 mb-6 mt-2">Create your first privacy friendly form.</p>
                         <div ref={ref} className="relative">
-                            <CreateFormButton variant="ghost" />
+                            <NewFormButton />
                         </div>
                     </div>
                 )

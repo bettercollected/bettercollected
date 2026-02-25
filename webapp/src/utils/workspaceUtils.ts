@@ -1,4 +1,4 @@
-import environments from '@app/configs/environments';
+"use client";
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 
 const predefined_names = ['forms', 'submissions', 'templates'];
@@ -16,8 +16,8 @@ export const checkErrorForWorkspaceName = (name: string | null) => {
 
 export function getWorkspaceShareURL(workspace: WorkspaceDto, customDomain: boolean = true) {
     if (workspace.isPro && workspace.customDomain && customDomain) {
-        return `${environments.HTTP_SCHEME}${workspace.customDomain}`;
+        return `${window.PUBLIC_CONFIG?.HTTP_SCHEME}${workspace.customDomain}`;
     } else {
-        return `${environments.HTTP_SCHEME}${environments.FORM_DOMAIN}/${workspace.workspaceName}`;
+        return `${window.PUBLIC_CONFIG?.HTTP_SCHEME}${window.PUBLIC_CONFIG?.FORM_DOMAIN}/${workspace.workspaceName}`;
     }
 }

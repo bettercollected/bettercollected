@@ -1,3 +1,4 @@
+"use client";
 import { simpleDataTableStyles } from '@app/Components/datatable/form/datatable-styles';
 import environments from '@app/configs/environments';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
@@ -38,7 +39,7 @@ const WorkspaceDomainStatus = () => {
         dnsData.push({
             name: workspace.customDomain,
             type: 'A',
-            value: environments.CUSTOM_DOMAIN_IP,
+            value: window.PUBLIC_CONFIG?.CUSTOM_DOMAIN_IP,
             status: data?.domain_verified ? <div className="rounded-xl bg-green-100 px-2 py-1 text-xs text-green-500">Success</div> : <div className="rounded-xl bg-yellow-100 px-2 py-1 text-xs text-yellow-600">Pending</div>
         });
         dnsData.push({

@@ -6,7 +6,6 @@ import EditIcon from '@Components/Common/Icons/Common/Edit';
 import { CustomDomainCard } from '@app/app/(admin-portal)/(side-top-nav-layout)/[workspace_name]/dashboard/custom-domain/page';
 import { useModal } from '@app/Components/modal-views/context';
 import { useFullScreenModal } from '@app/Components/modal-views/full-screen-modal-context';
-import environments from '@app/configs/environments';
 import { useCopyToClipboard } from '@app/lib/hooks/use-copy-to-clipboard';
 import { Button } from '@app/shadcn/components/ui/button';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
@@ -50,8 +49,8 @@ export default function ManageURLs() {
                 <div className="h4-new mb-2">{t('WORKSPACE.SETTINGS.URLS.DEFAULT')}</div>
                 <div className="p2-new flex items-center gap-4">
                     <span>
-                        {environments.HTTP_SCHEME}
-                        {environments.FORM_DOMAIN}/<span className="text-pink">{workspace.workspaceName}</span>
+                        {window.PUBLIC_CONFIG?.HTTP_SCHEME}
+                        {window.PUBLIC_CONFIG?.FORM_DOMAIN}/<span className="text-pink">{workspace.workspaceName}</span>
                     </span>
                     <div>
                         <Button
@@ -60,7 +59,7 @@ export default function ManageURLs() {
                             size="icon"
                             variant="ghost"
                             onClick={() => {
-                                copyToClipboard(`${environments.HTTP_SCHEME}${environments.FORM_DOMAIN}/${workspace.workspaceName}`);
+                                copyToClipboard(`${window.PUBLIC_CONFIG?.HTTP_SCHEME}${window.PUBLIC_CONFIG?.FORM_DOMAIN}/${workspace.workspaceName}`);
                                 toast({ description: 'Copied' });
                             }}
                         >

@@ -32,9 +32,9 @@ export default function RootLayout({
         <html>
             <Head>
                 {environments.NEXT_PUBLIC_NODE_ENV === 'production' && environments.UMAMI_WEBSITE_ID && <script defer src="https://umami.sireto.io/script.js" data-website-id={environments.UMAMI_WEBSITE_ID}></script>}
-                <script src="/api/config" defer></script>
             </Head>
             <body className={cn('max-h-screen overflow-auto', inter.className)}>
+                <script src="/api/config" defer></script>
                 <ThemeProvider>
                     <I18nProvider>
                         <Toaster />

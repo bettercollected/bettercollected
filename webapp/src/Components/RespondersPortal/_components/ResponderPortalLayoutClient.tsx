@@ -21,7 +21,6 @@ import { useModal } from '@app/Components/modal-views/context';
 import ActiveLink from '@app/Components/ui/links/active-link';
 import Logo from '@app/Components/ui/logo';
 import PoweredBy from '@app/Components/ui/powered-by';
-import environments from '@app/configs/environments';
 import { localesCommon } from '@app/constants/locales/common';
 import { formConstant } from '@app/constants/locales/form';
 import { profileMenu } from '@app/constants/locales/profile-menu';
@@ -45,7 +44,7 @@ export default function ResponderPortalLayoutClient({
     const pathname = usePathname();
     const { openModal } = useModal();
 
-    const isClientDomain = typeof window !== 'undefined' && window.location.origin !== environments.DASHBOARD_DOMAIN;
+    const isClientDomain = typeof window !== 'undefined' && window.location.origin !== window?.PUBLIC_CONFIG?.DASHBOARD_DOMAIN;
 
     const handleLogout = () => {
         openModal('LOGOUT_VIEW', { workspace, isClientDomain });

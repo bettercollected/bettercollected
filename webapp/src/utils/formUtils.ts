@@ -1,17 +1,17 @@
-import environments from '@app/configs/environments';
+"use client";
 import { FieldTypes, StandardFormDto, StandardFormFieldDto } from '@app/models/dtos/form';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import { extractTextfromJSON } from './richTextEditorExtenstion/getHtmlFromJson';
 
 export default function getFormShareURL(form: StandardFormDto, workspace: WorkspaceDto, defaultLink: boolean = false) {
     const slug = form?.settings?.customUrl || form?.formId;
-    const scheme = environments.HTTP_SCHEME;
+    const scheme = window.PUBLIC_CONFIG?.HTTP_SCHEME;
     let domain = '';
 
     if (workspace?.isPro && workspace?.customDomain && !defaultLink && workspace?.customDomainVerified) {
         domain = workspace.customDomain;
     } else {
-        domain = form?.builderVersion === 'v2' ? environments.FORM_DOMAIN : environments.FORM_DOMAIN;
+        domain = form?.builderVersion === 'v2' ? window.PUBLIC_CONFIG?.FORM_DOMAIN : window.PUBLIC_CONFIG?.FORM_DOMAIN;
     }
 
     const url = workspace?.isPro && workspace?.customDomain && !defaultLink && workspace?.customDomainVerified ? `/forms/${slug}` : `/${workspace.workspaceName}/forms/${slug}`;

@@ -1,5 +1,5 @@
 
-import environments from '@app/configs/environments';
+"use client";
 import { StandardFormDto } from '@app/models/dtos/form';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
 import WorkspaceFormCard from '@Components/workspace-dashboard/workspace-form-card';
@@ -15,7 +15,7 @@ interface FormCardsProps {
 }
 
 const FormCards = ({ title, formsArray, workspace, showPinned = true, showVisibility }: FormCardsProps) => {
-    const isCustomDomain = window?.location.host !== environments.FORM_DOMAIN;
+    const isCustomDomain = window?.location.host !== window.PUBLIC_CONFIG?.FORM_DOMAIN;
 
     if (formsArray.length === 0) return <></>;
     return (

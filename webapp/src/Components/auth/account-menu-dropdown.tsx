@@ -119,7 +119,7 @@ export default function AuthAccountMenuDropdown({ isClientDomain, fullWidth, hid
                         {isClientDomain && (
                             <li className="list-none">
                                 <ActiveLink
-                                    href={`${environments.DASHBOARD_DOMAIN.includes('localhost') ? 'http://' : 'https://'}${environments.DASHBOARD_DOMAIN}/${workspace.workspaceName}/dashboard`}
+                                    href={`${window.PUBLIC_CONFIG?.DASHBOARD_DOMAIN.includes('localhost') ? 'http://' : 'https://'}${window?.PUBLIC_CONFIG?.DASHBOARD_DOMAIN}/${workspace.workspaceName}/dashboard`}
                                     referrerPolicy="no-referrer"
                                 >
                                     <div className="flex items-center gap-4 px-[20px] py-[10px] h-[36px] body4 hover:bg-brand-100 cursor-pointer">
@@ -146,7 +146,7 @@ export default function AuthAccountMenuDropdown({ isClientDomain, fullWidth, hid
                     </WorkspaceAdminSelector>
                     <li className="list-none">
                         <ActiveLink
-                            href={`${environments.DASHBOARD_DOMAIN.includes('localhost') ? 'http://' : 'https://'}${environments.DASHBOARD_DOMAIN}/${workspace.workspaceName}/dashboard/account-settings`}
+                            href={`${window.PUBLIC_CONFIG?.DASHBOARD_DOMAIN.includes('localhost') ? 'http://' : 'https://'}${window.PUBLIC_CONFIG?.DASHBOARD_DOMAIN}/${workspace.workspaceName}/dashboard/account-settings`}
                             referrerPolicy="no-referrer"
                         >
                             <div className="flex items-center gap-4 px-[20px] py-[10px] h-[36px] body4 hover:bg-brand-100 cursor-pointer">

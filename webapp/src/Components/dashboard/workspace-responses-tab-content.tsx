@@ -1,11 +1,11 @@
 
+"use client";
 import { useTranslation } from 'next-i18next';
 
 import ZeroElement from '@Components/Common/DataDisplay/Empty/ZeroElement';
 import WorkspaceFormResponseDeletionCard from '@Components/WorkspaceClient/WorkspaceFormResponseDeletionCard';
 
 import Loader from '@app/Components/ui/loader';
-import environments from '@app/configs/environments';
 import { formConstant } from '@app/constants/locales/form';
 import { StandardFormResponseDto } from '@app/models/dtos/form';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
@@ -38,7 +38,7 @@ export default function WorkspaceResponsesTabContent({ workspace, deletionReques
 
     const submissions: Array<StandardFormResponseDto> = data?.items ?? [];
 
-    const isCustomDomain = window?.location.host !== environments.FORM_DOMAIN;
+    const isCustomDomain = window?.location.host !== window.PUBLIC_CONFIG?.FORM_DOMAIN;
 
     const getEmptyMessage = () => {
         if (!auth.id) return 'Verify your email or enter your submission number you to view all your form responses.';

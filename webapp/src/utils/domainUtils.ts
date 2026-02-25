@@ -1,6 +1,6 @@
-import environments from '@app/configs/environments';
+"use client";
 
 export const isAdminDomain = () => {
-    if (!!window) return environments.DASHBOARD_DOMAIN === window.location.host;
+    if (typeof window !== 'undefined') return window.PUBLIC_CONFIG?.DASHBOARD_DOMAIN === window.location.host;
     return false;
 };

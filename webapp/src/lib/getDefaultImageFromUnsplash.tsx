@@ -1,8 +1,7 @@
-import environments from '@app/configs/environments';
 import { createApi } from 'unsplash-js';
 
 const unsplash = createApi({
-    accessKey: environments.UNSPLASH_ACCESS_KEY || ''
+    accessKey: process.env.UNSPLASH_ACCESS_KEY || ''
 });
 
 export async function getDefaultImageFromUnsplash(text: string) {

@@ -1,3 +1,4 @@
+"use client";
 import { useCallback, useEffect, useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
@@ -5,7 +6,6 @@ import { useTranslation } from 'next-i18next';
 import _ from 'lodash';
 
 
-import environments from '@app/configs/environments';
 import { onBoarding } from '@app/constants/locales/onboarding-screen';
 import { FormDataDto } from '@app/containers/Onboarding';
 import { useAppSelector } from '@app/store/hooks';
@@ -140,7 +140,7 @@ const TextFieldHandler = ({ formData, setFormData, handleOnChange, createWorkspa
             />
             <p className="text-xs text-gray-500 ml-1 mt-1">
                 {t(onBoarding.useSmallCase)} (eg: abc) <br />
-                https://{environments.FORM_DOMAIN}/<span className="text-pink-500 font-medium">{formData.workspaceName?.toLowerCase()}</span>
+                https://{window.PUBLIC_CONFIG?.FORM_DOMAIN}/<span className="text-pink-500 font-medium">{formData.workspaceName?.toLowerCase()}</span>
             </p>
             {errorMessage && formData.workspaceName && (
                 <>

@@ -2,7 +2,6 @@ import { combineReducers, configureStore, Reducer } from '@reduxjs/toolkit';
 import { setupListeners } from '@reduxjs/toolkit/query';
 import { persistStore } from 'redux-persist';
 
-import environments from '@app/configs/environments';
 import { RESET_STATE_ACTION_TYPE } from '@app/store/actions/resetState';
 import { authApi } from '@app/store/auth/api';
 import authSlice from '@app/store/auth/slice';
@@ -20,13 +19,13 @@ import { apiActionsApi } from './api-actions-api';
 import mutationStatusSlice from './mutations/slice';
 import { priceSuggestionApi } from './price-suggestion/api';
 
-import { templatesApi } from '@app/store/redux/templateApi';
 import { integrationApi } from '@app/store/integrationApi';
+import { templatesApi } from '@app/store/redux/templateApi';
 
 import { formsApi } from '@app/store/redux/formApi';
 import { importApi } from '@app/store/redux/importApi';
-import { mediaLibraryApi } from './media-library/api';
 import { analyticsApi } from './analytics/api';
+import { mediaLibraryApi } from './media-library/api';
 // Add more middlewares here
 // const middlewares = [loggerMiddleware, authApi.middleware, membersNInvitationsApi.middleware, plansApi.middleware, providerApi.middleware, workspacesApi.middleware];
 const middlewares = [
@@ -90,7 +89,6 @@ export const store = configureStore({
             serializableCheck: false
         }).concat(middlewares),
     preloadedState: {},
-    devTools: !environments.IS_IN_PRODUCTION_MODE
 });
 
 export const persistor = persistStore(store);

@@ -7,7 +7,6 @@ import { Button } from '@app/shadcn/components/ui/button';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 
 import { useBottomSheetModal } from '@Components/Modals/Contexts/BottomSheetModalContext';
-import environments from '@app/configs/environments';
 import { placeHolder } from '@app/constants/locales/placeholder';
 import { toastMessage } from '@app/constants/locales/toast-message';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
@@ -27,8 +26,8 @@ export default function WorkspaceInfo({ workspace }: { workspace: WorkspaceDto }
     const [workspaceInfo, setWorkspaceInfo] = useState({
         title: workspace.title || '',
         description: workspace.description || '',
-        privacy_policy: workspace.privacyPolicy || environments.PRIVACY_POLICY_URL,
-        terms_of_service: workspace.termsOfService || environments.TERMS_OF_SERVICE_URL
+        privacy_policy: workspace.privacyPolicy,
+        terms_of_service: workspace.termsOfService
     });
     const auth = useAppSelector(selectAuth);
 

@@ -1,6 +1,6 @@
+"use client";
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 
-import environments from '@app/configs/environments';
 import { Button } from '@app/shadcn/components/ui/button';
 import { selectAuth } from '@app/store/auth/slice';
 import { selectForm } from '@app/store/forms/slice';
@@ -30,8 +30,8 @@ export default function FormPublishedModal(props: any) {
                 </div>
                 <div className="flex items-center  gap-2">
                     <div className="text-black-700 p4-new bg-black-100 rounded-md px-3 py-2">
-                        {environments.HTTP_SCHEME}
-                        {environments.FORM_DOMAIN}/{workspace.workspaceName}
+                        {window.PUBLIC_CONFIG?.HTTP_SCHEME}
+                        {window.PUBLIC_CONFIG?.FORM_DOMAIN}/{workspace.workspaceName}
                         /forms/
                         <span className="text-pink-500">{standardForm.settings?.customUrl}</span>
                     </div>
@@ -52,7 +52,7 @@ export default function FormPublishedModal(props: any) {
                     <span className="p4-new break-words text-center">
                         Add your custom domain, add integration or change form privacy,{' '}
                         <button data-umami-event={'PublishModal Goto Settings Link'} data-umami-event-email={authState.email}>
-                            <a href={`${environments.HTTP_SCHEME}${environments.DASHBOARD_DOMAIN}/${workspace.workspaceName}/dashboard/forms/${standardForm.formId}?view=FormLinks`} className="text-blue-500">
+                            <a href={`${window.PUBLIC_CONFIG?.HTTP_SCHEME}${window.PUBLIC_CONFIG?.DASHBOARD_DOMAIN}/${workspace.workspaceName}/dashboard/forms/${standardForm.formId}?view=FormLinks`} className="text-blue-500">
                                 Go to form settings
                             </a>
                         </button>
@@ -60,7 +60,7 @@ export default function FormPublishedModal(props: any) {
                 </div>
                 <div className="mb-5 mt-5">
                     <button data-umami-event={'PublishModal Goto Dashboard Link'} data-umami-event-email={authState.email}>
-                        <a href={`${environments.HTTP_SCHEME}${environments.DASHBOARD_DOMAIN}/${workspace.workspaceName}/dashboard/forms`}>
+                        <a href={`${window.PUBLIC_CONFIG?.HTTP_SCHEME}${window.PUBLIC_CONFIG?.DASHBOARD_DOMAIN}/${workspace.workspaceName}/dashboard/forms`}>
                             <Button size="medium">Done! Go to dashboard</Button>
                         </a>
                     </button>

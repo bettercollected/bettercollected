@@ -1,3 +1,4 @@
+"use client";
 import { useEffect, useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
@@ -9,7 +10,6 @@ import { Button } from '@app/shadcn/components/ui/button';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 
 import { useModal } from '@app/Components/modal-views/context';
-import environments from '@app/configs/environments';
 import { buttonConstant } from '@app/constants/locales/button';
 import { onBoarding } from '@app/constants/locales/onboarding-screen';
 import { toastMessage } from '@app/constants/locales/toast-message';
@@ -86,8 +86,8 @@ export default function UpdateWorkspaceHandle() {
                 <div className="h4-new">Enter Slug</div>
                 <div className="p2-new text-black-700">Avoid using spaces or special characters. Only “-” and “_” is accepted.</div>
                 <div className="p2-new">
-                    {environments.HTTP_SCHEME}
-                    {environments.FORM_DOMAIN}/<span className="p2-new text-pink">{updateText}</span>
+                    {window.PUBLIC_CONFIG?.HTTP_SCHEME}
+                    {window.PUBLIC_CONFIG?.FORM_DOMAIN}/<span className="p2-new text-pink">{updateText}</span>
                 </div>
                 <AppInput value={updateText} onChange={handleUpdateChange} />
                 {errorMessage && <span className={'text-sm text-red-500 font-normal'}>{errorMessage}</span>}

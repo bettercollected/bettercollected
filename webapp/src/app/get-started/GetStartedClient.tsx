@@ -6,9 +6,9 @@ import { useTranslation } from 'next-i18next';
 import Image from "next/image";
 import { useRouter } from 'next/navigation';
 
+import { Button } from '@app/shadcn/components/ui/button';
 import GetStartedStepper from '@Components/GetStarted/Stepper';
 import cn from 'classnames';
-import { Button } from '@app/shadcn/components/ui/button';
 
 import GetStartedDataRights from '@app/assets/images/getstarted-datarights.png';
 import GetStartedFormBrand from '@app/assets/images/getstarted-formbrand.png';
@@ -17,7 +17,6 @@ import UserFitImage from '@app/assets/images/happy.png';
 import UserNotFitImage from '@app/assets/images/sad.png';
 import ActiveLink from '@app/Components/ui/links/active-link';
 import Logo from '@app/Components/ui/logo';
-import environments from '@app/configs/environments';
 import { buttonConstant } from '@app/constants/locales/button';
 import { getStarted } from '@app/constants/locales/get-started';
 import Layout from '@app/layouts/_layout';
@@ -54,9 +53,7 @@ export default function GetStartedClient() {
     const [isFit, setIsFit] = React.useState(true);
     const { t } = useTranslation();
 
-    const signUpLink = environments.IS_IN_PRODUCTION_MODE
-        ? `https://admin.bettercollected.com/login`
-        : `https://bettercollected-admin.sireto.dev/login`;
+    const signUpLink = `https://admin.bettercollected.com/login`
 
     const steps: Array<IGetStartedStep> = [
         {

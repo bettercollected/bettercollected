@@ -1,3 +1,4 @@
+"use client";
 import { useEffect, useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
@@ -21,7 +22,6 @@ import { Close } from '@app/Components/icons/close';
 import { GroupIcon } from '@app/Components/icons/group-icon';
 import { useModal } from '@app/Components/modal-views/context';
 import { FormSettingsCard } from '@app/Components/settings/card';
-import environments from '@app/configs/environments';
 import { buttonConstant } from '@app/constants/locales/button';
 import { localesCommon } from '@app/constants/locales/common';
 import { formConstant } from '@app/constants/locales/form';
@@ -60,9 +60,9 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
     const fullScreenModal = useFullScreenModal();
     const isCustomDomain = workspace?.isPro && !!workspace.customDomain;
     const customUrl = form?.settings?.customUrl || '';
-    const clientHost = `${environments.HTTP_SCHEME}${environments.FORM_DOMAIN}/${workspace.workspaceName}/forms`;
-    const customDomain = `${environments.HTTP_SCHEME}${workspace.customDomain}/forms`;
-    const V2FormDomain = `${environments.HTTP_SCHEME}${environments.FORM_DOMAIN}/${workspace.workspaceName}/forms`;
+    const clientHost = `${window.PUBLIC_CONFIG?.HTTP_SCHEME}${window.PUBLIC_CONFIG?.FORM_DOMAIN}/${workspace.workspaceName}/forms`;
+    const customDomain = `${window.PUBLIC_CONFIG?.HTTP_SCHEME}${workspace.customDomain}/forms`;
+    const V2FormDomain = `${window.PUBLIC_CONFIG?.HTTP_SCHEME}${window.PUBLIC_CONFIG?.FORM_DOMAIN}/${workspace.workspaceName}/forms`;
 
     const [_, copyToClipboard] = useCopyToClipboard();
 

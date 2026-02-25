@@ -1,27 +1,27 @@
+"use client";
 import Link from 'next/link';
 
 import Copy from '@Components/Common/Icons/Common/Copy';
 import Logo from '@app/Components/ui/logo';
-import environments from '@app/configs/environments';
 import { FormSlideLayout } from '@app/models/enums/form';
 import { Button } from '@app/shadcn/components/ui/button';
+import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { cn } from '@app/shadcn/util/lib';
 import { selectAuth } from '@app/store/auth/slice';
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
+import { useFormResponse } from '@app/store/jotai/responderFormResponse';
 import { useResponderState } from '@app/store/jotai/responderFormState';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import UserAvatarDropDown from '@app/views/molecules/UserAvatarDropdown';
-import { useToast } from '@app/shadcn/components/ui/use-toast';
 import useCopyToClipboard from 'react-use/lib/useCopyToClipboard';
-import { useFormResponse } from '@app/store/jotai/responderFormResponse';
 
 export default function ThankyouPage({ isPreviewMode }: { isPreviewMode: boolean }) {
     const { toast } = useToast();
     const standardForm = useAppSelector(selectForm);
     const workspace = useAppSelector(selectWorkspace);
     const auth = useAppSelector(selectAuth);
-    const submissionUrl = environments.HTTP_SCHEME + environments.FORM_DOMAIN + '/' + workspace.workspaceName;
+    const submissionUrl = window.PUBLIC_CONFIG?.HTTP_SCHEME + window.PUBLIC_CONFIG?.FORM_DOMAIN + '/' + workspace.workspaceName;
     const { responderId } = useResponderState();
     const [_, copyToClipboard] = useCopyToClipboard();
     const { formResponse } = useFormResponse();

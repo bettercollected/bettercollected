@@ -1,10 +1,10 @@
+"use client";
 import { useEffect, useState } from 'react';
 
 import { useModal } from '@app/Components/modal-views/context';
 import FloatingPopOverButton from '@app/Components/sidebar/FloatingPopOverButton';
 import HelpMenuComponent from '@app/Components/sidebar/HelpMenuComponent';
 import HelpMenuItem from '@app/Components/sidebar/HelpMenuItem';
-import environments from '@app/configs/environments';
 import { formConstant } from '@app/constants/locales/form';
 import { useIsMobile } from '@app/lib/hooks/use-breakpoint';
 import { Button } from '@app/shadcn/components/ui/button';
@@ -37,7 +37,7 @@ const PreviewWrapper = ({ children, handleResetResponderState }: { children: Rea
         setIFrameLoaded(false);
     }, [isDesktopView]);
 
-    const mobileViewPreviewUrl = `${environments.HTTP_SCHEME}${environments.FORM_DOMAIN}/${workspace.workspaceName}/forms/${standardForm.formId}/preview`;
+    const mobileViewPreviewUrl = `${window.PUBLIC_CONFIG?.HTTP_SCHEME}${window.PUBLIC_CONFIG?.FORM_DOMAIN}/${workspace.workspaceName}/forms/${standardForm.formId}/preview`;
     return (
         <div className=" h-screen w-full bg-white">
             {isMobile && (

@@ -1,3 +1,4 @@
+"use client";
 import { useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
@@ -15,7 +16,6 @@ import { QrCode } from 'lucide-react';
 import { LinkIcon } from '@app/Components/icons/link-icon';
 import { useModal } from '@app/Components/modal-views/context';
 import ActiveLink from '@app/Components/ui/links/active-link';
-import environments from '@app/configs/environments';
 import { buttonConstant } from '@app/constants/locales/button';
 import { localesCommon } from '@app/constants/locales/common';
 import { formConstant } from '@app/constants/locales/form';
@@ -60,8 +60,8 @@ export default function FormOptionsDropdownMenu({ workspace, form, hasCustomDoma
     const isCustomDomain = !!workspace.customDomain;
     const isMobile = useIsMobile();
 
-    const clientHost = `${environments.FORM_DOMAIN.includes('localhost') ? 'http' : 'https'}://${environments.FORM_DOMAIN}/${workspace.workspaceName}/forms`;
-    const customDomain = `${environments.FORM_DOMAIN.includes('localhost') ? 'http' : 'https'}://${workspace.customDomain}/forms`;
+    const clientHost = `${window.PUBLIC_CONFIG?.FORM_DOMAIN.includes('localhost') ? 'http' : 'https'}://${window.PUBLIC_CONFIG?.FORM_DOMAIN}/${workspace.workspaceName}/forms`;
+    const customDomain = `${window.PUBLIC_CONFIG?.FORM_DOMAIN.includes('localhost') ? 'http' : 'https'}://${workspace.customDomain}/forms`;
 
     const isFormOpen = validateFormOpen(form?.settings?.formCloseDate);
 
