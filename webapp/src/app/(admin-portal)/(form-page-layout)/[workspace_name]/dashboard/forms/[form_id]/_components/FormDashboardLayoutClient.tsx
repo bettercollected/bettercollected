@@ -6,9 +6,9 @@ import { usePathname, useRouter } from 'next/navigation';
 import React, { useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import Divider from '@app/components/Common/DataDisplay/Divider';
-import PrivateFormButtonWrapper from '@app/components/Common/FormVisibility/PrivateFormButtonWrapper';
 import FormProviderIcon from '@app/components/Common/Icons/Form/FormProviderIcon';
+import Divider from '@Components/Common/divider';
+import PrivateFormButtonWrapper from '@Components/Common/private-form-button-wrapper';
 import {
     BarChart,
     Blocks,

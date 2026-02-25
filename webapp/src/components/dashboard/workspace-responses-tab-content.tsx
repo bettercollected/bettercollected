@@ -2,10 +2,10 @@
 "use client";
 import { useTranslation } from 'next-i18next';
 
-import ZeroElement from '@Components/Common/DataDisplay/Empty/ZeroElement';
-import WorkspaceFormResponseDeletionCard from '@Components/WorkspaceClient/WorkspaceFormResponseDeletionCard';
+import ZeroElement from '@Components/Common/zero-elament';
+import WorkspaceFormResponseDeletionCard from '@app/components/WorkspaceClient/WorkspaceFormResponseDeletionCard';
 
-import Loader from '@app/Components/ui/loader';
+import Loader from '@app/components/ui/loader';
 import { formConstant } from '@app/constants/locales/form';
 import { StandardFormResponseDto } from '@app/models/dtos/form';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';

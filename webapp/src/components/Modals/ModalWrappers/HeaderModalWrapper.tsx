@@ -1,10 +1,10 @@
-import React, { ReactNode } from 'react';
+import { ReactNode } from 'react';
 
-import Divider from '@Components/Common/DataDisplay/Divider';
+import Divider from '@Components/Common/divider';
 import { cn } from '@app/shadcn/util/lib';
 
-import { Close } from '@app/Components/icons/close';
-import { useModal } from '@app/Components/modal-views/context';
+import { Close } from '@app/components/icons/close';
+import { useModal } from '@app/components/modal-views/context';
 
 interface HeaderModalWrapperProps {
     headerTitle?: string;

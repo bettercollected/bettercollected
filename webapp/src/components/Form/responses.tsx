@@ -4,8 +4,8 @@ import { useTranslation } from 'next-i18next';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
 
-import FormResponsesTable from '@app/Components/datatable/form/form-responses';
-import { useModal } from '@app/Components/modal-views/context';
+import FormResponsesTable from '@app/components/datatable/form/form-responses';
+import { useModal } from '@app/components/modal-views/context';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';

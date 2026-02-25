@@ -1,12 +1,12 @@
 
 import { useTranslation } from 'next-i18next';
 
-import Divider from '@Components/Common/DataDisplay/Divider';
 import { Button } from '@app/shadcn/components/ui/button';
+import Divider from '@Components/Common/divider';
 
-import { Close } from '@app/Components/icons/close';
-import { useModal } from '@app/Components/modal-views/context';
-import { useBottomSheetModal } from '@Components/Modals/Contexts/BottomSheetModalContext';
+import { Close } from '@app/components/icons/close';
+import { useModal } from '@app/components/modal-views/context';
+import { useBottomSheetModal } from '@app/components/Modals/Contexts/BottomSheetModalContext';
 
 interface IVisibilityConfirmationModalViewProps {
     visibilityType: string;

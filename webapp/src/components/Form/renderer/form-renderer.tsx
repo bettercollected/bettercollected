@@ -1,6 +1,6 @@
 'use client';
 
-import { IndividualFormResponse } from "@app/Components/modal-views/full-screen-modals/view-response-full-modal-view";
+import { IndividualFormResponse } from "@app/components/modal-views/full-screen-modals/view-response-full-modal-view";
 import { getFieldsFromV2Form } from '@app/utils/formUtils';
 
 interface FormRendererProps {

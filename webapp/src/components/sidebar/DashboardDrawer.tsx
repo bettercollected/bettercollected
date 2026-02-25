@@ -5,12 +5,12 @@ import { usePathname } from 'next/navigation';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { useModal } from '@app/Components/modal-views/context';
-import { useFullScreenModal } from '@app/Components/modal-views/full-screen-modal-context';
-import MuiDrawer from '@app/Components/sidebar/mui-drawer';
-import NavigationListApp from '@app/Components/sidebar/NavigationListApp';
-import Logo from '@app/Components/ui/logo';
-import WorkspaceMenuDropdown from '@app/Components/Workspace/workspace-menu-dropdown';
+import { useModal } from '@app/components/modal-views/context';
+import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
+import MuiDrawer from '@app/components/sidebar/mui-drawer';
+import NavigationListApp from '@app/components/sidebar/NavigationListApp';
+import Logo from '@app/components/ui/logo';
+import WorkspaceMenuDropdown from '@app/components/Workspace/workspace-menu-dropdown';
 import { pricingPlan } from '@app/constants/locales/pricingplan';
 import { toolTipConstant } from '@app/constants/locales/tooltip';
 import { upgradeConst } from '@app/constants/locales/upgrade';
@@ -23,7 +23,7 @@ import { useAppSelector } from '@app/store/hooks';
 import { useGetWorkspaceStatsQuery } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import Globe from '@app/views/atoms/Icons/Flags/Globe';
-import Divider from '@Components/Common/DataDisplay/Divider';
+import Divider from '@Components/Common/divider';
 
 const GradientBgDiv = ({ className, children }: { className?: string, children: React.ReactNode }) => (
     <div

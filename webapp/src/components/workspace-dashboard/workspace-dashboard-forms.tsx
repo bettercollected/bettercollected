@@ -6,12 +6,12 @@ import { useTranslation } from 'react-i18next';
 
 import { escapeRegExp } from 'lodash';
 
-import EmptyFormIcon from '@Components/Common/Icons/Form/EmptyForm';
-import StyledPagination from '@Components/Common/Pagination';
-import SearchInput from '@Components/Common/Search/SearchInput';
+import EmptyFormIcon from '@app/components/Common/Icons/Form/EmptyForm';
+import StyledPagination from '@Components/Common/pagination';
+import SearchInput from '@Components/Common/search-input';
 
-import Loader from '@app/Components/ui/loader';
-import WorkspaceDashboardFormsCard from '@app/Components/workspace-dashboard/workspace-dashboard-form-cards';
+import Loader from '@app/components/ui/loader';
+import WorkspaceDashboardFormsCard from '@app/components/workspace-dashboard/workspace-dashboard-form-cards';
 import globalConstants from '@app/constants/global';
 import { localesCommon } from '@app/constants/locales/common';
 import { StandardFormDto } from '@app/models/dtos/form';

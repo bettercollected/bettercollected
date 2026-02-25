@@ -1,13 +1,13 @@
 
 import { useTranslation } from 'next-i18next';
 
-import PrivateFormButtonWrapper from '@Components/Common/FormVisibility/PrivateFormButtonWrapper';
-import CopyIcon from '@Components/Common/Icons/Common/Copy';
-import { useBottomSheetModal } from '@Components/Modals/Contexts/BottomSheetModalContext';
+import PrivateFormButtonWrapper from '@Components/Common/private-form-button-wrapper';
+import CopyIcon from '@app/components/Common/Icons/Common/Copy';
+import { useBottomSheetModal } from '@app/components/Modals/Contexts/BottomSheetModalContext';
 import useCopyToClipboard from 'react-use/lib/useCopyToClipboard';
 
-import Globe from '@app/Components/icons/flags/globe';
-import { useFullScreenModal } from '@app/Components/modal-views/full-screen-modal-context';
+import Globe from '@app/components/icons/flags/globe';
+import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
 import { formPage } from '@app/constants/locales/form-page';
 import { toastMessage } from '@app/constants/locales/toast-message';
 import { Button } from '@app/shadcn/components/ui/button';

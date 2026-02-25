@@ -1,8 +1,8 @@
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
-import GenericHalfModal from '@Components/Common/Modals/GenericHalfModal';
+import GenericHalfModal from '@Components/Common/generic-half-modal';
 
-import { useModal } from '@app/Components/modal-views/context';
+import { useModal } from '@app/components/modal-views/context';
 import { useLazyGetStatusQuery, useLogoutMutation } from '@app/store/auth/api';
 import { initialAuthState, setAuth } from '@app/store/auth/slice';
 import { useAppDispatch } from '@app/store/hooks';

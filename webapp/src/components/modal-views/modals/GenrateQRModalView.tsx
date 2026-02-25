@@ -1,10 +1,10 @@
 import { useTranslation } from 'next-i18next';
 
-import Divider from '@Components/Common/DataDisplay/Divider';
+import Divider from '@Components/Common/divider';
 
-import QRGenerator from '@Components/Form/QRGenerator';
-import { Close } from '@app/Components/icons/close';
-import { useModal } from '@app/Components/modal-views/context';
+import QRGenerator from '@app/components/Form/QRGenerator';
+import { Close } from '@app/components/icons/close';
+import { useModal } from '@app/components/modal-views/context';
 import { toastMessage } from '@app/constants/locales/toast-message';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { Button } from '@app/shadcn/components/ui/button';

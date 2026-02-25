@@ -1,6 +1,6 @@
 import React from 'react';
 
-import Tooltip from '@app/components/Common/DataDisplay/Tooltip';
+import Tooltip from '@Components/Common/DataDisplay/Tooltip/tooltip';
 
 interface PrivateFormButtonWrapperProps {
     isPrivate?: boolean;

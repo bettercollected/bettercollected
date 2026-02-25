@@ -2,15 +2,15 @@
 
 import { useTranslation } from 'next-i18next';
 
-import StyledPagination from '@Components/Common/Pagination';
+import StyledPagination from '@Components/Common/pagination';
 import { cn } from '@app/shadcn/util/lib';
 import DataTable from 'react-data-table-component';
 
-import StatusBadge from '@Components/badge/status-badge';
-import { dataTableCustomStyles } from '@app/Components/datatable/form/datatable-styles';
-import { ChevronForward } from '@app/Components/icons/chevron-forward';
-import EmptyResponse from '@app/Components/ui/empty-response';
-import AnchorLink from '@app/Components/ui/links/anchor-link';
+import StatusBadge from '@app/components/badge/status-badge';
+import { dataTableCustomStyles } from '@app/components/datatable/form/datatable-styles';
+import { ChevronForward } from '@app/components/icons/chevron-forward';
+import EmptyResponse from '@app/components/ui/empty-response';
+import AnchorLink from '@app/components/ui/links/anchor-link';
 import globalConstants from '@app/constants/global';
 import { localesCommon } from '@app/constants/locales/common';
 import { formConstant } from '@app/constants/locales/form';
@@ -46,7 +46,7 @@ interface IResponsetableProps {
     setPage: (page: number) => void;
 }
 
-import { useFullScreenModal } from '@app/Components/modal-views/full-screen-modal-context';
+import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
 import { useLazyGetWorkspaceSubmissionQuery } from '@app/store/workspaces/api';
 import { getFormFields } from '@app/utils/formBuilderBlockUtils';
 

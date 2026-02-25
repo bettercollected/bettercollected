@@ -1,9 +1,9 @@
 import { useTranslation } from 'next-i18next';
 
-import GenericHalfModal from '@Components/Common/Modals/GenericHalfModal';
+import GenericHalfModal from '@Components/Common/generic-half-modal';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 
-import { useModal } from '@app/Components/modal-views/context';
+import { useModal } from '@app/components/modal-views/context';
 import { localesCommon } from '@app/constants/locales/common';
 import { toastMessage } from '@app/constants/locales/toast-message';
 import { WorkspaceMembersDto } from '@app/models/dtos/WorkspaceMembersDto';

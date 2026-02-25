@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'next-i18next';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
-import StyledPagination from '@app/components/Common/Pagination';
+import StyledPagination from '@Components/Common/pagination';
 import cn from 'classnames';
 import DataTable from 'react-data-table-component';
 

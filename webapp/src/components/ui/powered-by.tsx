@@ -1,8 +1,8 @@
 import React from 'react';
 
-import Tooltip from '@Components/Common/DataDisplay/Tooltip';
+import Tooltip from '@Components/Common/DataDisplay/Tooltip/tooltip';
 
-import Logo from '@app/Components/ui/logo';
+import Logo from '@app/components/ui/logo';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 

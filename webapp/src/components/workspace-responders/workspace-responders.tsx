@@ -1,20 +1,20 @@
 "use client";
-import React, { useState } from 'react';
+import { useState } from 'react';
 
-import { useTranslation } from 'next-i18next';
 import { Check, Plus } from 'lucide-react';
+import { useTranslation } from 'next-i18next';
 
-import Tooltip from '@Components/Common/DataDisplay/Tooltip';
-import StyledPagination from '@Components/Common/Pagination';
-import SearchInput from '@Components/Common/Search/SearchInput';
+import Tooltip from '@Components/Common/DataDisplay/Tooltip/tooltip';
+import StyledPagination from '@Components/Common/pagination';
+import SearchInput from '@Components/Common/search-input';
 import cn from 'classnames';
 import DataTable from 'react-data-table-component';
 
-import { dataTableCustomStyles } from '@app/Components/datatable/form/datatable-styles';
-import { Close } from '@app/Components/icons/close';
-import { useModal } from '@app/Components/modal-views/context';
-import EmptyResponse from '@app/Components/ui/empty-response';
-import Loader from '@app/Components/ui/loader';
+import { dataTableCustomStyles } from '@app/components/datatable/form/datatable-styles';
+import { Close } from '@app/components/icons/close';
+import { useModal } from '@app/components/modal-views/context';
+import EmptyResponse from '@app/components/ui/empty-response';
+import Loader from '@app/components/ui/loader';
 import globalConstants from '@app/constants/global';
 import { buttonConstant } from '@app/constants/locales/button';
 import { localesCommon } from '@app/constants/locales/common';
@@ -25,12 +25,12 @@ import { useGroupMember } from '@app/lib/hooks/use-group-members';
 import { WorkspaceResponderDto } from '@app/models/dtos/form';
 import { ResponderGroupDto } from '@app/models/dtos/groups';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
+import { Popover, PopoverContent, PopoverTrigger } from '@app/shadcn/components/ui/popover';
 import { selectIsAdmin } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { useGetAllRespondersGroupQuery, useGetWorkspaceRespondersQuery } from '@app/store/workspaces/api';
 import { IGetAllSubmissionsQuery } from '@app/store/workspaces/types';
 import { isEmailInGroup } from '@app/utils/groupUtils';
-import { Popover, PopoverContent, PopoverTrigger } from '@app/shadcn/components/ui/popover';
 
 const ResponderGroupDropdown = ({
     email,

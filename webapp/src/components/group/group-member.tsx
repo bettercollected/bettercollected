@@ -1,13 +1,12 @@
-import React from 'react';
 
 import { useTranslation } from 'next-i18next';
 
 import { Button } from '@app/shadcn/components/ui/button';
-import SearchInput from '@Components/Common/Search/SearchInput';
+import SearchInput from '@Components/Common/search-input';
 
-import MemberCard from '@Components/cards/member-card';
-import { Plus } from '@app/Components/icons/plus';
-import { useModal } from '@app/Components/modal-views/context';
+import MemberCard from '@app/components/cards/member-card';
+import { Plus } from '@app/components/icons/plus';
+import { useModal } from '@app/components/modal-views/context';
 import { buttonConstant } from '@app/constants/locales/button';
 import { groupConstant } from '@app/constants/locales/group';
 import { ResponderGroupDto } from '@app/models/dtos/groups';

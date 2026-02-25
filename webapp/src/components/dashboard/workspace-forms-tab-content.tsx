@@ -4,12 +4,12 @@ import { useTranslation } from 'next-i18next';
 
 import { escapeRegExp } from 'lodash';
 
-import Divider from '@Components/Common/DataDisplay/Divider';
-import ZeroElement from '@Components/Common/DataDisplay/Empty/ZeroElement';
-import SearchInput from '@Components/Common/Search/SearchInput';
+import Divider from '@Components/Common/divider';
+import SearchInput from '@Components/Common/search-input';
+import ZeroElement from '@Components/Common/zero-elament';
 
-import FormCards from '@Components/dashboard/form-cards';
-import Loader from '@app/Components/ui/loader';
+import FormCards from '@app/components/dashboard/form-cards';
+import Loader from '@app/components/ui/loader';
 import { formConstant } from '@app/constants/locales/form';
 import { workspaceConstant } from '@app/constants/locales/workspace';
 import { StandardFormDto } from '@app/models/dtos/form';

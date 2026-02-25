@@ -3,7 +3,7 @@
 import { useTranslation } from 'next-i18next';
 import { useEffect, useState } from 'react';
 
-import SearchInput from '@app/components/Common/Search/SearchInput';
+import SearchInput from '@Components/Common/search-input';
 
 import ResponsesTable from '@app/components/datatable/responses';
 import Loader from '@app/components/ui/loader';

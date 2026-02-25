@@ -1,20 +1,20 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/navigation';
 
-import { Button } from '@app/shadcn/components/ui/button';
-import SearchInput from '@Components/Common/Search/SearchInput';
-import { Plus } from '@app/Components/icons/plus';
-import WorkspaceFormCard from '@app/Components/workspace-dashboard/workspace-form-card';
+import { Plus } from '@app/components/icons/plus';
+import WorkspaceFormCard from '@app/components/workspace-dashboard/workspace-form-card';
 import { buttonConstant } from '@app/constants/locales/button';
 import { localesCommon } from '@app/constants/locales/common';
 import { groupConstant } from '@app/constants/locales/group';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { ResponderGroupDto } from '@app/models/dtos/groups';
+import { Button } from '@app/shadcn/components/ui/button';
 import { selectIsAdmin } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
+import SearchInput from '@Components/Common/search-input';
 
 import { useModal } from '../modal-views/context';
 

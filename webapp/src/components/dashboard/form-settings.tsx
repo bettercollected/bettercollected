@@ -3,25 +3,29 @@ import { useEffect, useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
 
+import EditIcon from '@app/components/Common/Icons/Common/Edit';
+import LockIcon from '@app/components/Common/Icons/lock';
+import { useBottomSheetModal } from '@app/components/Modals/Contexts/BottomSheetModalContext';
 import { Button } from '@app/shadcn/components/ui/button';
 import { Label } from '@app/shadcn/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@app/shadcn/components/ui/radio-group';
 import { Switch } from '@app/shadcn/components/ui/switch';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
-import Divider from '@Components/Common/DataDisplay/Divider';
-import Tooltip from '@Components/Common/DataDisplay/Tooltip';
-import EditIcon from '@Components/Common/Icons/Common/Edit';
-import LockIcon from '@Components/Common/Icons/lock';
-import { useBottomSheetModal } from '@Components/Modals/Contexts/BottomSheetModalContext';
+import Tooltip from '@Components/Common/DataDisplay/Tooltip/tooltip';
+import Divider from '@Components/Common/divider';
 import cn from 'classnames';
 import { QrCode } from 'lucide-react';
 import moment from 'moment/moment';
 import useCopyToClipboard from 'react-use/lib/useCopyToClipboard';
 
-import { Close } from '@app/Components/icons/close';
-import { GroupIcon } from '@app/Components/icons/group-icon';
-import { useModal } from '@app/Components/modal-views/context';
-import { FormSettingsCard } from '@app/Components/settings/card';
+import { Close } from '@app/components/icons/close';
+import Globe from "@app/components/icons/flags/globe";
+import { GroupIcon } from '@app/components/icons/group-icon';
+import { useModal } from '@app/components/modal-views/context';
+import { useFullScreenModal } from "@app/components/modal-views/full-screen-modal-context";
+import { FormSettingsCard } from '@app/components/settings/card';
+import FormLinkUpdateView from "@app/components/ui/form-link-update-view";
+import { ProLogo } from "@app/components/ui/logo";
 import { buttonConstant } from '@app/constants/locales/button';
 import { localesCommon } from '@app/constants/locales/common';
 import { formConstant } from '@app/constants/locales/form';
@@ -37,10 +41,6 @@ import { selectWorkspace } from '@app/store/workspaces/slice';
 import { utcToLocalDateTIme } from '@app/utils/dateUtils';
 import getFormShareURL from '@app/utils/formUtils';
 import { validateFormOpen } from '@app/utils/validationUtils';
-import Globe from "@Components/icons/flags/globe";
-import { useFullScreenModal } from "@Components/modal-views/full-screen-modal-context";
-import FormLinkUpdateView from "@Components/ui/form-link-update-view";
-import { ProLogo } from "@Components/ui/logo";
 
 interface IFormSettingsTabProps {
     view?: FormSettingsTabView;

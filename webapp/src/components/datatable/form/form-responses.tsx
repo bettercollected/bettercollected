@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 
 
-import SearchInput from '@Components/Common/Search/SearchInput';
-import TabularResponses from '@Components/Form/TabularResponses';
+import SearchInput from '@Components/Common/search-input';
+import TabularResponses from '@app/components/Form/TabularResponses';
 
-import Loader from '@app/Components/ui/loader';
+import Loader from '@app/components/ui/loader';
 import globalConstants from '@app/constants/global';
 import { Button } from '@app/shadcn/components/ui/button';
 import { selectForm } from '@app/store/forms/slice';

@@ -1,19 +1,17 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
 
-import Tooltip from '@Components/Common/DataDisplay/Tooltip';
 import { Button } from '@app/shadcn/components/ui/button';
-import { Check, CheckCircle, ChevronsUpDown } from "lucide-react"
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@app/shadcn/components/ui/command"
-import { Popover, PopoverContent, PopoverTrigger } from "@app/shadcn/components/ui/popover"
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@app/shadcn/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@app/shadcn/components/ui/popover";
 import cn from 'classnames';
+import { Check, CheckCircle, ChevronsUpDown } from "lucide-react";
 
-import { Close } from '@app/Components/icons/close';
-import { useModal } from '@app/Components/modal-views/context';
+import { Close } from '@app/components/icons/close';
+import { useModal } from '@app/components/modal-views/context';
 import { buttonConstant } from '@app/constants/locales/button';
 import { formConstant } from '@app/constants/locales/form';
-import { toolTipConstant } from '@app/constants/locales/tooltip';
 import { useGroupForm } from '@app/lib/hooks/use-group-form';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { ResponderGroupDto } from '@app/models/dtos/groups';

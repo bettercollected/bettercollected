@@ -1,19 +1,19 @@
-import { useRouter } from 'next/navigation';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 
 import { Button } from '@app/shadcn/components/ui/button';
-import MuiSwitch from '@Components/Common/Input/Switch';
 
-import { useToast } from '@app/shadcn/components/ui/use-toast';
-import EmptyFormsView from '@Components/dashboard/empty-form';
-import { useModal } from '@app/Components/modal-views/context';
-import DeleteDropDown from '@app/Components/ui/delete-dropdown';
+import EmptyFormsView from '@app/components/dashboard/empty-form';
+import { useModal } from '@app/components/modal-views/context';
+import DeleteDropDown from '@app/components/ui/delete-dropdown';
 import { Action } from '@app/models/dtos/actions';
+import { Switch } from '@app/shadcn/components/ui/switch';
+import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { useGetAllIntegrationsQuery, useRemoveActionFromFormMutation, useUpdateActionStatusInFormMutation } from '@app/store/api-actions-api';
+import { selectAuth } from '@app/store/auth/slice';
 import { selectForm, setForm } from '@app/store/forms/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
-import { selectAuth } from '@app/store/auth/slice';
 
 export default function FormIntegrations() {
     const { data } = useGetAllIntegrationsQuery({});
@@ -77,10 +77,9 @@ export default function FormIntegrations() {
                                     </div>
                                     {/* Connect Button */}
                                     <div className="mt-4 flex items-center gap-2 sm:mt-0">
-                                        {/* switch */}
-                                        <MuiSwitch
+                                        <Switch
                                             checked={getIntegrationEnabled(integration)}
-                                            onChange={async (event, checked) => {
+                                            onCheckedChange={async (checked) => {
                                                 const update_type = checked ? 'enable' : 'disable';
                                                 const response: any = await updateAction({
                                                     workspaceId: workspace.id,

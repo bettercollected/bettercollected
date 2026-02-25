@@ -3,19 +3,19 @@ import { useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
 
-import Tooltip from '@Components/Common/DataDisplay/Tooltip';
-import CopyIcon from '@Components/Common/Icons/Common/Copy';
-import DeleteIcon from '@Components/Common/Icons/Common/Delete';
-import EditIcon from '@Components/Common/Icons/Common/Edit';
-import EllipsisOption from '@Components/Common/Icons/Common/EllipsisOption';
-import AddMember from '@Components/Common/Icons/Dashboard/Add-member';
-import Eye from '@Components/Common/Icons/Form/Eye';
-import Pin from '@Components/Common/Icons/Form/Pin';
+import Tooltip from '@Components/Common/DataDisplay/Tooltip/tooltip';
+import CopyIcon from '@app/components/Common/Icons/Common/Copy';
+import DeleteIcon from '@app/components/Common/Icons/Common/Delete';
+import EditIcon from '@app/components/Common/Icons/Common/Edit';
+import EllipsisOption from '@app/components/Common/Icons/Common/EllipsisOption';
+import AddMember from '@app/components/Common/Icons/Dashboard/Add-member';
+import Eye from '@app/components/Common/Icons/Form/Eye';
+import Pin from '@app/components/Common/Icons/Form/Pin';
 import { QrCode } from 'lucide-react';
 
-import { LinkIcon } from '@app/Components/icons/link-icon';
-import { useModal } from '@app/Components/modal-views/context';
-import ActiveLink from '@app/Components/ui/links/active-link';
+import { LinkIcon } from '@app/components/icons/link-icon';
+import { useModal } from '@app/components/modal-views/context';
+import ActiveLink from '@app/components/ui/links/active-link';
 import { buttonConstant } from '@app/constants/locales/button';
 import { localesCommon } from '@app/constants/locales/common';
 import { formConstant } from '@app/constants/locales/form';

@@ -1,8 +1,7 @@
-import React from 'react';
 
 import { useTranslation } from 'next-i18next';
 
-import FormSettingsTab from '@Components/dashboard/form-settings';
+import FormSettingsTab from '@app/components/dashboard/form-settings';
 import { formConstant } from '@app/constants/locales/form';
 
 

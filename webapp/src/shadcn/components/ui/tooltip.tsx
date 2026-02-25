@@ -24,7 +24,7 @@ const TooltipContent = React.forwardRef<React.ElementRef<typeof TooltipPrimitive
 ));
 TooltipContent.displayName = TooltipPrimitive.Content.displayName;
 
-export { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider };
+export { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger };
 
 export default function ToolTip({ children, label, className, triggerClassName }: ICustomTooltip) {
     return (

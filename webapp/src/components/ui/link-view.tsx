@@ -1,14 +1,11 @@
-import React from 'react';
 
-import { useTranslation } from 'next-i18next';
 
-import Tooltip from '@Components/Common/DataDisplay/Tooltip';
+import Tooltip from '@Components/Common/DataDisplay/Tooltip/tooltip';
 import cn from 'classnames';
 
+import { useCopyToClipboard } from '@app/lib/hooks/use-copy-to-clipboard';
 import { Button } from '@app/shadcn/components/ui/button';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
-import { buttonConstant } from '@app/constants/locales/button';
-import { useCopyToClipboard } from '@app/lib/hooks/use-copy-to-clipboard';
 
 interface ILinkViewProps {
     url: string;

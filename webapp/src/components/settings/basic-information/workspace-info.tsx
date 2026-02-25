@@ -2,11 +2,11 @@ import { ChangeEvent, FormEvent, useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
 
-import UploadLogo from '@Components/Common/UploadLogo';
+import UploadLogo from '@Components/Common/upload-logo';
 import { Button } from '@app/shadcn/components/ui/button';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 
-import { useBottomSheetModal } from '@Components/Modals/Contexts/BottomSheetModalContext';
+import { useBottomSheetModal } from '@app/components/Modals/Contexts/BottomSheetModalContext';
 import { placeHolder } from '@app/constants/locales/placeholder';
 import { toastMessage } from '@app/constants/locales/toast-message';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';

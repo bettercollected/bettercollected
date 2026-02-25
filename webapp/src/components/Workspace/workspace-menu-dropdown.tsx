@@ -3,14 +3,15 @@ import { useState } from 'react';
 import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/navigation';
 
-import Divider from '@Components/Common/DataDisplay/Divider';
-import Tooltip from '@Components/Common/DataDisplay/Tooltip';
+import Tooltip from '@Components/Common/DataDisplay/Tooltip/tooltip';
+import Divider from '@Components/Common/divider';
 
-import AuthAccountProfileImage from '@app/Components/auth/account-profile-image';
-import { Check } from '@app/Components/icons/check';
-import { Plus } from '@app/Components/icons/plus';
-import { useFullScreenModal } from '@app/Components/modal-views/full-screen-modal-context';
-import Loader from '@app/Components/ui/loader';
+import AuthAccountProfileImage from '@app/components/auth/account-profile-image';
+import Chevron from '@app/components/Common/Icons/Common/Chevron';
+import { Check } from '@app/components/icons/check';
+import { Plus } from '@app/components/icons/plus';
+import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
+import Loader from '@app/components/ui/loader';
 import dashboardConstants from '@app/constants/locales/dashboard';
 import { menuDropdown } from '@app/constants/locales/menu-dropdown';
 import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
@@ -22,7 +23,6 @@ import { useGetAllMineWorkspacesQuery } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { generateRandomBgColor } from '@app/utils/backgroundColors';
 import { toEndDottedStr, trimTooltipTitle } from '@app/utils/stringUtils';
-import Chevron from '@Components/Common/Icons/Common/Chevron';
 
 
 interface IWorkspaceMenuDropdownProps {

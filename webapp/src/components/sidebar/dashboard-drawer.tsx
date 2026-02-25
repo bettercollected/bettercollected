@@ -5,14 +5,14 @@ import { useTranslation } from 'next-i18next';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
-import Divider from '@Components/Common/DataDisplay/Divider';
+import Divider from '@Components/Common/divider';
 
-import { useModal } from '@app/Components/modal-views/context';
-import { useFullScreenModal } from '@app/Components/modal-views/full-screen-modal-context';
-import MuiDrawer from '@app/Components/sidebar/mui-drawer';
-import NavigationList from '@app/Components/sidebar/navigation-list';
-import Logo from '@app/Components/ui/logo';
-import WorkspaceMenuDropdown from '@app/Components/Workspace/workspace-menu-dropdown';
+import { useModal } from '@app/components/modal-views/context';
+import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
+import MuiDrawer from '@app/components/sidebar/mui-drawer';
+import NavigationList from '@app/components/sidebar/navigation-list';
+import Logo from '@app/components/ui/logo';
+import WorkspaceMenuDropdown from '@app/components/Workspace/workspace-menu-dropdown';
 import environments from '@app/configs/environments';
 import { pricingPlan } from '@app/constants/locales/pricingplan';
 import { toolTipConstant } from '@app/constants/locales/tooltip';

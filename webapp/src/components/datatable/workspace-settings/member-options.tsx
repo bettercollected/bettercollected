@@ -1,17 +1,15 @@
-import React, { useState } from 'react';
-import { useTranslation } from 'next-i18next';
-import Tooltip from '@Components/Common/DataDisplay/Tooltip';
-import Delete from '@Components/Common/Icons/Common/Delete';
-import { MoreHorizontal, RefreshCw, Loader2 } from 'lucide-react';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@app/shadcn/components/ui/dropdown-menu';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@app/shadcn/components/ui/alert-dialog';
-import { useModal } from '@app/Components/modal-views/context';
+import Delete from '@app/components/Common/Icons/Common/Delete';
+import { useModal } from '@app/components/modal-views/context';
 import { buttonConstant } from '@app/constants/locales/button';
-import { toolTipConstant } from '@app/constants/locales/tooltip';
 import { WorkspaceInvitationDto, WorkspaceMembersDto } from '@app/models/dtos/WorkspaceMembersDto';
-import { useResendWorkspaceInvitationMutation } from '@app/store/workspaces/members-n-invitations-api';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@app/shadcn/components/ui/alert-dialog';
 import { Button } from '@app/shadcn/components/ui/button';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@app/shadcn/components/ui/dropdown-menu';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
+import { useResendWorkspaceInvitationMutation } from '@app/store/workspaces/members-n-invitations-api';
+import { Loader2, MoreHorizontal, RefreshCw } from 'lucide-react';
+import { useTranslation } from 'next-i18next';
+import { useState } from 'react';
 
 interface IMemberOptionProps {
     member?: WorkspaceMembersDto;

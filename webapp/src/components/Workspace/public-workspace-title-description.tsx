@@ -1,7 +1,6 @@
-import React from 'react';
 
-import Tooltip from '@Components/Common/DataDisplay/Tooltip';
-import MarkdownText from '@Components/Common/Markdown';
+import Tooltip from '@Components/Common/DataDisplay/Tooltip/tooltip';
+import MarkdownText from '@Components/Common/markdown';
 
 import { useAppSelector } from '@app/store/hooks';
 import { toEndDottedStr, trimTooltipTitle } from '@app/utils/stringUtils';

@@ -1,4 +1,4 @@
-import Divider from '@app/components/Common/DataDisplay/Divider';
+import Divider from '@Components/Common/divider';
 import { StandardFormFieldDto } from '@app/models/dtos/form';
 import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
 import { ChevronDown, ChevronUp } from 'lucide-react';

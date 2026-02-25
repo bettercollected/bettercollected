@@ -2,17 +2,17 @@ import { useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
 
-import Divider from '@Components/Common/DataDisplay/Divider';
-import CopyIcon from '@Components/Common/Icons/Common/Copy';
-import LockIcon from '@Components/Common/Icons/lock';
+import Divider from '@Components/Common/divider';
+import CopyIcon from '@app/components/Common/Icons/Common/Copy';
+import LockIcon from '@app/components/Common/Icons/lock';
 import { Button } from '@app/shadcn/components/ui/button';
 import { Label } from '@app/shadcn/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@app/shadcn/components/ui/radio-group';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 import useCopyToClipboard from 'react-use/lib/useCopyToClipboard';
 
-import Globe from '@app/Components/icons/flags/globe';
-import { useModal } from '@app/Components/modal-views/context';
+import Globe from '@app/components/icons/flags/globe';
+import { useModal } from '@app/components/modal-views/context';
 import environments from '@app/configs/environments';
 import { localesCommon } from '@app/constants/locales/common';
 import { formConstant } from '@app/constants/locales/form';

@@ -6,14 +6,14 @@ import { usePathname, useRouter } from 'next/navigation';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 
-import Divider from '@Components/Common/DataDisplay/Divider';
-import { DotIcon } from '@Components/Common/Icons/Common/DotIcon';
-import SettingsIcon from '@Components/Common/Icons/Common/Settings';
-import FormProviderIcon from '@Components/Common/Icons/Form/FormProviderIcon';
-import Preview from '@Components/Common/Icons/Form/Preview';
+import Divider from '@Components/Common/divider';
+import { DotIcon } from '@app/components/Common/Icons/Common/DotIcon';
+import SettingsIcon from '@app/components/Common/Icons/Common/Settings';
+import FormProviderIcon from '@app/components/Common/Icons/Form/FormProviderIcon';
+import Preview from '@app/components/Common/Icons/Form/Preview';
 import { ChevronLeft } from 'lucide-react';
 
-import FullScreenLoader from '@app/Components/ui/fullscreen-loader';
+import FullScreenLoader from '@app/components/ui/fullscreen-loader';
 import { localesCommon } from '@app/constants/locales/common';
 import TopNavLayout from '@app/layouts/top-navbar-layout';
 import { utcToLocalDate } from '@app/utils/dateUtils';

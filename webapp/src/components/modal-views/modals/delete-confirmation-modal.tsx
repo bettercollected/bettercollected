@@ -1,8 +1,7 @@
-import React from 'react';
 
 import { useTranslation } from 'next-i18next';
 
-import GenericHalfModal from '@Components/Common/Modals/GenericHalfModal';
+import GenericHalfModal from '@Components/Common/generic-half-modal';
 
 import { localesCommon } from '@app/constants/locales/common';
 

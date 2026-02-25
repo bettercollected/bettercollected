@@ -1,11 +1,11 @@
 'use client';
 
-import Divider from '@Components/Common/DataDisplay/Divider';
-import Tooltip from '@Components/Common/DataDisplay/Tooltip';
-import { useModal } from '@app/Components/modal-views/context';
+import { useModal } from '@app/components/modal-views/context';
 import { buttonConstant } from '@app/constants/locales/button';
 import { toolTipConstant } from '@app/constants/locales/tooltip';
 import { Button } from '@app/shadcn/components/ui/button';
+import Tooltip from '@Components/Common/DataDisplay/Tooltip/tooltip';
+import Divider from '@Components/Common/divider';
 import { useTranslation } from 'react-i18next';
 import { useSubmissionContext } from './SubmissionContext';
 

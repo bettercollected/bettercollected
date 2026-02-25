@@ -2,20 +2,20 @@
 import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/navigation';
 
-import Tooltip from '@Components/Common/DataDisplay/Tooltip';
-import { DotIcon } from '@Components/Common/Icons/Common/DotIcon';
-import EditIcon from '@Components/Common/Icons/Common/Edit';
-import ShareIcon from '@Components/Common/Icons/Common/ShareIcon';
-import FormProviderIcon from '@Components/Common/Icons/Form/FormProviderIcon';
-import PrivateIcon from '@Components/Common/Icons/Form/Private';
-import PublicIcon from '@Components/Common/Icons/Form/Public';
+import Tooltip from '@Components/Common/DataDisplay/Tooltip/tooltip';
+import { DotIcon } from '@app/components/Common/Icons/Common/DotIcon';
+import EditIcon from '@app/components/Common/Icons/Common/Edit';
+import ShareIcon from '@app/components/Common/Icons/Common/ShareIcon';
+import FormProviderIcon from '@app/components/Common/Icons/Form/FormProviderIcon';
+import PrivateIcon from '@app/components/Common/Icons/Form/Private';
+import PublicIcon from '@app/components/Common/Icons/Form/Public';
 import { Button } from '@app/shadcn/components/ui/button';
 import moment from 'moment/moment';
 
-import FormOptionsDropdownMenu from '@app/Components/datatable/form/form-options-dropdown';
-import { GroupIcon } from '@app/Components/icons/group-icon';
-import { useModal } from '@app/Components/modal-views/context';
-import DeleteDropDown from '@app/Components/ui/delete-dropdown';
+import FormOptionsDropdownMenu from '@app/components/datatable/form/form-options-dropdown';
+import { GroupIcon } from '@app/components/icons/group-icon';
+import { useModal } from '@app/components/modal-views/context';
+import DeleteDropDown from '@app/components/ui/delete-dropdown';
 import { localesCommon } from '@app/constants/locales/common';
 import { formConstant } from '@app/constants/locales/form';
 import { toolTipConstant } from '@app/constants/locales/tooltip';

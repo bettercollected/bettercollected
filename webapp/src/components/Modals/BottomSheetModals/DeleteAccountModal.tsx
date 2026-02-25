@@ -3,15 +3,15 @@ import { useState } from 'react';
 import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/navigation';
 
-import CheckBox from '@Components/Common/Input/CheckBox';
-import TextArea from '@Components/Common/Input/TextArea';
-import BottomSheetModalWrapper from '@Components/Modals/ModalWrappers/BottomSheetModalWrapper';
+import BottomSheetModalWrapper from '@app/components/Modals/ModalWrappers/BottomSheetModalWrapper';
 import { Button } from '@app/shadcn/components/ui/button';
 import { Label } from '@app/shadcn/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@app/shadcn/components/ui/select';
 
 import { toastMessage } from '@app/constants/locales/toast-message';
+import { Checkbox } from '@app/shadcn/components/ui/checkbox';
 import { AppInput } from '@app/shadcn/components/ui/input';
+import { Textarea } from '@app/shadcn/components/ui/textarea';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { useDeleteAccountMutation } from '@app/store/auth/api';
 
@@ -120,7 +120,7 @@ export default function DeleteAccountModal() {
                             <>{t('DELETE_ACCOUNT.ANYTHING_ELSE') + '(' + t('DELETE_ACCOUNT.OPTIONAL') + ')'}</>
                         )}
                     </div>
-                    <TextArea
+                    <Textarea
                         className="w-full rounded-md border border-black-500 focus:border-[#B8E8FF] focus:shadow-input"
                         value={feedback}
                         onChange={(event) => {
@@ -147,7 +147,7 @@ export default function DeleteAccountModal() {
                     />
                 </div>
                 <div className="mt-10 pl-2 flex items-start">
-                    <CheckBox
+                    <Checkbox
                         checked={checked}
                         onCheckedChange={(checked) => {
                             setChecked(!!checked);

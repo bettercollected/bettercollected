@@ -1,10 +1,10 @@
 import { useTranslation } from 'next-i18next';
 import { useRouter } from 'next/navigation';
 
-import GenericHalfModal from '@Components/Common/Modals/GenericHalfModal';
+import GenericHalfModal from '@Components/Common/generic-half-modal';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 
-import { useModal } from '@app/Components/modal-views/context';
+import { useModal } from '@app/components/modal-views/context';
 import { useDeleteResponseMutation } from '@app/store/workspaces/api';
 
 

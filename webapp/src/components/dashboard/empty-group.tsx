@@ -1,12 +1,11 @@
-import React from 'react';
 
 import { useTranslation } from 'next-i18next';
 
-import Tooltip from '@Components/Common/DataDisplay/Tooltip';
+import Tooltip from '@Components/Common/DataDisplay/Tooltip/tooltip';
+import { useBottomSheetModal } from '@app/components/Modals/Contexts/BottomSheetModalContext';
 import { Button } from '@app/shadcn/components/ui/button';
-import { useBottomSheetModal } from '@Components/Modals/Contexts/BottomSheetModalContext';
 
-import UserMore from '@app/Components/icons/user-more';
+import UserMore from '@app/components/icons/user-more';
 import { groupConstant } from '@app/constants/locales/group';
 import { toolTipConstant } from '@app/constants/locales/tooltip';
 import { selectIsAdmin } from '@app/store/auth/slice';
