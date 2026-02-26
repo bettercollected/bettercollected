@@ -10,7 +10,7 @@ public/robots.txt
 public/sitemap.xml
 public/sitemap-*.xml
 .vscode
-.next-env.d.ts
+next-env.d.ts
 .swc
 
 # typescript

@@ -19,44 +19,10 @@ const CustomPhoneInputField = styled(PhoneInput)(() => {
     const accentColor = theme?.accent;
 
     return {
-        '&.react-tel-input ::placeholder': {
-            color: `${tertiaryColor} !important`
+        '.selected-flag': {
+            background: accentColor + " !important",
+            height: '100%'
         },
-        '&.react-tel-input .flag-dropdown.open .selected-flag': {
-            background: accentColor,
-            '&:hover': {
-                background: accentColor
-            }
-        },
-        '&.react-tel-input .flag-dropdown .selected-flag': {
-            background: accentColor,
-            width: '40px',
-            height: '40px',
-            scale: 2
-        },
-        '&.react-tel-input .country-list .country': {
-            background: accentColor,
-            '&:hover': {
-                background: tertiaryColor
-            }
-        },
-        '&.react-tel-input .selected-flag .arrow': {
-            border: '0px',
-            borderBottom: ' 3px solid #555',
-            borderRight: ' 3px solid #555',
-            display: 'inline-block',
-            width: '12px',
-            height: '12px',
-            transform: 'rotate(45deg) ',
-            top: '-50%'
-        },
-        '&.react-tel-input .selected-flag .arrow.up': {
-            border: '0px',
-            borderBottom: ' 3px solid #555',
-            borderRight: ' 3px solid #555',
-            transform: 'rotate(225deg) ',
-            top: '0%'
-        }
     };
 });
 
