@@ -10,7 +10,7 @@ import { useFormState } from '@app/store/jotai/form';
 import { useNavbarState } from '@app/store/jotai/navbar';
 import MoveUpDown from '@app/views/molecules/form-builder/move-up-down';
 import { AnimatePresence, motion } from 'framer-motion';
-import { DeleteIcon } from 'lucide-react';
+import { Trash } from 'lucide-react';
 import { RichTextEditor } from '../../molecules/rich-text-editor';
 import SlideLayoutWrapper from '../layout/slide-layout-wrapper';
 import FieldDescription from './fields/field-description';
@@ -73,7 +73,7 @@ const SlideBuilder = ({ slide, isScaledDown = false, disabled = false }: { slide
                                                             deleteField(slide.index, index);
                                                         }}
                                                     >
-                                                        <DeleteIcon width={24} height={24} />
+                                                        <Trash width={24} height={24} />
                                                     </div>
                                                 )}
                                                 {activeFieldComponent?.id === field.id && (
