@@ -17,7 +17,6 @@ from backend.config.events_webhook import EventsWebhook
 from backend.config.https_certificate import HttpsCertificateApiSettings
 from backend.config.google_ai_settings import GoogleAISettings
 from backend.config.OpenAISettings import OpenAISettings
-from backend.config.schedular_settings import SchedularSettings
 from backend.config.unsplash_settings import UnsplashSettings
 from backend.config.sentry_setting import SentrySettings
 from backend.config.template_settings import DefaultResourcesWorkspaceSettings
@@ -50,7 +49,6 @@ class Application(BaseSettings):
     api_settings: ApiSettings = ApiSettings()
     auth_settings: AuthSettings = AuthSettings()
     mongo_settings: MongoSettings = MongoSettings()
-    schedular_settings: SchedularSettings = SchedularSettings()
     aws_settings: AWSSettings = AWSSettings()
     https_cert_api_settings: HttpsCertificateApiSettings = HttpsCertificateApiSettings()
     sentry_settings: SentrySettings = SentrySettings()
