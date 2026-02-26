@@ -10,13 +10,13 @@ import { Input } from '@app/shadcn/components/ui/input';
 import { Separator } from '@app/shadcn/components/ui/separator';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 
-import ConnectWithProviderButton from '@app/Components/Login/login-with-google-button';
+import ConnectWithProviderButton from '@Components/login/login-with-google-button';
 import environments from '@app/configs/environments';
 import { formResponderLogin } from '@app/constants/locales/form-responder-login';
 import { signInScreen } from '@app/constants/locales/signin-screen';
 import { signUpScreen } from '@app/constants/locales/signup-screen';
 import { usePostSendOtpMutation } from '@app/store/auth/api';
-import { capitalize } from '@app/utils/stringUtils';
+import { capitalize } from '@app/utils/string-utils';
 
 interface OtpEmailFormProps {
     isModal?: boolean;
@@ -24,8 +24,7 @@ interface OtpEmailFormProps {
     setEmail: Dispatch<SetStateAction<string>>;
 }
 
-const providers: Array<string> = [];
-if (environments.ENABLE_GOOGLE) providers.push('google');
+const providers: Array<string> = ["google"];
 
 export default function OtpEmailForm({ isModal, isSignup, setEmail: setParentEmail }: OtpEmailFormProps) {
     const { t } = useTranslation();

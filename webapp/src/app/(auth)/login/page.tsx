@@ -1,5 +1,5 @@
 import environments from '@app/configs/environments';
-import { WorkspaceDto } from '@app/models/dtos/workspaceDto';
+import { WorkspaceDto } from '@app/models/dtos/workspace-dto';
 import { isRedirectError } from 'next/dist/client/components/redirect-error';
 import { cookies, headers } from 'next/headers';
 import { redirect } from 'next/navigation';
@@ -25,7 +25,7 @@ export default async function LoginPage({ searchParams }: { searchParams: { redi
         });
 
         if (userStatus.ok) {
-            if (host === environments.ADMIN_DOMAIN) {
+            if (host === environments.DASHBOARD_DOMAIN) {
                 const user = await userStatus.json();
                 if (user?.roles?.includes('FORM_CREATOR')) {
                     const userWorkspaceResponse = await fetch(`${environments.INTERNAL_DOCKER_API_ENDPOINT_HOST}/workspaces/mine`, {

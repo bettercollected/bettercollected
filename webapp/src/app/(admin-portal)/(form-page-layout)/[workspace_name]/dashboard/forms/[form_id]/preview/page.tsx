@@ -1,6 +1,6 @@
 'use client';
 
-import FormPreview from '@app/Components/Form/preview';
+import FormPreview from '@Components/form/preview';
 
 export default function Page() {
     return (

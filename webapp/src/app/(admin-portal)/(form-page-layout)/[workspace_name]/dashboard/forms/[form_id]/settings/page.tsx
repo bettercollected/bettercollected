@@ -1,6 +1,6 @@
 'use client';
 
-import FormSettings from '@app/Components/Form/settings';
+import FormSettings from '@Components/form/settings';
 
 export default function Page() {
     return (

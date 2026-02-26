@@ -1,14 +1,14 @@
 'use client';
 
-import Loader from '@app/Components/ui/loader';
+import Loader from '@app/components/ui/loader';
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import { setForm } from '@app/store/forms/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { useFormState } from '@app/store/jotai/form';
 import { useGetWorkspaceFormQuery } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
-import FullScreenLoader from '@app/views/atoms/Loaders/FullScreenLoader';
-import Form from '@app/views/organism/Form/Form';
+import FullScreenLoader from '@app/views/atoms/full-screen-loader';
+import Form from '@app/views/organism/form/form';
 import { useRouter } from 'next/navigation';
 import { use, useEffect, useRef } from 'react';
 

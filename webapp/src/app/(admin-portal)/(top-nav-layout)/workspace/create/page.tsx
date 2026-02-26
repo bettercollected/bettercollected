@@ -1,8 +1,7 @@
-import React from 'react';
+import environments from '@app/configs/environments';
+import Onboarding from '@app/containers/onboarding';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
-import environments from '@app/configs/environments';
-import Onboarding from '@app/containers/Onboarding';
 
 async function getUserStatus() {
     const cookieStore = await cookies();

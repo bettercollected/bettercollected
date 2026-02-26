@@ -1,8 +1,8 @@
 "use client";
 
-import AddWorkspaceDomainForm from '@Components/CustomDomain/AddWorkspaceDomainForm';
-import WorkspaceDomainStatus from '@Components/CustomDomain/WorkspaceDomainStatus';
-import { ProLogo } from '@app/Components/ui/logo';
+import AddWorkspaceDomainForm from '@Components/custom-domain/add-workspace-domain-form';
+import WorkspaceDomainStatus from '@Components/custom-domain/workspace-domain-status';
+import { ProLogo } from '@app/components/ui/logo';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 

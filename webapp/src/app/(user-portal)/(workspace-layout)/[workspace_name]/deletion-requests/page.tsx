@@ -1,10 +1,9 @@
 'use client';
 
-import React from 'react';
-import WorkspaceResponsesTabContent from '@Components/dashboard/workspace-responses-tab-content';
+import WorkspaceResponsesTabContent from '@app/components/dashboard/workspace-responses-tab-content';
+import { selectAuth } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
-import { selectAuth } from '@app/store/auth/slice';
 
 export default function PortalDeletionRequestsPage() {
     const workspace = useAppSelector(selectWorkspace);

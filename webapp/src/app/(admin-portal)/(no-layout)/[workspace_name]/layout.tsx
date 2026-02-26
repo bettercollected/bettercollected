@@ -1,4 +1,4 @@
-import { WorkspaceDispatcher } from "@app/app/_dispatcher/WorkspaceDispatcher";
+import { WorkspaceDispatcher } from "@app/app/_dispatcher/workspace-dispatcher";
 import { notFound } from "next/navigation";
 import { getWorkspaceByName } from "../../(side-top-nav-layout)/[workspace_name]/dashboard/layout";
 

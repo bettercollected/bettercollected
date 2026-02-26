@@ -1,4 +1,12 @@
+from enum import Enum
+from typing import Optional
+
 from pydantic import BaseModel
+
+
+class AIProvider(str, Enum):
+    OPENAI = "openai"
+    GOOGLE = "google"
 
 
 class PriceIdRequest(BaseModel):
@@ -7,3 +15,4 @@ class PriceIdRequest(BaseModel):
 
 class CreateFormWithAI(BaseModel):
     prompt: str
+    provider: AIProvider = AIProvider.OPENAI

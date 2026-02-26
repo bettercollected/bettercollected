@@ -2,10 +2,10 @@ import { createSlice } from '@reduxjs/toolkit';
 import { persistReducer } from 'redux-persist';
 import storage from 'redux-persist/lib/storage';
 
-import { Plan } from '@app/models/dtos/UserStatus';
 import { StandardFormDto } from '@app/models/dtos/form';
-import { RootState } from '@app/store/store';
+import { Plan } from '@app/models/dtos/user-status';
 import { FormSlideLayout } from '@app/models/enums/form';
+import { RootState } from '@app/store/store';
 
 export const initFormState: StandardFormDto = {
     formId: '',

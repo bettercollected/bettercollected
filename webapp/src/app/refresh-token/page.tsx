@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import FullScreenLoader from '@app/Components/ui/fullscreen-loader';
+import FullScreenLoader from '@app/components/ui/fullscreen-loader';
 import { useRefreshTokenMutation } from '@app/store/auth/api';
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 
 export default function RefreshTokenPage() {
     const [refreshToken] = useRefreshTokenMutation();

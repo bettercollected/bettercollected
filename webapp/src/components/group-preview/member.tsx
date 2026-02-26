@@ -1,0 +1,98 @@
+import { useEffect, useState } from 'react';
+
+import { useTranslation } from 'next-i18next';
+
+import { useToast } from '@app/shadcn/components/ui/use-toast';
+
+import RegexCard from '@app/components/cards/regex-card';
+import GroupMember from '@app/components/group/group-member';
+import { useModal } from '@app/components/modal-views/context';
+import { localesCommon } from '@app/constants/locales/common';
+import { members } from '@app/constants/locales/members';
+import { toastMessage } from '@app/constants/locales/toast-message';
+import { useGroupMember } from '@app/lib/hooks/use-group-members';
+import { ResponderGroupDto } from '@app/models/dtos/groups';
+import { WorkspaceDto } from '@app/models/dtos/workspace-dto';
+import { handleRegexType } from '@app/models/enums/group-regex';
+import { selectIsAdmin } from '@app/store/auth/slice';
+import { useAppSelector } from '@app/store/hooks';
+import { useUpdateResponderGroupMutation } from '@app/store/workspaces/api';
+
+
+interface IGroupMemberTabProps {
+    group: ResponderGroupDto;
+    workspace: WorkspaceDto;
+}
+
+export default function GroupMembersTab({ group, workspace }: IGroupMemberTabProps) {
+    const [emails, setEmails] = useState(group.emails);
+    const { t } = useTranslation();
+    const { toast } = useToast();
+    const isAdmin = useAppSelector(selectIsAdmin);
+
+    const { openModal, closeModal } = useModal();
+    const [searchQuery, setSearchQuery] = useState('');
+    const [patchRegex] = useUpdateResponderGroupMutation();
+    const handleSearch = (event: any) => {
+        const query = event.target.value.toLowerCase();
+        setSearchQuery(query);
+    };
+
+    const { addMembersOnGroup, removeMemberFromGroup } = useGroupMember();
+
+    const handleAddmembers = (members: Array<string>) =>
+        addMembersOnGroup({
+            emails: members,
+            group,
+            workspaceId: workspace.id
+        });
+
+    const handleRemoveMembers = (email: string) => {
+        openModal('DELETE_CONFIRMATION', {
+            headerTitle: 'Remove Member',
+            title: t(localesCommon.remove) + ' ' + email,
+            handleDelete: () => removeMemberFromGroup({ email, group, workspaceId: workspace.id })
+        });
+    };
+    const handleRegex = async (regex: string, type: handleRegexType) => {
+        const groupInfo = {
+            regex: type === handleRegexType.REMOVE ? '' : regex
+        };
+        try {
+            await patchRegex({
+                groupInfo: groupInfo,
+                workspaceId: workspace.id,
+                groupId: group.id
+            }).then((response) => {
+                if (`data` in response) {
+                    toast({ description: t(toastMessage.updated).toString() });
+                    closeModal();
+                } else
+                    toast({
+                        description: t(toastMessage.somethingWentWrong).toString(),
+                        variant: 'destructive'
+                    });
+            });
+        } catch (error) {
+            toast({ description: t(toastMessage.somethingWentWrong).toString(), variant: 'destructive' });
+        }
+    };
+    useEffect(() => {
+        const filteredEmails = group.emails?.filter((email) => {
+            return email.toLowerCase().includes(searchQuery);
+        });
+        setEmails(filteredEmails);
+    }, [searchQuery, group]);
+    useEffect(() => {
+        setEmails(group.emails);
+    }, [group]);
+    return (
+        <div className="md:max-w-[618px] ">
+            <div>
+                <p className="leading-none mb-6 body1">{t(members.default)}</p>
+                <RegexCard handleRegex={handleRegex} regex={group.regex ?? ''} />
+                {emails && <GroupMember group={group} emails={emails} handleSearch={handleSearch} handleAddMembers={handleAddmembers} handleRemoveMember={handleRemoveMembers} />}
+            </div>
+        </div>
+    );
+}

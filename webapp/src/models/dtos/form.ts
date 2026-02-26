@@ -1,12 +1,12 @@
 import { JSONContent } from '@tiptap/react';
 
 import { FormTheme } from '@app/constants/theme';
-import { UserStatus } from '@app/models/dtos/UserStatus';
 import { Parameters } from '@app/models/dtos/actions';
+import { UserStatus } from '@app/models/dtos/user-status';
 import { IFormFieldValidation } from '@app/models/types/form-builder-shared';
 
 import { FormSlideLayout } from '../enums/form';
-import { FileMetadata } from '../types/fileTypes';
+import { FileMetadata } from '../types/file-types';
 import { ResponderGroupDto } from './groups';
 
 export interface StandardFormFieldProperties {

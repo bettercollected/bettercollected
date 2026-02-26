@@ -1,6 +1,5 @@
 import React from 'react';
-import { notFound } from 'next/navigation';
-import MembersLayoutClient from './_components/MembersLayoutClient';
+import MembersLayoutClient from './_components/members-layout-client';
 
 export default async function Layout(
     props: { children: React.ReactNode; params: Promise<{ workspace_name: string }> }

@@ -6,24 +6,24 @@ import { useRouter } from 'next-nprogress-bar';
 
 import cn from 'classnames';
 
-import { useModal } from '@app/Components/modal-views/context';
+import { useModal } from '@app/components/modal-views/context';
 import { defaultForm } from '@app/constants/form';
 import globalConstants from '@app/constants/global';
 import { useIsMobile } from '@app/lib/hooks/use-breakpoint';
-import { useDialogModal } from '@app/lib/hooks/useDialogModal';
+import { useDialogModal } from '@app/lib/hooks/use-dialog-modal';
 import { Sheet, SheetContent, SheetTrigger } from '@app/shadcn/components/ui/sheet';
 import { selectAuth } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
-import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
-import { useCreateV2FormMutation } from '@app/store/redux/formApi';
-import { useCreateFormFromTemplateMutation, useGetTemplatesQuery } from '@app/store/redux/templateApi';
+import useFormFieldsAtom from '@app/store/jotai/field-selectors';
+import { useCreateV2FormMutation } from '@app/store/redux/form-api';
+import { useCreateFormFromTemplateMutation, useGetTemplatesQuery } from '@app/store/redux/template-api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
-import AIIcon from '@app/views/atoms/Icons/AIIcon';
-import { GoogleFormIcon } from '@app/views/atoms/Icons/GoogleForm';
-import FormTypeSelectionComponent from '@app/views/molecules/FormBuilder/FormTypeSelectionComponent';
-import NavBar from '@app/views/molecules/FormBuilder/Navbar';
-import WelcomePage from '@app/views/organism/Form/WelcomePage';
-import LayoutWrapper from '@app/views/organism/Layout/LayoutWrapper';
+import FormTypeSelectionComponent from '@app/views/molecules/form-builder/form-type-selection-component';
+import NavBar from '@app/views/molecules/form-builder/navbar';
+import WelcomePage from '@app/views/organism/form/welcome-page';
+import LayoutWrapper from '@app/views/organism/layout/layout-wrapper';
+import AIIcon from '@Components/icons/ai-icon';
+import { GoogleFormIcon } from '@Components/icons/google-form';
 import useDrivePicker from '@fyelci/react-google-drive-picker';
 
 const CardVariants = {

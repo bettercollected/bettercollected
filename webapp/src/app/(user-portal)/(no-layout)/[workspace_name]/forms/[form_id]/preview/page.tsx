@@ -1,27 +1,27 @@
 'use client';
 
-import {useAppDispatch, useAppSelector} from '@app/store/hooks';
-import {selectWorkspace} from '@app/store/workspaces/slice';
-import {useGetWorkspaceFormQuery} from "@app/store/workspaces/api";
-import Form from "@app/views/organism/Form/Form";
-import FullScreenLoader from "@app/views/atoms/Loaders/FullScreenLoader";
-import { useEffect, use } from "react";
-import {setForm} from "@app/store/forms/slice";
-import {useFormState} from "@app/store/jotai/form";
+import { setForm } from "@app/store/forms/slice";
+import { useAppDispatch, useAppSelector } from '@app/store/hooks';
+import { useFormState } from "@app/store/jotai/form";
+import { useGetWorkspaceFormQuery } from "@app/store/workspaces/api";
+import { selectWorkspace } from '@app/store/workspaces/slice';
+import FullScreenLoader from "@app/views/atoms/full-screen-loader";
+import Form from "@app/views/organism/form/form";
+import { use, useEffect } from "react";
 
 export default function FormPreview(props: { params: Promise<{ form_id: string }> }) {
     const params = use(props.params);
 
     const dispatch = useAppDispatch();
-    const {updateFormTheme} = useFormState();
+    const { updateFormTheme } = useFormState();
 
     const workspace = useAppSelector(selectWorkspace);
-    const {data} = useGetWorkspaceFormQuery(
+    const { data } = useGetWorkspaceFormQuery(
         {
             workspace_id: workspace.id,
             custom_url: params.form_id,
         },
-        {skip: !workspace.id}
+        { skip: !workspace.id }
     );
 
 
@@ -33,9 +33,9 @@ export default function FormPreview(props: { params: Promise<{ form_id: string }
     }, [data]);
 
     if (!data?.formId) {
-        return <FullScreenLoader/>
+        return <FullScreenLoader />
     }
     return <div className="h-screen w-screen">
-        <Form isPreviewMode/>
+        <Form isPreviewMode />
     </div>
 }

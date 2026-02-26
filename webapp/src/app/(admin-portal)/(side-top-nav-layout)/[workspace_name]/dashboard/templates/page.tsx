@@ -1,7 +1,7 @@
 import environments from '@app/configs/environments';
 import { cookies } from 'next/headers';
 import { notFound } from 'next/navigation';
-import TemplatesClient from './TemplatesClient';
+import TemplatesClient from './_components/templates-client';
 
 async function getPredefinedTemplates(cookieHeader: string) {
     try {

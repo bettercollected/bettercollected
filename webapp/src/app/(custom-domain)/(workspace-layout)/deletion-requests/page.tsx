@@ -1,9 +1,8 @@
 'use client';
 
-import React from 'react';
-import WorkspaceResponsesTabContent from '@Components/dashboard/workspace-responses-tab-content';
-import { useAppSelector } from '@app/store/hooks';
+import WorkspaceResponsesTabContent from '@app/components/dashboard/workspace-responses-tab-content';
 import { selectAuth } from '@app/store/auth/slice';
+import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 
 export default function CustomDeletionRequestsPage() {

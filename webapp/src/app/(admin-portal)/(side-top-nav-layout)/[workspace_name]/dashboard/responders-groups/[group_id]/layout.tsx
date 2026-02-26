@@ -1,8 +1,8 @@
-import { WorkspaceDispatcher } from '@app/app/_dispatcher/WorkspaceDispatcher';
+import { WorkspaceDispatcher } from '@app/app/_dispatcher/workspace-dispatcher';
 import { notFound } from 'next/navigation';
 import React from 'react';
 import { getWorkspaceByName } from '../../layout';
-import GroupPreviewLayoutClient from './_components/GroupPreviewLayoutClient';
+import GroupPreviewLayoutClient from './_components/group-preview-layout-client';
 
 export default async function GroupPreviewLayout({
     children,

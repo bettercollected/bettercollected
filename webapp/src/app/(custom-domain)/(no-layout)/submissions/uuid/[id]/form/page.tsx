@@ -1,7 +1,6 @@
 'use client';
 
-import React from 'react';
-import SubmissionFormContent from '@Components/RespondersPortal/_components/SubmissionFormContent';
+import SubmissionFormContent from '@Components/responder-portal/submssion-form-content';
 
 export default function SubmissionUUIDFormPage() {
     return <SubmissionFormContent />;

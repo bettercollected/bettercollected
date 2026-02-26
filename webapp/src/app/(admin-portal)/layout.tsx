@@ -6,7 +6,7 @@ export default async function AdminPortalLayout({ children }: { children: React.
     const headerList = await headers();
     const host = headerList.get('x-forwarded-host') || headerList.get('host') || '';
 
-    const hadAdminDomain = host === environments.ADMIN_DOMAIN;
+    const hadAdminDomain = host === environments.DASHBOARD_DOMAIN;
 
     if (!hadAdminDomain) {
         notFound();

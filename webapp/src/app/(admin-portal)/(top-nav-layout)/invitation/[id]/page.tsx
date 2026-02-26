@@ -1,15 +1,13 @@
 "use client";
 
-import React from 'react';
 
 import { useTranslation } from 'next-i18next';
 import { useParams, useRouter } from 'next/navigation';
 
-import ExpiredInvitation from '@app/Components/invitation/expired';
-import InvalidUserInvitation from '@app/Components/invitation/sender';
-import MainValidUser from '@app/Components/invitation/MainValidUser';
 import LoginView from '@app/app/(auth)/_components/login-view';
-import AuthNavbar from '@app/Components/auth/navbar';
+import AuthNavbar from '@app/components/auth/auth-navbar';
+import ExpiredInvitation from '@app/components/invitation/expired';
+import InvalidUserInvitation from '@app/components/invitation/sender';
 import { invitationConstant } from '@app/constants/locales/invitations';
 import { workspaceConstant } from '@app/constants/locales/workspace';
 import { useLazyGetStatusQuery, useLogoutMutation } from '@app/store/auth/api';
@@ -17,6 +15,7 @@ import { initialAuthState, selectAuth, setAuth } from '@app/store/auth/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { useGetWorkspaceInvitationQuery } from '@app/store/workspaces/members-n-invitations-api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
+import MainValidUser from '@Components/invitation/main-valid-user';
 
 const isInvitationExpired = (createdAt: string, expiryTimestamp: number) => {
     const currentDate = new Date();

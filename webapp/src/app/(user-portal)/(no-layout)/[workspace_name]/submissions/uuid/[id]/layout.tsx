@@ -1,5 +1,5 @@
+import SharedSubmissionLayoutClient from '@Components/responder-portal/shared-submission-layout-client';
 import environments from '@app/configs/environments';
-import SharedSubmissionLayoutClient from '@Components/RespondersPortal/_components/SharedSubmissionLayoutClient';
 import { notFound } from 'next/navigation';
 import React from 'react';
 

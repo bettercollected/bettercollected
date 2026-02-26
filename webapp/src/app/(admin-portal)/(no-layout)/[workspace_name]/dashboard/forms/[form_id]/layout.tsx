@@ -1,6 +1,6 @@
-import { FormDispatcher } from "@app/app/(user-portal)/(no-layout)/[workspace_name]/forms/[form_id]/_dispatcher/FormDispatcher";
+import { FormDispatcher } from "@app/app/(user-portal)/(no-layout)/[workspace_name]/forms/[form_id]/_dispatcher/form-dispatcher";
 import environments from "@app/configs/environments";
-import fetchWithCookies from "@app/utils/fetchUtils";
+import fetchWithCookies from "@app/utils/fetch-utils";
 import { notFound } from "next/navigation";
 
 export default async function Layout(

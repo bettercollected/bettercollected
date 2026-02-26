@@ -1,7 +1,7 @@
 import environments from '@app/configs/environments';
 import { cookies, headers } from 'next/headers';
 import { notFound, redirect } from 'next/navigation';
-import CreatorDashboardClient from './CreatorDashboardClient';
+import CreatorDashboardClient from './_components/creator-dashboard-client';
 import { getWorkspaceByName } from './layout';
 
 export default async function CreatorDashboardPage({ params }: { params: Promise<{ workspace_name: string }> }) {
@@ -11,7 +11,7 @@ export default async function CreatorDashboardPage({ params }: { params: Promise
 
     // Check for admin domain
     const host = headerList.get('x-forwarded-host') || headerList.get('host') || '';
-    const hasAdminDomain = host === environments.ADMIN_DOMAIN || host === environments.CLIENT_DOMAIN;
+    const hasAdminDomain = host === environments.DASHBOARD_DOMAIN || host === environments.FORM_DOMAIN;
 
     if (!hasAdminDomain) {
         redirect('/');

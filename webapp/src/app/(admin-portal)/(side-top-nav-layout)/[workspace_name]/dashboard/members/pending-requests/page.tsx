@@ -1,6 +1,6 @@
 'use client';
 
-import Invitations from '@app/Components/member/invitations';
+import Invitations from '@app/components/member/invitations';
 
 export default function Page() {
     return <Invitations />;

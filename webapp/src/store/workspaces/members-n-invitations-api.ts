@@ -1,7 +1,7 @@
-import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import environments from '@app/configs/environments';
-import { WorkspaceInvitationDto, WorkspaceMembersDto } from '@app/models/dtos/WorkspaceMembersDto';
 import { Page } from '@app/models/dtos/page';
+import { WorkspaceInvitationDto, WorkspaceMembersDto } from '@app/models/dtos/workspace-member-dto';
+import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 
 export const WORKSPACE_INVITATIONS_PATH = 'membersNInvitationsApi';
 

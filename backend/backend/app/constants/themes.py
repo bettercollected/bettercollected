@@ -53,4 +53,60 @@ theme_dict = {
     },
 }
 
+# Descriptions guide the AI on which theme best fits a given form
+theme_descriptions = {
+    "Default": (
+        "A clean blue-accented theme. Versatile and professional — ideal for general "
+        "surveys, feedback forms, job applications, and corporate questionnaires."
+    ),
+    "Blue": (
+        "A calm, trust-inspiring blue palette. Best for healthcare forms, patient intake, "
+        "financial questionnaires, insurance forms, and any context where reliability and "
+        "professionalism are important."
+    ),
+    "Green": (
+        "A fresh, growth-oriented green palette. Great for wellness check-ins, "
+        "sustainability surveys, environmental feedback, health assessments, and "
+        "non-profit / charity forms."
+    ),
+    "Red": (
+        "A bold, urgent red palette. Suited for emergency contact forms, incident reports, "
+        "urgent feedback, security audits, and forms that need to command attention quickly."
+    ),
+    "Black": (
+        "A sleek, minimal black-and-white palette conveying elegance and seriousness. "
+        "Perfect for luxury brand surveys, creative agency briefs, portfolio intake forms, "
+        "and premium product registration."
+    ),
+    "Orange": (
+        "A warm, energetic orange palette. Works well for event registrations, food & "
+        "beverage surveys, retail feedback, marketing campaigns, and any form where "
+        "enthusiasm and energy should be conveyed."
+    ),
+    "Purple": (
+        "A creative, modern purple palette. Ideal for educational quizzes, academic "
+        "research surveys, tech product feedback, onboarding questionnaires, and forms "
+        "targeting a younger or creative audience."
+    ),
+}
+
 themes = {title: Theme(**colors) for title, colors in theme_dict.items()}
+
+
+def get_themes_for_ai() -> list[dict]:
+    """Return themes with descriptions for use in AI tool calls."""
+    result = []
+    for name, colors in theme_dict.items():
+        result.append(
+            {
+                "name": name,
+                "description": theme_descriptions.get(name, ""),
+                "colors": {
+                    "primary": colors["primary"],
+                    "secondary": colors["secondary"],
+                    "tertiary": colors["tertiary"],
+                    "accent": colors["accent"],
+                },
+            }
+        )
+    return result

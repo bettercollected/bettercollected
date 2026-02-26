@@ -1,6 +1,9 @@
 const config = {
     GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
-    GOOGLE_PICKER_API_KEY: process.env.GOOGLE_PICKER_API_KEY
+    GOOGLE_PICKER_API_KEY: process.env.GOOGLE_PICKER_API_KEY,
+    DASHBOARD_DOMAIN: process.env.DASHBOARD_DOMAIN || 'admin.bettercollected.com',
+    FORM_DOMAIN: process.env.FORM_DOMAIN || 'forms.bettercollected.com',
+    HTTP_SCHEME: process.env.HTTP_SCHEME || 'https://'
 };
 
 export type PublicConfigType = typeof config;

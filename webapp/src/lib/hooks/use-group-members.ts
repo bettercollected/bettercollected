@@ -2,7 +2,7 @@ import { useTranslation } from 'next-i18next';
 
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 
-import { useModal } from '@app/Components/modal-views/context';
+import { useModal } from '@app/components/modal-views/context';
 import { toastMessage } from '@app/constants/locales/toast-message';
 import { ResponderGroupDto } from '@app/models/dtos/groups';
 import { useAddResponderOnGroupMutation, useDeleteResponderFromGroupMutation } from '@app/store/workspaces/api';

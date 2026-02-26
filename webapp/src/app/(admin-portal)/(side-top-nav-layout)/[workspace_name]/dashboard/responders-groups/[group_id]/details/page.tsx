@@ -1,11 +1,10 @@
 'use client';
 
-import React from 'react';
+import GroupDetailsTab from '@app/components/group-preview/group-details';
+import Loader from '@app/components/ui/loader';
 import { useAppSelector } from '@app/store/hooks';
-import { selectWorkspace } from '@app/store/workspaces/slice';
 import { useGetRespondersGroupQuery } from '@app/store/workspaces/api';
-import GroupDetailsTab from '@app/Components/group-preview/group-details';
-import Loader from '@app/Components/ui/loader';
+import { selectWorkspace } from '@app/store/workspaces/slice';
 import { useParams } from 'next/navigation';
 
 export default function GroupDetailsPage() {

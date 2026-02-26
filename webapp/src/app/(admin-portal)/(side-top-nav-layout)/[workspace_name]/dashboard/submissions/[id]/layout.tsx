@@ -1,1 +1,3 @@
-import React from 'react'; import SubmissionDashboardLayoutClient from './_components/SubmissionDashboardLayoutClient'; export default async function SubmissionLayout({ children, params }: { children: React.ReactNode; params: Promise<{ id: string }> }) { const { id } = await params; return (<SubmissionDashboardLayoutClient submissionId={id}>            {children}        </SubmissionDashboardLayoutClient>); }
+import React from 'react';
+import SubmissionDashboardLayoutClient from './_components/submission-dashboard-layout-client';
+export default async function SubmissionLayout({ children, params }: { children: React.ReactNode; params: Promise<{ id: string }> }) { const { id } = await params; return (<SubmissionDashboardLayoutClient submissionId={id}>            {children}        </SubmissionDashboardLayoutClient>); }

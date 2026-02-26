@@ -1,5 +1,5 @@
 import { getWorkspaceByName } from '@app/app/(admin-portal)/(side-top-nav-layout)/[workspace_name]/dashboard/layout';
-import { WorkspaceDispatcher } from '@app/app/_dispatcher/WorkspaceDispatcher';
+import { WorkspaceDispatcher } from '@app/app/_dispatcher/workspace-dispatcher';
 import environments from '@app/configs/environments';
 import { Alert, AlertDescription, AlertTitle } from '@app/shadcn/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
@@ -25,7 +25,7 @@ export default async function ClientDomainLayout({ children, params }: { childre
     const headerList = await headers();
     const host = headerList.get('x-forwarded-host') || headerList.get('host') || '';
 
-    const hasClientDomain = host === environments.CLIENT_DOMAIN;
+    const hasClientDomain = host === environments.FORM_DOMAIN;
 
     if (!hasClientDomain) {
         notFound();

@@ -1,5 +1,5 @@
+import SharedSubmissionLayoutClient from '@Components/responder-portal/shared-submission-layout-client';
 import environments from '@app/configs/environments';
-import SharedSubmissionLayoutClient from '@Components/RespondersPortal/_components/SharedSubmissionLayoutClient';
 import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
 import React from 'react';
@@ -27,7 +27,7 @@ export default async function SubmissionUUIDLayout({
 }) {
     const headerList = await headers();
     const host = headerList.get('x-forwarded-host') || headerList.get('host') || '';
-    const hasCustomDomain = host !== environments.ADMIN_DOMAIN && host !== environments.CLIENT_DOMAIN;
+    const hasCustomDomain = host !== environments.DASHBOARD_DOMAIN && host !== environments.FORM_DOMAIN;
 
     const workspace = await getWorkspaceByDomain(host);
 

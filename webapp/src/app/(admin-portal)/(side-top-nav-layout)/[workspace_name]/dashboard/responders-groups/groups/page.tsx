@@ -1,9 +1,8 @@
 'use client';
 
-import React from 'react';
+import WorkspaceGroups from '@app/components/workspace-responders/workspace-groups';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
-import WorkspaceGroups from '@Components/workspace-responders/workspace-groups';
 
 export default function GroupsPage() {
     const workspace = useAppSelector(selectWorkspace);
