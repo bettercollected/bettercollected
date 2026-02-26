@@ -40,29 +40,17 @@ jobs:
                   SERVICE_TAG: ${{ matrix.service }}
               run: |
                   SERVICE_TAG=${SERVICE_TAG//\//-}
-                  NEXT_PUBLIC_UNSPLASH_ACCESS_KEY=${{ vars.UNSPLASH_ACCESS_KEY }}
                   if [[ "${{ github.ref }}" = "refs/heads/develop" ]]; then
                     API_ENDPOINT_HOST=${{ vars.DEVELOP_API }}
-                    DASHBOARD_DOMAIN=${{ vars.DEVELOP_DASHBOARD }}
-                    FORM_DOMAIN=${{ vars.DEVELOP_CLIENT }}
-                    UMAMI_WEBSITE_ID=${{ vars.DEV_UMAMI_WEBSITE}}
                   fi
                   if [[ "${{ github.ref }}" = "refs/heads/master" ]]; then
                     API_ENDPOINT_HOST=${{ vars.STAGING_API }}
-                    DASHBOARD_DOMAIN=${{ vars.STAGING_DASHBOARD }}
-                    FORM_DOMAIN=${{ vars.STAGING_CLIENT }}
-                    UMAMI_WEBSITE_ID=${{ vars.STAGING_UMAMI_WEBSITE}}
                   fi
                   if [[ "${{ github.ref }}" =~ ^refs/tags/ ]]; then
                     API_ENDPOINT_HOST=${{ vars.PROD_API }}
-                    DASHBOARD_DOMAIN=${{ vars.PROD_DASHBOARD }}
-                    FORM_DOMAIN=${{ vars.PROD_CLIENT }}
-                    UMAMI_WEBSITE_ID=${{ vars.PROD_UMAMI_WEBSITE}}
                   fi
-                  docker build --build-arg NEXT_PUBLIC_UMAMI_WEBSITE_ID=${UMAMI_WEBSITE_ID} \
+                  docker build \
                     --build-arg NEXT_PUBLIC_API_ENDPOINT_HOST=${API_ENDPOINT_HOST} \
-                    --build-arg NEXT_PUBLIC_DASHBOARD_DOMAIN=${DASHBOARD_DOMAIN} \
-                    --build-arg NEXT_PUBLIC_FORM_DOMAIN=${FORM_DOMAIN} \
                     -f ${{ matrix.service }}/Dockerfile \
                     -t bettercollected/${SERVICE_TAG}:${{ github.sha }} .
                   docker push bettercollected/${SERVICE_TAG}:${{ github.sha }}
