@@ -466,7 +466,7 @@ async def run_action(
             fields.append(
                 {
                     "title": q_n_a["title"],
-                    "value": q_n_a["answer"],
+                    "value": q_n_a["answer"] if q_n_a["answer"] else "—",
                     "short": False,
                 }
             )
