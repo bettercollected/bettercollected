@@ -121,7 +121,7 @@ class AuthService:
         if user is not None and Roles.FORM_CREATOR in user.roles:
             oauth_state.email = user.sub
         state = self.crypto.encrypt(oauth_state.json())
-        authorization_url = f"{provider_url}/{provider_name}/oauth/authorize"
+        authorization_url = f"{provider_url}/{provider_name.value}/oauth/authorize"
         response_data = await self.http_client.get(
             authorization_url, params={"state": state}, timeout=60
         )

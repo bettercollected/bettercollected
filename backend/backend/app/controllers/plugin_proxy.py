@@ -1,4 +1,5 @@
 """Plugin proxy controller implementation."""
+
 import logging
 from http import HTTPStatus
 from typing import Any, Dict
@@ -37,7 +38,7 @@ class PluginProxy(BasePluginRoute):
     ):
         proxy_url = await self.form_provider_service.get_provider_url(provider)
         data = await self.plugin_proxy_service.pass_request(
-            request, f"{proxy_url}/{provider}/forms"
+            request, f"{proxy_url}/{provider.value}/forms"
         )
         return data
 
@@ -51,7 +52,7 @@ class PluginProxy(BasePluginRoute):
     ):
         proxy_url = await self.form_provider_service.get_provider_url(provider)
         data = await self.plugin_proxy_service.pass_request(
-            request, f"{proxy_url}/{provider}/forms/{form_id}"
+            request, f"{proxy_url}/{provider.value}/forms/{form_id}"
         )
         return data
 
@@ -63,7 +64,7 @@ class PluginProxy(BasePluginRoute):
     ):
         proxy_url = await self.form_provider_service.get_provider_url(provider)
         data = await self.plugin_proxy_service.pass_request(
-            request, f"{proxy_url}/{provider}/forms/{form_id}"
+            request, f"{proxy_url}/{provider.value}/forms/{form_id}"
         )
         return data
 
@@ -72,7 +73,7 @@ class PluginProxy(BasePluginRoute):
     ):
         proxy_url = await self.form_provider_service.get_provider_url(provider)
         data = await self.plugin_proxy_service.pass_request(
-            request, f"{proxy_url}/{provider}/forms"
+            request, f"{proxy_url}/{provider.value}/forms"
         )
         return data
 
@@ -86,7 +87,7 @@ class PluginProxy(BasePluginRoute):
     ):
         proxy_url = await self.form_provider_service.get_provider_url(provider)
         data = await self.plugin_proxy_service.pass_request(
-            request, f"{proxy_url}/{provider}/forms", data=request_body
+            request, f"{proxy_url}/{provider.value}/forms", data=request_body
         )
         return data
 
@@ -147,6 +148,6 @@ class PluginProxy(BasePluginRoute):
         proxy_url = await self.form_provider_service.get_provider_url(provider)
         response = await self.plugin_proxy_service.pass_request(
             request,
-            f"{proxy_url}/{provider}/forms/oauth/verify",
+            f"{proxy_url}/{provider.value}/forms/oauth/verify",
         )
         return response
