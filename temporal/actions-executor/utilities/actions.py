@@ -445,10 +445,6 @@ async def run_action(
             res = httpx.post(
                 url=url, params=params, json=payload, headers=headers, timeout=10.0
             )
-            if res.status_code >= 400:
-                print("Discord webhook failed:", res.status_code)
-                print("Response:", res.text)
-                print("Payload sent:", payload)  # ← remove in production
             return res
         except httpx.RequestError as e:
             print(f"Discord request error: {e}")
