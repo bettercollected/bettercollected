@@ -4,10 +4,8 @@ import { useTranslation } from 'next-i18next';
 
 import { Button } from '@app/shadcn/components/ui/button';
 import cn from 'classnames';
-import html2canvas from 'html2canvas';
 
 import { useToast } from '@app/shadcn/components/ui/use-toast';
-import { TransformComponent, TransformWrapper } from 'react-zoom-pan-pinch';
 
 import Image from '@app/components/ui/image';
 import { buttonConstant } from '@app/constants/locales/button';
@@ -19,16 +17,18 @@ import { setWorkspace } from '@app/store/workspaces/slice';
 export default function BannerImageComponent(props: { workspace: any; isFormCreator: boolean; className?: string }) {
     const { workspace, isFormCreator, className } = props;
     const { toast } = useToast();
-    const transformComponentRef = useRef(null);
     const [patchExistingWorkspace, { isLoading }] = usePatchExistingWorkspaceMutation();
     const [image, setImage] = useState('');
+    const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const imageInputRef = useRef<HTMLInputElement>(null);
     const { t } = useTranslation();
 
     const dispatch = useAppDispatch();
     const onUploadFileChange = (e: any) => {
         if (!e.target.files.length) return;
-        setImage(URL.createObjectURL(e.target.files[0]));
+        const file = e.target.files[0];
+        setSelectedFile(file);
+        setImage(URL.createObjectURL(file));
     };
 
     const onClickFileUploadButton = () => {
@@ -39,27 +39,24 @@ export default function BannerImageComponent(props: { workspace: any; isFormCrea
 
     const onClickCancelButton = () => {
         setImage('');
+        setSelectedFile(null);
     };
 
-    const onClickFileSaveButton = (e: any) => {
-        const croppedImageDiv: any = document.getElementsByClassName('react-transform-wrapper')[0];
-        if (!croppedImageDiv) return;
-        html2canvas(croppedImageDiv).then((canvas: HTMLCanvasElement) => {
-            canvas.toBlob(async (blob: any) => {
-                const file = new File([blob], 'bannerimage.png', { type: blob.type });
-                const formData = new FormData();
-                formData.append('banner_image', file);
-                const response: any = await patchExistingWorkspace({ workspace_id: workspace.id, body: formData });
-                if (response.error) {
-                    toast({ description: response.error.data || t(toastMessage.somethingWentWrong).toString(), variant: 'destructive' });
-                }
-                if (response.data) {
-                    toast({ description: t(toastMessage.workspaceUpdate).toString() });
-                    setImage('');
-                    dispatch(setWorkspace(response.data));
-                }
-            });
-        });
+    const onClickFileSaveButton = async () => {
+        if (!selectedFile) return;
+
+        const formData = new FormData();
+        formData.append('banner_image', selectedFile);
+        const response: any = await patchExistingWorkspace({ workspace_id: workspace.id, body: formData });
+        if (response.error) {
+            toast({ description: response.error.data || t(toastMessage.somethingWentWrong).toString(), variant: 'destructive' });
+        }
+        if (response.data) {
+            toast({ description: t(toastMessage.workspaceUpdate).toString() });
+            setImage('');
+            setSelectedFile(null);
+            dispatch(setWorkspace(response.data));
+        }
     };
 
     const getUpdateOptionsClassName = () => {
@@ -72,23 +69,7 @@ export default function BannerImageComponent(props: { workspace: any; isFormCrea
     return (
         <div className={cn('relative w-full bannerdiv rounded-t-xl overflow-hidden max-w-[540px] md:max-w-[320px]  aspect-banner', className)}>
             {!!image ? (
-                <TransformWrapper centerOnInit ref={transformComponentRef}>
-                    {({ resetTransform }) => {
-                        return (
-                            <TransformComponent
-                                wrapperStyle={{
-                                    maxHeight: '100%',
-                                    maxWidth: '100%',
-                                    height: '100%',
-                                    width: '100%',
-                                    cursor: 'grabbing'
-                                }}
-                            >
-                                <img style={{ width: '100%', height: '100%', objectFit: 'cover' }} src={image} alt="test" />
-                            </TransformComponent>
-                        );
-                    }}
-                </TransformWrapper>
+                <img style={{ width: '100%', height: '100%', objectFit: 'cover' }} src={image} alt="test" />
             ) : (
                 <>
                     {!!workspace.bannerImage ? (
@@ -98,7 +79,7 @@ export default function BannerImageComponent(props: { workspace: any; isFormCrea
                             <div className="p2-new ml-10 !text-black-700">Add banner image</div>
                         </div>
                     )}
-                    <input ref={imageInputRef} data-testid="file-upload" type="file" accept="image/*" className="hidden" onChange={onUploadFileChange} />
+                    <input ref={imageInputRef} data-testid="file-upload" type="file" accept="image/*" className="hidden" onClick={(event: any) => (event.target.value = null)} onChange={onUploadFileChange} />
                 </>
             )}
             {isFormCreator && (
