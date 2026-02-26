@@ -16,9 +16,9 @@ const environments = {
     FORM_PRIVACY_POLICY_URL: process.env.FORM_PRIVACY_POLICY_URL ?? 'https://bettercollected.com/privacy-policy',
 
     // REfactored Environment Variables
-    DASHBOARD_DOMAIN: process.env.NEXT_PUBLIC_DASHBOARD_DOMAIN || 'admin.bettercollected.com',
-    FORM_DOMAIN: process.env.NEXT_PUBLIC_FORM_DOMAIN || 'forms.bettercollected.com',
-    HTTP_SCHEME: process.env.NEXT_PUBLIC_HTTP_SCHEME || 'https://'
+    DASHBOARD_DOMAIN: process.env.DASHBOARD_DOMAIN || 'admin.bettercollected.com',
+    FORM_DOMAIN: process.env.FORM_DOMAIN || 'forms.bettercollected.com',
+    HTTP_SCHEME: process.env.HTTP_SCHEME || 'https://'
 };
 
 export default environments;
