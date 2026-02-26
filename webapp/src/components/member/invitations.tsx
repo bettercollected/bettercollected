@@ -1,3 +1,5 @@
+'use client';
+
 import { useTranslation } from 'next-i18next';
 
 import InvitationsTable from '@app/components/settings/invitations-table';

@@ -15,13 +15,55 @@ import I18nProvider from '@app/shared/hocs/i18n-provider';
 import ReduxProvider from '@app/shared/hocs/redux-provider';
 import ThemeProvider from '@app/shared/hocs/theme-provider';
 import BaseModalContainer from '@Components/modals/containers/base-modal-container';
-import Head from 'next/head';
+import { Viewport } from 'next';
+import Script from 'next/script';
 
 const inter = Inter({ subsets: ['latin'] });
 
+export const viewport: Viewport = {
+    themeColor: '#ffffff',
+    width: 'device-width',
+    initialScale: 1
+};
+
 export const metadata: Metadata = {
-    title: 'BetterCollected',
-    description: 'Bettercollected formBuilder'
+    metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://bettercollected.com'),
+    title: {
+        default: 'BetterCollected',
+        template: '%s | BetterCollected'
+    },
+    description: 'Bettercollected formBuilder - Build forms simply and quickly.',
+    keywords: ['Form Builder', 'Survey', 'Data Collection', 'BetterCollected'],
+    authors: [{ name: 'BetterCollected Team' }],
+    creator: 'BetterCollected',
+    publisher: 'BetterCollected',
+    openGraph: {
+        type: 'website',
+        locale: 'en_US',
+        url: 'https://bettercollected.com',
+        title: 'BetterCollected',
+        description: 'Bettercollected formBuilder - Build forms simply and quickly.',
+        siteName: 'BetterCollected',
+        images: [
+            {
+                url: '/images/image.png',
+                width: 1200,
+                height: 630,
+                alt: 'BetterCollected'
+            }
+        ]
+    },
+    twitter: {
+        card: 'summary_large_image',
+        title: 'BetterCollected',
+        description: 'Bettercollected formBuilder - Build forms simply and quickly.',
+        images: ['/images/image.png'],
+        creator: '@bettercollected'
+    },
+    icons: {
+        icon: '/favicon.ico'
+    },
+    manifest: '/site.webmanifest'
 };
 
 export default function RootLayout({
@@ -30,11 +72,15 @@ export default function RootLayout({
     children: React.ReactNode;
 }>) {
     return (
-        <html>
-            <Head>
-                {environments.NEXT_PUBLIC_NODE_ENV === 'production' && environments.UMAMI_WEBSITE_ID && <script defer src="https://umami.sireto.io/script.js" data-website-id={environments.UMAMI_WEBSITE_ID}></script>}
-            </Head>
+        <html lang="en">
             <body className={cn('max-h-screen overflow-auto', inter.className)}>
+                {environments.NEXT_PUBLIC_NODE_ENV === 'production' && environments.UMAMI_WEBSITE_ID && (
+                    <Script
+                        src="https://umami.sireto.io/script.js"
+                        data-website-id={environments.UMAMI_WEBSITE_ID}
+                        strategy="lazyOnload"
+                    />
+                )}
                 <SwRegister />
                 <script src="/api/config" defer></script>
                 <ThemeProvider>

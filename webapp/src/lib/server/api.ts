@@ -51,6 +51,44 @@ export async function getWorkspaceByDomain(domain: string) {
     }
 }
 
+export async function getFormById(workspaceId: string, formId: string) {
+    if (!workspaceId || !formId) return null;
+    try {
+        const cookieHeader = await getCookieHeader();
+        const response = await fetch(`${environments.INTERNAL_DOCKER_API_ENDPOINT_HOST}/workspaces/${workspaceId}/forms/${formId}`, {
+            headers: {
+                cookie: cookieHeader
+            },
+            cache: 'no-store'
+        });
+
+        if (!response.ok) return null;
+        return await response.json();
+    } catch (error) {
+        console.error('Error fetching form', error);
+        return null;
+    }
+}
+
+export async function getSubmissionByUuid(workspaceId: string, submissionUuid: string) {
+    if (!workspaceId || !submissionUuid) return null;
+    try {
+        const cookieHeader = await getCookieHeader();
+        const response = await fetch(`${environments.INTERNAL_DOCKER_API_ENDPOINT_HOST}/workspaces/${workspaceId}/submissions/by-uuid/${submissionUuid}`, {
+            headers: {
+                cookie: cookieHeader
+            },
+            cache: 'no-store'
+        });
+
+        if (!response.ok) return null;
+        return await response.json();
+    } catch (error) {
+        console.error('Error fetching submission', error);
+        return null;
+    }
+}
+
 export async function getUser() {
     try {
         const cookieHeader = await getCookieHeader();
@@ -63,5 +101,27 @@ export async function getUser() {
 
         if (!response.ok) return null;
         return await response.json();
+    } catch (error) {
+        console.error('Error fetching user', error);
+        return null;
+    }
+}
+
+export async function getGroupById(workspaceId: string, groupId: string) {
+    if (!workspaceId || !groupId) return null;
+    try {
+        const cookieHeader = await getCookieHeader();
+        const response = await fetch(`${environments.INTERNAL_DOCKER_API_ENDPOINT_HOST}/workspaces/${workspaceId}/groups/${groupId}`, {
+            headers: {
+                cookie: cookieHeader
+            },
+            cache: 'no-store'
+        });
+
+        if (!response.ok) return null;
+        return await response.json();
+    } catch (error) {
+        console.error('Error fetching group', error);
+        return null;
     }
 }

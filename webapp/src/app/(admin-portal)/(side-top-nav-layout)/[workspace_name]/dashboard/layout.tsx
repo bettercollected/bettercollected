@@ -1,5 +1,6 @@
 import environments from '@app/configs/environments';
-import { getWorkspaceByName as getWorkspace, getUser } from '@app/lib/server/api';
+import { getUser, getWorkspaceByName as getWorkspace } from '@app/lib/server/api';
+import { Metadata } from 'next';
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import React from 'react';
@@ -7,6 +8,20 @@ import WorkspaceDashboardLayout from "./_components/workspace-dashboard-layout";
 
 export async function getWorkspaceByName(name: string) {
     return await getWorkspace(name);
+}
+
+export async function generateMetadata({ params }: { params: Promise<{ workspace_name: string }> }): Promise<Metadata> {
+    const { workspace_name } = await params;
+    const workspace = await getWorkspace(workspace_name);
+    const workspaceName = workspace?.name || 'Workspace';
+
+    return {
+        title: {
+            default: `Dashboard | ${workspaceName}`,
+            template: `%s | ${workspaceName} | BetterCollected`
+        },
+        description: `Manage your workspace ${workspaceName}`
+    };
 }
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {

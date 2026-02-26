@@ -10,10 +10,8 @@ export async function generateMetadata(
         params: Promise<{ workspace_name: string }>
     }
 ): Promise<Metadata> {
-    const params = await props.params;
-    const workspace = await getWorkspaceByServerContext(params.workspace_name);
     return {
-        title: `Forms | ${workspace?.title || workspace?.workspaceName || 'Workspace'}`,
+        title: 'Forms',
         robots: 'noindex, nofollow'
     };
 }

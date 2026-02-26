@@ -3,10 +3,23 @@ import { getWorkspaceByDomain } from '@app/lib/server/api';
 import { Alert, AlertDescription, AlertTitle } from '@app/shadcn/components/ui/alert';
 import ResponderPortalLayoutClient from '@Components/responder-portal/responder-portal-layout-client';
 import { AlertCircle } from 'lucide-react';
+import { Metadata } from 'next';
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import React from 'react';
 import { WorkspaceDispatcher } from '../../_dispatcher/workspace-dispatcher';
+
+export async function generateMetadata(): Promise<Metadata> {
+    const headerList = await headers();
+    const host = headerList.get('x-forwarded-host') || headerList.get('host') || '';
+
+    const workspace = await getWorkspaceByDomain(host);
+
+    return {
+        title: workspace?.name || 'Workspace',
+        description: `Welcome to ${workspace?.name || 'your workspace'}`
+    };
+}
 
 export default async function CustomDomainLayout({ children }: { children: React.ReactNode }) {
     const headerList = await headers();

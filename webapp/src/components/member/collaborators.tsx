@@ -1,4 +1,6 @@
 
+'use client';
+
 import { useTranslation } from 'next-i18next';
 
 import { Button } from '@app/shadcn/components/ui/button';

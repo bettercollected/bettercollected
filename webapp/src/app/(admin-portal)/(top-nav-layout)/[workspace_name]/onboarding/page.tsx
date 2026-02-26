@@ -16,9 +16,8 @@ export default async function OnboardingPage(props: { params: Promise<{ workspac
     }
 
     const user = await getUser();
-    console.log('OnboardingPage user:', user);
     if (!user) {
-        // redirect('/login');
+        redirect('/login');
     }
 
     const workspace = await getWorkspaceByName(params.workspace_name);
