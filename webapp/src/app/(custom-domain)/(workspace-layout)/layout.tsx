@@ -15,7 +15,6 @@ export default async function CustomDomainLayout({ children }: { children: React
     const hasCustomDomain = host !== environments.DASHBOARD_DOMAIN && host !== environments.FORM_DOMAIN && !host.includes(environments.DASHBOARD_DOMAIN);
 
     if (!hasCustomDomain) {
-        // Redirect to login if accessed directly on admin domain
         redirect('/login');
     }
 

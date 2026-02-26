@@ -3,7 +3,7 @@ import { getWorkspaceByDomain } from '@app/lib/server/api';
 import { Alert, AlertDescription, AlertTitle } from '@app/shadcn/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
 import { headers } from 'next/headers';
-import { redirect } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import React from 'react';
 import { WorkspaceDispatcher } from '../../_dispatcher/workspace-dispatcher';
 
@@ -11,14 +11,14 @@ export default async function CustomDomainLayout({ children }: { children: React
     const headerList = await headers();
     const host = headerList.get('x-forwarded-host') || headerList.get('host') || '';
 
-    const hasCustomDomain = host !== environments.DASHBOARD_DOMAIN && host !== environments.FORM_DOMAIN && !host.includes(environments.DASHBOARD_DOMAIN);
-
-    // If not custom domain (e.g. localhost), we usually don't support these routes unless we map localhost to a custom domain.
-    // For development, we assume localhost is admin domain usually.
+    const hasCustomDomain = host !== environments.DASHBOARD_DOMAIN && host !== environments.FORM_DOMAIN;
 
     if (!hasCustomDomain) {
-        // Redirect to login if accessed directly on admin domain
-        redirect('/login');
+        if (host === environments.DASHBOARD_DOMAIN) {
+            redirect('/login');
+        } else {
+            notFound();
+        }
     }
 
     const workspace = await getWorkspaceByDomain(host);

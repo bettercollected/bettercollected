@@ -2,7 +2,7 @@ import environments from '@app/configs/environments';
 import { WorkspaceDto } from '@app/models/dtos/workspace-dto';
 import { isRedirectError } from 'next/dist/client/components/redirect-error';
 import { cookies, headers } from 'next/headers';
-import { redirect } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import LoginView from '../_components/login-view';
 
 export default async function LoginPage({ searchParams }: { searchParams: { redirect_to?: string; type?: string; workspace_id?: string } }) {
@@ -53,6 +53,7 @@ export default async function LoginPage({ searchParams }: { searchParams: { redi
                 const { redirect_to } = await searchParams;
                 if (redirect_to)
                     redirect(redirect_to);
+                else notFound();
             }
         }
     } catch (e) {
