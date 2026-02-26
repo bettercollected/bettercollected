@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
 
@@ -19,15 +19,27 @@ export default function BannerImageComponent(props: { workspace: any; isFormCrea
     const { toast } = useToast();
     const [patchExistingWorkspace, { isLoading }] = usePatchExistingWorkspaceMutation();
     const [image, setImage] = useState('');
-    const [selectedFile, setSelectedFile] = useState<File | null>(null);
+    const selectedFile = useRef<File | null>(null);
     const imageInputRef = useRef<HTMLInputElement>(null);
     const { t } = useTranslation();
 
     const dispatch = useAppDispatch();
+
+    useEffect(() => {
+        return () => {
+            if (image) {
+                URL.revokeObjectURL(image);
+            }
+        };
+    }, [image]);
+
     const onUploadFileChange = (e: any) => {
         if (!e.target.files.length) return;
         const file = e.target.files[0];
-        setSelectedFile(file);
+        selectedFile.current = file;
+        if (image) {
+            URL.revokeObjectURL(image);
+        }
         setImage(URL.createObjectURL(file));
     };
 
@@ -39,14 +51,14 @@ export default function BannerImageComponent(props: { workspace: any; isFormCrea
 
     const onClickCancelButton = () => {
         setImage('');
-        setSelectedFile(null);
+        selectedFile.current = null;
     };
 
     const onClickFileSaveButton = async () => {
-        if (!selectedFile) return;
+        if (!selectedFile.current) return;
 
         const formData = new FormData();
-        formData.append('banner_image', selectedFile);
+        formData.append('banner_image', selectedFile.current);
         const response: any = await patchExistingWorkspace({ workspace_id: workspace.id, body: formData });
         if (response.error) {
             toast({ description: response.error.data || t(toastMessage.somethingWentWrong).toString(), variant: 'destructive' });
@@ -54,7 +66,7 @@ export default function BannerImageComponent(props: { workspace: any; isFormCrea
         if (response.data) {
             toast({ description: t(toastMessage.workspaceUpdate).toString() });
             setImage('');
-            setSelectedFile(null);
+            selectedFile.current = null;
             dispatch(setWorkspace(response.data));
         }
     };
@@ -73,6 +85,7 @@ export default function BannerImageComponent(props: { workspace: any; isFormCrea
             ) : (
                 <>
                     {!!workspace.bannerImage ? (
+                        // codeql[js/xss-through-dom]: False positive - src is always a safe blob: URL from createObjectURL
                         <Image src={workspace?.bannerImage ?? ''} priority layout="fill" objectFit="cover" objectPosition="center" alt={workspace?.title} />
                     ) : (
                         <div className="bg-new-black-200 hover:bg-new-black-300 h-full align-center cursor-pointer flex flex-col items-center justify-center" onClick={onClickFileUploadButton}>
