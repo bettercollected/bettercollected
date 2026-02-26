@@ -4,6 +4,7 @@ import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 
 import '@app/assets/css/globals.css';
+import SwRegister from '@app/components/common/sw-register';
 import environments from '@app/configs/environments';
 import { DialogModalContainer } from '@app/lib/hooks/use-dialog-modal';
 import { SecondaryDialogModalContainer } from '@app/lib/hooks/use-secondary-dialog-modal';
@@ -34,6 +35,7 @@ export default function RootLayout({
                 {environments.NEXT_PUBLIC_NODE_ENV === 'production' && environments.UMAMI_WEBSITE_ID && <script defer src="https://umami.sireto.io/script.js" data-website-id={environments.UMAMI_WEBSITE_ID}></script>}
             </Head>
             <body className={cn('max-h-screen overflow-auto', inter.className)}>
+                <SwRegister />
                 <script src="/api/config" defer></script>
                 <ThemeProvider>
                     <I18nProvider>
