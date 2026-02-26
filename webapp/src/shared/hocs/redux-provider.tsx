@@ -3,8 +3,8 @@
 import { Provider } from 'react-redux';
 
 import { persistor, store } from '@app/store/store';
+import FullScreenLoader from '@app/views/atoms/full-screen-loader';
 import { PersistGate } from 'redux-persist/integration/react';
-import FullScreenLoader from '@app/views/atoms/Loaders/FullScreenLoader';
 
 export default function ReduxProvider({
     children

@@ -19,7 +19,7 @@ import { WorkspaceDto } from '@app/models/dtos/workspace-dto';
 import { useAppSelector } from '@app/store/hooks';
 import { useGetWorkspaceFormsQuery, useLazySearchWorkspaceFormsQuery } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
-import NewFormButton from '@app/views/atoms/NewFormButton';
+import NewFormButton from '@app/views/atoms/new-form-button';
 
 function EmptyFormsView() {
     const { t } = useTranslation();

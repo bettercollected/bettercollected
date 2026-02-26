@@ -8,7 +8,7 @@ import { atom, useAtom } from 'jotai';
 
 import { Dialog, DialogContent } from '@app/shadcn/components/ui/dialog';
 import { cn } from '@app/shadcn/util/lib';
-import DeleteMediaModal from '@app/views/molecules/Dialogs/DeleteMediaModal';
+import DeleteMediaModal from '@app/views/molecules/dialogs/delete-media-modal';
 
 type DIALOG_MODALS = 'DELETE_MEDIA' | '';
 

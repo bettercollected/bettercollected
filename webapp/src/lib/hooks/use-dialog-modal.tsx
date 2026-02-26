@@ -11,10 +11,10 @@ import { Dialog, DialogContent } from '@app/shadcn/components/ui/dialog';
 import { cn } from '@app/shadcn/util/lib';
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
-import AddFormTitleModal from '@app/views/molecules/Dialogs/AddFormTitleModal';
-import FormPublishedModal from '@app/views/molecules/Dialogs/FormPublishedModal';
-import StartWithAi from '@app/views/molecules/Dialogs/StartWithAIModal';
-import UnsplashImagePicker from '@app/views/molecules/UnsplashImagePicker';
+import AddFormTitleModal from '@app/views/molecules/dialogs/add-form-title-modal';
+import FormPublishedModal from '@app/views/molecules/dialogs/form-publised-modal';
+import StartWithAi from '@app/views/molecules/dialogs/start-with-ai-modal';
+import UnsplashImagePicker from '@app/views/molecules/unsplash-image-picker';
 
 export type DIALOG_MODALS = 'ADD_FORM_TITLE' | 'UNSPLASH_IMAGE_PICKER' | 'FORM_PUBLISHED' | 'SHARE_FORM_MODAL' | 'START_WITH_AI' | '';
 

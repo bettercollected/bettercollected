@@ -7,7 +7,7 @@ import Loader from '@app/components/ui/loader';
 import WorkspaceDashboardFormsCard from '@app/components/workspace-dashboard/workspace-dashboard-form-cards';
 import { localesCommon } from '@app/constants/locales/common';
 import { WorkspaceDto } from '@app/models/dtos/workspace-dto';
-import NewFormButton from '@app/views/atoms/NewFormButton';
+import NewFormButton from '@app/views/atoms/new-form-button';
 import { useRouter } from 'next/navigation';
 
 interface IWorkspaceDashboardPinnedFormsProps {

@@ -4,9 +4,6 @@ import { use, useEffect, useState } from 'react';
 
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
-import FloatingPopOverButton from '@Components/sidebar/floating-pop-over-button';
-import HelpMenuComponent from '@Components/sidebar/help-menu-component';
-import HelpMenuItem from '@Components/sidebar/help-menu-item';
 import { useDialogModal } from '@app/lib/hooks/use-dialog-modal';
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
@@ -15,13 +12,16 @@ import useFormFieldsAtom from '@app/store/jotai/field-selectors';
 import { useFormState } from '@app/store/jotai/form';
 import { useNavbarState } from '@app/store/jotai/navbar';
 import { deepCopy } from '@app/utils/object-utils';
-import AutoSaveForm from '@app/views/molecules/FormBuilder/AutoSaveForm';
-import LeftDrawer from '@app/views/organism/FormBuilder/LeftDrawer';
-import PropertiesDrawer from '@app/views/organism/FormBuilder/PropertiesDrawer';
-import SlideBuilder from '@app/views/organism/FormBuilder/SlideBuilder';
-import ThankYouSlide from '@app/views/organism/FormBuilder/ThankYouPage';
-import WelcomeSlide from '@app/views/organism/FormBuilder/WelcomePage';
-import Navbar from '@app/views/organism/Navbar';
+import AutoSaveForm from '@app/views/molecules/form-builder/audo-save-form';
+import LeftDrawer from '@app/views/organism/form-builder/left-drawer';
+import PropertiesDrawer from '@app/views/organism/form-builder/properties-drawer';
+import SlideBuilder from '@app/views/organism/form-builder/slide-builder';
+import ThankYouSlide from '@app/views/organism/form-builder/thankyou-page';
+import WelcomeSlide from '@app/views/organism/form-builder/welcome-page';
+import Navbar from '@app/views/organism/navbar';
+import FloatingPopOverButton from '@Components/sidebar/floating-pop-over-button';
+import HelpMenuComponent from '@Components/sidebar/help-menu-component';
+import HelpMenuItem from '@Components/sidebar/help-menu-item';
 
 export default function FormPage(props: { params: Promise<{ form_id: string }> }) {
     const params = use(props.params);

@@ -38,7 +38,7 @@ import { selectWorkspace } from '@app/store/workspaces/slice';
 import getFormShareURL from '@app/utils/form-utils';
 import { getEditFormURL } from '@app/utils/url-utils';
 import { validateFormOpen } from '@app/utils/vvalidation-utils';
-import PublishButton from '@app/views/molecules/FormBuilder/PublishButton';
+import PublishButton from '@app/views/molecules/form-builder/publish-button';
 import FormProviderIcon from '@Components/icons/form-provider-icon';
 
 export default function FormDashboardLayoutClient({

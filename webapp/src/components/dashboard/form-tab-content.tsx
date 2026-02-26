@@ -1,8 +1,8 @@
 
 import { StandardFormDto } from '@app/models/dtos/form';
-import WelcomePage from '@app/views/organism/Form/WelcomePage';
-import FormSlidePreview from '@app/views/organism/FormPreview/FormSlidePreview';
-import LayoutWrapper from '@app/views/organism/Layout/LayoutWrapper';
+import FormSlidePreview from '@app/views/organism/form-preview/form-slide-preview';
+import WelcomePage from '@app/views/organism/form/welcome-page';
+import LayoutWrapper from '@app/views/organism/layout/layout-wrapper';
 
 export const FormTabContent = ({ form }: { form: StandardFormDto }) => {
     const getContainerWidth = () => {

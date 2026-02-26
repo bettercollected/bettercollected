@@ -4,7 +4,7 @@ import FormDashboardLayoutClient from './_components/form-dashboard-layout-clien
 
 import environments from '@app/configs/environments';
 import fetchWithCookies from '@app/utils/fetch-utils';
-import FullScreenLoader from '@app/views/atoms/Loaders/FullScreenLoader';
+import FullScreenLoader from '@app/views/atoms/full-screen-loader';
 
 export async function generateMetadata(props: { params: Promise<{ workspace_name: string; form_id: string }> }) {
     const params = await props.params;

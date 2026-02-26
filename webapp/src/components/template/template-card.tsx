@@ -10,8 +10,8 @@ import { Loader2, MoreVertical, Pencil, Settings } from 'lucide-react';
 
 import { IFormTemplateDto } from '@app/models/dtos/template';
 import { Popover, PopoverContent, PopoverTrigger } from '@app/shadcn/components/ui/popover';
-import WelcomePage from '@app/views/organism/Form/WelcomePage';
-import LayoutWrapper from '@app/views/organism/Layout/LayoutWrapper';
+import WelcomePage from '@app/views/organism/form/welcome-page';
+import LayoutWrapper from '@app/views/organism/layout/layout-wrapper';
 import { useBottomSheetModal } from '@Components/modals/contexts/bottom-sheet-modal-context';
 
 interface ITemplateCardProps {

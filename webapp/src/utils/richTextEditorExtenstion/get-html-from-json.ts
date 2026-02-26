@@ -1,7 +1,7 @@
 import { generateHTML, JSONContent } from '@tiptap/react';
 
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
-import { Extenstions, getPlaceholderValueForTitle } from '@app/views/molecules/RichTextEditor';
+import { Extenstions, getPlaceholderValueForTitle } from '@app/views/molecules/rich-text-editor';
 
 export function getHtmlFromJson(value: JSONContent | string | undefined) {
     if (!value) {

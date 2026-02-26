@@ -6,7 +6,7 @@ import React from 'react';
 import WorkspaceFormCard from '@app/components/workspace-dashboard/workspace-form-card';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { WorkspaceDto } from '@app/models/dtos/workspace-dto';
-import NewFormButton from '@app/views/atoms/NewFormButton';
+import NewFormButton from '@app/views/atoms/new-form-button';
 import { useRouter } from 'next/navigation';
 
 interface IWorkspaceDashboardFormsCardProps {
