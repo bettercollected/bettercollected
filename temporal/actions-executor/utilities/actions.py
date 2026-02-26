@@ -324,10 +324,11 @@ async def run_action(
             data = {}
 
         if headers["Content-Type"] == "application/json":
-            # If Content-Type is application/json, use json.dumps to serialize the data
-            data = json.dumps(data)
-
-        res = httpx.post(url=url, params=params, data=data, headers=headers)
+            res = httpx.post(
+                url=url, params=params, content=json.dumps(data), headers=headers
+            )
+        else:
+            res = httpx.post(url=url, params=params, data=data, headers=headers)
         return res
 
     def send_webhook_action():
@@ -380,31 +381,81 @@ async def run_action(
             )
 
     def send_data_discord(url: str, params=None, data=None, headers=None):
+        """
+        Send form response to Discord webhook with proper field sanitization.
+        Handles null/empty answers and prevents 400 errors from invalid embeds.
+        """
         if data is None:
             data = {}
 
         fields = []
         for q_n_a in data:
+            # Safely get title and answer with defaults
+            title = str(q_n_a.get("title", "Question")).strip()
+            answer = q_n_a.get("answer")
+
+            # Force value to be a non-empty string (Discord requirement)
+            if answer is None or answer == "":
+                value = "—"
+            else:
+                value = str(answer).strip()
+
+            # Truncate to Discord limits
+            title = title[:256] if title else "Untitled"
+            value = value[:1024] if value else "—"
+
+            # Optional: skip completely empty optional-looking fields
+            # if value == "—" and "(optional)" in title.lower():
+            #     continue
+
             fields.append(
                 {
-                    "name": q_n_a["title"],
-                    "value": q_n_a["answer"],
+                    "name": title,
+                    "value": value,
                     "inline": False,
                 }
             )
+
+        # Respect Discord embed field limit
+        if len(fields) > 25:
+            fields = fields[:25]
+
+        # Build payload
         payload = {
-            "content": f"🎉 **Congratulations!** You received a new response on! **{form['title']}**",
+            "content": f"🎉 **Congratulations!** You received a new response on **{form['title']}**",
             "embeds": [
                 {
-                    "color": 0x00FF00,
-                    "description": f"[View Form response here]({settings.frontend_url}/{workspace['workspace_name']}/dashboard/forms/{form['form_id']}/?view=Responses)\n --------------------------",
+                    "color": 0x00FF00,  # Green - correct integer format
+                    "description": (
+                        f"[View Form response here]({settings.frontend_url}/"
+                        f"{workspace['workspace_name']}/dashboard/forms/"
+                        f"{form['form_id']}/?view=Responses)\n"
+                        "--------------------------"
+                    ),
                     "fields": fields,
                     "footer": {"text": "Thank You for using Bettercollected"},
+                    # Optional: add timestamp if you want
+                    # "timestamp": datetime.utcnow().isoformat(),
                 }
             ],
         }
-        res = httpx.post(url=url, params=params, json=payload, headers=headers)
-        return res
+
+        # Optional: add better error logging in development
+        try:
+            res = httpx.post(
+                url=url, params=params, json=payload, headers=headers, timeout=10.0
+            )
+            if res.status_code >= 400:
+                print("Discord webhook failed:", res.status_code)
+                print("Response:", res.text)
+                print("Payload sent:", payload)  # ← remove in production
+            return res
+        except httpx.RequestError as e:
+            print(f"Discord request error: {e}")
+            # Return fake response or raise — your choice
+            from httpx import Response
+
+            return Response(status_code=503, request=None)
 
     def send_data_slack(url: str, params=None, data=None, headers=None):
         if data is None:
@@ -492,8 +543,6 @@ async def run_action(
             send_mail_action,
             get_simple_form_response,
             get_workspace_details,
-            get_form_question_in_array,
-            get_responses_in_array,
             append_in_sheet,
         ),
         timeout=30,
@@ -521,8 +570,6 @@ def execute_action_code(
     send_mail_action,
     get_simple_form_response,
     get_workspace_details,
-    get_form_question_in_array,
-    get_responses_in_array,
     append_in_sheet,
 ):
     log_string = []
@@ -571,8 +618,6 @@ def execute_action_code(
                 "send_mail_action": send_mail_action,
                 "get_simple_form_response": get_simple_form_response,
                 "get_workspace_details": get_workspace_details,
-                "get_form_question_in_array": get_form_question_in_array,
-                "get_responses_in_array": get_responses_in_array,
                 "append_in_sheet": append_in_sheet,
                 "fetch_oauth_token": fetch_oauth_token,
                 "build_google_service": build_google_service,
