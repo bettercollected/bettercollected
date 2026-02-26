@@ -22,7 +22,7 @@ COPY --chown=node:node ./webapp .
 RUN echo $NEXT_PUBLIC_API_ENDPOINT_HOST $NEXT_PUBLIC_NODE_ENV
 RUN printenv
 RUN yarn build
-RUN rm -rf ./.next/cache/* && mkdir moveTarget && mv entrypoint.sh next.config.js next-i18next.config.js package.json next-sitemap.config.js public ./moveTarget
+RUN rm -rf ./.next/cache/* && mkdir moveTarget && mv entrypoint.sh next.config.js package.json public ./moveTarget
 # Production image, copy all the files and run next
 
 
