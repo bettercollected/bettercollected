@@ -1,25 +1,11 @@
-import { getWorkspaceByName } from '@app/app/(admin-portal)/(side-top-nav-layout)/[workspace_name]/dashboard/layout';
 import { WorkspaceDispatcher } from '@app/app/_dispatcher/workspace-dispatcher';
 import environments from '@app/configs/environments';
+import { getWorkspaceByName } from '@app/lib/server/api';
 import { Alert, AlertDescription, AlertTitle } from '@app/shadcn/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
 import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
 import React from 'react';
-
-async function getWorkspaceByDomain(domain: string) {
-    try {
-        const response = await fetch(`${environments.INTERNAL_DOCKER_API_ENDPOINT_HOST}/workspaces?custom_domain=${domain}`, {
-            cache: 'no-store'
-        });
-        if (!response.ok) return null;
-        const data = await response.json();
-        return Array.isArray(data) ? data[0] : data;
-    } catch (error) {
-        console.error('Error fetching workspace by domain:', error);
-        return null;
-    }
-}
 
 export default async function ClientDomainLayout({ children, params }: { children: React.ReactNode, params: Promise<{ workspace_name: string }> }) {
     const headerList = await headers();

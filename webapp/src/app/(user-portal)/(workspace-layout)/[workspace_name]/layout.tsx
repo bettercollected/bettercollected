@@ -1,5 +1,5 @@
-import { getWorkspaceByName } from '@app/app/(admin-portal)/(side-top-nav-layout)/[workspace_name]/dashboard/layout';
 import { WorkspaceDispatcher } from '@app/app/_dispatcher/workspace-dispatcher';
+import { getWorkspaceByName } from '@app/lib/server/api';
 import ResponderPortalLayoutClient from '@Components/responder-portal/responder-portal-layout-client';
 import React from 'react';
 

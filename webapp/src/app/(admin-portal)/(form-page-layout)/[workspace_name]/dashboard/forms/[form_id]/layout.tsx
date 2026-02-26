@@ -1,3 +1,4 @@
+import { getWorkspaceByName } from '@app/lib/server/api';
 import { notFound } from 'next/navigation';
 import React, { Suspense } from 'react';
 import FormDashboardLayoutClient from './_components/form-dashboard-layout-client';
@@ -8,8 +9,7 @@ import FullScreenLoader from '@app/views/atoms/full-screen-loader';
 
 export async function generateMetadata(props: { params: Promise<{ workspace_name: string; form_id: string }> }) {
     const params = await props.params;
-    const workspaceResponse = await fetch(environments.INTERNAL_DOCKER_API_ENDPOINT_HOST + '/workspaces?workspace_name=' + params.workspace_name, { cache: 'no-store' });
-    const workspace = await workspaceResponse.json();
+    const workspace = await getWorkspaceByName(params.workspace_name);
 
     const config = {
         method: 'GET'
@@ -45,9 +45,8 @@ async function FormWrapper({ workspaceName, formId, children, params }: { worksp
         method: 'GET'
     };
 
-    const workspaceResponse = await fetch(environments.INTERNAL_DOCKER_API_ENDPOINT_HOST + '/workspaces?workspace_name=' + workspaceName, { cache: 'no-store' });
-    if (!workspaceResponse.ok) return notFound();
-    const workspace = await workspaceResponse.json();
+    const workspace = await getWorkspaceByName(workspaceName);
+    if (!workspace) return notFound();
 
     const form = await fetchWithCookies(environments.INTERNAL_DOCKER_API_ENDPOINT_HOST + '/workspaces/' + workspace.id + '/forms/' + formId + '?published=true&draft=true', config);
 

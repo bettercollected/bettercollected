@@ -1,4 +1,4 @@
-import { getWorkspaceByName } from '@app/app/(admin-portal)/(side-top-nav-layout)/[workspace_name]/dashboard/layout';
+import { getWorkspaceByName } from '@app/lib/server/api';
 import { WorkspaceDispatcher } from '@app/app/_dispatcher/workspace-dispatcher';
 import environments from '@app/configs/environments';
 import { Alert, AlertDescription, AlertTitle } from '@app/shadcn/components/ui/alert';
