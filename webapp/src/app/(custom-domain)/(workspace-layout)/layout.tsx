@@ -1,24 +1,24 @@
-import ResponderPortalLayoutClient from '@Components/responder-portal/responder-portal-layout-client';
 import environments from '@app/configs/environments';
+import { getWorkspaceByDomain } from '@app/lib/server/api';
 import { Alert, AlertDescription, AlertTitle } from '@app/shadcn/components/ui/alert';
+import ResponderPortalLayoutClient from '@Components/responder-portal/responder-portal-layout-client';
 import { AlertCircle } from 'lucide-react';
+import { Metadata } from 'next';
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import React from 'react';
 import { WorkspaceDispatcher } from '../../_dispatcher/workspace-dispatcher';
 
-async function getWorkspaceByDomain(domain: string) {
-    try {
-        const response = await fetch(`${environments.INTERNAL_DOCKER_API_ENDPOINT_HOST}/workspaces?custom_domain=${domain}`, {
-            cache: 'no-store'
-        });
-        if (!response.ok) return null;
-        const data = await response.json();
-        return Array.isArray(data) ? data[0] : data;
-    } catch (error) {
-        console.error('Error fetching workspace by domain:', error);
-        return null;
-    }
+export async function generateMetadata(): Promise<Metadata> {
+    const headerList = await headers();
+    const host = headerList.get('x-forwarded-host') || headerList.get('host') || '';
+
+    const workspace = await getWorkspaceByDomain(host);
+
+    return {
+        title: workspace?.name || 'Workspace',
+        description: `Welcome to ${workspace?.name || 'your workspace'}`
+    };
 }
 
 export default async function CustomDomainLayout({ children }: { children: React.ReactNode }) {
@@ -28,7 +28,6 @@ export default async function CustomDomainLayout({ children }: { children: React
     const hasCustomDomain = host !== environments.DASHBOARD_DOMAIN && host !== environments.FORM_DOMAIN && !host.includes(environments.DASHBOARD_DOMAIN);
 
     if (!hasCustomDomain) {
-        // Redirect to login if accessed directly on admin domain
         redirect('/login');
     }
 

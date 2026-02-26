@@ -1,10 +1,10 @@
-'use client';
+import { Metadata } from 'next';
+import AllRespondersClient from './_components/all-responders-client';
 
-import WorkspaceResponses from '@app/components/workspace-responders/workspace-responders';
-import { useAppSelector } from '@app/store/hooks';
-import { selectWorkspace } from '@app/store/workspaces/slice';
+export const metadata: Metadata = {
+    title: 'Responders'
+};
 
 export default function AllRespondersPage() {
-    const workspace = useAppSelector(selectWorkspace);
-    return <WorkspaceResponses workspace={workspace} />;
+    return <AllRespondersClient />;
 }

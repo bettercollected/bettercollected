@@ -2,13 +2,12 @@ import { useTranslation } from 'next-i18next';
 
 
 
-import { CustomDomainCard } from '@app/app/(admin-portal)/(side-top-nav-layout)/[workspace_name]/dashboard/custom-domain/page';
+import { CustomDomainCard } from '@app/app/(admin-portal)/(side-top-nav-layout)/[workspace_name]/dashboard/custom-domain/_components/custom-domain-client';
 import { useModal } from '@app/components/modal-views/context';
-import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
 import { useCopyToClipboard } from '@app/lib/hooks/use-copy-to-clipboard';
 import { Button } from '@app/shadcn/components/ui/button';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
-import { selectAuth, selectIsAdmin, selectIsProPlan } from '@app/store/auth/slice';
+import { selectAuth } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { Copy, Pencil } from 'lucide-react';
@@ -18,12 +17,7 @@ export default function ManageURLs() {
     const workspace = useAppSelector(selectWorkspace);
     const { toast } = useToast();
     const { openModal } = useModal();
-    const { openModal: openFullScreenModal } = useFullScreenModal();
     const auth = useAppSelector(selectAuth);
-
-    const isAdmin = useAppSelector(selectIsAdmin);
-
-    const isProWorkspace = useAppSelector(selectIsProPlan);
 
     const [_, copyToClipboard] = useCopyToClipboard();
     return (

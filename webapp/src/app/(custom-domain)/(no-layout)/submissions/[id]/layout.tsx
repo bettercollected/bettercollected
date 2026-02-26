@@ -1,22 +1,9 @@
-import SharedSubmissionLayoutClient from '@Components/responder-portal/shared-submission-layout-client';
 import environments from '@app/configs/environments';
+import { getWorkspaceByDomain } from '@app/lib/server/api';
+import SharedSubmissionLayoutClient from '@Components/responder-portal/shared-submission-layout-client';
 import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
 import React from 'react';
-
-async function getWorkspaceByDomain(domain: string) {
-    try {
-        const response = await fetch(`${environments.INTERNAL_DOCKER_API_ENDPOINT_HOST}/workspaces?custom_domain=${domain}`, {
-            cache: 'no-store'
-        });
-        if (!response.ok) return null;
-        const data = await response.json();
-        return Array.isArray(data) ? data[0] : data;
-    } catch (error) {
-        console.error('Error fetching workspace:', error);
-        return null;
-    }
-}
 
 export default async function SubmissionLayout({
     children,

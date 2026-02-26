@@ -1,21 +1,7 @@
+import { getWorkspaceByName } from '@app/lib/server/api';
 import SharedSubmissionLayoutClient from '@Components/responder-portal/shared-submission-layout-client';
-import environments from '@app/configs/environments';
 import { notFound } from 'next/navigation';
 import React from 'react';
-
-async function getWorkspaceByName(name: string) {
-    try {
-        const response = await fetch(`${environments.INTERNAL_DOCKER_API_ENDPOINT_HOST}/workspaces?workspace_name=${name}`, {
-            cache: 'no-store'
-        });
-        if (!response.ok) return null;
-        const data = await response.json();
-        return Array.isArray(data) ? data[0] : data;
-    } catch (error) {
-        console.error('Error fetching workspace by name:', error);
-        return null;
-    }
-}
 
 export default async function WorkspaceSubmissionUUIDLayout({
     children,

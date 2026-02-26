@@ -1,52 +1,30 @@
 import environments from '@app/configs/environments';
-import { cookies, headers } from 'next/headers';
-import { notFound, redirect } from 'next/navigation';
+import { getUser, getWorkspaceByName as getWorkspace } from '@app/lib/server/api';
+import { Metadata } from 'next';
+import { headers } from 'next/headers';
+import { redirect } from 'next/navigation';
 import React from 'react';
 import WorkspaceDashboardLayout from "./_components/workspace-dashboard-layout";
 
 export async function getWorkspaceByName(name: string) {
-    const cookieStore = await cookies();
-    const auth = (await cookieStore.get('Authorization'))?.value;
-    const refresh = (await cookieStore.get('RefreshToken'))?.value;
-    const cookieHeader = [
-        auth ? `Authorization=${auth}` : '',
-        refresh ? `RefreshToken=${refresh}` : ''
-    ].filter(Boolean).join(';');
-
-    try {
-        const response = await fetch(`${environments.INTERNAL_DOCKER_API_ENDPOINT_HOST}/workspaces?workspace_name=${name}`, {
-            headers: {
-                cookie: cookieHeader
-            },
-            cache: 'no-store'
-        });
-        if (!response.ok) return null;
-        const data = await response.json();
-        return Array.isArray(data) ? data[0] : data;
-    } catch (error) {
-        console.error('Error fetching workspace:', error);
-        notFound();
-    }
+    return await getWorkspace(name);
 }
 
-async function getAuthUser(cookieHeader: string) {
-    try {
-        const response = await fetch(`${environments.INTERNAL_DOCKER_API_ENDPOINT_HOST}/auth/status`, {
-            headers: {
-                cookie: cookieHeader
-            },
-            cache: 'no-store'
-        });
-        if (!response.ok) return null;
-        return await response.json();
-    } catch (error) {
-        console.error('Error fetching auth status:', error);
-        return null;
-    }
+export async function generateMetadata({ params }: { params: Promise<{ workspace_name: string }> }): Promise<Metadata> {
+    const { workspace_name } = await params;
+    const workspace = await getWorkspace(workspace_name);
+    const workspaceName = workspace?.name || 'Workspace';
+
+    return {
+        title: {
+            default: `Dashboard | ${workspaceName}`,
+            template: `%s | ${workspaceName} | BetterCollected`
+        },
+        description: `Manage your workspace ${workspaceName}`
+    };
 }
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
-    const cookieStore = await cookies();
     const headerList = await headers();
 
     // Check for admin domain
@@ -57,14 +35,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         redirect('/');
     }
 
-    const auth = (await cookieStore.get('Authorization'))?.value;
-    const refresh = (await cookieStore.get('RefreshToken'))?.value;
-    const cookieHeader = [
-        auth ? `Authorization=${auth}` : '',
-        refresh ? `RefreshToken=${refresh}` : ''
-    ].filter(Boolean).join(';');
-
-    const user = await getAuthUser(cookieHeader);
+    const user = await getUser();
 
     if (!user) {
         redirect('/login');

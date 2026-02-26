@@ -1,4 +1,4 @@
-import environments from '@app/configs/environments';
+"use client";
 import { Button } from '@app/shadcn/components/ui/button';
 import { selectAuth } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
@@ -16,7 +16,7 @@ export default function NewFormButton() {
             className="min-w-[115px]"
             size="medium"
             onClick={async () => {
-                router.push(`${environments.HTTP_SCHEME}${environments.DASHBOARD_DOMAIN}/${workspace?.workspaceName}/dashboard/forms/create`);
+                router.push(`${window.PUBLIC_CONFIG?.HTTP_SCHEME}${window.PUBLIC_CONFIG?.DASHBOARD_DOMAIN}/${workspace?.workspaceName}/dashboard/forms/create`);
             }}
         >
             New Form
