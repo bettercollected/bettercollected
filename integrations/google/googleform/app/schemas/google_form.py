@@ -25,5 +25,5 @@ class GoogleFormDocument(BaseDocument, GoogleFormDto):
             bson_encoders (dict): A dictionary of bson encoders for specific data types.
     """
 
-    provider: Optional[str]
+    provider: Optional[str] = None
     dataOwnerFields: Optional[List[str]] = []

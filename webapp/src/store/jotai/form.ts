@@ -3,7 +3,7 @@ import { atom, useAtom } from 'jotai';
 import { ThemeColor } from '@app/constants/theme';
 import { FormSlideLayout } from '@app/models/enums/form';
 
-import { useActiveThankYouPageComponent } from './activeBuilderComponent';
+import { useActiveThankYouPageComponent } from './active-builder-component';
 
 export interface IFormState {
     title: string;
@@ -39,7 +39,8 @@ export interface IThemeState {
     accent: string;
 }
 
-export const initialFormState = atom<IFormState>({
+
+export const initialFormState: IFormState = {
     title: '',
     description: undefined,
     welcomePage: {
@@ -58,21 +59,15 @@ export const initialFormState = atom<IFormState>({
         tertiary: ThemeColor.tertiary,
         accent: ThemeColor.accent
     }
-});
+}
+export const formStateAtom = atom<IFormState>(initialFormState);
 
 export function useFormState() {
-    const [formState, setFormState] = useAtom(initialFormState);
+    const [formState, setFormState] = useAtom(formStateAtom);
     const { activeThankYouPageComponent } = useActiveThankYouPageComponent();
 
     const setFormTitle = (title: string) => {
         setFormState({ ...formState, title: title });
-    };
-
-    const setWelcomeTitle = (welcomeTitle: string) => {
-        setFormState({
-            ...formState,
-            welcomePage: { ...formState.welcomePage, title: welcomeTitle }
-        });
     };
 
     const setFormDescription = (description?: string) => {
@@ -143,7 +138,6 @@ export function useFormState() {
         formState,
         setFormState,
         setFormDescription,
-        setWelcomeTitle,
         setWelcomePageButtonText,
         setThankYouPageDescription,
         setThankYouPageButtonText,

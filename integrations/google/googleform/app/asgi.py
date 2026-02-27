@@ -1,14 +1,9 @@
 """Application implementation - ASGI."""
+
 import logging
 
-import sentry_sdk
 from elasticapm.contrib.starlette import make_apm_client, ElasticAPM
 from fastapi import FastAPI
-from google.auth.exceptions import RefreshError
-from httplib2 import ServerNotFoundError
-from sentry_sdk.integrations.asyncio import AsyncioIntegration
-from sentry_sdk.integrations.httpx import HttpxIntegration
-from sentry_sdk.integrations.loguru import LoguruIntegration
 
 from googleform.app.containers import Container
 from googleform.app.exceptions import (
@@ -25,7 +20,7 @@ from googleform.app.services.database_service import close_db, init_db
 from googleform.app.services.migration_service import (
     migrate_credentials_to_include_user_id,
 )
-from googleform.app.utils import AiohttpClient, RedisClient
+from googleform.app.utils import AiohttpClient
 from googleform.config import settings
 
 log = logging.getLogger(__name__)
@@ -39,8 +34,6 @@ async def on_startup():
 
     """
     log.debug("Execute FastAPI startup event handler.")
-    if settings.USE_REDIS:
-        await RedisClient.open_redis_client()
 
     AiohttpClient.get_aiohttp_client()
 
@@ -54,8 +47,6 @@ async def on_shutdown():
     """
     log.debug("Execute FastAPI shutdown event handler.")
     # Gracefully close utilities.
-    if settings.USE_REDIS:
-        await RedisClient.close_redis_client()
     Container.executor = None
     await AiohttpClient.close_aiohttp_client()
 
@@ -72,26 +63,6 @@ def get_application():
     """
     log.debug("Initialize FastAPI application node.")
 
-    sentry_settings = settings.sentry_settings
-
-    sentry_sdk.init(
-        dsn=sentry_settings.DSN,
-        max_breadcrumbs=50,
-        debug=sentry_settings.DEBUG,
-        release=settings.API_VERSION,
-        environment=settings.API_ENVIRONMENT,
-        attach_stacktrace=True,
-        # Set traces_sample_rate to 1.0 to capture 100%
-        # of transactions for performance monitoring.
-        # We recommend adjusting this value in production,
-        traces_sample_rate=1.0,
-        integrations=[
-            AsyncioIntegration(),
-            HttpxIntegration(),
-            LoguruIntegration(),
-        ],
-    )
-
     app = FastAPI(
         title=settings.PROJECT_NAME,
         debug=settings.DEBUG,
@@ -106,8 +77,6 @@ def get_application():
     log.debug("Register global exception handler for custom HTTPException.")
     app.add_exception_handler(HTTPException, http_exception_handler)
     app.add_exception_handler(TimeoutError, timeout_error_handler)
-    app.add_exception_handler(RefreshError, refresh_error_handler)
-    app.add_exception_handler(ServerNotFoundError, server_not_found_error_handler)
     if settings.apm_settings.service_name and settings.apm_settings.server_url:
         app.add_middleware(ElasticAPM, client=apm)
     return app

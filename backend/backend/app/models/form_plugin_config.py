@@ -8,12 +8,12 @@ class FormProviderConfigDto(BaseModel):
     provider_name: str
     provider_url: str
     auth_callback_url: str
-    type: Optional[str]
-    scope: Optional[str]
-    client_id: Optional[str]
-    client_secret: Optional[str]
-    api_uri: Optional[str]
-    auth_uri: Optional[str]
-    token_uri: Optional[str]
-    redirect_uri: Optional[str]
-    revoke_uri: Optional[str]
+    type: Optional[str] = None
+    scope: Optional[str] = None
+    client_id: Optional[str] = None
+    client_secret: Optional[str] = None
+    api_uri: Optional[str] = None
+    auth_uri: Optional[str] = None
+    token_uri: Optional[str] = None
+    redirect_uri: Optional[str] = None
+    revoke_uri: Optional[str] = None

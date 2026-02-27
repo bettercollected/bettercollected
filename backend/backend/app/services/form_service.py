@@ -16,7 +16,7 @@ from common.models.standard_form import (
 from common.models.user import User
 from common.services.http_client import HttpClient
 from fastapi_pagination import Page
-from fastapi_pagination.ext.beanie import paginate
+from fastapi_pagination.ext.beanie import paginate, apaginate
 from starlette.requests import Request
 
 from backend.app.constants.consents import default_consents
@@ -104,7 +104,7 @@ class FormService:
                 sort=sort,
             )
 
-        forms_page = await paginate(forms_query)
+        forms_page = await apaginate(forms_query)
 
         if not published:
             user_ids = [form.imported_by for form in forms_page.items]
@@ -278,8 +278,8 @@ class FormService:
         return minified_form
 
     async def save_form(self, form: StandardForm):
-        form_document = FormDocument(**form.dict())
-        form_version_document = FormVersionsDocument(**form.dict(), version=1)
+        form_document = FormDocument(**form.model_dump(mode='json'))
+        form_version_document = FormVersionsDocument(**form.model_dump(mode='json'), version=1)
         await form_version_document.save()
         return await self._form_repo.save_form(form_document)
 
@@ -564,5 +564,5 @@ class FormService:
         )
         return form_params
 
-    async def get_latest_version_of_form(self, form_id:PydanticObjectId):
+    async def get_latest_version_of_form(self, form_id: PydanticObjectId):
         return await self._form_repo.get_latest_version_of_form(form_id)

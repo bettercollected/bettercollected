@@ -45,10 +45,6 @@ class FormSchedular:
             {"form_id": form_id, "workspace_id": workspace_id}
         )
         if not workspace_form:
-            if settings.schedular_settings.ENABLED:
-                await self.temporal_service.delete_form_import_schedule(
-                    workspace_id=workspace_id, form_id=form_id
-                )
             return
         users_response = await self.fetch_user_details([workspace_form.user_id])
         standard_form = None
@@ -82,9 +78,6 @@ class FormSchedular:
                 )
             except HTTPException as e:
                 if e.status_code == HTTPStatus.NOT_FOUND:
-                    await self.temporal_service.delete_form_import_schedule(
-                        workspace_id=workspace_id, form_id=form_id
-                    )
                     workspace_form.last_update_status = UpdateStatus.NOT_FOUND
                     await workspace_form.save()
                     return
@@ -93,9 +86,6 @@ class FormSchedular:
                     await workspace_form.save()
                     return
                 elif e.status_code == HTTPStatus.FORBIDDEN:
-                    await self.temporal_service.delete_form_import_schedule(
-                        workspace_id=workspace_id, form_id=form_id
-                    )
                     workspace_form.last_update_status = UpdateStatus.REVOKED
                     await workspace_form.save()
                     return

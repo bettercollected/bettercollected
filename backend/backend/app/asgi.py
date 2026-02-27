@@ -1,12 +1,17 @@
 """Application implementation - ASGI."""
 
+from contextlib import asynccontextmanager
+
+from backend.config import settings
 import common.exceptions.http
 import sentry_sdk
+from dependency_injector import providers
 from elasticapm.contrib.starlette import ElasticAPM, make_apm_client
 from fastapi import FastAPI
 from fastapi_pagination import add_pagination
 from fastapi_utils.timing import add_timing_middleware
 from loguru import logger
+from pymongo import AsyncMongoClient
 from sentry_sdk.integrations.asyncio import AsyncioIntegration
 from sentry_sdk.integrations.httpx import HttpxIntegration
 from sentry_sdk.integrations.loguru import LoguruIntegration
@@ -17,44 +22,33 @@ from backend.app.handlers import init_logging
 from backend.app.handlers.database import close_db, init_db
 from backend.app.middlewares import DynamicCORSMiddleware, include_middlewares
 from backend.app.router import root_api_router
-from backend.app.services.brevo_service import event_logger_service
-from backend.app.services.init_schedulers import migrate_schedule_to_temporal
 from backend.app.utils import AiohttpClient
-from backend.config import settings
 
 
-async def on_startup():
-    """Define FastAPI startup event handler.
-
-    Resources:
-        1. https://fastapi.tiangolo.com/advanced/events/#startup-event
-
-    """
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """FastAPI lifespan context manager handling startup and shutdown."""
+    # --- Startup ---
     logger.info("Execute FastAPI startup event handler.")
 
     AiohttpClient.get_aiohttp_client()
-    # TODO merge with container
+
+    # Use a pre-configured client (e.g. AsyncMongoMockClient injected by tests)
+    # if one has already been set on the container; otherwise create a real one
+    # inside the running event loop to avoid the
+    # "AsyncMongoClient in different event loop" RuntimeError.
     client = container.database_client()
+    if client is None:
+        client = AsyncMongoClient(settings.mongo_settings.URI)
+        container.database_client.override(providers.Object(client))
     await init_db(settings.mongo_settings.DB, client)
 
-    if settings.temporal_settings.add_import_schedules:
-        await migrate_schedule_to_temporal()
+    yield
 
-
-async def on_shutdown():
-    """Define FastAPI shutdown event handler.
-
-    Resources:
-        1. https://fastapi.tiangolo.com/advanced/events/#shutdown-event
-
-    """
+    # --- Shutdown ---
     logger.info("Execute FastAPI shutdown event handler.")
-    # Gracefully close utilities.
 
-    # TODO merge with container
-    client = container.database_client()
     await close_db(client)
-
     await AiohttpClient.close_aiohttp_client()
     await container.http_client().aclose()
 
@@ -96,8 +90,7 @@ def get_application(is_test_mode: bool = False):
         version=api_settings.VERSION,
         docs_url=api_settings.ROOT_PATH + "/docs",
         openapi_url=api_settings.ROOT_PATH + "/openapi.json",
-        on_startup=[on_startup],
-        on_shutdown=[on_shutdown],
+        lifespan=lifespan,
     )
 
     logger.info("Add application routes.")

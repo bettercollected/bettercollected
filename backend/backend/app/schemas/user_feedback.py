@@ -9,7 +9,7 @@ from backend.app.handlers.database import entity
 @entity
 class UserFeedbackDocument(MongoDocument):
     reason_for_deletion: str
-    feedback: Optional[str]
+    feedback: Optional[str] = None
 
     class Settings:
         name = "user_feedback"

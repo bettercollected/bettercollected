@@ -12,7 +12,7 @@ class JwtService:
         self.jwt_secret = jwt_secret
 
     def encode(self, model: BaseModel) -> str:
-        return jwt.encode(model.dict(exclude_none=True), key=self.jwt_secret)
+        return jwt.encode(model.model_dump(exclude_none=True), key=self.jwt_secret)
 
     def decode(self, token: str, model: Type[T]) -> T:
         decoded_data = jwt.decode(
@@ -20,4 +20,4 @@ class JwtService:
             key=self.jwt_secret,
             algorithms=["HS256"],
         )
-        return model.parse_obj(decoded_data)
+        return model.model_validate(decoded_data)

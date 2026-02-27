@@ -4,10 +4,6 @@ export interface Parameters {
     required?: boolean;
 }
 
-export enum Trigger {
-    onSubmit = 'on_submit',
-    onOpen = 'on_open'
-}
 
 export interface Action {
     url?: string;

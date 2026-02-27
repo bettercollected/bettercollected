@@ -1,11 +1,10 @@
 from typing import Optional
 
-from pydantic import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class BrevoSettings(BaseSettings):
     tracker_key: Optional[str] = ""
     tracker_api_url: Optional[str] = ""
 
-    class Config:
-        env_prefix = "BREVO_"
+    model_config = SettingsConfigDict(env_prefix='BREVO_')

@@ -1,4 +1,4 @@
-from pydantic.schema import timedelta
+from datetime import timedelta
 from temporalio import workflow
 
 from activities.delete_response import delete_response
@@ -9,6 +9,8 @@ from models.delete_response import DeleteResponseParams
 class DeleteResponseWorkflow:
     @workflow.run
     async def run(self, form_response_params: DeleteResponseParams):
-        await workflow.execute_activity(delete_response, form_response_params,
-                                        start_to_close_timeout=timedelta(minutes=5),
-                                        )
+        await workflow.execute_activity(
+            delete_response,
+            form_response_params,
+            start_to_close_timeout=timedelta(minutes=5),
+        )

@@ -1,17 +1,17 @@
 import { FieldTypes } from '@app/models/dtos/form';
-import { CalenderIcon } from '@app/views/atoms/Icons/CalendarIcon';
-import DropDownIcon from '@app/views/atoms/Icons/DropDownIcon';
-import EmailIcon from '@app/views/atoms/Icons/EmailIcon';
-import { LinearRatingIcon } from '@app/views/atoms/Icons/LinearRating';
-import { LinkIcon } from '@app/views/atoms/Icons/Link';
-import MatrixIcon from '@app/views/atoms/Icons/MartixIcon';
-import MultipleChoiceIcon from '@app/views/atoms/Icons/MultipleChoiceIcon';
-import { NumberIcon } from '@app/views/atoms/Icons/NumberIcon';
-import PhoneNumberIcon from '@app/views/atoms/Icons/PhoneNumberIcon';
-import RatingIcon from '@app/views/atoms/Icons/RatingIcon';
-import { TextIcon } from '@app/views/atoms/Icons/Text';
-import UploadIcon from '@app/views/atoms/Icons/UploadIcon';
-import { YesNoIcon } from '@app/views/atoms/Icons/YesNoIcon';
+import { CalenderIcon } from '@Components/icons/calender-icon';
+import DropDownIcon from '@Components/icons/dropdown-icon';
+import EmailIcon from '@Components/icons/email-icon';
+import { LinearRatingIcon } from '@Components/icons/linear-rating';
+import { LinkIcon } from '@Components/icons/link';
+import MatrixIcon from '@Components/icons/matrix-icon';
+import MultipleChoiceIcon from '@Components/icons/multiple-choice-icon';
+import { NumberIcon } from '@Components/icons/number-icon';
+import PhoneNumberIcon from '@Components/icons/phone-number-icon';
+import RatingIcon from '@Components/icons/rating-icon';
+import { TextIcon } from '@Components/icons/text';
+import UploadIcon from '@Components/icons/upload-icon';
+import { YesNoIcon } from '@Components/icons/yes-no-icon';
 
 export const formFieldsList = [
     {

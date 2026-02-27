@@ -20,12 +20,12 @@ class ActionRepository:
             for secret in action.secrets:
                 secret.value = self.crypto.encrypt(secret.value)
         new_action = ActionDocument(
-            **action.dict(),
+            **action.model_dump(mode='json'),
             created_by=PydanticObjectId(user.id),
             workspace_id=workspace_id,
         )
         new_action = await new_action.save()
-        return ActionResponse(**new_action.dict())
+        return ActionResponse(**new_action.model_dump(mode='json'))
 
     async def delete_action(self, action_id: PydanticObjectId):
         await ActionDocument.find_one(ActionDocument.id == action_id).delete()
@@ -144,5 +144,5 @@ class ActionRepository:
             for secret in action.secrets:
                 secret.value = self.crypto.encrypt(secret.value)
         return await ActionDocument(
-            **action.dict(), created_by=PydanticObjectId(user.id)
+            **action.model_dump(mode='json'), created_by=PydanticObjectId(user.id)
         ).save()

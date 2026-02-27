@@ -1,10 +1,10 @@
-from pydantic import BaseSettings
+from typing import Optional
+
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class MongoSettings(BaseSettings):
-    DB: str = "bettercollected_auth"
-    URI: str = "mongodb://localhost"
+    DB: Optional[str] = "bettercollected_auth"
+    URI: Optional[str] = "mongodb://localhost"
 
-    class Config:
-        case_sensitive = True
-        env_prefix = "MONGO_"
+    model_config = SettingsConfigDict(case_sensitive=True, env_prefix="MONGO_")

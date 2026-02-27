@@ -22,6 +22,7 @@ from backend.app.models.workspace import (
     WorkspaceResponseDto,
 )
 from backend.app.repositories.workspace_repository import WorkspaceRepository
+from backend.app.middlewares.dynamic_cors_middleware import DynamicCORSMiddleware
 from backend.app.schemas.allowed_origin import AllowedOriginsDocument
 from backend.app.schemas.workspace import WorkspaceDocument
 from backend.app.schemas.workspace_user import WorkspaceUserDocument
@@ -60,7 +61,7 @@ class WorkspaceService:
         workspace = await self._workspace_repo.get_workspace_by_id(
             workspace_id=workspace_id
         )
-        return WorkspaceResponseDto(**workspace.dict())
+        return WorkspaceResponseDto(**workspace.model_dump(mode='json'))
 
     async def get_workspace_by_query(self, query: str, user: User):
         workspace = await self._workspace_repo.get_workspace_by_query(query)
@@ -69,10 +70,12 @@ class WorkspaceService:
                 await self._workspace_user_service.check_user_has_access_in_workspace(
                     workspace_id=workspace.id, user=user
                 )
-                return WorkspaceResponseDto(**workspace.dict(), dashboard_access=True)
+                return WorkspaceResponseDto(
+                    **workspace.model_dump(mode='json'), dashboard_access=True
+                )
             except HTTPException:
                 pass
-        return WorkspaceResponseDto(**workspace.dict())
+        return WorkspaceResponseDto(**workspace.model_dump(mode='json'))
 
     async def create_non_default_workspace(
         self,
@@ -129,7 +132,7 @@ class WorkspaceService:
                 roles=[WorkspaceRoles.ADMIN],
             )
             await workspace_user.save()
-        return WorkspaceResponseDto(**workspace_document.dict())
+        return WorkspaceResponseDto(**workspace_document.model_dump(mode='json'))
 
     async def patch_workspace(
         self,
@@ -209,6 +212,7 @@ class WorkspaceService:
                                 origin="https://" + workspace_patch.custom_domain
                             )
                         )
+                    await DynamicCORSMiddleware.force_refresh_origins()
                     await self.update_https_server_for_certificate(
                         old_domain=workspace_document.custom_domain,
                         new_domain=workspace_patch.custom_domain,
@@ -251,7 +255,7 @@ class WorkspaceService:
         saved_workspace = await self._workspace_repo.update(
             workspace_document.id, workspace_document
         )
-        return WorkspaceResponseDto(**saved_workspace.dict())
+        return WorkspaceResponseDto(**saved_workspace.model_dump(mode='json'))
 
     async def delete_custom_domain_of_workspace(
         self, workspace_id: PydanticObjectId, user: User
@@ -273,11 +277,12 @@ class WorkspaceService:
             old_domain=workspace_document.custom_domain
         )
         workspace_document.custom_domain = ""
+        await DynamicCORSMiddleware.force_refresh_origins()
         saved_workspace = await workspace_document.save()
-        return WorkspaceResponseDto(**saved_workspace.dict())
+        return WorkspaceResponseDto(**saved_workspace.model_dump(mode='json'))
 
     async def generate_unique_names_from_the_workspace_handle(
-        self, workspace_name: str, workspace_id: Optional[PydanticObjectId]
+        self, workspace_name: str, workspace_id: Optional[PydanticObjectId] = None
     ):
         suggestions = []
         clean_workspace_name = re.sub(r"\W+", "", workspace_name)
@@ -300,7 +305,7 @@ class WorkspaceService:
         return suggestions
 
     async def check_if_workspace_handle_is_unique(
-        self, workspace_name: str, workspace_id: Optional[PydanticObjectId]
+        self, workspace_name: str, workspace_id: Optional[PydanticObjectId] = None
     ):
         predefined_workspace_name = ["submissions", "forms", "templates"]
         if workspace_name in predefined_workspace_name:
@@ -321,7 +326,9 @@ class WorkspaceService:
         workspaces = await self._workspace_repo.get_workspace_by_ids(
             workspace_ids=workspace_ids
         )
-        return [WorkspaceResponseDto(**workspace.dict()) for workspace in workspaces]
+        return [
+            WorkspaceResponseDto(**workspace.model_dump(mode='json')) for workspace in workspaces
+        ]
 
     async def send_otp_for_workspace(
         self, workspace_id: PydanticObjectId, receiver_email: EmailStr

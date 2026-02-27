@@ -6,37 +6,37 @@ from pydantic import BaseModel
 class GoogleChoiceQuestionDto(BaseModel):
     """Data transfer object for Google Forms choice questions."""
 
-    type: Optional[str]
-    options: Optional[List[Any]]
+    type: Optional[str] = None
+    options: Optional[List[Any]] = None
 
 
 class GoogleQuestionDto(BaseModel):
     """Data transfer object for Google Forms questions."""
 
-    questionId: Optional[str]
-    required: Optional[bool]
-    textQuestion: Optional[Any]
-    choiceQuestion: Optional[GoogleChoiceQuestionDto]
-    fileUploadQuestion: Optional[Any]
-    scaleQuestion: Optional[Any]
-    dateQuestion: Optional[Any]
-    timeQuestion: Optional[Any]
+    questionId: Optional[str] = None
+    required: Optional[bool] = None
+    textQuestion: Optional[Any] = None
+    choiceQuestion: Optional[GoogleChoiceQuestionDto] = None
+    fileUploadQuestion: Optional[Any] = None
+    scaleQuestion: Optional[Any] = None
+    dateQuestion: Optional[Any] = None
+    timeQuestion: Optional[Any] = None
 
 
 class GoogleMediaProperties(BaseModel):
-    width: Optional[int]
+    width: Optional[int] = None
 
 
 class GoogleImage(BaseModel):
-    contentUri: Optional[str]
+    contentUri: Optional[str] = None
     properties: Optional[GoogleMediaProperties] = GoogleMediaProperties()
 
 
 class GoogleFormItemQuestionDto(BaseModel):
     """Data transfer object for Google Forms question items."""
 
-    question: Optional[GoogleQuestionDto]
-    image: Optional[GoogleImage]
+    question: Optional[GoogleQuestionDto] = None
+    image: Optional[GoogleImage] = None
 
 
 class GoogleOptionValue(BaseModel):
@@ -44,7 +44,7 @@ class GoogleOptionValue(BaseModel):
 
 
 class GoogleColumns(BaseModel):
-    type: Optional[str]
+    type: Optional[str] = None
     options: Optional[List[GoogleOptionValue]] = []
 
 
@@ -53,12 +53,12 @@ class GoogleGrid(BaseModel):
 
 
 class GoogleRowQuestion(BaseModel):
-    title: Optional[str]
+    title: Optional[str] = None
 
 
 class GoogleGroupQuestion(BaseModel):
-    questionId: Optional[str]
-    required: Optional[bool]
+    questionId: Optional[str] = None
+    required: Optional[bool] = None
     rowQuestion: Optional[GoogleRowQuestion] = GoogleRowQuestion()
 
 
@@ -67,15 +67,15 @@ class GoogleFormQuestionGroupItem(BaseModel):
 
     questions: List[GoogleGroupQuestion] = []
     grid: Optional[GoogleGrid] = GoogleGrid()
-    image: Optional[GoogleImage]
+    image: Optional[GoogleImage] = None
 
 
 class GoogleInfoDto(BaseModel):
     """Data transfer object for general information about a Google Form."""
 
-    title: Optional[str]
-    description: Optional[str]
-    documentTitle: Optional[str]
+    title: Optional[str] = None
+    description: Optional[str] = None
+    documentTitle: Optional[str] = None
 
 
 class GoogleImageItem(BaseModel):
@@ -83,7 +83,7 @@ class GoogleImageItem(BaseModel):
 
 
 class GoogleVideo(BaseModel):
-    youtubeUri: Optional[str]
+    youtubeUri: Optional[str] = None
     properties: Optional[GoogleMediaProperties] = GoogleMediaProperties()
 
 
@@ -94,23 +94,23 @@ class GoogleVideoItem(BaseModel):
 class GoogleFormItemsDto(BaseModel):
     """Data transfer object for items in a Google Form."""
 
-    itemId: Optional[str]
-    title: Optional[str]
-    imageItem: Optional[GoogleImageItem]
-    videoItem: Optional[GoogleVideoItem]
-    description: Optional[str]
-    pageBreakItem: Optional[Any]
-    questionItem: Optional[GoogleFormItemQuestionDto]
-    questionGroupItem: Optional[GoogleFormQuestionGroupItem]
-    textItem: Optional[Any]
+    itemId: Optional[str] = None
+    title: Optional[str] = None
+    imageItem: Optional[GoogleImageItem] = None
+    videoItem: Optional[GoogleVideoItem] = None
+    description: Optional[str] = None
+    pageBreakItem: Optional[Any] = None
+    questionItem: Optional[GoogleFormItemQuestionDto] = None
+    questionGroupItem: Optional[GoogleFormQuestionGroupItem] = None
+    textItem: Optional[Any] = None
 
 
 class GoogleFormDto(BaseModel):
     """Data transfer object for a Google Form."""
 
-    formId: Optional[str]
-    info: Optional[GoogleInfoDto]
-    revisionId: Optional[str]
-    responderUri: Optional[str]
+    formId: Optional[str] = None
+    info: Optional[GoogleInfoDto] = None
+    revisionId: Optional[str] = None
+    responderUri: Optional[str] = None
     items: Optional[List[GoogleFormItemsDto]] = []
-    provider: Optional[str]
+    provider: Optional[str] = None

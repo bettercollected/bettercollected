@@ -1,0 +1,82 @@
+import { Button } from '@app/shadcn/components/ui/button';
+import BottomSheetModalWrapper from '@Components/modals/modal-wrapper/bottom-sheet-modal-wrapper';
+import { format } from 'date-fns';
+import dayjs from 'dayjs';
+import { Calendar as CalendarIcon } from 'lucide-react';
+import moment from 'moment/moment';
+import React, { useState } from 'react';
+
+import { Calendar } from '@app/shadcn/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@app/shadcn/components/ui/popover';
+import { useBottomSheetModal } from '@Components/modals/contexts/bottom-sheet-modal-context';
+
+interface IScheduleFormCloseDateModalProps {
+    onFormClosedChange: (date: string | moment.Moment) => void;
+    closeDate: string;
+}
+
+const ScheduleFormCloseDateModal: React.FC<IScheduleFormCloseDateModalProps> = ({ onFormClosedChange, closeDate }) => {
+    const [value, setValue] = React.useState<Date | null>(closeDate ? new Date(closeDate) : null);
+    const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
+
+    const { closeBottomSheetModal } = useBottomSheetModal();
+
+    // Set the minimum date to tommorow
+    const minDate = dayjs().add(1, 'day').startOf('day').toDate();
+
+    return (
+        <BottomSheetModalWrapper>
+            <div className="flex w-full max-w-[660px] flex-col items-start gap-[72px]">
+                <div>
+                    <div className="h2-new">Close Form</div>
+                    <div className="flex w-full flex-row items-center justify-between gap-4">
+                        <div className="!text-black-700 text-sm">This action will ensure that no one can access or fill out the form. You can either schedule a closing date or choose to close it immediately.</div>
+                    </div>
+                </div>
+
+                <div className="flex flex-col gap-2">
+                    <div className="h4-new">Select form closing date</div>
+                    <Popover
+                        open={isDatePickerOpen}
+                        onOpenChange={(open: boolean) => {
+                            setIsDatePickerOpen(open);
+                        }}
+                    >
+                        <PopoverTrigger asChild>
+                            <div className="relative flex w-[280px] cursor-pointer items-center rounded-lg border border-gray-400 bg-white p-2 text-left font-normal text-gray-700">
+                                <CalendarIcon className="absolute left-2 h-4 w-4 text-gray-500" />
+                                <div className="ml-8 text-black">{value ? format(value, 'PPP') : <span className="text-gray-500">Pick a date</span>}</div>
+                            </div>
+                        </PopoverTrigger>
+
+                        <PopoverContent className="custom-calendar text-black-900 z-[100000000] w-auto bg-white p-0">
+                            <Calendar
+                                mode="single"
+                                selected={value ? value : undefined} // Convert Dayjs to Date or pass undefined if value is null
+                                onSelect={(selectedDate?: Date) => {
+                                    setValue(selectedDate || null);
+                                    setIsDatePickerOpen(false);
+                                }}
+                                initialFocus
+                                fromDate={minDate} // Set the minimum date to tomorrow
+                            />
+                        </PopoverContent>
+                    </Popover>
+                </div>
+                <div>
+                    <Button
+                        variant="secondary"
+                        onClick={() => {
+                            onFormClosedChange(moment(value?.toISOString()));
+                            closeBottomSheetModal();
+                        }}
+                    >
+                        Schedule Now
+                    </Button>
+                </div>
+            </div>
+        </BottomSheetModalWrapper>
+    );
+};
+
+export default ScheduleFormCloseDateModal;

@@ -1,4 +1,4 @@
-from pydantic import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class HttpsCertificateApiSettings(BaseSettings):
@@ -6,5 +6,4 @@ class HttpsCertificateApiSettings(BaseSettings):
     key: str = ""
     upstream: str = ""
 
-    class Config:
-        env_prefix = "HTTPS_CERT_API_"
+    model_config = SettingsConfigDict(env_prefix='HTTPS_CERT_API_')

@@ -20,11 +20,6 @@ log = logging.getLogger(__name__)
 @router(
     prefix="/providers",
     tags=["Form Providers"],
-    responses={
-        401: {"description": "Authorization token is missing."},
-        404: {"description": "Not Found"},
-        405: {"description": "Method not allowed"},
-    },
 )
 class PluginProviderRouter(Routable):
     def __init__(self, *args, **kwargs):
@@ -40,19 +35,24 @@ class PluginProviderRouter(Routable):
     @post(
         "",
         status_code=HTTPStatus.CREATED,
-        dependencies=[Depends(get_logged_admin)],
     )
-    async def _add_provider(self, provider: FormProviderConfigDto):
+    async def _create_provider(
+        self,
+        provider_config: FormProviderConfigDto,
+        _=Depends(get_logged_admin),
+    ):
         # TODO: Check admin user
         return await self._provider_service.add_provider(provider)
 
     @patch(
         "/{provider_name}",
         status_code=HTTPStatus.ACCEPTED,
-        dependencies=[Depends(get_logged_admin)],
     )
     async def _update_provider(
-        self, provider_name: FormProvider, provider: FormProviderConfigDto
+        self,
+        provider_name: FormProvider,
+        provider: FormProviderConfigDto,
+        _=Depends(get_logged_admin),
     ):
         # TODO: Check admin user
         return await self._provider_service.update_provider(provider_name, provider)

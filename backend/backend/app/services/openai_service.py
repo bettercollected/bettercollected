@@ -1,7 +1,6 @@
-import json
 import uuid
 from http import HTTPStatus
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 
 from beanie import PydanticObjectId
 from common.models.standard_form import (
@@ -13,66 +12,19 @@ from common.models.standard_form import (
     StandardFormField,
 )
 from common.models.user import User
-from openai import AsyncOpenAI
-from openai.types.shared_params import ResponseFormatJSONObject
 
 from backend.app.constants.themes import themes
 from backend.app.exceptions import HTTPException
-from backend.app.models.dtos.request_dtos import CreateFormWithAI
+from backend.app.models.dtos.request_dtos import CreateFormWithAI, AIProvider
 from backend.app.schemas.create_form_prompts import CreateFormPrompt
+from backend.app.services.ai_form_provider import AIFormProvider
+from backend.app.services.google_ai_provider import GoogleAIFormProvider
+from backend.app.services.openai_provider import OpenAIFormProvider
+from backend.app.services.unsplash_service import UnsplashService
 from backend.app.services.workspace_form_service import WorkspaceFormService
 from backend.app.services.workspace_service import WorkspaceService
-from backend.config import settings
 
-client = AsyncOpenAI(api_key=settings.open_ai.API_KEY)
-
-system_prompt = """
-You are to generate ONLY a valid JSON object matching the schema below. 
-Do NOT include any text outside of the JSON and do NOT include comments.
-
-Schema:
-
-interface Field {
-    title: string;
-    description?: string;
-    type: 'short_text' | 'long_text' | 'multiple_choice' | 'dropdown' | 'yes_no' |
-           'rating' | 'linear_rating' | 'number' | 'email' | 'phone_number' | 'date' |
-           'file_upload' | 'url' | 'group';
-    properties?: {
-        placeholder?: string;
-        required?: boolean;
-        allowOther?: boolean;
-        allowMultiple?: boolean;
-        choices?: string[];
-        steps?: number;       // For rating or linear scale
-        startFrom?: number;   // For rating or linear scale
-        fields?: Field[];     // Only for type = 'group'
-    };
-}
-
-interface Form {
-    title: string;
-    description?: string;
-    fields: Field[];
-}
-
-STRICT RULES:
-1. Use only the allowed 'type' values listed above exactly as written (case-sensitive).
-2. Since this is a pages-style form:
-   - Whenever fields belong to the same logical topic, wrap them in a `group` type.
-   - Each group represents a "page" in the form.
-   - A `group` must have a meaningful `title` and at least two related fields inside `properties.fields`.
-3. The form should have optimal number of page based on the form type.
-4. If a question stands alone and doesn't belong in a group, it can be a single non-group field.
-5. Field `title` should be short and clear; `description` optional but helpful.
-6. `choices` is required for `multiple_choice` and `dropdown`, and must have at least 2 options.
-7. `steps` is required for `rating` or `linear_scale` and must be a positive integer.
-8. Always provide realistic, human-friendly example data — no placeholder text like "Question 1".
-9. Output must be syntactically valid JSON and match the schema exactly.
-
-Output:
-A single valid JSON object strictly matching the Form schema above, where each logical section of the form is in its own `group` page if applicable.
-"""
+_DEFAULT_LAYOUT = LayoutType.SINGLE_COLUMN_NO_BACKGROUND
 
 
 class OpenAIService:
@@ -83,6 +35,20 @@ class OpenAIService:
     ):
         self.workspace_service: WorkspaceService = workspace_service
         self.workspace_form_service: WorkspaceFormService = workspace_form_service
+        self._unsplash = UnsplashService()
+        self._providers: Dict[AIProvider, AIFormProvider] = {
+            AIProvider.OPENAI: OpenAIFormProvider(self._unsplash),
+            AIProvider.GOOGLE: GoogleAIFormProvider(self._unsplash),
+        }
+
+    def _get_provider(self, provider: AIProvider) -> AIFormProvider:
+        impl = self._providers.get(provider)
+        if impl is None:
+            raise HTTPException(
+                status_code=HTTPStatus.BAD_REQUEST,
+                content=f"Unknown AI provider: {provider}",
+            )
+        return impl
 
     async def create_form_with_ai(
         self,
@@ -99,15 +65,9 @@ class OpenAIService:
             )
 
         try:
-            response = await client.chat.completions.create(
-                model=settings.open_ai.MODAL,
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": create_form_ai.prompt},
-                ],
-                response_format=ResponseFormatJSONObject(type="json_object"),
-            )
-            openai_form = json.loads(response.choices[0].message.content)
+            provider = self._get_provider(create_form_ai.provider)
+            openai_form = await provider.generate_form(create_form_ai.prompt)
+
             form = await self.workspace_form_service.create_form(
                 workspace_id=workspace_id,
                 form=self.convert_openai_form_to_standard_form(openai_form=openai_form),
@@ -116,11 +76,13 @@ class OpenAIService:
             create_form_prompt = CreateFormPrompt(
                 prompt=create_form_ai.prompt,
                 openai_response=openai_form,
-                created_form=form.dict(),
+                created_form=form.model_dump(mode="json"),
                 form_id=PydanticObjectId(form.form_id),
             )
             await create_form_prompt.save()
             return form
+        except HTTPException:
+            raise
         except Exception as e:
             print(e)
             raise HTTPException(
@@ -128,30 +90,69 @@ class OpenAIService:
                 content="Could not create form using AI",
             )
 
+    # ------------------------------------------------------------------
+    # Conversion helpers
+    # ------------------------------------------------------------------
+
     def convert_openai_form_to_standard_form(self, openai_form: Dict[str, Any]):
+        theme_name = openai_form.get("theme_name", "Black")
+        chosen_theme = themes.get(theme_name) or themes.get("Black")
+
+        welcome_image_url: Optional[str] = openai_form.get("welcome_image_url")
+        cover_image_url: Optional[str] = openai_form.get("cover_image_url")
+
+        # Auto-select welcome layout: use image-side layout when image present
+        welcome_layout = (
+            LayoutType.TWO_COLUMN_IMAGE_LEFT
+            if welcome_image_url
+            else LayoutType.SINGLE_COLUMN_NO_BACKGROUND
+        )
+
         standard_form = StandardForm()
         standard_form.builder_version = "v2"
         standard_form.title = openai_form.get("title")
-        standard_form.theme = themes.get("Black")
+        standard_form.theme = chosen_theme
+        standard_form.cover_image = cover_image_url
         standard_form.welcome_page = WelcomePageField(
             title=openai_form.get("title"),
             description=openai_form.get("description"),
-            layout=LayoutType.SINGLE_COLUMN_NO_BACKGROUND,
+            layout=welcome_layout,
+            imageUrl=welcome_image_url,
         )
         standard_form.fields = [
             StandardFormField(**field)
-            for field in self.convert_fields(openai_form.get("fields"))
+            for field in self.convert_fields(openai_form.get("fields", []))
         ]
         standard_form.thankyou_page = [
             ThankYouPageField(layout=LayoutType.SINGLE_COLUMN_NO_BACKGROUND)
         ]
         return standard_form
 
-    def convert_fields(self, openai_fields: List[Dict[str, Any]]):
+    def convert_fields(
+        self,
+        openai_fields: List[Dict[str, Any]],
+    ):
         fields = []
         for index, field in enumerate(openai_fields):
+            # Per-field layout: read directly from the AI-generated field dict.
+            # Fall back to image-aware default: if image_url present use TWO_COLUMN_IMAGE_LEFT.
+            image_url: Optional[str] = field.get("image_url") or None
+            layout_value: Optional[str] = field.get("layout")
+            if not layout_value:
+                layout_value = (
+                    LayoutType.TWO_COLUMN_IMAGE_LEFT.value
+                    if image_url
+                    else _DEFAULT_LAYOUT.value
+                )
+            try:
+                layout = LayoutType(layout_value)
+            except ValueError:
+                layout = (
+                    LayoutType.TWO_COLUMN_IMAGE_LEFT if image_url else _DEFAULT_LAYOUT
+                )
+
             slide_fields = []
-            if not field.get("type") == "group":
+            if field.get("type") != "group":
                 slide_fields.append(self.convert_single_field(field, 0))
             else:
                 if field.get("title") is not None:
@@ -186,16 +187,16 @@ class OpenAIService:
                             },
                         }
                     )
-                for fieldIndex, openai_group_field in enumerate(
+                for field_index, group_field in enumerate(
                     field.get("properties", {}).get("fields", [])
                 ):
                     slide_fields.append(
                         self.convert_single_field(
-                            openai_group_field,
+                            group_field,
                             (
-                                fieldIndex + 1
+                                field_index + 1
                                 if field.get("title") is not None
-                                else fieldIndex
+                                else field_index
                             ),
                         )
                     )
@@ -204,9 +205,10 @@ class OpenAIService:
                     "id": str(uuid.uuid4()),
                     "type": StandardFormFieldType.SLIDE,
                     "index": index,
+                    "image_url": image_url,
                     "properties": {
                         "fields": slide_fields,
-                        "layout": LayoutType.SINGLE_COLUMN_NO_BACKGROUND,
+                        "layout": layout,
                     },
                 }
             )
@@ -228,7 +230,9 @@ class OpenAIService:
             },
         }
 
-    def convert_properties(self, openai_properties: Dict[str, Any], type: str = None):
+    def convert_properties(
+        self, openai_properties: Dict[str, Any], type: Optional[str] = None
+    ):
         properties = {}
         if openai_properties.get("placeholder") is not None:
             properties["placeholder"] = openai_properties.get("placeholder")

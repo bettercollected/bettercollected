@@ -85,7 +85,7 @@ class AuthRoutes(Routable):
         self,
         login_details: UserLoginWithOTP,
         response: Response,
-        prospective_pro_user: bool = False,
+        prospective_pro_user: Optional[bool] = False,
     ):
         user = await self.auth_service.validate_otp(
             login_details, prospective_pro_user=prospective_pro_user

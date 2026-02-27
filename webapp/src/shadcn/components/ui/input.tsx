@@ -27,8 +27,15 @@ const ShadCNInput = React.forwardRef<HTMLInputElement, InputProps>(({ className,
 });
 ShadCNInput.displayName = 'ShadCNInput';
 
-const AppInput = React.forwardRef<HTMLInputElement, InputProps>(({ className, type, ...props }, ref) => {
-    return <input type={type} className={cn(`border-black-200 focus:border-black-400 w-full rounded-xl border px-3 py-2 text-[12px] focus:ring-transparent disabled:cursor-not-allowed disabled:opacity-50`, className)} ref={ref} {...props} />;
+const AppInput = React.forwardRef<HTMLInputElement, InputProps & { icon?: React.ReactElement }>(({ className, type, icon, ...props }, ref) => {
+    return (
+        <span className={cn('relative w-full')}>
+            {icon && <span className="absolute left-2 top-1/2 -translate-y-1/2 text-black-400 pointer-events-none">
+                {icon}
+            </span>}
+            <input type={type} className={cn(`border-black-200 focus:border-black-400  rounded-xl border px-3 py-2 text-[12px] focus:ring-transparent disabled:cursor-not-allowed disabled:opacity-80`, className, icon && "pl-10")} ref={ref} {...props} />
+        </span>
+    );
 });
 
 AppInput.displayName = 'AppInput';
@@ -36,7 +43,7 @@ AppInput.displayName = 'AppInput';
 const FieldInput = styled(ShadCNInput)<{
     $slide?: StandardFormFieldDto;
     $formTheme?: IThemeState;
-}>(({}) => {
+}>(({ }) => {
     const { theme } = useFormState();
     const themeColor = theme?.tertiary;
     const secondaryColor = theme?.secondary;
@@ -53,4 +60,5 @@ const FieldInput = styled(ShadCNInput)<{
 });
 FieldInput.displayName = 'FieldInput';
 
-export { FieldInput, ShadCNInput as Input, AppInput };
+export { AppInput, FieldInput, ShadCNInput as Input };
+

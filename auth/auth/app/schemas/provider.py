@@ -8,5 +8,5 @@ from common.configs.mongo_document import MongoDocument
 @entity
 class Provider(MongoDocument):
     provider_name: str
-    basic_auth_url: Optional[str]
-    oauth_url: Optional[str]
+    basic_auth_url: Optional[str] = None
+    oauth_url: Optional[str] = None

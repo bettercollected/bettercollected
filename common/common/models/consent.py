@@ -24,13 +24,13 @@ class ResponseRetentionType(str, enum.Enum):
 
 
 class Consent(BaseModel):
-    consent_id: Optional[str]
+    consent_id: Optional[str] = None
     title: str
-    description: Optional[str]
-    required: Optional[bool]
+    description: Optional[str] = None
+    required: Optional[bool] = None
     type: ConsentType
     category: ConsentCategory
 
 
 class ConsentResponse(Consent):
-    accepted: Optional[bool]
+    accepted: Optional[bool] = None

@@ -2,7 +2,7 @@ import { createSlice } from '@reduxjs/toolkit';
 import { persistReducer } from 'redux-persist';
 import storage from 'redux-persist/lib/storage';
 
-import { Plan, UserStatus } from '@app/models/dtos/UserStatus';
+import { Plan, UserStatus } from '@app/models/dtos/user-status';
 import { RootState } from '@app/store/store';
 
 

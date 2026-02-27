@@ -4,7 +4,7 @@ from datetime import timedelta, timezone
 from http import HTTPStatus
 
 from beanie import PydanticObjectId
-from fastapi_pagination.ext.beanie import paginate
+from fastapi_pagination.ext.beanie import paginate, apaginate
 
 from backend.app.exceptions import HTTPException
 from backend.app.models.enum.invitation_response import InvitationResponse
@@ -49,7 +49,7 @@ class WorkspaceInvitationRepo:
             }
         )
 
-        return await paginate(invitations_query)
+        return await apaginate(invitations_query)
 
     async def get_workspace_invitation_by_token(
         self, workspace_id: PydanticObjectId, invitation_token: str

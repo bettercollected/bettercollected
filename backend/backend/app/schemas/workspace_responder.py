@@ -18,10 +18,10 @@ class WorkspaceTags(MongoDocument):
 @entity
 class WorkspaceResponderDocument(MongoDocument):
     workspace_id: PydanticObjectId
-    user_id: Optional[str]
+    user_id: Optional[str] = None
     email: str
-    tags: Optional[List[PydanticObjectId]]
-    metadata: Optional[Dict[str, str]]
+    tags: Optional[List[PydanticObjectId]] = None
+    metadata: Optional[Dict[str, str]] = None
 
     class Settings:
         name = "workspace_responder"

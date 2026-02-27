@@ -5,8 +5,3 @@ export interface Page<T> {
     size: number;
     total: number;
 }
-
-export interface PageRequest {
-    page: number;
-    size: number;
-}
