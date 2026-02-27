@@ -68,20 +68,23 @@ const AddWorkspaceDomainForm = () => {
                     event.preventDefault();
                     addDomain();
                 }}
-                className="flex items-center gap-4"
+                className="flex justify-start items-start gap-4"
             >
-                <AppInput
-                    className={cn('max-w-[400px]', message.message && (message.error ? 'border-red-500' : ''))}
-                    value={domain}
-                    onChange={(event) => {
-                        setDomain(event.target.value);
-                        setWarned(false);
-                        if (message.message) {
-                            setMessage({ error: false, message: '' });
-                        }
-                    }}
-                    placeholder="eg. forms.yoursite.com"
-                />
+                <div>
+
+                    <AppInput
+                        className={cn('max-w-[600px]', message.message && (message.error ? 'border-red-500' : ''))}
+                        value={domain}
+                        onChange={(event) => {
+                            setDomain(event.target.value);
+                            setWarned(false);
+                            if (message.message) {
+                                setMessage({ error: false, message: '' });
+                            }
+                        }}
+                        placeholder="eg. forms.yoursite.com"
+                    />
+                </div>
                 <Button variant={'v2Button'} type="submit" disabled={warned} isLoading={isLoading}>
                     {' '}
                     Add Domain
