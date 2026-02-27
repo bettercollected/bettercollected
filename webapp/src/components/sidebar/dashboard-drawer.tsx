@@ -104,7 +104,7 @@ const Drawer = ({ topNavList, isAdmin, bottomNavList }: any) => {
                                         {data?.forms || 0}/100 {' ' + t(toolTipConstant.formImported)}
                                     </span>
                                     <span
-                                        className="text-brand-500 cursor-pointer hover:underline text-blue-600"
+                                        className="cursor-pointer hover:underline text-blue-600"
                                         onClick={() => {
                                             openFullScreenModal('UPGRADE_TO_PRO', { featureText: t(upgradeConst.features.unlimitedForms.slogan) });
                                         }}

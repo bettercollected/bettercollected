@@ -66,7 +66,7 @@ export default function MemberOptions({ member, invitation }: IMemberOptionProps
                             <MoreHorizontal className="h-4 w-4" />
                         </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
+                    <DropdownMenuContent className="bg-white" align="end">
                         {invitation && (
                             <DropdownMenuItem
                                 onClick={() => handleResendInvitationClick(invitation)}

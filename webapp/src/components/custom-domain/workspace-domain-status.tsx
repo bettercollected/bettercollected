@@ -38,13 +38,15 @@ const WorkspaceDomainStatus = () => {
         dnsData.push({
             name: workspace.customDomain,
             type: 'A',
-            value: window.PUBLIC_CONFIG?.CUSTOM_DOMAIN_IP,
+            value: data?.records[0].expected,
+            resolved: data?.records?.[0]?.resolved ?? [],
             status: data?.domain_verified ? <div className="rounded-xl bg-green-100 px-2 py-1 text-xs text-green-500">Success</div> : <div className="rounded-xl bg-yellow-100 px-2 py-1 text-xs text-yellow-600">Pending</div>
         });
         dnsData.push({
             name: workspace.customDomain,
             type: 'TXT',
-            value: data?.records?.[1].value,
+            value: data?.records?.[1].expected,
+            resolved: data?.records?.[1]?.resolved ?? [],
             status: data?.txt_verified ? <div className="rounded-xl bg-green-100 px-2 py-1 text-xs text-green-500">Success</div> : <div className="rounded-xl bg-yellow-100 px-2 py-1  text-xs text-yellow-600">Pending</div>
         });
         return dnsData;
@@ -153,6 +155,29 @@ const DomainVerificationPending = ({ workspace, dnsData, isFetching, refetch }: 
                 </div>
             ),
             grow: 2
+        },
+        {
+            name: 'Resolved',
+            grow: 2,
+            selector: (record: any) =>
+                record.resolved?.length > 0 ? (
+                    <div className="flex flex-wrap gap-1">
+                        {record.resolved.map((ip: string, index: number) => (
+                            <span
+                                key={index}
+                                className="cursor-pointer rounded bg-gray-100 px-1.5 py-0.5 text-xs text-gray-700"
+                                onClick={() => {
+                                    navigator.clipboard.writeText(ip);
+                                    toast({ description: 'Copied' });
+                                }}
+                            >
+                                {ip}
+                            </span>
+                        ))}
+                    </div>
+                ) : (
+                    <span className="text-xs text-gray-400">—</span>
+                )
         },
         {
             name: 'Status',

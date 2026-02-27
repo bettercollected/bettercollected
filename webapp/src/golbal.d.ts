@@ -7,6 +7,5 @@ interface Window {
         FORM_DOMAIN: string;
         HTTP_SCHEME: string;
         API_ENDPOINT_HOST: string;
-        CUSTOM_DOMAIN_IP: string;
     }
 }

@@ -4,7 +4,6 @@ const config = {
     DASHBOARD_DOMAIN: process.env.DASHBOARD_DOMAIN || 'admin.bettercollected.com',
     FORM_DOMAIN: process.env.FORM_DOMAIN || 'forms.bettercollected.com',
     HTTP_SCHEME: process.env.HTTP_SCHEME || 'https://',
-    CUSTOM_DOMAIN_IP: process.env.CUSTOM_DOMAIN_IP || '135.181.40.62'
 };
 
 export type PublicConfigType = typeof config;

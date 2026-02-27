@@ -118,7 +118,7 @@ const WorkspaceDashboardLayout: React.FC<{ children: React.ReactNode }> = ({ chi
     return (
         <div className="relative min-h-screen w-full">
             <div className="lg:hidden">
-                <AuthNavbar handleDrawerToggle={handleDrawerToggle} mobileOpen={mobileOpen} />
+                <AuthNavbar showHamburgerIcon handleDrawerToggle={handleDrawerToggle} mobileOpen={mobileOpen} />
             </div>
             <DashboardDrawer
                 drawerWidth={drawerWidth}
