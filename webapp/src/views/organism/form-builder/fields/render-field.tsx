@@ -14,6 +14,7 @@ import FileUpload from './file-upload-field';
 import ImageField from './image-field';
 import InputField from './input-field';
 import MatrixFieldBuilderWrapper from './matrix-field-builder-wrapper';
+import TabularInputFieldBuilderWrapper from './TabularInputFieldBuilderWrapper';
 import VideoField from './video-field';
 import YesNoField from './yes-no-field';
 
@@ -84,6 +85,8 @@ function renderField(field: StandardFormFieldDto, slide: StandardFormFieldDto, d
             return <VideoField isBuilder field={field} />;
         case FieldTypes.MATRIX:
             return <MatrixFieldBuilderWrapper field={field} />;
+        case FieldTypes.TABULAR_INPUT:
+            return <TabularInputFieldBuilderWrapper field={field} />;
         default:
             return null;
     }

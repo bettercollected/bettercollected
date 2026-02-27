@@ -12,6 +12,7 @@ import RatingIcon from '@Components/icons/rating-icon';
 import { TextIcon } from '@Components/icons/text';
 import UploadIcon from '@Components/icons/upload-icon';
 import { YesNoIcon } from '@Components/icons/yes-no-icon';
+import { Table2 } from 'lucide-react';
 
 export const formFieldsList = [
     {
@@ -80,6 +81,13 @@ export const formFieldsList = [
         icon: <MatrixIcon style={{ color: '#00B0D0' }} />,
         background: '#E6F9FB',
         hoverBackgroundColor: '#B4EEF4'
+    },
+    {
+        name: 'Table Input',
+        type: FieldTypes.TABULAR_INPUT,
+        icon: <Table2 size={40} strokeWidth={1.5} style={{ color: '#589758' }} />,
+        background: '#F0FFF0',
+        hoverBackgroundColor: '#CAF8CA'
     },
     {
         name: 'Number',

@@ -214,6 +214,7 @@ export enum FieldTypes {
     LINEAR_RATING = 'linear_rating',
     DROP_DOWN = 'dropdown',
     MATRIX = 'matrix',
+    TABULAR_INPUT = 'tabular_input',
     FILE_UPLOAD = 'file_upload',
     GROUP = 'group',
     PAYMENT = 'payment',
