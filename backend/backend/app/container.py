@@ -65,6 +65,7 @@ from backend.app.services.umami_client import UmamiClient
 from backend.app.services.analytics_service import AnalyticsService
 
 from backend.app.services.form_actions_service import FormActionsService
+from backend.app.middlewares.dynamic_cors_middleware import DynamicCORSMiddleware
 from backend.config import settings
 
 current_path = Path(os.path.abspath(os.path.dirname(__file__))).absolute()
@@ -345,6 +346,10 @@ class AppContainer(containers.DeclarativeContainer):
 
     form_actions_service: FormActionsService = providers.Singleton(
         FormActionsService, form_repo=form_repo
+    )
+
+    refresh_allowed_origins = providers.Callable(
+        DynamicCORSMiddleware.force_refresh_origins
     )
 
 

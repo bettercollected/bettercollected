@@ -24,7 +24,6 @@ const WorkspaceDomainStatus = () => {
     const workspace = useAppSelector(selectWorkspace);
     const router = useRouter();
     const pathname = usePathname();
-    const { toast } = useToast();
 
     const { data, isLoading, isFetching, refetch } = useVerifyWorkspaceDomainQuery(workspace.id, { skip: !workspace.id, refetchOnMountOrArgChange: false, refetchOnReconnect: true, refetchOnFocus: false });
 

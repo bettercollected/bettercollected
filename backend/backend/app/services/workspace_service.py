@@ -22,6 +22,7 @@ from backend.app.models.workspace import (
     WorkspaceResponseDto,
 )
 from backend.app.repositories.workspace_repository import WorkspaceRepository
+from backend.app.middlewares.dynamic_cors_middleware import DynamicCORSMiddleware
 from backend.app.schemas.allowed_origin import AllowedOriginsDocument
 from backend.app.schemas.workspace import WorkspaceDocument
 from backend.app.schemas.workspace_user import WorkspaceUserDocument
@@ -211,6 +212,7 @@ class WorkspaceService:
                                 origin="https://" + workspace_patch.custom_domain
                             )
                         )
+                    await DynamicCORSMiddleware.force_refresh_origins()
                     await self.update_https_server_for_certificate(
                         old_domain=workspace_document.custom_domain,
                         new_domain=workspace_patch.custom_domain,
@@ -275,6 +277,7 @@ class WorkspaceService:
             old_domain=workspace_document.custom_domain
         )
         workspace_document.custom_domain = ""
+        await DynamicCORSMiddleware.force_refresh_origins()
         saved_workspace = await workspace_document.save()
         return WorkspaceResponseDto(**saved_workspace.model_dump(mode='json'))
 

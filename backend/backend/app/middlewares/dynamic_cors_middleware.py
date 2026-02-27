@@ -26,5 +26,12 @@ class DynamicCORSMiddleware(CORSMiddleware):
         DynamicCORSMiddleware._allowed_origins = [doc.origin for doc in docs]
         DynamicCORSMiddleware._cache_refreshed_at = now
 
+    @classmethod
+    async def force_refresh_origins(cls) -> None:
+        """Force reload allowed origins from the database, bypassing the cache TTL."""
+        docs = await AllowedOriginsDocument.find().to_list()
+        cls._allowed_origins = [doc.origin for doc in docs]
+        cls._cache_refreshed_at = datetime.datetime.now(datetime.timezone.utc)
+
     def is_allowed_origin(self, origin: str) -> bool:
         return origin in self._allowed_origins
