@@ -10,7 +10,7 @@ import { FormSlideLayout } from '@app/models/enums/form';
 import { useActiveFieldComponent, useActiveSlideComponent } from '@app/store/jotai/active-builder-component';
 import { reorder } from '@app/utils/array-utils';
 
-const initialFieldsAtom = atom<StandardFormFieldDto[]>([
+export const initialFieldsState: StandardFormFieldDto[] = [
     {
         id: v4(),
         index: 0,
@@ -31,7 +31,9 @@ const initialFieldsAtom = atom<StandardFormFieldDto[]>([
         },
         imageUrl: globalConstants.defaultImage
     }
-]);
+]
+
+const initialFieldsAtom = atom<StandardFormFieldDto[]>(initialFieldsState);
 
 export default function useFormFieldsAtom() {
     const [formFields, setFormFields] = useAtom(initialFieldsAtom);

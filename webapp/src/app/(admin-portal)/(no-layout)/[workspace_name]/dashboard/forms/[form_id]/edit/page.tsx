@@ -1,163 +1,19 @@
 'use client';
 
-import { use, useEffect, useState } from 'react';
-
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-
-import { useDialogModal } from '@app/lib/hooks/use-dialog-modal';
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
-import { useActiveFieldComponent, useActiveSlideComponent } from '@app/store/jotai/active-builder-component';
-import useFormFieldsAtom from '@app/store/jotai/field-selectors';
-import { useFormState } from '@app/store/jotai/form';
-import { useNavbarState } from '@app/store/jotai/navbar';
-import { deepCopy } from '@app/utils/object-utils';
-import AutoSaveForm from '@app/views/molecules/form-builder/audo-save-form';
-import LeftDrawer from '@app/views/organism/form-builder/left-drawer';
-import PropertiesDrawer from '@app/views/organism/form-builder/properties-drawer';
-import SlideBuilder from '@app/views/organism/form-builder/slide-builder';
-import ThankYouSlide from '@app/views/organism/form-builder/thankyou-page';
-import WelcomeSlide from '@app/views/organism/form-builder/welcome-page';
-import Navbar from '@app/views/organism/navbar';
-import FloatingPopOverButton from '@Components/sidebar/floating-pop-over-button';
-import HelpMenuComponent from '@Components/sidebar/help-menu-component';
-import HelpMenuItem from '@Components/sidebar/help-menu-item';
+import FullScreenLoader from '@Components/ui/fullscreen-loader';
+import FormEditPage from './_components/form-edit-page';
 
 export default function FormPage(props: { params: Promise<{ form_id: string }> }) {
-    const params = use(props.params);
-    const { formFields, setFormFields } = useFormFieldsAtom();
-    const { setFormState, formState } = useFormState();
-
-    const { activeSlideComponent } = useActiveSlideComponent();
-
-    const { setActiveFieldComponent } = useActiveFieldComponent();
-
-    const pathname = usePathname();
-    const router = useRouter();
-
-    const { navbarState, setNavbarState } = useNavbarState();
-
-    const searchParams = useSearchParams();
-    const showModal = searchParams?.get('showTitle');
-
-    const { openDialogModal } = useDialogModal();
 
     const standardForm: any = useAppSelector(selectForm);
 
-    const formId = params.form_id;
-
-    const getScaledDivStyles = () => {
-        if (typeof window !== 'undefined') {
-            const windowHeight = window.innerHeight;
-            const windowWidth = window.innerWidth;
-            const slideViewportWidth = windowWidth - 520;
-            const slideViewportHeight = windowHeight - 192;
-            const aspectRatio = 16 / 9;
-            if (slideViewportWidth / aspectRatio > slideViewportHeight) {
-                return {
-                    height: '100vh',
-                    scale: slideViewportHeight / windowHeight,
-                    transformOrigin: 'top left'
-                };
-            }
-            return {
-                width: '100vw',
-                scale: slideViewportWidth / windowWidth,
-                transformOrigin: 'top left'
-            };
-        }
-        return undefined;
-    };
-
-    const getScaledDivWidth = () => {
-        const styles = getScaledDivStyles();
-        if (styles?.width) {
-            return window.innerWidth - 520;
-        }
-        return ((window?.innerHeight - 192) * 16) / 9;
-    };
-
-    const [scaledDivStyle, setScaledDivStyle] = useState(getScaledDivStyles());
-
-    useEffect(() => {
-        const handleResize = () => {
-            setScaledDivStyle(getScaledDivStyles());
-        };
-
-        window.addEventListener('resize', handleResize, false);
-
-        return () => {
-            window.removeEventListener('resize', handleResize);
-        };
-    }, []);
-
-    useEffect(() => {
-        if (showModal === 'true') {
-            openDialogModal('ADD_FORM_TITLE');
-            if (pathname) router.replace(pathname);
-        }
-    }, [showModal]);
-
-    useEffect(() => {
-        if (standardForm.formId) {
-            if (!standardForm.welcomePage || !standardForm.thankyouPage) {
-                const form = { ...standardForm, ...formState };
-                setFormState(form);
-            } else {
-                const copiedThankyouPage = deepCopy(standardForm?.thankyouPage || formState.thankyouPage);
-                const copiedWelcomePage = deepCopy(standardForm?.welcomePage || formState.welcomePage);
-                const form = {
-                    ...formState,
-                    title: standardForm.title,
-                    thankyouPage: copiedThankyouPage,
-                    welcomePage: copiedWelcomePage
-                };
-                setFormState(form);
-            }
-            const deepCopiedFormFields = deepCopy(standardForm?.fields || []);
-            setFormFields(deepCopiedFormFields);
-            setNavbarState({
-                ...navbarState,
-                multiplePages: !!standardForm.isMultiPage
-            });
-        }
-    }, [standardForm.formId]);
+    if (!standardForm.formId) {
+        return <FullScreenLoader />
+    }
 
     return (
-        <main className=" flex h-screen flex-col items-center justify-start overflow-hidden bg-white">
-            <Navbar />
-            <AutoSaveForm formId={formId} />
-            <div className="max-h-body-content  flex w-full flex-row items-center">
-                <LeftDrawer formFields={formFields} activeSlideComponent={activeSlideComponent} />
-                <div
-                    className=" relative flex max-h-full max-w-full flex-1 justify-center overflow-x-hidden px-5 py-14"
-                    onClick={() => {
-                        setActiveFieldComponent(null);
-                    }}
-                >
-                    <div
-                        style={{
-                            width: getScaledDivWidth()
-                        }}
-                    >
-                        <div className="!shadow-slide aspect-video overflow-hidden" style={scaledDivStyle}>
-                            <div className="   mx-auto h-full w-full  rounded-lg">
-                                {activeSlideComponent?.id && activeSlideComponent?.index >= 0 && <SlideBuilder slide={formFields[activeSlideComponent?.index]} />}
-                                {!activeSlideComponent?.id && <div>Add a slide to start</div>}
-                                {activeSlideComponent?.id === 'welcome-page' && <WelcomeSlide />}
-
-                                {activeSlideComponent?.id === 'thank-you-page' && <ThankYouSlide />}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div id="slide-element-properties" className="border-l-black-300 h-full w-[200px] self-stretch overflow-auto bg-white">
-                    <PropertiesDrawer />
-                </div>
-                <FloatingPopOverButton content={<HelpMenuComponent />}>
-                    <HelpMenuItem />
-                </FloatingPopOverButton>
-            </div>
-        </main>
+        <FormEditPage params={props.params} />
     );
 }

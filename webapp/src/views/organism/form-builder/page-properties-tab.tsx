@@ -210,7 +210,7 @@ export default function PagePropertiesTab({ }: {}) {
                                             <Switch
                                                 checked={formState.thankyouPage && IsValidString(formState.thankyouPage[activeThankYouPageComponent?.index || 0].buttonText)}
                                                 onCheckedChange={(checked) => {
-                                                    setThankYouPageButtonText(activeThankYouPageComponent?.index || 0, checked ? '' : undefined);
+                                                    setThankYouPageButtonText(activeThankYouPageComponent?.index || 0, checked ? 'Try bettercollected' : undefined);
                                                 }}
                                             />
                                         </div>
@@ -228,7 +228,7 @@ export default function PagePropertiesTab({ }: {}) {
                                                     <Switch
                                                         checked={formState.thankyouPage && IsValidString(formState.thankyouPage[activeThankYouPageComponent?.index || 0].buttonLink)}
                                                         onCheckedChange={(checked) => {
-                                                            setThankYouPageButtonLink(activeThankYouPageComponent?.index || 0, checked ? '' : undefined);
+                                                            setThankYouPageButtonLink(activeThankYouPageComponent?.index || 0, checked ? 'https://bettercollected.com' : undefined);
                                                         }}
                                                     />
                                                 </div>

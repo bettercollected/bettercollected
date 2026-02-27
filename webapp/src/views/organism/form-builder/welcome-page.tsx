@@ -1,5 +1,4 @@
 import cn from 'classnames';
-import styled from 'styled-components';
 
 import { FormSlideLayout } from '@app/models/enums/form';
 import { AutosizeTextarea } from '@app/shadcn/components/ui/autosize-textarea';
@@ -10,14 +9,8 @@ import { useEffect, useState } from 'react';
 import { useDebounceValue } from 'usehooks-ts';
 import GreetingLayoutWrapper from '../layout/greeting-layout-wrapper';
 
-const StyledInputField = styled.input`
-    &::placeholder {
-        color: #aeb9d8;
-    }
-`;
-
 const WelcomeSlide = ({ disabled }: { disabled?: boolean }) => {
-    const { theme, formState, setFormDescription, setWelcomeTitle } = useFormState();
+    const { theme, formState, setFormDescription, setFormTitle } = useFormState();
     const [description, setDescription] = useState('');
     const [debouncedDescription] = useDebounceValue(description, 300);
     useEffect(() => {
@@ -35,9 +28,9 @@ const WelcomeSlide = ({ disabled }: { disabled?: boolean }) => {
                         style={{ resize: 'none' }}
                         placeholder="Form Title"
                         className=" w-full border-0 px-0 py-0 text-[40px] font-bold leading-[60px]"
-                        value={formState.welcomePage?.title}
+                        value={formState.title}
                         onChange={(event) => {
-                            setWelcomeTitle(event.target.value);
+                            setFormTitle(event.target.value);
                         }}
                     />
                     {formState?.welcomePage?.description !== undefined && formState?.welcomePage?.description !== null ? (

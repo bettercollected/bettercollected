@@ -40,7 +40,7 @@ export default function WelcomePage({
 
                 <div className="flex h-full w-full max-w-[800px] flex-col justify-center">
                     <div className="mb-12">
-                        <div className="text-[40px] font-bold leading-[48px]">{welcomePage?.title}</div>
+                        <div className="text-[40px] font-bold leading-[48px]">{standardForm?.title}</div>
                         {welcomePage?.description && (
                             <div className="text-black-700 mt-4 " style={{ whiteSpace: 'pre-line' }}>
                                 {welcomePage?.description}
