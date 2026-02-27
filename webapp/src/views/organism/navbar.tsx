@@ -111,6 +111,7 @@ const Navbar = () => {
                     placeholder="Form Title"
                     value={formState.title}
                     onChange={(event) => {
+                        console.log("Changed title to ", event.target.value);
                         setFormTitle(event.target.value);
                     }}
                     className="w-full overflow-clip text-ellipsis border-0 resize-none"
@@ -169,18 +170,6 @@ const Navbar = () => {
                             </DropdownMenu.Trigger>
                         </button>
                     </DropdownMenu>
-                    {/* <DropdownMenu>
-                    <button data-umami-event={'Add Layout Image Button'} data-umami-event-email={authState.email}>
-                        <DropdownMenu.Trigger onClick={handleClickMedia}>
-                            <div className={'flex items-center hover:bg-inherit'}>
-                                <div className="!text-black-500 hover:!text-black-900 flex flex-row items-center gap-1 text-xs font-semibold ">
-                                    <MediaOutlinedIcon />
-                                    Layout Image
-                                </div>
-                            </div>
-                        </DropdownMenu.Trigger>
-                    </button>
-                </DropdownMenu> */}
 
                     <DropdownMenu>
                         <DropdownMenu.Trigger onClick={() => { }}>

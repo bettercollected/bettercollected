@@ -23,6 +23,10 @@ export default function AutoSaveForm({ formId }: { formId: string }) {
     const combinedFormState = useMemo(
         () => ({
             ...formState,
+            welcomePage: {
+                ...formState.welcomePage,
+                title: formState.title
+            },
             fields: formFields
         }),
         [formFields, formState]

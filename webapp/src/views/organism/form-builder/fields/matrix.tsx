@@ -1,14 +1,13 @@
 import { FormTheme } from '@app/constants/theme';
 import { StandardFormFieldDto } from '@app/models/dtos/form';
-import { Textarea } from '@app/shadcn/components/ui/textarea';
+import { AppInput } from '@app/shadcn/components/ui/input';
 import { cn } from '@app/shadcn/util/lib';
 import useFormFieldsAtom from '@app/store/jotai/field-selectors';
 import { IThemeState, useFormState } from '@app/store/jotai/form';
 import { useFormResponse } from '@app/store/jotai/responder-form-response';
 import * as CheckboxPrimitive from '@radix-ui/react-checkbox';
 import * as RadioGroupPrimitive from '@radix-ui/react-radio-group';
-import { Close } from '@radix-ui/react-toast';
-import { Check, Circle } from 'lucide-react';
+import { Check, Circle, X } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
 import { useDebounceValue } from 'usehooks-ts';
@@ -73,12 +72,12 @@ function MatrixFieldComponent({ field, disabled }: IMatrixFieldProps) {
 
                                 {disabled && activeField?.id === field.id && (
                                     <div
-                                        className="cross-left absolute top-1 rounded-full bg-white p-1 opacity-50"
+                                        className="cross-top absolute left-1 rounded-full bg-white p-1 opacity-50 h-6 w-6"
                                         onClick={() => {
                                             deleteColumn(index);
                                         }}
                                     >
-                                        <Close className="h-4 w-4" />
+                                        <X className="h-4 w-4 " />
                                     </div>
                                 )}
                             </div>
@@ -127,12 +126,12 @@ function MatrixFieldComponent({ field, disabled }: IMatrixFieldProps) {
                                 )}
                                 {disabled && activeField?.id === field.id && (field?.properties?.fields?.length || -1) > 1 && (
                                     <div
-                                        className="cross-top absolute left-1 rounded-full bg-white p-1 opacity-50"
+                                        className="cross-top absolute left-1 rounded-full bg-white p-1 opacity-50 h-6 w-6"
                                         onClick={() => {
                                             deleteRow(index);
                                         }}
                                     >
-                                        <Close className="h-4 w-4" />
+                                        <X className="h-4 w-4 " />
                                     </div>
                                 )}
                             </div>
@@ -193,7 +192,7 @@ const MatrixHeaderInput = ({ value, onChange, disabled, placeholder }: { value: 
 
     return (
         <StyledMatrixHeaderInput
-            className={cn('ring-none focus:ring-none items-center border-none bg-transparent text-center text-sm outline-none focus:border-none focus:outline-none focus-visible:outline-none active:outline-none', disabled && 'pointer-events-none')}
+            className={cn('ring-none focus:ring-none items-center border-none bg-transparent text-center text-sm outline-none focus:!border-none focus:outline-none focus-visible:outline-none active:outline-none', disabled && 'pointer-events-none')}
             placeholder={placeholder || 'Header'}
             value={inputVal}
             onChange={(event) => {
@@ -202,7 +201,7 @@ const MatrixHeaderInput = ({ value, onChange, disabled, placeholder }: { value: 
         />
     );
 };
-const StyledMatrixHeaderInput = styled(Textarea)<{ $theme?: IThemeState }>(() => {
+const StyledMatrixHeaderInput = styled(AppInput)<{ $theme?: IThemeState }>(() => {
     const { theme } = useFormState();
     const themeColor = theme?.tertiary;
     const secondaryColor = theme?.secondary;
