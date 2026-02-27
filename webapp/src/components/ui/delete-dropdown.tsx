@@ -18,6 +18,7 @@ export default function DeleteDropDown({ onDropDownItemClick, className, label }
                 <div
                     className={`${className} cursor-pointer`}
                     onClick={(e) => {
+                        setOpen(!open);
                         e.stopPropagation();
                         e.preventDefault();
                     }}
@@ -26,7 +27,7 @@ export default function DeleteDropDown({ onDropDownItemClick, className, label }
                 </div>
             </PopoverTrigger>
             <PopoverContent
-                className="w-[200px] p-0 rounded-lg drop-shadow-xl"
+                className="w-[200px] p-0 rounded-lg drop-shadow-xl bg-white"
                 align="end"
                 onClick={() => setOpen(false)}
             >

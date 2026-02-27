@@ -41,7 +41,9 @@ export default function AddRegexModal({ handleRegex }: { handleRegex: (regex: st
                 <Label className="h4-new mb-2 !font-medium" htmlFor="regex">
                     {t(groupConstant.regex.modal.label)}
                 </Label>
-                <AppInput onChange={handleInput} placeholder="*@example.com" />
+                <div className="pt-2">
+                    <AppInput className="w-full" onChange={handleInput} placeholder="*@example.com" />
+                </div>
                 <div className="flex justify-end mt-4">
                     <Button size="medium" className={'w-full'} disabled={!regex}>
                         {t(buttonConstant.addRegex)}

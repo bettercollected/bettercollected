@@ -75,7 +75,7 @@ export default function GroupFormsTab({ group, workspaceForms }: { group: Respon
                                     }}
                                     key={form.formId + idx}
                                 >
-                                    <WorkspaceFormCard isResponderPortal key={form.formId} form={form} hasCustomDomain={false} workspace={workspace} group={group} />
+                                    <WorkspaceFormCard key={form.formId} form={form} hasCustomDomain={false} workspace={workspace} group={group} />
                                 </div>
                             );
                         })}

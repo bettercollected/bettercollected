@@ -29,7 +29,7 @@ export default function GroupInfo({ handleInput, groupInfo }: IGroupInfoProps) {
             </p>
             <AppInput className='w-full' disabled={!isAdmin} value={groupInfo.name} id="name" placeholder={t(placeHolder.groupName)} onChange={handleInput} />
             <p className="h4-new leading-none mt-8 !font-medium mb-2">{t(localesCommon.description)}</p>
-            <Textarea disabled={!isAdmin} value={groupInfo.description} id="description" placeholder={t(placeHolder.description)} onChange={handleInput} />
+            <Textarea disabled={!isAdmin} value={groupInfo.description} id="description" placeholder={t(placeHolder.description)} onChange={handleInput} className='bg-white rounded-md ring-none' />
         </div>
     );
 }
