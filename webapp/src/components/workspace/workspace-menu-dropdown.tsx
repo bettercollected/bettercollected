@@ -88,7 +88,7 @@ export default function WorkspaceMenuDropdown({ fullWidth }: IWorkspaceMenuDropd
     };
 
     return (
-        <Popover open={open} onOpenChange={setOpen}>
+        <Popover open={open} onOpenChange={setOpen} modal>
             <PopoverTrigger asChild>
                 <div
                     className={`${fullWidth ? 'w-full' : 'w-fit'} flex cursor-pointer items-center justify-between overflow-hidden rounded-lg pr-4 hover:bg-black-100 ${open ? 'bg-black-100' : ''
@@ -109,7 +109,7 @@ export default function WorkspaceMenuDropdown({ fullWidth }: IWorkspaceMenuDropd
                 </div>
             </PopoverTrigger>
             <PopoverContent
-                className="w-[320px] p-0 overflow-hidden z-[999999] bg-white"
+                className="w-[320px] p-0 overflow-hidden bg-white z-[99999]"
                 align="start"
                 onClick={() => setOpen(false)}
                 onInteractOutside={() => setOpen(false)}

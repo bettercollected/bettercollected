@@ -97,7 +97,7 @@ class OauthGoogleService:
                 access_type="offline",
                 state=state,
                 include_granted_scopes="true",
-                prompt="consent",
+                prompt="select_account consent",
             )
             return authorization_url, state
         except InvalidGrantError:
