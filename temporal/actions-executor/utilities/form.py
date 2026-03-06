@@ -160,7 +160,8 @@ def get_placeholder_value_for_title(field_type):
         'rating': 'Rate from 1 to 5',
         'date': 'Select a date',
         'linear_rating': 'Rate from 1 to 10',
-        'matrix': 'Matrix Field'
+        'matrix': 'Matrix Field',
+        'tabular_input': 'Tabular Input Field'
     }
     return placeholders.get(field_type, 'No Field Selected')
 

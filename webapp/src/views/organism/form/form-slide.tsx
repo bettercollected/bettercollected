@@ -36,6 +36,7 @@ import TextAreaField from '@app/views/molecules/responder-form-fields/text-area-
 import ImageField from '../form-builder/fields/image-field';
 import MatrixField from '../form-builder/fields/matrix';
 import VideoField from '../form-builder/fields/video-field';
+import TabularInputResponderField from '@app/views/molecules/ResponderFormFields/TabularInputField';
 import SlideLayoutWrapper from '../layout/slide-layout-wrapper';
 
 export function FormFieldComponent({ field, slideIndex }: { field: StandardFormFieldDto; slideIndex: number }) {
@@ -78,6 +79,8 @@ export function FormFieldComponent({ field, slideIndex }: { field: StandardFormF
                     <MatrixField field={field} />
                 </QuestionWrapper>
             );
+        case FieldTypes.TABULAR_INPUT:
+            return <TabularInputResponderField field={field} />;
         default:
             return <QuestionWrapper field={field} />;
     }

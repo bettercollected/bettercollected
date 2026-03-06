@@ -19,7 +19,8 @@ enum AnswerType {
     PAYMENT = 'payment',
     FILE_UPLOAD = 'file_upload',
     RATING = 'rating',
-    LINEAR_RATING = 'linear_rating'
+    LINEAR_RATING = 'linear_rating',
+    TABULAR_INPUT = 'tabular_input'
 }
 
 export interface ChoicesAnswer {
@@ -52,6 +53,7 @@ export interface FormResponse {
             choices?: ChoicesAnswer;
             boolean?: boolean;
             file_metadata?: FileMetadata;
+            tabular_value?: string[][];
         };
     };
     invalidFields?: Record<string, Array<Invalidations>>;
@@ -261,6 +263,19 @@ export const useFormResponse = () => {
         });
     };
 
+    const addFieldTabularAnswer = (fieldId: string, value: string[][]) => {
+        setFormResponse({
+            ...formResponse,
+            answers: {
+                ...(formResponse.answers || {}),
+                [fieldId]: {
+                    type: AnswerType.TABULAR_INPUT,
+                    tabular_value: value
+                }
+            }
+        });
+    };
+
     const setInvalidFields = (invalidFields: Record<string, Array<Invalidations>>) => {
         setFormResponse({
             ...formResponse,
@@ -297,6 +312,7 @@ export const useFormResponse = () => {
         addFieldFileAnswer,
         addFieldRatingAnswer,
         addFieldLinearRatingAnswer,
+        addFieldTabularAnswer,
         removeAnswer,
         setInvalidFields,
         resetFormResponseAnswer

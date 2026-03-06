@@ -422,6 +422,26 @@ export default function useFormFieldsAtom() {
         setFormFields([...formFields]);
     };
 
+    const updateTabularRowTitle = (rowIdx: number, val: string) => {
+        const slideIndex = activeSlideComponent!.index;
+        const fieldIndex = activeFieldComponent!.index;
+        const field = formFields[slideIndex]?.properties?.fields?.[fieldIndex];
+        if (field?.properties?.rowTitles) {
+            field.properties.rowTitles[rowIdx] = val;
+            setFormFields([...formFields]);
+        }
+    };
+
+    const updateTabularColumnTitle = (colIdx: number, val: string) => {
+      const slideIndex = activeSlideComponent!.index;
+      const fieldIndex = activeFieldComponent!.index;
+      const field = formFields[slideIndex]?.properties?.fields?.[fieldIndex];
+      if (field?.properties?.columnTitles) {
+          field.properties.columnTitles[colIdx] = val;
+          setFormFields([...formFields]);
+      }
+    };
+
     const addColumn = () => {
         const updatedRows = formFields![activeSlideComponent!.index]!.properties!.fields![activeFieldComponent!.index]!.properties!.fields?.map((field) => {
             field.properties!.choices?.push({
@@ -499,11 +519,12 @@ export default function useFormFieldsAtom() {
     const addTabularRow = () => {
         const slideIndex = activeSlideComponent!.index;
         const fieldIndex = activeFieldComponent!.index;
-        const field = formFields[slideIndex].properties.fields[fieldIndex];
+        const field = formFields[slideIndex]?.properties?.fields?.[fieldIndex];
+        if (!field?.properties) return;
         // Add a new row title
         field.properties.rowTitles = [
             ...(field.properties.rowTitles || []),
-            `Row ${field.properties.rowTitles.length + 1}`
+            `Row ${(field.properties.rowTitles || []).length + 1}`
         ];
         // Add a new row to the value array
         const colCount = field.properties.columnTitles?.length || 3;
@@ -518,11 +539,12 @@ export default function useFormFieldsAtom() {
     const addTabularColumn = () => {
         const slideIndex = activeSlideComponent!.index;
         const fieldIndex = activeFieldComponent!.index;
-        const field = formFields[slideIndex].properties.fields[fieldIndex];
+        const field = formFields[slideIndex]?.properties?.fields?.[fieldIndex];
+        if (!field?.properties) return;
         // Add a new column title
         field.properties.columnTitles = [
             ...(field.properties.columnTitles || []),
-            `Col ${field.properties.columnTitles.length + 1}`
+            `Col ${(field.properties.columnTitles || []).length + 1}`
         ];
         // Add a new column to each row in the value array
         field.properties.value = (field.properties.value || []).map(row => [
@@ -533,28 +555,39 @@ export default function useFormFieldsAtom() {
     };
 
     // Delete a row from the TabularInput field
-    const deleteTabularRow = () => {
-        const slideIndex = activeSlideComponent!.index;
-        const fieldIndex = activeFieldComponent!.index;
-        const field = formFields[slideIndex].properties.fields[fieldIndex];
-        // Remove row title
-        field.properties.rowTitles = (field.properties.rowTitles || []).filter((_, idx) => idx !== rowIndex);
-        // Remove row from value array
-        field.properties.value = (field.properties.value || []).filter((_, idx) => idx !== rowIndex);
+    const deleteTabularRow = (slideIndex: number, fieldIndex: number, rowIndex: number) => {
+        const resolvedSlideIndex = slideIndex >= 0 ? slideIndex : activeSlideComponent!.index;
+        const slide = formFields[resolvedSlideIndex];
+        if (!slide?.properties?.fields) return;
+        const field = slide.properties.fields[fieldIndex];
+        if (!field?.properties) return;
+
+        const currentRowTitles = field.properties?.rowTitles || [];
+        const currentValue = field.properties?.value || [];
+
+        field.properties = {
+            ...(field.properties || {}),
+            rowTitles: currentRowTitles.filter((_: any, i: number) => i !== rowIndex),
+            value: currentValue.filter((_: any, i: number) => i !== rowIndex)
+        };
         setFormFields([...formFields]);
     };
 
-    // Delete a column from the TabularInput field
-    const deleteTabularColumn = () => {
-        const slideIndex = activeSlideComponent!.index;
-        const fieldIndex = activeFieldComponent!.index;
-        const field = formFields[slideIndex].properties.fields[fieldIndex];
-        // Remove column title
-        field.properties.columnTitles = (field.properties.columnTitles || []).filter((_, idx) => idx !== colIndex);
-        // Remove column from each row in value array
-        field.properties.value = (field.properties.value || []).map(row =>
-            row.filter((_, idx) => idx !== colIndex)
-        );
+    const deleteTabularColumn = (slideIndex: number, fieldIndex: number, colIndex: number) => {
+        const resolvedSlideIndex = slideIndex >= 0 ? slideIndex : activeSlideComponent!.index;
+        const slide = formFields[resolvedSlideIndex];
+        if (!slide?.properties?.fields) return;
+        const field = slide.properties.fields[fieldIndex];
+        if (!field?.properties) return;
+
+        const currentColTitles = field.properties?.columnTitles || [];
+        const currentValue = field.properties?.value || [];
+
+        field.properties = {
+            ...(field.properties || {}),
+            columnTitles: currentColTitles.filter((_: any, i: number) => i !== colIndex),
+            value: currentValue.map((row: string[]) => row.filter((_: string, i: number) => i !== colIndex))
+        };
         setFormFields([...formFields]);
     };
 
@@ -600,5 +633,7 @@ export default function useFormFieldsAtom() {
         addTabularColumn,
         deleteTabularRow,
         deleteTabularColumn,
+        updateTabularRowTitle,
+        updateTabularColumnTitle
     };
 }

@@ -5,7 +5,8 @@ from typing import Any, Dict, List, Optional
 
 from beanie import PydanticObjectId
 from common.models.consent import Consent, ConsentResponse, ResponseRetentionType
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
+from pydantic.alias_generators import to_camel
 
 
 class Theme(BaseModel):
@@ -75,6 +76,7 @@ class StandardFormFieldType(str, Enum):
     RATING = "rating"
     DROPDOWN = "dropdown"
     MATRIX = "matrix"
+    TABULAR_INPUT = "tabular_input"
     FILE_UPLOAD = "file_upload"
     GROUP = "group"
     EMAIL = "email"
@@ -312,7 +314,10 @@ class StandardFieldProperty(BaseModel):
     mentions: Optional[Dict[str, str]] = None
     theme: Optional[Theme] = None
     layout: Optional[LayoutType] = None
+    row_titles: Optional[List[str]] = None
+    column_titles: Optional[List[str]] = None
 
+    model_config = ConfigDict(populate_by_name=True, alias_generator=to_camel)
 
 class StandardFieldValidations(BaseModel):
     required: Optional[bool] = None
@@ -422,6 +427,8 @@ class StandardForm(BaseModel):
     theme: Optional[Theme] = None
     welcome_page: Optional[WelcomePageField] = None
     thankyou_page: Optional[List[ThankYouPageField]] = None
+    row_titles: Optional[List[str]] = None
+    column_titles: Optional[List[str]] = None
 
 
 class StandardFormResponseAnswer(BaseModel):
@@ -439,6 +446,7 @@ class StandardFormResponseAnswer(BaseModel):
     payment: Optional[StandardPaymentAnswer] = None
     phone_number: Optional[str] = None
     file_metadata: Optional[FileMetadata] = None
+    tabular_value: Optional[List[List[str]]] = None
 
 
 class ResponseState(BaseModel):

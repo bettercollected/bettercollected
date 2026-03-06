@@ -250,7 +250,7 @@ export default function PagePropertiesTab({ }: {}) {
                                         <input
                                             type="text"
                                             placeholder="Start"
-                                            value={formState.welcomePage?.buttonText}
+                                            value={formState.welcomePage?.buttonText || ''}
                                             onChange={(e: any) => setWelcomePageButtonText(e.target.value)}
                                             className="borer-[1px] border-black-300 focus:border-black-300 active:border-black-300 rounded-lg p-2 text-xs"
                                         />

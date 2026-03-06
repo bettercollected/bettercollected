@@ -33,6 +33,9 @@ export interface StandardFormFieldProperties {
     mentions?: any;
     logicalOperator?: any;
     actions?: any;
+    rowTitles?: Array<string>;
+    columnTitles?: Array<string>;
+    value?: Array<Array<string>>;
 }
 
 export interface StandardFormFieldDto {
@@ -163,6 +166,7 @@ export interface AnswerDto {
     file_metadata?: FileMetadata;
     phoneNumber?: string;
     phone_number?: string;
+    tabular_value?: string[][];
     choice?: {
         id?: string;
         label?: string;
@@ -246,5 +250,6 @@ export const V2InputFields = [
     FieldTypes.EMAIL,
     FieldTypes.PHONE_NUMBER,
     FieldTypes.DROP_DOWN,
-    FieldTypes.MATRIX
+    FieldTypes.MATRIX,
+    FieldTypes.TABULAR_INPUT
 ];
