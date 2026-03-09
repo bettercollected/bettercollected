@@ -55,6 +55,12 @@ export function getAnswerForField(response: StandardFormResponseDto, field: Stan
         case FieldTypes.PHONE_NUMBER:
         case FormBuilderTagNames.INPUT_PHONE_NUMBER:
             return answer?.phone_number;
+        case FieldTypes.TABULAR_INPUT:
+            const tabular_value = response.answers?.[field.id]?.tabular_value;
+            if (tabular_value && Array.isArray(tabular_value)) {
+                return tabular_value.map((row: string[]) => row.join(', ')).join(' | ');
+            }
+            return '';
         case FormBuilderTagNames.INPUT_RANKING:
             return answer?.choices?.values?.map((choice: any) => choice?.value)?.join(', ');
         case FormBuilderTagNames.INPUT_FILE_UPLOAD:

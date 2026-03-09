@@ -49,6 +49,7 @@ class FormDtoCamelModel(CamelModel):
     secrets: Optional[Dict[str, List[ParameterValue]]] = None
     row_titles: Optional[List[str]] = None
     column_titles: Optional[List[str]] = None
+    tabular_value: Optional[List[List[str]]] = None
 
     theme: Optional[Theme] = None
     welcome_page: Optional[WelcomePageField] = None

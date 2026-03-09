@@ -35,7 +35,7 @@ export interface StandardFormFieldProperties {
     actions?: any;
     rowTitles?: Array<string>;
     columnTitles?: Array<string>;
-    value?: Array<Array<string>>;
+    tabular_value?: Array<Array<string>>;
 }
 
 export interface StandardFormFieldDto {

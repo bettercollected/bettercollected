@@ -392,7 +392,7 @@ export default function useFormFieldsAtom() {
                 properties: {
                     rowTitles: ['Row 1', 'Row 2', 'Row 3'],
                     columnTitles: ['Col 1', 'Col 2', 'Col 3'],
-                    value: [
+                    tabular_value: [
                         ['', '', ''],
                         ['', '', ''],
                         ['', '', '']
@@ -509,7 +509,7 @@ export default function useFormFieldsAtom() {
         ) {
             formFields[slideIndex].properties.fields[fieldIndex].properties = {
                 ...(formFields[slideIndex].properties.fields[fieldIndex].properties || {}),
-                value
+                tabular_value: value
             };
             setFormFields([...formFields]);
         }
@@ -526,10 +526,9 @@ export default function useFormFieldsAtom() {
             ...(field.properties.rowTitles || []),
             `Row ${(field.properties.rowTitles || []).length + 1}`
         ];
-        // Add a new row to the value array
         const colCount = field.properties.columnTitles?.length || 3;
-        field.properties.value = [
-            ...(field.properties.value || []),
+        field.properties.tabular_value = [
+            ...(field.properties.tabular_value || []),
             Array(colCount).fill('')
         ];
         setFormFields([...formFields]);
@@ -546,8 +545,7 @@ export default function useFormFieldsAtom() {
             ...(field.properties.columnTitles || []),
             `Col ${(field.properties.columnTitles || []).length + 1}`
         ];
-        // Add a new column to each row in the value array
-        field.properties.value = (field.properties.value || []).map(row => [
+        field.properties.tabular_value = (field.properties.tabular_value || []).map(row => [
             ...row,
             ''
         ]);
@@ -563,12 +561,12 @@ export default function useFormFieldsAtom() {
         if (!field?.properties) return;
 
         const currentRowTitles = field.properties?.rowTitles || [];
-        const currentValue = field.properties?.value || [];
+        const currentValue = field.properties?.tabular_value || [];
 
         field.properties = {
             ...(field.properties || {}),
             rowTitles: currentRowTitles.filter((_: any, i: number) => i !== rowIndex),
-            value: currentValue.filter((_: any, i: number) => i !== rowIndex)
+            tabular_value: currentValue.filter((_: any, i: number) => i !== rowIndex)
         };
         setFormFields([...formFields]);
     };
@@ -581,12 +579,12 @@ export default function useFormFieldsAtom() {
         if (!field?.properties) return;
 
         const currentColTitles = field.properties?.columnTitles || [];
-        const currentValue = field.properties?.value || [];
+        const currentValue = field.properties?.tabular_value || [];
 
         field.properties = {
             ...(field.properties || {}),
             columnTitles: currentColTitles.filter((_: any, i: number) => i !== colIndex),
-            value: currentValue.map((row: string[]) => row.filter((_: string, i: number) => i !== colIndex))
+            tabular_value: currentValue.map((row: string[]) => row.filter((_: string, i: number) => i !== colIndex))
         };
         setFormFields([...formFields]);
     };

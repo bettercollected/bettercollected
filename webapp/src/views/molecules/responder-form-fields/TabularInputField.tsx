@@ -13,7 +13,7 @@ export default function TabularInputResponderField({ field }: { field: StandardF
 
     // Get existing answer or fall back to field's default value
     const value = formResponse?.answers?.[field.id]?.tabular_value
-        ?? field?.properties?.value
+        ?? field?.properties?.tabular_value
         ?? [];
 
     return (
@@ -23,7 +23,6 @@ export default function TabularInputResponderField({ field }: { field: StandardF
                 onChange={(val) => addFieldTabularAnswer(field.id, val)}
                 rowTitles={rowTitles}
                 columnTitles={columnTitles}
-                disabled={false}
                 field={field}
             />
         </QuestionWrapper>

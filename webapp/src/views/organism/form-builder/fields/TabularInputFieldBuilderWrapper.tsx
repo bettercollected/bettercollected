@@ -11,11 +11,10 @@ export default function TabularInputFieldBuilderWrapper({ field, slide }: { fiel
     const { theme } = useFormState();
     const { addTabularRow, addTabularColumn, activeField, updateTabularInputValue, deleteTabularRow, deleteTabularColumn } = useFormFieldsAtom();
     const { activeSlideComponent } = useActiveSlideComponent();
-    const [isEditable, setIsEditable] = useState(true); // isEditable for admin-editable...
 
     const rowTitles = field?.properties?.rowTitles || [];
     const columnTitles = field?.properties?.columnTitles || [];
-    const value = field?.properties?.value || [];
+    const value = field?.properties?.tabular_value || [];
 
     const slideIndex = slide !== undefined && slide >= 0 ? slide : activeSlideComponent?.index ?? 0;
 

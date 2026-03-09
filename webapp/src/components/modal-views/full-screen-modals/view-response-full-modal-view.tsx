@@ -14,6 +14,7 @@ import DeleteIcon from '@Components/icons/delete';
 import { motion } from 'framer-motion';
 import { MoreVertical } from 'lucide-react';
 import { useFullScreenModal } from '../full-screen-modal-context';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@app/shadcn/components/ui/table';
 
 interface IViewResponseFullModalView {
     response: StandardFormResponseDto;
@@ -70,11 +71,51 @@ export const IndividualFormResponse = ({ formFields, response, form }: { formFie
             toast({ description: 'Error downloading file', variant: 'destructive' });
         }
     };
+    console.warn("The form fields: ", formFields);
     return (
         <div className="flex h-[90vh]  w-full flex-col gap-8 overflow-y-auto p-4 pt-6 ">
             {formFields.map((field) => {
+                const ans = response.answers[field.id];
+
+                if (field.type === FieldTypes.TABULAR_INPUT) {
+                    const rowTitles = field.properties?.rowTitles;
+                    const colTitles = field.properties?.columnTitles || field.properties?.column_titles || [];
+                    const tabularData = ans?.tabular_value || ans?.tabularValue || [];
+
+                    return (
+                        <div className="flex flex-col gap-2" key={field.id}>
+                            <span className="p4-new text-black-500">{getTitleForHeaderForTable(field)}</span>
+                            <div className="overflow-x-auto rounded-md border border-gray-200">
+                                <Table className="min-w-full text-xs">
+                                    <TableHeader>
+                                        <TableRow className="bg-gray-50">
+                                            <TableHead className="w-24 border-r"></TableHead>
+                                            {colTitles.map((col, i) => (
+                                                <TableHead key={i} className="text-center font-bold border-r last:border-r-0">
+                                                    {col}
+                                                </TableHead>
+                                            ))}
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {rowTitles.map((rowTitle, rIdx) => (
+                                            <TableRow key={rIdx}>
+                                                <TableCell className="bg-gray-50 font-bold border-r text-center">{rowTitle}</TableCell>
+                                                {colTitles.map((_, cIdx) => (
+                                                    <TableCell key={cIdx} className="text-center border-r last:border-r-0">
+                                                        {tabularData[rIdx]?.[cIdx] || '-'}
+                                                    </TableCell>
+                                                ))}
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            </div>
+                        </div>
+                    );
+                }
+
                 if (field.type === FieldTypes.FILE_UPLOAD || field.type === FieldTypes.INPUT_FILE_UPLOAD) {
-                    const ans = response.answers[field.id];
                     return (
                         <div className="flex flex-col gap-1" key={field.id}>
                             <span className="p4-new text-black-500">{getTitleForHeaderForTable(field)}</span>

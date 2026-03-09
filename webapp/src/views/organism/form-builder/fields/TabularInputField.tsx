@@ -68,6 +68,12 @@ export default function TabularInputField({
   const [localColTitles, setLocalColTitles] = useState(columns);
 
   useEffect(() => {
+    if ((!value || value.length === 0) && initialValue.length > 0) {
+      onChange(initialValue);
+    }
+  }, []);
+
+  useEffect(() => {
     if (
       value &&
       value.length >= minRows &&
@@ -220,7 +226,7 @@ export default function TabularInputField({
                   >
                     <Input
                       value={cell ?? ''}
-                      disabled={!disabled}
+                      disabled={disabled}
                       onChange={(e) => handleInputChange(rowIdx, colIdx, e.target.value)}
                       className="text-center !text-sm bg-transparent border-none outline-none focus:ring-0"
                       style={{ color: theme?.secondary }}

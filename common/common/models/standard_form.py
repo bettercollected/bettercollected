@@ -1,7 +1,7 @@
 import datetime as dt
 import enum
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 from beanie import PydanticObjectId
 from common.models.consent import Consent, ConsentResponse, ResponseRetentionType
@@ -154,6 +154,7 @@ class StandardResponseType(str, Enum):
     PHONE_NUMBER = "phone_number"
     FILE_URL = "file_url"
     PAYMENT = "payment"
+    TABULAR_INPUT = "tabular_input"
 
 
 class StandardAttachmentProperties(BaseModel):
@@ -316,6 +317,7 @@ class StandardFieldProperty(BaseModel):
     layout: Optional[LayoutType] = None
     row_titles: Optional[List[str]] = None
     column_titles: Optional[List[str]] = None
+    tabular_value: Optional[List[List[str]]] = None
 
     model_config = ConfigDict(populate_by_name=True, alias_generator=to_camel)
 
@@ -429,7 +431,6 @@ class StandardForm(BaseModel):
     thankyou_page: Optional[List[ThankYouPageField]] = None
     row_titles: Optional[List[str]] = None
     column_titles: Optional[List[str]] = None
-
 
 class StandardFormResponseAnswer(BaseModel):
     field: Optional[StandardAnswerField] = None
