@@ -93,7 +93,10 @@ export default function TabularInputField({
   return (
     <div className="w-full overflow-hidden rounded-lg shadow-sm">
       <div 
-        className="overflow-x-auto rounded-lg border" 
+        className={cn(
+          "overflow-x-auto rounded-lg border custom-scrollbar", 
+          "scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent"
+        )} 
         style={{ borderColor: theme?.secondary }}
       >
         <Table className="min-w-max w-full border-collapse">
