@@ -4,9 +4,9 @@ import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useFormState } from '@app/store/jotai/form';
 import { Input } from '@app/shadcn/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@app/shadcn/components/ui/table';
-import useFormFieldsAtom from '@app/store/jotai/fieldSelector';
+import useFormFieldsAtom from '@app/store/jotai/field-selectors';
 import { cn } from '@app/shadcn/util/lib';
-import { Close } from '@app/views/atoms/Icons/Close';
+import { Close } from '@app/components/icons/close';
 import { StandardFormFieldDto } from '@app/models/dtos/form';
 
 interface TabularInputFieldProps {
