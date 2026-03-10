@@ -1,9 +1,9 @@
 'use client';
 
 import { StandardFormFieldDto } from '@app/models/dtos/form';
-import { useFormResponse } from '@app/store/jotai/responderFormResponse';
-import TabularInputField from '@app/views/organism/FormBuilder/Fields/TabularInputField';
-import QuestionWrapper from './QuestionQwrapper';
+import { useFormResponse } from '@app/store/jotai/responder-form-response';
+import TabularInputField from '@app/views/organism/form-builder/fields/tabular-input-field';
+import QuestionWrapper from './question-wrapper';
 
 export default function TabularInputResponderField({ field }: { field: StandardFormFieldDto }) {
     const { formResponse, addFieldTabularAnswer } = useFormResponse();

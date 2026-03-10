@@ -14,7 +14,7 @@ import FileUpload from './file-upload-field';
 import ImageField from './image-field';
 import InputField from './input-field';
 import MatrixFieldBuilderWrapper from './matrix-field-builder-wrapper';
-import TabularInputFieldBuilderWrapper from './TabularInputFieldBuilderWrapper';
+import TabularInputFieldBuilderWrapper from './tabular-input-field-builder-wrapper';
 import VideoField from './video-field';
 import YesNoField from './yes-no-field';
 
