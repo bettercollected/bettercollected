@@ -79,8 +79,8 @@ export const IndividualFormResponse = ({ formFields, response, form }: { formFie
 
                 if (field.type === FieldTypes.TABULAR_INPUT) {
                     const rowTitles = field.properties?.rowTitles;
-                    const colTitles = field.properties?.columnTitles || field.properties?.column_titles || [];
-                    const tabularData = ans?.tabular_value || ans?.tabularValue || [];
+                    const colTitles = field.properties?.columnTitles || [];
+                    const tabularData = ans?.tabular_value || [];
 
                     return (
                         <div className="flex flex-col gap-2" key={field.id}>
@@ -98,7 +98,7 @@ export const IndividualFormResponse = ({ formFields, response, form }: { formFie
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {rowTitles.map((rowTitle, rIdx) => (
+                                        {rowTitles?.map((rowTitle, rIdx) => (
                                             <TableRow key={rIdx}>
                                                 <TableCell className="bg-gray-50 font-bold border-r text-center">{rowTitle}</TableCell>
                                                 {colTitles.map((_, cIdx) => (
