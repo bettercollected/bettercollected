@@ -36,7 +36,7 @@ export const authApi = createApi({
         }),
         postSendOtp: builder.mutation<any, { workspace_id?: string; receiver_email: string }>({
             query: (body) => ({
-                url: body.workspace_id ? `/workspaces/${body.workspace_id}/auth/otp/send` : `/auth/otp/send`,
+                url: body.workspace_id ? `/workspaces/${body.workspace_id}/auth/otp/send` : `/auth/creator/otp/send`,
                 method: 'POST',
                 params: { receiver_email: body.receiver_email }
             }),
