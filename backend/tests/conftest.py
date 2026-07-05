@@ -5,6 +5,7 @@ from unittest.mock import patch
 import httpx
 import pymongo
 import pytest
+import pytest_asyncio
 from common.models.form_import import FormImportResponse
 from common.models.standard_form import StandardForm, StandardFormResponse
 from dotenv import load_dotenv
@@ -47,10 +48,16 @@ def _drop_test_db() -> None:
     sync_client.close()
 
 
-@pytest.fixture()
-async def client():
-    # Everything runs in pytest-asyncio's event loop so AsyncMongoClient is
-    # never passed between event loops (avoids the "different event loop" error).
+@pytest_asyncio.fixture(scope="session", loop_scope="session")
+async def _initialized_app():
+    """Initialise the app (and Beanie) exactly once for the whole test session.
+
+    Re-running the ASGI lifespan per test was the dominant cost of the suite:
+    `init_beanie` recreates indexes for every collection on each call. Everything
+    shares one session-scoped event loop (see the asyncio settings in
+    pyproject.toml) so the AsyncMongoClient created here stays valid for all
+    tests — the reason this was previously done per-test.
+    """
     original_uri = settings.mongo_settings.URI
     original_db = settings.mongo_settings.DB
     settings.mongo_settings.URI = TEST_MONGO_URI
@@ -60,19 +67,34 @@ async def client():
     _drop_test_db()
 
     app = get_application(is_test_mode=True)
-    # Manually run the ASGI lifespan in the current (pytest) event loop.
-    # This creates the AsyncMongoClient and initialises beanie here, so all
-    # fixtures that do DB work share the same event loop.
     async with lifespan(app):
-        async with httpx.AsyncClient(
-            transport=httpx.ASGITransport(app=app), base_url="http://test"
-        ) as ac:
-            yield ac
+        yield app
 
     _drop_test_db()
     settings.mongo_settings.URI = original_uri
     settings.mongo_settings.DB = original_db
     container.database_client.reset_override()
+
+
+@pytest_asyncio.fixture(autouse=True, loop_scope="session")
+async def _clean_db(_initialized_app):
+    """Reset data before each test without re-initialising Beanie.
+
+    Clearing documents (rather than dropping the database) keeps the indexes and
+    collections created by the one-time init, so per-test setup stays cheap.
+    """
+    db = container.database_client()[TEST_MONGO_DB]
+    for name in await db.list_collection_names():
+        await db[name].delete_many({})
+    yield
+
+
+@pytest_asyncio.fixture(loop_scope="session")
+async def client(_initialized_app):
+    async with httpx.AsyncClient(
+        transport=httpx.ASGITransport(app=_initialized_app), base_url="http://test"
+    ) as ac:
+        yield ac
 
 
 @pytest.fixture()
