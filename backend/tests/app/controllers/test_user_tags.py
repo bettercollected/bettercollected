@@ -5,7 +5,6 @@ from httpx import AsyncClient
 
 from backend.app.schemas.standard_form import FormDocument
 from backend.app.schemas.workspace import WorkspaceDocument
-from backend.app.services.openai_service import client
 from tests.app.controllers.data import (
     test_form_import_data,
     workspace_attribute,

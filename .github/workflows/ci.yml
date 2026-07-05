@@ -1,0 +1,114 @@
+name: CI
+
+on:
+    pull_request:
+        branches:
+            - master
+            - develop
+
+permissions:
+    contents: read
+
+concurrency:
+    group: ci-${{ github.ref }}
+    cancel-in-progress: true
+
+jobs:
+    # Picks the runner for the rest of the workflow: prefer a self-hosted runner
+    # when one is online, otherwise fall back to GitHub-hosted `ubuntu-latest`.
+    #
+    # Listing runners requires a token with "Administration: read" on the repo,
+    # which the default GITHUB_TOKEN does NOT have. Add a repo/org secret named
+    # RUNNER_READ_TOKEN (a fine-grained PAT with Administration:read, or a classic
+    # PAT with `repo`) to enable self-hosted selection. Without it, the check
+    # fails closed and everything runs on GitHub-hosted runners.
+    select-runner:
+        name: Select runner
+        runs-on: ubuntu-latest
+        outputs:
+            runner: ${{ steps.pick.outputs.runner }}
+        steps:
+            - name: Prefer self-hosted when available
+              id: pick
+              env:
+                  GH_TOKEN: ${{ secrets.RUNNER_READ_TOKEN || github.token }}
+                  REPO: ${{ github.repository }}
+              run: |
+                  runner="ubuntu-latest"
+                  online=$(gh api "repos/$REPO/actions/runners" \
+                      --jq '[.runners[] | select(.status=="online")] | length' 2>/dev/null || echo "")
+                  if [ -n "$online" ] && [ "$online" -gt 0 ] 2>/dev/null; then
+                      runner="self-hosted"
+                  fi
+                  echo "Online self-hosted runners: ${online:-unknown (no access) }"
+                  echo "Selected runner: $runner"
+                  echo "runner=$runner" >> "$GITHUB_OUTPUT"
+
+    backend-tests:
+        name: Backend tests (pytest)
+        needs: select-runner
+        runs-on: ${{ needs.select-runner.outputs.runner }}
+        # The backend tests talk to a real MongoDB (Beanie), so provide one.
+        # Without it, every DB call blocks on the ~30s ServerSelectionTimeout and
+        # the suite runs for many minutes.
+        services:
+            mongo:
+                image: mongo:7
+                ports:
+                    - 27017:27017
+                options: >-
+                    --health-cmd "mongosh --quiet --eval 'db.runCommand({ ping: 1 })'"
+                    --health-interval 10s
+                    --health-timeout 5s
+                    --health-retries 10
+        defaults:
+            run:
+                working-directory: backend
+        steps:
+            - uses: actions/checkout@v4
+
+            - name: Set up uv
+              uses: astral-sh/setup-uv@v5
+              with:
+                  python-version: 3.11.12
+                  enable-cache: true
+
+            - name: Install dependencies
+              env:
+                  VIRTUAL_ENV: ""
+              run: uv sync --frozen
+
+            - name: Run backend tests
+              env:
+                  VIRTUAL_ENV: ""
+                  MONGO_URI: mongodb://localhost:27017
+                  AUTH_AES_HEX_KEY: L5HuSlk0ijI3xzaccuy2x1jnzHNjtTw3zW53tjGHZG0=
+                  AUTH_JWT_SECRET: c3c66ff889b1deabc35ebb3cf07374f1fd934f0f0185eec076b5bcd874de86d5
+                  SCHEDULAR_ENABLED: "False"
+                  API_ENABLE_FORM_CREATION: "True"
+                  UNSPLASH_ACCESS_KEY: ""
+                  MASTER_ENCRYPTION_KEYSET: "ewogICAgICAgICAgImtleSI6IFt7CiAgICAgICAgICAgICAgImtleURhdGEiOiB7CiAgICAgICAgICAgICAgICAgICJrZXlNYXRlcmlhbFR5cGUiOgogICAgICAgICAgICAgICAgICAgICAgIlNZTU1FVFJJQyIsCiAgICAgICAgICAgICAgICAgICJ0eXBlVXJsIjoKICAgICAgICAgICAgICAgICAgICAgICJ0eXBlLmdvb2dsZWFwaXMuY29tL2dvb2dsZS5jcnlwdG8udGluay5BZXNHY21LZXkiLAogICAgICAgICAgICAgICAgICAidmFsdWUiOgogICAgICAgICAgICAgICAgICAgICAgIkdpQld5VWZHZ1lrM1JUUmhqL0xJVXpTdWRJV2x5akNmdENPeXBUcjBqQ05TTGc9PSIKICAgICAgICAgICAgICB9LAogICAgICAgICAgICAgICJrZXlJZCI6IDI5NDQwNjUwNCwKICAgICAgICAgICAgICAib3V0cHV0UHJlZml4VHlwZSI6ICJUSU5LIiwKICAgICAgICAgICAgICAic3RhdHVzIjogIkVOQUJMRUQiCiAgICAgICAgICB9XSwKICAgICAgICAgICJwcmltYXJ5S2V5SWQiOiAyOTQ0MDY1MDQKICAgICAgfQ=="
+              run: uv run pytest
+
+    webapp-build:
+        name: Webapp build & type-check
+        needs: select-runner
+        runs-on: ${{ needs.select-runner.outputs.runner }}
+        defaults:
+            run:
+                working-directory: webapp
+        steps:
+            - uses: actions/checkout@v4
+
+            - name: Set up Node
+              uses: actions/setup-node@v4
+              with:
+                  node-version-file: .nvmrc
+                  cache: yarn
+                  cache-dependency-path: webapp/yarn.lock
+
+            - name: Install dependencies
+              run: yarn install --frozen-lockfile
+
+            - name: Build (includes type-check)
+              run: yarn build

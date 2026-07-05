@@ -1,0 +1,36 @@
+version: 2
+updates:
+  # Frontend (Yarn)
+  - package-ecosystem: "npm"
+    directory: "/webapp"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    groups:
+      webapp-minor-and-patch:
+        update-types: ["minor", "patch"]
+    labels: ["dependencies", "webapp"]
+
+  # Python services (uv)
+  - package-ecosystem: "uv"
+    directories:
+      - "/backend"
+      - "/auth"
+      - "/common"
+      - "/integrations/google"
+      - "/temporal/worker"
+      - "/temporal/actions-executor"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    groups:
+      python-minor-and-patch:
+        update-types: ["minor", "patch"]
+    labels: ["dependencies", "python"]
+
+  # GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    labels: ["dependencies", "ci"]

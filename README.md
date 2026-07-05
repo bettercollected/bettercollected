@@ -2,71 +2,99 @@
 <img width="300" src="https://s3.eu-central-1.wasabisys.com/bettercollected/public/bettercollected_logo.png">
 </p>
 
-<p align="center" style="margin-top: 20px">
+<p align="center">
 <b>Privacy-Friendly Form Builder For Conscious Companies</b>
 </p>
 
+<p align="center">
+<a href="LICENSE"><img alt="License: Apache 2.0" src="https://img.shields.io/badge/License-Apache_2.0-blue.svg"></a>
+<a href="CONTRIBUTING.md"><img alt="PRs Welcome" src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg"></a>
+<a href="https://bettercollected.com"><img alt="Website" src="https://img.shields.io/badge/website-bettercollected.com-6E56CF"></a>
+</p>
+
+---
+
 ## What is bettercollected? [🔗](https://bettercollected.com)
 
-<hr/>
-Better collected is a form builder platform that allows user to show that they care about their responders's data by allowing 
-them to set purpose of the data collection which the responder gives consent to before submitting any form. In addition, it also allows the 
-responder to view his/her submission and request for deletion of that response.
+**bettercollected** is an open-source, privacy-friendly form builder. It lets
+you show responders that you care about their data: creators declare the
+**purpose** of the data they collect, responders **consent** before submitting,
+and they can later **view their submission and request its deletion** (a
+GDPR-style flow baked into the product).
 
-It provides a workspace that can be used to host all the forms in a single place.
+It provides a **workspace** to host all your forms in one place — forms built
+with the native drag-and-drop builder, or **imported from Google Forms and
+Typeform**.
 
-More details about bettercollected can be found at [bettercollected](https://bettercollected.com)
+More at [bettercollected.com](https://bettercollected.com).
 
-## Try out cloud version
+## Features
 
-Our cloud version is at https://bettercollected.com
+- 🧩 Drag-and-drop form builder with a rich set of field types
+- 🔐 Consent + purpose declaration, response viewing, and deletion requests
+- 🔗 Import forms and responses from **Google Forms** and **Typeform**
+- 🏢 Multi-tenant **workspaces** with members and custom domains
+- 📊 Response analytics and CSV export
+- 🤖 AI-assisted form generation
 
-**or**
+## Try it
 
-## Try it out yourself
+**Cloud:** the hosted version is at **[bettercollected.com](https://bettercollected.com)**.
 
-This document explains the deployment guide for the users to see the deployed project locally.
+**Self-host / develop locally:** see the setup below.
 
-## Sign in
+## Architecture
 
-### Email Sign In
+bettercollected is a polyglot microservices monorepo:
 
-Credentials for a mail client is required.
-Update the following env variables in `.env.deployment`:
+| Service | Stack | Role |
+|---|---|---|
+| [`webapp/`](webapp) | Next.js + TypeScript | Frontend (builder, dashboards, responder portal) |
+| [`backend/`](backend) | FastAPI + MongoDB (Beanie) | Core API |
+| [`auth/`](auth) | FastAPI + Stripe | Identity (OAuth / OTP / JWT) + billing |
+| [`integrations/`](integrations) | FastAPI + Google/Typeform APIs | Form-provider integrations |
+| [`temporal/`](temporal) | Temporal workers | Background jobs (imports, deletion, CSV, previews) |
+| [`common/`](common) | Shared Python package | Models, enums, crypto, JWT |
 
-```dotenv
-#Mail
-MAIL_USER=
-MAIL_PASSWORD=
-MAIL_SMTP_SERVER=
-MAIL_SMTP_PORT=
-MAIL_SENDER=
+Infra: MongoDB, Redis, PostgreSQL + Temporal, and nginx. A deep dive lives in
+**[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)**.
+
+## Quick start (local development)
+
+**Prerequisites:** [uv](https://docs.astral.sh/uv/), Node 20+ (see
+[`.nvmrc`](.nvmrc)), Yarn 1.x, and Docker.
+
+```bash
+# 1. Start infra (MongoDB + seed data, nginx, Mailpit email inbox)
+docker compose -f docker-compose.local.yml up --build -d
+
+# 2. Copy and fill env files (see the developers guide for required secrets)
+cp backend/.env.example backend/.env
+cp auth/.env.example auth/.env
+cp webapp/.env.example webapp/.env
+
+# 3. Install & run
+(cd backend && uv sync && uv run python -m uvicorn backend.app:get_application --port 8000 --reload)
+(cd auth && uv sync && uv run python -m uvicorn auth.app:get_application --port 8001)
+(cd webapp && yarn install && yarn dev)   # http://localhost:3000
 ```
 
-**Using Gmail as Sender**
+The full walkthrough — env vars, shared secrets, provider OAuth, Temporal, and
+common gotchas — is in **[docs/DEVELOPERS_GUIDE.md](docs/DEVELOPERS_GUIDE.md)**.
+Integration setup (Google/Typeform apps) is in
+[docs/RUNNING_INTEGRATIONS.md](docs/RUNNING_INTEGRATIONS.md).
 
-Create an app password in google. You can follow the steps here to create it: [Sign in with app passwords
-](https://support.google.com/accounts/answer/185833)
+## Contributing
 
-```dotenv
-MAIL_USERNAME=<GMAIL_USERNAME>
-MAIL_PASSWORD=<APP_PASSWORD>
-MAIL_FROM=<SENDER_ADDRESS>
-MAIL_PORT=587
-MAIL_SERVER=smtp.gmail.com
-MAIL_FROM_NAME=<TITLE_FOR_MAIL>
-```
+Contributions are very welcome! Please read **[CONTRIBUTING.md](CONTRIBUTING.md)**
+and our [Code of Conduct](CODE_OF_CONDUCT.md). Good places to start:
 
-## Running the services
+- Issues labelled [`good first issue`](../../issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)
+- The per-service `AGENTS.md` files for context on the code you're touching
 
-#### In Linux/MacOs
+Found a security issue? Please follow our **[Security Policy](SECURITY.md)** —
+do not open a public issue.
 
-Simply run the command:
-```shell
-./deploy
-```
+## License
 
-**Note**: For developer/contributor guide look into `docs/DEVELOPERS_GUIDE.md`
-
-**Note**: For running the project with integrations, look into `docs/Running_Integrations.md`
-
+Licensed under the [Apache License 2.0](LICENSE).

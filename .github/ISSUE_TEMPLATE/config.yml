@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 🔒 Report a security vulnerability
+    url: https://github.com/bettercollected/bettercollected/security/advisories/new
+    about: Please report security issues privately, not as public issues. See SECURITY.md.
+  - name: 💬 Questions & discussion
+    url: https://github.com/bettercollected/bettercollected/discussions
+    about: Ask questions and discuss ideas with the community.
+  - name: 🌐 bettercollected.com
+    url: https://bettercollected.com
+    about: Learn more about the project or try the hosted version.
