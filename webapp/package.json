@@ -59,7 +59,7 @@
     "dayjs": "^1.11.5",
     "elastic-apm-node": "^4.15.0",
     "file-type": "^21.3.1",
-    "framer-motion": "^7.2.1",
+    "framer-motion": "^12.42.2",
     "html-react-parser": "^5.1.8",
     "html2canvas": "^1.4.1",
     "i18next": "^21.9.1",
