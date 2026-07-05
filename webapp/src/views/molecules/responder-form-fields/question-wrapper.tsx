@@ -21,7 +21,7 @@ export default function QuestionWrapper({ field, children }: { field: StandardFo
                 </div>
             )}
             <div className="">
-                <div className="text-sm font-semibold lg:text-base">{parse(getHtmlFromJson(field?.title) ?? getPlaceholderValueForTitle(field?.type || FieldTypes.TEXT))}</div>
+                <div className="text-base font-semibold lg:text-lg">{parse(getHtmlFromJson(field?.title) ?? getPlaceholderValueForTitle(field?.type || FieldTypes.TEXT))}</div>
                 {field?.description && <div className="text-black-700 mt-1">{field?.description}</div>}
             </div>
             <RenderImage field={field} />

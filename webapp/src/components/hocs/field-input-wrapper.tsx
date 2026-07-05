@@ -57,7 +57,8 @@ const OptionInput = styled(Input)<{
             color: `${tertiaryColor} !important`
         },
         '&:focus': {
-            borderColor: secondaryColor
+            borderColor: secondaryColor,
+            boxShadow: secondaryColor ? `0 0 0 3px ${secondaryColor}33` : undefined
         }
     };
 });
