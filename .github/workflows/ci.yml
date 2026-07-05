@@ -14,9 +14,40 @@ concurrency:
     cancel-in-progress: true
 
 jobs:
+    # Picks the runner for the rest of the workflow: prefer a self-hosted runner
+    # when one is online, otherwise fall back to GitHub-hosted `ubuntu-latest`.
+    #
+    # Listing runners requires a token with "Administration: read" on the repo,
+    # which the default GITHUB_TOKEN does NOT have. Add a repo/org secret named
+    # RUNNER_READ_TOKEN (a fine-grained PAT with Administration:read, or a classic
+    # PAT with `repo`) to enable self-hosted selection. Without it, the check
+    # fails closed and everything runs on GitHub-hosted runners.
+    select-runner:
+        name: Select runner
+        runs-on: ubuntu-latest
+        outputs:
+            runner: ${{ steps.pick.outputs.runner }}
+        steps:
+            - name: Prefer self-hosted when available
+              id: pick
+              env:
+                  GH_TOKEN: ${{ secrets.RUNNER_READ_TOKEN || github.token }}
+                  REPO: ${{ github.repository }}
+              run: |
+                  runner="ubuntu-latest"
+                  online=$(gh api "repos/$REPO/actions/runners" \
+                      --jq '[.runners[] | select(.status=="online")] | length' 2>/dev/null || echo "")
+                  if [ -n "$online" ] && [ "$online" -gt 0 ] 2>/dev/null; then
+                      runner="self-hosted"
+                  fi
+                  echo "Online self-hosted runners: ${online:-unknown (no access) }"
+                  echo "Selected runner: $runner"
+                  echo "runner=$runner" >> "$GITHUB_OUTPUT"
+
     backend-tests:
         name: Backend tests (pytest)
-        runs-on: ubuntu-latest
+        needs: select-runner
+        runs-on: ${{ needs.select-runner.outputs.runner }}
         defaults:
             run:
                 working-directory: backend
@@ -47,7 +78,8 @@ jobs:
 
     webapp-build:
         name: Webapp build & type-check
-        runs-on: ubuntu-latest
+        needs: select-runner
+        runs-on: ${{ needs.select-runner.outputs.runner }}
         defaults:
             run:
                 working-directory: webapp
