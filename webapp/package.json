@@ -118,7 +118,7 @@
     "tar-fs": "^2.1.4",
     "unsplash-js": "^7.0.19",
     "usehooks-ts": "^2.15.1",
-    "uuid": "^13.0.1",
+    "uuid": "^14.0.1",
     "vanilla-cookieconsent": "^2.9.0"
   },
   "devDependencies": {
