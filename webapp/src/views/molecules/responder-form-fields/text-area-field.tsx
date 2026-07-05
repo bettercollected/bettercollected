@@ -16,10 +16,12 @@ import QuestionWrapper from './question-wrapper';
 const StyledAutoSizeTextArea = styled(AutosizeTextarea)<{
     $slide?: StandardFormFieldDto;
     $formTheme?: IThemeState;
-}>(({ }) => {
-    const { theme } = useFormState();
-    const themeColor = theme?.tertiary;
-    const secondaryColor = theme?.secondary;
+}>(({ $formTheme }) => {
+    // Theme is passed as a prop; calling the useFormState() hook inside a
+    // styled-components interpolation produces an inconsistent hook count under
+    // React 19 ("Rendered fewer hooks than expected").
+    const themeColor = $formTheme?.tertiary;
+    const secondaryColor = $formTheme?.secondary;
     return {
         background: 'inherit',
         borderColor: themeColor,
@@ -39,6 +41,7 @@ export default function TextAreaField({ field }: { field: StandardFormFieldDto }
 
     const form: StandardFormDto = useAppSelector(selectForm);
     const { currentSlide } = useResponderState();
+    const { theme } = useFormState();
 
     const [debouncedInputValue] = useDebounceValue(inputVal, 300);
 
@@ -59,6 +62,7 @@ export default function TextAreaField({ field }: { field: StandardFormFieldDto }
                 }}
             >
                 <StyledAutoSizeTextArea
+                    $formTheme={theme}
                     rows={1}
                     value={inputVal}
                     onChange={(e) => setInputVal(e.target.value)}

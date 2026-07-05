@@ -3,7 +3,7 @@ import 'react-phone-input-2/lib/style.css';
 import styled from 'styled-components';
 
 import { StandardFormFieldDto } from '@app/models/dtos/form';
-import { useFormState } from '@app/store/jotai/form';
+import { IThemeState, useFormState } from '@app/store/jotai/form';
 import { useFormResponse } from '@app/store/jotai/responder-form-response';
 import { useResponderState } from '@app/store/jotai/responder-form-state';
 import { getPlaceholderValueForField } from '@app/utils/form-utils';
@@ -13,10 +13,10 @@ import { useAppSelector } from '@app/store/hooks';
 import { scrollToDivById } from '@app/utils/scroll-utils';
 import QuestionWrapper from './question-wrapper';
 
-const CustomPhoneInputField = styled(PhoneInput)(() => {
-    const { theme } = useFormState();
-    const tertiaryColor = theme?.tertiary;
-    const accentColor = theme?.accent;
+const CustomPhoneInputField = styled(PhoneInput)<{ $formTheme?: IThemeState }>(({ $formTheme }) => {
+    // Theme is passed as a prop; a hook inside the styled interpolation breaks
+    // the hook count under React 19 ("Rendered fewer hooks").
+    const accentColor = $formTheme?.accent;
 
     return {
         '.selected-flag': {
@@ -48,6 +48,7 @@ export default function PhoneNumberField({ field }: { field: StandardFormFieldDt
                 }}
             >
                 <CustomPhoneInputField
+                    $formTheme={theme}
                     value={(formResponse.answers && formResponse.answers[field.id]?.phone_number) || ''}
                     onChange={(e) => handleChange(e)}
                     country={'np'}

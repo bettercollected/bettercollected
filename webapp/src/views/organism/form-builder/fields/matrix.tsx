@@ -180,6 +180,7 @@ function MatrixFieldComponent({ field, disabled }: IMatrixFieldProps) {
 
 const MatrixHeaderInput = ({ value, onChange, disabled, placeholder }: { value: string; onChange?: (value: string) => void; disabled?: boolean; placeholder?: string }) => {
     const [inputVal, setInputVal] = useState(value);
+    const { theme } = useFormState();
 
     const [debouncedInputValue] = useDebounceValue(inputVal, 300);
     useEffect(() => {
@@ -192,6 +193,7 @@ const MatrixHeaderInput = ({ value, onChange, disabled, placeholder }: { value: 
 
     return (
         <StyledMatrixHeaderInput
+            $theme={theme}
             className={cn('ring-none focus:ring-none items-center border-none bg-transparent text-center text-sm outline-none focus:!border-none focus:outline-none focus-visible:outline-none active:outline-none', disabled && 'pointer-events-none')}
             placeholder={placeholder || 'Header'}
             value={inputVal}
@@ -201,10 +203,10 @@ const MatrixHeaderInput = ({ value, onChange, disabled, placeholder }: { value: 
         />
     );
 };
-const StyledMatrixHeaderInput = styled(AppInput)<{ $theme?: IThemeState }>(() => {
-    const { theme } = useFormState();
-    const themeColor = theme?.tertiary;
-    const secondaryColor = theme?.secondary;
+const StyledMatrixHeaderInput = styled(AppInput)<{ $theme?: IThemeState }>(({ $theme }) => {
+    // Theme via prop; avoid calling useFormState() inside the styled interpolation.
+    const themeColor = $theme?.tertiary;
+    const secondaryColor = $theme?.secondary;
     return {
         resize: 'none',
         overflow: 'auto',
