@@ -65,7 +65,7 @@
     "i18next": "^21.9.1",
     "iframe-resizer-react": "^1.1.0",
     "immer": "^9.0.21",
-    "jotai": "^1.8.2",
+    "jotai": "^2.20.1",
     "libphonenumber-js": "^1.10.38",
     "lodash": "^4.18.0",
     "lucide-react": "^0.334.0",
