@@ -48,6 +48,19 @@ jobs:
         name: Backend tests (pytest)
         needs: select-runner
         runs-on: ${{ needs.select-runner.outputs.runner }}
+        # The backend tests talk to a real MongoDB (Beanie), so provide one.
+        # Without it, every DB call blocks on the ~30s ServerSelectionTimeout and
+        # the suite runs for many minutes.
+        services:
+            mongo:
+                image: mongo:7
+                ports:
+                    - 27017:27017
+                options: >-
+                    --health-cmd "mongosh --quiet --eval 'db.runCommand({ ping: 1 })'"
+                    --health-interval 10s
+                    --health-timeout 5s
+                    --health-retries 10
         defaults:
             run:
                 working-directory: backend
@@ -68,6 +81,7 @@ jobs:
             - name: Run backend tests
               env:
                   VIRTUAL_ENV: ""
+                  MONGO_URI: mongodb://localhost:27017
                   AUTH_AES_HEX_KEY: L5HuSlk0ijI3xzaccuy2x1jnzHNjtTw3zW53tjGHZG0=
                   AUTH_JWT_SECRET: c3c66ff889b1deabc35ebb3cf07374f1fd934f0f0185eec076b5bcd874de86d5
                   SCHEDULAR_ENABLED: "False"
