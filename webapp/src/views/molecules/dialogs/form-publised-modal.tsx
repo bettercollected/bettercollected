@@ -1,7 +1,7 @@
 "use client";
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 
-import { Button } from '@app/shadcn/components/ui/button';
+import { Button, buttonVariants } from '@app/shadcn/components/ui/button';
 import { selectAuth } from '@app/store/auth/slice';
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
@@ -51,19 +51,25 @@ export default function FormPublishedModal(props: any) {
                     <span className="h5-new">What’s Next?</span>
                     <span className="p4-new break-words text-center">
                         Add your custom domain, add integration or change form privacy,{' '}
-                        <button data-umami-event={'PublishModal Goto Settings Link'} data-umami-event-email={authState.email}>
-                            <a href={`${window.PUBLIC_CONFIG?.HTTP_SCHEME}${window.PUBLIC_CONFIG?.DASHBOARD_DOMAIN}/${workspace.workspaceName}/dashboard/forms/${standardForm.formId}?view=FormLinks`} className="text-blue-500">
-                                Go to form settings
-                            </a>
-                        </button>
+                        <a
+                            data-umami-event={'PublishModal Goto Settings Link'}
+                            data-umami-event-email={authState.email}
+                            href={`${window.PUBLIC_CONFIG?.HTTP_SCHEME}${window.PUBLIC_CONFIG?.DASHBOARD_DOMAIN}/${workspace.workspaceName}/dashboard/forms/${standardForm.formId}?view=FormLinks`}
+                            className="text-blue-500"
+                        >
+                            Go to form settings
+                        </a>
                     </span>
                 </div>
                 <div className="mb-5 mt-5">
-                    <button data-umami-event={'PublishModal Goto Dashboard Link'} data-umami-event-email={authState.email}>
-                        <a href={`${window.PUBLIC_CONFIG?.HTTP_SCHEME}${window.PUBLIC_CONFIG?.DASHBOARD_DOMAIN}/${workspace.workspaceName}/dashboard/forms`}>
-                            <Button size="medium">Done! Go to dashboard</Button>
-                        </a>
-                    </button>
+                    <a
+                        data-umami-event={'PublishModal Goto Dashboard Link'}
+                        data-umami-event-email={authState.email}
+                        href={`${window.PUBLIC_CONFIG?.HTTP_SCHEME}${window.PUBLIC_CONFIG?.DASHBOARD_DOMAIN}/${workspace.workspaceName}/dashboard/forms`}
+                        className={buttonVariants({ size: 'medium', className: 'cursor-pointer' })}
+                    >
+                        Done! Go to dashboard
+                    </a>
                 </div>
             </div>
         </div>
