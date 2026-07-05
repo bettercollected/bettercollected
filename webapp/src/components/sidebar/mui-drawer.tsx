@@ -1,7 +1,7 @@
 "use client";
 
 import { useIsMobile } from '@app/lib/hooks/use-breakpoint';
-import { Sheet, SheetContent } from '@app/shadcn/components/ui/sheet';
+import { Sheet, SheetContent, SheetTitle } from '@app/shadcn/components/ui/sheet';
 import { cn } from '@app/shadcn/util/lib';
 import { usePathname } from 'next/navigation';
 import { useEffect } from 'react';
@@ -32,6 +32,7 @@ export default function MuiDrawer({ drawerWidth = 289, mobileOpen, children, han
             <div className="lg:hidden">
                 <Sheet open={mobileOpen} onOpenChange={(open) => !open && handleDrawerToggle()} >
                     <SheetContent hideCloseIcon side={anchor === 'right' ? 'right' : 'left'} className="p-0 bg-white border-r border-r-black-200 z-[9999]" style={{ width: drawerWidth, maxWidth: '100vw' }}>
+                        <SheetTitle className="sr-only">Menu</SheetTitle>
                         {children}
                     </SheetContent>
                 </Sheet>

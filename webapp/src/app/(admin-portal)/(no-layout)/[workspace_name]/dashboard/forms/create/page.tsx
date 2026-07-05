@@ -11,7 +11,7 @@ import { defaultForm } from '@app/constants/form';
 import globalConstants from '@app/constants/global';
 import { useIsMobile } from '@app/lib/hooks/use-breakpoint';
 import { useDialogModal } from '@app/lib/hooks/use-dialog-modal';
-import { Sheet, SheetContent, SheetTrigger } from '@app/shadcn/components/ui/sheet';
+import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@app/shadcn/components/ui/sheet';
 import { selectAuth } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 import useFormFieldsAtom from '@app/store/jotai/field-selectors';
@@ -97,6 +97,7 @@ export default function CreateFormPage(props: { searchParams: Promise<{ modal?: 
                                     <Card variant={'blue'} icon={<PlusIcon />} content={'Create New Form'} onClick={() => { }} />
                                 </SheetTrigger>
                                 <SheetContent className=" shadow-v2 h-full w-full p-0 drop-shadow-2xl" side={'top'} hideCloseIcon>
+                        <SheetTitle className="sr-only">Select form type</SheetTitle>
                                     <div className="h-full w-full bg-white ">
                                         <NavBar isModal />
                                         <FormTypeSelectionComponent handleCreateForm={handleCreateForm} />

@@ -10,7 +10,7 @@ export function MultiPageFormIcon(props: React.SVGAttributes<any>) {
             xmlns="http://www.w3.org/2000/svg"
             {...props}
         >
-            <g clip-path="url(#clip0_7334_8962)">
+            <g clipPath="url(#clip0_7334_8962)">
                 <g filter="url(#filter0_d_7334_8962)">
                     <path
                         d="M139.1 30H29.8077C22.7342 30 17 35.7342 17 42.8077V128.192C17 135.266 22.7342 141 29.8077 141H139.1C146.173 141 151.908 135.266 151.908 128.192V42.8077C151.908 35.7342 146.173 30 139.1 30Z"
@@ -58,7 +58,7 @@ export function MultiPageFormIcon(props: React.SVGAttributes<any>) {
                     filterUnits="userSpaceOnUse"
                     colorInterpolationFilters="sRGB"
                 >
-                    <feFlood flood-opacity="0" result="BackgroundImageFix" />
+                    <feFlood floodOpacity="0" result="BackgroundImageFix" />
                     <feColorMatrix
                         in="SourceAlpha"
                         type="matrix"
@@ -93,7 +93,7 @@ export function MultiPageFormIcon(props: React.SVGAttributes<any>) {
                     filterUnits="userSpaceOnUse"
                     colorInterpolationFilters="sRGB"
                 >
-                    <feFlood flood-opacity="0" result="BackgroundImageFix" />
+                    <feFlood floodOpacity="0" result="BackgroundImageFix" />
                     <feColorMatrix
                         in="SourceAlpha"
                         type="matrix"

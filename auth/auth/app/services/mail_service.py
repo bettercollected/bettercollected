@@ -14,8 +14,10 @@ class MailService:
         smtp_port=settings.mail_settings.smtp_port,
         smtp_server=settings.mail_settings.smtp_server,
         organization_name=settings.ORGANIZATION_NAME,
-        mail_tls=True,
-        mail_ssl=False,
+        mail_tls=settings.mail_settings.starttls,
+        mail_ssl=settings.mail_settings.ssl_tls,
+        use_credentials=settings.mail_settings.use_credentials,
+        validate_certs=settings.mail_settings.validate_certs,
     ):
         mail_config = ConnectionConfig(
             MAIL_USERNAME=user,
@@ -26,8 +28,8 @@ class MailService:
             MAIL_FROM_NAME=organization_name,
             MAIL_STARTTLS=mail_tls,
             MAIL_SSL_TLS=mail_ssl,
-            USE_CREDENTIALS=True,
-            VALIDATE_CERTS=True,
+            USE_CREDENTIALS=use_credentials,
+            VALIDATE_CERTS=validate_certs,
             TEMPLATE_FOLDER=os.getenv("TEMPLATE_FOLDER", "auth/app/templates"),
         )
         self.fast_mail = FastMail(mail_config)

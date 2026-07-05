@@ -74,6 +74,10 @@ const SheetContent = React.forwardRef<
             <SheetOverlay />
             <SheetPrimitive.Content
                 ref={ref}
+                // Explicitly opt out of the Radix description requirement unless a
+                // consumer passes aria-describedby (silences the "Missing Description"
+                // warning for sheets that don't need a description).
+                aria-describedby={undefined}
                 className={cn(sheetVariants({ side }), className)}
                 {...props}
             >

@@ -72,7 +72,7 @@ export default function RootLayout({
     children: React.ReactNode;
 }>) {
     return (
-        <html lang="en">
+        <html lang="en" suppressHydrationWarning>
             <body className={cn('max-h-screen overflow-auto', inter.className)}>
                 {environments.NEXT_PUBLIC_NODE_ENV === 'production' && environments.UMAMI_WEBSITE_ID && (
                     <Script
