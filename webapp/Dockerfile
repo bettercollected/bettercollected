@@ -1,5 +1,5 @@
 # Install dependencies only when needed
-FROM node:18-alpine AS base
+FROM node:22-alpine AS base
 # Check https://github.com/nodejs/docker-node/tree/b4117f9333da4138b03a546ec926ef50a31506c3#nodealpine to understand why libc6-compat might be needed.
 #RUN apk add --no-cache libc6-compat
 WORKDIR /app
@@ -10,36 +10,19 @@ RUN yarn install --prod --frozen-lockfile
 
 
 # Rebuild the source code only when needed
-FROM prod as builder
-ARG BASE_DEPLOY_PATH
+FROM prod AS builder
 ARG NEXT_PUBLIC_API_ENDPOINT_HOST
-ARG NEXT_PUBLIC_DASHBOARD_DOMAIN
-ARG NEXT_PUBLIC_FORM_DOMAIN
-ARG SENTRY_DSN
-ARG SENTRY_RELEASE
-ARG SENTRY_URL
-ARG SENTRY_ORG
-ARG SENTRY_PROJECT
-ARG SENTRY_AUTH_TOKEN
-ARG SENTRY_LOG_LEVEL="debug"
 ARG NEXT_PUBLIC_NODE_ENV="production"
-ARG CLARITY_TRACKING_CODE
-ARG NEXT_PUBLIC_UMAMI_WEBSITE_ID
 
 ENV NEXT_PUBLIC_API_ENDPOINT_HOST=$NEXT_PUBLIC_API_ENDPOINT_HOST \
-    NEXT_PUBLIC_DASHBOARD_DOMAIN=$NEXT_PUBLIC_DASHBOARD_DOMAIN \
-    NEXT_PUBLIC_FORM_DOMAIN=$NEXT_PUBLIC_FORM_DOMAIN \
-    SENTRY_DSN=$SENTRY_DSN \
-    NEXT_PUBLIC_NODE_ENV=$NEXT_PUBLIC_NODE_ENV \
-    NEXT_PUBLIC_MICROSOFT_CLARITY_TRACKING_CODE=$CLARITY_TRACKING_CODE\
-    NEXT_PUBLIC_UMAMI_WEBSITE_ID=$NEXT_PUBLIC_UMAMI_WEBSITE_ID
+    NEXT_PUBLIC_NODE_ENV=$NEXT_PUBLIC_NODE_ENV
 
 RUN yarn install --frozen-lockfile
 COPY --chown=node:node ./webapp .
-RUN echo $NEXT_PUBLIC_API_ENDPOINT_HOST $NEXT_PUBLIC_DASHBOARD_DOMAIN $NEXT_PUBLIC_FORM_DOMAIN
+RUN echo $NEXT_PUBLIC_API_ENDPOINT_HOST $NEXT_PUBLIC_NODE_ENV
 RUN printenv
 RUN yarn build
-RUN rm -rf ./.next/cache/* && mkdir moveTarget && mv entrypoint.sh .sentryclirc sentry.client.config.js sentry.edge.config.js sentry.server.config.js sentry.properties next.config.js next-i18next.config.js package.json next-sitemap.config.js public ./moveTarget
+RUN rm -rf ./.next/cache/* && mkdir moveTarget && mv entrypoint.sh next.config.js package.json public ./moveTarget
 # Production image, copy all the files and run next
 
 

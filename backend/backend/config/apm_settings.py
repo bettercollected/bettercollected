@@ -1,10 +1,10 @@
-from pydantic import BaseSettings
+from typing import Optional
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class APMSettings(BaseSettings):
-    api_key: str = None
-    service_name: str = None
-    server_url: str = None
+    api_key: Optional[str] = None
+    service_name: Optional[str] = None
+    server_url: Optional[str] = None
 
-    class Config:
-        env_prefix = "ELASTIC_APM_"
+    model_config = SettingsConfigDict(env_prefix='ELASTIC_APM_')

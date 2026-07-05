@@ -1,7 +1,7 @@
-import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import environments from '@app/configs/environments';
-import { WorkspaceInvitationDto, WorkspaceMembersDto } from '@app/models/dtos/WorkspaceMembersDto';
 import { Page } from '@app/models/dtos/page';
+import { WorkspaceInvitationDto, WorkspaceMembersDto } from '@app/models/dtos/workspace-member-dto';
+import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 
 export const WORKSPACE_INVITATIONS_PATH = 'membersNInvitationsApi';
 
@@ -61,6 +61,13 @@ export const membersNInvitationsApi = createApi({
             }),
             providesTags: [WORKSPACE_INVITATIONS_TAG]
         }),
+        getWorkspaceInvitation: builder.query<WorkspaceInvitationDto, { workspaceId: string; invitationToken: string }>({
+            query: (request) => ({
+                url: `/${request.workspaceId}/members/invitations/${request.invitationToken}`,
+                method: 'GET'
+            }),
+            providesTags: [WORKSPACE_INVITATIONS_TAG]
+        }),
         inviteToWorkspace: builder.mutation<any, any>({
             query: (request) => ({
                 url: `/${request.workspaceId}/members/invitations`,
@@ -92,6 +99,7 @@ export const {
     useRespondToWorkspaceInvitationMutation,
     useGetWorkspaceMembersQuery,
     useGetWorkspaceMembersInvitationsQuery,
+    useGetWorkspaceInvitationQuery,
     useInviteToWorkspaceMutation,
     useDeleteWorkspaceMemberMutation,
     useDeleteWorkspaceInvitationMutation,

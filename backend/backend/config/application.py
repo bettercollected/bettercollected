@@ -4,7 +4,7 @@ import os
 from pathlib import Path
 
 from dotenv import load_dotenv
-from pydantic import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from backend.config.api_settings import ApiSettings
 from backend.config.apm_settings import APMSettings
@@ -15,8 +15,9 @@ from backend.config.coupon_code_settings import CouponCodeSettings
 from backend.config.database import MongoSettings
 from backend.config.events_webhook import EventsWebhook
 from backend.config.https_certificate import HttpsCertificateApiSettings
+from backend.config.google_ai_settings import GoogleAISettings
 from backend.config.OpenAISettings import OpenAISettings
-from backend.config.schedular_settings import SchedularSettings
+from backend.config.unsplash_settings import UnsplashSettings
 from backend.config.sentry_setting import SentrySettings
 from backend.config.template_settings import DefaultResourcesWorkspaceSettings
 from backend.config.temporal_settings import TemporalSettings
@@ -48,7 +49,6 @@ class Application(BaseSettings):
     api_settings: ApiSettings = ApiSettings()
     auth_settings: AuthSettings = AuthSettings()
     mongo_settings: MongoSettings = MongoSettings()
-    schedular_settings: SchedularSettings = SchedularSettings()
     aws_settings: AWSSettings = AWSSettings()
     https_cert_api_settings: HttpsCertificateApiSettings = HttpsCertificateApiSettings()
     sentry_settings: SentrySettings = SentrySettings()
@@ -59,15 +59,14 @@ class Application(BaseSettings):
     event_webhook_settings: EventsWebhook = EventsWebhook()
     coupon_settings: CouponCodeSettings = CouponCodeSettings()
     open_ai: OpenAISettings = OpenAISettings()
+    google_ai: GoogleAISettings = GoogleAISettings()
+    unsplash: UnsplashSettings = UnsplashSettings()
     brevo_settings: BrevoSettings = BrevoSettings()
     umami_settings: UmamiSettings = UmamiSettings()
     # All your additional application configuration should go either here or in
     # separate file in this submodule.
 
-    class Config:
-        """Config sub class needed to customize BaseSettings settings."""
-
-        case_sensitive = True
+    model_config = SettingsConfigDict(case_sensitive=False)
 
 
 settings = Application()

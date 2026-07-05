@@ -1,4 +1,4 @@
-from pydantic import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class AWSSettings(BaseSettings):
@@ -6,5 +6,4 @@ class AWSSettings(BaseSettings):
     SECRET_ACCESS_KEY: str = ""
     PRE_SIGNED_URL_EXPIRY: int = 10
 
-    class Config:
-        env_prefix = "AWS_"
+    model_config = SettingsConfigDict(env_prefix='AWS_')

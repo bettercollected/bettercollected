@@ -1,0 +1,37 @@
+'use client';
+
+import { useEffect } from 'react';
+
+/**
+ * Registers the service worker and automatically reloads the page when
+ * connectivity is restored (i.e. the user was served the offline fallback).
+ *
+ * Rendered once at the root layout level; produces no visible UI.
+ */
+export default function SwRegister() {
+    useEffect(() => {
+        if (!('serviceWorker' in navigator)) return;
+
+        // Register
+        navigator.serviceWorker
+            .register('/sw.js', { scope: '/' })
+            .then((reg) => {
+                // Check for updates on focus
+                window.addEventListener('focus', () => reg.update());
+            })
+            .catch((err) => {
+                console.warn('[SW] Registration failed:', err);
+            });
+
+        // When we come back online, reload so the real page is fetched
+        function handleOnline() {
+            // Small delay to let the connection stabilise
+            setTimeout(() => window.location.reload(), 600);
+        }
+
+        window.addEventListener('online', handleOnline);
+        return () => window.removeEventListener('online', handleOnline);
+    }, []);
+
+    return null;
+}

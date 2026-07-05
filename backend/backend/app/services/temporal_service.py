@@ -45,8 +45,7 @@ class TemporalService:
         self.namespace = namespace
         self.crypto = crypto
         self.temporal_client = None
-        if settings.schedular_settings.ENABLED:
-            self.connect_to_temporal_server(server_uri=server_uri, namespace=namespace)
+        self.connect_to_temporal_server(server_uri=server_uri, namespace=namespace)
 
     def connect_to_temporal_server(self, server_uri: str, namespace: str):
         try:
@@ -86,72 +85,9 @@ class TemporalService:
                 + " has already been started."
             )
 
-    async def start_save_preview_workflow(
-        self, template_id: PydanticObjectId, user_tokens: UserTokens
-    ):
-        await self.check_temporal_client_and_try_to_connect_if_not_connected()
-        try:
-            encrypted_tokens = self.crypto.encrypt(json.dumps(asdict(user_tokens)))
-            params = SavePreviewParams(
-                template_id=str(template_id),
-                template_url=f"{settings.api_settings.CLIENT_URL}/templates/"
-                + str(template_id)
-                + "/preview",
-                token=encrypted_tokens,
-            )
-            await self.temporal_client.start_workflow(
-                "save_template_preview",
-                arg=params,
-                id="save_preview_image_" + str(template_id),
-                task_queue=settings.temporal_settings.template_preview_queue,
-                retry_policy=RetryPolicy(maximum_attempts=4),
-            )
-            return "Workflow Started"
-        except WorkflowAlreadyStartedError as e:
-            loguru.logger.info("Workflow has already started")
-
-    async def add_scheduled_job_for_importing_form(
-        self, workspace_id: PydanticObjectId, form_id: str
-    ):
-        if not settings.schedular_settings.ENABLED:
-            return
-        try:
-            await self.check_temporal_client_and_try_to_connect_if_not_connected()
-            await self.temporal_client.create_schedule(
-                "import_" + str(workspace_id) + "_" + form_id,
-                schedule=Schedule(
-                    action=ScheduleActionStartWorkflow(
-                        "import_form_workflow",
-                        id="import_form_" + form_id,
-                        arg=ImportFormParams(
-                            workspace_id=str(workspace_id), form_id=form_id
-                        ),
-                        task_queue=settings.temporal_settings.worker_queue,
-                    ),
-                    spec=ScheduleSpec(
-                        intervals=[
-                            ScheduleIntervalSpec(
-                                every=timedelta(
-                                    minutes=settings.schedular_settings.INTERVAL_MINUTES
-                                )
-                            )
-                        ],
-                    ),
-                ),
-            )
-        except ScheduleAlreadyRunningError as e:
-            loguru.logger.info(e)
-        except HTTPException as e:
-            if e.status_code != HTTPStatus.SERVICE_UNAVAILABLE:
-                loguru.logger.error(e)
-        except Exception as e:
-            loguru.logger.error(e)
-
     async def add_scheduled_job_for_deleting_response(
         self, response: StandardFormResponse
     ):
-        if not settings.schedular_settings.ENABLED:
-            return
         expiration_date = get_formatted_date_from_str(response.expiration)
         try:
             await self.check_temporal_client_and_try_to_connect_if_not_connected()
@@ -182,28 +118,7 @@ class TemporalService:
         except Exception as e:
             loguru.logger.error(e)
 
-    async def delete_form_import_schedule(
-        self, workspace_id: PydanticObjectId, form_id: str
-    ):
-        if not settings.schedular_settings.ENABLED:
-            return
-        try:
-            await self.check_temporal_client_and_try_to_connect_if_not_connected()
-            schedule_id = "import_" + str(workspace_id) + "_" + form_id
-            schedule_handle = self.temporal_client.get_schedule_handle(schedule_id)
-            await schedule_handle.delete()
-
-        except HTTPException:
-            pass
-        except RPCError as e:
-            loguru.logger.info(
-                "No schedule found for id:" + str(schedule_id) + " to delete"
-            )
-            pass
-
     async def delete_response_delete_schedule(self, response_id: str):
-        if not settings.schedular_settings.ENABLED:
-            return
         try:
             await self.check_temporal_client_and_try_to_connect_if_not_connected()
             schedule_id = "delete_response_" + response_id
@@ -217,25 +132,6 @@ class TemporalService:
                 "No schedule found for id:" + str(schedule_id) + " to delete"
             )
             pass
-
-    def update_schedule_interval(self, interval: timedelta):
-        async def update_interval_to_default(
-            update_input: ScheduleUpdateInput,
-        ) -> ScheduleUpdate:
-            schedule_spec = update_input.description.schedule.spec
-            if isinstance(schedule_spec, ScheduleSpec):
-                schedule_spec.intervals = [ScheduleIntervalSpec(every=interval)]
-            return ScheduleUpdate(schedule=update_input.description.schedule)
-
-        return update_interval_to_default
-
-    async def update_interval_of_schedule(
-        self, workspace_id: PydanticObjectId, form_id: str, interval: timedelta
-    ):
-        handle = self.temporal_client.get_schedule_handle(
-            "import_" + str(workspace_id) + "_" + form_id
-        )
-        await handle.update(updater=self.update_schedule_interval(interval=interval))
 
     async def start_action_execution(
         self,

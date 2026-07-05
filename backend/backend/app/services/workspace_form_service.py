@@ -182,7 +182,14 @@ class WorkspaceFormService:
             event_type=UserEventType.FORM_IMPORTED, user_id=user.id, email=user.sub
         )
 
-        response_dict = {**standard_form.dict(), "settings": workspace_form.settings}
+        response_dict = {
+            **standard_form.model_dump(mode="json"),
+            "settings": (
+                workspace_form.settings.model_dump(mode="json")
+                if workspace_form and workspace_form.settings
+                else None
+            ),
+        }
         return StandardFormCamelModel(**response_dict)
 
     async def convert_form(self, *, provider, request, form_import):
@@ -226,10 +233,6 @@ class WorkspaceFormService:
 
         if len(workspace_ids) > 1:
             return "Form deleted from workspace."
-        if workspace_form.settings.provider != "self":
-            await self.temporal_service.delete_form_import_schedule(
-                workspace_id, form_id
-            )
 
         form = await self.form_service.get_form_document_by_id(form_id)
         if form and form.imported_form_id:
@@ -299,11 +302,6 @@ class WorkspaceFormService:
                 form_ids=form_ids
             )
         )
-        for workspace_form in workspace_forms:
-            if workspace_form.settings.provider != "self":
-                await self.temporal_service.delete_form_import_schedule(
-                    workspace_form.workspace_id, workspace_form.form_id
-                )
         await self.form_response_service.delete_form_responses_of_form_ids(
             form_ids=form_ids
         )
@@ -638,10 +636,6 @@ class WorkspaceFormService:
             duplicated_form.form_id = str(PydanticObjectId())
         duplicated_form = await duplicated_form.save()
 
-        if is_template and settings.schedular_settings.ENABLED:
-            await self.temporal_service.start_save_preview_workflow(
-                duplicated_form.id, user_tokens=user_tokens
-            )
         if not is_template:
             workspace_form = WorkspaceFormDocument(
                 form_id=str(duplicated_form.form_id),

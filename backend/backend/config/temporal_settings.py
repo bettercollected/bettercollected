@@ -1,6 +1,6 @@
 from typing import Optional
 
-from pydantic import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class TemporalSettings(BaseSettings):
@@ -13,5 +13,4 @@ class TemporalSettings(BaseSettings):
     csv_queue: str = "csv_worker"
     add_import_schedules: bool = False
 
-    class Config:
-        env_prefix = "TEMPORAL_"
+    model_config = SettingsConfigDict(env_prefix='TEMPORAL_')

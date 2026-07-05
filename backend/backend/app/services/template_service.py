@@ -4,8 +4,8 @@ from http import HTTPStatus
 from beanie import PydanticObjectId
 from common.constants import MESSAGE_NOT_FOUND
 from common.models.standard_form import StandardForm
+from common.models.user import User
 from fastapi import UploadFile
-from gunicorn.config import User
 from typing import Optional
 
 from backend.app.exceptions import HTTPException
@@ -36,7 +36,10 @@ class FormTemplateService:
         self.temporal_service = temporal_service
 
     async def get_templates(
-        self, v2: Optional[bool], workspace_id: PydanticObjectId, user: User
+        self,
+        v2: Optional[bool] = None,
+        workspace_id: PydanticObjectId = None,
+        user: User = None,
     ):
         predefined_workspace = False
         if not workspace_id:
@@ -92,10 +95,10 @@ class FormTemplateService:
             workspace_id=workspace_id, user=user
         )
         template = await self.form_template_repo.get_template_by_id(template_id)
-        minified_form = FormDtoCamelModel(**template.dict())
+        minified_form = FormDtoCamelModel(**template.model_dump(mode="json"))
         return await self.workspace_form_service.create_form(
             workspace_id=workspace_id,
-            form=StandardForm(**minified_form.dict()),
+            form=StandardForm(**minified_form.model_dump(mode="json")),
             user=user,
         )
 
@@ -173,10 +176,7 @@ class FormTemplateService:
         updated_template = await self.form_template_repo.update_template(
             template_id=template_id, template_body=template_body
         )
-        if settings.schedular_settings.ENABLED:
-            await self.temporal_service.start_save_preview_workflow(
-                template_id=template_id, user_tokens=user_tokens
-            )
+
         return updated_template
 
     async def update_template_settings(

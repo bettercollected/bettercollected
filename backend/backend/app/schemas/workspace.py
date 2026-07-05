@@ -1,5 +1,5 @@
 import datetime as dt
-from typing import Optional
+from typing import Annotated, Optional
 
 from beanie import Indexed
 
@@ -28,11 +28,11 @@ class WorkspaceDocument(MongoDocument, Workspace):
             bson_encoders (dict): A dictionary of bson encoders for specific data types.
     """
 
-    workspace_name: Indexed(str, unique=True)
-    custom_domain: Optional[Indexed(str)]
+    workspace_name: Annotated[str, Indexed(unique=True)]
+    custom_domain: Optional[Annotated[str, Indexed()]] = None
     default: bool = False
-    owner_id: Optional[str]
-    custom_domain_disabled = False
+    owner_id: Optional[str] = None
+    custom_domain_disabled: Optional[bool] = False
     custom_domain_verified: Optional[bool] = False
     disabled: Optional[bool] = False
 

@@ -15,8 +15,8 @@ class UserPatchRequest(BaseModel):
     Model for patching a user's information.
     """
 
-    first_name: Optional[str]
-    last_name: Optional[str]
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
 
 
 class UserResponseDto(BaseModel):
@@ -25,12 +25,12 @@ class UserResponseDto(BaseModel):
     """
 
     id: PydanticObjectId
-    first_name: Optional[str]
-    last_name: Optional[str]
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
     email: str
     plan: Optional[Plans] = Plans.FREE
-    profile_image: Optional[str]
-    stripe_customer_id: Optional[str]
+    profile_image: Optional[str] = None
+    stripe_customer_id: Optional[str] = None
     roles: List[str] = [Roles.FORM_RESPONDER]
 
 
@@ -87,26 +87,26 @@ class AuthenticationStatus(BaseModel):
 class Token(BaseModel):
     access_token: str
     refresh_token: str
-    token_type: Optional[str]
-    expires_in: Optional[int]
+    token_type: Optional[str] = None
+    expires_in: Optional[int] = None
 
 
 class UserInfo(BaseModel):
-    user_id: Optional[str]
+    user_id: Optional[str] = None
     email: str
-    first_name: Optional[str]
-    last_name: Optional[str]
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
 
 
 class OAuthState(BaseModel):
-    client_referer_uri: Optional[str]
-    email: Optional[str]
+    client_referer_uri: Optional[str] = None
+    email: Optional[str] = None
 
 
 class Credential(BaseModel):
-    updated_at: Optional[datetime.datetime]
+    updated_at: Optional[datetime.datetime] = None
     email: str
     access_token: str
-    refresh_token: Optional[str]
-    access_token_expires: Optional[int]
-    refresh_token_expires: Optional[int]
+    refresh_token: Optional[str] = None
+    access_token_expires: Optional[int] = None
+    refresh_token_expires: Optional[int] = None

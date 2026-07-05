@@ -1,13 +1,26 @@
-FROM python:3.10
+FROM python:3.11-slim
 
-ENV VIRTUAL_ENV=/venv
-RUN python3 -m venv $VIRTUAL_ENV
-ENV PATH="$VIRTUAL_ENV/bin:$PATH"
+# Install UV from the official image
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
-# Install dependencies:
-COPY ./temporal/actions-executor/requirements.txt ./requirements.txt
-RUN pip install -r requirements.txt
+# Set working directory
+WORKDIR /app
 
+# Enable bytecode compilation
+ENV UV_COMPILE_BYTECODE=1
+
+# Copy dependency files
+COPY ./temporal/actions-executor/pyproject.toml .
+COPY ./temporal/actions-executor/uv.lock .
+
+# Install dependencies
+RUN uv sync --frozen --no-dev
+
+# Copy the application code
 COPY ./temporal/actions-executor/ .
-# Run the application:
-CMD ["python3","main.py"]
+
+# Add the virtual environment to the PATH
+ENV PATH="/app/.venv/bin:$PATH"
+
+# Run the application
+CMD ["python", "main.py"]

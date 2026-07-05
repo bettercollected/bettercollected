@@ -1,4 +1,5 @@
 """Application implementation - error response."""
+
 from http import HTTPStatus
 from typing import Any, Dict, List, Optional
 
@@ -22,7 +23,7 @@ class ErrorModel(BaseModel):
 
     code: int
     message: str
-    details: Optional[List[Dict[str, Any]]]
+    details: Optional[List[Dict[str, Any]]] = None
 
     @root_validator(pre=False, skip_on_failure=True)
     def _set_status(cls, values: dict) -> dict:
@@ -47,7 +48,7 @@ class ErrorModel(BaseModel):
         """
 
         @staticmethod
-        def schema_extra(schema: Dict[str, Any]) -> None:
+        def json_schema_extra(schema: Dict[str, Any]) -> None:
             """Post-process the generated schema.
 
             Method can have one or two positional arguments. The first will be
@@ -96,7 +97,7 @@ class ErrorResponse(BaseModel):
         """
 
         @staticmethod
-        def schema_extra(schema: Dict[str, Any]) -> None:
+        def json_schema_extra(schema: Dict[str, Any]) -> None:
             """Post-process the generated schema.
 
             Method can have one or two positional arguments. The first will be

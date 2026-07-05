@@ -1,14 +1,12 @@
 import { JSONContent } from '@tiptap/react';
 
 import { FormTheme } from '@app/constants/theme';
-import { UserStatus } from '@app/models/dtos/UserStatus';
 import { Parameters } from '@app/models/dtos/actions';
-import { IConsentField } from '@app/store/consent/types';
-import { IFormFieldValidation } from '@app/store/form-builder/types';
+import { UserStatus } from '@app/models/dtos/user-status';
+import { IFormFieldValidation } from '@app/models/types/form-builder-shared';
 
-import { ResponseRetentionType } from '../enums/consentEnum';
 import { FormSlideLayout } from '../enums/form';
-import { FileMetadata } from '../types/fileTypes';
+import { FileMetadata } from '../types/file-types';
 import { ResponderGroupDto } from './groups';
 
 export interface StandardFormFieldProperties {
@@ -48,11 +46,11 @@ export interface StandardFormFieldDto {
     title?: string | JSONContent;
     description?: string | null;
     type:
-        | {
-              type: string;
-              options: Array<any>;
-          }
-        | any;
+    | {
+        type: string;
+        options: Array<any>;
+    }
+    | any;
     isMediaContent?: boolean;
     mediaContent?: boolean;
     isGroupQuestion?: boolean;
@@ -100,7 +98,6 @@ export interface StandardFormDto {
         roles?: Array<string>;
         privacyPolicyUrl?: string;
         responseExpiration?: string;
-        responseExpirationType?: ResponseRetentionType;
         disableBranding: boolean;
         hidden: boolean;
         formCloseDate?: string;
@@ -111,7 +108,6 @@ export interface StandardFormDto {
     };
     isPublished?: boolean;
     importerDetails?: UserStatus;
-    consent?: Array<IConsentField>;
     fields: Array<StandardFormFieldDto>;
     createdTime?: string | Date;
     modifiedTime?: string | Date;
@@ -141,7 +137,7 @@ export interface StandardFormResponseDto {
     status?: string;
     requestForDeletion?: boolean;
     expiration?: string;
-    expirationType?: ResponseRetentionType;
+    expirationType?: any;
     dataOwnerIdentifier?: string | null | undefined;
     responses?: Array<{ questionId: string; answer: any }>;
 }

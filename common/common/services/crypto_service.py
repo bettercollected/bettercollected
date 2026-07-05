@@ -51,9 +51,9 @@ class CryptoService:
 
 def default_crypto_service():
     encryption_keyset = os.environ.get("MASTER_ENCRYPTION_KEYSET", None)
-    if encryption_keyset:
-        return CryptoService(encryption_keyset)
-    return None
+    if not encryption_keyset:
+        raise Exception("MASTER_ENCRYPTION_KEYSET environment variable is not set.")
+    return CryptoService(encryption_keyset)
 
 
 crypto_service = default_crypto_service()

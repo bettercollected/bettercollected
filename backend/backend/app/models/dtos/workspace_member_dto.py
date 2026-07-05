@@ -10,30 +10,30 @@ from common.enums.workspace_invitation_status import InvitationStatus
 
 
 class WorkspaceMemberDto(CamelModel):
-    id: Optional[str]
-    first_name: Optional[str]
-    last_name: Optional[str]
-    email: Optional[str]
-    profile_image: Optional[str]
-    joined: Optional[datetime]
-    roles: Optional[List[WorkspaceRoles]]
+    id: Optional[str] = None
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    email: Optional[str] = None
+    profile_image: Optional[str] = None
+    joined: Optional[datetime] = None
+    roles: Optional[List[WorkspaceRoles]] = None
 
 
 class FormImporterDetails(CamelModel):
-    id: Optional[str]
-    first_name: Optional[str]
-    last_name: Optional[str]
-    email: Optional[str]
-    profile_image: Optional[str]
+    id: Optional[str] = None
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    email: Optional[str] = None
+    profile_image: Optional[str] = None
 
 
 class WorkspaceInvitationDto(CamelModel):
-    created_at: Optional[datetime]
-    email: Optional[EmailStr]
-    expiry: Optional[int]
-    invitation_status: Optional[InvitationStatus]
-    invitation_token: Optional[str]
-    role: Optional[WorkspaceRoles]
-    updated_at: Optional[datetime]
-    workspace_id: Optional[PydanticObjectId]
-    id: Optional[PydanticObjectId]
+    created_at: Optional[datetime] = None
+    email: Optional[EmailStr] = None
+    expiry: Optional[int] = None
+    invitation_status: Optional[InvitationStatus] = None
+    invitation_token: Optional[str] = None
+    role: Optional[WorkspaceRoles] = None
+    updated_at: Optional[datetime] = None
+    workspace_id: Optional[PydanticObjectId] = None
+    id: Optional[PydanticObjectId] = None

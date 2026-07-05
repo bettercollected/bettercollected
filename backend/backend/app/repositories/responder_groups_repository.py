@@ -16,10 +16,10 @@ class ResponderGroupsRepository:
         self,
         workspace_id: PydanticObjectId,
         name: str,
-        description: Optional[str],
-        form_id: Optional[str],
-        emails: List[EmailStr],
-        regex: Optional[str],
+        description: Optional[str] = None,
+        form_id: Optional[str] = None,
+        emails: List[EmailStr] = None,
+        regex: Optional[str] = None,
     ):
         if description and len(description) > 280:
             return {"message": "description should be less than 280 characters"}
@@ -45,11 +45,11 @@ class ResponderGroupsRepository:
     async def update_group(
         self,
         workspace_id: PydanticObjectId,
-        name: Optional[str],
-        description: Optional[str],
-        emails: List[EmailStr],
-        group_id: PydanticObjectId,
-        regex: Optional[str],
+        name: Optional[str] = None,
+        description: Optional[str] = None,
+        emails: List[EmailStr] = None,
+        group_id: PydanticObjectId = None,
+        regex: Optional[str] = None,
     ):
         responder_group = await ResponderGroupDocument.find_one(
             {"workspace_id": workspace_id, "_id": group_id}
@@ -73,8 +73,10 @@ class ResponderGroupsRepository:
             await ResponderGroupMemberDocument.insert_many(responder_group_emails)
 
         if responder_group:
-            responder_group.name = name
-            responder_group.description = description
+            if name:
+                responder_group.name = name
+            if description:
+                responder_group.description = description
             responder_group.regex = regex
         return await responder_group.save()
 

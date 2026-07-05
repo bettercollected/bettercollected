@@ -96,7 +96,7 @@ class WorkspaceRouter(Routable):
 
     @get(
         "/check-handle-availability/{workspace_name}",
-        response_model=str,
+        response_model=bool | str,
     )
     async def check_handle_availability(
         self,

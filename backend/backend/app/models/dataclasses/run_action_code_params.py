@@ -6,8 +6,8 @@ from pydantic import BaseModel
 
 
 class WorkspaceParameters(BaseModel):
-    parameters: Optional[List[ParameterValue]]
-    secrets: Optional[List[ParameterValue]]
+    parameters: Optional[List[ParameterValue]] = None
+    secrets: Optional[List[ParameterValue]] = None
 
 
 @dataclass

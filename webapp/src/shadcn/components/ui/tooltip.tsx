@@ -6,9 +6,9 @@ import * as TooltipPrimitive from '@radix-ui/react-tooltip';
 
 import { cn } from '@app/shadcn/util/lib';
 
-interface ICustomTooltip {
+interface ICustomTooltip extends React.ComponentPropsWithoutRef<typeof TooltipPrimitive.Content> {
     children: React.ReactNode;
-    label: string;
+    label: React.ReactNode;
     className?: string;
     triggerClassName?: string;
 }
@@ -24,12 +24,16 @@ const TooltipContent = React.forwardRef<React.ElementRef<typeof TooltipPrimitive
 ));
 TooltipContent.displayName = TooltipPrimitive.Content.displayName;
 
-export default function ToolTip({ children, label, className, triggerClassName }: ICustomTooltip) {
+export { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger };
+
+export default function ToolTip({ children, label, className, triggerClassName, ...props }: ICustomTooltip) {
+    if (!label) return <>{children}</>;
+
     return (
         <TooltipProvider>
             <Tooltip delayDuration={300}>
                 <TooltipTrigger className={triggerClassName}>{children}</TooltipTrigger>
-                <TooltipContent className={className}>{label}</TooltipContent>
+                <TooltipContent className={className} {...props}>{label}</TooltipContent>
             </Tooltip>
         </TooltipProvider>
     );

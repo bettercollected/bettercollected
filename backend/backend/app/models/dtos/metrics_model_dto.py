@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, RootModel
 from typing import List
 
 
@@ -7,5 +7,5 @@ class MetricDataModel(BaseModel):
     y: int
 
 
-class MetricResponseModel(BaseModel):
-    __root__: List[MetricDataModel]
+class MetricResponseModel(RootModel):
+    root: List[MetricDataModel]

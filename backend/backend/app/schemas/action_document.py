@@ -11,8 +11,8 @@ from backend.app.handlers.database import entity
 
 class BaseAction(BaseModel):
     name: str
-    parameters: Optional[List[ParameterValue]]
-    secrets: Optional[List[ParameterValue]]
+    parameters: Optional[List[ParameterValue]] = None
+    secrets: Optional[List[ParameterValue]] = None
     action_code: Optional[str] = Field(None)
 
 
@@ -23,15 +23,15 @@ class ActionSettings(BaseModel):
 @entity
 class ActionDocument(MongoDocument):
     name: str
-    title: Optional[str]
-    description: Optional[str]
+    title: Optional[str] = None
+    description: Optional[str] = None
     action_code: str
     created_by: PydanticObjectId
-    parameters: Optional[List[ParameterValue]]
-    secrets: Optional[List[ParameterValue]]
-    type: Optional[str]
-    predefined: Optional[bool]
-    url: Optional[str]
+    parameters: Optional[List[ParameterValue]] = None
+    secrets: Optional[List[ParameterValue]] = None
+    type: Optional[str] = None
+    predefined: Optional[bool] = None
+    url: Optional[str] = None
 
     class Settings:
         name = "actions"
@@ -47,8 +47,8 @@ class WorkspaceActionsDocument(MongoDocument):
     workspace_id: PydanticObjectId
     action_id: PydanticObjectId
     settings: Optional[ActionSettings] = ActionSettings()
-    parameters: Optional[List[ParameterValue]]
-    secrets: Optional[List[ParameterValue]]
+    parameters: Optional[List[ParameterValue]] = None
+    secrets: Optional[List[ParameterValue]] = None
 
     class Settings:
         name = "workspace_actions"

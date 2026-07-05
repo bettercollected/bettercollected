@@ -36,14 +36,14 @@ class FormImportService:
         form_response_data_owner: str,
         workspace_id: PydanticObjectId,
     ) -> StandardForm | None:
-        form_data = FormImportResponse.parse_obj(response_data)
+        form_data = FormImportResponse.model_validate(response_data)
         if not (form_data.form or form_data.responses):
             return None
         standard_form = await self.form_service.save_form(form_data.form)
         responses = form_data.responses
         updated_responses_id = []
         for response in responses:
-            response_document = FormResponseDocument(**response.dict())
+            response_document = FormResponseDocument(**response.model_dump(mode="json"))
             response_document.form_id = standard_form.form_id
             data_owner_answer = response_document.answers.get(form_response_data_owner)
 
@@ -56,11 +56,10 @@ class FormImportService:
                     if data_owner_answer
                     else None
                 )
-            if workspace_id and type(
-                response_document.answers == StandardFormResponseAnswer
-            ):
+            if workspace_id:
                 for k, v in response_document.answers.items():
-                    response_document.answers[k] = v.dict()
+                    if isinstance(v, StandardFormResponseAnswer):
+                        response_document.answers[k] = v.model_dump()
                 response_document.answers = crypto_service.encrypt(
                     workspace_id=workspace_id,
                     form_id=response_document.form_id,
@@ -97,7 +96,9 @@ class FormImportService:
                 workspace_id=workspace_id
             )
             await self.form_service.user_tags_service.add_user_tag(
-                user_id=WorkspaceResponseDto(**workspace.dict()).owner_id,
+                user_id=WorkspaceResponseDto(
+                    **workspace.model_dump(mode="json")
+                ).owner_id,
                 tag=UserTagType.DELETION_REQUEST_PROCESSED,
             )
         return standard_form

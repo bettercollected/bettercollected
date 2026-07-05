@@ -116,12 +116,12 @@ class WorkspaceFormsRouter(Routable):
         # Camel model is converted to basic modal so that camel case is not stored in db
         response = await self.workspace_form_service.create_form(
             workspace_id=workspace_id,
-            form=StandardForm(**minified_form.dict()),
+            form=StandardForm(**minified_form.model_dump(mode='json')),
             user=user,
             logo=logo,
             cover_image=cover_image,
         )
-        return FormDtoCamelModel(**response.dict())
+        return FormDtoCamelModel(**response.model_dump(mode='json'))
 
     @post("/ai")
     async def create_form_with_ai(
@@ -199,12 +199,12 @@ class WorkspaceFormsRouter(Routable):
         response = await self.workspace_form_service.update_form(
             workspace_id=workspace_id,
             form_id=form_id,
-            form=StandardForm(**minified_form.dict()),
+            form=StandardForm(**minified_form.model_dump(mode='json')),
             user=user,
             logo=logo,
             cover_image=cover_image,
         )
-        return StandardFormCamelModel(**response.dict())
+        return StandardFormCamelModel(**response.model_dump(mode='json'))
 
     @post("/{form_id}/duplicate", response_model=FormDtoCamelModel)
     async def duplicate_form(
@@ -219,7 +219,7 @@ class WorkspaceFormsRouter(Routable):
         response = await self.workspace_form_service.duplicate_form(
             workspace_id=workspace_id, form_id=form_id, user=user
         )
-        return StandardFormCamelModel(**response.dict())
+        return StandardFormCamelModel(**response.model_dump(mode='json'))
 
     @post("/{form_id}/publish", response_model=FormDtoCamelModel)
     async def publish_form(
@@ -231,7 +231,7 @@ class WorkspaceFormsRouter(Routable):
         form = await self.workspace_form_service.publish_form(
             workspace_id=workspace_id, form_id=form_id, user=user
         )
-        form_dict = form.dict()
+        form_dict = form.model_dump(mode='json')
         form_dict["form_id"] = str(form_id)
         return StandardFormCamelModel(**form_dict)
 
@@ -361,7 +361,7 @@ class WorkspaceFormsRouter(Routable):
         data = await self._form_service.patch_settings_in_workspace_form(
             workspace_id, form_id, settings, user
         )
-        return WorkspaceFormPatchResponse(**data.dict())
+        return WorkspaceFormPatchResponse(**data.model_dump(mode='json'))
 
     @patch(
         "/{form_id}/groups/add",

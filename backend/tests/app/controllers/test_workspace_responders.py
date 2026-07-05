@@ -1,7 +1,7 @@
 from typing import Any, Coroutine
 
 import pytest
-from aiohttp.test_utils import TestClient
+from httpx import AsyncClient
 
 from backend.app.container import container
 from backend.app.schemas.workspace import WorkspaceDocument
@@ -31,7 +31,7 @@ class TestWorkspaceResponders:
 
     async def test_get_workspace_responders(
         self,
-        client: TestClient,
+        client: AsyncClient,
         workspace: Coroutine[Any, Any, WorkspaceDocument],
         workspace_responders_api: str,
         test_user_cookies: dict[str, str],
@@ -46,7 +46,7 @@ class TestWorkspaceResponders:
             workspace_form_response["dataOwnerIdentifier"],
         ]
 
-        workspace_responders = client.get(
+        workspace_responders = await client.get(
             workspace_responders_api, cookies=test_user_cookies
         )
 
@@ -61,15 +61,15 @@ class TestWorkspaceResponders:
         assert actual_responders_number == expected_responders_number
         assert actual_responders_emails == expected_responders_emails
 
-    def test_unauthorized_get_workspace_responders_fails(
+    async def test_unauthorized_get_workspace_responders_fails(
         self,
-        client: TestClient,
+        client: AsyncClient,
         workspace_responders_api: str,
         workspace_form_response: Coroutine[Any, Any, dict],
         test_user_cookies_1: dict[str, str],
         published_form,
     ):
-        unauthorized_client = client.get(
+        unauthorized_client = await client.get(
             workspace_responders_api, cookies=test_user_cookies_1
         )
 
@@ -80,7 +80,7 @@ class TestWorkspaceResponders:
 
     async def test_get_workspace_tags(
         self,
-        client: TestClient,
+        client: AsyncClient,
         workspace_tag_url: str,
         workspace_group: Coroutine,
         test_user_cookies: dict[str, str],
@@ -89,32 +89,32 @@ class TestWorkspaceResponders:
         tag1 = await create_tag_for_responder(workspace, "Admin")
         tag2 = await create_tag_for_responder(workspace, "Leader")
 
-        workspace_tags = client.get(workspace_tag_url, cookies=test_user_cookies)
+        workspace_tags = await client.get(workspace_tag_url, cookies=test_user_cookies)
 
         actual_tags = [item.get("title") for item in workspace_tags.json()]
         expected_tags = [tag1.title, tag2.title]
         assert actual_tags == expected_tags
 
-    def test_unauthorized_get_workspace_tags_fails(
+    async def test_unauthorized_get_workspace_tags_fails(
         self,
-        client: TestClient,
+        client: AsyncClient,
         workspace_tag_url: str,
         test_user_cookies_1: dict[str, str],
     ):
-        unauthorized_client = client.get(workspace_tag_url, cookies=test_user_cookies_1)
+        unauthorized_client = await client.get(workspace_tag_url, cookies=test_user_cookies_1)
 
         expected_response_message = MESSAGE_FORBIDDEN
         actual_response_message = unauthorized_client.json()
         assert unauthorized_client.status_code == 403
         assert actual_response_message == expected_response_message
 
-    def test_create_workspace_tag(
+    async def test_create_workspace_tag(
         self,
-        client: TestClient,
+        client: AsyncClient,
         workspace_tag_url: str,
         test_user_cookies: dict[str, str],
     ):
-        tag = client.post(
+        tag = await client.post(
             workspace_tag_url, cookies=test_user_cookies, json=workspace_tag
         )
 
@@ -123,13 +123,13 @@ class TestWorkspaceResponders:
         assert tag.status_code == 200
         assert actual_tag == expected_tag
 
-    def test_unauthorized_create_workspace_tag_fails(
+    async def test_unauthorized_create_workspace_tag_fails(
         self,
-        client: TestClient,
+        client: AsyncClient,
         workspace_tag_url: str,
         test_user_cookies_1: dict[str, str],
     ):
-        unauthorized_client = client.post(
+        unauthorized_client = await client.post(
             workspace_tag_url, cookies=test_user_cookies_1, json=workspace_tag
         )
 
@@ -140,7 +140,7 @@ class TestWorkspaceResponders:
 
     async def test_patch_workspace_responder_with_email(
         self,
-        client: TestClient,
+        client: AsyncClient,
         test_user_cookies: dict[str, str],
         workspace: Coroutine[Any, Any, WorkspaceDocument],
         workspace_responders_api: str,
@@ -152,7 +152,7 @@ class TestWorkspaceResponders:
             f"{workspace_responders_api}?email=bettercollected@gmail.com"
         )
 
-        workspace_responder = client.patch(
+        workspace_responder = await client.patch(
             patch_workspace_responder_url,
             cookies=test_user_cookies,
             json={"tags": [str(tag.id)]},
@@ -165,7 +165,7 @@ class TestWorkspaceResponders:
 
     async def test_unauthorized_patch_workspace_responder_with_email_fails(
         self,
-        client: TestClient,
+        client: AsyncClient,
         test_user_cookies_1: dict[str, str],
         workspace_responders_api: str,
         workspace: Coroutine[Any, Any, WorkspaceDocument],
@@ -177,7 +177,7 @@ class TestWorkspaceResponders:
             f"{workspace_responders_api}?email=bettercollected@gmail.com"
         )
 
-        unauthorized_client = client.patch(
+        unauthorized_client = await client.patch(
             patch_workspace_responder_url,
             cookies=test_user_cookies_1,
             json={"tags": [str(tag.id)]},

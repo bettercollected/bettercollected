@@ -25,7 +25,7 @@ site
 .git
 .github
 result
-.env
+.env.backup
 .pytest_cache
 .gitlab-ci.yml
 docker-compose.yml

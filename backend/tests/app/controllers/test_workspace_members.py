@@ -2,7 +2,7 @@ import secrets
 from typing import Any, Coroutine
 
 import pytest
-from aiohttp.test_utils import TestClient
+from httpx import AsyncClient
 from beanie import PydanticObjectId
 from common.constants import MESSAGE_FORBIDDEN, MESSAGE_NOT_FOUND
 from common.models.standard_form import StandardForm
@@ -50,9 +50,9 @@ async def create_invitation(
 
 
 class TestWorkspaceMember:
-    def test_get_workspace_members(
+    async def test_get_workspace_members(
         self,
-        client: TestClient,
+        client: AsyncClient,
         workspace_member_url: str,
         test_user_cookies: dict[str, str],
         mock_get_user_info,
@@ -63,7 +63,7 @@ class TestWorkspaceMember:
         }
 
         with mock_get_user_info:
-            members = client.get(workspace_member_url, cookies=test_user_cookies)
+            members = await client.get(workspace_member_url, cookies=test_user_cookies)
 
         members_info = members.json()[0]
         expected_response = expected_members_info
@@ -73,13 +73,13 @@ class TestWorkspaceMember:
         }
         assert actual_response == expected_response
 
-    def test_unauthorized_client_get_workspace_members_fails(
+    async def test_unauthorized_client_get_workspace_members_fails(
         self,
-        client: TestClient,
+        client: AsyncClient,
         workspace_member_url: str,
         test_user_cookies_1: dict[str, str],
     ):
-        workspace_members = client.get(
+        workspace_members = await client.get(
             workspace_member_url, cookies=test_user_cookies_1
         )
 
@@ -88,9 +88,9 @@ class TestWorkspaceMember:
         assert workspace_members.status_code == 403
         assert actual_response_message == expected_response_message
 
-    def test_delete_workspace_member(
+    async def test_delete_workspace_member(
         self,
-        client: TestClient,
+        client: AsyncClient,
         workspace_member_url: str,
         test_user_cookies: dict[str, str],
         mock_get_user_info,
@@ -98,7 +98,7 @@ class TestWorkspaceMember:
         delete_url = f"{workspace_member_url}/{testUser.id}"
 
         with mock_get_user_info:
-            delete_workspace_member = client.delete(
+            delete_workspace_member = await client.delete(
                 delete_url, cookies=test_user_cookies
             )
 
@@ -108,7 +108,7 @@ class TestWorkspaceMember:
 
     async def test_delete_member_deletes_form_and_user(
         self,
-        client: TestClient,
+        client: AsyncClient,
         workspace: Coroutine[Any, Any, WorkspaceDocument],
         workspace_form: Coroutine[Any, Any, WorkspaceFormDocument],
         workspace_member_url: str,
@@ -121,7 +121,7 @@ class TestWorkspaceMember:
         )
 
         with mock_get_user_info:
-            client.delete(delete_url, cookies=test_user_cookies)
+            await client.delete(delete_url, cookies=test_user_cookies)
 
         expected_form = await WorkspaceFormDocument.find_one(
             {"form_id": workspace_form.form_id, "workspace_id": workspace.id}
@@ -132,15 +132,15 @@ class TestWorkspaceMember:
         actual_user_and_form = None
         assert actual_user_and_form == expected_user == expected_form
 
-    def test_unauthorized_client_delete_workspace_members_fails(
+    async def test_unauthorized_client_delete_workspace_members_fails(
         self,
-        client: TestClient,
+        client: AsyncClient,
         test_user_cookies_1: dict[str, str],
         workspace_member_url: str,
     ):
         delete_url = f"{workspace_member_url}/{testUser.id}"
 
-        delete_members = client.delete(delete_url, cookies=test_user_cookies_1)
+        delete_members = await client.delete(delete_url, cookies=test_user_cookies_1)
 
         expected_response_message = MESSAGE_FORBIDDEN
         actual_response_message = delete_members.json()
@@ -149,14 +149,14 @@ class TestWorkspaceMember:
 
     async def test_get_workspaces_invitations(
         self,
-        client: TestClient,
+        client: AsyncClient,
         test_user_cookies: dict[str, str],
         workspace: Coroutine[Any, Any, WorkspaceDocument],
         workspace_invitation_url: str,
     ):
         await create_invitation(workspace.id, InvitationRequest(**invitation_request))
 
-        invitations = client.get(workspace_invitation_url, cookies=test_user_cookies)
+        invitations = await client.get(workspace_invitation_url, cookies=test_user_cookies)
 
         expected_invitations_number = 1
         actual_invitations_number = invitations.json().get("total")
@@ -167,20 +167,20 @@ class TestWorkspaceMember:
 
     async def test_unauthorized_client_get_workspace_invitations_fails(
         self,
-        client: TestClient,
+        client: AsyncClient,
         test_user_cookies_1: dict[str, str],
         workspace_invitation_url: str,
     ):
-        invitations = client.get(workspace_invitation_url, cookies=test_user_cookies_1)
+        invitations = await client.get(workspace_invitation_url, cookies=test_user_cookies_1)
 
         expected_response_message = MESSAGE_FORBIDDEN
         actual_response_message = invitations.json()
         assert invitations.status_code == 403
         assert actual_response_message == expected_response_message
 
-    def test_create_workspace_invitation_by_admin(
+    async def test_create_workspace_invitation_by_admin(
         self,
-        client: TestClient,
+        client: AsyncClient,
         test_user_cookies: dict[str, str],
         workspace: Coroutine[Any, Any, WorkspaceDocument],
         workspace_invitation_url: str,
@@ -192,7 +192,7 @@ class TestWorkspaceMember:
         }
 
         with mock_create_invitation_request:
-            created_invitation = client.post(
+            created_invitation = await client.post(
                 workspace_invitation_url,
                 cookies=test_user_cookies,
                 json=invitation_request,
@@ -208,7 +208,7 @@ class TestWorkspaceMember:
 
     async def test_create_workspace_invitation_by_collaborator_fails(
         self,
-        client: TestClient,
+        client: AsyncClient,
         test_invited_user_cookies: dict[str, str],
         workspace: Coroutine[Any, Any, WorkspaceDocument],
         workspace_invitation_url: str,
@@ -220,7 +220,7 @@ class TestWorkspaceMember:
         }
 
         with mock_create_invitation_request:
-            created_invitation = client.post(
+            created_invitation = await client.post(
                 workspace_invitation_url,
                 cookies=test_invited_user_cookies,
                 json=invitation_request,
@@ -233,11 +233,11 @@ class TestWorkspaceMember:
 
     async def test_unauthorized_client_create_workspace_invitation_fails(
         self,
-        client: TestClient,
+        client: AsyncClient,
         test_user_cookies_1: dict[str, str],
         workspace_invitation_url: str,
     ):
-        created_invitation = client.get(
+        created_invitation = await client.get(
             workspace_invitation_url, cookies=test_user_cookies_1
         )
 
@@ -248,12 +248,12 @@ class TestWorkspaceMember:
 
     async def test_get_invitation_by_token_for_admin(
         self,
-        client: TestClient,
+        client: AsyncClient,
         invitation_by_token_url: str,
         workspace: Coroutine[Any, Any, WorkspaceDocument],
         test_user_cookies: dict[str, str],
     ):
-        invitation_by_token = client.get(
+        invitation_by_token = await client.get(
             invitation_by_token_url, cookies=test_user_cookies
         )
 
@@ -270,12 +270,12 @@ class TestWorkspaceMember:
 
     async def test_get_invitation_by_token_for_invited_user(
         self,
-        client: TestClient,
+        client: AsyncClient,
         invitation_by_token_url: str,
         workspace: Coroutine[Any, Any, WorkspaceDocument],
         test_invited_user_cookies: dict[str, str],
     ):
-        invitation_by_token = client.get(
+        invitation_by_token = await client.get(
             invitation_by_token_url, cookies=test_invited_user_cookies
         )
 
@@ -292,7 +292,7 @@ class TestWorkspaceMember:
 
     async def test_get_invitation_by_token_for_invited_user_without_pending_status_fails(
         self,
-        client: TestClient,
+        client: AsyncClient,
         workspace_invitation_url: str,
         workspace: Coroutine[Any, Any, WorkspaceDocument],
         test_invited_user_cookies: dict[str, str],
@@ -308,7 +308,7 @@ class TestWorkspaceMember:
             f"{workspace_invitation_url}/{invitation.invitation_token}"
         )
 
-        invitation_by_token = client.get(
+        invitation_by_token = await client.get(
             invitation_by_token_url, cookies=test_invited_user_cookies
         )
 
@@ -319,7 +319,7 @@ class TestWorkspaceMember:
 
     async def test_get_invitation_by_expired_token_for_invited_user_fails(
         self,
-        client: TestClient,
+        client: AsyncClient,
         workspace_invitation_url: str,
         workspace: Coroutine[Any, Any, WorkspaceDocument],
         test_invited_user_cookies: dict[str, str],
@@ -334,7 +334,7 @@ class TestWorkspaceMember:
             f"{workspace_invitation_url}/{invitation.invitation_token}"
         )
 
-        invitation_by_token = client.get(
+        invitation_by_token = await client.get(
             invitation_by_token_url, cookies=test_invited_user_cookies
         )
 
@@ -345,7 +345,7 @@ class TestWorkspaceMember:
 
     async def test_unauthorized_client_get_workspace_invitation_by_token_fails(
         self,
-        client: TestClient,
+        client: AsyncClient,
         workspace: Coroutine[Any, Any, WorkspaceDocument],
         test_user_cookies_1: dict[str, str],
         workspace_invitation_url: str,
@@ -357,7 +357,7 @@ class TestWorkspaceMember:
             f"{workspace_invitation_url}/{invitation.invitation_token}"
         )
 
-        invitation_by_token = client.get(
+        invitation_by_token = await client.get(
             invitation_by_token_url, cookies=test_user_cookies_1
         )
 
@@ -366,29 +366,29 @@ class TestWorkspaceMember:
         assert invitation_by_token.status_code == 403
         assert actual_response_message == expected_response_message
 
-    def test_respond_to_invitation_token_by_invited_user(
+    async def test_respond_to_invitation_token_by_invited_user(
         self,
-        client: TestClient,
+        client: AsyncClient,
         invitation_by_token_url: str,
         test_invited_user_cookies: dict[str, str],
     ):
         url = f"{invitation_by_token_url}?response_status=ACCEPTED"
 
-        responded_invitation = client.post(url, cookies=test_invited_user_cookies)
+        responded_invitation = await client.post(url, cookies=test_invited_user_cookies)
 
         expected_response = "Request Processed Successfully."
         actual_response = responded_invitation.json()
         assert actual_response == expected_response
 
-    def test_respond_to_invalid_invitation_token_fails(
+    async def test_respond_to_invalid_invitation_token_fails(
         self,
-        client: TestClient,
+        client: AsyncClient,
         workspace_invitation_url: str,
         test_invited_user_cookies: dict[str, str],
     ):
         url = f"{workspace_invitation_url}/{secrets.token_hex(16)}?response_status=ACCEPTED"
 
-        responded_invitation = client.post(url, cookies=test_invited_user_cookies)
+        responded_invitation = await client.post(url, cookies=test_invited_user_cookies)
 
         expected_response_message = MESSAGE_NOT_FOUND
         actual_response_message = responded_invitation.json()
@@ -397,7 +397,7 @@ class TestWorkspaceMember:
 
     async def test_respond_to_non_pending_invitation_token_fails(
         self,
-        client: TestClient,
+        client: AsyncClient,
         workspace: Coroutine[Any, Any, WorkspaceDocument],
         workspace_invitation_url: str,
         test_invited_user_cookies: dict[str, str],
@@ -411,7 +411,7 @@ class TestWorkspaceMember:
         ).save()
         url = f"{workspace_invitation_url}/{accepted_invitation.invitation_token}?response_status=REJECTED"
 
-        responded_invitation = client.post(url, cookies=test_invited_user_cookies)
+        responded_invitation = await client.post(url, cookies=test_invited_user_cookies)
 
         expected_response_message = "Token has expired"
         actual_response_message = responded_invitation.json()
@@ -420,7 +420,7 @@ class TestWorkspaceMember:
 
     async def test_respond_to_expired_invitation_token_fails(
         self,
-        client: TestClient,
+        client: AsyncClient,
         workspace: Coroutine[Any, Any, WorkspaceDocument],
         workspace_invitation_url: str,
         test_invited_user_cookies: dict[str, str],
@@ -433,34 +433,34 @@ class TestWorkspaceMember:
         ).save()
         url = f"{workspace_invitation_url}/{accepted_invitation.invitation_token}?response_status=REJECTED"
 
-        responded_invitation = client.post(url, cookies=test_invited_user_cookies)
+        responded_invitation = await client.post(url, cookies=test_invited_user_cookies)
 
         expected_response_message = "Token has expired"
         actual_response_message = responded_invitation.json()
         assert responded_invitation.status_code == 410
         assert actual_response_message == expected_response_message
 
-    def test_respond_to_invitation_token_by_non_invited_user_fails(
+    async def test_respond_to_invitation_token_by_non_invited_user_fails(
         self,
-        client: TestClient,
+        client: AsyncClient,
         invitation_by_token_url: str,
         test_user_cookies: dict[str, str],
     ):
         url = f"{invitation_by_token_url}?response_status=ACCEPTED"
 
-        responded_invitation = client.post(url, cookies=test_user_cookies)
+        responded_invitation = await client.post(url, cookies=test_user_cookies)
 
         expected_response = "Invalid User"
         actual_response = responded_invitation.json()
         assert actual_response == expected_response
 
-    def test_delete_invitation_by_token_for_admin(
+    async def test_delete_invitation_by_token_for_admin(
         self,
-        client: TestClient,
+        client: AsyncClient,
         test_user_cookies: dict[str, str],
         invitation_by_token_url: str,
     ):
-        deleted_invitation = client.delete(
+        deleted_invitation = await client.delete(
             invitation_by_token_url, cookies=test_user_cookies
         )
 
@@ -468,29 +468,29 @@ class TestWorkspaceMember:
         actual_response = deleted_invitation.json()
         assert actual_response == expected_response
 
-    def test_delete_non_existing_token_fails(
+    async def test_delete_non_existing_token_fails(
         self,
-        client: TestClient,
+        client: AsyncClient,
         workspace: Coroutine[Any, Any, WorkspaceDocument],
         workspace_invitation_url: str,
         test_user_cookies: dict[str, str],
     ):
         url = f"{workspace_invitation_url}/{secrets.token_hex(16)}"
 
-        responded_invitation = client.delete(url, cookies=test_user_cookies)
+        responded_invitation = await client.delete(url, cookies=test_user_cookies)
 
         expected_response_message = "Invitation not found"
         actual_response_message = responded_invitation.json()
         assert responded_invitation.status_code == 404
         assert actual_response_message == expected_response_message
 
-    def test_delete_invitation_by_token_for_non_admin_fails(
+    async def test_delete_invitation_by_token_for_non_admin_fails(
         self,
-        client: TestClient,
+        client: AsyncClient,
         test_invited_user_cookies: dict[str, str],
         invitation_by_token_url: str,
     ):
-        deleted_invitation = client.delete(
+        deleted_invitation = await client.delete(
             invitation_by_token_url, cookies=test_invited_user_cookies
         )
 
