@@ -29,7 +29,7 @@ dependencies = [
     "fastapi-pagination>=0.15.10",
     "python-whois>=0.9.6",
     "camel-converter>=5.0.0",
-    "sentry-sdk[fastapi]>=2.52.0",
+    "sentry-sdk[fastapi]>=2.64.0",
     "temporalio>=1.22.0",
     "elastic-apm>=6.25.0",
     "common",
