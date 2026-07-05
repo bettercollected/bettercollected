@@ -8702,10 +8702,10 @@ uvu@^0.5.0:
     kleur "^4.0.3"
     sade "^1.7.3"
 
-vanilla-cookieconsent@^2.9.0:
-  version "2.9.2"
-  resolved "https://registry.yarnpkg.com/vanilla-cookieconsent/-/vanilla-cookieconsent-2.9.2.tgz#d4ac2169fdde5e76f7b8345d0dbfb9b946fe99f0"
-  integrity sha512-SHAS5W0DBvvcUtjmVvvYkhmLPmTlgwKzFvViUp5mBimbZCdZKbDQzwyk/TgYq02+61RrtxmDdLGzDWNFpSbsGQ==
+vanilla-cookieconsent@^3.1.0:
+  version "3.1.0"
+  resolved "https://registry.yarnpkg.com/vanilla-cookieconsent/-/vanilla-cookieconsent-3.1.0.tgz#0f430f4788e9a09e22e795088889b0679a88a263"
+  integrity sha512-/McNRtm/3IXzb9dhqMIcbquoU45SzbN2VB+To4jxEPqMmp7uVniP6BhGLjU8MC7ZCDsNQVOp27fhQTM/ruIXAA==
 
 vfile-location@^5.0.0:
   version "5.0.3"
