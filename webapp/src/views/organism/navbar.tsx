@@ -8,7 +8,7 @@ import { v4 } from 'uuid';
 import { FieldTypes } from '@app/models/dtos/form';
 import { Button } from '@app/shadcn/components/ui/button';
 import { DropdownMenu, DropdownMenuContent } from '@app/shadcn/components/ui/dropdown-menu';
-import { Sheet, SheetClose, SheetContent, SheetFooter, SheetTrigger } from '@app/shadcn/components/ui/sheet';
+import { Sheet, SheetClose, SheetContent, SheetTitle, SheetFooter, SheetTrigger } from '@app/shadcn/components/ui/sheet';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { selectAuth } from '@app/store/auth/slice';
 import { useActiveSlideComponent } from '@app/store/jotai/active-builder-component';
@@ -193,6 +193,7 @@ const Navbar = () => {
                         </Button>
                     </SheetTrigger>
                     <SheetContent className="h-full w-full p-0" side={'bottom'} hideCloseIcon>
+                        <SheetTitle className="sr-only">Navigation menu</SheetTitle>
                         <SheetFooter>
                             <SheetClose asChild onClick={handleResetResponderState}>
                                 <div className="absolute left-4 top-16 z-50 lg:top-3 ">
