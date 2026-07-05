@@ -1,7 +1,7 @@
 """OpenAI-backed AI form provider using function-calling tools."""
 
 import json
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 from openai import AsyncOpenAI
 
@@ -102,9 +102,20 @@ class OpenAIFormProvider(AIFormProvider):
     """Generates forms using OpenAI chat completions with function calling."""
 
     def __init__(self, unsplash_service: UnsplashService) -> None:
-        self._client = AsyncOpenAI(api_key=settings.open_ai.API_KEY)
+        # Construct the client lazily (see `client`) so the app can boot
+        # without an OpenAI key; only actually generating a form needs one.
+        self._client: Optional[AsyncOpenAI] = None
         self._model = settings.open_ai.MODAL
         self._unsplash = unsplash_service
+
+    @property
+    def client(self) -> AsyncOpenAI:
+        # `openai` >= 2.44 raises at construction when the API key is missing,
+        # so building the client eagerly in __init__ would crash startup for
+        # anyone not using AI form generation. Defer it to first use.
+        if self._client is None:
+            self._client = AsyncOpenAI(api_key=settings.open_ai.API_KEY)
+        return self._client
 
     async def generate_form(self, prompt: str) -> Dict[str, Any]:
         messages = [
@@ -114,7 +125,7 @@ class OpenAIFormProvider(AIFormProvider):
 
         # Agentic tool-call loop — runs until the model emits a plain message.
         while True:
-            response = await self._client.chat.completions.create(
+            response = await self.client.chat.completions.create(
                 model=self._model,
                 messages=messages,
                 tools=OPENAI_TOOLS,
