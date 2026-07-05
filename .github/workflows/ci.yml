@@ -90,6 +90,38 @@ jobs:
                   MASTER_ENCRYPTION_KEYSET: "ewogICAgICAgICAgImtleSI6IFt7CiAgICAgICAgICAgICAgImtleURhdGEiOiB7CiAgICAgICAgICAgICAgICAgICJrZXlNYXRlcmlhbFR5cGUiOgogICAgICAgICAgICAgICAgICAgICAgIlNZTU1FVFJJQyIsCiAgICAgICAgICAgICAgICAgICJ0eXBlVXJsIjoKICAgICAgICAgICAgICAgICAgICAgICJ0eXBlLmdvb2dsZWFwaXMuY29tL2dvb2dsZS5jcnlwdG8udGluay5BZXNHY21LZXkiLAogICAgICAgICAgICAgICAgICAidmFsdWUiOgogICAgICAgICAgICAgICAgICAgICAgIkdpQld5VWZHZ1lrM1JUUmhqL0xJVXpTdWRJV2x5akNmdENPeXBUcjBqQ05TTGc9PSIKICAgICAgICAgICAgICB9LAogICAgICAgICAgICAgICJrZXlJZCI6IDI5NDQwNjUwNCwKICAgICAgICAgICAgICAib3V0cHV0UHJlZml4VHlwZSI6ICJUSU5LIiwKICAgICAgICAgICAgICAic3RhdHVzIjogIkVOQUJMRUQiCiAgICAgICAgICB9XSwKICAgICAgICAgICJwcmltYXJ5S2V5SWQiOiAyOTQ0MDY1MDQKICAgICAgfQ=="
               run: uv run pytest
 
+    auth-tests:
+        name: Auth tests (pytest)
+        needs: select-runner
+        runs-on: ${{ needs.select-runner.outputs.runner }}
+        # The auth suite uses an in-memory Mongo mock (mongomock-motor), so no
+        # database service is needed — only the settings the config requires.
+        defaults:
+            run:
+                working-directory: auth
+        steps:
+            - uses: actions/checkout@v4
+
+            - name: Set up uv
+              uses: astral-sh/setup-uv@v5
+              with:
+                  python-version: 3.11.12
+                  enable-cache: true
+
+            - name: Install dependencies
+              env:
+                  VIRTUAL_ENV: ""
+              run: uv sync --frozen
+
+            - name: Run auth tests
+              env:
+                  VIRTUAL_ENV: ""
+                  DOTENV_PATH: /nonexistent.env
+                  AUTH_JWT_SECRET: c3c66ff889b1deabc35ebb3cf07374f1fd934f0f0185eec076b5bcd874de86d5
+                  AUTH_AES_HEX_KEY: L5HuSlk0ijI3xzaccuy2x1jnzHNjtTw3zW53tjGHZG0=
+                  ELASTIC_APM_DISABLE_SEND: "true"
+              run: uv run pytest
+
     webapp-build:
         name: Webapp build & type-check
         needs: select-runner
@@ -112,3 +144,26 @@ jobs:
 
             - name: Build (includes type-check)
               run: yarn build
+
+    webapp-tests:
+        name: Webapp tests (vitest)
+        needs: select-runner
+        runs-on: ${{ needs.select-runner.outputs.runner }}
+        defaults:
+            run:
+                working-directory: webapp
+        steps:
+            - uses: actions/checkout@v4
+
+            - name: Set up Node
+              uses: actions/setup-node@v4
+              with:
+                  node-version-file: .nvmrc
+                  cache: yarn
+                  cache-dependency-path: webapp/yarn.lock
+
+            - name: Install dependencies
+              run: yarn install --frozen-lockfile
+
+            - name: Run tests
+              run: yarn test:run

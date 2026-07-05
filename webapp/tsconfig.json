@@ -48,6 +48,12 @@
     "node_modules",
     "build",
     ".next",
-    ".next-dev"
+    ".next-dev",
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/*.spec.ts",
+    "**/*.spec.tsx",
+    "vitest.config.ts",
+    "vitest.setup.ts"
   ]
 }
