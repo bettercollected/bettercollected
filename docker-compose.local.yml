@@ -32,3 +32,17 @@ services:
         ports:
             - '3001:3001'
             - '3002:3002'
+
+    # Local email testing: captures all outgoing mail (OTP codes, invites).
+    # Host ports 1026/8026 are used to avoid clashing with any other Mailpit
+    # already running on the default 1025/8025. Point MAIL_SMTP_SERVER=localhost
+    # MAIL_SMTP_PORT=1026; open the web inbox at http://localhost:8026
+    mailpit:
+        image: axllent/mailpit:latest
+        restart: unless-stopped
+        ports:
+            - '1026:1025'
+            - '8026:8025'
+        environment:
+            MP_SMTP_AUTH_ACCEPT_ANY: 'true'
+            MP_SMTP_AUTH_ALLOW_INSECURE: 'true'
