@@ -1,0 +1,67 @@
+'use client';
+
+import { Shield } from 'lucide-react';
+
+export interface TrustLayerProps {
+    /** Who is collecting the responses — the workspace/brand name. */
+    ownerName?: string;
+    /** Optional owner logo/avatar. */
+    ownerImage?: string;
+    /** Optional one-line statement of why the form collects data. */
+    purpose?: string;
+    /** Link to how the data is handled (form- or workspace-level privacy policy). */
+    privacyUrl?: string;
+    /** Human-readable retention, e.g. "kept for 90 days". */
+    retention?: string;
+}
+
+/**
+ * A quiet, persistent "trust layer" for the responder form: who is collecting,
+ * why, how the data is handled, and the right to delete. Making the privacy
+ * story visible on every form is bettercollected's differentiator — see
+ * Design-Language.md §4.
+ *
+ * Presentational only: pass in data (see the wired usage on the fill page).
+ */
+export default function TrustLayer({ ownerName, ownerImage, purpose, privacyUrl, retention }: TrustLayerProps) {
+    const items: React.ReactNode[] = [];
+
+    if (ownerName) {
+        items.push(
+            <span key="owner" className="text-black-700 inline-flex items-center gap-1.5">
+                {ownerImage ? (
+                    <img src={ownerImage} alt="" className="h-4 w-4 rounded-full object-cover" />
+                ) : null}
+                Collected by <span className="text-black-900 font-medium">{ownerName}</span>
+            </span>
+        );
+    }
+    if (purpose) {
+        items.push(<span key="purpose" className="text-black-600">{purpose}</span>);
+    }
+    if (privacyUrl) {
+        items.push(
+            <a key="privacy" href={privacyUrl} target="_blank" rel="noopener noreferrer" className="text-brand-500 pointer-events-auto hover:underline">
+                How your data is used
+            </a>
+        );
+    }
+    // Deletion is a right responders always have (post-submission); state it plainly.
+    items.push(
+        <span key="delete" className="text-black-600">
+            You can view or delete your response anytime{retention ? ` · ${retention}` : ''}
+        </span>
+    );
+
+    return (
+        <div className="border-t-black-200 bg-white/85 flex w-full flex-wrap items-center justify-center gap-x-3 gap-y-1.5 border-t px-4 py-2.5 text-xs backdrop-blur-sm">
+            <Shield className="text-brand-500 h-3.5 w-3.5 shrink-0" strokeWidth={1.8} aria-hidden="true" />
+            {items.map((item, i) => (
+                <span key={i} className="inline-flex items-center gap-3">
+                    {i > 0 && <span className="bg-black-200 h-3 w-px" aria-hidden="true" />}
+                    {item}
+                </span>
+            ))}
+        </div>
+    );
+}
