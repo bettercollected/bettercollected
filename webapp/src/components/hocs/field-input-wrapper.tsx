@@ -29,10 +29,11 @@ const FieldInputWrapper = ({ id, slide, value, onChange, type = 'text', style, i
     }, [value]);
 
     const Component: typeof OptionInput | typeof FieldInput = isOptionsInput ? OptionInput : FieldInput;
+    const { theme } = useFormState();
 
     return (
         <>
-            <Component id={id} type={type} value={inputVal} style={style} onChange={(e: any) => setInputVal(e.target.value)} {...props} />
+            <Component id={id} type={type} value={inputVal} style={style} $formTheme={theme} onChange={(e: any) => setInputVal(e.target.value)} {...props} />
         </>
     );
 };
@@ -40,10 +41,11 @@ const FieldInputWrapper = ({ id, slide, value, onChange, type = 'text', style, i
 const OptionInput = styled(Input)<{
     $slide?: StandardFormFieldDto;
     $formTheme?: IThemeState;
-}>(({}) => {
-    const { theme } = useFormState();
-    const tertiaryColor = theme?.tertiary;
-    const secondaryColor = theme?.secondary;
+}>(({ $formTheme }) => {
+    // See note in text-area-field.tsx: theme is passed as a prop, not read via a
+    // hook inside the styled interpolation (avoids "Rendered fewer hooks").
+    const tertiaryColor = $formTheme?.tertiary;
+    const secondaryColor = $formTheme?.secondary;
     return {
         background: 'inherit',
         borderColor: tertiaryColor,

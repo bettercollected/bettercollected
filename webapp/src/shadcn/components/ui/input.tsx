@@ -10,7 +10,7 @@ export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> 
     textColor?: string;
 }
 
-const ShadCNInput = React.forwardRef<HTMLInputElement, InputProps>(({ className, type, ...props }, ref) => {
+const ShadCNInput = React.forwardRef<HTMLInputElement, InputProps>(({ className, type, value, ...props }, ref) => {
     const { theme } = useFormState();
 
     return (
@@ -21,6 +21,8 @@ const ShadCNInput = React.forwardRef<HTMLInputElement, InputProps>(({ className,
             type={type}
             className={cn(`w-full border-0 border-b-[1px] px-0 py-2 text-[28px] disabled:cursor-not-allowed disabled:opacity-50 lg:text-[32px]`, className)}
             ref={ref}
+            // Coerce null -> '' so a controlled input never receives a null value.
+            value={value === null ? '' : value}
             {...props}
         />
     );
@@ -43,10 +45,11 @@ AppInput.displayName = 'AppInput';
 const FieldInput = styled(ShadCNInput)<{
     $slide?: StandardFormFieldDto;
     $formTheme?: IThemeState;
-}>(({ }) => {
-    const { theme } = useFormState();
-    const themeColor = theme?.tertiary;
-    const secondaryColor = theme?.secondary;
+}>(({ $formTheme }) => {
+    // Theme comes in as a prop; calling useFormState() inside a styled-components
+    // interpolation yields an inconsistent hook count under React 19.
+    const themeColor = $formTheme?.tertiary;
+    const secondaryColor = $formTheme?.secondary;
     return {
         background: 'inherit',
         borderColor: themeColor,
