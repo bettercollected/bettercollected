@@ -44,6 +44,8 @@ export function getPlaceholderValueForTitle(fieldType: FieldTypes) {
             return 'Rate from 1 to 10';
         case FieldTypes.MATRIX:
             return 'Matrix Field';
+        case FieldTypes.TABULAR_INPUT:
+            return 'Tabular Input Field';
         default:
             return 'No Field Selected';
     }

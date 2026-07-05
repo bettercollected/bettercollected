@@ -49,7 +49,7 @@ class AuthRoutes(Routable):
             workspace_profile_image,
             creator,
         )
-        return "Email set to be sent"
+        return {"message": "Email set to be sent"}
 
     @get("/otp/validate")
     async def _validate_otp(self, email: EmailStr, otp_code: str):

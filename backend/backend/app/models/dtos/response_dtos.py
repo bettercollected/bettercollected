@@ -83,6 +83,9 @@ class StandardFieldPropertyCamelModel(CamelModel):
     mentions: Optional[Dict[str, str]] = None
     theme: Optional[Theme] = None
     layout: Optional[LayoutType] = None
+    row_titles: Optional[List[str]] = None
+    column_titles: Optional[List[str]] = None
+    tabular_value: Optional[List[List[str]]] = None
 
 
 class StandardFormFieldCamelModel(CamelModel):

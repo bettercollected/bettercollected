@@ -384,6 +384,21 @@ export default function useFormFieldsAtom() {
                     ]
                 }
             };
+        } else if (field.type === FieldTypes.TABULAR_INPUT) {
+            return {
+                id: fieldId,
+                index: fieldIndex,
+                type: field.type,
+                properties: {
+                    rowTitles: ['Row 1', 'Row 2', 'Row 3'],
+                    columnTitles: ['Col 1', 'Col 2', 'Col 3'],
+                    tabular_value: [
+                        ['', '', ''],
+                        ['', '', ''],
+                        ['', '', '']
+                    ]
+                }
+            };
         } else {
             return {
                 id: fieldId,
@@ -405,6 +420,26 @@ export default function useFormFieldsAtom() {
         });
         formFields![activeSlideComponent!.index]!.properties!.fields![activeFieldComponent!.index]!.properties!.fields = [...(updatedRows || [])];
         setFormFields([...formFields]);
+    };
+
+    const updateTabularRowTitle = (rowIdx: number, val: string) => {
+        const slideIndex = activeSlideComponent!.index;
+        const fieldIndex = activeFieldComponent!.index;
+        const field = formFields[slideIndex]?.properties?.fields?.[fieldIndex];
+        if (field?.properties?.rowTitles) {
+            field.properties.rowTitles[rowIdx] = val;
+            setFormFields([...formFields]);
+        }
+    };
+
+    const updateTabularColumnTitle = (colIdx: number, val: string) => {
+      const slideIndex = activeSlideComponent!.index;
+      const fieldIndex = activeFieldComponent!.index;
+      const field = formFields[slideIndex]?.properties?.fields?.[fieldIndex];
+      if (field?.properties?.columnTitles) {
+          field.properties.columnTitles[colIdx] = val;
+          setFormFields([...formFields]);
+      }
     };
 
     const addColumn = () => {
@@ -465,6 +500,95 @@ export default function useFormFieldsAtom() {
         setFormFields([...formFields]);
     };
 
+    const updateTabularInputValue = (slideIndex: number, fieldIndex: number, value: string[][]) => {
+        if (
+            formFields[slideIndex] &&
+            formFields[slideIndex].properties &&
+            formFields[slideIndex].properties.fields &&
+            formFields[slideIndex].properties.fields[fieldIndex]
+        ) {
+            formFields[slideIndex].properties.fields[fieldIndex].properties = {
+                ...(formFields[slideIndex].properties.fields[fieldIndex].properties || {}),
+                tabular_value: value
+            };
+            setFormFields([...formFields]);
+        }
+    };
+
+    // Add a new row to the TabularInput field
+    const addTabularRow = () => {
+        const slideIndex = activeSlideComponent!.index;
+        const fieldIndex = activeFieldComponent!.index;
+        const field = formFields[slideIndex]?.properties?.fields?.[fieldIndex];
+        if (!field?.properties) return;
+        // Add a new row title
+        field.properties.rowTitles = [
+            ...(field.properties.rowTitles || []),
+            `Row ${(field.properties.rowTitles || []).length + 1}`
+        ];
+        const colCount = field.properties.columnTitles?.length || 3;
+        field.properties.tabular_value = [
+            ...(field.properties.tabular_value || []),
+            Array(colCount).fill('')
+        ];
+        setFormFields([...formFields]);
+    };
+
+    // Add a new column to the TabularInput field
+    const addTabularColumn = () => {
+        const slideIndex = activeSlideComponent!.index;
+        const fieldIndex = activeFieldComponent!.index;
+        const field = formFields[slideIndex]?.properties?.fields?.[fieldIndex];
+        if (!field?.properties) return;
+        // Add a new column title
+        field.properties.columnTitles = [
+            ...(field.properties.columnTitles || []),
+            `Col ${(field.properties.columnTitles || []).length + 1}`
+        ];
+        field.properties.tabular_value = (field.properties.tabular_value || []).map(row => [
+            ...row,
+            ''
+        ]);
+        setFormFields([...formFields]);
+    };
+
+    // Delete a row from the TabularInput field
+    const deleteTabularRow = (slideIndex: number, fieldIndex: number, rowIndex: number) => {
+        const resolvedSlideIndex = slideIndex >= 0 ? slideIndex : activeSlideComponent!.index;
+        const slide = formFields[resolvedSlideIndex];
+        if (!slide?.properties?.fields) return;
+        const field = slide.properties.fields[fieldIndex];
+        if (!field?.properties) return;
+
+        const currentRowTitles = field.properties?.rowTitles || [];
+        const currentValue = field.properties?.tabular_value || [];
+
+        field.properties = {
+            ...(field.properties || {}),
+            rowTitles: currentRowTitles.filter((_: any, i: number) => i !== rowIndex),
+            tabular_value: currentValue.filter((_: any, i: number) => i !== rowIndex)
+        };
+        setFormFields([...formFields]);
+    };
+
+    const deleteTabularColumn = (slideIndex: number, fieldIndex: number, colIndex: number) => {
+        const resolvedSlideIndex = slideIndex >= 0 ? slideIndex : activeSlideComponent!.index;
+        const slide = formFields[resolvedSlideIndex];
+        if (!slide?.properties?.fields) return;
+        const field = slide.properties.fields[fieldIndex];
+        if (!field?.properties) return;
+
+        const currentColTitles = field.properties?.columnTitles || [];
+        const currentValue = field.properties?.tabular_value || [];
+
+        field.properties = {
+            ...(field.properties || {}),
+            columnTitles: currentColTitles.filter((_: any, i: number) => i !== colIndex),
+            tabular_value: currentValue.map((row: string[]) => row.filter((_: string, i: number) => i !== colIndex))
+        };
+        setFormFields([...formFields]);
+    };
+
     return {
         formFields,
         setFormFields,
@@ -501,6 +625,13 @@ export default function useFormFieldsAtom() {
         addRow,
         addColumn,
         deleteRow,
-        deleteColumn
+        deleteColumn,
+        updateTabularInputValue,
+        addTabularRow,
+        addTabularColumn,
+        deleteTabularRow,
+        deleteTabularColumn,
+        updateTabularRowTitle,
+        updateTabularColumnTitle
     };
 }

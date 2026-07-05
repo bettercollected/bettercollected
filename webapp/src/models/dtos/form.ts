@@ -33,6 +33,9 @@ export interface StandardFormFieldProperties {
     mentions?: any;
     logicalOperator?: any;
     actions?: any;
+    rowTitles?: Array<string>;
+    columnTitles?: Array<string>;
+    tabular_value?: Array<Array<string>>;
 }
 
 export interface StandardFormFieldDto {
@@ -163,6 +166,7 @@ export interface AnswerDto {
     file_metadata?: FileMetadata;
     phoneNumber?: string;
     phone_number?: string;
+    tabular_value?: string[][];
     choice?: {
         id?: string;
         label?: string;
@@ -214,6 +218,7 @@ export enum FieldTypes {
     LINEAR_RATING = 'linear_rating',
     DROP_DOWN = 'dropdown',
     MATRIX = 'matrix',
+    TABULAR_INPUT = 'tabular_input',
     FILE_UPLOAD = 'file_upload',
     GROUP = 'group',
     PAYMENT = 'payment',
@@ -245,5 +250,6 @@ export const V2InputFields = [
     FieldTypes.EMAIL,
     FieldTypes.PHONE_NUMBER,
     FieldTypes.DROP_DOWN,
-    FieldTypes.MATRIX
+    FieldTypes.MATRIX,
+    FieldTypes.TABULAR_INPUT
 ];
