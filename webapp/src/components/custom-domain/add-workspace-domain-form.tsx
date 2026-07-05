@@ -62,6 +62,15 @@ const AddWorkspaceDomainForm = () => {
     return (
         <div className="mt-4 flex flex-col  gap-2">
             <span className="text-black-700 text-xs">You can use your own domain name to have a custom URL for your published forms. Consider using a subdomain, such as : forms.yourdomain.com</span>
+            {!workspace.isPro && (
+                <div className="mt-3 flex flex-wrap items-center gap-2 rounded-lg border border-[#FFD79A] bg-[#FFF7EA] px-3 py-2 text-xs text-[#8A5A00]">
+                    <span className="rounded bg-[#FFB020] px-1.5 py-0.5 text-[10px] font-semibold text-white">PRO</span>
+                    <span>Custom domains are a Pro feature.</span>
+                    <button type="button" onClick={() => openModal('UPGRADE_TO_PRO')} className="font-semibold text-[#8A5A00] underline underline-offset-2">
+                        Upgrade to connect your domain
+                    </button>
+                </div>
+            )}
             <div className="text-black-800 mt-4 text-xs font-medium">Enter a domain you own</div>
             <form
                 onSubmit={(event) => {

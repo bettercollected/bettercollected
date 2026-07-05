@@ -6,6 +6,7 @@ import { useFormAnalyticsData } from '@app/store/analytics/analytics-hooks';
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
 import EmptyResponseIcon from '@Components/icons/expty-response-icon';
+import { AlertTriangle } from 'lucide-react';
 import { useEffect, useState, type JSX } from 'react';
 
 export default function FormAnalytics() {
@@ -226,7 +227,7 @@ export default function FormAnalytics() {
         return (
             <>
                 <TimeRangeSelector onRangeSelect={handleRangeSelect} selectedRange={range} />
-                <EmptyDataResponseComponent title="No data yet" detail="There was an error while fetching the data" />
+                <AnalyticsErrorComponent onRetry={() => window.location.reload()} />
             </>
         );
     }
@@ -263,6 +264,25 @@ const EmptyDataResponseComponent = ({ title, detail }: { title: JSX.Element | st
                 <EmptyResponseIcon />
                 <span className="p3-new text-black">{title}</span>
                 <span className="p4-new text-black-600">{detail}</span>
+            </div>
+        </div>
+    );
+};
+
+const AnalyticsErrorComponent = ({ onRetry }: { onRetry: () => void }) => {
+    return (
+        <div className="flex min-h-[300px] w-full items-center justify-center">
+            <div className="mb-28 flex max-w-[360px] flex-col items-center gap-3 text-center">
+                <AlertTriangle className="h-9 w-9 text-amber-500" strokeWidth={1.5} />
+                <span className="p3-new text-black">Couldn&apos;t load analytics</span>
+                <span className="p4-new text-black-600">Something went wrong fetching this data. Check your connection and try again.</span>
+                <button
+                    type="button"
+                    onClick={onRetry}
+                    className="text-brand-500 border-brand-500 mt-1 rounded-lg border px-4 py-2 text-sm font-medium hover:bg-blue-50"
+                >
+                    Try again
+                </button>
             </div>
         </div>
     );

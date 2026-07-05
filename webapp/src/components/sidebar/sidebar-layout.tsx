@@ -118,6 +118,10 @@ export default function SidebarLayout({ children, DrawerComponent = DashboardDra
         if (matchingNavList.length > 0) {
             return matchingNavList[matchingNavList.length - 1]?.name;
         }
+        // Routes that aren't represented in the sidebar nav still need a correct
+        // title instead of the generic "My Workspace" fallback.
+        if (pathname?.includes('/dashboard/templates')) return 'Templates';
+        if (pathname?.includes('/dashboard/account-settings')) return 'Account Settings';
         return 'My Workspace';
     };
 

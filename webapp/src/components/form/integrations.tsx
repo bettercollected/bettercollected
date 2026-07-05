@@ -159,7 +159,7 @@ export default function FormIntegrations() {
             )}
             {Array.isArray(data) && data.length == 0 && (
                 <div>
-                    <EmptyFormsView description="No Integrations Found" />
+                    <EmptyFormsView description="No integrations available yet — once you connect one, it will appear here." />
                 </div>
             )}
         </div>
