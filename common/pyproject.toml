@@ -46,7 +46,7 @@ classifiers = [
 
 [dependency-groups]
 dev = [
-    "black>=26.1.0",
+    "black>=26.5.1",
 ]
 
 [tool.uv]

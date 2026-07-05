@@ -671,7 +671,7 @@ requires-dist = [
 ]
 
 [package.metadata.requires-dev]
-dev = [{ name = "black", specifier = ">=26.1.0" }]
+dev = [{ name = "black", specifier = ">=26.5.1" }]
 
 [[package]]
 name = "cryptography"
