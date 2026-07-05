@@ -1,0 +1,42 @@
+name: ✨ Feature request
+description: Suggest an idea or improvement
+labels: ["enhancement", "needs-triage"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem / motivation
+      description: What problem does this solve? Who is it for?
+      placeholder: "I'm frustrated when ... / It would help responders to ..."
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: Describe what you'd like to happen.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Any alternative solutions or workarounds you've thought about.
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - form builder
+        - responses / responder portal
+        - integrations (google / typeform)
+        - privacy / consent / deletion
+        - billing
+        - developer experience
+        - other
+  - type: checkboxes
+    id: contribution
+    attributes:
+      label: Contribution
+      options:
+        - label: I'm willing to help implement this feature

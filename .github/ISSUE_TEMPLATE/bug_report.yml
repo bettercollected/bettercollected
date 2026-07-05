@@ -1,0 +1,61 @@
+name: 🐛 Bug report
+description: Report something that isn't working as expected
+labels: ["bug", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to file a bug report! Please do **not** report
+        security vulnerabilities here — see [SECURITY.md](../blob/develop/SECURITY.md).
+  - type: dropdown
+    id: service
+    attributes:
+      label: Affected service
+      description: Which part of the stack is affected?
+      options:
+        - webapp (frontend)
+        - backend (core API)
+        - auth (identity / billing)
+        - integrations (google / typeform)
+        - temporal (workers)
+        - infra / deployment
+        - not sure
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: A clear description of the bug and what you expected instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Go to '...'
+        2. Click on '...'
+        3. See error
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs / console / network output
+      description: Paste any error output. This will be rendered as code, so no backticks needed.
+      render: shell
+  - type: input
+    id: version
+    attributes:
+      label: Version / commit
+      description: Git commit or release you're running (self-hosted), or "cloud".
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      placeholder: |
+        - OS:
+        - Browser (for webapp bugs):
+        - Node / Python versions (for local dev):
+        - Deployment: local / docker-compose / cloud

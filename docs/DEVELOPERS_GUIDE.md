@@ -1,131 +1,185 @@
-**Note**: For deployment look into `DEPLOYMENT_GUIDE.md`
+# Developers Guide
 
-# DEVELOPERS GUIDE
+This document explains how to set up bettercollected for local development.
+For a high-level tour of how the services fit together, read
+[ARCHITECTURE.md](ARCHITECTURE.md) first. For the contribution workflow, see
+[../CONTRIBUTING.md](../CONTRIBUTING.md).
 
-This document explains the development guide to the new users participating in the development of the project.
+> **Note:** The Python services use [**uv**](https://docs.astral.sh/uv/) for
+> dependency management (not Poetry), and `common` is a regular directory in this
+> repo (not a git submodule). Older instructions mentioning Poetry or
+> `git submodule` are obsolete.
 
-### Directory Structure
-1. `auth`:  the auth service
-2. `backend`: the backend service
-3. `common`: common module used across multiple projects
-4. `integrations`: form builder integrations used in bettercollected 
-   1. `google`
-   2. `typeform`
-5. `temporal`: Services related to temporal
-   1. `worker` 
+## Directory structure
 
+| Path | What it is |
+|---|---|
+| `webapp/` | Next.js frontend |
+| `backend/` | Core FastAPI API |
+| `auth/` | Identity (OAuth / OTP / JWT) + Stripe billing |
+| `integrations/google/` | Google Forms integration service |
+| `temporal/worker/`, `temporal/actions-executor/` | Temporal background workers |
+| `common/` | Shared Python package (models, enums, crypto, JWT) |
 
-## Setup
+## Prerequisites
 
-#### Prerequisites
-1. Python version `3.10` installed 
-2. Poetry installed globally
-3. Node version `16.18.0 or higher`
+| Tool | Version | Install |
+|---|---|---|
+| uv | latest | https://docs.astral.sh/uv/getting-started/installation/ |
+| Python | 3.11+ | uv can install it for you (`uv python install`); see [`.python-version`](../.python-version) |
+| Node.js | 20+ | see [`.nvmrc`](../.nvmrc) — `nvm use` |
+| Yarn | 1.x (Classic) | `corepack enable` or `npm i -g yarn` |
+| Docker + Compose | latest | for MongoDB, nginx, Mailpit |
 
-(**Note:** You can use nvm and pyenv to manage multiple versions of node and python respectively)
+## 1. Start infrastructure
 
-You can simply run the following command 
-```
-./install.sh 
-```
+This brings up MongoDB (with seed data), nginx, and **Mailpit** (a local email
+inbox that captures OTP/invite emails):
 
-### Configure Nginx locally to map the path for `ADMIN_HOST`, `CLIENT_HOST`, and `CUSTOM_DOMAIN` to load all of them at once.
-
-This can be done in two ways:
-
-#### 1. Using Docker compose
-
-If you do not have nginx installed in your system then you can simply use the `nginx` service in `docker-compose.local.yml`.
-
-
-#### 2. Using locally installed Nginx
-
-1. Install `nginx` with `sudo apt install nginx`.
-2. Check if the `nginx` service is running or not with `systemctl status nginx`. If it's not running, start the service by running `systemctl start nginx`.
-3. Next step is to update the config files for nginx. Run `touch /etc/nginx/conf.d/default.conf` and `nano /etc/nginx/conf.d/default.conf` (The config names can be anything). After that paste the following in that config and save it.
-
-    ```
-    server {
-        listen 3001;
-
-        location / {
-            proxy_pass http://localhost:3000;
-            proxy_set_header Host $host:$server_port;
-        }
-    }
-    ```
-
-    <br/>
-    In the same way, create another config file with a name `custom-domain-bettercollected.conf` and paste the following in this config and save it.
-
-    ```
-    server {
-        listen 3002;
-
-        location / {
-            proxy_pass http://localhost:3000;
-            proxy_set_header Host $host:$server_port;
-        }
-    }
-    ```
-
-4. After adding the config, restart the nginx with `systemctl restart nginx`.
-5. After this, you'll be able to see `ADMIN_HOST` in `localhost:3000`, `CLIENT_HOST` in `localhost:3001/{workspace_handle}`, and `CUSTOM_DOMAIN` in `localhost:3002`.
-
-### Default and Custom Domain Configuration
-
-1. To go `CLIENT_HOST` as the default domain, navigate to `localhost:3001/{workspace_handle}`.
-2. To go to the Custom Domain, follow the process below
-    - Update a workspaces' custom domain e.g. `localhost:3002` to set up localhost:3002 as a custom domain (This also needs to be saved in database inside `allowed_origins` in a new document)
-    - Run the app in `localhost:3002` and you can access your custom domain at `localhost:3002`
-
-
-### Run database using docker
-
-Since All repositories depend on mongo database, so you will need to run mongo before running `Backend` and `Auth` repositories. To run the database
-use following command to run the docker container from this webapp repository.
-
-```
-    docker compose -f "docker-compose.local.yml" up --build -d
+```bash
+docker compose -f docker-compose.local.yml up --build -d
 ```
 
+- MongoDB → `localhost:27017` (root/root)
+- nginx → serves the client host on `:3001` and custom-domain host on `:3002`
+- Mailpit → SMTP on `:1026`, web inbox at **http://localhost:8026**
 
-This will create and seed required databases to run all backend.
+> The seed step inserts the `allowed_origins` documents that the backend's
+> dynamic CORS relies on — the app won't accept requests from an un-seeded host.
 
-### Alternative for database
+## 2. Configure environment variables
 
-If you want to use an existing deployment of mongodb, make sure that you seed the data that has been seeded with `seed-data.js` in `bettercollected_backend` database manually as given below.
+Copy each service's `.env.example` to `.env` and fill it in:
 
-1. Use CLI or `MongoDB Compass` to connect to MongoDB . `MongoDB Compass` is preferred [Installation Link](https://www.mongodb.com/try/download/compass).
-2. Inside `bettercollected_backend` database, go to `allowed_origins` collection, if not present, you can create it manually.
-3. Add individual document for `localhost:3000`, `localhost:3001`, and `localhost:3002` with a field like:
-    ```
-     "origin":"http://localhost:3000"  # Replace 3000 with 3001 and 3002
-    ```
-4. Also go to 'forms_plugin_configs' collection, if not present create it manually.
-5And then add individual document for `google` and `typeform` with a field like:
-    ```
-        "enabled":"true"
-        "provider_name":"typeform"      # Replace typeform with `google`
-        "provider_url":"http://localhost:8002/api/v1"       # Replace `8002` with `8003`
-        "auth_callback_url":"http://localhost:8002/api/v1/typeform/oauth/callback"      # Replace typeform with `google` and replace `8002` with `8003`
-        "type":"oauth2"
-    ```
-
-
-## Running all services locally
-
-You can simply run all the required services by using the following command
-```shell
-./run.sh
+```bash
+for d in backend auth integrations/google webapp temporal/worker temporal/actions-executor; do
+  cp "$d/.env.example" "$d/.env"
+done
 ```
 
-Or, you can individually run each service by navigating to it and running the same above command.
+Set `MONGO_URI=mongodb://root:root@localhost:27017` in the Python services.
 
-### Walk through `README.md`
+### Shared secrets (must match across services)
 
-1.  Use python version `3.10` , if you don't have then install using pyenv with command `pyenv install version_number` and set it global with `pyenv global version_number`.
-2.  Walk through `README.md` of all the individual services.
-3.  Also, inside each repository set up for "common" submodule with command if not already up to date:
-    `git submodule update --init --recursive --remote`
-    And then navigate to common submodule `cd common` and checkout master branch `git checkout master && git pull` and `cd ..`.
+`AUTH_JWT_SECRET`, `AUTH_AES_HEX_KEY`, and `MASTER_ENCRYPTION_KEYSET` **must be
+identical** in `backend`, `auth`, and the integrations, or cross-service auth and
+encrypted data will break. Generate them once and paste the same values
+everywhere:
+
+```bash
+# AUTH_AES_HEX_KEY — a Fernet key (despite the name)
+python3 -c "import os,base64; print(base64.urlsafe_b64encode(os.urandom(32)).decode())"
+
+# AUTH_JWT_SECRET — any high-entropy string
+python3 -c "import secrets; print(secrets.token_hex(32))"
+
+# MASTER_ENCRYPTION_KEYSET — a base64 Tink AEAD keyset (required by the backend)
+uv run --project backend python -c "import io,base64,tink; from tink import aead, cleartext_keyset_handle; aead.register(); kh=tink.new_keyset_handle(aead.aead_key_templates.AES256_GCM); buf=io.StringIO(); cleartext_keyset_handle.write(tink.JsonKeysetWriter(buf), kh); print(base64.b64encode(buf.getvalue().encode()).decode())"
+```
+
+Other required backend fields: `UNSPLASH_ACCESS_KEY` (may be empty) and
+`AWS_PRE_SIGNED_URL_EXPIRY` (must be an integer, e.g. `3600`).
+
+Cookie config for local http: set `API_HOST=localhost` and leave `API_DOMAIN`
+empty in `backend/.env` (a cookie domain can't contain a port).
+
+### Email (Mailpit)
+
+Point auth at the local Mailpit and disable TLS/auth:
+
+```dotenv
+MAIL_SMTP_SERVER=localhost
+MAIL_SMTP_PORT=1026
+MAIL_STARTTLS=false
+MAIL_SSL_TLS=false
+MAIL_USE_CREDENTIALS=false
+MAIL_VALIDATE_CERTS=false
+MAIL_SENDER=dev@bettercollected.com    # a plain, valid email (no name<addr>, no .local)
+```
+
+## 3. Install dependencies
+
+```bash
+# Python services
+for d in backend auth integrations/google temporal/worker temporal/actions-executor; do
+  (cd "$d" && uv sync)
+done
+
+# Frontend
+(cd webapp && yarn install)
+```
+
+## 4. Run the services
+
+| Service | Command | URL |
+|---|---|---|
+| backend | `cd backend && uv run python -m uvicorn backend.app:get_application --port 8000 --reload` | http://localhost:8000/api/v1/docs |
+| auth | `cd auth && uv run python -m uvicorn auth.app:get_application --port 8001` | http://localhost:8001 |
+| google integration | `cd integrations/google && uv run python -m uvicorn googleform.app:get_application --port 8003` | http://localhost:8003 |
+| webapp | `cd webapp && yarn dev` | http://localhost:3000 |
+
+Each service also has a `run.sh`. For the **minimal loop** (build/use a form),
+you only need MongoDB + backend + auth + webapp; the google integration is for
+imports and Temporal is for async jobs.
+
+### Temporal (optional)
+
+Import, deletion, CSV export, and preview features run as Temporal workflows.
+Start a Temporal dev server and the workers:
+
+```bash
+temporal server start-dev            # serves on :7233
+(cd temporal/worker && uv sync && uv run python main.py)
+```
+
+Set `TEMPORAL_SERVER_URL` in the relevant `.env` files.
+
+## Logging in locally
+
+Login uses an email OTP. With Mailpit running, request a code from the login
+page and read it from the **Mailpit inbox at http://localhost:8026**. (The code
+is also stored in Mongo under `bettercollected_auth.users.otp_code`.)
+
+## Multi-host routing
+
+The webapp serves three logical hosts, matched by domain:
+
+- **Admin/dashboard** → `localhost:3000` (`DASHBOARD_DOMAIN`)
+- **Client/forms** → `localhost:3001/{workspace_handle}` (`FORM_DOMAIN`), via nginx
+- **Custom domain** → `localhost:3002`
+
+Set `DASHBOARD_DOMAIN=localhost:3000` and `FORM_DOMAIN=localhost:3001` and
+`NEXT_PUBLIC_API_ENDPOINT_HOST=http://localhost:8000/api/v1` in `webapp/.env`.
+
+## Integrations (Google / Typeform)
+
+Setting up the Google and Typeform OAuth apps is covered in
+[RUNNING_INTEGRATIONS.md](RUNNING_INTEGRATIONS.md).
+
+## Tests, lint & format
+
+```bash
+# Python (per service)
+uv run pytest
+uv run black .
+uv run flake8 .
+
+# Frontend
+yarn test
+yarn lint
+yarn format:check
+yarn build        # type-checks + builds
+```
+
+Install pre-commit hooks where a config exists: `pre-commit install`, and commit
+from the terminal so hook failures are visible.
+
+## Common gotchas
+
+- **Python version:** the repo targets 3.11+. uv manages the interpreter; if you
+  see resolution errors, run `uv python install 3.11`.
+- **`common` is a path dependency:** changing a model/enum in `common/` affects
+  backend, auth, and integrations — re-`uv sync` and test all consumers.
+- **Shared secrets:** if login or decryption fails across services, your
+  `AUTH_*` / `MASTER_ENCRYPTION_KEYSET` values differ between them.
+- **CORS:** a new host must exist in the Mongo `allowed_origins` collection.
