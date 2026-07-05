@@ -5,18 +5,18 @@ description = "Temporal actions executor"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
-    "temporalio==1.2.0",
+    "temporalio==1.30.0",
     "pydantic-settings>=2.14.2",
     "python-dotenv>=1.2.2",
     "httpx==0.28.1",
     "fastapi-mail>=1.6.1",
-    "google-api-python-client==2.161.0",
-    "google-auth==2.38.0",
+    "google-api-python-client==2.198.0",
+    "google-auth==2.55.1",
     "cryptography>=48.0.1",
-    "elastic-apm==6.23.0",
+    "elastic-apm==6.26.2",
     "jinja2==3.1.6",
     "email-validator>=2.3.0",
-    "pydantic==2.12.5",
+    "pydantic==2.13.4",
     "protobuf==5.29.6",
 ]
 
