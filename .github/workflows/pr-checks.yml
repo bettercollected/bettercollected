@@ -16,13 +16,20 @@ jobs:
             matrix:
                 service:
                     - webapp
+        env:
+            DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
         steps:
             - name: Checkout code with submodules
               uses: actions/checkout@v2
               with:
                   submodules: "recursive"
 
+            # The image uses a public base (node:22-alpine) and this job only
+            # builds (no push), so Docker Hub login is optional. Skip it when the
+            # secret is unavailable — e.g. Dependabot PRs, which have no access to
+            # repository secrets and would otherwise fail here.
             - name: Set up Docker
+              if: env.DOCKER_USERNAME != ''
               uses: docker/login-action@v1
               with:
                   registry: docker.io
