@@ -1,0 +1,23 @@
+# CODEOWNERS — default reviewers for pull requests.
+#
+# Order matters: the LAST matching pattern for a changed file wins. Owners are
+# requested for review automatically when a PR touches files they own.
+#
+# NOTE for maintainers: `@bettercollected/maintainers` is a placeholder team.
+# Create that team under the org (or replace it with individual @handles) for
+# these rules to take effect — GitHub ignores rules whose owner it can't resolve.
+
+# Fallback owner for everything not matched below.
+*                       @bettercollected/maintainers
+
+# Service-scoped ownership — adjust as the team grows.
+/webapp/                @bettercollected/maintainers
+/backend/               @bettercollected/maintainers
+/auth/                  @bettercollected/maintainers
+/integrations/          @bettercollected/maintainers
+/temporal/              @bettercollected/maintainers
+/common/                @bettercollected/maintainers
+
+# CI, release, and repo-governance files warrant extra scrutiny.
+/.github/               @bettercollected/maintainers
+/docs/                  @bettercollected/maintainers

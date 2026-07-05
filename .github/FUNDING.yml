@@ -1,0 +1,10 @@
+# Funding configuration for the GitHub "Sponsor" button.
+#
+# Everything is commented out on purpose: with no active entries GitHub shows no
+# Sponsor button, which avoids a broken/placeholder link. Maintainers: uncomment
+# and fill in the platforms you actually use, then the button appears.
+#
+# github: [octocat]                      # GitHub Sponsors username(s)
+# open_collective: bettercollected       # Open Collective slug
+# ko_fi: bettercollected                  # Ko-fi username
+# custom: ["https://bettercollected.com"] # up to 4 custom URLs

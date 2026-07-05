@@ -95,8 +95,9 @@ Commit from the terminal so hook failures are visible.
 1. **Branch off `develop`** (the default branch). Use a descriptive name, e.g.
    `fix/forms-listing-pagination` or `feat/webhook-retries`.
 2. Keep PRs focused and reasonably small. One logical change per PR.
-3. Make sure the app still works — run the relevant tests, and for frontend
-   changes confirm `yarn build` passes.
+3. Make sure the app still works — run the relevant tests (`uv run pytest` for
+   Python services, `yarn test:run` for the webapp), and for frontend changes
+   confirm `yarn build` passes.
 4. Update docs (`README`, `docs/`, the relevant `AGENTS.md`) when behavior or
    setup changes.
 5. Fill in the PR template, link the issue it closes, and describe how you
@@ -108,7 +109,11 @@ Commit from the terminal so hook failures are visible.
 
 Write clear, imperative commit messages (e.g. "Fix null value on responder
 input"). Conventional Commit prefixes (`feat:`, `fix:`, `docs:`, `chore:`,
-`refactor:`, `test:`) are encouraged and help us generate release notes.
+`refactor:`, `test:`) are encouraged and help us generate release notes — see
+[RELEASING.md](RELEASING.md) for the conventions and release process.
+
+For user-facing changes, add a line under `## [Unreleased]` in
+[CHANGELOG.md](CHANGELOG.md) as part of your PR.
 
 ## License
 
