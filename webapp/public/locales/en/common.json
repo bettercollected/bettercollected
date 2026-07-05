@@ -190,12 +190,12 @@
       "TITLE": "Import your first form"
     },
     "EMPTY_DELETION_REQUEST": {
-      "DESCRIPTION": "You will be able to see deletion request once responders requests for deletion.",
-      "TITLE": "No deletion request yet"
+      "DESCRIPTION": "Deletion requests appear here once responders ask you to delete their responses.",
+      "TITLE": "No deletion requests yet"
     },
     "EMPTY_RESPONSE": {
-      "DESCRIPTION": "You will be able to see the form responders once responder responses ",
-      "TITLE": "No responder yet"
+      "DESCRIPTION": "Responders appear here once people start submitting your forms.",
+      "TITLE": "No responders yet"
     },
     "EMPTY_DELETION_RESPONSE.TITLE": "No responses to show",
     "FORM_TYPE": "Form type",
@@ -229,7 +229,7 @@
       "DESCRIPTION": "Collaborators can import forms, delete forms, see responses and delete response.",
       "FORM_LINK": {
         "TITLE": "Form Link",
-        "DESCRIPTION": "Create personalized form links that align with their branding or specific requirements."
+        "DESCRIPTION": "Create personalized form links that align with your branding or specific requirements."
       },
       "CUSTOMIZE_FORM_LINK": {
         "TITLE": "Custom Domain Form Link",
@@ -280,7 +280,7 @@
     "SEARCH_BY_EMAIL": "Search by Email",
     "SETTINGS": {
       "DEFAULT": {
-        "DESCRIPTION": "Effortlessly customize form links and manage their forms effectively.",
+        "DESCRIPTION": "Effortlessly customize your form links and manage your forms.",
         "COLLECT_EMAILS": {
           "TITLE": "Collect Emails",
           "DESCRIPTION": "When you enable this setting, the users needs to verify their identity before they can submit their response."
@@ -312,7 +312,7 @@
         "ADD_OR_REMOVE": "Add or Remove Group"
       },
       "LINKS": {
-        "DESCRIPTION": "Create personalized form links that align with their branding or specific requirements. A link slug is a brief, descriptive part of a URL that identifies web page content.",
+        "DESCRIPTION": "Create personalized form links that align with your branding or specific requirements. A link slug is a brief, descriptive part of a URL that identifies web page content.",
         "CHANGE_SLUG": "Customize Link",
         "CUSTOM_DOMAIN_LINK": "Custom Domain Link",
         "DEFAULT_LINK": "Default Link",

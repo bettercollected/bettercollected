@@ -3,7 +3,7 @@
 import cn from 'classnames';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import Divider from '@Components/common/divider';
@@ -135,6 +135,21 @@ export default function FormDashboardLayoutClient({
         router.push(`/${workspace?.workspaceName}/dashboard/forms`);
     };
 
+    const formTitle = form?.title?.trim() || 'Untitled form';
+
+    // Keep the active tab visible: the tab bar scrolls horizontally when it
+    // overflows, so center the current tab within its scroll container on
+    // navigation (querying the container avoids relying on <Link> ref forwarding).
+    const tabsContainerRef = useRef<HTMLDivElement | null>(null);
+    useEffect(() => {
+        // Defer to the next frame so tab widths are final before scrolling.
+        const id = requestAnimationFrame(() => {
+            const active = tabsContainerRef.current?.querySelector<HTMLElement>('[data-tab-active="true"]');
+            active?.scrollIntoView({ inline: 'nearest', block: 'nearest' });
+        });
+        return () => cancelAnimationFrame(id);
+    }, [pathname, tabMenu.length]);
+
 
     if (pathname.endsWith("/edit")) {
         return (
@@ -156,9 +171,16 @@ export default function FormDashboardLayoutClient({
                 <div className="mt-6 flex flex-col gap-1 sm:mt-12">
                     <FormPageLayer className="px-4 md:px-10 lg:px-28">
                         <div className="flex justify-between">
-                            <div className="flex flex-row items-center gap-1 cursor-pointer" onClick={handleBackClick}>
-                                {isMobile && <ChevronRight className="h-6 w-6 rotate-180 p-[2px]" />}
-                                {isMobile ? <h1 className="hp3-new">{form?.title}</h1> : <h1 className="h2-new text-pink">{form?.title}</h1>}
+                            <div className="flex flex-col gap-1">
+                                <button
+                                    type="button"
+                                    onClick={handleBackClick}
+                                    className="text-black-600 hover:text-black-800 flex w-fit items-center gap-1 text-sm"
+                                >
+                                    <ChevronRight className="h-4 w-4 rotate-180" />
+                                    Forms
+                                </button>
+                                {isMobile ? <h1 className="hp3-new">{formTitle}</h1> : <h1 className="h2-new text-pink">{formTitle}</h1>}
                             </div>
                             <div className="hidden gap-4 lg:flex">
                                 {form?.settings?.provider === 'self' && form?.builderVersion === 'v2' && (
@@ -235,11 +257,11 @@ export default function FormDashboardLayoutClient({
                         <Divider className="mt-6 hidden md:flex" />
                     </FormPageLayer>
                     <div className="md:px-10 lg:px-28 pt-4">
-                        <div className="flex space-x-1 border-b border-gray-200 overflow-x-auto">
+                        <div ref={tabsContainerRef} className="flex space-x-1 border-b border-gray-200 overflow-x-auto">
                             {tabMenu.map((tab) => {
                                 const isActive = pathname?.includes(`/${tab.path}`);
                                 return (
-                                    <Link key={tab.path} href={`/${params.workspace_name}/dashboard/forms/${params.form_id}/${tab.path}`} className={cn(
+                                    <Link key={tab.path} data-tab-active={isActive} href={`/${params.workspace_name}/dashboard/forms/${params.form_id}/${tab.path}`} className={cn(
                                         'flex items-center gap-2 px-4 py-2 text-sm font-medium cursor-pointer hover:bg-black-200 hover:rounded whitespace-nowrap',
                                         isActive
                                             ? 'border-b-2 border-black-900 text-black-900 bg-gray-100 rounded-t'

@@ -334,7 +334,7 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                                     <div className="h5-new !text-black-800">Require Verified Identity</div>
                                     <Divider className={'my-2 w-full'} />
                                     <div className="flex w-full flex-row items-center justify-between md:gap-4">
-                                        <div className="body4 !text-black-700 w-3/4 flex-1">If this is enabled the user needs to verify his email identity before filling this form</div>
+                                        <div className="body4 !text-black-700 w-3/4 flex-1">When enabled, respondents must verify their email before they can fill out this form.</div>
                                         {/*<div className="body4 !text-black-700 w-3/4">{t('FORM_PAGE.SETTINGS.DEFAULT.COLLECT_EMAILS.DESCRIPTION')}</div>*/}
                                         <Switch
                                             data-umami-event="Require Verified Identity Switch"
@@ -356,7 +356,7 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                                     <div className="h5-new !text-black-800">Show Submission Number</div>
                                     <Divider className={'my-2 w-full'} />
                                     <div className="flex w-full flex-row items-center justify-between md:gap-4">
-                                        <div className="body4 !text-black-700 w-3/4">When this is enabled the responder will br shown a submission ID which the user can use to view his response and also request for deletion of his response</div>
+                                        <div className="body4 !text-black-700 w-3/4">When enabled, respondents get a submission ID they can use to view their response and request its deletion.</div>
                                         <Switch
                                             data-umami-event="Show Submission Number Switch"
                                             data-umami-event-email={auth.email}

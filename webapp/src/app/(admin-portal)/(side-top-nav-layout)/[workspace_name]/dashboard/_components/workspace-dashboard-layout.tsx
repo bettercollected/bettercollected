@@ -112,6 +112,9 @@ const WorkspaceDashboardLayout: React.FC<{ children: React.ReactNode }> = ({ chi
         if (matchingNavList.length > 0) {
             return matchingNavList[matchingNavList.length - 1]?.name;
         }
+        // Routes not represented in the sidebar nav still need a correct title.
+        if (pathname.includes('/dashboard/templates')) return 'Templates';
+        if (pathname.includes('/dashboard/account-settings')) return 'Account Settings';
         return 'My Workspace';
     };
 

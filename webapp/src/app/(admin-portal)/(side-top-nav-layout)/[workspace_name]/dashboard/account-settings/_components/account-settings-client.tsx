@@ -22,14 +22,17 @@ export default function AccountSettingsClient() {
 
     const { openBottomSheetModal } = useBottomSheetModal();
 
+    const hasName = !!(authStatus.firstName || authStatus.lastName);
+    const displayName = getFullNameFromUser(authStatus);
+
     return (
         <div className="my-4">
             <h4 className="h4">{t(profileMenu.accountSettings)}</h4>
             <div className="mt-[30px] flex gap-4 mb-10">
-                <AuthAccountProfileImage size={80} image={authStatus.profileImage} name={authStatus.firstName ?? 'Anonymous'} />
+                <AuthAccountProfileImage size={80} image={authStatus.profileImage} name={displayName} />
                 <div className="flex flex-col gap-2 justify-center">
-                    <p className="h4 !leading-none">{getFullNameFromUser(authStatus)}</p>
-                    <p className="body4 text-black-700 !leading-none">{authStatus.email}</p>
+                    <p className="h4 !leading-none">{displayName}</p>
+                    {hasName && <p className="body4 text-black-700 !leading-none">{authStatus.email}</p>}
                 </div>
             </div>
             <div className="flex flex-col gap-6">
