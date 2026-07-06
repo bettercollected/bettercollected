@@ -7,12 +7,16 @@ import { FormSlideLayout } from '@app/models/enums/form';
 import { JUMP_TARGET_SUBMIT, LogicalOperator, PageJump } from '@app/models/types/form-builder-shared';
 import { useActiveFieldComponent, useActiveSlideComponent } from '@app/store/jotai/active-builder-component';
 import useFormFieldsAtom from '@app/store/jotai/field-selectors';
-import { fieldHasLogic, isJumpTargetValid } from '@app/utils/conditional-logic';
+import { selectForm } from '@app/store/forms/slice';
+import { useAppSelector } from '@app/store/hooks';
+import { selectWorkspace } from '@app/store/workspaces/slice';
+import { useGetFormAllSubmissionsQuery } from '@app/store/workspaces/api';
+import { computeFlowTraffic, fieldHasLogic, FlowTraffic, isJumpTargetValid } from '@app/utils/conditional-logic';
 import { buildSourceFields, fieldText, newConditionFor, pageLabel } from '@app/views/molecules/form-builder/condition-editor-shared';
 import PageJumpEditor from '@app/views/molecules/form-builder/page-jump-editor';
 import PropertiesDrawer from '@app/views/organism/form-builder/properties-drawer';
 import SlideBuilder from '@app/views/organism/form-builder/slide-builder';
-import { AlertTriangle, Copy, LayoutGrid, PencilLine, Plus, Trash2, X } from 'lucide-react';
+import { AlertTriangle, BarChart3, Copy, LayoutGrid, PencilLine, Plus, Trash2, X } from 'lucide-react';
 import { v4 } from 'uuid';
 
 import { Background, BackgroundVariant, Connection, Controls, Edge, Handle, MarkerType, MiniMap, Node, NodeProps, Position, ReactFlow, useEdgesState, useNodesState } from '@xyflow/react';
@@ -57,6 +61,11 @@ function PageNode({ data, selected }: NodeProps<Node<any>>) {
                         <AlertTriangle className="h-3 w-3" /> broken jump
                     </span>
                 )}
+                {data.visits !== undefined && (
+                    <span className="text-black-700 bg-black-100 rounded px-1.5 py-[1px] font-semibold" title="Submissions whose path visited this page">
+                        {data.visits}/{data.totalResponses} visited
+                    </span>
+                )}
             </div>
             <Handle id="jump-out" type="source" position={Position.Right} style={{ background: JUMP_COLOR, width: 9, height: 9 }} />
             <Handle id="next-out" type="source" position={Position.Bottom} isConnectable={false} style={{ opacity: 0 }} />
@@ -72,6 +81,11 @@ function TerminalNode({ data }: NodeProps<Node<any>>) {
             {isEnd && <Handle id="jump-in" type="target" position={Position.Left} style={{ background: JUMP_COLOR, width: 9, height: 9 }} />}
             <span className="text-black-400 text-[10px] font-semibold uppercase tracking-wide">{isEnd ? 'End' : 'Start'}</span>
             <span className="text-black-700 text-sm font-semibold">{data.label}</span>
+            {data.totalResponses !== undefined && (
+                <span className="text-black-700 bg-black-100 w-fit rounded px-1.5 py-[1px] text-[11px] font-semibold">
+                    {data.totalResponses} response{data.totalResponses === 1 ? '' : 's'}
+                </span>
+            )}
             {!isEnd && <Handle id="next-out" type="source" position={Position.Bottom} isConnectable={false} style={{ opacity: 0 }} />}
         </div>
     );
@@ -88,6 +102,20 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
 
     const slides = formFields || [];
     const slideIds = useMemo(() => new Set(slides.map((s) => s.id)), [slides]);
+
+    // Insights: replay submitted answers through the SAME jump evaluator the
+    // responder uses, then paint traversal counts on nodes and edges.
+    const [showInsights, setShowInsights] = useState(false);
+    const workspace = useAppSelector(selectWorkspace);
+    const standardForm = useAppSelector(selectForm);
+    const { data: submissions, isFetching: insightsLoading } = useGetFormAllSubmissionsQuery({ workspaceId: workspace?.id, formId: standardForm?.formId } as any, {
+        skip: !showInsights || !workspace?.id || !standardForm?.formId
+    });
+    const traffic: FlowTraffic | null = useMemo(() => {
+        if (!showInsights || !Array.isArray(submissions)) return null;
+        return computeFlowTraffic(slides, submissions.map((s: any) => s?.answers ?? {}));
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [showInsights, submissions, slides]);
     const [selectedId, setSelectedId] = useState<string | null>(null);
     const selectedIndex = slides.findIndex((s) => s.id === selectedId);
     const selectedSlide = selectedIndex >= 0 ? slides[selectedIndex] : undefined;
@@ -123,21 +151,24 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
                 questionCount: slide.properties?.fields?.length ?? 0,
                 questions: (slide.properties?.fields ?? []).slice(1, 3).map((f) => fieldText(f)),
                 showHideCount: slide.properties?.fields?.filter((f) => fieldHasLogic(f)).length ?? 0,
-                brokenCount: ((slide.properties?.jumps as PageJump[] | undefined) ?? []).filter((j) => j?.conditions?.length && !isJumpTargetValid(j.target, slideIds)).length
+                brokenCount: ((slide.properties?.jumps as PageJump[] | undefined) ?? []).filter((j) => j?.conditions?.length && !isJumpTargetValid(j.target, slideIds)).length,
+                visits: traffic ? traffic.nodeVisits.get(slide.id) ?? 0 : undefined,
+                totalResponses: traffic?.total
             }
         }));
         return [
-            { id: '__welcome__', type: 'terminal', position: defaultPos(0), data: { kind: 'welcome', label: 'Welcome' }, deletable: false },
+            { id: '__welcome__', type: 'terminal', position: defaultPos(0), data: { kind: 'welcome', label: 'Welcome', totalResponses: traffic?.total }, deletable: false },
             ...pageNodes.map((n) => ({ ...n, deletable: false })), // deletion goes through the panel (with cleanup), not the Delete key
-            { id: '__end__', type: 'terminal', position: defaultPos(slides.length + 1), data: { kind: 'end', label: 'Thank you' }, deletable: false }
+            { id: '__end__', type: 'terminal', position: defaultPos(slides.length + 1), data: { kind: 'end', label: 'Thank you', totalResponses: traffic?.total }, deletable: false }
         ];
-    }, [slides, slideIds]);
+    }, [slides, slideIds, traffic]);
 
     const buildEdges = useCallback((): Edge[] => {
         const edges: Edge[] = [];
         // Implicit linear spine: welcome → p1 → … → end. Not stored, not deletable.
         const chain = ['__welcome__', ...slides.map((s) => s.id), '__end__'];
         chain.slice(0, -1).forEach((from, i) => {
+            const count = traffic ? traffic.nextTraversals.get(from) ?? 0 : undefined;
             edges.push({
                 id: `next-${i}`,
                 source: from,
@@ -147,7 +178,12 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
                 deletable: false,
                 selectable: false,
                 focusable: false,
-                style: { stroke: NEXT_COLOR, strokeWidth: 1.5 },
+                label: count !== undefined ? String(count) : undefined,
+                labelStyle: { fill: '#7c8598', fontSize: 10.5, fontWeight: 600 },
+                labelBgStyle: { fill: '#ffffff', stroke: NEXT_COLOR },
+                labelBgPadding: [5, 2] as [number, number],
+                labelBgBorderRadius: 6,
+                style: { stroke: NEXT_COLOR, strokeWidth: count ? Math.min(1.5 + (3 * count) / Math.max(traffic!.total, 1), 4.5) : 1.5 },
                 markerEnd: { type: MarkerType.ArrowClosed, color: NEXT_COLOR, width: 16, height: 16 }
             });
         });
@@ -156,17 +192,18 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
             ((slide.properties?.jumps as PageJump[] | undefined) ?? []).forEach((jump, jIdx) => {
                 if (!jump?.conditions?.length || !isJumpTargetValid(jump.target, slideIds)) return;
                 const c = jump.conditions[0];
-                const label = `${c?.value !== '' && c?.value != null ? `= “${c.value}”` : c?.comparison?.toLowerCase().replace(/_/g, ' ') ?? ''}${jump.conditions.length > 1 ? ` +${jump.conditions.length - 1}` : ''}`;
+                const count = traffic ? traffic.jumpTraversals.get(`${slide.id}:${jIdx}`) ?? 0 : undefined;
+                const base = `${c?.value !== '' && c?.value != null ? `= “${c.value}”` : c?.comparison?.toLowerCase().replace(/_/g, ' ') ?? ''}${jump.conditions.length > 1 ? ` +${jump.conditions.length - 1}` : ''}`;
                 edges.push({
                     id: `jump-${slide.id}-${jIdx}`,
                     source: slide.id,
                     target: jump.target === JUMP_TARGET_SUBMIT ? '__end__' : jump.target,
                     sourceHandle: 'jump-out',
                     targetHandle: 'jump-in',
-                    label,
+                    label: count !== undefined ? `${base} · ${count}` : base,
                     data: { slideId: slide.id, slideIndex: sIdx, jumpIndex: jIdx },
                     deletable: true,
-                    style: { stroke: JUMP_COLOR, strokeWidth: 1.75 },
+                    style: { stroke: JUMP_COLOR, strokeWidth: count ? Math.min(1.75 + (3 * count) / Math.max(traffic!.total, 1), 4.75) : 1.75 },
                     labelStyle: { fill: JUMP_COLOR, fontSize: 11, fontWeight: 600 },
                     labelBgStyle: { fill: '#ffffff', stroke: '#c7dcfd' },
                     labelBgPadding: [6, 3] as [number, number],
@@ -176,7 +213,7 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
             });
         });
         return edges;
-    }, [slides, slideIds]);
+    }, [slides, slideIds, traffic]);
 
     const [nodes, setNodes, onNodesChange] = useNodesState(buildNodes());
     const [edges, setEdges, onEdgesChange] = useEdgesState(buildEdges());
@@ -193,7 +230,7 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
         setNodes(buildNodes());
         setEdges(buildEdges());
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [modelSignature]);
+    }, [modelSignature, traffic]);
 
     /* ------------------------------ actions ------------------------------ */
 
@@ -271,6 +308,17 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
                     <div className="text-black-500 text-xs">Drag between the blue dots to branch. Select a page to edit its rules.</div>
                 </div>
                 <div className="flex items-center gap-2">
+                    {showInsights && !insightsLoading && traffic?.total === 0 && <span className="text-black-500 mr-1 text-xs">No responses yet</span>}
+                    <button
+                        onClick={() => setShowInsights((v) => !v)}
+                        title="Overlay how submitted responses travelled each branch"
+                        className={
+                            'flex items-center gap-1 rounded-md border px-2.5 py-1.5 text-xs font-medium ' +
+                            (showInsights ? 'border-brand-500 bg-brand-100 text-brand-600' : 'border-black-300 text-black-700 hover:border-brand-500 hover:text-brand-600')
+                        }
+                    >
+                        <BarChart3 className="h-3.5 w-3.5" /> {insightsLoading ? 'Loading…' : 'Insights'}
+                    </button>
                     <button onClick={addPage} className="border-black-300 text-black-700 hover:border-brand-500 hover:text-brand-600 flex items-center gap-1 rounded-md border px-2.5 py-1.5 text-xs font-medium">
                         <Plus className="h-3.5 w-3.5" /> Add page
                     </button>

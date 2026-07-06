@@ -155,6 +155,56 @@ export function slideHasLogic(slide: StandardFormFieldDto | undefined): boolean 
     return !!slide?.properties?.fields?.some((f) => fieldHasLogic(f));
 }
 
+/** Aggregated flow traffic replayed from submitted responses. */
+export interface FlowTraffic {
+    /** submissions counted */
+    total: number;
+    /** slide id → number of submissions whose path visited it */
+    nodeVisits: Map<string, number>;
+    /** `${slideId}:${jumpIndex}` → traversals of that jump edge */
+    jumpTraversals: Map<string, number>;
+    /** slide id (or '__welcome__') → times the linear "next" edge out of it was taken */
+    nextTraversals: Map<string, number>;
+}
+
+/**
+ * Replay the forward path a submission implies through the flow, using the SAME
+ * jump resolution the responder ran. Approximation is explicit: we replay from
+ * final answers, so mid-fill back-tracking isn't represented, and paths are
+ * capped at 2×pages+2 hops in case persisted rules loop.
+ */
+export function computeFlowTraffic(slides: Array<StandardFormFieldDto>, answersList: Array<Record<string, any>>): FlowTraffic {
+    const traffic: FlowTraffic = { total: answersList.length, nodeVisits: new Map(), jumpTraversals: new Map(), nextTraversals: new Map() };
+    const slideIds = new Set(slides.map((s) => s.id));
+    const indexById = new Map(slides.map((s, i) => [s.id, i]));
+    const bump = (map: Map<string, number>, key: string) => map.set(key, (map.get(key) ?? 0) + 1);
+    const maxHops = slides.length * 2 + 2;
+
+    answersList.forEach((answers) => {
+        bump(traffic.nextTraversals, '__welcome__'); // welcome → first page
+        let index = 0;
+        for (let hop = 0; hop < maxHops && index >= 0 && index < slides.length; hop++) {
+            const slide = slides[index];
+            bump(traffic.nodeVisits, slide.id);
+
+            // Find the first matching jump (same order semantics as the responder).
+            const jumps = (slide.properties?.jumps as PageJump[] | undefined) ?? [];
+            const matchIdx = jumps.findIndex((j) => j?.conditions?.length && isJumpTargetValid(j.target, slideIds) && evaluateConditions(j.operator, j.conditions, answers ?? {}));
+            if (matchIdx >= 0) {
+                bump(traffic.jumpTraversals, `${slide.id}:${matchIdx}`);
+                const target = jumps[matchIdx].target;
+                if (target === JUMP_TARGET_SUBMIT) return;
+                index = indexById.get(target) ?? -1;
+                continue;
+            }
+            bump(traffic.nextTraversals, slide.id);
+            index += 1;
+        }
+    });
+
+    return traffic;
+}
+
 /**
  * Drop logic that can no longer evaluate after a page/question is deleted:
  * conditions pointing at fields that no longer exist (and any rule left with zero
