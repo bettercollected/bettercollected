@@ -1,9 +1,10 @@
 from typing import Any, List
 
 from beanie import PydanticObjectId
-from classy_fastapi import delete, get
+from classy_fastapi import delete, get, post
 from common.models.user import User
 from fastapi import Depends
+from fastapi_camelcase import CamelModel
 from fastapi_pagination import Page
 
 from backend.app.container import container
@@ -13,9 +14,17 @@ from backend.app.models.enum.user_tag_enum import UserTagType
 from backend.app.models.filter_queries.form_responses import FormResponseFilterQuery
 from backend.app.models.filter_queries.sort import SortRequest
 from backend.app.router import router
+from backend.app.schemas.flow_event import FlowEventDocument
 from backend.app.services.form_response_service import FormResponseService
 from backend.app.services.user_service import get_logged_user
 from backend.app.utils.custom_routable import CustomRoutable
+from backend.app.utils.flow_analytics import aggregate_flow_events
+
+
+class FlowEventRequest(CamelModel):
+    session_id: str
+    from_page: str
+    to_page: str
 
 
 @router(
@@ -69,6 +78,42 @@ class WorkspaceResponsesRouter(CustomRoutable):
             )
         )
         return responses
+
+    @post("/forms/{form_id}/flow-events")
+    async def record_flow_event(
+        self,
+        workspace_id: PydanticObjectId,
+        form_id: str,
+        event: FlowEventRequest,
+    ):
+        """
+        Record one anonymous navigation step from a responder. Public and
+        fire-and-forget by design: no answers, no identity — see
+        FlowEventDocument. Inputs are length-capped so the open endpoint can't
+        be used to store arbitrary payloads.
+        """
+        if len(event.session_id) > 64 or len(event.from_page) > 64 or len(event.to_page) > 64:
+            return {"ok": False}
+        await FlowEventDocument(
+            form_id=form_id,
+            session_id=event.session_id,
+            from_page=event.from_page,
+            to_page=event.to_page,
+        ).save()
+        return {"ok": True}
+
+    @get("/forms/{form_id}/flow-analytics")
+    async def get_flow_analytics(
+        self,
+        workspace_id: PydanticObjectId,
+        form_id: str,
+        user: User = Depends(get_logged_user),
+    ):
+        """Aggregate drop-off + transition counts for the builder's Insights overlay."""
+        events = await FlowEventDocument.find(
+            FlowEventDocument.form_id == form_id
+        ).to_list()
+        return aggregate_flow_events([e.model_dump() for e in events])
 
     @get(
         "/all-submissions",

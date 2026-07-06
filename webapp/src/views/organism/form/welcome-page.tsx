@@ -10,6 +10,8 @@ import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { useResponderState } from '@app/store/jotai/responder-form-state';
 import { selectWorkspace } from '@app/store/workspaces/slice';
+import { useSendFlowEventMutation } from '@app/store/redux/form-api';
+import { getFlowSessionId } from '@app/utils/flow-session';
 import UserAvatarDropDown from '@app/views/molecules/user-avatar-dropdown';
 import { Lock } from 'lucide-react';
 
@@ -32,6 +34,14 @@ export default function WelcomePage({
 
     const welcomePage = welcomePageData || standardForm.welcomePage;
     const formTheme = theme || standardForm?.theme;
+
+    const [sendFlowEvent] = useSendFlowEventMutation();
+    // Anonymous drop-off breadcrumb for "started the form" — never in preview.
+    const emitStart = () => {
+        const firstPageId = standardForm?.fields?.[0]?.id;
+        if (isPreviewMode || !workspace?.id || !standardForm?.formId || !firstPageId) return;
+        sendFlowEvent({ workspaceId: workspace.id, formId: standardForm.formId, sessionId: getFlowSessionId(standardForm.formId), fromPage: '__welcome__', toPage: firstPageId }).catch(() => {});
+    };
 
     return (
         <>
@@ -110,6 +120,7 @@ export default function WelcomePage({
                                     if (!auth.id && standardForm?.settings?.requireVerifiedIdentity) {
                                         router.push(responderSignInUrl);
                                     } else {
+                                        emitStart();
                                         nextSlide();
                                         return;
                                     }

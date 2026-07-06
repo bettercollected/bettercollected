@@ -10,6 +10,7 @@ import useFormFieldsAtom from '@app/store/jotai/field-selectors';
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
+import { useGetFlowAnalyticsQuery } from '@app/store/redux/form-api';
 import { useGetFormAllSubmissionsQuery } from '@app/store/workspaces/api';
 import { computeFlowTraffic, fieldHasLogic, FlowTraffic, isJumpTargetValid } from '@app/utils/conditional-logic';
 import { buildSourceFields, fieldText, newConditionFor, pageLabel } from '@app/views/molecules/form-builder/condition-editor-shared';
@@ -87,6 +88,11 @@ function PageNode({ id, data, selected }: NodeProps<Node<any>>) {
                 {data.visits !== undefined && (
                     <span className="text-black-700 bg-black-100 rounded px-1.5 py-[1px] font-semibold" title="Submissions whose path visited this page">
                         {data.visits}/{data.totalResponses} visited
+                    </span>
+                )}
+                {data.dropOffs > 0 && (
+                    <span className="rounded bg-amber-50 px-1.5 py-[1px] font-semibold text-amber-700" title="Responders whose last activity was on this page — they never submitted">
+                        {data.dropOffs} dropped here
                     </span>
                 )}
             </div>
@@ -191,6 +197,10 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
         return computeFlowTraffic(slides, submissions.map((s: any) => s?.answers ?? {}));
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [showInsights, submissions, slides]);
+    // Anonymous navigation events → where responders went dark (drop-off).
+    const { data: flowAnalytics } = useGetFlowAnalyticsQuery({ workspaceId: workspace?.id, formId: standardForm?.formId } as any, {
+        skip: !showInsights || !workspace?.id || !standardForm?.formId
+    });
     const [selectedId, setSelectedId] = useState<string | null>(null);
     const selectedIndex = slides.findIndex((s) => s.id === selectedId);
     const selectedSlide = selectedIndex >= 0 ? slides[selectedIndex] : undefined;
@@ -236,6 +246,7 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
                 brokenCount: ((slide.properties?.jumps as PageJump[] | undefined) ?? []).filter((j) => j?.conditions?.length && !isJumpTargetValid(j.target, slideIds)).length,
                 visits: traffic ? traffic.nodeVisits.get(slide.id) ?? 0 : undefined,
                 totalResponses: traffic?.total,
+                dropOffs: showInsights ? flowAnalytics?.dropOffs?.[slide.id] ?? 0 : undefined,
                 armedMode: armed?.id === slide.id ? armed.mode : undefined,
                 onDotClick: (nid: string, side: 'in' | 'out') => dotClickRef.current?.(nid, side)
             }
@@ -251,7 +262,7 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
                 deletable: false
             }
         ];
-    }, [slides, slideIds, traffic, armed]);
+    }, [slides, slideIds, traffic, armed, flowAnalytics, showInsights]);
 
     const buildEdges = useCallback((): Edge[] => {
         const edges: Edge[] = [];
@@ -332,7 +343,7 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
         setNodes(buildNodes());
         setEdges(buildEdges());
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [modelSignature, traffic, armed]);
+    }, [modelSignature, traffic, armed, flowAnalytics, showInsights]);
 
     /* ------------------------------ actions ------------------------------ */
 
@@ -450,7 +461,12 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
                     )}
                 </div>
                 <div className="flex items-center gap-2">
-                    {showInsights && !insightsLoading && traffic?.total === 0 && <span className="text-black-500 mr-1 text-xs">No responses yet</span>}
+                    {showInsights && flowAnalytics && flowAnalytics.totalSessions > 0 && (
+                        <span className="text-black-600 mr-1 text-xs">
+                            {flowAnalytics.totalSessions} started · {flowAnalytics.submittedSessions} finished
+                        </span>
+                    )}
+                    {showInsights && !insightsLoading && traffic?.total === 0 && (!flowAnalytics || flowAnalytics.totalSessions === 0) && <span className="text-black-500 mr-1 text-xs">No responses yet</span>}
                     <button
                         onClick={() => setShowInsights((v) => !v)}
                         title="Overlay how submitted responses travelled each branch"

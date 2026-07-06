@@ -30,6 +30,7 @@ from backend.app.schemas.workspace_invitation import (
 from backend.app.schemas.workspace_user import (
     WorkspaceUserDocument,
 )
+from backend.app.schemas.flow_event import FlowEventDocument
 
 document_models = []
 
@@ -68,6 +69,7 @@ async def init_db(db: str, client: AsyncMongoClient):
             ResponderGroupFormDocument,
             ResponderGroupMemberDocument,
             ResponderGroupDocument,
+            FlowEventDocument,
         ]
     )
     await init_beanie(
