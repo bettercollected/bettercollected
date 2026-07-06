@@ -16,7 +16,6 @@ import ReduxProvider from '@app/shared/hocs/redux-provider';
 import ThemeProvider from '@app/shared/hocs/theme-provider';
 import BaseModalContainer from '@Components/modals/containers/base-modal-container';
 import { Viewport } from 'next';
-import Script from 'next/script';
 
 // One honest, humanist face used everywhere (see Design-Language.md §2).
 // Public Sans is self-hosted by next/font — no external font request at runtime.
@@ -77,7 +76,17 @@ export default function RootLayout({
         <html lang="en" suppressHydrationWarning>
             <body className={cn('max-h-screen overflow-auto', publicSans.variable, publicSans.className)}>
                 {environments.UMAMI_SCRIPT_URL && environments.UMAMI_WEBSITE_ID && (
-                    <Script src={environments.UMAMI_SCRIPT_URL} data-website-id={environments.UMAMI_WEBSITE_ID} strategy="lazyOnload" />
+                    // Plain <script> like /api/config below, NOT next/script: next/script
+                    // only injects after hydration completes, so any client-side stall
+                    // (or a lazyOnload idle wait) silently drops the tracker. A plain
+                    // deferred tag executes with the document, independent of app health.
+                    // data-auto-track="false": Umami's automatic pageview would fire with
+                    // the raw URL alongside our explicit canonical-path event (see
+                    // src/lib/analytics/umami.ts), double-counting every public form view
+                    // and splitting the same form across client-host/custom-domain paths.
+                    // Only the explicit canonical event is sent — which also means
+                    // logged-in dashboard activity is never tracked, only public forms.
+                    <script src={environments.UMAMI_SCRIPT_URL} data-website-id={environments.UMAMI_WEBSITE_ID} data-auto-track="false" defer></script>
                 )}
                 <SwRegister />
                 <script src="/api/config" defer></script>
