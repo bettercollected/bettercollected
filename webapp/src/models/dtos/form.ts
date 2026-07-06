@@ -3,7 +3,7 @@ import { JSONContent } from '@tiptap/react';
 import { FormTheme } from '@app/constants/theme';
 import { Parameters } from '@app/models/dtos/actions';
 import { UserStatus } from '@app/models/dtos/user-status';
-import { FieldConditionalLogic, IFormFieldValidation } from '@app/models/types/form-builder-shared';
+import { FieldConditionalLogic, IFormFieldValidation, PageJump } from '@app/models/types/form-builder-shared';
 
 import { FormSlideLayout } from '../enums/form';
 import { FileMetadata } from '../types/file-types';
@@ -35,6 +35,8 @@ export interface StandardFormFieldProperties {
     actions?: any;
     /** v2 conditional visibility rule for this field (see utils/conditional-logic). */
     logic?: FieldConditionalLogic;
+    /** v2 page-jump / branching rules for this slide (see utils/conditional-logic). */
+    jumps?: PageJump[];
     rowTitles?: Array<string>;
     columnTitles?: Array<string>;
     tabular_value?: Array<Array<string>>;

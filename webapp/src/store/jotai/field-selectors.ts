@@ -6,7 +6,7 @@ import { v4 } from 'uuid';
 
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import { FormSlideLayout } from '@app/models/enums/form';
-import { FieldConditionalLogic } from '@app/models/types/form-builder-shared';
+import { FieldConditionalLogic, PageJump } from '@app/models/types/form-builder-shared';
 import { useActiveFieldComponent, useActiveSlideComponent } from '@app/store/jotai/active-builder-component';
 import { reorder } from '@app/utils/array-utils';
 
@@ -261,6 +261,15 @@ export default function useFormFieldsAtom() {
         formFields![slideIndex]!.properties!.fields![fieldIndex].properties = {
             ...(formFields![slideIndex]!.properties!.fields![fieldIndex].properties || {}),
             logic
+        };
+        setFormFields([...formFields]);
+    };
+
+    // Page-jump / branching rules for a slide. Persists via slide `properties.jumps`.
+    const updateSlideJumps = (slideIndex: number, jumps: PageJump[] | undefined) => {
+        formFields![slideIndex]!.properties = {
+            ...(formFields![slideIndex]!.properties || {}),
+            jumps
         };
         setFormFields([...formFields]);
     };
@@ -614,6 +623,7 @@ export default function useFormFieldsAtom() {
         updateFieldValidation,
         updateFieldProperty,
         updateFieldConditionalLogic,
+        updateSlideJumps,
         updateShowQuestionNumbers,
         updateAllowMultipleSelectionMatrixField,
         updateSlideTheme,

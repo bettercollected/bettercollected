@@ -24,6 +24,7 @@ import SlideLayoutRightImage from '@Components/icons/slide-layout-right-image';
 import { SwitchIcon } from '@Components/icons/switch-icon';
 import { PlusIcon } from 'lucide-react';
 import Image from 'next/image';
+import PageJumpEditor from '@app/views/molecules/form-builder/page-jump-editor';
 
 export default function PagePropertiesTab({ }: {}) {
     const { formFields, activeSlide, updateSlideLayout, updateSlideImage, setFormFields } = useFormFieldsAtom();
@@ -327,6 +328,11 @@ export default function PagePropertiesTab({ }: {}) {
                             })}
                     </div>
                 </>
+            )}
+            {activeSlideComponent?.id !== 'welcome-page' && activeSlideComponent?.id !== 'thank-you-page' && (activeSlideComponent?.index ?? -1) >= 0 && (
+                <div className="border-t">
+                    <PageJumpEditor />
+                </div>
             )}
         </>
     );

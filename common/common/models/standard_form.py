@@ -319,9 +319,24 @@ class FieldLogic(BaseModel):
     model_config = ConfigDict(populate_by_name=True, alias_generator=to_camel)
 
 
+class PageJump(BaseModel):
+    """
+    v2 page-jump / branching rule stored on a slide at ``properties.jumps``.
+    ``target`` is a slide id or the sentinel ``__SUBMIT__``. Plain strings, same
+    rationale as :class:`FieldLogic`.
+    """
+
+    operator: Optional[str] = None
+    conditions: Optional[List[FieldLogicCondition]] = None
+    target: Optional[str] = None
+
+    model_config = ConfigDict(populate_by_name=True, alias_generator=to_camel)
+
+
 class StandardFieldProperty(BaseModel):
     hidden: Optional[bool] = None
     logic: Optional[FieldLogic] = None
+    jumps: Optional[List[PageJump]] = None
     description: Optional[str] = None
     choices: Optional[List[StandardChoice]] = None
     fields: Optional[List["StandardFormField"]] = None

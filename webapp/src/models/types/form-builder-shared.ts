@@ -64,6 +64,22 @@ export interface FieldConditionalLogic {
     conditions: LogicCondition[];
 }
 
+/** Sentinel jump target meaning "end the form / go to the thank-you page". */
+export const JUMP_TARGET_SUBMIT = '__SUBMIT__';
+
+/**
+ * A page-jump / branching rule stored on a slide at `properties.jumps`.
+ * Evaluated in order when the responder leaves the page; the first rule whose
+ * conditions match wins and sends them to `target` (a slide id, or
+ * JUMP_TARGET_SUBMIT). No match → linear next page.
+ */
+export interface PageJump {
+    operator: LogicalOperator;
+    conditions: LogicCondition[];
+    /** target slide id, or JUMP_TARGET_SUBMIT */
+    target: string;
+}
+
 export interface IFormFieldValidation {
     required?: boolean;
     minLength?: number;

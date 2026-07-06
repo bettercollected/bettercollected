@@ -1,7 +1,7 @@
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
-import { Comparison, FieldConditionalLogic, LogicalOperator, LogicCondition } from '@app/models/types/form-builder-shared';
+import { Comparison, FieldConditionalLogic, LogicalOperator, LogicCondition, PageJump } from '@app/models/types/form-builder-shared';
 
-export type { FieldConditionalLogic, LogicAction, LogicCondition } from '@app/models/types/form-builder-shared';
+export type { FieldConditionalLogic, LogicAction, LogicCondition, PageJump } from '@app/models/types/form-builder-shared';
 
 /**
  * Conditional logic (v2 builder) — show/hide a question based on earlier answers.
@@ -89,14 +89,33 @@ function evaluateCondition(answers: Record<string, any>, condition: LogicConditi
     }
 }
 
+/** Fold a set of conditions with AND/OR. Empty/incomplete condition sets never match. */
+export function evaluateConditions(operator: LogicalOperator | undefined, conditions: LogicCondition[] | undefined, answers: Record<string, any>): boolean {
+    const valid = (conditions ?? []).filter((c) => c && c.fieldId && c.comparison);
+    if (valid.length === 0) return false;
+    if (operator === LogicalOperator.OR) return valid.some((c) => evaluateCondition(answers, c));
+    return valid.every((c) => evaluateCondition(answers, c));
+}
+
 /** Are a rule's conditions satisfied given the current answers? */
 export function areConditionsMet(logic: FieldConditionalLogic, answers: Record<string, any>): boolean {
-    const conditions = logic?.conditions?.filter((c) => c && c.fieldId && c.comparison) ?? [];
-    if (conditions.length === 0) return false;
-    if (logic.operator === LogicalOperator.OR) {
-        return conditions.some((c) => evaluateCondition(answers, c));
+    return evaluateConditions(logic?.operator, logic?.conditions, answers);
+}
+
+/**
+ * Resolve where a slide should send the responder on "Next", given the answers.
+ * Returns the first matching jump rule's target (a slide id or JUMP_TARGET_SUBMIT),
+ * or null when no rule matches (caller falls back to the linear next page).
+ */
+export function resolveJumpTargetId(slide: StandardFormFieldDto | undefined, answers: Record<string, any>): string | null {
+    const jumps = slide?.properties?.jumps as PageJump[] | undefined;
+    if (!Array.isArray(jumps)) return null;
+    for (const jump of jumps) {
+        if (jump?.conditions?.length && evaluateConditions(jump.operator, jump.conditions, answers)) {
+            return jump.target || null;
+        }
     }
-    return conditions.every((c) => evaluateCondition(answers, c));
+    return null;
 }
 
 /**
