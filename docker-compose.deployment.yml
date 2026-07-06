@@ -2,6 +2,7 @@ version: '3.7'
 volumes:
   mongo-data:
   umami-db-data:
+  temporal-postgres-data:
 services:
   mongodb:
     image: mongo:latest
@@ -11,6 +12,11 @@ services:
     volumes:
       - mongo-data:/data/db
     restart: always
+    healthcheck:
+      test: ['CMD', 'mongosh', '--quiet', '--eval', "db.adminCommand('ping').ok"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   mongo-seed:
     build:
@@ -20,8 +26,10 @@ services:
       GOOGLE_ENABLED: ${GOOGLE_ENABLED}
       TYPEFORM_ENABLED: ${TYPEFORM_ENABLED}
     depends_on:
-      - mongodb
-      - backend
+      mongodb:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
     restart: on-failure
 
 
@@ -42,26 +50,58 @@ services:
       - .env.deployment
     ports:
       - '3000:3000'
+    depends_on:
+      backend:
+        condition: service_healthy
+      auth:
+        condition: service_healthy
 
   postgresql:
     environment:
       POSTGRES_PASSWORD: temporal
       POSTGRES_USER: temporal
-    image: postgres
+    # Pinned (not `postgres:latest`): an unpinned tag silently moves to new
+    # major versions, which refuse to start against an old major version's
+    # on-disk format (hit this directly while testing — `latest` had already
+    # drifted to Postgres 18, which won't read older data at all). Matches
+    # umami-postgresql's major version below for consistency.
+    image: postgres:15-alpine
     volumes:
-      - /var/lib/postgresql/data
+      - temporal-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U temporal']
+      interval: 5s
+      timeout: 5s
+      retries: 10
   temporal:
     depends_on:
-      - postgresql
+      postgresql:
+        condition: service_healthy
     environment:
-      - DB=postgresql
+      # NOT "postgresql" — temporalio/auto-setup only recognizes mysql8,
+      # postgres12, postgres12_pgx, cassandra as DB drivers. The old value
+      # silently failed at startup ("Unsupported driver specified") with no
+      # healthcheck to surface it; caught this via the healthcheck added below.
+      - DB=postgres12
       - DB_PORT=5432
       - POSTGRES_USER=temporal
       - POSTGRES_PWD=temporal
       - POSTGRES_SEEDS=postgresql
+      # Without this, auto-setup binds to the container's dynamic bridge IP
+      # (logged as "TEMPORAL_ADDRESS is not set, setting it to <ip>:7233"),
+      # which isn't reachable via localhost from inside the same container —
+      # breaks any localhost-based healthcheck/CLI use. Pin it to the compose
+      # service name, which is also what worker/backend already use to reach it.
+      - TEMPORAL_ADDRESS=temporal:7233
     image: temporalio/auto-setup
     ports:
       - "7234:7233"
+    healthcheck:
+      test: ['CMD', 'temporal', 'operator', 'cluster', 'health', '--address', 'temporal:7233']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
 
   worker:
     image: bettercollected/temporal-worker:nightly
@@ -71,7 +111,8 @@ services:
     env_file:
       - .env.deployment
     depends_on:
-      - temporal
+      temporal:
+        condition: service_healthy
   # You need to run nginx only if your webapp is running locally without using docker-compose
   # You may need to setup nginx locally with same configs provided inside `./nginx.conf`
   nginx:
@@ -97,9 +138,18 @@ services:
     ports:
       - '8000:8000'
     depends_on:
-      - temporal
-      - mongodb
-      - umami
+      temporal:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
+      umami:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:8000/api/v1/docs']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 15s
 
   auth:
     image: bettercollected/auth:nightly
@@ -111,6 +161,16 @@ services:
       STRIPE_SUCCESS_URL: ${STRIPE_REDIRECT_URL}
       STRIPE_CANCEL_URL: ${STRIPE_REDIRECT_URL}
       STRIPE_RETURN_URL: ${STRIPE_REDIRECT_URL}
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    healthcheck:
+      # No curl/wget in this image — use python3 (present) against /ready.
+      test: ['CMD', 'python3', '-c', "import urllib.request as u; u.urlopen('http://localhost:8000/api/v1/ready', timeout=3)"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 15s
     env_file:
       - .env.deployment
 
@@ -127,15 +187,20 @@ services:
 
   # Self-hosted product analytics (see plans/umami-self-hosted-form-analytics.md).
   # First-pass exposure: plain host port 3003, no TLS/reverse-proxy — put it
-  # behind nginx/TLS yourself for a production deployment. After first boot,
-  # open http://<host>:3003, log in as admin/umami, change the password, create
-  # a website, then set UMAMI_WEBSITE_ID (backend + webapp) and UMAMI_SCRIPT_URL
-  # (webapp, e.g. http://<host>:3003/script.js) in .env.deployment.
+  # behind nginx/TLS yourself for a production deployment.
   #
-  # UMAMI_APP_SECRET below is substituted by docker compose itself (not passed
-  # through .env.deployment) — export it in your shell or put it in a root
-  # `.env` file (docker compose's own var-substitution file) before `up`:
-  #   UMAMI_APP_SECRET=$(openssl rand -hex 32)
+  # No manual website setup needed: the backend auto-provisions a website
+  # named UMAMI_WEBSITE_NAME (default "BetterCollected") on first boot if
+  # UMAMI_WEBSITE_ID is unset — see backend/AGENTS.md "Analytics (Umami)".
+  # You only need to set UMAMI_SCRIPT_URL (webapp, browser-facing, e.g.
+  # http://<host>:3003/script.js) in .env.deployment; log into
+  # http://<host>:3003 as admin/umami just to change the default password.
+  #
+  # `deploy.sh` auto-generates UMAMI_APP_SECRET below into a root `.env` file
+  # on first run (docker compose's own var-substitution file — it's not read
+  # from .env.deployment, which only supplies container env). Running the
+  # compose file directly instead of via deploy.sh? Set it yourself first:
+  #   echo "UMAMI_APP_SECRET=$(openssl rand -hex 32)" >> .env
   umami-postgresql:
     image: postgres:15-alpine
     restart: always
@@ -162,4 +227,10 @@ services:
     depends_on:
       umami-postgresql:
         condition: service_healthy
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:3000/api/heartbeat']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 15s
 

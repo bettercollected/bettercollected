@@ -1,17 +1,16 @@
 #!/bin/bash
 
-# Ensure the required Python version is installed
-if ! python3.10 --version &>/dev/null; then
-    echo "Python 3.10 is required but not found. Please install it."
+# Ensure uv is installed (the Python services use uv, not Poetry)
+if ! uv --version &>/dev/null; then
+    echo "uv is required but not found. Install it: https://docs.astral.sh/uv/getting-started/installation/"
     exit 1
 fi
 
-# Ensure the poetry is installed
-if ! poetry --version &>/dev/null; then
-    echo "Poetry is required but not found. Please install it."
+# Ensure yarn is installed for the webapp
+if ! yarn --version &>/dev/null; then
+    echo "yarn is required but not found. Please install it."
     exit 1
 fi
-
 
 # Store the root directory path
 root_dir=$(pwd)
@@ -40,25 +39,11 @@ setup_service() {
 
     # Check if pyproject.toml exists
     if [ -f "pyproject.toml" ]; then
-        # Create a virtual environment using Poetry
-        poetry env use 3.10
-
-        # Use makefile to install dependencies
-        make install
-    elif [ -f "requirements.txt" ]; then
-        # Create a virtual environment using venv
-        python3.10 -m venv venv
-
-        # Activate the virtual environment
-        source venv/bin/activate
-
-        # Use pip to install dependencies from requirements.txt
-        pip install -r requirements.txt
-
-        # Deactivate the virtual environment
-        deactivate
+        # uv creates its own .venv and picks a compatible Python version per
+        # requires-python (>=3.10) — no separate interpreter/venv step needed.
+        uv sync
     else
-        echo "No dependency file found for $service"
+        echo "No pyproject.toml found for $service, skipping"
     fi
 }
 
@@ -81,4 +66,3 @@ done
 setup_webapp
 
 echo "Initialization complete!"
-
