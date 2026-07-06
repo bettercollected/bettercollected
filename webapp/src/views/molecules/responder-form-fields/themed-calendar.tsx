@@ -29,34 +29,41 @@ function ThemedCalendar({ className, classNames, showOutsideDays = true, ...prop
             style={{ background: accentColor }}
             classNames={{
                 months: 'flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0',
-                month: 'space-y-4',
-                caption: 'flex justify-center pt-1 relative items-center',
+                // `nav` is a sibling of month_caption (not its parent, as in v8), so
+                // it's positioned absolute+inset-x-0 against this `relative` month
+                // and spans the full width itself — justify-between then spreads
+                // its two (normal-flow) button children to the left/right edges,
+                // rather than each button being individually absolute-positioned
+                // against nav's own (content-collapsed) box.
+                month: 'relative space-y-4',
+                month_caption: 'flex justify-center pt-1 items-center',
                 caption_label: 'text-sm font-medium',
-                nav: 'space-x-1 flex items-center',
-                nav_button: cn('h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100'),
-                nav_button_previous: cn('absolute left-1 opacity-50', 'hover:!opacity-50 disabled:cursor-not-allowed'),
-                nav_button_next: 'absolute right-1',
-                table: 'w-full border-collapse space-y-1',
-                head_row: 'flex',
-                head_cell: 'rounded-md w-9 font-normal text-[0.8rem]',
-                row: 'flex w-full mt-2',
-                cell: 'h-9 w-9 text-center text-sm p-0 relative focus-within:relative focus-within:z-20',
-                day: cn('h-9 w-9 p-0 font-normal aria-selected:opacity-100 rounded'),
-                day_range_end: 'day-range-end',
-                day_selected: '',
-                day_today: 'rounded',
-                day_outside: 'day-outside opacity-50 aria-selected:opacity-30',
-                day_disabled: 'opacity-50',
-                day_range_middle: '',
-                day_hidden: 'invisible',
+                nav: 'absolute inset-x-0 top-1 flex items-center justify-between px-1',
+                button_previous: cn('h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100', 'hover:!opacity-50 disabled:cursor-not-allowed'),
+                button_next: cn('h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100'),
+                month_grid: 'w-full border-collapse space-y-1',
+                weekdays: 'flex',
+                weekday: 'rounded-md w-9 font-normal text-[0.8rem]',
+                week: 'flex w-full mt-2',
+                // Modifier flags (selected/today/outside/...) and the aria-selected
+                // attribute land on this cell in react-day-picker v10, not on
+                // day_button, so the aria-selected variant below stays here.
+                day: 'h-9 w-9 text-center text-sm p-0 relative aria-selected:opacity-100 focus-within:relative focus-within:z-20',
+                day_button: 'h-9 w-9 rounded p-0 font-normal',
+                selected: '',
+                today: 'rounded',
+                outside: 'opacity-50 aria-selected:opacity-30',
+                disabled: 'opacity-50',
+                range_middle: '',
+                hidden: 'invisible',
                 ...classNames
             }}
             styles={{
                 caption_label: { color: secondaryColor },
-                head_cell: { color: tertiaryColor },
-                day: { color: secondaryColor },
-                nav_button_previous: { color: secondaryColor },
-                nav_button_next: { color: secondaryColor }
+                weekday: { color: tertiaryColor },
+                day_button: { color: secondaryColor },
+                button_previous: { color: secondaryColor },
+                button_next: { color: secondaryColor }
             }}
             modifiersStyles={{
                 selected: {
@@ -69,8 +76,12 @@ function ThemedCalendar({ className, classNames, showOutsideDays = true, ...prop
                 }
             }}
             components={{
-                IconLeft: () => <ChevronLeft className="h-4 w-4" style={{ color: secondaryColor }} />,
-                IconRight: () => <ChevronRight className="h-4 w-4" style={{ color: secondaryColor }} />
+                Chevron: ({ orientation, ...props }) =>
+                    orientation === 'left' ? (
+                        <ChevronLeft className="h-4 w-4" style={{ color: secondaryColor }} {...props} />
+                    ) : (
+                        <ChevronRight className="h-4 w-4" style={{ color: secondaryColor }} {...props} />
+                    )
             }}
             {...props}
         />

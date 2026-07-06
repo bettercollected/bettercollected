@@ -57,8 +57,8 @@ const ScheduleFormCloseDateModal: React.FC<IScheduleFormCloseDateModalProps> = (
                                     setValue(selectedDate || null);
                                     setIsDatePickerOpen(false);
                                 }}
-                                initialFocus
-                                fromDate={minDate} // Set the minimum date to tomorrow
+                                autoFocus
+                                disabled={{ before: minDate }} // Set the minimum date to tomorrow
                             />
                         </PopoverContent>
                     </Popover>
