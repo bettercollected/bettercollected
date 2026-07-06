@@ -4,7 +4,6 @@ import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { v4 } from 'uuid';
 
 import { formFieldsList } from '@app/constants/form-fields';
-import globalConstants from '@app/constants/global';
 import { FieldTypes, StandardFormFieldDto, V2InputFields } from '@app/models/dtos/form';
 import { FormSlideLayout } from '@app/models/enums/form';
 import { ScrollArea } from '@app/shadcn/components/ui/scroll-area';
@@ -62,11 +61,13 @@ const InsertFieldComponent = ({ formFields, activeSlideComponent, closeDropdown 
                     id: slideId,
                     index: newSlideIndex,
                     type: FieldTypes.SLIDE,
+                    // Default new pages to a calm single-column layout with no
+                    // decorative image. Creators opt into the image / two-column
+                    // split via the Layout panel (see Design-Language.md §3).
                     properties: {
-                        layout: FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT,
+                        layout: FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND,
                         fields: [getNewField(field, fieldId, formFields.length)]
-                    },
-                    imageUrl: globalConstants.defaultImage
+                    }
                 },
                 newSlideIndex
             );

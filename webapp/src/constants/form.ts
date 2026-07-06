@@ -13,7 +13,7 @@ export const defaultForm: StandardFormDto = {
             index: 0,
             type: FieldTypes.SLIDE,
             properties: {
-                layout: FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT,
+                layout: FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND,
                 fields: [
                     {
                         id: v4(),
@@ -27,11 +27,11 @@ export const defaultForm: StandardFormDto = {
     ],
     welcomePage: {
         title: '',
-        layout: FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT
+        layout: FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND
     },
     thankyouPage: [
         {
-            layout: FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT
+            layout: FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND
         }
     ],
     theme: {

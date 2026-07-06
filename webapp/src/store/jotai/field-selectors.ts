@@ -4,7 +4,6 @@ import { JSONContent } from '@tiptap/react';
 import { atom, useAtom } from 'jotai';
 import { v4 } from 'uuid';
 
-import globalConstants from '@app/constants/global';
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import { FormSlideLayout } from '@app/models/enums/form';
 import { useActiveFieldComponent, useActiveSlideComponent } from '@app/store/jotai/active-builder-component';
@@ -16,7 +15,8 @@ export const initialFieldsState: StandardFormFieldDto[] = [
         index: 0,
         type: FieldTypes.SLIDE,
         properties: {
-            layout: FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT,
+            // Calm single-column default; decorative image/layout is opt-in.
+            layout: FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND,
             fields: [
                 {
                     id: v4(),
@@ -28,8 +28,7 @@ export const initialFieldsState: StandardFormFieldDto[] = [
                     }
                 }
             ]
-        },
-        imageUrl: globalConstants.defaultImage
+        }
     }
 ]
 
