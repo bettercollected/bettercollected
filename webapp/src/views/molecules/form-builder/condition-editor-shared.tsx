@@ -2,19 +2,44 @@
 
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import { Comparison, LogicCondition } from '@app/models/types/form-builder-shared';
+import { extractTextfromJSON } from '@app/utils/richTextEditorExtenstion/get-html-from-json';
 import { X } from 'lucide-react';
 
-// Plain-text label from a field's Tiptap-JSON (or string) title, for the source picker.
-export function fieldLabel(field: StandardFormFieldDto | undefined, fallback: string): string {
-    const t: any = field?.title ?? field?.value;
-    if (typeof t === 'string' && t.trim()) return t.trim();
-    const walk = (node: any): string => {
-        if (!node) return '';
-        if (typeof node.text === 'string') return node.text;
-        if (Array.isArray(node.content)) return node.content.map(walk).join('');
-        return '';
-    };
-    return walk(t).trim() || fallback;
+/** A candidate condition source: the field plus a display label that matches the canvas. */
+export interface SourceField {
+    field: StandardFormFieldDto;
+    label: string;
+}
+
+/**
+ * Same text the canvas shows for a question (title, else its placeholder), so the
+ * logic picker never disagrees with what the creator sees on the page.
+ */
+export function fieldText(field: StandardFormFieldDto | undefined): string {
+    if (!field) return '';
+    const t = extractTextfromJSON(field)?.trim();
+    return t || 'Untitled question';
+}
+
+/** Short, stable-ish page name used wherever logic refers to a page. */
+export function pageLabel(slide: StandardFormFieldDto | undefined, index: number): string {
+    const first = slide?.properties?.fields?.[0];
+    const text = first ? fieldText(first) : '';
+    return text ? `Page ${index + 1} · ${text}` : `Page ${index + 1}`;
+}
+
+/** Build labelled sources from slides, adding a "Page N ·" prefix when the form has more than one page. */
+export function buildSourceFields(slides: Array<StandardFormFieldDto>, predicate: (slide: StandardFormFieldDto, slideIndex: number, field: StandardFormFieldDto) => boolean): SourceField[] {
+    const multiPage = (slides || []).length > 1;
+    const sources: SourceField[] = [];
+    (slides || []).forEach((slide, sIdx) => {
+        slide?.properties?.fields?.forEach((field) => {
+            if (!predicate(slide, sIdx, field)) return;
+            const text = fieldText(field);
+            sources.push({ field, label: multiPage ? `Page ${sIdx + 1} · ${text}` : text });
+        });
+    });
+    return sources;
 }
 
 export const COMPARISON_LABELS: Record<string, string> = {
@@ -60,27 +85,31 @@ export function comparisonsForField(field?: StandardFormFieldDto): Comparison[] 
 
 export const needsValue = (c: Comparison) => c !== Comparison.IS_EMPTY && c !== Comparison.IS_NOT_EMPTY;
 
-export const selectClass = 'text-black-800 focus:border-brand-500 w-full min-w-0 rounded-md border border-black-300 bg-white px-2 py-1.5 text-xs outline-none';
-
-export function newConditionFor(sourceFields: StandardFormFieldDto[]): LogicCondition {
-    const first = sourceFields[0];
-    return { fieldId: first?.id ?? '', fieldType: first?.type ?? '', comparison: Comparison.IS_EQUAL, value: '' };
+/** A condition is complete only if it names a field, a comparison, and (when required) a value. */
+export function isConditionComplete(c: LogicCondition | undefined): boolean {
+    if (!c?.fieldId || !c?.comparison) return false;
+    if (needsValue(c.comparison) && (c.value === undefined || c.value === null || String(c.value).trim() === '')) return false;
+    return true;
 }
+
+export const selectClass = 'text-black-800 focus:border-brand-500 w-full min-w-0 rounded-md border border-black-300 bg-white px-2 py-1.5 text-xs outline-none';
+const invalidSelectClass = selectClass.replace('border-black-300', 'border-amber-400');
 
 /** One condition row: [source field] [comparison] [value], with an optional remove button. */
 export function ConditionRow({
     condition,
-    sourceFields,
+    sources,
     onChange,
     onRemove
 }: {
     condition: LogicCondition;
-    sourceFields: StandardFormFieldDto[];
+    sources: SourceField[];
     onChange: (patch: Partial<LogicCondition>) => void;
     onRemove?: () => void;
 }) {
-    const src = sourceFields.find((f) => f.id === condition.fieldId);
+    const src = sources.find((s) => s.field.id === condition.fieldId)?.field;
     const comparisons = comparisonsForField(src);
+    const valueMissing = needsValue(condition.comparison) && (condition.value === undefined || condition.value === null || String(condition.value).trim() === '');
     return (
         <div className="border-black-200 bg-new-white-200 relative flex flex-col gap-1.5 rounded-md border p-2">
             {onRemove && (
@@ -92,13 +121,13 @@ export function ConditionRow({
                 className={selectClass}
                 value={condition.fieldId}
                 onChange={(e) => {
-                    const f = sourceFields.find((sf) => sf.id === e.target.value);
+                    const f = sources.find((s) => s.field.id === e.target.value)?.field;
                     onChange({ fieldId: e.target.value, fieldType: f?.type ?? '', comparison: comparisonsForField(f)[0], value: '' });
                 }}
             >
-                {sourceFields.map((f, i) => (
-                    <option key={f.id} value={f.id}>
-                        {fieldLabel(f, `Question ${i + 1}`)}
+                {sources.map((s) => (
+                    <option key={s.field.id} value={s.field.id}>
+                        {s.label}
                     </option>
                 ))}
             </select>
@@ -109,15 +138,17 @@ export function ConditionRow({
                     </option>
                 ))}
             </select>
-            {needsValue(condition.comparison) && <ConditionValueInput field={src} value={condition.value} onChange={(v) => onChange({ value: v })} />}
+            {needsValue(condition.comparison) && <ConditionValueInput field={src} value={condition.value} invalid={valueMissing} onChange={(v) => onChange({ value: v })} />}
+            {valueMissing && <span className="text-[11px] text-amber-700">Enter a value for this rule to work.</span>}
         </div>
     );
 }
 
-export function ConditionValueInput({ field, value, onChange }: { field?: StandardFormFieldDto; value: any; onChange: (v: any) => void }) {
+export function ConditionValueInput({ field, value, onChange, invalid }: { field?: StandardFormFieldDto; value: any; onChange: (v: any) => void; invalid?: boolean }) {
+    const cls = invalid ? invalidSelectClass : selectClass;
     if (field?.type === FieldTypes.YES_NO) {
         return (
-            <select className={selectClass} value={value ?? ''} onChange={(e) => onChange(e.target.value)}>
+            <select className={cls} value={value ?? ''} onChange={(e) => onChange(e.target.value)}>
                 <option value="">Select…</option>
                 <option value="Yes">Yes</option>
                 <option value="No">No</option>
@@ -127,7 +158,7 @@ export function ConditionValueInput({ field, value, onChange }: { field?: Standa
     if (field?.type === FieldTypes.MULTIPLE_CHOICE || field?.type === FieldTypes.DROP_DOWN) {
         const choices = field?.properties?.choices ?? [];
         return (
-            <select className={selectClass} value={value ?? ''} onChange={(e) => onChange(e.target.value)}>
+            <select className={cls} value={value ?? ''} onChange={(e) => onChange(e.target.value)}>
                 <option value="">Select…</option>
                 {choices.map((c) => (
                     <option key={c.id} value={c.value ?? c.label ?? ''}>
@@ -139,5 +170,10 @@ export function ConditionValueInput({ field, value, onChange }: { field?: Standa
     }
     const numeric = field?.type === FieldTypes.NUMBER || field?.type === FieldTypes.RATING || field?.type === FieldTypes.LINEAR_RATING;
     const date = field?.type === FieldTypes.DATE;
-    return <input className={selectClass} type={date ? 'date' : numeric ? 'number' : 'text'} value={value ?? ''} placeholder="value" onChange={(e) => onChange(e.target.value)} />;
+    return <input className={cls} type={date ? 'date' : numeric ? 'number' : 'text'} value={value ?? ''} placeholder="value" onChange={(e) => onChange(e.target.value)} />;
+}
+
+export function newConditionFor(sources: SourceField[]): LogicCondition {
+    const first = sources[0]?.field;
+    return { fieldId: first?.id ?? '', fieldType: first?.type ?? '', comparison: Comparison.IS_EQUAL, value: '' };
 }

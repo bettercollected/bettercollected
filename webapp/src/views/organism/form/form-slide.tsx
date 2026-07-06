@@ -163,12 +163,14 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
         // Page-jump / branching: a matching rule overrides the linear next page.
         const jumpTargetId = resolveJumpTargetId(formSlide, formResponse.answers || {});
         if (jumpTargetId === JUMP_TARGET_SUBMIT) {
+            if (isPreviewMode) toast({ description: 'Logic rule matched → submitting the form' });
             finishForm();
             return;
         }
         if (jumpTargetId) {
             const targetIndex = standardForm?.fields?.findIndex((s) => s.id === jumpTargetId) ?? -1;
             if (targetIndex >= 0) {
+                if (isPreviewMode) toast({ description: `Logic rule matched → jumped to Page ${targetIndex + 1}` });
                 goToSlide(targetIndex);
                 return;
             }

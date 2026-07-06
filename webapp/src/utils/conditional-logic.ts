@@ -1,5 +1,5 @@
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
-import { Comparison, FieldConditionalLogic, LogicalOperator, LogicCondition, PageJump } from '@app/models/types/form-builder-shared';
+import { Comparison, FieldConditionalLogic, JUMP_TARGET_SUBMIT, LogicalOperator, LogicCondition, PageJump } from '@app/models/types/form-builder-shared';
 
 export type { FieldConditionalLogic, LogicAction, LogicCondition, PageJump } from '@app/models/types/form-builder-shared';
 
@@ -136,4 +136,55 @@ export function getHiddenFieldIds(fields: Array<StandardFormFieldDto> | undefine
         if (isFieldHiddenByLogic(field, answers)) hidden.add(field.id);
     });
     return hidden;
+}
+
+/** Is a jump's target still a real destination (an existing slide, or "submit")? */
+export function isJumpTargetValid(target: string | undefined, slideIds: Set<string>): boolean {
+    return !!target && (target === JUMP_TARGET_SUBMIT || slideIds.has(target));
+}
+
+/** Does a field carry a usable conditional-visibility rule? */
+export function fieldHasLogic(field: StandardFormFieldDto | undefined): boolean {
+    return !!(field?.properties?.logic as FieldConditionalLogic | undefined)?.conditions?.length;
+}
+
+/** Does a slide carry any logic — page jumps, or a field with a visibility rule? */
+export function slideHasLogic(slide: StandardFormFieldDto | undefined): boolean {
+    const jumps = slide?.properties?.jumps as PageJump[] | undefined;
+    if (jumps?.some((j) => j?.conditions?.length)) return true;
+    return !!slide?.properties?.fields?.some((f) => fieldHasLogic(f));
+}
+
+/**
+ * Drop logic that can no longer evaluate after a page/question is deleted:
+ * conditions pointing at fields that no longer exist (and any rule left with zero
+ * conditions). Mutates the slide array in place and returns it. Jump targets that
+ * point at a deleted page are left intact so the UI can surface them as broken
+ * rather than silently rewriting where a rule sends people.
+ */
+export function pruneOrphanedConditions(slides: Array<StandardFormFieldDto>): Array<StandardFormFieldDto> {
+    const fieldIds = new Set<string>();
+    slides.forEach((slide) => slide?.properties?.fields?.forEach((f) => fieldIds.add(f.id)));
+    const liveConditions = (conditions: LogicCondition[] | undefined) => (conditions ?? []).filter((c) => c && fieldIds.has(c.fieldId));
+
+    slides.forEach((slide) => {
+        const props = slide?.properties;
+        if (!props) return;
+
+        if (Array.isArray(props.jumps)) {
+            const jumps = props.jumps.map((j) => ({ ...j, conditions: liveConditions(j.conditions) })).filter((j) => j.conditions.length > 0);
+            if (jumps.length) props.jumps = jumps;
+            else delete props.jumps;
+        }
+
+        props.fields?.forEach((field) => {
+            const logic = field?.properties?.logic;
+            if (!logic) return;
+            const conditions = liveConditions(logic.conditions);
+            if (conditions.length) field.properties!.logic = { ...logic, conditions };
+            else delete field.properties!.logic;
+        });
+    });
+
+    return slides;
 }

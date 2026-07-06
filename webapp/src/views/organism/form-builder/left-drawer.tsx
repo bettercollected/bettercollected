@@ -2,6 +2,8 @@ import { StandardFormFieldDto } from '@app/models/dtos/form';
 import { ScrollArea } from '@app/shadcn/components/ui/scroll-area';
 import { cn } from '@app/shadcn/util/lib';
 import { useActiveFieldComponent, useActiveSlideComponent } from '@app/store/jotai/active-builder-component';
+import { slideHasLogic } from '@app/utils/conditional-logic';
+import { LogicOutlinedIcon } from '@Components/icons/logic-outlined-icon';
 
 import AddSlidePopover from './add-slide/add-slide-popover';
 import SlideBuilder from './slide-builder';
@@ -57,8 +59,16 @@ function LeftDrawer({ formFields, activeSlideComponent }: { formFields: Array<St
                                 Slides.map((slide, index) => {
                                     return (
                                         <div key={slide.id} id={slide.id} className={cn('group relative flex flex-col gap-2 px-4 py-4 pl-6', activeSlideComponent?.id === slide.id && '!bg-black-100')}>
-                                            <div className="flex w-full justify-between">
-                                                <div className="text-black-700 mb-1 text-[10px] font-medium">Page {index + 1}</div>
+                                            <div className="flex w-full items-center justify-between">
+                                                <div className="text-black-700 mb-1 flex items-center gap-1 text-[10px] font-medium">
+                                                    Page {index + 1}
+                                                    {slideHasLogic(slide) && (
+                                                        <span title="This page has logic" className="text-brand-500 bg-brand-100 inline-flex items-center gap-0.5 rounded px-1 py-[1px] text-[9px] font-semibold">
+                                                            <LogicOutlinedIcon className="h-2.5 w-2.5" />
+                                                            Logic
+                                                        </span>
+                                                    )}
+                                                </div>
                                                 <SlideOptions slideIndex={slide.index} />
                                             </div>
                                             <div key={slide.id} className="border-black-200 !aspect-video w-full overflow-hidden rounded-lg border">

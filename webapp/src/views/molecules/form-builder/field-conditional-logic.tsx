@@ -1,10 +1,10 @@
 'use client';
 
-import { StandardFormFieldDto, V2InputFields } from '@app/models/dtos/form';
+import { V2InputFields } from '@app/models/dtos/form';
 import { FieldConditionalLogic, LogicalOperator, LogicCondition } from '@app/models/types/form-builder-shared';
 import { Switch } from '@app/shadcn/components/ui/switch';
 import useFormFieldsAtom from '@app/store/jotai/field-selectors';
-import { ConditionRow, newConditionFor, selectClass } from './condition-editor-shared';
+import { buildSourceFields, ConditionRow, newConditionFor, selectClass } from './condition-editor-shared';
 
 export default function FieldConditionalLogicEditor() {
     const { formFields, activeSlide, activeField, updateFieldConditionalLogic } = useFormFieldsAtom();
@@ -12,13 +12,10 @@ export default function FieldConditionalLogicEditor() {
     if (!activeField || !activeSlide) return null;
 
     // Fields answerable *before* this one (earlier slide, or earlier in the same slide).
-    const sourceFields: StandardFormFieldDto[] = [];
-    (formFields || []).forEach((slide, sIdx) => {
-        if (sIdx > activeSlide.index) return;
-        slide?.properties?.fields?.forEach((f) => {
-            const isEarlier = sIdx < activeSlide.index || f.index < activeField.index;
-            if (isEarlier && f.id !== activeField.id && V2InputFields.includes(f.type)) sourceFields.push(f);
-        });
+    const sources = buildSourceFields(formFields || [], (_slide, sIdx, field) => {
+        if (sIdx > activeSlide.index) return false;
+        const isEarlier = sIdx < activeSlide.index || field.index < activeField.index;
+        return isEarlier && field.id !== activeField.id && V2InputFields.includes(field.type);
     });
 
     const logic = activeField?.properties?.logic as FieldConditionalLogic | undefined;
@@ -27,7 +24,7 @@ export default function FieldConditionalLogicEditor() {
     const commit = (next: FieldConditionalLogic | undefined) => updateFieldConditionalLogic(activeField.index, activeSlide.index, next);
 
     const toggle = (on: boolean) => {
-        if (on) commit({ action: 'SHOW', operator: LogicalOperator.AND, conditions: [newConditionFor(sourceFields)] });
+        if (on) commit({ action: 'SHOW', operator: LogicalOperator.AND, conditions: [newConditionFor(sources)] });
         else commit(undefined);
     };
 
@@ -36,11 +33,11 @@ export default function FieldConditionalLogicEditor() {
         commit({ ...logic, conditions: logic.conditions.map((c, i) => (i === idx ? { ...c, ...patch } : c)) });
     };
 
-    if (sourceFields.length === 0) {
+    if (sources.length === 0) {
         return (
             <div className="border-black-200 flex flex-col gap-1 border-t pt-4">
                 <div className="text-black-700 text-xs font-medium">Logic</div>
-                <div className="text-black-500 text-xs">Add a question before this one to show or hide it based on an earlier answer.</div>
+                <div className="text-black-500 text-xs">Add a question before this one to show or hide this field based on an earlier answer.</div>
             </div>
         );
     }
@@ -48,7 +45,10 @@ export default function FieldConditionalLogicEditor() {
     return (
         <div className="border-black-200 flex flex-col gap-3 border-t pt-4">
             <div className="flex w-full items-center justify-between">
-                <div className="text-black-700 text-xs font-medium">Conditional visibility</div>
+                <div>
+                    <div className="text-black-700 text-xs font-medium">Logic</div>
+                    <div className="text-black-500 text-[11px]">Show or hide this field based on answers</div>
+                </div>
                 <Switch checked={enabled} onCheckedChange={toggle} />
             </div>
 
@@ -75,13 +75,13 @@ export default function FieldConditionalLogicEditor() {
                         <ConditionRow
                             key={idx}
                             condition={condition}
-                            sourceFields={sourceFields}
+                            sources={sources}
                             onChange={(patch) => patchCondition(idx, patch)}
                             onRemove={logic.conditions.length > 1 ? () => commit({ ...logic, conditions: logic.conditions.filter((_, i) => i !== idx) }) : undefined}
                         />
                     ))}
 
-                    <button className="text-brand-500 hover:text-brand-600 w-fit text-xs font-medium" onClick={() => commit({ ...logic, conditions: [...logic.conditions, newConditionFor(sourceFields)] })}>
+                    <button className="text-brand-500 hover:text-brand-600 w-fit text-xs font-medium" onClick={() => commit({ ...logic, conditions: [...logic.conditions, newConditionFor(sources)] })}>
                         + Add condition
                     </button>
                 </div>
