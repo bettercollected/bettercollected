@@ -9,7 +9,7 @@ authors = [
 ]
 dependencies = [
     "fastapi>=0.115.0",
-    "uvicorn[standard]>=0.50.0",
+    "uvicorn[standard]>=0.50.2",
     "fastapi-users[beanie,oauth]>=15.0.5",
     "dependency-injector>=4.49.1",
     "classy-fastapi>=0.6.0",

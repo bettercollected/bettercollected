@@ -17,7 +17,7 @@ classifiers = [
 ]
 dependencies = [
     "fastapi>=0.115.0",
-    "uvicorn[standard]>=0.50.0",
+    "uvicorn[standard]>=0.50.2",
     "gunicorn>=26.0.0",
     "aiohttp>=3.13.3",
     "loguru>=0.7.3",
@@ -36,7 +36,7 @@ dependencies = [
     "googleapis-common-protos>=1.75.0",
     "elastic-apm>=6.26.2",
     "common",
-    "pydantic[email]>=1.10.0",
+    "pydantic[email]>=2.13.4",
     "pydantic-settings>=2.13.0",
     "motor>=3.7.1",
     "h11>=0.16.0",
