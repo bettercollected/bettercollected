@@ -89,7 +89,7 @@ class FormAnalyticsRouter(Routable):
         params = {k: v for k, v in params.items() if v is not None}
 
         stats_data = await self.umami_client.fetch_stats(params)
-        return StatsModel(**stats_data)
+        return StatsModel.from_umami(stats_data)
 
     @get(
         "/{workspace_name}/forms/{slug}/pageviews",

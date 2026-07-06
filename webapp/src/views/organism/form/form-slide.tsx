@@ -12,7 +12,8 @@ import { selectAuth } from '@app/store/auth/slice';
 import useFormAtom from '@app/store/jotai/form-file';
 import { useFormResponse } from '@app/store/jotai/responder-form-response';
 import { useResponderState } from '@app/store/jotai/responder-form-state';
-import { useSubmitResponseMutation } from '@app/store/redux/form-api';
+import { useSendFlowEventMutation, useSubmitResponseMutation } from '@app/store/redux/form-api';
+import { getFlowSessionId } from '@app/utils/flow-session';
 import { getHiddenFieldIds, resolveJumpTargetId } from '@app/utils/conditional-logic';
 import { JUMP_TARGET_SUBMIT } from '@app/models/types/form-builder-shared';
 import { validateSlide } from '@app/utils/vvalidation-utils';
@@ -133,6 +134,13 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
     // render, so the form reacts live as the responder answers earlier questions.
     const hiddenFieldIds = getHiddenFieldIds(formSlide?.properties?.fields, formResponse.answers || {});
 
+    const [sendFlowEvent] = useSendFlowEventMutation();
+    // Anonymous drop-off breadcrumb: page → page, never answers, never in preview.
+    const emitFlow = (fromPage: string, toPage: string) => {
+        if (isPreviewMode || !workspace?.id || !standardForm?.formId) return;
+        sendFlowEvent({ workspaceId: workspace.id, formId: standardForm.formId, sessionId: getFlowSessionId(standardForm.formId), fromPage, toPage }).catch(() => {});
+    };
+
     const finishForm = () => {
         if (isPreviewMode) setCurrentSlideToThankyouPage();
         else
@@ -164,6 +172,7 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
         const jumpTargetId = resolveJumpTargetId(formSlide, formResponse.answers || {});
         if (jumpTargetId === JUMP_TARGET_SUBMIT) {
             if (isPreviewMode) toast({ description: 'Logic rule matched → submitting the form' });
+            emitFlow(formSlide.id, '__submit__');
             finishForm();
             return;
         }
@@ -171,13 +180,19 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
             const targetIndex = standardForm?.fields?.findIndex((s) => s.id === jumpTargetId) ?? -1;
             if (targetIndex >= 0) {
                 if (isPreviewMode) toast({ description: `Logic rule matched → jumped to Page ${targetIndex + 1}` });
+                emitFlow(formSlide.id, jumpTargetId);
                 goToSlide(targetIndex);
                 return;
             }
         }
 
-        if (currentSlide + 1 === standardForm?.fields?.length) finishForm();
-        else nextSlide();
+        if (currentSlide + 1 === standardForm?.fields?.length) {
+            emitFlow(formSlide.id, '__submit__');
+            finishForm();
+        } else {
+            emitFlow(formSlide.id, standardForm?.fields?.[currentSlide + 1]?.id ?? '__next__');
+            nextSlide();
+        }
     };
 
     if (!formSlide) return <FullScreenLoader />;

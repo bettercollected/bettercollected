@@ -53,6 +53,59 @@ Beanie Documents are registered in [backend/app/handlers/database.py](backend/ap
 (`User`, `StandardForm`, `StandardFormResponse`, `Consent`) come from the shared `common` package, not from here.
 APScheduler uses a separate DB (`init_scheduler_db`).
 
+## Seed scripts
+
+`backend/scripts/` holds idempotent seed scripts that populate collections a fresh (or already-running) environment
+needs but that don't belong in a migration. Pattern to follow for new ones: a reusable `async def seed_x(...)`
+function that assumes Beanie is already initialized (so it can be called from `lifespan` on every boot), plus a thin
+`_main()`/`if __name__ == "__main__":` CLI wrapper that creates its own Mongo client for one-off manual runs. Never
+overwrite existing data — check-then-create, so re-running (including "run" via a normal app restart) is always safe.
+
+**`seed_flow_templates.py`** — seeds the flow-native template gallery (branching used as the hook: support triage,
+lead qualification, job-application screening). It's wired into [asgi.py](backend/app/asgi.py)'s `lifespan`
+right after `init_db`, so **it runs automatically on every backend startup** — an already-deployed environment picks
+up new/changed templates the next time it restarts, no manual step required.
+
+- Gated by `DEFAULT_SEED_FLOW_TEMPLATES` (`DefaultResourcesWorkspaceSettings`, default `true`). Set `false` to
+  disable if you manage the gallery by hand.
+- Requires `DEFAULT_WORKSPACE_ID` to be a valid ObjectId hex string — templates are matched to the gallery by
+  `workspace_id`, and the templates API (`GET /templates`) only serves public templates from that one workspace id.
+  **If it's unset, seeding is skipped with a log warning** (not an error) — this is also why an empty/misconfigured
+  `DEFAULT_WORKSPACE_ID` silently produces an empty gallery even with templates in the DB: check this first.
+- Idempotent by title + `builder_version="v2"` — never overwrites an existing template, so hand-edits in the DB
+  survive restarts.
+- To add a template: write a new zero-arg builder function returning `{title, description, category, fields}` (see
+  `support_triage()`/`lead_qualification()` for the shape) and add it to `TEMPLATE_BUILDERS`.
+- To force a re-seed of a changed template, delete it from `form_templates` first (by title) — the next restart (or
+  a manual run) recreates it.
+- Manual one-off run (e.g. without restarting the app): `uv run python -m scripts.seed_flow_templates` from `backend/`.
+- **Gotcha this script already tripped on:** `PydanticObjectId` fields don't validate an *empty string* the way you'd
+  expect from an "unset" env var — double-check with a real value, not just `KEY=` in `.env`, if the gallery stays
+  empty.
+
+## Analytics (Umami)
+
+Form-view analytics (`FormAnalyticsRouter` — `/{workspace_name}/forms/{slug}/{stats,pageviews,metrics}`) proxy a
+self-hosted [Umami](https://umami.is) instance via `services/umami_client.py`. It used to default to a
+BetterCollected-hosted Umami; that's gone — see `plans/umami-self-hosted-form-analytics.md` for the full rationale
+and architecture.
+
+- **Local dev:** `docker compose -f docker-compose.local.yml up` starts Umami at `http://localhost:3003` (default
+  login `admin`/`umami` — change it). Create a website there, copy its id into `UMAMI_WEBSITE_ID`.
+- **Config** (`config/UmamiSettings.py`, env prefix `UMAMI_`): `URL`, `USERNAME`, `PASSWORD`, `WEBSITE_ID` — all four
+  required. `UmamiClient.authenticate()` checks `settings.umami_settings.is_configured` up front and raises a clean
+  503 ("Analytics is not configured on this instance.") instead of attempting a doomed login — check this first if
+  the analytics endpoints 503 unexpectedly.
+- **Gotcha this file already tripped on:** the app's custom `HTTPException` (`app/exceptions/http.py`) takes a
+  `content=` kwarg, not FastAPI's `detail=` — passing `detail=` raises a `TypeError` instead of the intended clean
+  error. Already fixed in `umami_client.py`; keep this in mind if you add more raises there.
+- Canonical path construction (`form_url = f"/{workspace_name}/forms/{slug}"`) must stay in sync with the webapp's
+  `trackCanonicalFormView` helper (`webapp/src/lib/analytics/umami.ts`) — both sides hard-code the same shape so
+  custom-domain and client-host traffic land under one path.
+- Deployment: `docker-compose.deployment.yml`'s `backend` service sets `UMAMI_URL=http://umami:3000` (internal
+  docker network) automatically — only `UMAMI_USERNAME`/`UMAMI_PASSWORD`/`UMAMI_WEBSITE_ID` need to come from
+  `.env.deployment`.
+
 ## Cross-service integration points
 
 - **Auth:** `services/auth_service.py` — OAuth state + OTP, JWT via `common.services.jwt_service`; refresh-token

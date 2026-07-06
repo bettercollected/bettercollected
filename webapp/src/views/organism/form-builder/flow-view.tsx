@@ -10,6 +10,7 @@ import useFormFieldsAtom from '@app/store/jotai/field-selectors';
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
+import { useGetFlowAnalyticsQuery } from '@app/store/redux/form-api';
 import { useGetFormAllSubmissionsQuery } from '@app/store/workspaces/api';
 import { computeFlowTraffic, fieldHasLogic, FlowTraffic, isJumpTargetValid } from '@app/utils/conditional-logic';
 import { buildSourceFields, fieldText, newConditionFor, pageLabel } from '@app/views/molecules/form-builder/condition-editor-shared';
@@ -44,19 +45,35 @@ const dotStyle = (isArmed: boolean): React.CSSProperties => ({
     transition: 'all 120ms ease'
 });
 
+/** Keyboard parity for the interactive connect dots (Enter/Space = click). */
+const dotKeyDown = (handler: () => void) => (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        e.stopPropagation();
+        handler();
+    }
+};
+
 function PageNode({ id, data, selected }: NodeProps<Node<any>>) {
     return (
-        <div className={'flex w-[300px] flex-col gap-1 rounded-xl border bg-white px-4 py-3 shadow-sm transition-shadow ' + (selected ? 'border-brand-500 shadow-bubble' : 'border-black-200 hover:border-brand-300')}>
+        <div
+            aria-label={`Page ${data.pageNumber}: ${data.label} — ${data.questionCount} question${data.questionCount === 1 ? '' : 's'}`}
+            className={'flex w-[300px] flex-col gap-1 rounded-xl border bg-white px-4 py-3 shadow-sm transition-shadow ' + (selected ? 'border-brand-500 shadow-bubble' : 'border-black-200 hover:border-brand-300')}
+        >
             <Handle id="next-in" type="target" position={Position.Top} isConnectable={false} style={{ opacity: 0 }} />
             <Handle
                 id="jump-in"
                 type="target"
                 position={Position.Left}
+                role="button"
+                tabIndex={0}
+                aria-label={`Create a jump into page ${data.pageNumber}`}
                 style={dotStyle(data.armedMode === 'into')}
                 onClick={(e) => {
                     e.stopPropagation();
                     data.onDotClick?.(id, 'in');
                 }}
+                onKeyDown={dotKeyDown(() => data.onDotClick?.(id, 'in'))}
             />
             {/* Invisible right-side anchor: edges from pages in the same column enter
                 here so they bow beside the column instead of crossing it. Users still
@@ -89,16 +106,25 @@ function PageNode({ id, data, selected }: NodeProps<Node<any>>) {
                         {data.visits}/{data.totalResponses} visited
                     </span>
                 )}
+                {data.dropOffs > 0 && (
+                    <span className="rounded bg-amber-50 px-1.5 py-[1px] font-semibold text-amber-700" title="Responders whose last activity was on this page — they never submitted">
+                        {data.dropOffs} dropped here
+                    </span>
+                )}
             </div>
             <Handle
                 id="jump-out"
                 type="source"
                 position={Position.Right}
+                role="button"
+                tabIndex={0}
+                aria-label={`Create a jump from page ${data.pageNumber}`}
                 style={dotStyle(data.armedMode === 'from')}
                 onClick={(e) => {
                     e.stopPropagation();
                     data.onDotClick?.(id, 'out');
                 }}
+                onKeyDown={dotKeyDown(() => data.onDotClick?.(id, 'out'))}
             />
             <Handle id="next-out" type="source" position={Position.Bottom} isConnectable={false} style={{ opacity: 0 }} />
         </div>
@@ -115,11 +141,15 @@ function TerminalNode({ id, data }: NodeProps<Node<any>>) {
                     id="jump-in"
                     type="target"
                     position={Position.Left}
+                    role="button"
+                    tabIndex={0}
+                    aria-label="Create a jump straight to submit"
                     style={dotStyle(data.armedMode === 'into')}
                     onClick={(e) => {
                         e.stopPropagation();
                         data.onDotClick?.(id, 'in');
                     }}
+                    onKeyDown={dotKeyDown(() => data.onDotClick?.(id, 'in'))}
                 />
             )}
             {isEnd && <Handle id="jump-in-right" type="target" position={Position.Right} isConnectable={false} style={{ opacity: 0, top: '35%' }} />}
@@ -191,6 +221,10 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
         return computeFlowTraffic(slides, submissions.map((s: any) => s?.answers ?? {}));
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [showInsights, submissions, slides]);
+    // Anonymous navigation events → where responders went dark (drop-off).
+    const { data: flowAnalytics } = useGetFlowAnalyticsQuery({ workspaceId: workspace?.id, formId: standardForm?.formId } as any, {
+        skip: !showInsights || !workspace?.id || !standardForm?.formId
+    });
     const [selectedId, setSelectedId] = useState<string | null>(null);
     const selectedIndex = slides.findIndex((s) => s.id === selectedId);
     const selectedSlide = selectedIndex >= 0 ? slides[selectedIndex] : undefined;
@@ -236,6 +270,7 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
                 brokenCount: ((slide.properties?.jumps as PageJump[] | undefined) ?? []).filter((j) => j?.conditions?.length && !isJumpTargetValid(j.target, slideIds)).length,
                 visits: traffic ? traffic.nodeVisits.get(slide.id) ?? 0 : undefined,
                 totalResponses: traffic?.total,
+                dropOffs: showInsights ? flowAnalytics?.dropOffs?.[slide.id] ?? 0 : undefined,
                 armedMode: armed?.id === slide.id ? armed.mode : undefined,
                 onDotClick: (nid: string, side: 'in' | 'out') => dotClickRef.current?.(nid, side)
             }
@@ -251,7 +286,7 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
                 deletable: false
             }
         ];
-    }, [slides, slideIds, traffic, armed]);
+    }, [slides, slideIds, traffic, armed, flowAnalytics, showInsights]);
 
     const buildEdges = useCallback((): Edge[] => {
         const edges: Edge[] = [];
@@ -332,7 +367,7 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
         setNodes(buildNodes());
         setEdges(buildEdges());
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [modelSignature, traffic, armed]);
+    }, [modelSignature, traffic, armed, flowAnalytics, showInsights]);
 
     /* ------------------------------ actions ------------------------------ */
 
@@ -400,6 +435,14 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
         window.addEventListener('keydown', onKey);
         return () => window.removeEventListener('keydown', onKey);
     }, [armed]);
+
+    // Escape closes the page-editor overlay (matching the backdrop click).
+    useEffect(() => {
+        if (!overlayId) return;
+        const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setOverlayId(null);
+        window.addEventListener('keydown', onKey);
+        return () => window.removeEventListener('keydown', onKey);
+    }, [overlayId]);
     const armedName = armed ? (armed.id === '__end__' ? 'Submit' : `Page ${(slides.findIndex((s) => s.id === armed.id) ?? 0) + 1}`) : null;
 
     const onEdgesDelete = useCallback(
@@ -441,16 +484,24 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
             <div className="border-b-black-200 flex items-center justify-between border-b px-6 py-3">
                 <div>
                     <div className="text-black-900 text-base font-semibold">Flow</div>
-                    {armed ? (
-                        <div className="text-brand-600 text-xs font-medium">
-                            {armed.mode === 'from' ? `Creating a jump from ${armedName} — click the destination page` : `Creating a jump into ${armedName} — click the source page`} · Esc to cancel
-                        </div>
-                    ) : (
-                        <div className="text-black-500 text-xs">Click or drag a blue dot to branch. Select a page to edit its rules.</div>
-                    )}
+                    {/* aria-live: screen readers announce entering/leaving connect mode */}
+                    <div aria-live="polite">
+                        {armed ? (
+                            <div className="text-brand-600 text-xs font-medium">
+                                {armed.mode === 'from' ? `Creating a jump from ${armedName} — click the destination page` : `Creating a jump into ${armedName} — click the source page`} · Esc to cancel
+                            </div>
+                        ) : (
+                            <div className="text-black-500 text-xs">Click or drag a blue dot to branch. Select a page to edit its rules.</div>
+                        )}
+                    </div>
                 </div>
                 <div className="flex items-center gap-2">
-                    {showInsights && !insightsLoading && traffic?.total === 0 && <span className="text-black-500 mr-1 text-xs">No responses yet</span>}
+                    {showInsights && flowAnalytics && flowAnalytics.totalSessions > 0 && (
+                        <span className="text-black-600 mr-1 text-xs">
+                            {flowAnalytics.totalSessions} started · {flowAnalytics.submittedSessions} finished
+                        </span>
+                    )}
+                    {showInsights && !insightsLoading && traffic?.total === 0 && (!flowAnalytics || flowAnalytics.totalSessions === 0) && <span className="text-black-500 mr-1 text-xs">No responses yet</span>}
                     <button
                         onClick={() => setShowInsights((v) => !v)}
                         title="Overlay how submitted responses travelled each branch"
@@ -569,7 +620,7 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
 
             {/* Page-editor overlay — edit content without leaving the flow */}
             {overlaySlide && (
-                <div className="absolute inset-0 z-30 flex flex-col bg-black/40 p-5" onClick={() => setOverlayId(null)}>
+                <div role="dialog" aria-modal="true" aria-label={`Edit page ${overlayIndex + 1}`} className="absolute inset-0 z-30 flex flex-col bg-black/40 p-5" onClick={() => setOverlayId(null)}>
                     <div className="flex min-h-0 flex-1 overflow-hidden rounded-xl bg-white shadow-2xl" onClick={(e) => e.stopPropagation()}>
                         <div className="bg-new-white-200 relative flex min-w-0 flex-1 flex-col overflow-hidden">
                             <div className="border-b-black-200 flex items-center justify-between border-b bg-white px-4 py-2.5">

@@ -29,7 +29,9 @@ Public site: https://bettercollected.com · License: see [LICENSE](LICENSE).
 | [common/](common/) | Python package (Beanie/JWT/crypto) | — | Shared models/enums/services for all Python services |
 
 **Infra** (via `docker-compose.local.yml` / `docker-compose.deployment.yml`): **MongoDB** (app data),
-**PostgreSQL + Temporal server** (workflow engine), **Redis**, **nginx** (routes the admin / client / custom-domain hosts).
+**PostgreSQL + Temporal server** (workflow engine), **Redis**, **nginx** (routes the admin / client / custom-domain
+hosts), **Umami + its own PostgreSQL** (self-hosted product analytics, admin UI on `:3003` — see
+`backend/AGENTS.md` "Analytics (Umami)" and `plans/umami-self-hosted-form-analytics.md`).
 
 > Note: `integrations/typeform/` and `common/` are referenced by build scripts but live in separate repos /
 > are vendored per service. Only `integrations/google` and a top-level `common/` are present in this checkout.

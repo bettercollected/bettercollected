@@ -47,6 +47,20 @@ export const formsApi = createApi({
                 body: request.body
             })
         }),
+        // One anonymous navigation step for drop-off analytics (no answers, no identity).
+        sendFlowEvent: builder.mutation<any, { workspaceId: string; formId: string; sessionId: string; fromPage: string; toPage: string }>({
+            query: ({ workspaceId, formId, sessionId, fromPage, toPage }) => ({
+                url: `/workspaces/${workspaceId}/forms/${formId}/flow-events`,
+                method: 'POST',
+                body: { sessionId, fromPage, toPage }
+            })
+        }),
+        getFlowAnalytics: builder.query<{ totalSessions: number; submittedSessions: number; dropOffs: Record<string, number>; transitions: Array<{ from: string; to: string; count: number }> }, { workspaceId: string; formId: string }>({
+            query: ({ workspaceId, formId }) => ({
+                url: `/workspaces/${workspaceId}/forms/${formId}/flow-analytics`,
+                method: 'GET'
+            })
+        }),
         logOut: builder.query<any, any>({
             query: () => ({
                 url: `/auth/logout`,
@@ -63,4 +77,4 @@ export const formsApi = createApi({
     })
 });
 
-export const { useCreateV2FormMutation, usePatchV2FormMutation, usePublishV2FormMutation, useGetFormResponseQuery, useSubmitResponseMutation, useLazyLogOutQuery, useCreateFormWithAIMutation } = formsApi;
+export const { useCreateV2FormMutation, usePatchV2FormMutation, usePublishV2FormMutation, useGetFormResponseQuery, useSubmitResponseMutation, useSendFlowEventMutation, useGetFlowAnalyticsQuery, useLazyLogOutQuery, useCreateFormWithAIMutation } = formsApi;

@@ -1,6 +1,7 @@
 version: '3.7'
 volumes:
   mongo-data:
+  umami-db-data:
 services:
   mongodb:
     image: mongo:latest
@@ -88,6 +89,9 @@ services:
     environment:
       AUTH_BASE_URL: http://auth:8000/api/v1
       AUTH_CALLBACK_URI: http://auth:8000/api/v1/auth/callback
+      # Backend reaches Umami over the compose network; only UMAMI_USERNAME/
+      # UMAMI_PASSWORD/UMAMI_WEBSITE_ID need to come from .env.deployment.
+      UMAMI_URL: http://umami:3000
     env_file:
       - .env.deployment
     ports:
@@ -95,6 +99,7 @@ services:
     depends_on:
       - temporal
       - mongodb
+      - umami
 
   auth:
     image: bettercollected/auth:nightly
@@ -119,4 +124,42 @@ services:
     image: bettercollected/integrations-google:nightly
     env_file:
       - .env.deployment
+
+  # Self-hosted product analytics (see plans/umami-self-hosted-form-analytics.md).
+  # First-pass exposure: plain host port 3003, no TLS/reverse-proxy — put it
+  # behind nginx/TLS yourself for a production deployment. After first boot,
+  # open http://<host>:3003, log in as admin/umami, change the password, create
+  # a website, then set UMAMI_WEBSITE_ID (backend + webapp) and UMAMI_SCRIPT_URL
+  # (webapp, e.g. http://<host>:3003/script.js) in .env.deployment.
+  #
+  # UMAMI_APP_SECRET below is substituted by docker compose itself (not passed
+  # through .env.deployment) — export it in your shell or put it in a root
+  # `.env` file (docker compose's own var-substitution file) before `up`:
+  #   UMAMI_APP_SECRET=$(openssl rand -hex 32)
+  umami-postgresql:
+    image: postgres:15-alpine
+    restart: always
+    environment:
+      POSTGRES_DB: umami
+      POSTGRES_USER: umami
+      POSTGRES_PASSWORD: umami
+    volumes:
+      - umami-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U umami -d umami']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  umami:
+    image: ghcr.io/umami-software/umami:postgresql-latest
+    restart: always
+    ports:
+      - '3003:3000'
+    environment:
+      DATABASE_URL: postgresql://umami:umami@umami-postgresql:5432/umami
+      APP_SECRET: ${UMAMI_APP_SECRET}
+    depends_on:
+      umami-postgresql:
+        condition: service_healthy
 

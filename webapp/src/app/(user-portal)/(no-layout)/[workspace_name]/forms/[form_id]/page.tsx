@@ -1,6 +1,7 @@
 'use client';
 
 import Loader from '@app/components/ui/loader';
+import { trackCanonicalFormView } from '@app/lib/analytics/umami';
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import { setForm } from '@app/store/forms/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
@@ -38,6 +39,14 @@ const FetchFormWrapper = ({ slug }: { slug: string }) => {
     );
 
     const router = useRouter();
+    const trackedViewRef = useRef(false);
+
+    useEffect(() => {
+        if (trackedViewRef.current) return;
+        if (!workspace?.workspaceName || !data?.formId) return;
+        trackedViewRef.current = true;
+        trackCanonicalFormView(workspace.workspaceName, slug);
+    }, [workspace?.workspaceName, data?.formId, slug]);
 
     const hasFileUpload = (fields: Array<any>) => {
         let isUploadField = false;

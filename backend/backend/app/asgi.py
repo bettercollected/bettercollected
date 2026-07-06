@@ -23,6 +23,7 @@ from backend.app.handlers.database import close_db, init_db
 from backend.app.middlewares import DynamicCORSMiddleware, include_middlewares
 from backend.app.router import root_api_router
 from backend.app.utils import AiohttpClient
+from scripts.seed_flow_templates import seed_flow_templates
 
 
 @asynccontextmanager
@@ -42,6 +43,24 @@ async def lifespan(app: FastAPI):
         client = AsyncMongoClient(settings.mongo_settings.URI)
         container.database_client.override(providers.Object(client))
     await init_db(settings.mongo_settings.DB, client)
+
+    # Auto-seed the flow-native template gallery (idempotent — skips templates
+    # that already exist). Gated by DEFAULT_SEED_FLOW_TEMPLATES (default on) and
+    # a no-op without DEFAULT_WORKSPACE_ID. Never blocks startup on failure —
+    # see backend/AGENTS.md "Seed scripts" for the full writeup.
+    if settings.default_workspace_settings.SEED_FLOW_TEMPLATES:
+        workspace_id = settings.default_workspace_settings.WORKSPACE_ID
+        if not workspace_id:
+            logger.warning(
+                "DEFAULT_WORKSPACE_ID is not set — skipping flow-template gallery seeding."
+            )
+        else:
+            try:
+                result = await seed_flow_templates(workspace_id)
+                if result["seeded"]:
+                    logger.info(f"Seeded flow templates: {', '.join(result['seeded'])}")
+            except Exception:
+                logger.exception("Flow-template seeding failed; continuing startup.")
 
     yield
 
