@@ -9,13 +9,17 @@ export interface ResponderFormState {
     currentField: number;
     prevActiveSlide: number;
     responderId?: string;
+    // Slides actually visited, in order — lets Back retrace jumps instead of
+    // assuming a linear -1. Pushed on every forward move, popped on Back.
+    history: number[];
 }
 
 const initialresponderState: ResponderFormState = {
     prevActiveField: -1,
     prevActiveSlide: -1,
     currentField: 0,
-    currentSlide: -1
+    currentSlide: -1,
+    history: []
 };
 
 const responderFormStateAtom = atom<ResponderFormState>(initialresponderState);
@@ -25,35 +29,44 @@ export const useResponderState = () => {
 
     const standardForm = useAppSelector(selectForm);
 
-    const nextSlide = () => {
-        const nextSlideNumber = responderState.currentSlide + 1;
+    // Move to an arbitrary slide (linear next or a page-jump target), recording the
+    // slide we came from so Back can retrace it.
+    const goToSlide = (targetSlideNumber: number) => {
+        const from = responderState.currentSlide;
+        const history = [...(responderState.history || []), from];
         setResponderState({
             ...responderState,
-            currentSlide: nextSlideNumber,
+            currentSlide: targetSlideNumber,
             currentField: 0,
             prevActiveField: -1,
-            prevActiveSlide: responderState.currentSlide
+            prevActiveSlide: from,
+            history
         });
-
         setTimeout(() => {
             setResponderState({
                 ...responderState,
-                currentSlide: nextSlideNumber,
+                currentSlide: targetSlideNumber,
                 currentField: 0,
                 prevActiveField: -1,
-                prevActiveSlide: responderState.currentSlide + 1
+                prevActiveSlide: targetSlideNumber,
+                history
             });
         }, 500);
     };
 
+    const nextSlide = () => goToSlide(responderState.currentSlide + 1);
+
     const previousSlide = () => {
-        const previousSlideNumber = responderState.currentSlide - 1;
+        const history = [...(responderState.history || [])];
+        const from = responderState.currentSlide;
+        const previousSlideNumber = history.length ? (history.pop() as number) : responderState.currentSlide - 1;
         setResponderState({
             ...responderState,
             currentSlide: previousSlideNumber,
             currentField: 0,
             prevActiveField: -1,
-            prevActiveSlide: responderState.currentSlide
+            prevActiveSlide: from,
+            history
         });
         setTimeout(() => {
             setResponderState({
@@ -61,7 +74,8 @@ export const useResponderState = () => {
                 currentSlide: previousSlideNumber,
                 currentField: 0,
                 prevActiveField: -1,
-                prevActiveSlide: responderState.currentSlide - 1
+                prevActiveSlide: previousSlideNumber,
+                history
             });
         }, 500);
     };
@@ -76,7 +90,8 @@ export const useResponderState = () => {
     const setCurrentSlideToWelcomePage = () => {
         setResponderState({
             ...responderState,
-            currentSlide: -1
+            currentSlide: -1,
+            history: []
         });
     };
 
@@ -110,6 +125,7 @@ export const useResponderState = () => {
         responderId: responderState.responderId,
         resetResponderState,
         nextSlide,
+        goToSlide,
         setCurrentField,
         previousSlide,
         nextField,

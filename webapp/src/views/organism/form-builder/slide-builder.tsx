@@ -9,6 +9,8 @@ import useFormFieldsAtom from '@app/store/jotai/field-selectors';
 import { useFormState } from '@app/store/jotai/form';
 import { useNavbarState } from '@app/store/jotai/navbar';
 import MoveUpDown from '@app/views/molecules/form-builder/move-up-down';
+import { fieldHasLogic } from '@app/utils/conditional-logic';
+import { LogicOutlinedIcon } from '@Components/icons/logic-outlined-icon';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Trash } from 'lucide-react';
 import { RichTextEditor } from '../../molecules/rich-text-editor';
@@ -66,6 +68,12 @@ const SlideBuilder = ({ slide, isScaledDown = false, disabled = false }: { slide
                                             }}
                                         >
                                             <div className={'relative flex flex-col items-start'}>
+                                                {!isScaledDown && fieldHasLogic(field) && (
+                                                    <div className="text-brand-500 bg-brand-100 absolute -top-6 left-0 z-10 inline-flex items-center gap-1 rounded px-1.5 py-[2px] text-[10px] font-semibold" title="This field is shown/hidden by a logic rule">
+                                                        <LogicOutlinedIcon className="h-3 w-3" />
+                                                        Logic
+                                                    </div>
+                                                )}
                                                 {!isScaledDown && activeFieldComponent && activeFieldComponent?.id === field.id && (
                                                     <div
                                                         className="shadow-bubble absolute -top-14 right-0 cursor-pointer rounded-md bg-white p-2"

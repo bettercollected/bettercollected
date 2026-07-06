@@ -13,6 +13,8 @@ import useFormAtom from '@app/store/jotai/form-file';
 import { useFormResponse } from '@app/store/jotai/responder-form-response';
 import { useResponderState } from '@app/store/jotai/responder-form-state';
 import { useSubmitResponseMutation } from '@app/store/redux/form-api';
+import { getHiddenFieldIds, resolveJumpTargetId } from '@app/utils/conditional-logic';
+import { JUMP_TARGET_SUBMIT } from '@app/models/types/form-builder-shared';
 import { validateSlide } from '@app/utils/vvalidation-utils';
 import FullScreenLoader from '@app/views/atoms/full-screen-loader';
 import DateField from '@app/views/molecules/responder-form-fields/date-field';
@@ -92,7 +94,7 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
     const formSlideFromState = standardForm.fields[index];
     const formSlide = formSlideData ? formSlideData : formSlideFromState;
 
-    const { currentSlide, setCurrentSlideToThankyouPage, nextSlide, previousSlide, setResponderState, responderState, setCurrentSlideToWelcomePage } = useResponderState();
+    const { currentSlide, setCurrentSlideToThankyouPage, nextSlide, goToSlide, previousSlide, setResponderState, responderState, setCurrentSlideToWelcomePage } = useResponderState();
 
     const { formResponse, setInvalidFields, setFormResponse } = useFormResponse();
     const workspace = useAppSelector(selectWorkspace);
@@ -127,34 +129,55 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
         return response.data;
     };
 
+    // Fields hidden by conditional logic given the answers so far. Recomputed each
+    // render, so the form reacts live as the responder answers earlier questions.
+    const hiddenFieldIds = getHiddenFieldIds(formSlide?.properties?.fields, formResponse.answers || {});
+
+    const finishForm = () => {
+        if (isPreviewMode) setCurrentSlideToThankyouPage();
+        else
+            submitFormResponse()
+                .then((responderId) => {
+                    setResponderState({
+                        ...responderState,
+                        currentSlide: -2,
+                        responderId
+                    });
+                })
+                .catch((e) => {
+                    toast({ description: 'Error Submitting Response', variant: 'destructive' });
+                });
+    };
+
     const onNext = () => {
-        const invalidations = validateSlide(formSlide!, formResponse.answers || {});
+        // Only validate fields the responder can actually see.
+        const visibleSlide = { ...formSlide, properties: { ...formSlide?.properties, fields: (formSlide?.properties?.fields || []).filter((f: StandardFormFieldDto) => !hiddenFieldIds.has(f.id)) } };
+        const invalidations = validateSlide(visibleSlide as StandardFormFieldDto, formResponse.answers || {});
         setInvalidFields(invalidations);
-        if (Object.keys(invalidations).length === 0) {
-            if (currentSlide + 1 === standardForm?.fields?.length) {
-                if (isPreviewMode) setCurrentSlideToThankyouPage();
-                else
-                    submitFormResponse()
-                        .then((responderId) => {
-                            setResponderState({
-                                ...responderState,
-                                currentSlide: -2,
-                                responderId
-                            });
-                        })
-                        .catch((e) => {
-                            debugger;
-                            toast({ description: 'Error Submitting Response', variant: 'destructive' });
-                        });
-            } else {
-                nextSlide();
-            }
-        } else {
+        if (Object.keys(invalidations).length !== 0) {
             const firstInvalidField = formSlide?.properties?.fields?.find((field: StandardFormFieldDto) => Object.keys(invalidations)[0] === field.id);
-            if (firstInvalidField) {
-                scrollToDivById(firstInvalidField.id);
+            if (firstInvalidField) scrollToDivById(firstInvalidField.id);
+            return;
+        }
+
+        // Page-jump / branching: a matching rule overrides the linear next page.
+        const jumpTargetId = resolveJumpTargetId(formSlide, formResponse.answers || {});
+        if (jumpTargetId === JUMP_TARGET_SUBMIT) {
+            if (isPreviewMode) toast({ description: 'Logic rule matched → submitting the form' });
+            finishForm();
+            return;
+        }
+        if (jumpTargetId) {
+            const targetIndex = standardForm?.fields?.findIndex((s) => s.id === jumpTargetId) ?? -1;
+            if (targetIndex >= 0) {
+                if (isPreviewMode) toast({ description: `Logic rule matched → jumped to Page ${targetIndex + 1}` });
+                goToSlide(targetIndex);
+                return;
             }
         }
+
+        if (currentSlide + 1 === standardForm?.fields?.length) finishForm();
+        else nextSlide();
     };
 
     if (!formSlide) return <FullScreenLoader />;
@@ -179,9 +202,9 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
                 </div>
                 <div className={cn('flex h-full flex-1 flex-col justify-center ', formSlide?.properties?.layout === FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND_LEFT_ALIGN ? 'items-start ' : 'items-center')}>
                     <div className={cn('relative flex h-full w-full max-w-[800px] flex-col gap-[48px] overflow-hidden px-4 lg:gap-[120px] py-[60px]', isPreviewMode ? '' : 'lg:px-10')}>
-                        {formSlide?.properties?.fields?.map((field: StandardFormFieldDto, index: number) => (
-                            <FormFieldComponent key={field.id} field={formSlide!.properties!.fields![index]} slideIndex={formSlide!.index} />
-                        ))}
+                        {formSlide?.properties?.fields
+                            ?.filter((field: StandardFormFieldDto) => !hiddenFieldIds.has(field.id))
+                            .map((field: StandardFormFieldDto) => <FormFieldComponent key={field.id} field={field} slideIndex={formSlide!.index} />)}
                         <div>
                             {(standardForm?.fields?.length || 0) - 1 === currentSlide && currentSlide === index && (
                                 <div className="flex flex-col lg:mb-4 ">

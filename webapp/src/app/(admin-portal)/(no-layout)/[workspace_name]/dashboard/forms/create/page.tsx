@@ -8,7 +8,6 @@ import cn from 'classnames';
 
 import { useModal } from '@app/components/modal-views/context';
 import { defaultForm } from '@app/constants/form';
-import globalConstants from '@app/constants/global';
 import { useIsMobile } from '@app/lib/hooks/use-breakpoint';
 import { useDialogModal } from '@app/lib/hooks/use-dialog-modal';
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@app/shadcn/components/ui/sheet';
@@ -59,10 +58,10 @@ export default function CreateFormPage(props: { searchParams: Promise<{ modal?: 
     const handleCreateForm = async (type: string) => {
         const isMultiPage = type === 'Modern Form';
         resetFields();
+        // New forms default to a calm, single-column layout with no decorative
+        // image (see Design-Language.md §3). Creators opt into the image / split
+        // layout per page via the Layout panel.
         const updatedForm = { ...defaultForm };
-        updatedForm.fields[0].imageUrl = globalConstants.defaultImage;
-        updatedForm.welcomePage!.imageUrl = globalConstants.defaultImage;
-        updatedForm.thankyouPage![0].imageUrl = globalConstants.defaultImage;
         const formBody = { ...updatedForm, builderVersion: 'v2', isMultiPage };
         const formData = new FormData();
         formData.append('form_body', JSON.stringify(formBody));

@@ -12,8 +12,8 @@ export default {
     theme: {
         extend: {
             fontFamily: {
-                inter: ['Inter', 'Open Sans', 'monospace'],
-                roboto: ['Roboto', 'Inter', 'Open Sans', 'monospace']
+                inter: ['var(--font-public-sans)', 'Open Sans', 'sans-serif'],
+                roboto: ['var(--font-public-sans)', 'Open Sans', 'sans-serif']
             },
             aspectRatio: {
                 banner: '4.5714',
@@ -541,7 +541,7 @@ export default {
             DEFAULT: '1'
         },
         fontFamily: {
-            sans: ['ui-sans-serif', 'system-ui', 'sans-serif', '"Apple Color Emoji"', '"Segoe UI Emoji"', '"Segoe UI Symbol"', '"Noto Color Emoji"'],
+            sans: ['var(--font-public-sans)', 'ui-sans-serif', 'system-ui', 'sans-serif', '"Apple Color Emoji"', '"Segoe UI Emoji"', '"Segoe UI Symbol"', '"Noto Color Emoji"'],
             serif: ['ui-serif', 'Georgia', 'Cambria', '"Times New Roman"', 'Times', 'serif'],
             mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', '"Liberation Mono"', '"Courier New"', 'monospace'],
             comfortaa: ['Comfortaa', 'sans-serif']

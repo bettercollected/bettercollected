@@ -4,10 +4,13 @@ import useFormFieldsAtom from '@app/store/jotai/field-selectors';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 
 export default function MoveUpDown({ field, slideIndex }: { field: StandardFormFieldDto; slideIndex: number }) {
-    const { moveFieldInASlide, activeSlide } = useFormFieldsAtom();
-    const numberOfFieldsInCurrentSlide = activeSlide!.properties!.fields!.length;
+    const { moveFieldInASlide, formFields } = useFormFieldsAtom();
+    // Count fields on the slide this control belongs to. Reading the global
+    // `activeSlide` crashed here: a field can be active while no slide is marked
+    // active, leaving `activeSlide` undefined.
+    const numberOfFieldsInCurrentSlide = formFields?.[slideIndex]?.properties?.fields?.length ?? 0;
 
-    if (numberOfFieldsInCurrentSlide === 1) {
+    if (numberOfFieldsInCurrentSlide <= 1) {
         return null;
     }
 

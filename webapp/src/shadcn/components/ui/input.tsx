@@ -19,7 +19,7 @@ const ShadCNInput = React.forwardRef<HTMLInputElement, InputProps>(({ className,
                 color: theme?.secondary
             }}
             type={type}
-            className={cn(`w-full border-0 border-b-[1px] px-0 py-2 text-[28px] disabled:cursor-not-allowed disabled:opacity-50 lg:text-[32px]`, className)}
+            className={cn(`w-full rounded-xl border px-4 py-3 text-[28px] outline-none transition-shadow disabled:cursor-not-allowed disabled:opacity-50 lg:text-[32px]`, className)}
             ref={ref}
             // Coerce null -> '' so a controlled input never receives a null value.
             value={value === null ? '' : value}
@@ -57,7 +57,10 @@ const FieldInput = styled(ShadCNInput)<{
             color: `${themeColor} !important`
         },
         '&:focus': {
-            borderColor: secondaryColor
+            borderColor: secondaryColor,
+            // Visible focus ring (a trust + accessibility signal), tinted from the
+            // form's own theme so it stays on-brand.
+            boxShadow: secondaryColor ? `0 0 0 3px ${secondaryColor}33` : undefined
         }
     };
 });

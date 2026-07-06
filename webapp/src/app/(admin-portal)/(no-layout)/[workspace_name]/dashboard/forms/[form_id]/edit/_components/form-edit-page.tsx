@@ -25,7 +25,7 @@ import HelpMenuItem from '@Components/sidebar/help-menu-item';
 
 export default function FormEditPage(props: { params: Promise<{ form_id: string }> }) {
     const params = use(props.params);
-    const { formFields, setFormFields } = useFormFieldsAtom();
+    const { formFields, setFormFields, initFormFields } = useFormFieldsAtom();
     const { setFormState, formState, } = useFormState();
 
     const { activeSlideComponent } = useActiveSlideComponent();
@@ -89,7 +89,11 @@ export default function FormEditPage(props: { params: Promise<{ form_id: string 
         return () => {
             window.removeEventListener('resize', handleResize);
             setFormState({ ...initialFormState });
-            setFormFields({ ...initialFieldsState });
+            // initialFieldsState is an ARRAY — `{ ...array }` turns it into an
+            // object and poisons the atom for the next editor mount (anything
+            // calling formFields.some/map then crashes). Deep-copy keeps the
+            // module-level template safe from later in-place mutations too.
+            setFormFields(deepCopy(initialFieldsState));
         };
     }, []);
 
@@ -117,7 +121,7 @@ export default function FormEditPage(props: { params: Promise<{ form_id: string 
                 setFormState(form);
             }
             const deepCopiedFormFields = deepCopy(standardForm?.fields || []);
-            setFormFields(deepCopiedFormFields);
+            initFormFields(deepCopiedFormFields);
             setNavbarState({
                 ...navbarState,
                 multiplePages: !!standardForm.isMultiPage

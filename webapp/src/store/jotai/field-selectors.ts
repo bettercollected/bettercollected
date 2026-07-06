@@ -4,9 +4,10 @@ import { JSONContent } from '@tiptap/react';
 import { atom, useAtom } from 'jotai';
 import { v4 } from 'uuid';
 
-import globalConstants from '@app/constants/global';
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import { FormSlideLayout } from '@app/models/enums/form';
+import { FieldConditionalLogic, NodePosition, PageJump } from '@app/models/types/form-builder-shared';
+import { pruneOrphanedConditions } from '@app/utils/conditional-logic';
 import { useActiveFieldComponent, useActiveSlideComponent } from '@app/store/jotai/active-builder-component';
 import { reorder } from '@app/utils/array-utils';
 
@@ -16,7 +17,8 @@ export const initialFieldsState: StandardFormFieldDto[] = [
         index: 0,
         type: FieldTypes.SLIDE,
         properties: {
-            layout: FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT,
+            // Calm single-column default; decorative image/layout is opt-in.
+            layout: FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND,
             fields: [
                 {
                     id: v4(),
@@ -28,15 +30,63 @@ export const initialFieldsState: StandardFormFieldDto[] = [
                     }
                 }
             ]
-        },
-        imageUrl: globalConstants.defaultImage
+        }
     }
 ]
 
 const initialFieldsAtom = atom<StandardFormFieldDto[]>(initialFieldsState);
 
+// Undo/redo history over committed fields states. Snapshots are deep clones —
+// the mutations in this file edit `formFields` in place, so shared references
+// would corrupt older entries.
+const HISTORY_LIMIT = 50;
+const fieldsHistoryAtom = atom<{ snapshots: StandardFormFieldDto[][]; index: number }>({ snapshots: [], index: -1 });
+const deepClone = <T,>(value: T): T => (typeof structuredClone === 'function' ? structuredClone(value) : JSON.parse(JSON.stringify(value)));
+
 export default function useFormFieldsAtom() {
-    const [formFields, setFormFields] = useAtom(initialFieldsAtom);
+    const [formFields, setFormFieldsRaw] = useAtom(initialFieldsAtom);
+    const [history, setHistory] = useAtom(fieldsHistoryAtom);
+
+    // Every mutation below funnels through this setter, so each committed state
+    // becomes an undo step. Undo/redo bypass it (they must not create steps).
+    // Identical consecutive states are deduped — mount-time re-commits and
+    // debounced no-op writes must not consume undo steps.
+    const setFormFields = (next: StandardFormFieldDto[]) => {
+        setFormFieldsRaw(next);
+        setHistory((h) => {
+            const current = h.index >= 0 ? h.snapshots[h.index] : undefined;
+            if (current && JSON.stringify(current) === JSON.stringify(next)) return h;
+            const snapshots = h.snapshots.slice(0, h.index + 1);
+            snapshots.push(deepClone(next));
+            while (snapshots.length > HISTORY_LIMIT) snapshots.shift();
+            return { snapshots, index: snapshots.length - 1 };
+        });
+    };
+
+    // Seed the builder with loaded fields and start undo history from there —
+    // initialization must not be undoable (undoing past it would blank the form,
+    // and autosave would persist the blank).
+    const initFormFields = (fields: StandardFormFieldDto[]) => {
+        setFormFieldsRaw(fields);
+        setHistory({ snapshots: [deepClone(fields)], index: 0 });
+    };
+
+    const canUndo = history.index > 0;
+    const canRedo = history.index < history.snapshots.length - 1;
+
+    const undo = () => {
+        if (!canUndo) return;
+        const index = history.index - 1;
+        setFormFieldsRaw(deepClone(history.snapshots[index]));
+        setHistory({ snapshots: history.snapshots, index });
+    };
+
+    const redo = () => {
+        if (!canRedo) return;
+        const index = history.index + 1;
+        setFormFieldsRaw(deepClone(history.snapshots[index]));
+        setHistory({ snapshots: history.snapshots, index });
+    };
 
     const { activeSlideComponent, setActiveSlideComponent } = useActiveSlideComponent();
     const { activeFieldComponent, setActiveFieldComponent } = useActiveFieldComponent();
@@ -94,6 +144,8 @@ export default function useFormFieldsAtom() {
             slide.index = index;
             return slide;
         });
+        // Deleting a page removes its questions too — sweep conditions that pointed at them.
+        pruneOrphanedConditions(updatedFormFields);
         if (activeSlideComponent?.index === formFields.length) {
             setActiveSlideComponent({
                 id: 'welcome-page',
@@ -255,12 +307,70 @@ export default function useFormFieldsAtom() {
         setFormFields([...formFields]);
     };
 
+    // Conditional-visibility rule for a field (show/hide based on earlier answers).
+    // Passing `undefined` clears the rule. Persists via `properties.logic`.
+    const updateFieldConditionalLogic = (fieldIndex: number, slideIndex: number, logic: FieldConditionalLogic | undefined) => {
+        formFields![slideIndex]!.properties!.fields![fieldIndex].properties = {
+            ...(formFields![slideIndex]!.properties!.fields![fieldIndex].properties || {}),
+            logic
+        };
+        setFormFields([...formFields]);
+    };
+
+    // Page-jump / branching rules for a slide. Persists via slide `properties.jumps`.
+    const updateSlideJumps = (slideIndex: number, jumps: PageJump[] | undefined) => {
+        formFields![slideIndex]!.properties = {
+            ...(formFields![slideIndex]!.properties || {}),
+            jumps
+        };
+        setFormFields([...formFields]);
+    };
+
+    // Flow-view canvas position for a slide (cosmetic). Undefined → auto-layout.
+    const updateSlidePosition = (slideIndex: number, position: NodePosition | undefined) => {
+        if (!formFields?.[slideIndex]) return;
+        formFields[slideIndex]!.properties = {
+            ...(formFields[slideIndex]!.properties || {}),
+            position
+        };
+        setFormFields([...formFields]);
+    };
+
+    // Reset every slide to auto-layout (used by the Flow view's "Auto-arrange").
+    const clearSlidePositions = () => {
+        formFields.forEach((slide) => {
+            if (slide?.properties?.position) delete slide.properties.position;
+        });
+        setFormFields([...formFields]);
+    };
+
+    // Deep-copy a slide (new ids for the slide and every field) and insert it right after.
+    const duplicateSlide = (slideIndex: number) => {
+        const source = formFields?.[slideIndex];
+        if (!source) return;
+        const copy: StandardFormFieldDto = JSON.parse(JSON.stringify(source));
+        copy.id = v4();
+        copy.properties = { ...(copy.properties || {}) };
+        // The copy shouldn't inherit the source's pinned canvas spot.
+        delete copy.properties.position;
+        copy.properties.fields = (copy.properties.fields || []).map((f) => ({ ...f, id: v4() }));
+        formFields.splice(slideIndex + 1, 0, copy);
+        const reindexed = formFields.map((slide, index) => {
+            slide.index = index;
+            return slide;
+        });
+        setFormFields([...reindexed]);
+        return copy.id;
+    };
+
     const deleteField = (slideIndex: number, fieldIndex: number) => {
         formFields![slideIndex]!.properties!.fields!.splice(fieldIndex, 1);
         formFields![slideIndex!].properties!.fields = formFields![slideIndex!].properties!.fields?.map((field, index) => ({
             ...field,
             index
         }));
+        // Sweep any logic that referenced the removed question.
+        pruneOrphanedConditions(formFields);
         setFormFields([...formFields]);
         setTimeout(() => {
             setActiveFieldComponent(null);
@@ -592,6 +702,11 @@ export default function useFormFieldsAtom() {
     return {
         formFields,
         setFormFields,
+        initFormFields,
+        undo,
+        redo,
+        canUndo,
+        canRedo,
         addField,
         addSlide,
         deleteSlide,
@@ -603,6 +718,11 @@ export default function useFormFieldsAtom() {
         updateFieldRequired,
         updateFieldValidation,
         updateFieldProperty,
+        updateFieldConditionalLogic,
+        updateSlideJumps,
+        updateSlidePosition,
+        clearSlidePositions,
+        duplicateSlide,
         updateShowQuestionNumbers,
         updateAllowMultipleSelectionMatrixField,
         updateSlideTheme,

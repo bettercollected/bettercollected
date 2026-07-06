@@ -9,6 +9,7 @@ import { useGetWorkspaceFormQuery } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import FullScreenLoader from '@app/views/atoms/full-screen-loader';
 import Form from '@app/views/organism/form/form';
+import TrustLayer from '@app/views/molecules/form/trust-layer';
 import { useRouter } from 'next/navigation';
 import { use, useEffect, useRef } from 'react';
 
@@ -90,8 +91,17 @@ const FetchFormWrapper = ({ slug }: { slug: string }) => {
     }
 
     return (
-        <div className="h-screen w-screen">
+        <div className="relative h-screen w-screen">
             {data?.builderVersion === 'v2' && <Form />}
+            {data?.builderVersion === 'v2' && (
+                <div className="pointer-events-none fixed inset-x-0 bottom-0 z-40">
+                    <TrustLayer
+                        ownerName={workspace?.title || workspace?.workspaceName}
+                        ownerImage={workspace?.profileImage}
+                        privacyUrl={data?.settings?.privacyPolicyUrl}
+                    />
+                </div>
+            )}
         </div>
     );
 };

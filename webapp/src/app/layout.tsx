@@ -1,7 +1,7 @@
 import React from 'react';
 
 import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
+import { Public_Sans } from 'next/font/google';
 
 import '@app/assets/css/globals.css';
 import SwRegister from '@app/components/common/sw-register';
@@ -18,7 +18,9 @@ import BaseModalContainer from '@Components/modals/containers/base-modal-contain
 import { Viewport } from 'next';
 import Script from 'next/script';
 
-const inter = Inter({ subsets: ['latin'] });
+// One honest, humanist face used everywhere (see Design-Language.md §2).
+// Public Sans is self-hosted by next/font — no external font request at runtime.
+const publicSans = Public_Sans({ subsets: ['latin'], display: 'swap', variable: '--font-public-sans' });
 
 export const viewport: Viewport = {
     themeColor: '#ffffff',
@@ -73,7 +75,7 @@ export default function RootLayout({
 }>) {
     return (
         <html lang="en" suppressHydrationWarning>
-            <body className={cn('max-h-screen overflow-auto', inter.className)}>
+            <body className={cn('max-h-screen overflow-auto', publicSans.variable, publicSans.className)}>
                 {environments.NEXT_PUBLIC_NODE_ENV === 'production' && environments.UMAMI_WEBSITE_ID && (
                     <Script
                         src="https://umami.sireto.io/script.js"

@@ -6,6 +6,7 @@ import globalConstants from '@app/constants/global';
 import { FieldTypes } from '@app/models/dtos/form';
 import { Switch } from '@app/shadcn/components/ui/switch';
 import useFormFieldsAtom from '@app/store/jotai/field-selectors';
+import FieldConditionalLogicEditor from '@app/views/molecules/form-builder/field-conditional-logic';
 
 export default function FieldSettings() {
     const { updateFieldRequired, activeSlide, activeField, updateDescription, updateFieldProperty, updateRatingSteps, updateFieldImage, updateAllowMultipleSelectionMatrixField } = useFormFieldsAtom();
@@ -117,6 +118,8 @@ export default function FieldSettings() {
                     {errorMsg && <span className="text-xs text-red-500">{errorMsg}</span>}
                 </div>
             )}
+
+            <FieldConditionalLogicEditor />
         </div>
     );
 }
