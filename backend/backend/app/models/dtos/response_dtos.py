@@ -7,6 +7,7 @@ from common.models.standard_form import (
     StandardFieldAttachment,
     Condition,
     ConditionalActions,
+    FieldLogic,
     LogicalOperator,
     LayoutType,
     Theme,
@@ -80,6 +81,7 @@ class StandardFieldPropertyCamelModel(CamelModel):
     actions: Optional[List[ConditionalActionsCamelModel]] = None
     conditions: Optional[List[ConditionCamelModel]] = None
     logical_operator: Optional[LogicalOperator] = None
+    logic: Optional[FieldLogic] = None
     mentions: Optional[Dict[str, str]] = None
     theme: Optional[Theme] = None
     layout: Optional[LayoutType] = None
