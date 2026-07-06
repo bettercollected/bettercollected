@@ -29,6 +29,7 @@ import { TextOutlinedIcon } from '@Components/icons/text-outlined';
 import { PlayIcon } from 'lucide-react';
 import { useState } from 'react';
 import InsertFieldComponent from '../molecules/dialogs/insert-field-modal';
+import LogicOverview from '../molecules/form-builder/logic-overview';
 import BackButton from '../molecules/form-builder/back-button';
 import PreviewWrapper from '../molecules/form-builder/preview-wrapper';
 import PublishButton from '../molecules/form-builder/publish-button';
@@ -41,6 +42,7 @@ const Navbar = () => {
     const { toast } = useToast();
 
     const [insertDropdownOpen, setInsertDropdownOpen] = useState(false);
+    const [logicDropdownOpen, setLogicDropdownOpen] = useState(false);
 
     const [createTemplateFromForm, { isLoading: isCreatingTemplate }] = useCreateTemplateFromFormMutation();
 
@@ -171,16 +173,22 @@ const Navbar = () => {
                         </button>
                     </DropdownMenu>
 
-                    <DropdownMenu>
-                        <DropdownMenu.Trigger onClick={() => { }}>
+                    <DropdownMenu open={logicDropdownOpen} onOpenChange={setLogicDropdownOpen}>
+                        <DropdownMenu.Trigger>
                             <div className={'flex items-center hover:bg-inherit'}>
                                 <div className="!text-black-500 hover:!text-black-900 flex flex-row items-center gap-1 text-xs font-semibold ">
                                     <LogicOutlinedIcon />
                                     Logic
                                 </div>
-                                <span className={'bg-new-pink rounded-xl p-1 px-2 text-[10px] font-medium leading-normal text-white'}>Soon</span>
                             </div>
                         </DropdownMenu.Trigger>
+                        <AnimatePresence key="logic-dropdown" initial={false} mode="wait">
+                            {logicDropdownOpen && (
+                                <DropdownMenuContent key="logic-dropdown" className="border-none bg-transparent p-0 shadow-none">
+                                    <LogicOverview onClose={() => setLogicDropdownOpen(false)} />
+                                </DropdownMenuContent>
+                            )}
+                        </AnimatePresence>
                     </DropdownMenu>
                 </div>
             )}

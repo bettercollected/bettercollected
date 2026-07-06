@@ -42,6 +42,28 @@ export interface ConditionalActions {
     payload: string[];
 }
 
+/**
+ * v2 conditional-visibility rule stored on a field at `properties.logic`.
+ * See `utils/conditional-logic.ts` for evaluation. Kept here (a dependency-free
+ * types module) so `dtos/form.ts` can reference it without a circular import.
+ */
+export type LogicAction = 'SHOW' | 'HIDE';
+
+export interface LogicCondition {
+    /** id of the earlier field whose answer drives this condition */
+    fieldId: string;
+    /** type of that source field — tells us which answer slot to compare */
+    fieldType: string;
+    comparison: Comparison;
+    value: any;
+}
+
+export interface FieldConditionalLogic {
+    action: LogicAction;
+    operator: LogicalOperator;
+    conditions: LogicCondition[];
+}
+
 export interface IFormFieldValidation {
     required?: boolean;
     minLength?: number;

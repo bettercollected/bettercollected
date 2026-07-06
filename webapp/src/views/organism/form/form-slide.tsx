@@ -13,6 +13,7 @@ import useFormAtom from '@app/store/jotai/form-file';
 import { useFormResponse } from '@app/store/jotai/responder-form-response';
 import { useResponderState } from '@app/store/jotai/responder-form-state';
 import { useSubmitResponseMutation } from '@app/store/redux/form-api';
+import { getHiddenFieldIds } from '@app/utils/conditional-logic';
 import { validateSlide } from '@app/utils/vvalidation-utils';
 import FullScreenLoader from '@app/views/atoms/full-screen-loader';
 import DateField from '@app/views/molecules/responder-form-fields/date-field';
@@ -127,8 +128,14 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
         return response.data;
     };
 
+    // Fields hidden by conditional logic given the answers so far. Recomputed each
+    // render, so the form reacts live as the responder answers earlier questions.
+    const hiddenFieldIds = getHiddenFieldIds(formSlide?.properties?.fields, formResponse.answers || {});
+
     const onNext = () => {
-        const invalidations = validateSlide(formSlide!, formResponse.answers || {});
+        // Only validate fields the responder can actually see.
+        const visibleSlide = { ...formSlide, properties: { ...formSlide?.properties, fields: (formSlide?.properties?.fields || []).filter((f: StandardFormFieldDto) => !hiddenFieldIds.has(f.id)) } };
+        const invalidations = validateSlide(visibleSlide as StandardFormFieldDto, formResponse.answers || {});
         setInvalidFields(invalidations);
         if (Object.keys(invalidations).length === 0) {
             if (currentSlide + 1 === standardForm?.fields?.length) {
@@ -179,9 +186,9 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
                 </div>
                 <div className={cn('flex h-full flex-1 flex-col justify-center ', formSlide?.properties?.layout === FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND_LEFT_ALIGN ? 'items-start ' : 'items-center')}>
                     <div className={cn('relative flex h-full w-full max-w-[800px] flex-col gap-[48px] overflow-hidden px-4 lg:gap-[120px] py-[60px]', isPreviewMode ? '' : 'lg:px-10')}>
-                        {formSlide?.properties?.fields?.map((field: StandardFormFieldDto, index: number) => (
-                            <FormFieldComponent key={field.id} field={formSlide!.properties!.fields![index]} slideIndex={formSlide!.index} />
-                        ))}
+                        {formSlide?.properties?.fields
+                            ?.filter((field: StandardFormFieldDto) => !hiddenFieldIds.has(field.id))
+                            .map((field: StandardFormFieldDto) => <FormFieldComponent key={field.id} field={field} slideIndex={formSlide!.index} />)}
                         <div>
                             {(standardForm?.fields?.length || 0) - 1 === currentSlide && currentSlide === index && (
                                 <div className="flex flex-col lg:mb-4 ">

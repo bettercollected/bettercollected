@@ -6,6 +6,7 @@ import { v4 } from 'uuid';
 
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import { FormSlideLayout } from '@app/models/enums/form';
+import { FieldConditionalLogic } from '@app/models/types/form-builder-shared';
 import { useActiveFieldComponent, useActiveSlideComponent } from '@app/store/jotai/active-builder-component';
 import { reorder } from '@app/utils/array-utils';
 
@@ -250,6 +251,16 @@ export default function useFormFieldsAtom() {
         formFields![slideIndex]!.properties!.fields![fieldIndex].properties = {
             ...(formFields![slideIndex]!.properties!.fields![fieldIndex].properties || {}),
             [property]: value
+        };
+        setFormFields([...formFields]);
+    };
+
+    // Conditional-visibility rule for a field (show/hide based on earlier answers).
+    // Passing `undefined` clears the rule. Persists via `properties.logic`.
+    const updateFieldConditionalLogic = (fieldIndex: number, slideIndex: number, logic: FieldConditionalLogic | undefined) => {
+        formFields![slideIndex]!.properties!.fields![fieldIndex].properties = {
+            ...(formFields![slideIndex]!.properties!.fields![fieldIndex].properties || {}),
+            logic
         };
         setFormFields([...formFields]);
     };
@@ -602,6 +613,7 @@ export default function useFormFieldsAtom() {
         updateFieldRequired,
         updateFieldValidation,
         updateFieldProperty,
+        updateFieldConditionalLogic,
         updateShowQuestionNumbers,
         updateAllowMultipleSelectionMatrixField,
         updateSlideTheme,
