@@ -21,11 +21,8 @@ const MarkdownText = ({ text, className, markDownClassName }: IMarkdownText) => 
     return (
         <div className={cn('w-full', className)}>
             <ReactMarkdown
-                // @ts-ignore
                 remarkPlugins={[remarkGfm]}
-                // @ts-ignore
                 rehypePlugins={[rehypeRaw]}
-                className={`text-red-900 mt-4 font-inter space-y-4 text-base w-full ${markDownClassName}`}
                 components={{
                     h1: (props) => <h1 className="text-4xl font-semibold" {...props} />,
                     h2: (props) => <h2 className="text-3xl font-semibold" {...props} />,

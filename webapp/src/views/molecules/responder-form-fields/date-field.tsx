@@ -89,7 +89,7 @@ function DateFieldSection({ field, isBuilder }: IDateField) {
                         mode="single"
                         selected={date}
                         onSelect={handleSelect}
-                        initialFocus
+                        autoFocus
                     />
                 </PopoverContent>
             </Popover>
