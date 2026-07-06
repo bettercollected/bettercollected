@@ -19,7 +19,7 @@ import SlideBuilder from '@app/views/organism/form-builder/slide-builder';
 import { AlertTriangle, BarChart3, Copy, LayoutGrid, PencilLine, Plus, Trash2, X } from 'lucide-react';
 import { v4 } from 'uuid';
 
-import { Background, BackgroundVariant, Connection, Controls, Edge, Handle, MarkerType, MiniMap, Node, NodeProps, Position, ReactFlow, useEdgesState, useNodesState } from '@xyflow/react';
+import { Background, BackgroundVariant, BaseEdge, Connection, Controls, Edge, EdgeLabelRenderer, EdgeProps, Handle, MarkerType, MiniMap, Node, NodeProps, Position, ReactFlow, useEdgesState, useNodesState } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
 // Deterministic default layout (used when a page has no saved position).
@@ -97,6 +97,37 @@ function TerminalNode({ data }: NodeProps<Node<any>>) {
 }
 
 const nodeTypes = { page: PageNode, terminal: TerminalNode };
+
+/**
+ * Right-side bracket edge: both endpoints sit on node right edges, so the
+ * default bezier flattens into a rail that grazes the pages in between. This
+ * draws an explicit outward arc — the bulge grows gently with the vertical
+ * span, guaranteeing daylight between the edge and the column.
+ */
+function BracketEdge({ id, sourceX, sourceY, targetX, targetY, style, markerEnd, label }: EdgeProps) {
+    const bulge = 64 + Math.min(Math.abs(targetY - sourceY) * 0.14, 96);
+    const path = `M ${sourceX} ${sourceY} C ${sourceX + bulge} ${sourceY}, ${targetX + bulge} ${targetY}, ${targetX} ${targetY}`;
+    // Cubic midpoint (t = 0.5): x = (P0x + 3·P1x + 3·P2x + P3x) / 8
+    const labelX = (sourceX + targetX) / 2 + bulge * 0.75;
+    const labelY = (sourceY + targetY) / 2;
+    return (
+        <>
+            <BaseEdge id={id} path={path} style={style} markerEnd={markerEnd} />
+            {label != null && label !== '' && (
+                <EdgeLabelRenderer>
+                    <div
+                        className="nodrag nopan pointer-events-none absolute rounded-md border bg-white px-1.5 py-0.5 text-[11px] font-semibold"
+                        style={{ transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)`, color: JUMP_COLOR, borderColor: '#c7dcfd' }}
+                    >
+                        {label}
+                    </div>
+                </EdgeLabelRenderer>
+            )}
+        </>
+    );
+}
+
+const edgeTypes = { bracket: BracketEdge };
 
 /* ------------------------------- flow view ------------------------------- */
 
@@ -212,11 +243,11 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
                 const targetClearlyRight = posOf(targetId).x > posOf(slide.id).x + NODE_W * 0.75;
                 edges.push({
                     id: `jump-${slide.id}-${jIdx}`,
+                    type: targetClearlyRight ? undefined : 'bracket',
                     source: slide.id,
                     target: targetId,
                     sourceHandle: 'jump-out',
                     targetHandle: targetClearlyRight ? 'jump-in' : 'jump-in-right',
-                    pathOptions: { curvature: 0.45 },
                     label: count !== undefined ? `${base} · ${count}` : base,
                     data: { slideId: slide.id, slideIndex: sIdx, jumpIndex: jIdx },
                     deletable: true,
@@ -355,6 +386,7 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
                         nodes={nodes}
                         edges={edges}
                         nodeTypes={nodeTypes}
+                        edgeTypes={edgeTypes}
                         onNodesChange={onNodesChange}
                         onEdgesChange={onEdgesChange}
                         onConnect={onConnect}
