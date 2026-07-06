@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { FieldTypes, V2InputFields } from '@app/models/dtos/form';
 import { FormSlideLayout } from '@app/models/enums/form';
@@ -34,11 +34,30 @@ const defaultPos = (k: number) => ({ x: COL_X, y: 40 + k * (NODE_H + GAP_Y) });
 
 /* ----------------------------- custom nodes ------------------------------ */
 
-function PageNode({ data, selected }: NodeProps<Node<any>>) {
+// Dot styling for the click-to-connect flow: armed dots swell and glow.
+const dotStyle = (isArmed: boolean): React.CSSProperties => ({
+    background: JUMP_COLOR,
+    width: isArmed ? 14 : 10,
+    height: isArmed ? 14 : 10,
+    cursor: 'pointer',
+    boxShadow: isArmed ? '0 0 0 5px rgba(7,100,235,0.25)' : undefined,
+    transition: 'all 120ms ease'
+});
+
+function PageNode({ id, data, selected }: NodeProps<Node<any>>) {
     return (
         <div className={'flex w-[300px] flex-col gap-1 rounded-xl border bg-white px-4 py-3 shadow-sm transition-shadow ' + (selected ? 'border-brand-500 shadow-bubble' : 'border-black-200 hover:border-brand-300')}>
             <Handle id="next-in" type="target" position={Position.Top} isConnectable={false} style={{ opacity: 0 }} />
-            <Handle id="jump-in" type="target" position={Position.Left} style={{ background: JUMP_COLOR, width: 9, height: 9 }} />
+            <Handle
+                id="jump-in"
+                type="target"
+                position={Position.Left}
+                style={dotStyle(data.armedMode === 'into')}
+                onClick={(e) => {
+                    e.stopPropagation();
+                    data.onDotClick?.(id, 'in');
+                }}
+            />
             {/* Invisible right-side anchor: edges from pages in the same column enter
                 here so they bow beside the column instead of crossing it. Users still
                 drop connections on the visible left dot. */}
@@ -71,18 +90,38 @@ function PageNode({ data, selected }: NodeProps<Node<any>>) {
                     </span>
                 )}
             </div>
-            <Handle id="jump-out" type="source" position={Position.Right} style={{ background: JUMP_COLOR, width: 9, height: 9 }} />
+            <Handle
+                id="jump-out"
+                type="source"
+                position={Position.Right}
+                style={dotStyle(data.armedMode === 'from')}
+                onClick={(e) => {
+                    e.stopPropagation();
+                    data.onDotClick?.(id, 'out');
+                }}
+            />
             <Handle id="next-out" type="source" position={Position.Bottom} isConnectable={false} style={{ opacity: 0 }} />
         </div>
     );
 }
 
-function TerminalNode({ data }: NodeProps<Node<any>>) {
+function TerminalNode({ id, data }: NodeProps<Node<any>>) {
     const isEnd = data.kind === 'end';
     return (
         <div className="bg-new-white-200 border-black-200 text-black-600 flex w-[300px] flex-col gap-0.5 rounded-xl border px-4 py-3">
             {isEnd && <Handle id="next-in" type="target" position={Position.Top} isConnectable={false} style={{ opacity: 0 }} />}
-            {isEnd && <Handle id="jump-in" type="target" position={Position.Left} style={{ background: JUMP_COLOR, width: 9, height: 9 }} />}
+            {isEnd && (
+                <Handle
+                    id="jump-in"
+                    type="target"
+                    position={Position.Left}
+                    style={dotStyle(data.armedMode === 'into')}
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        data.onDotClick?.(id, 'in');
+                    }}
+                />
+            )}
             {isEnd && <Handle id="jump-in-right" type="target" position={Position.Right} isConnectable={false} style={{ opacity: 0, top: '35%' }} />}
             <span className="text-black-400 text-[10px] font-semibold uppercase tracking-wide">{isEnd ? 'End' : 'Start'}</span>
             <span className="text-black-700 text-sm font-semibold">{data.label}</span>
@@ -156,6 +195,13 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
     const selectedIndex = slides.findIndex((s) => s.id === selectedId);
     const selectedSlide = selectedIndex >= 0 ? slides[selectedIndex] : undefined;
 
+    // Click-to-connect: click a right dot to start a jump FROM that page (then
+    // click any destination node), or a left dot to start one INTO it (then
+    // click the source page). Esc or clicking empty canvas cancels. The handler
+    // lives in a ref so node data can stay referentially simple.
+    const [armed, setArmed] = useState<{ mode: 'from' | 'into'; id: string } | null>(null);
+    const dotClickRef = useRef<(nodeId: string, side: 'in' | 'out') => void>(() => {});
+
     // Page-editor overlay (double-click / "Edit content") — edit a page without
     // leaving the flow. Reuses the builder's SlideBuilder + PropertiesDrawer.
     const [overlayId, setOverlayId] = useState<string | null>(null);
@@ -189,15 +235,23 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
                 showHideCount: slide.properties?.fields?.filter((f) => fieldHasLogic(f)).length ?? 0,
                 brokenCount: ((slide.properties?.jumps as PageJump[] | undefined) ?? []).filter((j) => j?.conditions?.length && !isJumpTargetValid(j.target, slideIds)).length,
                 visits: traffic ? traffic.nodeVisits.get(slide.id) ?? 0 : undefined,
-                totalResponses: traffic?.total
+                totalResponses: traffic?.total,
+                armedMode: armed?.id === slide.id ? armed.mode : undefined,
+                onDotClick: (nid: string, side: 'in' | 'out') => dotClickRef.current?.(nid, side)
             }
         }));
         return [
             { id: '__welcome__', type: 'terminal', position: defaultPos(0), data: { kind: 'welcome', label: 'Welcome', totalResponses: traffic?.total }, deletable: false },
             ...pageNodes.map((n) => ({ ...n, deletable: false })), // deletion goes through the panel (with cleanup), not the Delete key
-            { id: '__end__', type: 'terminal', position: defaultPos(slides.length + 1), data: { kind: 'end', label: 'Thank you', totalResponses: traffic?.total }, deletable: false }
+            {
+                id: '__end__',
+                type: 'terminal',
+                position: defaultPos(slides.length + 1),
+                data: { kind: 'end', label: 'Thank you', totalResponses: traffic?.total, armedMode: armed?.id === '__end__' ? armed.mode : undefined, onDotClick: (nid: string, side: 'in' | 'out') => dotClickRef.current?.(nid, side) },
+                deletable: false
+            }
         ];
-    }, [slides, slideIds, traffic]);
+    }, [slides, slideIds, traffic, armed]);
 
     const buildEdges = useCallback((): Edge[] => {
         const edges: Edge[] = [];
@@ -278,7 +332,7 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
         setNodes(buildNodes());
         setEdges(buildEdges());
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [modelSignature, traffic]);
+    }, [modelSignature, traffic, armed]);
 
     /* ------------------------------ actions ------------------------------ */
 
@@ -295,24 +349,58 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
         setOverlayId(slideId);
     };
 
-    const onConnect = useCallback(
-        (conn: Connection) => {
-            if (conn.sourceHandle !== 'jump-out' || conn.targetHandle !== 'jump-in') return;
-            if (!conn.source || !conn.target || conn.source === conn.target) return;
-            const sIdx = slides.findIndex((s) => s.id === conn.source);
+    // Shared by drag-to-connect and click-to-connect.
+    const createJump = useCallback(
+        (sourceId: string, rawTargetId: string) => {
+            if (!sourceId || !rawTargetId || sourceId === rawTargetId) return;
+            const sIdx = slides.findIndex((s) => s.id === sourceId);
             if (sIdx < 0) return;
-            const target = conn.target === '__end__' ? JUMP_TARGET_SUBMIT : conn.target;
+            const target = rawTargetId === '__end__' ? JUMP_TARGET_SUBMIT : rawTargetId;
+            if (target !== JUMP_TARGET_SUBMIT && !slides.some((s) => s.id === target)) return;
             const jumps = ((slides[sIdx].properties?.jumps as PageJump[] | undefined) ?? []).slice();
             if (jumps.some((j) => j.target === target && !j.conditions?.length)) return; // avoid stacking empty duplicates
             const sources = buildSourceFields(slides, (_sl, i, f) => i <= sIdx && V2InputFields.includes(f.type));
             jumps.push({ operator: LogicalOperator.AND, conditions: [newConditionFor(sources)], target });
             updateSlideJumps(sIdx, jumps);
             // Open the panel on the source page so the creator completes the condition.
-            selectSlide(conn.source);
+            selectSlide(sourceId);
         },
         // eslint-disable-next-line react-hooks/exhaustive-deps
         [slides]
     );
+
+    const onConnect = useCallback(
+        (conn: Connection) => {
+            if (conn.sourceHandle !== 'jump-out' || conn.targetHandle !== 'jump-in') return;
+            if (conn.source && conn.target) createJump(conn.source, conn.target);
+        },
+        [createJump]
+    );
+
+    dotClickRef.current = (nodeId, side) => {
+        if (side === 'out') {
+            if (armed?.mode === 'into' && armed.id !== nodeId) {
+                createJump(nodeId, armed.id);
+                setArmed(null);
+                return;
+            }
+            setArmed(armed?.mode === 'from' && armed.id === nodeId ? null : { mode: 'from', id: nodeId });
+        } else {
+            if (armed?.mode === 'from' && armed.id !== nodeId) {
+                createJump(armed.id, nodeId);
+                setArmed(null);
+                return;
+            }
+            setArmed(armed?.mode === 'into' && armed.id === nodeId ? null : { mode: 'into', id: nodeId });
+        }
+    };
+    useEffect(() => {
+        if (!armed) return;
+        const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setArmed(null);
+        window.addEventListener('keydown', onKey);
+        return () => window.removeEventListener('keydown', onKey);
+    }, [armed]);
+    const armedName = armed ? (armed.id === '__end__' ? 'Submit' : `Page ${(slides.findIndex((s) => s.id === armed.id) ?? 0) + 1}`) : null;
 
     const onEdgesDelete = useCallback(
         (deleted: Edge[]) => {
@@ -353,7 +441,13 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
             <div className="border-b-black-200 flex items-center justify-between border-b px-6 py-3">
                 <div>
                     <div className="text-black-900 text-base font-semibold">Flow</div>
-                    <div className="text-black-500 text-xs">Drag between the blue dots to branch. Select a page to edit its rules.</div>
+                    {armed ? (
+                        <div className="text-brand-600 text-xs font-medium">
+                            {armed.mode === 'from' ? `Creating a jump from ${armedName} — click the destination page` : `Creating a jump into ${armedName} — click the source page`} · Esc to cancel
+                        </div>
+                    ) : (
+                        <div className="text-black-500 text-xs">Click or drag a blue dot to branch. Select a page to edit its rules.</div>
+                    )}
                 </div>
                 <div className="flex items-center gap-2">
                     {showInsights && !insightsLoading && traffic?.total === 0 && <span className="text-black-500 mr-1 text-xs">No responses yet</span>}
@@ -391,7 +485,16 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
                         onEdgesChange={onEdgesChange}
                         onConnect={onConnect}
                         onEdgesDelete={onEdgesDelete}
-                        onNodeClick={(_, node) => selectSlide(node.type === 'page' ? node.id : null)}
+                        onNodeClick={(_, node) => {
+                            if (armed) {
+                                // Complete the click-to-connect on any valid node body.
+                                if (armed.mode === 'from' && node.id !== armed.id && (node.type === 'page' || node.id === '__end__')) createJump(armed.id, node.id);
+                                else if (armed.mode === 'into' && node.type === 'page' && node.id !== armed.id) createJump(node.id, armed.id);
+                                setArmed(null);
+                                return;
+                            }
+                            selectSlide(node.type === 'page' ? node.id : null);
+                        }}
                         onNodeDoubleClick={(_, node) => {
                             if (node.type === 'page') openPageEditor(node.id);
                         }}
@@ -403,11 +506,15 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
                             const idx = slides.findIndex((s) => s.id === node.id);
                             if (idx >= 0) updateSlidePosition(idx, { x: node.position.x, y: node.position.y });
                         }}
-                        onPaneClick={() => setSelectedId(null)}
+                        onPaneClick={() => {
+                            setSelectedId(null);
+                            setArmed(null);
+                        }}
                         fitView
                         fitViewOptions={{ padding: 0.2, maxZoom: 1 }}
                         proOptions={{ hideAttribution: false }}
                         deleteKeyCode={['Backspace', 'Delete']}
+                        connectOnClick={false}
                     >
                         <Background variant={BackgroundVariant.Dots} gap={22} size={1.5} color="#d6dce8" />
                         <Controls showInteractive={false} />
