@@ -34,7 +34,8 @@ More at [bettercollected.com](https://bettercollected.com).
 - 🔐 Consent + purpose declaration, response viewing, and deletion requests
 - 🔗 Import forms and responses from **Google Forms** and **Typeform**
 - 🏢 Multi-tenant **workspaces** with members and custom domains
-- 📊 Response analytics and CSV export
+- 📊 Form analytics powered by **self-hosted [Umami](https://umami.is)** — no
+  responder data leaves your infrastructure — plus CSV export
 - 🤖 AI-assisted form generation
 
 ## Try it
@@ -56,7 +57,8 @@ bettercollected is a polyglot microservices monorepo:
 | [`temporal/`](temporal) | Temporal workers | Background jobs (imports, deletion, CSV, previews) |
 | [`common/`](common) | Shared Python package | Models, enums, crypto, JWT |
 
-Infra: MongoDB, Redis, PostgreSQL + Temporal, and nginx. A deep dive lives in
+Infra: MongoDB, Redis, PostgreSQL + Temporal, nginx, and Umami (self-hosted
+analytics, with its own PostgreSQL). A deep dive lives in
 **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)**.
 
 ## Quick start (local development)
@@ -83,6 +85,33 @@ The full walkthrough — env vars, shared secrets, provider OAuth, Temporal, and
 common gotchas — is in **[docs/DEVELOPERS_GUIDE.md](docs/DEVELOPERS_GUIDE.md)**.
 Integration setup (Google/Typeform apps) is in
 [docs/RUNNING_INTEGRATIONS.md](docs/RUNNING_INTEGRATIONS.md).
+
+## Self-hosting
+
+The entire stack — including analytics — runs on your own machine, so no
+third-party service ever sees responder data:
+
+```bash
+./deploy.sh                # everything except form-provider integrations
+./deploy.sh googleform     # ... with Google Forms import
+./deploy.sh typeform       # ... with Typeform import
+./deploy.sh both           # ... with both
+./deploy.sh down           # stop the stack
+```
+
+`deploy.sh` brings up the full stack from
+[`docker-compose.deployment.yml`](docker-compose.deployment.yml) with health
+checks and correct startup ordering: webapp (`:3000`), backend (`:8000`),
+auth, MongoDB (+ seed data), Temporal + workers, nginx (`:3001`/`:3002`), and
+[Umami](https://umami.is) analytics (`:3003`, default login `admin`/`umami` —
+change it). On first run it also generates a random `UMAMI_APP_SECRET` into a
+gitignored root `.env`. The backend auto-provisions the Umami website on
+startup, so analytics needs no manual setup.
+
+Configuration lives in [`.env.deployment`](.env.deployment). **The tracked
+defaults (including secrets) are for local evaluation only — generate fresh
+secrets before exposing an instance to the internet**, and put TLS or a
+reverse proxy in front of it yourself.
 
 ## Contributing
 

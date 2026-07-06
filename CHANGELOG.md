@@ -64,6 +64,17 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
 
 ### Fixed
 
+- Umami pageview double-counting: automatic tracking is now disabled
+  (`data-auto-track="false"`) and public form views send only the explicit
+  canonical-path event — previously every form view would count twice (auto +
+  canonical), and dashboard activity was tracked too. The tracker is also
+  rendered as a plain deferred `<script>` (not `next/script`), so analytics
+  loads even if client-side hydration stalls, and the canonical event now
+  waits for the tracker script instead of being dropped when it loads late.
+- Local dev: `nginx-local.conf` didn't forward WebSocket upgrades, so Next.js
+  dev-server HMR fell back to a `/_next/webpack-hmr` 404 polling loop through
+  the proxied hosts (`:3001`/`:3002`) and pages could stall on a loader
+  without hydrating.
 - React 19 form-rendering crash and DOM-prop console errors in the webapp.
 - React 19 DOM-prop warnings from data tables (`react-data-table-component` v8).
 - Form editor no longer auto-saves on load — only on real user edits.
