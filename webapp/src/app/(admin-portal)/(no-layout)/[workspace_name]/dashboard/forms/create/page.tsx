@@ -128,7 +128,9 @@ export default function CreateFormPage(props: { searchParams: Promise<{ modal?: 
                             <div className="h3-new text-black-800 mb-4 mt-12">Templates</div>
                             <div className="flex w-full flex-row flex-wrap gap-x-6 gap-y-10  ">
                                 {templates?.map((template) => (
-                                    <button key={template?.id} className="outline-none" data-umami-event={'Create Form With Template'} data-umami-event-email={authState.email}>
+                                    // Plain div: the scaled WelcomePage preview inside contains buttons,
+                                    // and <button> can't nest inside <button> (hydration error).
+                                    <div key={template?.id} className="outline-none" data-umami-event={'Create Form With Template'} data-umami-event-email={authState.email}>
                                         <div className="flex flex-col rounded-lg border border-transparent">
                                             <div
                                                 data-umami-event={'Create Form With Template'}
@@ -145,7 +147,7 @@ export default function CreateFormPage(props: { searchParams: Promise<{ modal?: 
                                             </div>
                                             <div className="p2-new mt-2 !font-medium">{template.title}</div>
                                         </div>
-                                    </button>
+                                    </div>
                                 ))}
                             </div>
                         </>
