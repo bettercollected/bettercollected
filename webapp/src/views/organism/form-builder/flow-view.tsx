@@ -39,6 +39,10 @@ function PageNode({ data, selected }: NodeProps<Node<any>>) {
         <div className={'flex w-[300px] flex-col gap-1 rounded-xl border bg-white px-4 py-3 shadow-sm transition-shadow ' + (selected ? 'border-brand-500 shadow-bubble' : 'border-black-200 hover:border-brand-300')}>
             <Handle id="next-in" type="target" position={Position.Top} isConnectable={false} style={{ opacity: 0 }} />
             <Handle id="jump-in" type="target" position={Position.Left} style={{ background: JUMP_COLOR, width: 9, height: 9 }} />
+            {/* Invisible right-side anchor: edges from pages in the same column enter
+                here so they bow beside the column instead of crossing it. Users still
+                drop connections on the visible left dot. */}
+            <Handle id="jump-in-right" type="target" position={Position.Right} isConnectable={false} style={{ opacity: 0, top: '35%' }} />
             <span className="text-black-400 text-[10px] font-semibold uppercase tracking-wide">Page {data.pageNumber}</span>
             <span className="text-black-900 truncate text-sm font-semibold">{data.label}</span>
             {data.questions?.length > 0 && (
@@ -79,6 +83,7 @@ function TerminalNode({ data }: NodeProps<Node<any>>) {
         <div className="bg-new-white-200 border-black-200 text-black-600 flex w-[300px] flex-col gap-0.5 rounded-xl border px-4 py-3">
             {isEnd && <Handle id="next-in" type="target" position={Position.Top} isConnectable={false} style={{ opacity: 0 }} />}
             {isEnd && <Handle id="jump-in" type="target" position={Position.Left} style={{ background: JUMP_COLOR, width: 9, height: 9 }} />}
+            {isEnd && <Handle id="jump-in-right" type="target" position={Position.Right} isConnectable={false} style={{ opacity: 0, top: '35%' }} />}
             <span className="text-black-400 text-[10px] font-semibold uppercase tracking-wide">{isEnd ? 'End' : 'Start'}</span>
             <span className="text-black-700 text-sm font-semibold">{data.label}</span>
             {data.totalResponses !== undefined && (
@@ -188,18 +193,30 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
             });
         });
         // Jump edges (only valid targets draw; broken ones surface as a node badge).
+        // Routing: same-column (or leftward) targets are entered from the RIGHT so
+        // the edge bows beside the column instead of crossing pages; only targets
+        // laid out clearly to the right are entered from the left (straight shot).
+        const indexById = new Map(slides.map((s, i) => [s.id, i]));
+        const posOf = (id: string): { x: number; y: number } => {
+            if (id === '__end__') return defaultPos(slides.length + 1);
+            const idx = indexById.get(id) ?? 0;
+            return (slides[idx]?.properties?.position as { x: number; y: number } | undefined) ?? defaultPos(idx + 1);
+        };
         slides.forEach((slide, sIdx) => {
             ((slide.properties?.jumps as PageJump[] | undefined) ?? []).forEach((jump, jIdx) => {
                 if (!jump?.conditions?.length || !isJumpTargetValid(jump.target, slideIds)) return;
                 const c = jump.conditions[0];
                 const count = traffic ? traffic.jumpTraversals.get(`${slide.id}:${jIdx}`) ?? 0 : undefined;
                 const base = `${c?.value !== '' && c?.value != null ? `= “${c.value}”` : c?.comparison?.toLowerCase().replace(/_/g, ' ') ?? ''}${jump.conditions.length > 1 ? ` +${jump.conditions.length - 1}` : ''}`;
+                const targetId = jump.target === JUMP_TARGET_SUBMIT ? '__end__' : jump.target;
+                const targetClearlyRight = posOf(targetId).x > posOf(slide.id).x + NODE_W * 0.75;
                 edges.push({
                     id: `jump-${slide.id}-${jIdx}`,
                     source: slide.id,
-                    target: jump.target === JUMP_TARGET_SUBMIT ? '__end__' : jump.target,
+                    target: targetId,
                     sourceHandle: 'jump-out',
-                    targetHandle: 'jump-in',
+                    targetHandle: targetClearlyRight ? 'jump-in' : 'jump-in-right',
+                    pathOptions: { curvature: 0.45 },
                     label: count !== undefined ? `${base} · ${count}` : base,
                     data: { slideId: slide.id, slideIndex: sIdx, jumpIndex: jIdx },
                     deletable: true,
