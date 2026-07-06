@@ -33,6 +33,13 @@ services:
         ports:
             - '3001:3001'
             - '3002:3002'
+        # webapp/backend run on the host in local dev (not in this compose
+        # network), so nginx-local.conf proxies to host.docker.internal rather
+        # than localhost (which inside this container means the container
+        # itself). host-gateway is required explicitly on Linux — Docker
+        # Desktop adds it automatically, but this doesn't.
+        extra_hosts:
+            - 'host.docker.internal:host-gateway'
 
     # Local email testing: captures all outgoing mail (OTP codes, invites).
     # Host ports 1026/8026 are used to avoid clashing with any other Mailpit
