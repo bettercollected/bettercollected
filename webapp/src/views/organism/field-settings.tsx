@@ -38,7 +38,7 @@ export default function FieldSettings() {
 
     return (
         <div className="flex flex-col gap-4 px-4 py-6">
-            <div className="p2-new text-black-700 !font-medium">Settings</div>
+            <div className="text-black-600 text-xs font-semibold uppercase tracking-wide">Settings</div>
             <div className="flex w-full items-center justify-between">
                 <div className="text-black-700 text-xs">Description</div>
                 <Switch

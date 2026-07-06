@@ -1,8 +1,11 @@
+// Default = the trust palette (Design-Language.md §1): calm neutral surface,
+// ink for words, one confident blue for actions. Saturated full-bleed colour
+// stays available through the other themes — it's opt-in, not the default.
 export const ThemeColor = {
-    accent: '#F2F7FF',
-    tertiary: '#A2C5F8',
-    secondary: '#0764EB',
-    primary: '#2E2E2E'
+    accent: '#F6F8FC',
+    tertiary: '#CBD5E6',
+    secondary: '#2456CC',
+    primary: '#101826'
 };
 
 export interface FormTheme {
@@ -16,10 +19,10 @@ export interface FormTheme {
 export const ThemeColors: Array<FormTheme> = [
     {
         title: 'Default',
-        primary: '#2E2E2E',
-        secondary: '#0764EB',
-        tertiary: '#A2C5F8',
-        accent: '#F2F7FF'
+        primary: '#101826',
+        secondary: '#2456CC',
+        tertiary: '#CBD5E6',
+        accent: '#F6F8FC'
     },
     {
         title: 'Blue',

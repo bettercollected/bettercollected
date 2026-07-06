@@ -16,10 +16,13 @@ const ShadCNInput = React.forwardRef<HTMLInputElement, InputProps>(({ className,
     return (
         <input
             style={{
-                color: theme?.secondary
+                // The answer is the responder's own words — it wears ink (theme
+                // primary), never the accent/action colour. 16px floor, and never
+                // larger than the 24px question (Design-Language §2).
+                color: theme?.primary
             }}
             type={type}
-            className={cn(`w-full rounded-xl border px-4 py-3 text-[28px] outline-none transition-shadow disabled:cursor-not-allowed disabled:opacity-50 lg:text-[32px]`, className)}
+            className={cn(`w-full rounded-xl border bg-white px-4 py-3 text-base outline-none transition-shadow disabled:cursor-not-allowed disabled:opacity-50 lg:text-lg`, className)}
             ref={ref}
             // Coerce null -> '' so a controlled input never receives a null value.
             value={value === null ? '' : value}
@@ -51,10 +54,14 @@ const FieldInput = styled(ShadCNInput)<{
     const themeColor = $formTheme?.tertiary;
     const secondaryColor = $formTheme?.secondary;
     return {
-        background: 'inherit',
+        // White field on the page surface gives the input real figure/ground —
+        // the bordered box, not a wash, is what reads as "type here".
+        background: '#ffffff',
         borderColor: themeColor,
         '&::placeholder': {
-            color: `${themeColor} !important`
+            // Legible neutral (ink-3), not the theme tint — placeholders are
+            // text people read, not decoration.
+            color: '#657085 !important'
         },
         '&:focus': {
             borderColor: secondaryColor,

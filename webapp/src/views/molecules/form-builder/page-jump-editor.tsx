@@ -44,7 +44,7 @@ export default function PageJumpEditor() {
     if (sources.length === 0) {
         return (
             <div className="flex flex-col gap-1 px-4 py-4">
-                <div className="text-black-700 text-xs font-medium">Logic</div>
+                <div className="text-black-600 text-xs font-semibold uppercase tracking-wide">Logic</div>
                 <div className="text-black-500 text-xs">Add questions to this page (or an earlier one) to send people to another page based on their answers.</div>
             </div>
         );
@@ -53,7 +53,7 @@ export default function PageJumpEditor() {
     return (
         <div className="flex flex-col gap-3 px-4 py-4">
             <div>
-                <div className="text-black-700 text-xs font-medium">Logic</div>
+                <div className="text-black-600 text-xs font-semibold uppercase tracking-wide">Logic</div>
                 <div className="text-black-500 text-[11px]">Send people to another page based on their answers.{jumps.length > 1 ? ' Checked top to bottom — first match wins.' : ''}</div>
             </div>
 

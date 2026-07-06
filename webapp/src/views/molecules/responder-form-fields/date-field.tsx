@@ -65,12 +65,13 @@ function DateFieldSection({ field, isBuilder }: IDateField) {
                     <button
                         type="button"
                         className={cn(
-                            'flex w-full cursor-pointer items-center gap-2 border-0 border-b-[1px] bg-inherit px-0 py-2 text-[28px] outline-none lg:text-[32px]',
+                            'flex w-full cursor-pointer items-center gap-2 rounded-xl border bg-white px-4 py-3 text-base outline-none transition-shadow focus-visible:ring-2 lg:text-lg',
                             isBuilder && 'pointer-events-none'
                         )}
                         style={{
                             borderColor: tertiaryColor,
-                            color: date ? secondaryColor : tertiaryColor
+                            // Chosen date is content (ink); empty state a legible neutral.
+                            color: date ? theme?.primary : '#657085'
                         }}
                     >
                         <CalendarIcon

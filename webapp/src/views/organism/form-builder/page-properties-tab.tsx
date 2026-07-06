@@ -24,6 +24,7 @@ import SlideLayoutRightImage from '@Components/icons/slide-layout-right-image';
 import { SwitchIcon } from '@Components/icons/switch-icon';
 import { PlusIcon } from 'lucide-react';
 import Image from 'next/image';
+import HiddenFieldsEditor from '@app/views/molecules/form-builder/hidden-fields-editor';
 import PageJumpEditor from '@app/views/molecules/form-builder/page-jump-editor';
 
 export default function PagePropertiesTab({ }: {}) {
@@ -167,7 +168,7 @@ export default function PagePropertiesTab({ }: {}) {
         <>
             {
                 <>
-                    <div className="p2-new text-black-700 mb-4 mt-6 px-4 !font-medium">Layout</div>
+                    <div className="text-black-600 px-4 pb-3 pt-6 text-xs font-semibold uppercase tracking-wide">Layout</div>
                     <div className="grid grid-cols-2 gap-2 border-b px-4 pb-6">
                         {getLayoutList().map((item: { style: FormSlideLayout; Icon: any }) => (
                             <button key={item.style} data-umami-event={`${item.style} Layout`} data-umami-event-email={authState.email}>
@@ -188,7 +189,7 @@ export default function PagePropertiesTab({ }: {}) {
             }
             {(activeSlideComponent?.id === 'welcome-page' || activeSlideComponent?.id === 'thank-you-page') && (
                 <>
-                    <div className="p2-new text-black-700 mb-4 mt-6 px-4 !font-medium">Settings</div>
+                    <div className="text-black-600 px-4 pb-3 pt-6 text-xs font-semibold uppercase tracking-wide">Settings</div>
 
                     <div className="flex w-full items-center justify-between border-b px-4 pb-4">
                         {activeSlideComponent?.id === 'welcome-page' || activeSlideComponent?.id === 'thank-you-page' ? (
@@ -265,7 +266,7 @@ export default function PagePropertiesTab({ }: {}) {
                 </>
             )}
             <div className={cn('border-black-200 flex justify-between border-b px-4 py-6 hover:bg-inherit', slide?.imageUrl ? 'flex-col items-start gap-2' : 'flex-row items-center ')}>
-                <span className="p3-new text-black-700">Layout Image</span>
+                <span className="text-black-600 text-xs font-semibold uppercase tracking-wide">Layout Image</span>
                 {slide?.imageUrl ? (
                     <div className={`group relative my-4 max-h-[168px] w-full`}>
                         <div className={cn('absolute hidden h-full w-full items-start justify-start gap-2 p-2 group-hover:flex')}>
@@ -291,7 +292,7 @@ export default function PagePropertiesTab({ }: {}) {
                 <></>
             ) : (
                 <>
-                    <div className="p2-new text-black-700 mb-6 mt-6 px-4 !font-medium">Used Fields</div>
+                    <div className="text-black-600 px-4 pb-3 pt-6 text-xs font-semibold uppercase tracking-wide pb-6">Used Fields</div>
                     <div className="mb-4 flex flex-col gap-6 px-4">
                         {activeSlideComponent?.index !== undefined &&
                             formFields[activeSlideComponent.index]?.properties?.fields?.map((field) => {
@@ -330,9 +331,14 @@ export default function PagePropertiesTab({ }: {}) {
                 </>
             )}
             {activeSlideComponent?.id !== 'welcome-page' && activeSlideComponent?.id !== 'thank-you-page' && (activeSlideComponent?.index ?? -1) >= 0 && (
-                <div className="border-t">
-                    <PageJumpEditor />
-                </div>
+                <>
+                    <div className="border-t">
+                        <PageJumpEditor />
+                    </div>
+                    <div className="border-t">
+                        <HiddenFieldsEditor />
+                    </div>
+                </>
             )}
         </>
     );

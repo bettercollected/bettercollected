@@ -4,14 +4,18 @@ import Underline from '@tiptap/extension-underline';
 import { Editor, EditorProvider, JSONContent, useCurrentEditor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 
-import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
+import { FieldTypes, StandardFormFieldDto, V2InputFields } from '@app/models/dtos/form';
 import { cn } from '@app/shadcn/util/lib';
 import useFormFieldsAtom from '@app/store/jotai/field-selectors';
+import { useFormState } from '@app/store/jotai/form';
+import { AnswerPipe } from '@app/utils/richTextEditorExtenstion/answer-pipe';
+import { AnswerPipeSuggestion, filterPipeSuggestionItems, PipeSuggestionItem } from '@app/utils/richTextEditorExtenstion/answer-pipe-suggestion';
 import { FontSize } from '@app/utils/richTextEditorExtenstion/font-size';
 import { getHtmlFromJson } from '@app/utils/richTextEditorExtenstion/get-html-from-json';
+import { buildSourceFields } from '@app/views/molecules/form-builder/condition-editor-shared';
 import { ArrowDown } from '@Components/icons/arrow-down';
 import RequiredIcon from '@Components/icons/required';
-import { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useDebounceValue } from 'usehooks-ts';
 
 export function getPlaceholderValueForTitle(fieldType: FieldTypes) {
@@ -51,7 +55,26 @@ export function getPlaceholderValueForTitle(fieldType: FieldTypes) {
     }
 }
 
-export const Extenstions = [StarterKit, TextStyle, FontSize, Underline, Color];
+export const Extenstions = [StarterKit, TextStyle, FontSize, Underline, Color, AnswerPipe];
+
+/**
+ * Everything pipeable into `field`'s title: answers the responder will already
+ * have given (earlier pages, or earlier on this page — same scoping as
+ * conditional logic) plus the form's declared hidden fields. Shared by the
+ * "@ Answer" toolbar menu and the inline `@` suggestion picker.
+ */
+function buildPipeItems(formFields: StandardFormFieldDto[], hiddenNames: string[], field: StandardFormFieldDto, slide: StandardFormFieldDto): PipeSuggestionItem[] {
+    const sources = buildSourceFields(formFields, (sourceSlide, slideIndex, sourceField) => {
+        if (!V2InputFields.includes(sourceField.type)) return false;
+        if (sourceField.id === field.id) return false;
+        if (slideIndex < slide.index) return true;
+        return slideIndex === slide.index && sourceField.index < field.index;
+    });
+    return [
+        ...sources.map(({ field: sourceField, label }): PipeSuggestionItem => ({ kind: 'field', pipeKey: sourceField.id, label, group: 'Answers' })),
+        ...hiddenNames.map((name): PipeSuggestionItem => ({ kind: 'hidden', pipeKey: name, label: name, group: 'Hidden fields' }))
+    ];
+}
 
 function usePreviousState(value: any) {
     const ref = useRef(value);
@@ -63,7 +86,28 @@ function usePreviousState(value: any) {
 }
 
 export function RichTextEditor({ field, slide, autofocus = false, isRequired = false }: { field: StandardFormFieldDto; slide: StandardFormFieldDto; autofocus?: boolean; isRequired?: boolean }) {
-    const { updateTitle } = useFormFieldsAtom();
+    const { updateTitle, formFields } = useFormFieldsAtom();
+    const { formState } = useFormState();
+
+    // The `@` suggestion needs the CURRENT builder state on every keystroke,
+    // but the extension list must keep a stable identity (a new array would
+    // recreate the editor per render). A ref bridges the two.
+    const pipeContextRef = useRef({ formFields, hiddenNames: formState.hiddenFields ?? [], field, slide });
+    pipeContextRef.current = { formFields, hiddenNames: formState.hiddenFields ?? [], field, slide };
+
+    const editorExtensions = useMemo(
+        () => [
+            ...Extenstions,
+            AnswerPipeSuggestion.configure({
+                getItems: (query: string) => {
+                    const { formFields: fields, hiddenNames, field: currentField, slide: currentSlide } = pipeContextRef.current;
+                    return filterPipeSuggestionItems(buildPipeItems(fields, hiddenNames, currentField, currentSlide), query);
+                }
+            })
+        ],
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        []
+    );
 
     const getContentForEditor = () => {
         return field.title
@@ -90,13 +134,15 @@ export function RichTextEditor({ field, slide, autofocus = false, isRequired = f
         <div className="tiptap group relative flex w-full justify-between">
             <EditorProvider
                 content={getContentForEditor()}
-                extensions={Extenstions}
+                extensions={editorExtensions}
                 immediatelyRender={false}
-                slotBefore={<TiptapMenuBar />}
+                slotBefore={<TiptapMenuBar field={field} slide={slide} />}
                 autofocus={autofocus}
                 editorProps={{
                     attributes: {
-                        class: 'outline-none font-medium w-full max-w-full min-w-[300px]',
+                        // Match the responder's question scale (24px/600) so the
+                        // canvas is honest about what responders will see.
+                        class: 'outline-none text-2xl font-semibold leading-snug w-full max-w-full min-w-[300px]',
                         style: 'word-break: break-word'
                     }
                 }}
@@ -129,7 +175,63 @@ const getActiveFontSize = (editor?: Editor) => {
     return fontSizeInNum;
 };
 
-const TiptapMenuBar = () => {
+// "Insert answer" dropdown: pipes an earlier question's answer (or a hidden
+// URL parameter) into this title at the cursor, as an answerPipe chip. The
+// inline `@` suggestion (AnswerPipeSuggestion) is the fast path; this button
+// is the discoverable one.
+const InsertPipeMenu = ({ editor, field, slide }: { editor: Editor; field: StandardFormFieldDto; slide: StandardFormFieldDto }) => {
+    const { formFields } = useFormFieldsAtom();
+    const { formState } = useFormState();
+    const [open, setOpen] = useState(false);
+
+    const items = buildPipeItems(formFields, formState.hiddenFields ?? [], field, slide);
+    if (items.length === 0) return null;
+
+    const insertPipe = (item: PipeSuggestionItem) => {
+        editor
+            .chain()
+            .focus()
+            .insertContent([{ type: 'answerPipe', attrs: { kind: item.kind, pipeKey: item.pipeKey, label: item.label } }, { type: 'text', text: ' ' }])
+            .run();
+        setOpen(false);
+    };
+
+    let lastGroup: string | null = null;
+
+    return (
+        <div className="relative">
+            {/* mousedown is swallowed so the editor keeps focus (the floating bar is focus-within-gated). */}
+            <div
+                role="button"
+                tabIndex={0}
+                title="Insert an earlier answer — or just type @ in the question"
+                className="cursor-pointer whitespace-nowrap rounded px-1 text-sm font-medium text-blue-600 hover:bg-gray-100"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => setOpen(!open)}
+            >
+                @ Answer
+            </div>
+            {open && (
+                <div className="absolute left-0 top-full z-50 mt-1 max-h-64 w-72 overflow-auto rounded-lg border bg-white py-1 text-left shadow-lg" onMouseDown={(e) => e.preventDefault()}>
+                    {items.map((item) => {
+                        const header = item.group !== lastGroup ? item.group : null;
+                        lastGroup = item.group;
+                        return (
+                            <React.Fragment key={`${item.kind}:${item.pipeKey}`}>
+                                {header && <div className="text-black-500 px-3 py-1 text-xs uppercase tracking-wide">{header}</div>}
+                                <div role="button" tabIndex={0} className="text-black-800 cursor-pointer truncate px-3 py-1.5 text-sm hover:bg-gray-100" onClick={() => insertPipe(item)}>
+                                    {item.label}
+                                </div>
+                            </React.Fragment>
+                        );
+                    })}
+                </div>
+            )}
+        </div>
+    );
+};
+
+const TiptapMenuBar = ({ field, slide }: { field: StandardFormFieldDto; slide: StandardFormFieldDto }) => {
     const editorRef = useCurrentEditor();
     // Constrain label sizing to the type scale (Design-Language.md §2) so creators
     // stay on a coherent hierarchy: Meta 12 · Helper/Consent 15 · Body/Input 16 ·
@@ -149,12 +251,11 @@ const TiptapMenuBar = () => {
     };
 
     return (
-        <button
+        // A div, not a <button>: the bar hosts interactive children (the insert-
+        // answer dropdown), and interactive elements can't nest inside a button.
+        <div
             className={cn(`shadow-tooltip absolute -top-14 mb-2 hidden items-center rounded-lg bg-white px-4 py-1`, 'group-focus-within:flex')}
             tabIndex={0}
-            onClick={() => {
-                return true;
-            }}
         >
             <div className="flex flex-row items-center justify-center gap-4">
                 <span className="p3-new font-medium">Text</span>
@@ -203,7 +304,8 @@ const TiptapMenuBar = () => {
                 <div onClick={() => editor?.chain().focus().toggleUnderline().run()} className={cn('cursor-pointer rounded', editor?.isActive('underline') && 'bg-gray-200')}>
                     <u className="px-1 text-xl">U</u>
                 </div>
+                <InsertPipeMenu editor={editor} field={field} slide={slide} />
             </div>
-        </button>
+        </div>
     );
 };

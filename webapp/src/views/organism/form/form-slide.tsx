@@ -11,6 +11,7 @@ import { cn } from '@app/shadcn/util/lib';
 import { selectAuth } from '@app/store/auth/slice';
 import useFormAtom from '@app/store/jotai/form-file';
 import { useFormResponse } from '@app/store/jotai/responder-form-response';
+import { useHiddenFieldValues } from '@app/store/jotai/responder-hidden-fields';
 import { useResponderState } from '@app/store/jotai/responder-form-state';
 import { useSendFlowEventMutation, useSubmitResponseMutation } from '@app/store/redux/form-api';
 import { getFlowSessionId } from '@app/utils/flow-session';
@@ -41,6 +42,7 @@ import MatrixField from '../form-builder/fields/matrix';
 import VideoField from '../form-builder/fields/video-field';
 import TabularInputResponderField from '@app/views/molecules/responder-form-fields/tabular-input-responder-field';
 import SlideLayoutWrapper from '../layout/slide-layout-wrapper';
+import { Shield } from 'lucide-react';
 
 export function FormFieldComponent({ field, slideIndex }: { field: StandardFormFieldDto; slideIndex: number }) {
     switch (field.type) {
@@ -98,10 +100,18 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
     const { currentSlide, setCurrentSlideToThankyouPage, nextSlide, goToSlide, previousSlide, setResponderState, responderState, setCurrentSlideToWelcomePage } = useResponderState();
 
     const { formResponse, setInvalidFields, setFormResponse } = useFormResponse();
+    const { hiddenValues } = useHiddenFieldValues();
     const workspace = useAppSelector(selectWorkspace);
     const [submitResponse, { isLoading }] = useSubmitResponseMutation();
     const { files } = useFormAtom();
     const authState = useAppSelector(selectAuth);
+
+    // Identity sharing is opt-in (Design-Language §5 — "leave consent unchecked;
+    // the person opts in"): until the responder touches the checkbox, a logged-in
+    // responder on an identity-optional form stays anonymous. Forms that require
+    // a verified identity keep it attached, as they state up front.
+    const identityOptional = !!authState.id && !standardForm?.settings?.requireVerifiedIdentity;
+    const effectiveAnonymize = formResponse.anonymize ?? identityOptional;
 
     const submitFormResponse = async () => {
         const formData = new FormData();
@@ -109,7 +119,9 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
         const postBody = {
             form_id: standardForm?.formId,
             answers: formResponse.answers ?? {},
-            anonymize: formResponse.anonymize ?? false,
+            // Hidden-field (URL parameter) values captured when the form loaded.
+            ...(Object.keys(hiddenValues).length ? { hidden_fields: hiddenValues } : {}),
+            anonymize: effectiveAnonymize,
             form_version: standardForm?.version || 1
         };
 
@@ -126,6 +138,11 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
         });
         if (!response.data) {
             throw new Error(response?.error);
+        }
+        // Reflect what was actually submitted, so the thank-you page reports
+        // the anonymity state truthfully.
+        if (formResponse.anonymize === undefined) {
+            setFormResponse({ ...formResponse, anonymize: effectiveAnonymize });
         }
         return response.data;
     };
@@ -202,7 +219,7 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
             <SlideLayoutWrapper showDesktopLayout={showDesktopLayout} scrollDivId={'questions-container'} theme={standardForm.theme} slide={formSlide} disabled>
                 <div className="absolute left-0 right-0 top-5 z-10 mx-auto w-full ">
                     <div className="px-5 md:px-8 xl:px-10 2xl:px-20">
-                        <div className={`w-full max-w-[800px] px-4 ${formSlide?.properties?.layout === FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND_LEFT_ALIGN ? '' : 'mx-auto'}`}>
+                        <div className={`flex w-full max-w-[800px] items-center justify-between gap-3 px-4 ${formSlide?.properties?.layout === FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND_LEFT_ALIGN ? '' : 'mx-auto'}`}>
                             <BackButton
                                 handleClick={() => {
                                     currentSlide > 0 ? previousSlide() : setCurrentSlideToWelcomePage();
@@ -212,6 +229,19 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
                                     background: standardForm?.theme?.accent
                                 }}
                             />
+                            {/* Provenance + progress where the eye starts (Design-Language §3):
+                                who is asking, and how much is left — no surprises. */}
+                            <div className="text-black-700 flex items-center gap-3 text-[13px]">
+                                {(workspace?.title || workspace?.workspaceName) && (
+                                    <span className="border-black-300 text-black-800 hidden items-center gap-1.5 rounded-full border bg-white/85 px-2.5 py-0.5 font-medium sm:inline-flex">
+                                        <Shield className="text-brand-500 h-3.5 w-3.5" strokeWidth={1.8} aria-hidden="true" />
+                                        {workspace?.title || workspace?.workspaceName}
+                                    </span>
+                                )}
+                                <span className="whitespace-nowrap tabular-nums">
+                                    Page {currentSlide + 1} of {standardForm?.fields?.length || 1}
+                                </span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -224,9 +254,12 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
                             {(standardForm?.fields?.length || 0) - 1 === currentSlide && currentSlide === index && (
                                 <div className="flex flex-col lg:mb-4 ">
                                     {authState.id && !standardForm.settings?.requireVerifiedIdentity && (
-                                        <div className="flex flex-row gap-2 ">
+                                        // Consent gets a calm, legible home of its own (Design-Language §2/§4):
+                                        // 15px/1.5, high contrast, green-tinted container — and unchecked by
+                                        // default, so sharing identity is a choice the person makes.
+                                        <label className="flex w-fit max-w-[560px] cursor-pointer flex-row items-start gap-3 rounded-lg border border-[#BFE0D2] bg-[#F2FAF6] p-4">
                                             <FieldInput
-                                                checked={!formResponse.anonymize}
+                                                checked={!effectiveAnonymize}
                                                 onChange={(e: any) => {
                                                     setFormResponse({
                                                         ...formResponse,
@@ -234,13 +267,15 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
                                                     });
                                                 }}
                                                 type="checkbox"
-                                                className="h-4 w-4 border focus:border-0 focus:outline-none"
+                                                className="mt-0.5 h-5 w-5 shrink-0 cursor-pointer border accent-[#0E8A5F] focus:outline-none"
                                             />
-                                            <div className="flex flex-col ">
-                                                <span className="text-black-800 text-xs font-medium">Show your identity(email) to form collector</span>
-                                                <span className={`p4-new text-black-600 `}>{authState?.email} </span>
-                                            </div>
-                                        </div>
+                                            <span className="flex flex-col gap-0.5">
+                                                <span className="text-black-900 text-[15px] font-medium leading-relaxed">Share my email with the form collector</span>
+                                                <span className="text-black-700 text-[13px]">
+                                                    {authState?.email} — leave unchecked and your response stays anonymous.
+                                                </span>
+                                            </span>
+                                        </label>
                                     )}
                                 </div>
                             )}
@@ -250,11 +285,11 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
                                     color: 'white'
                                 }}
                                 isLoading={isLoading}
-                                className=" rounded px-8 py-3 mt-4"
+                                className="mt-4 rounded-lg px-8 py-3 text-base font-semibold"
                                 onClick={onNext}
                                 size="medium"
                             >
-                                {(standardForm?.fields?.length || 0) - 1 === currentSlide && currentSlide === index ? 'Submit' : 'Next'}
+                                {(standardForm?.fields?.length || 0) - 1 === currentSlide && currentSlide === index ? 'Submit response' : 'Continue'}
                             </Button>
                         </div>
                     </div>

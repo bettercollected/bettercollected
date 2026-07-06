@@ -539,7 +539,17 @@ class WorkspaceFormService:
             raise HTTPException(
                 status_code=HTTPStatus.NOT_FOUND, content="Form not found"
             )
-        if not response.dataOwnerIdentifier and user:
+        # Honour the responder's anonymity choice server-side. Previously the
+        # webapp's `anonymize` flag was accepted but never enforced: the UI said
+        # "anonymously submitted" while dataOwnerIdentifier still recorded the
+        # signed-in email. Anonymous responses keep only a one-way hash so the
+        # responder can still find and delete their own submission.
+        if bool(getattr(response, "anonymize", False)):
+            response.dataOwnerIdentifier = None
+            response.respondent_email = None
+            if user:
+                response.anonymous_identity = hash_string(user.sub)
+        elif not response.dataOwnerIdentifier and user:
             response.dataOwnerIdentifier = user.sub
 
         form_response = await self.form_response_service.submit_form_response(

@@ -467,6 +467,11 @@ class StandardForm(BaseModel):
     button_text: Optional[str] = None
     is_multi_page: Optional[bool] = None
     fields: Optional[List[StandardFormField]] = None
+    # Creator-declared URL parameter names ("hidden fields"): captured from the
+    # share link's query string at fill time (e.g. utm_source), stored with the
+    # response, and available to answer piping in question text. Names only —
+    # values never live on the form.
+    hidden_fields: Optional[List[str]] = None
     consent: Optional[List[Consent]] = None
     state: Optional[State] = Field(default_factory=State)
     settings: Optional[StandardFormSettings] = Field(
@@ -519,6 +524,10 @@ class StandardFormResponse(BaseModel):
     answers: (
         Optional[Dict[str, StandardFormResponseAnswer | Dict[str, Any]]] | bytes | str
     ) = None
+    # Captured hidden-field (URL parameter) values for this submission, keyed by
+    # the declared name. Encrypted at rest alongside `answers` (bytes/str once
+    # persisted), decrypted on the same read path.
+    hidden_fields: Optional[Dict[str, str] | bytes | str] = None
     form_version: Optional[int] = None
     created_at: Optional[dt.datetime] = None
     updated_at: Optional[dt.datetime] = None

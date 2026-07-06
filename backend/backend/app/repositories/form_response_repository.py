@@ -266,6 +266,12 @@ class FormResponseRepository(BaseRepository):
                 form_id=form_id,
                 data=json.dumps(response_document.answers),
             )
+            if isinstance(response_document.hidden_fields, dict):
+                response_document.hidden_fields = crypto_service.encrypt(
+                    workspace_id=workspace_id,
+                    form_id=form_id,
+                    data=json.dumps(response_document.hidden_fields),
+                )
         response_document.form_id = str(form_id)
         response_document.provider = "self"
         return await response_document.save()

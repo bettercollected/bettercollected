@@ -300,6 +300,10 @@ class FormRepository:
     async def update_form(self, form_id: PydanticObjectId, form: StandardForm):
         form_document = await FormDocument.find_one({"form_id": str(form_id)})
         form_document.fields = form.fields
+        # None means "the client didn't send hidden fields" (e.g. an older
+        # webapp bundle) — preserve what's stored. An explicit [] clears them.
+        if form.hidden_fields is not None:
+            form_document.hidden_fields = form.hidden_fields
         form_document.title = form.title
         form_document.logo = form.logo
         form_document.cover_image = form.cover_image

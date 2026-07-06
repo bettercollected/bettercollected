@@ -116,7 +116,8 @@ export default function FormEditPage(props: { params: Promise<{ form_id: string 
                     ...formState,
                     title: standardForm.title,
                     thankyouPage: copiedThankyouPage,
-                    welcomePage: copiedWelcomePage
+                    welcomePage: copiedWelcomePage,
+                    hiddenFields: standardForm.hiddenFields
                 };
                 setFormState(form);
             }
@@ -135,8 +136,10 @@ export default function FormEditPage(props: { params: Promise<{ form_id: string 
             <AutoSaveForm formId={formId} />
             <div className="max-h-body-content  flex w-full flex-row items-center">
                 <LeftDrawer formFields={formFields} activeSlideComponent={activeSlideComponent} />
+                {/* Neutral workspace mat behind the canvas, so the slide being edited
+                    reads as the artefact and separates from the tool's chrome. */}
                 <div
-                    className=" relative flex max-h-full max-w-full flex-1 justify-center overflow-x-hidden px-5 py-14"
+                    className=" relative flex max-h-full max-w-full flex-1 justify-center overflow-x-hidden bg-[#E9EEF5] px-5 py-14"
                     onClick={() => {
                         setActiveFieldComponent(null);
                     }}
@@ -146,7 +149,7 @@ export default function FormEditPage(props: { params: Promise<{ form_id: string 
                             width: getScaledDivWidth()
                         }}
                     >
-                        <div className="!shadow-slide aspect-video overflow-hidden" style={scaledDivStyle}>
+                        <div className="!shadow-slide border-black-300 aspect-video overflow-hidden rounded-lg border bg-white" style={scaledDivStyle}>
                             <div className="   mx-auto h-full w-full  rounded-lg">
                                 {activeSlideComponent?.id && activeSlideComponent?.index >= 0 && <SlideBuilder slide={formFields[activeSlideComponent?.index]} />}
                                 {!activeSlideComponent?.id && <div>Add a slide to start</div>}

@@ -23,14 +23,19 @@ const StyledAutoSizeTextArea = styled(AutosizeTextarea)<{
     const themeColor = $formTheme?.tertiary;
     const secondaryColor = $formTheme?.secondary;
     return {
-        background: 'inherit',
+        // Same bordered treatment as every other input (see shadcn/ui/input.tsx):
+        // white field, ink answer text, legible placeholder, visible focus ring.
+        // Short/long text previously opted back into an underline-only look,
+        // which fragmented the input language and had no focus indicator.
+        background: '#ffffff',
         borderColor: themeColor,
-        color: secondaryColor,
+        color: $formTheme?.primary,
         '&::placeholder': {
-            color: `${themeColor} !important`
+            color: '#657085 !important'
         },
         '&:focus': {
-            borderColor: secondaryColor
+            borderColor: secondaryColor,
+            boxShadow: secondaryColor ? `0 0 0 3px ${secondaryColor}33` : undefined
         }
     };
 });
@@ -66,7 +71,7 @@ export default function TextAreaField({ field }: { field: StandardFormFieldDto }
                     rows={1}
                     value={inputVal}
                     onChange={(e) => setInputVal(e.target.value)}
-                    className="rounded-none border-0 border-b-[1px] px-0 py-2 text-[28px] leading-tight lg:text-[32px]"
+                    className="rounded-xl border px-4 py-3 text-base leading-normal outline-none transition-shadow lg:text-lg"
                     style={{
                         resize: 'none'
                     }}

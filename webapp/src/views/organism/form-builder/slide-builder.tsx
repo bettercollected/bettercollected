@@ -24,7 +24,7 @@ const SlideBuilder = ({ slide, isScaledDown = false, disabled = false }: { slide
     const { setActiveFieldComponent, activeFieldComponent } = useActiveFieldComponent();
     const { activeSlideComponent } = useActiveSlideComponent();
     const { theme } = useFormState();
-    const { navbarState } = useNavbarState();
+    const { navbarState, setNavbarState } = useNavbarState();
 
     return (
         <SlideLayoutWrapper showDesktopLayout slide={slide} disabled={disabled} theme={theme} scrollDivId={!disabled ? 'scroll-div' : undefined}>
@@ -107,6 +107,23 @@ const SlideBuilder = ({ slide, isScaledDown = false, disabled = false }: { slide
                                     </motion.div>
                                 );
                             })
+                        ) : !disabled && !isScaledDown ? (
+                            // An empty page shouldn't be a dead rectangle — give
+                            // first-run creators a direct way in (audit B4).
+                            <div className="flex h-full w-full items-center justify-center">
+                                <button
+                                    type="button"
+                                    className="border-black-400 text-black-700 hover:border-black-600 hover:text-black-900 flex flex-col items-center gap-2 rounded-xl border border-dashed bg-white/60 px-10 py-8 text-sm font-medium transition-colors"
+                                    onClick={(event) => {
+                                        event.stopPropagation();
+                                        setNavbarState({ ...navbarState, insertMenuOpen: true });
+                                    }}
+                                >
+                                    <span className="text-2xl leading-none">＋</span>
+                                    Add a question
+                                    <span className="text-black-500 text-xs font-normal">Pick a field type from the Insert menu</span>
+                                </button>
+                            </div>
                         ) : (
                             <></>
                         )}

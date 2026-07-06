@@ -52,10 +52,12 @@ export default function DropDownField({ field, slideIndex }: { field: StandardFo
         if (choiceValue) {
             return {
                 borderColor: theme?.secondary,
-                color: theme?.secondary
+                // The chosen answer is content — ink, not the action colour.
+                color: theme?.primary
             };
         }
-        return { borderColor: theme?.tertiary, color: theme?.tertiary };
+        // Placeholder state: legible neutral (ink-3), not the theme tint.
+        return { borderColor: theme?.tertiary, color: '#657085' };
     };
 
     return (

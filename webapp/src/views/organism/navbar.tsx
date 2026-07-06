@@ -14,6 +14,7 @@ import { selectAuth } from '@app/store/auth/slice';
 import { useActiveSlideComponent } from '@app/store/jotai/active-builder-component';
 import useFormFieldsAtom from '@app/store/jotai/field-selectors';
 import { useFormState } from '@app/store/jotai/form';
+import { useNavbarState } from '@app/store/jotai/navbar';
 import { useFormResponse } from '@app/store/jotai/responder-form-response';
 import { useResponderState } from '@app/store/jotai/responder-form-state';
 import { useCreateTemplateFromFormMutation } from '@app/store/redux/template-api';
@@ -44,8 +45,12 @@ const Navbar = () => {
     const { activeSlideComponent } = useActiveSlideComponent();
     const { formState, setFormTitle } = useFormState();
     const { toast } = useToast();
+    const { navbarState, setNavbarState } = useNavbarState();
 
-    const [insertDropdownOpen, setInsertDropdownOpen] = useState(false);
+    // In jotai (navbarState) so the empty-canvas "Add a question" affordance
+    // can open the same menu (see slide-builder.tsx).
+    const insertDropdownOpen = !!navbarState.insertMenuOpen;
+    const setInsertDropdownOpen = (open: boolean) => setNavbarState({ ...navbarState, insertMenuOpen: open });
     const [flowViewOpen, setFlowViewOpen] = useState(false);
 
     const [createTemplateFromForm, { isLoading: isCreatingTemplate }] = useCreateTemplateFromFormMutation();

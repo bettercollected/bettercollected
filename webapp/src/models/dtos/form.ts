@@ -118,6 +118,8 @@ export interface StandardFormDto {
     isPublished?: boolean;
     importerDetails?: UserStatus;
     fields: Array<StandardFormFieldDto>;
+    /** Declared hidden-field (URL parameter) names — see utils/answer-piping.ts. */
+    hiddenFields?: string[];
     createdTime?: string | Date;
     modifiedTime?: string | Date;
     coverImage?: string;
@@ -135,6 +137,8 @@ export interface StandardFormResponseDto {
     answers: {
         [fieldId: string]: AnswerDto;
     };
+    /** Captured hidden-field (URL parameter) values for this submission. */
+    hiddenFields?: Record<string, string>;
     responseId: string;
     formId?: string;
     formTitle?: string;

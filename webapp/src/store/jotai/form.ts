@@ -29,6 +29,12 @@ export interface IFormState {
         tertiary: string;
         accent: string;
     };
+    /**
+     * Declared hidden-field (URL parameter) names, e.g. ['utm_source', 'name'].
+     * Captured from the share link at fill time and stored with the response;
+     * available to answer piping in question text.
+     */
+    hiddenFields?: string[];
 }
 
 export interface IThemeState {
@@ -62,76 +68,82 @@ export const initialFormState: IFormState = {
 }
 export const formStateAtom = atom<IFormState>(initialFormState);
 
+/** Immutable update of one thank-you page entry against the CURRENT state. */
+function patchThankYouPage(prev: IFormState, index: number, patch: Partial<NonNullable<IFormState['thankyouPage']>[number]>): IFormState {
+    const thankyouPage = (prev.thankyouPage ?? []).map((page, i) => (i === index ? { ...page, ...patch } : page));
+    return { ...prev, thankyouPage };
+}
+
 export function useFormState() {
+    // Every setter below uses the FUNCTIONAL form. Several components fire
+    // these from mount effects (FormDispatcher sets the theme, WelcomeSlide
+    // the description, the editor page seeds the loaded form) — spreading the
+    // render-time `formState` closure instead of `prev` let whichever effect
+    // ran last resurrect stale state and silently drop the others' writes.
     const [formState, setFormState] = useAtom(formStateAtom);
     const { activeThankYouPageComponent } = useActiveThankYouPageComponent();
 
     const setFormTitle = (title: string) => {
-        setFormState({ ...formState, title: title });
+        setFormState((prev) => ({ ...prev, title }));
     };
 
     const setFormDescription = (description?: string) => {
-        setFormState({
-            ...formState,
+        setFormState((prev) => ({
+            ...prev,
             welcomePage: {
-                ...(formState?.welcomePage || {}),
+                ...(prev?.welcomePage || {}),
                 description: description
             }
-        });
+        }));
     };
 
     const setThankYouPageDescription = (thankyouPageIndex: number, description?: string) => {
-        formState.thankyouPage && (formState.thankyouPage[thankyouPageIndex].message = description);
-        setFormState({ ...formState });
+        setFormState((prev) => patchThankYouPage(prev, thankyouPageIndex, { message: description }));
     };
 
     const setThankYouPageButtonText = (thankyouPageIndex: number, btnText?: string) => {
-        formState.thankyouPage![thankyouPageIndex].buttonText = btnText;
-        setFormState({ ...formState });
+        setFormState((prev) => patchThankYouPage(prev, thankyouPageIndex, { buttonText: btnText }));
     };
 
     const setThankYouPageButtonLink = (thankyouPageIndex: number, btnLink?: string) => {
-        formState.thankyouPage && (formState.thankyouPage[thankyouPageIndex].buttonLink = btnLink);
-        setFormState({ ...formState });
+        setFormState((prev) => patchThankYouPage(prev, thankyouPageIndex, { buttonLink: btnLink }));
     };
 
     const setWelcomePageButtonText = (btnText: string) => {
-        setFormState({
-            ...formState,
-            welcomePage: { ...formState.welcomePage, buttonText: btnText }
-        });
+        setFormState((prev) => ({
+            ...prev,
+            welcomePage: { ...prev.welcomePage, buttonText: btnText }
+        }));
     };
 
     const updateFormTheme = (theme: { title: string; primary: string; secondary: string; tertiary: string; accent: string }) => {
-        setFormState({ ...formState, theme });
+        setFormState((prev) => ({ ...prev, theme }));
+    };
+
+    const setHiddenFields = (hiddenFields: string[]) => {
+        setFormState((prev) => ({ ...prev, hiddenFields }));
     };
 
     const updateWelcomePageImage = (imageUrl: string) => {
-        formState.welcomePage && (formState.welcomePage.imageUrl = imageUrl);
-        setFormState({
-            ...formState
-        });
+        setFormState((prev) => ({
+            ...prev,
+            welcomePage: { ...(prev.welcomePage || {}), imageUrl }
+        }));
     };
 
     const updateWelcomePageLayout = (layout: FormSlideLayout) => {
-        if (formState.welcomePage) {
-            formState.welcomePage.layout = layout;
-        }
-        setFormState({
-            ...formState
-        });
+        setFormState((prev) => ({
+            ...prev,
+            welcomePage: { ...(prev.welcomePage || {}), layout }
+        }));
     };
 
     const updateThankYouPageImage = (imageUrl: string) => {
-        formState.thankyouPage && (formState.thankyouPage![activeThankYouPageComponent?.index || 0].imageUrl = imageUrl);
-        setFormState({ ...formState });
+        setFormState((prev) => patchThankYouPage(prev, activeThankYouPageComponent?.index || 0, { imageUrl }));
     };
 
     const updateThankYouPageLayout = (layout: FormSlideLayout) => {
-        if (formState.thankyouPage) {
-            formState.thankyouPage![activeThankYouPageComponent?.index || 0].layout = layout;
-        }
-        setFormState({ ...formState });
+        setFormState((prev) => patchThankYouPage(prev, activeThankYouPageComponent?.index || 0, { layout }));
     };
 
     return {
@@ -144,6 +156,7 @@ export function useFormState() {
         setThankYouPageButtonLink,
         setFormTitle,
         updateFormTheme,
+        setHiddenFields,
         theme: formState.theme,
         updateWelcomePageImage,
         updateThankYouPageImage,

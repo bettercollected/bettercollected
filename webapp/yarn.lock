@@ -2094,6 +2094,11 @@
     "@tiptap/extension-text-style" "^2.27.2"
     "@tiptap/pm" "^2.27.2"
 
+"@tiptap/suggestion@^2.7.2":
+  version "2.27.2"
+  resolved "https://registry.yarnpkg.com/@tiptap/suggestion/-/suggestion-2.27.2.tgz#901c1bbb5f12002cfe78a1ad40577727c23c374e"
+  integrity sha512-dQyvCIg0hcAVeh4fCIVCxogvbp+bF+GpbUb8sNlgnGrmHXnapGxzkvrlHnvneXZxLk/j7CxmBPKJNnm4Pbx4zw==
+
 "@tokenizer/inflate@^0.4.1":
   version "0.4.1"
   resolved "https://registry.yarnpkg.com/@tokenizer/inflate/-/inflate-0.4.1.tgz#fa6cdb8366151b3cc8426bf9755c1ea03a2fba08"
