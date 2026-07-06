@@ -17,13 +17,13 @@ dependencies = [
     "jinja2==3.1.6",
     "email-validator>=2.3.0",
     "pydantic==2.13.4",
-    "protobuf==5.29.6",
+    "protobuf==7.35.1",
 ]
 
 [dependency-groups]
 dev = [
     "black>=26.3.1",
-    "types-protobuf==5.29.1.20241207",
+    "types-protobuf==7.34.1.20260518",
 ]
 
 [tool.uv]
