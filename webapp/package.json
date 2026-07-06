@@ -144,7 +144,7 @@
     "@types/uuid": "^8.3.4",
     "@vitejs/plugin-react": "4.3.4",
     "autoprefixer": "^10.4.12",
-    "cross-env": "^7.0.3",
+    "cross-env": "^10.1.0",
     "eslint": "^10",
     "eslint-config-next": "16.1.6",
     "eslint-config-prettier": "8.5.0",
