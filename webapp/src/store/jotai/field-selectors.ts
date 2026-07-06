@@ -36,8 +36,57 @@ export const initialFieldsState: StandardFormFieldDto[] = [
 
 const initialFieldsAtom = atom<StandardFormFieldDto[]>(initialFieldsState);
 
+// Undo/redo history over committed fields states. Snapshots are deep clones —
+// the mutations in this file edit `formFields` in place, so shared references
+// would corrupt older entries.
+const HISTORY_LIMIT = 50;
+const fieldsHistoryAtom = atom<{ snapshots: StandardFormFieldDto[][]; index: number }>({ snapshots: [], index: -1 });
+const deepClone = <T,>(value: T): T => (typeof structuredClone === 'function' ? structuredClone(value) : JSON.parse(JSON.stringify(value)));
+
 export default function useFormFieldsAtom() {
-    const [formFields, setFormFields] = useAtom(initialFieldsAtom);
+    const [formFields, setFormFieldsRaw] = useAtom(initialFieldsAtom);
+    const [history, setHistory] = useAtom(fieldsHistoryAtom);
+
+    // Every mutation below funnels through this setter, so each committed state
+    // becomes an undo step. Undo/redo bypass it (they must not create steps).
+    // Identical consecutive states are deduped — mount-time re-commits and
+    // debounced no-op writes must not consume undo steps.
+    const setFormFields = (next: StandardFormFieldDto[]) => {
+        setFormFieldsRaw(next);
+        setHistory((h) => {
+            const current = h.index >= 0 ? h.snapshots[h.index] : undefined;
+            if (current && JSON.stringify(current) === JSON.stringify(next)) return h;
+            const snapshots = h.snapshots.slice(0, h.index + 1);
+            snapshots.push(deepClone(next));
+            while (snapshots.length > HISTORY_LIMIT) snapshots.shift();
+            return { snapshots, index: snapshots.length - 1 };
+        });
+    };
+
+    // Seed the builder with loaded fields and start undo history from there —
+    // initialization must not be undoable (undoing past it would blank the form,
+    // and autosave would persist the blank).
+    const initFormFields = (fields: StandardFormFieldDto[]) => {
+        setFormFieldsRaw(fields);
+        setHistory({ snapshots: [deepClone(fields)], index: 0 });
+    };
+
+    const canUndo = history.index > 0;
+    const canRedo = history.index < history.snapshots.length - 1;
+
+    const undo = () => {
+        if (!canUndo) return;
+        const index = history.index - 1;
+        setFormFieldsRaw(deepClone(history.snapshots[index]));
+        setHistory({ snapshots: history.snapshots, index });
+    };
+
+    const redo = () => {
+        if (!canRedo) return;
+        const index = history.index + 1;
+        setFormFieldsRaw(deepClone(history.snapshots[index]));
+        setHistory({ snapshots: history.snapshots, index });
+    };
 
     const { activeSlideComponent, setActiveSlideComponent } = useActiveSlideComponent();
     const { activeFieldComponent, setActiveFieldComponent } = useActiveFieldComponent();
@@ -653,6 +702,11 @@ export default function useFormFieldsAtom() {
     return {
         formFields,
         setFormFields,
+        initFormFields,
+        undo,
+        redo,
+        canUndo,
+        canRedo,
         addField,
         addSlide,
         deleteSlide,

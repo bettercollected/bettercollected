@@ -8,8 +8,10 @@ import { JUMP_TARGET_SUBMIT, LogicalOperator, PageJump } from '@app/models/types
 import { useActiveFieldComponent, useActiveSlideComponent } from '@app/store/jotai/active-builder-component';
 import useFormFieldsAtom from '@app/store/jotai/field-selectors';
 import { fieldHasLogic, isJumpTargetValid } from '@app/utils/conditional-logic';
-import { buildSourceFields, newConditionFor, pageLabel } from '@app/views/molecules/form-builder/condition-editor-shared';
+import { buildSourceFields, fieldText, newConditionFor, pageLabel } from '@app/views/molecules/form-builder/condition-editor-shared';
 import PageJumpEditor from '@app/views/molecules/form-builder/page-jump-editor';
+import PropertiesDrawer from '@app/views/organism/form-builder/properties-drawer';
+import SlideBuilder from '@app/views/organism/form-builder/slide-builder';
 import { AlertTriangle, Copy, LayoutGrid, PencilLine, Plus, Trash2, X } from 'lucide-react';
 import { v4 } from 'uuid';
 
@@ -35,6 +37,16 @@ function PageNode({ data, selected }: NodeProps<Node<any>>) {
             <Handle id="jump-in" type="target" position={Position.Left} style={{ background: JUMP_COLOR, width: 9, height: 9 }} />
             <span className="text-black-400 text-[10px] font-semibold uppercase tracking-wide">Page {data.pageNumber}</span>
             <span className="text-black-900 truncate text-sm font-semibold">{data.label}</span>
+            {data.questions?.length > 0 && (
+                <div className="flex flex-col gap-0.5">
+                    {data.questions.map((q: string, i: number) => (
+                        <span key={i} className="text-black-500 truncate text-[11px]">
+                            · {q}
+                        </span>
+                    ))}
+                    {data.questionCount > data.questions.length && <span className="text-black-400 text-[11px]">+{data.questionCount - data.questions.length} more</span>}
+                </div>
+            )}
             <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
                 <span className="text-black-500">
                     {data.questionCount} question{data.questionCount === 1 ? '' : 's'}
@@ -80,6 +92,24 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
     const selectedIndex = slides.findIndex((s) => s.id === selectedId);
     const selectedSlide = selectedIndex >= 0 ? slides[selectedIndex] : undefined;
 
+    // Page-editor overlay (double-click / "Edit content") — edit a page without
+    // leaving the flow. Reuses the builder's SlideBuilder + PropertiesDrawer.
+    const [overlayId, setOverlayId] = useState<string | null>(null);
+    const overlayIndex = slides.findIndex((s) => s.id === overlayId);
+    const overlaySlide = overlayIndex >= 0 ? slides[overlayIndex] : undefined;
+
+    // Same scale-to-fit trick as the main editor: the slide lays out at viewport
+    // size and is CSS-scaled into the available overlay area.
+    const overlayScaleStyle = useMemo(() => {
+        if (typeof window === 'undefined' || !overlaySlide) return undefined;
+        const availW = window.innerWidth - 280 - 120; // properties drawer + margins
+        const availH = window.innerHeight - 150;
+        if (availW / (16 / 9) > availH) {
+            return { height: '100vh', scale: availH / window.innerHeight, transformOrigin: 'top left' } as React.CSSProperties;
+        }
+        return { width: '100vw', scale: availW / window.innerWidth, transformOrigin: 'top left' } as React.CSSProperties;
+    }, [overlaySlide]);
+
     /* ------------ derive nodes/edges from the form model ------------ */
 
     const buildNodes = useCallback((): Node[] => {
@@ -91,6 +121,7 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
                 label: pageLabel(slide, i).replace(/^Page \d+ · /, '') || 'Untitled page',
                 pageNumber: i + 1,
                 questionCount: slide.properties?.fields?.length ?? 0,
+                questions: (slide.properties?.fields ?? []).slice(1, 3).map((f) => fieldText(f)),
                 showHideCount: slide.properties?.fields?.filter((f) => fieldHasLogic(f)).length ?? 0,
                 brokenCount: ((slide.properties?.jumps as PageJump[] | undefined) ?? []).filter((j) => j?.conditions?.length && !isJumpTargetValid(j.target, slideIds)).length
             }
@@ -166,17 +197,17 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
 
     /* ------------------------------ actions ------------------------------ */
 
-    const focusInBuilder = (slideId: string, slideIndex: number) => {
-        setActiveFieldComponent(null);
-        setActiveSlideComponent({ id: slideId, index: slideIndex });
-        onClose?.();
-    };
-
     const selectSlide = (slideId: string | null) => {
         setSelectedId(slideId);
         const idx = slides.findIndex((s) => s.id === slideId);
         // Keep the builder's active slide in sync so PageJumpEditor edits the right page.
         if (idx >= 0) setActiveSlideComponent({ id: slideId!, index: idx });
+    };
+
+    const openPageEditor = (slideId: string) => {
+        selectSlide(slideId);
+        setActiveFieldComponent(null);
+        setOverlayId(slideId);
     };
 
     const onConnect = useCallback(
@@ -232,7 +263,7 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
     };
 
     return (
-        <div className="flex h-full w-full flex-col bg-white">
+        <div className="relative flex h-full w-full flex-col bg-white">
             {/* header */}
             <div className="border-b-black-200 flex items-center justify-between border-b px-6 py-3">
                 <div>
@@ -265,8 +296,11 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
                         onEdgesDelete={onEdgesDelete}
                         onNodeClick={(_, node) => selectSlide(node.type === 'page' ? node.id : null)}
                         onNodeDoubleClick={(_, node) => {
-                            const idx = slides.findIndex((s) => s.id === node.id);
-                            if (idx >= 0) focusInBuilder(node.id, idx);
+                            if (node.type === 'page') openPageEditor(node.id);
+                        }}
+                        onEdgeClick={(_, edge) => {
+                            const slideId = (edge.data as { slideId?: string } | undefined)?.slideId;
+                            if (slideId) selectSlide(slideId);
                         }}
                         onNodeDragStop={(_, node) => {
                             const idx = slides.findIndex((s) => s.id === node.id);
@@ -294,7 +328,7 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
                                     <div className="text-black-900 truncate text-sm font-semibold">{pageLabel(selectedSlide, selectedIndex).replace(/^Page \d+ · /, '') || 'Untitled page'}</div>
                                 </div>
                                 <div className="flex items-center gap-2">
-                                    <button onClick={() => focusInBuilder(selectedSlide.id, selectedIndex)} className="bg-brand-500 hover:bg-brand-600 flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-medium text-white">
+                                    <button onClick={() => openPageEditor(selectedSlide.id)} className="bg-brand-500 hover:bg-brand-600 flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-medium text-white">
                                         <PencilLine className="h-3.5 w-3.5" /> Edit content
                                     </button>
                                     <button
@@ -328,6 +362,32 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
                     )}
                 </div>
             </div>
+
+            {/* Page-editor overlay — edit content without leaving the flow */}
+            {overlaySlide && (
+                <div className="absolute inset-0 z-30 flex flex-col bg-black/40 p-5" onClick={() => setOverlayId(null)}>
+                    <div className="flex min-h-0 flex-1 overflow-hidden rounded-xl bg-white shadow-2xl" onClick={(e) => e.stopPropagation()}>
+                        <div className="bg-new-white-200 relative flex min-w-0 flex-1 flex-col overflow-hidden">
+                            <div className="border-b-black-200 flex items-center justify-between border-b bg-white px-4 py-2.5">
+                                <div className="text-black-800 text-sm font-semibold">
+                                    Page {overlayIndex + 1} · <span className="text-black-500 font-normal">changes save automatically</span>
+                                </div>
+                                <button onClick={() => setOverlayId(null)} className="border-black-300 text-black-700 hover:border-brand-500 hover:text-brand-600 flex items-center gap-1 rounded-md border px-2.5 py-1 text-xs font-medium">
+                                    <X className="h-3.5 w-3.5" /> Back to flow
+                                </button>
+                            </div>
+                            <div className="flex min-h-0 flex-1 items-start justify-center overflow-auto p-6">
+                                <div className="!shadow-slide aspect-video overflow-hidden" style={overlayScaleStyle}>
+                                    <SlideBuilder slide={overlaySlide} />
+                                </div>
+                            </div>
+                        </div>
+                        <div className="border-l-black-200 w-[280px] shrink-0 overflow-y-auto border-l bg-white">
+                            <PropertiesDrawer />
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

@@ -25,7 +25,7 @@ import HelpMenuItem from '@Components/sidebar/help-menu-item';
 
 export default function FormEditPage(props: { params: Promise<{ form_id: string }> }) {
     const params = use(props.params);
-    const { formFields, setFormFields } = useFormFieldsAtom();
+    const { formFields, setFormFields, initFormFields } = useFormFieldsAtom();
     const { setFormState, formState, } = useFormState();
 
     const { activeSlideComponent } = useActiveSlideComponent();
@@ -117,7 +117,7 @@ export default function FormEditPage(props: { params: Promise<{ form_id: string 
                 setFormState(form);
             }
             const deepCopiedFormFields = deepCopy(standardForm?.fields || []);
-            setFormFields(deepCopiedFormFields);
+            initFormFields(deepCopiedFormFields);
             setNavbarState({
                 ...navbarState,
                 multiplePages: !!standardForm.isMultiPage

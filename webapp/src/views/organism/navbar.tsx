@@ -26,8 +26,9 @@ import { NewBetterCollectedSmallLogo } from '@Components/icons/bettercollected-s
 import { LogicOutlinedIcon } from '@Components/icons/logic-outlined-icon';
 import { PlusOutlined } from '@Components/icons/plus-outlined';
 import { TextOutlinedIcon } from '@Components/icons/text-outlined';
-import { PlayIcon } from 'lucide-react';
-import { useState } from 'react';
+import { slideHasLogic } from '@app/utils/conditional-logic';
+import { PlayIcon, Redo2, Undo2 } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
 import InsertFieldComponent from '../molecules/dialogs/insert-field-modal';
 import BackButton from '../molecules/form-builder/back-button';
@@ -39,7 +40,7 @@ import PublishButton from '../molecules/form-builder/publish-button';
 import Form from './form/form';
 
 const Navbar = () => {
-    const { formFields, addField } = useFormFieldsAtom();
+    const { formFields, addField, undo, redo, canUndo, canRedo } = useFormFieldsAtom();
     const { activeSlideComponent } = useActiveSlideComponent();
     const { formState, setFormTitle } = useFormState();
     const { toast } = useToast();
@@ -90,6 +91,44 @@ const Navbar = () => {
         resetResponderState();
         resetFormResponseAnswer();
     };
+
+    // Default-view heuristic: forms that already branch open in the Flow view
+    // (once per form — closing it remembers the preference in localStorage).
+    const flowAutoOpened = useRef(false);
+    useEffect(() => {
+        const formId = standardForm?.formId;
+        if (!formId || flowAutoOpened.current) return;
+        if (!(formFields || []).some((slide) => slideHasLogic(slide))) return;
+        if (localStorage.getItem(`bc-default-view-${formId}`)) return;
+        flowAutoOpened.current = true;
+        setFlowViewOpen(true);
+    }, [standardForm?.formId, formFields]);
+
+    const handleFlowViewOpenChange = (open: boolean) => {
+        setFlowViewOpen(open);
+        // Closing counts as choosing the page view; don't auto-open this form again.
+        if (!open && standardForm?.formId) localStorage.setItem(`bc-default-view-${standardForm.formId}`, 'page');
+    };
+
+    // Builder-wide undo/redo shortcuts. Text inputs and the Tiptap title editors
+    // keep their own native/undo handling — we only act when focus is elsewhere.
+    useEffect(() => {
+        const onKeyDown = (e: KeyboardEvent) => {
+            const target = e.target as HTMLElement | null;
+            if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) return;
+            if (!(e.ctrlKey || e.metaKey)) return;
+            const key = e.key.toLowerCase();
+            if (key === 'z' && !e.shiftKey) {
+                e.preventDefault();
+                undo();
+            } else if (key === 'y' || (key === 'z' && e.shiftKey)) {
+                e.preventDefault();
+                redo();
+            }
+        };
+        window.addEventListener('keydown', onKeyDown);
+        return () => window.removeEventListener('keydown', onKeyDown);
+    });
 
     const makeTemplate = async () => {
         const response: any = await createTemplateFromForm({
@@ -176,26 +215,26 @@ const Navbar = () => {
                         </button>
                     </DropdownMenu>
 
-                    <Sheet open={flowViewOpen} onOpenChange={setFlowViewOpen}>
-                        <SheetTrigger asChild>
-                            <button data-umami-event={'Open Logic Map'} data-umami-event-email={authState.email}>
-                                <div className={'flex items-center hover:bg-inherit'}>
-                                    <div className="!text-black-500 hover:!text-black-900 flex flex-row items-center gap-1 text-xs font-semibold ">
-                                        <LogicOutlinedIcon />
-                                        Logic
-                                    </div>
-                                </div>
-                            </button>
-                        </SheetTrigger>
-                        <SheetContent className="h-full w-full p-0" side={'bottom'} hideCloseIcon>
-                            <SheetTitle className="sr-only">Flow view</SheetTitle>
-                            <FlowView onClose={() => setFlowViewOpen(false)} />
-                        </SheetContent>
-                    </Sheet>
+                    <button data-umami-event={'Open Flow View'} data-umami-event-email={authState.email} onClick={() => setFlowViewOpen(true)}>
+                        <div className={'flex items-center hover:bg-inherit'}>
+                            <div className="!text-black-500 hover:!text-black-900 flex flex-row items-center gap-1 text-xs font-semibold ">
+                                <LogicOutlinedIcon />
+                                Logic
+                            </div>
+                        </div>
+                    </button>
                 </div>
             )}
 
             <div className={'flex flex-1 items-center justify-end  gap-2'}>
+                <div className="mr-1 flex items-center gap-1">
+                    <button aria-label="Undo" title="Undo (Ctrl+Z)" disabled={!canUndo} onClick={undo} className="text-black-600 hover:text-black-900 rounded-md p-1.5 hover:bg-black-100 disabled:opacity-30 disabled:hover:bg-transparent">
+                        <Undo2 className="h-4 w-4" />
+                    </button>
+                    <button aria-label="Redo" title="Redo (Ctrl+Shift+Z)" disabled={!canRedo} onClick={redo} className="text-black-600 hover:text-black-900 rounded-md p-1.5 hover:bg-black-100 disabled:opacity-30 disabled:hover:bg-transparent">
+                        <Redo2 className="h-4 w-4" />
+                    </button>
+                </div>
                 <Sheet>
                     <SheetTrigger asChild>
                         <Button icon={<PlayIcon />} variant={'v2Button'} data-umami-event={`Preview Button`} data-umami-event-email={authState.email}>
@@ -224,6 +263,15 @@ const Navbar = () => {
 
                 <PublishButton />
             </div>
+
+            {/* Flow view — mounted at the navbar root so the default-view heuristic
+                can open it regardless of which page (if any) is active. */}
+            <Sheet open={flowViewOpen} onOpenChange={handleFlowViewOpenChange}>
+                <SheetContent className="h-full w-full p-0" side={'bottom'} hideCloseIcon>
+                    <SheetTitle className="sr-only">Flow view</SheetTitle>
+                    <FlowView onClose={() => handleFlowViewOpenChange(false)} />
+                </SheetContent>
+            </Sheet>
         </div>
     );
 };
