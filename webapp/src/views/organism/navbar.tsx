@@ -29,7 +29,7 @@ import { TextOutlinedIcon } from '@Components/icons/text-outlined';
 import { PlayIcon } from 'lucide-react';
 import { useState } from 'react';
 import InsertFieldComponent from '../molecules/dialogs/insert-field-modal';
-import LogicOverview from '../molecules/form-builder/logic-overview';
+import LogicMap from '../molecules/form-builder/logic-map';
 import BackButton from '../molecules/form-builder/back-button';
 import PreviewWrapper from '../molecules/form-builder/preview-wrapper';
 import PublishButton from '../molecules/form-builder/publish-button';
@@ -42,7 +42,7 @@ const Navbar = () => {
     const { toast } = useToast();
 
     const [insertDropdownOpen, setInsertDropdownOpen] = useState(false);
-    const [logicDropdownOpen, setLogicDropdownOpen] = useState(false);
+    const [logicMapOpen, setLogicMapOpen] = useState(false);
 
     const [createTemplateFromForm, { isLoading: isCreatingTemplate }] = useCreateTemplateFromFormMutation();
 
@@ -173,23 +173,22 @@ const Navbar = () => {
                         </button>
                     </DropdownMenu>
 
-                    <DropdownMenu open={logicDropdownOpen} onOpenChange={setLogicDropdownOpen}>
-                        <DropdownMenu.Trigger>
-                            <div className={'flex items-center hover:bg-inherit'}>
-                                <div className="!text-black-500 hover:!text-black-900 flex flex-row items-center gap-1 text-xs font-semibold ">
-                                    <LogicOutlinedIcon />
-                                    Logic
+                    <Sheet open={logicMapOpen} onOpenChange={setLogicMapOpen}>
+                        <SheetTrigger asChild>
+                            <button data-umami-event={'Open Logic Map'} data-umami-event-email={authState.email}>
+                                <div className={'flex items-center hover:bg-inherit'}>
+                                    <div className="!text-black-500 hover:!text-black-900 flex flex-row items-center gap-1 text-xs font-semibold ">
+                                        <LogicOutlinedIcon />
+                                        Logic
+                                    </div>
                                 </div>
-                            </div>
-                        </DropdownMenu.Trigger>
-                        <AnimatePresence key="logic-dropdown" initial={false} mode="wait">
-                            {logicDropdownOpen && (
-                                <DropdownMenuContent key="logic-dropdown" className="border-none bg-transparent p-0 shadow-none">
-                                    <LogicOverview onClose={() => setLogicDropdownOpen(false)} />
-                                </DropdownMenuContent>
-                            )}
-                        </AnimatePresence>
-                    </DropdownMenu>
+                            </button>
+                        </SheetTrigger>
+                        <SheetContent className="h-full w-full p-0" side={'bottom'} hideCloseIcon>
+                            <SheetTitle className="sr-only">Logic map</SheetTitle>
+                            <LogicMap onClose={() => setLogicMapOpen(false)} />
+                        </SheetContent>
+                    </Sheet>
                 </div>
             )}
 
