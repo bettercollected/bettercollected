@@ -128,3 +128,55 @@ class UmamiClient:
     @make_request("metrics")
     async def fetch_form_metrics(self, params: Dict[str, Any]) -> Dict[str, Any]:
         return params
+
+
+async def provision_umami_website() -> str:
+    """Find-or-create the Umami website by name and return its id.
+
+    Runs once at backend startup (see asgi.py) when UMAMI_WEBSITE_ID is unset
+    but UMAMI_URL/USERNAME/PASSWORD are — lets self-hosters skip creating a
+    website by hand in the Umami UI and copying its id into config. This is
+    intentionally separate from UmamiClient.authenticate(), which requires a
+    website id up front; provisioning runs *before* one exists.
+    """
+    umami_settings = settings.umami_settings
+    if not umami_settings.has_credentials:
+        raise HTTPException(
+            status_code=HTTPStatus.SERVICE_UNAVAILABLE,
+            content="Umami is not configured (UMAMI_URL/UMAMI_USERNAME/UMAMI_PASSWORD).",
+        )
+
+    async with httpx.AsyncClient() as client:
+        login = await client.post(
+            f"{umami_settings.URL}/api/auth/login",
+            json={"username": umami_settings.USERNAME, "password": umami_settings.PASSWORD},
+            timeout=30,
+        )
+        login.raise_for_status()
+        token = login.json().get("token")
+        if not token:
+            raise HTTPException(
+                status_code=HTTPStatus.UNAUTHORIZED,
+                content="Umami authentication token not found",
+            )
+        headers = {"Authorization": f"Bearer {token}"}
+
+        existing = await client.get(
+            f"{umami_settings.URL}/api/websites",
+            headers=headers,
+            params={"pageSize": 100, "query": umami_settings.WEBSITE_NAME},
+            timeout=30,
+        )
+        existing.raise_for_status()
+        for website in existing.json().get("data", []):
+            if website.get("name") == umami_settings.WEBSITE_NAME:
+                return website["id"]
+
+        created = await client.post(
+            f"{umami_settings.URL}/api/websites",
+            headers=headers,
+            json={"name": umami_settings.WEBSITE_NAME, "domain": ""},
+            timeout=30,
+        )
+        created.raise_for_status()
+        return created.json()["id"]

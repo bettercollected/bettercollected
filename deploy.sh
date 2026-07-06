@@ -3,7 +3,7 @@
 user_preference="$1"
 
 # Array to hold selected services
-services_to_start=("mongodb" "mongo-seed" "webapp" "nginx" "backend" "auth" "postgresql" "temporal" "worker")
+services_to_start=("mongodb" "mongo-seed" "webapp" "nginx" "backend" "auth" "postgresql" "temporal" "worker" "umami-postgresql" "umami")
 
 # Determine the appropriate Docker Compose command
 if command -v docker-compose &>/dev/null; then
@@ -19,6 +19,15 @@ elif command -v docker &>/dev/null; then
 else
   echo "Docker is not installed. Please install Docker and Docker Compose."
   exit 1
+fi
+
+# docker-compose.deployment.yml substitutes ${UMAMI_APP_SECRET} itself (it's not
+# read from .env.deployment, which only supplies container env, not compose
+# variable substitution) — generate one on first run and persist it to a root
+# .env so `docker compose` picks it up automatically on every subsequent run.
+if [ ! -f .env ] || ! grep -q "^UMAMI_APP_SECRET=" .env 2>/dev/null; then
+  echo "UMAMI_APP_SECRET=$(openssl rand -hex 32)" >> .env
+  echo "Generated a new UMAMI_APP_SECRET in .env (first run)."
 fi
 
 # Common docker function

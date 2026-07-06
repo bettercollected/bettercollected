@@ -34,6 +34,15 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
   `/{workspace_name}/forms/{slug}` path from the webapp regardless of
   client-host vs. custom-domain routing. See `backend/AGENTS.md`
   "Analytics (Umami)" and `plans/umami-self-hosted-form-analytics.md`.
+- Umami website auto-provisioning: the backend now finds-or-creates its
+  Umami website by name on startup, so self-hosters no longer have to log
+  into the Umami UI and copy a website id into config by hand.
+- `docker-compose.deployment.yml` hardening: real health checks (Mongo,
+  Postgres, Temporal, backend, auth, Umami) with `depends_on:
+  condition: service_healthy` gating, so services actually wait for their
+  dependencies to be ready instead of just "started." `deploy.sh` now starts
+  Umami too (previously missing) and auto-generates `UMAMI_APP_SECRET` on
+  first run.
 
 ### Changed
 
@@ -71,6 +80,18 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
 - Local dev: `nginx-local.conf` 502'd on the client-host/custom-domain ports
   (e.g. a form's share URL) because it proxied to `localhost:3000`, which
   inside the nginx container isn't the host where webapp/backend actually run.
+- `docker-compose.deployment.yml`: Temporal's `DB=postgresql` was never a
+  valid driver name (`temporalio/auto-setup` only accepts `postgres12`,
+  `postgres12_pgx`, `mysql8`, `cassandra`) — Temporal has likely never
+  started successfully via this compose file; this only surfaced once a real
+  health check was added instead of just checking the container was running.
+  Also pinned `postgres:latest` (temporal's Postgres) to `postgres:15-alpine`
+  and moved it to a named volume — an unpinned tag had already drifted to
+  Postgres 18, which refuses to start against an older major version's data
+  directory.
+- `install.sh` referenced Poetry and a per-service `Makefile`, neither of
+  which exist anymore since the Python services moved to `uv` — the script
+  was fully broken. Rewritten to `uv sync` per service.
 - Backend boots without an `OPENAI_API_KEY` (OpenAI client is created lazily).
 - Forms listing/pagination failure (fastapi-pagination under Starlette 1.x).
 - Login "Failed to send OTP" flow (route, API host, and cookie-domain issues).

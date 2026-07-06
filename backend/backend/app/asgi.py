@@ -22,6 +22,7 @@ from backend.app.handlers import init_logging
 from backend.app.handlers.database import close_db, init_db
 from backend.app.middlewares import DynamicCORSMiddleware, include_middlewares
 from backend.app.router import root_api_router
+from backend.app.services.umami_client import provision_umami_website
 from backend.app.utils import AiohttpClient
 from scripts.seed_flow_templates import seed_flow_templates
 
@@ -43,6 +44,22 @@ async def lifespan(app: FastAPI):
         client = AsyncMongoClient(settings.mongo_settings.URI)
         container.database_client.override(providers.Object(client))
     await init_db(settings.mongo_settings.DB, client)
+
+    # Auto-provision the Umami website (find-or-create by UMAMI_WEBSITE_NAME)
+    # when UMAMI_WEBSITE_ID isn't already set — lets self-hosters skip creating
+    # a website by hand in the Umami UI. No-op without UMAMI_URL/USERNAME/
+    # PASSWORD; never blocks startup on failure (Umami may not be up yet on a
+    # fresh deploy — analytics endpoints just stay unavailable until it is and
+    # the backend is restarted). See backend/AGENTS.md "Analytics (Umami)".
+    if settings.umami_settings.has_credentials and not settings.umami_settings.WEBSITE_ID:
+        try:
+            settings.umami_settings.WEBSITE_ID = await provision_umami_website()
+            logger.info(
+                f"Umami website resolved: {settings.umami_settings.WEBSITE_ID} "
+                f"(name={settings.umami_settings.WEBSITE_NAME!r})"
+            )
+        except Exception:
+            logger.exception("Umami website auto-provisioning failed; continuing startup.")
 
     # Auto-seed the flow-native template gallery (idempotent — skips templates
     # that already exist). Gated by DEFAULT_SEED_FLOW_TEMPLATES (default on) and

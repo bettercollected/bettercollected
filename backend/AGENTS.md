@@ -91,11 +91,16 @@ BetterCollected-hosted Umami; that's gone — see `plans/umami-self-hosted-form-
 and architecture.
 
 - **Local dev:** `docker compose -f docker-compose.local.yml up` starts Umami at `http://localhost:3003` (default
-  login `admin`/`umami` — change it). Create a website there, copy its id into `UMAMI_WEBSITE_ID`.
-- **Config** (`config/UmamiSettings.py`, env prefix `UMAMI_`): `URL`, `USERNAME`, `PASSWORD`, `WEBSITE_ID` — all four
-  required. `UmamiClient.authenticate()` checks `settings.umami_settings.is_configured` up front and raises a clean
-  503 ("Analytics is not configured on this instance.") instead of attempting a doomed login — check this first if
-  the analytics endpoints 503 unexpectedly.
+  login `admin`/`umami` — change it). No need to create a website by hand — see auto-provisioning below.
+- **Config** (`config/UmamiSettings.py`, env prefix `UMAMI_`): `URL`, `USERNAME`, `PASSWORD` are required (`has_credentials`);
+  `WEBSITE_ID` is optional. `UmamiClient.authenticate()` checks `settings.umami_settings.is_configured` (credentials
+  *and* a website id) up front and raises a clean 503 ("Analytics is not configured on this instance.") instead of
+  attempting a doomed login — check this first if the analytics endpoints 503 unexpectedly.
+- **Website auto-provisioning:** if `WEBSITE_ID` is unset but credentials are present, `asgi.py`'s `lifespan` calls
+  `umami_client.provision_umami_website()` on every startup — it finds a website named `WEBSITE_NAME` (default
+  `"BetterCollected"`) or creates one, then sets `settings.umami_settings.WEBSITE_ID` in memory for the rest of the
+  process. Idempotent (matches by exact name, never creates a duplicate); never blocks startup (logs and continues
+  if Umami isn't reachable yet). Set `WEBSITE_ID` explicitly to skip this and pin a specific website.
 - **Gotcha this file already tripped on:** the app's custom `HTTPException` (`app/exceptions/http.py`) takes a
   `content=` kwarg, not FastAPI's `detail=` — passing `detail=` raises a `TypeError` instead of the intended clean
   error. Already fixed in `umami_client.py`; keep this in mind if you add more raises there.
