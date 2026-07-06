@@ -65,6 +65,12 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
   `TypeError` instead of a clean HTTP error (the app's custom `HTTPException`
   takes `content=`, not `detail=`); a failed retry after a 401 also went
   unchecked instead of surfacing a clean error.
+- Form analytics `/stats` endpoint 500'd against current self-hosted Umami's
+  response shape (flat ints + a `comparison` object, not nested `{value,
+  prev}` per metric) — surfaced once Umami was actually reachable end-to-end.
+- Local dev: `nginx-local.conf` 502'd on the client-host/custom-domain ports
+  (e.g. a form's share URL) because it proxied to `localhost:3000`, which
+  inside the nginx container isn't the host where webapp/backend actually run.
 - Backend boots without an `OPENAI_API_KEY` (OpenAI client is created lazily).
 - Forms listing/pagination failure (fastapi-pagination under Starlette 1.x).
 - Login "Failed to send OTP" flow (route, API host, and cookie-domain issues).
