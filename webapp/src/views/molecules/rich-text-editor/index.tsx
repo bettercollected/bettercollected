@@ -130,16 +130,20 @@ const getActiveFontSize = (editor?: Editor) => {
 
 const TiptapMenuBar = () => {
     const editorRef = useCurrentEditor();
-    const FontSizes = [8, 10, 12, 14, 16, 18, 20, 24, 28, 32, 40, 48, 64];
+    // Constrain label sizing to the type scale (Design-Language.md §2) so creators
+    // stay on a coherent hierarchy: Meta 12 · Helper/Consent 15 · Body/Input 16 ·
+    // Question 24 · Display 32. No off-scale steps that break the reading rhythm.
+    const FontSizes = [12, 15, 16, 24, 32];
     const editor = editorRef.editor;
     if (!editor) {
         return null;
     }
 
     const handleUpdateFontSize = (value = 0) => {
-        const activeFontSize = (getActiveFontSize(editor) as number) || 18;
+        const activeFontSize = (getActiveFontSize(editor) as number) || 16;
         const currentActiveIndex = FontSizes.findIndex((num) => num == activeFontSize);
-        const newSize = currentActiveIndex + value;
+        // Clamp to the ends of the scale so stepping never lands on undefined.
+        const newSize = Math.min(Math.max(currentActiveIndex + value, 0), FontSizes.length - 1);
         editor?.chain().focus().setFontSize(`${FontSizes[newSize]}`).run();
     };
 
@@ -154,7 +158,7 @@ const TiptapMenuBar = () => {
             <div className="flex flex-row items-center justify-center gap-4">
                 <span className="p3-new font-medium">Text</span>
                 <div className="flex items-center gap-1">
-                    <span className="p3-new text-black-700 w-[21px]">{getActiveFontSize(editor) || 18}</span>
+                    <span className="p3-new text-black-700 w-[21px]">{getActiveFontSize(editor) || 16}</span>
                     <div className="flex flex-col">
                         <div
                             className="cursor-pointer"
