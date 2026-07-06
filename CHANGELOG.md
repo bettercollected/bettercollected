@@ -27,6 +27,13 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
   Job application with screening) auto-seeded on every startup — idempotent,
   gated by `DEFAULT_SEED_FLOW_TEMPLATES`/`DEFAULT_WORKSPACE_ID`. See
   `backend/AGENTS.md` "Seed scripts" for the env vars and how to add more.
+- Self-hosted product analytics: Umami now ships as a first-class Docker
+  Compose service (its own Postgres, admin UI on `:3003`) instead of a
+  BetterCollected-hosted default — no self-hosted deployment now silently
+  phones home. Form views are attributed to a canonical
+  `/{workspace_name}/forms/{slug}` path from the webapp regardless of
+  client-host vs. custom-domain routing. See `backend/AGENTS.md`
+  "Analytics (Umami)" and `plans/umami-self-hosted-form-analytics.md`.
 
 ### Changed
 
@@ -54,6 +61,10 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
 - Invalid nested `<button>` in the form-published modal.
 - Analytics now distinguishes a genuine load error (with a retry) from an
   empty state.
+- Backend Umami client (`umami_client.py`): error paths raised a raw
+  `TypeError` instead of a clean HTTP error (the app's custom `HTTPException`
+  takes `content=`, not `detail=`); a failed retry after a 401 also went
+  unchecked instead of surfacing a clean error.
 - Backend boots without an `OPENAI_API_KEY` (OpenAI client is created lazily).
 - Forms listing/pagination failure (fastapi-pagination under Starlette 1.x).
 - Login "Failed to send OTP" flow (route, API host, and cookie-domain issues).

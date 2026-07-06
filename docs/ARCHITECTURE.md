@@ -127,12 +127,16 @@ The backend can migrate legacy **APScheduler** jobs into Temporal Schedules on s
 ## Observability
 
 Sentry + Elastic APM are initialized across services (backend `asgi.py`, and the Python services generally). Product
-analytics use **Umami** (`umami_client.py` + `analytics_service.py`; webapp proxies `/script.js`). Transactional email
+analytics use **Umami**, self-hosted as its own compose service (`umami_client.py` + `analytics_service.py` query it;
+the webapp loads its tracker script directly from `UMAMI_SCRIPT_URL` and calls `umami.track()` to attribute public
+form views to a canonical `/{workspace_name}/forms/{slug}` path regardless of client-host vs. custom-domain routing —
+see `backend/AGENTS.md` "Analytics (Umami)" and `plans/umami-self-hosted-form-analytics.md`). Transactional email
 and events go through **Brevo** / SMTP (`brevo_service.py`, `mail_service.py`).
 
 ## Deployment
 
 - Images built per service (`.github/workflows/build-images.yml`), tagged `bettercollected/<service>:nightly`.
 - `docker-compose.deployment.yml` runs the full stack (webapp, backend, auth, both integrations, temporal + workers,
-  mongo + seed, postgres, nginx). `deploy.sh` / `Dockerfile.*.mongo-seed` handle seeding.
-- nginx (`nginx-deployment.conf`) fronts the admin/client/custom-domain hosts.
+  mongo + seed, postgres, nginx, **umami + its own postgres**). `deploy.sh` / `Dockerfile.*.mongo-seed` handle seeding.
+- nginx (`nginx-deployment.conf`) fronts the admin/client/custom-domain hosts. Umami's admin UI is exposed directly on
+  host port `3003` in this first pass (no nginx/TLS routing yet).

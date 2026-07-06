@@ -2,6 +2,7 @@ version: '3.7'
 
 volumes:
     mongo-data:
+    umami-db-data:
 
 services:
     mongodb:
@@ -46,3 +47,36 @@ services:
         environment:
             MP_SMTP_AUTH_ACCEPT_ANY: 'true'
             MP_SMTP_AUTH_ALLOW_INSECURE: 'true'
+
+    # Self-hosted product analytics (see plans/umami-self-hosted-form-analytics.md).
+    # Admin UI: http://localhost:3003 — default login admin/umami, change it, then
+    # create a website and copy its id into backend UMAMI_WEBSITE_ID and webapp
+    # UMAMI_WEBSITE_ID. backend/webapp run on the host here (not in compose), so
+    # they reach Umami via http://localhost:3003, not the internal service name.
+    umami-postgresql:
+        image: postgres:15-alpine
+        restart: unless-stopped
+        environment:
+            POSTGRES_DB: umami
+            POSTGRES_USER: umami
+            POSTGRES_PASSWORD: umami
+        volumes:
+            - umami-db-data:/var/lib/postgresql/data
+        healthcheck:
+            test: ['CMD-SHELL', 'pg_isready -U umami -d umami']
+            interval: 5s
+            timeout: 5s
+            retries: 5
+
+    umami:
+        image: ghcr.io/umami-software/umami:postgresql-latest
+        restart: unless-stopped
+        ports:
+            - '3003:3000'
+        environment:
+            DATABASE_URL: postgresql://umami:umami@umami-postgresql:5432/umami
+            # Local-only placeholder — deployment must override with a real secret.
+            APP_SECRET: local-dev-only-umami-app-secret
+        depends_on:
+            umami-postgresql:
+                condition: service_healthy

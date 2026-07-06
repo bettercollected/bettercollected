@@ -7,7 +7,11 @@ class UmamiSettings(BaseSettings):
 
     USERNAME: Optional[str] = ""
     PASSWORD: Optional[str] = ""
-    WEBSITE_ID: Optional[str] = "305e6851-f6fc-4640-8cbf-6f749768d118"
-    URL: str = "https://umami.sireto.io"
+    WEBSITE_ID: Optional[str] = ""
+    URL: Optional[str] = ""
 
     model_config = SettingsConfigDict(env_prefix="UMAMI_")
+
+    @property
+    def is_configured(self) -> bool:
+        return bool(self.URL and self.USERNAME and self.PASSWORD and self.WEBSITE_ID)

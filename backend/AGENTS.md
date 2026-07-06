@@ -83,6 +83,29 @@ up new/changed templates the next time it restarts, no manual step required.
   expect from an "unset" env var — double-check with a real value, not just `KEY=` in `.env`, if the gallery stays
   empty.
 
+## Analytics (Umami)
+
+Form-view analytics (`FormAnalyticsRouter` — `/{workspace_name}/forms/{slug}/{stats,pageviews,metrics}`) proxy a
+self-hosted [Umami](https://umami.is) instance via `services/umami_client.py`. It used to default to a
+BetterCollected-hosted Umami; that's gone — see `plans/umami-self-hosted-form-analytics.md` for the full rationale
+and architecture.
+
+- **Local dev:** `docker compose -f docker-compose.local.yml up` starts Umami at `http://localhost:3003` (default
+  login `admin`/`umami` — change it). Create a website there, copy its id into `UMAMI_WEBSITE_ID`.
+- **Config** (`config/UmamiSettings.py`, env prefix `UMAMI_`): `URL`, `USERNAME`, `PASSWORD`, `WEBSITE_ID` — all four
+  required. `UmamiClient.authenticate()` checks `settings.umami_settings.is_configured` up front and raises a clean
+  503 ("Analytics is not configured on this instance.") instead of attempting a doomed login — check this first if
+  the analytics endpoints 503 unexpectedly.
+- **Gotcha this file already tripped on:** the app's custom `HTTPException` (`app/exceptions/http.py`) takes a
+  `content=` kwarg, not FastAPI's `detail=` — passing `detail=` raises a `TypeError` instead of the intended clean
+  error. Already fixed in `umami_client.py`; keep this in mind if you add more raises there.
+- Canonical path construction (`form_url = f"/{workspace_name}/forms/{slug}"`) must stay in sync with the webapp's
+  `trackCanonicalFormView` helper (`webapp/src/lib/analytics/umami.ts`) — both sides hard-code the same shape so
+  custom-domain and client-host traffic land under one path.
+- Deployment: `docker-compose.deployment.yml`'s `backend` service sets `UMAMI_URL=http://umami:3000` (internal
+  docker network) automatically — only `UMAMI_USERNAME`/`UMAMI_PASSWORD`/`UMAMI_WEBSITE_ID` need to come from
+  `.env.deployment`.
+
 ## Cross-service integration points
 
 - **Auth:** `services/auth_service.py` — OAuth state + OTP, JWT via `common.services.jwt_service`; refresh-token

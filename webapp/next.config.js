@@ -8,14 +8,6 @@ const nextConfig = {
         emotion: true,
         removeConsole: false
     },
-    async rewrites() {
-        return [
-            {
-                source: '/script.js',
-                destination: 'https://umami.sireto.io/script.js'
-            }
-        ];
-    },
     async headers() {
         return [
             {

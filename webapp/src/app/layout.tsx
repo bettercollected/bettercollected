@@ -76,12 +76,8 @@ export default function RootLayout({
     return (
         <html lang="en" suppressHydrationWarning>
             <body className={cn('max-h-screen overflow-auto', publicSans.variable, publicSans.className)}>
-                {environments.NEXT_PUBLIC_NODE_ENV === 'production' && environments.UMAMI_WEBSITE_ID && (
-                    <Script
-                        src="https://umami.sireto.io/script.js"
-                        data-website-id={environments.UMAMI_WEBSITE_ID}
-                        strategy="lazyOnload"
-                    />
+                {environments.UMAMI_SCRIPT_URL && environments.UMAMI_WEBSITE_ID && (
+                    <Script src={environments.UMAMI_SCRIPT_URL} data-website-id={environments.UMAMI_WEBSITE_ID} strategy="lazyOnload" />
                 )}
                 <SwRegister />
                 <script src="/api/config" defer></script>
