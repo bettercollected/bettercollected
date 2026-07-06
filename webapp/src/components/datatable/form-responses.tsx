@@ -100,11 +100,11 @@ export default function FormResponsesTable({ props }: any) {
     return (
         <div>
             <CSVLink data={csvDatas} filename={`${form.title}.csv`} className="btn btn-primary" target="_blank" id="csv_link" />
-            <div className={`mb-12 flex flex-col gap-2 px-2 md:px-28 lg:flex-row lg:justify-between`}>
+            <div className={`mb-6 flex flex-col gap-2 lg:flex-row lg:justify-between`}>
                 <div className="flex w-full flex-row justify-between">
                     {(isSubmission && form.responses) || (!isSubmission && form.deletionRequests) ? (
                         <div className="flex w-full flex-row items-center gap-4 ">
-                            <SearchInput handleSearch={handleSearch} placeholder={'Search Responses'} className="md:w-[282px]" />
+                            <SearchInput handleSearch={handleSearch} placeholder={'Search responses'} className="md:w-[282px]" />
                         </div>
                     ) : (
                         <></>
@@ -119,18 +119,29 @@ export default function FormResponsesTable({ props }: any) {
             {data && Array.isArray(data.items) && data.items.length ? (
                 <>{data && requestForDeletion ? <ResponsesTable formId={form.formId} requestForDeletion={requestForDeletion} page={page} setPage={setPage} submissions={data} /> : <TabularResponses form={form} />}</>
             ) : (
-                <EmptyTabularResponseComponent />
+                <EmptyTabularResponseComponent requestForDeletion={requestForDeletion} />
             )}
         </div>
     );
 }
 
-const EmptyTabularResponseComponent = () => {
+const EmptyTabularResponseComponent = ({ requestForDeletion }: { requestForDeletion?: boolean }) => {
+    // Deletion requests are a GDPR feature — the empty state should teach that,
+    // not borrow the responses copy (which can be factually wrong here).
+    if (requestForDeletion) {
+        return (
+            <div className={'flex flex-col items-center gap-2 py-10'}>
+                <EmptyResponseIcon />
+                <span className={'p3-new text-black'}>No deletion requests</span>
+                <span className={'p4-new text-black-600 max-w-[420px] text-center'}>When a responder asks for their response to be deleted, it shows up here for you to act on.</span>
+            </div>
+        );
+    }
     return (
-        <div className={'flex flex-col items-center gap-2 py-6'}>
+        <div className={'flex flex-col items-center gap-2 py-10'}>
             <EmptyResponseIcon />
             <span className={'p3-new text-black'}>No responses yet</span>
-            <span className={'p4-new text-black-600'}>This form doesn&apos;t have any responses yet.</span>
+            <span className={'p4-new text-black-600'}>Responses appear here as soon as someone fills out your form.</span>
         </div>
     );
 };

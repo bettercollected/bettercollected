@@ -13,8 +13,26 @@ export function getHtmlFromJson(value: JSONContent | string | undefined) {
     return generateHTML(value, Extenstions);
 }
 
+/**
+ * Plain-text rendering of a field title for creator-facing labels (table
+ * headers, CSV columns, logic-source lists, "Used Fields"). Walks the TipTap
+ * JSON directly instead of round-tripping through HTML, so answerPipe chips
+ * render as their human label ("Page 1 · Enter Question") rather than leaking
+ * editor syntax ("@Page 1 · Enter Question").
+ */
 export function extractTextfromJSON(field: StandardFormFieldDto): string {
-    const htmlValue = getHtmlFromJson(field.title) || getPlaceholderValueForTitle(field.type || FieldTypes.TEXT);
-    // .replace(/<[^>]+>/g, ' ')
-    return htmlValue.replace(/<\/?[^>]+(>|$)/g, '');
+    const title = field.title;
+    if (!title) return getPlaceholderValueForTitle(field.type || FieldTypes.TEXT);
+    if (typeof title === 'string') return title;
+
+    const walk = (node: any): string => {
+        if (!node) return '';
+        if (node.type === 'text') return node.text ?? '';
+        if (node.type === 'answerPipe') return node.attrs?.label || node.attrs?.pipeKey || '';
+        const joined = (node.content ?? []).map(walk).join('');
+        // Space between block nodes (paragraphs) so lines don't run together.
+        return node.type === 'doc' ? joined : joined;
+    };
+    const text = (title.content ?? []).map(walk).join(' ').trim();
+    return text || getPlaceholderValueForTitle(field.type || FieldTypes.TEXT);
 }

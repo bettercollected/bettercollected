@@ -78,6 +78,22 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
 
 ### Changed (trust-first design pass — responder form + builder)
 
+- **Form details page (dashboard) redesigned**: the 8-tab bar — which silently
+  overflowed and hid the Form Link and Analytics tabs entirely on desktop —
+  is now 5 always-visible tabs (Preview · Responses · Analytics · Share ·
+  Settings). Deletion requests became a segment inside Responses; Visibility
+  and Integrations became Settings sections (old URLs redirect); tabs use a
+  single active affordance with count badges. The header gained a real
+  breadcrumb and a plain-words meta line (Published/Draft chip, response
+  count, provenance) in place of an unlabeled provider glyph; Share is the
+  one primary action. Settings rows follow a label+description/control grid
+  with dividers between (not inside) settings, a locked state for Pro-gated
+  toggles, and a proper danger zone stating consequences. Preview shows
+  labelled page cards that open the full-screen preview. Anonymous responses
+  show a shield chip instead of "--"; creator-facing titles no longer leak
+  answer-piping editor syntax; every tab pane sits on one horizontal grid,
+  and pages end with a quiet "Version · Open form" line.
+
 - **Responder form redesigned to the trust-first design language**: questions
   now render at 24px/600 ink and answers at 16–18px ink (the input no longer
   out-shouts the question, and answers no longer render in link-blue); every
@@ -97,6 +113,10 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
 
 ### Fixed
 
+- Form details page: the Deletion Requests empty state showed the responses
+  copy ("No responses yet" on a form with responses); "bettercolleceted"
+  typo in the branding setting; preview cards had a pointer cursor but no
+  click behaviour and didn't survive window resizes.
 - **Identity sharing is now opt-in, and anonymity is actually enforced.** The
   "Show your identity" checkbox on the submit step arrived pre-checked
   (contradicting the no-dark-patterns design law) — it now starts unchecked,

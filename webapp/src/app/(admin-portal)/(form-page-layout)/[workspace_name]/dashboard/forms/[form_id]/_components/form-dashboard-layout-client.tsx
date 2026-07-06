@@ -8,19 +8,7 @@ import { useTranslation } from 'react-i18next';
 
 import Divider from '@Components/common/divider';
 import PrivateFormButtonWrapper from '@Components/common/private-form-button-wrapper';
-import {
-    BarChart,
-    Blocks,
-    ChevronRight,
-    Edit2,
-    Eye,
-    History,
-    Link2Icon,
-    Play,
-    Settings,
-    Share2,
-    Trash2
-} from 'lucide-react';
+import { Edit2, Play, Share2 } from 'lucide-react';
 
 import { useModal } from '@app/components/modal-views/context';
 import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
@@ -39,7 +27,6 @@ import getFormShareURL from '@app/utils/form-utils';
 import { getEditFormURL } from '@app/utils/url-utils';
 import { validateFormOpen } from '@app/utils/vvalidation-utils';
 import PublishButton from '@app/views/molecules/form-builder/publish-button';
-import FormProviderIcon from '@Components/icons/form-provider-icon';
 
 export default function FormDashboardLayoutClient({
     form,
@@ -78,56 +65,25 @@ export default function FormDashboardLayoutClient({
 
 
     const tabMenu = useMemo(() => {
-        const tabs = [
-            {
-                icon: <Eye className="h-5 w-5" />,
-                title: t(formConstant.preview),
-                path: 'preview'
-            },
-            {
-                icon: <Settings className="h-5 w-5" />,
-                title: t(localesCommon.settings),
-                path: 'settings'
-            }
-        ];
+        // Five top-level destinations, all visible at once (the old 8-tab bar
+        // silently overflowed and hid Form Link + Analytics). Deletion requests
+        // live inside Responses as a segment; Visibility and Integrations are
+        // Settings sections; /links is surfaced as "Share".
+        const tabs: Array<{ title: string; path: string; count?: number; matches: string[] }> = [{ title: t(formConstant.preview), path: 'preview', matches: ['preview'] }];
 
         if (form?.isPublished) {
-            if (form?.settings?.provider === 'self' && form?.builderVersion === 'v2') {
-                tabs.push({
-                    icon: <Blocks className="h-5 w-5" />,
-                    title: 'Integrations',
-                    path: 'integrations'
-                });
-            }
             tabs.push({
-                icon: <History className="h-5 w-5" />,
-                title: t(formConstant.responders) + ' (' + form.responses + ')',
-                path: 'responses'
+                title: 'Responses',
+                path: 'responses',
+                count: form.responses ?? 0,
+                matches: ['responses', 'deletion-requests']
             });
-            tabs.push({
-                icon: <Trash2 className="h-5 w-5" />,
-                title: t(formConstant.deletionRequests) + ' (' + (form as any).deletionRequests + ')',
-                path: 'deletion-requests'
-            });
-            tabs.push({
-                icon: <Eye className="h-5 w-5" />,
-                title: t(formConstant.settings.visibility.title),
-                path: 'visibility'
-            });
-
             if (isFormOpen) {
-                tabs.push({
-                    icon: <Link2Icon className="h-5 w-5" />,
-                    title: t(formConstant.settings.formLink.title),
-                    path: 'links'
-                });
-                tabs.push({
-                    icon: <BarChart className="h-5 w-5" />,
-                    title: 'Analytics',
-                    path: 'analytics'
-                });
+                tabs.push({ title: 'Analytics', path: 'analytics', matches: ['analytics'] });
+                tabs.push({ title: 'Share', path: 'links', matches: ['links'] });
             }
         }
+        tabs.push({ title: t(localesCommon.settings), path: 'settings', matches: ['settings', 'visibility', 'integrations'] });
         return tabs;
     }, [form, t, isFormOpen]);
 
@@ -172,21 +128,20 @@ export default function FormDashboardLayoutClient({
                     <FormPageLayer className="px-4 md:px-10 lg:px-28">
                         <div className="flex justify-between">
                             <div className="flex flex-col gap-1">
-                                <button
-                                    type="button"
-                                    onClick={handleBackClick}
-                                    className="text-black-600 hover:text-black-800 flex w-fit items-center gap-1 text-sm"
-                                >
-                                    <ChevronRight className="h-4 w-4 rotate-180" />
-                                    Forms
-                                </button>
-                                {isMobile ? <h1 className="hp3-new">{formTitle}</h1> : <h1 className="h2-new text-pink">{formTitle}</h1>}
+                                <nav aria-label="Breadcrumb" className="text-black-600 flex w-fit items-center gap-1.5 text-[13px]">
+                                    <button type="button" onClick={handleBackClick} className="hover:text-black-900 hover:underline">
+                                        Forms
+                                    </button>
+                                    <span className="text-black-400">/</span>
+                                    <span className="text-black-800 max-w-[320px] truncate font-medium">{formTitle}</span>
+                                </nav>
+                                {isMobile ? <h1 className="hp3-new">{formTitle}</h1> : <h1 className="h2-new">{formTitle}</h1>}
                             </div>
                             <div className="hidden gap-4 lg:flex">
                                 {form?.settings?.provider === 'self' && form?.builderVersion === 'v2' && (
                                     <Button
-                                        icon={<Edit2 className="h-6 w-6" />}
-                                        variant={['sm', 'md', 'lg', 'xl', '2xl'].indexOf(breakpoint) !== -1 ? 'secondary' : 'ghost'}
+                                        icon={<Edit2 className="h-5 w-5" />}
+                                        variant="v2Button"
                                         className="!px-0 sm:!px-5"
                                         onClick={() => {
                                             router.push(getEditFormURL(workspace, form));
@@ -198,9 +153,9 @@ export default function FormDashboardLayoutClient({
                                 {form?.isPublished && isFormOpen && (
                                     <PrivateFormButtonWrapper isPrivate={workspaceForm?.settings?.hidden}>
                                         <Button
-                                            variant={['sm', 'md', 'lg', 'xl', '2xl'].indexOf(breakpoint) !== -1 ? 'primary' : 'ghost'}
+                                            variant="primary"
                                             icon={<Share2 className="h-5 w-5" />}
-                                            className="!px-0 sm:!px-5"
+                                            className="!bg-[#2456CC] hover:!bg-[#1E49AD] !px-0 text-white sm:!px-5"
                                             disabled={workspaceForm?.settings?.hidden}
                                             onClick={() =>
                                                 openModal('SHARE_VIEW', {
@@ -250,8 +205,15 @@ export default function FormDashboardLayoutClient({
                             </div>
                         </div>
                         {!isMobile && (
-                            <div className="flex flex-row items-center gap-1 mb-4">
-                                <FormProviderIcon provider={form.settings?.provider === 'self' && form.importedFormId && form.settings.showOriginalForm ? 'google' : form?.settings?.provider} />
+                            <div className="text-black-700 mb-4 mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px]">
+                                {form?.isPublished ? (
+                                    <span className="rounded-full bg-[#E7F4EE] px-2 py-0.5 text-xs font-semibold text-[#0E8A5F]">Published</span>
+                                ) : (
+                                    <span className="bg-black-200 text-black-700 rounded-full px-2 py-0.5 text-xs font-semibold">Draft</span>
+                                )}
+                                <span className="tabular-nums">{form?.responses ?? 0} responses</span>
+                                <span className="text-black-400">·</span>
+                                <span>{formProvenance(form)}</span>
                             </div>
                         )}
                         <Divider className="mt-6 hidden md:flex" />
@@ -259,16 +221,16 @@ export default function FormDashboardLayoutClient({
                     <div className="md:px-10 lg:px-28 pt-4">
                         <div ref={tabsContainerRef} className="flex space-x-1 border-b border-gray-200 overflow-x-auto">
                             {tabMenu.map((tab) => {
-                                const isActive = pathname?.includes(`/${tab.path}`);
+                                const isActive = tab.matches.some((m) => pathname?.includes(`/${m}`));
                                 return (
                                     <Link key={tab.path} data-tab-active={isActive} href={`/${params.workspace_name}/dashboard/forms/${params.form_id}/${tab.path}`} className={cn(
-                                        'flex items-center gap-2 px-4 py-2 text-sm font-medium cursor-pointer hover:bg-black-200 hover:rounded whitespace-nowrap',
+                                        'flex items-center gap-1.5 whitespace-nowrap border-b-2 px-4 py-2.5 text-sm',
                                         isActive
-                                            ? 'border-b-2 border-black-900 text-black-900 bg-gray-100 rounded-t'
-                                            : 'text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                            ? 'border-[#2456CC] text-black-900 font-semibold'
+                                            : 'text-black-600 hover:text-black-900 border-transparent font-medium'
                                     )}>
-                                        {tab.icon}
                                         {tab.title}
+                                        {typeof tab.count === 'number' && <span className="bg-black-200 text-black-700 rounded-full px-2 py-0.5 text-xs font-medium tabular-nums">{tab.count}</span>}
                                     </Link>
                                 );
                             })}
@@ -277,6 +239,15 @@ export default function FormDashboardLayoutClient({
                     <div className="w-full pt-5">
                         {children}
                     </div>
+                    {form?.isPublished && (
+                        <div className="border-black-200 text-black-600 mx-4 mt-16 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 border-t py-4 text-[13px] md:mx-10 lg:mx-28">
+                            {typeof (form as any)?.version === 'number' && <span>Version {(form as any).version}</span>}
+                            {typeof (form as any)?.version === 'number' && <span className="text-black-400">·</span>}
+                            <a href={getFormShareURL(workspaceForm ?? form, workspace)} target="_blank" rel="noopener noreferrer" className="hover:text-black-900 underline decoration-dotted underline-offset-2">
+                                Open form ↗
+                            </a>
+                        </div>
+                    )}
                 </div>
             </div>
         </TopNavLayout>
@@ -286,3 +257,11 @@ export default function FormDashboardLayoutClient({
 const FormPageLayer = ({ children, className }: any) => {
     return <div className={className}>{children}</div>;
 };
+
+/** Plain-words provenance for the header meta line. */
+function formProvenance(form: StandardFormDto): string {
+    const provider = form?.settings?.provider;
+    if (provider === 'google') return 'Imported from Google Forms';
+    if (provider === 'typeform') return 'Imported from Typeform';
+    return 'bettercollected form';
+}
