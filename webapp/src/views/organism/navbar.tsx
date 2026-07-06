@@ -98,7 +98,9 @@ const Navbar = () => {
     useEffect(() => {
         const formId = standardForm?.formId;
         if (!formId || flowAutoOpened.current) return;
-        if (!(formFields || []).some((slide) => slideHasLogic(slide))) return;
+        // Defensive: the atom can transiently hold non-array state (e.g. a stale
+        // reset from another route) before this editor re-initializes it.
+        if (!Array.isArray(formFields) || !formFields.some((slide) => slideHasLogic(slide))) return;
         if (localStorage.getItem(`bc-default-view-${formId}`)) return;
         flowAutoOpened.current = true;
         setFlowViewOpen(true);
