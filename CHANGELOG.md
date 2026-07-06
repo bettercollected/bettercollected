@@ -23,6 +23,10 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
 - Dependabot configuration for weekly npm, uv, and GitHub Actions updates.
 - Initial frontend test suite (Vitest + Testing Library) with a shared config.
 - Mailpit for catching outbound email in local development.
+- Backend: flow-native template gallery (Support triage, Lead qualification,
+  Job application with screening) auto-seeded on every startup — idempotent,
+  gated by `DEFAULT_SEED_FLOW_TEMPLATES`/`DEFAULT_WORKSPACE_ID`. See
+  `backend/AGENTS.md` "Seed scripts" for the env vars and how to add more.
 
 ### Changed
 

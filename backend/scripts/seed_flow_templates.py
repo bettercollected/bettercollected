@@ -5,9 +5,18 @@ Idempotent: skips any template whose title already exists with builder_version
 "v2". Uses the backend's own Beanie documents so the stored encoding is exactly
 what the API writes — never hand-rolled JSON.
 
-Run from backend/:  uv run python -m scripts.seed_flow_templates
+**This runs automatically on every backend startup** (see the call in
+`backend/app/asgi.py`'s lifespan, right after `init_db`), gated by
+`DEFAULT_SEED_FLOW_TEMPLATES` (default on) and skipped with a warning if
+`DEFAULT_WORKSPACE_ID` isn't set. That means existing/already-deployed
+environments pick up new or changed templates the next time the backend
+restarts — no manual step required. See backend/AGENTS.md "Seed scripts" for
+the full writeup (env vars, what's idempotent, how to add a template).
+
+For one-off manual runs (e.g. to seed without restarting the app), run from
+backend/:  uv run python -m scripts.seed_flow_templates
 Env: MONGO_URI (default mongodb://root:root@localhost:27017), DB name
-     bettercollected_backend.
+     bettercollected_backend, DEFAULT_WORKSPACE_ID (required — see above).
 
 Note: create_form_from_template copies template fields VERBATIM (no id
 regeneration), so the slide/field ids referenced by jumps and visibility rules
@@ -18,17 +27,7 @@ import asyncio
 import os
 import uuid
 
-from beanie import init_beanie
-from pymongo import AsyncMongoClient
-
 from backend.app.schemas.template import FormTemplateDocument
-from backend.config import settings
-
-MONGO_URI = os.environ.get("MONGO_URI", "mongodb://root:root@localhost:27017")
-DB_NAME = os.environ.get("BACKEND_DB", "bettercollected_backend")
-# Predefined (gallery) templates are served only from this workspace — the
-# same setting the templates API filters by.
-TEMPLATE_WORKSPACE_ID = settings.default_workspace_settings.WORKSPACE_ID
 
 THEME = {
     "title": "Default",
@@ -129,19 +128,31 @@ def job_screening() -> dict:
     }
 
 
-async def main() -> None:
-    client = AsyncMongoClient(MONGO_URI)
-    await init_beanie(database=client[DB_NAME], document_models=[FormTemplateDocument])
+# Add new flow-native templates here — each is a zero-arg builder returning the
+# payload shape above. Startup seeding and the CLI both iterate this tuple.
+TEMPLATE_BUILDERS = (support_triage, lead_qualification, job_screening)
 
-    for build in (support_triage, lead_qualification, job_screening):
+
+async def seed_flow_templates(workspace_id) -> dict:
+    """
+    Create any of TEMPLATE_BUILDERS that don't already exist (matched by title +
+    builder_version="v2"). Assumes Beanie is already initialized with
+    FormTemplateDocument — true both at app startup (see asgi.py) and in the
+    standalone CLI path below. Safe to call repeatedly: existing templates are
+    left untouched, never overwritten.
+
+    Returns {"seeded": [...titles...], "skipped": [...titles...]}.
+    """
+    seeded, skipped = [], []
+    for build in TEMPLATE_BUILDERS:
         payload = build()
         existing = await FormTemplateDocument.find_one(
             FormTemplateDocument.title == payload["title"], FormTemplateDocument.builder_version == "v2"
         )
         if existing:
-            print(f"skip (exists): {payload['title']}")
+            skipped.append(payload["title"])
             continue
-        # fix slide indexes
+        # fix slide/field indexes
         for i, slide in enumerate(payload["fields"]):
             slide["index"] = i
             for j, f in enumerate(slide["properties"]["fields"]):
@@ -149,7 +160,7 @@ async def main() -> None:
         doc = FormTemplateDocument(
             builder_version="v2",
             type="form",
-            workspace_id=TEMPLATE_WORKSPACE_ID,
+            workspace_id=workspace_id,
             title=payload["title"],
             description=payload["description"],
             fields=payload["fields"],
@@ -159,8 +170,34 @@ async def main() -> None:
             settings={"is_public": True},
         )
         await doc.save()
-        print(f"seeded: {payload['title']}")
+        seeded.append(payload["title"])
+    return {"seeded": seeded, "skipped": skipped}
+
+
+async def _main() -> None:
+    """Standalone CLI entry point: creates its own Mongo client + Beanie init,
+    since the app isn't running. Startup auto-seeding (asgi.py) calls
+    seed_flow_templates() directly against the already-initialized app db."""
+    from beanie import init_beanie
+    from pymongo import AsyncMongoClient
+
+    from backend.config import settings
+
+    mongo_uri = os.environ.get("MONGO_URI", "mongodb://root:root@localhost:27017")
+    db_name = os.environ.get("BACKEND_DB", "bettercollected_backend")
+    workspace_id = settings.default_workspace_settings.WORKSPACE_ID
+    if not workspace_id:
+        print("DEFAULT_WORKSPACE_ID is not set — refusing to seed without a stable predefined-templates workspace id.")
+        return
+
+    client = AsyncMongoClient(mongo_uri)
+    await init_beanie(database=client[db_name], document_models=[FormTemplateDocument])
+    result = await seed_flow_templates(workspace_id)
+    for title in result["seeded"]:
+        print(f"seeded: {title}")
+    for title in result["skipped"]:
+        print(f"skip (exists): {title}")
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    asyncio.run(_main())
