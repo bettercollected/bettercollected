@@ -34,8 +34,8 @@ export default function AddSlidePopover() {
                     <PopoverContent side="right" align="start" asChild className="w-[391px] p-0">
                         {open && (
                             <motion.div
+                                key="addSlide"
                                 {...({
-                                    key: 'addSlide',
                                     initial: { opacity: 0, x: '-10%' },
                                     animate: { opacity: 1, x: 0 },
                                     transition: { duration: 0.2 }
