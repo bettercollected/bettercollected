@@ -91,6 +91,7 @@ export function RichTextEditor({ field, slide, autofocus = false, isRequired = f
             <EditorProvider
                 content={getContentForEditor()}
                 extensions={Extenstions}
+                immediatelyRender={false}
                 slotBefore={<TiptapMenuBar />}
                 autofocus={autofocus}
                 editorProps={{

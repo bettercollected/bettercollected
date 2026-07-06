@@ -139,8 +139,8 @@ const Navbar = () => {
                             {insertDropdownOpen && (
                                 <DropdownMenuContent key="insert-dropdown" className=" w-[410px] border-none p-0">
                                     <motion.div
+                                        key="insert-dropdown"
                                         {...({
-                                            key: 'insert-dropdown',
                                             className: 'shadow-bubble border',
                                             initial: { opacity: 0, height: '350px', overflow: 'hidden' },
                                             animate: { opacity: 1, height: '554px' },

@@ -36,9 +36,9 @@ const Form = ({ isPreviewMode = false, showDesktopLayout }: { isPreviewMode?: bo
             <AnimatePresence mode="sync">
                 {currentSlide === -1 && (
                     <motion.div
+                        key="welcome-page"
                         {...({
                             className: cn('absolute z-10 flex h-full w-full flex-1 flex-col items-center justify-center'),
-                            key: 'welcome-page',
                             initial: { opacity: 1, x: currentSlide === previousSlide ? 0 : '-100%' },
                             animate: { opacity: 1, x: 0 },
                             exit: { opacity: 1, x: 0 },
@@ -55,9 +55,9 @@ const Form = ({ isPreviewMode = false, showDesktopLayout }: { isPreviewMode?: bo
 
                 {currentSlide >= 0 && (
                     <motion.div
+                        key={currentSlide}
                         {...({
                             className: cn('absolute z-10 flex h-full w-full flex-1 flex-col items-center justify-center'),
-                            key: currentSlide,
                             initial: { opacity: 1, x: currentSlide > previousSlide ? '100%' : '-100%' },
                             animate: { opacity: 1, x: 0 },
                             exit: { opacity: 1, x: 0 },
@@ -71,9 +71,9 @@ const Form = ({ isPreviewMode = false, showDesktopLayout }: { isPreviewMode?: bo
                 )}
                 {currentSlide === -2 && (
                     <motion.div
+                        key="thank-you-page"
                         {...({
                             className: cn('absolute z-20 flex h-full w-full flex-1 flex-col items-center justify-center'),
-                            key: 'thank-you-page',
                             initial: { opacity: 1, x: '100%' },
                             animate: { opacity: 1, x: 0 },
                             transition: { duration: 0.3, ease: 'linear' }
