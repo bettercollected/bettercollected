@@ -7,7 +7,7 @@ authors = [{ name = "Bibishan Pandey", email = "bibishan.b.pandey@gmail.com" }]
 requires-python = ">=3.10"
 dependencies = [
     "fastapi>=0.129.0",
-    "uvicorn[standard]>=0.50.0",
+    "uvicorn[standard]>=0.50.2",
     "python-dotenv>=1.2.1",
     "aiohttp>=3.13.3",
     "pycryptodome>=3.23.0",
