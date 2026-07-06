@@ -6,7 +6,7 @@ import { v4 } from 'uuid';
 
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import { FormSlideLayout } from '@app/models/enums/form';
-import { FieldConditionalLogic, PageJump } from '@app/models/types/form-builder-shared';
+import { FieldConditionalLogic, NodePosition, PageJump } from '@app/models/types/form-builder-shared';
 import { pruneOrphanedConditions } from '@app/utils/conditional-logic';
 import { useActiveFieldComponent, useActiveSlideComponent } from '@app/store/jotai/active-builder-component';
 import { reorder } from '@app/utils/array-utils';
@@ -275,6 +275,43 @@ export default function useFormFieldsAtom() {
             jumps
         };
         setFormFields([...formFields]);
+    };
+
+    // Flow-view canvas position for a slide (cosmetic). Undefined → auto-layout.
+    const updateSlidePosition = (slideIndex: number, position: NodePosition | undefined) => {
+        if (!formFields?.[slideIndex]) return;
+        formFields[slideIndex]!.properties = {
+            ...(formFields[slideIndex]!.properties || {}),
+            position
+        };
+        setFormFields([...formFields]);
+    };
+
+    // Reset every slide to auto-layout (used by the Flow view's "Auto-arrange").
+    const clearSlidePositions = () => {
+        formFields.forEach((slide) => {
+            if (slide?.properties?.position) delete slide.properties.position;
+        });
+        setFormFields([...formFields]);
+    };
+
+    // Deep-copy a slide (new ids for the slide and every field) and insert it right after.
+    const duplicateSlide = (slideIndex: number) => {
+        const source = formFields?.[slideIndex];
+        if (!source) return;
+        const copy: StandardFormFieldDto = JSON.parse(JSON.stringify(source));
+        copy.id = v4();
+        copy.properties = { ...(copy.properties || {}) };
+        // The copy shouldn't inherit the source's pinned canvas spot.
+        delete copy.properties.position;
+        copy.properties.fields = (copy.properties.fields || []).map((f) => ({ ...f, id: v4() }));
+        formFields.splice(slideIndex + 1, 0, copy);
+        const reindexed = formFields.map((slide, index) => {
+            slide.index = index;
+            return slide;
+        });
+        setFormFields([...reindexed]);
+        return copy.id;
     };
 
     const deleteField = (slideIndex: number, fieldIndex: number) => {
@@ -629,6 +666,9 @@ export default function useFormFieldsAtom() {
         updateFieldProperty,
         updateFieldConditionalLogic,
         updateSlideJumps,
+        updateSlidePosition,
+        clearSlidePositions,
+        duplicateSlide,
         updateShowQuestionNumbers,
         updateAllowMultipleSelectionMatrixField,
         updateSlideTheme,

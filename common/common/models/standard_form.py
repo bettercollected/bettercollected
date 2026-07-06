@@ -333,10 +333,18 @@ class PageJump(BaseModel):
     model_config = ConfigDict(populate_by_name=True, alias_generator=to_camel)
 
 
+class FieldPosition(BaseModel):
+    """Flow-view canvas coordinates of a page node. Cosmetic only."""
+
+    x: Optional[float] = None
+    y: Optional[float] = None
+
+
 class StandardFieldProperty(BaseModel):
     hidden: Optional[bool] = None
     logic: Optional[FieldLogic] = None
     jumps: Optional[List[PageJump]] = None
+    position: Optional[FieldPosition] = None
     description: Optional[str] = None
     choices: Optional[List[StandardChoice]] = None
     fields: Optional[List["StandardFormField"]] = None

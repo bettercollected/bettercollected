@@ -3,7 +3,7 @@ import { JSONContent } from '@tiptap/react';
 import { FormTheme } from '@app/constants/theme';
 import { Parameters } from '@app/models/dtos/actions';
 import { UserStatus } from '@app/models/dtos/user-status';
-import { FieldConditionalLogic, IFormFieldValidation, PageJump } from '@app/models/types/form-builder-shared';
+import { FieldConditionalLogic, IFormFieldValidation, NodePosition, PageJump } from '@app/models/types/form-builder-shared';
 
 import { FormSlideLayout } from '../enums/form';
 import { FileMetadata } from '../types/file-types';
@@ -37,6 +37,8 @@ export interface StandardFormFieldProperties {
     logic?: FieldConditionalLogic;
     /** v2 page-jump / branching rules for this slide (see utils/conditional-logic). */
     jumps?: PageJump[];
+    /** Flow-view canvas position of this page (cosmetic; auto-layout when absent). */
+    position?: NodePosition;
     rowTitles?: Array<string>;
     columnTitles?: Array<string>;
     tabular_value?: Array<Array<string>>;

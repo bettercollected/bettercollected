@@ -28,9 +28,12 @@ import { PlusOutlined } from '@Components/icons/plus-outlined';
 import { TextOutlinedIcon } from '@Components/icons/text-outlined';
 import { PlayIcon } from 'lucide-react';
 import { useState } from 'react';
+import dynamic from 'next/dynamic';
 import InsertFieldComponent from '../molecules/dialogs/insert-field-modal';
-import LogicMap from '../molecules/form-builder/logic-map';
 import BackButton from '../molecules/form-builder/back-button';
+
+// Code-split: React Flow only loads when the Flow view is opened.
+const FlowView = dynamic(() => import('./form-builder/flow-view'), { ssr: false });
 import PreviewWrapper from '../molecules/form-builder/preview-wrapper';
 import PublishButton from '../molecules/form-builder/publish-button';
 import Form from './form/form';
@@ -42,7 +45,7 @@ const Navbar = () => {
     const { toast } = useToast();
 
     const [insertDropdownOpen, setInsertDropdownOpen] = useState(false);
-    const [logicMapOpen, setLogicMapOpen] = useState(false);
+    const [flowViewOpen, setFlowViewOpen] = useState(false);
 
     const [createTemplateFromForm, { isLoading: isCreatingTemplate }] = useCreateTemplateFromFormMutation();
 
@@ -173,7 +176,7 @@ const Navbar = () => {
                         </button>
                     </DropdownMenu>
 
-                    <Sheet open={logicMapOpen} onOpenChange={setLogicMapOpen}>
+                    <Sheet open={flowViewOpen} onOpenChange={setFlowViewOpen}>
                         <SheetTrigger asChild>
                             <button data-umami-event={'Open Logic Map'} data-umami-event-email={authState.email}>
                                 <div className={'flex items-center hover:bg-inherit'}>
@@ -185,8 +188,8 @@ const Navbar = () => {
                             </button>
                         </SheetTrigger>
                         <SheetContent className="h-full w-full p-0" side={'bottom'} hideCloseIcon>
-                            <SheetTitle className="sr-only">Logic map</SheetTitle>
-                            <LogicMap onClose={() => setLogicMapOpen(false)} />
+                            <SheetTitle className="sr-only">Flow view</SheetTitle>
+                            <FlowView onClose={() => setFlowViewOpen(false)} />
                         </SheetContent>
                     </Sheet>
                 </div>

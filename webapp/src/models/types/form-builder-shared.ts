@@ -67,6 +67,12 @@ export interface FieldConditionalLogic {
 /** Sentinel jump target meaning "end the form / go to the thank-you page". */
 export const JUMP_TARGET_SUBMIT = '__SUBMIT__';
 
+/** Canvas coordinates of a page node in the Flow view. Cosmetic only. */
+export interface NodePosition {
+    x: number;
+    y: number;
+}
+
 /**
  * A page-jump / branching rule stored on a slide at `properties.jumps`.
  * Evaluated in order when the responder leaves the page; the first rule whose

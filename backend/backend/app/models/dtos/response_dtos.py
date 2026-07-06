@@ -8,6 +8,7 @@ from common.models.standard_form import (
     Condition,
     ConditionalActions,
     FieldLogic,
+    FieldPosition,
     PageJump,
     LogicalOperator,
     LayoutType,
@@ -84,6 +85,7 @@ class StandardFieldPropertyCamelModel(CamelModel):
     logical_operator: Optional[LogicalOperator] = None
     logic: Optional[FieldLogic] = None
     jumps: Optional[List[PageJump]] = None
+    position: Optional[FieldPosition] = None
     mentions: Optional[Dict[str, str]] = None
     theme: Optional[Theme] = None
     layout: Optional[LayoutType] = None
