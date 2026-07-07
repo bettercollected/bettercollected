@@ -16,6 +16,7 @@ export interface IFormState {
         buttonText?: string;
     };
     thankyouPage?: Array<{
+        title?: string;
         message?: string;
         buttonText?: string;
         buttonLink?: string;
@@ -97,6 +98,10 @@ export function useFormState() {
         }));
     };
 
+    const setThankYouPageTitle = (thankyouPageIndex: number, title?: string) => {
+        setFormState((prev) => patchThankYouPage(prev, thankyouPageIndex, { title }));
+    };
+
     const setThankYouPageDescription = (thankyouPageIndex: number, description?: string) => {
         setFormState((prev) => patchThankYouPage(prev, thankyouPageIndex, { message: description }));
     };
@@ -151,6 +156,7 @@ export function useFormState() {
         setFormState,
         setFormDescription,
         setWelcomePageButtonText,
+        setThankYouPageTitle,
         setThankYouPageDescription,
         setThankYouPageButtonText,
         setThankYouPageButtonLink,

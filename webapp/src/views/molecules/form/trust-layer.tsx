@@ -15,6 +15,13 @@ export interface TrustLayerProps {
     retention?: string;
     /** Link to the responder portal where a submission can be viewed/deleted. */
     portalUrl?: string;
+    /**
+     * Show "Powered by bettercollected" as the strip's last item. The strip is
+     * the form's single footer — attribution lives here rather than floating
+     * over page content (the thank-you page used to stack its own footer
+     * underneath this one). Off when the form's disableBranding setting is on.
+     */
+    poweredBy?: boolean;
 }
 
 /**
@@ -25,7 +32,7 @@ export interface TrustLayerProps {
  *
  * Presentational only: pass in data (see the wired usage on the fill page).
  */
-export default function TrustLayer({ ownerName, ownerImage, purpose, privacyUrl, retention, portalUrl }: TrustLayerProps) {
+export default function TrustLayer({ ownerName, ownerImage, purpose, privacyUrl, retention, portalUrl, poweredBy }: TrustLayerProps) {
     const items: React.ReactNode[] = [];
 
     if (ownerName) {
@@ -61,6 +68,13 @@ export default function TrustLayer({ ownerName, ownerImage, purpose, privacyUrl,
             </span>
         )
     );
+    if (poweredBy) {
+        items.push(
+            <a key="powered-by" href="https://bettercollected.com/" target="_blank" rel="noopener noreferrer" className="text-black-600 hover:text-black-900 pointer-events-auto">
+                Powered by <span className="font-semibold">bettercollected</span>
+            </a>
+        );
+    }
 
     return (
         // 13px legible ink-2 — the strip that carries the product's differentiator

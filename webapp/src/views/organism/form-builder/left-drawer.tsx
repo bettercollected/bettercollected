@@ -124,7 +124,7 @@ function LeftDrawer({ formFields, activeSlideComponent }: { formFields: Array<St
                             label="Thank you"
                             selected={activeSlideComponent?.id === 'thank-you-page'}
                             onSelect={() => setActiveSlideComponent({ id: 'thank-you-page', index: -20 })}
-                            primaryText={formState.thankyouPage?.[0]?.message || undefined}
+                            primaryText={formState.thankyouPage?.[0]?.title || formState.thankyouPage?.[0]?.message || undefined}
                             secondaryText="Ending"
                         />
                     </div>

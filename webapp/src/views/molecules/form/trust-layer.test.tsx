@@ -29,4 +29,12 @@ describe('TrustLayer — the privacy story on every form (Design-Language §4)',
         expect(screen.getByText(/schedule your appointment/i)).toBeInTheDocument();
         expect(screen.getByText(/kept for 90 days/i)).toBeInTheDocument();
     });
+
+    it('carries the product attribution only when branding is on — the strip is the single footer', () => {
+        const { rerender } = render(<TrustLayer ownerName="Acme" poweredBy />);
+        expect(screen.getByRole('link', { name: /powered by/i })).toHaveAttribute('href', 'https://bettercollected.com/');
+
+        rerender(<TrustLayer ownerName="Acme" />);
+        expect(screen.queryByText(/powered by/i)).not.toBeInTheDocument();
+    });
 });

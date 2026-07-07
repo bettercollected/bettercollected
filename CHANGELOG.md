@@ -98,6 +98,20 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
   policy link with a live preview of the responder-facing trust strip; the
   values persist as workspace-form settings and render on every step of the
   published form.
+- **The builder now loads the draft it edits** (data-trust bug): the edit
+  page's loader requested the form with `published=true&draft=true`, and the
+  API returns the latest *published* version whenever one exists — so
+  autosaved changes (theme, welcome description, …) looked lost on every
+  reload while the draft in the database was actually correct. The builder
+  loader now fetches the draft.
+- **One form footer**: "Powered by bettercollected" moved into the trust
+  strip as its last item (gated by the existing disable-branding setting,
+  which the old footer never honoured) — the thank-you page's own floating
+  footer sat underneath the fixed strip and the two overlapped.
+- **Thank-you heading is customizable**: the hardcoded "Thank You! 🎉" is now
+  an editable (and pipeable) title on the thank-you page — edited inline in
+  the builder like the welcome title, persisted on the form, with the
+  classic greeting as the default when unset.
 - **Responder form transitions unified**: every page type declared its own
   animation — different easings, and no exit motion at all, so the old page
   froze in place while the new one slid over it — and the ±100% fly-in was

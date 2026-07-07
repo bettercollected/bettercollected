@@ -16,7 +16,11 @@ export default async function Layout(
     const workspace = await getWorkspaceByName(workspace_name);
     if (!workspace) return notFound();
 
-    const form = await fetchWithCookies(environments.INTERNAL_DOCKER_API_ENDPOINT_HOST + '/workspaces/' + workspace.id + '/forms/' + form_id + '?published=true&draft=true');
+    // The builder edits the DRAFT. With `published=true` the API returns the
+    // latest published version whenever one exists (`draft=true` is only a
+    // fallback for never-published forms) — so every autosaved change looked
+    // lost on reload while the draft in the database was actually correct.
+    const form = await fetchWithCookies(environments.INTERNAL_DOCKER_API_ENDPOINT_HOST + '/workspaces/' + workspace.id + '/forms/' + form_id);
 
     if (!form) return notFound();
 

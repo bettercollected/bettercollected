@@ -1,7 +1,6 @@
 "use client";
 import Link from 'next/link';
 
-import Logo from '@app/components/ui/logo';
 import { FormSlideLayout } from '@app/models/enums/form';
 import { Button } from '@app/shadcn/components/ui/button';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
@@ -35,6 +34,14 @@ export default function ThankyouPage({ isPreviewMode }: { isPreviewMode: boolean
         return resolvePipesInText(message, { slides: standardForm?.fields, answers: formResponse.answers ?? {}, hiddenValues });
     }
 
+    // The heading is customizable (and pipeable) like the message; the classic
+    // greeting stays as the default for forms that never set one.
+    function getThankYouTitle() {
+        const title = standardForm?.thankyouPage?.[0]?.title;
+        if (!title) return 'Thank You! 🎉';
+        return resolvePipesInText(title, { slides: standardForm?.fields, answers: formResponse.answers ?? {}, hiddenValues });
+    }
+
     const handleOnCopy = (copyValue: string) => {
         copyToClipboard(copyValue);
         toast({
@@ -46,7 +53,7 @@ export default function ThankyouPage({ isPreviewMode }: { isPreviewMode: boolean
             <UserAvatarDropDown disabled />
             <div className=" flex h-full w-full max-w-[800px] flex-col justify-between">
                 <div className="flex">
-                    <span className="text-[40px] font-bold leading-[48px]">Thank You! 🎉</span>
+                    <span className="text-[40px] font-bold leading-[48px]">{getThankYouTitle()}</span>
                 </div>
                 <div className="p2-new text-black-700 mt-4">{getThankYouMessage()}</div>
                 {standardForm?.thankyouPage && standardForm?.thankyouPage[0].buttonText && (
@@ -76,12 +83,9 @@ export default function ThankyouPage({ isPreviewMode }: { isPreviewMode: boolean
                         </div>
                     </div>
                 )}
-                <Link href={isPreviewMode ? '#' : 'https://bettercollected.com/'} target={isPreviewMode ? '' : 'blank'}>
-                    <div className="bottom-8 mt-4 flex cursor-pointer flex-row gap-2 lg:absolute lg:m-0">
-                        <span className="body3 text-black-700">Powered by:</span>
-                        <Logo showProTag={false} isLink={false} isCustomDomain className="h-[14px] w-fit" />
-                    </div>
-                </Link>
+                {/* Attribution moved into the trust strip — the form's single
+                    footer. A second floating "Powered by" here sat underneath
+                    the fixed strip and the two overlapped. */}
             </div>
         </div>
     );

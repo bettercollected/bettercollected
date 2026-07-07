@@ -40,7 +40,7 @@ export default function FormPreview(props: { params: Promise<{ form_id: string }
         <Form isPreviewMode />
         {/* Preview shows exactly what responders will see, trust strip included. */}
         <div className="pointer-events-none fixed inset-x-0 bottom-0 z-40">
-            <TrustLayer ownerName={workspace?.title || workspace?.workspaceName} ownerImage={workspace?.profileImage} purpose={data?.settings?.purpose} retention={data?.settings?.retentionText} privacyUrl={data?.settings?.privacyPolicyUrl} />
+            <TrustLayer ownerName={workspace?.title || workspace?.workspaceName} ownerImage={workspace?.profileImage} purpose={data?.settings?.purpose} retention={data?.settings?.retentionText} privacyUrl={data?.settings?.privacyPolicyUrl} poweredBy={!data?.settings?.disableBranding} />
         </div>
     </div>
 }

@@ -90,6 +90,7 @@ export interface StandardFormDto {
         buttonText?: string;
     };
     thankyouPage?: Array<{
+        title?: string;
         message?: string;
         buttonText?: string;
         buttonLink?: string;
