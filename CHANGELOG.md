@@ -293,6 +293,33 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
 
 ### Fixed
 
+- The "Your site" browser frame now behaves like a real browser on desktop:
+  bounded to the viewport with fixed chrome, the site content scrolls INSIDE
+  the frame instead of the dashboard page scrolling around it. Matching the
+  responder portal, the left column (identity + receipt search) and the tabs
+  stay affixed — only the tab content scrolls (an earlier pass scrolled the
+  whole content block, carrying the tabs and left column out of view). The
+  in-frame settings view scrolls internally the same way. Mobile keeps
+  natural page flow.
+- The site's identity card no longer carries the "you can view or delete
+  your responses… anytime" line. The site already makes that promise
+  actionable — the My submissions / Deletion requests tabs, the receipt
+  search, and (logged out) the "See your submissions" card — so the
+  declarative sentence was a redundant restatement bundled into a card whose
+  job is identity (name, logo, policy links), not rights.
+- **Sidebar navigation grouped by meaning, not permission.** The old split
+  was "everyone" vs "admins", which stranded Site at the top away from Site
+  settings. Now three labelled groups: **Collection** (Forms, Responders and
+  Groups, Deletion requests, Templates) — the daily work, first; **Your
+  site** (Site, Site settings, Custom domain) — view it, configure it, point
+  a domain at it, together; **Workspace** (Members) — administration.
+  Quiet uppercase group labels replace anonymous dividers; per-item admin
+  gating replaces the all-or-nothing bottom cluster; the Site item matches
+  its route exactly so it no longer depends on being outside the nav list.
+  Site and Site settings share the dashboard-root route, so their active
+  state (and the top-bar title) is driven by whether the settings view is
+  open rather than by URL — clicking Site hands the highlight back and
+  closes the view, clicking Site settings takes it.
 - **Sign-in page redesigned as the first trust decision.** The pitch panel
   was a gradient marketing collage with outdated UI screenshots and a
   sentence that ended mid-thought; it's now a calm ink panel stating what

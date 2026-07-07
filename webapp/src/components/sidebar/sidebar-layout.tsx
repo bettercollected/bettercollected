@@ -21,7 +21,7 @@ import { localesCommon } from '@app/constants/locales/common';
 import { formConstant } from '@app/constants/locales/form';
 import { members } from '@app/constants/locales/members';
 import { WorkspaceDto } from '@app/models/dtos/workspace-dto';
-import { INavbarItem } from '@app/models/props/navbar';
+import { INavGroup, INavbarItem } from '@app/models/props/navbar';
 import { Popover, PopoverContent } from '@app/shadcn/components/ui/popover';
 import { selectAuth } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
@@ -45,7 +45,7 @@ export default function SidebarLayout({ children, DrawerComponent = DashboardDra
     const auth = useAppSelector(selectAuth);
 
     const { openModal } = useFullScreenModal();
-    const { setSettingsViewOpen } = useWorkspaceSettingsView();
+    const { settingsViewOpen, setSettingsViewOpen } = useWorkspaceSettingsView();
 
     const [mobileOpen, setMobileOpen] = React.useState(false);
     const handleDrawerToggle = () => {
@@ -59,7 +59,9 @@ export default function SidebarLayout({ children, DrawerComponent = DashboardDra
     const { t } = useTranslation();
     const commonWorkspaceUrl = `/${workspace?.workspaceName}/dashboard`;
 
-    const topNavList: Array<INavbarItem> = [
+    // Nav grouped by meaning: the daily work first (Linear-style), then the
+    // public face, then administration.
+    const collectionItems: Array<INavbarItem> = [
         {
             key: 'forms',
             name: t(localesCommon.forms),
@@ -80,65 +82,100 @@ export default function SidebarLayout({ children, DrawerComponent = DashboardDra
         }
     ];
     auth?.roles?.includes('ADMIN') &&
-        topNavList.push({
+        collectionItems.push({
             key: 'templates',
             name: t('TEMPLATE.TEMPLATES'),
             url: `${commonWorkspaceUrl}/templates`,
             icon: <TemplateIcon className={'stroke-2'} />
         });
-    const bottomNavList: Array<INavbarItem> = [
-        {
-            key: 'workspace-settings',
-            // Settings live inside the Public Workspace frame (behind the
-            // address-bar gear) — this entry opens that view directly.
-            name: 'Site settings',
-            url: `/${workspace?.workspaceName}/dashboard/workspace-settings`,
-            icon: <Settings className="h-5 w-5 stroke-2" />,
-            onClick: () => {
-                setSettingsViewOpen(true);
-                router.push(commonWorkspaceUrl);
-            }
-        },
-        {
-            key: 'members',
-            name: t(members.default),
-            url: `/${workspace?.workspaceName}/dashboard/members`,
-            icon: <MembersIcon />
-        },
 
+    const navGroups: Array<INavGroup> = [
         {
-            key: 'custom-domain',
-            name: (
-                <div className="flex items-center gap-2">
-                    Custom Domain <ProLogo />
-                </div>
-            ),
-            icon: <Globe />,
-            url: `/${workspace?.workspaceName}/dashboard/custom-domain`,
-            onClick: () => {
-                if (workspace.isPro) {
-                    router.push(`/${workspace?.workspaceName}/dashboard/custom-domain`);
-                } else {
-                    openModal('UPGRADE_TO_PRO');
+            label: 'Collection',
+            items: collectionItems
+        },
+        {
+            label: 'Your site',
+            items: [
+                {
+                    key: 'site',
+                    name: 'Site',
+                    url: commonWorkspaceUrl,
+                    // The dashboard root prefixes every other route (exact
+                    // match only) — and when the settings view covers the
+                    // mirror, the highlight belongs to Site settings.
+                    exactMatch: true,
+                    isActive: pathname === commonWorkspaceUrl && !settingsViewOpen,
+                    icon: <Globe />,
+                    // Clicking Site returns to the page even when the settings
+                    // view (which lives on the same route) is open.
+                    onClick: () => {
+                        setSettingsViewOpen(false);
+                        router.push(commonWorkspaceUrl);
+                    }
+                },
+                {
+                    key: 'site-settings',
+                    // Settings live inside the site frame (behind the
+                    // address-bar gear) — this entry opens that view directly.
+                    name: 'Site settings',
+                    url: `${commonWorkspaceUrl}/site-settings`,
+                    adminOnly: true,
+                    // Not a route — active while its view is open on the root.
+                    isActive: pathname === commonWorkspaceUrl && settingsViewOpen,
+                    icon: <Settings className="h-5 w-5 stroke-2" />,
+                    onClick: () => {
+                        setSettingsViewOpen(true);
+                        router.push(commonWorkspaceUrl);
+                    }
+                },
+                {
+                    key: 'custom-domain',
+                    name: (
+                        <div className="flex items-center gap-2">
+                            Custom domain <ProLogo />
+                        </div>
+                    ),
+                    icon: <Globe />,
+                    url: `${commonWorkspaceUrl}/custom-domain`,
+                    adminOnly: true,
+                    onClick: () => {
+                        if (workspace.isPro) {
+                            router.push(`${commonWorkspaceUrl}/custom-domain`);
+                        } else {
+                            openModal('UPGRADE_TO_PRO');
+                        }
+                    }
                 }
-            }
+            ]
+        },
+        {
+            label: 'Workspace',
+            items: [
+                {
+                    key: 'members',
+                    name: t(members.default),
+                    url: `${commonWorkspaceUrl}/members`,
+                    adminOnly: true,
+                    icon: <MembersIcon />
+                }
+            ]
         }
     ];
 
-    const allNavList = [...topNavList, ...bottomNavList];
+    const allNavList = navGroups.flatMap((group) => group.items);
 
     const getHeader = () => {
-        const matchingNavList = allNavList.filter((item) => pathname?.includes(item.url));
+        // Longest matching URL wins — the Site item's URL (the dashboard root)
+        // is a prefix of every other route.
+        const matchingNavList = allNavList.filter((item) => pathname?.includes(item.url)).sort((a, b) => b.url.length - a.url.length);
         if (matchingNavList.length > 0) {
-            return matchingNavList[matchingNavList.length - 1]?.name;
+            return matchingNavList[0]?.key === 'site' ? (settingsViewOpen ? 'Site settings' : 'Your site') : matchingNavList[0]?.name;
         }
         // Routes that aren't represented in the sidebar nav still need a correct
         // title instead of the generic "My Workspace" fallback.
         if (pathname?.includes('/dashboard/templates')) return 'Templates';
         if (pathname?.includes('/dashboard/account-settings')) return 'Account Settings';
-        // The dashboard root is the public-workspace mirror — title it the same
-        // as the sidebar entry that leads here.
-        if (pathname?.endsWith('/dashboard')) return 'Your site';
         return 'My Workspace';
     };
 
@@ -148,7 +185,7 @@ export default function SidebarLayout({ children, DrawerComponent = DashboardDra
                 <div className="lg:hidden">
                     <AuthNavbar handleDrawerToggle={handleDrawerToggle} mobileOpen={mobileOpen} />
                 </div>
-                <DrawerComponent drawerWidth={drawerWidth} mobileOpen={mobileOpen} handleDrawerToggle={handleDrawerToggle} topNavList={topNavList} bottomNavList={bottomNavList} />
+                <DrawerComponent drawerWidth={drawerWidth} mobileOpen={mobileOpen} handleDrawerToggle={handleDrawerToggle} navGroups={navGroups} />
                 <main
                     className={cn(
                         "bg-black-100 float-none mt-[68px] flex min-h-[calc(100vh-68px)]",

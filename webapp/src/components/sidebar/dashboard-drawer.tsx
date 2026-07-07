@@ -2,10 +2,7 @@
 import React from 'react';
 
 import { useTranslation } from 'next-i18next';
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
 
-import Divider from '@Components/common/divider';
 
 import { useModal } from '@app/components/modal-views/context';
 import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
@@ -19,23 +16,19 @@ import { upgradeConst } from '@app/constants/locales/upgrade';
 import { WorkspaceDto } from '@app/models/dtos/workspace-dto';
 import { IDrawerProps } from '@app/models/props/navbar';
 import { Progress } from '@app/shadcn/components/ui/progress';
-import { cn } from '@app/shadcn/util/lib';
 import { selectIsAdmin, selectIsProPlan } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { useGetWorkspaceStatsQuery } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
-import Globe from '@Components/icons/globe';
 import WorkspaceMenuDropdown from '@Components/workspace/workspace-menu-dropdown';
 
-const Drawer = ({ topNavList, isAdmin, bottomNavList }: any) => {
+const Drawer = ({ navGroups, isAdmin }: any) => {
     const { t } = useTranslation();
     const workspace: WorkspaceDto = useAppSelector(selectWorkspace);
     const { data } = useGetWorkspaceStatsQuery(workspace.id, { skip: !workspace.id });
     const { openModal: openFullScreenModal } = useFullScreenModal();
     const { openModal } = useModal();
     const isProPlan = useAppSelector(selectIsProPlan);
-    const pathname = usePathname();
-    const commonWorkspaceUrl = `/${workspace?.workspaceName}/dashboard`;
 
     return (
         <div className="flex flex-col h-full bg-white">
@@ -45,34 +38,24 @@ const Drawer = ({ topNavList, isAdmin, bottomNavList }: any) => {
             <div className="flex-1 overflow-auto h-full scrollbar-hide">
                 <div className="flex h-full flex-col justify-between">
                     <div className="px-4">
-                        {/* Replacement for List/ListItem containing WorkspaceMenuDropdown */}
-                        <div className="pt-5 pb-0">
+                        <div className="pt-5 pb-2">
                             <WorkspaceMenuDropdown fullWidth />
                         </div>
 
-                        {/* This is a link, so it speaks the one action colour —
-                            the old blue→pink gradient text was the loudest thing
-                            in the chrome and the exact "playful" note the trust
-                            language retires (Design-Language §1). */}
-                        <Link href={commonWorkspaceUrl} className={cn('hover:bg-black-100 mb-3 mt-2 flex cursor-pointer items-center gap-2 rounded-lg px-4 py-3 text-xs font-medium', pathname === commonWorkspaceUrl && 'bg-[#E9EFFC]')}>
-                            <Globe width={20} height={20} className="text-[#2456CC]" />
-                            <span className="p3-new text-[#2456CC]">Site</span>
-                        </Link>
-
-                        <div className="border-black-300 my-3 border-t" />
-
-                        <div className="py-2">
-                            <NavigationList navigationList={topNavList} />
-                        </div>
-
-                        {isAdmin && (
-                            <>
-                                <Divider className="text-black-600" />
-                                <div className="py-2">
-                                    <NavigationList navigationList={bottomNavList} />
+                        {/* Nav grouped by meaning (Collection · Your site ·
+                            Workspace), not by permission — the old split was
+                            "everyone" vs "admins", which separated Site from
+                            Site settings. Labels carry what dividers implied. */}
+                        {navGroups?.map((group: any) => {
+                            const items = group.items.filter((item: any) => !item.adminOnly || isAdmin);
+                            if (!items.length) return null;
+                            return (
+                                <div key={group.label} className="pb-1">
+                                    <div className="text-black-500 px-4 pb-1 pt-4 text-[11px] font-semibold uppercase tracking-wider">{group.label}</div>
+                                    <NavigationList navigationList={items} />
                                 </div>
-                            </>
-                        )}
+                            );
+                        })}
                     </div>
 
                     {/* Bottom section for free plan / ads */}
@@ -134,12 +117,12 @@ const Drawer = ({ topNavList, isAdmin, bottomNavList }: any) => {
     );
 };
 
-export default function DashboardDrawer({ drawerWidth, mobileOpen, handleDrawerToggle, bottomNavList, topNavList }: IDrawerProps) {
+export default function DashboardDrawer({ drawerWidth, mobileOpen, handleDrawerToggle, navGroups }: IDrawerProps) {
     const isAdmin = useAppSelector(selectIsAdmin);
 
     return (
         <MuiDrawer handleDrawerToggle={handleDrawerToggle} drawerWidth={drawerWidth} mobileOpen={mobileOpen}>
-            <Drawer topNavList={topNavList} isAdmin={isAdmin} bottomNavList={bottomNavList} />
+            <Drawer navGroups={navGroups} isAdmin={isAdmin} />
         </MuiDrawer>
     );
 }
