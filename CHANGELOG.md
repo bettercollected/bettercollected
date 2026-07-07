@@ -293,6 +293,151 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
 
 ### Fixed
 
+- **Workspace settings: React error fixed and given a discoverable home.**
+  Opening the settings sheet errored (`value` prop on `input` should not be
+  null): the privacy-policy and terms URLs fed null into controlled inputs
+  (title/description already had fallbacks). The save diff also compared
+  snake_case keys against the camelCase DTO, so those two fields were sent on
+  every save whether changed or not — both fixed. Settings was reachable only
+  through an unlabelled translucent pencil on one page; it's now a
+  first-class "Workspace settings" item in the sidebar's administration
+  cluster (above Members), and the contextual pencil on the details card is a
+  bordered, titled button.
+- **Field spacing on form pages brought down to a readable rhythm.** Question
+  groups sat 120px apart for responders (desktop) and 80px in the builder —
+  10–15× the 8px gap inside a group, so question–input pairs stopped reading
+  as neighbours and a 6-question page showed ~3. Now 48px mobile / 64px
+  desktop everywhere (builder canvas, live form, preview thumbnails), so the
+  builder is honest WYSIWYG. Also removed the builder's per-row `h-full`
+  (each field stretched to an equal share of the slide, so spacing changed
+  with field count) and its doubled padding (`py-[10vh]` + `px-6` twice on
+  top of the layout's own 60px).
+- **Form preview modal rebuilt.** "Open preview" opened on a dark "please use
+  the desktop version to edit this form" banner (a mobile-editing message, in
+  a preview, on desktop) above an empty nav strip, and the `aspect-video
+  h-full` stage pushed the form card past the bottom of the screen. The
+  preview now has one quiet header — Back, the form title with a Preview
+  chip, the honest "Answers aren't saved" note, and Share/Publish — over a
+  centered 16:9 stage sized to fit both viewport dimensions (mobile fills the
+  screen, as a responder would see it).
+- Responder portal (and its dashboard mirror): the "Find a response by its
+  number" card moved from a third column on wide screens into the left
+  sidebar, below the identity section — one utility column, a consistent
+  two-column layout at every width, and no more modal fallback below xl.
+- **One vocabulary: workspace + site.** The product used three overlapping
+  terms — onboarding created an "Organization", the dashboard managed a
+  "workspace", and the responder-facing surface was a "Public Workspace" (or
+  internally, the "responder portal"). Now: the **workspace** is where you
+  work; your **site** is what the world sees ("Site" as the nav label, "your
+  site" in running copy). Onboarding says "Create your workspace /
+  Workspace name"; settings copy, custom-domain copy ("Serve your site from
+  a domain you own"), template visibility, and the sign-in feature line all
+  speak the same two words. "Organization" survives only where it means the
+  real-world entity. The settings surface follows the scheme too: "Workspace
+  Settings" is now **Site settings** (it configures exactly what the world
+  sees), with **Identity** and **Link & domain** tabs replacing "Workspace
+  Details" / "Manage URLs" — renamed in the sidebar entry and the frame's
+  gear as well.
+- Workspace settings: the Privacy Policy URL and Terms of Service URL inputs
+  are full-width, capitalized, and validated on save — values must be real
+  http(s) links (a missing scheme is forgiven by prepending https://;
+  whitespace, non-web schemes like javascript:, and scheme-less non-domains
+  are rejected with "Enter a full link, like https://yoursite.com/privacy").
+  These values render as links on the public workspace and in every form's
+  trust footer, so bad values were a broken-trust-link (or script-injection)
+  vector.
+- **Workspace settings audited against the trust language.** Copy rewritten
+  in plain speech: the Title-Case marketing header ("Tailor Title, Refine
+  Description… and Elevate with a Banner Image") now says what the page is
+  ("The identity responders see on your public workspace"); "Organizations
+  Title"/"Organization Descriptions" became "Workspace name"/"Description";
+  the policy-URL fields explain their trust role (linked from the public
+  workspace and every form's trust footer). One left edge for header, tabs
+  and panel content — the panels used to stack their own px-20+ on top of
+  the container's, indenting content past the tabs. Manage URLs was
+  reorganised into two honest sections: the workspace link (mono URL with
+  trust-blue handle, Copy, Change link, and the stated consequence — "the
+  old link stops working") and Custom Domain, which no longer shows free
+  users a domain form that only bounced them to the upgrade modal — the
+  upgrade note is the whole section. Validation copy tells you what to type
+  ("try something like forms.yoursite.com") in muted red, warnings in amber;
+  Save is the trust-blue primary instead of near-black.
+- Workspace settings now open **inside the Public Workspace frame** (behind
+  the address-bar gear, with a highlighted gear state and a "Back to page"
+  return) instead of a bottom sheet over the whole app — edit, save, and
+  you're looking at the page you just changed. The sidebar "Workspace
+  settings" entry routes to this view; the settings surface was extracted to
+  a shared component so the URL-update deep links that still use the bottom
+  sheet render the identical content. Inside the frame the settings' own
+  URL-actions row is hidden (the address bar already carries it).
+- **The dashboard's "Public Workspace" page is now a true mirror of the
+  responder portal.** It rendered admin-style form cards (provider icon,
+  "Public", response counts, edit/share affordances) — not what responders
+  see. It now renders the portal's own components: the same three tabs
+  (Forms · My submissions · Deletion requests), the same receipt-search card
+  (with the portal's below-xl modal fallback), forms with purpose line,
+  question count and pinned chip, with the page title matching the sidebar
+  entry. Clicking a form opens the real public form on the client domain in
+  a new tab, exactly as a responder experiences it. The mirror sits inside a
+  browser-style frame that says what this is — a page that lives at a URL:
+  the chrome carries the real public address with copy and open-live
+  actions, plus the workspace-settings gear, so creator controls live on the
+  frame and never inside the mirrored content (the old settings pencil
+  floated over the details card, which responders never see; the separate
+  Workspace Link card was absorbed by the address bar). Deliberately NOT
+  mirrored: the portal's identity furniture (verify-email card, responder
+  account card, powered-by caption) — redundant or misleading inside the
+  signed-in dashboard. Also fixed a React warning the fulfilled
+  deletion-request card tripped everywhere it renders (`href=""` spread onto
+  a plain div).
+- **Dashboard chrome brought onto the trust palette.** The sidebar's "Public
+  Workspace" link was blue→pink gradient text (the retired "playful" rainbow,
+  with no measurable contrast) and the "Pro" badge was an orange-gradient pill
+  with ~2.1:1 white-on-orange text in a one-off display face — both are now
+  quiet chips/links on the trust ramp. Sidebar selection had two bugs: exact
+  URL matching meant nested routes (Responders, Members subpages) highlighted
+  nothing, and the selected state was grey — now prefix-matched and trust-blue
+  tinted like every other selected state. Old bright-blue (`#0764EB`,
+  `blue-600`), slate/gray neutrals, Bootstrap greys in the account dropdown,
+  and the alarmist red Logout were retuned to the ink ramp and muted red; the
+  account dropdown avatar now falls back to the email initial instead of an
+  empty square. Page tabs (Members, Responders and Groups) use the trust-blue
+  underline; all admin data tables share hairline borders, surface headers and
+  ink text; duplicated page titles (sticky bar + in-page h1) collapsed to one.
+- **Upgrade-to-PRO modal made honest (no-dark-patterns law).** The headline
+  promised "PRO is Free" / "You won't be charged any money" while a footnote
+  said "Free for 90 days!" — and the upgrade has no expiry in code at all. It
+  now makes one claim ("currently free — no card needed and nothing is
+  charged"), the button says what it does ("Activate PRO for free"), the
+  pastel-rainbow feature cards became one calm treatment, and the feature
+  copy was corrected ("as many forms as you want", "separate workspaces for
+  different teams, organizations, and projects").
+- Copy: form cards pluralize response counts ("0 Responses"); the responders
+  page explains the list in plain language and states the responder's rights;
+  the groups empty state reads "Create a group to control who can access your
+  forms"; members rows no longer print the same email twice.
+- **Deletion requests were impossible to fulfil from the dashboard.** The only
+  delete affordance — a kebab menu inside the response drawer — was rendered
+  with a literal `hidden` class, and even unhidden it deleted permanently with
+  no confirmation. Pending rows in the Deletion requests table now carry a
+  first-class "Delete response" action (plus a quiet "View") that routes
+  through a consequence-stating confirmation dialog; the drawer kebab is
+  visible and uses the same confirm. Deleting now refreshes the table and the
+  pending counter (the mutation didn't invalidate the queries feeding them),
+  the status chip speaks the trust palette (amber Pending / green Deleted —
+  it was error-red, and a dead code path labelled fulfilled requests
+  "Expired"), fulfilled rows show the deletion date instead of "Not deleted
+  yet" beside a Pending chip, rows carry the submission receipt number so
+  anonymous requests can be matched to what a responder quotes, and the
+  header counter reads "N of M requests pending" instead of the quota-like
+  "5/5 deletion remaining".
+- The response drawer rendered blank question labels outside a form page:
+  the fetched form was never passed down, so titles and pipe resolution fell
+  back to the (empty) redux form. All VIEW_RESPONSE openers now pass the
+  form — question titles render, answer pipes resolve with that submission's
+  answers, legacy fields whose text lives in `value` (null rich-text title)
+  show their real question instead of the "Enter Question" placeholder, and
+  unanswered file-upload fields say "No answer" instead of an empty grey box.
 - Responders table rows drifted out of alignment: the "frozen" Responder ID
   area was faked with two independent tables whose row heights were never
   guaranteed equal (two-line identifier cells vs. one-line answers, against a
