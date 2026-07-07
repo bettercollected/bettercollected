@@ -98,6 +98,18 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
   policy link with a live preview of the responder-facing trust strip; the
   values persist as workspace-form settings and render on every step of the
   published form.
+- **Flow view feedback round**: the Insights header no longer contradicts the
+  node chips — it now labels its two instruments apart ("17 responses"
+  behind the node/edge counts vs "journeys: 13 started · 11 finished" from
+  anonymous navigation tracking, with tooltips explaining each); the side
+  panel shows the selected page's full question (it was CSS-truncated to one
+  line); the "Edit content" overlay was rebuilt on the main canvas's
+  measured-scale layout — exactly centred sheet on the mat, page-number
+  eyebrow + full-title header, live Saving…/Saved status instead of a static
+  "changes save automatically" claim, and the standard 300px drawer; and
+  edges are now set one frame after nodes when the graph re-derives —
+  React Flow silently drops edges whose handles aren't mounted yet, which
+  intermittently rendered the whole graph unlinked.
 - **Flow (Logic) view brought onto the design language**: the `brand-*`
   Tailwind ramp — which still peaked at the old bright blue and leaked into
   every "tokenized" surface using brand classes — was retuned to trust blue,
