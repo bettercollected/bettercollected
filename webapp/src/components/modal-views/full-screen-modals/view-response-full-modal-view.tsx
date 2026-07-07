@@ -9,6 +9,7 @@ import { useAppSelector } from '@app/store/hooks';
 import { useDeleteResponseMutation } from '@app/store/workspaces/api';
 import { utcToLocalDateTIme } from '@app/utils/date-utils';
 import { downloadFile } from '@app/utils/file-utils';
+import { resolvePipesInTitle, titleHasPipes } from '@app/utils/answer-piping';
 import { getAnswerForField, getTitleForHeader } from '@app/utils/form-builder-block-utils';
 import DeleteIcon from '@Components/icons/delete';
 import { motion } from 'framer-motion';
@@ -58,10 +59,21 @@ export const IndividualFormResponse = ({ formFields, response, form, className }
 
     const reduxForm = useAppSelector(selectForm);
     const standardForm = form ? form : reduxForm;
+    // Questions may pipe earlier answers ("Hello @name…") — resolve them with
+    // THIS submission's answers so the question reads exactly as the responder
+    // saw it, instead of showing raw builder pipe labels.
+    const pipeContext = {
+        slides: standardForm?.fields,
+        answers: response?.answers ?? {},
+        hiddenValues: (response as any)?.hiddenFields ?? {}
+    };
     function getTitleForHeaderForTable(field: StandardFormFieldDto) {
-        const title = getTitleForHeader(field, standardForm);
+        const resolvedField = titleHasPipes(field?.title) ? ({ ...field, title: resolvePipesInTitle(field.title, pipeContext) } as StandardFormFieldDto) : field;
+        const title = getTitleForHeader(resolvedField, standardForm);
 
-        return <span className="p3-new !text-black-800 truncate md:w-[250px]">{title}</span>;
+        // The question is the label; the answer is the content. Muted medium
+        // label over full-size ink answer keeps the two unmistakable.
+        return <span className="text-black-600 text-[13px] font-medium leading-snug">{title}</span>;
     }
     const downloadFormFile = async (ans: any) => {
         try {
@@ -83,7 +95,7 @@ export const IndividualFormResponse = ({ formFields, response, form, className }
 
                     return (
                         <div className="flex flex-col gap-2" key={field.id}>
-                            <span className="p4-new text-black-500">{getTitleForHeaderForTable(field)}</span>
+                            {getTitleForHeaderForTable(field)}
                             <div className="overflow-x-auto rounded-md border border-gray-200">
                                 <Table className="min-w-full text-xs">
                                     <TableHeader>
@@ -116,18 +128,19 @@ export const IndividualFormResponse = ({ formFields, response, form, className }
 
                 if (field.type === FieldTypes.FILE_UPLOAD || field.type === FieldTypes.INPUT_FILE_UPLOAD) {
                     return (
-                        <div className="flex flex-col gap-1" key={field.id}>
-                            <span className="p4-new text-black-500">{getTitleForHeaderForTable(field)}</span>
+                        <div className="flex flex-col gap-1.5" key={field.id}>
+                            {getTitleForHeaderForTable(field)}
                             <div onClick={() => downloadFormFile(ans)} className={cn('!text-black-600 p2-new   w-[140px] cursor-default truncate rounded px-2 py-1', ans?.file_metadata?.url ? 'bg-black-300 active:bg-black-400 !cursor-pointer' : '')}>
                                 {getAnswerForField(response, field)}
                             </div>
                         </div>
                     );
                 }
+                const answerText = getAnswerForField(response, field);
                 return (
-                    <div className="flex flex-col gap-1" key={field.id}>
-                        <span className="p4-new text-black-500">{getTitleForHeaderForTable(field)}</span>
-                        <span className="p2-new text-black-700">{getAnswerForField(response, field) || '- -'}</span>
+                    <div className="flex flex-col gap-1.5" key={field.id}>
+                        {getTitleForHeaderForTable(field)}
+                        {answerText ? <span className="text-black-900 text-base leading-relaxed">{answerText}</span> : <span className="text-black-500 text-sm italic">No answer</span>}
                     </div>
                 );
             })}

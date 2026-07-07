@@ -179,9 +179,11 @@ export default function ResponderPortalLayoutClient({
                         );
                     })}
                 </div>
-                <div className="mt-4 flex flex-col gap-6 md:min-h-0 md:flex-1 md:overflow-y-auto md:[scrollbar-gutter:stable] xl:flex-row">
-                    {children}
-                    <SearchBySubmissionNumber className='hidden xl:block' />
+                <div className="mt-4 flex flex-col gap-6 md:min-h-0 md:flex-1 xl:flex-row">
+                    {/* Only the receipts/forms column scrolls — the search-by-number
+                        card is a persistent utility and stays in view. */}
+                    <div className="min-w-0 flex-1 md:min-h-0 md:overflow-y-auto md:[scrollbar-gutter:stable]">{children}</div>
+                    <SearchBySubmissionNumber className='hidden shrink-0 xl:block' />
                 </div>
             </div>
             <div className="lg:hidden">
