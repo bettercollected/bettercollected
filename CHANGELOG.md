@@ -98,6 +98,14 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
   policy link with a live preview of the responder-facing trust strip; the
   values persist as workspace-form settings and render on every step of the
   published form.
+- **Responder form transitions unified**: every page type declared its own
+  animation — different easings, and no exit motion at all, so the old page
+  froze in place while the new one slid over it — and the ±100% fly-in was
+  never clipped, flashing a horizontal scrollbar on every step. One
+  direction-aware transition now covers welcome/pages/thank-you (entering
+  page slides the full width, exiting page drifts a quarter-width the other
+  way while fading), the container clips the motion, and
+  `prefers-reduced-motion` gets a plain cross-fade.
 - **Builder canvas works on large screens**: the canvas mat collapsed to a
   content-height band floating in white void on tall viewports (the layout
   row centres its children and the mat, unlike the drawer, never stretched)
