@@ -63,18 +63,21 @@ export default {
                         200: '#F7F8FA'
                     }
                 },
+                // Trust blue (Design-Language.md §1) — the ramp used to peak at
+                // the old bright #0764EB, which kept leaking into "tokenized"
+                // surfaces via brand-* classes.
                 brand: {
-                    100: '#F2F7FF',
-                    200: '#B8E8FF',
-                    300: '#A8C6F0',
-                    400: '#82A2CF',
-                    500: '#0764EB',
-                    600: '#0C50B4',
-                    700: '#2C2C60',
-                    800: '#11114C',
-                    900: '#111134',
+                    100: '#E9EFFC',
+                    200: '#C7D7F5',
+                    300: '#A8C0EA',
+                    400: '#6E8FD8',
+                    500: '#2456CC',
+                    600: '#1E49AD',
+                    700: '#19398A',
+                    800: '#132C6B',
+                    900: '#0E204E',
 
-                    DEFAULT: '#0764EB'
+                    DEFAULT: '#2456CC'
                 },
                 'brand-accent': {
                     500: '#F8B940',

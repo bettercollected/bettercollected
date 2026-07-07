@@ -24,7 +24,9 @@ export function Toaster() {
                 ...props
             }) {
                 return (
-                    <Toast key={id} {...props} duration={2000}>
+                    // Callers can extend the lifetime (e.g. toasts carrying an
+                    // Undo action need more than a 2s window); default stays 2s.
+                    <Toast key={id} {...props} duration={duration ?? 2000}>
                         <div className="grid gap-1">
                             {title && <ToastTitle>{title}</ToastTitle>}
                             {description && (

@@ -255,3 +255,27 @@ div::-webkit-scrollbar-thumb:hover {
 .responders-frozen-table .rdt_TableRow:hover .rdt_TableCell {
     background-color: #f6f8fc;
 }
+
+/* React Flow chrome (Logic/Flow view) — theme the default zoom controls to
+   the design language: white card, hairline border, ink icons. */
+.react-flow__controls {
+    border: 1px solid #e2e8f2;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(16, 24, 38, 0.08);
+}
+.react-flow__controls-button {
+    background: #ffffff;
+    border-bottom: 1px solid #e2e8f2;
+    width: 28px;
+    height: 28px;
+}
+.react-flow__controls-button:last-child {
+    border-bottom: none;
+}
+.react-flow__controls-button:hover {
+    background: #f6f8fc;
+}
+.react-flow__controls-button svg {
+    fill: #3a465a;
+}

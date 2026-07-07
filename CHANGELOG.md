@@ -98,6 +98,24 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
   policy link with a live preview of the responder-facing trust strip; the
   values persist as workspace-form settings and render on every step of the
   published form.
+- **Flow (Logic) view brought onto the design language**: the `brand-*`
+  Tailwind ramp — which still peaked at the old bright blue and leaked into
+  every "tokenized" surface using brand classes — was retuned to trust blue,
+  recolouring the flow view's jump edges/dots/labels, selected nodes and
+  buttons (and the last old-blue surfaces product-wide). Node eyebrows were
+  hairline-on-white (1.4:1 — illegible) and 11px metadata was below AA; both
+  now legible ink. Destructive red and the drop-off chip use the muted
+  design tokens. Interaction fixes: the graph re-fits after mount so the
+  Start node no longer opens clipped under the header; the connect dots —
+  the view's primary gesture — are visually larger with a ~2× invisible hit
+  area; empty pages get an amber "empty page" warning chip (they read
+  identically to real pages before, and responders would hit a blank page);
+  deleting a jump edge now offers an 8-second Undo toast (a rule can carry
+  several conditions — one keystroke shouldn't silently discard it), which
+  also fixed the shared toaster ignoring per-toast durations; the minimap
+  only appears once the graph outgrows a screenful; React Flow's zoom
+  controls are themed; and the autosave Saving…/Saved indicator now shows in
+  the flow header, where the navbar's is hidden.
 - **The trust strip is visible while building**: every builder slide now
   renders the responder-facing trust footer (collected-by, purpose,
   retention, privacy link) exactly where responders see it, live-updating as

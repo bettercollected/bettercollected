@@ -14,6 +14,9 @@ import { useGetFlowAnalyticsQuery } from '@app/store/redux/form-api';
 import { useGetFormAllSubmissionsQuery } from '@app/store/workspaces/api';
 import { computeFlowTraffic, fieldHasLogic, FlowTraffic, isJumpTargetValid } from '@app/utils/conditional-logic';
 import { buildSourceFields, fieldText, newConditionFor, pageLabel } from '@app/views/molecules/form-builder/condition-editor-shared';
+import { ToastAction } from '@app/shadcn/components/ui/toast';
+import { useToast } from '@app/shadcn/components/ui/use-toast';
+import { useAutosaveStatus } from '@app/store/jotai/autosave-status';
 import PageJumpEditor from '@app/views/molecules/form-builder/page-jump-editor';
 import PropertiesDrawer from '@app/views/organism/form-builder/properties-drawer';
 import SlideBuilder from '@app/views/organism/form-builder/slide-builder';
@@ -28,7 +31,7 @@ const NODE_W = 300;
 const NODE_H = 96;
 const GAP_Y = 72;
 const COL_X = 120;
-const JUMP_COLOR = '#0764eb';
+const JUMP_COLOR = '#2456CC';
 const NEXT_COLOR = '#c2cad9';
 
 const defaultPos = (k: number) => ({ x: COL_X, y: 40 + k * (NODE_H + GAP_Y) });
@@ -36,12 +39,17 @@ const defaultPos = (k: number) => ({ x: COL_X, y: 40 + k * (NODE_H + GAP_Y) });
 /* ----------------------------- custom nodes ------------------------------ */
 
 // Dot styling for the click-to-connect flow: armed dots swell and glow.
+// The transparent border is a hit-area extender: at fit zoom the visual dot
+// shrinks to ~7px on screen — too small a Fitts target for the view's primary
+// gesture — so the clickable box is roughly double the visible dot.
 const dotStyle = (isArmed: boolean): React.CSSProperties => ({
     background: JUMP_COLOR,
-    width: isArmed ? 14 : 10,
-    height: isArmed ? 14 : 10,
+    backgroundClip: 'padding-box',
+    border: '6px solid transparent',
+    width: isArmed ? 28 : 24,
+    height: isArmed ? 28 : 24,
     cursor: 'pointer',
-    boxShadow: isArmed ? '0 0 0 5px rgba(7,100,235,0.25)' : undefined,
+    boxShadow: isArmed ? '0 0 0 5px rgba(36,86,204,0.25)' : undefined,
     transition: 'all 120ms ease'
 });
 
@@ -79,25 +87,30 @@ function PageNode({ id, data, selected }: NodeProps<Node<any>>) {
                 here so they bow beside the column instead of crossing it. Users still
                 drop connections on the visible left dot. */}
             <Handle id="jump-in-right" type="target" position={Position.Right} isConnectable={false} style={{ opacity: 0, top: '35%' }} />
-            <span className="text-black-400 text-[10px] font-semibold uppercase tracking-wide">Page {data.pageNumber}</span>
+            <span className="text-black-600 text-[10px] font-semibold uppercase tracking-wide">Page {data.pageNumber}</span>
             <span className="text-black-900 truncate text-sm font-semibold">{data.label}</span>
             {data.questions?.length > 0 && (
                 <div className="flex flex-col gap-0.5">
                     {data.questions.map((q: string, i: number) => (
-                        <span key={i} className="text-black-500 truncate text-[11px]">
+                        <span key={i} className="text-black-600 truncate text-[11px]">
                             · {q}
                         </span>
                     ))}
-                    {data.questionCount > data.questions.length && <span className="text-black-400 text-[11px]">+{data.questionCount - data.questions.length} more</span>}
+                    {data.questionCount > data.questions.length && <span className="text-black-600 text-[11px]">+{data.questionCount - data.questions.length} more</span>}
                 </div>
             )}
             <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
-                <span className="text-black-500">
+                <span className="text-black-600">
                     {data.questionCount} question{data.questionCount === 1 ? '' : 's'}
                 </span>
                 {data.showHideCount > 0 && <span className="text-brand-600 bg-brand-100 rounded px-1.5 py-[1px] font-medium">{data.showHideCount} show/hide</span>}
+                {data.questionCount === 0 && (
+                    <span className="inline-flex items-center gap-0.5 rounded bg-[#FBF3E4] px-1.5 py-[1px] font-medium text-[#B26B00]" title="Responders will see a blank page — add a question or delete it">
+                        <AlertTriangle className="h-3 w-3" /> empty page
+                    </span>
+                )}
                 {data.brokenCount > 0 && (
-                    <span className="inline-flex items-center gap-0.5 rounded bg-red-50 px-1.5 py-[1px] font-medium text-red-600">
+                    <span className="inline-flex items-center gap-0.5 rounded bg-[#FBEFEF] px-1.5 py-[1px] font-medium text-[#C43D3D]">
                         <AlertTriangle className="h-3 w-3" /> broken jump
                     </span>
                 )}
@@ -107,7 +120,7 @@ function PageNode({ id, data, selected }: NodeProps<Node<any>>) {
                     </span>
                 )}
                 {data.dropOffs > 0 && (
-                    <span className="rounded bg-amber-50 px-1.5 py-[1px] font-semibold text-amber-700" title="Responders whose last activity was on this page — they never submitted">
+                    <span className="rounded bg-[#FBF3E4] px-1.5 py-[1px] font-semibold text-[#B26B00]" title="Responders whose last activity was on this page — they never submitted">
                         {data.dropOffs} dropped here
                     </span>
                 )}
@@ -153,7 +166,7 @@ function TerminalNode({ id, data }: NodeProps<Node<any>>) {
                 />
             )}
             {isEnd && <Handle id="jump-in-right" type="target" position={Position.Right} isConnectable={false} style={{ opacity: 0, top: '35%' }} />}
-            <span className="text-black-400 text-[10px] font-semibold uppercase tracking-wide">{isEnd ? 'End' : 'Start'}</span>
+            <span className="text-black-600 text-[10px] font-semibold uppercase tracking-wide">{isEnd ? 'End' : 'Start'}</span>
             <span className="text-black-700 text-sm font-semibold">{data.label}</span>
             {data.totalResponses !== undefined && (
                 <span className="text-black-700 bg-black-100 w-fit rounded px-1.5 py-[1px] text-[11px] font-semibold">
@@ -186,7 +199,7 @@ function BracketEdge({ id, sourceX, sourceY, targetX, targetY, style, markerEnd,
                 <EdgeLabelRenderer>
                     <div
                         className="nodrag nopan pointer-events-none absolute rounded-md border bg-white px-1.5 py-0.5 text-[11px] font-semibold"
-                        style={{ transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)`, color: JUMP_COLOR, borderColor: '#c7dcfd' }}
+                        style={{ transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)`, color: JUMP_COLOR, borderColor: '#C7D7F5' }}
                     >
                         {label}
                     </div>
@@ -204,6 +217,8 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
     const { formFields, addSlide, deleteSlide, duplicateSlide, updateSlideJumps, updateSlidePosition, clearSlidePositions } = useFormFieldsAtom();
     const { setActiveSlideComponent } = useActiveSlideComponent();
     const { setActiveFieldComponent } = useActiveFieldComponent();
+    const { toast } = useToast();
+    const { autosaveStatus } = useAutosaveStatus();
 
     const slides = formFields || [];
     const slideIds = useMemo(() => new Set(slides.map((s) => s.id)), [slides]);
@@ -304,7 +319,7 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
                 selectable: false,
                 focusable: false,
                 label: count !== undefined ? String(count) : undefined,
-                labelStyle: { fill: '#7c8598', fontSize: 10.5, fontWeight: 600 },
+                labelStyle: { fill: '#657085', fontSize: 11, fontWeight: 600 },
                 labelBgStyle: { fill: '#ffffff', stroke: NEXT_COLOR },
                 labelBgPadding: [5, 2] as [number, number],
                 labelBgBorderRadius: 6,
@@ -342,7 +357,7 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
                     deletable: true,
                     style: { stroke: JUMP_COLOR, strokeWidth: count ? Math.min(1.75 + (3 * count) / Math.max(traffic!.total, 1), 4.75) : 1.75 },
                     labelStyle: { fill: JUMP_COLOR, fontSize: 11, fontWeight: 600 },
-                    labelBgStyle: { fill: '#ffffff', stroke: '#c7dcfd' },
+                    labelBgStyle: { fill: '#ffffff', stroke: '#C7D7F5' },
                     labelBgPadding: [6, 3] as [number, number],
                     labelBgBorderRadius: 6,
                     markerEnd: { type: MarkerType.ArrowClosed, color: JUMP_COLOR, width: 18, height: 18 }
@@ -455,9 +470,33 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
                 if (!bySlide.has(d.slideIndex)) bySlide.set(d.slideIndex, new Set());
                 bySlide.get(d.slideIndex)!.add(d.jumpIndex);
             });
+            if (!bySlide.size) return;
+            // Snapshot before removal — a jump can carry several conditions, so a
+            // keystroke shouldn't silently discard work that took time to build.
+            const removedRules: Array<{ slideIndex: number; jumps: PageJump[] }> = [];
             bySlide.forEach((jumpIdxs, slideIndex) => {
-                const jumps = ((slides[slideIndex]?.properties?.jumps as PageJump[] | undefined) ?? []).filter((_, i) => !jumpIdxs.has(i));
+                const before = (slides[slideIndex]?.properties?.jumps as PageJump[] | undefined) ?? [];
+                removedRules.push({ slideIndex, jumps: before.filter((_, i) => jumpIdxs.has(i)) });
+                const jumps = before.filter((_, i) => !jumpIdxs.has(i));
                 updateSlideJumps(slideIndex, jumps.length ? jumps : undefined);
+            });
+            const removedCount = removedRules.reduce((n, r) => n + r.jumps.length, 0);
+            toast({
+                description: `${removedCount === 1 ? 'Jump rule' : `${removedCount} jump rules`} removed`,
+                duration: 8000,
+                action: (
+                    <ToastAction
+                        altText="Undo removing the jump"
+                        onClick={() => {
+                            removedRules.forEach(({ slideIndex, jumps }) => {
+                                const current = ((slides[slideIndex]?.properties?.jumps as PageJump[] | undefined) ?? []).slice();
+                                updateSlideJumps(slideIndex, [...current, ...jumps]);
+                            });
+                        }}
+                    >
+                        Undo
+                    </ToastAction>
+                )
             });
         },
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -491,11 +530,20 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
                                 {armed.mode === 'from' ? `Creating a jump from ${armedName} — click the destination page` : `Creating a jump into ${armedName} — click the source page`} · Esc to cancel
                             </div>
                         ) : (
-                            <div className="text-black-500 text-xs">Click or drag a blue dot to branch. Select a page to edit its rules.</div>
+                            <div className="text-black-600 text-xs">Click or drag a blue dot to branch. Select a page to edit its rules.</div>
                         )}
                     </div>
                 </div>
                 <div className="flex items-center gap-2">
+                    {/* The navbar's save indicator is hidden while Flow is fullscreen —
+                        carry the same reassurance here. */}
+                    {autosaveStatus.state !== 'idle' && (
+                        <span aria-live="polite" className={'mr-1 whitespace-nowrap text-xs font-medium ' + (autosaveStatus.state === 'error' ? 'text-[#B26B00]' : 'text-black-600')}>
+                            {autosaveStatus.state === 'saving' && 'Saving…'}
+                            {autosaveStatus.state === 'saved' && 'Saved'}
+                            {autosaveStatus.state === 'error' && "Couldn't save — edit to retry"}
+                        </span>
+                    )}
                     {showInsights && flowAnalytics && flowAnalytics.totalSessions > 0 && (
                         <span className="text-black-600 mr-1 text-xs">
                             {flowAnalytics.totalSessions} started · {flowAnalytics.submittedSessions} finished
@@ -563,13 +611,22 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
                         }}
                         fitView
                         fitViewOptions={{ padding: 0.2, maxZoom: 1 }}
+                        // Re-fit once node heights are actually measured — the mount-time
+                        // fitView uses estimated sizes, which left the Start node clipped
+                        // under the header on open.
+                        onInit={(instance) => {
+                            window.requestAnimationFrame(() => instance.fitView({ padding: 0.2, maxZoom: 1 }));
+                        }}
                         proOptions={{ hideAttribution: false }}
                         deleteKeyCode={['Backspace', 'Delete']}
                         connectOnClick={false}
                     >
                         <Background variant={BackgroundVariant.Dots} gap={22} size={1.5} color="#d6dce8" />
                         <Controls showInteractive={false} />
-                        <MiniMap pannable zoomable nodeColor={() => '#dbe4f2'} />
+                        {/* A minimap earns its canvas space only once the graph outgrows
+                            the viewport — for a handful of nodes it reads as a broken
+                            placeholder box. */}
+                        {nodes.length > 8 && <MiniMap pannable zoomable className="!h-[110px] !w-[150px]" nodeColor={() => '#CBD5E6'} maskColor="rgba(233, 238, 245, 0.65)" />}
                     </ReactFlow>
                 </div>
 
@@ -579,7 +636,7 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
                         <>
                             <div className="border-b-black-200 flex flex-col gap-2 border-b px-4 py-4">
                                 <div>
-                                    <div className="text-black-400 text-[10px] font-semibold uppercase tracking-wide">Page {selectedIndex + 1}</div>
+                                    <div className="text-black-600 text-[10px] font-semibold uppercase tracking-wide">Page {selectedIndex + 1}</div>
                                     <div className="text-black-900 truncate text-sm font-semibold">{pageLabel(selectedSlide, selectedIndex).replace(/^Page \d+ · /, '') || 'Untitled page'}</div>
                                 </div>
                                 <div className="flex items-center gap-2">
@@ -600,7 +657,7 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
                                             deleteSlide(selectedIndex);
                                             setSelectedId(null);
                                         }}
-                                        className="ml-auto flex items-center gap-1 rounded-md border border-red-200 px-2.5 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50"
+                                        className="ml-auto flex items-center gap-1 rounded-md border border-[#EFD2D2] px-2.5 py-1.5 text-xs font-medium text-[#C43D3D] hover:bg-[#FBEFEF]"
                                     >
                                         <Trash2 className="h-3.5 w-3.5" /> Delete
                                     </button>
@@ -610,7 +667,7 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
                             <PageJumpEditor />
                         </>
                     ) : (
-                        <div className="text-black-500 flex h-full flex-col items-center justify-center gap-2 px-8 text-center text-xs">
+                        <div className="text-black-600 flex h-full flex-col items-center justify-center gap-2 px-8 text-center text-xs">
                             <span className="text-black-700 text-sm font-medium">Nothing selected</span>
                             Select a page to edit its branching rules, or drag from a blue dot to another page to create a jump.
                         </div>
