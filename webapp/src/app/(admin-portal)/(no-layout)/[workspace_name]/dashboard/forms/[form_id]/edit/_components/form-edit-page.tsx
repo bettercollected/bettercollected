@@ -68,7 +68,10 @@ export default function FormEditPage(props: { params: Promise<{ form_id: string 
             const cs = getComputedStyle(mat);
             const availableWidth = mat.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
             const availableHeight = mat.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
-            setFitScale(Math.min(availableWidth / CANVAS_WIDTH, availableHeight / CANVAS_HEIGHT, 1));
+            // No upper cap: on large screens Fit should fill the mat (upscale
+            // past true size), otherwise Fit and 100% are identical and the
+            // toggle reads as broken.
+            setFitScale(Math.min(availableWidth / CANVAS_WIDTH, availableHeight / CANVAS_HEIGHT));
         };
         compute();
         const observer = new ResizeObserver(compute);
@@ -142,9 +145,13 @@ export default function FormEditPage(props: { params: Promise<{ form_id: string 
                 <LeftDrawer formFields={formFields} activeSlideComponent={activeSlideComponent} />
                 {/* Neutral workspace mat behind the canvas, so the slide being edited
                     reads as the artefact and separates from the tool's chrome. */}
+                {/* self-stretch matters: the row is items-center, and without it
+                    the mat's height collapses to its content on tall viewports —
+                    a floating band in white void, whose collapsed height then
+                    feeds back into the Fit scale and shrinks the card. */}
                 <div
                     ref={canvasMatRef}
-                    className=" relative flex max-h-full max-w-full flex-1 overflow-auto bg-[#E9EEF5] px-8 py-10"
+                    className=" relative flex max-h-full max-w-full flex-1 self-stretch overflow-auto bg-[#E9EEF5] px-8 py-10"
                     onClick={() => {
                         setActiveFieldComponent(null);
                     }}

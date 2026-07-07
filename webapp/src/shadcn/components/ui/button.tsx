@@ -10,7 +10,7 @@ const buttonVariants = cva('rounded-lg gap-2 min-w-fit flex justify-center items
     variants: {
         variant: {
             primary: 'bg-brand-500 text-white hover:bg-brand-600 active:bg-brand-800 focus:ring ' + 'disabled:bg-black-300 disabled:text-black-500',
-            danger: 'bg-red-400 text-white hover:bg-red-500 disabled:bg-black-300 disabled:text-black-500',
+            danger: 'bg-[#C43D3D] text-white hover:bg-[#A83434] disabled:bg-black-300 disabled:text-black-500',
             tertiary: 'text-blue-500 border border-brand-500 hover:bg-brand-100 focus:ring focus:ring-blue-500 ' + 'active:bg-brand-600 disabled:bg-transparent disabled:border disabled:text-black-500 ' + 'disabled:border-black-300',
             secondary: 'bg-black-800 text-white hover:bg-black-900 focus:ring-blue-500 focus-ring active:bg-black-900' + 'disabled:bg-black-300 disabled:text-black-500',
             ghost: 'text-brand-500 border border-transparent hover:bg-black-200 outline-none ' + 'active:border-brand-500 active:bg-black-300 disabled:bg-black-300 disabled:text-black-500',

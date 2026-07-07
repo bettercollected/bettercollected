@@ -25,6 +25,7 @@ export function BuilderTrustStrip() {
             purpose={standardForm?.settings?.purpose}
             retention={standardForm?.settings?.retentionText}
             privacyUrl={standardForm?.settings?.privacyPolicyUrl}
+            poweredBy={!standardForm?.settings?.disableBranding}
         />
     );
 }

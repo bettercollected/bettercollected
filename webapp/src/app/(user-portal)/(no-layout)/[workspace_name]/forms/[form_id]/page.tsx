@@ -160,6 +160,7 @@ const FetchFormWrapper = ({ slug }: { slug: string }) => {
                         retention={data?.settings?.retentionText}
                         privacyUrl={data?.settings?.privacyPolicyUrl}
                         portalUrl={typeof window !== 'undefined' && window.PUBLIC_CONFIG ? `${window.PUBLIC_CONFIG.HTTP_SCHEME}${window.PUBLIC_CONFIG.FORM_DOMAIN}/${workspace?.workspaceName}` : undefined}
+                        poweredBy={!data?.settings?.disableBranding}
                     />
                 </div>
             )}

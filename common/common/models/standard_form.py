@@ -448,6 +448,9 @@ class WelcomePageField(BaseModel):
 
 
 class ThankYouPageField(BaseModel):
+    # Heading shown above the message; the responder falls back to the classic
+    # "Thank You!" greeting when unset.
+    title: Optional[str] = None
     message: Optional[str] = None
     buttonText: Optional[str] = None
     buttonLink: Optional[str] = None

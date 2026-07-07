@@ -15,6 +15,13 @@ export interface TrustLayerProps {
     retention?: string;
     /** Link to the responder portal where a submission can be viewed/deleted. */
     portalUrl?: string;
+    /**
+     * Show "Powered by bettercollected" as the strip's last item. The strip is
+     * the form's single footer — attribution lives here rather than floating
+     * over page content (the thank-you page used to stack its own footer
+     * underneath this one). Off when the form's disableBranding setting is on.
+     */
+    poweredBy?: boolean;
 }
 
 /**
@@ -25,17 +32,30 @@ export interface TrustLayerProps {
  *
  * Presentational only: pass in data (see the wired usage on the fill page).
  */
-export default function TrustLayer({ ownerName, ownerImage, purpose, privacyUrl, retention, portalUrl }: TrustLayerProps) {
+export default function TrustLayer({ ownerName, ownerImage, purpose, privacyUrl, retention, portalUrl, poweredBy }: TrustLayerProps) {
     const items: React.ReactNode[] = [];
 
     if (ownerName) {
-        items.push(
-            <span key="owner" className="text-black-700 inline-flex items-center gap-1.5">
+        const owner = (
+            <>
                 {ownerImage ? (
                     <img src={ownerImage} alt="" className="h-4 w-4 rounded-full object-cover" />
                 ) : null}
                 Collected by <span className="text-black-900 font-semibold">{ownerName}</span>
-            </span>
+            </>
+        );
+        items.push(
+            // Provenance doubles as the way home: the owner chip links to the
+            // workspace portal (new tab — never interrupt an in-progress fill).
+            portalUrl ? (
+                <a key="owner" href={portalUrl} target="_blank" rel="noopener noreferrer" className="text-black-700 hover:text-black-900 pointer-events-auto inline-flex items-center gap-1.5">
+                    {owner}
+                </a>
+            ) : (
+                <span key="owner" className="text-black-700 inline-flex items-center gap-1.5">
+                    {owner}
+                </span>
+            )
         );
     }
     if (purpose) {
@@ -61,6 +81,13 @@ export default function TrustLayer({ ownerName, ownerImage, purpose, privacyUrl,
             </span>
         )
     );
+    if (poweredBy) {
+        items.push(
+            <a key="powered-by" href="https://bettercollected.com/" target="_blank" rel="noopener noreferrer" className="text-black-600 hover:text-black-900 pointer-events-auto">
+                Powered by <span className="font-semibold">bettercollected</span>
+            </a>
+        );
+    }
 
     return (
         // 13px legible ink-2 — the strip that carries the product's differentiator

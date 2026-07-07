@@ -98,6 +98,103 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
   policy link with a live preview of the responder-facing trust strip; the
   values persist as workspace-form settings and render on every step of the
   published form.
+- **Submission detail joins the portal's design**: opening a receipt (and
+  requesting deletion) landed on a bare white page with its own tab style —
+  a different product right where responders exercise their data rights. It
+  now wears the portal's clothes: surface wash, a white receipt card with
+  the same identity as the list (form title, mono receipt number, exact
+  time, Anonymous chip, deletion status), portal tabs renamed to responder
+  language ("My response" · "Privacy & deletion"), and the deletion section
+  restated as a calm trust surface — shield statement of the right, a muted
+  "Request deletion" button with an expectation-setting caption, and an
+  amber "Deletion requested · Pending" state instead of a red warning. The
+  page also stopped wearing the platform's brand: the bettercollected
+  wordmark header (a jarring brand switch inside the workspace's own
+  branded space, especially on custom domains) gave way to the workspace's
+  avatar + name linking back to the portal, with the platform down in the
+  same quiet "Powered by" caption the portal uses.
+- **Anonymity now holds at the account level**: verifying your email no
+  longer links anonymous submissions to your account — My submissions and
+  Deletion requests list only identified responses, and an anonymous
+  response is reachable solely through its submission number, which is what
+  the portal copy promises ("that's what keeps it anonymous"). A caption
+  under the list says where anonymous submissions live. Also from this
+  feedback round: confirm dialogs' dismiss action is a quiet outline button
+  (the filled near-black "No" read as a second primary), the deletion
+  confirmation says what it does ("Ask the workspace to delete this
+  response?" · Cancel / Request deletion — no more Yes/No) and states the
+  consequence; and opening a submission no longer hops through a redirect
+  (receipts and number-search link straight to the response tab) nor
+  flashes a white full-screen loader (the workspace-branded shell stays up
+  with a skeleton while loading).
+- **Anonymous responders can finally exercise their deletion right** (bug):
+  requesting deletion authorized only `dataOwnerIdentifier == user` (plus
+  admins) — an anonymous response has no owner identifier, so the very
+  people the product promised anonymity to were 403'd out of deleting their
+  own response; the check now accepts the anonymous identity hash. Deletion
+  requests also store that hash, so anonymous requests actually appear in
+  the responder's Deletion requests tab (they used to vanish after
+  creation). My submissions now surfaces "Deletion requested / Deleted"
+  status on the affected receipts (the list previously looked unchanged
+  after a request), deletion-request cards carry the receipt number and an
+  honest "Requested:" timestamp, the request button no longer nests a
+  button inside a tooltip's button (hydration error), and the danger button
+  uses the design language's muted red instead of washed pink.
+- **Responder portal redesigned as the trust surface it links from**: the
+  workspace portal (where every form's "view or delete your response
+  anytime" promise lands) was an admin-dashboard reskin. Form cards now
+  speak responder language — the form's purpose and question count instead
+  of a provider glyph and a tautological "Public" chip. Submission receipts
+  are finally identifiable: mono receipt number, exact time, and an
+  Anonymous shield chip (they used to show only title + date, so repeat
+  submissions were indistinguishable). The workspace card carries the trust
+  anchor; search-by-submission-number reads as the right-of-access feature
+  it is (trust treatment, labeled controls) instead of clip-art; the
+  deletion-requests empty state explains the right and the path to exercise
+  it; tabs, wash, avatar fallback and body ink moved onto the design
+  tokens; "Terms Of Services" typo fixed; the pink submission-detail title
+  and the "Form Page ‹ My response" breadcrumb cleaned up.
+- **The builder now loads the draft it edits** (data-trust bug): the edit
+  page's loader requested the form with `published=true&draft=true`, and the
+  API returns the latest *published* version whenever one exists — so
+  autosaved changes (theme, welcome description, …) looked lost on every
+  reload while the draft in the database was actually correct. The builder
+  loader now fetches the draft.
+- **One form footer**: "Powered by bettercollected" moved into the trust
+  strip as its last item (gated by the existing disable-branding setting,
+  which the old footer never honoured) — the thank-you page's own floating
+  footer sat underneath the fixed strip and the two overlapped.
+- **Thank-you heading is customizable**: the hardcoded "Thank You! 🎉" is now
+  an editable (and pipeable) title on the thank-you page — edited inline in
+  the builder like the welcome title, persisted on the form, with the
+  classic greeting as the default when unset.
+- **Responder form transitions unified**: every page type declared its own
+  animation — different easings, and no exit motion at all, so the old page
+  froze in place while the new one slid over it — and the ±100% fly-in was
+  never clipped, flashing a horizontal scrollbar on every step. One
+  direction-aware transition now covers welcome/pages/thank-you (entering
+  page slides the full width, exiting page drifts a quarter-width the other
+  way while fading), the container clips the motion, and
+  `prefers-reduced-motion` gets a plain cross-fade.
+- **Builder canvas works on large screens**: the canvas mat collapsed to a
+  content-height band floating in white void on tall viewports (the layout
+  row centres its children and the mat, unlike the drawer, never stretched)
+  — and the collapsed height fed back into the Fit computation, shrinking
+  the slide further. The mat now stretches to the workspace, and Fit no
+  longer caps at true size, so on big monitors Fit fills the mat while 100%
+  shows the true 1440×810 — the toggle was a no-op there before.
+- **Flow view feedback round**: the Insights header no longer contradicts the
+  node chips — it now labels its two instruments apart ("17 responses"
+  behind the node/edge counts vs "journeys: 13 started · 11 finished" from
+  anonymous navigation tracking, with tooltips explaining each); the side
+  panel shows the selected page's full question (it was CSS-truncated to one
+  line); the "Edit content" overlay was rebuilt on the main canvas's
+  measured-scale layout — exactly centred sheet on the mat, page-number
+  eyebrow + full-title header, live Saving…/Saved status instead of a static
+  "changes save automatically" claim, and the standard 300px drawer; and
+  edges are now set one frame after nodes when the graph re-derives —
+  React Flow silently drops edges whose handles aren't mounted yet, which
+  intermittently rendered the whole graph unlinked.
 - **Flow (Logic) view brought onto the design language**: the `brand-*`
   Tailwind ramp — which still peaked at the old bright blue and leaked into
   every "tokenized" surface using brand classes — was retuned to trust blue,

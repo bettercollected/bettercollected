@@ -29,7 +29,10 @@ export default function GenericHalfModal({ headerTitle, title, subTitle, type, p
             {subTitle && <span className="p2-new text-sm mt-2 text-black-700">{subTitle}</span>}
             {children}
             <div className="flex w-full gap-4 mt-6">
-                <Button className="flex-1" size="medium" onClick={closeModal} variant="secondary">
+                {/* The dismiss action is quiet — a filled near-black "No" carried
+                    as much visual weight as the action itself and read like a
+                    second primary. */}
+                <Button className="flex-1" size="medium" onClick={closeModal} variant="v2Button">
                     {!negativeText ? t('BUTTON.CANCEL') : negativeText}
                 </Button>
                 <Button className="flex-1" size="medium" isLoading={loading} variant={type === 'danger' ? 'danger' : 'primary'} onClick={positiveAction}>

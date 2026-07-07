@@ -27,7 +27,6 @@ from backend.app.schemas.standard_form_response import (
     DeletionRequestStatus,
 )
 from backend.app.utils.aggregation_query_builder import create_filter_pipeline
-from backend.app.utils.hash import hash_string
 
 
 class FormResponseRepository(BaseRepository):
@@ -56,6 +55,19 @@ class FormResponseRepository(BaseRepository):
             },
             {"$set": {"form_title": "$form.title"}},
             {"$unwind": "$form_title"},
+            # Surface any deletion request's status on the response itself —
+            # without it, requesting deletion changed nothing visible in the
+            # responder's submissions list.
+            {
+                "$lookup": {
+                    "from": "responses_deletion_requests",
+                    "localField": "response_id",
+                    "foreignField": "response_id",
+                    "as": "deletion_request",
+                },
+            },
+            {"$set": {"status": {"$arrayElemAt": ["$deletion_request.status", 0]}}},
+            {"$unset": "deletion_request"},
             {"$sort": {"created_at": -1}},
         ]
 
@@ -174,12 +186,11 @@ class FormResponseRepository(BaseRepository):
     async def get_user_submissions(
         self, form_ids, user: User, request_for_deletion: bool = False
     ):
-        extra_find_query = {
-            "$or": [
-                {"dataOwnerIdentifier": user.sub},
-                {"anonymous_identity": hash_string(user.sub)},
-            ]
-        }
+        # Deliberately NOT matching anonymous_identity here: anonymity means a
+        # signed-in account listing must not link anonymous submissions back to
+        # the account. The submission number (receipt) is the only key to an
+        # anonymous response — which is exactly what the portal promises.
+        extra_find_query = {"dataOwnerIdentifier": user.sub}
         if request_for_deletion:
             return await DeletionRequestsRepository.get_deletion_requests(
                 form_ids=form_ids, extra_find_query=extra_find_query

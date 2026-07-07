@@ -29,6 +29,11 @@ const FormCards = ({ title, formsArray, workspace, showPinned = true, showVisibi
                         <Link
                             key={form.formId + idx}
                             href={pathname}
+                            // Filling a form is a fullscreen, focused journey with no
+                            // chrome back to the portal — open it in its own tab so
+                            // the portal stays exactly where the responder left it.
+                            target="_blank"
+                            rel="noopener"
                         >
                             <WorkspaceFormCard isResponderPortal showVisibility={showVisibility} showPinned={showPinned} form={form} hasCustomDomain={isCustomDomain} workspace={workspace} />
                         </Link>

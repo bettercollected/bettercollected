@@ -1,7 +1,6 @@
 "use client";
 import { FormEvent, useState } from 'react';
 
-import Image from 'next/legacy/image';
 import { useRouter } from 'next/navigation';
 
 import InfoIcon from '@Components/icons/info.icon';
@@ -30,7 +29,7 @@ const SearchBySubmissionNumber = ({ className }: { className?: string }) => {
             submissionUUID: submissionNumber
         });
         if (response.data) {
-            const submissionUrl = isCustomDomain ? `/submissions/uuid/${submissionNumber}` : `/${workspace.workspaceName}/submissions/uuid/${submissionNumber}`;
+            const submissionUrl = isCustomDomain ? `/submissions/uuid/${submissionNumber}/form` : `/${workspace.workspaceName}/submissions/uuid/${submissionNumber}/form`;
             router.push(submissionUrl);
         }
         if (response.error) {
@@ -41,11 +40,13 @@ const SearchBySubmissionNumber = ({ className }: { className?: string }) => {
     return (
         <form onSubmit={handleSubmit} className={className}>
             <div className="flex w-full max-w-[367px] flex-col items-center justify-center rounded-xl bg-white px-6 py-8 xl:w-[367px]">
-                <Image src={'/images/search_submission.png'} alt="Seacch by sub number" height={62} width={77} />
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#E9EFFC]" aria-hidden="true">
+                    <SearchIcon className="text-[#2456CC]" width={22} height={22} strokeWidth={2} />
+                </div>
 
                 <div className="mt-4">
-                    <div className="h4-new text-new-black-800 text-center font-medium">Search by submission number</div>
-                    <div className="p2-new text-black-700 mt-2 !text-center">Enter your submission number to see your form response.</div>
+                    <div className="h4-new text-new-black-800 text-center font-medium">Find a response by its number</div>
+                    <div className="p2-new text-black-700 mt-2 !text-center">Every submission gets a receipt number — enter it to view (or request deletion of) that response.</div>
                 </div>
                 <div className="mt-4 flex w-full gap-4">
                     <AppInput
@@ -56,19 +57,20 @@ const SearchBySubmissionNumber = ({ className }: { className?: string }) => {
                             setSubmissionNumber(event.target.value);
                         }}
                         placeholder="Enter submission number"
+                        aria-label="Submission number"
                         className="w-full flex-1"
                     />
 
-                    <button type="submit" className=" active:bg-black-300 bg-black-200 flex items-center justify-center rounded p-3">
-                        <SearchIcon className="text-black-700" width={16} height={16} strokeWidth={2} />
+                    <button type="submit" aria-label="Search" className="flex items-center justify-center rounded bg-[#2456CC] p-3 hover:bg-[#1E49AD]">
+                        <SearchIcon className="text-white" width={16} height={16} strokeWidth={2} />
                     </button>
                 </div>
-                <div className="mt-2 text-xs text-red-500">
+                <div className="mt-2 text-xs text-[#C43D3D]">
                     {error && (
                         <div className="flex gap-2">
                             {' '}
                             <span>
-                                <InfoIcon className="text-red-500" width={16} height={16} />
+                                <InfoIcon className="text-[#C43D3D]" width={16} height={16} />
                             </span>
                             The submission number does not match with any form responses
                         </div>

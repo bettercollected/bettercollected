@@ -31,7 +31,7 @@ export default function AuthAccountProfileImage({
             style={{ width: size, height: size, ...style }}
         >
             <AvatarImage src={image} className="object-cover" />
-            <AvatarFallback className={cn("bg-green-500 text-white font-semibold flex items-center justify-center h-full w-full", roundedClass)}>
+            <AvatarFallback className={cn("bg-[#E9EFFC] text-[#2456CC] font-semibold flex items-center justify-center h-full w-full", roundedClass)}>
                 <span className={cn(typography)}>{name?.[0]?.toUpperCase()}</span>
             </AvatarFallback>
         </Avatar>

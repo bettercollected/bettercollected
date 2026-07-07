@@ -257,17 +257,30 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
     const overlayIndex = slides.findIndex((s) => s.id === overlayId);
     const overlaySlide = overlayIndex >= 0 ? slides[overlayIndex] : undefined;
 
-    // Same scale-to-fit trick as the main editor: the slide lays out at viewport
-    // size and is CSS-scaled into the available overlay area.
-    const overlayScaleStyle = useMemo(() => {
-        if (typeof window === 'undefined' || !overlaySlide) return undefined;
-        const availW = window.innerWidth - 280 - 120; // properties drawer + margins
-        const availH = window.innerHeight - 150;
-        if (availW / (16 / 9) > availH) {
-            return { height: '100vh', scale: availH / window.innerHeight, transformOrigin: 'top left' } as React.CSSProperties;
-        }
-        return { width: '100vw', scale: availW / window.innerWidth, transformOrigin: 'top left' } as React.CSSProperties;
-    }, [overlaySlide]);
+    // Same measured-scale approach as the main editor: the slide lays out at
+    // its true 1440×810 design size and is scaled to fit the overlay's mat,
+    // with the wrapper sized to the visual card so centring is exact. (The
+    // old window-arithmetic version left the sheet off-centre in dead space.)
+    const SLIDE_W = 1440;
+    const SLIDE_H = 810;
+    const overlayMatRef = useRef<HTMLDivElement>(null);
+    const [overlayScale, setOverlayScale] = useState(0.5);
+    useEffect(() => {
+        const mat = overlayMatRef.current;
+        if (!mat) return;
+        const compute = () => {
+            const cs = getComputedStyle(mat);
+            const availableWidth = mat.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+            const availableHeight = mat.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+            // Uncapped: on large screens the sheet fills the overlay mat.
+            setOverlayScale(Math.min(availableWidth / SLIDE_W, availableHeight / SLIDE_H));
+        };
+        compute();
+        const observer = new ResizeObserver(compute);
+        observer.observe(mat);
+        return () => observer.disconnect();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [overlayId]);
 
     /* ------------ derive nodes/edges from the form model ------------ */
 
@@ -380,7 +393,12 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
     );
     useEffect(() => {
         setNodes(buildNodes());
-        setEdges(buildEdges());
+        // Edges one frame later: React Flow silently DROPS edges whose source/
+        // target handles aren't mounted yet, and same-tick node+edge updates
+        // intermittently lose that race — leaving the whole graph unlinked
+        // until something else touches the edges array.
+        const frame = requestAnimationFrame(() => setEdges(buildEdges()));
+        return () => cancelAnimationFrame(frame);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [modelSignature, traffic, armed, flowAnalytics, showInsights]);
 
@@ -544,9 +562,19 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
                             {autosaveStatus.state === 'error' && "Couldn't save — edit to retry"}
                         </span>
                     )}
+                    {/* Two instruments, labelled apart: node/edge counts replay the
+                        SUBMITTED responses (all-time), while journey tracking counts
+                        anonymous page-to-page sessions — including people who never
+                        submitted, and only since flow analytics was enabled. Shown
+                        unlabelled they read as the same number disagreeing. */}
+                    {showInsights && (traffic?.total ?? 0) > 0 && (
+                        <span className="text-black-600 mr-1 text-xs" title="All-time submitted responses — the population behind the node and edge counts">
+                            <span className="font-semibold">{traffic!.total}</span> response{traffic!.total === 1 ? '' : 's'}
+                        </span>
+                    )}
                     {showInsights && flowAnalytics && flowAnalytics.totalSessions > 0 && (
-                        <span className="text-black-600 mr-1 text-xs">
-                            {flowAnalytics.totalSessions} started · {flowAnalytics.submittedSessions} finished
+                        <span className="text-black-600 mr-1 text-xs" title="Anonymous page-to-page journeys since flow analytics was enabled — includes visitors who never submitted, which is where the drop-off chips come from">
+                            · journeys: {flowAnalytics.totalSessions} started · {flowAnalytics.submittedSessions} finished
                         </span>
                     )}
                     {showInsights && !insightsLoading && traffic?.total === 0 && (!flowAnalytics || flowAnalytics.totalSessions === 0) && <span className="text-black-500 mr-1 text-xs">No responses yet</span>}
@@ -637,7 +665,9 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
                             <div className="border-b-black-200 flex flex-col gap-2 border-b px-4 py-4">
                                 <div>
                                     <div className="text-black-600 text-[10px] font-semibold uppercase tracking-wide">Page {selectedIndex + 1}</div>
-                                    <div className="text-black-900 truncate text-sm font-semibold">{pageLabel(selectedSlide, selectedIndex).replace(/^Page \d+ · /, '') || 'Untitled page'}</div>
+                                    {/* The canvas card may truncate the question; the panel is
+                                        where the full text belongs — wrap, don't clip. */}
+                                    <div className="text-black-900 break-words text-sm font-semibold leading-snug">{pageLabel(selectedSlide, selectedIndex).replace(/^Page \d+ · /, '') || 'Untitled page'}</div>
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <button onClick={() => openPageEditor(selectedSlide.id)} className="bg-brand-500 hover:bg-brand-600 flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-medium text-white">
@@ -679,22 +709,45 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
             {overlaySlide && (
                 <div role="dialog" aria-modal="true" aria-label={`Edit page ${overlayIndex + 1}`} className="absolute inset-0 z-30 flex flex-col bg-black/40 p-5" onClick={() => setOverlayId(null)}>
                     <div className="flex min-h-0 flex-1 overflow-hidden rounded-xl bg-white shadow-2xl" onClick={(e) => e.stopPropagation()}>
-                        <div className="bg-new-white-200 relative flex min-w-0 flex-1 flex-col overflow-hidden">
-                            <div className="border-b-black-200 flex items-center justify-between border-b bg-white px-4 py-2.5">
-                                <div className="text-black-800 text-sm font-semibold">
-                                    Page {overlayIndex + 1} · <span className="text-black-500 font-normal">changes save automatically</span>
+                        <div className="relative flex min-w-0 flex-1 flex-col overflow-hidden">
+                            <div className="border-b-black-200 flex items-center justify-between gap-4 border-b bg-white px-4 py-2.5">
+                                <div className="min-w-0">
+                                    <div className="text-black-600 text-[10px] font-semibold uppercase tracking-wide">Page {overlayIndex + 1}</div>
+                                    <div className="text-black-900 truncate text-sm font-semibold">{pageLabel(overlaySlide, overlayIndex).replace(/^Page \d+ · /, '') || 'Untitled page'}</div>
                                 </div>
-                                <button onClick={() => setOverlayId(null)} className="border-black-300 text-black-700 hover:border-brand-500 hover:text-brand-600 flex items-center gap-1 rounded-md border px-2.5 py-1 text-xs font-medium">
-                                    <X className="h-3.5 w-3.5" /> Back to flow
-                                </button>
+                                <div className="flex shrink-0 items-center gap-3">
+                                    {/* Live save state beats the static "changes save automatically" claim. */}
+                                    <span aria-live="polite" className={'whitespace-nowrap text-xs ' + (autosaveStatus.state === 'error' ? 'font-medium text-[#B26B00]' : 'text-black-600')}>
+                                        {autosaveStatus.state === 'saving' && 'Saving…'}
+                                        {autosaveStatus.state === 'saved' && 'Saved'}
+                                        {autosaveStatus.state === 'error' && "Couldn't save — edit to retry"}
+                                        {autosaveStatus.state === 'idle' && 'Changes save automatically'}
+                                    </span>
+                                    <button onClick={() => setOverlayId(null)} className="border-black-300 text-black-700 hover:border-brand-500 hover:text-brand-600 flex items-center gap-1 rounded-md border px-2.5 py-1.5 text-xs font-medium">
+                                        <X className="h-3.5 w-3.5" /> Back to flow
+                                    </button>
+                                </div>
                             </div>
-                            <div className="flex min-h-0 flex-1 items-start justify-center overflow-auto p-6">
-                                <div className="!shadow-slide aspect-video overflow-hidden" style={overlayScaleStyle}>
-                                    <SlideBuilder slide={overlaySlide} />
+                            {/* Same mat + floating-sheet treatment as the main canvas, so
+                                "edit a page" looks identical wherever it happens. */}
+                            <div ref={overlayMatRef} className="flex min-h-0 flex-1 overflow-auto bg-[#E9EEF5] px-8 py-8" onClick={() => setActiveFieldComponent(null)}>
+                                <div className="m-auto shrink-0" style={{ width: SLIDE_W * overlayScale, height: SLIDE_H * overlayScale }}>
+                                    <div
+                                        className="border-black-400 overflow-hidden rounded-lg border bg-white"
+                                        style={{
+                                            width: SLIDE_W,
+                                            height: SLIDE_H,
+                                            transform: `scale(${overlayScale})`,
+                                            transformOrigin: 'top left',
+                                            boxShadow: '0px 1px 3px rgba(16, 24, 38, 0.06), 0px 12px 32px rgba(16, 24, 38, 0.12)'
+                                        }}
+                                    >
+                                        <SlideBuilder slide={overlaySlide} />
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                        <div className="border-l-black-200 w-[280px] shrink-0 overflow-y-auto border-l bg-white">
+                        <div className="border-l-black-200 w-[300px] shrink-0 overflow-y-auto border-l bg-white">
                             <PropertiesDrawer />
                         </div>
                     </div>

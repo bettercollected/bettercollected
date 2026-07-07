@@ -24,6 +24,7 @@ import { useGroupForm } from '@app/lib/hooks/use-group-form';
 import { StandardFormDto } from '@app/models/dtos/form';
 import { ResponderGroupDto } from '@app/models/dtos/groups';
 import { WorkspaceDto } from '@app/models/dtos/workspace-dto';
+import { getFormFields } from '@app/utils/form-builder-block-utils';
 import getFormShareURL from '@app/utils/form-utils';
 import { getEditFormURL } from '@app/utils/url-utils';
 import { validateFormOpen } from '@app/utils/vvalidation-utils';
@@ -95,7 +96,29 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, group, worksp
                             </div>
                         )}
                     </div>
-                    <div className="flex max-w-full flex-wrap items-center gap-2">
+                    {/* Responders don't care which platform built the form or that a
+                        public form is "Public" — they care what it's for and how big
+                        it is. Creator metadata stays on the admin dashboard. */}
+                    {isResponderPortal && form?.settings?.purpose && <p className="text-black-600 line-clamp-2 text-sm">{form.settings.purpose}</p>}
+                    {isResponderPortal && (
+                        <div className="text-black-600 flex max-w-full flex-wrap items-center gap-2 text-sm">
+                            {(() => {
+                                const questionCount = Array.isArray(form?.fields) ? getFormFields(form).length : 0;
+                                return questionCount > 0 ? (
+                                    <span>
+                                        {questionCount} question{questionCount === 1 ? '' : 's'}
+                                    </span>
+                                ) : null;
+                            })()}
+                            {showPinned && form?.settings?.pinned && (
+                                <>
+                                    <DotIcon />
+                                    <span className="text-sm font-medium text-[#B26B00]">{t('FORM.PINNED')}</span>
+                                </>
+                            )}
+                        </div>
+                    )}
+                    <div className={`flex max-w-full flex-wrap items-center gap-2 ${isResponderPortal ? 'hidden' : ''}`}>
                         <FormProviderIcon provider={form.settings?.provider === 'self' && form.importedFormId && form.settings.showOriginalForm ? 'google' : form?.settings?.provider} />
                         {showVisibility && (
                             <Tooltip label={form?.settings?.private ? t(toolTipConstant.hideForm) : ''}>

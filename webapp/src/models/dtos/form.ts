@@ -90,6 +90,7 @@ export interface StandardFormDto {
         buttonText?: string;
     };
     thankyouPage?: Array<{
+        title?: string;
         message?: string;
         buttonText?: string;
         buttonLink?: string;
@@ -152,6 +153,10 @@ export interface StandardFormResponseDto {
     updatedAt: string | Date;
     formImportedBy?: string;
     status?: string;
+    /** The receipt number responders use to find/delete this response. */
+    submissionUuid?: string;
+    /** Set (instead of dataOwnerIdentifier) when submitted anonymously. */
+    anonymousIdentity?: string;
     requestForDeletion?: boolean;
     expiration?: string;
     expirationType?: any;

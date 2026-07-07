@@ -1,11 +1,9 @@
 'use client';
 
 import { useModal } from '@app/components/modal-views/context';
-import { buttonConstant } from '@app/constants/locales/button';
 import { toolTipConstant } from '@app/constants/locales/tooltip';
 import { Button } from '@app/shadcn/components/ui/button';
-import Tooltip from '@app/shadcn/components/ui/tooltip';
-import Divider from '@Components/common/divider';
+import { Shield } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useSubmissionContext } from './submission-context';
 
@@ -22,30 +20,28 @@ export default function SubmissionSettingsContent() {
     };
 
     return (
-        <div className="flex flex-col gap-[72px] px-5">
-            <div className="flex flex-col gap-2">
-                <span className="h3-new">Settings</span>
-                <span className="p2-new text-black-700"> Review your data usage permissions</span>
+        // The deletion right, stated in plain words and kept calm — this is a
+        // trust surface, not a danger zone (Design-Language §4/§5).
+        <div className="flex max-w-[640px] flex-col gap-4">
+            <div className="flex items-start gap-2 rounded-lg bg-[#F4F7FD] px-3 py-2.5">
+                <Shield className="mt-0.5 h-4 w-4 shrink-0 text-[#2456CC]" strokeWidth={1.8} aria-hidden="true" />
+                <span className="text-black-700 text-sm leading-relaxed">
+                    This response belongs to you. You can ask for it to be deleted at any time — the request and its status stay visible here and under Deletion requests.
+                </span>
             </div>
-            {form?.settings?.provider !== 'self' && (
-                <div className="flex max-w-[800px] flex-col gap-4">
-                    <Divider />
-                    <div className="h4-new">You can request for deletion of your data in this form.</div>
-                    <Divider />
-                </div>
-            )}
             {!form?.response?.deletionStatus ? (
-                <div>
-                    <Tooltip label={deletionStatus ? t(toolTipConstant.alreadyRequestedForDeletion) : t(toolTipConstant.requestForDeletion)}>
-                        <Button className={`w-fit`} variant="danger" onClick={handleRequestForDeletionModal}>
-                            {t(buttonConstant.requestForDeletion)}
-                        </Button>
-                    </Tooltip>
+                <div className="flex flex-col gap-2">
+                    {/* No Tooltip wrapper: the shared Tooltip renders its own
+                        <button> trigger, nesting buttons (hydration error). */}
+                    <Button className={`w-fit`} variant="danger" title={deletionStatus ? t(toolTipConstant.alreadyRequestedForDeletion) : t(toolTipConstant.requestForDeletion)} onClick={handleRequestForDeletionModal}>
+                        Request deletion
+                    </Button>
+                    <span className="text-black-600 text-xs">The workspace reviews deletion requests — you&apos;ll see the status change here once it&apos;s handled.</span>
                 </div>
             ) : (
                 <div className="flex flex-col gap-2">
-                    <span className="h4-new !text-red-500 ">You have requested for deletion of your response.</span>
-                    <span>Status: Pending</span>
+                    <span className="w-fit rounded bg-[#FBF3E4] px-2 py-1 text-sm font-medium text-[#B26B00]">Deletion requested · Pending</span>
+                    <span className="text-black-600 text-sm">The workspace has been asked to delete this response. Its status will update here and under Deletion requests.</span>
                 </div>
             )}
         </div>
