@@ -1,8 +1,10 @@
 
 "use client";
 import { useTranslation } from 'next-i18next';
+import { usePathname, useRouter } from 'next/navigation';
 
 import ZeroElement from '@Components/common/zero-elament';
+import { Button } from '@app/shadcn/components/ui/button';
 import WorkspaceFormResponseDeletionCard from '@Components/workspace-client/workspace-form-response-deletion-card';
 
 import Loader from '@app/components/ui/loader';
@@ -21,6 +23,8 @@ interface IWorkspaceResponsesTabContentProps {
 export default function WorkspaceResponsesTabContent({ workspace, deletionRequests = false }: IWorkspaceResponsesTabContentProps) {
     const { t } = useTranslation();
     const auth = useAppSelector(selectAuth);
+    const router = useRouter();
+    const pathname = usePathname();
     const { isLoading, data } = useGetWorkspaceSubmissionsQuery(
         {
             workspaceId: workspace.id,
@@ -41,14 +45,37 @@ export default function WorkspaceResponsesTabContent({ workspace, deletionReques
     const isCustomDomain = window?.location.host !== window.PUBLIC_CONFIG?.FORM_DOMAIN;
 
     const getEmptyMessage = () => {
-        if (!auth.id) return 'Verify your email or enter your submission number you to view all your form responses.';
         if (deletionRequests) return t(formConstant.deletionRequestDescription);
-        return 'You have not submitted any response on the forms provided in this workspace.';
+        return "You haven't submitted any responses to this workspace's forms yet.";
+    };
+
+    const handleVerify = () => {
+        const params = new URLSearchParams({
+            type: 'responder',
+            workspace_id: workspace.id,
+            redirect_to: pathname ?? ''
+        });
+        router.push(`/login?${params.toString()}`);
     };
 
     return (
         <>
-            {submissions?.length === 0 && <ZeroElement title={deletionRequests ? t(formConstant.empty.deletionRequest.title) : 'No submissions yet'} description={getEmptyMessage()} className="!pb-[20px]" />}
+            {/* Signed out we DON'T know there are no submissions — "No submissions
+                yet" would be a false claim to a responder with ten of them. Say
+                what's actually true: verify (or use a receipt number) to see them. */}
+            {submissions?.length === 0 && !auth.id && (
+                <div className="px-13 flex h-full min-h-[290px] w-full flex-col items-center justify-center gap-4 rounded-xl bg-white py-[60px] text-center">
+                    <div>
+                        <h1 className="h4-new mt-2">Find your submissions</h1>
+                        <p className="p2-new !text-black-700 mt-1 max-w-[290px] md:max-w-[360px]">Verify your email to see responses you&apos;ve submitted, or enter a submission number in the search panel.</p>
+                    </div>
+                    <Button size="sm" onClick={handleVerify}>
+                        Verify email
+                    </Button>
+                    <p className="text-black-500 max-w-[360px] text-xs">Submitted anonymously? Your submission number is the only way to find that response — that&apos;s what keeps it anonymous.</p>
+                </div>
+            )}
+            {submissions?.length === 0 && !!auth.id && <ZeroElement title={deletionRequests ? t(formConstant.empty.deletionRequest.title) : 'No submissions yet'} description={getEmptyMessage()} className="!pb-[20px]" />}
 
             {submissions?.length !== 0 && (
                 <div className="w-full">

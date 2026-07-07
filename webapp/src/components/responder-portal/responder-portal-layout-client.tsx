@@ -78,8 +78,8 @@ export default function ResponderPortalLayoutClient({
                 <WorkspaceDetailsCard workspace={workspace} />
                 {!auth.id && !auth.isLoading && (
                     <div className="mt-6 flex flex-col rounded-xl bg-white p-6">
-                        <div className="h4-new">Check my data</div>
-                        <div className="p2-new text-black-600 mt-2">Verify your email address to view all the data associated with you.</div>
+                        <div className="h4-new">See your submissions</div>
+                        <div className="p2-new text-black-600 mt-2">Verify your email to see every response you&apos;ve submitted to this workspace — and request deletion of any of them.</div>
                         <Button
                             className="mt-6"
                             size="sm"
@@ -92,8 +92,9 @@ export default function ResponderPortalLayoutClient({
                                 router.push(`/login?${params.toString()}`);
                             }}
                         >
-                            Verify Now
+                            Verify email
                         </Button>
+                        <div className="p4-new text-black-500 mt-3">Submitted anonymously? Use your submission number instead.</div>
                     </div>
                 )}
                 {auth.id && (
@@ -117,9 +118,9 @@ export default function ResponderPortalLayoutClient({
                                             <>
                                                 <Divider className="text-black-200" />
                                                 <div className="p4-new text-black-600 p-4">
-                                                    You have 0 workspace associated with this email.{' '}
+                                                    No workspace is associated with this email yet.{' '}
                                                     <ActiveLink target="_blank" href="https://bettercollected.com" className="text-blue-500">
-                                                        Try Bettercollected{' '}
+                                                        Try bettercollected{' '}
                                                     </ActiveLink>
                                                 </div>
                                             </>

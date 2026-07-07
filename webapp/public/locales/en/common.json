@@ -220,7 +220,7 @@
     "STATUS_PENDING": "Pending",
     "STATUS_EXPIRED": "Expired",
     "SUBMISSION_DATE": "Submission Date",
-    "SUBMITTED_FORMS": "Submitted forms",
+    "SUBMITTED_FORMS": "My submissions",
     "PREVIEW": "Preview",
     "URL": "Form URL",
     "IMPORTED_BY": "Imported By",
@@ -558,7 +558,7 @@
     "FOR_THIS_FEATURE": " for this feature"
   },
   "PRIVACY_POLICY": {
-    "TITLE": "Privacy Policy",
+    "TITLE": "Privacy policy",
     "DESCRIPTION": "Our Privacy Policy outlines how we handle, collect, and protect your personal information when you use our services."
   },
   "PROFILE_MENU": {
