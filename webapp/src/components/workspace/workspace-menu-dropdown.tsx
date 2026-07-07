@@ -90,20 +90,22 @@ export default function WorkspaceMenuDropdown({ fullWidth }: IWorkspaceMenuDropd
     return (
         <Popover open={open} onOpenChange={setOpen} modal>
             <PopoverTrigger asChild>
+                {/* px-4 py-2 matches the nav items below, so the avatar's left
+                    edge lines up with the nav icons — one consistent gutter. */}
                 <div
-                    className={`${fullWidth ? 'w-full' : 'w-fit'} flex cursor-pointer items-center justify-between overflow-hidden rounded-lg pr-4 hover:bg-black-100 ${open ? 'bg-black-100' : ''
+                    className={`${fullWidth ? 'w-full' : 'w-fit'} flex cursor-pointer items-center justify-between gap-2 overflow-hidden rounded-lg px-4 py-2 hover:bg-black-100 ${open ? 'bg-black-100' : ''
                         }`}
                 >
-                    <div className="flex w-[200px] items-center gap-2 px-3 py-1">
-                        <AuthAccountProfileImage size={40} image={workspace?.profileImage} name={workspace?.title || 'Untitled'} variant="circular" />
-                        <div className="flex w-full flex-col items-start truncate">
+                    <div className="flex min-w-0 items-center gap-3">
+                        <AuthAccountProfileImage size={36} image={workspace?.profileImage} name={workspace?.title || 'Untitled'} variant="circular" />
+                        <div className="flex min-w-0 flex-col items-start">
                             <span className="body3 truncate">{toEndDottedStr(workspace?.title || 'Untitled', 14)}</span>
                             <p className="text-black-700 text-[12px] leading-none">{getWorkspaceRole(workspace)}</p>
                         </div>
                     </div>
                     {showExpandMore && (
-                        <div className={`${open ? '!rotate-180' : '!-rotate-0'} transition-all duration-300`}>
-                            <ChevronRight />
+                        <div className={`shrink-0 ${open ? '!rotate-180' : '!-rotate-0'} transition-all duration-300`}>
+                            <ChevronRight className="text-black-600 h-5 w-5" />
                         </div>
                     )}
                 </div>
