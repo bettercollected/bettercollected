@@ -98,6 +98,13 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
   policy link with a live preview of the responder-facing trust strip; the
   values persist as workspace-form settings and render on every step of the
   published form.
+- **The trust strip is visible while building**: every builder slide now
+  renders the responder-facing trust footer (collected-by, purpose,
+  retention, privacy link) exactly where responders see it, live-updating as
+  the Form-tab fields change; while the trust content is empty, a nudge on
+  the canvas names what responders see and deep-links to the Form tab —
+  creators shouldn't need to publish to know what privacy story their form
+  tells.
 - **Form themes are contrast-verified** (WCAG 2.1, computed): 10 of 13 named
   themes rendered buttons whose white text failed AA (Green was 2.3:1, Yellow
   1.9:1), every theme's input borders failed the 3:1 non-text minimum, and

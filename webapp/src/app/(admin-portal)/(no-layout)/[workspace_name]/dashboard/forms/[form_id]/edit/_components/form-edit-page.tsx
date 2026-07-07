@@ -13,6 +13,7 @@ import { initialFormState, useFormState } from '@app/store/jotai/form';
 import { useNavbarState } from '@app/store/jotai/navbar';
 import { deepCopy } from '@app/utils/object-utils';
 import AutoSaveForm from '@app/views/molecules/form-builder/audo-save-form';
+import { BuilderTrustStrip, TrustStripNudge } from '@app/views/molecules/form-builder/builder-trust-strip';
 import LeftDrawer from '@app/views/organism/form-builder/left-drawer';
 import PropertiesDrawer from '@app/views/organism/form-builder/properties-drawer';
 import SlideBuilder from '@app/views/organism/form-builder/slide-builder';
@@ -165,14 +166,23 @@ export default function FormEditPage(props: { params: Promise<{ form_id: string 
                                 boxShadow: '0px 1px 3px rgba(16, 24, 38, 0.06), 0px 12px 32px rgba(16, 24, 38, 0.12)'
                             }}
                         >
-                            <div className="mx-auto h-full w-full rounded-lg">
+                            <div className="relative mx-auto h-full w-full rounded-lg">
                                 {activeSlideComponent?.id && activeSlideComponent?.index >= 0 && <SlideBuilder slide={formFields[activeSlideComponent?.index]} />}
                                 {!activeSlideComponent?.id && <div>Add a slide to start</div>}
                                 {activeSlideComponent?.id === 'welcome-page' && <WelcomeSlide />}
 
                                 {activeSlideComponent?.id === 'thank-you-page' && <ThankYouSlide />}
+                                {/* The trust strip, exactly where responders see it —
+                                    on every page. An empty strip in plain sight is the
+                                    incentive to author the trust content. */}
+                                <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10">
+                                    <BuilderTrustStrip />
+                                </div>
                             </div>
                         </div>
+                    </div>
+                    <div className="absolute bottom-4 left-1/2 z-10 -translate-x-1/2" onClick={(e) => e.stopPropagation()}>
+                        <TrustStripNudge />
                     </div>
                     <div className="border-black-300 absolute bottom-4 right-4 z-10 flex overflow-hidden rounded-lg border bg-white text-xs font-medium shadow-sm" onClick={(e) => e.stopPropagation()}>
                         <button className={canvasZoom === 'fit' ? 'bg-black-100 text-black-900 px-3 py-1.5 font-semibold' : 'text-black-600 hover:text-black-900 px-3 py-1.5'} onClick={() => setCanvasZoom('fit')}>
