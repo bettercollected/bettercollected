@@ -107,7 +107,12 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
   language ("My response" · "Privacy & deletion"), and the deletion section
   restated as a calm trust surface — shield statement of the right, a muted
   "Request deletion" button with an expectation-setting caption, and an
-  amber "Deletion requested · Pending" state instead of a red warning.
+  amber "Deletion requested · Pending" state instead of a red warning. The
+  page also stopped wearing the platform's brand: the bettercollected
+  wordmark header (a jarring brand switch inside the workspace's own
+  branded space, especially on custom domains) gave way to the workspace's
+  avatar + name linking back to the portal, with the platform down in the
+  same quiet "Powered by" caption the portal uses.
 - **Anonymous responders can finally exercise their deletion right** (bug):
   requesting deletion authorized only `dataOwnerIdentifier == user` (plus
   admins) — an anonymous response has no owner identifier, so the very

@@ -7,8 +7,10 @@ import React from 'react';
 
 import { ChevronLeft, Eye, Shield as ShieldIcon, Trash2 } from 'lucide-react';
 
+import AuthAccountProfileImage from '@app/components/auth/account-profile-image';
 import FullScreenLoader from '@app/components/ui/fullscreen-loader';
-import TopNavLayout from '@app/layouts/top-navbar-layout';
+import { useAppSelector } from '@app/store/hooks';
+import { selectWorkspace } from '@app/store/workspaces/slice';
 import { utcToLocalDateTIme } from '@app/utils/date-utils';
 import { useSubmissionContext } from './submission-context';
 
@@ -22,9 +24,11 @@ import { useSubmissionContext } from './submission-context';
  */
 export default function SubmissionLayoutClient({ children }: { children: React.ReactNode }) {
     const { data, isLoading, isError, hasCustomDomain, workspaceName } = useSubmissionContext();
+    const workspace = useAppSelector(selectWorkspace);
     const form: any = data ?? {};
     const router = useRouter();
     const pathname = usePathname();
+    const portalBase = hasCustomDomain ? '' : `/${workspaceName ?? ''}`;
 
     const goToSubmissions = () => {
         let pathName;
@@ -64,8 +68,18 @@ export default function SubmissionLayoutClient({ children }: { children: React.R
     const isAnonymous = !response?.dataOwnerIdentifier;
 
     return (
-        <TopNavLayout className="!bg-[#F6F8FC] !px-0" showAuthAccount={false} isCustomDomain={hasCustomDomain} isClientDomain={!hasCustomDomain} showNavbar={true}>
-            <div className="mx-auto mt-5 flex w-full max-w-[960px] flex-col gap-4 px-5 pb-10">
+        // This page belongs to the WORKSPACE's branded space (possibly their
+        // custom domain). The platform wordmark up top read as a jarring brand
+        // switch mid-journey — the workspace's own identity leads instead, and
+        // bettercollected stays where the portal keeps it: a quiet caption.
+        <div className="flex min-h-screen w-full flex-col !bg-[#F6F8FC]">
+            <header className="border-b-black-200 sticky top-0 z-20 border-b bg-white">
+                <Link href={`${portalBase}/forms`} className="mx-auto flex w-full max-w-[960px] items-center gap-2.5 px-5 py-3">
+                    <AuthAccountProfileImage variant="circular" size={32} image={workspace?.profileImage} name={workspace?.title || workspaceName || 'W'} />
+                    <span className="text-black-900 text-sm font-semibold">{workspace?.title || workspaceName}</span>
+                </Link>
+            </header>
+            <div className="mx-auto mt-5 flex w-full max-w-[960px] flex-1 flex-col gap-4 px-5 pb-10">
                 <button type="button" className="text-black-700 hover:text-black-900 flex w-fit items-center gap-1 text-sm" onClick={goToSubmissions}>
                     <ChevronLeft strokeWidth={2} width={18} height={18} />
                     My submissions
@@ -117,6 +131,11 @@ export default function SubmissionLayoutClient({ children }: { children: React.R
                     </div>
                 </div>
             </div>
-        </TopNavLayout>
+            {!hasCustomDomain && (
+                <a href="https://bettercollected.com/" target="_blank" rel="noopener noreferrer" className="text-black-500 hover:text-black-700 mx-auto pb-6 text-center text-xs">
+                    Powered by <span className="font-semibold">bettercollected</span>
+                </a>
+            )}
+        </div>
     );
 }
