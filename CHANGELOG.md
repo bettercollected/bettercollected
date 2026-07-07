@@ -98,6 +98,22 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
   policy link with a live preview of the responder-facing trust strip; the
   values persist as workspace-form settings and render on every step of the
   published form.
+- **Builder chrome speaks the design language** (second builder pass): the
+  neutral `black-*` Tailwind scale was retuned from flat Bootstrap grey to
+  the blue-biased ink/hairline tokens, so builder and dashboard chrome cohere
+  with the responder form; the Insert Field picker dropped its pastel-rainbow
+  tiles for one quiet white-tile grid with ink icons; layout and theme
+  selection use trust blue (they were Tailwind pink-500 and the old bright
+  brand blue) and layout thumbnails gained legible glyphs plus captions
+  ("Left aligned", "Image right", …); drawer tabs are a segmented control
+  instead of a near-black pill; the page rail uses one labelled-card grammar
+  for welcome/content/thank-you pages; selecting a field shows a toolbar
+  (field-type chip · duplicate · delete) instead of a lone floating trash
+  can, backed by a new duplicate-question action; the Page drawer is grouped
+  into "This page" / "Whole form" scopes; the canvas sheet sits on a real
+  elevation shadow; and the builder Preview (desktop and mobile) now renders
+  the trust strip — it previously omitted the very thing the drawer promises
+  responders will see.
 
 - **Form details page (dashboard) redesigned**: the 8-tab bar — which silently
   overflowed and hid the Form Link and Analytics tabs entirely on desktop —

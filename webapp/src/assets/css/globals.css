@@ -240,7 +240,7 @@ div::-webkit-scrollbar-thumb:hover {
     z-index: 4;
 }
 .responders-frozen-table .rdt_TableCol:nth-child(-n + 3) {
-    background-color: #eeeeee; /* matches headRow background */
+    background-color: #E9EEF5; /* matches headRow background */
     z-index: 5;
 }
 /* Rows must span the full content width: react-data-table rows are flex

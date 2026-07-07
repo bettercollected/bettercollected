@@ -397,6 +397,23 @@ export default function useFormFieldsAtom() {
         setFormFields([...formFields]);
     };
 
+    // Duplicate a question in place. The clone gets a fresh id and lands right
+    // after its source; piping chips / logic inside the clone keep pointing at
+    // the fields they already referenced, which stay valid.
+    const duplicateField = (slideIndex: number, fieldIndex: number) => {
+        const source = formFields?.[slideIndex]?.properties?.fields?.[fieldIndex];
+        if (!source) return;
+        const clone = JSON.parse(JSON.stringify(source));
+        clone.id = v4();
+        formFields[slideIndex]!.properties!.fields!.splice(fieldIndex + 1, 0, clone);
+        formFields[slideIndex]!.properties!.fields = formFields[slideIndex]!.properties!.fields!.map((field, index) => ({
+            ...field,
+            index
+        }));
+        setFormFields([...formFields]);
+        setActiveFieldComponent({ id: clone.id, index: fieldIndex + 1 });
+    };
+
     const deleteField = (slideIndex: number, fieldIndex: number) => {
         formFields![slideIndex]!.properties!.fields!.splice(fieldIndex, 1);
         formFields![slideIndex!].properties!.fields = formFields![slideIndex!].properties!.fields?.map((field, index) => ({
@@ -768,6 +785,7 @@ export default function useFormFieldsAtom() {
         activeSlide,
         activeField,
         deleteField,
+        duplicateField,
         deleteActiveSlide,
         resetFields,
         addMedia,

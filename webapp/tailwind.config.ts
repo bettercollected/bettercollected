@@ -29,18 +29,22 @@ export default {
                 dark: '#1c1917',
                 'light-dark': '#171e2e',
                 new: {
+                    // Blue-biased neutrals from Design-Language.md §1 — the old
+                    // scale was flat Bootstrap grey. Same lightness ladder, so
+                    // existing black-* usage keeps its hierarchy; the hue shift
+                    // is what makes the whole product cohere.
                     black: {
-                        100: '#F6F6F6',
-                        200: '#EEEEEE',
-                        300: '#DBDBDB',
-                        400: '#CED4DA',
-                        500: '#858585',
-                        600: '#6C757D',
-                        700: '#495057',
-                        800: '#4D4D4D',
-                        900: '#2E2E2E',
+                        100: '#F6F8FC',
+                        200: '#E9EEF5',
+                        300: '#E2E8F2',
+                        400: '#CBD5E6',
+                        500: '#8A94A6',
+                        600: '#657085',
+                        700: '#3A465A',
+                        800: '#27303F',
+                        900: '#101826',
 
-                        DEFAULT: '#2E2E2E'
+                        DEFAULT: '#101826'
                     },
                     blue: {
                         100: '#F2F7FF',
@@ -79,17 +83,17 @@ export default {
                     DEFAULT: '#F8B940'
                 },
                 black: {
-                    100: '#F6F6F6',
-                    200: '#EEEEEE',
-                    300: '#DBDBDB',
-                    400: '#CED4DA',
-                    500: '#858585',
-                    600: '#6C757D',
-                    700: '#495057',
-                    800: '#4D4D4D',
-                    900: '#2E2E2E',
+                    100: '#F6F8FC',
+                    200: '#E9EEF5',
+                    300: '#E2E8F2',
+                    400: '#CBD5E6',
+                    500: '#8A94A6',
+                    600: '#657085',
+                    700: '#3A465A',
+                    800: '#27303F',
+                    900: '#101826',
 
-                    DEFAULT: '#2E2E2E'
+                    DEFAULT: '#101826'
                 }
             },
             spacing: {

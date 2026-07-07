@@ -104,26 +104,31 @@ export default function PagePropertiesTab({ }: {}) {
             return [
                 {
                     style: FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND_LEFT_ALIGN,
-                    Icon: SlideLayoutNoImageLeftAlign
+                    Icon: SlideLayoutNoImageLeftAlign,
+                    label: 'Left aligned'
                 },
                 {
                     style: FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND,
-                    Icon: SlideLayoutNoImage
+                    Icon: SlideLayoutNoImage,
+                    label: 'Centered'
                 }
             ];
         } else
             return [
                 {
                     style: FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT,
-                    Icon: SlideLayoutRightImage
+                    Icon: SlideLayoutRightImage,
+                    label: 'Image right'
                 },
                 {
                     style: FormSlideLayout.TWO_COLUMN_IMAGE_LEFT,
-                    Icon: SlideLayoutLeftImage
+                    Icon: SlideLayoutLeftImage,
+                    label: 'Image left'
                 },
                 {
                     style: FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND,
-                    Icon: SlideLayoutBackgroundImage
+                    Icon: SlideLayoutBackgroundImage,
+                    label: 'Image fill'
                 }
             ];
     };
@@ -167,22 +172,27 @@ export default function PagePropertiesTab({ }: {}) {
 
     return (
         <>
+            {/* Group band: everything until "Whole form" applies to the selected
+                page only. The drawer used to interleave page-scoped and
+                form-wide settings with identical headers — one endless scroll
+                where scope was anyone's guess. */}
+            <div className="bg-black-100 text-black-600 border-b px-4 py-1.5 text-[10px] font-semibold uppercase tracking-wider">This page</div>
             {
                 <>
                     <div className="text-black-600 px-4 pb-3 pt-6 text-xs font-semibold uppercase tracking-wide">Layout</div>
                     <div className="grid grid-cols-2 gap-2 border-b px-4 pb-6">
-                        {getLayoutList().map((item: { style: FormSlideLayout; Icon: any }) => (
-                            <button key={item.style} data-umami-event={`${item.style} Layout`} data-umami-event-email={authState.email}>
+                        {getLayoutList().map((item: { style: FormSlideLayout; Icon: any; label: string }) => (
+                            <button key={item.style} data-umami-event={`${item.style} Layout`} data-umami-event-email={authState.email} className="flex flex-col items-center gap-1">
                                 <div
                                     className={cn(
-                                        'flex h-[50px] w-20 cursor-pointer items-center justify-center rounded-xl border-[1px] p-2 hover:bg-gray-200',
-
-                                        layout && layout === item.style ? 'border-pink-500 ring-offset-1' : 'border-gray-200'
+                                        'flex h-[50px] w-20 cursor-pointer items-center justify-center rounded-lg border p-2 transition-colors hover:border-[#2456CC] hover:bg-[#F4F7FD]',
+                                        layout && layout === item.style ? 'border-[#2456CC] bg-[#F4F7FD] shadow-[0_0_0_1px_#2456CC]' : 'border-black-300 bg-white'
                                     )}
                                     onClick={() => handleSlideLayoutChange(activeSlideComponent?.id, item.style)}
                                 >
                                     {item.Icon && <item.Icon />}
                                 </div>
+                                <span className={cn('text-[10px]', layout && layout === item.style ? 'text-black-800 font-medium' : 'text-black-600')}>{item.label}</span>
                             </button>
                         ))}
                     </div>
@@ -336,9 +346,8 @@ export default function PagePropertiesTab({ }: {}) {
                     <div className="border-t">
                         <PageJumpEditor />
                     </div>
-                    <div className="border-t">
-                        <HiddenFieldsEditor />
-                    </div>
+                    <div className="bg-black-100 text-black-600 border-b border-t px-4 py-1.5 text-[10px] font-semibold uppercase tracking-wider">Whole form</div>
+                    <HiddenFieldsEditor />
                     <div className="border-t">
                         <TrustSettingsEditor />
                     </div>

@@ -14,87 +14,69 @@ import UploadIcon from '@Components/icons/upload-icon';
 import { YesNoIcon } from '@Components/icons/yes-no-icon';
 import { Table2 } from 'lucide-react';
 
+// One quiet treatment for every field type. The picker used to give each type
+// its own pastel tile + coloured icon — a rainbow, which is exactly what the
+// design language retires (§1): everything saturated must carry meaning, and
+// "email is purple, rating is pink" carries none.
+const INK_2 = '#3A465A';
+
 export const formFieldsList = [
     {
         name: 'Text',
         type: FieldTypes.SHORT_TEXT,
-        icon: <TextIcon className="h-10 w-10" style={{ color: '#00B0D0' }} />,
-        background: '#E6F9FB',
-        hoverBackgroundColor: '#B4EEF4'
+        icon: <TextIcon className="h-8 w-8" style={{ color: INK_2 }} />
     },
     {
         name: 'Email',
         type: FieldTypes.EMAIL,
-        icon: <EmailIcon className="h-10 w-10" style={{ color: '#796AC7' }} />,
-        background: '#F5F3FF',
-        hoverBackgroundColor: '#D7D0F7'
+        icon: <EmailIcon className="h-8 w-8" style={{ color: INK_2 }} />
     },
     {
         name: 'Phone Number',
         type: FieldTypes.PHONE_NUMBER,
-        icon: <PhoneNumberIcon className="h-10 w-10" style={{ color: '#5194C1' }} />,
-        background: '#E4F3FD',
-        hoverBackgroundColor: '#B4EEF4'
+        icon: <PhoneNumberIcon className="h-8 w-8" style={{ color: INK_2 }} />
     },
     {
         name: 'Multiple Choice',
         type: FieldTypes.MULTIPLE_CHOICE,
-        icon: <MultipleChoiceIcon style={{ color: '#C2A149' }} />,
-        background: '#FFF9EB',
-        hoverBackgroundColor: '#F8EACA'
+        icon: <MultipleChoiceIcon style={{ color: INK_2 }} />
     },
-
     {
         name: 'Upload',
         type: FieldTypes.FILE_UPLOAD,
-        icon: <UploadIcon className="h-10 w-10" style={{ color: '#00B0D0' }} />,
-        background: '#E6F9FB',
-        hoverBackgroundColor: '#B4EEF4'
+        icon: <UploadIcon className="h-8 w-8" style={{ color: INK_2 }} />
     },
     {
         name: 'Calendar',
         type: FieldTypes.DATE,
-        icon: <CalenderIcon className="h-10 w-10" style={{ color: '#589758' }} />,
-        background: '#F0FFF0',
-        hoverBackgroundColor: '#CAF8CA'
+        icon: <CalenderIcon className="h-8 w-8" style={{ color: INK_2 }} />
     },
     {
         name: 'Rating',
         type: FieldTypes.RATING,
-        icon: <RatingIcon style={{ color: '#BC6182' }} />,
-        background: '#FFEFF5',
-        hoverBackgroundColor: '#F8D0DE'
+        icon: <RatingIcon style={{ color: INK_2 }} />
     },
-    { name: 'Drop Down', type: FieldTypes.DROP_DOWN, icon: <DropDownIcon style={{ color: '#4D4D4D' }} />, background: '#F6F6F6', hoverBackgroundColor: '#D6D6D6' },
-
-    { name: 'Yes/No', type: FieldTypes.YES_NO, icon: <YesNoIcon style={{ color: '#796AC7' }} />, background: '#F5F3FF', hoverBackgroundColor: '#D7D0F7' },
+    { name: 'Drop Down', type: FieldTypes.DROP_DOWN, icon: <DropDownIcon style={{ color: INK_2 }} /> },
+    { name: 'Yes/No', type: FieldTypes.YES_NO, icon: <YesNoIcon style={{ color: INK_2 }} /> },
     {
         name: '1-10 Rate',
         type: FieldTypes.LINEAR_RATING,
-        icon: <LinearRatingIcon className="h-10 w-10" style={{ color: '#796AC7' }} />,
-        background: '#F5F3FF',
-        hoverBackgroundColor: '#D7D0F7'
+        icon: <LinearRatingIcon className="h-8 w-8" style={{ color: INK_2 }} />
     },
     {
         name: 'Matrix',
         type: FieldTypes.MATRIX,
-        icon: <MatrixIcon style={{ color: '#00B0D0' }} />,
-        background: '#E6F9FB',
-        hoverBackgroundColor: '#B4EEF4'
+        icon: <MatrixIcon style={{ color: INK_2 }} />
     },
     {
         name: 'Table Input',
         type: FieldTypes.TABULAR_INPUT,
-        icon: <Table2 size={40} strokeWidth={1.5} style={{ color: '#589758' }} />,
-        background: '#F0FFF0',
-        hoverBackgroundColor: '#CAF8CA'
+        icon: <Table2 size={32} strokeWidth={1.5} style={{ color: INK_2 }} />
     },
     {
         name: 'Number',
         type: FieldTypes.NUMBER,
-        icon: <NumberIcon className="h-10 w-10" style={{ color: '#C2A149' }} />,
-        background: '#FFF9EB',
-        hoverBackgroundColor: '#F8EACA'
+        icon: <NumberIcon className="h-8 w-8" style={{ color: INK_2 }} />
     },
-    { name: 'Link', type: FieldTypes.LINK, icon: <LinkIcon className="h-10 w-10" />, background: '#F6F6F6', hoverBackgroundColor: '#D6D6D6' }
+    { name: 'Link', type: FieldTypes.LINK, icon: <LinkIcon className="h-8 w-8" style={{ color: INK_2 }} /> }
 ];

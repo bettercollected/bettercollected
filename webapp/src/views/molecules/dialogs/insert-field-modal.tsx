@@ -12,15 +12,6 @@ import { useAppSelector } from '@app/store/hooks';
 import { useActiveFieldComponent, useActiveSlideComponent } from '@app/store/jotai/active-builder-component';
 import useFormFieldsAtom from '@app/store/jotai/field-selectors';
 import { useNavbarState } from '@app/store/jotai/navbar';
-import styled from 'styled-components';
-
-const StyledDiv = styled.div<{ $hoverColor: string }>(({ $hoverColor }) => {
-    return {
-        '&:hover': {
-            background: $hoverColor + '!important'
-        }
-    };
-});
 
 const InsertFieldComponent = ({ formFields, activeSlideComponent, closeDropdown }: { formFields: any; activeSlideComponent: any; closeDropdown: () => void }) => {
     const { toast } = useToast();
@@ -100,7 +91,7 @@ const InsertFieldComponent = ({ formFields, activeSlideComponent, closeDropdown 
     };
     return (
         <div id="fields-option" className="h-[552px] w-[410px] bg-white">
-            <div className="border-b-black-300 text-black-700 border-b p-4  text-xs">Insert Field</div>
+            <div className="border-b-black-300 border-b p-4 text-xs font-semibold uppercase tracking-wide text-[#657085]">Insert field</div>
             <div className="border-r-black-300 w-full bg-white">
                 <div className=" border-black-300 bg-new-white-200 flex w-full justify-center gap-6 border-b-[1px] p-4">
                     <div className="flex gap-2 ">
@@ -111,6 +102,7 @@ const InsertFieldComponent = ({ formFields, activeSlideComponent, closeDropdown 
                             onChange={() => { }}
                             name="multi-page"
                             className="h-5 w-5 cursor-pointer focus:ring-0 focus:ring-offset-0"
+                            style={{ accentColor: '#2456CC' }}
                             onClick={(e: any) => {
                                 setCurrentPage(false);
                                 setNavbarState({
@@ -140,6 +132,7 @@ const InsertFieldComponent = ({ formFields, activeSlideComponent, closeDropdown 
                             name="multi-page"
                             value={'False'}
                             className="h-5 w-5 cursor-pointer focus:ring-0 focus:ring-offset-0"
+                            style={{ accentColor: '#2456CC' }}
                         />
                         <label htmlFor="single-page" className="p4-new text-black-700 cursor-pointer">
                             Insert in current page
@@ -147,7 +140,10 @@ const InsertFieldComponent = ({ formFields, activeSlideComponent, closeDropdown 
                     </div>
                 </div>
                 <ScrollArea className="h-[462px] w-full overflow-y-auto">
-                    <div className="flex h-full w-full flex-wrap justify-center gap-[1px] py-6">
+                    {/* One quiet grid — white tiles, hairline borders, ink icons.
+                        Selection colour (trust blue) appears only on hover/focus,
+                        so it means "this is what you're about to pick". */}
+                    <div className="grid w-full grid-cols-3 gap-2 p-4">
                         {Array.isArray(formFieldsList) &&
                             formFieldsList.length &&
                             formFieldsList.map(
@@ -156,29 +152,26 @@ const InsertFieldComponent = ({ formFields, activeSlideComponent, closeDropdown 
                                         name: string;
                                         type: FieldTypes;
                                         icon: ReactNode;
-                                        background: string;
-                                        hoverBackgroundColor: string;
                                     },
                                     index: number
                                 ) => {
                                     return (
-                                        <button key={index} data-umami-event={'Insert Field Button'} data-umami-event-field-type={field.type}>
-                                            <StyledDiv
-                                                $hoverColor={field.hoverBackgroundColor}
-                                                onClick={() => {
-                                                    closeDropdown();
-                                                    handleAddField(field);
-                                                    setNavbarState({ ...navbarState, insertClicked: true });
-                                                    setTimeout(() => {
-                                                        setNavbarState({ ...navbarState, insertClicked: false });
-                                                    }, 1000);
-                                                }}
-                                                style={{ background: field.background }}
-                                                className="text-black-600 hover:text-black-900 flex h-[100px] w-[100px] cursor-grab flex-col items-center justify-center gap-2 md:h-[120px] md:w-[120px] "
-                                            >
-                                                {field.icon}
-                                                <span className="text-xs"> {field.name}</span>
-                                            </StyledDiv>
+                                        <button
+                                            key={index}
+                                            data-umami-event={'Insert Field Button'}
+                                            data-umami-event-field-type={field.type}
+                                            onClick={() => {
+                                                closeDropdown();
+                                                handleAddField(field);
+                                                setNavbarState({ ...navbarState, insertClicked: true });
+                                                setTimeout(() => {
+                                                    setNavbarState({ ...navbarState, insertClicked: false });
+                                                }, 1000);
+                                            }}
+                                            className="border-black-300 flex h-[96px] cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border bg-white text-[#3A465A] transition-colors hover:border-[#2456CC] hover:bg-[#F4F7FD] focus-visible:border-[#2456CC] focus-visible:outline-none"
+                                        >
+                                            {field.icon}
+                                            <span className="text-xs font-medium">{field.name}</span>
                                         </button>
                                     );
                                 }

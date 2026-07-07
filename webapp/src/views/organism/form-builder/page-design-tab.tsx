@@ -18,7 +18,7 @@ export default function PageDesignTab() {
                     return (
                         <button key={index} data-umami-event={'Update New Theme Button'} data-umami-event-email={authState.email}>
                             <div
-                                className={`hover:bg-black-200 mb-2 cursor-pointer rounded-lg border-[1px] ${theme?.title === themeColor.title && 'border-brand-500'}`}
+                                className={cn('mb-2 cursor-pointer rounded-lg border transition-colors hover:border-[#2456CC]', theme?.title === themeColor.title ? 'border-[#2456CC] shadow-[0_0_0_1px_#2456CC]' : 'border-transparent')}
                                 onClick={() => {
                                     updateFormTheme(themeColor);
                                 }}

@@ -8,6 +8,7 @@ import { Switch } from '@app/shadcn/components/ui/switch';
 import useFormFieldsAtom from '@app/store/jotai/field-selectors';
 import { useActiveFieldComponent } from '@app/store/jotai/active-builder-component';
 import { extractTextfromJSON } from '@app/utils/richTextEditorExtenstion/get-html-from-json';
+import { formFieldsList } from '@app/constants/form-fields';
 import FieldConditionalLogicEditor from '@app/views/molecules/form-builder/field-conditional-logic';
 
 export default function FieldSettings() {
@@ -46,8 +47,15 @@ export default function FieldSettings() {
             <button type="button" onClick={() => setActiveFieldComponent(null)} className="text-black-600 hover:text-black-900 -mb-1 flex w-fit items-center gap-1 text-xs font-medium">
                 ‹ Back to page
             </button>
-            <div className="text-black-800 truncate text-sm font-semibold" title={activeField ? extractTextfromJSON(activeField) : ''}>
-                {activeField ? extractTextfromJSON(activeField) : ''}
+            <div className="flex flex-col gap-1.5">
+                <div className="text-black-800 truncate text-sm font-semibold" title={activeField ? extractTextfromJSON(activeField) : ''}>
+                    {activeField ? extractTextfromJSON(activeField) : ''}
+                </div>
+                {activeField?.type && (
+                    <span className="bg-black-100 text-black-600 w-fit rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide">
+                        {formFieldsList.find((f) => f.type === activeField.type)?.name ?? activeField.type.replaceAll('_', ' ').toLowerCase()}
+                    </span>
+                )}
             </div>
             <div className="text-black-600 text-xs font-semibold uppercase tracking-wide">Settings</div>
             <div className="flex w-full items-center justify-between">

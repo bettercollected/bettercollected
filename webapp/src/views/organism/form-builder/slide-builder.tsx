@@ -12,7 +12,16 @@ import MoveUpDown from '@app/views/molecules/form-builder/move-up-down';
 import { fieldHasLogic } from '@app/utils/conditional-logic';
 import { LogicOutlinedIcon } from '@Components/icons/logic-outlined-icon';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Trash } from 'lucide-react';
+import { Copy, Trash } from 'lucide-react';
+
+import { formFieldsList } from '@app/constants/form-fields';
+
+// Human-readable name for the selected field's type, e.g. "Multiple Choice".
+function fieldTypeLabel(type?: string) {
+    const known = formFieldsList.find((f) => f.type === type);
+    if (known) return known.name;
+    return (type ?? 'Field').replaceAll('_', ' ').toLowerCase();
+}
 import { RichTextEditor } from '../../molecules/rich-text-editor';
 import SlideLayoutWrapper from '../layout/slide-layout-wrapper';
 import FieldDescription from './fields/field-description';
@@ -20,7 +29,7 @@ import renderFieldWrapper from './fields/render-field';
 
 const SlideBuilder = ({ slide, isScaledDown = false, disabled = false }: { slide: StandardFormFieldDto; isScaledDown?: boolean; disabled?: boolean }) => {
     const slideFields = slide?.properties?.fields;
-    const { deleteField } = useFormFieldsAtom();
+    const { deleteField, duplicateField } = useFormFieldsAtom();
     const { setActiveFieldComponent, activeFieldComponent } = useActiveFieldComponent();
     const { activeSlideComponent } = useActiveSlideComponent();
     const { theme } = useFormState();
@@ -49,7 +58,7 @@ const SlideBuilder = ({ slide, isScaledDown = false, disabled = false }: { slide
                                         <div
                                             key={index}
                                             tabIndex={0}
-                                            className={cn(activeFieldComponent?.id === field.id && 'ring-1 ring-blue-500', 'w-full max-w-[800px] cursor-pointer p-1')}
+                                            className={cn(activeFieldComponent?.id === field.id && 'rounded-lg ring-2 ring-[#2456CC]', 'w-full max-w-[800px] cursor-pointer p-1')}
                                             onFocus={(event) => {
                                                 event.preventDefault();
                                                 event.stopPropagation();
@@ -75,13 +84,34 @@ const SlideBuilder = ({ slide, isScaledDown = false, disabled = false }: { slide
                                                     </div>
                                                 )}
                                                 {!isScaledDown && activeFieldComponent && activeFieldComponent?.id === field.id && (
-                                                    <div
-                                                        className="shadow-bubble absolute -top-14 right-0 cursor-pointer rounded-md bg-white p-2"
-                                                        onClick={() => {
-                                                            deleteField(slide.index, index);
-                                                        }}
-                                                    >
-                                                        <Trash width={24} height={24} />
+                                                    // Selection toolbar: what this field is, then what you can do
+                                                    // with it. Delete is last and quiet-red — a destructive action
+                                                    // shouldn't be the selection's only (or loudest) affordance.
+                                                    <div className="border-black-300 shadow-bubble absolute -top-12 right-0 z-10 flex items-center overflow-hidden rounded-lg border bg-white">
+                                                        <span className="text-black-600 px-2.5 text-[11px] font-semibold uppercase tracking-wide">{fieldTypeLabel(field.type)}</span>
+                                                        <span className="bg-black-200 h-5 w-px" aria-hidden="true" />
+                                                        <button
+                                                            type="button"
+                                                            title="Duplicate question"
+                                                            className="text-black-700 hover:bg-black-100 p-2"
+                                                            onClick={(event) => {
+                                                                event.stopPropagation();
+                                                                duplicateField(slide.index, index);
+                                                            }}
+                                                        >
+                                                            <Copy width={16} height={16} />
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            title="Delete question"
+                                                            className="p-2 text-[#C43D3D] hover:bg-[#FBEFEF]"
+                                                            onClick={(event) => {
+                                                                event.stopPropagation();
+                                                                deleteField(slide.index, index);
+                                                            }}
+                                                        >
+                                                            <Trash width={16} height={16} />
+                                                        </button>
                                                     </div>
                                                 )}
                                                 {activeFieldComponent?.id === field.id && (

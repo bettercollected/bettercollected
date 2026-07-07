@@ -10,9 +10,9 @@ export default function SlideLayoutRightImage(props: React.SVGAttributes<any>) {
             xmlns="http://www.w3.org/2000/svg"
             {...props}
         >
-            <rect x="36" width="32" height="41" rx="4" fill="#D9D9D9" />
-            <rect y="12" width="15" height="4" rx="2" fill="#D9D9D9" />
-            <rect y="20" width="30" height="8" rx="2" fill="#D9D9D9" />
+            <rect x="36" width="32" height="41" rx="4" fill="#CBD5E6" />
+            <rect y="12" width="15" height="4" rx="2" fill="#3A465A" />
+            <rect y="20" width="30" height="8" rx="2" fill="white" stroke="#CBD5E6" />
         </svg>
     );
 }

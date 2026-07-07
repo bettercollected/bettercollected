@@ -167,7 +167,13 @@ export default function FormEditPage(props: { params: Promise<{ form_id: string 
                             width: canvasZoom === 'full' ? 1440 : getScaledDivWidth()
                         }}
                     >
-                        <div className="!shadow-slide border-black-300 aspect-video overflow-hidden rounded-lg border bg-white" style={canvasZoom === 'full' ? undefined : scaledDivStyle}>
+                        {/* The sheet needs real presence on the mat — the slide's own
+                            surface is near the mat's tone, so the edge comes from a
+                            hairline + a soft elevation shadow, not from contrast. */}
+                        <div
+                            className="border-black-400 aspect-video overflow-hidden rounded-lg border bg-white"
+                            style={{ boxShadow: '0px 1px 3px rgba(16, 24, 38, 0.06), 0px 12px 32px rgba(16, 24, 38, 0.12)', ...(canvasZoom === 'full' ? {} : scaledDivStyle) }}
+                        >
                             <div className="   mx-auto h-full w-full  rounded-lg">
                                 {activeSlideComponent?.id && activeSlideComponent?.index >= 0 && <SlideBuilder slide={formFields[activeSlideComponent?.index]} />}
                                 {!activeSlideComponent?.id && <div>Add a slide to start</div>}
