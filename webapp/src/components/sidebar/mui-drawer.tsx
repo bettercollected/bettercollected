@@ -40,7 +40,9 @@ export default function MuiDrawer({ drawerWidth = 289, mobileOpen, children, han
 
             <div
                 className={cn(
-                    "hidden lg:block fixed top-0 h-full bg-white shrink-0 scrollbar-hide py-3",
+                    // No py here — the drawer content owns its own top band
+                    // (aligned to the navbar) and bottom padding.
+                    "hidden lg:block fixed top-0 h-full bg-white shrink-0 scrollbar-hide",
                     anchor === 'right' ? 'right-0 border-l' : 'left-0 border-r border-r-black-200'
                 )}
                 style={{ width: drawerWidth }}

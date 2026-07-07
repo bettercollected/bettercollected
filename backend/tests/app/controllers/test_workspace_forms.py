@@ -678,7 +678,7 @@ class TestWorkspaceForm:
             assert import_form.status_code == 200
             assert actual_response.get("title") == form_body.get("form").get("title")
 
-    async def test_normal_user_importing_more_than_100_form_fails(
+    async def test_normal_user_can_import_beyond_100_forms(
         self,
         client: AsyncClient,
         workspace: Coroutine[Any, Any, WorkspaceDocument],
@@ -687,6 +687,8 @@ class TestWorkspaceForm:
         workspace_form_common_url: str,
         mock_aiohttp_post_request,
     ):
+        # Forms are unlimited on every plan — importing past the old 100-form
+        # cap must succeed, not return the "Upgrade plan" 403.
         for i in range(101):
             await container.workspace_form_service().create_form(
                 workspace.id, StandardForm(**formData), testUser
@@ -698,7 +700,5 @@ class TestWorkspaceForm:
             import_form = await client.post(
                 import_form_url, cookies=test_user_cookies, json=form_body
             )
-            expected_response = "Upgrade plan to import more forms"
-            actual_response = import_form.json()
-            assert import_form.status_code == 403
-            assert actual_response == expected_response
+            assert import_form.status_code == 200
+            assert import_form.json() != "Upgrade plan to import more forms"

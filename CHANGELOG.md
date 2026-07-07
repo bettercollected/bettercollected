@@ -60,6 +60,24 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
 
 ### Changed
 
+- **Forms and responses are now unlimited on every plan.** Removed the
+  per-workspace 100-form cap for non-Pro accounts (backend
+  `check_if_user_can_import_more_forms` no longer gates); responses were
+  never capped. "Unlimited Forms" is no longer listed as a Pro feature in
+  the upgrade modal — it's free, so it can't be a differentiator.
+- The workspace switcher now sits in a top band that matches the main
+  navbar's height and hairline border, vertically centred so its centre
+  lines up with the navbar's — the sidebar top and the navbar read as one
+  continuous top bar across the app (the switcher used to sit ~12px low,
+  out of line with the page title beside it). Removed the drawer paper's
+  `py-3` that caused the offset; the drawer content now owns its own top
+  band and bottom padding.
+- **De-branded the dashboard chrome.** Removed the bettercollected logo from
+  the top-left of the sidebar (the workspace's own switcher now leads) and
+  the "Upgrade to Pro" upsell card from the bottom-left. In their place, a
+  quiet "Powered by bettercollected" caption anchors the sidebar bottom —
+  the same subtle attribution the responder surfaces carry. bettercollected
+  is now a footer, not a header.
 - Corrected `docs/DEVELOPERS_GUIDE.md` to the current **uv + yarn** workflow.
 - Rewrote `README.md` for a public audience.
 - Sped up the backend test suite (~137s → ~5s) via session-scoped app/DB init.

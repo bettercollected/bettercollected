@@ -37,11 +37,9 @@ export default function UpgradeToProContainer({ featureText, isModal = true, cal
 
     // One calm treatment for every card — the pastel-rainbow tints were the
     // "playful" palette the trust language retires (Design-Language §1).
+    // Unlimited forms is NOT listed — forms and responses are free for
+    // everyone, so it can't be a Pro differentiator.
     const features = [
-        {
-            title: t(upgradeConst.features.unlimitedForms.title),
-            description: t(upgradeConst.features.unlimitedForms.description)
-        },
         {
             title: t(upgradeConst.features.customDomain.title),
             description: t(upgradeConst.features.customDomain.description)
