@@ -302,205 +302,136 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                 );
             case 'DEFAULT':
                 return (
-                    <div className=" mb-10 flex flex-col gap-7 ">
+                    <div className="divide-black-200 flex flex-col divide-y">
                         {form?.importedFormId && (
-                            <FormSettingsCard>
-                                <div className=" flex w-full flex-col items-start">
-                                    {/*<div className="h5-new !text-black-800">{t('FORM_PAGE.SETTINGS.DEFAULT.COLLECT_EMAILS.TITLE')}</div>*/}
-                                    <div className="h5-new !text-black-800">Show Original Form</div>
-                                    <Divider className={'my-2 w-full'} />
-                                    <div className="flex w-full flex-row items-center justify-between md:gap-4">
-                                        <div className="body4 !text-black-700 w-3/4 flex-1">Original Google Form in Embed mode is shown if this is enabled.</div>
-                                        {/*<div className="body4 !text-black-700 w-3/4">{t('FORM_PAGE.SETTINGS.DEFAULT.COLLECT_EMAILS.DESCRIPTION')}</div>*/}
-                                        <Switch
-                                            data-umami-event="Show Original Google Form Switch"
-                                            data-umami-event-email={auth.email}
-                                            data-testid="show-original-form-switch"
-                                            checked={!!form?.settings?.showOriginalForm}
-                                            onCheckedChange={(checked) => {
-                                                onShowOriginalFormChange(checked, form);
-                                            }}
-                                        />
-                                    </div>
-                                    <Divider className={'my-2 w-full'} />
-                                </div>
-                            </FormSettingsCard>
-                        )}
-
-                        {form?.settings?.provider === 'self' && (
-                            <FormSettingsCard>
-                                <div className=" flex w-full flex-col items-start">
-                                    {/*<div className="h5-new !text-black-800">{t('FORM_PAGE.SETTINGS.DEFAULT.COLLECT_EMAILS.TITLE')}</div>*/}
-                                    <div className="h5-new !text-black-800">Require Verified Identity</div>
-                                    <Divider className={'my-2 w-full'} />
-                                    <div className="flex w-full flex-row items-center justify-between md:gap-4">
-                                        <div className="body4 !text-black-700 w-3/4 flex-1">When enabled, respondents must verify their email before they can fill out this form.</div>
-                                        {/*<div className="body4 !text-black-700 w-3/4">{t('FORM_PAGE.SETTINGS.DEFAULT.COLLECT_EMAILS.DESCRIPTION')}</div>*/}
-                                        <Switch
-                                            data-umami-event="Require Verified Identity Switch"
-                                            data-umami-event-email={auth.email}
-                                            data-testid="require-verified-identity-switch"
-                                            checked={!!form?.settings?.requireVerifiedIdentity}
-                                            onCheckedChange={(checked) => {
-                                                onCollectEmailsChange(checked, form);
-                                            }}
-                                        />
-                                    </div>
-                                    <Divider className={'my-2 w-full'} />
-                                </div>
-                            </FormSettingsCard>
+                            <SettingRow title="Show original form" description="Show the original Google Form in embed mode instead of the bettercollected renderer.">
+                                <Switch
+                                    data-umami-event="Show Original Google Form Switch"
+                                    data-umami-event-email={auth.email}
+                                    data-testid="show-original-form-switch"
+                                    checked={!!form?.settings?.showOriginalForm}
+                                    onCheckedChange={(checked) => {
+                                        onShowOriginalFormChange(checked, form);
+                                    }}
+                                />
+                            </SettingRow>
                         )}
                         {form?.settings?.provider === 'self' && (
-                            <FormSettingsCard>
-                                <div className=" flex w-full flex-col items-start">
-                                    <div className="h5-new !text-black-800">Show Submission Number</div>
-                                    <Divider className={'my-2 w-full'} />
-                                    <div className="flex w-full flex-row items-center justify-between md:gap-4">
-                                        <div className="body4 !text-black-700 w-3/4">When enabled, respondents get a submission ID they can use to view their response and request its deletion.</div>
-                                        <Switch
-                                            data-umami-event="Show Submission Number Switch"
-                                            data-umami-event-email={auth.email}
-                                            data-testid="show-submission-number-switch"
-                                            checked={!!form?.settings?.showSubmissionNumber}
-                                            onCheckedChange={(checked) => {
-                                                onShowSubmissionNumberChange(checked, form);
-                                            }}
-                                        />
-                                    </div>
-                                    <Divider className={'my-2 w-full'} />
-                                </div>
-                            </FormSettingsCard>
+                            <SettingRow title="Require verified identity" description="Respondents must verify their email before they can fill out this form.">
+                                <Switch
+                                    data-umami-event="Require Verified Identity Switch"
+                                    data-umami-event-email={auth.email}
+                                    data-testid="require-verified-identity-switch"
+                                    checked={!!form?.settings?.requireVerifiedIdentity}
+                                    onCheckedChange={(checked) => {
+                                        onCollectEmailsChange(checked, form);
+                                    }}
+                                />
+                            </SettingRow>
+                        )}
+                        {form?.settings?.provider === 'self' && (
+                            <SettingRow title="Show submission number" description="Respondents get a submission ID they can use to view their response and request its deletion.">
+                                <Switch
+                                    data-umami-event="Show Submission Number Switch"
+                                    data-umami-event-email={auth.email}
+                                    data-testid="show-submission-number-switch"
+                                    checked={!!form?.settings?.showSubmissionNumber}
+                                    onCheckedChange={(checked) => {
+                                        onShowSubmissionNumberChange(checked, form);
+                                    }}
+                                />
+                            </SettingRow>
                         )}
                         {form?.settings?.provider === 'self' && form?.settings?.requireVerifiedIdentity && (
-                            <FormSettingsCard>
-                                <div className=" flex w-full flex-col items-start">
-                                    <div className="h5-new !text-black-800">Allow Response Editing</div>
-                                    <Divider className={'my-2 w-full'} />
-                                    <div className="flex w-full flex-row items-center justify-between md:gap-4">
-                                        <div className="body4 !text-black-700 w-3/4">The verified responder can change their response if this is enabled</div>
-                                        <Switch
-                                            data-umami-event="Allow Response Editing Switch"
-                                            data-umami-event-email={auth.email}
-                                            data-testid="pinned-switch"
-                                            checked={!!form?.settings?.allowEditingResponse}
-                                            onCheckedChange={(checked) => {
-                                                onAllowResponseEditingChange(checked, form);
-                                            }}
-                                        />
-                                    </div>
-                                    <Divider className={'my-2 w-full'} />
-                                </div>
-                            </FormSettingsCard>
+                            <SettingRow title="Allow response editing" description="Verified responders can change their response after submitting.">
+                                <Switch
+                                    data-umami-event="Allow Response Editing Switch"
+                                    data-umami-event-email={auth.email}
+                                    data-testid="allow-response-editing-switch"
+                                    checked={!!form?.settings?.allowEditingResponse}
+                                    onCheckedChange={(checked) => {
+                                        onAllowResponseEditingChange(checked, form);
+                                    }}
+                                />
+                            </SettingRow>
                         )}
                         {form?.isPublished && isFormOpen && (
                             <>
                                 {!form?.settings?.private && (
-                                    <FormSettingsCard>
-                                        <div className=" flex w-full flex-col items-start">
-                                            <div className="h5-new !text-black-800">{t(formPage.pinFormTitle)}</div>
-                                            <Divider className={'my-2 w-full'} />
-                                            <div className="flex flex-row items-center justify-between md:gap-4">
-                                                <div className="body4 !text-black-700 w-3/4">{t(formPage.pinFormDescription)}</div>
-                                                <Switch data-umami-event="Pin Form Switch" data-umami-event-email={auth.email} data-testid="pinned-switch" checked={!!form?.settings?.pinned} onCheckedChange={(checked) => onPinnedChange(checked, form)} />
-                                            </div>
-                                            <Divider className={'my-2 w-full'} />
-                                        </div>
-                                    </FormSettingsCard>
+                                    <SettingRow title={t(formPage.pinFormTitle)} description={t(formPage.pinFormDescription)}>
+                                        <Switch data-umami-event="Pin Form Switch" data-umami-event-email={auth.email} data-testid="pinned-switch" checked={!!form?.settings?.pinned} onCheckedChange={(checked) => onPinnedChange(checked, form)} />
+                                    </SettingRow>
                                 )}
-                                <FormSettingsCard className={cn('', !isProPlan && isAdmin && '')}>
-                                    <div className=" flex w-full flex-col items-start">
-                                        <div className="h5-new !text-black-800 flex flex-row justify-between gap-4">
-                                            <h1>{t(formPage.brandingTitle)}</h1>
-                                            <ProLogo />
-                                        </div>
-                                        <Divider className={'my-2 w-full'} />
-                                        <div className="flex w-full flex-row items-center justify-between md:gap-4">
-                                            <div className="body4 !text-black-700 w-3/4">{t(formPage.brandingDescription)}</div>
-                                            <Switch
-                                                disabled={!isProPlan}
-                                                data-umami-event="Disable Branding Switch"
-                                                data-umami-event-email={auth.email}
-                                                data-testid="disable-branding-switch"
-                                                checked={!form?.settings?.disableBranding}
-                                                onCheckedChange={(checked) => onDisableBrandingChange(checked, form)}
-                                            />
-                                        </div>
-                                        <Divider className={'my-2 w-full'} />
-                                    </div>
-                                </FormSettingsCard>
+                                <SettingRow
+                                    title={t(formPage.brandingTitle)}
+                                    titleExtra={<ProLogo />}
+                                    description={t(formPage.brandingDescription)}
+                                    hint={
+                                        !isProPlan ? (
+                                            <span className="text-black-600 flex items-center gap-1 text-xs">
+                                                <Lock className="h-3 w-3" /> Available on Pro — the control is locked on your current plan.
+                                            </span>
+                                        ) : undefined
+                                    }
+                                >
+                                    <Switch
+                                        disabled={!isProPlan}
+                                        data-umami-event="Disable Branding Switch"
+                                        data-umami-event-email={auth.email}
+                                        data-testid="disable-branding-switch"
+                                        checked={!form?.settings?.disableBranding}
+                                        onCheckedChange={(checked) => onDisableBrandingChange(checked, form)}
+                                    />
+                                </SettingRow>
                             </>
                         )}
                         {form?.settings?.provider === 'self' && form?.isPublished && (
-                            <FormSettingsCard>
-                                <div className="flex w-full flex-col items-start">
-                                    <div className="body1">{t(formPage.closeForm)}</div>
-                                    <Divider className={'my-2 w-full'} />
-                                    {(!form?.settings?.formCloseDate || moment.utc(form?.settings?.formCloseDate).isBefore(moment.utc())) && (
-                                        <>
-                                            <div className=" flex w-full flex-row items-center justify-between gap-4">
-                                                <div className="!text-black-700 text-sm">{t(formPage.closeFormDescription)}</div>
-                                                <Switch
-                                                    data-umami-event="Close Form Switch"
-                                                    data-umami-event-email={auth.email}
-                                                    data-testid="close-form-switch"
-                                                    // checked={false}
-                                                    checked={closeFormChecked}
-                                                    onCheckedChange={(checked) => {
-                                                        if (closeFormChecked) {
-                                                            openModal('REOPEN_FORM_CONFIRMATION_MODAL', { reopenForm });
-                                                        } else {
-                                                            openModal('CLOSE_FORM_CONFIRMATION_MODAL', { closeForm });
-                                                        }
-                                                    }}
-                                                />
-                                            </div>
-                                            {!closeFormChecked && !moment(form?.settings?.formCloseDate).isAfter(moment.utc()) && (
-                                                <Button
-                                                    data-umami-event="Select Form Close Date Button"
-                                                    data-umami-event-email={auth.email}
-                                                    className="mt-2"
-                                                    variant="ghost"
-                                                    onClick={() => {
-                                                        openBottomSheetModal('SELECT_FORM_CLOSE_DATE', {
-                                                            onFormClosedChange: onFormClosedChange,
-                                                            closeDate: form?.settings?.formCloseDate
-                                                        });
-                                                    }}
-                                                >
-                                                    {t(formPage.schedule)}
-                                                </Button>
-                                            )}
-                                        </>
-                                    )}
-
-                                    {form?.settings?.formCloseDate && moment(form?.settings?.formCloseDate).isAfter(moment.utc()) && (
-                                        <div className="bg-black-200 my-2 flex w-full justify-between rounded-md p-5">
-                                            <div>
-                                                {t(formPage.automaticallyCloseOn)} {utcToLocalDateTIme(form?.settings?.formCloseDate)}
-                                            </div>
-                                            <div>
-                                                <div onClick={reopenForm}>
-                                                    <Close width="24px" height="24px" className="text-black-800" />
-                                                </div>
+                            <div className="flex w-full flex-col">
+                                <SettingRow title={t(formPage.closeForm)} description={t(formPage.closeFormDescription)}>
+                                    <Switch
+                                        data-umami-event="Close Form Switch"
+                                        data-umami-event-email={auth.email}
+                                        data-testid="close-form-switch"
+                                        checked={closeFormChecked}
+                                        onCheckedChange={(checked) => {
+                                            if (closeFormChecked) {
+                                                openModal('REOPEN_FORM_CONFIRMATION_MODAL', { reopenForm });
+                                            } else {
+                                                openModal('CLOSE_FORM_CONFIRMATION_MODAL', { closeForm });
+                                            }
+                                        }}
+                                    />
+                                </SettingRow>
+                                {!closeFormChecked && !moment(form?.settings?.formCloseDate).isAfter(moment.utc()) && (
+                                    <Button
+                                        data-umami-event="Select Form Close Date Button"
+                                        data-umami-event-email={auth.email}
+                                        className="mb-4 w-fit"
+                                        variant="ghost"
+                                        onClick={() => {
+                                            openBottomSheetModal('SELECT_FORM_CLOSE_DATE', {
+                                                onFormClosedChange: onFormClosedChange,
+                                                closeDate: form?.settings?.formCloseDate
+                                            });
+                                        }}
+                                    >
+                                        {t(formPage.schedule)}
+                                    </Button>
+                                )}
+                                {form?.settings?.formCloseDate && moment(form?.settings?.formCloseDate).isAfter(moment.utc()) && (
+                                    <div className="bg-black-200 mb-4 flex w-full justify-between rounded-md p-5">
+                                        <div>
+                                            {t(formPage.automaticallyCloseOn)} {utcToLocalDateTIme(form?.settings?.formCloseDate)}
+                                        </div>
+                                        <div>
+                                            <div onClick={reopenForm}>
+                                                <Close width="24px" height="24px" className="text-black-800" />
                                             </div>
                                         </div>
-                                    )}
-                                    <Divider className={'my-2 w-full'} />
-                                </div>
-                            </FormSettingsCard>
+                                    </div>
+                                )}
+                            </div>
                         )}
-                        <div className="mt-6">
-                            <Button
-                                data-umami-event="Delete Form From Preview Section"
-                                data-umami-event-email={auth.email}
-                                onClick={() => {
-                                    openModal('DELETE_FORM_MODAL', { form, redirectToDashboard: true });
-                                }}
-                                variant="danger"
-                            >
-                                {t(buttonConstant.deleteForm)}
-                            </Button>
-                        </div>
                     </div>
                 );
             default:
@@ -510,6 +441,26 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
 
     return <>{showSettingsTabView(view)}</>;
 }
+
+/**
+ * One settings row: label + description on the left, control on the right.
+ * Rows are separated by the parent's divide-y — a divider never cuts a
+ * setting in half (the old layout drew the hairline between a setting's
+ * label and its own control).
+ */
+export const SettingRow = ({ title, titleExtra, description, children, hint }: { title: React.ReactNode; titleExtra?: React.ReactNode; description: React.ReactNode; children: React.ReactNode; hint?: React.ReactNode }) => (
+    <div className="flex w-full items-start justify-between gap-6 py-5">
+        <div className="flex max-w-[560px] flex-col gap-1">
+            <div className="text-black-900 flex items-center gap-2 text-[15px] font-semibold">
+                {title}
+                {titleExtra}
+            </div>
+            <div className="text-black-700 text-sm leading-relaxed">{description}</div>
+            {hint}
+        </div>
+        <div className="pt-1">{children}</div>
+    </div>
+);
 
 const FormGroups = ({ groups }: { groups: ResponderGroupDto[] }) => {
     const { openBottomSheetModal } = useBottomSheetModal();

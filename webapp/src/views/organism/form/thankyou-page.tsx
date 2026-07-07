@@ -10,8 +10,10 @@ import { selectAuth } from '@app/store/auth/slice';
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { useFormResponse } from '@app/store/jotai/responder-form-response';
+import { useHiddenFieldValues } from '@app/store/jotai/responder-hidden-fields';
 import { useResponderState } from '@app/store/jotai/responder-form-state';
 import { selectWorkspace } from '@app/store/workspaces/slice';
+import { resolvePipesInText } from '@app/utils/answer-piping';
 import UserAvatarDropDown from '@app/views/molecules/user-avatar-dropdown';
 import { Copy } from 'lucide-react';
 import useCopyToClipboard from 'react-use/lib/useCopyToClipboard';
@@ -25,9 +27,12 @@ export default function ThankyouPage({ isPreviewMode }: { isPreviewMode: boolean
     const { responderId } = useResponderState();
     const [_, copyToClipboard] = useCopyToClipboard();
     const { formResponse } = useFormResponse();
+    const { hiddenValues } = useHiddenFieldValues();
 
     function getThankYouMessage() {
-        return standardForm?.thankyouPage?.[0]?.message ? standardForm?.thankyouPage?.[0]?.message : formResponse.anonymize ? 'Your response is anonymously submitted.' : 'Your response is successfully submitted.';
+        const message = standardForm?.thankyouPage?.[0]?.message ? standardForm?.thankyouPage?.[0]?.message : formResponse.anonymize ? 'Your response is anonymously submitted.' : 'Your response is successfully submitted.';
+        // Thank-you text supports text-token piping: "Thanks, {{field:<id>}}!"
+        return resolvePipesInText(message, { slides: standardForm?.fields, answers: formResponse.answers ?? {}, hiddenValues });
     }
 
     const handleOnCopy = (copyValue: string) => {

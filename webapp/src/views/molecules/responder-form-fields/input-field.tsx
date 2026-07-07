@@ -72,7 +72,6 @@ export default function InputField({ field }: { field: StandardFormFieldDto }) {
                     multiple={field.type === FieldTypes.LONG_TEXT}
                     value={getFieldValue()}
                     onChange={(value: any) => handleChange(value)}
-                    style={{ color: theme?.secondary }}
                 />
             </form>
         </QuestionWrapper>

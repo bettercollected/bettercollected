@@ -6,6 +6,7 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import StyledPagination from '@Components/common/pagination';
 import cn from 'classnames';
 import DataTable from 'react-data-table-component';
+import { Shield as ShieldIcon } from 'lucide-react';
 
 import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
 import globalConstants from '@app/constants/global';
@@ -108,9 +109,16 @@ export default function TabularResponses({ form }: TabularResponsesProps) {
 
     const responseDataOwnerField = (response: StandardFormResponseDto) => (
         <div aria-hidden className="flex w-fit flex-col gap-1 ">
-            <p className={cn('!text-black-800 p2-new w-fit truncate')}>
-                {response?.dataOwnerIdentifier || '- -'}
-            </p>
+            {response?.dataOwnerIdentifier ? (
+                <p className={cn('!text-black-800 p2-new w-fit truncate')}>{response.dataOwnerIdentifier}</p>
+            ) : (
+                // Anonymity is the product's promise — show it as a state, not
+                // as missing data ("- -").
+                <span className="flex w-fit items-center gap-1 rounded-full bg-[#E7F4EE] px-2 py-0.5 text-xs font-medium text-[#0E8A5F]">
+                    <ShieldIcon className="h-3 w-3" strokeWidth={2} />
+                    Anonymous
+                </span>
+            )}
             <span className="text-black-600 text-[10px] font-normal">{utcToLocalDateTIme(response?.createdAt)}</span>
         </div>
     );

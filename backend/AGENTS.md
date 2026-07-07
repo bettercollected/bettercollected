@@ -53,6 +53,12 @@ Beanie Documents are registered in [backend/app/handlers/database.py](backend/ap
 (`User`, `StandardForm`, `StandardFormResponse`, `Consent`) come from the shared `common` package, not from here.
 APScheduler uses a separate DB (`init_scheduler_db`).
 
+Response `answers` **and** `hidden_fields` (captured URL parameters, see `StandardForm.hidden_fields` for the
+declared names) are encrypted at rest via `crypto_service` in `form_response_repository.save_form_response` and
+decrypted in `form_response_service.decrypt_form_response` — any new respondent-data field on
+`StandardFormResponse` must go through the same two choke points. Answer piping itself is resolved entirely
+client-side (webapp `src/utils/answer-piping.ts`); the backend only stores the pipe nodes inside field titles.
+
 ## Seed scripts
 
 `backend/scripts/` holds idempotent seed scripts that populate collections a fresh (or already-running) environment

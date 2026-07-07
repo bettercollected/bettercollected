@@ -310,15 +310,22 @@ class FormResponseService:
         workspace_id: PydanticObjectId,
         response: StandardFormResponseCamelModel,
     ):
-        if isinstance(response.answers, dict):
-            return response
-        response.answers = json.loads(
-            crypto_service.decrypt(
-                workspace_id=workspace_id,
-                form_id=response.form_id,
-                data=response.answers,
+        if not isinstance(response.answers, dict):
+            response.answers = json.loads(
+                crypto_service.decrypt(
+                    workspace_id=workspace_id,
+                    form_id=response.form_id,
+                    data=response.answers,
+                )
             )
-        )
+        if isinstance(response.hidden_fields, (bytes, str)):
+            response.hidden_fields = json.loads(
+                crypto_service.decrypt(
+                    workspace_id=workspace_id,
+                    form_id=response.form_id,
+                    data=response.hidden_fields,
+                )
+            )
         return response
 
     async def submit_form_response(

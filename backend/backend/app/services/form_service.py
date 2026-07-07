@@ -384,6 +384,7 @@ class FormService:
             and form.description == latest_version.description
             and form.consent == latest_version.consent
             and form.fields == latest_version.fields
+            and form.hidden_fields == latest_version.hidden_fields
             and form.logo == latest_version.logo
             and form.cover_image == latest_version.cover_image
             and form.button_text == latest_version.button_text

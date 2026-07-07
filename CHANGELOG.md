@@ -13,6 +13,20 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
 
 ### Added
 
+- **Answer piping / recall**: question titles can reference earlier answers or
+  hidden fields ("Thanks, @name!") via an "@ Answer" menu in the builder's
+  title toolbar — stored as inline TipTap nodes, resolved live in the
+  responder runtime through the same value extractor conditional logic uses.
+  Plain-text surfaces (field descriptions, thank-you message) support
+  `{{field:<id>}}` / `{{hidden:<name>|fallback}}` tokens. Pipes referencing
+  deleted fields are pruned automatically.
+- **Hidden fields (URL parameters)**: creators declare parameter names
+  (e.g. `utm_source`) form-wide in the builder; values are captured from the
+  share link when a form loads (declared names only — arbitrary query params
+  are never stored), submitted with the response, encrypted at rest exactly
+  like answers, and shown in the response detail view. `?field_<id>=value`
+  parameters prefill text-like input fields.
+
 - Open-source contributor docs and community health files: `CONTRIBUTING.md`,
   `CODE_OF_CONDUCT.md`, `SECURITY.md`, issue/PR templates, `SUPPORT.md`,
   `GOVERNANCE.md`, `ROADMAP.md`, `CODEOWNERS`, and this changelog.
@@ -62,8 +76,61 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
 - Batched routine dependency updates across all services (npm + uv + GitHub
   Actions) and moved CI actions to Node-24 majors.
 
+### Changed (trust-first design pass — responder form + builder)
+
+- **Form details page (dashboard) redesigned**: the 8-tab bar — which silently
+  overflowed and hid the Form Link and Analytics tabs entirely on desktop —
+  is now 5 always-visible tabs (Preview · Responses · Analytics · Share ·
+  Settings). Deletion requests became a segment inside Responses; Visibility
+  and Integrations became Settings sections (old URLs redirect); tabs use a
+  single active affordance with count badges. The header gained a real
+  breadcrumb and a plain-words meta line (Published/Draft chip, response
+  count, provenance) in place of an unlabeled provider glyph; Share is the
+  one primary action. Settings rows follow a label+description/control grid
+  with dividers between (not inside) settings, a locked state for Pro-gated
+  toggles, and a proper danger zone stating consequences. Preview shows
+  labelled page cards that open the full-screen preview. Anonymous responses
+  show a shield chip instead of "--"; creator-facing titles no longer leak
+  answer-piping editor syntax; every tab pane sits on one horizontal grid,
+  and pages end with a quiet "Version · Open form" line.
+
+- **Responder form redesigned to the trust-first design language**: questions
+  now render at 24px/600 ink and answers at 16–18px ink (the input no longer
+  out-shouts the question, and answers no longer render in link-blue); every
+  field type shares one bordered white input with a visible themed focus ring
+  (short/long-text fields had regressed to an underline with no focus
+  indicator); the default theme is a calm neutral surface (`#F6F8FC`) with
+  trust-blue actions (`#2456CC`) instead of the full-bleed pale-blue wash
+  (saturated themes remain opt-in); buttons say what happens ("Continue",
+  "Submit response") at proper weight; a provenance chip + "Page x of y"
+  progress meta sits where the eye starts; the trust strip is legible (13px)
+  and links "How your data is used" and "View or delete your response".
+- **Builder**: the slide canvas now sits on a neutral mat as a bordered white
+  card (figure/ground for the thing being edited); the title editor matches
+  the responder's 24px question scale (honest WYSIWYG); panel section headers
+  share one 12px-caps rhythm; empty pages show an "Add a question" affordance
+  that opens the Insert menu; piping chips use the trust palette.
+
 ### Fixed
 
+- Form details page: the Deletion Requests empty state showed the responses
+  copy ("No responses yet" on a form with responses); "bettercolleceted"
+  typo in the branding setting; preview cards had a pointer cursor but no
+  click behaviour and didn't survive window resizes.
+- **Identity sharing is now opt-in, and anonymity is actually enforced.** The
+  "Show your identity" checkbox on the submit step arrived pre-checked
+  (contradicting the no-dark-patterns design law) — it now starts unchecked,
+  in a legible 15px consent container. Worse: the backend accepted the
+  `anonymize` flag but never honoured it — "anonymously submitted" responses
+  still stored the signed-in email as `dataOwnerIdentifier`. Anonymous
+  responses now store no owner identifier and no email, only a one-way hash
+  (`anonymous_identity`) so the responder can still find and delete their own
+  submission.
+- Builder `useFormState` setters spread a stale render-time snapshot instead
+  of the current state, so mount-effect writers (theme, welcome description)
+  could silently wipe keys written between render and effect — this ate the
+  form title and hidden-field list under hot-reload/multi-writer conditions.
+  All setters now use functional updates.
 - Umami pageview double-counting: automatic tracking is now disabled
   (`data-auto-track="false"`) and public form views send only the explicit
   canonical-path event — previously every form view would count twice (auto +

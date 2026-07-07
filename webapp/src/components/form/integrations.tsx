@@ -41,7 +41,7 @@ export default function FormIntegrations() {
     };
 
     return (
-        <div className="mb-5 px-4 md:px-10 lg:px-28">
+        <div className="mb-5">
             {addedActions && addedActions.length > 0 && (
                 <div className="mb-10 flex flex-col gap-2">
                     <div className="h3-new text-black-800 mb-5">Integrations added to form</div>
@@ -124,7 +124,6 @@ export default function FormIntegrations() {
             )}
             {data && Array.isArray(data) && data?.length !== addedActions?.length && (
                 <div className="flex w-full flex-col gap-2">
-                    <div className="h3-new mb-8">Integrations</div>
                     {data?.map((integration, index) => (
                         <>
                             {(!addedActions || !addedActions.includes(integration.id)) && (

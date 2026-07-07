@@ -56,6 +56,17 @@ Drag-and-drop engine in `src/lib/builders/` (managers + listeners), editor state
 A **V2 builder** exists behind `ENABLE_V2_BUILDER`, wired into the App Router edit/preview routes. Form data conforms
 to the backend **StandardForm** shape — keep field types in sync with `common/common/models/standard_form.py`.
 
+**Answer piping + hidden fields (v2):** question titles can embed earlier answers or URL parameters. A pipe is an
+inline `answerPipe` TipTap node (`src/utils/richTextEditorExtenstion/answer-pipe.ts`, inserted via the "@ Answer"
+menu in the title toolbar); plain-text surfaces (descriptions, thank-you message) use `{{field:<id>}}` /
+`{{hidden:<name>|fallback}}` tokens. The resolver lives in `src/utils/answer-piping.ts` and reads values through the
+same `getComparableAnswerValue` as conditional logic — extend both together. Hidden-field *names* live on the form
+(`StandardFormDto.hiddenFields`, edited in the page properties drawer, form-wide); *values* are captured from the
+share link's query string on the public form page (declared names only), held in
+`src/store/jotai/responder-hidden-fields.ts`, submitted as `hidden_fields`, and encrypted at rest like answers.
+`?field_<fieldId>=value` URL params prefill text-like input fields. Deleting a field/hidden name prunes its pipes
+(`pruneOrphanedPipes`, called next to `pruneOrphanedConditions`).
+
 ## Commands
 
 ```bash

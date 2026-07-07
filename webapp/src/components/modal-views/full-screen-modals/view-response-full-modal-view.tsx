@@ -132,6 +132,17 @@ export const IndividualFormResponse = ({ formFields, response, form }: { formFie
                     </div>
                 );
             })}
+            {response.hiddenFields && Object.keys(response.hiddenFields).length > 0 && (
+                <div className="flex flex-col gap-3 border-t pt-4">
+                    <span className="p4-new text-black-500">Hidden fields (from the share link)</span>
+                    {Object.entries(response.hiddenFields).map(([name, value]) => (
+                        <div className="flex flex-col gap-1" key={name}>
+                            <span className="p4-new text-black-500 font-mono">{name}</span>
+                            <span className="p2-new text-black-700">{value}</span>
+                        </div>
+                    ))}
+                </div>
+            )}
         </div>
     );
 };

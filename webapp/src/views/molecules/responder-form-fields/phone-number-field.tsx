@@ -54,19 +54,20 @@ export default function PhoneNumberField({ field }: { field: StandardFormFieldDt
                     country={'np'}
                     buttonStyle={{
                         border: '0px',
-                        borderBottom: `1px solid ${theme?.tertiary}`,
-                        background: theme?.accent,
+                        borderRight: `1px solid ${theme?.tertiary}`,
+                        background: '#ffffff',
                         height: '100%'
                     }}
-                    dropdownStyle={{ background: theme?.accent }}
+                    dropdownStyle={{ background: '#ffffff' }}
                     inputStyle={{
-                        border: '0px',
-                        borderBottom: `1px solid ${theme?.tertiary}`,
-                        color: theme?.secondary
+                        border: `1px solid ${theme?.tertiary}`,
+                        borderRadius: '12px',
+                        background: '#ffffff',
+                        color: theme?.primary
                     }}
                     placeholder={field?.properties?.placeholder || getPlaceholderValueForField(field.type)}
                     inputProps={{
-                        className: 'text-[28px] lg:text-[32px] bg-opacity-50 mx-14 border-0 border-b-[1px] w-[93%] ',
+                        className: 'text-base lg:text-lg py-3 mx-14 w-[93%] ',
                         id: `input-field-${field.id}`
                     }}
                 />

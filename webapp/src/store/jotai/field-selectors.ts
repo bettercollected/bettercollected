@@ -7,6 +7,7 @@ import { v4 } from 'uuid';
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import { FormSlideLayout } from '@app/models/enums/form';
 import { FieldConditionalLogic, NodePosition, PageJump } from '@app/models/types/form-builder-shared';
+import { pruneOrphanedPipes } from '@app/utils/answer-piping';
 import { pruneOrphanedConditions } from '@app/utils/conditional-logic';
 import { useActiveFieldComponent, useActiveSlideComponent } from '@app/store/jotai/active-builder-component';
 import { reorder } from '@app/utils/array-utils';
@@ -144,8 +145,10 @@ export default function useFormFieldsAtom() {
             slide.index = index;
             return slide;
         });
-        // Deleting a page removes its questions too — sweep conditions that pointed at them.
+        // Deleting a page removes its questions too — sweep conditions and
+        // piping chips that pointed at them.
         pruneOrphanedConditions(updatedFormFields);
+        pruneOrphanedPipes(updatedFormFields);
         if (activeSlideComponent?.index === formFields.length) {
             setActiveSlideComponent({
                 id: 'welcome-page',
@@ -369,8 +372,9 @@ export default function useFormFieldsAtom() {
             ...field,
             index
         }));
-        // Sweep any logic that referenced the removed question.
+        // Sweep any logic or piping chips that referenced the removed question.
         pruneOrphanedConditions(formFields);
+        pruneOrphanedPipes(formFields);
         setFormFields([...formFields]);
         setTimeout(() => {
             setActiveFieldComponent(null);

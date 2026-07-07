@@ -36,4 +36,33 @@ describe('extractTextfromJSON', () => {
         expect(extractTextfromJSON(field({ type: FieldTypes.EMAIL }))).toBe('Enter Your Email Address');
         expect(extractTextfromJSON(field({ type: FieldTypes.YES_NO }))).toBe('Are you sure?');
     });
+
+    it('renders answerPipe chips as their label, not editor syntax', () => {
+        const title = {
+            type: 'doc',
+            content: [
+                {
+                    type: 'paragraph',
+                    content: [
+                        { type: 'text', text: 'Hello ' },
+                        { type: 'answerPipe', attrs: { kind: 'field', pipeKey: 'abc', label: 'Page 1 · Name' } },
+                        { type: 'text', text: ' — welcome ' },
+                        { type: 'answerPipe', attrs: { kind: 'hidden', pipeKey: 'utm_source' } }
+                    ]
+                }
+            ]
+        };
+        expect(extractTextfromJSON(field({ title: title as any }))).toBe('Hello Page 1 · Name — welcome utm_source');
+    });
+
+    it('separates paragraphs with a space', () => {
+        const title = {
+            type: 'doc',
+            content: [
+                { type: 'paragraph', content: [{ type: 'text', text: 'Line one' }] },
+                { type: 'paragraph', content: [{ type: 'text', text: 'line two' }] }
+            ]
+        };
+        expect(extractTextfromJSON(field({ title: title as any }))).toBe('Line one line two');
+    });
 });
