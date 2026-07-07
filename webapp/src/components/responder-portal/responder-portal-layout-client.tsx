@@ -73,8 +73,12 @@ export default function ResponderPortalLayoutClient({
     const basePath = hasCustomDomain ? '' : `/${workspace.workspaceName}`;
 
     return (
-        <div className={`max-w-screen !bg-[#F6F8FC] flex h-screen max-h-screen w-screen flex-col overflow-auto p-5 opacity-100 md:flex-row md:p-10 ${!hasCustomDomain ? '!pb-20' : ''}`}>
-            <div className="max-w-screen w-full md:sticky md:top-0 md:w-[320px] md:max-w-[320px]">
+        // Desktop: the page itself doesn't scroll — the sidebars are short, so
+        // only the central content column scrolls, the tab bar stays affixed,
+        // and a stable scrollbar gutter stops the layout flicker that used to
+        // happen the moment content grew past a screenful.
+        <div className={`max-w-screen !bg-[#F6F8FC] flex h-screen max-h-screen w-screen flex-col overflow-auto p-5 opacity-100 md:flex-row md:overflow-hidden md:p-10 ${!hasCustomDomain ? '!pb-20' : ''}`}>
+            <div className="max-w-screen w-full md:max-h-full md:w-[320px] md:max-w-[320px] md:overflow-y-auto">
                 <WorkspaceDetailsCard workspace={workspace} />
                 {!auth.id && !auth.isLoading && (
                     <div className="mt-6 flex flex-col rounded-xl bg-white p-6">
@@ -154,7 +158,7 @@ export default function ResponderPortalLayoutClient({
                     </a>
                 )}
             </div>
-            <div className="flex-1 md:pl-12 !pb-4">
+            <div className="flex flex-1 flex-col !pb-4 md:min-h-0 md:min-w-0 md:pl-12">
                 <div className="flex space-x-1 border-b border-gray-200 overflow-x-auto pb-0">
                     {tabs.map((tab) => {
                         const isActive = pathname.includes(tab.path) || (tab.path === 'forms' && (pathname === basePath || pathname === `${basePath}/`));
@@ -175,7 +179,7 @@ export default function ResponderPortalLayoutClient({
                         );
                     })}
                 </div>
-                <div className="mt-4 flex gap-6 flex-col xl:flex-row">
+                <div className="mt-4 flex flex-col gap-6 md:min-h-0 md:flex-1 md:overflow-y-auto md:[scrollbar-gutter:stable] xl:flex-row">
                     {children}
                     <SearchBySubmissionNumber className='hidden xl:block' />
                 </div>

@@ -47,12 +47,12 @@ const ViewResponseFullModalView = ({ response, formFields, formId, workspaceId }
                 </div>
             </div>
             <Separator />
-            <IndividualFormResponse formFields={formFields} response={response} />
+            <IndividualFormResponse className="h-[90vh] overflow-y-auto" formFields={formFields} response={response} />
         </motion.div>
     );
 };
 
-export const IndividualFormResponse = ({ formFields, response, form }: { formFields: Array<StandardFormFieldDto>; response: StandardFormResponseDto; form?: StandardFormDto }) => {
+export const IndividualFormResponse = ({ formFields, response, form, className }: { formFields: Array<StandardFormFieldDto>; response: StandardFormResponseDto; form?: StandardFormDto; className?: string }) => {
 
     const { toast } = useToast();
 
@@ -71,9 +71,8 @@ export const IndividualFormResponse = ({ formFields, response, form }: { formFie
             toast({ description: 'Error downloading file', variant: 'destructive' });
         }
     };
-    console.warn("The form fields: ", formFields);
     return (
-        <div className="flex h-[90vh]  w-full flex-col gap-8 overflow-y-auto p-4 pt-6 ">
+        <div className={cn('flex w-full flex-col gap-8 p-4 pt-6', className)}>
             {formFields.map((field) => {
                 const ans = response.answers[field.id];
 
