@@ -98,6 +98,16 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
   policy link with a live preview of the responder-facing trust strip; the
   values persist as workspace-form settings and render on every step of the
   published form.
+- **Submission detail joins the portal's design**: opening a receipt (and
+  requesting deletion) landed on a bare white page with its own tab style —
+  a different product right where responders exercise their data rights. It
+  now wears the portal's clothes: surface wash, a white receipt card with
+  the same identity as the list (form title, mono receipt number, exact
+  time, Anonymous chip, deletion status), portal tabs renamed to responder
+  language ("My response" · "Privacy & deletion"), and the deletion section
+  restated as a calm trust surface — shield statement of the right, a muted
+  "Request deletion" button with an expectation-setting caption, and an
+  amber "Deletion requested · Pending" state instead of a red warning.
 - **Anonymous responders can finally exercise their deletion right** (bug):
   requesting deletion authorized only `dataOwnerIdentifier == user` (plus
   admins) — an anonymous response has no owner identifier, so the very
