@@ -55,9 +55,13 @@ export default function CreatorDashboardClient({ hasCustomDomain }: { hasCustomD
     ];
 
     return (
-        <div className="border-black-300 shadow-formCardDefault flex flex-col overflow-hidden rounded-xl border bg-white">
+        // Desktop: the frame is a real browser — bounded to the viewport
+        // (77px top bar + 40px top/bottom gaps) with fixed chrome and the site
+        // content scrolling INSIDE it, so the page itself never scrolls. Mobile
+        // keeps natural flow (mobile viewport height is unreliable).
+        <div className="border-black-300 shadow-formCardDefault flex flex-col overflow-hidden rounded-xl border bg-white lg:h-[calc(100vh-157px)]">
             {/* Browser chrome: dots · address pill (globe + URL + copy) · open · settings gear */}
-            <div className="border-black-300 flex items-center gap-3 border-b bg-white px-4 py-2.5">
+            <div className="border-black-300 flex shrink-0 items-center gap-3 border-b bg-white px-4 py-2.5">
                 <div className="hidden items-center gap-1.5 sm:flex" aria-hidden="true">
                     <span className="bg-black-300 h-2.5 w-2.5 rounded-full" />
                     <span className="bg-black-300 h-2.5 w-2.5 rounded-full" />
@@ -110,25 +114,27 @@ export default function CreatorDashboardClient({ hasCustomDomain }: { hasCustomD
                 settings page, you close it and you're back on the page you
                 were configuring. (Previously a bottom sheet over everything.) */}
             {settingsViewOpen && (
-                <div className="bg-white py-6">
+                <div className="bg-white py-6 lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
                     <button type="button" onClick={() => setSettingsViewOpen(false)} className="text-black-600 hover:text-black-900 mb-4 flex items-center gap-1 px-5 text-sm font-medium md:px-10">
                         <ChevronLeft className="h-4 w-4" />
-                        Back to page
+                        Back to site
                     </button>
                     <WorkspaceSettingsContent showUrlRow={false} />
                 </div>
             )}
 
-            {/* The "page": the portal's surface colour and content. */}
-            <div className={cn('flex-col gap-4 bg-[#F6F8FC] p-5 md:flex-row md:p-8', settingsViewOpen ? 'hidden' : 'flex')}>
-                <div className="flex flex-col gap-4 md:w-[320px] md:max-w-[320px]">
+            {/* The "page": the portal's surface colour and content. Like the
+                portal, the left column and the tabs stay affixed — only the
+                tab content scrolls inside the frame (desktop); mobile flows. */}
+            <div className={cn('flex-col gap-4 bg-[#F6F8FC] p-5 md:flex-row md:p-8 lg:min-h-0 lg:flex-1 lg:overflow-hidden', settingsViewOpen ? 'hidden' : 'flex')}>
+                <div className="flex flex-col gap-4 md:w-[320px] md:max-w-[320px] lg:min-h-0 lg:overflow-y-auto">
                     <WorkspaceDetailsCard workspace={workspace} />
                     {/* Same sidebar placement as the portal: one utility
                         column, two-column page. */}
                     <SearchBySubmissionNumber className="w-full" />
                 </div>
-                <div className="flex min-w-0 flex-1 flex-col">
-                    <div className="border-black-300 flex space-x-1 overflow-x-auto border-b pb-0">
+                <div className="flex min-w-0 flex-1 flex-col lg:min-h-0">
+                    <div className="border-black-300 flex shrink-0 space-x-1 overflow-x-auto border-b pb-0">
                         {tabs.map((tab) => {
                             const isActive = activeTab === tab.key;
                             return (
@@ -147,7 +153,7 @@ export default function CreatorDashboardClient({ hasCustomDomain }: { hasCustomD
                             );
                         })}
                     </div>
-                    <div className="mt-4 min-w-0">
+                    <div className="mt-4 min-w-0 lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:[scrollbar-gutter:stable]">
                         {activeTab === 'forms' && <WorkspaceFormsTabContent workspace={workspace} publicBaseUrl={publicUrl} />}
                         {activeTab === 'my-submissions' && <WorkspaceResponsesTabContent workspace={workspace} />}
                         {activeTab === 'deletion-requests' && <WorkspaceResponsesTabContent workspace={workspace} deletionRequests />}
