@@ -98,6 +98,27 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
   policy link with a live preview of the responder-facing trust strip; the
   values persist as workspace-form settings and render on every step of the
   published form.
+- **Form themes are contrast-verified** (WCAG 2.1, computed): 10 of 13 named
+  themes rendered buttons whose white text failed AA (Green was 2.3:1, Yellow
+  1.9:1), every theme's input borders failed the 3:1 non-text minimum, and
+  Teal's question text failed even AA. Each palette was retuned against how
+  the roles are actually used — question text on the accent ≥ 7:1 (AAA),
+  white-on-button ≥ 4.5:1, input borders ≥ 3:1 — keeping each theme's hue.
+  The Design tab now shows each theme as an honest miniature form (question
+  ink on the accent, bordered input, button with white text) in a proper
+  full-width card list, so the real contrast is visible before choosing.
+- **Builder canvas centring rebuilt**: Fit scaled the slide with
+  window-arithmetic (`100vh` boxes, `transform-origin: top left`) whose
+  layout box disagreed with the visible card, so the sheet drifted
+  off-centre depending on viewport size. The scale is now measured from the
+  canvas mat itself and the wrapper's layout size equals the scaled card's
+  visual size — exactly centred on both axes at every window size; 100%
+  edits at a true 1440×810 with scrolling.
+- **Builder drawer split into Page · Form · Design**: form-wide settings
+  (hidden fields, trust & privacy) moved out of the Page tab — which had
+  grown into one undifferentiated scroll — into their own Form tab, also
+  making them reachable from welcome/thank-you pages; Page-tab section
+  spacing tightened.
 - **Builder chrome speaks the design language** (second builder pass): the
   neutral `black-*` Tailwind scale was retuned from flat Bootstrap grey to
   the blue-biased ink/hairline tokens, so builder and dashboard chrome cohere

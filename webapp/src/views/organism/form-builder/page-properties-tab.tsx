@@ -24,8 +24,6 @@ import SlideLayoutRightImage from '@Components/icons/slide-layout-right-image';
 import { SwitchIcon } from '@Components/icons/switch-icon';
 import { PlusIcon } from 'lucide-react';
 import Image from 'next/image';
-import HiddenFieldsEditor from '@app/views/molecules/form-builder/hidden-fields-editor';
-import TrustSettingsEditor from '@app/views/molecules/form-builder/trust-settings-editor';
 import PageJumpEditor from '@app/views/molecules/form-builder/page-jump-editor';
 
 export default function PagePropertiesTab({ }: {}) {
@@ -172,15 +170,10 @@ export default function PagePropertiesTab({ }: {}) {
 
     return (
         <>
-            {/* Group band: everything until "Whole form" applies to the selected
-                page only. The drawer used to interleave page-scoped and
-                form-wide settings with identical headers — one endless scroll
-                where scope was anyone's guess. */}
-            <div className="bg-black-100 text-black-600 border-b px-4 py-1.5 text-[10px] font-semibold uppercase tracking-wider">This page</div>
             {
                 <>
-                    <div className="text-black-600 px-4 pb-3 pt-6 text-xs font-semibold uppercase tracking-wide">Layout</div>
-                    <div className="grid grid-cols-2 gap-2 border-b px-4 pb-6">
+                    <div className="text-black-600 px-4 pb-3 pt-4 text-xs font-semibold uppercase tracking-wide">Layout</div>
+                    <div className="grid grid-cols-2 gap-2 border-b px-4 pb-4">
                         {getLayoutList().map((item: { style: FormSlideLayout; Icon: any; label: string }) => (
                             <button key={item.style} data-umami-event={`${item.style} Layout`} data-umami-event-email={authState.email} className="flex flex-col items-center gap-1">
                                 <div
@@ -200,7 +193,7 @@ export default function PagePropertiesTab({ }: {}) {
             }
             {(activeSlideComponent?.id === 'welcome-page' || activeSlideComponent?.id === 'thank-you-page') && (
                 <>
-                    <div className="text-black-600 px-4 pb-3 pt-6 text-xs font-semibold uppercase tracking-wide">Settings</div>
+                    <div className="text-black-600 px-4 pb-3 pt-4 text-xs font-semibold uppercase tracking-wide">Settings</div>
 
                     <div className="flex w-full items-center justify-between border-b px-4 pb-4">
                         {activeSlideComponent?.id === 'welcome-page' || activeSlideComponent?.id === 'thank-you-page' ? (
@@ -276,7 +269,7 @@ export default function PagePropertiesTab({ }: {}) {
                     </div>
                 </>
             )}
-            <div className={cn('border-black-200 flex justify-between border-b px-4 py-6 hover:bg-inherit', slide?.imageUrl ? 'flex-col items-start gap-2' : 'flex-row items-center ')}>
+            <div className={cn('border-black-200 flex justify-between border-b px-4 py-4 hover:bg-inherit', slide?.imageUrl ? 'flex-col items-start gap-2' : 'flex-row items-center ')}>
                 <span className="text-black-600 text-xs font-semibold uppercase tracking-wide">Layout Image</span>
                 {slide?.imageUrl ? (
                     <div className={`group relative my-4 max-h-[168px] w-full`}>
@@ -303,8 +296,8 @@ export default function PagePropertiesTab({ }: {}) {
                 <></>
             ) : (
                 <>
-                    <div className="text-black-600 px-4 pb-3 pt-6 text-xs font-semibold uppercase tracking-wide pb-6">Used Fields</div>
-                    <div className="mb-4 flex flex-col gap-6 px-4">
+                    <div className="text-black-600 px-4 pb-2 pt-4 text-xs font-semibold uppercase tracking-wide">Used Fields</div>
+                    <div className="mb-4 flex flex-col gap-3 px-4">
                         {activeSlideComponent?.index !== undefined &&
                             formFields[activeSlideComponent.index]?.properties?.fields?.map((field) => {
                                 return (
@@ -345,11 +338,6 @@ export default function PagePropertiesTab({ }: {}) {
                 <>
                     <div className="border-t">
                         <PageJumpEditor />
-                    </div>
-                    <div className="bg-black-100 text-black-600 border-b border-t px-4 py-1.5 text-[10px] font-semibold uppercase tracking-wider">Whole form</div>
-                    <HiddenFieldsEditor />
-                    <div className="border-t">
-                        <TrustSettingsEditor />
                     </div>
                 </>
             )}

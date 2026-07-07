@@ -1,6 +1,6 @@
 'use client';
 
-import { use, useEffect, useState } from 'react';
+import { use, useEffect, useRef, useState } from 'react';
 
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
@@ -46,41 +46,37 @@ export default function FormEditPage(props: { params: Promise<{ form_id: string 
 
     const formId = params.form_id;
 
-    const getScaledDivStyles = () => {
-        if (typeof window !== 'undefined') {
-            const windowHeight = window.innerHeight;
-            const windowWidth = window.innerWidth;
-            const slideViewportWidth = windowWidth - 520;
-            const slideViewportHeight = windowHeight - 192;
-            const aspectRatio = 16 / 9;
-            if (slideViewportWidth / aspectRatio > slideViewportHeight) {
-                return {
-                    height: '100vh',
-                    scale: slideViewportHeight / windowHeight,
-                    transformOrigin: 'top left'
-                };
-            }
-            return {
-                width: '100vw',
-                scale: slideViewportWidth / windowWidth,
-                transformOrigin: 'top left'
-            };
-        }
-        return undefined;
-    };
+    // The slide's design size. The card is always laid out at this size and
+    // scaled as a whole, so what you edit is exactly what renders at 100%.
+    const CANVAS_WIDTH = 1440;
+    const CANVAS_HEIGHT = 810;
 
-    const getScaledDivWidth = () => {
-        const styles = getScaledDivStyles();
-        if (styles?.width) {
-            return window.innerWidth - 620;
-        }
-        return ((window?.innerHeight - 192) * 16) / 9;
-    };
-
-    const [scaledDivStyle, setScaledDivStyle] = useState(getScaledDivStyles());
-    // 'fit' scales the 1440px slide into the viewport (~0.57 — 24px text edits
-    // at ~14px); '100%' edits at true size with canvas scrolling.
+    // 'fit' scales the slide into the mat; '100%' edits at true size with
+    // canvas scrolling.
     const [canvasZoom, setCanvasZoom] = useState<'fit' | 'full'>('fit');
+    const canvasMatRef = useRef<HTMLDivElement>(null);
+    const [fitScale, setFitScale] = useState(0.5);
+
+    // Fit is measured from the mat itself (not window arithmetic): the scaled
+    // wrapper gets the same layout size as the visual card, so `m-auto`
+    // centres it exactly on both axes at every viewport size.
+    useEffect(() => {
+        const mat = canvasMatRef.current;
+        if (!mat) return;
+        const compute = () => {
+            const cs = getComputedStyle(mat);
+            const availableWidth = mat.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+            const availableHeight = mat.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+            setFitScale(Math.min(availableWidth / CANVAS_WIDTH, availableHeight / CANVAS_HEIGHT, 1));
+        };
+        compute();
+        const observer = new ResizeObserver(compute);
+        observer.observe(mat);
+        return () => observer.disconnect();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    const canvasScale = canvasZoom === 'full' ? 1 : fitScale;
 
     // Esc deselects the active field — the drawer otherwise traps you until
     // you discover that clicking empty canvas goes back.
@@ -94,14 +90,7 @@ export default function FormEditPage(props: { params: Promise<{ form_id: string 
     }, []);
 
     useEffect(() => {
-        const handleResize = () => {
-            setScaledDivStyle(getScaledDivStyles());
-        };
-
-        window.addEventListener('resize', handleResize, false);
-
         return () => {
-            window.removeEventListener('resize', handleResize);
             setFormState({ ...initialFormState });
             // initialFieldsState is an ARRAY — `{ ...array }` turns it into an
             // object and poisons the atom for the next editor mount (anything
@@ -153,28 +142,30 @@ export default function FormEditPage(props: { params: Promise<{ form_id: string 
                 {/* Neutral workspace mat behind the canvas, so the slide being edited
                     reads as the artefact and separates from the tool's chrome. */}
                 <div
-                    className=" relative flex max-h-full max-w-full flex-1 overflow-auto bg-[#E9EEF5] px-5 py-14"
+                    ref={canvasMatRef}
+                    className=" relative flex max-h-full max-w-full flex-1 overflow-auto bg-[#E9EEF5] px-8 py-10"
                     onClick={() => {
                         setActiveFieldComponent(null);
                     }}
                 >
-                    <div
-                        // shrink-0: this is a flex child — without it, flex-shrink
-                        // compresses the 1440px true-size canvas back into the
-                        // container and "100%" zoom silently does nothing.
-                        className="m-auto shrink-0"
-                        style={{
-                            width: canvasZoom === 'full' ? 1440 : getScaledDivWidth()
-                        }}
-                    >
+                    {/* The wrapper's layout size equals the scaled card's visual
+                        size, so m-auto centring is exact; shrink-0 keeps flex from
+                        compressing it at 100% (which silently broke zoom before). */}
+                    <div className="m-auto shrink-0" style={{ width: CANVAS_WIDTH * canvasScale, height: CANVAS_HEIGHT * canvasScale }}>
                         {/* The sheet needs real presence on the mat — the slide's own
                             surface is near the mat's tone, so the edge comes from a
                             hairline + a soft elevation shadow, not from contrast. */}
                         <div
-                            className="border-black-400 aspect-video overflow-hidden rounded-lg border bg-white"
-                            style={{ boxShadow: '0px 1px 3px rgba(16, 24, 38, 0.06), 0px 12px 32px rgba(16, 24, 38, 0.12)', ...(canvasZoom === 'full' ? {} : scaledDivStyle) }}
+                            className="border-black-400 overflow-hidden rounded-lg border bg-white"
+                            style={{
+                                width: CANVAS_WIDTH,
+                                height: CANVAS_HEIGHT,
+                                transform: `scale(${canvasScale})`,
+                                transformOrigin: 'top left',
+                                boxShadow: '0px 1px 3px rgba(16, 24, 38, 0.06), 0px 12px 32px rgba(16, 24, 38, 0.12)'
+                            }}
                         >
-                            <div className="   mx-auto h-full w-full  rounded-lg">
+                            <div className="mx-auto h-full w-full rounded-lg">
                                 {activeSlideComponent?.id && activeSlideComponent?.index >= 0 && <SlideBuilder slide={formFields[activeSlideComponent?.index]} />}
                                 {!activeSlideComponent?.id && <div>Add a slide to start</div>}
                                 {activeSlideComponent?.id === 'welcome-page' && <WelcomeSlide />}
