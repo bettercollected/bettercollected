@@ -78,6 +78,9 @@ jobs:
     deploy:
         needs: build-and-push
         strategy:
+            # One service failing to converge must not cancel the others'
+            # deploys — each service updates independently.
+            fail-fast: false
             matrix:
                 service:
                     - auth
