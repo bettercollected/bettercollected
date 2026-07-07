@@ -4,9 +4,10 @@ import { Popover, PopoverContent, PopoverTrigger } from '@app/shadcn/components/
 import { Separator } from '@app/shadcn/components/ui/separator';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { cn } from '@app/shadcn/util/lib';
+import { useModal } from '@app/components/modal-views/context';
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
-import { useDeleteResponseMutation } from '@app/store/workspaces/api';
+import { selectWorkspace } from '@app/store/workspaces/slice';
 import { utcToLocalDateTIme } from '@app/utils/date-utils';
 import { downloadFile } from '@app/utils/file-utils';
 import { resolvePipesInTitle, titleHasPipes } from '@app/utils/answer-piping';
@@ -20,11 +21,15 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 interface IViewResponseFullModalView {
     response: StandardFormResponseDto;
     formFields: StandardFormFieldDto[];
+    // The form the response belongs to. Without it the body falls back to the
+    // redux form — empty or stale outside a form page (e.g. the workspace
+    // deletion-requests table), which blanked question titles and pipes.
+    form?: StandardFormDto;
     formId: string;
     workspaceId: string;
 }
 
-const ViewResponseFullModalView = ({ response, formFields, formId, workspaceId }: IViewResponseFullModalView) => {
+const ViewResponseFullModalView = ({ response, formFields, form, formId, workspaceId }: IViewResponseFullModalView) => {
     const { toast } = useToast();
     const { closeModal } = useFullScreenModal();
 
@@ -48,7 +53,7 @@ const ViewResponseFullModalView = ({ response, formFields, formId, workspaceId }
                 </div>
             </div>
             <Separator />
-            <IndividualFormResponse className="h-[90vh] overflow-y-auto" formFields={formFields} response={response} />
+            <IndividualFormResponse className="h-[90vh] overflow-y-auto" formFields={formFields} response={response} form={form} />
         </motion.div>
     );
 };
@@ -130,9 +135,13 @@ export const IndividualFormResponse = ({ formFields, response, form, className }
                     return (
                         <div className="flex flex-col gap-1.5" key={field.id}>
                             {getTitleForHeaderForTable(field)}
-                            <div onClick={() => downloadFormFile(ans)} className={cn('!text-black-600 p2-new   w-[140px] cursor-default truncate rounded px-2 py-1', ans?.file_metadata?.url ? 'bg-black-300 active:bg-black-400 !cursor-pointer' : '')}>
-                                {getAnswerForField(response, field)}
-                            </div>
+                            {ans?.file_metadata ? (
+                                <div onClick={() => downloadFormFile(ans)} className={cn('!text-black-600 p2-new w-[140px] truncate rounded px-2 py-1', ans?.file_metadata?.url ? 'bg-black-300 active:bg-black-400 cursor-pointer' : 'cursor-default')}>
+                                    {getAnswerForField(response, field)}
+                                </div>
+                            ) : (
+                                <span className="text-black-500 text-sm italic">No answer</span>
+                            )}
                         </div>
                     );
                 }
@@ -160,30 +169,28 @@ export const IndividualFormResponse = ({ formFields, response, form, className }
 };
 
 const EllipsisSection = ({ formId, workspaceId, responseId }: { formId: string; workspaceId: string; responseId: string }) => {
-    const { toast } = useToast();
-    const [deleteResponse] = useDeleteResponseMutation();
     const { closeModal } = useFullScreenModal();
+    const { openModal: openConfirmModal } = useModal();
+    const workspace = useAppSelector(selectWorkspace);
 
-    const handleDelete = async () => {
-        const response: any = await deleteResponse({ workspaceId, formId, responseId });
-        if (response?.data) {
-            toast({ description: 'Response Deleted' });
-            closeModal();
-        } else {
-            toast({ description: 'Error Deleting Response', variant: 'destructive' });
-        }
+    // Deleting is permanent, so it goes through the DELETE_RESPONSE confirm.
+    // Only one modal layer renders at a time (full-screen wins), so the drawer
+    // closes before the confirmation opens.
+    const handleDelete = () => {
+        closeModal();
+        openConfirmModal('DELETE_RESPONSE', { workspace, formId, responseId });
     };
     return (
         <Popover>
             <PopoverTrigger>
                 <div className="hover:bg-black-200 flex h-fit w-fit items-center justify-center rounded-md p-2">
-                    <MoreVertical className={cn('hidden cursor-pointer')} width={16} height={16} />
+                    <MoreVertical className={cn('cursor-pointer')} width={16} height={16} />
                 </div>
             </PopoverTrigger>
-            <PopoverContent side="left" align="start" className=" !z-[10000]  w-[150px] bg-white p-0 shadow-lg">
-                <div className=" p2 !my-2  flex cursor-pointer items-center gap-2 px-4 py-2 !text-red-500 hover:bg-red-50" onClick={handleDelete}>
-                    <DeleteIcon className="text-red-500" />
-                    Delete
+            <PopoverContent side="left" align="start" className=" !z-[10000]  w-[180px] bg-white p-0 shadow-lg">
+                <div className=" p2 !my-2  flex cursor-pointer items-center gap-2 px-4 py-2 !text-[#C43D3D] hover:bg-[#FBEFEF]" onClick={handleDelete}>
+                    <DeleteIcon className="text-[#C43D3D]" />
+                    Delete response
                 </div>
             </PopoverContent>
         </Popover>

@@ -24,7 +24,7 @@ export default function MembersTable({ data }: any) {
             name: t(members.member),
             minWidth: '300px',
             style: {
-                color: '#202124',
+                color: '#101826',
                 fontSize: '14px',
                 fontWeight: 500,
                 paddingLeft: '16px',
@@ -37,7 +37,7 @@ export default function MembersTable({ data }: any) {
             name: t(members.join),
             selector: (member: any) => (!!member?.joined ? `${utcToLocalDate(member?.joined)} - ${utcToLocalTime(member?.joined)}` : ''),
             style: {
-                color: 'rgba(0,0,0,.54)',
+                color: '#3A465A',
                 paddingLeft: '16px',
                 paddingRight: '16px',
                 fontSize: '16px'
@@ -47,7 +47,7 @@ export default function MembersTable({ data }: any) {
             name: t(members.role),
             selector: (member: any) => _.capitalize(member.roles[0]),
             style: {
-                color: 'rgba(0,0,0,.54)',
+                color: '#3A465A',
                 paddingLeft: '16px',
                 paddingRight: '16px',
                 fontSize: '16px'

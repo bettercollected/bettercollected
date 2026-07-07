@@ -160,7 +160,10 @@ export const workspacesApi = createApi({
                 url: `/workspaces/${request.workspaceId}/forms/${request.formId}/response/${request.responseId}`,
                 method: 'DELETE'
             }),
-            invalidatesTags: [SUBMISSION_TAG]
+            // The deletion-requests table (getWorkspaceAllSubmissions) and the
+            // pending counter (getWorkspaceStats) only carry WORKSPACE_TAGS —
+            // without it they kept showing the row as Pending after the delete.
+            invalidatesTags: [SUBMISSION_TAG, WORKSPACE_TAGS]
         }),
         importForm: builder.mutation<any, ImportFormQueryInterface>({
             query: (request) => ({

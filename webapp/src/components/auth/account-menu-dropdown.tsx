@@ -105,11 +105,13 @@ export default function AuthAccountMenuDropdown({ isClientDomain, fullWidth, hid
                 <ul className="list-none m-0 p-0">
                     <li className="flex items-center px-5 py-3 hover:bg-brand-100 gap-4">
                         <div className="m-0">
-                            <AuthAccountProfileImage size={40} image={user?.profileImage} name={profileName ?? ''} />
+                            {/* Fall back to the email for the avatar initial — a
+                                name-less account rendered an empty square. */}
+                            <AuthAccountProfileImage size={40} image={user?.profileImage} name={profileName ?? user?.email ?? ''} />
                         </div>
                         <div className="flex flex-col m-0">
-                            <span className="text-[16px] leading-[24px] text-[#212529] font-normal">{profileName ?? 'Signed in as'}</span>
-                            <span className="text-[12px] leading-[20px] text-[#6C757D] font-normal">{user?.email}</span>
+                            <span className="text-black-900 text-[16px] font-normal leading-[24px]">{profileName ?? 'Signed in as'}</span>
+                            <span className="text-black-600 text-[12px] font-normal leading-[20px]">{user?.email}</span>
                         </div>
                     </li>
                     <WorkspaceAdminSelector>
@@ -163,7 +165,7 @@ export default function AuthAccountMenuDropdown({ isClientDomain, fullWidth, hid
                     </li>
                     <li
                         onClick={handleLogout}
-                        className="flex items-center gap-4 px-[20px] py-[10px] h-[36px] body4 !text-red-500 hover:bg-red-100 cursor-pointer"
+                        className="flex items-center gap-4 px-[20px] py-[10px] h-[36px] body4 !text-[#C43D3D] hover:bg-[#FBEFEF] cursor-pointer"
                     >
                         <div className="flex items-center justify-center">
                             <LogOut width={20} height={20} />

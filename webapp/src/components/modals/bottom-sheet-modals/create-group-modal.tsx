@@ -118,7 +118,7 @@ export default function CreateGroupModal() {
             <BottomSheetModalWrapper>
                 <div>
                     <div className="h2-new mb-2">{t(groupConstant.createGroup)}</div>
-                    <div className="p2-new text-black-700">Create a group to limit access to form from your workspace</div>
+                    <div className="p2-new text-black-700">Create a group to control who can access your forms</div>
                 </div>
                 <div className="mb-4 flex flex-col md:max-w-[700px] xl:max-w-[1000px]">
                     <div className="md:max-w-[618px]">

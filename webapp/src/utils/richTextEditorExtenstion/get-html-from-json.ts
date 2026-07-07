@@ -22,7 +22,10 @@ export function getHtmlFromJson(value: JSONContent | string | undefined) {
  */
 export function extractTextfromJSON(field: StandardFormFieldDto): string {
     const title = field.title;
-    if (!title) return getPlaceholderValueForTitle(field.type || FieldTypes.TEXT);
+    // Fields created before the rich-text title carry their question in the
+    // legacy `value` string with a null title — prefer it over the generic
+    // per-type placeholder.
+    if (!title) return (typeof field.value === 'string' && field.value) || getPlaceholderValueForTitle(field.type || FieldTypes.TEXT);
     if (typeof title === 'string') return title;
 
     const walk = (node: any): string => {

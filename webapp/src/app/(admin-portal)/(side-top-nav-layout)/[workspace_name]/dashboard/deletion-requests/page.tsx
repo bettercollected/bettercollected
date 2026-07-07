@@ -1,6 +1,5 @@
 "use client";
 
-import { useTranslation } from 'next-i18next';
 import { useEffect, useState } from 'react';
 
 import SearchInput from '@Components/common/search-input';
@@ -8,15 +7,12 @@ import SearchInput from '@Components/common/search-input';
 import ResponsesTable from '@Components/datatable/responses-table';
 import Loader from '@app/components/ui/loader';
 import globalConstants from '@app/constants/global';
-import { localesCommon } from '@app/constants/locales/common';
-import { formConstant } from '@app/constants/locales/form';
 import { useAppSelector } from '@app/store/hooks';
 import { useGetWorkspaceAllSubmissionsQuery, useGetWorkspaceStatsQuery } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { IGetAllSubmissionsQuery } from '@app/store/workspaces/types';
 
 export default function DeletionRequests() {
-    const { t } = useTranslation();
     const workspace = useAppSelector(selectWorkspace);
     const [page, setPage] = useState(1);
 
@@ -73,12 +69,18 @@ export default function DeletionRequests() {
             )}
             {data && (
                 <>
-                    <div className="heading4">{t(formConstant.deletionRequests)}</div>
-                    <p className="body1 text-black-900 my-10">
-                        {workspaceStats?.data?.deletionRequests.pending || 0}/{workspaceStats?.data?.deletionRequests.total || 0} {t(localesCommon.deletionRemaining)}
+                    {/* No h1 here — the sticky top bar already titles the page.
+                        "5/5 deletion remaining" read like a quota; say what the
+                        number is — how many requests still need handling. */}
+                    <p className="body1 text-black-900 mb-10 mt-2">
+                        {(workspaceStats?.data?.deletionRequests.pending || 0) === 0
+                            ? (workspaceStats?.data?.deletionRequests.total || 0) === 0
+                                ? 'No deletion requests yet.'
+                                : 'All deletion requests handled.'
+                            : `${workspaceStats?.data?.deletionRequests.pending} of ${workspaceStats?.data?.deletionRequests.total} requests pending — deleting the response completes a request.`}
                     </p>
                     <div className="w-full md:w-[282px] mb-8">
-                        <SearchInput handleSearch={handleSearch} />
+                        <SearchInput placeholder="Search by responder email" handleSearch={handleSearch} />
                     </div>
                     <ResponsesTable requestForDeletion={true} page={page} setPage={setPage} submissions={data} />
                 </>

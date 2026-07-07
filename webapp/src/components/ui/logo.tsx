@@ -49,9 +49,11 @@ Logo.defaultProps = {
 };
 export default Logo;
 
+// A quiet plan chip on the trust ramp. The old orange-gradient pill put white
+// text on #FFA004 (~2.1:1 contrast) in a display face used nowhere else.
 export const ProLogo = () => {
     return (
-        <div className="font-comfortaa flex h-fit flex-row  items-center rounded-[18px] bg-green-200 px-[5px] pb-[3px] pt-[5px] text-[13px] font-bold leading-[13px] text-white" style={{ background: 'linear-gradient(to right, #FFB843, #FFA004)' }}>
+        <div className="flex h-fit flex-row items-center rounded-full bg-[#FBF3E4] px-2 py-[2px] text-[11px] font-semibold leading-[14px] text-[#B26B00]">
             <span>Pro</span>
         </div>
     );

@@ -27,20 +27,6 @@ import { selectWorkspace } from '@app/store/workspaces/slice';
 import Globe from '@Components/icons/globe';
 import WorkspaceMenuDropdown from '@Components/workspace/workspace-menu-dropdown';
 
-const GradientBgDiv = ({ className, children }: { className?: string, children: React.ReactNode }) => (
-    <div
-        className={className}
-        style={{
-            background: 'linear-gradient(90.01deg, #0764eb 0.01%, #fe3678 101.52%)',
-            backgroundClip: 'text',
-            WebkitBackgroundClip: 'text',
-            color: 'transparent'
-        }}
-    >
-        {children}
-    </div>
-);
-
 const Drawer = ({ topNavList, isAdmin, bottomNavList }: any) => {
     const { t } = useTranslation();
     const workspace: WorkspaceDto = useAppSelector(selectWorkspace);
@@ -64,12 +50,16 @@ const Drawer = ({ topNavList, isAdmin, bottomNavList }: any) => {
                             <WorkspaceMenuDropdown fullWidth />
                         </div>
 
-                        <Link href={commonWorkspaceUrl} className={cn('hover:bg-slate-100 mb-3 mt-2 flex cursor-pointer items-center gap-2 rounded-xl px-4 py-3 text-xs  font-medium group', pathname === commonWorkspaceUrl && 'bg-slate-100')}>
-                            <Globe width={20} height={20} className="text-blue-600" />
-                            <GradientBgDiv className="p3-new">Public Workspace</GradientBgDiv>
+                        {/* This is a link, so it speaks the one action colour —
+                            the old blue→pink gradient text was the loudest thing
+                            in the chrome and the exact "playful" note the trust
+                            language retires (Design-Language §1). */}
+                        <Link href={commonWorkspaceUrl} className={cn('hover:bg-black-100 mb-3 mt-2 flex cursor-pointer items-center gap-2 rounded-lg px-4 py-3 text-xs font-medium', pathname === commonWorkspaceUrl && 'bg-[#E9EFFC]')}>
+                            <Globe width={20} height={20} className="text-[#2456CC]" />
+                            <span className="p3-new text-[#2456CC]">Site</span>
                         </Link>
 
-                        <div className="my-3 border-t border-gray-200" />
+                        <div className="border-black-300 my-3 border-t" />
 
                         <div className="py-2">
                             <NavigationList navigationList={topNavList} />
@@ -88,15 +78,14 @@ const Drawer = ({ topNavList, isAdmin, bottomNavList }: any) => {
                     {/* Bottom section for free plan / ads */}
                     {isAdmin && !isProPlan && (
                         <div className="mt-4 pb-4">
-                            <div className="bg-slate-50 mx-4 mb-4 rounded-md p-4">
+                            <div className="bg-black-100 mx-4 mb-4 rounded-md p-4">
                                 <div className="h5-new mb-2">{t(pricingPlan.title)}</div>
                                 <div className="text-black-600 text-sm">For unlimited forms and many more features</div>
 
-                                {/* Shadcn Progress */}
                                 <Progress
-                                    className="mb-2 mt-4 h-2.5 bg-white border border-gray-100"
+                                    className="border-black-200 mb-2 mt-4 h-2.5 border bg-white"
                                     value={data?.forms || 0}
-                                    indicatorColor="#0764EB"
+                                    indicatorColor="#2456CC"
                                 />
 
                                 <div className="flex items-center justify-between text-xs font-semibold mt-2">
@@ -104,7 +93,7 @@ const Drawer = ({ topNavList, isAdmin, bottomNavList }: any) => {
                                         {data?.forms || 0}/100 {' ' + t(toolTipConstant.formImported)}
                                     </span>
                                     <span
-                                        className="cursor-pointer hover:underline text-blue-600"
+                                        className="cursor-pointer hover:underline text-[#2456CC]"
                                         onClick={() => {
                                             openFullScreenModal('UPGRADE_TO_PRO', { featureText: t(upgradeConst.features.unlimitedForms.slogan) });
                                         }}
@@ -115,7 +104,7 @@ const Drawer = ({ topNavList, isAdmin, bottomNavList }: any) => {
                             </div>
 
                             {environments.ENABLE_COUPON_CODES && (
-                                <div className="bg-slate-50 mx-4 mb-6 rounded-md p-4">
+                                <div className="bg-black-100 mx-4 mb-6 rounded-md p-4">
                                     <div className="h5-new mb-2">Pro Lifetime Deal</div>
                                     <div className="text-black-600 text-sm">
                                         Redeem{' '}
@@ -127,7 +116,7 @@ const Drawer = ({ topNavList, isAdmin, bottomNavList }: any) => {
 
                                     <div className="flex items-center justify-end text-xs font-semibold mt-2">
                                         <span
-                                            className="cursor-pointer hover:underline text-blue-600"
+                                            className="cursor-pointer hover:underline text-[#2456CC]"
                                             onClick={() => {
                                                 openModal('REDEEM_CODE_MODAL');
                                             }}
