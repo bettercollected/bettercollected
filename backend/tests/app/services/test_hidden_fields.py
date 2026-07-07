@@ -181,3 +181,41 @@ async def test_anonymous_owner_can_request_deletion(workspace, published_form):
     # submissions listing matches on.
     assert request.anonymous_identity == stored_response.anonymous_identity
     assert request.dataOwnerIdentifier is None
+
+
+async def test_anonymous_submissions_are_not_listed_under_the_account(
+    workspace, published_form
+):
+    """Anonymity has to mean something at the account level: verifying your
+    email must not link anonymous submissions back to you in the portal
+    listing. The submission number (receipt) is the only key to an anonymous
+    response — exactly what the portal copy promises responders."""
+    from backend.app.models.dtos.response_dtos import StandardFormResponseCamelModel
+    from tests.app.controllers.data import testUser2
+
+    identified = await container.workspace_form_service().submit_response(
+        workspace.id,
+        published_form.form_id,
+        StandardFormResponseCamelModel(answers={}, anonymize=False),
+        testUser2,
+    )
+    anonymous = await container.workspace_form_service().submit_response(
+        workspace.id,
+        published_form.form_id,
+        StandardFormResponseCamelModel(answers={}, anonymize=True),
+        testUser2,
+    )
+
+    from fastapi_pagination import Page, Params
+    from fastapi_pagination.api import set_page, set_params
+
+    # In the app these come from the route context (response_model +
+    # add_pagination); set them explicitly for a direct service call.
+    set_page(Page[StandardFormResponseCamelModel])
+    set_params(Params(page=1, size=50))
+    page = await container.form_response_service().get_user_submissions(
+        workspace.id, testUser2
+    )
+    listed_ids = [item.response_id for item in page.items]
+    assert identified.response_id in listed_ids
+    assert anonymous.response_id not in listed_ids

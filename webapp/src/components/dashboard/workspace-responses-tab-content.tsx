@@ -84,6 +84,11 @@ export default function WorkspaceResponsesTabContent({ workspace, deletionReques
                             <WorkspaceFormResponseDeletionCard deletionRequests={deletionRequests} key={submission.responseId} response={submission} isCustomDomain={isCustomDomain} workspaceName={workspace.workspaceName} />
                         ))}
                     </div>
+                    {!deletionRequests && (
+                        <p className="text-black-600 mt-4 text-xs">
+                            Anonymous submissions aren&apos;t linked to your account — find them with their submission number. That&apos;s what keeps them anonymous.
+                        </p>
+                    )}
                 </div>
             )}
         </>

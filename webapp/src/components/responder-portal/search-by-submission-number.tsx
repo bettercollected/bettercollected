@@ -29,7 +29,7 @@ const SearchBySubmissionNumber = ({ className }: { className?: string }) => {
             submissionUUID: submissionNumber
         });
         if (response.data) {
-            const submissionUrl = isCustomDomain ? `/submissions/uuid/${submissionNumber}` : `/${workspace.workspaceName}/submissions/uuid/${submissionNumber}`;
+            const submissionUrl = isCustomDomain ? `/submissions/uuid/${submissionNumber}/form` : `/${workspace.workspaceName}/submissions/uuid/${submissionNumber}/form`;
             router.push(submissionUrl);
         }
         if (response.error) {

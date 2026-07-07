@@ -183,7 +183,7 @@
     "DELETION_REQUEST.DESCRIPTION": "When you ask for a response to be deleted, the request and its status show up here. Open one of your submitted forms and use its Settings tab to request deletion.",
     "DELETION_REQUESTS": "Deletion requests",
     "DELETION_RESPONSE.DESCRIPTION": "You have not submitted any response on the forms provided in this workspace.",
-    "DELETION_RESPONSE_WARNING_MESSAGE": "Are you sure you want to request your response to be deleted?",
+    "DELETION_RESPONSE_WARNING_MESSAGE": "Ask the workspace to delete this response?",
     "DRAFT": "Draft",
     "EMPTY": {
       "DESCRIPTION": "Import your Google Forms or Typeforms",

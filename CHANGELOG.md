@@ -113,6 +113,20 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
   branded space, especially on custom domains) gave way to the workspace's
   avatar + name linking back to the portal, with the platform down in the
   same quiet "Powered by" caption the portal uses.
+- **Anonymity now holds at the account level**: verifying your email no
+  longer links anonymous submissions to your account — My submissions and
+  Deletion requests list only identified responses, and an anonymous
+  response is reachable solely through its submission number, which is what
+  the portal copy promises ("that's what keeps it anonymous"). A caption
+  under the list says where anonymous submissions live. Also from this
+  feedback round: confirm dialogs' dismiss action is a quiet outline button
+  (the filled near-black "No" read as a second primary), the deletion
+  confirmation says what it does ("Ask the workspace to delete this
+  response?" · Cancel / Request deletion — no more Yes/No) and states the
+  consequence; and opening a submission no longer hops through a redirect
+  (receipts and number-search link straight to the response tab) nor
+  flashes a white full-screen loader (the workspace-branded shell stays up
+  with a skeleton while loading).
 - **Anonymous responders can finally exercise their deletion right** (bug):
   requesting deletion authorized only `dataOwnerIdentifier == user` (plus
   admins) — an anonymous response has no owner identifier, so the very

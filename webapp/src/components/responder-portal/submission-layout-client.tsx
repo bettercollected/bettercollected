@@ -8,7 +8,6 @@ import React from 'react';
 import { ChevronLeft, Eye, Shield as ShieldIcon, Trash2 } from 'lucide-react';
 
 import AuthAccountProfileImage from '@app/components/auth/account-profile-image';
-import FullScreenLoader from '@app/components/ui/fullscreen-loader';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { utcToLocalDateTIme } from '@app/utils/date-utils';
@@ -59,8 +58,25 @@ export default function SubmissionLayoutClient({ children }: { children: React.R
     ];
 
     if (isLoading || isError || !data) {
+        // Keep the workspace-branded shell while loading — swapping the whole
+        // page for a white full-screen loader read as a flicker on every open.
         return (
-            <FullScreenLoader />
+            <div className="flex min-h-screen w-full flex-col !bg-[#F6F8FC]">
+                <header className="border-b-black-200 sticky top-0 z-20 border-b bg-white">
+                    <div className="mx-auto flex w-full max-w-[960px] items-center gap-2.5 px-5 py-3">
+                        <AuthAccountProfileImage variant="circular" size={32} image={workspace?.profileImage} name={workspace?.title || workspaceName || 'W'} />
+                        <span className="text-black-900 text-sm font-semibold">{workspace?.title || workspaceName}</span>
+                    </div>
+                </header>
+                <div className="mx-auto mt-5 flex w-full max-w-[960px] flex-1 flex-col gap-4 px-5 pb-10">
+                    <div className="bg-black-200 h-5 w-36 animate-pulse rounded" />
+                    <div className="w-full rounded-xl bg-white p-6">
+                        <div className="bg-black-100 h-7 w-64 animate-pulse rounded" />
+                        <div className="bg-black-100 mt-3 h-4 w-80 animate-pulse rounded" />
+                        <div className="bg-black-100 mt-8 h-40 w-full animate-pulse rounded" />
+                    </div>
+                </div>
+            </div>
         );
     }
 

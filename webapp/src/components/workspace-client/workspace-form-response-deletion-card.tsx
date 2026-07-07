@@ -34,7 +34,9 @@ export default function WorkspaceFormResponseDeletionCard({ response, deletionRe
 
     const Component = disabled ? DefaultDiv : Link;
 
-    const pathname = disabled ? '' : isCustomDomain ? `/submissions/${response.responseId}` : `/${workspaceName}/submissions/${response.responseId}`
+    // Link straight to the default tab: the bare id route only server-redirects
+    // to /form, which showed as a URL hop + reload flicker on every open.
+    const pathname = disabled ? '' : isCustomDomain ? `/submissions/${response.responseId}/form` : `/${workspaceName}/submissions/${response.responseId}/form`
 
     const isAnonymous = !response?.dataOwnerIdentifier;
 
