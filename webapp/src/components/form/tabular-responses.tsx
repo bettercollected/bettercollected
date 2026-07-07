@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 
 import { useTranslation } from 'next-i18next';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
 import StyledPagination from '@Components/common/pagination';
 import cn from 'classnames';
@@ -22,25 +21,28 @@ import { getAnswerForField, getFormFields, getTitleForHeader } from '@app/utils/
 import { dataTableCustomStyles } from '@Components/datatable/datatable-styles';
 import { ExpandIcon } from '@Components/icons/expanded-icon';
 
+/**
+ * ONE table for the responders view. The previous implementation faked frozen
+ * columns with two independent DataTables side by side — their row heights
+ * were never guaranteed equal (the identifier cell is two lines, answers are
+ * one), so rows drifted out of alignment within a screenful. Here the leading
+ * columns (checkbox · expand · Responder ID) are frozen with position:sticky
+ * inside the single scroll container (see .responders-frozen-table in
+ * globals.css), so alignment holds by construction and the whole row shares
+ * one hover + click behaviour.
+ */
 const customTableStyles = {
     ...dataTableCustomStyles,
     rows: {
         ...dataTableCustomStyles.rows,
         style: {
             ...dataTableCustomStyles.rows.style,
+            // Two-line cells (identifier + timestamp) must be allowed to size
+            // the row — a forced 48px height is exactly what caused the old
+            // misalignment.
+            height: 'auto',
+            minHeight: '56px',
             cursor: 'pointer'
-        }
-    }
-};
-
-const customTableStylesForResponderDetails = {
-    ...dataTableCustomStyles,
-    table: {
-        ...dataTableCustomStyles.table,
-        style: {
-            ...dataTableCustomStyles.table.style,
-            borderRight: '1px solid #DBDBDB',
-            boxShadow: '2px 0px 4px 0px rgba(0, 0, 0, 0.15)'
         }
     }
 };
@@ -50,9 +52,6 @@ interface TabularResponsesProps {
 }
 
 export default function TabularResponses({ form }: TabularResponsesProps) {
-    const router = useRouter();
-    const pathname = usePathname();
-    const searchParams = useSearchParams();
     const { toast } = useToast();
     const { openModal } = useFullScreenModal();
     const workspace = useAppSelector(selectWorkspace);
@@ -87,30 +86,24 @@ export default function TabularResponses({ form }: TabularResponsesProps) {
         if (field.type === FieldTypes.FILE_UPLOAD || field.type === FieldTypes.INPUT_FILE_UPLOAD) {
             const ans = response.answers[field.id];
             return (
-                <div onClick={() => downloadFormFile(ans)} className={cn('!text-black-600 p2-new   w-[140px] cursor-default truncate rounded px-2 py-1', ans?.file_metadata?.url ? 'bg-black-300 active:bg-black-400 !cursor-pointer' : '')}>
+                <div
+                    onClick={(event) => {
+                        event.stopPropagation();
+                        downloadFormFile(ans);
+                    }}
+                    className={cn('!text-black-600 p2-new w-[180px] cursor-default truncate rounded px-2 py-1', ans?.file_metadata?.url ? 'bg-black-300 active:bg-black-400 !cursor-pointer' : '')}
+                >
                     {getAnswerForField(response, field)}
                 </div>
             );
         }
-        return (
-            <>
-                <div className={cn('!text-black-600 p2-new  w-[140px] truncate')}>
-                    {getAnswerForField(response, field)}
-                </div>
-            </>
-        );
-    };
-
-    const onRowClicked = (response: StandardFormResponseDto) => {
-        const params = new URLSearchParams(searchParams?.toString());
-        params.set('sub_id', response.responseId);
-        router.push(`${pathname}?${params.toString()}`);
+        return <div className={cn('!text-black-600 p2-new w-[180px] truncate')}>{getAnswerForField(response, field)}</div>;
     };
 
     const responseDataOwnerField = (response: StandardFormResponseDto) => (
         <div aria-hidden className="flex w-fit flex-col gap-1 ">
             {response?.dataOwnerIdentifier ? (
-                <p className={cn('!text-black-800 p2-new w-fit truncate')}>{response.dataOwnerIdentifier}</p>
+                <p className={cn('!text-black-800 p2-new w-fit max-w-[200px] truncate')}>{response.dataOwnerIdentifier}</p>
             ) : (
                 // Anonymity is the product's promise — show it as a state, not
                 // as missing data ("- -").
@@ -125,71 +118,57 @@ export default function TabularResponses({ form }: TabularResponsesProps) {
 
     function getTitleForHeaderForTable(field: StandardFormFieldDto) {
         const title = getTitleForHeader(field, form);
-        return <span className="p3-new !text-black-800 truncate md:w-[250px]">{title}</span>;
-    }
-
-    function getColumnForExpandIcon(response: StandardFormResponseDto) {
         return (
-            <ExpandIcon
-                onClick={() => {
-                    triggerSingleResponse({
-                        workspace_id: workspace?.id ?? '',
-                        submission_id: response.responseId
-                    }).then((result: any) => {
-                        openModal('VIEW_RESPONSE', { response: result.data.response, formFields: getFormFields(result.data.form), formId: result.data.form.formId, workspaceId: workspace.id });
-                    });
-                }}
-            />
+            <span title={title} className="p3-new !text-black-800 w-[180px] truncate">
+                {title}
+            </span>
         );
     }
 
-    const columnsForResponderDetail: any = [
+    const openResponse = (response: StandardFormResponseDto) => {
+        triggerSingleResponse({
+            workspace_id: workspace?.id ?? '',
+            submission_id: response.responseId
+        }).then((result: any) => {
+            openModal('VIEW_RESPONSE', { response: result.data.response, formFields: getFormFields(result.data.form), formId: result.data.form.formId, workspaceId: workspace.id });
+        });
+    };
+
+    const cellStyle = {
+        color: 'rgba(0,0,0,.54)',
+        paddingLeft: '8px',
+        paddingRight: '8px',
+        height: 'auto',
+        overflow: 'hidden'
+    };
+
+    const columns: any = [
         {
             name: '',
-            cell: (response: StandardFormResponseDto) => getColumnForExpandIcon(response),
-            style: {
-                color: 'rgba(0,0,0,.54)',
-                paddingLeft: '8px',
-                height: 'auto',
-                overflow: 'hidden ',
-                paddingRight: '8px',
-                textOverFlow: 'ellipsis',
-                cursor: 'pointer'
-            },
+            cell: (response: StandardFormResponseDto) => (
+                <ExpandIcon
+                    onClick={(event: any) => {
+                        event.stopPropagation();
+                        openResponse(response);
+                    }}
+                />
+            ),
+            style: { ...cellStyle, cursor: 'pointer' },
             width: '40px',
             minWidth: '0px'
         },
         {
             name: t('FORM.RESPONDER') + ' ID',
             cell: (response: StandardFormResponseDto) => responseDataOwnerField(response),
-            style: {
-                color: 'rgba(0,0,0,.54)',
-                paddingLeft: '8px',
-                height: 'auto',
-                overflow: 'hidden ',
-                paddingRight: '8px',
-                textOverFlow: 'ellipsis'
-            },
-            ignoreRowClick: true
-        }
-    ];
-
-    const columnForResponseData: any = [
-        ...getFormFields(form).map((field: any) => {
-            return {
-                name: getTitleForHeaderForTable(field),
-                className: '!bg-red-100',
-                selector: (response: StandardFormResponseDto) => getAnswerField(response, field),
-                style: {
-                    color: 'rgba(0,0,0,.54)',
-                    paddingLeft: '8px',
-                    height: 'auto',
-                    overflow: 'hidden ',
-                    paddingRight: '8px'
-                },
-                width: '156px !important'
-            };
-        })
+            style: cellStyle,
+            width: '224px'
+        },
+        ...getFormFields(form).map((field: any) => ({
+            name: getTitleForHeaderForTable(field),
+            selector: (response: StandardFormResponseDto) => getAnswerField(response, field),
+            style: cellStyle,
+            width: '200px'
+        }))
     ];
 
     const handlePageChange = (e: any, page: number) => {
@@ -197,27 +176,11 @@ export default function TabularResponses({ form }: TabularResponsesProps) {
     };
     const { data } = useGetFormsSubmissionsQuery(query, { skip: !workspace.id });
 
-    const onClickExpandSingleResponse = (response: StandardFormResponseDto) => {
-        triggerSingleResponse({
-            workspace_id: workspace?.id ?? '',
-            submission_id: response.responseId
-        }).then((result) => {
-            openModal('VIEW_RESPONSE', { response: result.data.response, formFields: getFormFields(result.data.form), formId: result.data.form.formId, workspaceId: workspace.id });
-        });
-    };
-
     return (
         <>
             {Array.isArray(data?.items) && (
-                <div className="flex flex-row">
-                    {data?.items.length ? (
-                        <div className="flex-1">
-                            <DataTable onRowClicked={onClickExpandSingleResponse} columns={columnsForResponderDetail} selectableRows customStyles={customTableStylesForResponderDetails} data={data?.items || []} />
-                        </div>
-                    ) : (
-                        <></>
-                    )}
-                    <DataTable onRowClicked={onRowClicked} columns={columnForResponseData} customStyles={customTableStyles} data={data?.items || []} />
+                <div className="responders-frozen-table border-black-300 overflow-hidden rounded-lg border">
+                    <DataTable onRowClicked={openResponse} columns={columns} selectableRows customStyles={customTableStyles} data={data?.items || []} fixedHeader fixedHeaderScrollHeight="65vh" />
                 </div>
             )}
             {Array.isArray(data?.items) && (data?.total || 0) > globalConstants.pageSize && (

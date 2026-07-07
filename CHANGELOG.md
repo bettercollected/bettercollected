@@ -113,6 +113,13 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
 
 ### Fixed
 
+- Responders table rows drifted out of alignment: the "frozen" Responder ID
+  area was faked with two independent tables whose row heights were never
+  guaranteed equal (two-line identifier cells vs. one-line answers, against a
+  forced 48px row height). Rebuilt as a single table with CSS-sticky leading
+  columns — alignment holds by construction, the whole row shares one hover
+  and click behaviour, and the header scrolls in lockstep (fixed header +
+  frozen columns verified through full horizontal and vertical scroll).
 - Form details page: the Deletion Requests empty state showed the responses
   copy ("No responses yet" on a form with responses); "bettercolleceted"
   typo in the branding setting; preview cards had a pointer cursor but no
