@@ -1,7 +1,7 @@
 from common.services.http_client import HttpClient
 from common.services.jwt_service import JwtService
 from dependency_injector import containers, providers
-from motor.motor_asyncio import AsyncIOMotorClient
+from pymongo import AsyncMongoClient
 
 from auth.app.repositories.provider_repository import ProviderRepository
 from auth.app.repositories.user_repository import UserRepository
@@ -13,8 +13,10 @@ from auth.config import settings
 
 
 class AppContainer(containers.DeclarativeContainer):
-    database_client: AsyncIOMotorClient = providers.Singleton(
-        AsyncIOMotorClient, settings.mongo_settings.URI
+    # Beanie 2.x uses pymongo's native async client, not motor. Instantiated
+    # inside on_startup (a running event loop) via container.database_client().
+    database_client: AsyncMongoClient = providers.Singleton(
+        AsyncMongoClient, settings.mongo_settings.URI
     )
 
     # Define non-decorated objects here

@@ -1,4 +1,4 @@
-import asyncio
+import inspect
 import logging
 
 import loguru
@@ -17,7 +17,8 @@ def entity(cls):
 
 
 async def init_db(database_client):
-    database_client.get_io_loop = asyncio.get_running_loop
+    # No motor `get_io_loop` shim — beanie 2.x / pymongo's async client
+    # doesn't use it, and it crashed init_beanie on the newer versions.
     db = database_client[settings.mongo_settings.DB]
     await init_beanie(database=db, document_models=document_models)
     loguru.logger.info("Database connected successfully.")
@@ -25,7 +26,9 @@ async def init_db(database_client):
 
 async def close_db(database_client):
     try:
-        database_client.close()
+        result = database_client.close()
+        if inspect.isawaitable(result):
+            await result
         loguru.logger.info("Database disconnected successfully.")
     except Exception as e:
         loguru.logger.error("Database disconnect failure.")
