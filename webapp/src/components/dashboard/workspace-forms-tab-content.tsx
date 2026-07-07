@@ -19,9 +19,12 @@ import { useGetWorkspaceFormsQuery, useLazySearchWorkspaceFormsQuery } from '@ap
 interface IWorkspaceFormsTabContentProps {
     workspace: WorkspaceDto;
     isFormCreator?: boolean;
+    /** Set when rendered outside the public portal (the admin dashboard's
+     *  Public Workspace preview) so form links point at the real portal. */
+    publicBaseUrl?: string;
 }
 
-export default function WorkspaceFormsTabContent({ workspace, isFormCreator = false }: IWorkspaceFormsTabContentProps) {
+export default function WorkspaceFormsTabContent({ workspace, isFormCreator = false, publicBaseUrl }: IWorkspaceFormsTabContentProps) {
     const workspaceId = workspace.id;
     const query = {
         workspace_id: workspaceId,
@@ -82,12 +85,12 @@ export default function WorkspaceFormsTabContent({ workspace, isFormCreator = fa
     return (
         // <SearchByUUIDWrapper>
         <div className="flex w-full flex-col gap-6">
-            {pinnedForms?.items?.length !== 0 && <FormCards title={t(formConstant.pinnedforms)} showPinned={false} isFormCreator={isFormCreator} showVisibility={false} workspace={workspace} formsArray={pinnedForms?.items || []} />}
+            {pinnedForms?.items?.length !== 0 && <FormCards title={t(formConstant.pinnedforms)} showPinned={false} isFormCreator={isFormCreator} showVisibility={false} workspace={workspace} formsArray={pinnedForms?.items || []} publicBaseUrl={publicBaseUrl} />}
             {pinnedForms?.items?.length !== 0 && <Divider />}
             <div className={`w-full md:w-[282px]`}>
                 <SearchInput placeholder="Search forms" handleSearch={handleSearch} />
             </div>
-            {allForms.length !== 0 && <FormCards title={pinnedForms?.items?.length !== 0 ? t(formConstant.all) : ''} isFormCreator={isFormCreator} formsArray={allForms} workspace={workspace} />}
+            {allForms.length !== 0 && <FormCards title={pinnedForms?.items?.length !== 0 ? t(formConstant.all) : ''} isFormCreator={isFormCreator} formsArray={allForms} workspace={workspace} publicBaseUrl={publicBaseUrl} />}
         </div>
         // </SearchByUUIDWrapper>
     );

@@ -8,7 +8,7 @@ import { FormIcon } from '@Components/icons/form-icon';
 import MembersIcon from '@Components/icons/members';
 import ResponderIcon from '@Components/icons/responder';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Trash2 } from 'lucide-react';
+import { Settings, Trash2 } from 'lucide-react';
 
 import { cn } from '@app/shadcn/util/lib';
 
@@ -27,6 +27,7 @@ import { selectAuth } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { PopoverTrigger } from '@radix-ui/react-popover';
+import { useWorkspaceSettingsView } from '@app/store/jotai/workspace-settings-view';
 import { useFullScreenModal } from '../modal-views/full-screen-modal-context';
 import { ProLogo } from '../ui/logo';
 import HelpMenuComponent from './help-menu-component';
@@ -44,6 +45,7 @@ export default function SidebarLayout({ children, DrawerComponent = DashboardDra
     const auth = useAppSelector(selectAuth);
 
     const { openModal } = useFullScreenModal();
+    const { setSettingsViewOpen } = useWorkspaceSettingsView();
 
     const [mobileOpen, setMobileOpen] = React.useState(false);
     const handleDrawerToggle = () => {
@@ -86,6 +88,18 @@ export default function SidebarLayout({ children, DrawerComponent = DashboardDra
         });
     const bottomNavList: Array<INavbarItem> = [
         {
+            key: 'workspace-settings',
+            // Settings live inside the Public Workspace frame (behind the
+            // address-bar gear) — this entry opens that view directly.
+            name: 'Site settings',
+            url: `/${workspace?.workspaceName}/dashboard/workspace-settings`,
+            icon: <Settings className="h-5 w-5 stroke-2" />,
+            onClick: () => {
+                setSettingsViewOpen(true);
+                router.push(commonWorkspaceUrl);
+            }
+        },
+        {
             key: 'members',
             name: t(members.default),
             url: `/${workspace?.workspaceName}/dashboard/members`,
@@ -122,6 +136,9 @@ export default function SidebarLayout({ children, DrawerComponent = DashboardDra
         // title instead of the generic "My Workspace" fallback.
         if (pathname?.includes('/dashboard/templates')) return 'Templates';
         if (pathname?.includes('/dashboard/account-settings')) return 'Account Settings';
+        // The dashboard root is the public-workspace mirror — title it the same
+        // as the sidebar entry that leads here.
+        if (pathname?.endsWith('/dashboard')) return 'Your site';
         return 'My Workspace';
     };
 

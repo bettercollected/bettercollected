@@ -17,7 +17,9 @@ interface IWorkspaceFormResponseDeletionCardProps {
     workspaceName: string;
 }
 
-const DefaultDiv = (props: any) => <div {...props} />;
+// Drop the href a Link would take — spreading href="" onto the div trips
+// React's empty-href warning.
+const DefaultDiv = ({ href, ...props }: any) => <div {...props} />;
 
 /**
  * A submission receipt. Its whole job is to let a responder pick THEIR

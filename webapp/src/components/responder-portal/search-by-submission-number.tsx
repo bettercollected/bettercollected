@@ -39,7 +39,8 @@ const SearchBySubmissionNumber = ({ className }: { className?: string }) => {
 
     return (
         <form onSubmit={handleSubmit} className={className}>
-            <div className="flex w-full max-w-[367px] flex-col items-center justify-center rounded-xl bg-white px-6 py-8 xl:w-[367px]">
+            {/* Fluid width — the parent column (sidebar) decides how wide. */}
+            <div className="flex w-full flex-col items-center justify-center rounded-xl bg-white px-6 py-8">
                 <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#E9EFFC]" aria-hidden="true">
                     <SearchIcon className="text-[#2456CC]" width={22} height={22} strokeWidth={2} />
                 </div>

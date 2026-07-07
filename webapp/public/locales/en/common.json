@@ -107,7 +107,6 @@
     "DESCRIPTION": "Any questions or remarks? Just write us a message",
     "DEFAULT": "Contact us"
   },
-  
   "CREATE_FORM": "Create Form",
   "CUSTOMIZE_DOMAIN": {
     "DEFAULT": "Customize domain",
@@ -119,7 +118,6 @@
     "POINT_2": "Avoid using spaces or special characters. Only “-” and “_” is accepted.",
     "POINT_3": "Keep it short and concise."
   },
-  
   "CUSTOMIZE_URL": "Customize URL",
   "CUSTOM_DOMAIN": "Custom Domain",
   "DASHBOARD": {
@@ -313,7 +311,7 @@
       },
       "LINKS": {
         "DESCRIPTION": "Create personalized form links that align with your branding or specific requirements. A link slug is a brief, descriptive part of a URL that identifies web page content.",
-        "CHANGE_SLUG": "Customize Link",
+        "CHANGE_SLUG": "Change link",
         "CUSTOM_DOMAIN_LINK": "Custom Domain Link",
         "DEFAULT_LINK": "Default Link",
         "COPY_LINK": "Copy Link",
@@ -405,7 +403,7 @@
     },
     "ADDED_MEMBERS": "Added Members",
     "DETAILS": "Group Details",
-    "TITLE": "Create a group to limit access to form from your workspace",
+    "TITLE": "Create a group to control who can access your forms",
     "CREATE_GROUP": "Create Group",
     "EDIT_GROUP": "Edit Group",
     "CREATE_NEW_GROUP": {
@@ -447,7 +445,6 @@
     },
     "TITLE": "Select a form to import"
   },
-
   "INVALID_DOMAIN": "Invalid domain",
   "INVALID_WORKSPACE_HANDLE": "Invalid Workspace Handle",
   "INVITATION": {
@@ -476,7 +473,7 @@
   "LINK_TO_TERMS_OF_SERVICES": "Link to Terms of Service",
   "LOGOUT_MESSAGE": "Are you sure you want to logout?",
   "MANAGE": "Manage",
-  "MANAGE_URLS": "Manage URLs",
+  "MANAGE_URLS": "Link & domain",
   "MANAGE_WORKSPACE": "Manage Workspace",
   "MEMBER": "Member",
   "MEMBERS": {
@@ -505,7 +502,7 @@
   "OF": "of",
   "ONBOARDING": {
     "PRIVACY_FRIENDLY": "Privacy-friendly form builder",
-    "ADD_YOUR_ORGANIZATION": "Add Your Organization",
+    "ADD_YOUR_ORGANIZATION": "Create your workspace",
     "ADD_WORKSPACE": "Add your workspace",
     "DESCRIPTION": "Please create your workspace so that your team know you are here.",
     "TIME_MESSAGE": "It will only take few minutes",
@@ -515,7 +512,7 @@
     "NOT_AVAILABLE": "Not Available",
     "USE_SMALLCASE": "Use smallcase for your handle name",
     "ERROR": {
-      "FILL_ORGANIZATION_NAME": "Please fill the organization name.",
+      "FILL_ORGANIZATION_NAME": "Please enter a workspace name.",
       "FILL_HANDLE_NAME": "Please fill the handle name",
       "SPACE_NOT_ALLOWED": "Spaces are not allowed in this field",
       "ALLOWED_CHARACTERS": "Allowed characters a-z, 0-9 and _",
@@ -608,7 +605,7 @@
     "SIGNIN_AGREEMENT_DESCRIPTION": "By signing in, you agree to our",
     "WELCOME_MESSAGE": "Welcome back!",
     "FEATURES": {
-      "TITLE": "Empower Your Organization with Custom Form Page",
+      "TITLE": "Your forms, on a site you own",
       "OTP_TITLE": "Custom URLs and Improved SEO",
       "DESCRIPTION": "Create your custom Form Page to centralize all your forms (bettercollected forms, Google Forms and Typeform). This personalized solution allows you to gather and manage all your forms within a single.",
       "OTP_DESCRIPTION": "Replace default links with your own URLs that better represent your business and enhance your online presence."
@@ -685,7 +682,7 @@
       "VISIBILITY": {
         "TEMPLATE_VISIBILITY": "Template Visibility",
         "PUBLIC": "Everyone with the link can use this template. You can share this template.",
-        "PRIVATE": "Only your organization can use this template. You cannot share this template."
+        "PRIVATE": "Only your workspace can use this template. You cannot share this template."
       }
     },
     "DELETE_MODAL": {
@@ -801,9 +798,9 @@
     "DEFAULT_SLOGAN": "Upgrade To PRO Plan For More Features",
     "FEATURES": {
       "WORKSPACE": {
-        "SLOGAN": "Organize Your Users With Multiple Workspace",
-        "TITLE": "Multiple Workspace",
-        "DESCRIPTION": "Create separate workspace for different teams, organization and projects."
+        "SLOGAN": "Organize Your Users With Multiple Workspaces",
+        "TITLE": "Multiple Workspaces",
+        "DESCRIPTION": "Create separate workspaces for different teams, organizations, and projects."
       },
       "COLLABORATOR": {
         "SLOGAN": "Start Collaborating With Your Team",
@@ -813,14 +810,14 @@
       "CUSTOM_DOMAIN": {
         "SLOGAN": "Personalize Your URLs With Custom Domain",
         "TITLE": "Custom Domain Name",
-        "DESCRIPTION": "Make your business look more professional and to improve your brand recognition.",
+        "DESCRIPTION": "Serve your site and forms from your own domain, so responders see your brand end to end.",
         "NOTE": "Notice !!! Ensure  DNS A Record of your custom-domain is Pointed to {{ domain }} ",
         "TEXT_FIELD_TITLE": "Enter the domain you want to connect"
       },
       "UNLIMITED_FORMS": {
         "SLOGAN": "Import Unlimited Forms with PRO Plan",
         "TITLE": "Unlimited Forms",
-        "DESCRIPTION": "Create and import as many forms you want, free account only allows 100 forms."
+        "DESCRIPTION": "Create and import as many forms as you want. The free plan allows up to 100 forms."
       }
     }
   },
@@ -837,21 +834,21 @@
     "PREVIEW.EMPTY_FORM_TITLE": "No forms to show",
     "PROFILE_IMAGE": "Workspace Profile Image",
     "SETTINGS": {
-      "DEFAULT": "Workspace Settings",
-      "DESCRIPTION": "Tailor Title, Refine Description, Upload Profile Image, and Elevate with a Banner Image",
+      "DEFAULT": "Site settings",
+      "DESCRIPTION": "The identity responders see on your site — name, description, images, and policy links.",
       "TABS": {
-        "DETAILS": "Workspace Details"
+        "DETAILS": "Identity"
       },
       "DETAILS": {
-        "TITLE": "Organizations Title",
-        "DESCRIPTION": "Organization Descriptions",
+        "TITLE": "Workspace name",
+        "DESCRIPTION": "Description",
         "ADD_COVER_IMAGE": "Add cover image",
         "ADD_LOGO": "Add logo"
       },
       "URLS": {
-        "TITLE": "Workspace URLs",
-        "DEFAULT": "Default URL",
-        "DESCRIPTION": "Customize your workspace handle name to make your workspace more personal. A link slug is a brief, descriptive part of a URL that identifies web page content."
+        "TITLE": "Your site's link",
+        "DEFAULT": "Your workspace link",
+        "DESCRIPTION": "This is where responders find your forms — and where they can view or delete their own submissions."
       }
     },
     "TITLE": "Workspace Title",
@@ -866,7 +863,7 @@
     "TEMPLATE": {
       "TITLE": "template",
       "DESCRIPTION_PUBLIC": "Everyone with the link can use this template. You can share this template.",
-      "DESCRIPTION_PRIVATE": "Only your organization can use this template. You cannot share this template."
+      "DESCRIPTION_PRIVATE": "Only your workspace can use this template. You cannot share this template."
     },
     "FORM": {
       "TITLE": "form",

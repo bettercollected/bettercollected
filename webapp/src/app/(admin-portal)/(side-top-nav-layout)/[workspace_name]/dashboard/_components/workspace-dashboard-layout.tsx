@@ -15,7 +15,8 @@ import MembersIcon from '@Components/icons/members';
 import ResponderIcon from '@Components/icons/responder';
 import HelpMenuComponent from '@Components/sidebar/help-menu-component';
 import HelpMenuItem from '@Components/sidebar/help-menu-item';
-import { Trash2 } from 'lucide-react';
+import { Settings, Trash2 } from 'lucide-react';
+import { useWorkspaceSettingsView } from '@app/store/jotai/workspace-settings-view';
 
 import AuthNavbar from '@app/components/auth/auth-navbar';
 import { localesCommon } from '@app/constants/locales/common';
@@ -34,6 +35,7 @@ const WorkspaceDashboardLayout: React.FC<{ children: React.ReactNode }> = ({ chi
 
     const auth = useAppSelector(selectAuth);
     const { openModal } = useFullScreenModal();
+    const { setSettingsViewOpen } = useWorkspaceSettingsView();
 
     const [mobileOpen, setMobileOpen] = React.useState(false);
     const handleDrawerToggle = () => {
@@ -79,6 +81,18 @@ const WorkspaceDashboardLayout: React.FC<{ children: React.ReactNode }> = ({ chi
 
     const bottomNavList: Array<INavbarItem> = [
         {
+            key: 'workspace-settings',
+            // Settings live inside the Public Workspace frame (behind the
+            // address-bar gear) — this entry opens that view directly.
+            name: 'Site settings',
+            url: `/${workspace?.workspaceName}/dashboard/workspace-settings`,
+            icon: <Settings className="h-5 w-5 stroke-2" />,
+            onClick: () => {
+                setSettingsViewOpen(true);
+                router.push(commonWorkspaceUrl);
+            }
+        },
+        {
             key: 'members',
             name: t(members.default),
             url: `/${workspace?.workspaceName}/dashboard/members`,
@@ -115,6 +129,9 @@ const WorkspaceDashboardLayout: React.FC<{ children: React.ReactNode }> = ({ chi
         // Routes not represented in the sidebar nav still need a correct title.
         if (pathname.includes('/dashboard/templates')) return 'Templates';
         if (pathname.includes('/dashboard/account-settings')) return 'Account Settings';
+        // The dashboard root is the public-workspace mirror — title it the same
+        // as the sidebar entry that leads here.
+        if (pathname.endsWith('/dashboard')) return 'Your site';
         return 'My Workspace';
     };
 

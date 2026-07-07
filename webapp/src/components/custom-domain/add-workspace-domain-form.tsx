@@ -40,7 +40,7 @@ const AddWorkspaceDomainForm = () => {
             return;
         }
         if (!domain.match(/^(?!:\/\/)([a-zA-Z0-9-_]+\.)+[a-zA-Z]{2,63}$/)) {
-            setMessage({ error: true, message: 'Invalid Domain' });
+            setMessage({ error: true, message: "That doesn't look like a domain — try something like forms.yoursite.com." });
         } else {
             const formData = new FormData();
             formData.append('custom_domain', domain);
@@ -60,53 +60,56 @@ const AddWorkspaceDomainForm = () => {
         }
     };
     return (
-        <div className="mt-4 flex flex-col  gap-2">
-            <span className="text-black-700 text-xs">You can use your own domain name to have a custom URL for your published forms. Consider using a subdomain, such as : forms.yourdomain.com</span>
-            {!workspace.isPro && (
-                <div className="mt-3 flex flex-wrap items-center gap-2 rounded-lg border border-[#FFD79A] bg-[#FFF7EA] px-3 py-2 text-xs text-[#8A5A00]">
-                    <span className="rounded bg-[#FFB020] px-1.5 py-0.5 text-[10px] font-semibold text-white">PRO</span>
+        <div className="mt-3 flex flex-col gap-2">
+            <span className="p2-new text-black-700">Serve your site from a domain you own — a subdomain like forms.yourdomain.com works best.</span>
+            {!workspace.isPro ? (
+                // Free plan: the upgrade note IS the whole section. Showing the
+                // domain form too was misleading — filling it in only bounced
+                // you to the upgrade modal.
+                <div className="mt-2 flex flex-wrap items-center gap-2 rounded-lg bg-[#FBF3E4] px-3 py-2.5 text-sm text-[#B26B00]">
                     <span>Custom domains are a Pro feature.</span>
-                    <button type="button" onClick={() => openModal('UPGRADE_TO_PRO')} className="font-semibold text-[#8A5A00] underline underline-offset-2">
+                    <button type="button" onClick={() => openModal('UPGRADE_TO_PRO')} className="font-semibold underline underline-offset-2">
                         Upgrade to connect your domain
                     </button>
                 </div>
-            )}
-            <div className="text-black-800 mt-4 text-xs font-medium">Enter a domain you own</div>
-            <form
-                onSubmit={(event) => {
-                    event.preventDefault();
-                    addDomain();
-                }}
-                className="flex justify-start items-start gap-4"
-            >
-                <div>
-
-                    <AppInput
-                        className={cn('max-w-[600px]', message.message && (message.error ? 'border-red-500' : ''))}
-                        value={domain}
-                        onChange={(event) => {
-                            setDomain(event.target.value);
-                            setWarned(false);
-                            if (message.message) {
-                                setMessage({ error: false, message: '' });
-                            }
+            ) : (
+                <>
+                    <div className="text-black-800 mt-4 text-sm font-medium">Enter a domain you own</div>
+                    <form
+                        onSubmit={(event) => {
+                            event.preventDefault();
+                            addDomain();
                         }}
-                        placeholder="eg. forms.yoursite.com"
-                    />
-                </div>
-                <Button variant={'v2Button'} type="submit" disabled={warned} isLoading={isLoading}>
-                    {' '}
-                    Add Domain
-                </Button>
-            </form>
-            <div className="max-w-[400px]">
-                {message.message && <div className={cn(message.error ? 'text-red-500' : 'text-[#FFA716]', 'whitespace-pre-wrap text-wrap text-xs	')}>{message.message}</div>}
-                {warned && (
-                    <Button variant="ghost" isLoading={isLoading} className="mt-2 cursor-pointer text-xs text-blue-500" onClick={addDomain}>
-                        Add Anyway
-                    </Button>
-                )}
-            </div>
+                        className="flex items-start justify-start gap-4"
+                    >
+                        <div>
+                            <AppInput
+                                className={cn('max-w-[600px]', message.message && (message.error ? 'border-[#C43D3D]' : ''))}
+                                value={domain}
+                                onChange={(event) => {
+                                    setDomain(event.target.value);
+                                    setWarned(false);
+                                    if (message.message) {
+                                        setMessage({ error: false, message: '' });
+                                    }
+                                }}
+                                placeholder="eg. forms.yoursite.com"
+                            />
+                        </div>
+                        <Button variant={'v2Button'} type="submit" disabled={warned} isLoading={isLoading}>
+                            Add domain
+                        </Button>
+                    </form>
+                    <div className="max-w-[440px]">
+                        {message.message && <div className={cn(message.error ? 'text-[#C43D3D]' : 'text-[#B26B00]', 'whitespace-pre-wrap text-wrap text-xs')}>{message.message}</div>}
+                        {warned && (
+                            <Button variant="ghost" isLoading={isLoading} className="mt-2 cursor-pointer text-xs" onClick={addDomain}>
+                                Add anyway
+                            </Button>
+                        )}
+                    </div>
+                </>
+            )}
         </div>
     );
 };
