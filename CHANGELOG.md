@@ -98,6 +98,13 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
   policy link with a live preview of the responder-facing trust strip; the
   values persist as workspace-form settings and render on every step of the
   published form.
+- **Builder canvas works on large screens**: the canvas mat collapsed to a
+  content-height band floating in white void on tall viewports (the layout
+  row centres its children and the mat, unlike the drawer, never stretched)
+  — and the collapsed height fed back into the Fit computation, shrinking
+  the slide further. The mat now stretches to the workspace, and Fit no
+  longer caps at true size, so on big monitors Fit fills the mat while 100%
+  shows the true 1440×810 — the toggle was a no-op there before.
 - **Flow view feedback round**: the Insights header no longer contradicts the
   node chips — it now labels its two instruments apart ("17 responses"
   behind the node/edge counts vs "journeys: 13 started · 11 finished" from

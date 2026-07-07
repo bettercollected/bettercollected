@@ -272,7 +272,8 @@ export default function FlowView({ onClose }: { onClose?: () => void }) {
             const cs = getComputedStyle(mat);
             const availableWidth = mat.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
             const availableHeight = mat.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
-            setOverlayScale(Math.min(availableWidth / SLIDE_W, availableHeight / SLIDE_H, 1));
+            // Uncapped: on large screens the sheet fills the overlay mat.
+            setOverlayScale(Math.min(availableWidth / SLIDE_W, availableHeight / SLIDE_H));
         };
         compute();
         const observer = new ResizeObserver(compute);
