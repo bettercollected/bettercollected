@@ -36,13 +36,26 @@ export default function TrustLayer({ ownerName, ownerImage, purpose, privacyUrl,
     const items: React.ReactNode[] = [];
 
     if (ownerName) {
-        items.push(
-            <span key="owner" className="text-black-700 inline-flex items-center gap-1.5">
+        const owner = (
+            <>
                 {ownerImage ? (
                     <img src={ownerImage} alt="" className="h-4 w-4 rounded-full object-cover" />
                 ) : null}
                 Collected by <span className="text-black-900 font-semibold">{ownerName}</span>
-            </span>
+            </>
+        );
+        items.push(
+            // Provenance doubles as the way home: the owner chip links to the
+            // workspace portal (new tab — never interrupt an in-progress fill).
+            portalUrl ? (
+                <a key="owner" href={portalUrl} target="_blank" rel="noopener noreferrer" className="text-black-700 hover:text-black-900 pointer-events-auto inline-flex items-center gap-1.5">
+                    {owner}
+                </a>
+            ) : (
+                <span key="owner" className="text-black-700 inline-flex items-center gap-1.5">
+                    {owner}
+                </span>
+            )
         );
     }
     if (purpose) {
