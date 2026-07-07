@@ -13,7 +13,7 @@ import WorkspaceInfo from '@Components/settings/workspace-info';
 import { Copy } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
-export default function WorkspaceDetails() {
+export default function WorkspaceDetails({ showUrlRow = true }: { showUrlRow?: boolean }) {
     const workspace: WorkspaceState = useAppSelector(selectWorkspace);
     const router = useRouter();
     const { toast } = useToast();
@@ -23,7 +23,9 @@ export default function WorkspaceDetails() {
 
     return (
         <div className="w-full">
-            <div className="shadow-settings mb-10 flex flex-col items-start gap-2 px-5 py-4 md:px-20 lg:flex-row lg:items-center">
+            {/* Hidden inside the Public Workspace frame — the frame's address
+                bar already carries the URL, copy and open-live actions. */}
+            <div className={showUrlRow ? 'shadow-settings mb-10 flex flex-col items-start gap-2 px-5 py-4 lg:flex-row lg:items-center' : 'hidden'}>
                 <div
                     className="mr-4 flex cursor-pointer items-center gap-4"
                     onClick={() => {
@@ -58,12 +60,12 @@ export default function WorkspaceDetails() {
                     </ActiveLink>
                 </div>
             </div>
-            <div className="w-full max-w-full px-5 md:px-20">
+            {/* No extra horizontal padding — the settings container owns the
+                left edge, so the banner and form line up with the tabs. */}
+            <div className="w-full max-w-[720px]">
                 <BannerImageComponent workspace={workspace} isFormCreator={true} />
             </div>
-            <div className="lg:px-30 px-5 md:px-20">
-                <WorkspaceInfo workspace={workspace} />
-            </div>
+            <WorkspaceInfo workspace={workspace} />
         </div>
     );
 }

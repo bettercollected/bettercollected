@@ -246,7 +246,11 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
                     </div>
                 </div>
                 <div className={cn('flex h-full flex-1 flex-col justify-center ', formSlide?.properties?.layout === FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND_LEFT_ALIGN ? 'items-start ' : 'items-center')}>
-                    <div className={cn('relative flex h-full w-full max-w-[800px] flex-col gap-[48px] overflow-hidden px-4 lg:gap-[120px] py-[60px]', isPreviewMode ? '' : 'lg:px-10')}>
+                    {/* 48px/64px between question groups (~6-8× the 8px gap inside a
+                        group) — 120px broke proximity grouping: pairs read as
+                        separate screens, and long pages scrolled far more than
+                        their content needed. */}
+                    <div className={cn('relative flex h-full w-full max-w-[800px] flex-col gap-[48px] overflow-hidden px-4 lg:gap-[64px] py-[60px]', isPreviewMode ? '' : 'lg:px-10')}>
                         {formSlide?.properties?.fields
                             ?.filter((field: StandardFormFieldDto) => !hiddenFieldIds.has(field.id))
                             .map((field: StandardFormFieldDto) => <FormFieldComponent key={field.id} field={field} slideIndex={formSlide!.index} />)}

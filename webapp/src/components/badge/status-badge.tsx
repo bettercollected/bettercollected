@@ -11,8 +11,8 @@ export default function StatusBadge({ status, className = '' }: { status: string
     const { currentStatus, cName, dotCName } = statusProps(status, t);
 
     return (
-        <span className={`text-[9px] flex items-center gap-1 !h-[22px] body4  p-4 rounded-[50px] ${cName} ${className}`}>
-            <div className={`rounded-full bg-black-800 !h-3 w-3 ${dotCName}`} />
+        <span className={`inline-flex h-[22px] w-fit items-center gap-1.5 rounded-full px-2.5 text-xs font-medium ${cName} ${className}`}>
+            <div className={`h-1.5 w-1.5 rounded-full ${dotCName}`} />
             {_.startCase(currentStatus || '')}
         </span>
     );

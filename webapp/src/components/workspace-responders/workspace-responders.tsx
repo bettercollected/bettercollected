@@ -145,7 +145,7 @@ export default function WorkspaceResponses({ workspace }: { workspace: Workspace
             selector: (responder: WorkspaceResponderDto) => responder.email,
             minWidth: '300px',
             style: {
-                color: '#202124',
+                color: '#101826',
                 fontSize: '14px',
                 fontWeight: 500,
                 paddingLeft: '16px',
@@ -157,7 +157,7 @@ export default function WorkspaceResponses({ workspace }: { workspace: Workspace
             name: t(formConstant.responses),
             selector: (responder: WorkspaceResponderDto) => responder.responses,
             style: {
-                color: 'rgba(0,0,0,.54)',
+                color: '#3A465A',
                 paddingLeft: '16px',
                 paddingRight: '16px'
             }
@@ -166,7 +166,7 @@ export default function WorkspaceResponses({ workspace }: { workspace: Workspace
             name: t(formConstant.deletionRequests),
             selector: (responder: WorkspaceResponderDto) => responder.deletionRequests,
             style: {
-                color: 'rgba(0,0,0,.54)',
+                color: '#3A465A',
                 paddingLeft: '16px',
                 paddingRight: '16px'
             }
@@ -175,7 +175,7 @@ export default function WorkspaceResponses({ workspace }: { workspace: Workspace
             name: t(groupConstant.default),
             selector: (responder: WorkspaceResponderDto) => ShowResponderGroups(responder.email),
             style: {
-                color: 'rgba(0,0,0,.54)',
+                color: '#3A465A',
                 paddingLeft: '16px',
                 paddingRight: '16px'
             }
@@ -219,7 +219,7 @@ export default function WorkspaceResponses({ workspace }: { workspace: Workspace
                     <p className="h3-new font-semibold">
                         {t(workspaceConstant.allResponders)} {data && ' (' + data.total + ')'}{' '}
                     </p>
-                    <div className="p2-new text-black-700 mt-2 max-w-[400px]">Below, you will find a list of responders who have filled forms of your workspace.</div>
+                    <div className="p2-new text-black-700 mt-2 max-w-[420px]">People who have filled in your forms. They can view or ask you to delete their responses at any time.</div>
                 </div>
                 <div className="w-full md:w-[282px]">
                     <SearchInput handleSearch={handleSearch} />

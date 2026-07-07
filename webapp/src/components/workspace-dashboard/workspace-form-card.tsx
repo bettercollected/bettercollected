@@ -142,7 +142,7 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, group, worksp
                             <>
                                 <DotIcon />
                                 <span className="text-black-600 text-sm">
-                                    {form?.responses} {t(`FORM.RESPONSE${(form?.responses || 0) > 1 ? 'S' : ''}`)}
+                                    {form?.responses} {t(`FORM.RESPONSE${(form?.responses || 0) === 1 ? '' : 'S'}`)}
                                 </span>
                             </>
                         )}

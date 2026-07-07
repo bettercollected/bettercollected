@@ -22,7 +22,8 @@ export default function FormSlidePreview({ slide, theme }: { slide: StandardForm
     return (
         <SlideLayoutWrapper showDesktopLayout slide={slide} theme={slideTheme} disabled>
             <div className={cn('flex w-full ', slide?.properties?.layout === FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND_LEFT_ALIGN ? 'justify-start' : 'justify-center')}>
-                <div className="relative my-10 grid h-full w-full max-w-[800px] flex-1 grid-cols-1 content-center gap-20 px-5 lg:my-20 lg:px-20">
+                {/* Same 64px group rhythm as the builder canvas and the live form. */}
+                <div className="relative my-10 grid h-full w-full max-w-[800px] flex-1 grid-cols-1 content-center gap-16 px-5 lg:my-20 lg:px-20">
                     {slide?.properties?.fields?.map((field) => {
                         return <FormFieldComponent key={field.id} field={field} slideIndex={slide!.index} />;
                     })}

@@ -27,12 +27,10 @@ const responseTableStyles = {
     rows: {
         style: {
             ...dataTableCustomStyles.rows.style,
-            borderColor: '#EEEEEE !important',
-            // border: '1px solid transparent',
+            borderColor: '#E2E8F2 !important',
             '&:hover': {
                 cursor: 'pointer',
-                background: '#EEEEEE'
-                // border: '1px solid #0764EB'
+                background: '#F6F8FC'
             }
         }
     }
@@ -46,12 +44,14 @@ interface IResponsetableProps {
     setPage: (page: number) => void;
 }
 
+import { useModal } from '@app/components/modal-views/context';
 import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
 import { useLazyGetWorkspaceSubmissionQuery } from '@app/store/workspaces/api';
 import { getFormFields } from '@app/utils/form-builder-block-utils';
 
 const ResponsesTable = ({ requestForDeletion, submissions, formId, page, setPage }: IResponsetableProps) => {
     const { openModal } = useFullScreenModal();
+    const { openModal: openConfirmModal } = useModal();
     const [triggerSingleResponse] = useLazyGetWorkspaceSubmissionQuery();
 
     const user = useAppSelector(selectAuth);
@@ -68,7 +68,7 @@ const ResponsesTable = ({ requestForDeletion, submissions, formId, page, setPage
                 workspace_id: workspace?.id ?? '',
                 submission_id: response.responseId
             }).then((result: any) => {
-                openModal('VIEW_RESPONSE', { response: result.data.response, formFields: getFormFields(result.data.form), formId: result.data.form.formId, workspaceId: workspace.id });
+                openModal('VIEW_RESPONSE', { response: result.data.response, formFields: getFormFields(result.data.form), form: result.data.form, formId: result.data.form.formId, workspaceId: workspace.id });
             });
         }
     };
@@ -78,6 +78,15 @@ const ResponsesTable = ({ requestForDeletion, submissions, formId, page, setPage
                 {!requestForDeletion && <span onClick={() => onRowClicked(response)}>{response?.dataOwnerIdentifier ?? 'Anonymous'}</span>}
                 {requestForDeletion && (response?.dataOwnerIdentifier ?? 'Anonymous')}
             </div>
+            {/* The receipt number is the only handle a responder (especially an
+                anonymous one) has on their submission — showing it lets the
+                owner match a request against what the responder quotes. The
+                cell is too narrow for all 36 chars; the title carries the rest. */}
+            {requestForDeletion && response?.submissionUuid && (
+                <div title={response.submissionUuid} className="text-black-600 mt-0.5 font-mono text-[11px]">
+                    #{response.submissionUuid.split('-')[0]}…
+                </div>
+            )}
         </div>
     );
     const responseFormTitle = (response: StandardFormResponseDto) => (
@@ -102,37 +111,44 @@ const ResponsesTable = ({ requestForDeletion, submissions, formId, page, setPage
     const Status = ({ status }: { status: string }) => <StatusBadge status={status} />;
 
     const DeletedOn = ({ status, response }: { status: string; response: StandardFormResponseDto }) => {
+        // "Not deleted yet" restated the Pending chip one column over; a quiet
+        // dash keeps the column for the fact it actually holds — the date.
         return (
             <div className="flex items-center gap-10 md:gap-20 xl:gap-40">
-                <span className="text-black-700 text-sm font-medium">{status.toLowerCase() === 'pending' ? t('NOT_DELETED_YET') : utcToLocalDateTIme(response.updatedAt)}</span>
+                {status.toLowerCase() === 'pending' ? <span className="text-black-500 text-sm">—</span> : <span className="text-black-700 text-sm font-medium">{utcToLocalDateTIme(response.updatedAt)}</span>}
             </div>
         );
     };
 
-    const GoToResponse = ({ status, response }: { status: string; response: StandardFormResponseDto }) => {
+    // A deletion request is a task for the workspace owner, so a pending row
+    // carries the action that completes it — deleting the response — next to
+    // a quiet way to review what would be deleted first. The delete goes
+    // through the DELETE_RESPONSE confirmation; it is permanent.
+    const RequestActions = ({ status, response }: { status: string; response: StandardFormResponseDto }) => {
         const isSelf = response.provider === 'self' || response.formImportedBy === user.id;
 
         if (status.toLowerCase() !== 'pending' || !isSelf) return <></>;
 
         if (requestForDeletion && response.provider === 'self') {
             return (
-                <div className="truncate">
-                    <div
-                        className="cursor-pointer inline-flex"
+                <div className="flex items-center gap-1">
+                    <Button
+                        variant="ghost"
+                        className="!px-2"
                         onClick={() => {
                             triggerSingleResponse({
                                 workspace_id: workspace?.id ?? '',
                                 submission_id: response.responseId
                             }).then((result: any) => {
-                                openModal('VIEW_RESPONSE', { response: result.data.response, formFields: getFormFields(result.data.form), formId: result.data.form.formId, workspaceId: workspace.id });
+                                openModal('VIEW_RESPONSE', { response: result.data.response, formFields: getFormFields(result.data.form), form: result.data.form, formId: result.data.form.formId, workspaceId: workspace.id });
                             });
                         }}
                     >
-                        <Button variant="ghost" className="!p-0">
-                            {t(localesCommon.goToResponse)}
-                            <ChevronForward className={'text-brand-500 h-6 w-6 ml-2'} />
-                        </Button>
-                    </div>
+                        View
+                    </Button>
+                    <Button variant="dangerGhost" className="!px-2" onClick={() => openConfirmModal('DELETE_RESPONSE', { workspace, formId: response.formId, responseId: response.responseId })}>
+                        Delete response
+                    </Button>
                 </div>
             );
         }
@@ -185,7 +201,7 @@ const ResponsesTable = ({ requestForDeletion, submissions, formId, page, setPage
                         status: row?.status || t(formConstant.status.pending)
                     }),
                 style: {
-                    color: 'rgba(0,0,0,.54)',
+                    color: '#3A465A',
                     paddingLeft: '8px',
                     paddingRight: '8px'
                 }
@@ -198,20 +214,21 @@ const ResponsesTable = ({ requestForDeletion, submissions, formId, page, setPage
                         response: row
                     }),
                 style: {
-                    color: 'rgba(0,0,0,.54)',
+                    color: '#3A465A',
                     paddingLeft: '8px',
                     paddingRight: '8px'
                 }
             },
             {
                 name: '',
+                minWidth: '250px',
                 selector: (row: StandardFormResponseDto) =>
-                    GoToResponse({
+                    RequestActions({
                         status: row?.status || t(formConstant.status.pending),
                         response: row
                     }),
                 style: {
-                    color: 'rgba(0,0,0,.54)',
+                    color: '#3A465A',
                     paddingLeft: '8px',
                     paddingRight: '8px'
                 }
@@ -225,7 +242,7 @@ const ResponsesTable = ({ requestForDeletion, submissions, formId, page, setPage
                 name: t(formConstant.default),
                 selector: (response: StandardFormResponseDto) => responseFormTitle(response),
                 style: {
-                    color: '#202124',
+                    color: '#101826',
                     fontSize: '14px',
                     fontWeight: 500,
                     paddingLeft: '8px',

@@ -1,24 +1,26 @@
+// Shared admin-table treatment on the trust ramp: hairline borders (#E2E8F2),
+// surface header (#F6F8FC), ink text — the old pure greys (#DBDBDB/#2E2E2E)
+// sat outside the blue-biased neutral system every other surface uses.
 export const dataTableCustomStyles = {
     table: {
         style: {
-            borderTop: '1px solid #DBDBDB',
-            borderBottom: '1px solid #DBDBDB'
-            // borderRight: '1px solid #DBDBDB',
+            borderTop: '1px solid #E2E8F2',
+            borderBottom: '1px solid #E2E8F2'
         }
     },
     headRow: {
         style: {
             border: 'none',
-            backgroundColor: '#E9EEF5',
+            backgroundColor: '#F6F8FC',
             fontSize: '14px',
-            color: '#2E2E2E !important',
+            color: '#3A465A !important',
             height: '50px !important'
         }
     },
     headCells: {
         style: {
-            borderRight: '1px solid #DBDBDB',
-            color: '#2E2E2E !important',
+            borderRight: '1px solid #E2E8F2',
+            color: '#3A465A !important',
             fontSize: '14px',
             paddingTop: '5px',
             paddingBottom: '5px',
@@ -30,15 +32,15 @@ export const dataTableCustomStyles = {
         style: {
             padding: '0',
             fontSize: '18px',
-            color: '#2E2E2E !important',
-            borderRight: '1px solid #DBDBDB',
+            color: '#101826 !important',
+            borderRight: '1px solid #E2E8F2',
             paddingTop: '8px',
             paddingBottom: '8px'
         }
     },
     rows: {
         style: {
-            color: '#6E6E6E',
+            color: '#657085',
             outlineWidth: '0',
             borderRadius: '4px',
             paddingLeft: '0',

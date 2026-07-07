@@ -50,18 +50,27 @@ export function isNetherUndefinedNorNull(data: unknown): boolean {
     return !isUndefined(data) && !isNull(data);
 }
 
+// Status chips speak the trust palette: pending is amber (needs attention, not
+// an error — the old red chip read like something had gone wrong), done is
+// consent green, and anything else passes through as a neutral chip with its
+// own name instead of being mislabelled "Deleted".
 export const statusProps = (status: string, t: any) => {
-    let currentStatus = t('FORM.STATUS_DELETED');
-    let cName = 'bg-black-200 !text-black-800 dark:bg-yellow-900 dark:text-yellow-300';
-    let dotCName = 'bg-black-800';
-    if (status.toLowerCase() === 'pending') {
+    const normalized = status.toLowerCase();
+    let currentStatus = status;
+    let cName = 'bg-black-200 !text-black-800';
+    let dotCName = 'bg-black-600';
+    if (normalized === 'pending') {
         currentStatus = t(formConstant.status.pending);
-        cName = 'bg-red-200 !text-red-400 dark:bg-red-900 dark:text-red-300';
-        dotCName = 'bg-red-400';
-    } else if (status.toLowerCase() === 'deleted') {
+        cName = 'bg-[#FBF3E4] !text-[#B26B00]';
+        dotCName = 'bg-[#B26B00]';
+    } else if (normalized === 'success' || normalized === 'deleted') {
+        // The backend marks a fulfilled deletion request "success"; to the
+        // person reading the table the fact is that the response is deleted.
+        currentStatus = t('FORM.STATUS_DELETED');
+        cName = 'bg-[#E7F4EE] !text-[#0E8A5F]';
+        dotCName = 'bg-[#0E8A5F]';
+    } else if (normalized === 'expired') {
         currentStatus = t(formConstant.status.expired);
-        cName = 'bg-yellow-100 !text-yellow-500';
-        dotCName = 'bg-yellow-400';
     }
     return {
         currentStatus,

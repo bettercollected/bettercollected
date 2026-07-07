@@ -142,13 +142,13 @@ const OnboardingContainer = ({ workspace, createWorkspace }: onBoardingProps) =>
         if (formData.title && formData.workspaceName) {
             await onClickDone();
         } else {
-            if (!formData.title) setErrors({ ...errors, title: 'Please enter organization name' });
+            if (!formData.title) setErrors({ ...errors, title: 'Please enter a workspace name' });
         }
     };
 
     const onWorkspaceTitleBlur = async (event: any) => {
         if (!event.target.value) {
-            setErrors({ ...errors, title: 'Please enter organization name' });
+            setErrors({ ...errors, title: 'Please enter a workspace name' });
             return;
         }
         if (createWorkspace && !formData.workspaceName) {
@@ -182,10 +182,10 @@ const OnboardingContainer = ({ workspace, createWorkspace }: onBoardingProps) =>
                 <div className="h3-new">{t(onBoarding.addYourOrganization)}</div>
                 <UploadLogo logoImageUrl={workspace?.profileImage ?? ''} className="mt-12" onUpload={handleUploadLogo} onRemove={handleRemoveLogo} />
                 <form className="mt-12 w-full space-y-8 md:w-[541px] " onSubmit={onSubmitForm}>
-                    {/* Organization Name Input Section */}
+                    {/* Workspace name input section */}
                     <div className="flex flex-col gap-1.5 w-full relative">
                         <Label htmlFor="title" className="text-sm font-medium ml-1 mb-1 text-gray-700">
-                            Organization Name
+                            Workspace name
                         </Label>
                         <AppInput
                             onBlur={onWorkspaceTitleBlur}
@@ -196,7 +196,7 @@ const OnboardingContainer = ({ workspace, createWorkspace }: onBoardingProps) =>
                             onChange={handleOnchange}
                             className={!!errors?.title ? 'border-red-500 focus-visible:ring-red-500 w-full' : 'w-full'}
                         />
-                        {/* Error Message for Organization Name */}
+                        {/* Error message for workspace name */}
                         {!!errors?.title && (
                             <span className="flex items-center gap-1 text-xs text-red-600 absolute -bottom-6 left-1">
                                 <InfoIcon className="h-3 w-3" /> {errors.title}
@@ -210,7 +210,7 @@ const OnboardingContainer = ({ workspace, createWorkspace }: onBoardingProps) =>
                     {/* Description Textarea Section */}
                     <div className="flex flex-col gap-1.5 w-full">
                         <Label htmlFor="description" className="text-sm font-medium ml-1 mb-1 text-gray-700">
-                            Add Your Organization Description
+                            Add a workspace description
                         </Label>
                         <Textarea
                             id="description"

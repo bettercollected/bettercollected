@@ -35,26 +35,24 @@ export default function UpgradeToProContainer({ featureText, isModal = true, cal
 
     const { closeModal } = useFullScreenModal();
 
+    // One calm treatment for every card — the pastel-rainbow tints were the
+    // "playful" palette the trust language retires (Design-Language §1).
     const features = [
         {
             title: t(upgradeConst.features.unlimitedForms.title),
-            description: t(upgradeConst.features.unlimitedForms.description),
-            color: '#E5EFFF'
+            description: t(upgradeConst.features.unlimitedForms.description)
         },
         {
             title: t(upgradeConst.features.customDomain.title),
-            description: t(upgradeConst.features.customDomain.description),
-            color: '#FFE8F0'
+            description: t(upgradeConst.features.customDomain.description)
         },
         {
             title: t(upgradeConst.features.collaborator.title),
-            description: t(upgradeConst.features.collaborator.description),
-            color: '#E4FFF4'
+            description: t(upgradeConst.features.collaborator.description)
         },
         {
             title: t(upgradeConst.features.workspace.title),
-            description: t(upgradeConst.features.workspace.description),
-            color: '#FFF7E9'
+            description: t(upgradeConst.features.workspace.description)
         }
     ];
     const router = useRouter();
@@ -76,10 +74,14 @@ export default function UpgradeToProContainer({ featureText, isModal = true, cal
                 </div>
             </div>
             <>
+                {/* One honest claim, stated once. The old copy said "is Free"
+                    up top and "Free for 90 days!" at the bottom — but the
+                    upgrade has no expiry in code, so the 90-day line was a
+                    surprise waiting to be discovered (Design-Language §5). */}
                 <div className="h2-new mb-2 text-center">
-                    bettercollected PRO is <span className="text-new-pink">Free</span>
+                    bettercollected PRO is <span className="text-[#2456CC]">currently free</span>
                 </div>
-                <div className="p2-new text-black-700 max-w-[426px] text-center">You won&apos;t be charged any money. Share your thoughts on what the best price would be. Future pricing will be based on your suggestions.</div>
+                <div className="p2-new text-black-700 max-w-[426px] text-center">No card needed and nothing is charged. Tell us what PRO would be worth to you — future pricing will be based on these suggestions.</div>
                 <div className="mt-10 flex flex-wrap justify-center gap-2">
                     {prices.map((price, index) => {
                         return (
@@ -91,7 +93,7 @@ export default function UpgradeToProContainer({ featureText, isModal = true, cal
                                     setCustomPrice('');
                                 }}
                                 className={cn(
-                                    'bg-black-100 hover:text-black-800 flex h-10 w-[70px] cursor-pointer items-center justify-center font-medium ' + 'text-black-500 rounded-lg hover:border hover:border-blue-200' + ' hover:bg-white',
+                                    'bg-black-100 hover:text-black-800 flex h-10 w-[70px] cursor-pointer items-center justify-center font-medium ' + 'text-black-500 rounded-lg hover:border hover:border-[#A8C0EA]' + ' hover:bg-white',
                                     price === activeSuggestion && 'shadow-suggestion-price !text-black-800 bg-white'
                                 )}
                             >
@@ -99,7 +101,7 @@ export default function UpgradeToProContainer({ featureText, isModal = true, cal
                             </div>
                         );
                     })}
-                    <div className={cn('focus-within:shadow-suggestion-price hidden h-10 rounded-lg border border-blue-100 lg:flex', customPrice && 'shadow-suggestion-price')}>
+                    <div className={cn('focus-within:shadow-suggestion-price hidden h-10 rounded-lg border border-black-300 lg:flex', customPrice && 'shadow-suggestion-price')}>
                         <div className="bg-black-100 text-black-500 flex h-full w-full items-center justify-center rounded-l-lg px-2">$</div>
                         <input
                             type="number"
@@ -152,9 +154,8 @@ export default function UpgradeToProContainer({ featureText, isModal = true, cal
                             });
                         }}
                     >
-                        Start Pro account
+                        Activate PRO for free
                     </Button>
-                    <div className="p2-new text-black-600 text-center italic">Free for 90 days!</div>
                 </div>
             </>
             {/* )} */}
@@ -163,7 +164,7 @@ export default function UpgradeToProContainer({ featureText, isModal = true, cal
                 <div className="grid w-full grid-cols-1 gap-4 md:grid-cols-2">
                     {features.map((feature: any, idx: number) => {
                         return (
-                            <div key={feature.title + idx} style={{ background: feature.color }} className={`flex flex-col rounded-lg p-4`}>
+                            <div key={feature.title + idx} className="border-black-300 bg-black-100 flex flex-col rounded-lg border p-4">
                                 <div className="h4-new font-medium ">{feature.title}</div>
 
                                 <div className="p2-new text-black-700 mt-2">{feature.description}</div>

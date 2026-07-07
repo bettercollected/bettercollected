@@ -32,13 +32,13 @@ export default function MembersLayout({
         }
     ];
 
+    // No page h1 here — the sticky top bar already titles the page, and the
+    // section below ("Collaborators (N)") carries the specifics. Selection is
+    // the trust-blue underline used across the app.
     return (
         <div className="flex flex-col">
-            <div className="flex justify-between">
-                <div className="h4">{t(members.default)}</div>
-            </div>
-            <div className="mb-[38px] mt-[24px]">
-                <div className="flex space-x-1 border-b border-gray-200 overflow-x-auto pb-0">
+            <div className="mb-[38px]">
+                <div className="border-black-300 flex space-x-1 overflow-x-auto border-b pb-0">
                     {tabs.map((tab) => {
                         const isActive = pathname?.includes(`/${tab.path}`);
                         return (
@@ -46,10 +46,10 @@ export default function MembersLayout({
                                 key={tab.path}
                                 href={`/${params?.workspace_name}/dashboard/members/${tab.path}`}
                                 className={cn(
-                                    'flex items-center gap-2 px-4 py-2 text-sm font-medium mb-[-1px] cursor-pointer hover:bg-black-200 hover:rounded whitespace-nowrap',
+                                    'mb-[-1px] flex cursor-pointer items-center gap-2 whitespace-nowrap border-b-2 px-4 py-2 text-sm font-medium transition-colors',
                                     isActive
-                                        ? 'border-b-2 border-black-900 text-black-900'
-                                        : 'text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                        ? 'border-[#2456CC] text-[#2456CC]'
+                                        : 'text-black-600 hover:text-black-800 border-transparent'
                                 )}
                             >
                                 {tab.icon}
