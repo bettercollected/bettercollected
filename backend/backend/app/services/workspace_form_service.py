@@ -8,7 +8,6 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from beanie import PydanticObjectId
 from common.configs.crypto import Crypto
 from common.constants import MESSAGE_NOT_FOUND, MESSAGE_FORBIDDEN
-from common.enums.plan import Plans
 from common.models.form_import import FormImportRequestBody
 from common.models.standard_form import (
     StandardForm,
@@ -206,15 +205,8 @@ class WorkspaceFormService:
     async def check_if_user_can_import_more_forms(
         self, user: User, workspace_id: PydanticObjectId
     ):
-        if user.plan == Plans.PRO:
-            return True
-
-        workspace_forms = await self.get_form_ids_in_workspace(
-            workspace_id=workspace_id
-        )
-
-        if len(workspace_forms) >= 100:
-            return False
+        # Forms are unlimited on every plan — there is no per-workspace form
+        # cap. (Responses have never been capped either.)
         return True
 
     async def delete_form_from_workspace(
