@@ -146,9 +146,6 @@ export function RichTextEditor({ field, slide, autofocus = false, isRequired = f
                         style: 'word-break: break-word'
                     }
                 }}
-                onFocus={({ editor }) => {
-                    editor.commands.focus('all');
-                }}
                 onUpdate={({ editor }) => {
                     setJSONVal(editor.getJSON());
                     setIsBold(editor?.isActive('bold'));
@@ -243,7 +240,7 @@ const TiptapMenuBar = ({ field, slide }: { field: StandardFormFieldDto; slide: S
     }
 
     const handleUpdateFontSize = (value = 0) => {
-        const activeFontSize = (getActiveFontSize(editor) as number) || 16;
+        const activeFontSize = (getActiveFontSize(editor) as number) || 24;
         const currentActiveIndex = FontSizes.findIndex((num) => num == activeFontSize);
         // Clamp to the ends of the scale so stepping never lands on undefined.
         const newSize = Math.min(Math.max(currentActiveIndex + value, 0), FontSizes.length - 1);
@@ -260,7 +257,7 @@ const TiptapMenuBar = ({ field, slide }: { field: StandardFormFieldDto; slide: S
             <div className="flex flex-row items-center justify-center gap-4">
                 <span className="p3-new font-medium">Text</span>
                 <div className="flex items-center gap-1">
-                    <span className="p3-new text-black-700 w-[21px]">{getActiveFontSize(editor) || 16}</span>
+                    <span className="p3-new text-black-700 w-[21px]">{getActiveFontSize(editor) || 24}</span>
                     <div className="flex flex-col">
                         <div
                             className="cursor-pointer"

@@ -117,3 +117,32 @@ async def test_identity_is_kept_when_not_anonymized(workspace, published_form):
         {"response_id": response.response_id}
     )
     assert stored.dataOwnerIdentifier == testUser.sub
+
+
+async def test_trust_layer_settings_patch_roundtrip(workspace, workspace_form):
+    from backend.app.models.dtos.settings_patch import SettingsPatchDto
+    from tests.app.controllers.data import testUser
+
+    patched = await container.form_service().patch_settings_in_workspace_form(
+        workspace.id,
+        workspace_form.form_id,
+        SettingsPatchDto(
+            purpose="To schedule your appointment",
+            retention_text="kept for 90 days",
+            privacy_policy_url="https://example.com/privacy",
+        ),
+        testUser,
+    )
+    assert patched.settings.purpose == "To schedule your appointment"
+    assert patched.settings.retention_text == "kept for 90 days"
+    assert patched.settings.privacy_policy_url == "https://example.com/privacy"
+
+    # Empty string clears; omitted fields are preserved.
+    cleared = await container.form_service().patch_settings_in_workspace_form(
+        workspace.id,
+        workspace_form.form_id,
+        SettingsPatchDto(purpose=""),
+        testUser,
+    )
+    assert cleared.settings.purpose is None
+    assert cleared.settings.retention_text == "kept for 90 days"

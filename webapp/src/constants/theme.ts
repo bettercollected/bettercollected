@@ -1,9 +1,17 @@
 // Default = the trust palette (Design-Language.md §1): calm neutral surface,
 // ink for words, one confident blue for actions. Saturated full-bleed colour
 // stays available through the other themes — it's opt-in, not the default.
+//
+// Every theme below is contrast-verified against how the roles are actually
+// used at runtime (WCAG 2.1):
+//   primary   — question/answer text on the accent background   → ≥ 7:1 (AAA)
+//   secondary — button fills carrying white text                → ≥ 4.5:1 (AA)
+//   tertiary  — input borders / UI affordances on the accent    → ≥ 3:1 (non-text)
+// A form theme that renders illegible buttons isn't a style choice, it's a
+// defect — the palette passes or it doesn't ship.
 export const ThemeColor = {
     accent: '#F6F8FC',
-    tertiary: '#CBD5E6',
+    tertiary: '#818CA0',
     secondary: '#2456CC',
     primary: '#101826'
 };
@@ -21,98 +29,98 @@ export const ThemeColors: Array<FormTheme> = [
         title: 'Default',
         primary: '#101826',
         secondary: '#2456CC',
-        tertiary: '#CBD5E6',
+        tertiary: '#818CA0',
         accent: '#F6F8FC'
     },
     {
         title: 'Blue',
         primary: '#111827',
-        secondary: '#3B82F6',
-        tertiary: '#93C5FD',
+        secondary: '#1D4ED8',
+        tertiary: '#2563EB',
         accent: '#DBEAFE'
     },
     {
         title: 'Green',
-        primary: '#111827',
-        secondary: '#22C55E',
-        tertiary: '#86EFAC',
+        primary: '#052E16',
+        secondary: '#15803D',
+        tertiary: '#16A34A',
         accent: '#DCFCE7'
     },
     {
         title: 'Red',
-        primary: '#111827',
-        secondary: '#EF4444',
-        tertiary: '#FCA5A5',
+        primary: '#450A0A',
+        secondary: '#B91C1C',
+        tertiary: '#DC2626',
         accent: '#FEE2E2'
     },
     {
         title: 'Black',
-        primary: '#2E2E2E',
-        secondary: '#2E2E2E',
-        tertiary: '#DBDBDB',
+        primary: '#101826',
+        secondary: '#101826',
+        tertiary: '#767676',
         accent: '#FFFFFF'
     },
     {
         title: 'Orange',
-        primary: '#7C2D12',
-        secondary: '#F97316',
-        tertiary: '#FDBA74',
+        primary: '#431407',
+        secondary: '#C2410C',
+        tertiary: '#EA580C',
         accent: '#FFEDD5'
     },
     {
         title: 'Purple',
-        primary: '#581C87',
-        secondary: '#A855F7',
-        tertiary: '#D8B4FE',
+        primary: '#3B0764',
+        secondary: '#7E22CE',
+        tertiary: '#9333EA',
         accent: '#F3E8FF'
     },
     {
-        title: "Gray",
+        title: 'Gray',
         primary: '#111827',
-        secondary: '#6B7280',
-        tertiary: '#9CA3AF',
+        secondary: '#4B5563',
+        tertiary: '#64748B',
         accent: '#F3F4F6'
     },
     {
-        title: "Pink",
-        primary: '#831843',
-        secondary: '#EC4899',
-        tertiary: '#F9A8D4',
+        title: 'Pink',
+        primary: '#500724',
+        secondary: '#BE185D',
+        tertiary: '#DB2777',
         accent: '#FCE7F3'
     },
     {
-        title: "Indigo",
-        primary: '#111827',
-        secondary: '#6366F1',
-        tertiary: '#A5B4FC',
+        title: 'Indigo',
+        primary: '#1E1B4B',
+        secondary: '#4338CA',
+        tertiary: '#4F46E5',
         accent: '#E0E7FF'
     },
     {
-        title: "Yellow",
-        primary: '#78350F',
-        secondary: '#EAB308',
-        tertiary: '#FCD34D',
+        title: 'Yellow',
+        primary: '#422006',
+        secondary: '#A16207',
+        tertiary: '#B45309',
         accent: '#FEF3C7'
     },
     {
-        title: "Teal",
-        primary: '#0F766E',
-        secondary: '#14B8A6',
-        tertiary: '#5EEAD4',
+        title: 'Teal',
+        primary: '#042F2E',
+        secondary: '#0F766E',
+        tertiary: '#0D9488',
         accent: '#CCFBF1'
     },
     {
-        title: "Cyan",
-        primary: '#164E63',
-        secondary: '#06B6D4',
-        tertiary: '#67E8F9',
+        title: 'Cyan',
+        primary: '#083344',
+        secondary: '#0E7490',
+        tertiary: '#0891B2',
         accent: '#CFFAFE'
     },
     {
-        title: "Rose",
-        primary: '#881337',
-        secondary: '#F43F5E',
-        tertiary: '#FDA4AF',
+        title: 'Rose',
+        primary: '#4C0519',
+        secondary: '#BE123C',
+        tertiary: '#E11D48',
         accent: '#FFE4E6'
     }
 ];

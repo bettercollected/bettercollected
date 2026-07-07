@@ -6,9 +6,13 @@ import globalConstants from '@app/constants/global';
 import { FieldTypes } from '@app/models/dtos/form';
 import { Switch } from '@app/shadcn/components/ui/switch';
 import useFormFieldsAtom from '@app/store/jotai/field-selectors';
+import { useActiveFieldComponent } from '@app/store/jotai/active-builder-component';
+import { extractTextfromJSON } from '@app/utils/richTextEditorExtenstion/get-html-from-json';
+import { formFieldsList } from '@app/constants/form-fields';
 import FieldConditionalLogicEditor from '@app/views/molecules/form-builder/field-conditional-logic';
 
 export default function FieldSettings() {
+    const { setActiveFieldComponent } = useActiveFieldComponent();
     const { updateFieldRequired, activeSlide, activeField, updateDescription, updateFieldProperty, updateRatingSteps, updateFieldImage, updateAllowMultipleSelectionMatrixField } = useFormFieldsAtom();
 
     const [errorMsg, setErrorMsg] = useState('');
@@ -38,6 +42,21 @@ export default function FieldSettings() {
 
     return (
         <div className="flex flex-col gap-4 px-4 py-6">
+            {/* The drawer replaces the Page/Design tabs while a field is
+                selected — give people an explicit way back (Esc also works). */}
+            <button type="button" onClick={() => setActiveFieldComponent(null)} className="text-black-600 hover:text-black-900 -mb-1 flex w-fit items-center gap-1 text-xs font-medium">
+                ‹ Back to page
+            </button>
+            <div className="flex flex-col gap-1.5">
+                <div className="text-black-800 truncate text-sm font-semibold" title={activeField ? extractTextfromJSON(activeField) : ''}>
+                    {activeField ? extractTextfromJSON(activeField) : ''}
+                </div>
+                {activeField?.type && (
+                    <span className="bg-black-100 text-black-600 w-fit rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide">
+                        {formFieldsList.find((f) => f.type === activeField.type)?.name ?? activeField.type.replaceAll('_', ' ').toLowerCase()}
+                    </span>
+                )}
+            </div>
             <div className="text-black-600 text-xs font-semibold uppercase tracking-wide">Settings</div>
             <div className="flex w-full items-center justify-between">
                 <div className="text-black-700 text-xs">Description</div>

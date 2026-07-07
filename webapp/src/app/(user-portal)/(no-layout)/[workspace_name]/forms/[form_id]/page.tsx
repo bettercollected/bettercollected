@@ -156,6 +156,8 @@ const FetchFormWrapper = ({ slug }: { slug: string }) => {
                     <TrustLayer
                         ownerName={workspace?.title || workspace?.workspaceName}
                         ownerImage={workspace?.profileImage}
+                        purpose={data?.settings?.purpose}
+                        retention={data?.settings?.retentionText}
                         privacyUrl={data?.settings?.privacyPolicyUrl}
                         portalUrl={typeof window !== 'undefined' && window.PUBLIC_CONFIG ? `${window.PUBLIC_CONFIG.HTTP_SCHEME}${window.PUBLIC_CONFIG.FORM_DOMAIN}/${workspace?.workspaceName}` : undefined}
                     />

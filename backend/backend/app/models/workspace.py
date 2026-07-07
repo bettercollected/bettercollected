@@ -55,6 +55,11 @@ class WorkspaceFormSettings(BaseModel):
     response_data_owner_field: Optional[str] = None
     provider: Optional[str] = None
     privacy_policy_url: Optional[str] = None
+    # Trust layer content (Design-Language §4): why the data is collected and
+    # how long it's kept, in the creator's plain words. Shown to responders on
+    # every step of the form.
+    purpose: Optional[str] = None
+    retention_text: Optional[str] = None
     response_expiration: Optional[str] = None
     response_expiration_type: Optional[ResponseRetentionType] = None
     disable_branding: Optional[bool] = None

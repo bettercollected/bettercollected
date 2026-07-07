@@ -34,7 +34,7 @@ const PublishButton = ({ refresh = false }: { refresh?: boolean }) => {
         }
     };
     return (
-        <Button isLoading={isLoading} onClick={publishForm} data-umami-event={'Publish Button'} data-umami-event-email={authState.email}>
+        <Button isLoading={isLoading} onClick={publishForm} className="!bg-[#2456CC] text-white hover:!bg-[#1E49AD]" data-umami-event={'Publish Button'} data-umami-event-email={authState.email}>
             Publish
         </Button>
     );

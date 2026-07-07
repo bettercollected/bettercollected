@@ -15,6 +15,7 @@ import { selectWorkspace } from '@app/store/workspaces/slice';
 import getFormShareURL from '@app/utils/form-utils';
 import { DesktopIcon } from '@Components/icons/desktop-icon';
 import { MobileIcon } from '@Components/icons/mobile-icon';
+import TrustLayer from '@app/views/molecules/form/trust-layer';
 import ShareIcon from '@Components/icons/share-icon';
 import FloatingPopOverButton from '@Components/sidebar/floating-pop-over-button';
 import HelpMenuComponent from '@Components/sidebar/help-menu-component';
@@ -92,8 +93,20 @@ const PreviewWrapper = ({ children, handleResetResponderState }: { children: Rea
             <Separator />
             <div className=" h-full drop-shadow-xl lg:mx-10 lg:py-10 lg:pb-24 ">
                 {isDesktopView ? (
-                    <div className={`flex aspect-video max-w-full flex-col gap-2 lg:mx-auto lg:!max-h-full ${isMobile ? 'h-preview-page' : 'h-screen'}`}>
+                    <div className={`relative flex aspect-video max-w-full flex-col gap-2 lg:mx-auto lg:!max-h-full ${isMobile ? 'h-preview-page' : 'h-screen'}`}>
                         {children}
+                        {/* Preview must show exactly what responders will see —
+                            including the trust strip. Hiding it here would make
+                            the drawer's "responders will see" promise a lie. */}
+                        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-40">
+                            <TrustLayer
+                                ownerName={workspace?.title || workspace?.workspaceName}
+                                ownerImage={workspace?.profileImage}
+                                purpose={standardForm?.settings?.purpose}
+                                retention={standardForm?.settings?.retentionText}
+                                privacyUrl={standardForm?.settings?.privacyPolicyUrl}
+                            />
+                        </div>
                     </div>
                 ) : (
                     <div className="relative mx-auto aspect-[9/16] h-full rounded-lg drop-shadow-xl">

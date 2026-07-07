@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef } from 'react';
 import { useDebounceValue } from 'usehooks-ts';
 
 import { selectForm, setForm } from '@app/store/forms/slice';
+import { useAutosaveStatus } from '@app/store/jotai/autosave-status';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import useFormFieldsAtom from '@app/store/jotai/field-selectors';
 import { useFormState } from '@app/store/jotai/form';
@@ -19,6 +20,7 @@ export default function AutoSaveForm({ formId }: { formId: string }) {
     const dispatch = useAppDispatch();
     const form = useAppSelector(selectForm);
     const [patchV2Form] = usePatchV2FormMutation();
+    const { setAutosaveStatus } = useAutosaveStatus();
 
     const combinedFormState = useMemo(
         () => ({
@@ -53,9 +55,15 @@ export default function AutoSaveForm({ formId }: { formId: string }) {
             workspaceId: workspace.id,
             body: formData
         };
+        setAutosaveStatus({ state: 'saving' });
         const response: any = await patchV2Form(requestData);
         if (response.data) {
             dispatch(setForm({ ...response.data, settings: form.settings }));
+            setAutosaveStatus({ state: 'saved', savedAt: Date.now() });
+        } else {
+            // Surface the failure — a silently-lost save is a trust bug. The
+            // next edit re-triggers the debounced save automatically.
+            setAutosaveStatus({ state: 'error' });
         }
     };
 

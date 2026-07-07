@@ -203,3 +203,79 @@ div::-webkit-scrollbar-thumb:hover {
     white-space: nowrap;
     user-select: none;
 }
+
+/* Frozen leading columns for the responders table (tabular-responses.tsx).
+   One table + position:sticky — the old two-tables-side-by-side approach let
+   row heights drift out of alignment. Offsets: checkbox 48px (react-data-table
+   built-in), expand 40px, so Responder ID starts at 88px. */
+.responders-frozen-table .rdt_TableCol:nth-child(-n + 3),
+.responders-frozen-table .rdt_TableCell:nth-child(-n + 3) {
+    /* !important: react-data-table's own stylesheet positions head cells
+       relative, which would turn the left offsets below into a plain
+       relative shift instead of a sticky constraint. */
+    position: sticky !important;
+    background-color: #ffffff;
+    z-index: 2;
+}
+.responders-frozen-table .rdt_TableCol:nth-child(1),
+.responders-frozen-table .rdt_TableCell:nth-child(1) {
+    left: 0;
+}
+.responders-frozen-table .rdt_TableCol:nth-child(2),
+.responders-frozen-table .rdt_TableCell:nth-child(2) {
+    left: 48px;
+}
+.responders-frozen-table .rdt_TableCol:nth-child(3),
+.responders-frozen-table .rdt_TableCell:nth-child(3) {
+    left: 88px;
+    border-right: 1px solid #dbdbdb;
+    box-shadow: 2px 0 4px 0 rgba(0, 0, 0, 0.06);
+}
+/* Header: react-data-table's fixedHeader already makes the head row sticky
+   vertically — adding our own position:sticky to .rdt_TableHead turns it into
+   a positioned ancestor and breaks the header cells' sticky-left math (they
+   shift right by their offsets). Only raise stacking and paint the frozen
+   header cells opaque. */
+.responders-frozen-table .rdt_TableHead {
+    z-index: 4;
+}
+.responders-frozen-table .rdt_TableCol:nth-child(-n + 3) {
+    background-color: #E9EEF5; /* matches headRow background */
+    z-index: 5;
+}
+/* Rows must span the full content width: react-data-table rows are flex
+   boxes at 100% container width, so fixed-width cells OVERFLOW the row and
+   sticky cells get clamped at the row's (too-early) right edge mid-scroll. */
+.responders-frozen-table .rdt_TableRow,
+.responders-frozen-table .rdt_TableHeadRow {
+    min-width: max-content;
+}
+
+/* Cohesive hover: colour every cell so the frozen (opaque) cells match. */
+.responders-frozen-table .rdt_TableRow:hover .rdt_TableCell {
+    background-color: #f6f8fc;
+}
+
+/* React Flow chrome (Logic/Flow view) — theme the default zoom controls to
+   the design language: white card, hairline border, ink icons. */
+.react-flow__controls {
+    border: 1px solid #e2e8f2;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(16, 24, 38, 0.08);
+}
+.react-flow__controls-button {
+    background: #ffffff;
+    border-bottom: 1px solid #e2e8f2;
+    width: 28px;
+    height: 28px;
+}
+.react-flow__controls-button:last-child {
+    border-bottom: none;
+}
+.react-flow__controls-button:hover {
+    background: #f6f8fc;
+}
+.react-flow__controls-button svg {
+    fill: #3a465a;
+}

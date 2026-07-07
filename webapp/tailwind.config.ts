@@ -29,18 +29,22 @@ export default {
                 dark: '#1c1917',
                 'light-dark': '#171e2e',
                 new: {
+                    // Blue-biased neutrals from Design-Language.md §1 — the old
+                    // scale was flat Bootstrap grey. Same lightness ladder, so
+                    // existing black-* usage keeps its hierarchy; the hue shift
+                    // is what makes the whole product cohere.
                     black: {
-                        100: '#F6F6F6',
-                        200: '#EEEEEE',
-                        300: '#DBDBDB',
-                        400: '#CED4DA',
-                        500: '#858585',
-                        600: '#6C757D',
-                        700: '#495057',
-                        800: '#4D4D4D',
-                        900: '#2E2E2E',
+                        100: '#F6F8FC',
+                        200: '#E9EEF5',
+                        300: '#E2E8F2',
+                        400: '#CBD5E6',
+                        500: '#8A94A6',
+                        600: '#657085',
+                        700: '#3A465A',
+                        800: '#27303F',
+                        900: '#101826',
 
-                        DEFAULT: '#2E2E2E'
+                        DEFAULT: '#101826'
                     },
                     blue: {
                         100: '#F2F7FF',
@@ -59,18 +63,21 @@ export default {
                         200: '#F7F8FA'
                     }
                 },
+                // Trust blue (Design-Language.md §1) — the ramp used to peak at
+                // the old bright #0764EB, which kept leaking into "tokenized"
+                // surfaces via brand-* classes.
                 brand: {
-                    100: '#F2F7FF',
-                    200: '#B8E8FF',
-                    300: '#A8C6F0',
-                    400: '#82A2CF',
-                    500: '#0764EB',
-                    600: '#0C50B4',
-                    700: '#2C2C60',
-                    800: '#11114C',
-                    900: '#111134',
+                    100: '#E9EFFC',
+                    200: '#C7D7F5',
+                    300: '#A8C0EA',
+                    400: '#6E8FD8',
+                    500: '#2456CC',
+                    600: '#1E49AD',
+                    700: '#19398A',
+                    800: '#132C6B',
+                    900: '#0E204E',
 
-                    DEFAULT: '#0764EB'
+                    DEFAULT: '#2456CC'
                 },
                 'brand-accent': {
                     500: '#F8B940',
@@ -79,17 +86,17 @@ export default {
                     DEFAULT: '#F8B940'
                 },
                 black: {
-                    100: '#F6F6F6',
-                    200: '#EEEEEE',
-                    300: '#DBDBDB',
-                    400: '#CED4DA',
-                    500: '#858585',
-                    600: '#6C757D',
-                    700: '#495057',
-                    800: '#4D4D4D',
-                    900: '#2E2E2E',
+                    100: '#F6F8FC',
+                    200: '#E9EEF5',
+                    300: '#E2E8F2',
+                    400: '#CBD5E6',
+                    500: '#8A94A6',
+                    600: '#657085',
+                    700: '#3A465A',
+                    800: '#27303F',
+                    900: '#101826',
 
-                    DEFAULT: '#2E2E2E'
+                    DEFAULT: '#101826'
                 }
             },
             spacing: {

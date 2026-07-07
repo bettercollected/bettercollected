@@ -78,6 +78,89 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
 
 ### Changed (trust-first design pass — responder form + builder)
 
+- **Builder interaction pass** (per the measured builder audit): Insert /
+  Text block / Logic are now real, always-visible actions (they failed AA
+  contrast and unmounted entirely on the welcome/thank-you pages — new
+  creators saw no way to add a question); a quiet "Saving… / Saved /
+  Couldn't save" indicator finally reports autosave state; clicking a title
+  places the caret at the click point instead of selecting the whole title
+  (one keystroke from data loss before), and the toolbar size readout shows
+  the real 24px instead of "16"; page-rail thumbnails are legible schematics
+  (first question + count) instead of slides scaled to 2.7px text; the page
+  menu gained Duplicate (with internal logic/piping references correctly
+  remapped to the copy's own fields — the previous duplicate implementation
+  left them pointing at the original page) and a consequence-stating delete
+  confirmation; the canvas gained Fit/100% zoom; the properties drawer is
+  300px with a "‹ Back to page" affordance and Esc-to-deselect; Publish wears
+  trust blue and the help button dropped its amber.
+- **Trust & privacy authored in the builder** (Design-Language §4): a new
+  drawer section sets the form's purpose, plain-words retention, and privacy
+  policy link with a live preview of the responder-facing trust strip; the
+  values persist as workspace-form settings and render on every step of the
+  published form.
+- **Flow (Logic) view brought onto the design language**: the `brand-*`
+  Tailwind ramp — which still peaked at the old bright blue and leaked into
+  every "tokenized" surface using brand classes — was retuned to trust blue,
+  recolouring the flow view's jump edges/dots/labels, selected nodes and
+  buttons (and the last old-blue surfaces product-wide). Node eyebrows were
+  hairline-on-white (1.4:1 — illegible) and 11px metadata was below AA; both
+  now legible ink. Destructive red and the drop-off chip use the muted
+  design tokens. Interaction fixes: the graph re-fits after mount so the
+  Start node no longer opens clipped under the header; the connect dots —
+  the view's primary gesture — are visually larger with a ~2× invisible hit
+  area; empty pages get an amber "empty page" warning chip (they read
+  identically to real pages before, and responders would hit a blank page);
+  deleting a jump edge now offers an 8-second Undo toast (a rule can carry
+  several conditions — one keystroke shouldn't silently discard it), which
+  also fixed the shared toaster ignoring per-toast durations; the minimap
+  only appears once the graph outgrows a screenful; React Flow's zoom
+  controls are themed; and the autosave Saving…/Saved indicator now shows in
+  the flow header, where the navbar's is hidden.
+- **The trust strip is visible while building**: every builder slide now
+  renders the responder-facing trust footer (collected-by, purpose,
+  retention, privacy link) exactly where responders see it, live-updating as
+  the Form-tab fields change; while the trust content is empty, a nudge on
+  the canvas names what responders see and deep-links to the Form tab —
+  creators shouldn't need to publish to know what privacy story their form
+  tells.
+- **Form themes are contrast-verified** (WCAG 2.1, computed): 10 of 13 named
+  themes rendered buttons whose white text failed AA (Green was 2.3:1, Yellow
+  1.9:1), every theme's input borders failed the 3:1 non-text minimum, and
+  Teal's question text failed even AA. Each palette was retuned against how
+  the roles are actually used — question text on the accent ≥ 7:1 (AAA),
+  white-on-button ≥ 4.5:1, input borders ≥ 3:1 — keeping each theme's hue.
+  The Design tab now shows each theme as an honest miniature form (question
+  ink on the accent, bordered input, button with white text) in a proper
+  full-width card list, so the real contrast is visible before choosing.
+- **Builder canvas centring rebuilt**: Fit scaled the slide with
+  window-arithmetic (`100vh` boxes, `transform-origin: top left`) whose
+  layout box disagreed with the visible card, so the sheet drifted
+  off-centre depending on viewport size. The scale is now measured from the
+  canvas mat itself and the wrapper's layout size equals the scaled card's
+  visual size — exactly centred on both axes at every window size; 100%
+  edits at a true 1440×810 with scrolling.
+- **Builder drawer split into Page · Form · Design**: form-wide settings
+  (hidden fields, trust & privacy) moved out of the Page tab — which had
+  grown into one undifferentiated scroll — into their own Form tab, also
+  making them reachable from welcome/thank-you pages; Page-tab section
+  spacing tightened.
+- **Builder chrome speaks the design language** (second builder pass): the
+  neutral `black-*` Tailwind scale was retuned from flat Bootstrap grey to
+  the blue-biased ink/hairline tokens, so builder and dashboard chrome cohere
+  with the responder form; the Insert Field picker dropped its pastel-rainbow
+  tiles for one quiet white-tile grid with ink icons; layout and theme
+  selection use trust blue (they were Tailwind pink-500 and the old bright
+  brand blue) and layout thumbnails gained legible glyphs plus captions
+  ("Left aligned", "Image right", …); drawer tabs are a segmented control
+  instead of a near-black pill; the page rail uses one labelled-card grammar
+  for welcome/content/thank-you pages; selecting a field shows a toolbar
+  (field-type chip · duplicate · delete) instead of a lone floating trash
+  can, backed by a new duplicate-question action; the Page drawer is grouped
+  into "This page" / "Whole form" scopes; the canvas sheet sits on a real
+  elevation shadow; and the builder Preview (desktop and mobile) now renders
+  the trust strip — it previously omitted the very thing the drawer promises
+  responders will see.
+
 - **Form details page (dashboard) redesigned**: the 8-tab bar — which silently
   overflowed and hid the Form Link and Analytics tabs entirely on desktop —
   is now 5 always-visible tabs (Preview · Responses · Analytics · Share ·
@@ -113,6 +196,13 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
 
 ### Fixed
 
+- Responders table rows drifted out of alignment: the "frozen" Responder ID
+  area was faked with two independent tables whose row heights were never
+  guaranteed equal (two-line identifier cells vs. one-line answers, against a
+  forced 48px row height). Rebuilt as a single table with CSS-sticky leading
+  columns — alignment holds by construction, the whole row shares one hover
+  and click behaviour, and the header scrolls in lockstep (fixed header +
+  frozen columns verified through full horizontal and vertical scroll).
 - Form details page: the Deletion Requests empty state showed the responses
   copy ("No responses yet" on a form with responses); "bettercolleceted"
   typo in the branding setting; preview cards had a pointer cursor but no

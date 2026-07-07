@@ -24,7 +24,6 @@ import SlideLayoutRightImage from '@Components/icons/slide-layout-right-image';
 import { SwitchIcon } from '@Components/icons/switch-icon';
 import { PlusIcon } from 'lucide-react';
 import Image from 'next/image';
-import HiddenFieldsEditor from '@app/views/molecules/form-builder/hidden-fields-editor';
 import PageJumpEditor from '@app/views/molecules/form-builder/page-jump-editor';
 
 export default function PagePropertiesTab({ }: {}) {
@@ -103,26 +102,31 @@ export default function PagePropertiesTab({ }: {}) {
             return [
                 {
                     style: FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND_LEFT_ALIGN,
-                    Icon: SlideLayoutNoImageLeftAlign
+                    Icon: SlideLayoutNoImageLeftAlign,
+                    label: 'Left aligned'
                 },
                 {
                     style: FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND,
-                    Icon: SlideLayoutNoImage
+                    Icon: SlideLayoutNoImage,
+                    label: 'Centered'
                 }
             ];
         } else
             return [
                 {
                     style: FormSlideLayout.TWO_COLUMN_IMAGE_RIGHT,
-                    Icon: SlideLayoutRightImage
+                    Icon: SlideLayoutRightImage,
+                    label: 'Image right'
                 },
                 {
                     style: FormSlideLayout.TWO_COLUMN_IMAGE_LEFT,
-                    Icon: SlideLayoutLeftImage
+                    Icon: SlideLayoutLeftImage,
+                    label: 'Image left'
                 },
                 {
                     style: FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND,
-                    Icon: SlideLayoutBackgroundImage
+                    Icon: SlideLayoutBackgroundImage,
+                    label: 'Image fill'
                 }
             ];
     };
@@ -168,20 +172,20 @@ export default function PagePropertiesTab({ }: {}) {
         <>
             {
                 <>
-                    <div className="text-black-600 px-4 pb-3 pt-6 text-xs font-semibold uppercase tracking-wide">Layout</div>
-                    <div className="grid grid-cols-2 gap-2 border-b px-4 pb-6">
-                        {getLayoutList().map((item: { style: FormSlideLayout; Icon: any }) => (
-                            <button key={item.style} data-umami-event={`${item.style} Layout`} data-umami-event-email={authState.email}>
+                    <div className="text-black-600 px-4 pb-3 pt-4 text-xs font-semibold uppercase tracking-wide">Layout</div>
+                    <div className="grid grid-cols-2 gap-2 border-b px-4 pb-4">
+                        {getLayoutList().map((item: { style: FormSlideLayout; Icon: any; label: string }) => (
+                            <button key={item.style} data-umami-event={`${item.style} Layout`} data-umami-event-email={authState.email} className="flex flex-col items-center gap-1">
                                 <div
                                     className={cn(
-                                        'flex h-[50px] w-20 cursor-pointer items-center justify-center rounded-xl border-[1px] p-2 hover:bg-gray-200',
-
-                                        layout && layout === item.style ? 'border-pink-500 ring-offset-1' : 'border-gray-200'
+                                        'flex h-[50px] w-20 cursor-pointer items-center justify-center rounded-lg border p-2 transition-colors hover:border-[#2456CC] hover:bg-[#F4F7FD]',
+                                        layout && layout === item.style ? 'border-[#2456CC] bg-[#F4F7FD] shadow-[0_0_0_1px_#2456CC]' : 'border-black-300 bg-white'
                                     )}
                                     onClick={() => handleSlideLayoutChange(activeSlideComponent?.id, item.style)}
                                 >
                                     {item.Icon && <item.Icon />}
                                 </div>
+                                <span className={cn('text-[10px]', layout && layout === item.style ? 'text-black-800 font-medium' : 'text-black-600')}>{item.label}</span>
                             </button>
                         ))}
                     </div>
@@ -189,7 +193,7 @@ export default function PagePropertiesTab({ }: {}) {
             }
             {(activeSlideComponent?.id === 'welcome-page' || activeSlideComponent?.id === 'thank-you-page') && (
                 <>
-                    <div className="text-black-600 px-4 pb-3 pt-6 text-xs font-semibold uppercase tracking-wide">Settings</div>
+                    <div className="text-black-600 px-4 pb-3 pt-4 text-xs font-semibold uppercase tracking-wide">Settings</div>
 
                     <div className="flex w-full items-center justify-between border-b px-4 pb-4">
                         {activeSlideComponent?.id === 'welcome-page' || activeSlideComponent?.id === 'thank-you-page' ? (
@@ -265,7 +269,7 @@ export default function PagePropertiesTab({ }: {}) {
                     </div>
                 </>
             )}
-            <div className={cn('border-black-200 flex justify-between border-b px-4 py-6 hover:bg-inherit', slide?.imageUrl ? 'flex-col items-start gap-2' : 'flex-row items-center ')}>
+            <div className={cn('border-black-200 flex justify-between border-b px-4 py-4 hover:bg-inherit', slide?.imageUrl ? 'flex-col items-start gap-2' : 'flex-row items-center ')}>
                 <span className="text-black-600 text-xs font-semibold uppercase tracking-wide">Layout Image</span>
                 {slide?.imageUrl ? (
                     <div className={`group relative my-4 max-h-[168px] w-full`}>
@@ -292,8 +296,8 @@ export default function PagePropertiesTab({ }: {}) {
                 <></>
             ) : (
                 <>
-                    <div className="text-black-600 px-4 pb-3 pt-6 text-xs font-semibold uppercase tracking-wide pb-6">Used Fields</div>
-                    <div className="mb-4 flex flex-col gap-6 px-4">
+                    <div className="text-black-600 px-4 pb-2 pt-4 text-xs font-semibold uppercase tracking-wide">Used Fields</div>
+                    <div className="mb-4 flex flex-col gap-3 px-4">
                         {activeSlideComponent?.index !== undefined &&
                             formFields[activeSlideComponent.index]?.properties?.fields?.map((field) => {
                                 return (
@@ -334,9 +338,6 @@ export default function PagePropertiesTab({ }: {}) {
                 <>
                     <div className="border-t">
                         <PageJumpEditor />
-                    </div>
-                    <div className="border-t">
-                        <HiddenFieldsEditor />
                     </div>
                 </>
             )}

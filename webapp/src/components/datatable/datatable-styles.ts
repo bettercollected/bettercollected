@@ -9,7 +9,7 @@ export const dataTableCustomStyles = {
     headRow: {
         style: {
             border: 'none',
-            backgroundColor: '#EEEEEE',
+            backgroundColor: '#E9EEF5',
             fontSize: '14px',
             color: '#2E2E2E !important',
             height: '50px !important'
@@ -66,7 +66,7 @@ export const simpleDataTableStyles = {
     headRow: {
         style: {
             border: 'none',
-            backgroundColor: '#F6F6F6',
+            backgroundColor: '#F6F8FC',
             fontSize: '12px',
             padding: '0px 24px',
             color: '#2E2E2E !important',
