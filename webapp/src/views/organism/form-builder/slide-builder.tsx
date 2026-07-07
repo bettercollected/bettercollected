@@ -37,8 +37,11 @@ const SlideBuilder = ({ slide, isScaledDown = false, disabled = false }: { slide
 
     return (
         <SlideLayoutWrapper showDesktopLayout slide={slide} disabled={disabled} theme={theme} scrollDivId={!disabled ? 'scroll-div' : undefined}>
-            <div className="flex h-full w-full flex-col justify-center gap-20 px-6 py-[10vh] ">
-                <div className="flex h-full w-full flex-col gap-20 px-6">
+            {/* 64px between question groups — the same rhythm the responder
+                sees (WYSIWYG). The old stack doubled up: gap-20 twice, py-[10vh]
+                on top of LayoutWrapper's own py-[60px], and px-6 twice. */}
+            <div className="flex h-full w-full flex-col justify-center px-6 py-4">
+                <div className="flex w-full flex-col gap-16">
                     <AnimatePresence>
                         {Array.isArray(slideFields) && slideFields.length ? (
                             slideFields.map((field, index) => {
@@ -51,7 +54,9 @@ const SlideBuilder = ({ slide, isScaledDown = false, disabled = false }: { slide
                                             animate: { x: 0 },
                                             transition: { duration: 0.5 },
                                             id: disabled ? field.id : `scroll-field-${field.id}`,
-                                            className: cn('relative flex h-full w-full flex-row  items-center first:!pt-[0%]', slide.properties?.layout === FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND_LEFT_ALIGN ? 'justify-start' : 'justify-center')
+                                            // Rows size to content — h-full made every row stretch to an
+                                            // equal share of the slide, so spacing changed with field count.
+                                            className: cn('relative flex w-full flex-row items-center', slide.properties?.layout === FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND_LEFT_ALIGN ? 'justify-start' : 'justify-center')
                                         } as any)
                                         }
                                     >
