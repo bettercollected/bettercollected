@@ -594,8 +594,8 @@
   "SIGNIN_SCREEN": {
     "EMAIL_INPUT_LABEL": "Email",
     "COLLECT_FORMS": "Collect your forms",
-    "WELCOME_BACK": "Welcome Back!",
-    "SIGNIN_TO_CONTINUE": "Please sign in to continue",
+    "WELCOME_BACK": "Welcome back",
+    "SIGNIN_TO_CONTINUE": "Sign in with Google or your email — no password needed.",
     "CONTINUE_WITH": "Don't have an account?",
     "DELETE_RESPONSES": "Delete responses",
     "EASY_TO_MANAGE_FORMS": "Easy to manage forms",
@@ -606,18 +606,18 @@
     "WELCOME_MESSAGE": "Welcome back!",
     "FEATURES": {
       "TITLE": "Your forms, on a site you own",
-      "OTP_TITLE": "Custom URLs and Improved SEO",
-      "DESCRIPTION": "Create your custom Form Page to centralize all your forms (bettercollected forms, Google Forms and Typeform). This personalized solution allows you to gather and manage all your forms within a single.",
-      "OTP_DESCRIPTION": "Replace default links with your own URLs that better represent your business and enhance your online presence."
+      "OTP_TITLE": "One code, no passwords",
+      "DESCRIPTION": "bettercollected is the privacy-first form builder — quiet, honest forms people feel safe filling in.",
+      "OTP_DESCRIPTION": "We emailed you a 6-digit sign-in code — nothing to create, remember, or leak."
     },
-    "SEND_CODE_BUTTON": "Send Code",
+    "SEND_CODE_BUTTON": "Send code",
     "SIGN_IN_BUTTON": "Sign In",
-    "OR_SIGN_IN_USING": "Or sign in using",
+    "OR_SIGN_IN_USING": "or continue with email",
     "VERIFICATION": {
       "TITLE": "Verification",
-      "DESCRIPTION": "6-digit has been sent in your email"
+      "DESCRIPTION": "We emailed you a 6-digit code."
     },
-    "ENTER_OTP_CODE": "Enter OTP Code",
+    "ENTER_OTP_CODE": "Enter the 6-digit code",
     "ENTER_CODE_PLACEHOLDER": "eg: 000000",
     "BACK_BUTTON_TITLE": "Back",
     "DIDNOT_RECEIVE_CODE": "Did not receive code?",
@@ -630,9 +630,9 @@
     "SIGN_UP": "Sign Up",
     "VERIFICATION": {
       "TITLE": "Verification",
-      "DESCRIPTION": "6-digit has been sent in your email"
+      "DESCRIPTION": "We emailed you a 6-digit code."
     },
-    "ENTER_OTP_CODE": "Enter OTP Code",
+    "ENTER_OTP_CODE": "Enter the 6-digit code",
     "ENTER_CODE_PLACEHOLDER": "eg: 000000",
     "SIGNUP_AGREEMENT_DESCRIPTION": "By signing up, you agree to our",
     "SIGNUP_TO_CONTINUE": "You can sign up by simply signing in with Google or Typeform, or using your email.",
@@ -640,7 +640,7 @@
       "TITLE": "We’re a privacy-focused form builder platform",
       "OTP_TITLE": "Become a better data collector.",
       "OTP_SUBTITLE": "Becoming a customer of bettercollected is a promise to",
-      "DESCRIPTION": "Unlike other form builders, we put form responders’ privacy rights at the fore front.",
+      "DESCRIPTION": "Unlike other form builders, we put form responders' privacy rights at the forefront.",
       "OTP_DESCRIPTION": "We make sure that the responders can access their form responses and can request deletion of their responses whenever they choose to do so."
     }
   },

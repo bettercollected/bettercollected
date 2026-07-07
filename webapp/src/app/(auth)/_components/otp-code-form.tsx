@@ -81,7 +81,15 @@ export default function OtpCodeForm({ email, isModal, setEmail: setParentEmail }
 
     return (
         <form onSubmit={handleOtpPost} className="w-full">
-            <p className="text-black-900 mb-3 text-base font-semibold">{constants.enterOtpCode}</p>
+            <p className="text-black-900 mb-1 text-base font-semibold">{constants.enterOtpCode}</p>
+            {/* Say where the code went and offer a way back — a mistyped email
+                was a dead end (the only recovery was reloading the page). */}
+            <p className="text-black-700 mb-3 text-sm">
+                We emailed a 6-digit code to <span className="font-medium">{email}</span>.{' '}
+                <button type="button" className="text-brand-500 hover:text-brand-600 underline underline-offset-2" onClick={() => setParentEmail('')}>
+                    Change email
+                </button>
+            </p>
             <Input
                 autoFocus
                 placeholder={constants.enterOtpCodePlaceholder}
@@ -90,7 +98,7 @@ export default function OtpCodeForm({ email, isModal, setEmail: setParentEmail }
                     setOtp(e.target.value);
                     setIsError(false);
                 }}
-                className={isError ? 'border-red-500' : ''}
+                className={isError ? 'border-[#C43D3D]' : ''}
             />
 
             <div className="mt-8 flex items-center justify-between text-base">

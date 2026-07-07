@@ -293,6 +293,17 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
 
 ### Fixed
 
+- **Sign-in page redesigned as the first trust decision.** The pitch panel
+  was a gradient marketing collage with outdated UI screenshots and a
+  sentence that ended mid-thought; it's now a calm ink panel stating what
+  bettercollected is ("Your forms, on a site you own") with three honest
+  bullets (trust footer, your own site, responders' view/delete rights), a
+  responder-aware variant for portal "Verify email" arrivals, and a
+  passwordless pitch on the code step ("One code, no passwords — nothing to
+  create, remember, or leak"). The code step now says where the code went
+  and offers "Change email" (a typo used to be a dead end); copy fixes
+  throughout ("Sign in with Google or your email — no password needed",
+  "or continue with email", sentence-case buttons, grammar).
 - **Workspace settings: React error fixed and given a discoverable home.**
   Opening the settings sheet errored (`value` prop on `input` should not be
   null): the privacy-policy and terms URLs fed null into controlled inputs
