@@ -5,8 +5,9 @@ import { useActiveFieldComponent, useActiveSlideComponent } from '@app/store/jot
 import { slideHasLogic } from '@app/utils/conditional-logic';
 import { LogicOutlinedIcon } from '@Components/icons/logic-outlined-icon';
 
+import { extractTextfromJSON } from '@app/utils/richTextEditorExtenstion/get-html-from-json';
+
 import AddSlidePopover from './add-slide/add-slide-popover';
-import SlideBuilder from './slide-builder';
 import SlideOptions from './slide-options';
 import ThankYouSlide from './thankyou-page';
 import WelcomeSlide from './welcome-page';
@@ -71,27 +72,34 @@ function LeftDrawer({ formFields, activeSlideComponent }: { formFields: Array<St
                                                 </div>
                                                 <SlideOptions slideIndex={slide.index} />
                                             </div>
-                                            <div key={slide.id} className="border-black-200 !aspect-video w-full overflow-hidden rounded-lg border">
-                                                <div
-                                                    role="button"
-                                                    className={cn('shadow-slide  flex  cursor-pointer items-center justify-center overflow-hidden ')}
-                                                    onClick={() => {
-                                                        setActiveSlideComponent({
-                                                            id: slide.id,
-                                                            index
-                                                        });
-                                                    }}
-                                                    style={{
-                                                        height: '810px',
-                                                        width: '1440px',
-                                                        transformOrigin: 'top left',
-                                                        scale: 0.113
-                                                    }}
-                                                >
-                                                    <div className="pointer-events-none h-full w-full">
-                                                        <SlideBuilder slide={slide} disabled isScaledDown />
-                                                    </div>
-                                                </div>
+                                            <div
+                                                key={slide.id}
+                                                role="button"
+                                                tabIndex={0}
+                                                className={cn('border-black-200 hover:border-black-400 flex aspect-[16/8] w-full cursor-pointer flex-col justify-center gap-1 overflow-hidden rounded-lg border bg-white px-3 py-2 transition-colors', activeSlideComponent?.id === slide.id && 'border-black-400')}
+                                                onClick={() => {
+                                                    setActiveSlideComponent({
+                                                        id: slide.id,
+                                                        index
+                                                    });
+                                                }}
+                                                onKeyDown={(e) => {
+                                                    if (e.key === 'Enter') setActiveSlideComponent({ id: slide.id, index });
+                                                }}
+                                            >
+                                                {/* A slide scaled to thumbnail size renders 24px text at ~2.7px —
+                                                    blank noise. A schematic (first question + count) actually
+                                                    tells you what the page is. */}
+                                                {slide?.properties?.fields?.length ? (
+                                                    <>
+                                                        <span className="text-black-800 line-clamp-2 text-[11px] font-medium leading-snug">{extractTextfromJSON(slide.properties.fields[0])}</span>
+                                                        <span className="text-black-500 text-[10px]">
+                                                            {slide.properties.fields.length} question{slide.properties.fields.length === 1 ? '' : 's'}
+                                                        </span>
+                                                    </>
+                                                ) : (
+                                                    <span className="text-black-500 text-[11px]">No questions yet</span>
+                                                )}
                                             </div>
                                             {activeSlideComponent.id === slide.id && <div className="absolute bottom-0 left-0 top-0 h-full w-1" style={{ background: 'blue' }}></div>}
                                         </div>

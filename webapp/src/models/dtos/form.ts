@@ -106,6 +106,10 @@ export interface StandardFormDto {
         isPublished?: boolean;
         roles?: Array<string>;
         privacyPolicyUrl?: string;
+        /** Trust-layer content: why the data is collected (shown to responders). */
+        purpose?: string;
+        /** Plain-words retention, e.g. "kept for 90 days". */
+        retentionText?: string;
         responseExpiration?: string;
         disableBranding: boolean;
         hidden: boolean;

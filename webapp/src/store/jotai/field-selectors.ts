@@ -139,6 +139,56 @@ export default function useFormFieldsAtom() {
         }, 500);
     };
 
+    /**
+     * Deep-copies a page and inserts it right after the source. Every field
+     * gets a fresh id, and references that pointed WITHIN the page (logic
+     * conditions, jump conditions, jump-to-self targets, piping chips) are
+     * remapped to the new ids — otherwise the copy's rules would fire off the
+     * original page's answers.
+     */
+    const duplicateSlide = (slideIndex: number) => {
+        const source = formFields[slideIndex];
+        if (!source) return;
+        const clone: StandardFormFieldDto = JSON.parse(JSON.stringify(source));
+        const oldSlideId = source.id;
+        clone.id = v4();
+
+        const idMap: Record<string, string> = {};
+        clone.properties?.fields?.forEach((field) => {
+            const newId = v4();
+            idMap[field.id] = newId;
+            field.id = newId;
+        });
+
+        const remapConditions = (conditions?: Array<{ fieldId: string }>) => {
+            conditions?.forEach((condition) => {
+                if (condition && idMap[condition.fieldId]) condition.fieldId = idMap[condition.fieldId];
+            });
+        };
+        clone.properties?.fields?.forEach((field) => remapConditions(field.properties?.logic?.conditions));
+        clone.properties?.jumps?.forEach((jump) => {
+            remapConditions(jump.conditions);
+            if (jump.target === oldSlideId) jump.target = clone.id;
+        });
+
+        const remapPipes = (node: any): void => {
+            if (node?.type === 'answerPipe' && node.attrs && idMap[node.attrs.pipeKey]) node.attrs.pipeKey = idMap[node.attrs.pipeKey];
+            node?.content?.forEach(remapPipes);
+        };
+        clone.properties?.fields?.forEach((field) => {
+            if (field.title && typeof field.title !== 'string') remapPipes(field.title);
+        });
+
+        // The flow-canvas position belongs to the original node.
+        if (clone.properties?.position) delete clone.properties.position;
+
+        formFields.splice(slideIndex + 1, 0, clone);
+        formFields.forEach((slide, index) => (slide.index = index));
+        setFormFields([...formFields]);
+        setActiveSlideComponent({ id: clone.id, index: slideIndex + 1 });
+        return clone.id;
+    };
+
     const deleteSlide = (slideIndex: number) => {
         formFields.splice(slideIndex, 1);
         const updatedFormFields = formFields?.map((slide: StandardFormFieldDto, index) => {
@@ -345,25 +395,6 @@ export default function useFormFieldsAtom() {
             if (slide?.properties?.position) delete slide.properties.position;
         });
         setFormFields([...formFields]);
-    };
-
-    // Deep-copy a slide (new ids for the slide and every field) and insert it right after.
-    const duplicateSlide = (slideIndex: number) => {
-        const source = formFields?.[slideIndex];
-        if (!source) return;
-        const copy: StandardFormFieldDto = JSON.parse(JSON.stringify(source));
-        copy.id = v4();
-        copy.properties = { ...(copy.properties || {}) };
-        // The copy shouldn't inherit the source's pinned canvas spot.
-        delete copy.properties.position;
-        copy.properties.fields = (copy.properties.fields || []).map((f) => ({ ...f, id: v4() }));
-        formFields.splice(slideIndex + 1, 0, copy);
-        const reindexed = formFields.map((slide, index) => {
-            slide.index = index;
-            return slide;
-        });
-        setFormFields([...reindexed]);
-        return copy.id;
     };
 
     const deleteField = (slideIndex: number, fieldIndex: number) => {

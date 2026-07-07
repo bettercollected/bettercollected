@@ -78,6 +78,27 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
 
 ### Changed (trust-first design pass — responder form + builder)
 
+- **Builder interaction pass** (per the measured builder audit): Insert /
+  Text block / Logic are now real, always-visible actions (they failed AA
+  contrast and unmounted entirely on the welcome/thank-you pages — new
+  creators saw no way to add a question); a quiet "Saving… / Saved /
+  Couldn't save" indicator finally reports autosave state; clicking a title
+  places the caret at the click point instead of selecting the whole title
+  (one keystroke from data loss before), and the toolbar size readout shows
+  the real 24px instead of "16"; page-rail thumbnails are legible schematics
+  (first question + count) instead of slides scaled to 2.7px text; the page
+  menu gained Duplicate (with internal logic/piping references correctly
+  remapped to the copy's own fields — the previous duplicate implementation
+  left them pointing at the original page) and a consequence-stating delete
+  confirmation; the canvas gained Fit/100% zoom; the properties drawer is
+  300px with a "‹ Back to page" affordance and Esc-to-deselect; Publish wears
+  trust blue and the help button dropped its amber.
+- **Trust & privacy authored in the builder** (Design-Language §4): a new
+  drawer section sets the form's purpose, plain-words retention, and privacy
+  policy link with a live preview of the responder-facing trust strip; the
+  values persist as workspace-form settings and render on every step of the
+  published form.
+
 - **Form details page (dashboard) redesigned**: the 8-tab bar — which silently
   overflowed and hid the Form Link and Analytics tabs entirely on desktop —
   is now 5 always-visible tabs (Preview · Responses · Analytics · Share ·

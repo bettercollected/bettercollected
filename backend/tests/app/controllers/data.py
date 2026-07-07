@@ -191,6 +191,8 @@ workspace_settings = {
     "showSubmissionNumber": None,
     "requireVerifiedIdentity": None,
     "showOriginalForm": None,
+    "purpose": None,
+    "retentionText": None,
 }
 
 workspace_tag = {"title": "BetterCollected-Team"}

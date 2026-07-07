@@ -7,6 +7,7 @@ import { v4 } from 'uuid';
 
 import { FieldTypes } from '@app/models/dtos/form';
 import { Button } from '@app/shadcn/components/ui/button';
+import { cn } from '@app/shadcn/util/lib';
 import { DropdownMenu, DropdownMenuContent } from '@app/shadcn/components/ui/dropdown-menu';
 import { Sheet, SheetClose, SheetContent, SheetTitle, SheetFooter, SheetTrigger } from '@app/shadcn/components/ui/sheet';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
@@ -14,6 +15,7 @@ import { selectAuth } from '@app/store/auth/slice';
 import { useActiveSlideComponent } from '@app/store/jotai/active-builder-component';
 import useFormFieldsAtom from '@app/store/jotai/field-selectors';
 import { useFormState } from '@app/store/jotai/form';
+import { useAutosaveStatus } from '@app/store/jotai/autosave-status';
 import { useNavbarState } from '@app/store/jotai/navbar';
 import { useFormResponse } from '@app/store/jotai/responder-form-response';
 import { useResponderState } from '@app/store/jotai/responder-form-state';
@@ -46,6 +48,10 @@ const Navbar = () => {
     const { formState, setFormTitle } = useFormState();
     const { toast } = useToast();
     const { navbarState, setNavbarState } = useNavbarState();
+    const { autosaveStatus } = useAutosaveStatus();
+    // The insert actions need a content page to act on — but they stay
+    // mounted (disabled with a reason) so they're always discoverable.
+    const isContentPage = !!activeSlideComponent && activeSlideComponent.index >= 0;
 
     // In jotai (navbarState) so the empty-canvas "Add a question" affordance
     // can open the same menu (see slide-builder.tsx).
@@ -159,81 +165,91 @@ const Navbar = () => {
                     <NewBetterCollectedSmallLogo width={17} height={19} />
                 </div>
                 <AppInput
-                    placeholder="Form Title"
+                    placeholder="Form title"
                     value={formState.title}
                     onChange={(event) => {
-                        console.log("Changed title to ", event.target.value);
                         setFormTitle(event.target.value);
                     }}
-                    className="w-full overflow-clip text-ellipsis border-0 resize-none"
+                    className="hover:border-black-300 focus:border-black-400 w-full resize-none overflow-clip text-ellipsis border border-transparent !text-sm font-medium"
                 />
             </div>
-            {activeSlideComponent && activeSlideComponent.index >= 0 && (
-                <div className={'flex min-w-fit flex-1 items-center justify-center gap-2'}>
-                    <DropdownMenu
-                        open={insertDropdownOpen}
-                        onOpenChange={(open) => {
-                            setInsertDropdownOpen(open);
-                        }}
-                    >
-                        <DropdownMenu.Trigger>
-                            <div className={'flex items-center hover:bg-inherit'}>
-                                <div className="!text-black-500 hover:!text-black-900 flex flex-row items-center gap-1 text-xs font-semibold ">
-                                    <PlusOutlined />
-                                    <span>Insert</span>
-                                </div>
-                            </div>
-                        </DropdownMenu.Trigger>
-                        <AnimatePresence key="insert-dropdown" initial={false} mode="wait">
-                            {insertDropdownOpen && (
-                                <DropdownMenuContent key="insert-dropdown" className=" w-[410px] border-none p-0">
-                                    <motion.div
-                                        key="insert-dropdown"
-                                        {...({
-                                            className: 'shadow-bubble border',
-                                            initial: { opacity: 0, height: '350px', overflow: 'hidden' },
-                                            animate: { opacity: 1, height: '554px' },
-                                            exit: { opacity: 0, height: '350px', overflow: 'hidden' },
-                                            transition: { duration: 0.2 }
-                                        } as any)}
-                                    >
-                                        <InsertFieldComponent
-                                            formFields={formFields}
-                                            activeSlideComponent={activeSlideComponent}
-                                            closeDropdown={() => {
-                                                setInsertDropdownOpen(false);
-                                            }}
-                                        />
-                                    </motion.div>
-                                </DropdownMenuContent>
-                            )}
-                        </AnimatePresence>
-                    </DropdownMenu>
-                    <DropdownMenu>
-                        <button data-umami-event={'Add Heading Button'} data-umami-event-email={authState.email}>
-                            <DropdownMenu.Trigger onClick={handleAddText}>
-                                <div className={'flex items-center hover:bg-inherit'}>
-                                    <div className="!text-black-500 hover:!text-black-900 flex flex-row items-center gap-1 text-xs font-semibold ">
-                                        <TextOutlinedIcon />
-                                        <span>Text</span>
-                                    </div>
-                                </div>
-                            </DropdownMenu.Trigger>
-                        </button>
-                    </DropdownMenu>
-
-                    <button data-umami-event={'Open Flow View'} data-umami-event-email={authState.email} onClick={() => setFlowViewOpen(true)}>
-                        <div className={'flex items-center hover:bg-inherit'}>
-                            <div className="!text-black-500 hover:!text-black-900 flex flex-row items-center gap-1 text-xs font-semibold ">
-                                <LogicOutlinedIcon />
-                                Logic
-                            </div>
+            <div className={'flex min-w-fit flex-1 items-center justify-center gap-1'}>
+                <DropdownMenu
+                    open={insertDropdownOpen && isContentPage}
+                    onOpenChange={(open) => {
+                        setInsertDropdownOpen(open);
+                    }}
+                >
+                    <DropdownMenu.Trigger>
+                        <div
+                            title={isContentPage ? 'Insert a field' : 'Select a page to insert fields'}
+                            aria-disabled={!isContentPage}
+                            className={cn('text-black-700 flex flex-row items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium', isContentPage ? 'hover:bg-black-100 hover:text-black-900 cursor-pointer' : 'cursor-not-allowed opacity-40')}
+                        >
+                            <PlusOutlined />
+                            <span>Insert</span>
                         </div>
-                    </button>
-                </div>
-            )}
+                    </DropdownMenu.Trigger>
+                    <AnimatePresence key="insert-dropdown" initial={false} mode="wait">
+                        {insertDropdownOpen && isContentPage && (
+                            <DropdownMenuContent key="insert-dropdown" className=" w-[410px] border-none p-0">
+                                <motion.div
+                                    key="insert-dropdown"
+                                    {...({
+                                        className: 'shadow-bubble border',
+                                        initial: { opacity: 0, height: '350px', overflow: 'hidden' },
+                                        animate: { opacity: 1, height: '554px' },
+                                        exit: { opacity: 0, height: '350px', overflow: 'hidden' },
+                                        transition: { duration: 0.2 }
+                                    } as any)}
+                                >
+                                    <InsertFieldComponent
+                                        formFields={formFields}
+                                        activeSlideComponent={activeSlideComponent}
+                                        closeDropdown={() => {
+                                            setInsertDropdownOpen(false);
+                                        }}
+                                    />
+                                </motion.div>
+                            </DropdownMenuContent>
+                        )}
+                    </AnimatePresence>
+                </DropdownMenu>
+                <button
+                    data-umami-event={'Add Heading Button'}
+                    data-umami-event-email={authState.email}
+                    disabled={!isContentPage}
+                    onClick={isContentPage ? handleAddText : undefined}
+                    title={isContentPage ? 'Add a display-text block to this page' : 'Select a page to add a text block'}
+                    className={cn('text-black-700 flex flex-row items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium', isContentPage ? 'hover:bg-black-100 hover:text-black-900 cursor-pointer' : 'cursor-not-allowed opacity-40')}
+                >
+                    <TextOutlinedIcon />
+                    <span>Text block</span>
+                </button>
+                <button
+                    data-umami-event={'Open Flow View'}
+                    data-umami-event-email={authState.email}
+                    onClick={() => setFlowViewOpen(true)}
+                    title="Open the flow view to edit page branching"
+                    className="text-black-700 hover:bg-black-100 hover:text-black-900 flex cursor-pointer flex-row items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium"
+                >
+                    <LogicOutlinedIcon />
+                    Logic
+                </button>
+            </div>
 
             <div className={'flex flex-1 items-center justify-end  gap-2'}>
+                {autosaveStatus.state !== 'idle' && (
+                    <span
+                        aria-live="polite"
+                        title={autosaveStatus.savedAt ? `Last saved ${new Date(autosaveStatus.savedAt).toLocaleTimeString()}` : undefined}
+                        className={cn('mr-1 whitespace-nowrap text-xs font-medium', autosaveStatus.state === 'error' ? 'text-[#B26B00]' : 'text-black-600')}
+                    >
+                        {autosaveStatus.state === 'saving' && 'Saving…'}
+                        {autosaveStatus.state === 'saved' && 'Saved'}
+                        {autosaveStatus.state === 'error' && 'Couldn\'t save — edit to retry'}
+                    </span>
+                )}
                 <div className="mr-1 flex items-center gap-1">
                     <button aria-label="Undo" title="Undo (Ctrl+Z)" disabled={!canUndo} onClick={undo} className="text-black-600 hover:text-black-900 rounded-md p-1.5 hover:bg-black-100 disabled:opacity-30 disabled:hover:bg-transparent">
                         <Undo2 className="h-4 w-4" />

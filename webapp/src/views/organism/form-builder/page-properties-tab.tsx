@@ -25,6 +25,7 @@ import { SwitchIcon } from '@Components/icons/switch-icon';
 import { PlusIcon } from 'lucide-react';
 import Image from 'next/image';
 import HiddenFieldsEditor from '@app/views/molecules/form-builder/hidden-fields-editor';
+import TrustSettingsEditor from '@app/views/molecules/form-builder/trust-settings-editor';
 import PageJumpEditor from '@app/views/molecules/form-builder/page-jump-editor';
 
 export default function PagePropertiesTab({ }: {}) {
@@ -337,6 +338,9 @@ export default function PagePropertiesTab({ }: {}) {
                     </div>
                     <div className="border-t">
                         <HiddenFieldsEditor />
+                    </div>
+                    <div className="border-t">
+                        <TrustSettingsEditor />
                     </div>
                 </>
             )}

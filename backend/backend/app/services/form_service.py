@@ -324,6 +324,16 @@ class FormService:
         if settings.show_original_form is not None:
             workspace_form.settings.show_original_form = settings.show_original_form
 
+        # Trust-layer content — empty string clears a value.
+        if settings.privacy_policy_url is not None:
+            workspace_form.settings.privacy_policy_url = (
+                settings.privacy_policy_url or None
+            )
+        if settings.purpose is not None:
+            workspace_form.settings.purpose = settings.purpose or None
+        if settings.retention_text is not None:
+            workspace_form.settings.retention_text = settings.retention_text or None
+
         if settings.custom_url is not None:
             await self.user_tags_service.add_user_tag(
                 user_id=user.id, tag=UserTagType.CUSTOM_SLUG

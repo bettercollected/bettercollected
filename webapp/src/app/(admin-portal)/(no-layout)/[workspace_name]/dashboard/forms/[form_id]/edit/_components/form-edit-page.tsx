@@ -72,12 +72,26 @@ export default function FormEditPage(props: { params: Promise<{ form_id: string 
     const getScaledDivWidth = () => {
         const styles = getScaledDivStyles();
         if (styles?.width) {
-            return window.innerWidth - 520;
+            return window.innerWidth - 620;
         }
         return ((window?.innerHeight - 192) * 16) / 9;
     };
 
     const [scaledDivStyle, setScaledDivStyle] = useState(getScaledDivStyles());
+    // 'fit' scales the 1440px slide into the viewport (~0.57 — 24px text edits
+    // at ~14px); '100%' edits at true size with canvas scrolling.
+    const [canvasZoom, setCanvasZoom] = useState<'fit' | 'full'>('fit');
+
+    // Esc deselects the active field — the drawer otherwise traps you until
+    // you discover that clicking empty canvas goes back.
+    useEffect(() => {
+        const onKeyDown = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') setActiveFieldComponent(null);
+        };
+        window.addEventListener('keydown', onKeyDown);
+        return () => window.removeEventListener('keydown', onKeyDown);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     useEffect(() => {
         const handleResize = () => {
@@ -139,17 +153,21 @@ export default function FormEditPage(props: { params: Promise<{ form_id: string 
                 {/* Neutral workspace mat behind the canvas, so the slide being edited
                     reads as the artefact and separates from the tool's chrome. */}
                 <div
-                    className=" relative flex max-h-full max-w-full flex-1 justify-center overflow-x-hidden bg-[#E9EEF5] px-5 py-14"
+                    className=" relative flex max-h-full max-w-full flex-1 overflow-auto bg-[#E9EEF5] px-5 py-14"
                     onClick={() => {
                         setActiveFieldComponent(null);
                     }}
                 >
                     <div
+                        // shrink-0: this is a flex child — without it, flex-shrink
+                        // compresses the 1440px true-size canvas back into the
+                        // container and "100%" zoom silently does nothing.
+                        className="m-auto shrink-0"
                         style={{
-                            width: getScaledDivWidth()
+                            width: canvasZoom === 'full' ? 1440 : getScaledDivWidth()
                         }}
                     >
-                        <div className="!shadow-slide border-black-300 aspect-video overflow-hidden rounded-lg border bg-white" style={scaledDivStyle}>
+                        <div className="!shadow-slide border-black-300 aspect-video overflow-hidden rounded-lg border bg-white" style={canvasZoom === 'full' ? undefined : scaledDivStyle}>
                             <div className="   mx-auto h-full w-full  rounded-lg">
                                 {activeSlideComponent?.id && activeSlideComponent?.index >= 0 && <SlideBuilder slide={formFields[activeSlideComponent?.index]} />}
                                 {!activeSlideComponent?.id && <div>Add a slide to start</div>}
@@ -159,8 +177,16 @@ export default function FormEditPage(props: { params: Promise<{ form_id: string 
                             </div>
                         </div>
                     </div>
+                    <div className="border-black-300 absolute bottom-4 right-4 z-10 flex overflow-hidden rounded-lg border bg-white text-xs font-medium shadow-sm" onClick={(e) => e.stopPropagation()}>
+                        <button className={canvasZoom === 'fit' ? 'bg-black-100 text-black-900 px-3 py-1.5 font-semibold' : 'text-black-600 hover:text-black-900 px-3 py-1.5'} onClick={() => setCanvasZoom('fit')}>
+                            Fit
+                        </button>
+                        <button className={canvasZoom === 'full' ? 'bg-black-100 text-black-900 px-3 py-1.5 font-semibold' : 'text-black-600 hover:text-black-900 px-3 py-1.5'} onClick={() => setCanvasZoom('full')}>
+                            100%
+                        </button>
+                    </div>
                 </div>
-                <div id="slide-element-properties" className="border-l-black-300 h-full w-[200px] self-stretch overflow-auto bg-white">
+                <div id="slide-element-properties" className="border-l-black-300 h-full w-[300px] self-stretch overflow-auto bg-white">
                     <PropertiesDrawer />
                 </div>
                 <FloatingPopOverButton content={<HelpMenuComponent />}>
