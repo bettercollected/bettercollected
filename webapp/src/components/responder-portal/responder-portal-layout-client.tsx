@@ -74,7 +74,7 @@ export default function ResponderPortalLayoutClient({
     const basePath = hasCustomDomain ? '' : `/${workspace.workspaceName}`;
 
     return (
-        <div className={`!bg-new-white-200 max-w-screen flex h-screen max-h-screen w-screen flex-col overflow-auto p-5 opacity-100 md:flex-row md:p-10 ${!hasCustomDomain ? '!pb-20' : ''}`}>
+        <div className={`max-w-screen !bg-[#F6F8FC] flex h-screen max-h-screen w-screen flex-col overflow-auto p-5 opacity-100 md:flex-row md:p-10 ${!hasCustomDomain ? '!pb-20' : ''}`}>
             <div className="max-w-screen w-full md:sticky md:top-0 md:w-[320px] md:max-w-[320px]">
                 <WorkspaceDetailsCard workspace={workspace} />
                 {!auth.id && !auth.isLoading && (
@@ -107,7 +107,8 @@ export default function ResponderPortalLayoutClient({
                                             <AuthAccountProfileImage size={36} image={auth?.profileImage} name={getFullNameFromUser(auth) ?? ''} />
                                             <div className="!text-black-700 flex flex-col justify-center gap-2 pr-1 text-start">
                                                 <span className="body6 !leading-none">{getFullNameFromUser(auth)?.trim() || auth?.email || ''}</span>
-                                                <span className="body5 !leading-none">{auth?.email} </span>
+                                                {/* Only repeat the email when the first line is a real name. */}
+                                                {!!getFullNameFromUser(auth)?.trim() && getFullNameFromUser(auth)?.trim() !== auth?.email && <span className="body5 !leading-none">{auth?.email} </span>}
                                             </div>
                                         </div>
                                         <ChevronDown className={`${open ? 'rotate-180 transform' : ''} h-3 w-3 text-blue-900`} />
@@ -163,8 +164,8 @@ export default function ResponderPortalLayoutClient({
                                 className={cn(
                                     'flex items-center gap-2 px-4 py-2 text-sm font-medium mb-[-1px] cursor-pointer hover:bg-black-200 hover:rounded whitespace-nowrap focus:outline-none',
                                     isActive
-                                        ? 'border-b-2 border-black-900 text-black-900'
-                                        : 'text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                        ? 'text-black-900 border-b-2 border-[#2456CC]'
+                                        : 'text-black-600 hover:text-black-900 hover:border-black-300'
                                 )}
                             >
                                 {tab.icon}

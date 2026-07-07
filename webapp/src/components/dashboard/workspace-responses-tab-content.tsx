@@ -48,7 +48,7 @@ export default function WorkspaceResponsesTabContent({ workspace, deletionReques
 
     return (
         <>
-            {submissions?.length === 0 && <ZeroElement title={deletionRequests ? t(formConstant.empty.deletionRequest.title) : '0 submissions'} description={getEmptyMessage()} className="!pb-[20px]" />}
+            {submissions?.length === 0 && <ZeroElement title={deletionRequests ? t(formConstant.empty.deletionRequest.title) : 'No submissions yet'} description={getEmptyMessage()} className="!pb-[20px]" />}
 
             {submissions?.length !== 0 && (
                 <div className="w-full">

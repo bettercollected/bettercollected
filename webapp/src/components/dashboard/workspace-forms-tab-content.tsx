@@ -85,7 +85,7 @@ export default function WorkspaceFormsTabContent({ workspace, isFormCreator = fa
             {pinnedForms?.items?.length !== 0 && <FormCards title={t(formConstant.pinnedforms)} showPinned={false} isFormCreator={isFormCreator} showVisibility={false} workspace={workspace} formsArray={pinnedForms?.items || []} />}
             {pinnedForms?.items?.length !== 0 && <Divider />}
             <div className={`w-full md:w-[282px]`}>
-                <SearchInput handleSearch={handleSearch} />
+                <SearchInput placeholder="Search forms" handleSearch={handleSearch} />
             </div>
             {allForms.length !== 0 && <FormCards title={pinnedForms?.items?.length !== 0 ? t(formConstant.all) : ''} isFormCreator={isFormCreator} formsArray={allForms} workspace={workspace} />}
         </div>

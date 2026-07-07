@@ -68,14 +68,14 @@ export default function SubmissionLayoutClient({ children }: { children: React.R
             <div className="mt-5 flex flex-col pb-6">
                 <div className="w-full px-5">
                     <div className="flex w-fit items-center justify-start gap-2 " onClick={goToSubmissions}>
-                        <ChevronLeft className="cursor-pointer" strokeWidth={2} width={24} height={24} />
-                        <span className="text-black-800 cursor-pointer text-sm">Form Page</span>
-                        <ChevronLeft className="text-black-600 " strokeWidth={1} width={24} height={24} />
-                        <span className="text-black-600  text-sm"> My response</span>
+                        <ChevronLeft className="cursor-pointer" strokeWidth={2} width={20} height={20} />
+                        <span className="text-black-800 cursor-pointer text-sm">My submissions</span>
+                        <span className="text-black-400 text-sm" aria-hidden="true">/</span>
+                        <span className="text-black-600  text-sm">My response</span>
                     </div>
                 </div>
                 <div className="mt-12 flex w-full flex-col gap-2 px-5 md:px-10 lg:px-28">
-                    <span className="!text-pink h2-new">{form?.form?.title || 'Untitled Form'}</span>
+                    <span className="text-black-900 h2-new">{form?.form?.title || 'Untitled Form'}</span>
                     <div className="text-black-600 flex flex-wrap items-center gap-2 text-sm">
                         <FormProviderIcon provider={form?.form?.settings?.provider} />
                         <DotIcon />

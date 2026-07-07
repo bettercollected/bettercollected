@@ -180,8 +180,8 @@
     "COLLECTED_RESPONSES": "Collected responses",
     "DELETE": "Delete form",
     "DELETE_DESCRIPTION": "Deleting this form will also remove all the responses and deletion requests.",
-    "DELETION_REQUEST.DESCRIPTION": "You have not requested any deletion for your filled responses.",
-    "DELETION_REQUESTS": "Deletion Requests",
+    "DELETION_REQUEST.DESCRIPTION": "When you ask for a response to be deleted, the request and its status show up here. Open one of your submitted forms and use its Settings tab to request deletion.",
+    "DELETION_REQUESTS": "Deletion requests",
     "DELETION_RESPONSE.DESCRIPTION": "You have not submitted any response on the forms provided in this workspace.",
     "DELETION_RESPONSE_WARNING_MESSAGE": "Are you sure you want to request your response to be deleted?",
     "DRAFT": "Draft",
@@ -655,7 +655,7 @@
   "STEP": "Step",
   "SUBMISSIONS": "Submissions",
   "TERMS_OF_SERVICES": {
-    "TITLE": "Terms Of Services",
+    "TITLE": "Terms of service",
     "DESCRIPTION": "Our Terms of Services establish the rules and guidelines for using our services."
   },
   "TEMPLATE": {

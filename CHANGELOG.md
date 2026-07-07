@@ -98,6 +98,20 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
   policy link with a live preview of the responder-facing trust strip; the
   values persist as workspace-form settings and render on every step of the
   published form.
+- **Responder portal redesigned as the trust surface it links from**: the
+  workspace portal (where every form's "view or delete your response
+  anytime" promise lands) was an admin-dashboard reskin. Form cards now
+  speak responder language — the form's purpose and question count instead
+  of a provider glyph and a tautological "Public" chip. Submission receipts
+  are finally identifiable: mono receipt number, exact time, and an
+  Anonymous shield chip (they used to show only title + date, so repeat
+  submissions were indistinguishable). The workspace card carries the trust
+  anchor; search-by-submission-number reads as the right-of-access feature
+  it is (trust treatment, labeled controls) instead of clip-art; the
+  deletion-requests empty state explains the right and the path to exercise
+  it; tabs, wash, avatar fallback and body ink moved onto the design
+  tokens; "Terms Of Services" typo fixed; the pink submission-detail title
+  and the "Form Page ‹ My response" breadcrumb cleaned up.
 - **The builder now loads the draft it edits** (data-trust bug): the edit
   page's loader requested the form with `published=true&draft=true`, and the
   API returns the latest *published* version whenever one exists — so
