@@ -56,6 +56,19 @@ class FormResponseRepository(BaseRepository):
             },
             {"$set": {"form_title": "$form.title"}},
             {"$unwind": "$form_title"},
+            # Surface any deletion request's status on the response itself —
+            # without it, requesting deletion changed nothing visible in the
+            # responder's submissions list.
+            {
+                "$lookup": {
+                    "from": "responses_deletion_requests",
+                    "localField": "response_id",
+                    "foreignField": "response_id",
+                    "as": "deletion_request",
+                },
+            },
+            {"$set": {"status": {"$arrayElemAt": ["$deletion_request.status", 0]}}},
+            {"$unset": "deletion_request"},
             {"$sort": {"created_at": -1}},
         ]
 

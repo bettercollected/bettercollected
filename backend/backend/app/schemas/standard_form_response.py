@@ -28,6 +28,10 @@ class FormResponseDeletionRequest(MongoDocument):
     response_id: str
     provider: Optional[str] = None
     dataOwnerIdentifier: Optional[str] = None
+    # Anonymous responses are attributable only via this hash — without it a
+    # request created for an anonymous response could never be listed back to
+    # its owner.
+    anonymous_identity: Optional[str] = None
     status: DeletionRequestStatus = DeletionRequestStatus.PENDING
     deleted_at: Optional[str] = None
 

@@ -232,7 +232,15 @@ class FormResponseService:
         # TODO : Handle case for multiple form import by other user
         response = await FormResponseDocument.find_one({"response_id": response_id})
 
-        if not (is_admin or response.dataOwnerIdentifier == user.sub):
+        # Anonymous responses carry no dataOwnerIdentifier — their owner is
+        # recognisable only by the anonymous identity hash. Without this check
+        # the people the product promised anonymity to were the only ones who
+        # couldn't exercise their deletion right (403).
+        if not (
+            is_admin
+            or response.dataOwnerIdentifier == user.sub
+            or (response.anonymous_identity is not None and response.anonymous_identity == hash_string(user.sub))
+        ):
             raise HTTPException(403, "You are not authorized to perform this action.")
 
         deletion_request = await FormResponseDeletionRequest.find_one(
@@ -249,6 +257,7 @@ class FormResponseService:
             form_id=response.form_id,
             response_id=response_id,
             dataOwnerIdentifier=response.dataOwnerIdentifier,
+            anonymous_identity=response.anonymous_identity,
             provider=response.provider,
             deleted_at=None,
         ).save()
@@ -428,6 +437,7 @@ class FormResponseService:
             form_id=response.form_id,
             response_id=response_id,
             dataOwnerIdentifier=response.dataOwnerIdentifier,
+            anonymous_identity=response.anonymous_identity,
             provider=response.provider,
             deleted_at=None,
         ).save()

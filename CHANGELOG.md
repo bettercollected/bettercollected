@@ -98,6 +98,19 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
   policy link with a live preview of the responder-facing trust strip; the
   values persist as workspace-form settings and render on every step of the
   published form.
+- **Anonymous responders can finally exercise their deletion right** (bug):
+  requesting deletion authorized only `dataOwnerIdentifier == user` (plus
+  admins) — an anonymous response has no owner identifier, so the very
+  people the product promised anonymity to were 403'd out of deleting their
+  own response; the check now accepts the anonymous identity hash. Deletion
+  requests also store that hash, so anonymous requests actually appear in
+  the responder's Deletion requests tab (they used to vanish after
+  creation). My submissions now surfaces "Deletion requested / Deleted"
+  status on the affected receipts (the list previously looked unchanged
+  after a request), deletion-request cards carry the receipt number and an
+  honest "Requested:" timestamp, the request button no longer nests a
+  button inside a tooltip's button (hydration error), and the danger button
+  uses the design language's muted red instead of washed pink.
 - **Responder portal redesigned as the trust surface it links from**: the
   workspace portal (where every form's "view or delete your response
   anytime" promise lands) was an admin-dashboard reskin. Form cards now

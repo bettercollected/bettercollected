@@ -56,7 +56,7 @@ export default function WorkspaceFormResponseDeletionCard({ response, deletionRe
                 </div>
                 <div className="text-black-600 text-sm flex items-center gap-2 flex-wrap">
                     <span>
-                        {t(localesCommon.lastSubmittedAt)} {utcToLocalDateTIme(response.createdAt)}
+                        {deletionRequests ? 'Requested:' : t(localesCommon.lastSubmittedAt)} {utcToLocalDateTIme(response.createdAt)}
                     </span>
                     {isAnonymous && (
                         <span className="flex items-center gap-1 rounded-full bg-[#E7F4EE] px-2 py-0.5 text-xs font-medium text-[#0E8A5F]" title="Submitted without your identity attached">

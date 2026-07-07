@@ -42,6 +42,18 @@ class DeletionRequestsRepository:
             },
             {"$set": {"form_imported_by": "$workspace_form.user_id"}},
             {"$unwind": "$form_imported_by"},
+            # Carry the response's receipt number so a deletion request is
+            # cross-referenceable with the submission it covers.
+            {
+                "$lookup": {
+                    "from": "form_responses",
+                    "localField": "response_id",
+                    "foreignField": "response_id",
+                    "as": "response_doc",
+                },
+            },
+            {"$set": {"submission_uuid": {"$arrayElemAt": ["$response_doc.submission_uuid", 0]}}},
+            {"$unset": "response_doc"},
         ]
 
         aggregate_query.extend(

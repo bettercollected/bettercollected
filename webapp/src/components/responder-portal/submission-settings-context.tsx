@@ -36,11 +36,11 @@ export default function SubmissionSettingsContent() {
             )}
             {!form?.response?.deletionStatus ? (
                 <div>
-                    <Tooltip label={deletionStatus ? t(toolTipConstant.alreadyRequestedForDeletion) : t(toolTipConstant.requestForDeletion)}>
-                        <Button className={`w-fit`} variant="danger" onClick={handleRequestForDeletionModal}>
-                            {t(buttonConstant.requestForDeletion)}
-                        </Button>
-                    </Tooltip>
+                    {/* No Tooltip wrapper: the shared Tooltip renders its own
+                        <button> trigger, nesting buttons (hydration error). */}
+                    <Button className={`w-fit`} variant="danger" title={deletionStatus ? t(toolTipConstant.alreadyRequestedForDeletion) : t(toolTipConstant.requestForDeletion)} onClick={handleRequestForDeletionModal}>
+                        {t(buttonConstant.requestForDeletion)}
+                    </Button>
                 </div>
             ) : (
                 <div className="flex flex-col gap-2">

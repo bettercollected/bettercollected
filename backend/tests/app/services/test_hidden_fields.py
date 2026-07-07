@@ -146,3 +146,38 @@ async def test_trust_layer_settings_patch_roundtrip(workspace, workspace_form):
     )
     assert cleared.settings.purpose is None
     assert cleared.settings.retention_text == "kept for 90 days"
+
+
+async def test_anonymous_owner_can_request_deletion(workspace, published_form):
+    """The deletion right must survive anonymity: an anonymous response has no
+    dataOwnerIdentifier, so the owner is recognisable only through the
+    anonymous identity hash. Before the fix, non-admin anonymous responders
+    were 403'd out of deleting their own response, and the created request
+    carried no identity at all — it could never be listed back to them."""
+    from backend.app.models.dtos.response_dtos import StandardFormResponseCamelModel
+    from backend.app.schemas.standard_form_response import FormResponseDeletionRequest
+    from tests.app.controllers.data import testUser2
+
+    # testUser2 is not a member of the workspace — pure responder.
+    response = await container.workspace_form_service().submit_response(
+        workspace.id,
+        published_form.form_id,
+        StandardFormResponseCamelModel(answers={}, anonymize=True),
+        testUser2,
+    )
+
+    await container.form_response_service().request_for_response_deletion(
+        workspace.id, response.response_id, testUser2
+    )
+
+    stored_response = await FormResponseDocument.find_one(
+        {"response_id": response.response_id}
+    )
+    request = await FormResponseDeletionRequest.find_one(
+        {"response_id": response.response_id}
+    )
+    assert request is not None
+    # Attribution survives: the request carries the same anonymous hash the
+    # submissions listing matches on.
+    assert request.anonymous_identity == stored_response.anonymous_identity
+    assert request.dataOwnerIdentifier is None
