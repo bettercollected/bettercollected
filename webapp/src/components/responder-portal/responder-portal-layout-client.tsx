@@ -19,7 +19,6 @@ import { Logout } from '@app/components/icons/logout-icon';
 import { TrashIcon } from '@app/components/icons/trash';
 import { useModal } from '@app/components/modal-views/context';
 import ActiveLink from '@app/components/ui/links/active-link';
-import Logo from '@app/components/ui/logo';
 import PoweredBy from '@app/components/ui/powered-by';
 import { localesCommon } from '@app/constants/locales/common';
 import { formConstant } from '@app/constants/locales/form';
@@ -146,11 +145,12 @@ export default function ResponderPortalLayoutClient({
                     Search your form response by submission number
                 </div>
 
+                {/* Attribution, not advertisement: a quiet caption, not a card
+                    competing with the workspace's own identity. */}
                 {!hasCustomDomain && (
-                    <div className="shadow-powered-by mt-6 hidden w-full gap-2 rounded bg-white p-3 md:flex">
-                        <span className="body3 text-black-700">Powered by:</span>
-                        <Logo showProTag={false} isLink={false} isCustomDomain className="h-[14px] w-fit" />
-                    </div>
+                    <a href="https://bettercollected.com/" target="_blank" rel="noopener noreferrer" className="text-black-500 hover:text-black-700 mt-6 hidden w-full justify-center text-xs md:flex">
+                        Powered by&nbsp;<span className="font-semibold">bettercollected</span>
+                    </a>
                 )}
             </div>
             <div className="flex-1 md:pl-12 !pb-4">
