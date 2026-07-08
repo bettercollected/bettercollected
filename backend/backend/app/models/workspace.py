@@ -8,12 +8,69 @@ from fastapi_camelcase import CamelModel
 from pydantic import BaseModel, Field, field_validator, model_serializer
 
 
+HEX_COLOUR = re.compile(r"#[0-9a-fA-F]{6}")
+
+
+class WorkspaceThemeBackgroundDto(BaseModel):
+    """Optional page-ground decoration for a saved theme.
+
+    camelCase field names on purpose — the webapp sends the theme JSON
+    verbatim (see common.models.standard_form.ThemeBackground).
+    """
+
+    type: str
+    gradientFrom: Optional[str] = None
+    gradientTo: Optional[str] = None
+    gradientAngle: Optional[int] = None
+    pattern: Optional[str] = None
+    imageUrl: Optional[str] = None
+
+    @field_validator("type")
+    @classmethod
+    def _known_type(cls, v: str) -> str:
+        if v not in ("color", "gradient", "pattern", "image"):
+            raise ValueError("Background type must be color, gradient, pattern or image.")
+        return v
+
+    @field_validator("gradientFrom", "gradientTo")
+    @classmethod
+    def _hex_stop(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None and not HEX_COLOUR.fullmatch(v):
+            raise ValueError("Gradient colours must be 6-digit hex, e.g. #2456CC")
+        return v
+
+    @field_validator("gradientAngle")
+    @classmethod
+    def _sane_angle(cls, v: Optional[int]) -> Optional[int]:
+        if v is not None and not 0 <= v <= 360:
+            raise ValueError("Gradient angle must be between 0 and 360.")
+        return v
+
+    @field_validator("pattern")
+    @classmethod
+    def _known_pattern(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None and v not in ("dots", "grid", "stripes"):
+            raise ValueError("Pattern must be dots, grid or stripes.")
+        return v
+
+    @field_validator("imageUrl")
+    @classmethod
+    def _sane_image_url(cls, v: Optional[str]) -> Optional[str]:
+        if v is None or v == "":
+            return v
+        if len(v) > 2048:
+            raise ValueError("Image URL must be 2048 characters or fewer.")
+        if not (v.startswith("https://") or v.startswith("http://")):
+            raise ValueError("Image URL must start with http:// or https://")
+        return v
+
+
 class WorkspaceThemeDto(BaseModel):
     """A custom form theme saved at the workspace level.
 
     Mirrors the webapp's FormTheme roles (webapp/src/constants/theme.ts):
     primary = question/answer text, secondary = button fills, tertiary = input
-    borders, accent = page background.
+    borders, accent = page background — optionally decorated by `background`.
     """
 
     title: str
@@ -21,6 +78,7 @@ class WorkspaceThemeDto(BaseModel):
     secondary: str
     tertiary: str
     accent: str
+    background: Optional[WorkspaceThemeBackgroundDto] = None
 
     @field_validator("title")
     @classmethod
@@ -35,7 +93,7 @@ class WorkspaceThemeDto(BaseModel):
     @field_validator("primary", "secondary", "tertiary", "accent")
     @classmethod
     def _hex_colour(cls, v: str) -> str:
-        if not re.fullmatch(r"#[0-9a-fA-F]{6}", v):
+        if not HEX_COLOUR.fullmatch(v):
             raise ValueError("Colours must be 6-digit hex, e.g. #2456CC")
         return v
 

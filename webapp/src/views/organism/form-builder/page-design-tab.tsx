@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrig
 import { useAppSelector } from '@app/store/hooks';
 import { useFormState } from '@app/store/jotai/form';
 import { selectWorkspace } from '@app/store/workspaces/slice';
-import { ContrastNotes, Swatch, THEME_ROLE_FIELDS, ThemePreview } from '@app/views/molecules/theme/theme-shared';
+import { ContrastNotes, Swatch, THEME_ROLE_FIELDS, ThemeBackgroundEditor, ThemePreview } from '@app/views/molecules/theme/theme-shared';
 
 const CUSTOM_TITLE = 'Custom';
 
@@ -25,7 +25,8 @@ export default function PageDesignTab() {
         primary: theme?.primary ?? ThemeColors[0].primary,
         secondary: theme?.secondary ?? ThemeColors[0].secondary,
         tertiary: theme?.tertiary ?? ThemeColors[0].tertiary,
-        accent: theme?.accent ?? ThemeColors[0].accent
+        accent: theme?.accent ?? ThemeColors[0].accent,
+        background: theme?.background
     });
 
     const applyCustom = (next: FormTheme) => {
@@ -56,7 +57,8 @@ export default function PageDesignTab() {
         primary: theme?.primary ?? ThemeColors[0].primary,
         secondary: theme?.secondary ?? ThemeColors[0].secondary,
         tertiary: theme?.tertiary ?? ThemeColors[0].tertiary,
-        accent: theme?.accent ?? ThemeColors[0].accent
+        accent: theme?.accent ?? ThemeColors[0].accent,
+        background: theme?.background
     };
 
     return (
@@ -139,6 +141,7 @@ export default function PageDesignTab() {
                                     </span>
                                 </div>
                             ))}
+                            <ThemeBackgroundEditor theme={custom} onChange={(background) => applyCustom({ ...custom, title: CUSTOM_TITLE, background })} />
                             <ContrastNotes theme={custom} />
                         </div>
                     )}

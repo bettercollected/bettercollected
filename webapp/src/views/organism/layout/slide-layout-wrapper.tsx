@@ -20,8 +20,11 @@ interface ISlideLayoutWrapperProps {
 export default function SlideLayoutWrapper({ slide, children, theme, disabled = false, scrollDivId, showDesktopLayout }: ISlideLayoutWrapperProps) {
     const { updateSlideImage, updateSlideLayout } = useFormFieldsAtom();
 
+    // A slide-level theme (when present) wins over the form theme — resolved
+    // once here so both the outer style and the LayoutWrapper ground agree.
+    const effectiveTheme = slide?.properties?.theme?.accent ? slide?.properties?.theme : theme;
     const style = {
-        backgroundColor: slide?.properties?.theme?.accent || theme?.accent
+        backgroundColor: effectiveTheme?.accent
     };
 
     return (
@@ -34,7 +37,7 @@ export default function SlideLayoutWrapper({ slide, children, theme, disabled = 
             updatePageImage={updateSlideImage}
             updatePageLayout={updateSlideLayout}
             style={style}
-            theme={theme}
+            theme={effectiveTheme}
             scrollDivId={scrollDivId}
         >
             {children}

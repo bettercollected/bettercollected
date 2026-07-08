@@ -36,11 +36,62 @@ class TestWorkspaces:
             json=[theme],
         )
         assert response.status_code == 200
-        assert response.json().get("customThemes") == [theme]
+        assert response.json().get("customThemes") == [{**theme, "background": None}]
 
         # And it round-trips on the persisted document.
         saved = await WorkspaceDocument.get(workspace.id)
         assert [t.title for t in saved.custom_themes] == ["Brand 2026"]
+
+    async def test_patch_theme_presets_round_trips_background(
+        self,
+        client: AsyncClient,
+        workspace: Coroutine[Any, Any, WorkspaceDocument],
+        test_user_cookies: dict[str, str],
+    ):
+        theme = {
+            "title": "Gradient 2026",
+            "primary": "#101826",
+            "secondary": "#2456CC",
+            "tertiary": "#818CA0",
+            "accent": "#F6F8FC",
+            "background": {
+                "type": "gradient",
+                "gradientFrom": "#F6F8FC",
+                "gradientTo": "#E9EFFC",
+                "gradientAngle": 135,
+            },
+        }
+        response = await client.patch(
+            f"{common_url}/{workspace.id}/theme-presets",
+            cookies=test_user_cookies,
+            json=[theme],
+        )
+        assert response.status_code == 200
+        background = response.json()["customThemes"][0]["background"]
+        assert background["type"] == "gradient"
+        assert background["gradientFrom"] == "#F6F8FC"
+        assert background["gradientAngle"] == 135
+
+    async def test_patch_theme_presets_rejects_bad_background(
+        self,
+        client: AsyncClient,
+        workspace: Coroutine[Any, Any, WorkspaceDocument],
+        test_user_cookies: dict[str, str],
+    ):
+        theme = {
+            "title": "Broken background",
+            "primary": "#101826",
+            "secondary": "#2456CC",
+            "tertiary": "#818CA0",
+            "accent": "#F6F8FC",
+            "background": {"type": "pattern", "pattern": "zigzag"},
+        }
+        response = await client.patch(
+            f"{common_url}/{workspace.id}/theme-presets",
+            cookies=test_user_cookies,
+            json=[theme],
+        )
+        assert response.status_code == 422
 
     async def test_patch_theme_presets_rejects_bad_hex(
         self,

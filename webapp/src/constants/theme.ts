@@ -25,12 +25,27 @@ export const ThemeColor = {
     primary: '#101826'
 };
 
+export type ThemePattern = 'dots' | 'grid' | 'stripes';
+
+// Optional decoration for the page ground. `accent` stays the base colour
+// everywhere (inputs, sticky surfaces, fallbacks) — the background only
+// dresses the page itself. Absent (or type 'color') = plain accent.
+export interface ThemeBackground {
+    type: 'color' | 'gradient' | 'pattern' | 'image';
+    gradientFrom?: string;
+    gradientTo?: string;
+    gradientAngle?: number;
+    pattern?: ThemePattern;
+    imageUrl?: string;
+}
+
 export interface FormTheme {
     title: string;
     primary: string;
     secondary: string;
     tertiary: string;
     accent: string;
+    background?: ThemeBackground;
 }
 
 export const ThemeColors: Array<FormTheme> = [
