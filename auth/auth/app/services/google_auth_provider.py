@@ -1,5 +1,7 @@
 import json
 
+import loguru
+
 from auth.app.exceptions import HTTPException
 from auth.app.repositories.user_repository import UserRepository
 from auth.app.services.base_auth_provider import BaseAuthProvider
@@ -38,6 +40,19 @@ client_config = {
     }
 }
 
+# Request the exact canonical scope URLs Google echoes back in the token
+# response. oauthlib compares requested vs granted scopes as a set and hard-
+# fails ("Scope has changed") on any mismatch unless OAUTHLIB_RELAX_TOKEN_SCOPE
+# is set. The old string mixed short names ("profile") with full URLs, and
+# Google expands "profile" -> ".../auth/userinfo.profile", so the sets never
+# matched — leaving login dependent on that env flag. Listing the canonical
+# URLs makes the sets equal, so token exchange succeeds regardless.
+GOOGLE_SCOPES = [
+    "openid",
+    "https://www.googleapis.com/auth/userinfo.email",
+    "https://www.googleapis.com/auth/userinfo.profile",
+]
+
 
 class GoogleAuthProvider(BaseAuthProvider):
     async def get_basic_auth_url(self, client_referer_url: str, *args, **kwargs):
@@ -49,7 +64,7 @@ class GoogleAuthProvider(BaseAuthProvider):
         state = crypto.encrypt(state_json)
         flow = google_auth_oauthlib.flow.Flow.from_client_config(
             client_config=client_config,
-            scopes="https://www.googleapis.com/auth/userinfo.email profile openid",
+            scopes=GOOGLE_SCOPES,
         )
         flow.redirect_uri = settings.google_settings.basic_auth_redirect
 
@@ -73,6 +88,12 @@ class GoogleAuthProvider(BaseAuthProvider):
         credentials = self.fetch_basic_token(
             auth_code=authorization_response, state=state
         )
+        if credentials is None:
+            # Token exchange failed (fetch_basic_token logged the cause). Fail
+            # with a clear 401 instead of passing None to get_google_user, where
+            # build(credentials=None) raises an uncaught DefaultCredentialsError
+            # that surfaces to the user as an opaque 500 "proxy server error".
+            raise HTTPException(401, "Google authentication failed. Please try again.")
         user = await self.get_google_user(credentials)
         if not user:
             return state_json
@@ -97,16 +118,21 @@ class GoogleAuthProvider(BaseAuthProvider):
     def fetch_basic_token(self, auth_code: str, state):
         flow = google_auth_oauthlib.flow.Flow.from_client_config(
             client_config=client_config,
-            scopes="https://www.googleapis.com/auth/userinfo.email profile openid",
+            scopes=GOOGLE_SCOPES,
             state=state,
         )
         flow.redirect_uri = settings.google_settings.basic_auth_redirect
         try:
             flow.fetch_token(authorization_response=auth_code)
-        except Exception:
+        except Exception as e:
+            # Never swallow this silently — the real cause (scope mismatch,
+            # invalid_client, redirect_uri mismatch, transport, …) is otherwise
+            # invisible because the caller only sees a None credential.
+            loguru.logger.error(
+                "Google token exchange failed: {}: {}", type(e).__name__, e
+            )
             return None
-        credentials = flow.credentials
-        return credentials
+        return flow.credentials
 
     async def get_google_user(self, credentials):
         try:
@@ -124,3 +150,10 @@ class GoogleAuthProvider(BaseAuthProvider):
             raise HTTPException(401, "State not found. Connect with google services.")
         except InvalidGrantError:
             raise HTTPException(401, "Invalid Grant error.")
+        except Exception as e:
+            # Catch-all so an unexpected error (e.g. DefaultCredentialsError)
+            # becomes a clear 401 rather than an opaque 500.
+            loguru.logger.error(
+                "Fetching Google user info failed: {}: {}", type(e).__name__, e
+            )
+            raise HTTPException(401, "Could not retrieve your Google account info.")
