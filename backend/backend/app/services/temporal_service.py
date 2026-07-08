@@ -10,7 +10,6 @@ from beanie import PydanticObjectId
 from common.configs.crypto import Crypto
 from common.models.standard_form import StandardFormResponse, StandardForm
 from common.models.user import User
-from common.utils.asyncio_run import asyncio_run
 from temporalio.client import (
     Client,
     Schedule,
@@ -44,13 +43,19 @@ class TemporalService:
         self.server_uri = server_uri
         self.namespace = namespace
         self.crypto = crypto
+        # Connect lazily on first use (see
+        # check_temporal_client_and_try_to_connect_if_not_connected), on the
+        # main event loop where the client is awaited, rather than eagerly here
+        # via asyncio_run's background loop. The temporalio client binds to the
+        # loop it's created on; connecting off the request loop is a latent
+        # cross-loop hazard (the same shape that broke the auth OTP send once
+        # motor's cross-loop tolerance was dropped for pymongo).
         self.temporal_client = None
-        self.connect_to_temporal_server(server_uri=server_uri, namespace=namespace)
 
-    def connect_to_temporal_server(self, server_uri: str, namespace: str):
+    async def connect_to_temporal_server(self):
         try:
-            self.temporal_client: Client = asyncio_run(
-                Client.connect(server_uri, namespace=namespace)
+            self.temporal_client: Client = await Client.connect(
+                self.server_uri, namespace=self.namespace
             )
         except Exception as e:
             self.temporal_client: Client = None
@@ -58,7 +63,7 @@ class TemporalService:
 
     async def check_temporal_client_and_try_to_connect_if_not_connected(self):
         if not self.temporal_client:
-            self.connect_to_temporal_server(self.server_uri, self.namespace)
+            await self.connect_to_temporal_server()
             if not self.temporal_client:
                 raise HTTPException(
                     status_code=HTTPStatus.SERVICE_UNAVAILABLE,
