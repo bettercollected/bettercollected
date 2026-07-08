@@ -37,7 +37,10 @@ export default function FormPublishedModal(props: any) {
     };
 
     return (
-        <div className="flex w-full flex-col gap-6 p-6 sm:p-8">
+        {/* min-w-0 matters: DialogContent is display:grid, and a grid item's
+            implicit min-width:auto lets the unbreakable URL dictate the width —
+            overflowing the dialog instead of truncating. */}
+        <div className="flex w-full min-w-0 max-w-full flex-col gap-6 overflow-hidden p-6 sm:p-8">
             <div className="flex flex-col gap-1.5">
                 <div className="flex items-center gap-2.5">
                     <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#E7F4EE]">
