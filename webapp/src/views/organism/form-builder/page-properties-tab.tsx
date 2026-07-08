@@ -95,7 +95,7 @@ export default function PagePropertiesTab({ }: {}) {
     }
     const { layout } = useGetPageAttributes(getPageIndex() ?? -10);
 
-    const { updateFieldRequired } = useFormFieldsAtom();
+    const { updateFieldRequired, updateFieldColSpan } = useFormFieldsAtom();
 
     const getLayoutList = () => {
         if (layout === FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND || layout === FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND_LEFT_ALIGN) {
@@ -318,16 +318,33 @@ export default function PagePropertiesTab({ }: {}) {
                                         >
                                             {extractTextfromJSON(field)}
                                         </div>
-                                        {field.type !== FieldTypes.TEXT && (
-                                            <div
-                                                className="h-5 w-5"
-                                                onClick={() => {
-                                                    updateFieldRequired(field.index, activeSlideComponent.index, !field?.validations?.required);
-                                                }}
+                                        <div className="flex shrink-0 items-center gap-1.5">
+                                            {/* 12-grid width: full row, halves, thirds… adjacent
+                                                fields whose spans fit share a row on desktop. */}
+                                            <select
+                                                aria-label="Field width"
+                                                title="Field width (12-column grid)"
+                                                value={String(Math.min(12, Math.max(1, field?.properties?.colSpan ?? 12)))}
+                                                onChange={(e) => updateFieldColSpan(field.index, activeSlideComponent.index, Number(e.target.value))}
+                                                className="border-black-300 text-black-700 hover:border-black-400 h-5 cursor-pointer rounded border bg-white px-0.5 text-[10px] outline-none"
                                             >
-                                                <RequiredIcon className={cn('cursor-pointer', field?.validations?.required ? 'text-black-900' : 'text-[#DBDBDB]')} />
-                                            </div>
-                                        )}
+                                                <option value="12">Full</option>
+                                                <option value="8">2/3</option>
+                                                <option value="6">1/2</option>
+                                                <option value="4">1/3</option>
+                                                <option value="3">1/4</option>
+                                            </select>
+                                            {field.type !== FieldTypes.TEXT && (
+                                                <div
+                                                    className="h-5 w-5"
+                                                    onClick={() => {
+                                                        updateFieldRequired(field.index, activeSlideComponent.index, !field?.validations?.required);
+                                                    }}
+                                                >
+                                                    <RequiredIcon className={cn('cursor-pointer', field?.validations?.required ? 'text-black-900' : 'text-[#DBDBDB]')} />
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
                                 );
                             })}

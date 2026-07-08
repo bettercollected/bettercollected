@@ -257,6 +257,15 @@ export default function useFormFieldsAtom() {
         setFormFields(updatedSlides);
     };
 
+    const updateFieldColSpan = (fieldIndex: number, slideIndex: number, colSpan: number) => {
+        const existingSlide = formFields[slideIndex];
+        const slide = { ...existingSlide };
+        slide.properties!.fields![fieldIndex]['properties'] = { ...(slide.properties!.fields![fieldIndex].properties || { fields: [] }) };
+        slide.properties!.fields![fieldIndex]!.properties!.colSpan = Math.min(12, Math.max(1, colSpan));
+        const updatedSlides = [...formFields];
+        setFormFields(updatedSlides);
+    };
+
     const updateFieldPlaceholder = (fieldIndex: number, slideIndex: number, placeholderText: string) => {
         const existingSlide = formFields[slideIndex];
         const slide = { ...existingSlide };
@@ -765,6 +774,7 @@ export default function useFormFieldsAtom() {
         updateTitle,
         updateDescription,
         updateFieldPlaceholder,
+        updateFieldColSpan,
         updateChoiceFieldValue,
         addChoiceField,
         updateFieldRequired,

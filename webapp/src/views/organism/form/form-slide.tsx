@@ -250,11 +250,18 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
                         group) — 120px broke proximity grouping: pairs read as
                         separate screens, and long pages scrolled far more than
                         their content needed. */}
-                    <div className={cn('relative flex h-full w-full max-w-[800px] flex-col gap-[48px] overflow-hidden px-4 lg:gap-[56px] py-[60px]', isPreviewMode ? '' : 'lg:px-10')}>
+                    <div className={cn('relative flex h-full w-full max-w-[800px] flex-col gap-[48px] overflow-hidden px-4 py-[60px] lg:grid lg:grid-cols-12 lg:content-center lg:gap-x-6 lg:gap-y-[56px]', isPreviewMode ? '' : 'lg:px-10')}>
                         {formSlide?.properties?.fields
                             ?.filter((field: StandardFormFieldDto) => !hiddenFieldIds.has(field.id))
-                            .map((field: StandardFormFieldDto) => <FormFieldComponent key={field.id} field={field} slideIndex={formSlide!.index} />)}
-                        <div>
+                            .map((field: StandardFormFieldDto) => (
+                                // 12-grid width on desktop: adjacent spans that fit pack
+                                // into one row (two 6s sit side by side); mobile stays a
+                                // flex column, where the span style is inert.
+                                <div key={field.id} className="min-w-0" style={{ gridColumn: `span ${Math.min(12, Math.max(1, field.properties?.colSpan ?? 12))} / span ${Math.min(12, Math.max(1, field.properties?.colSpan ?? 12))}` }}>
+                                    <FormFieldComponent field={field} slideIndex={formSlide!.index} />
+                                </div>
+                            ))}
+                        <div style={{ gridColumn: 'span 12 / span 12' }}>
                             {(standardForm?.fields?.length || 0) - 1 === currentSlide && currentSlide === index && (
                                 <div className="flex flex-col lg:mb-4 ">
                                     {authState.id && !standardForm.settings?.requireVerifiedIdentity && (

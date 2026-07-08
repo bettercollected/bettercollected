@@ -21,6 +21,10 @@ export interface StandardFormFieldProperties {
     showQuestionNumbers?: boolean;
     allowMultipleSelection?: boolean;
     allowOtherChoice?: boolean;
+    // 12-grid width of the field on desktop (12 = full row, 6 = half, 4 = a
+    // third…). Adjacent fields whose spans fit pack into the same row; mobile
+    // always stacks full-width. Default 12.
+    colSpan?: number;
     layout?: FormSlideLayout;
     theme?: FormTheme;
     conditions?: any;
