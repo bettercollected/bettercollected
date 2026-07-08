@@ -9,7 +9,6 @@ from common.enums.roles import Roles
 from common.models.user import User, UserResponseDto
 from common.models.user import UserInfo
 from common.services.http_client import HttpClient
-from common.utils.asyncio_run import asyncio_run
 from fastapi_mail import MessageSchema
 from pydantic import EmailStr
 
@@ -117,28 +116,6 @@ class AuthService:
         return await self.auth_provider_factory.get_auth_provider(
             provider
         ).basic_auth_callback(code, state, request=request)
-
-    def send_code_to_user_for_workspace_sync(
-        self,
-        receiver_mail: EmailStr,
-        workspace_title: str,
-        workspace_profile_image: str,
-        creator: bool,
-    ):
-        try:
-            asyncio_run(
-                self.send_otp_to_mail(
-                    receiver_mail=receiver_mail,
-                    workspace_title=workspace_title,
-                    workspace_profile_image=workspace_profile_image,
-                    creator=creator,
-                )
-            )
-        except TimeoutError:
-            raise HTTPException(
-                status_code=HTTPStatus.GATEWAY_TIMEOUT, content="Timeout Error"
-            )
-
 
     async def send_otp_to_mail(
         self,
