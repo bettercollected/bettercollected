@@ -62,7 +62,7 @@ export const ThemePreview = ({ color }: { color: FormTheme }) => {
             </span>
             {/* Answer text wears primary on a white input, exactly like the
                 runtime — so an illegible combination is visible right here. */}
-            <span style={{ borderColor: tertiary, color: primary, borderRadius: tokens.inputRadius }} className="w-full border bg-white px-2 py-1 text-[11px] leading-tight">
+            <span style={{ borderColor: '#E3E3E3', color: primary, borderRadius: tokens.inputRadius }} className="w-full border bg-white px-2 py-1 text-[11px] leading-tight">
                 Answer
             </span>
             <span style={{ background: secondary, borderRadius: tokens.inputRadius }} className="px-2 py-0.5 text-[10px] font-semibold leading-tight text-white">

@@ -60,19 +60,18 @@ const FieldInput = styled(ShadCNInput)<{
         // the bordered box, not a wash, is what reads as "type here".
         background: '#ffffff',
         borderRadius: tokens.inputRadius,
-        // Resting border is deliberately SUBTLE — the theme's border colour at
-        // 55% (hairline fallback) so the field sits calm at rest; hover and
-        // focus below carry the strong affordance.
-        borderColor: themeColor ? `${themeColor}8C` : '#CBD5E6',
+        // Three-step border affordance: a light fixed grey at REST (fields sit
+        // calm on the page), the theme's border colour (tertiary) on HOVER — a
+        // clear but quiet "this is interactive" step — and the action-colour
+        // ring on FOCUS.
+        borderColor: '#E3E3E3',
         '&::placeholder': {
             // Legible neutral (ink-3), not the theme tint — placeholders are
             // text people read, not decoration.
             color: '#657085 !important'
         },
-        // A field that responds to the cursor reads as inviting — hover hints
-        // with the action colour; focus commits with the full ring below.
         '&:hover:not(:focus)': {
-            borderColor: secondaryColor || '#2456CC'
+            borderColor: themeColor || '#8A94A6'
         },
         '&:focus': {
             // Always show a focus ring for keyboard users (WCAG 2.4.7). The base

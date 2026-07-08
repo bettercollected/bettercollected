@@ -56,8 +56,8 @@ export default function DropDownField({ field, slideIndex }: { field: StandardFo
                 color: theme?.primary
             };
         }
-        // Placeholder state: legible neutral (ink-3), not the theme tint.
-        return { borderColor: theme?.tertiary, color: '#657085' };
+        // Placeholder state: calm light border at rest, legible neutral text.
+        return { borderColor: '#E3E3E3', color: '#657085' };
     };
 
     return (
@@ -68,7 +68,11 @@ export default function DropDownField({ field, slideIndex }: { field: StandardFo
                         rounded-md box, base/lg type, real button semantics — the old
                         trigger was a text-3xl underline-only div with no keyboard
                         affordance, a different species from the rest of the form. */}
-                    <button type="button" style={getTextStyle()} className="flex w-full cursor-pointer items-center justify-between gap-4 rounded-md border bg-white px-4 py-3 text-left text-base outline-none transition duration-150 hover:shadow-[0_1px_3px_rgba(16,24,38,0.10)] focus-visible:ring-2 lg:text-lg">
+                    <button
+                        type="button"
+                        style={{ ...getTextStyle(), ['--hover-border' as string]: theme?.tertiary ?? '#8A94A6' }}
+                        className="flex w-full cursor-pointer items-center justify-between gap-4 rounded-md border bg-white px-4 py-3 text-left text-base outline-none transition duration-150 hover:!border-[color:var(--hover-border)] hover:shadow-[0_1px_3px_rgba(16,24,38,0.10)] focus-visible:ring-2 lg:text-lg"
+                    >
                         <span className="truncate">{choiceValue ? choiceValue : 'Select an option'}</span>
                         <ChevronDown className={`duration-400 h-5 w-5 shrink-0 transition ${isOpen ? 'rotate-180' : ''}`} style={{ color: theme?.secondary }} />
                     </button>

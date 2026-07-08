@@ -66,13 +66,13 @@ export default function PhoneNumberField({ field }: { field: StandardFormFieldDt
                     country={defaultCountry()}
                     buttonStyle={{
                         border: '0px',
-                        borderRight: `1px solid ${theme?.tertiary}`,
+                        borderRight: '1px solid #E3E3E3',
                         background: '#ffffff',
                         height: '100%'
                     }}
                     dropdownStyle={{ background: '#ffffff' }}
                     inputStyle={{
-                        border: `1px solid ${theme?.tertiary}`,
+                        border: '1px solid #E3E3E3',
                         borderRadius: '6px',
                         background: '#ffffff',
                         color: theme?.primary

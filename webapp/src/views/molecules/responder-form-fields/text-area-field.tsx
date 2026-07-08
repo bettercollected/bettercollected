@@ -28,13 +28,15 @@ const StyledAutoSizeTextArea = styled(AutosizeTextarea)<{
         // Short/long text previously opted back into an underline-only look,
         // which fragmented the input language and had no focus indicator.
         background: '#ffffff',
-        borderColor: themeColor,
+        // Rest light and calm; hover steps to the theme's border colour; focus
+        // commits with the ring (matches shadcn/ui/input.tsx).
+        borderColor: '#E3E3E3',
         color: $formTheme?.primary,
         '&::placeholder': {
             color: '#657085 !important'
         },
         '&:hover:not(:focus)': {
-            borderColor: secondaryColor
+            borderColor: themeColor || '#8A94A6'
         },
         '&:focus': {
             borderColor: secondaryColor,
