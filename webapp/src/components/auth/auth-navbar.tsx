@@ -7,6 +7,9 @@ import { Button } from '@app/shadcn/components/ui/button';
 import AuthAccountMenuDropdown from '@app/components/auth/account-menu-dropdown';
 import Hamburger from '@app/components/ui/hamburger';
 import Logo from '@app/components/ui/logo';
+import Link from 'next/link';
+import { useAppSelector } from '@app/store/hooks';
+import { selectWorkspace } from '@app/store/workspaces/slice';
 import { buttonConstant } from '@app/constants/locales/button';
 import { useIsMobile } from '@app/lib/hooks/use-breakpoint';
 import { useIsMounted } from '@app/lib/hooks/use-is-mounted';
@@ -24,6 +27,7 @@ interface IAuthNavbarProps {
     mobileOpen?: boolean;
     showAuthAccount?: boolean;
     handleDrawerToggle?: () => void;
+    workspaceIdentity?: boolean;
 }
 
 AuthNavbar.defaultProps = {
@@ -48,7 +52,24 @@ export function Header(props: any) {
     return <nav className={`!fixed top-0 !z-30 border-b-[1px] border-black-400 flex w-full items-center justify-between px-5 transition-all duration-300 ltr:right-0 rtl:left-0 h-[68px] ${navClassNames} ${propClassNames}`}>{props.children}</nav>;
 }
 
-function AuthNavbar({ showHamburgerIcon, showPlans, mobileOpen, handleDrawerToggle, isCustomDomain = false, isFooter = false, isClientDomain = false, hideMenu = false, showAuthAccount }: IAuthNavbarProps) {
+function WorkspaceIdentity() {
+    const workspace = useAppSelector(selectWorkspace);
+    if (!workspace?.workspaceName) return null;
+    const title = workspace?.title || workspace?.workspaceName;
+    return (
+        <Link href={`/${workspace.workspaceName}/dashboard`} className="flex min-w-0 items-center gap-2.5 outline-none">
+            {workspace?.profileImage ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={workspace.profileImage} alt="" className="h-7 w-7 shrink-0 rounded-md object-cover" />
+            ) : (
+                <span className="bg-brand-100 text-brand-600 flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-xs font-bold">{(title?.[0] || 'W').toUpperCase()}</span>
+            )}
+            <span className="text-black-900 truncate text-sm font-semibold">{title}</span>
+        </Link>
+    );
+}
+
+function AuthNavbar({ showHamburgerIcon, showPlans, mobileOpen, handleDrawerToggle, isCustomDomain = false, isFooter = false, isClientDomain = false, hideMenu = false, showAuthAccount, workspaceIdentity = false }: IAuthNavbarProps) {
     const { t } = useTranslation();
     const inMobile = useIsMobile();
     return (
@@ -56,7 +77,11 @@ function AuthNavbar({ showHamburgerIcon, showPlans, mobileOpen, handleDrawerTogg
             <div className="flex flex-row w-full h-full py-2 md:py-0 justify-between items-center">
                 <div className="flex gap-4">
                     {inMobile && showHamburgerIcon && <Hamburger isOpen={mobileOpen} className="!shadow-none mr-2 !bg-white hover:!bg-white !text-black-900 !flex !justify-start" onClick={handleDrawerToggle} />}
-                    <Logo isCustomDomain={isCustomDomain} isFooter={isFooter} isClientDomain={isClientDomain} />
+                    {/* Admin surfaces lead with the WORKSPACE identity, not the
+                        product logo (de-brand decision — bettercollected appears only
+                        as a subtle "Powered by"). The login page keeps the brand, so
+                        this is opt-in per surface. */}
+                    {workspaceIdentity ? <WorkspaceIdentity /> : <Logo isCustomDomain={isCustomDomain} isFooter={isFooter} isClientDomain={isClientDomain} />}
                 </div>
                 <div className="flex items-center justify-center gap-7">
                     {!inMobile && (

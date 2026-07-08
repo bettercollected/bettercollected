@@ -14,6 +14,7 @@ interface LayoutProps {
     showAuthAccount?: boolean;
     hideSignIn?: boolean;
     showNavbar?: boolean;
+    workspaceIdentity?: boolean;
     isFooter?: boolean;
 }
 
@@ -26,12 +27,13 @@ export default function TopNavLayout({
     className = '',
     childClassName = '',
     showNavbar = false,
+    workspaceIdentity = false,
     isFooter = false,
     showAuthAccount
 }: React.PropsWithChildren<LayoutProps>) {
     return (
         <div className="!bg-black-200 dark:bg-dark z-20 !min-h-screen !min-w-full">
-            {showNavbar && <AuthNavbar isFooter={isFooter} isCustomDomain={isCustomDomain} isClientDomain={isClientDomain} showHamburgerIcon={showHamburgerIcon} hideMenu={hideMenu} showPlans={false} showAuthAccount={showAuthAccount} />}
+            {showNavbar && <AuthNavbar isFooter={isFooter} isCustomDomain={isCustomDomain} isClientDomain={isClientDomain} showHamburgerIcon={showHamburgerIcon} hideMenu={hideMenu} showPlans={false} showAuthAccount={showAuthAccount} workspaceIdentity={workspaceIdentity} />}
             <main
                 className={cn(
                     "bg-black-100 float-none flex w-full px-5 lg:float-right lg:px-10",
