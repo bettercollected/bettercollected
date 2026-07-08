@@ -14,17 +14,21 @@ import QuestionWrapper from './question-wrapper';
 
 const StyledDiv = styled.div<{
     $slide?: StandardFormFieldDto;
-    isBuilder: boolean;
-}>(({ $slide, isBuilder = false }) => {
-    const { theme } = useFormState();
-    const tertiaryColor = $slide?.properties?.theme?.tertiary || theme?.tertiary;
-    const secondaryColor = $slide?.properties?.theme?.secondary || theme?.secondary;
+    $formTheme?: ReturnType<typeof useFormState>['theme'];
+    $isBuilder?: boolean;
+}>(({ $slide, $formTheme, $isBuilder = false }) => {
+    // Theme via props ($ = transient, never leaks to the DOM). Calling the
+    // useFormState() hook inside a styled interpolation produces an
+    // inconsistent hook count under React 19 ("Rendered fewer hooks than
+    // expected") — this crashed the form preview for linear-rating fields.
+    const tertiaryColor = $slide?.properties?.theme?.tertiary || $formTheme?.tertiary;
+    const secondaryColor = $slide?.properties?.theme?.secondary || $formTheme?.secondary;
 
     return {
         color: secondaryColor,
-        borderColor: isBuilder ? tertiaryColor : secondaryColor,
+        borderColor: $isBuilder ? tertiaryColor : secondaryColor,
         '&:hover': {
-            background: isBuilder ? '' : tertiaryColor
+            background: $isBuilder ? '' : tertiaryColor
         }
     };
 });
@@ -44,7 +48,8 @@ const LinearRatingSection = ({ field, slide, isBuilder = false }: { field: Stand
                 return (
                     <StyledDiv
                         $slide={slide}
-                        isBuilder={isBuilder}
+                        $formTheme={theme}
+                        $isBuilder={isBuilder}
                         style={{
                             background: answer === index ? secondaryColor : '',
                             color: answer === index ? '#ffffff' : ''
