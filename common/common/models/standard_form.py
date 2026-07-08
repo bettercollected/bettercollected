@@ -9,12 +9,28 @@ from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
 
 
+class ThemeBackground(BaseModel):
+    """Optional page-ground decoration. Field names are camelCase on purpose:
+    the webapp sends the theme verbatim inside the form JSON (no camel<->snake
+    conversion happens for this nested object), and the same shape round-trips
+    back out. Lenient here — strict validation lives on the workspace
+    theme-presets endpoint where themes are authored."""
+
+    type: Optional[str] = None
+    gradientFrom: Optional[str] = None
+    gradientTo: Optional[str] = None
+    gradientAngle: Optional[int] = None
+    pattern: Optional[str] = None
+    imageUrl: Optional[str] = None
+
+
 class Theme(BaseModel):
     title: str
     primary: str
     secondary: str
     tertiary: str
     accent: str
+    background: Optional[ThemeBackground] = None
 
 
 class EmbedProvider(str, enum.Enum):

@@ -20,6 +20,7 @@ from backend.app.models.enum.workspace_roles import WorkspaceRoles
 from backend.app.models.workspace import (
     WorkspaceRequestDtoCamel,
     WorkspaceResponseDto,
+    WorkspaceThemeDto,
 )
 from backend.app.repositories.workspace_repository import WorkspaceRepository
 from backend.app.middlewares.dynamic_cors_middleware import DynamicCORSMiddleware
@@ -252,6 +253,39 @@ class WorkspaceService:
             else workspace_document.terms_of_service
         )
 
+        saved_workspace = await self._workspace_repo.update(
+            workspace_document.id, workspace_document
+        )
+        return WorkspaceResponseDto(**saved_workspace.model_dump(mode='json'))
+
+    async def update_custom_themes(
+        self,
+        workspace_id: PydanticObjectId,
+        custom_themes: list[WorkspaceThemeDto],
+        user: User,
+    ):
+        """Replace the workspace's saved custom form themes (full-list PATCH).
+
+        The list is small and owned by one settings surface, so replacing it
+        wholesale keeps create/rename/delete a single round-trip each.
+        """
+        await self._workspace_user_service.check_is_admin_in_workspace(
+            workspace_id=workspace_id, user=user
+        )
+        if len(custom_themes) > 20:
+            raise HTTPException(
+                HTTPStatus.BAD_REQUEST,
+                "A workspace can save at most 20 custom themes.",
+            )
+        titles = [theme.title.casefold() for theme in custom_themes]
+        if len(set(titles)) != len(titles):
+            raise HTTPException(
+                HTTPStatus.BAD_REQUEST, "Theme names must be unique."
+            )
+        workspace_document = await self._workspace_repo.get_workspace_by_id(
+            workspace_id
+        )
+        workspace_document.custom_themes = custom_themes
         saved_workspace = await self._workspace_repo.update(
             workspace_document.id, workspace_document
         )

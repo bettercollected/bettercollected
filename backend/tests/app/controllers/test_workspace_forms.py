@@ -76,6 +76,40 @@ class TestWorkspaceForm:
         assert workspace_form.form_id == actual_response.form_id
         assert actual_response.version is not None
 
+    async def test_publish_upgrades_placeholder_slug_from_title(
+        self,
+        client: AsyncClient,
+        workspace: Coroutine[Any, Any, WorkspaceDocument],
+        test_user_cookies: dict[str, str],
+    ):
+        # A blank form (placeholder title) keeps the form id as its slug...
+        blank_form = await container.workspace_form_service().create_form(
+            workspace.id,
+            StandardForm(**{**formData, "title": "Untitled form"}),
+            testUser,
+        )
+        repo = container.workspace_form_service().workspace_form_repository
+        wf = await repo.get_workspace_form_in_workspace(
+            workspace_id=workspace.id, query=str(blank_form.form_id)
+        )
+        assert wf.settings.custom_url == str(blank_form.form_id)
+
+        # ...until it's titled and published, when it gets a title-based slug.
+        form_doc = await FormDocument.find_one({"form_id": blank_form.form_id})
+        form_doc.title = "Customer Feedback"
+        await form_doc.save()
+
+        publish_url = (
+            f"/api/v1/workspaces/{workspace.id}/forms/{blank_form.form_id}/publish"
+        )
+        response = await client.post(publish_url, cookies=test_user_cookies)
+        assert response.status_code == 200
+
+        wf_after = await repo.get_workspace_form_in_workspace(
+            workspace_id=workspace.id, query=str(blank_form.form_id)
+        )
+        assert wf_after.settings.custom_url == "customer-feedback"
+
     async def test_duplicate_form(
         self,
         client: AsyncClient,

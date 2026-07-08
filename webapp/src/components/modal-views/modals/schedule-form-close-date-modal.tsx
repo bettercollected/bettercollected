@@ -43,9 +43,9 @@ const ScheduleFormCloseDateModal: React.FC<IScheduleFormCloseDateModalProps> = (
                         }}
                     >
                         <PopoverTrigger asChild>
-                            <div className="relative flex w-[280px] cursor-pointer items-center rounded-lg border border-gray-400 bg-white p-2 text-left font-normal text-gray-700">
-                                <CalendarIcon className="absolute left-2 h-4 w-4 text-gray-500" />
-                                <div className="ml-8 text-black">{value ? format(value, 'PPP') : <span className="text-gray-500">Pick a date</span>}</div>
+                            <div className="border-black-300 text-black-700 hover:border-black-400 relative flex w-[280px] cursor-pointer items-center rounded-lg border bg-white p-2 text-left font-normal transition-colors">
+                                <CalendarIcon className="text-black-500 absolute left-2 h-4 w-4" />
+                                <div className="text-black-900 ml-8">{value ? format(value, 'PPP') : <span className="text-black-500">Pick a date</span>}</div>
                             </div>
                         </PopoverTrigger>
 

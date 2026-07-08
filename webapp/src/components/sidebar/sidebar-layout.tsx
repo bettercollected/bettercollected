@@ -8,7 +8,7 @@ import { FormIcon } from '@Components/icons/form-icon';
 import MembersIcon from '@Components/icons/members';
 import ResponderIcon from '@Components/icons/responder';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Settings, Trash2 } from 'lucide-react';
+import { Palette, Settings, Trash2 } from 'lucide-react';
 
 import { cn } from '@app/shadcn/util/lib';
 
@@ -152,6 +152,13 @@ export default function SidebarLayout({ children, DrawerComponent = DashboardDra
         {
             label: 'Workspace',
             items: [
+                {
+                    key: 'themes',
+                    name: 'Themes',
+                    url: `${commonWorkspaceUrl}/themes`,
+                    adminOnly: true,
+                    icon: <Palette className="h-5 w-5 stroke-2" />
+                },
                 {
                     key: 'members',
                     name: t(members.default),

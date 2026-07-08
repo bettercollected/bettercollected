@@ -1,3 +1,4 @@
+import { ThemeBackground } from '@app/constants/theme';
 import { atom, useAtom } from 'jotai';
 
 import { ThemeColor } from '@app/constants/theme';
@@ -23,13 +24,7 @@ export interface IFormState {
         layout?: FormSlideLayout;
         imageUrl?: string;
     }>;
-    theme?: {
-        title: string;
-        primary: string;
-        secondary: string;
-        tertiary: string;
-        accent: string;
-    };
+    theme?: IThemeState;
     /**
      * Declared hidden-field (URL parameter) names, e.g. ['utm_source', 'name'].
      * Captured from the share link at fill time and stored with the response;
@@ -44,6 +39,7 @@ export interface IThemeState {
     secondary: string;
     tertiary: string;
     accent: string;
+    background?: ThemeBackground;
 }
 
 
@@ -121,7 +117,7 @@ export function useFormState() {
         }));
     };
 
-    const updateFormTheme = (theme: { title: string; primary: string; secondary: string; tertiary: string; accent: string }) => {
+    const updateFormTheme = (theme: IThemeState) => {
         setFormState((prev) => ({ ...prev, theme }));
     };
 

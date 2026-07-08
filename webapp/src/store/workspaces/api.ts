@@ -392,16 +392,18 @@ export const workspacesApi = createApi({
             }),
             invalidatesTags: [WORKSPACE_TAGS]
         }),
-        patchTheme: builder.mutation<any, any>({
+        patchWorkspaceThemes: builder.mutation<any, any>({
+            // Replaces the workspace's saved custom form themes (full-list PATCH).
             query: (request) => ({
-                url: `/workspaces/${request.workspace_id}/theme`,
+                url: `/workspaces/${request.workspace_id}/theme-presets`,
                 method: 'PATCH',
                 body: request.body,
                 credentials: 'include',
                 headers: {
                     'Access-control-allow-origin': environments.API_ENDPOINT_HOST
                 }
-            })
+            }),
+            invalidatesTags: [WORKSPACE_TAGS]
         }),
         patchWorkspacePolicies: builder.mutation<any, any>({
             query: (request) => ({
@@ -539,7 +541,7 @@ export const {
     useSubmitResponseMutation,
     useCreateWorkspaceMutation,
     usePatchExistingWorkspaceMutation,
-    usePatchThemeMutation,
+    usePatchWorkspaceThemesMutation,
     useDuplicateFormMutation,
     usePatchWorkspacePoliciesMutation,
     useGetAllMineWorkspacesQuery,

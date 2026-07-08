@@ -1,5 +1,6 @@
 'use client';
 
+import { themeBackgroundStyle } from '@app/views/molecules/theme/theme-shared';
 import { useState } from 'react';
 
 import Image from 'next/image';
@@ -101,9 +102,11 @@ const LayoutWrapper = ({ layout, theme, imageUrl, updatePageImage, updatePageLay
                     thumbBg={theme?.tertiary}
                     id={scrollDivId}
                     asChild
-                    style={{
-                        background: layout === FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND ? 'transparent' : theme?.accent
-                    }}
+                    style={
+                        // On the image-background layout the slide's own image is
+                        // the ground, so the theme background stays out of the way.
+                        layout === FormSlideLayout.SINGLE_COLUMN_IMAGE_BACKGROUND ? { background: 'transparent' } : themeBackgroundStyle(theme)
+                    }
                     // TODO: Change this to apply layout from other layout
                     className={cn(
                         removePaddingXForSmallScreen ? 'px-0 lg:px-8' : 'px-8 md:px-10 ',

@@ -48,7 +48,7 @@ export function SignInModal(props: MyLoginProps) {
             <div className="absolute top-0 left-0 w-full flex flex-col xl:flex-row ">
                 <div className={`bg-brand-500 xl:rounded-l-lg relative xl:order-1 overflow-hidden w-screen xl:w-[547px] xl:h-[687px] pt-16 xl:px-[60px] xl:py-[80px] hidden xl:flex xl:flex-col xl:justify-start`}>
                     <div className="flex flex-col px-8 xl:max-h-[300px] mb-[105px]">
-                        <h1 className="sh1 !text-black-100 mb-6">{features.heading}</h1>
+                        <h1 className="mb-6 text-2xl font-semibold !text-black-100">{features.heading}</h1>
                         {features.paragraphs.map((paragraph: string, idx: number) => (
                             <div key={idx} className="flex items-center gap-3 mb-4 last:mb-0">
                                 <Check className="text-black-300" />

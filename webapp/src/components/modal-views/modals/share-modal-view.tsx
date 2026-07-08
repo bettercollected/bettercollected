@@ -13,8 +13,14 @@ interface Props {
 export default function ShareModalView({ url, title, showCopy, ...props }: Props) {
     const { closeModal } = useModal();
     return (
-        <div className="rounded-[4px] relative bg-white md:p-10 p-5  dark:border-gray-700 dark:bg-light-dark">
-            <Close onClick={closeModal} className="absolute top-2 right-2 cursor-pointer p-2 h-8 w-8" />
+        <div className="border-black-200 relative w-[calc(100vw-2rem)] max-w-[540px] rounded-2xl border bg-white p-6 text-left shadow-xl sm:w-[540px] sm:p-8">
+            <button
+                onClick={closeModal}
+                aria-label="Close"
+                className="text-black-500 hover:bg-black-100 hover:text-black-800 absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-md transition-colors"
+            >
+                <Close className="h-4 w-4" />
+            </button>
             <ShareView url={url} title={title} showCopy={showCopy} {...props} />
         </div>
     );

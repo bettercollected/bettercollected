@@ -62,10 +62,10 @@ export default function InviteMemberModal() {
     return (
         <SettingsCard className="relative !space-y-0 px-10 py-6 pb-10">
             <Close onClick={closeModal} className="absolute right-2 top-2 h-8 w-8 cursor-pointer p-2" />
-            <div className="sh1 !leading-none">{t(inviteCollaborator.default)}</div>
-            <div className="body4 pt-6 !leading-none ">{t(inviteCollaborator.description)}</div>
+            <div className="text-black-900 text-lg font-semibold leading-snug">{t(inviteCollaborator.default)}</div>
+            <div className="text-black-600 pt-3 text-sm leading-relaxed">{t(inviteCollaborator.description)}</div>
             <form onSubmit={handleSendInvitation} className="flex flex-col  justify-start pt-8">
-                <div className="body1 mb-3 !leading-none">{t(localesCommon.enterEmail)}</div>
+                <div className="text-black-700 mb-2 text-sm font-medium">{t(localesCommon.enterEmail)}</div>
                 <AppInput
                     disabled={isLoading}
                     data-testid="otp-input"

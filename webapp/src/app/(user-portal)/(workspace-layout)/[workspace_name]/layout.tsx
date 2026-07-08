@@ -22,6 +22,12 @@ export default async function ResponderPortalLayout({
     }
     const { workspace_name } = await params;
     const workspace = await getWorkspaceByName(workspace_name);
+    // A dead workspace/form link is the most common real 404 — send it to the
+    // branded not-found page instead of rendering the portal with a null
+    // workspace. getWorkspaceByName only returns null on a genuine miss.
+    if (!workspace?.id) {
+        notFound();
+    }
     return (
         <WorkspaceDispatcher workspace={workspace}>
             <ResponderPortalLayoutClient hasCustomDomain={false}>

@@ -13,6 +13,7 @@ from backend.app.models.dtos.workspace_stats_dto import WorkspaceStatsDto
 from backend.app.models.workspace import (
     WorkspaceRequestDtoCamel,
     WorkspaceResponseDto,
+    WorkspaceThemeDto,
 )
 from backend.app.router import router
 from backend.app.services.user_service import get_logged_user, get_user_if_logged_in
@@ -149,6 +150,18 @@ class WorkspaceRouter(Routable):
         )
         return await self.workspace_service.patch_workspace(
             profile_image, banner_image, workspace_id, workspace_request, user
+        )
+
+    @patch("/{workspace_id}/theme-presets")
+    async def patch_workspace_theme_presets(
+        self,
+        workspace_id: PydanticObjectId,
+        custom_themes: List[WorkspaceThemeDto],
+        user: User = Depends(get_logged_user),
+    ) -> WorkspaceResponseDto:
+        """Replace the workspace's saved custom form themes."""
+        return await self.workspace_service.update_custom_themes(
+            workspace_id, custom_themes, user
         )
 
     @post("/{workspace_id}/auth/otp/send")
