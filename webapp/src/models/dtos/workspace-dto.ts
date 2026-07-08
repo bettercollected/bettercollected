@@ -1,5 +1,7 @@
 // src/models/dtos/workspaceDto.ts
 
+import { FormTheme } from '@app/constants/theme';
+
 export interface WorkspaceDto {
     title: string;
     workspaceName: string;
@@ -22,6 +24,8 @@ export interface WorkspaceDto {
     id: string;
     isPro?: boolean;
     customDomainVerified?: boolean;
+    // Saved custom form themes (workspace "brand kit" palettes).
+    customThemes?: FormTheme[];
 }
 
 export interface WorkspaceInvitationDto {

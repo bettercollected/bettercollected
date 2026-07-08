@@ -1,3 +1,4 @@
+import { FormTheme } from '@app/constants/theme';
 import { createSlice } from '@reduxjs/toolkit';
 import { persistReducer } from 'redux-persist';
 import storage from 'redux-persist/lib/storage';
@@ -25,6 +26,8 @@ export interface WorkspaceState {
     workspaceName: string;
     isPro: boolean;
     customDomainVerified?: boolean;
+    // Saved custom form themes (workspace "brand kit" palettes).
+    customThemes?: FormTheme[];
 }
 
 const initialState: WorkspaceState = {
