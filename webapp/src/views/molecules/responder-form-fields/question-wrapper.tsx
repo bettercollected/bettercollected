@@ -3,6 +3,7 @@ import parse from 'html-react-parser';
 import { FieldTypes, StandardFormFieldDto, V2InputFields } from '@app/models/dtos/form';
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
+import { useFormState } from '@app/store/jotai/form';
 import { useFormResponse } from '@app/store/jotai/responder-form-response';
 import { useHiddenFieldValues } from '@app/store/jotai/responder-hidden-fields';
 import { resolvePipesInText, resolvePipesInTitle } from '@app/utils/answer-piping';
@@ -13,6 +14,7 @@ import { getPlaceholderValueForTitle } from '../rich-text-editor';
 
 export default function QuestionWrapper({ field, children }: { field: StandardFormFieldDto; children?: React.ReactNode }) {
     const { formResponse } = useFormResponse();
+    const { theme } = useFormState();
     const { hiddenValues } = useHiddenFieldValues();
     const standardForm = useAppSelector(selectForm);
 
@@ -66,19 +68,20 @@ export default function QuestionWrapper({ field, children }: { field: StandardFo
                 : {})}
         >
             <div className="">
-                {questionNumber !== null && (
-                    <div aria-hidden="true" className="text-black-600 mb-1 text-xs font-semibold tracking-widest tabular-nums">
-                        {String(questionNumber).padStart(2, '0')}
-                    </div>
-                )}
-                <div className="flex flex-wrap items-baseline gap-x-2">
-                    {/* The question owns the screen: 24px/600 ink (Design-Language §2) —
-                        bigger and darker than anything else, including the answer.
-                        The required mark sits INLINE right after the last word of the
-                        title ([&_p]:inline keeps the parsed paragraph in flow) — the old
-                        absolutely-positioned icon floated at the container's far right
-                        edge, visually orphaned from short labels. */}
-                    <div id={`q-title-${field.id}`} className="text-xl font-semibold leading-snug lg:text-2xl [&_p]:inline">
+                <div className="flex flex-wrap items-baseline gap-x-2.5">
+                    {/* The ordinal is the accent: a small mono number in the theme's
+                        action colour on the label's own baseline — the page's rhythm
+                        marker (numbers encode a real sequence). Question labels sit at
+                        16/18px semibold ink: on multi-question pages the old 24px
+                        repeated per question read as a wall of headings; weight and
+                        contrast carry the hierarchy, not size (ratified 2026-07-08
+                        against the form-redesign mocks). */}
+                    {questionNumber !== null && (
+                        <span aria-hidden="true" style={{ color: theme?.secondary }} className="font-mono text-[13px] font-medium tabular-nums">
+                            {String(questionNumber).padStart(2, '0')}
+                        </span>
+                    )}
+                    <div id={`q-title-${field.id}`} className="text-base font-semibold leading-snug lg:text-lg [&_p]:inline">
                         {parse(getHtmlFromJson(resolvedTitle) ?? getPlaceholderValueForTitle(field?.type || FieldTypes.TEXT))}
                         {isAnswerable && isRequired && (
                             <>
