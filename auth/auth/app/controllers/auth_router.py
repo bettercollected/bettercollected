@@ -43,11 +43,11 @@ class AuthRoutes(Routable):
         background_tasks: BackgroundTasks,
     ):
         background_tasks.add_task(
-            self.auth_service.send_code_to_user_for_workspace_sync,
-            receiver_email,
-            workspace_title,
-            workspace_profile_image,
-            creator,
+            self.auth_service.send_otp_to_mail,
+            receiver_mail=receiver_email,
+            workspace_title=workspace_title,
+            workspace_profile_image=workspace_profile_image,
+            creator=creator,
         )
         return {"message": "Email set to be sent"}
 
