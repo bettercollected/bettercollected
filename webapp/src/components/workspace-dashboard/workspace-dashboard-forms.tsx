@@ -105,19 +105,22 @@ export default function WorkspaceDashboardForms({ showButtons, hasCustomDomain, 
         <div className="mb-10 flex h-fit w-full flex-col gap-5">
             {workspaceForms?.data?.total > 0 ? (
                 <>
-                    {/* The page heading lives in the top navbar (getHeader) — repeating
-                        it here read as a stutter. The toolbar keeps the useful part: a
-                        quiet count beside search. */}
+                    {/* The page heading lives in the top navbar (getHeader). The toolbar
+                        leads with a real-width search (the flex parent previously never
+                        grew, collapsing the w-full input to ~200px) and carries the count
+                        as a quiet, search-aware suffix aligned to the control. */}
                     <div className="mb-5 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                        <div className="flex flex-row items-center gap-4">
+                        <div className="flex w-full min-w-0 flex-1 items-center gap-3">
+                            <div className="w-full max-w-[420px]">
+                                <SearchInput placeholder={'Search forms'} handleSearch={handleSearch} />
+                            </div>
                             {showPagination && (
-                                <span className="text-black-600 whitespace-nowrap text-sm tabular-nums">
+                                <span className="text-black-600 shrink-0 whitespace-nowrap text-sm tabular-nums">
                                     {(showSearchedResults ? searchedForms?.length || 0 : workspaceForms?.data?.total || 0) === 1
                                         ? '1 form'
                                         : `${showSearchedResults ? searchedForms?.length || 0 : workspaceForms?.data?.total || 0} forms`}
                                 </span>
                             )}
-                            <SearchInput placeholder={'Search Form'} handleSearch={handleSearch} />
                         </div>
                         {showButtons && <NewFormButton />}
                     </div>
