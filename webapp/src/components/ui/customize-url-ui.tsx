@@ -59,31 +59,39 @@ export default function CustomizeUrlUi({ url, form }: ICustomizeUrlModalProps) {
             closeModal();
         }
     };
+    const isInvalid = !slug.match(slugRegex);
     return (
-        <form onSubmit={handleUpdate} className="w-full">
-            <p className="sh1">{t(customize.form.title)}</p>
-            <ul className="list-disc  body4 ml-5 mt-4 !text-black-700 !mb-6">
+        <form onSubmit={handleUpdate} className="flex w-full flex-col gap-6">
+            <div className="flex flex-col gap-1.5">
+                <h2 className="text-black-900 text-lg font-semibold leading-snug">{t(customize.form.title)}</h2>
+                <p className="text-black-600 text-sm leading-relaxed">Pick a short, memorable link for this form. Responses already collected aren&apos;t affected.</p>
+            </div>
+
+            <ul className="text-black-600 flex list-disc flex-col gap-1.5 pl-5 text-sm">
                 <li>{t(customize.form.point1)}</li>
-                <li className="my-3">{t(customize.form.point2)}</li>
+                <li>{t(customize.form.point2)}</li>
                 <li>{t(customize.form.point3)}</li>
             </ul>
-            <p className=" mb-3 body1  !leading-none">
-                {t(localesCommon.slug)}
-                <span className="text-red-500">*</span>
-            </p>
-            <AppInput id="title" value={slug} onChange={handleOnchange} />
-            {!slug.match(slugRegex) && isError && <p className="body4 !text-red-500 h-[10px]">{t(validationMessage.slug)}</p>}
-            <div className="px-10 py-6 gap-6 bg-blue-100 mt-8 md:w-[535px] w-full md:-ml-10 break-all">
-                <p className="body1">{t(localesCommon.newLink)}</p>
-                <p className="body3 ">
-                    <span className="text-black-600"> {url}</span>/<span className="text-black-800 font-medium">{slug}</span>
+
+            <div className="flex flex-col gap-2">
+                <label htmlFor="slug" className="text-black-700 text-sm font-medium">
+                    {t(localesCommon.slug)}
+                    <span className="text-[#C43D3D]"> *</span>
+                </label>
+                <AppInput id="slug" value={slug} onChange={handleOnchange} className={`!text-sm ${isError && isInvalid ? '!border-[#C43D3D]' : ''}`} />
+                {isError && isInvalid && <p className="text-sm text-[#C43D3D]">{t(validationMessage.slug)}</p>}
+            </div>
+
+            <div className="border-black-300 bg-black-100 flex flex-col gap-1 rounded-lg border px-4 py-3">
+                <span className="text-black-500 text-xs font-medium uppercase tracking-wide">{t(localesCommon.newLink)}</span>
+                <p className="break-all text-sm">
+                    <span className="text-black-600">{url}</span>/<span className="text-black-900 font-medium">{slug}</span>
                 </p>
             </div>
-            <div className="mt-5 flex flex-col w-full ">
-                <Button size="medium" isLoading={isLoading} disabled={!slug.match(slugRegex)}>
-                    {t(buttonConstant.updateNow)}
-                </Button>
-            </div>
+
+            <Button size="medium" variant="primary" isLoading={isLoading} disabled={isInvalid}>
+                {t(buttonConstant.updateNow)}
+            </Button>
         </form>
     );
 }
