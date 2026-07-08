@@ -346,8 +346,16 @@ class WorkspaceFormService:
             )
         )
 
+        # Human-friendly default share slug derived from the title (e.g.
+        # "Customer Feedback" -> "customer-feedback") instead of the raw 24-char
+        # ObjectId. Set once at creation and never auto-changed on rename, so
+        # shared links stay stable; the user can still set a custom slug later.
+        custom_url = await self._generate_unique_form_slug(
+            workspace_id=workspace_id, title=form.title, fallback=form.form_id
+        )
+
         workspace_form_settings = WorkspaceFormSettings(
-            custom_url=form.form_id,
+            custom_url=custom_url,
             provider="self",
             privacy_policy_url=settings.privacy_policy_url,
             response_expiration=settings.response_expiration,
@@ -715,6 +723,25 @@ class WorkspaceFormService:
         await self.form_service.update_state_of_action_in_form(
             form_id=form_id, update_action_dto=update_action_dto
         )
+
+    async def _generate_unique_form_slug(self, workspace_id, title, fallback):
+        """Return a readable, workspace-unique share slug from the form title.
+
+        Falls back to ``fallback`` (the form id, which is already unique) when
+        the title normalizes to an empty string or the base slug is somehow
+        contested beyond a sane number of tries.
+        """
+        base_slug = self.clean_and_normalize_string(title or "") or "untitled-form"
+        slug = base_slug
+        suffix = 1
+        while await self.workspace_form_repository.get_workspace_form_with_custom_slug_form_id(
+            workspace_id=workspace_id, custom_url=slug
+        ):
+            suffix += 1
+            if suffix > 50:
+                return fallback
+            slug = f"{base_slug}-{suffix}"
+        return slug
 
     def clean_and_normalize_string(self, input_string):
         # Remove special characters, keep only alphanumeric and spaces
