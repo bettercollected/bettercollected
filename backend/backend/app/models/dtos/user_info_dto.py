@@ -8,7 +8,7 @@ from common.enums.roles import Roles
 
 
 class UserInfoDto(BaseModel):
-    id: PydanticObjectId = None
+    id: Optional[PydanticObjectId] = None
     _id: str
     first_name: Optional[str] = None
     last_name: Optional[str] = None
