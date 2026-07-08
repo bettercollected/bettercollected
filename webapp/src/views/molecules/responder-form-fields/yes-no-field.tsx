@@ -63,7 +63,7 @@ const YesNoField = ({ field }: { field: StandardFormFieldDto }) => {
                                                 // The answer wears ink (theme primary), never the action colour.
                                                 color: theme?.primary
                                             }}
-                                            className={`flex w-[100px] cursor-pointer items-center justify-between gap-2 rounded-xl border p-2 px-4`}
+                                            className={`flex min-w-[100px] max-w-full cursor-pointer items-center justify-between gap-2 rounded-xl border p-2 px-4`}
                                         >
                                             {choice.value}
                                             {checked && <Check className="h-5 w-5 shrink-0" />}

@@ -112,21 +112,25 @@ export default function FileUpload({ field }: { field: StandardFormFieldDto }) {
     const getFilePreview = () => {
         return (
             <div className="flex w-full space-x-2">
-                <div style={{ backgroundColor: theme?.tertiary }} className="p1 flex w-full cursor-pointer items-center justify-between rounded px-3 py-2" onClick={downloadFormFile}>
+                {/* Tinted fill + ink text — a solid tertiary block under ink text is
+                    the same legibility defect the yes/no chips had. */}
+                <div style={{ backgroundColor: theme?.tertiary + '55', color: theme?.primary }} className="p1 flex w-full cursor-pointer items-center justify-between rounded px-3 py-2" onClick={downloadFormFile}>
                     <p className="mr-5 flex-1 truncate">{fileMetaData?.name}</p>
                     <p className="text-sm">{fileMetaData?.size} MB</p>
                 </div>
 
-                <div
+                <button
+                    type="button"
+                    aria-label="Remove uploaded file"
                     style={{
-                        backgroundColor: theme?.tertiary,
+                        backgroundColor: theme?.tertiary + '55',
                         color: theme?.primary
                     }}
                     className="items-center justify-center rounded p-2"
                     onClick={handleDeleteFile}
                 >
                     <DeleteIcon />
-                </div>
+                </button>
             </div>
         );
     };

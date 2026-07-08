@@ -79,9 +79,10 @@ function DateFieldSection({ field, isBuilder }: IDateField) {
                             style={{ color: secondaryColor }}
                         />
                         {date ? (
-                            <span style={{ color: secondaryColor }}>{format(date, 'PPP')}</span>
+                            // The chosen date is the answer — ink, not the action colour.
+                            <span style={{ color: theme?.primary }}>{format(date, 'PPP')}</span>
                         ) : (
-                            <span style={{ color: tertiaryColor }}>Pick a date</span>
+                            <span style={{ color: '#657085' }}>Pick a date</span>
                         )}
                     </button>
                 </PopoverTrigger>
