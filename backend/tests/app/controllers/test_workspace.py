@@ -17,6 +17,51 @@ common_url = "/api/v1/workspaces"
 
 
 class TestWorkspaces:
+    async def test_patch_theme_presets_saves_and_returns_custom_themes(
+        self,
+        client: AsyncClient,
+        workspace: Coroutine[Any, Any, WorkspaceDocument],
+        test_user_cookies: dict[str, str],
+    ):
+        theme = {
+            "title": "Brand 2026",
+            "primary": "#101826",
+            "secondary": "#2456CC",
+            "tertiary": "#818CA0",
+            "accent": "#F6F8FC",
+        }
+        response = await client.patch(
+            f"{common_url}/{workspace.id}/theme-presets",
+            cookies=test_user_cookies,
+            json=[theme],
+        )
+        assert response.status_code == 200
+        assert response.json().get("customThemes") == [theme]
+
+        # And it round-trips on the persisted document.
+        saved = await WorkspaceDocument.get(workspace.id)
+        assert [t.title for t in saved.custom_themes] == ["Brand 2026"]
+
+    async def test_patch_theme_presets_rejects_bad_hex(
+        self,
+        client: AsyncClient,
+        workspace: Coroutine[Any, Any, WorkspaceDocument],
+        test_user_cookies: dict[str, str],
+    ):
+        theme = {
+            "title": "Broken",
+            "primary": "not-a-colour",
+            "secondary": "#2456CC",
+            "tertiary": "#818CA0",
+            "accent": "#F6F8FC",
+        }
+        response = await client.patch(
+            f"{common_url}/{workspace.id}/theme-presets",
+            cookies=test_user_cookies,
+            json=[theme],
+        )
+        assert response.status_code == 422
+
     async def test_get_workspace_by_query(
         self,
         client: AsyncClient,

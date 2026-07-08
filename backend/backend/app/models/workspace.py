@@ -1,10 +1,43 @@
 import datetime as dt
+import re
 from typing import Optional, Dict, List
 
 from beanie import PydanticObjectId
 from common.models.consent import ResponseRetentionType
 from fastapi_camelcase import CamelModel
-from pydantic import BaseModel, Field, model_serializer
+from pydantic import BaseModel, Field, field_validator, model_serializer
+
+
+class WorkspaceThemeDto(BaseModel):
+    """A custom form theme saved at the workspace level.
+
+    Mirrors the webapp's FormTheme roles (webapp/src/constants/theme.ts):
+    primary = question/answer text, secondary = button fills, tertiary = input
+    borders, accent = page background.
+    """
+
+    title: str
+    primary: str
+    secondary: str
+    tertiary: str
+    accent: str
+
+    @field_validator("title")
+    @classmethod
+    def _sane_title(cls, v: str) -> str:
+        v = v.strip()
+        if not v:
+            raise ValueError("Theme name cannot be empty.")
+        if len(v) > 40:
+            raise ValueError("Theme name must be 40 characters or fewer.")
+        return v
+
+    @field_validator("primary", "secondary", "tertiary", "accent")
+    @classmethod
+    def _hex_colour(cls, v: str) -> str:
+        if not re.fullmatch(r"#[0-9a-fA-F]{6}", v):
+            raise ValueError("Colours must be 6-digit hex, e.g. #2456CC")
+        return v
 
 
 class WorkspaceRequestDto(BaseModel):
@@ -18,6 +51,9 @@ class WorkspaceRequestDto(BaseModel):
     custom_domain: Optional[str] = None
     privacy_policy: Optional[str] = None
     terms_of_service: Optional[str] = None
+    # Saved custom form themes ("brand kit" palettes). Optional and additive —
+    # existing workspace documents simply have none.
+    custom_themes: Optional[List[WorkspaceThemeDto]] = None
 
 
 class ParameterValue(BaseModel):
