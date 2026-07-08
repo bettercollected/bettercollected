@@ -57,17 +57,21 @@ const FieldInput = styled(ShadCNInput)<{
         // White field on the page surface gives the input real figure/ground —
         // the bordered box, not a wash, is what reads as "type here".
         background: '#ffffff',
-        borderColor: themeColor,
+        // Fall back to a visible hairline when the form has no custom theme, so
+        // the field never disappears into the page (affordance).
+        borderColor: themeColor || '#CBD5E6',
         '&::placeholder': {
             // Legible neutral (ink-3), not the theme tint — placeholders are
             // text people read, not decoration.
             color: '#657085 !important'
         },
         '&:focus': {
-            borderColor: secondaryColor,
-            // Visible focus ring (a trust + accessibility signal), tinted from the
-            // form's own theme so it stays on-brand.
-            boxShadow: secondaryColor ? `0 0 0 3px ${secondaryColor}33` : undefined
+            // Always show a focus ring for keyboard users (WCAG 2.4.7). The base
+            // input sets outline:none, so without this an unthemed form would have
+            // no visible focus at all. Tint from the form's theme when present,
+            // else the trust-blue brand ring.
+            borderColor: secondaryColor || '#2456CC',
+            boxShadow: `0 0 0 3px ${secondaryColor ? `${secondaryColor}33` : 'rgba(36, 86, 204, 0.25)'}`
         }
     };
 });

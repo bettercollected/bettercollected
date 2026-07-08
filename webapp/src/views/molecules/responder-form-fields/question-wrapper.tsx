@@ -35,7 +35,20 @@ export default function QuestionWrapper({ field, children }: { field: StandardFo
     const resolvedDescription = resolvePipesInText(field?.description, pipeContext);
 
     return (
-        <div className="relative flex flex-col gap-1 lg:gap-2" id={field.id}>
+        <div
+            className="relative flex flex-col gap-1 lg:gap-2"
+            id={field.id}
+            // Give assistive tech an accessible name/description for the field.
+            // Answerable fields become a labelled group so the question (and any
+            // description / validation message) is announced with the control.
+            {...(isAnswerable
+                ? {
+                      role: 'group',
+                      'aria-labelledby': `q-title-${field.id}`,
+                      'aria-describedby': [resolvedDescription ? `q-desc-${field.id}` : null, hasError ? `q-error-${field.id}` : null].filter(Boolean).join(' ') || undefined
+                  }
+                : {})}
+        >
             {isRequired && (
                 <div className="absolute -right-2 top-2">
                     <RequiredIcon className="text-black-900" />
@@ -45,16 +58,26 @@ export default function QuestionWrapper({ field, children }: { field: StandardFo
                 <div className="flex flex-wrap items-baseline gap-x-2">
                     {/* The question owns the screen: 24px/600 ink (Design-Language §2) —
                         bigger and darker than anything else, including the answer. */}
-                    <div className="text-xl font-semibold leading-snug lg:text-2xl">{parse(getHtmlFromJson(resolvedTitle) ?? getPlaceholderValueForTitle(field?.type || FieldTypes.TEXT))}</div>
+                    <div id={`q-title-${field.id}`} className="text-xl font-semibold leading-snug lg:text-2xl">
+                        {parse(getHtmlFromJson(resolvedTitle) ?? getPlaceholderValueForTitle(field?.type || FieldTypes.TEXT))}
+                    </div>
                     {isAnswerable && !isRequired && <span className="text-black-700 text-xs font-normal tracking-wide">Optional</span>}
                 </div>
-                {resolvedDescription && <div className="text-black-700 mt-1.5 max-w-[62ch] text-[15px] leading-relaxed">{resolvedDescription}</div>}
+                {resolvedDescription && (
+                    <div id={`q-desc-${field.id}`} className="text-black-700 mt-1.5 max-w-[62ch] text-[15px] leading-relaxed">
+                        {resolvedDescription}
+                    </div>
+                )}
             </div>
             <RenderImage field={field} />
             {children}
             {/* Honest, non-alarmist validation: say what to do, not just that something is wrong,
                 and avoid alarm colours/urgency (Design-Language.md §5). */}
-            {hasError && <div className="mt-2 text-sm text-amber-700">Please answer this question to continue.</div>}
+            {hasError && (
+                <div id={`q-error-${field.id}`} role="alert" className="mt-2 text-sm text-amber-700">
+                    Please answer this question to continue.
+                </div>
+            )}
         </div>
     );
 }
