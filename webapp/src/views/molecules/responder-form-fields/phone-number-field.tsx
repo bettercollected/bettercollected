@@ -73,7 +73,7 @@ export default function PhoneNumberField({ field }: { field: StandardFormFieldDt
                     dropdownStyle={{ background: '#ffffff' }}
                     inputStyle={{
                         border: `1px solid ${theme?.tertiary}`,
-                        borderRadius: '12px',
+                        borderRadius: '6px',
                         background: '#ffffff',
                         color: theme?.primary
                     }}

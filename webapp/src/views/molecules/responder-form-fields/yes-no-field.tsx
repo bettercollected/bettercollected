@@ -59,14 +59,15 @@ const YesNoField = ({ field }: { field: StandardFormFieldDto }) => {
                                                 // under secondary-colour text was illegible, and painting it
                                                 // on `active` too made mere keyboard focus look selected.
                                                 borderColor: active || checked ? theme?.secondary : theme?.tertiary,
-                                                background: checked ? theme?.tertiary + '55' : '',
+                                                // Selection wears the action colour — semantic, not decorative.
+                                                background: checked ? theme?.secondary + '1A' : '',
                                                 // The answer wears ink (theme primary), never the action colour.
                                                 color: theme?.primary
                                             }}
-                                            className={`flex min-w-[100px] max-w-full cursor-pointer items-center justify-between gap-2 rounded-xl border p-2 px-4`}
+                                            className={`flex min-w-[100px] max-w-full cursor-pointer items-center justify-between gap-2 rounded-md border p-2 px-4 transition duration-150`}
                                         >
                                             {choice.value}
-                                            {checked && <Check className="h-5 w-5 shrink-0" />}
+                                            {checked && <Check className="h-5 w-5 shrink-0" style={{ color: theme?.secondary }} />}
                                         </StyledDiv>
                                     );
                                 }}

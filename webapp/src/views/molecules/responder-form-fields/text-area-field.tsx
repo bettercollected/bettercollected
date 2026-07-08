@@ -33,6 +33,9 @@ const StyledAutoSizeTextArea = styled(AutosizeTextarea)<{
         '&::placeholder': {
             color: '#657085 !important'
         },
+        '&:hover:not(:focus)': {
+            borderColor: secondaryColor
+        },
         '&:focus': {
             borderColor: secondaryColor,
             boxShadow: secondaryColor ? `0 0 0 3px ${secondaryColor}33` : undefined
@@ -71,7 +74,7 @@ export default function TextAreaField({ field }: { field: StandardFormFieldDto }
                     rows={1}
                     value={inputVal}
                     onChange={(e) => setInputVal(e.target.value)}
-                    className="rounded-xl border px-4 py-3 text-base leading-normal outline-none transition-shadow lg:text-lg"
+                    className="rounded-md border px-4 py-3 text-base leading-normal outline-none transition-shadow lg:text-lg"
                     style={{
                         resize: 'none'
                     }}

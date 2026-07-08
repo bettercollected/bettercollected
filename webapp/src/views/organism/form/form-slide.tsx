@@ -250,7 +250,7 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
                         group) — 120px broke proximity grouping: pairs read as
                         separate screens, and long pages scrolled far more than
                         their content needed. */}
-                    <div className={cn('relative flex h-full w-full max-w-[800px] flex-col gap-[48px] overflow-hidden px-4 lg:gap-[64px] py-[60px]', isPreviewMode ? '' : 'lg:px-10')}>
+                    <div className={cn('relative flex h-full w-full max-w-[800px] flex-col gap-[48px] overflow-hidden px-4 lg:gap-[56px] py-[60px]', isPreviewMode ? '' : 'lg:px-10')}>
                         {formSlide?.properties?.fields
                             ?.filter((field: StandardFormFieldDto) => !hiddenFieldIds.has(field.id))
                             .map((field: StandardFormFieldDto) => <FormFieldComponent key={field.id} field={field} slideIndex={formSlide!.index} />)}

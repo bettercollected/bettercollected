@@ -150,7 +150,7 @@ export default function FileUpload({ field }: { field: StandardFormFieldDto }) {
                             borderColor: isDragging ? theme?.secondary : theme?.tertiary
                         }}
                         htmlFor={`${fileMetaData.id}-file-input`}
-                        className="flex cursor-pointer items-center justify-center space-x-2  rounded-2xl border border-dashed px-3  py-2 "
+                        className="flex cursor-pointer items-center justify-center space-x-2  rounded-md border border-dashed px-3  py-2 "
                     >
                         <div className={`flex w-full flex-col items-center justify-center space-y-3  py-10 `}>
                             <FolderUploadIcon

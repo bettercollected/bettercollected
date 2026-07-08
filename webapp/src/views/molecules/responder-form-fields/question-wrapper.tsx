@@ -27,6 +27,23 @@ export default function QuestionWrapper({ field, children }: { field: StandardFo
     const isAnswerable = field?.type ? V2InputFields.includes(field.type) : false;
     const isRequired = !!field?.validations?.required;
 
+    // Quiet ordinal for answerable questions ("01" meta label, Design-Language
+    // §2). Numbering encodes a real sequence, and it's the structural anchor
+    // that makes the generous question spacing read composed rather than empty.
+    // Counted among answerable siblings on the same page, so statements and
+    // media don't consume numbers; restarts per page, matching page context.
+    const questionNumber = (() => {
+        if (!isAnswerable) return null;
+        for (const slide of standardForm?.fields ?? []) {
+            const siblings = slide?.properties?.fields ?? [];
+            const position = siblings.findIndex((sibling) => sibling.id === field.id);
+            if (position >= 0) {
+                return siblings.slice(0, position).filter((sibling) => sibling.type && V2InputFields.includes(sibling.type)).length + 1;
+            }
+        }
+        return null;
+    })();
+
     // Answer piping: swap pipe tokens for the responder's earlier answers (or
     // captured hidden-field values) before the title/description hit the DOM.
     const pipeContext = { slides: standardForm?.fields, answers: formResponse.answers ?? {}, hiddenValues };
@@ -49,6 +66,11 @@ export default function QuestionWrapper({ field, children }: { field: StandardFo
                 : {})}
         >
             <div className="">
+                {questionNumber !== null && (
+                    <div aria-hidden="true" className="text-black-600 mb-1 text-xs font-semibold tracking-widest tabular-nums">
+                        {String(questionNumber).padStart(2, '0')}
+                    </div>
+                )}
                 <div className="flex flex-wrap items-baseline gap-x-2">
                     {/* The question owns the screen: 24px/600 ink (Design-Language §2) —
                         bigger and darker than anything else, including the answer.

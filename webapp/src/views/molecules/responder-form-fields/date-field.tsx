@@ -65,7 +65,7 @@ function DateFieldSection({ field, isBuilder }: IDateField) {
                     <button
                         type="button"
                         className={cn(
-                            'flex w-full cursor-pointer items-center gap-2 rounded-xl border bg-white px-4 py-3 text-base outline-none transition-shadow focus-visible:ring-2 lg:text-lg',
+                            'flex w-full cursor-pointer items-center gap-2 rounded-md border bg-white px-4 py-3 text-base outline-none transition duration-150 hover:shadow-[0_1px_3px_rgba(16,24,38,0.10)] focus-visible:ring-2 lg:text-lg',
                             isBuilder && 'pointer-events-none'
                         )}
                         style={{

@@ -22,7 +22,7 @@ const ShadCNInput = React.forwardRef<HTMLInputElement, InputProps>(({ className,
                 color: theme?.primary
             }}
             type={type}
-            className={cn(`w-full rounded-xl border bg-white px-4 py-3 text-base outline-none transition-shadow disabled:cursor-not-allowed disabled:opacity-50 lg:text-lg`, className)}
+            className={cn(`w-full rounded-md border bg-white px-4 py-3 text-base outline-none transition duration-150 disabled:cursor-not-allowed disabled:opacity-50 lg:text-lg`, className)}
             ref={ref}
             // Coerce null -> '' so a controlled input never receives a null value.
             value={value === null ? '' : value}
@@ -64,6 +64,11 @@ const FieldInput = styled(ShadCNInput)<{
             // Legible neutral (ink-3), not the theme tint — placeholders are
             // text people read, not decoration.
             color: '#657085 !important'
+        },
+        // A field that responds to the cursor reads as inviting — hover hints
+        // with the action colour; focus commits with the full ring below.
+        '&:hover:not(:focus)': {
+            borderColor: secondaryColor || '#2456CC'
         },
         '&:focus': {
             // Always show a focus ring for keyboard users (WCAG 2.4.7). The base
