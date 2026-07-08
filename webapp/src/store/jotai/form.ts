@@ -1,4 +1,4 @@
-import { ThemeBackground } from '@app/constants/theme';
+import { ThemeBackground, ThemeStyle } from '@app/constants/theme';
 import { atom, useAtom } from 'jotai';
 
 import { ThemeColor } from '@app/constants/theme';
@@ -40,6 +40,7 @@ export interface IThemeState {
     tertiary: string;
     accent: string;
     background?: ThemeBackground;
+    style?: ThemeStyle;
 }
 
 

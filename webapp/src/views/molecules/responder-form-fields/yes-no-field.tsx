@@ -12,6 +12,7 @@ import { useAppSelector } from '@app/store/hooks';
 import { useFormState } from '@app/store/jotai/form';
 import { scrollToDivById } from '@app/utils/scroll-utils';
 import { Check } from 'lucide-react';
+import { styleTokens } from '@app/views/molecules/theme/theme-shared';
 import QuestionWrapper from './question-wrapper';
 
 const StyledDiv = styled.div<{ $theme: any }>(({ $theme }) => {
@@ -28,12 +29,11 @@ const YesNoField = ({ field }: { field: StandardFormFieldDto }) => {
     const { theme } = useFormState();
 
     const form = useAppSelector(selectForm);
+    const tokens = styleTokens(theme?.style);
     const { currentSlide } = useResponderState();
 
-    const getValue = () => {
-        if (formResponse?.answers?.[field.id]?.boolean !== null || formResponse?.answers?.[field.id]?.boolean !== undefined) return formResponse?.answers?.[field.id]?.boolean;
-        else return null;
-    };
+    // null (not undefined) when unanswered, so the RadioGroup stays controlled.
+    const getValue = () => formResponse?.answers?.[field.id]?.boolean ?? null;
 
     return (
         <QuestionWrapper field={field}>
@@ -56,14 +56,19 @@ const YesNoField = ({ field }: { field: StandardFormFieldDto }) => {
                                         <StyledDiv
                                             $theme={theme}
                                             style={{
-                                                borderColor: theme?.tertiary,
-                                                background: active || checked ? theme?.tertiary : '',
-                                                color: theme?.secondary
+                                                // Selection = action-colour tint + border (solid fill with
+                                                // white text in the studio style). Focus borders only —
+                                                // painting the fill on `active` made keyboard focus look
+                                                // like selection.
+                                                borderColor: active || checked ? theme?.secondary : theme?.tertiary,
+                                                background: tokens.solidSelection && checked ? theme?.secondary : checked ? theme?.secondary + '1A' : '',
+                                                color: tokens.solidSelection && checked ? '#ffffff' : theme?.primary,
+                                                borderRadius: tokens.inputRadius
                                             }}
-                                            className={`flex w-[100px] cursor-pointer justify-between rounded-xl border p-2 px-4`}
+                                            className={`flex min-w-[100px] max-w-full cursor-pointer items-center justify-between gap-2 border p-2 px-4 transition duration-150`}
                                         >
                                             {choice.value}
-                                            {checked && <Check />}
+                                            {checked && <Check className="h-5 w-5 shrink-0" style={{ color: tokens.solidSelection ? '#ffffff' : theme?.secondary }} />}
                                         </StyledDiv>
                                     );
                                 }}

@@ -3,17 +3,20 @@ import parse from 'html-react-parser';
 import { FieldTypes, StandardFormFieldDto, V2InputFields } from '@app/models/dtos/form';
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
+import { useFormState } from '@app/store/jotai/form';
 import { useFormResponse } from '@app/store/jotai/responder-form-response';
 import { useHiddenFieldValues } from '@app/store/jotai/responder-hidden-fields';
 import { resolvePipesInText, resolvePipesInTitle } from '@app/utils/answer-piping';
 import { getHtmlFromJson } from '@app/utils/richTextEditorExtenstion/get-html-from-json';
-import RequiredIcon from '@Components/icons/required';
 
+import { styleTokens } from '@app/views/molecules/theme/theme-shared';
 import { RenderImage } from '@app/views/organism/form-builder/fields/render-field';
 import { getPlaceholderValueForTitle } from '../rich-text-editor';
 
 export default function QuestionWrapper({ field, children }: { field: StandardFormFieldDto; children?: React.ReactNode }) {
     const { formResponse } = useFormResponse();
+    const { theme } = useFormState();
+    const tokens = styleTokens(theme?.style);
     const { hiddenValues } = useHiddenFieldValues();
     const standardForm = useAppSelector(selectForm);
 
@@ -36,7 +39,8 @@ export default function QuestionWrapper({ field, children }: { field: StandardFo
 
     return (
         <div
-            className="relative flex flex-col gap-1 lg:gap-2"
+            className={`relative flex flex-col gap-1 lg:gap-2 ${tokens.divider ? 'border-b pb-7' : ''}`}
+            style={tokens.divider ? { borderColor: (theme?.tertiary ?? '#818CA0') + '40' } : undefined}
             id={field.id}
             // Give assistive tech an accessible name/description for the field.
             // Answerable fields become a labelled group so the question (and any
@@ -49,17 +53,21 @@ export default function QuestionWrapper({ field, children }: { field: StandardFo
                   }
                 : {})}
         >
-            {isRequired && (
-                <div className="absolute -right-2 top-2">
-                    <RequiredIcon className="text-black-900" />
-                </div>
-            )}
-            <div className="">
-                <div className="flex flex-wrap items-baseline gap-x-2">
-                    {/* The question owns the screen: 24px/600 ink (Design-Language §2) —
-                        bigger and darker than anything else, including the answer. */}
-                    <div id={`q-title-${field.id}`} className="text-xl font-semibold leading-snug lg:text-2xl">
+            <div className="relative">
+                <div className="relative flex flex-wrap items-baseline gap-x-2.5">
+                    {/* Labels: weight and contrast carry the hierarchy, not size
+                        (ratified 2026-07-08 against the form-redesign mocks). */}
+                    <div id={`q-title-${field.id}`} className={`${tokens.labelClass} [&_p]:inline`}>
                         {parse(getHtmlFromJson(resolvedTitle) ?? getPlaceholderValueForTitle(field?.type || FieldTypes.TEXT))}
+                        {isAnswerable && isRequired && (
+                            <>
+                                <span aria-hidden="true" className="text-[#C43D3D]">
+                                    {' '}
+                                    *
+                                </span>
+                                <span className="sr-only"> (required)</span>
+                            </>
+                        )}
                     </div>
                     {isAnswerable && !isRequired && <span className="text-black-700 text-xs font-normal tracking-wide">Optional</span>}
                 </div>

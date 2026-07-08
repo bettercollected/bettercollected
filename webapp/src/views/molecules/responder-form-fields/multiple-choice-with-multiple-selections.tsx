@@ -43,7 +43,9 @@ export default function MultipleChoiceWithMultipleSelection({ field, slideIndex 
             <div className="w-full space-y-2 overflow-hidden border-0 p-0">
                 <h1
                     style={{
-                        color: currentSlide.properties?.theme?.secondary || theme?.secondary
+                        // currentSlide can be undefined (e.g. legacy/preview data
+                        // where the slide index doesn't resolve) — never crash for a hint.
+                        color: currentSlide?.properties?.theme?.secondary || theme?.secondary
                     }}
                     className="mb-1 mt-2 text-[12px] font-medium"
                 >
@@ -65,7 +67,7 @@ export default function MultipleChoiceWithMultipleSelection({ field, slideIndex 
                             }
                             addOtherChoicesAnswer(field.id, e.target.value);
                         }}
-                        className={`flex justify-between rounded-xl border p-2 px-4 text-base `}
+                        className={`flex justify-between rounded-md border p-2 px-4 text-base `}
                     />
                 )}
             </div>

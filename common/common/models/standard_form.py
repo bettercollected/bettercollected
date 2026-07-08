@@ -31,6 +31,9 @@ class Theme(BaseModel):
     tertiary: str
     accent: str
     background: Optional[ThemeBackground] = None
+    # How the form is dressed (classic/sheet/studio; open for future styles).
+    # Lenient here — strict validation lives on the workspace theme endpoint.
+    style: Optional[str] = None
 
 
 class EmbedProvider(str, enum.Enum):
@@ -384,6 +387,9 @@ class StandardFieldProperty(BaseModel):
     row_titles: Optional[List[str]] = None
     column_titles: Optional[List[str]] = None
     tabular_value: Optional[List[List[str]]] = None
+    # 12-grid width of the field on desktop (12 = full row, 6 = half…); the
+    # webapp sends camelCase colSpan via the alias generator.
+    col_span: Optional[int] = Field(None, ge=1, le=12)
 
     model_config = ConfigDict(populate_by_name=True, alias_generator=to_camel)
 

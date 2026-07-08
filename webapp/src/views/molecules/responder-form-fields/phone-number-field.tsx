@@ -13,6 +13,18 @@ import { useAppSelector } from '@app/store/hooks';
 import { scrollToDivById } from '@app/utils/scroll-utils';
 import QuestionWrapper from './question-wrapper';
 
+
+// Default the flag to the responder's own region (from the browser locale)
+// instead of a hardcoded country; falls back to the previous default when the
+// locale carries no region.
+const defaultCountry = (): string => {
+    if (typeof navigator !== 'undefined') {
+        const region = navigator.language?.split('-')[1];
+        if (region && region.length === 2) return region.toLowerCase();
+    }
+    return 'np';
+};
+
 const CustomPhoneInputField = styled(PhoneInput)<{ $formTheme?: IThemeState }>(({ $formTheme }) => {
     // Theme is passed as a prop; a hook inside the styled interpolation breaks
     // the hook count under React 19 ("Rendered fewer hooks").
@@ -51,23 +63,26 @@ export default function PhoneNumberField({ field }: { field: StandardFormFieldDt
                     $formTheme={theme}
                     value={(formResponse.answers && formResponse.answers[field.id]?.phone_number) || ''}
                     onChange={(e) => handleChange(e)}
-                    country={'np'}
+                    country={defaultCountry()}
                     buttonStyle={{
                         border: '0px',
-                        borderRight: `1px solid ${theme?.tertiary}`,
+                        borderRight: '1px solid #E3E3E3',
                         background: '#ffffff',
                         height: '100%'
                     }}
                     dropdownStyle={{ background: '#ffffff' }}
                     inputStyle={{
-                        border: `1px solid ${theme?.tertiary}`,
-                        borderRadius: '12px',
+                        border: '1px solid #E3E3E3',
+                        borderRadius: '6px',
                         background: '#ffffff',
                         color: theme?.primary
                     }}
                     placeholder={field?.properties?.placeholder || getPlaceholderValueForField(field.type)}
                     inputProps={{
-                        className: 'text-base lg:text-lg py-3 mx-14 w-[93%] ',
+                        // Exact width math: the flag button occupies 3.5rem, so the
+                        // input takes the rest — mx-14 + w-[93%] double-counted the
+                        // gutter and drifted at wider viewports.
+                        className: 'text-base lg:text-lg py-3 ml-14 w-[calc(100%-3.5rem)]',
                         id: `input-field-${field.id}`
                     }}
                 />

@@ -5,6 +5,7 @@ import styled from 'styled-components';
 import { StandardFormFieldDto } from '@app/models/dtos/form';
 import { cn } from '@app/shadcn/util/lib';
 import { IThemeState, useFormState } from '@app/store/jotai/form';
+import { styleTokens } from '@app/views/molecules/theme/theme-shared';
 
 export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
     textColor?: string;
@@ -22,7 +23,7 @@ const ShadCNInput = React.forwardRef<HTMLInputElement, InputProps>(({ className,
                 color: theme?.primary
             }}
             type={type}
-            className={cn(`w-full rounded-xl border bg-white px-4 py-3 text-base outline-none transition-shadow disabled:cursor-not-allowed disabled:opacity-50 lg:text-lg`, className)}
+            className={cn(`w-full rounded-md border bg-white px-4 py-3 text-base outline-none transition duration-150 disabled:cursor-not-allowed disabled:opacity-50 lg:text-lg`, className)}
             ref={ref}
             // Coerce null -> '' so a controlled input never receives a null value.
             value={value === null ? '' : value}
@@ -53,17 +54,24 @@ const FieldInput = styled(ShadCNInput)<{
     // interpolation yields an inconsistent hook count under React 19.
     const themeColor = $formTheme?.tertiary;
     const secondaryColor = $formTheme?.secondary;
+    const tokens = styleTokens($formTheme?.style);
     return {
         // White field on the page surface gives the input real figure/ground —
         // the bordered box, not a wash, is what reads as "type here".
         background: '#ffffff',
-        // Fall back to a visible hairline when the form has no custom theme, so
-        // the field never disappears into the page (affordance).
-        borderColor: themeColor || '#CBD5E6',
+        borderRadius: tokens.inputRadius,
+        // Three-step border affordance: a light fixed grey at REST (fields sit
+        // calm on the page), the theme's border colour (tertiary) on HOVER — a
+        // clear but quiet "this is interactive" step — and the action-colour
+        // ring on FOCUS.
+        borderColor: '#E3E3E3',
         '&::placeholder': {
             // Legible neutral (ink-3), not the theme tint — placeholders are
             // text people read, not decoration.
             color: '#657085 !important'
+        },
+        '&:hover:not(:focus)': {
+            borderColor: themeColor || '#8A94A6'
         },
         '&:focus': {
             // Always show a focus ring for keyboard users (WCAG 2.4.7). The base

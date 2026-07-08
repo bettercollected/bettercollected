@@ -12,19 +12,28 @@ import { useAppSelector } from '@app/store/hooks';
 import { scrollToDivById } from '@app/utils/scroll-utils';
 import QuestionWrapper from './question-wrapper';
 
-const StyledDiv = styled.div<{
+const StyledRatingButton = styled.button<{
     $slide?: StandardFormFieldDto;
-    isBuilder: boolean;
-}>(({ $slide, isBuilder = false }) => {
-    const { theme } = useFormState();
-    const tertiaryColor = $slide?.properties?.theme?.tertiary || theme?.tertiary;
-    const secondaryColor = $slide?.properties?.theme?.secondary || theme?.secondary;
+    $formTheme?: ReturnType<typeof useFormState>['theme'];
+    $isBuilder?: boolean;
+}>(({ $slide, $formTheme, $isBuilder = false }) => {
+    // Theme via props ($ = transient, never leaks to the DOM). Calling the
+    // useFormState() hook inside a styled interpolation produces an
+    // inconsistent hook count under React 19 ("Rendered fewer hooks than
+    // expected") — this crashed the form preview for linear-rating fields.
+    const tertiaryColor = $slide?.properties?.theme?.tertiary || $formTheme?.tertiary;
+    const secondaryColor = $slide?.properties?.theme?.secondary || $formTheme?.secondary;
 
     return {
         color: secondaryColor,
-        borderColor: isBuilder ? tertiaryColor : secondaryColor,
+        borderColor: $isBuilder ? tertiaryColor : secondaryColor,
         '&:hover': {
-            background: isBuilder ? '' : tertiaryColor
+            background: $isBuilder ? '' : tertiaryColor
+        },
+        // Keyboard affordance (the cells were divs with no focus state).
+        '&:focus-visible': {
+            outline: 'none',
+            boxShadow: secondaryColor ? `0 0 0 3px ${secondaryColor}40` : undefined
         }
     };
 });
@@ -42,9 +51,14 @@ const LinearRatingSection = ({ field, slide, isBuilder = false }: { field: Stand
         <div className="flex flex-row flex-wrap gap-1">
             {_.range(field.properties?.startFrom ?? 1, +(field.properties?.steps ?? 10) + 1, 1).map((index) => {
                 return (
-                    <StyledDiv
+                    <StyledRatingButton
+                        type="button"
+                        aria-label={`${index}`}
+                        aria-pressed={answer === index}
+                        disabled={isBuilder}
                         $slide={slide}
-                        isBuilder={isBuilder}
+                        $formTheme={theme}
+                        $isBuilder={isBuilder}
                         style={{
                             background: answer === index ? secondaryColor : '',
                             color: answer === index ? '#ffffff' : ''
@@ -61,7 +75,7 @@ const LinearRatingSection = ({ field, slide, isBuilder = false }: { field: Stand
                         className="flex h-12 w-12  cursor-pointer items-center justify-center rounded-sm border-[1px]"
                     >
                         <span>{index}</span>
-                    </StyledDiv>
+                    </StyledRatingButton>
                 );
             })}
         </div>

@@ -60,7 +60,7 @@ const DropDownField = ({ field, slide, disabled }: { field: StandardFormFieldDto
                                     value={choice.value}
                                     placeholder={`Item ${index + 1}`}
                                     onChange={(value: any) => updateChoiceFieldValue(field.index, slide.index, choice.id, value)}
-                                    className={`flex justify-between rounded-xl border p-2 px-4 text-base`}
+                                    className={`flex justify-between rounded-md border p-2 px-4 text-base`}
                                     style={{ color: slide.properties?.theme?.secondary || theme?.secondary }}
                                     isOptionsInput
                                 />
@@ -75,7 +75,7 @@ const DropDownField = ({ field, slide, disabled }: { field: StandardFormFieldDto
                         color: slide.properties?.theme?.tertiary || theme?.tertiary,
                         borderColor: slide.properties?.theme?.tertiary || theme?.tertiary
                     }}
-                    className={'flex justify-between rounded-xl border p-2 px-4 text-base'}
+                    className={'flex justify-between rounded-md border p-2 px-4 text-base'}
                 >
                     Other
                 </div>

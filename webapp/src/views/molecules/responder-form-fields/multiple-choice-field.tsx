@@ -51,7 +51,7 @@ const MultipleChoiceField = ({ field, slideIndex }: { field: StandardFormFieldDt
                             }
                             addOtherChoiceAnswer(field.id, e.target.value);
                         }}
-                        className={`flex justify-between rounded-xl border p-2 px-4 text-base`}
+                        className={`flex justify-between rounded-md border p-2 px-4 text-base`}
                     />
                 )}
             </div>

@@ -22,26 +22,18 @@ export default function RatingField({ field, slide, isBuilder = false }: { field
     const { currentSlide } = useResponderState();
 
     const { theme } = useFormState();
-    const [mouseOver, setMouseOver] = useState(false);
+    const steps = field.properties?.steps || 5;
     const RatingSection = () => {
         return (
-            <div
-                className="relative !mb-0 flex w-fit  flex-wrap gap-3"
-                onMouseOut={() => {
-                    setMouseOver(false);
-                }}
-                onMouseOver={() => {
-                    !isBuilder && setMouseOver(true);
-                }}
-            >
-                {_.range(field.properties?.steps || 5).map((index) => {
-                    // const Component = index <= hovered ? Star : StarBorder;
+            <div className="relative !mb-0 flex w-fit  flex-wrap gap-3">
+                {_.range(steps).map((index) => {
                     return (
-                        <span
-                            style={{
-                                color: mouseOver || isBuilder ? theme?.tertiary : theme?.secondary
-                            }}
+                        <button
+                            type="button"
+                            aria-label={`Rate ${index + 1} of ${steps}`}
+                            aria-pressed={index <= (answer ?? 0) - 1}
                             key={index}
+                            disabled={isBuilder}
                             onMouseOut={() => {
                                 if (!isBuilder) setHovered(-1);
                             }}
@@ -53,13 +45,18 @@ export default function RatingField({ field, slide, isBuilder = false }: { field
                                     }, 200);
                                 }
                             }}
-                            className="cursor-pointer"
+                            className="cursor-pointer rounded outline-none focus-visible:ring-2"
                             onMouseOver={() => {
                                 if (!isBuilder) setHovered(index);
                             }}
                         >
-                            <StarIcon fill={index <= hovered ? theme?.tertiary : index <= (answer ?? 0) - 1 && hovered < 0 ? theme?.secondary : theme?.accent} stroke={theme?.secondary} />
-                        </span>
+                            {/* Hover previews per star (up to the hovered one); empty stars
+                                are TRANSPARENT so they read as outlines on any ground —
+                                accent-filled stars became opaque boxes over the new
+                                gradient/pattern/image backgrounds. The old group-level
+                                mouseOver recolour flipped the whole row at once. */}
+                            <StarIcon fill={index <= hovered ? theme?.tertiary : index <= (answer ?? 0) - 1 && hovered < 0 ? theme?.secondary : 'transparent'} stroke={theme?.secondary} />
+                        </button>
                     );
                 })}
             </div>

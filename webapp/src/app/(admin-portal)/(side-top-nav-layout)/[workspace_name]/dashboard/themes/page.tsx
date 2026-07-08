@@ -13,7 +13,7 @@ import { selectIsAdmin } from '@app/store/auth/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { usePatchWorkspaceThemesMutation } from '@app/store/workspaces/api';
 import { selectWorkspace, setWorkspace } from '@app/store/workspaces/slice';
-import { ContrastNotes, THEME_ROLE_FIELDS, ThemeBackgroundEditor, ThemePreview } from '@app/views/molecules/theme/theme-shared';
+import { ContrastNotes, THEME_ROLE_FIELDS, ThemeBackgroundEditor, ThemePreview, ThemeStyleEditor } from '@app/views/molecules/theme/theme-shared';
 
 type Editing = { index: number | 'new'; draft: FormTheme } | null;
 
@@ -173,6 +173,8 @@ export default function ThemesPage() {
                                     </div>
                                 ))}
                             </div>
+
+                            <ThemeStyleEditor value={editing.draft.style} onChange={(style) => setEditing({ ...editing, draft: { ...editing.draft, style } })} />
 
                             <ThemeBackgroundEditor theme={editing.draft} onChange={(background) => setEditing({ ...editing, draft: { ...editing.draft, background } })} />
 

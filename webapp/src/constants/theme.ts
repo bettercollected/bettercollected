@@ -25,6 +25,14 @@ export const ThemeColor = {
     primary: '#101826'
 };
 
+// How the form is DRESSED, independent of its colours/background. 'classic'
+// is today's look; 'sheet' sets questions like a printed document (serif
+// labels, margin numerals, ruled rows); 'studio' is the bold graphic register
+// (ghost numerals, heavy type, square edges, solid selection). Structural
+// styles (two-pane ledger, conversational receipts) can join this enum once
+// the renderer grows those modes — the model is deliberately open.
+export type ThemeStyle = 'classic' | 'sheet' | 'studio';
+
 export type ThemePattern = 'dots' | 'grid' | 'stripes';
 
 // Optional decoration for the page ground. `accent` stays the base colour
@@ -46,6 +54,7 @@ export interface FormTheme {
     tertiary: string;
     accent: string;
     background?: ThemeBackground;
+    style?: ThemeStyle;
 }
 
 export const ThemeColors: Array<FormTheme> = [

@@ -36,7 +36,7 @@ class TestWorkspaces:
             json=[theme],
         )
         assert response.status_code == 200
-        assert response.json().get("customThemes") == [{**theme, "background": None}]
+        assert response.json().get("customThemes") == [{**theme, "background": None, "style": None}]
 
         # And it round-trips on the persisted document.
         saved = await WorkspaceDocument.get(workspace.id)

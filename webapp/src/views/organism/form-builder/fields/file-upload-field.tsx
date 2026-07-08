@@ -16,7 +16,7 @@ const FileUpload = ({ field, slide, disabled }: { field: StandardFormFieldDto; s
                 style={{
                     borderColor: slide.properties?.theme?.tertiary || theme?.tertiary
                 }}
-                className={'flex h-[200px] w-full max-w-[800px] cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dotted'}
+                className={'flex h-[200px] w-full max-w-[800px] cursor-pointer flex-col items-center justify-center gap-2 rounded-md border-2 border-dotted'}
             >
                 <FolderUploadIcon
                     style={{
