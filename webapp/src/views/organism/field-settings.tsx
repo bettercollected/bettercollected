@@ -13,7 +13,7 @@ import FieldConditionalLogicEditor from '@app/views/molecules/form-builder/field
 
 export default function FieldSettings() {
     const { setActiveFieldComponent } = useActiveFieldComponent();
-    const { updateFieldRequired, activeSlide, activeField, updateDescription, updateFieldProperty, updateRatingSteps, updateFieldImage, updateAllowMultipleSelectionMatrixField } = useFormFieldsAtom();
+    const { updateFieldRequired, activeSlide, activeField, updateDescription, updateFieldProperty, updateFieldColSpan, updateRatingSteps, updateFieldImage, updateAllowMultipleSelectionMatrixField } = useFormFieldsAtom();
 
     const [errorMsg, setErrorMsg] = useState('');
     const [stepValue, setStepValue] = useState(activeField?.properties?.steps);
@@ -58,6 +58,37 @@ export default function FieldSettings() {
                 )}
             </div>
             <div className="text-black-600 text-xs font-semibold uppercase tracking-wide">Settings</div>
+            <div className="flex w-full flex-col gap-1.5">
+                <div className="text-black-700 text-xs">Width</div>
+                {/* 12-column grid: Full = 12, 1/2 = 6, … — adjacent fields whose
+                    spans fit share a row on desktop; mobile always stacks. */}
+                <div className="border-black-300 flex overflow-hidden rounded-md border" role="group" aria-label="Field width">
+                    {(
+                        [
+                            { label: 'Full', span: 12 },
+                            { label: '2/3', span: 8 },
+                            { label: '1/2', span: 6 },
+                            { label: '1/3', span: 4 },
+                            { label: '1/4', span: 3 }
+                        ] as const
+                    ).map((option) => {
+                        const current = Math.min(12, Math.max(1, activeField?.properties?.colSpan ?? 12));
+                        const selected = current === option.span;
+                        return (
+                            <button
+                                key={option.span}
+                                type="button"
+                                aria-pressed={selected}
+                                onClick={() => updateFieldColSpan(activeField!.index, activeSlide!.index, option.span)}
+                                className={`flex-1 px-1 py-1.5 text-[11px] font-medium transition-colors ${selected ? 'bg-brand-100 text-brand-600' : 'text-black-600 hover:bg-black-100 bg-white'}`}
+                            >
+                                {option.label}
+                            </button>
+                        );
+                    })}
+                </div>
+                <p className="text-black-500 text-[11px] leading-relaxed">Fields that fit side by side share a row. Phones always stack.</p>
+            </div>
             <div className="flex w-full items-center justify-between">
                 <div className="text-black-700 text-xs">Description</div>
                 <Switch
