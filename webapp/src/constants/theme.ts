@@ -4,7 +4,11 @@
 //
 // Every theme below is contrast-verified against how the roles are actually
 // used at runtime (WCAG 2.1):
-//   primary   — question/answer text on the accent background   → ≥ 7:1 (AAA)
+//   primary   — question text on the accent background         → ≥ 7:1 (AAA)
+//   primary   — answer text inside the WHITE input boxes        → ≥ 4.5:1 (AA)
+//               (inputs are always white at runtime, so a dark page with light
+//               ink cannot work with a single primary — no dark preset until
+//               the theme model grows a separate input-text role)
 //   secondary — button fills carrying white text                → ≥ 4.5:1 (AA)
 //   tertiary  — input borders / UI affordances on the accent    → ≥ 3:1 (non-text)
 // A form theme that renders illegible buttons isn't a style choice, it's a
@@ -36,14 +40,6 @@ export const ThemeColors: Array<FormTheme> = [
         secondary: '#2456CC',
         tertiary: '#818CA0',
         accent: '#F6F8FC'
-    },
-    {
-        // Popular ask: a proper dark form. Light ink on near-black, one calm blue.
-        title: 'Charcoal',
-        primary: '#F9FAFB',
-        secondary: '#1D4ED8',
-        tertiary: '#94A3B8',
-        accent: '#111827'
     },
     {
         // Warm cream ground with espresso ink — the "printed page" look.

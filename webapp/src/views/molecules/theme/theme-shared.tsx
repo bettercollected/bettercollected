@@ -21,7 +21,9 @@ export const ThemePreview = ({ color }: { color: FormTheme }) => {
             <span style={{ color: primary }} className="text-[13px] font-semibold leading-tight">
                 Question
             </span>
-            <span style={{ borderColor: tertiary }} className="w-full rounded border bg-white px-2 py-1 text-[11px] leading-tight text-[#657085]">
+            {/* Answer text wears primary on a white input, exactly like the
+                runtime — so an illegible combination is visible right here. */}
+            <span style={{ borderColor: tertiary, color: primary }} className="w-full rounded border bg-white px-2 py-1 text-[11px] leading-tight">
                 Answer
             </span>
             <span style={{ background: secondary }} className="rounded px-2 py-0.5 text-[10px] font-semibold leading-tight text-white">
@@ -50,17 +52,21 @@ export function contrast(a: string, b: string): number {
 }
 
 /**
- * Live legibility read for a custom palette — the same three roles the presets
- * are held to. Non-alarmist: it tells the creator what to fix, in plain terms.
+ * Live legibility read for a custom palette — the same roles the presets are
+ * held to. Non-alarmist: it tells the creator what to fix, in plain terms.
  */
 export const ContrastNotes = ({ theme }: { theme: FormTheme }) => {
     const notes: string[] = [];
     if (contrast(theme.primary, theme.accent) < 4.5) notes.push('Question text may be hard to read on this background.');
+    // Inputs are always white at runtime and answers render in the primary
+    // colour — a light primary is invisible there even if it reads fine on a
+    // dark page (this is why there is no dark preset).
+    if (contrast(theme.primary, '#FFFFFF') < 4.5) notes.push('Answer text may be hard to read inside the white input boxes.');
     if (contrast('#FFFFFF', theme.secondary) < 4.5) notes.push('White button text may be hard to read on this button colour.');
     if (contrast(theme.tertiary, theme.accent) < 3) notes.push('Input outlines may be hard to see on this background.');
 
     if (notes.length === 0) {
-        return <p className="mt-1 text-[11px] font-medium text-[#0E8A5F]">Looks legible — contrast passes on all three.</p>;
+        return <p className="mt-1 text-[11px] font-medium text-[#0E8A5F]">Looks legible — contrast passes everywhere it matters.</p>;
     }
     return (
         <div className="mt-1 flex flex-col gap-1 rounded-md bg-[#FBF3E4] px-2.5 py-2">
