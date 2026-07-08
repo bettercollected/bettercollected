@@ -87,7 +87,8 @@ const GetModalToRender = (view?: DIALOG_MODALS, props?: any) => {
 const getClassName = (view?: DIALOG_MODALS) => {
     switch (view) {
         case 'FORM_PUBLISHED':
-            return 'md:!min-w-[760px]';
+            // Matches the Share modal's width — this is the same link-forward moment.
+            return 'md:!min-w-[540px] md:!max-w-[540px]';
         case 'SHARE_FORM_MODAL':
             return 'md:!min-w-fit';
         case 'UNSPLASH_IMAGE_PICKER':
