@@ -142,7 +142,6 @@ export function styleTokens(style?: ThemeStyle) {
             return {
                 key: 'sheet' as const,
                 labelClass: 'font-serif text-[17px] font-medium leading-snug lg:text-lg',
-                ordinal: 'gutter' as const, // pale serif numeral in a left gutter
                 inputRadius: '4px',
                 divider: true, // ruled rows, like a printed questionnaire
                 solidSelection: false
@@ -151,7 +150,6 @@ export function styleTokens(style?: ThemeStyle) {
             return {
                 key: 'studio' as const,
                 labelClass: 'text-[19px] font-bold tracking-tight leading-snug lg:text-[21px]',
-                ordinal: 'ghost' as const, // oversized numeral behind the block
                 inputRadius: '0px',
                 divider: false,
                 solidSelection: true // chosen options fill solid with white text
@@ -160,7 +158,6 @@ export function styleTokens(style?: ThemeStyle) {
             return {
                 key: 'classic' as const,
                 labelClass: 'text-base font-semibold leading-snug lg:text-lg',
-                ordinal: 'inline' as const, // small accent mono number on the baseline
                 inputRadius: '6px',
                 divider: false,
                 solidSelection: false

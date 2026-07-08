@@ -31,23 +31,6 @@ export default function QuestionWrapper({ field, children }: { field: StandardFo
     const isAnswerable = field?.type ? V2InputFields.includes(field.type) : false;
     const isRequired = !!field?.validations?.required;
 
-    // Quiet ordinal for answerable questions ("01" meta label, Design-Language
-    // §2). Numbering encodes a real sequence, and it's the structural anchor
-    // that makes the generous question spacing read composed rather than empty.
-    // Counted among answerable siblings on the same page, so statements and
-    // media don't consume numbers; restarts per page, matching page context.
-    const questionNumber = (() => {
-        if (!isAnswerable) return null;
-        for (const slide of standardForm?.fields ?? []) {
-            const siblings = slide?.properties?.fields ?? [];
-            const position = siblings.findIndex((sibling) => sibling.id === field.id);
-            if (position >= 0) {
-                return siblings.slice(0, position).filter((sibling) => sibling.type && V2InputFields.includes(sibling.type)).length + 1;
-            }
-        }
-        return null;
-    })();
-
     // Answer piping: swap pipe tokens for the responder's earlier answers (or
     // captured hidden-field values) before the title/description hit the DOM.
     const pipeContext = { slides: standardForm?.fields, answers: formResponse.answers ?? {}, hiddenValues };
@@ -71,29 +54,9 @@ export default function QuestionWrapper({ field, children }: { field: StandardFo
                 : {})}
         >
             <div className="relative">
-                {/* Studio: an oversized ghost numeral behind the block. */}
-                {questionNumber !== null && tokens.ordinal === 'ghost' && (
-                    <span aria-hidden="true" className="pointer-events-none absolute -left-2 -top-7 hidden select-none text-[72px] font-extrabold leading-none lg:block" style={{ color: (theme?.secondary ?? '#2456CC') + '17' }}>
-                        {String(questionNumber).padStart(2, '0')}
-                    </span>
-                )}
                 <div className="relative flex flex-wrap items-baseline gap-x-2.5">
-                    {/* The ordinal is the accent: a small mono number in the theme's
-                        action colour on the label's own baseline (classic), a pale
-                        serif numeral in the margin register (sheet), or the ghost
-                        numeral above (studio). Numbers encode a real sequence — the
-                        page's rhythm marker. Labels: weight and contrast carry the
-                        hierarchy, not size (ratified 2026-07-08 against the mocks). */}
-                    {questionNumber !== null && tokens.ordinal === 'inline' && (
-                        <span aria-hidden="true" style={{ color: theme?.secondary }} className="font-mono text-[13px] font-medium tabular-nums">
-                            {String(questionNumber).padStart(2, '0')}
-                        </span>
-                    )}
-                    {questionNumber !== null && tokens.ordinal === 'gutter' && (
-                        <span aria-hidden="true" style={{ color: (theme?.primary ?? '#101826') + '4D' }} className="font-serif text-[15px] tabular-nums">
-                            {String(questionNumber).padStart(2, '0')}
-                        </span>
-                    )}
+                    {/* Labels: weight and contrast carry the hierarchy, not size
+                        (ratified 2026-07-08 against the form-redesign mocks). */}
                     <div id={`q-title-${field.id}`} className={`${tokens.labelClass} [&_p]:inline`}>
                         {parse(getHtmlFromJson(resolvedTitle) ?? getPlaceholderValueForTitle(field?.type || FieldTypes.TEXT))}
                         {isAnswerable && isRequired && (
