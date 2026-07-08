@@ -12,18 +12,27 @@ interface ChoiceProps {
     onClick?: (choiceId: string) => any;
 }
 
-const StyledDiv = styled.div<{ $theme: any }>(({ $theme }) => {
+const StyledChoiceButton = styled.button<{ $theme: any }>(({ $theme }) => {
     const secondaryColor = $theme?.secondary;
     return {
         '&:hover': {
             borderColor: secondaryColor + '!important'
+        },
+        // Keyboard users get the same affordance as hover (WCAG 2.4.7) — the
+        // options were plain clickable divs with no focus state at all.
+        '&:focus-visible': {
+            outline: 'none',
+            borderColor: secondaryColor + '!important',
+            boxShadow: secondaryColor ? `0 0 0 3px ${secondaryColor}40` : undefined
         }
     };
 });
 
 export default function Choice({ isSelected, theme, index, choice, onClick }: ChoiceProps) {
     return (
-        <StyledDiv
+        <StyledChoiceButton
+            type="button"
+            aria-pressed={isSelected}
             $theme={theme}
             style={{
                 background: isSelected ? theme?.tertiary + '55' : '',
@@ -31,11 +40,11 @@ export default function Choice({ isSelected, theme, index, choice, onClick }: Ch
                 // The answer wears ink (theme primary), never the action colour.
                 color: theme?.primary
             }}
-            className="flex cursor-pointer justify-between rounded-xl border p-2 px-4 "
+            className="flex w-full cursor-pointer items-center justify-between rounded-xl border p-2 px-4 text-left"
             key={choice.id}
             onClick={() => onClick && onClick(choice.id || '')}
         >
             {choice.value ? choice.value : `Item ${index + 1}`} {isSelected && <Check className="h-5 w-5 shrink-0" />}
-        </StyledDiv>
+        </StyledChoiceButton>
     );
 }

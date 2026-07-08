@@ -12,7 +12,7 @@ import { useAppSelector } from '@app/store/hooks';
 import { scrollToDivById } from '@app/utils/scroll-utils';
 import QuestionWrapper from './question-wrapper';
 
-const StyledDiv = styled.div<{
+const StyledRatingButton = styled.button<{
     $slide?: StandardFormFieldDto;
     $formTheme?: ReturnType<typeof useFormState>['theme'];
     $isBuilder?: boolean;
@@ -29,6 +29,11 @@ const StyledDiv = styled.div<{
         borderColor: $isBuilder ? tertiaryColor : secondaryColor,
         '&:hover': {
             background: $isBuilder ? '' : tertiaryColor
+        },
+        // Keyboard affordance (the cells were divs with no focus state).
+        '&:focus-visible': {
+            outline: 'none',
+            boxShadow: secondaryColor ? `0 0 0 3px ${secondaryColor}40` : undefined
         }
     };
 });
@@ -46,7 +51,11 @@ const LinearRatingSection = ({ field, slide, isBuilder = false }: { field: Stand
         <div className="flex flex-row flex-wrap gap-1">
             {_.range(field.properties?.startFrom ?? 1, +(field.properties?.steps ?? 10) + 1, 1).map((index) => {
                 return (
-                    <StyledDiv
+                    <StyledRatingButton
+                        type="button"
+                        aria-label={`${index}`}
+                        aria-pressed={answer === index}
+                        disabled={isBuilder}
                         $slide={slide}
                         $formTheme={theme}
                         $isBuilder={isBuilder}
@@ -66,7 +75,7 @@ const LinearRatingSection = ({ field, slide, isBuilder = false }: { field: Stand
                         className="flex h-12 w-12  cursor-pointer items-center justify-center rounded-sm border-[1px]"
                     >
                         <span>{index}</span>
-                    </StyledDiv>
+                    </StyledRatingButton>
                 );
             })}
         </div>

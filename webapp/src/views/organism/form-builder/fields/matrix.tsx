@@ -67,7 +67,7 @@ function MatrixFieldComponent({ field, disabled }: IMatrixFieldProps) {
                                         }}
                                     />
                                 ) : (
-                                    <div className="max-h-full max-w-full text-clip break-all text-center text-sm">{choice?.value || `Column ${index + 1}`}</div>
+                                    <div className="max-h-full max-w-full break-words text-center text-sm">{choice?.value || `Column ${index + 1}`}</div>
                                 )}
 
                                 {disabled && activeField?.id === field.id && (
@@ -107,7 +107,7 @@ function MatrixFieldComponent({ field, disabled }: IMatrixFieldProps) {
                                     opacity: 1
                                 }}
                                 className={cn(
-                                    'relative z-[40000] flex max-h-[150px] w-full flex-col items-center justify-center overflow-auto border-[1px] border-l-[2px] p-2',
+                                    'relative z-10 flex max-h-[150px] w-full flex-col items-center justify-center overflow-auto border-[1px] border-l-[2px] p-2',
                                     index === 0 && 'rounded-tl-lg border-t-[2px]',
                                     field?.properties?.fields?.length === index + 1 && 'rounded-bl-lg border-b-[2px]'
                                 )}
@@ -122,7 +122,7 @@ function MatrixFieldComponent({ field, disabled }: IMatrixFieldProps) {
                                         }}
                                     />
                                 ) : (
-                                    <div className="max-h-full max-w-full text-clip break-all text-center text-sm">{row?.title?.toString() || `Row ${index + 1}`}</div>
+                                    <div className="max-h-full max-w-full break-words text-center text-sm">{row?.title?.toString() || `Row ${index + 1}`}</div>
                                 )}
                                 {disabled && activeField?.id === field.id && (field?.properties?.fields?.length || -1) > 1 && (
                                     <div
