@@ -80,7 +80,16 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, group, worksp
     return (
         <div className={`hover:border-brand-200 shadow-formCardDefault hover:shadow-formCard flex h-full cursor-pointer flex-col  items-start justify-between rounded-lg border-[1px] border-transparent bg-white transition ${className}`}>
             <div className="group flex w-full items-center justify-between rounded px-5 py-4">
-                <div className=" flex w-full flex-col gap-2">
+                {!isResponderPortal &&
+                    (form?.coverImage || form?.logo ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={form.coverImage || form.logo} alt="" className="border-black-200 mr-4 hidden h-11 w-11 shrink-0 rounded-md border object-cover sm:block" />
+                    ) : (
+                        <div className="bg-brand-100 text-brand-600 mr-4 hidden h-11 w-11 shrink-0 items-center justify-center rounded-md text-sm font-semibold sm:flex" aria-hidden="true">
+                            {(form?.title?.trim()?.[0] || 'F').toUpperCase()}
+                        </div>
+                    ))}
+                <div className=" flex w-full min-w-0 flex-col gap-2">
                     <div className="flex flex-1 items-center justify-between gap-4">
                         <div className="form-title gap-2">
                             <Tooltip label="">
@@ -143,6 +152,17 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, group, worksp
                                 <DotIcon />
                                 <span className="text-black-600 text-sm">
                                     {form?.responses} {t(`FORM.RESPONSE${(form?.responses || 0) === 1 ? '' : 'S'}`)}
+                                </span>
+                            </>
+                        )}
+
+                        {/* Show "last edited" on published cards too — previously it
+                            only appeared on unpublished forms via the visibility block. */}
+                        {!isResponderPortal && form?.isPublished && form?.updatedAt && (
+                            <>
+                                <DotIcon />
+                                <span className="text-black-600 text-sm">
+                                    {t('FORM.LAST_EDITED')} {moment.utc(form?.updatedAt).fromNow()}
                                 </span>
                             </>
                         )}
