@@ -79,6 +79,14 @@ class WorkspaceThemeDto(BaseModel):
     tertiary: str
     accent: str
     background: Optional[WorkspaceThemeBackgroundDto] = None
+    style: Optional[str] = None
+
+    @field_validator("style")
+    @classmethod
+    def _known_style(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None and v not in ("classic", "sheet", "studio"):
+            raise ValueError("Style must be classic, sheet or studio.")
+        return v
 
     @field_validator("title")
     @classmethod

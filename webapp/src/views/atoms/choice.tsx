@@ -2,6 +2,7 @@ import { Check } from 'lucide-react';
 import styled from 'styled-components';
 
 import { FormTheme } from '@app/constants/theme';
+import { styleTokens } from '@app/views/molecules/theme/theme-shared';
 import { FieldChoice } from '@app/models/dtos/form';
 
 interface ChoiceProps {
@@ -29,25 +30,27 @@ const StyledChoiceButton = styled.button<{ $theme: any }>(({ $theme }) => {
 });
 
 export default function Choice({ isSelected, theme, index, choice, onClick }: ChoiceProps) {
+    const tokens = styleTokens(theme?.style);
+    const solid = tokens.solidSelection && isSelected;
     return (
         <StyledChoiceButton
             type="button"
             aria-pressed={isSelected}
             $theme={theme}
             style={{
-                // Selection wears the action colour (a soft tint + border) — colour
-                // is semantic here: it marks the responder's own answer. The old
-                // grey tertiary tint made selection read as disabled.
-                background: isSelected ? theme?.secondary + '1A' : '',
+                // Selection wears the action colour — a soft tint + border in the
+                // quiet styles, a solid fill with white text in the studio style.
+                // Colour is semantic here: it marks the responder's own answer.
+                background: solid ? theme?.secondary : isSelected ? theme?.secondary + '1A' : '',
                 borderColor: isSelected ? theme?.secondary : theme?.tertiary,
-                // The answer text wears ink (theme primary), never the action colour.
-                color: theme?.primary
+                color: solid ? '#ffffff' : theme?.primary,
+                borderRadius: tokens.inputRadius
             }}
-            className="flex w-full cursor-pointer items-center justify-between rounded-md border p-2 px-4 text-left transition duration-150"
+            className="flex w-full cursor-pointer items-center justify-between border p-2 px-4 text-left transition duration-150"
             key={choice.id}
             onClick={() => onClick && onClick(choice.id || '')}
         >
-            {choice.value ? choice.value : `Item ${index + 1}`} {isSelected && <Check className="h-5 w-5 shrink-0" style={{ color: theme?.secondary }} />}
+            {choice.value ? choice.value : `Item ${index + 1}`} {isSelected && <Check className="h-5 w-5 shrink-0" style={{ color: solid ? '#ffffff' : theme?.secondary }} />}
         </StyledChoiceButton>
     );
 }

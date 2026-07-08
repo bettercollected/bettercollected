@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrig
 import { useAppSelector } from '@app/store/hooks';
 import { useFormState } from '@app/store/jotai/form';
 import { selectWorkspace } from '@app/store/workspaces/slice';
-import { ContrastNotes, Swatch, THEME_ROLE_FIELDS, ThemeBackgroundEditor, ThemePreview } from '@app/views/molecules/theme/theme-shared';
+import { ContrastNotes, Swatch, THEME_ROLE_FIELDS, ThemeBackgroundEditor, ThemePreview, ThemeStyleEditor } from '@app/views/molecules/theme/theme-shared';
 
 const CUSTOM_TITLE = 'Custom';
 
@@ -26,7 +26,8 @@ export default function PageDesignTab() {
         secondary: theme?.secondary ?? ThemeColors[0].secondary,
         tertiary: theme?.tertiary ?? ThemeColors[0].tertiary,
         accent: theme?.accent ?? ThemeColors[0].accent,
-        background: theme?.background
+        background: theme?.background,
+        style: theme?.style
     });
 
     const applyCustom = (next: FormTheme) => {
@@ -47,7 +48,7 @@ export default function PageDesignTab() {
         const title = rest.join(':');
         const source = group === 'saved' ? savedThemes : ThemeColors;
         const picked = source.find((t) => t.title === title);
-        if (picked) updateFormTheme({ ...picked });
+        if (picked) updateFormTheme({ ...picked, style: picked.style ?? theme?.style });
     };
 
     // What the preview shows: the active theme, whatever its source — including
@@ -58,7 +59,8 @@ export default function PageDesignTab() {
         secondary: theme?.secondary ?? ThemeColors[0].secondary,
         tertiary: theme?.tertiary ?? ThemeColors[0].tertiary,
         accent: theme?.accent ?? ThemeColors[0].accent,
-        background: theme?.background
+        background: theme?.background,
+        style: theme?.style
     };
 
     return (
@@ -109,6 +111,9 @@ export default function PageDesignTab() {
                             </SelectGroup>
                         </SelectContent>
                     </Select>
+
+                    {/* Style dresses whatever theme is active — orthogonal to colours. */}
+                    <ThemeStyleEditor value={theme?.style} onChange={(style) => updateFormTheme({ ...activeTheme, style })} />
 
                     {/* Only the selected theme is previewed — the dropdown is the
                         catalogue; this shows what the form actually wears. */}

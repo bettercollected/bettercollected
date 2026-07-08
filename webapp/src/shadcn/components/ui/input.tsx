@@ -5,6 +5,7 @@ import styled from 'styled-components';
 import { StandardFormFieldDto } from '@app/models/dtos/form';
 import { cn } from '@app/shadcn/util/lib';
 import { IThemeState, useFormState } from '@app/store/jotai/form';
+import { styleTokens } from '@app/views/molecules/theme/theme-shared';
 
 export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
     textColor?: string;
@@ -53,13 +54,16 @@ const FieldInput = styled(ShadCNInput)<{
     // interpolation yields an inconsistent hook count under React 19.
     const themeColor = $formTheme?.tertiary;
     const secondaryColor = $formTheme?.secondary;
+    const tokens = styleTokens($formTheme?.style);
     return {
         // White field on the page surface gives the input real figure/ground —
         // the bordered box, not a wash, is what reads as "type here".
         background: '#ffffff',
-        // Fall back to a visible hairline when the form has no custom theme, so
-        // the field never disappears into the page (affordance).
-        borderColor: themeColor || '#CBD5E6',
+        borderRadius: tokens.inputRadius,
+        // Resting border is deliberately SUBTLE — the theme's border colour at
+        // 55% (hairline fallback) so the field sits calm at rest; hover and
+        // focus below carry the strong affordance.
+        borderColor: themeColor ? `${themeColor}8C` : '#CBD5E6',
         '&::placeholder': {
             // Legible neutral (ink-3), not the theme tint — placeholders are
             // text people read, not decoration.

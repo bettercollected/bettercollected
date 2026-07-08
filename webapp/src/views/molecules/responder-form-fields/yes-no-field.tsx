@@ -12,6 +12,7 @@ import { useAppSelector } from '@app/store/hooks';
 import { useFormState } from '@app/store/jotai/form';
 import { scrollToDivById } from '@app/utils/scroll-utils';
 import { Check } from 'lucide-react';
+import { styleTokens } from '@app/views/molecules/theme/theme-shared';
 import QuestionWrapper from './question-wrapper';
 
 const StyledDiv = styled.div<{ $theme: any }>(({ $theme }) => {
@@ -28,6 +29,7 @@ const YesNoField = ({ field }: { field: StandardFormFieldDto }) => {
     const { theme } = useFormState();
 
     const form = useAppSelector(selectForm);
+    const tokens = styleTokens(theme?.style);
     const { currentSlide } = useResponderState();
 
     // null (not undefined) when unanswered, so the RadioGroup stays controlled.
@@ -54,20 +56,19 @@ const YesNoField = ({ field }: { field: StandardFormFieldDto }) => {
                                         <StyledDiv
                                             $theme={theme}
                                             style={{
-                                                // Selection = a tinted fill + action-colour border (same
-                                                // treatment as multiple choice). The old solid-tertiary fill
-                                                // under secondary-colour text was illegible, and painting it
-                                                // on `active` too made mere keyboard focus look selected.
+                                                // Selection = action-colour tint + border (solid fill with
+                                                // white text in the studio style). Focus borders only —
+                                                // painting the fill on `active` made keyboard focus look
+                                                // like selection.
                                                 borderColor: active || checked ? theme?.secondary : theme?.tertiary,
-                                                // Selection wears the action colour — semantic, not decorative.
-                                                background: checked ? theme?.secondary + '1A' : '',
-                                                // The answer wears ink (theme primary), never the action colour.
-                                                color: theme?.primary
+                                                background: tokens.solidSelection && checked ? theme?.secondary : checked ? theme?.secondary + '1A' : '',
+                                                color: tokens.solidSelection && checked ? '#ffffff' : theme?.primary,
+                                                borderRadius: tokens.inputRadius
                                             }}
-                                            className={`flex min-w-[100px] max-w-full cursor-pointer items-center justify-between gap-2 rounded-md border p-2 px-4 transition duration-150`}
+                                            className={`flex min-w-[100px] max-w-full cursor-pointer items-center justify-between gap-2 border p-2 px-4 transition duration-150`}
                                         >
                                             {choice.value}
-                                            {checked && <Check className="h-5 w-5 shrink-0" style={{ color: theme?.secondary }} />}
+                                            {checked && <Check className="h-5 w-5 shrink-0" style={{ color: tokens.solidSelection ? '#ffffff' : theme?.secondary }} />}
                                         </StyledDiv>
                                     );
                                 }}

@@ -31,6 +31,9 @@ class Theme(BaseModel):
     tertiary: str
     accent: str
     background: Optional[ThemeBackground] = None
+    # How the form is dressed (classic/sheet/studio; open for future styles).
+    # Lenient here — strict validation lives on the workspace theme endpoint.
+    style: Optional[str] = None
 
 
 class EmbedProvider(str, enum.Enum):

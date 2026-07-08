@@ -9,12 +9,14 @@ import { useHiddenFieldValues } from '@app/store/jotai/responder-hidden-fields';
 import { resolvePipesInText, resolvePipesInTitle } from '@app/utils/answer-piping';
 import { getHtmlFromJson } from '@app/utils/richTextEditorExtenstion/get-html-from-json';
 
+import { styleTokens } from '@app/views/molecules/theme/theme-shared';
 import { RenderImage } from '@app/views/organism/form-builder/fields/render-field';
 import { getPlaceholderValueForTitle } from '../rich-text-editor';
 
 export default function QuestionWrapper({ field, children }: { field: StandardFormFieldDto; children?: React.ReactNode }) {
     const { formResponse } = useFormResponse();
     const { theme } = useFormState();
+    const tokens = styleTokens(theme?.style);
     const { hiddenValues } = useHiddenFieldValues();
     const standardForm = useAppSelector(selectForm);
 
@@ -54,7 +56,8 @@ export default function QuestionWrapper({ field, children }: { field: StandardFo
 
     return (
         <div
-            className="relative flex flex-col gap-1 lg:gap-2"
+            className={`relative flex flex-col gap-1 lg:gap-2 ${tokens.divider ? 'border-b pb-7' : ''}`}
+            style={tokens.divider ? { borderColor: (theme?.tertiary ?? '#818CA0') + '40' } : undefined}
             id={field.id}
             // Give assistive tech an accessible name/description for the field.
             // Answerable fields become a labelled group so the question (and any
@@ -67,21 +70,31 @@ export default function QuestionWrapper({ field, children }: { field: StandardFo
                   }
                 : {})}
         >
-            <div className="">
-                <div className="flex flex-wrap items-baseline gap-x-2.5">
+            <div className="relative">
+                {/* Studio: an oversized ghost numeral behind the block. */}
+                {questionNumber !== null && tokens.ordinal === 'ghost' && (
+                    <span aria-hidden="true" className="pointer-events-none absolute -left-2 -top-7 hidden select-none text-[72px] font-extrabold leading-none lg:block" style={{ color: (theme?.secondary ?? '#2456CC') + '17' }}>
+                        {String(questionNumber).padStart(2, '0')}
+                    </span>
+                )}
+                <div className="relative flex flex-wrap items-baseline gap-x-2.5">
                     {/* The ordinal is the accent: a small mono number in the theme's
-                        action colour on the label's own baseline — the page's rhythm
-                        marker (numbers encode a real sequence). Question labels sit at
-                        16/18px semibold ink: on multi-question pages the old 24px
-                        repeated per question read as a wall of headings; weight and
-                        contrast carry the hierarchy, not size (ratified 2026-07-08
-                        against the form-redesign mocks). */}
-                    {questionNumber !== null && (
+                        action colour on the label's own baseline (classic), a pale
+                        serif numeral in the margin register (sheet), or the ghost
+                        numeral above (studio). Numbers encode a real sequence — the
+                        page's rhythm marker. Labels: weight and contrast carry the
+                        hierarchy, not size (ratified 2026-07-08 against the mocks). */}
+                    {questionNumber !== null && tokens.ordinal === 'inline' && (
                         <span aria-hidden="true" style={{ color: theme?.secondary }} className="font-mono text-[13px] font-medium tabular-nums">
                             {String(questionNumber).padStart(2, '0')}
                         </span>
                     )}
-                    <div id={`q-title-${field.id}`} className="text-base font-semibold leading-snug lg:text-lg [&_p]:inline">
+                    {questionNumber !== null && tokens.ordinal === 'gutter' && (
+                        <span aria-hidden="true" style={{ color: (theme?.primary ?? '#101826') + '4D' }} className="font-serif text-[15px] tabular-nums">
+                            {String(questionNumber).padStart(2, '0')}
+                        </span>
+                    )}
+                    <div id={`q-title-${field.id}`} className={`${tokens.labelClass} [&_p]:inline`}>
                         {parse(getHtmlFromJson(resolvedTitle) ?? getPlaceholderValueForTitle(field?.type || FieldTypes.TEXT))}
                         {isAnswerable && isRequired && (
                             <>

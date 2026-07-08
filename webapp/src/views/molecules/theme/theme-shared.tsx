@@ -1,6 +1,6 @@
 import { CSSProperties } from 'react';
 
-import { FormTheme, ThemeBackground, ThemePattern } from '@app/constants/theme';
+import { FormTheme, ThemeBackground, ThemePattern, ThemeStyle } from '@app/constants/theme';
 import { cn } from '@app/shadcn/util/lib';
 
 // Each editable colour, labelled by what it actually controls on the responder
@@ -54,17 +54,18 @@ export function themeBackgroundStyle(theme?: Partial<FormTheme>): CSSProperties 
  */
 export const ThemePreview = ({ color }: { color: FormTheme }) => {
     const { primary, secondary, tertiary } = color;
+    const tokens = styleTokens(color.style);
     return (
         <div style={themeBackgroundStyle(color)} className="flex flex-col items-start gap-1.5 px-4 py-3">
-            <span style={{ color: primary }} className="text-[13px] font-semibold leading-tight">
+            <span style={{ color: primary }} className={cn('text-[13px] leading-tight', tokens.key === 'sheet' ? 'font-serif font-medium' : tokens.key === 'studio' ? 'font-bold tracking-tight' : 'font-semibold')}>
                 Question
             </span>
             {/* Answer text wears primary on a white input, exactly like the
                 runtime — so an illegible combination is visible right here. */}
-            <span style={{ borderColor: tertiary, color: primary }} className="w-full rounded border bg-white px-2 py-1 text-[11px] leading-tight">
+            <span style={{ borderColor: tertiary, color: primary, borderRadius: tokens.inputRadius }} className="w-full border bg-white px-2 py-1 text-[11px] leading-tight">
                 Answer
             </span>
-            <span style={{ background: secondary }} className="rounded px-2 py-0.5 text-[10px] font-semibold leading-tight text-white">
+            <span style={{ background: secondary, borderRadius: tokens.inputRadius }} className="px-2 py-0.5 text-[10px] font-semibold leading-tight text-white">
                 Continue
             </span>
         </div>
@@ -125,6 +126,75 @@ export const ContrastNotes = ({ theme }: { theme: FormTheme }) => {
                     {note}
                 </p>
             ))}
+        </div>
+    );
+};
+
+/**
+ * Appearance tokens per theme STYLE — how the form is dressed, resolved in one
+ * place so the runtime, the previews and the editors always agree. Colours and
+ * background stay orthogonal; a style only changes register (type, numerals,
+ * edges, selection weight).
+ */
+export function styleTokens(style?: ThemeStyle) {
+    switch (style) {
+        case 'sheet':
+            return {
+                key: 'sheet' as const,
+                labelClass: 'font-serif text-[17px] font-medium leading-snug lg:text-lg',
+                ordinal: 'gutter' as const, // pale serif numeral in a left gutter
+                inputRadius: '4px',
+                divider: true, // ruled rows, like a printed questionnaire
+                solidSelection: false
+            };
+        case 'studio':
+            return {
+                key: 'studio' as const,
+                labelClass: 'text-[19px] font-bold tracking-tight leading-snug lg:text-[21px]',
+                ordinal: 'ghost' as const, // oversized numeral behind the block
+                inputRadius: '0px',
+                divider: false,
+                solidSelection: true // chosen options fill solid with white text
+            };
+        default:
+            return {
+                key: 'classic' as const,
+                labelClass: 'text-base font-semibold leading-snug lg:text-lg',
+                ordinal: 'inline' as const, // small accent mono number on the baseline
+                inputRadius: '6px',
+                divider: false,
+                solidSelection: false
+            };
+    }
+}
+
+const STYLE_OPTIONS: Array<{ key: ThemeStyle; label: string; hint: string }> = [
+    { key: 'classic', label: 'Classic', hint: 'Clean and quiet — the default.' },
+    { key: 'sheet', label: 'Sheet', hint: 'Like a printed document: serif questions, ruled rows.' },
+    { key: 'studio', label: 'Studio', hint: 'Bold and graphic: heavy type, square edges.' }
+];
+
+/** Shared style picker for the theme editors (builder Design tab, Themes page). */
+export const ThemeStyleEditor = ({ value, onChange }: { value?: ThemeStyle; onChange: (style: ThemeStyle) => void }) => {
+    const current = value ?? 'classic';
+    return (
+        <div className="flex flex-col gap-2">
+            <span className="text-black-700 text-xs">Style</span>
+            <div className="border-black-300 flex overflow-hidden rounded-md border" role="group" aria-label="Form style">
+                {STYLE_OPTIONS.map((option) => (
+                    <button
+                        key={option.key}
+                        type="button"
+                        aria-pressed={current === option.key}
+                        title={option.hint}
+                        onClick={() => onChange(option.key)}
+                        className={cn('flex-1 px-2 py-1.5 text-[11px] font-medium transition-colors', current === option.key ? 'bg-brand-100 text-brand-600' : 'text-black-600 hover:bg-black-100 bg-white')}
+                    >
+                        {option.label}
+                    </button>
+                ))}
+            </div>
+            <p className="text-black-500 text-[11px] leading-relaxed">{STYLE_OPTIONS.find((o) => o.key === current)?.hint}</p>
         </div>
     );
 };
