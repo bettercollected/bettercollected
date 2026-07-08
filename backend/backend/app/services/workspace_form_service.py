@@ -597,7 +597,43 @@ class WorkspaceFormService:
         await self.workspace_user_service.check_user_has_access_in_workspace(
             workspace_id=workspace_id, user=user
         )
+        await self._upgrade_slug_from_title_on_publish(workspace_id, form_id)
         return await self.form_service.publish_form(form_id=form_id)
+
+    async def _upgrade_slug_from_title_on_publish(self, workspace_id, form_id):
+        """Give the form a title-based share slug when it goes live.
+
+        Forms are created blank, so the create-time slug is just the form-id
+        placeholder. By publish time the title is finalized, so upgrade an
+        auto-default slug (the form id, or a legacy "untitled-form[-n]" slug) to
+        one derived from the title. A slug the user set — or one already derived
+        from a real title on an earlier publish — is left untouched, so links
+        that were already shared stay stable.
+        """
+        workspace_form = (
+            await self.workspace_form_repository.get_workspace_form_in_workspace(
+                workspace_id=workspace_id, query=str(form_id)
+            )
+        )
+        if not workspace_form or not workspace_form.settings:
+            return
+        current_slug = workspace_form.settings.custom_url or ""
+        is_auto_default = (
+            current_slug == str(form_id)
+            or current_slug == "untitled-form"
+            or current_slug.startswith("untitled-form-")
+        )
+        if not is_auto_default:
+            return
+        form = await self.form_service.get_form_document_by_id(str(form_id))
+        new_slug = await self._generate_unique_form_slug(
+            workspace_id=workspace_id,
+            title=(form.title if form else ""),
+            fallback=current_slug,
+        )
+        if new_slug != current_slug:
+            workspace_form.settings.custom_url = new_slug
+            await workspace_form.save()
 
     async def get_form_workspace_by_id(self, workspace_id: PydanticObjectId):
         return await self.form_import_service.get_form_workspace_by_id(
@@ -728,10 +764,16 @@ class WorkspaceFormService:
         """Return a readable, workspace-unique share slug from the form title.
 
         Falls back to ``fallback`` (the form id, which is already unique) when
-        the title normalizes to an empty string or the base slug is somehow
-        contested beyond a sane number of tries.
+        the title is still a blank/placeholder ("", "Untitled", "Untitled form")
+        or the base slug is somehow contested beyond a sane number of tries.
+        Forms are created blank and titled later, so at create time this
+        deliberately yields the id placeholder rather than an "untitled-form"
+        slug — the title-based slug is assigned on publish (see
+        _upgrade_slug_from_title_on_publish).
         """
-        base_slug = self.clean_and_normalize_string(title or "") or "untitled-form"
+        base_slug = self.clean_and_normalize_string(title or "")
+        if base_slug in ("", "untitled", "untitled-form"):
+            return fallback
         slug = base_slug
         suffix = 1
         while await self.workspace_form_repository.get_workspace_form_with_custom_slug_form_id(
