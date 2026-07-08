@@ -41,7 +41,14 @@ const SlideBuilder = ({ slide, isScaledDown = false, disabled = false }: { slide
                 sees (WYSIWYG). The old stack doubled up: gap-20 twice, py-[10vh]
                 on top of LayoutWrapper's own py-[60px], and px-6 twice. */}
             <div className="flex h-full w-full flex-col justify-center px-6 py-4">
-                <div className="flex w-full flex-col gap-16 lg:grid lg:grid-cols-12 lg:gap-x-6 lg:gap-y-16">
+                <div
+                    className={cn(
+                        'flex w-full max-w-[800px] flex-col gap-16 lg:grid lg:grid-cols-12 lg:gap-x-6 lg:gap-y-16',
+                        // The grid IS the 800px question column (same as the runtime);
+                        // page alignment positions the column, not each field.
+                        slide.properties?.layout === FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND_LEFT_ALIGN ? '' : 'mx-auto'
+                    )}
+                >
                     <AnimatePresence>
                         {Array.isArray(slideFields) && slideFields.length ? (
                             slideFields.map((field, index) => {
@@ -58,14 +65,14 @@ const SlideBuilder = ({ slide, isScaledDown = false, disabled = false }: { slide
                                             style: { gridColumn: `span ${Math.min(12, Math.max(1, field.properties?.colSpan ?? 12))} / span ${Math.min(12, Math.max(1, field.properties?.colSpan ?? 12))}` },
                                             // Rows size to content — h-full made every row stretch to an
                                             // equal share of the slide, so spacing changed with field count.
-                                            className: cn('relative flex w-full flex-row items-center', slide.properties?.layout === FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND_LEFT_ALIGN ? 'justify-start' : 'justify-center')
+                                            className: 'relative flex w-full min-w-0 flex-row items-center'
                                         } as any)
                                         }
                                     >
                                         <div
                                             key={index}
                                             tabIndex={0}
-                                            className={cn(activeFieldComponent?.id === field.id && 'rounded-lg ring-2 ring-[#2456CC]', 'w-full max-w-[800px] cursor-pointer p-1')}
+                                            className={cn(activeFieldComponent?.id === field.id && 'rounded-lg ring-2 ring-[#2456CC]', 'w-full cursor-pointer p-1')}
                                             onFocus={(event) => {
                                                 event.preventDefault();
                                                 event.stopPropagation();
