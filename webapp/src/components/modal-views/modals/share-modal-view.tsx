@@ -13,7 +13,7 @@ interface Props {
 export default function ShareModalView({ url, title, showCopy, ...props }: Props) {
     const { closeModal } = useModal();
     return (
-        <div className="border-black-200 relative w-[calc(100vw-2rem)] max-w-[460px] rounded-2xl border bg-white p-6 text-left shadow-xl sm:w-[460px] sm:p-8">
+        <div className="border-black-200 relative w-[calc(100vw-2rem)] max-w-[540px] rounded-2xl border bg-white p-6 text-left shadow-xl sm:w-[540px] sm:p-8">
             <button
                 onClick={closeModal}
                 aria-label="Close"
