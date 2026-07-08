@@ -7,7 +7,6 @@ import { useFormResponse } from '@app/store/jotai/responder-form-response';
 import { useHiddenFieldValues } from '@app/store/jotai/responder-hidden-fields';
 import { resolvePipesInText, resolvePipesInTitle } from '@app/utils/answer-piping';
 import { getHtmlFromJson } from '@app/utils/richTextEditorExtenstion/get-html-from-json';
-import RequiredIcon from '@Components/icons/required';
 
 import { RenderImage } from '@app/views/organism/form-builder/fields/render-field';
 import { getPlaceholderValueForTitle } from '../rich-text-editor';
@@ -49,17 +48,25 @@ export default function QuestionWrapper({ field, children }: { field: StandardFo
                   }
                 : {})}
         >
-            {isRequired && (
-                <div className="absolute -right-2 top-2">
-                    <RequiredIcon className="text-black-900" />
-                </div>
-            )}
             <div className="">
                 <div className="flex flex-wrap items-baseline gap-x-2">
                     {/* The question owns the screen: 24px/600 ink (Design-Language §2) —
-                        bigger and darker than anything else, including the answer. */}
-                    <div id={`q-title-${field.id}`} className="text-xl font-semibold leading-snug lg:text-2xl">
+                        bigger and darker than anything else, including the answer.
+                        The required mark sits INLINE right after the last word of the
+                        title ([&_p]:inline keeps the parsed paragraph in flow) — the old
+                        absolutely-positioned icon floated at the container's far right
+                        edge, visually orphaned from short labels. */}
+                    <div id={`q-title-${field.id}`} className="text-xl font-semibold leading-snug lg:text-2xl [&_p]:inline">
                         {parse(getHtmlFromJson(resolvedTitle) ?? getPlaceholderValueForTitle(field?.type || FieldTypes.TEXT))}
+                        {isAnswerable && isRequired && (
+                            <>
+                                <span aria-hidden="true" className="text-[#C43D3D]">
+                                    {' '}
+                                    *
+                                </span>
+                                <span className="sr-only"> (required)</span>
+                            </>
+                        )}
                     </div>
                     {isAnswerable && !isRequired && <span className="text-black-700 text-xs font-normal tracking-wide">Optional</span>}
                 </div>
