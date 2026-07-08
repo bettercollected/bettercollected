@@ -5,11 +5,11 @@ from pydantic import BaseModel
 
 
 class ResponderGroupDto(BaseModel):
-    id: str = None
-    name: str = None
+    id: Optional[str] = None
+    name: Optional[str] = None
     description: Optional[str] = None
     regex: Optional[str] = None
-    emails: List[str] = None
+    emails: Optional[List[str]] = None
     forms: Optional[List] = None
 
     def __init__(self, _id: PydanticObjectId = None, id=None, *args, **kwargs):
