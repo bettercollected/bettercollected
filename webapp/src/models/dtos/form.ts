@@ -22,13 +22,7 @@ export interface StandardFormFieldProperties {
     allowMultipleSelection?: boolean;
     allowOtherChoice?: boolean;
     layout?: FormSlideLayout;
-    theme?: {
-        title: string;
-        primary: string;
-        secondary: string;
-        tertiary: string;
-        accent: string;
-    };
+    theme?: FormTheme;
     conditions?: any;
     mentions?: any;
     logicalOperator?: any;

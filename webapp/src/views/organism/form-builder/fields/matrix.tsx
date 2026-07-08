@@ -211,6 +211,7 @@ const StyledMatrixHeaderInput = styled(AppInput)<{ $theme?: IThemeState }>(({ $t
         resize: 'none',
         overflow: 'auto',
         width: '100%',
+        borderRadius: '6px',
         '&::placeholder': {
             color: secondaryColor
         },
