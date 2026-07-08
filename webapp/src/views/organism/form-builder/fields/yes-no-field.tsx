@@ -16,7 +16,8 @@ const YesNoField = ({ field, slide, disabled }: { field: StandardFormFieldDto; s
                                 <div
                                     style={{
                                         borderColor: slide.properties?.theme?.tertiary || theme?.tertiary,
-                                        color: theme?.secondary
+                                        // Ink, matching the responder rendering.
+                                        color: slide.properties?.theme?.primary || theme?.primary
                                     }}
                                     className={`flex w-[100px] justify-between rounded-xl border p-2 px-4`}
                                 >

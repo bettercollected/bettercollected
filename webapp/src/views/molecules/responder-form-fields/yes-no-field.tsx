@@ -30,10 +30,8 @@ const YesNoField = ({ field }: { field: StandardFormFieldDto }) => {
     const form = useAppSelector(selectForm);
     const { currentSlide } = useResponderState();
 
-    const getValue = () => {
-        if (formResponse?.answers?.[field.id]?.boolean !== null || formResponse?.answers?.[field.id]?.boolean !== undefined) return formResponse?.answers?.[field.id]?.boolean;
-        else return null;
-    };
+    // null (not undefined) when unanswered, so the RadioGroup stays controlled.
+    const getValue = () => formResponse?.answers?.[field.id]?.boolean ?? null;
 
     return (
         <QuestionWrapper field={field}>
@@ -56,14 +54,19 @@ const YesNoField = ({ field }: { field: StandardFormFieldDto }) => {
                                         <StyledDiv
                                             $theme={theme}
                                             style={{
-                                                borderColor: theme?.tertiary,
-                                                background: active || checked ? theme?.tertiary : '',
-                                                color: theme?.secondary
+                                                // Selection = a tinted fill + action-colour border (same
+                                                // treatment as multiple choice). The old solid-tertiary fill
+                                                // under secondary-colour text was illegible, and painting it
+                                                // on `active` too made mere keyboard focus look selected.
+                                                borderColor: active || checked ? theme?.secondary : theme?.tertiary,
+                                                background: checked ? theme?.tertiary + '55' : '',
+                                                // The answer wears ink (theme primary), never the action colour.
+                                                color: theme?.primary
                                             }}
-                                            className={`flex w-[100px] cursor-pointer justify-between rounded-xl border p-2 px-4`}
+                                            className={`flex w-[100px] cursor-pointer items-center justify-between gap-2 rounded-xl border p-2 px-4`}
                                         >
                                             {choice.value}
-                                            {checked && <Check />}
+                                            {checked && <Check className="h-5 w-5 shrink-0" />}
                                         </StyledDiv>
                                     );
                                 }}
