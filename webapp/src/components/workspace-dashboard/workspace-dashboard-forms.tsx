@@ -44,13 +44,12 @@ function EmptyFormsView() {
 interface IWorkspaceDashboardFormsProps {
     workspace: WorkspaceDto;
     hasCustomDomain: boolean;
-    title?: string;
     showButtons?: boolean;
     showPagination?: boolean;
     isWorkspace?: boolean;
 }
 
-export default function WorkspaceDashboardForms({ title, showButtons, hasCustomDomain, showPagination, isWorkspace = false }: IWorkspaceDashboardFormsProps) {
+export default function WorkspaceDashboardForms({ showButtons, hasCustomDomain, showPagination, isWorkspace = false }: IWorkspaceDashboardFormsProps) {
     const { t } = useTranslation();
     const workspace = useAppSelector(selectWorkspace);
 
@@ -106,12 +105,18 @@ export default function WorkspaceDashboardForms({ title, showButtons, hasCustomD
         <div className="mb-10 flex h-fit w-full flex-col gap-5">
             {workspaceForms?.data?.total > 0 ? (
                 <>
-                    <div className="mb-5 flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
-                        <div className="sh1 flex flex-row items-center gap-6">
-                            <div className={'flex flex-row gap-1'}>
-                                <h1>{title || t(localesCommon.forms)}</h1>
-                                {showPagination && <h2>{`(${showSearchedResults ? searchedForms?.length || 0 : workspaceForms?.data?.total || 0})`}</h2>}
-                            </div>
+                    {/* The page heading lives in the top navbar (getHeader) — repeating
+                        it here read as a stutter. The toolbar keeps the useful part: a
+                        quiet count beside search. */}
+                    <div className="mb-5 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                        <div className="flex flex-row items-center gap-4">
+                            {showPagination && (
+                                <span className="text-black-600 whitespace-nowrap text-sm tabular-nums">
+                                    {(showSearchedResults ? searchedForms?.length || 0 : workspaceForms?.data?.total || 0) === 1
+                                        ? '1 form'
+                                        : `${showSearchedResults ? searchedForms?.length || 0 : workspaceForms?.data?.total || 0} forms`}
+                                </span>
+                            )}
                             <SearchInput placeholder={'Search Form'} handleSearch={handleSearch} />
                         </div>
                         {showButtons && <NewFormButton />}
