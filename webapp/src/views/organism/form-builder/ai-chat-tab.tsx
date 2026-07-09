@@ -5,6 +5,7 @@ import { useRef, useState } from 'react';
 import { Check, Send, X } from 'lucide-react';
 
 import { StandardFormDto } from '@app/models/dtos/form';
+import { deepCopy } from '@app/utils/object-utils';
 import { selectForm, setForm } from '@app/store/forms/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import useFormFieldsAtom from '@app/store/jotai/field-selectors';
@@ -45,7 +46,7 @@ export default function AIChatTab() {
     const listRef = useRef<HTMLDivElement>(null);
 
     const scrollToEnd = () => {
-        requestAnimationFrame(() => listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: 'smooth' }));
+        requestAnimationFrame(() => listRef.current?.scrollTo?.({ top: listRef.current.scrollHeight, behavior: 'smooth' }));
     };
 
     const send = async () => {
@@ -66,10 +67,18 @@ export default function AIChatTab() {
             setSessionId(sid);
             // Apply the AI's edit to the canvas — ONE setFormFields call = one
             // undo snapshot, so a whole turn reverts with a single Ctrl+Z.
+            //
+            // deepCopy is LOAD-BEARING, twice over: Redux Toolkit freezes
+            // whatever object graph is dispatched into it, and the builder's
+            // field setters mutate fields in place — sharing references
+            // between the response, Redux and jotai froze the canvas state
+            // and every subsequent edit threw "Cannot assign to read only
+            // property". Each store gets its own copy (mirrors how the edit
+            // page hydrates with deepCopy at mount).
             if (results?.some((r: TurnResult) => r.ok)) {
-                setFormFields(form.fields ?? []);
+                setFormFields(deepCopy(form.fields ?? []));
                 setFormState({ ...formState, title: form.title ?? formState.title });
-                dispatch(setForm({ ...standardForm, title: form.title, description: form.description, fields: form.fields }));
+                dispatch(setForm({ ...standardForm, title: form.title, description: form.description, fields: deepCopy(form.fields ?? []) }));
             }
             setTurns((t) => [...t, { role: 'assistant', content: reply, results }]);
         } else {
