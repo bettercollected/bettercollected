@@ -144,6 +144,22 @@ describe('AIChatTab', () => {
         expect(probe.fields).toBe(before);
     });
 
+    it('consumes a pending Start-with-AI prompt exactly once and auto-sends it', async () => {
+        chatEditMock.mockResolvedValue(success());
+        // Hydrate the form slice (the guard requires a real formId, exactly
+        // as the edit page provides before the tab mounts).
+        const { setForm } = await import('@app/store/forms/slice');
+        store.dispatch(setForm({ formId: 'form-handoff-1', title: 'Draft' }));
+        sessionStorage.setItem('bc:ai-prompt:form-handoff-1', 'Build me an RSVP form');
+
+        renderPanel();
+
+        await waitFor(() => expect(chatEditMock).toHaveBeenCalledTimes(1));
+        expect(chatEditMock.mock.calls[0][0].body.message).toBe('Build me an RSVP form');
+        // Consumed: the stash is gone, so a remount cannot double-send.
+        expect(sessionStorage.getItem('bc:ai-prompt:form-handoff-1')).toBeNull();
+    });
+
     it('sends the sessionId on the second turn (continuity)', async () => {
         chatEditMock.mockResolvedValue(success());
         renderPanel();

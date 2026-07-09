@@ -1,5 +1,10 @@
 'use client';
 
+import { useEffect } from 'react';
+
+import { selectForm } from '@app/store/forms/slice';
+import { useAppSelector } from '@app/store/hooks';
+
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@app/shadcn/components/ui/tabs';
 import { useActiveFieldComponent, useActiveSlideComponent } from '@app/store/jotai/active-builder-component';
 import { PropertiesTab, usePropertiesTab } from '@app/store/jotai/properties-tab';
@@ -13,6 +18,17 @@ export default function PropertiesDrawer({ }: {}) {
     const { activeSlideComponent } = useActiveSlideComponent();
     const { activeFieldComponent } = useActiveFieldComponent();
     const { propertiesTab, setPropertiesTab } = usePropertiesTab();
+    const standardForm = useAppSelector(selectForm);
+
+    // Start-with-AI handoff: a pending prompt (stashed by the dashboard
+    // dialog) opens the drawer on the AI tab; the tab itself consumes and
+    // sends it.
+    useEffect(() => {
+        if (standardForm?.formId && typeof window !== 'undefined' && sessionStorage.getItem(`bc:ai-prompt:${standardForm.formId}`)) {
+            setPropertiesTab('ai');
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [standardForm?.formId]);
     return (
         <div className="flex h-full flex-col border-l ">
             {activeFieldComponent?.id && (

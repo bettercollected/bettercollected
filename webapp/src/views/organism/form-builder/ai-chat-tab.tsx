@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { Check, Send, X } from 'lucide-react';
 
@@ -49,8 +49,24 @@ export default function AIChatTab() {
         requestAnimationFrame(() => listRef.current?.scrollTo?.({ top: listRef.current.scrollHeight, behavior: 'smooth' }));
     };
 
-    const send = async () => {
-        const message = input.trim();
+    // Start-with-AI handoff: the dashboard dialog stashes the creation prompt
+    // and routes here — consume it exactly once and send it as the first turn
+    // (removeItem BEFORE sending guards strict-mode double-mount).
+    const consumedRef = useRef(false);
+    useEffect(() => {
+        if (!standardForm?.formId || consumedRef.current) return;
+        const key = `bc:ai-prompt:${standardForm.formId}`;
+        const pending = typeof window !== 'undefined' ? sessionStorage.getItem(key) : null;
+        if (pending) {
+            consumedRef.current = true;
+            sessionStorage.removeItem(key);
+            send(pending);
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [standardForm?.formId]);
+
+    const send = async (messageOverride?: string) => {
+        const message = (messageOverride ?? input).trim();
         if (!message || isLoading) return;
         setInput('');
         setTurns((t) => [...t, { role: 'user', content: message }]);
@@ -146,7 +162,7 @@ export default function AIChatTab() {
                         }}
                         className="placeholder:text-black-400 text-black-900 max-h-32 w-full resize-none bg-transparent text-[13px] leading-relaxed outline-none"
                     />
-                    <button type="button" aria-label="Send" onClick={send} disabled={isLoading || !input.trim()} className="bg-brand-500 hover:bg-brand-600 disabled:bg-black-300 mb-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-white transition">
+                    <button type="button" aria-label="Send" onClick={() => send()} disabled={isLoading || !input.trim()} className="bg-brand-500 hover:bg-brand-600 disabled:bg-black-300 mb-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-white transition">
                         <Send className="h-3.5 w-3.5" />
                     </button>
                 </div>
