@@ -17,6 +17,73 @@ common_url = "/api/v1/workspaces"
 
 
 class TestWorkspaces:
+    async def test_ai_profile_defaults_empty(
+        self,
+        client: AsyncClient,
+        workspace: Coroutine[Any, Any, WorkspaceDocument],
+        test_user_cookies: dict[str, str],
+    ):
+        response = await client.get(
+            f"{common_url}/{workspace.id}/ai-profile", cookies=test_user_cookies
+        )
+        assert response.status_code == 200
+        body = response.json()
+        assert body["about"] == "" and body["guidelines"] == "" and body["compliance"] == ""
+
+    async def test_ai_profile_update_and_roundtrip(
+        self,
+        client: AsyncClient,
+        workspace: Coroutine[Any, Any, WorkspaceDocument],
+        test_user_cookies: dict[str, str],
+    ):
+        payload = {
+            "about": "We are Sireto, a privacy-first studio.",
+            "guidelines": "Always British English. Never ask exact age.",
+            "compliance": "Every form collecting personal data must state a purpose.",
+        }
+        response = await client.put(
+            f"{common_url}/{workspace.id}/ai-profile",
+            cookies=test_user_cookies,
+            json=payload,
+        )
+        assert response.status_code == 200
+        assert response.json()["guidelines"] == payload["guidelines"]
+
+        # A second update pushes the previous version into the audit trail.
+        payload2 = {**payload, "guidelines": "Always British English."}
+        response = await client.put(
+            f"{common_url}/{workspace.id}/ai-profile",
+            cookies=test_user_cookies,
+            json=payload2,
+        )
+        assert response.status_code == 200
+
+        fetched = await client.get(
+            f"{common_url}/{workspace.id}/ai-profile", cookies=test_user_cookies
+        )
+        assert fetched.json()["guidelines"] == "Always British English."
+
+        from backend.app.schemas.workspace_ai_profile import WorkspaceAIProfileDocument
+
+        document = await WorkspaceAIProfileDocument.find_one(
+            WorkspaceAIProfileDocument.workspace_id == workspace.id
+        )
+        assert len(document.revisions) == 1
+        assert document.revisions[0]["guidelines"] == payload["guidelines"]
+
+    async def test_ai_profile_rejects_oversized_sections(
+        self,
+        client: AsyncClient,
+        workspace: Coroutine[Any, Any, WorkspaceDocument],
+        test_user_cookies: dict[str, str],
+    ):
+        response = await client.put(
+            f"{common_url}/{workspace.id}/ai-profile",
+            cookies=test_user_cookies,
+            json={"about": "x" * 9000, "guidelines": "", "compliance": ""},
+        )
+        assert response.status_code == 422
+
     async def test_patch_theme_presets_saves_and_returns_custom_themes(
         self,
         client: AsyncClient,

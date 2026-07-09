@@ -44,6 +44,7 @@ from backend.app.services.form_plugin_provider_service import FormPluginProvider
 from backend.app.services.form_response_service import FormResponseService
 from backend.app.services.form_service import FormService
 from backend.app.services.media_library_service import MediaLibraryService
+from backend.app.services.ai.profile import AIProfileService
 from backend.app.services.openai_service import OpenAIService
 from backend.app.services.integration_action_service import IntegrationActionService
 from backend.app.services.integration_provider_factory import IntegrationProviderFactory
@@ -235,6 +236,10 @@ class AppContainer(containers.DeclarativeContainer):
         form_response_service=form_response_service,
         responder_groups_service=responder_groups_service,
         user_tags_service=user_tags_service,
+    )
+
+    ai_profile_service: AIProfileService = providers.Singleton(
+        AIProfileService, workspace_user_service=workspace_user_service
     )
 
     openai_service: OpenAIService = providers.Singleton(

@@ -13,6 +13,8 @@ from common.models.standard_form import (
 )
 from common.models.user import User
 
+from backend.app.services.ai.profile import AIProfileService
+from backend.app.services.ai.prompt_builder import compose_generation_prompt
 from backend.app.constants.themes import themes
 from backend.app.exceptions import HTTPException
 from backend.app.models.dtos.request_dtos import CreateFormWithAI, AIProvider
@@ -66,7 +68,12 @@ class OpenAIService:
 
         try:
             provider = self._get_provider(create_form_ai.provider)
-            openai_form = await provider.generate_form(create_form_ai.prompt)
+            # Ground the request in the workspace's AI profile (org guidelines /
+            # compliance) — plan §2.1/§2.3. Provider-agnostic: prepended to the
+            # user turn.
+            profile = await AIProfileService.get_profile_for_prompt(workspace_id)
+            grounded_prompt = compose_generation_prompt(create_form_ai.prompt, profile)
+            openai_form = await provider.generate_form(grounded_prompt)
 
             form = await self.workspace_form_service.create_form(
                 workspace_id=workspace_id,

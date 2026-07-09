@@ -2,7 +2,7 @@ from http import HTTPStatus
 from typing import List, Optional
 
 from beanie import PydanticObjectId
-from classy_fastapi import Routable, delete, get, patch, post
+from classy_fastapi import Routable, delete, get, patch, post, put
 from common.models.user import User
 from fastapi import Depends, Form, UploadFile
 from pydantic import EmailStr
@@ -16,6 +16,7 @@ from backend.app.models.workspace import (
     WorkspaceThemeDto,
 )
 from backend.app.router import router
+from backend.app.services.ai.profile import AIProfileDto, AIProfileResponseDto
 from backend.app.services.user_service import get_logged_user, get_user_if_logged_in
 from backend.app.services.workspace_service import WorkspaceService
 
@@ -150,6 +151,27 @@ class WorkspaceRouter(Routable):
         )
         return await self.workspace_service.patch_workspace(
             profile_image, banner_image, workspace_id, workspace_request, user
+        )
+
+    @get("/{workspace_id}/ai-profile")
+    async def get_ai_profile(
+        self,
+        workspace_id: PydanticObjectId,
+        user: User = Depends(get_logged_user),
+    ) -> AIProfileResponseDto:
+        """The workspace's AI profile (org context for AI form features)."""
+        return await container.ai_profile_service().get_profile(workspace_id, user)
+
+    @put("/{workspace_id}/ai-profile")
+    async def update_ai_profile(
+        self,
+        workspace_id: PydanticObjectId,
+        profile: AIProfileDto,
+        user: User = Depends(get_logged_user),
+    ) -> AIProfileResponseDto:
+        """Replace the workspace's AI profile (admin only, versioned)."""
+        return await container.ai_profile_service().update_profile(
+            workspace_id, profile, user
         )
 
     @patch("/{workspace_id}/theme-presets")
