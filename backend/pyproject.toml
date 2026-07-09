@@ -38,6 +38,7 @@ dependencies = [
     "typing-inspect>=0.9.0",
     "pymongo>=4.17.0",
     "pydantic-settings>=2.13.0",
+    "mcp>=1.28.1",
 ]
 
 [dependency-groups]

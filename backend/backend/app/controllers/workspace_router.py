@@ -16,6 +16,7 @@ from backend.app.models.workspace import (
     WorkspaceThemeDto,
 )
 from backend.app.router import router
+from backend.app.services.ai.api_keys import APIKeyDto, CreateAPIKeyDto, CreatedAPIKeyDto
 from backend.app.services.ai.memory import AddMemoryEntryDto, MemoryEntryDto
 from backend.app.services.ai.profile import AIProfileDto, AIProfileResponseDto
 from backend.app.services.user_service import get_logged_user, get_user_if_logged_in
@@ -174,6 +175,34 @@ class WorkspaceRouter(Routable):
         return await container.ai_profile_service().update_profile(
             workspace_id, profile, user
         )
+
+    @get("/{workspace_id}/api-keys")
+    async def list_api_keys(
+        self,
+        workspace_id: PydanticObjectId,
+        user: User = Depends(get_logged_user),
+    ) -> List[APIKeyDto]:
+        """Workspace API keys (admin only; tokens never shown after creation)."""
+        return await container.api_key_service().list_keys(workspace_id, user)
+
+    @post("/{workspace_id}/api-keys")
+    async def create_api_key(
+        self,
+        workspace_id: PydanticObjectId,
+        request: CreateAPIKeyDto,
+        user: User = Depends(get_logged_user),
+    ) -> CreatedAPIKeyDto:
+        """Create a key — the full token is returned exactly once, here."""
+        return await container.api_key_service().create_key(workspace_id, request, user)
+
+    @delete("/{workspace_id}/api-keys/{key_id}")
+    async def revoke_api_key(
+        self,
+        workspace_id: PydanticObjectId,
+        key_id: str,
+        user: User = Depends(get_logged_user),
+    ) -> List[APIKeyDto]:
+        return await container.api_key_service().revoke_key(workspace_id, key_id, user)
 
     @get("/{workspace_id}/ai-memory")
     async def get_ai_memory(

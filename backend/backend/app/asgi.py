@@ -1,5 +1,6 @@
 """Application implementation - ASGI."""
 
+import asyncio
 from contextlib import asynccontextmanager
 
 from backend.config import settings
@@ -20,6 +21,7 @@ from backend.app.container import container
 from backend.app.exceptions import HTTPException, http_exception_handler
 from backend.app.handlers import init_logging
 from backend.app.handlers.database import close_db, init_db
+from backend.app.mcp.server import build_mcp_asgi_app, mcp
 from backend.app.middlewares import DynamicCORSMiddleware, include_middlewares
 from backend.app.router import root_api_router
 from backend.app.services.umami_client import provision_umami_website
@@ -79,11 +81,28 @@ async def lifespan(app: FastAPI):
             except Exception:
                 logger.exception("Flow-template seeding failed; continuing startup.")
 
+    # The MCP session manager must be running for the mounted /mcp app to
+    # serve requests (streamable-HTTP transport requirement). It runs in its
+    # own task: anyio task groups must be entered and exited in the same task,
+    # and lifespan setup/teardown are not guaranteed to share one (they don't
+    # under pytest-asyncio).
+    mcp_started, mcp_stop = asyncio.Event(), asyncio.Event()
+
+    async def _run_mcp_session_manager():
+        async with mcp.session_manager.run():
+            mcp_started.set()
+            await mcp_stop.wait()
+
+    mcp_task = asyncio.create_task(_run_mcp_session_manager())
+    await mcp_started.wait()
+
     yield
 
     # --- Shutdown ---
     logger.info("Execute FastAPI shutdown event handler.")
 
+    mcp_stop.set()
+    await mcp_task
     await close_db(client)
     await AiohttpClient.close_aiohttp_client()
     await container.http_client().aclose()
@@ -131,6 +150,10 @@ def get_application(is_test_mode: bool = False):
 
     logger.info("Add application routes.")
     app.include_router(root_api_router)
+    # MCP endpoint — other LLMs drive BetterCollected through this (plan §2.5).
+    # Auth: workspace API keys as Bearer tokens, enforced by the wrapping
+    # middleware; the session manager lifecycle is handled in lifespan above.
+    app.mount(api_settings.ROOT_PATH + "/mcp", build_mcp_asgi_app())
     app.add_middleware(
         DynamicCORSMiddleware,
         allow_credentials=True,

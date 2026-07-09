@@ -57,6 +57,24 @@ class FormAIChatResponse(_CamelModel):
     form: dict
 
 
+async def persist_ops_to_form(form_document: FormDocument, form: StandardForm, ops) -> tuple:
+    """Apply ops and persist the draft when anything applied.
+
+    The ONE write path for AI form mutation — the chat turn and MCP's
+    update_form both go through here; never two ways to mutate a form.
+    """
+    new_form, results = apply_form_ops(form, ops)
+    if any(r.ok for r in results):
+        form_document.title = new_form.title
+        form_document.description = new_form.description
+        form_document.fields = new_form.fields
+        form_document.theme = new_form.theme
+        form_document.welcome_page = new_form.welcome_page
+        form_document.thankyou_page = new_form.thankyou_page
+        await form_document.save()
+    return new_form, results
+
+
 class FormAIChatService:
     def __init__(
         self,
@@ -120,17 +138,7 @@ class FormAIChatService:
                 content="The AI returned an unusable reply — nothing was changed. Please try again.",
             )
 
-        new_form, results = apply_form_ops(form, ops)
-
-        # Persist the draft only when something actually changed.
-        if any(r.ok for r in results):
-            form_document.title = new_form.title
-            form_document.description = new_form.description
-            form_document.fields = new_form.fields
-            form_document.theme = new_form.theme
-            form_document.welcome_page = new_form.welcome_page
-            form_document.thankyou_page = new_form.thankyou_page
-            await form_document.save()
+        new_form, results = await persist_ops_to_form(form_document, form, ops)
 
         now = dt.datetime.now(dt.timezone.utc).isoformat()
         session.provider = request.provider or session.provider
