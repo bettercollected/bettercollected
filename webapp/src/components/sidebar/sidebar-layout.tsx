@@ -8,7 +8,7 @@ import { FormIcon } from '@Components/icons/form-icon';
 import MembersIcon from '@Components/icons/members';
 import ResponderIcon from '@Components/icons/responder';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Palette, Settings, Sparkles, Trash2 } from 'lucide-react';
+import { KeyRound, Palette, Settings, Sparkles, Trash2 } from 'lucide-react';
 
 import { cn } from '@app/shadcn/util/lib';
 
@@ -165,6 +165,13 @@ export default function SidebarLayout({ children, DrawerComponent = DashboardDra
                     url: `${commonWorkspaceUrl}/ai-profile`,
                     adminOnly: true,
                     icon: <Sparkles className="h-5 w-5 stroke-2" />
+                },
+                {
+                    key: 'api-keys',
+                    name: 'API keys',
+                    url: `${commonWorkspaceUrl}/api-keys`,
+                    adminOnly: true,
+                    icon: <KeyRound className="h-5 w-5 stroke-2" />
                 },
                 {
                     key: 'members',
