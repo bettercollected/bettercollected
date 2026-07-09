@@ -15,7 +15,7 @@ import MembersIcon from '@Components/icons/members';
 import ResponderIcon from '@Components/icons/responder';
 import HelpMenuComponent from '@Components/sidebar/help-menu-component';
 import HelpMenuItem from '@Components/sidebar/help-menu-item';
-import { Palette, Settings, Trash2 } from 'lucide-react';
+import { Palette, Settings, Sparkles, Trash2 } from 'lucide-react';
 import { useWorkspaceSettingsView } from '@app/store/jotai/workspace-settings-view';
 
 import AuthNavbar from '@app/components/auth/auth-navbar';
@@ -150,6 +150,13 @@ const WorkspaceDashboardLayout: React.FC<{ children: React.ReactNode }> = ({ chi
                     url: `${commonWorkspaceUrl}/themes`,
                     adminOnly: true,
                     icon: <Palette className="h-5 w-5 stroke-2" />
+                },
+                {
+                    key: 'ai-profile',
+                    name: 'AI profile',
+                    url: `${commonWorkspaceUrl}/ai-profile`,
+                    adminOnly: true,
+                    icon: <Sparkles className="h-5 w-5 stroke-2" />
                 },
                 {
                     key: 'members',
