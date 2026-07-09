@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 
-import { Check, Send, X } from 'lucide-react';
+import { BookOpen, Check, Plus, Send, X } from 'lucide-react';
 
 import { StandardFormDto } from '@app/models/dtos/form';
 import { deepCopy } from '@app/utils/object-utils';
@@ -11,6 +11,7 @@ import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import useFormFieldsAtom from '@app/store/jotai/field-selectors';
 import { useFormState } from '@app/store/jotai/form';
 import { useChatEditFormWithAIMutation } from '@app/store/redux/form-api';
+import { useAddAIMemoryEntryMutation, useDeleteAIMemoryEntryMutation, useGetAIMemoryQuery } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 
 interface TurnResult {
@@ -19,10 +20,20 @@ interface TurnResult {
 }
 
 interface ChatTurn {
-    role: 'user' | 'assistant';
+    role: 'user' | 'assistant' | 'memory';
     content: string;
     results?: TurnResult[];
     error?: boolean;
+    // role 'memory' only — the learned entry, so it can be forgotten in place.
+    entryId?: string;
+    forgotten?: boolean;
+}
+
+interface MemoryEntry {
+    id: string;
+    text: string;
+    at?: string;
+    source?: string;
 }
 
 /**
@@ -31,8 +42,14 @@ interface ChatTurn {
  * exactly one undo snapshot — so Ctrl+Z reverts a whole AI turn. The per-turn
  * change list comes straight from the backend's OpResults: what the AI
  * actually did, visibly, including what failed.
+ *
+ * Memory transparency (plan §2.4): the panel shows everything the assistant
+ * remembers about the creator's style, editable in place — and when a turn
+ * teaches it something new (extraction runs server-side after the reply), a
+ * "Remembered" notice appears in the chat with an immediate Forget. The AI
+ * never learns silently.
  */
-export default function AIChatTab() {
+export default function AIChatTab({ memoryPollDelaysMs = [4000, 10000] }: { memoryPollDelaysMs?: number[] }) {
     const dispatch = useAppDispatch();
     const workspace = useAppSelector(selectWorkspace);
     const standardForm: StandardFormDto = useAppSelector(selectForm);
@@ -40,10 +57,49 @@ export default function AIChatTab() {
     const { setFormState, formState } = useFormState();
     const [chatEdit, { isLoading }] = useChatEditFormWithAIMutation();
 
+    const { data: memoryEntries = [], refetch: refetchMemory } = useGetAIMemoryQuery(workspace?.id, { skip: !workspace?.id });
+    const [deleteMemoryEntry] = useDeleteAIMemoryEntryMutation();
+    const [addMemoryEntry, { isLoading: isAddingMemory }] = useAddAIMemoryEntryMutation();
+
     const [turns, setTurns] = useState<ChatTurn[]>([]);
     const [sessionId, setSessionId] = useState<string | null>(null);
     const [input, setInput] = useState('');
+    const [showMemory, setShowMemory] = useState(false);
+    const [memoryDraft, setMemoryDraft] = useState('');
     const listRef = useRef<HTMLDivElement>(null);
+
+    // Latest entries + already-surfaced ids, for diffing after a turn without
+    // stale-closure trouble.
+    const entriesRef = useRef<MemoryEntry[]>([]);
+    entriesRef.current = memoryEntries as MemoryEntry[];
+    const noticedIdsRef = useRef<Set<string>>(new Set());
+
+    // Extraction is a background task after the reply — poll briefly and
+    // surface anything the assistant just learned from this turn.
+    const surfaceNewMemories = (beforeIds: Set<string>) => {
+        memoryPollDelaysMs.forEach((delay) => {
+            setTimeout(async () => {
+                const { data } = await refetchMemory();
+                const fresh = ((data as MemoryEntry[]) ?? []).filter((entry) => entry.source !== 'manual' && !beforeIds.has(entry.id) && !noticedIdsRef.current.has(entry.id));
+                if (!fresh.length) return;
+                fresh.forEach((entry) => noticedIdsRef.current.add(entry.id));
+                setTurns((t) => [...t, ...fresh.map((entry): ChatTurn => ({ role: 'memory', content: entry.text, entryId: entry.id }))]);
+                scrollToEnd();
+            }, delay);
+        });
+    };
+
+    const forgetFromNotice = async (turnIndex: number, entryId: string) => {
+        await deleteMemoryEntry({ workspace_id: workspace.id, entry_id: entryId });
+        setTurns((t) => t.map((turn, i) => (i === turnIndex ? { ...turn, forgotten: true } : turn)));
+    };
+
+    const handleAddMemory = async () => {
+        const text = memoryDraft.trim();
+        if (!text) return;
+        const response: any = await addMemoryEntry({ workspace_id: workspace.id, body: { text } });
+        if (response.data) setMemoryDraft('');
+    };
 
     const scrollToEnd = () => {
         requestAnimationFrame(() => listRef.current?.scrollTo?.({ top: listRef.current.scrollHeight, behavior: 'smooth' }));
@@ -71,6 +127,7 @@ export default function AIChatTab() {
         setInput('');
         setTurns((t) => [...t, { role: 'user', content: message }]);
         scrollToEnd();
+        const memoryIdsBeforeTurn = new Set(entriesRef.current.map((entry) => entry.id));
 
         const response: any = await chatEdit({
             workspaceId: workspace.id,
@@ -97,6 +154,7 @@ export default function AIChatTab() {
                 dispatch(setForm({ ...standardForm, title: form.title, description: form.description, fields: deepCopy(form.fields ?? []) }));
             }
             setTurns((t) => [...t, { role: 'assistant', content: reply, results }]);
+            surfaceNewMemories(memoryIdsBeforeTurn);
         } else {
             const detail = typeof response.error?.data === 'string' ? response.error.data : 'Something went wrong — nothing was changed. Please try again.';
             setTurns((t) => [...t, { role: 'assistant', content: detail, error: true }]);
@@ -107,9 +165,65 @@ export default function AIChatTab() {
     return (
         <div className="flex h-full flex-col">
             <div className="px-4 pb-3">
-                <div className="text-black-600 text-xs font-semibold uppercase tracking-wide">Assistant</div>
+                <div className="flex items-center justify-between gap-2">
+                    <div className="text-black-600 text-xs font-semibold uppercase tracking-wide">Assistant</div>
+                    <button
+                        type="button"
+                        aria-expanded={showMemory}
+                        onClick={() => setShowMemory((open) => !open)}
+                        className={`flex items-center gap-1.5 rounded-md border px-2 py-1 text-[11px] font-medium transition-colors ${showMemory ? 'border-brand-200 bg-brand-100 text-brand-600' : 'border-black-200 text-black-600 hover:bg-black-100 bg-white'}`}
+                    >
+                        <BookOpen className="h-3 w-3" />
+                        Memory{memoryEntries.length > 0 ? ` (${memoryEntries.length})` : ''}
+                    </button>
+                </div>
                 <p className="text-black-600 mt-1 text-xs leading-relaxed">Describe a change — it lands on the canvas, and every change is listed. Undo reverts a whole turn.</p>
             </div>
+
+            {showMemory && (
+                <div className="border-black-200 mx-3 mb-3 flex max-h-56 flex-col gap-2 overflow-y-auto rounded-lg border bg-white p-3">
+                    <p className="text-black-600 text-[11px] leading-relaxed">
+                        Everything the assistant remembers about your style — used at the lowest priority, below your request and your organization&apos;s rules. Nothing here is hidden; forget any line, anytime.
+                    </p>
+                    {(memoryEntries as MemoryEntry[]).length === 0 ? (
+                        <p className="text-black-500 border-black-200 rounded-md border border-dashed px-2 py-2.5 text-center text-[11px]">Nothing remembered yet — it fills in as you work.</p>
+                    ) : (
+                        <ul className="flex flex-col gap-1">
+                            {(memoryEntries as MemoryEntry[]).map((entry) => (
+                                <li key={entry.id} className="border-black-100 flex items-start justify-between gap-2 rounded-md border px-2 py-1.5">
+                                    <div className="min-w-0">
+                                        <p className="text-black-800 text-xs leading-relaxed">{entry.text}</p>
+                                        <p className="text-black-400 text-[10px]">{entry.source === 'manual' ? 'Added by you' : 'Learned from a session'}</p>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        aria-label={`Forget "${entry.text}"`}
+                                        onClick={() => deleteMemoryEntry({ workspace_id: workspace.id, entry_id: entry.id })}
+                                        className="text-black-400 mt-0.5 shrink-0 rounded p-0.5 transition-colors hover:bg-[#FBEFEF] hover:text-[#C43D3D]"
+                                    >
+                                        <X className="h-3 w-3" />
+                                    </button>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+                    <div className="flex items-center gap-1.5">
+                        <input
+                            value={memoryDraft}
+                            maxLength={300}
+                            placeholder="Add a preference…"
+                            onChange={(e) => setMemoryDraft(e.target.value)}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter') handleAddMemory();
+                            }}
+                            className="border-black-200 text-black-900 placeholder:text-black-400 focus:border-brand-500 h-7 w-full rounded-md border bg-white px-2 text-[11px] outline-none transition"
+                        />
+                        <button type="button" aria-label="Add preference" disabled={!memoryDraft.trim() || isAddingMemory} onClick={handleAddMemory} className="border-black-200 text-black-600 hover:bg-black-100 disabled:text-black-300 flex h-7 w-7 shrink-0 items-center justify-center rounded-md border transition">
+                            <Plus className="h-3.5 w-3.5" />
+                        </button>
+                    </div>
+                </div>
+            )}
 
             <div ref={listRef} className="flex-1 overflow-y-auto border-t px-3 py-3">
                 {turns.length === 0 && (
@@ -125,6 +239,23 @@ export default function AIChatTab() {
                         turn.role === 'user' ? (
                             <div key={i} className="bg-brand-100 text-black-900 ml-6 self-end rounded-lg rounded-br-sm px-3 py-2 text-[13px] leading-relaxed">
                                 {turn.content}
+                            </div>
+                        ) : turn.role === 'memory' ? (
+                            <div key={i} className="border-black-200 bg-black-50 self-stretch rounded-md border border-dashed px-3 py-2 text-xs leading-relaxed">
+                                {turn.forgotten ? (
+                                    <span className="text-black-500">Forgotten — the assistant won&apos;t keep that.</span>
+                                ) : (
+                                    <>
+                                        <span className="text-black-600">
+                                            <BookOpen className="mr-1.5 inline h-3 w-3 align-[-1px]" />
+                                            Remembered: <span className="text-black-800">“{turn.content}”</span>
+                                        </span>
+                                        <span className="text-black-400"> · applies to future forms, not this one</span>
+                                        <button type="button" onClick={() => forgetFromNotice(i, turn.entryId!)} className="text-black-600 ml-2 font-medium underline decoration-dotted underline-offset-2 hover:text-[#C43D3D]">
+                                            Forget
+                                        </button>
+                                    </>
+                                )}
                             </div>
                         ) : (
                             <div key={i} className={`mr-6 self-start rounded-lg rounded-bl-sm border px-3 py-2 text-[13px] leading-relaxed ${turn.error ? 'border-[#E9CFCF] bg-[#FBEFEF] text-[#7A2E2E]' : 'border-black-200 text-black-800 bg-white'}`}>

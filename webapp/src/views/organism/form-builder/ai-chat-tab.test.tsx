@@ -16,6 +16,20 @@ vi.mock('@app/store/redux/form-api', async (importOriginal) => {
     };
 });
 
+// Same partial-mock pattern for the memory hooks (workspacesApi reducer stays real).
+const memoryQueryMock: { data: any[]; refetch: ReturnType<typeof vi.fn> } = { data: [], refetch: vi.fn() };
+const deleteMemoryMock = vi.fn();
+const addMemoryMock = vi.fn();
+vi.mock('@app/store/workspaces/api', async (importOriginal) => {
+    const actual: any = await importOriginal();
+    return {
+        ...actual,
+        useGetAIMemoryQuery: () => memoryQueryMock,
+        useDeleteAIMemoryEntryMutation: () => [deleteMemoryMock],
+        useAddAIMemoryEntryMutation: () => [addMemoryMock, { isLoading: false }]
+    };
+});
+
 import { initialFieldsAtom } from '@app/store/jotai/field-selectors';
 import { store } from '@app/store/store';
 import AIChatTab from './ai-chat-tab';
@@ -57,11 +71,11 @@ function FieldsProbe() {
     return null;
 }
 
-const renderPanel = () =>
+const renderPanel = (props: Record<string, any> = {}) =>
     render(
         <ReduxProvider store={store}>
             <Provider>
-                <AIChatTab />
+                <AIChatTab memoryPollDelaysMs={[0]} {...props} />
                 <FieldsProbe />
             </Provider>
         </ReduxProvider>
@@ -75,6 +89,10 @@ const sendMessage = async (text: string) => {
 describe('AIChatTab', () => {
     beforeEach(() => {
         chatEditMock.mockReset();
+        deleteMemoryMock.mockReset().mockResolvedValue({ data: [] });
+        addMemoryMock.mockReset().mockResolvedValue({ data: [] });
+        memoryQueryMock.data = [];
+        memoryQueryMock.refetch = vi.fn().mockResolvedValue({ data: [] });
     });
 
     it('renders the empty state with example prompts', () => {
@@ -158,6 +176,56 @@ describe('AIChatTab', () => {
         expect(chatEditMock.mock.calls[0][0].body.message).toBe('Build me an RSVP form');
         // Consumed: the stash is gone, so a remount cannot double-send.
         expect(sessionStorage.getItem('bc:ai-prompt:form-handoff-1')).toBeNull();
+    });
+
+    it('memory panel shows every remembered entry with its source, and forgets in place', async () => {
+        memoryQueryMock.data = [
+            { id: 'm1', text: 'Always use 7-step rating scales', source: 'extracted' },
+            { id: 'm2', text: 'Keep pages under 5 questions', source: 'manual' }
+        ];
+        renderPanel();
+
+        fireEvent.click(screen.getByRole('button', { name: /Memory \(2\)/ }));
+        expect(screen.getByText('Always use 7-step rating scales')).toBeDefined();
+        expect(screen.getByText('Learned from a session')).toBeDefined();
+        expect(screen.getByText('Added by you')).toBeDefined();
+
+        fireEvent.click(screen.getByLabelText('Forget "Always use 7-step rating scales"'));
+        expect(deleteMemoryMock).toHaveBeenCalledWith(expect.objectContaining({ entry_id: 'm1' }));
+    });
+
+    it('surfaces what a turn taught the assistant as a Remembered notice, with Forget undo', async () => {
+        chatEditMock.mockResolvedValue(success());
+        // After the turn, extraction has produced a new entry server-side.
+        memoryQueryMock.refetch = vi.fn().mockResolvedValue({
+            data: [{ id: 'm-new', text: 'Prefers required email questions', source: 'extracted' }]
+        });
+        renderPanel();
+
+        await sendMessage('add a required work email question');
+        await waitFor(() => expect(screen.getByText(/Remembered:/)).toBeDefined());
+        expect(screen.getByText(/Prefers required email questions/)).toBeDefined();
+
+        fireEvent.click(screen.getByRole('button', { name: 'Forget' }));
+        await waitFor(() => expect(screen.getByText(/won't keep that/)).toBeDefined());
+        expect(deleteMemoryMock).toHaveBeenCalledWith(expect.objectContaining({ entry_id: 'm-new' }));
+    });
+
+    it('does not re-announce entries that existed before the turn, or manual adds', async () => {
+        chatEditMock.mockResolvedValue(success());
+        memoryQueryMock.data = [{ id: 'm-old', text: 'Old preference', source: 'extracted' }];
+        memoryQueryMock.refetch = vi.fn().mockResolvedValue({
+            data: [
+                { id: 'm-old', text: 'Old preference', source: 'extracted' },
+                { id: 'm-manual', text: 'Added by hand mid-turn', source: 'manual' }
+            ]
+        });
+        renderPanel();
+
+        await sendMessage('change something');
+        await waitFor(() => expect(screen.getByText('Added an email question.')).toBeDefined());
+        await waitFor(() => expect(memoryQueryMock.refetch).toHaveBeenCalled());
+        expect(screen.queryByText(/Remembered:/)).toBeNull();
     });
 
     it('sends the sessionId on the second turn (continuity)', async () => {
