@@ -143,6 +143,28 @@ class UpdateFormInfoOp(_CamelModel):
     description: Optional[str] = None
 
 
+class FormSettingsPatch(_CamelModel):
+    """AI-editable form settings — the Form tab's metadata.
+
+    Deliberately a SUBSET of SettingsPatchDto: trust-layer text and
+    response-behaviour toggles. Distribution/visibility (hidden, private,
+    pinned, custom URL, close date) stays human-only — an ambiguous chat
+    instruction must never unpublish or hide a form.
+    """
+
+    purpose: Optional[str] = None  # empty string clears
+    retention_text: Optional[str] = None  # empty string clears
+    privacy_policy_url: Optional[str] = None  # empty string clears
+    require_verified_identity: Optional[bool] = None
+    allow_editing_response: Optional[bool] = None
+    show_submission_number: Optional[bool] = None
+
+
+class UpdateFormSettingsOp(_CamelModel):
+    op: Literal["update_form_settings"] = "update_form_settings"
+    patch: FormSettingsPatch
+
+
 class UpdateThemeOp(_CamelModel):
     op: Literal["update_theme"] = "update_theme"
     theme: Theme
@@ -157,6 +179,7 @@ FormOp = Annotated[
         AddPageOp,
         RemovePageOp,
         UpdateFormInfoOp,
+        UpdateFormSettingsOp,
         UpdateThemeOp,
     ],
     Field(discriminator="op"),
@@ -414,6 +437,32 @@ def _apply_update_form_info(form: StandardForm, op: UpdateFormInfoOp) -> str:
     return f"Updated form {', '.join(changed)}"
 
 
+_SETTINGS_LABELS = {
+    "purpose": "purpose",
+    "retention_text": "retention",
+    "privacy_policy_url": "privacy policy link",
+    "require_verified_identity": "verified-identity requirement",
+    "allow_editing_response": "response editing",
+    "show_submission_number": "submission numbers",
+}
+
+
+def _apply_update_form_settings(form: StandardForm, op: UpdateFormSettingsOp) -> str:
+    """Settings live on the workspace-form association, not the form body —
+    the engine validates and reports; ``persist_ops_to_form`` writes them."""
+    changed = [
+        _SETTINGS_LABELS[key]
+        for key, value in op.patch.model_dump().items()
+        if value is not None
+    ]
+    if not changed:
+        raise OpError(
+            "Nothing to change — provide at least one of: purpose, retentionText, "
+            "privacyPolicyUrl, requireVerifiedIdentity, allowEditingResponse, showSubmissionNumber."
+        )
+    return "Updated form settings: " + ", ".join(changed)
+
+
 def _apply_update_theme(form: StandardForm, op: UpdateThemeOp) -> str:
     form.theme = op.theme
     return f"Applied theme '{op.theme.title}'"
@@ -427,6 +476,7 @@ _HANDLERS = {
     "add_page": _apply_add_page,
     "remove_page": _apply_remove_page,
     "update_form_info": _apply_update_form_info,
+    "update_form_settings": _apply_update_form_settings,
     "update_theme": _apply_update_theme,
 }
 

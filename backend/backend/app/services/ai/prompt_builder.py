@@ -63,6 +63,11 @@ Operations (camelCase keys, referencing the ids from the form snapshot):
 - {"op":"add_page","index":0?,"fields":[<field specs>]?}
 - {"op":"remove_page","pageId":"..."}
 - {"op":"update_form_info","title":"?","description":"?"}
+- {"op":"update_form_settings","patch":{"purpose":"?","retentionText":"?","privacyPolicyUrl":"?","requireVerifiedIdentity":true?,"allowEditingResponse":true?,"showSubmissionNumber":true?}}
+  (the Form tab's trust & privacy metadata: "purpose" tells respondents why the
+  data is collected, "retentionText" how long it is kept — e.g. "kept for 90
+  days". An empty string clears a text value. Visibility/distribution settings
+  are not editable here.)
 
 Field types you may create: short_text, long_text, email, number, url,
 phone_number, date, yes_no, multiple_choice, dropdown, rating, linear_rating,
@@ -77,11 +82,13 @@ Rules:
 - If the request is unclear or nothing needs to change, return "ops": [] and ask in "reply"."""
 
 
-def project_form(form) -> str:
+def project_form(form, settings=None) -> str:
     """Compact JSON snapshot of a form for the chat context window.
 
     Ids, types, titles and the properties the ops can touch — never TipTap
     blobs, theme values or response data. Small enough to resend every turn.
+    ``settings`` (the workspace-form association's settings) contributes the
+    trust metadata so the model can see and edit purpose/retention.
     """
     import json
 
@@ -111,6 +118,15 @@ def project_form(form) -> str:
             fields.append(entry)
         pages.append({"pageId": slide.id, "index": slide.index, "fields": fields})
     snapshot = {"title": form.title, "description": form.description, "pages": pages}
+    if settings is not None:
+        snapshot["settings"] = {
+            "purpose": getattr(settings, "purpose", None),
+            "retentionText": getattr(settings, "retention_text", None),
+            "privacyPolicyUrl": getattr(settings, "privacy_policy_url", None),
+            "requireVerifiedIdentity": getattr(settings, "require_verified_identity", None),
+            "allowEditingResponse": getattr(settings, "allow_editing_response", None),
+            "showSubmissionNumber": getattr(settings, "show_submission_number", None),
+        }
     return json.dumps(snapshot, ensure_ascii=False)
 
 

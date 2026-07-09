@@ -27,7 +27,13 @@ from backend.app.schemas.form_ai_session import FormAISessionDocument
 from backend.app.schemas.standard_form import FormDocument
 from backend.app.schemas.workspace_form import WorkspaceFormDocument
 from backend.app.services.ai.memory import AIMemoryService
-from backend.app.services.ai.ops import OpResult, apply_form_ops, parse_ops
+from backend.app.models.dtos.response_dtos import WorkspaceFormSettingsCamelModal
+from backend.app.services.ai.ops import (
+    OpResult,
+    UpdateFormSettingsOp,
+    apply_form_ops,
+    parse_ops,
+)
 from backend.app.services.ai.profile import AIProfileService
 from backend.app.services.ai.prompt_builder import (
     build_chat_system_prompt,
@@ -56,13 +62,60 @@ class FormAIChatResponse(_CamelModel):
     results: List[OpResult] = []
     # The updated draft, camelised by the controller's response model.
     form: dict
+    # Present when a turn changed form settings (purpose/retention/…) — the
+    # Form tab's metadata lives on the workspace-form association, not the
+    # form body, so the client updates it from here.
+    settings: Optional[dict] = None
+
+
+def _clear_or_set(value: Optional[str]) -> Optional[str]:
+    """Trust-layer text semantics (mirrors patch_settings): '' clears."""
+    return value or None
+
+
+async def _persist_settings_ops(form_id: str, ops, results: List[OpResult]) -> Optional[dict]:
+    """Write applied update_form_settings ops to the association document.
+
+    Returns the camelised updated settings, or None when no settings op
+    applied."""
+    patches = [
+        op.patch
+        for op, result in zip(ops, results)
+        if result.ok and isinstance(op, UpdateFormSettingsOp)
+    ]
+    if not patches:
+        return None
+    workspace_form = await WorkspaceFormDocument.find_one(
+        WorkspaceFormDocument.form_id == form_id
+    )
+    if not workspace_form:
+        return None
+    settings = workspace_form.settings
+    for patch in patches:
+        if patch.purpose is not None:
+            settings.purpose = _clear_or_set(patch.purpose.strip())
+        if patch.retention_text is not None:
+            settings.retention_text = _clear_or_set(patch.retention_text.strip())
+        if patch.privacy_policy_url is not None:
+            settings.privacy_policy_url = _clear_or_set(patch.privacy_policy_url.strip())
+        if patch.require_verified_identity is not None:
+            settings.require_verified_identity = patch.require_verified_identity
+        if patch.allow_editing_response is not None:
+            settings.allow_editing_response = patch.allow_editing_response
+        if patch.show_submission_number is not None:
+            settings.show_submission_number = patch.show_submission_number
+    await workspace_form.save()
+    return WorkspaceFormSettingsCamelModal(**settings.model_dump()).model_dump(
+        mode="json", by_alias=True
+    )
 
 
 async def persist_ops_to_form(form_document: FormDocument, form: StandardForm, ops) -> tuple:
-    """Apply ops and persist the draft when anything applied.
+    """Apply ops and persist when anything applied.
 
-    The ONE write path for AI form mutation — the chat turn and MCP's
-    update_form both go through here; never two ways to mutate a form.
+    The ONE write path for AI form mutation — the chat turn, review fixes and
+    MCP's update_form all go through here; never two ways to mutate a form.
+    Returns (new_form, results, updated_settings_or_none).
     """
     new_form, results = apply_form_ops(form, ops)
     if any(r.ok for r in results):
@@ -73,7 +126,8 @@ async def persist_ops_to_form(form_document: FormDocument, form: StandardForm, o
         form_document.welcome_page = new_form.welcome_page
         form_document.thankyou_page = new_form.thankyou_page
         await form_document.save()
-    return new_form, results
+    settings = await _persist_settings_ops(form_document.form_id, ops, results)
+    return new_form, results, settings
 
 
 class FormAIChatService:
@@ -125,7 +179,9 @@ class FormAIChatService:
         form = StandardForm(**form_document.model_dump())
         profile = await AIProfileService.get_profile_for_prompt(workspace_id)
         memory_entries = await AIMemoryService.get_entries_for_prompt(workspace_id, user.id)
-        system = build_chat_system_prompt(project_form(form), profile, memory_entries)
+        system = build_chat_system_prompt(
+            project_form(form, settings=association.settings), profile, memory_entries
+        )
 
         history = [
             {"role": m["role"], "content": m["content"]}
@@ -147,7 +203,7 @@ class FormAIChatService:
                 content="The AI returned an unusable reply — nothing was changed. Please try again.",
             )
 
-        new_form, results = await persist_ops_to_form(form_document, form, ops)
+        new_form, results, updated_settings = await persist_ops_to_form(form_document, form, ops)
 
         now = dt.datetime.now(dt.timezone.utc).isoformat()
         session.provider = request.provider or session.provider
@@ -183,4 +239,5 @@ class FormAIChatService:
             results=results,
             # Camelised — the webapp's form DTOs are camelCase.
             form=StandardFormCamelModel(**new_form.model_dump()).model_dump(mode="json", by_alias=True),
+            settings=updated_settings,
         )

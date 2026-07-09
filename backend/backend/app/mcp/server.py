@@ -163,7 +163,10 @@ async def update_form(form_id: str, ops: List[Dict[str, Any]]) -> str:
     {"op":"remove_field","fieldId":str} ·
     {"op":"move_field","fieldId":str,"toPageId"?:str,"index":int} ·
     {"op":"add_page","index"?:int,"fields"?:[field]} · {"op":"remove_page","pageId":str} ·
-    {"op":"update_form_info","title"?:str,"description"?:str}.
+    {"op":"update_form_info","title"?:str,"description"?:str} ·
+    {"op":"update_form_settings","patch":{"purpose"?:str,"retentionText"?:str,
+    "privacyPolicyUrl"?:str,"requireVerifiedIdentity"?:bool,"allowEditingResponse"?:bool,
+    "showSubmissionNumber"?:bool}} (trust metadata; "" clears a text value).
     Field types: short_text, long_text, email, number, url, phone_number, date,
     yes_no, multiple_choice, dropdown, rating, linear_rating, file_upload, text."""
     key = _key("forms:write")
@@ -172,10 +175,10 @@ async def update_form(form_id: str, ops: List[Dict[str, Any]]) -> str:
     form_document = await FormDocument.find_one({"form_id": form_id})
     parsed = parse_ops(ops)
     form = StandardForm(**form_document.model_dump())
-    _, results = await persist_ops_to_form(form_document, form, parsed)
+    _, results, updated_settings = await persist_ops_to_form(form_document, form, parsed)
     payload = [r.model_dump(by_alias=True) for r in results]
     await _audit("update_form", all(r.ok for r in results), f"{form_id}: {len(results)} ops")
-    return json.dumps({"results": payload})
+    return json.dumps({"results": payload, "settings": updated_settings})
 
 
 @mcp.tool()
