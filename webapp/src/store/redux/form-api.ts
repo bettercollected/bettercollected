@@ -94,8 +94,21 @@ export const formsApi = createApi({
                 method: 'POST',
                 body: request.body
             })
+        }),
+        getAIInsights: builder.query<any, any>({
+            query: (request) => ({
+                url: `/workspaces/${request.workspaceId}/forms/${request.formId}/ai/insights`,
+                method: 'GET'
+            })
+        }),
+        generateAIInsights: builder.mutation<any, any>({
+            query: (request) => ({
+                url: `/workspaces/${request.workspaceId}/forms/${request.formId}/ai/insights`,
+                method: 'POST',
+                body: {}
+            })
         })
     })
 });
 
-export const { useCreateV2FormMutation, usePatchV2FormMutation, usePublishV2FormMutation, useGetFormResponseQuery, useSubmitResponseMutation, useSendFlowEventMutation, useGetFlowAnalyticsQuery, useLazyLogOutQuery, useCreateFormWithAIMutation, useChatEditFormWithAIMutation, useReviewFormWithAIMutation, useApplyAIReviewFixMutation } = formsApi;
+export const { useCreateV2FormMutation, usePatchV2FormMutation, usePublishV2FormMutation, useGetFormResponseQuery, useSubmitResponseMutation, useSendFlowEventMutation, useGetFlowAnalyticsQuery, useLazyLogOutQuery, useCreateFormWithAIMutation, useChatEditFormWithAIMutation, useReviewFormWithAIMutation, useApplyAIReviewFixMutation, useGetAIInsightsQuery, useGenerateAIInsightsMutation } = formsApi;

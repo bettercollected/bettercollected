@@ -216,7 +216,9 @@ async def list_responses(form_id: str, limit: int = 20) -> str:
         {
             "responseId": r.response_id,
             "submittedAt": str(getattr(r, "created_at", "")),
-            "answerCount": len(r.answers or {}),
+            # Answers are encrypted at rest (str/bytes) — len() of ciphertext
+            # is meaningless, so only count when they are a readable dict.
+            "answerCount": len(r.answers) if isinstance(r.answers, dict) else None,
         }
         for r in responses
     ]
@@ -232,13 +234,22 @@ async def get_response(response_id: str) -> str:
     workspace_forms = await _workspace_form_ids(key.workspace_id)
     if not response or response.form_id not in workspace_forms:
         raise ValueError("Response not found in this workspace.")
+    # Answers are encrypted at rest — decrypt on this read path (the same
+    # rule as the dashboard's response views).
+    answers = response.answers
+    if isinstance(answers, (bytes, str)):
+        from common.services.crypto_service import crypto_service
+
+        answers = json.loads(
+            crypto_service.decrypt(workspace_id=key.workspace_id, form_id=response.form_id, data=answers)
+        )
     await _audit("get_response", True, response_id)
     return json.dumps(
         {
             "responseId": response.response_id,
             "formId": response.form_id,
             "submittedAt": str(getattr(response, "created_at", "")),
-            "answers": json.loads(json.dumps({k: v for k, v in (response.answers or {}).items()}, default=str)),
+            "answers": json.loads(json.dumps(answers if isinstance(answers, dict) else {}, default=str)),
         }
     )
 

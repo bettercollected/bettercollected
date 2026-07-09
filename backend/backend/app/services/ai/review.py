@@ -21,6 +21,7 @@ from pydantic.alias_generators import to_camel
 from backend.app.exceptions import HTTPException
 from backend.app.models.dtos.response_dtos import StandardFormCamelModel
 from backend.app.schemas.standard_form import FormDocument
+from backend.app.schemas.workspace_form import WorkspaceFormDocument
 from backend.app.services.ai.chat import persist_ops_to_form
 from backend.app.services.ai.ops import OpResult, parse_ops
 from backend.app.services.ai.profile import AIProfileService, render_prompt_block
@@ -156,7 +157,14 @@ class FormAIReviewService:
         await self._workspace_user_service.check_user_has_access_in_workspace(
             workspace_id=workspace_id, user=user
         )
-        form_document = await FormDocument.find_one({"form_id": form_id})
+        # The form must belong to THIS workspace (same rule as chat and MCP).
+        association = await WorkspaceFormDocument.find_one(
+            WorkspaceFormDocument.workspace_id == workspace_id,
+            WorkspaceFormDocument.form_id == form_id,
+        )
+        form_document = (
+            await FormDocument.find_one({"form_id": form_id}) if association else None
+        )
         if not form_document:
             raise HTTPException(status_code=HTTPStatus.NOT_FOUND, content="Form not found")
         return form_document

@@ -25,6 +25,7 @@ from backend.app.exceptions import HTTPException
 from backend.app.models.dtos.response_dtos import StandardFormCamelModel
 from backend.app.schemas.form_ai_session import FormAISessionDocument
 from backend.app.schemas.standard_form import FormDocument
+from backend.app.schemas.workspace_form import WorkspaceFormDocument
 from backend.app.services.ai.memory import AIMemoryService
 from backend.app.services.ai.ops import OpResult, apply_form_ops, parse_ops
 from backend.app.services.ai.profile import AIProfileService
@@ -98,7 +99,15 @@ class FormAIChatService:
             workspace_id=workspace_id, user=user
         )
 
-        form_document = await FormDocument.find_one({"form_id": form_id})
+        # The form must belong to THIS workspace — access to workspace A must
+        # not allow editing workspace B's forms by id (MCP has the same rule).
+        association = await WorkspaceFormDocument.find_one(
+            WorkspaceFormDocument.workspace_id == workspace_id,
+            WorkspaceFormDocument.form_id == form_id,
+        )
+        form_document = (
+            await FormDocument.find_one({"form_id": form_id}) if association else None
+        )
         if not form_document:
             raise HTTPException(status_code=HTTPStatus.NOT_FOUND, content="Form not found")
 
