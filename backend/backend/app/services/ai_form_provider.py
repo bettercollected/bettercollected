@@ -25,3 +25,17 @@ class AIFormProvider(abc.ABC):
         Returns:
             Intermediate form dict.
         """
+
+
+    async def chat(self, system: str, messages: "list[dict]") -> str:
+        """Multi-turn chat completion (used by AI form editing).
+
+        Args:
+            system: System prompt.
+            messages: [{"role": "user"|"assistant", "content": str}, ...]
+                ending with the latest user message.
+
+        Returns:
+            The assistant's raw text reply.
+        """
+        raise NotImplementedError(f"{type(self).__name__} does not support chat yet.")

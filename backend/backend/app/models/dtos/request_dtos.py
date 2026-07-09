@@ -7,6 +7,8 @@ from pydantic import BaseModel
 class AIProvider(str, Enum):
     OPENAI = "openai"
     GOOGLE = "google"
+    # Any OpenAI-compatible endpoint (Ollama, vLLM, ...) — the self-host option.
+    COMPATIBLE = "compatible"
 
 
 class PriceIdRequest(BaseModel):
@@ -15,4 +17,5 @@ class PriceIdRequest(BaseModel):
 
 class CreateFormWithAI(BaseModel):
     prompt: str
-    provider: AIProvider = AIProvider.OPENAI
+    # None -> settings.ai.DEFAULT_PROVIDER decides.
+    provider: Optional[AIProvider] = None

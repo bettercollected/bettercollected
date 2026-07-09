@@ -14,6 +14,7 @@ from loguru import logger
 from starlette.requests import Request
 
 from backend.app.container import container
+from backend.app.services.ai.chat import FormAIChatRequest, FormAIChatResponse
 from backend.app.decorators.user_tag_decorators import user_tag
 from backend.app.exceptions import HTTPException
 from backend.app.models.dtos.action_dto import AddActionToFormDto, UpdateActionInFormDto
@@ -122,6 +123,19 @@ class WorkspaceFormsRouter(Routable):
             cover_image=cover_image,
         )
         return FormDtoCamelModel(**response.model_dump(mode='json'))
+
+    @post("/{form_id}/ai/chat")
+    async def chat_edit_form_with_ai(
+        self,
+        workspace_id: PydanticObjectId,
+        form_id: str,
+        request: FormAIChatRequest,
+        user=Depends(get_logged_user),
+    ) -> FormAIChatResponse:
+        """One chat-editing turn: applies typed ops to the draft form."""
+        return await container.form_ai_chat_service().chat_edit(
+            workspace_id=workspace_id, form_id=form_id, request=request, user=user
+        )
 
     @post("/ai")
     async def create_form_with_ai(

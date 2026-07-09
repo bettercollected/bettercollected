@@ -14,6 +14,8 @@ from common.models.standard_form import (
 from common.models.user import User
 
 from backend.app.services.ai.profile import AIProfileService
+from backend.app.services.openai_compatible_provider import OpenAICompatibleFormProvider
+from backend.config import settings
 from backend.app.services.ai.prompt_builder import compose_generation_prompt
 from backend.app.constants.themes import themes
 from backend.app.exceptions import HTTPException
@@ -42,8 +44,18 @@ class OpenAIService:
             AIProvider.OPENAI: OpenAIFormProvider(self._unsplash),
             AIProvider.GOOGLE: GoogleAIFormProvider(self._unsplash),
         }
+        # The self-host option: any OpenAI-compatible endpoint (Ollama, vLLM…),
+        # registered only when actually configured.
+        if settings.ai.COMPAT_BASE_URL:
+            self._providers[AIProvider.COMPATIBLE] = OpenAICompatibleFormProvider()
 
-    def _get_provider(self, provider: AIProvider) -> AIFormProvider:
+    def _get_provider(self, provider: Optional[AIProvider]) -> AIFormProvider:
+        if provider is None:
+            # Instance-configurable default (AI_DEFAULT_PROVIDER).
+            try:
+                provider = AIProvider(settings.ai.DEFAULT_PROVIDER)
+            except ValueError:
+                provider = AIProvider.OPENAI
         impl = self._providers.get(provider)
         if impl is None:
             raise HTTPException(

@@ -44,6 +44,7 @@ from backend.app.services.form_plugin_provider_service import FormPluginProvider
 from backend.app.services.form_response_service import FormResponseService
 from backend.app.services.form_service import FormService
 from backend.app.services.media_library_service import MediaLibraryService
+from backend.app.services.ai.chat import FormAIChatService
 from backend.app.services.ai.profile import AIProfileService
 from backend.app.services.openai_service import OpenAIService
 from backend.app.services.integration_action_service import IntegrationActionService
@@ -246,6 +247,16 @@ class AppContainer(containers.DeclarativeContainer):
         OpenAIService,
         workspace_service=workspace_service,
         workspace_form_service=workspace_form_service,
+    )
+
+    form_ai_chat_service: FormAIChatService = providers.Singleton(
+        FormAIChatService,
+        workspace_user_service=workspace_user_service,
+        # Bound late so the resolver sees openai_service's registry (incl. the
+        # OpenAI-compatible provider when configured).
+        provider_resolver=providers.Callable(
+            lambda svc: svc._get_provider, openai_service
+        ),
     )
 
     auth_service: AuthService = providers.Singleton(
