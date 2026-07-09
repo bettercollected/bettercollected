@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 
-import { BookOpen, Check, Plus, Send, X } from 'lucide-react';
+import { BookOpen, Check, Plus, Send, ShieldCheck, X } from 'lucide-react';
 
 import { StandardFormDto } from '@app/models/dtos/form';
 import { deepCopy } from '@app/utils/object-utils';
@@ -10,7 +10,7 @@ import { selectForm, setForm } from '@app/store/forms/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import useFormFieldsAtom from '@app/store/jotai/field-selectors';
 import { useFormState } from '@app/store/jotai/form';
-import { useChatEditFormWithAIMutation } from '@app/store/redux/form-api';
+import { useApplyAIReviewFixMutation, useChatEditFormWithAIMutation, useReviewFormWithAIMutation } from '@app/store/redux/form-api';
 import { useAddAIMemoryEntryMutation, useDeleteAIMemoryEntryMutation, useGetAIMemoryQuery } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 
@@ -19,15 +19,32 @@ interface TurnResult {
     message: string;
 }
 
+interface ReviewFinding {
+    severity: 'high' | 'medium' | 'info';
+    message: string;
+    fieldId?: string | null;
+    fix?: { description: string; ops: any[] } | null;
+    applied?: boolean;
+    applyError?: string;
+}
+
 interface ChatTurn {
-    role: 'user' | 'assistant' | 'memory';
+    role: 'user' | 'assistant' | 'memory' | 'review';
     content: string;
     results?: TurnResult[];
     error?: boolean;
     // role 'memory' only — the learned entry, so it can be forgotten in place.
     entryId?: string;
     forgotten?: boolean;
+    // role 'review' only.
+    findings?: ReviewFinding[];
 }
+
+const SEVERITY_STYLES: Record<ReviewFinding['severity'], { label: string; chip: string }> = {
+    high: { label: 'High', chip: 'bg-[#FBEFEF] text-[#C43D3D]' },
+    medium: { label: 'Medium', chip: 'bg-[#FDF3E7] text-[#B25E09]' },
+    info: { label: 'Info', chip: 'bg-black-100 text-black-600' }
+};
 
 interface MemoryEntry {
     id: string;
@@ -56,6 +73,8 @@ export default function AIChatTab({ memoryPollDelaysMs = [4000, 10000] }: { memo
     const { setFormFields } = useFormFieldsAtom();
     const { setFormState, formState } = useFormState();
     const [chatEdit, { isLoading }] = useChatEditFormWithAIMutation();
+    const [reviewForm, { isLoading: isReviewing }] = useReviewFormWithAIMutation();
+    const [applyReviewFix] = useApplyAIReviewFixMutation();
 
     const { data: memoryEntries = [], refetch: refetchMemory } = useGetAIMemoryQuery(workspace?.id, { skip: !workspace?.id });
     const [deleteMemoryEntry] = useDeleteAIMemoryEntryMutation();
@@ -99,6 +118,48 @@ export default function AIChatTab({ memoryPollDelaysMs = [4000, 10000] }: { memo
         if (!text) return;
         const response: any = await addMemoryEntry({ workspace_id: workspace.id, body: { text } });
         if (response.data) setMemoryDraft('');
+    };
+
+    // One canvas-apply path for chat turns and review fixes. deepCopy per
+    // store is LOAD-BEARING — see the note in send().
+    const applyFormToCanvas = (form: any) => {
+        setFormFields(deepCopy(form.fields ?? []));
+        setFormState({ ...formState, title: form.title ?? formState.title });
+        dispatch(setForm({ ...standardForm, title: form.title, description: form.description, fields: deepCopy(form.fields ?? []) }));
+    };
+
+    // Compliance copilot (plan §2, P2): read-only review; each finding's fix
+    // is applied individually and visibly — no bulk silent rewrite.
+    const runReview = async () => {
+        if (isReviewing) return;
+        const response: any = await reviewForm({ workspaceId: workspace.id, formId: standardForm.formId });
+        if (response.data) {
+            setTurns((t) => [...t, { role: 'review', content: response.data.summary, findings: response.data.findings ?? [] }]);
+        } else {
+            const detail = typeof response.error?.data === 'string' ? response.error.data : 'The review failed — nothing was changed. Please try again.';
+            setTurns((t) => [...t, { role: 'assistant', content: detail, error: true }]);
+        }
+        scrollToEnd();
+    };
+
+    const applyFix = async (turnIndex: number, findingIndex: number) => {
+        const finding = turns[turnIndex]?.findings?.[findingIndex];
+        if (!finding?.fix) return;
+        const response: any = await applyReviewFix({ workspaceId: workspace.id, formId: standardForm.formId, body: { ops: finding.fix.ops } });
+        const applied = !!response.data?.results?.some((r: TurnResult) => r.ok);
+        setTurns((t) =>
+            t.map((turn, i) => {
+                if (i !== turnIndex || !turn.findings) return turn;
+                const findings = turn.findings.map((f, j) => {
+                    if (j !== findingIndex) return f;
+                    if (applied) return { ...f, applied: true, applyError: undefined };
+                    const failure = response.data?.results?.find((r: TurnResult) => !r.ok)?.message;
+                    return { ...f, applyError: failure ?? 'The fix could not be applied — please try again.' };
+                });
+                return { ...turn, findings };
+            })
+        );
+        if (applied) applyFormToCanvas(response.data.form);
     };
 
     const scrollToEnd = () => {
@@ -149,9 +210,7 @@ export default function AIChatTab({ memoryPollDelaysMs = [4000, 10000] }: { memo
             // property". Each store gets its own copy (mirrors how the edit
             // page hydrates with deepCopy at mount).
             if (results?.some((r: TurnResult) => r.ok)) {
-                setFormFields(deepCopy(form.fields ?? []));
-                setFormState({ ...formState, title: form.title ?? formState.title });
-                dispatch(setForm({ ...standardForm, title: form.title, description: form.description, fields: deepCopy(form.fields ?? []) }));
+                applyFormToCanvas(form);
             }
             setTurns((t) => [...t, { role: 'assistant', content: reply, results }]);
             surfaceNewMemories(memoryIdsBeforeTurn);
@@ -167,15 +226,26 @@ export default function AIChatTab({ memoryPollDelaysMs = [4000, 10000] }: { memo
             <div className="px-4 pb-3">
                 <div className="flex items-center justify-between gap-2">
                     <div className="text-black-600 text-xs font-semibold uppercase tracking-wide">Assistant</div>
-                    <button
-                        type="button"
-                        aria-expanded={showMemory}
-                        onClick={() => setShowMemory((open) => !open)}
-                        className={`flex items-center gap-1.5 rounded-md border px-2 py-1 text-[11px] font-medium transition-colors ${showMemory ? 'border-brand-200 bg-brand-100 text-brand-600' : 'border-black-200 text-black-600 hover:bg-black-100 bg-white'}`}
-                    >
-                        <BookOpen className="h-3 w-3" />
-                        Memory{memoryEntries.length > 0 ? ` (${memoryEntries.length})` : ''}
-                    </button>
+                    <div className="flex items-center gap-1.5">
+                        <button
+                            type="button"
+                            disabled={isReviewing}
+                            onClick={runReview}
+                            className="border-black-200 text-black-600 hover:bg-black-100 disabled:text-black-400 flex items-center gap-1.5 rounded-md border bg-white px-2 py-1 text-[11px] font-medium transition-colors"
+                        >
+                            <ShieldCheck className="h-3 w-3" />
+                            {isReviewing ? 'Reviewing…' : 'Review'}
+                        </button>
+                        <button
+                            type="button"
+                            aria-expanded={showMemory}
+                            onClick={() => setShowMemory((open) => !open)}
+                            className={`flex items-center gap-1.5 rounded-md border px-2 py-1 text-[11px] font-medium transition-colors ${showMemory ? 'border-brand-200 bg-brand-100 text-brand-600' : 'border-black-200 text-black-600 hover:bg-black-100 bg-white'}`}
+                        >
+                            <BookOpen className="h-3 w-3" />
+                            Memory{memoryEntries.length > 0 ? ` (${memoryEntries.length})` : ''}
+                        </button>
+                    </div>
                 </div>
                 <p className="text-black-600 mt-1 text-xs leading-relaxed">Describe a change — it lands on the canvas, and every change is listed. Undo reverts a whole turn.</p>
             </div>
@@ -239,6 +309,44 @@ export default function AIChatTab({ memoryPollDelaysMs = [4000, 10000] }: { memo
                         turn.role === 'user' ? (
                             <div key={i} className="bg-brand-100 text-black-900 ml-6 self-end rounded-lg rounded-br-sm px-3 py-2 text-[13px] leading-relaxed">
                                 {turn.content}
+                            </div>
+                        ) : turn.role === 'review' ? (
+                            <div key={i} className="border-black-200 self-stretch rounded-lg border bg-white px-3 py-2.5 text-[13px] leading-relaxed">
+                                <div className="text-black-800 flex items-start gap-1.5 font-medium">
+                                    <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#0E8A5F]" />
+                                    <span>Compliance review</span>
+                                </div>
+                                <p className="text-black-700 mt-1">{turn.content}</p>
+                                {turn.findings?.length === 0 && <p className="mt-1.5 text-xs text-[#0E8A5F]">No issues found.</p>}
+                                {!!turn.findings?.length && (
+                                    <ul className="border-black-100 mt-2 flex flex-col gap-2 border-t pt-2">
+                                        {turn.findings.map((finding, j) => (
+                                            <li key={j} className="flex flex-col gap-1">
+                                                <div className="flex items-start gap-1.5">
+                                                    <span className={`mt-0.5 shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold ${SEVERITY_STYLES[finding.severity].chip}`}>{SEVERITY_STYLES[finding.severity].label}</span>
+                                                    <span className="text-black-700 text-xs leading-relaxed">{finding.message}</span>
+                                                </div>
+                                                {finding.fix &&
+                                                    (finding.applied ? (
+                                                        <span className="ml-1 flex items-center gap-1 text-xs text-[#0E8A5F]">
+                                                            <Check className="h-3 w-3" strokeWidth={3} /> Fixed — {finding.fix.description}
+                                                        </span>
+                                                    ) : (
+                                                        <div className="ml-1 flex flex-wrap items-center gap-2">
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => applyFix(i, j)}
+                                                                className="border-black-300 text-black-800 hover:bg-black-100 rounded-md border bg-white px-2 py-0.5 text-[11px] font-medium transition-colors"
+                                                            >
+                                                                Fix: {finding.fix.description}
+                                                            </button>
+                                                            {finding.applyError && <span className="text-xs text-[#7A2E2E]">{finding.applyError}</span>}
+                                                        </div>
+                                                    ))}
+                                            </li>
+                                        ))}
+                                    </ul>
+                                )}
                             </div>
                         ) : turn.role === 'memory' ? (
                             <div key={i} className="border-black-200 bg-black-50 self-stretch rounded-md border border-dashed px-3 py-2 text-xs leading-relaxed">

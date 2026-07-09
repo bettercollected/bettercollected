@@ -8,11 +8,15 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 // Mock only the mutation hook — the redux store still needs the real
 // formsApi (reducer + middleware are registered at store creation).
 const chatEditMock = vi.fn();
+const reviewMock = vi.fn();
+const applyFixMock = vi.fn();
 vi.mock('@app/store/redux/form-api', async (importOriginal) => {
     const actual: any = await importOriginal();
     return {
         ...actual,
-        useChatEditFormWithAIMutation: () => [chatEditMock, { isLoading: false }]
+        useChatEditFormWithAIMutation: () => [chatEditMock, { isLoading: false }],
+        useReviewFormWithAIMutation: () => [reviewMock, { isLoading: false }],
+        useApplyAIReviewFixMutation: () => [applyFixMock]
     };
 });
 
@@ -89,6 +93,8 @@ const sendMessage = async (text: string) => {
 describe('AIChatTab', () => {
     beforeEach(() => {
         chatEditMock.mockReset();
+        reviewMock.mockReset();
+        applyFixMock.mockReset();
         deleteMemoryMock.mockReset().mockResolvedValue({ data: [] });
         addMemoryMock.mockReset().mockResolvedValue({ data: [] });
         memoryQueryMock.data = [];
@@ -226,6 +232,72 @@ describe('AIChatTab', () => {
         await waitFor(() => expect(screen.getByText('Added an email question.')).toBeDefined());
         await waitFor(() => expect(memoryQueryMock.refetch).toHaveBeenCalled());
         expect(screen.queryByText(/Remembered:/)).toBeNull();
+    });
+
+    it('review renders findings by severity, and applying a fix updates the canvas', async () => {
+        reviewMock.mockResolvedValue({
+            data: {
+                summary: 'One high-severity issue found.',
+                findings: [
+                    {
+                        severity: 'high',
+                        message: 'Exact age is collected — use age ranges.',
+                        fieldId: 'f-age',
+                        fix: { description: 'Replace with an age-range dropdown', ops: [{ op: 'remove_field', fieldId: 'f-age' }] }
+                    },
+                    { severity: 'info', message: 'Consider stating a retention period.', fix: null }
+                ]
+            }
+        });
+        applyFixMock.mockResolvedValue({
+            data: {
+                results: [{ index: 0, op: 'remove_field', ok: true, message: 'Removed' }],
+                form: AI_RESPONSE_FORM
+            }
+        });
+        renderPanel();
+
+        fireEvent.click(screen.getByRole('button', { name: /Review/ }));
+        await waitFor(() => expect(screen.getByText('One high-severity issue found.')).toBeDefined());
+        expect(screen.getByText(/Exact age is collected/)).toBeDefined();
+        expect(screen.getByText(/retention period/)).toBeDefined();
+        // Advice-only findings must not offer a Fix button.
+        expect(screen.getAllByRole('button', { name: /^Fix:/ })).toHaveLength(1);
+
+        fireEvent.click(screen.getByRole('button', { name: /Replace with an age-range dropdown/ }));
+        await waitFor(() => expect(screen.getByText(/Fixed — Replace with an age-range dropdown/)).toBeDefined());
+        expect(applyFixMock).toHaveBeenCalledWith(expect.objectContaining({ body: { ops: [{ op: 'remove_field', fieldId: 'f-age' }] } }));
+        // The fix landed on the canvas through the same deepCopy path as chat.
+        expect(probe.fields[0].properties!.fields![1].title).toBe('Work email');
+        expect(Object.isFrozen(probe.fields[0])).toBe(false);
+    });
+
+    it('a failed fix reports the ops-engine message and changes nothing', async () => {
+        reviewMock.mockResolvedValue({
+            data: {
+                summary: 'One issue.',
+                findings: [{ severity: 'medium', message: 'Stale finding.', fix: { description: 'Remove the field', ops: [{ op: 'remove_field', fieldId: 'gone' }] } }]
+            }
+        });
+        applyFixMock.mockResolvedValue({
+            data: { results: [{ index: 0, op: 'remove_field', ok: false, message: "Field 'gone' was not found" }], form: AI_RESPONSE_FORM }
+        });
+        renderPanel();
+        const before = probe.fields;
+
+        fireEvent.click(screen.getByRole('button', { name: /Review/ }));
+        await waitFor(() => expect(screen.getByText('One issue.')).toBeDefined());
+        fireEvent.click(screen.getByRole('button', { name: /Remove the field/ }));
+        await waitFor(() => expect(screen.getByText("Field 'gone' was not found")).toBeDefined());
+        expect(probe.fields).toBe(before); // canvas untouched
+    });
+
+    it('shows an honest error bubble when the review itself fails', async () => {
+        reviewMock.mockResolvedValue({ error: { status: 502, data: 'The AI returned an unusable review — please try again.' } });
+        renderPanel();
+
+        fireEvent.click(screen.getByRole('button', { name: /Review/ }));
+        await waitFor(() => expect(screen.getByText(/unusable review/)).toBeDefined());
     });
 
     it('sends the sessionId on the second turn (continuity)', async () => {

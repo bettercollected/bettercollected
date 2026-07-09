@@ -48,6 +48,7 @@ from backend.app.services.ai.api_keys import APIKeyService
 from backend.app.services.ai.chat import FormAIChatService
 from backend.app.services.ai.memory import AIMemoryService
 from backend.app.services.ai.profile import AIProfileService
+from backend.app.services.ai.review import FormAIReviewService
 from backend.app.services.openai_service import OpenAIService
 from backend.app.services.integration_action_service import IntegrationActionService
 from backend.app.services.integration_provider_factory import IntegrationProviderFactory
@@ -262,6 +263,14 @@ class AppContainer(containers.DeclarativeContainer):
         workspace_user_service=workspace_user_service,
         # Bound late so the resolver sees openai_service's registry (incl. the
         # OpenAI-compatible provider when configured).
+        provider_resolver=providers.Callable(
+            lambda svc: svc._get_provider, openai_service
+        ),
+    )
+
+    form_ai_review_service: FormAIReviewService = providers.Singleton(
+        FormAIReviewService,
+        workspace_user_service=workspace_user_service,
         provider_resolver=providers.Callable(
             lambda svc: svc._get_provider, openai_service
         ),
