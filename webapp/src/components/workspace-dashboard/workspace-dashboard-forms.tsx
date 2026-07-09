@@ -44,13 +44,12 @@ function EmptyFormsView() {
 interface IWorkspaceDashboardFormsProps {
     workspace: WorkspaceDto;
     hasCustomDomain: boolean;
-    title?: string;
     showButtons?: boolean;
     showPagination?: boolean;
     isWorkspace?: boolean;
 }
 
-export default function WorkspaceDashboardForms({ title, showButtons, hasCustomDomain, showPagination, isWorkspace = false }: IWorkspaceDashboardFormsProps) {
+export default function WorkspaceDashboardForms({ showButtons, hasCustomDomain, showPagination, isWorkspace = false }: IWorkspaceDashboardFormsProps) {
     const { t } = useTranslation();
     const workspace = useAppSelector(selectWorkspace);
 
@@ -106,13 +105,22 @@ export default function WorkspaceDashboardForms({ title, showButtons, hasCustomD
         <div className="mb-10 flex h-fit w-full flex-col gap-5">
             {workspaceForms?.data?.total > 0 ? (
                 <>
-                    <div className="mb-5 flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
-                        <div className="sh1 flex flex-row items-center gap-6">
-                            <div className={'flex flex-row gap-1'}>
-                                <h1>{title || t(localesCommon.forms)}</h1>
-                                {showPagination && <h2>{`(${showSearchedResults ? searchedForms?.length || 0 : workspaceForms?.data?.total || 0})`}</h2>}
+                    {/* The page heading lives in the top navbar (getHeader). The toolbar
+                        leads with a real-width search (the flex parent previously never
+                        grew, collapsing the w-full input to ~200px) and carries the count
+                        as a quiet, search-aware suffix aligned to the control. */}
+                    <div className="mb-5 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                        <div className="flex w-full min-w-0 flex-1 items-center gap-3">
+                            <div className="w-full max-w-[420px]">
+                                <SearchInput placeholder={'Search forms'} handleSearch={handleSearch} />
                             </div>
-                            <SearchInput placeholder={'Search Form'} handleSearch={handleSearch} />
+                            {showPagination && (
+                                <span className="text-black-600 shrink-0 whitespace-nowrap text-sm tabular-nums">
+                                    {(showSearchedResults ? searchedForms?.length || 0 : workspaceForms?.data?.total || 0) === 1
+                                        ? '1 form'
+                                        : `${showSearchedResults ? searchedForms?.length || 0 : workspaceForms?.data?.total || 0} forms`}
+                                </span>
+                            )}
                         </div>
                         {showButtons && <NewFormButton />}
                     </div>

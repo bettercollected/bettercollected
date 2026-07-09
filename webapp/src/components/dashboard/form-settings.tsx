@@ -259,7 +259,7 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                         <div className={'mt-1 flex flex-col items-start  gap-2 py-1 '}>
                             <Tooltip label={t('CLICK_TO_COPY')}>
                                 <p className="body4 !text-black-700 max-w-full cursor-pointer truncate" onClick={handleOnCopy}>
-                                    {firstPart}/ <span className="text-pink-500">{lastPart}</span>
+                                    {firstPart}/ <span className="text-black-900 font-medium">{lastPart}</span>
                                 </p>
                             </Tooltip>
                             <div className={'flex gap-8'}>
@@ -269,9 +269,11 @@ export default function FormSettingsTab({ view = 'DEFAULT' }: IFormSettingsTabPr
                                     className={'!py-0'}
                                     icon={<Pencil className="h-4 w-4" />}
                                     onClick={() => {
-                                        openBottomSheetModal('FORM_CREATE_SLUG_VIEW', {
-                                            link: isCustomDomain ? customDomain : form?.builderVersion === 'v2' ? V2FormDomain : clientHost,
-                                            customSlug: customUrl
+                                        // The trust-styled Customize-URL modal (same one the form
+                                        // options menu opens) — the old bottom sheet was off-system.
+                                        openModal('CUSTOMIZE_URL', {
+                                            url: firstPart,
+                                            form: form
                                         });
                                     }}
                                     variant="ghost"

@@ -122,7 +122,7 @@ export default function FormDashboardLayoutClient({
     }
 
     return (
-        <TopNavLayout isCustomDomain={false} isClientDomain={false} showNavbar={true} hideMenu={false} showAuthAccount={true} className="flex w-full flex-col !bg-white !p-0">
+        <TopNavLayout isCustomDomain={false} isClientDomain={false} showNavbar={true} workspaceIdentity hideMenu={false} showAuthAccount={true} className="flex w-full flex-col !bg-white !p-0">
             <div className="my-2 w-full">
                 <div className="mt-6 flex flex-col gap-1 sm:mt-12">
                     <FormPageLayer className="px-4 md:px-10 lg:px-28">
