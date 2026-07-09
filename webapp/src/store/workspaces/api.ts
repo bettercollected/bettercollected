@@ -29,7 +29,7 @@ interface ImportFormQueryInterface {
 
 export const workspacesApi = createApi({
     reducerPath: WORKSPACES_REDUCER_PATH,
-    tagTypes: [WORKSPACE_TAGS, WORKSPACE_UPDATE_TAG, SUBMISSION_TAG, GROUP_TAG, RESPONDER_TAG, FORM_TAG, 'AI_PROFILE_TAG'],
+    tagTypes: [WORKSPACE_TAGS, WORKSPACE_UPDATE_TAG, SUBMISSION_TAG, GROUP_TAG, RESPONDER_TAG, FORM_TAG, 'AI_PROFILE_TAG', 'AI_MEMORY_TAG'],
     refetchOnMountOrArgChange: true,
     refetchOnReconnect: true,
     refetchOnFocus: true,
@@ -408,6 +408,30 @@ export const workspacesApi = createApi({
             }),
             invalidatesTags: ['AI_PROFILE_TAG']
         }),
+        getAIMemory: builder.query<any, string>({
+            query: (workspaceId) => ({
+                url: `/workspaces/${workspaceId}/ai-memory`,
+                method: 'GET'
+            }),
+            providesTags: ['AI_MEMORY_TAG']
+        }),
+        addAIMemoryEntry: builder.mutation<any, any>({
+            query: (request) => ({
+                url: `/workspaces/${request.workspace_id}/ai-memory`,
+                method: 'POST',
+                body: request.body,
+                credentials: 'include'
+            }),
+            invalidatesTags: ['AI_MEMORY_TAG']
+        }),
+        deleteAIMemoryEntry: builder.mutation<any, any>({
+            query: (request) => ({
+                url: `/workspaces/${request.workspace_id}/ai-memory/${request.entry_id}`,
+                method: 'DELETE',
+                credentials: 'include'
+            }),
+            invalidatesTags: ['AI_MEMORY_TAG']
+        }),
         patchWorkspaceThemes: builder.mutation<any, any>({
             // Replaces the workspace's saved custom form themes (full-list PATCH).
             query: (request) => ({
@@ -560,6 +584,9 @@ export const {
     usePatchWorkspaceThemesMutation,
     useGetAIProfileQuery,
     useUpdateAIProfileMutation,
+    useGetAIMemoryQuery,
+    useAddAIMemoryEntryMutation,
+    useDeleteAIMemoryEntryMutation,
     useDuplicateFormMutation,
     usePatchWorkspacePoliciesMutation,
     useGetAllMineWorkspacesQuery,

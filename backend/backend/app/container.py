@@ -45,6 +45,7 @@ from backend.app.services.form_response_service import FormResponseService
 from backend.app.services.form_service import FormService
 from backend.app.services.media_library_service import MediaLibraryService
 from backend.app.services.ai.chat import FormAIChatService
+from backend.app.services.ai.memory import AIMemoryService
 from backend.app.services.ai.profile import AIProfileService
 from backend.app.services.openai_service import OpenAIService
 from backend.app.services.integration_action_service import IntegrationActionService
@@ -242,6 +243,8 @@ class AppContainer(containers.DeclarativeContainer):
     ai_profile_service: AIProfileService = providers.Singleton(
         AIProfileService, workspace_user_service=workspace_user_service
     )
+
+    ai_memory_service: AIMemoryService = providers.Singleton(AIMemoryService)
 
     openai_service: OpenAIService = providers.Singleton(
         OpenAIService,

@@ -1,6 +1,7 @@
 "use client";
 
 
+import AIMemorySection from '@app/components/account-settings/ai-memory-section';
 import { useTranslation } from 'next-i18next';
 
 import { Button } from '@app/shadcn/components/ui/button';
@@ -38,6 +39,7 @@ export default function AccountSettingsClient() {
             <div className="flex flex-col gap-6">
                 <SettingCard title={t(localesCommon.privacyPolicy.title)} description={t(localesCommon.privacyPolicy.description)} link="https://bettercollected.com/privacy-policy" />
                 <SettingCard title={t(localesCommon.termsOfServices.title)} description={t(localesCommon.termsOfServices.description)} link="https://bettercollected.com/terms-of-service" />
+                <AIMemorySection />
                 <div className="my-6">
                     <Button
                         variant="ghost"

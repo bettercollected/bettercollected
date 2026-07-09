@@ -13,6 +13,7 @@ from common.models.standard_form import (
 )
 from common.models.user import User
 
+from backend.app.services.ai.memory import AIMemoryService
 from backend.app.services.ai.profile import AIProfileService
 from backend.app.services.openai_compatible_provider import OpenAICompatibleFormProvider
 from backend.config import settings
@@ -84,7 +85,8 @@ class OpenAIService:
             # compliance) — plan §2.1/§2.3. Provider-agnostic: prepended to the
             # user turn.
             profile = await AIProfileService.get_profile_for_prompt(workspace_id)
-            grounded_prompt = compose_generation_prompt(create_form_ai.prompt, profile)
+            memory_entries = await AIMemoryService.get_entries_for_prompt(workspace_id, user.id)
+            grounded_prompt = compose_generation_prompt(create_form_ai.prompt, profile, memory_entries)
             openai_form = await provider.generate_form(grounded_prompt)
 
             form = await self.workspace_form_service.create_form(

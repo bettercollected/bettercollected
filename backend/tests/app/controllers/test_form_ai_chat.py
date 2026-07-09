@@ -130,9 +130,13 @@ class TestFormAIChat:
         test_user_cookies: dict[str, str],
         fake_provider: FakeProvider,
     ):
+        # Each turn consumes TWO replies: the chat itself, then the
+        # background memory extraction that follows it.
         fake_provider.replies = [
             json.dumps({"reply": "Okay.", "ops": []}),
+            json.dumps({"memories": []}),
             json.dumps({"reply": "Done.", "ops": []}),
+            json.dumps({"memories": []}),
         ]
         url = f"/api/v1/workspaces/{workspace.id}/forms/{workspace_form.form_id}/ai/chat"
         first = await client.post(url, cookies=test_user_cookies, json={"message": "hello"})
@@ -140,8 +144,9 @@ class TestFormAIChat:
         second = await client.post(url, cookies=test_user_cookies, json={"message": "again", "sessionId": session_id})
         assert second.status_code == 200
         assert second.json()["sessionId"] == session_id
-        # Second call's message list includes the first exchange
-        second_messages = fake_provider.calls[1]["messages"]
+        # Second CHAT call (calls[2]; calls[1] was turn 1's extraction)
+        # includes the first exchange.
+        second_messages = fake_provider.calls[2]["messages"]
         assert [m["content"] for m in second_messages] == ["hello", "Okay.", "again"]
 
     async def test_failed_op_reported_not_fatal(

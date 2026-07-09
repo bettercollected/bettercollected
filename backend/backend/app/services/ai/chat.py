@@ -13,6 +13,8 @@ import datetime as dt
 from http import HTTPStatus
 from typing import Callable, List, Optional
 
+from fastapi import BackgroundTasks
+
 from beanie import PydanticObjectId
 from common.models.standard_form import StandardForm
 from common.models.user import User
@@ -23,6 +25,7 @@ from backend.app.exceptions import HTTPException
 from backend.app.models.dtos.response_dtos import StandardFormCamelModel
 from backend.app.schemas.form_ai_session import FormAISessionDocument
 from backend.app.schemas.standard_form import FormDocument
+from backend.app.services.ai.memory import AIMemoryService
 from backend.app.services.ai.ops import OpResult, apply_form_ops, parse_ops
 from backend.app.services.ai.profile import AIProfileService
 from backend.app.services.ai.prompt_builder import (
@@ -71,6 +74,7 @@ class FormAIChatService:
         form_id: str,
         request: FormAIChatRequest,
         user: User,
+        background_tasks: Optional[BackgroundTasks] = None,
     ) -> FormAIChatResponse:
         await self._workspace_user_service.check_user_has_access_in_workspace(
             workspace_id=workspace_id, user=user
@@ -93,7 +97,8 @@ class FormAIChatService:
 
         form = StandardForm(**form_document.model_dump())
         profile = await AIProfileService.get_profile_for_prompt(workspace_id)
-        system = build_chat_system_prompt(project_form(form), profile)
+        memory_entries = await AIMemoryService.get_entries_for_prompt(workspace_id, user.id)
+        system = build_chat_system_prompt(project_form(form), profile, memory_entries)
 
         history = [
             {"role": m["role"], "content": m["content"]}
@@ -140,6 +145,20 @@ class FormAIChatService:
             },
         ]
         await session.save()
+
+        # Preference-memory extraction: cheap, best-effort, off the critical
+        # path. Async background tasks run on the MAIN loop (single-loop
+        # pymongo client — see the OTP lesson), and extraction failures are
+        # swallowed inside the service.
+        if background_tasks is not None:
+            background_tasks.add_task(
+                AIMemoryService().extract_from_turn,
+                provider,
+                workspace_id,
+                user.id,
+                request.message,
+                reply,
+            )
 
         return FormAIChatResponse(
             session_id=str(session.id),

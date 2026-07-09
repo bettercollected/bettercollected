@@ -8,7 +8,7 @@ from common.models.consent import ResponseRetentionType
 from common.models.form_import import FormImportRequestBody
 from common.models.standard_form import StandardForm, Trigger
 from common.models.user import User
-from fastapi import Depends, UploadFile, Form
+from fastapi import Depends, UploadFile, Form, BackgroundTasks
 from fastapi_pagination import Page
 from loguru import logger
 from starlette.requests import Request
@@ -130,11 +130,16 @@ class WorkspaceFormsRouter(Routable):
         workspace_id: PydanticObjectId,
         form_id: str,
         request: FormAIChatRequest,
+        background_tasks: BackgroundTasks,
         user=Depends(get_logged_user),
     ) -> FormAIChatResponse:
         """One chat-editing turn: applies typed ops to the draft form."""
         return await container.form_ai_chat_service().chat_edit(
-            workspace_id=workspace_id, form_id=form_id, request=request, user=user
+            workspace_id=workspace_id,
+            form_id=form_id,
+            request=request,
+            user=user,
+            background_tasks=background_tasks,
         )
 
     @post("/ai")

@@ -16,6 +16,7 @@ from backend.app.models.workspace import (
     WorkspaceThemeDto,
 )
 from backend.app.router import router
+from backend.app.services.ai.memory import AddMemoryEntryDto, MemoryEntryDto
 from backend.app.services.ai.profile import AIProfileDto, AIProfileResponseDto
 from backend.app.services.user_service import get_logged_user, get_user_if_logged_in
 from backend.app.services.workspace_service import WorkspaceService
@@ -173,6 +174,33 @@ class WorkspaceRouter(Routable):
         return await container.ai_profile_service().update_profile(
             workspace_id, profile, user
         )
+
+    @get("/{workspace_id}/ai-memory")
+    async def get_ai_memory(
+        self,
+        workspace_id: PydanticObjectId,
+        user: User = Depends(get_logged_user),
+    ) -> List[MemoryEntryDto]:
+        """The caller's own AI preference memory in this workspace."""
+        return await container.ai_memory_service().get_entries(workspace_id, user)
+
+    @post("/{workspace_id}/ai-memory")
+    async def add_ai_memory_entry(
+        self,
+        workspace_id: PydanticObjectId,
+        entry: AddMemoryEntryDto,
+        user: User = Depends(get_logged_user),
+    ) -> List[MemoryEntryDto]:
+        return await container.ai_memory_service().add_entry(workspace_id, user, entry)
+
+    @delete("/{workspace_id}/ai-memory/{entry_id}")
+    async def delete_ai_memory_entry(
+        self,
+        workspace_id: PydanticObjectId,
+        entry_id: str,
+        user: User = Depends(get_logged_user),
+    ) -> List[MemoryEntryDto]:
+        return await container.ai_memory_service().delete_entry(workspace_id, user, entry_id)
 
     @patch("/{workspace_id}/theme-presets")
     async def patch_workspace_theme_presets(
