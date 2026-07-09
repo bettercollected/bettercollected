@@ -20,6 +20,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
 
 from backend.app.exceptions import HTTPException
+from backend.app.models.dtos.response_dtos import StandardFormCamelModel
 from backend.app.schemas.form_ai_session import FormAISessionDocument
 from backend.app.schemas.standard_form import FormDocument
 from backend.app.services.ai.ops import OpResult, apply_form_ops, parse_ops
@@ -144,5 +145,6 @@ class FormAIChatService:
             session_id=str(session.id),
             reply=reply,
             results=results,
-            form=new_form.model_dump(mode="json"),
+            # Camelised — the webapp's form DTOs are camelCase.
+            form=StandardFormCamelModel(**new_form.model_dump()).model_dump(mode="json", by_alias=True),
         )

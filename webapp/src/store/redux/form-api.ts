@@ -67,6 +67,13 @@ export const formsApi = createApi({
                 method: 'GET'
             })
         }),
+        chatEditFormWithAI: builder.mutation<any, any>({
+            query: (request) => ({
+                url: `/workspaces/${request.workspaceId}/forms/${request.formId}/ai/chat`,
+                method: 'POST',
+                body: request.body
+            })
+        }),
         createFormWithAI: builder.mutation<any,any>({
             query: (request) => ({
                 url: `/workspaces/${request.workspaceId}/forms/ai`,
@@ -77,4 +84,4 @@ export const formsApi = createApi({
     })
 });
 
-export const { useCreateV2FormMutation, usePatchV2FormMutation, usePublishV2FormMutation, useGetFormResponseQuery, useSubmitResponseMutation, useSendFlowEventMutation, useGetFlowAnalyticsQuery, useLazyLogOutQuery, useCreateFormWithAIMutation } = formsApi;
+export const { useCreateV2FormMutation, usePatchV2FormMutation, usePublishV2FormMutation, useGetFormResponseQuery, useSubmitResponseMutation, useSendFlowEventMutation, useGetFlowAnalyticsQuery, useLazyLogOutQuery, useCreateFormWithAIMutation, useChatEditFormWithAIMutation } = formsApi;
