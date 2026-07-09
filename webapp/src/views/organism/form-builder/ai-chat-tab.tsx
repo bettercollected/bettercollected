@@ -25,6 +25,7 @@ interface ReviewFinding {
     fieldId?: string | null;
     fix?: { description: string; ops: any[] } | null;
     applied?: boolean;
+    applying?: boolean;
     applyError?: string;
 }
 
@@ -33,12 +34,19 @@ interface ChatTurn {
     content: string;
     results?: TurnResult[];
     error?: boolean;
+    // role 'assistant' + error only — the failed message, so it can be retried.
+    retryMessage?: string;
     // role 'memory' only — the learned entry, so it can be forgotten in place.
     entryId?: string;
     forgotten?: boolean;
     // role 'review' only.
     findings?: ReviewFinding[];
 }
+
+const MAX_MESSAGE_CHARS = 4000; // mirrors the backend's FormAIChatRequest limit
+const MAX_PERSISTED_TURNS = 100;
+
+const EXAMPLE_PROMPTS = ['Add a required work email question on page 1', 'Make everything on page 2 optional', 'Rename the form to Customer check-in'];
 
 const SEVERITY_STYLES: Record<ReviewFinding['severity'], { label: string; chip: string }> = {
     high: { label: 'High', chip: 'bg-[#FBEFEF] text-[#C43D3D]' },
@@ -86,6 +94,41 @@ export default function AIChatTab({ memoryPollDelaysMs = [4000, 10000] }: { memo
     const [showMemory, setShowMemory] = useState(false);
     const [memoryDraft, setMemoryDraft] = useState('');
     const listRef = useRef<HTMLDivElement>(null);
+
+    // The tab unmounts whenever the user switches to Page/Form/Design (Radix
+    // Tabs), which used to destroy the whole conversation — persist it per
+    // form so checking the canvas doesn't cost the chat.
+    const storageKey = standardForm?.formId ? `bc:ai-chat-state:${standardForm.formId}` : null;
+    const restoredKeyRef = useRef<string | null>(null);
+    useEffect(() => {
+        if (!storageKey || restoredKeyRef.current === storageKey) return;
+        restoredKeyRef.current = storageKey;
+        try {
+            const saved = sessionStorage.getItem(storageKey);
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                if (Array.isArray(parsed.turns)) setTurns(parsed.turns);
+                setSessionId(parsed.sessionId ?? null);
+                scrollToEnd();
+            }
+        } catch {
+            /* a corrupt stash only costs the restored history */
+        }
+    }, [storageKey]);
+    useEffect(() => {
+        if (!storageKey || restoredKeyRef.current !== storageKey) return;
+        // Nothing worth saving also guards the pre-restore render from
+        // clobbering an existing stash with the initial empty state.
+        if (!turns.length && !sessionId) return;
+        try {
+            // Strip transient flags: a persisted `applying` would freeze a Fix
+            // button forever after a remount.
+            const persistable = turns.slice(-MAX_PERSISTED_TURNS).map((turn) => (turn.findings ? { ...turn, findings: turn.findings.map(({ applying, ...finding }) => finding) } : turn));
+            sessionStorage.setItem(storageKey, JSON.stringify({ turns: persistable, sessionId }));
+        } catch {
+            /* quota — the conversation just won't survive a remount */
+        }
+    }, [turns, sessionId, storageKey]);
 
     // Latest entries + already-surfaced ids, for diffing after a turn without
     // stale-closure trouble.
@@ -142,24 +185,23 @@ export default function AIChatTab({ memoryPollDelaysMs = [4000, 10000] }: { memo
         scrollToEnd();
     };
 
+    const patchFinding = (turnIndex: number, findingIndex: number, patch: Partial<ReviewFinding>) => {
+        setTurns((t) => t.map((turn, i) => (i === turnIndex && turn.findings ? { ...turn, findings: turn.findings.map((f, j) => (j === findingIndex ? { ...f, ...patch } : f)) } : turn)));
+    };
+
     const applyFix = async (turnIndex: number, findingIndex: number) => {
         const finding = turns[turnIndex]?.findings?.[findingIndex];
-        if (!finding?.fix) return;
+        if (!finding?.fix || finding.applying) return;
+        patchFinding(turnIndex, findingIndex, { applying: true, applyError: undefined });
         const response: any = await applyReviewFix({ workspaceId: workspace.id, formId: standardForm.formId, body: { ops: finding.fix.ops } });
         const applied = !!response.data?.results?.some((r: TurnResult) => r.ok);
-        setTurns((t) =>
-            t.map((turn, i) => {
-                if (i !== turnIndex || !turn.findings) return turn;
-                const findings = turn.findings.map((f, j) => {
-                    if (j !== findingIndex) return f;
-                    if (applied) return { ...f, applied: true, applyError: undefined };
-                    const failure = response.data?.results?.find((r: TurnResult) => !r.ok)?.message;
-                    return { ...f, applyError: failure ?? 'The fix could not be applied — please try again.' };
-                });
-                return { ...turn, findings };
-            })
-        );
-        if (applied) applyFormToCanvas(response.data.form);
+        if (applied) {
+            patchFinding(turnIndex, findingIndex, { applying: false, applied: true });
+            applyFormToCanvas(response.data.form);
+        } else {
+            const failure = response.data?.results?.find((r: TurnResult) => !r.ok)?.message;
+            patchFinding(turnIndex, findingIndex, { applying: false, applyError: failure ?? 'The fix could not be applied — please try again.' });
+        }
     };
 
     const scrollToEnd = () => {
@@ -216,7 +258,8 @@ export default function AIChatTab({ memoryPollDelaysMs = [4000, 10000] }: { memo
             surfaceNewMemories(memoryIdsBeforeTurn);
         } else {
             const detail = typeof response.error?.data === 'string' ? response.error.data : 'Something went wrong — nothing was changed. Please try again.';
-            setTurns((t) => [...t, { role: 'assistant', content: detail, error: true }]);
+            // Keep the failed message on the turn so one click retries it.
+            setTurns((t) => [...t, { role: 'assistant', content: detail, error: true, retryMessage: message }]);
         }
         scrollToEnd();
     };
@@ -295,13 +338,20 @@ export default function AIChatTab({ memoryPollDelaysMs = [4000, 10000] }: { memo
                 </div>
             )}
 
-            <div ref={listRef} className="flex-1 overflow-y-auto border-t px-3 py-3">
-                {turns.length === 0 && (
-                    <div className="text-black-500 flex flex-col gap-2 px-1 py-2 text-xs leading-relaxed">
+            <div ref={listRef} aria-live="polite" className="flex-1 overflow-y-auto border-t px-3 py-3">
+                {turns.length === 0 && !isLoading && (
+                    <div className="text-black-500 flex flex-col items-start gap-2 px-1 py-2 text-xs leading-relaxed">
                         <span>Try:</span>
-                        <span className="border-black-200 rounded-md border bg-white px-2.5 py-1.5">“Add a required work email question on page 1”</span>
-                        <span className="border-black-200 rounded-md border bg-white px-2.5 py-1.5">“Make everything on page 2 optional”</span>
-                        <span className="border-black-200 rounded-md border bg-white px-2.5 py-1.5">“Rename the form to Customer check-in”</span>
+                        {EXAMPLE_PROMPTS.map((prompt) => (
+                            <button
+                                key={prompt}
+                                type="button"
+                                onClick={() => send(prompt)}
+                                className="border-black-200 hover:border-brand-300 hover:text-black-800 rounded-md border bg-white px-2.5 py-1.5 text-left transition-colors hover:bg-[#F6F9FF]"
+                            >
+                                “{prompt}”
+                            </button>
+                        ))}
                     </div>
                 )}
                 <div className="flex flex-col gap-3">
@@ -335,10 +385,11 @@ export default function AIChatTab({ memoryPollDelaysMs = [4000, 10000] }: { memo
                                                         <div className="ml-1 flex flex-wrap items-center gap-2">
                                                             <button
                                                                 type="button"
+                                                                disabled={finding.applying}
                                                                 onClick={() => applyFix(i, j)}
-                                                                className="border-black-300 text-black-800 hover:bg-black-100 rounded-md border bg-white px-2 py-0.5 text-[11px] font-medium transition-colors"
+                                                                className="border-black-300 text-black-800 hover:bg-black-100 disabled:text-black-400 rounded-md border bg-white px-2 py-0.5 text-[11px] font-medium transition-colors disabled:cursor-wait"
                                                             >
-                                                                Fix: {finding.fix.description}
+                                                                {finding.applying ? 'Applying…' : `Fix: ${finding.fix.description}`}
                                                             </button>
                                                             {finding.applyError && <span className="text-xs text-[#7A2E2E]">{finding.applyError}</span>}
                                                         </div>
@@ -358,7 +409,7 @@ export default function AIChatTab({ memoryPollDelaysMs = [4000, 10000] }: { memo
                                             <BookOpen className="mr-1.5 inline h-3 w-3 align-[-1px]" />
                                             Remembered: <span className="text-black-800">“{turn.content}”</span>
                                         </span>
-                                        <span className="text-black-400"> · applies to future forms, not this one</span>
+                                        <span className="text-black-400"> · shapes future AI edits</span>
                                         <button type="button" onClick={() => forgetFromNotice(i, turn.entryId!)} className="text-black-600 ml-2 font-medium underline decoration-dotted underline-offset-2 hover:text-[#C43D3D]">
                                             Forget
                                         </button>
@@ -368,6 +419,11 @@ export default function AIChatTab({ memoryPollDelaysMs = [4000, 10000] }: { memo
                         ) : (
                             <div key={i} className={`mr-6 self-start rounded-lg rounded-bl-sm border px-3 py-2 text-[13px] leading-relaxed ${turn.error ? 'border-[#E9CFCF] bg-[#FBEFEF] text-[#7A2E2E]' : 'border-black-200 text-black-800 bg-white'}`}>
                                 <div>{turn.content}</div>
+                                {turn.error && turn.retryMessage && (
+                                    <button type="button" onClick={() => send(turn.retryMessage)} className="mt-1.5 rounded-md border border-[#E9CFCF] bg-white px-2 py-0.5 text-[11px] font-medium text-[#7A2E2E] transition-colors hover:bg-[#FBEFEF]">
+                                        Try again
+                                    </button>
+                                )}
                                 {!!turn.results?.length && (
                                     <ul className="border-black-100 mt-2 flex flex-col gap-1 border-t pt-2">
                                         {turn.results.map((result, j) => (
@@ -381,7 +437,13 @@ export default function AIChatTab({ memoryPollDelaysMs = [4000, 10000] }: { memo
                             </div>
                         )
                     )}
-                    {isLoading && <div className="text-black-500 mr-6 self-start px-1 text-xs">Thinking…</div>}
+                    {isLoading && <div className="text-black-500 mr-6 animate-pulse self-start px-1 text-xs">Thinking…</div>}
+                    {isReviewing && (
+                        <div className="border-black-200 text-black-600 animate-pulse self-stretch rounded-lg border bg-white px-3 py-2.5 text-xs leading-relaxed">
+                            <ShieldCheck className="mr-1.5 inline h-3.5 w-3.5 align-[-2px] text-[#0E8A5F]" />
+                            Reviewing this form against your organization&apos;s compliance profile and baseline privacy checks — usually under half a minute…
+                        </div>
+                    )}
                 </div>
             </div>
 
@@ -390,9 +452,14 @@ export default function AIChatTab({ memoryPollDelaysMs = [4000, 10000] }: { memo
                     <textarea
                         rows={2}
                         value={input}
-                        disabled={isLoading}
+                        maxLength={MAX_MESSAGE_CHARS}
                         placeholder="Describe a change to this form…"
-                        onChange={(e) => setInput(e.target.value)}
+                        onChange={(e) => {
+                            setInput(e.target.value);
+                            // Grow with the draft, up to max-h-32.
+                            e.target.style.height = 'auto';
+                            e.target.style.height = `${Math.min(e.target.scrollHeight, 128)}px`;
+                        }}
                         onKeyDown={(e) => {
                             if (e.key === 'Enter' && !e.shiftKey) {
                                 e.preventDefault();

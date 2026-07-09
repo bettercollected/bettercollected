@@ -99,6 +99,8 @@ describe('AIChatTab', () => {
         addMemoryMock.mockReset().mockResolvedValue({ data: [] });
         memoryQueryMock.data = [];
         memoryQueryMock.refetch = vi.fn().mockResolvedValue({ data: [] });
+        // The panel persists conversations per formId — isolate tests.
+        sessionStorage.clear();
     });
 
     it('renders the empty state with example prompts', () => {
@@ -311,5 +313,69 @@ describe('AIChatTab', () => {
         await sendMessage('second');
         await waitFor(() => expect(chatEditMock).toHaveBeenCalledTimes(2));
         expect(chatEditMock.mock.calls[1][0].body.sessionId).toBe('session-1');
+    });
+
+    it('REGRESSION: the conversation survives a tab switch (unmount/remount)', async () => {
+        chatEditMock.mockResolvedValue(success());
+        const { setForm } = await import('@app/store/forms/slice');
+        store.dispatch(setForm({ formId: 'form-persist-1', title: 'Draft' }));
+
+        const first = renderPanel();
+        await sendMessage('add a work email question');
+        await waitFor(() => expect(screen.getByText('Added an email question.')).toBeDefined());
+        // Radix Tabs unmounts inactive tab content — this is what a switch
+        // to the Design tab and back actually does to this component.
+        first.unmount();
+
+        renderPanel();
+        expect(screen.getByText('add a work email question')).toBeDefined();
+        expect(screen.getByText('Added an email question.')).toBeDefined();
+        // …and the restored session continues, not a fresh one.
+        await sendMessage('second turn');
+        await waitFor(() => expect(chatEditMock).toHaveBeenCalledTimes(2));
+        expect(chatEditMock.mock.calls[1][0].body.sessionId).toBe('session-1');
+    });
+
+    it('example prompts are clickable and send as a turn', async () => {
+        chatEditMock.mockResolvedValue(success());
+        renderPanel();
+
+        fireEvent.click(screen.getByRole('button', { name: /Make everything on page 2 optional/ }));
+        await waitFor(() => expect(chatEditMock).toHaveBeenCalledTimes(1));
+        expect(chatEditMock.mock.calls[0][0].body.message).toBe('Make everything on page 2 optional');
+    });
+
+    it('a failed send offers Try again, which resends the same message', async () => {
+        chatEditMock.mockResolvedValueOnce({ error: { status: 502, data: 'The AI returned an unusable reply — nothing was changed. Please try again.' } }).mockResolvedValueOnce(success());
+        renderPanel();
+
+        await sendMessage('add a phone question');
+        await waitFor(() => expect(screen.getByText(/unusable reply/)).toBeDefined());
+
+        fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+        await waitFor(() => expect(chatEditMock).toHaveBeenCalledTimes(2));
+        expect(chatEditMock.mock.calls[1][0].body.message).toBe('add a phone question');
+        await waitFor(() => expect(screen.getByText('Added an email question.')).toBeDefined());
+    });
+
+    it('a fix cannot be double-applied while in flight', async () => {
+        reviewMock.mockResolvedValue({
+            data: {
+                summary: 'One issue.',
+                findings: [{ severity: 'high', message: 'Needs consent.', fix: { description: 'Add consent question', ops: [{ op: 'add_page' }] } }]
+            }
+        });
+        // Never resolves during the test — the fix stays in flight.
+        applyFixMock.mockReturnValue(new Promise(() => {}));
+        renderPanel();
+
+        fireEvent.click(screen.getByRole('button', { name: /Review/ }));
+        await waitFor(() => expect(screen.getByText('One issue.')).toBeDefined());
+
+        const fixButton = screen.getByRole('button', { name: /Add consent question/ });
+        fireEvent.click(fixButton);
+        await waitFor(() => expect(screen.getByText('Applying…')).toBeDefined());
+        fireEvent.click(screen.getByText('Applying…'));
+        expect(applyFixMock).toHaveBeenCalledTimes(1);
     });
 });
