@@ -253,3 +253,101 @@ class TestEngineSemantics:
         fid = _page_fields(form, "page-1")[0].id
         _, results = apply_form_ops(form, [UpdateFieldOp(field_id=fid, patch=FieldPatch(required=True))])
         assert "Your name" in results[0].message
+
+
+class TestConditionalLogicOps:
+    def _ids(self, form):
+        page1, page2 = form.fields
+        name, yesno = page1.properties.fields
+        colour = page2.properties.fields[0]
+        return name, yesno, colour
+
+    def test_set_show_logic_stamps_field_type_and_persists(self, form):
+        name, yesno, _ = self._ids(form)
+        ops = parse_ops([
+            {"op": "set_field_logic", "fieldId": name.id,
+             "logic": {"action": "SHOW", "conditions": [{"fieldId": yesno.id, "comparison": "IS_EQUAL", "value": "Yes"}]}}
+        ])
+        new_form, results = apply_form_ops(form, ops)
+        assert results[0].ok, results[0].message
+        logic = new_form.fields[0].properties.fields[0].properties.logic
+        assert logic.action == "SHOW" and logic.operator == "AND"
+        assert logic.conditions[0].field_id == yesno.id
+        # fieldType is stamped from the SOURCE field, like the builder does.
+        assert logic.conditions[0].field_type == "yes_no"
+
+    def test_logic_validation_catches_real_mistakes(self, form):
+        name, yesno, colour = self._ids(form)
+        cases = [
+            # unknown source field
+            ({"fieldId": "ghost", "comparison": "IS_EQUAL", "value": "Yes"}, "not found"),
+            # choice label that doesn't exist (the model guessing labels)
+            ({"fieldId": colour.id, "comparison": "IS_EQUAL", "value": "Green"}, "not a choice"),
+            # yes/no with a non-Yes/No value
+            ({"fieldId": yesno.id, "comparison": "IS_EQUAL", "value": "true"}, "'Yes' or 'No'"),
+            # value-comparison without a value
+            ({"fieldId": yesno.id, "comparison": "IS_EQUAL"}, "needs a value"),
+        ]
+        for condition, expected in cases:
+            ops = parse_ops([{"op": "set_field_logic", "fieldId": name.id,
+                              "logic": {"action": "SHOW", "conditions": [condition]}}])
+            _, results = apply_form_ops(form, ops)
+            assert results[0].ok is False
+            assert expected in results[0].message
+
+    def test_self_referencing_logic_is_rejected(self, form):
+        _, yesno, _ = self._ids(form)
+        ops = parse_ops([{"op": "set_field_logic", "fieldId": yesno.id,
+                          "logic": {"action": "HIDE", "conditions": [{"fieldId": yesno.id, "comparison": "IS_EQUAL", "value": "Yes"}]}}])
+        _, results = apply_form_ops(form, ops)
+        assert results[0].ok is False and "own answer" in results[0].message
+
+    def test_logic_null_clears(self, form):
+        name, yesno, _ = self._ids(form)
+        ops = parse_ops([
+            {"op": "set_field_logic", "fieldId": name.id,
+             "logic": {"action": "SHOW", "conditions": [{"fieldId": yesno.id, "comparison": "IS_EQUAL", "value": "Yes"}]}},
+            {"op": "set_field_logic", "fieldId": name.id, "logic": None},
+        ])
+        new_form, results = apply_form_ops(form, ops)
+        assert all(r.ok for r in results)
+        assert new_form.fields[0].properties.fields[0].properties.logic is None
+
+    def test_page_jumps_validate_targets(self, form):
+        _, yesno, _ = self._ids(form)
+        good = parse_ops([{"op": "set_page_jumps", "pageId": "page-1",
+                           "jumps": [{"conditions": [{"fieldId": yesno.id, "comparison": "IS_EQUAL", "value": "No"}], "target": "__SUBMIT__"}]}])
+        new_form, results = apply_form_ops(form, good)
+        assert results[0].ok
+        assert new_form.fields[0].properties.jumps[0].target == "__SUBMIT__"
+
+        bad = parse_ops([{"op": "set_page_jumps", "pageId": "page-1",
+                          "jumps": [{"conditions": [{"fieldId": yesno.id, "comparison": "IS_EQUAL", "value": "No"}], "target": "page-404"}]}])
+        _, results = apply_form_ops(form, bad)
+        assert results[0].ok is False and "not found" in results[0].message
+
+        selfjump = parse_ops([{"op": "set_page_jumps", "pageId": "page-1",
+                               "jumps": [{"conditions": [{"fieldId": yesno.id, "comparison": "IS_EQUAL", "value": "No"}], "target": "page-1"}]}])
+        _, results = apply_form_ops(form, selfjump)
+        assert results[0].ok is False and "itself" in results[0].message
+
+    def test_duplicate_page_fresh_ids_and_remapped_logic(self, form):
+        name, yesno, _ = self._ids(form)
+        ops = parse_ops([
+            {"op": "set_field_logic", "fieldId": name.id,
+             "logic": {"action": "SHOW", "conditions": [{"fieldId": yesno.id, "comparison": "IS_EQUAL", "value": "Yes"}]}},
+            {"op": "duplicate_page", "pageId": "page-1"},
+        ])
+        new_form, results = apply_form_ops(form, ops)
+        assert all(r.ok for r in results), [r.message for r in results]
+        pages = new_form.fields
+        assert len(pages) == 3  # copy inserted right after the original
+        original, clone = pages[0], pages[1]
+        assert clone.id != original.id
+        original_ids = {f.id for f in original.properties.fields}
+        clone_ids = {f.id for f in clone.properties.fields}
+        assert not (original_ids & clone_ids)  # every field id is fresh
+        # In-page logic reference remapped onto the cloned yes/no field.
+        clone_name = clone.properties.fields[0]
+        cloned_yesno_id = clone.properties.fields[1].id
+        assert clone_name.properties.logic.conditions[0].field_id == cloned_yesno_id

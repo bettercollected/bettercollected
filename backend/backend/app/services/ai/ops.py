@@ -21,7 +21,10 @@ import uuid
 from typing import Annotated, Any, Dict, List, Literal, Optional, Tuple, Union
 
 from common.models.standard_form import (
+    FieldLogic,
+    FieldLogicCondition,
     LayoutType,
+    PageJump,
     StandardChoice,
     StandardFieldProperty,
     StandardFieldValidations,
@@ -143,6 +146,70 @@ class UpdateFormInfoOp(_CamelModel):
     description: Optional[str] = None
 
 
+COMPARISONS = (
+    "IS_EMPTY", "IS_NOT_EMPTY", "IS_EQUAL", "IS_NOT_EQUAL", "CONTAINS",
+    "DOES_NOT_CONTAIN", "LESS_THAN", "LESS_THAN_EQUAL", "GREATER_THAN",
+    "GREATER_THAN_EQUAL", "STARTS_WITH", "ENDS_WITH",
+)
+VALUELESS_COMPARISONS = {"IS_EMPTY", "IS_NOT_EMPTY"}
+JUMP_TARGET_SUBMIT = "__SUBMIT__"
+
+
+class LogicConditionSpec(_CamelModel):
+    """One condition of a visibility rule / page jump. Mirrors the builder's
+    logic editor exactly: choice conditions carry the choice LABEL, yes/no
+    carries "Yes"/"No" (see webapp condition-editor-shared.tsx)."""
+
+    field_id: str
+    comparison: Literal[
+        "IS_EMPTY", "IS_NOT_EMPTY", "IS_EQUAL", "IS_NOT_EQUAL", "CONTAINS",
+        "DOES_NOT_CONTAIN", "LESS_THAN", "LESS_THAN_EQUAL", "GREATER_THAN",
+        "GREATER_THAN_EQUAL", "STARTS_WITH", "ENDS_WITH",
+    ]
+    value: Optional[Any] = None
+
+
+class FieldLogicSpec(_CamelModel):
+    action: Literal["SHOW", "HIDE"]
+    operator: Literal["AND", "OR"] = "AND"
+    conditions: List[LogicConditionSpec] = Field(..., min_length=1)
+
+
+class SetFieldLogicOp(_CamelModel):
+    """Conditional visibility on a field ("show X only when Y = ..."). The
+    rule lives on the TARGET field; conditions reference earlier answers.
+    ``logic: null`` clears the rule."""
+
+    op: Literal["set_field_logic"] = "set_field_logic"
+    field_id: str
+    logic: Optional[FieldLogicSpec] = None
+
+
+class PageJumpSpec(_CamelModel):
+    operator: Literal["AND", "OR"] = "AND"
+    conditions: List[LogicConditionSpec] = Field(..., min_length=1)
+    target: str  # a page id, or JUMP_TARGET_SUBMIT
+
+
+class SetPageJumpsOp(_CamelModel):
+    """Branching: after this page, jump to a target page (or submit) when the
+    conditions match; first matching jump wins, no match = next page.
+    ``jumps: null`` clears."""
+
+    op: Literal["set_page_jumps"] = "set_page_jumps"
+    page_id: str
+    jumps: Optional[List[PageJumpSpec]] = None
+
+
+class DuplicatePageOp(_CamelModel):
+    """Clone a page with all its fields (fresh ids everywhere). In-page logic
+    references are remapped to the cloned fields."""
+
+    op: Literal["duplicate_page"] = "duplicate_page"
+    page_id: str
+    index: Optional[int] = None  # default: right after the original
+
+
 class FormSettingsPatch(_CamelModel):
     """AI-editable form settings — the Form tab's metadata.
 
@@ -180,6 +247,9 @@ FormOp = Annotated[
         RemovePageOp,
         UpdateFormInfoOp,
         UpdateFormSettingsOp,
+        SetFieldLogicOp,
+        SetPageJumpsOp,
+        DuplicatePageOp,
         UpdateThemeOp,
     ],
     Field(discriminator="op"),
@@ -463,6 +533,108 @@ def _apply_update_form_settings(form: StandardForm, op: UpdateFormSettingsOp) ->
     return "Updated form settings: " + ", ".join(changed)
 
 
+
+CHOICE_TYPES = {StandardFormFieldType.MULTIPLE_CHOICE, StandardFormFieldType.DROPDOWN}
+
+
+def _validated_conditions(form: StandardForm, specs: List[LogicConditionSpec]) -> List[FieldLogicCondition]:
+    """Resolve and validate condition sources against the actual form.
+
+    Mirrors the builder's logic editor: fieldType is stamped from the source
+    field; choice values must be one of the source's labels; yes/no values
+    must be "Yes"/"No"; IS_EMPTY/IS_NOT_EMPTY take no value."""
+    conditions: List[FieldLogicCondition] = []
+    for spec in specs:
+        _, source, _ = _find_field(form, spec.field_id)
+        source_type = getattr(source.type, "value", source.type)
+        if spec.comparison in VALUELESS_COMPARISONS:
+            value = None
+        else:
+            if spec.value in (None, ""):
+                raise OpError(f"Comparison '{spec.comparison}' needs a value.")
+            value = spec.value
+            if source.type in CHOICE_TYPES:
+                labels = [c.value for c in ((source.properties.choices if source.properties else None) or [])]
+                if str(value) not in labels:
+                    raise OpError(
+                        f"'{value}' is not a choice of '{_title_text(source)}'. Choices: {', '.join(labels)}"
+                    )
+            if source.type == StandardFormFieldType.YES_NO and str(value) not in ("Yes", "No"):
+                raise OpError("Yes/No conditions take the value 'Yes' or 'No'.")
+        conditions.append(
+            FieldLogicCondition(field_id=spec.field_id, field_type=source_type, comparison=spec.comparison, value=value)
+        )
+    return conditions
+
+
+def _apply_set_field_logic(form: StandardForm, op: SetFieldLogicOp) -> str:
+    _, field, _ = _find_field(form, op.field_id)
+    if field.properties is None:
+        field.properties = StandardFieldProperty()
+    if op.logic is None:
+        field.properties.logic = None
+        return f"Cleared the visibility rule on '{_title_text(field)}'"
+    for spec in op.logic.conditions:
+        if spec.field_id == op.field_id:
+            raise OpError("A field's visibility cannot depend on its own answer.")
+    conditions = _validated_conditions(form, op.logic.conditions)
+    field.properties.logic = FieldLogic(action=op.logic.action, operator=op.logic.operator, conditions=conditions)
+    verb = "Show" if op.logic.action == "SHOW" else "Hide"
+    return f"{verb} '{_title_text(field)}' when {len(conditions)} condition(s) match"
+
+
+def _apply_set_page_jumps(form: StandardForm, op: SetPageJumpsOp) -> str:
+    page = _find_page(form, op.page_id)
+    if page.properties is None:
+        page.properties = StandardFieldProperty()
+    if op.jumps is None:
+        page.properties.jumps = None
+        return f"Cleared page jumps on page '{op.page_id}'"
+    jumps: List[PageJump] = []
+    for spec in op.jumps:
+        if spec.target != JUMP_TARGET_SUBMIT:
+            target_page = _find_page(form, spec.target)  # raises if unknown
+            if target_page.id == op.page_id:
+                raise OpError("A page cannot jump to itself.")
+        jumps.append(
+            PageJump(operator=spec.operator, conditions=_validated_conditions(form, spec.conditions), target=spec.target)
+        )
+    page.properties.jumps = jumps
+    return f"Set {len(jumps)} jump rule(s) on page '{op.page_id}'"
+
+
+def _apply_duplicate_page(form: StandardForm, op: DuplicatePageOp) -> str:
+    original = _find_page(form, op.page_id)
+    clone = original.model_copy(deep=True)
+    clone.id = str(uuid.uuid4())
+    id_map: Dict[str, str] = {}
+    for field in (clone.properties.fields if clone.properties else None) or []:
+        new_id = str(uuid.uuid4())
+        id_map[field.id] = new_id
+        field.id = new_id
+        if field.properties and field.properties.choices:
+            for choice in field.properties.choices:
+                choice.id = str(uuid.uuid4())
+    # Remap in-page logic references onto the cloned fields; references to
+    # fields outside the page stay as they are.
+    for field in (clone.properties.fields if clone.properties else None) or []:
+        logic = field.properties.logic if field.properties else None
+        for condition in (logic.conditions if logic else None) or []:
+            if condition.field_id in id_map:
+                condition.field_id = id_map[condition.field_id]
+    # Cloned jumps would re-branch from the copy in surprising ways — drop them.
+    if clone.properties:
+        clone.properties.jumps = None
+        clone.properties.position = None
+    pages = form.fields or []
+    original_position = next(i for i, f in enumerate(pages) if f.id == op.page_id)
+    insert_at = op.index if op.index is not None else original_position + 1
+    insert_at = max(0, min(insert_at, len(pages)))
+    pages.insert(insert_at, clone)
+    field_count = len((clone.properties.fields if clone.properties else None) or [])
+    return f"Duplicated page '{op.page_id}' ({field_count} fields) as '{clone.id}'"
+
+
 def _apply_update_theme(form: StandardForm, op: UpdateThemeOp) -> str:
     form.theme = op.theme
     return f"Applied theme '{op.theme.title}'"
@@ -477,6 +649,9 @@ _HANDLERS = {
     "remove_page": _apply_remove_page,
     "update_form_info": _apply_update_form_info,
     "update_form_settings": _apply_update_form_settings,
+    "set_field_logic": _apply_set_field_logic,
+    "set_page_jumps": _apply_set_page_jumps,
+    "duplicate_page": _apply_duplicate_page,
     "update_theme": _apply_update_theme,
 }
 
