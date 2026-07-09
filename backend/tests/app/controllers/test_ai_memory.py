@@ -10,6 +10,7 @@ from backend.app.container import container
 from backend.app.schemas.ai_preference_memory import UserAIPreferenceMemoryDocument
 from backend.app.schemas.workspace import WorkspaceDocument
 from backend.app.schemas.standard_form import FormDocument
+from backend.app.services.ai.memory import EXTRACTION_SYSTEM_PROMPT
 
 
 class FakeProvider:
@@ -109,7 +110,15 @@ class TestExtractionThroughChat:
 
         # Background task ran after the response; both provider calls happened.
         assert len(fake_provider.calls) == 2
-        assert "DURABLE STYLE PREFERENCES" in fake_provider.calls[1]["system"]
+        # The extraction call must use THE extraction prompt, verbatim — a
+        # substring check would let a rewired/garbled prompt pass silently.
+        extraction_call = fake_provider.calls[1]
+        assert extraction_call["system"] == EXTRACTION_SYSTEM_PROMPT.format(existing="(empty)")
+        # …and it must be fed the actual turn (what the creator said and what
+        # the assistant did), or extraction degrades into guessing.
+        turn_payload = extraction_call["messages"][0]["content"]
+        assert "never add placeholder text to my inputs" in turn_payload
+        assert "Done — no placeholders." in turn_payload
 
         document = await UserAIPreferenceMemoryDocument.find_one(
             UserAIPreferenceMemoryDocument.workspace_id == workspace.id
