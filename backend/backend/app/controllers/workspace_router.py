@@ -2,7 +2,7 @@ from http import HTTPStatus
 from typing import List, Optional
 
 from beanie import PydanticObjectId
-from classy_fastapi import Routable, delete, get, patch, post
+from classy_fastapi import Routable, delete, get, patch, post, put
 from common.models.user import User
 from fastapi import Depends, Form, UploadFile
 from pydantic import EmailStr
@@ -16,6 +16,9 @@ from backend.app.models.workspace import (
     WorkspaceThemeDto,
 )
 from backend.app.router import router
+from backend.app.services.ai.api_keys import APIKeyDto, CreateAPIKeyDto, CreatedAPIKeyDto
+from backend.app.services.ai.memory import AddMemoryEntryDto, MemoryEntryDto
+from backend.app.services.ai.profile import AIProfileDto, AIProfileResponseDto
 from backend.app.services.user_service import get_logged_user, get_user_if_logged_in
 from backend.app.services.workspace_service import WorkspaceService
 
@@ -151,6 +154,82 @@ class WorkspaceRouter(Routable):
         return await self.workspace_service.patch_workspace(
             profile_image, banner_image, workspace_id, workspace_request, user
         )
+
+    @get("/{workspace_id}/ai-profile")
+    async def get_ai_profile(
+        self,
+        workspace_id: PydanticObjectId,
+        user: User = Depends(get_logged_user),
+    ) -> AIProfileResponseDto:
+        """The workspace's AI profile (org context for AI form features)."""
+        return await container.ai_profile_service().get_profile(workspace_id, user)
+
+    @put("/{workspace_id}/ai-profile")
+    async def update_ai_profile(
+        self,
+        workspace_id: PydanticObjectId,
+        profile: AIProfileDto,
+        user: User = Depends(get_logged_user),
+    ) -> AIProfileResponseDto:
+        """Replace the workspace's AI profile (admin only, versioned)."""
+        return await container.ai_profile_service().update_profile(
+            workspace_id, profile, user
+        )
+
+    @get("/{workspace_id}/api-keys")
+    async def list_api_keys(
+        self,
+        workspace_id: PydanticObjectId,
+        user: User = Depends(get_logged_user),
+    ) -> List[APIKeyDto]:
+        """Workspace API keys (admin only; tokens never shown after creation)."""
+        return await container.api_key_service().list_keys(workspace_id, user)
+
+    @post("/{workspace_id}/api-keys")
+    async def create_api_key(
+        self,
+        workspace_id: PydanticObjectId,
+        request: CreateAPIKeyDto,
+        user: User = Depends(get_logged_user),
+    ) -> CreatedAPIKeyDto:
+        """Create a key — the full token is returned exactly once, here."""
+        return await container.api_key_service().create_key(workspace_id, request, user)
+
+    @delete("/{workspace_id}/api-keys/{key_id}")
+    async def revoke_api_key(
+        self,
+        workspace_id: PydanticObjectId,
+        key_id: str,
+        user: User = Depends(get_logged_user),
+    ) -> List[APIKeyDto]:
+        return await container.api_key_service().revoke_key(workspace_id, key_id, user)
+
+    @get("/{workspace_id}/ai-memory")
+    async def get_ai_memory(
+        self,
+        workspace_id: PydanticObjectId,
+        user: User = Depends(get_logged_user),
+    ) -> List[MemoryEntryDto]:
+        """The caller's own AI preference memory in this workspace."""
+        return await container.ai_memory_service().get_entries(workspace_id, user)
+
+    @post("/{workspace_id}/ai-memory")
+    async def add_ai_memory_entry(
+        self,
+        workspace_id: PydanticObjectId,
+        entry: AddMemoryEntryDto,
+        user: User = Depends(get_logged_user),
+    ) -> List[MemoryEntryDto]:
+        return await container.ai_memory_service().add_entry(workspace_id, user, entry)
+
+    @delete("/{workspace_id}/ai-memory/{entry_id}")
+    async def delete_ai_memory_entry(
+        self,
+        workspace_id: PydanticObjectId,
+        entry_id: str,
+        user: User = Depends(get_logged_user),
+    ) -> List[MemoryEntryDto]:
+        return await container.ai_memory_service().delete_entry(workspace_id, user, entry_id)
 
     @patch("/{workspace_id}/theme-presets")
     async def patch_workspace_theme_presets(

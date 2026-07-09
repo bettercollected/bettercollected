@@ -35,7 +35,8 @@ export const initialFieldsState: StandardFormFieldDto[] = [
     }
 ]
 
-const initialFieldsAtom = atom<StandardFormFieldDto[]>(initialFieldsState);
+// Exported for tests (asserting what the canvas state received).
+export const initialFieldsAtom = atom<StandardFormFieldDto[]>(initialFieldsState);
 
 // Undo/redo history over committed fields states. Snapshots are deep clones —
 // the mutations in this file edit `formFields` in place, so shared references

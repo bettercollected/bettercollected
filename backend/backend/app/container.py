@@ -44,6 +44,11 @@ from backend.app.services.form_plugin_provider_service import FormPluginProvider
 from backend.app.services.form_response_service import FormResponseService
 from backend.app.services.form_service import FormService
 from backend.app.services.media_library_service import MediaLibraryService
+from backend.app.services.ai.api_keys import APIKeyService
+from backend.app.services.ai.chat import FormAIChatService
+from backend.app.services.ai.memory import AIMemoryService
+from backend.app.services.ai.profile import AIProfileService
+from backend.app.services.ai.review import FormAIReviewService
 from backend.app.services.openai_service import OpenAIService
 from backend.app.services.integration_action_service import IntegrationActionService
 from backend.app.services.integration_provider_factory import IntegrationProviderFactory
@@ -237,10 +242,38 @@ class AppContainer(containers.DeclarativeContainer):
         user_tags_service=user_tags_service,
     )
 
+    ai_profile_service: AIProfileService = providers.Singleton(
+        AIProfileService, workspace_user_service=workspace_user_service
+    )
+
+    ai_memory_service: AIMemoryService = providers.Singleton(AIMemoryService)
+
+    api_key_service: APIKeyService = providers.Singleton(
+        APIKeyService, workspace_user_service=workspace_user_service
+    )
+
     openai_service: OpenAIService = providers.Singleton(
         OpenAIService,
         workspace_service=workspace_service,
         workspace_form_service=workspace_form_service,
+    )
+
+    form_ai_chat_service: FormAIChatService = providers.Singleton(
+        FormAIChatService,
+        workspace_user_service=workspace_user_service,
+        # Bound late so the resolver sees openai_service's registry (incl. the
+        # OpenAI-compatible provider when configured).
+        provider_resolver=providers.Callable(
+            lambda svc: svc._get_provider, openai_service
+        ),
+    )
+
+    form_ai_review_service: FormAIReviewService = providers.Singleton(
+        FormAIReviewService,
+        workspace_user_service=workspace_user_service,
+        provider_resolver=providers.Callable(
+            lambda svc: svc._get_provider, openai_service
+        ),
     )
 
     auth_service: AuthService = providers.Singleton(

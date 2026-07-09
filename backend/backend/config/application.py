@@ -15,6 +15,7 @@ from backend.config.coupon_code_settings import CouponCodeSettings
 from backend.config.database import MongoSettings
 from backend.config.events_webhook import EventsWebhook
 from backend.config.https_certificate import HttpsCertificateApiSettings
+from backend.config.ai_settings import AISettings
 from backend.config.google_ai_settings import GoogleAISettings
 from backend.config.OpenAISettings import OpenAISettings
 from backend.config.unsplash_settings import UnsplashSettings
@@ -58,6 +59,7 @@ class Application(BaseSettings):
     )
     event_webhook_settings: EventsWebhook = EventsWebhook()
     coupon_settings: CouponCodeSettings = CouponCodeSettings()
+    ai: AISettings = AISettings()
     open_ai: OpenAISettings = OpenAISettings()
     google_ai: GoogleAISettings = GoogleAISettings()
     unsplash: UnsplashSettings = UnsplashSettings()

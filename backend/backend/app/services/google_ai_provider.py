@@ -159,3 +159,20 @@ class GoogleAIFormProvider(AIFormProvider):
             if text.startswith("json"):
                 text = text[4:]
         return json.loads(text)
+
+    async def chat(self, system: str, messages: list) -> str:
+        """Plain multi-turn chat (no tools) — used by AI form editing."""
+        import asyncio
+
+        import google.generativeai as genai  # type: ignore
+
+        genai.configure(api_key=self._api_key)
+        model = genai.GenerativeModel(model_name=self._model_name, system_instruction=system)
+        history = [
+            {"role": "model" if m["role"] == "assistant" else "user", "parts": [m["content"]]}
+            for m in messages[:-1]
+        ]
+        session = model.start_chat(history=history)
+        loop = asyncio.get_event_loop()
+        response = await loop.run_in_executor(None, lambda: session.send_message(messages[-1]["content"]))
+        return response.text

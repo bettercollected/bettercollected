@@ -8,12 +8,19 @@ from common.models.consent import ResponseRetentionType
 from common.models.form_import import FormImportRequestBody
 from common.models.standard_form import StandardForm, Trigger
 from common.models.user import User
-from fastapi import Depends, UploadFile, Form
+from fastapi import Depends, UploadFile, Form, BackgroundTasks
 from fastapi_pagination import Page
 from loguru import logger
 from starlette.requests import Request
 
 from backend.app.container import container
+from backend.app.services.ai.chat import FormAIChatRequest, FormAIChatResponse
+from backend.app.services.ai.review import (
+    ApplyReviewFixRequest,
+    ApplyReviewFixResponse,
+    FormAIReviewRequest,
+    FormAIReviewResponse,
+)
 from backend.app.decorators.user_tag_decorators import user_tag
 from backend.app.exceptions import HTTPException
 from backend.app.models.dtos.action_dto import AddActionToFormDto, UpdateActionInFormDto
@@ -122,6 +129,51 @@ class WorkspaceFormsRouter(Routable):
             cover_image=cover_image,
         )
         return FormDtoCamelModel(**response.model_dump(mode='json'))
+
+    @post("/{form_id}/ai/chat")
+    async def chat_edit_form_with_ai(
+        self,
+        workspace_id: PydanticObjectId,
+        form_id: str,
+        request: FormAIChatRequest,
+        background_tasks: BackgroundTasks,
+        user=Depends(get_logged_user),
+    ) -> FormAIChatResponse:
+        """One chat-editing turn: applies typed ops to the draft form."""
+        return await container.form_ai_chat_service().chat_edit(
+            workspace_id=workspace_id,
+            form_id=form_id,
+            request=request,
+            user=user,
+            background_tasks=background_tasks,
+        )
+
+    @post("/{form_id}/ai/review")
+    async def review_form_with_ai(
+        self,
+        workspace_id: PydanticObjectId,
+        form_id: str,
+        request: FormAIReviewRequest,
+        user=Depends(get_logged_user),
+    ) -> FormAIReviewResponse:
+        """Compliance copilot: review the draft against the org's compliance
+        profile + baseline privacy checks. Read-only — changes nothing."""
+        return await container.form_ai_review_service().review(
+            workspace_id=workspace_id, form_id=form_id, request=request, user=user
+        )
+
+    @post("/{form_id}/ai/review/apply")
+    async def apply_ai_review_fix(
+        self,
+        workspace_id: PydanticObjectId,
+        form_id: str,
+        request: ApplyReviewFixRequest,
+        user=Depends(get_logged_user),
+    ) -> ApplyReviewFixResponse:
+        """Apply one finding's fix ops — same write path as chat editing."""
+        return await container.form_ai_review_service().apply_fix(
+            workspace_id=workspace_id, form_id=form_id, request=request, user=user
+        )
 
     @post("/ai")
     async def create_form_with_ai(

@@ -29,7 +29,7 @@ interface ImportFormQueryInterface {
 
 export const workspacesApi = createApi({
     reducerPath: WORKSPACES_REDUCER_PATH,
-    tagTypes: [WORKSPACE_TAGS, WORKSPACE_UPDATE_TAG, SUBMISSION_TAG, GROUP_TAG, RESPONDER_TAG, FORM_TAG],
+    tagTypes: [WORKSPACE_TAGS, WORKSPACE_UPDATE_TAG, SUBMISSION_TAG, GROUP_TAG, RESPONDER_TAG, FORM_TAG, 'AI_PROFILE_TAG', 'AI_MEMORY_TAG', 'API_KEYS_TAG'],
     refetchOnMountOrArgChange: true,
     refetchOnReconnect: true,
     refetchOnFocus: true,
@@ -392,6 +392,70 @@ export const workspacesApi = createApi({
             }),
             invalidatesTags: [WORKSPACE_TAGS]
         }),
+        getAIProfile: builder.query<any, string>({
+            query: (workspaceId) => ({
+                url: `/workspaces/${workspaceId}/ai-profile`,
+                method: 'GET'
+            }),
+            providesTags: ['AI_PROFILE_TAG']
+        }),
+        updateAIProfile: builder.mutation<any, any>({
+            query: (request) => ({
+                url: `/workspaces/${request.workspace_id}/ai-profile`,
+                method: 'PUT',
+                body: request.body,
+                credentials: 'include'
+            }),
+            invalidatesTags: ['AI_PROFILE_TAG']
+        }),
+        getAIMemory: builder.query<any, string>({
+            query: (workspaceId) => ({
+                url: `/workspaces/${workspaceId}/ai-memory`,
+                method: 'GET'
+            }),
+            providesTags: ['AI_MEMORY_TAG']
+        }),
+        addAIMemoryEntry: builder.mutation<any, any>({
+            query: (request) => ({
+                url: `/workspaces/${request.workspace_id}/ai-memory`,
+                method: 'POST',
+                body: request.body,
+                credentials: 'include'
+            }),
+            invalidatesTags: ['AI_MEMORY_TAG']
+        }),
+        deleteAIMemoryEntry: builder.mutation<any, any>({
+            query: (request) => ({
+                url: `/workspaces/${request.workspace_id}/ai-memory/${request.entry_id}`,
+                method: 'DELETE',
+                credentials: 'include'
+            }),
+            invalidatesTags: ['AI_MEMORY_TAG']
+        }),
+        getAPIKeys: builder.query<any, string>({
+            query: (workspaceId) => ({
+                url: `/workspaces/${workspaceId}/api-keys`,
+                method: 'GET'
+            }),
+            providesTags: ['API_KEYS_TAG']
+        }),
+        createAPIKey: builder.mutation<any, any>({
+            query: (request) => ({
+                url: `/workspaces/${request.workspace_id}/api-keys`,
+                method: 'POST',
+                body: request.body,
+                credentials: 'include'
+            }),
+            invalidatesTags: ['API_KEYS_TAG']
+        }),
+        revokeAPIKey: builder.mutation<any, any>({
+            query: (request) => ({
+                url: `/workspaces/${request.workspace_id}/api-keys/${request.key_id}`,
+                method: 'DELETE',
+                credentials: 'include'
+            }),
+            invalidatesTags: ['API_KEYS_TAG']
+        }),
         patchWorkspaceThemes: builder.mutation<any, any>({
             // Replaces the workspace's saved custom form themes (full-list PATCH).
             query: (request) => ({
@@ -542,6 +606,14 @@ export const {
     useCreateWorkspaceMutation,
     usePatchExistingWorkspaceMutation,
     usePatchWorkspaceThemesMutation,
+    useGetAIProfileQuery,
+    useUpdateAIProfileMutation,
+    useGetAIMemoryQuery,
+    useAddAIMemoryEntryMutation,
+    useDeleteAIMemoryEntryMutation,
+    useGetAPIKeysQuery,
+    useCreateAPIKeyMutation,
+    useRevokeAPIKeyMutation,
     useDuplicateFormMutation,
     usePatchWorkspacePoliciesMutation,
     useGetAllMineWorkspacesQuery,

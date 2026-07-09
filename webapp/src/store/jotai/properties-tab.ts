@@ -1,6 +1,6 @@
 import { atom, useAtom } from 'jotai';
 
-export type PropertiesTab = 'page' | 'form' | 'design';
+export type PropertiesTab = 'page' | 'form' | 'design' | 'ai';
 
 /**
  * Which tab the right-hand properties drawer shows. Controlled state (rather

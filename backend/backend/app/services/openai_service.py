@@ -13,6 +13,11 @@ from common.models.standard_form import (
 )
 from common.models.user import User
 
+from backend.app.services.ai.memory import AIMemoryService
+from backend.app.services.ai.profile import AIProfileService
+from backend.app.services.openai_compatible_provider import OpenAICompatibleFormProvider
+from backend.config import settings
+from backend.app.services.ai.prompt_builder import compose_generation_prompt
 from backend.app.constants.themes import themes
 from backend.app.exceptions import HTTPException
 from backend.app.models.dtos.request_dtos import CreateFormWithAI, AIProvider
@@ -40,8 +45,18 @@ class OpenAIService:
             AIProvider.OPENAI: OpenAIFormProvider(self._unsplash),
             AIProvider.GOOGLE: GoogleAIFormProvider(self._unsplash),
         }
+        # The self-host option: any OpenAI-compatible endpoint (Ollama, vLLM…),
+        # registered only when actually configured.
+        if settings.ai.COMPAT_BASE_URL:
+            self._providers[AIProvider.COMPATIBLE] = OpenAICompatibleFormProvider()
 
-    def _get_provider(self, provider: AIProvider) -> AIFormProvider:
+    def _get_provider(self, provider: Optional[AIProvider]) -> AIFormProvider:
+        if provider is None:
+            # Instance-configurable default (AI_DEFAULT_PROVIDER).
+            try:
+                provider = AIProvider(settings.ai.DEFAULT_PROVIDER)
+            except ValueError:
+                provider = AIProvider.OPENAI
         impl = self._providers.get(provider)
         if impl is None:
             raise HTTPException(
@@ -66,7 +81,13 @@ class OpenAIService:
 
         try:
             provider = self._get_provider(create_form_ai.provider)
-            openai_form = await provider.generate_form(create_form_ai.prompt)
+            # Ground the request in the workspace's AI profile (org guidelines /
+            # compliance) — plan §2.1/§2.3. Provider-agnostic: prepended to the
+            # user turn.
+            profile = await AIProfileService.get_profile_for_prompt(workspace_id)
+            memory_entries = await AIMemoryService.get_entries_for_prompt(workspace_id, user.id)
+            grounded_prompt = compose_generation_prompt(create_form_ai.prompt, profile, memory_entries)
+            openai_form = await provider.generate_form(grounded_prompt)
 
             form = await self.workspace_form_service.create_form(
                 workspace_id=workspace_id,

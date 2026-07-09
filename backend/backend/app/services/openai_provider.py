@@ -161,3 +161,11 @@ class OpenAIFormProvider(AIFormProvider):
                 if content.startswith("json"):
                     content = content[4:]
             return json.loads(content)
+
+    async def chat(self, system: str, messages: list) -> str:
+        """Plain multi-turn chat (no tools) — used by AI form editing."""
+        response = await self.client.chat.completions.create(
+            model=self._model,
+            messages=[{"role": "system", "content": system}, *messages],
+        )
+        return response.choices[0].message.content or ""

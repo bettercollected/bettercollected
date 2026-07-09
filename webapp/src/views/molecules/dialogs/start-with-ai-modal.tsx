@@ -4,7 +4,8 @@ import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { cn } from '@app/shadcn/util/lib';
 import { selectAuth } from '@app/store/auth/slice';
 import { useAppSelector } from '@app/store/hooks';
-import { useCreateFormWithAIMutation } from '@app/store/redux/form-api';
+import { defaultForm } from '@app/constants/form';
+import { useCreateV2FormMutation } from '@app/store/redux/form-api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { ChevronDown } from 'lucide-react';
 import { useRouter } from 'next-nprogress-bar';
@@ -59,7 +60,7 @@ export default function StartWithAi() {
     const [prompt, setPrompt] = React.useState('');
     const [isOpen, setIsOpen] = React.useState(false);
     const workspace = useAppSelector(selectWorkspace);
-    const [generateWithAI, { isLoading }] = useCreateFormWithAIMutation();
+    const [createV2Form, { isLoading }] = useCreateV2FormMutation();
     const [isGenerationStarted, setIsGenerationStarted] = useState(false);
     const authState = useAppSelector(selectAuth);
 
@@ -67,13 +68,19 @@ export default function StartWithAi() {
     const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         setIsGenerationStarted(true);
-        const response: any = await generateWithAI({
-            workspaceId: workspace.id,
-            body: {
-                prompt
-            }
-        });
-        if (response.data) router.replace(`/${workspace?.workspaceName}/dashboard/forms/${response?.data?.form_id}/edit`);
+        // Ratified 2026-07-09: one conversational surface for create and edit.
+        // Create a blank draft, hand the prompt to the builder's AI tab, and
+        // the generation happens visibly in chat — with the per-turn change
+        // list, undo, and the org profile grounding — instead of behind a
+        // spinner in this dialog.
+        const formBody = { ...defaultForm, builderVersion: 'v2', isMultiPage: false };
+        const formData = new FormData();
+        formData.append('form_body', JSON.stringify(formBody));
+        const response: any = await createV2Form({ workspaceId: workspace.id, body: formData });
+        if (response.data) {
+            sessionStorage.setItem(`bc:ai-prompt:${response.data.formId}`, prompt);
+            router.replace(`/${workspace?.workspaceName}/dashboard/forms/${response.data.formId}/edit?ai=1`);
+        }
         if (response.error) {
             setIsGenerationStarted(false);
             toast({ description: 'Could not create form, please try again', variant: 'destructive' });
@@ -86,8 +93,8 @@ export default function StartWithAi() {
                 <div>
                     <Image width={60} height={60} style={{ objectFit: 'cover' }} className="rounded-lg" src="/gifs/loading.gif" alt="Loading" />
                 </div>
-                <div className="mt-10 font-semibold">Generating Form</div>
-                <div className="text-black-700 mt-2 text-xs">This may take some time, but it&apos;s worth the wait</div>
+                <div className="mt-10 font-semibold">Opening your draft</div>
+                <div className="text-black-700 mt-2 text-xs">The assistant will build it with you in the editor</div>
             </div>
         );
     }
