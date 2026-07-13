@@ -92,23 +92,30 @@ jobs:
         runs-on: builder
         steps:
             - name: Deploy / update service
+              env:
+                  DEVELOP_HOST: ${{ vars.DEVELOP_HOST }}
+                  PROD_HOST: ${{ vars.PROD_HOST }}
               run: |
                   SERVICE_TAG=$(echo "${{ matrix.service }}" | tr '/' '-')
 
                   if [[ "${{ github.ref }}" == "refs/heads/develop" ]]; then
                     DOCKER_STACK="${{ vars.DEVELOP_STACK }}"
+                    DOCKER_HOST="${DEVELOP_HOST}"
 
-                    echo "Updating develop stack → ${DOCKER_STACK}_${SERVICE_TAG} with image SHA ${{ github.sha }}"
+                    echo "Updating develop stack → ${DOCKER_STACK}_${SERVICE_TAG} on ${DOCKER_HOST} with image SHA ${{ github.sha }}"
 
+                    export DOCKER_HOST
                     docker service update \
                       --image bettercollected/${SERVICE_TAG}:${{ github.sha }} \
                       ${DOCKER_STACK}_${SERVICE_TAG}
 
                   elif [[ "${{ github.ref }}" == "refs/tags/"* ]]; then
                     DOCKER_STACK="${{ vars.PROD_STACK }}"
+                    DOCKER_HOST="${PROD_HOST}"
 
-                    echo "Updating production stack → ${DOCKER_STACK}_${SERVICE_TAG} with tag ${{ github.ref_name }}"
+                    echo "Updating production stack → ${DOCKER_STACK}_${SERVICE_TAG} on ${DOCKER_HOST} with tag ${{ github.ref_name }}"
 
+                    export DOCKER_HOST
                     docker service update \
                       --image bettercollected/${SERVICE_TAG}:${{ github.ref_name }} \
                       ${DOCKER_STACK}_${SERVICE_TAG}
