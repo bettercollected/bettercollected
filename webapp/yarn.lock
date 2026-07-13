@@ -7442,10 +7442,10 @@ react-dom@19.2.7:
   dependencies:
     scheduler "^0.27.0"
 
-react-ga4@^1.4.1:
-  version "1.4.1"
-  resolved "https://registry.yarnpkg.com/react-ga4/-/react-ga4-1.4.1.tgz#6ee2a2db115ed235b2f2092bc746b4eeeca9e206"
-  integrity sha512-ioBMEIxd4ePw4YtaloTUgqhQGqz5ebDdC4slEpLgy2sLx1LuZBC9iYCwDymTXzcntw6K1dHX183ulP32nNdG7w==
+react-ga4@^3.0.1:
+  version "3.0.1"
+  resolved "https://registry.yarnpkg.com/react-ga4/-/react-ga4-3.0.1.tgz#1512e0cdd1569e344a9d80b17b30288107a00e77"
+  integrity sha512-GyCc01bSheWXjzGDyHsXMOqk/SP5Cf/JrcJTg4hcpKx4eeSwaJKpJUc+ipF4ffLTZkmabmf3ZGBv4OKHTXNXyA==
 
 react-hotkeys-hook@^4.4.0:
   version "4.6.2"
