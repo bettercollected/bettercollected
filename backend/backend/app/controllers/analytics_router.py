@@ -73,12 +73,14 @@ class FormAnalyticsRouter(Routable):
         params = {
             "startAt": start_at,
             "endAt": end_at,
-            "url": form_url,
+            # Umami 3.x calls the URL-path filter `path` (the old `url`
+            # parameter is ignored, which makes the response website-wide).
+            "path": form_url,
             "referrer": referrer,
             "title": title,
             "query": query,
             "event": event,
-            "host": host,
+            "hostname": host,
             "os": os,
             "browser": browser,
             "device": device,
@@ -128,10 +130,10 @@ class FormAnalyticsRouter(Routable):
         params = {
             "startAt": start_at,
             "endAt": end_at,
-            "url": form_url,
+            "path": form_url,
             "referrer": referrer,
             "title": title,
-            "host": host,
+            "hostname": host,
             "os": os,
             "browser": browser,
             "device": device,
@@ -186,10 +188,10 @@ class FormAnalyticsRouter(Routable):
         params = {
             "startAt": start_at,
             "endAt": end_at,
-            "url": form_url,
+            "path": form_url,
             "referrer": referrer,
             "title": title,
-            "host": host,
+            "hostname": host,
             "os": os,
             "browser": browser,
             "device": device,
