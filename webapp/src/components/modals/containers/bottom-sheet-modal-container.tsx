@@ -11,7 +11,7 @@ import ModalContainer from '@app/components/modal-views/container';
 import FormCreateSlugFullModalView from '@app/components/modal-views/full-screen-modals/create-form-slug-full-modal-view';
 import SelectGroupFullModalView from '@app/components/modal-views/full-screen-modals/select-group-modal-view';
 import ScheduleFormCloseDateModal from '@app/components/modal-views/modals/schedule-form-close-date-modal';
-import { Dialog } from '@app/components/ui/dialog';
+import { Dialog, DialogBackdrop } from '@app/components/ui/dialog';
 import { BOTTOM_SCREEN_MODALS, useBottomSheetModal } from '../contexts/bottom-sheet-modal-context';
 
 const renderModalContent = (view: BOTTOM_SCREEN_MODALS, modalProps: any) => {
@@ -53,7 +53,7 @@ export default function BottomSheetModalContainer() {
                                 className: '!w-screen'
                             } as any)}
                         >
-                            <Dialog.Overlay className={`fixed inset-0  cursor-pointer bg-gray-700  bg-opacity-60`} />
+                            <DialogBackdrop className={`fixed inset-0  cursor-pointer bg-gray-700  bg-opacity-60`} />
                         </motion.div>
                     )}
                 </AnimatePresence>
