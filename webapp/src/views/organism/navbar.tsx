@@ -25,7 +25,6 @@ import { AppInput } from '@app/shadcn/components/ui/input';
 import { selectForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
-import { NewBetterCollectedSmallLogo } from '@Components/icons/bettercollected-small-logo';
 import { LogicOutlinedIcon } from '@Components/icons/logic-outlined-icon';
 import { PlusOutlined } from '@Components/icons/plus-outlined';
 import { TextOutlinedIcon } from '@Components/icons/text-outlined';
@@ -156,14 +155,23 @@ const Navbar = () => {
     return (
         <div id="navbar" className="border-b-black-300 flex h-16 w-full justify-between border-b-[1px] p-4">
             <div className={'flex flex-1 items-center gap-[2px]'}>
-                <div
-                    className={'bg-brand-500 active:bg-brand-600 cursor-pointer rounded-[5px] p-[6px] text-white shadow'}
+                {/* Workspace identity, not the product logo (de-brand decision —
+                    same rule as the top navbar). Still the "back to forms" target. */}
+                <button
+                    type="button"
+                    aria-label={`Back to ${workspace?.title || workspace?.workspaceName || 'workspace'} forms`}
+                    className="mr-1 cursor-pointer"
                     onClick={() => {
                         router.push('/' + workspace.workspaceName + '/dashboard/forms');
                     }}
                 >
-                    <NewBetterCollectedSmallLogo width={17} height={19} />
-                </div>
+                    {workspace?.profileImage ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={workspace.profileImage} alt="" className="h-8 w-8 shrink-0 rounded-md object-cover shadow" />
+                    ) : (
+                        <span className="bg-brand-100 text-brand-600 flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-xs font-bold shadow">{((workspace?.title || workspace?.workspaceName)?.[0] || 'W').toUpperCase()}</span>
+                    )}
+                </button>
                 <AppInput
                     placeholder="Form title"
                     value={formState.title}
