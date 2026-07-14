@@ -1,6 +1,7 @@
 import datetime
 
 import boto3
+from botocore.config import Config
 from botocore.exceptions import ClientError
 from fastapi import HTTPException
 
@@ -10,22 +11,31 @@ aws_settings = settings.aws_settings
 
 
 class AWSS3Service:
+    """Works against any S3-compatible store — Wasabi in production,
+    RustFS/MinIO locally. Endpoint/region/bucket come from AWS_* settings."""
+
     def __init__(self, aws_access_key_id: str, aws_secret_access_key: str):
         self._aws_access_key_id = aws_access_key_id
         self._aws_secret_access_key = aws_secret_access_key
+        # SigV4 + path-style addressing work across every S3-compatible
+        # store we target (Wasabi, RustFS, MinIO). Without the explicit
+        # signature version, presigned URLs 403 on RustFS.
+        client_config = Config(signature_version="s3v4", s3={"addressing_style": "path"})
         self._s3 = boto3.resource(
             "s3",
             aws_access_key_id=self._aws_access_key_id,
             aws_secret_access_key=self._aws_secret_access_key,
-            region_name="eu-central-1",
-            endpoint_url="https://s3.eu-central-1.wasabisys.com",
+            region_name=aws_settings.REGION,
+            endpoint_url=aws_settings.ENDPOINT_URL,
+            config=client_config,
         )
         self._s3_client = boto3.client(
             "s3",
             aws_access_key_id=self._aws_access_key_id,
             aws_secret_access_key=self._aws_secret_access_key,
-            region_name="eu-central-1",
-            endpoint_url="https://s3.eu-central-1.wasabisys.com",
+            region_name=aws_settings.REGION,
+            endpoint_url=aws_settings.ENDPOINT_URL,
+            config=client_config,
         )
 
     async def upload_file_to_s3(
@@ -33,7 +43,7 @@ class AWSS3Service:
         file=None,
         key=None,
         previous_image="",
-        bucket="bettercollected",
+        bucket=aws_settings.BUCKET,
         private=False,
         folder_name="public",
     ):
@@ -63,13 +73,12 @@ class AWSS3Service:
         except Exception as other_exception:
             print("Other Exception:", other_exception)
             raise HTTPException(550, "INFO: Failed to upload image")
-        wasabi_domain = "https://s3.eu-central-1.wasabisys.com"
         folder = f"/{bucket}/{folder_name}/{current_time}_{key}"
         if private:
             folder = f"/{bucket}/{folder_name}/{key}"
-        return f"{wasabi_domain}{folder}"
+        return f"{aws_settings.public_base_url}{folder}"
 
-    def check_if_key_exists(self, key, bucket="bettercollected"):
+    def check_if_key_exists(self, key, bucket=aws_settings.BUCKET):
         try:
             objs = list(self._s3.Bucket(bucket).objects.filter(Prefix=key))
             if len(objs) > 0:
@@ -83,20 +92,20 @@ class AWSS3Service:
         key : path to your file
     """
 
-    def delete_file_from_s3(self, key: str, bucket: str = "bettercollected"):
+    def delete_file_from_s3(self, key: str, bucket: str = aws_settings.BUCKET):
         try:
             self._s3.Object(bucket, key).delete()
         except ClientError:
             raise HTTPException(404, "INFO: Failed to delete file")
 
-    def delete_folder_from_s3(self, prefix: str, bucket: str = "bettercollected"):
+    def delete_folder_from_s3(self, prefix: str, bucket: str = aws_settings.BUCKET):
         try:
             for object_summary in self._s3.Bucket(bucket).objects.filter(Prefix=prefix):
                 object_summary.delete()
         except ClientError:
             return
 
-    def generate_presigned_url(self, key: str, bucket="bettercollected"):
+    def generate_presigned_url(self, key: str, bucket=aws_settings.BUCKET):
         try:
             presigned_url = self._s3_client.generate_presigned_url(
                 "get_object",
