@@ -66,11 +66,14 @@ services:
         image: rustfs/rustfs:latest
         restart: unless-stopped
         ports:
-            - '9000:9000'
+            - '9000:9000' # S3 API
+            - '9001:9001' # web console — http://localhost:9001/rustfs/console/ (rustfsadmin/rustfsadmin)
         environment:
             RUSTFS_ACCESS_KEY: rustfsadmin
             RUSTFS_SECRET_KEY: rustfsadmin
             RUSTFS_VOLUMES: /data
+            RUSTFS_CONSOLE_ENABLE: 'true'
+            RUSTFS_CONSOLE_ADDRESS: ':9001'
         volumes:
             - rustfs-data:/data
 
