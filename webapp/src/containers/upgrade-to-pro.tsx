@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 
-import { useTranslation } from 'next-i18next';
+import { useTranslation } from 'react-i18next';
 
 import { useFullScreenModal } from '@app/components/modal-views/full-screen-modal-context';
 import Logo, { ProLogo } from '@app/components/ui/logo';

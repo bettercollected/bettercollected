@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useTranslation } from 'next-i18next';
+import { useTranslation } from 'react-i18next';
 
 import { Button } from '@app/shadcn/components/ui/button';
 import { Plus } from 'lucide-react';

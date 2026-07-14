@@ -1,7 +1,7 @@
 "use client";
 
 
-import { useTranslation } from 'next-i18next';
+import { useTranslation } from 'react-i18next';
 import { useParams, useRouter } from 'next/navigation';
 
 import LoginView from '@app/app/(auth)/_components/login-view';

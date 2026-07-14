@@ -2,7 +2,7 @@
 
 
 import AIMemorySection from '@app/components/account-settings/ai-memory-section';
-import { useTranslation } from 'next-i18next';
+import { useTranslation } from 'react-i18next';
 
 import { Button } from '@app/shadcn/components/ui/button';
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useTranslation } from 'next-i18next';
+import { useTranslation } from 'react-i18next';
 import { useRouter } from 'next/navigation';
 
 import { Button } from '@app/shadcn/components/ui/button';

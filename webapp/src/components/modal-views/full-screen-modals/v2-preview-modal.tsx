@@ -11,7 +11,7 @@ import BackButton from '@app/views/molecules/form-builder/back-button';
 import PublishButton from '@app/views/molecules/form-builder/publish-button';
 import Form from '@app/views/organism/form/form';
 import ShareIcon from '@Components/icons/share-icon';
-import { useTranslation } from 'next-i18next';
+import { useTranslation } from 'react-i18next';
 import { useModal } from '../context';
 import { useFullScreenModal } from '../full-screen-modal-context';
 

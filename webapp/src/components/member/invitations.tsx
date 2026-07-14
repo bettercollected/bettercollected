@@ -1,6 +1,6 @@
 'use client';
 
-import { useTranslation } from 'next-i18next';
+import { useTranslation } from 'react-i18next';
 
 import InvitationsTable from '@app/components/settings/invitations-table';
 import Loader from '@app/components/ui/loader';

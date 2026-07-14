@@ -1,6 +1,6 @@
 "use client";
 
-import { useTranslation } from 'next-i18next';
+import { useTranslation } from 'react-i18next';
 
 import StyledPagination from '@Components/common/pagination';
 import { cn } from '@app/shadcn/util/lib';

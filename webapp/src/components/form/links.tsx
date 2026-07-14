@@ -1,5 +1,5 @@
 
-import { useTranslation } from 'next-i18next';
+import { useTranslation } from 'react-i18next';
 
 import FormSettingsTab from '@app/components/dashboard/form-settings';
 import { formConstant } from '@app/constants/locales/form';

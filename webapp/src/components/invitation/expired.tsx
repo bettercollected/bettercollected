@@ -1,7 +1,7 @@
 import AuthNavbar from '@app/components/auth/auth-navbar';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
-import { useTranslation } from 'next-i18next';
+import { useTranslation } from 'react-i18next';
 import { useRouter } from 'next/navigation';
 import React from 'react';
 
