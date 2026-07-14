@@ -1,7 +1,7 @@
 import { useState } from 'react';
 
 import { MoreHorizontal, Trash2 } from 'lucide-react';
-import { useTranslation } from 'next-i18next';
+import { useTranslation } from 'react-i18next';
 
 import { Popover, PopoverContent, PopoverTrigger } from '@app/shadcn/components/ui/popover';
 

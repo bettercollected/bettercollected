@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from 'react';
 
-import { useTranslation } from 'next-i18next';
+import { useTranslation } from 'react-i18next';
 import { useRouter } from 'next/navigation';
 
 import HeaderModalWrapper from '@Components/modals/modal-wrapper/header-modal-wrapper';

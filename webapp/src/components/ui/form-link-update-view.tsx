@@ -1,5 +1,5 @@
 
-import { useTranslation } from 'next-i18next';
+import { useTranslation } from 'react-i18next';
 
 import PrivateFormButtonWrapper from '@Components/common/private-form-button-wrapper';
 import useCopyToClipboard from 'react-use/lib/useCopyToClipboard';

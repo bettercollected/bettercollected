@@ -2,7 +2,7 @@ import AuthAccountProfileImage from '@app/components/auth/account-profile-image'
 import ActiveLink from '@app/components/ui/links/active-link';
 import { localesCommon } from '@app/constants/locales/common';
 import { WorkspaceDto } from '@app/models/dtos/workspace-dto';
-import { useTranslation } from 'next-i18next';
+import { useTranslation } from 'react-i18next';
 import Image from 'next/image';
 
 interface IWorkspaceDetailsCardProps {

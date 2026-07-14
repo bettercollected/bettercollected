@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 
-import { useTranslation } from 'next-i18next';
+import { useTranslation } from 'react-i18next';
 
 import HeaderModalWrapper from '@Components/modals/modal-wrapper/header-modal-wrapper';
 import { Button } from '@app/shadcn/components/ui/button';

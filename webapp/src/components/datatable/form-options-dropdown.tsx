@@ -3,7 +3,7 @@ import { useState } from 'react';
 
 import Tooltip from '@app/shadcn/components/ui/tooltip';
 import { Copy, Eye, MoreVertical, Pencil, Pin, QrCode, Trash2 } from 'lucide-react';
-import { useTranslation } from 'next-i18next';
+import { useTranslation } from 'react-i18next';
 
 import { LinkIcon } from '@app/components/icons/link-icon';
 import { useModal } from '@app/components/modal-views/context';

@@ -1,5 +1,5 @@
 
-import { useTranslation } from 'next-i18next';
+import { useTranslation } from 'react-i18next';
 
 import ActiveLink from '@app/components/ui/links/active-link';
 import PoweredBy from '@app/components/ui/powered-by';

@@ -1,5 +1,5 @@
 
-import { useTranslation } from 'next-i18next';
+import { useTranslation } from 'react-i18next';
 
 import { Close } from '@app/components/icons/close';
 import editWorkspace from '@app/constants/locales/edit-workpsace';

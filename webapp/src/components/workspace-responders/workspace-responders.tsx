@@ -2,7 +2,7 @@
 import { useState } from 'react';
 
 import { Check, Plus } from 'lucide-react';
-import { useTranslation } from 'next-i18next';
+import { useTranslation } from 'react-i18next';
 
 import Tooltip from '@app/shadcn/components/ui/tooltip';
 import StyledPagination from '@Components/common/pagination';
