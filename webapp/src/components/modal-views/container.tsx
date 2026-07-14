@@ -23,7 +23,7 @@ import DeleteTemplateConfirmationModalView from '@app/components/modal-views/mod
 import InviteMemberModal from '@app/components/modal-views/modals/invite-member-modal';
 import ReopenFormConfirmationModal from '@app/components/modal-views/modals/reopen-form-confirmation-modal';
 import ShareModalView from '@app/components/modal-views/modals/share-modal-view';
-import { Dialog } from '@app/components/ui/dialog';
+import { Dialog, DialogBackdrop } from '@app/components/ui/dialog';
 import { Transition } from '@app/components/ui/transition';
 
 import { Button } from '@app/shadcn/components/ui/button';
@@ -107,7 +107,7 @@ export default function ModalContainer() {
         <Transition appear show={isOpen} as={Fragment}>
             <Dialog as="div" className="3xl:p-12 fixed inset-0 z-[2500] h-full w-full overflow-y-auto overflow-x-hidden p-4 text-center sm:p-6 lg:p-8 xl:p-10" onClose={closeModalHandler}>
                 <Transition.Child as={Fragment} enter="ease-out duration-300" enterFrom="opacity-0" enterTo="opacity-100" leave="ease-in duration-200" leaveFrom="opacity-100" leaveTo="opacity-0">
-                    <Dialog.Overlay className="fixed inset-0 z-40 cursor-pointer bg-gray-700 bg-opacity-60 backdrop-blur" />
+                    <DialogBackdrop className="fixed inset-0 z-40 cursor-pointer bg-gray-700 bg-opacity-60 backdrop-blur" />
                 </Transition.Child>
 
                 {/* This element is to trick the browser into centering the modal contents. */}

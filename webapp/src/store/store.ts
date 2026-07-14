@@ -87,8 +87,9 @@ export const store = configureStore({
     middleware: (getDefaultMiddleware) =>
         getDefaultMiddleware({
             serializableCheck: false
-        }).concat(middlewares),
-    preloadedState: {},
+            // RTK 2's Tuple.concat needs the middlewares spread (an array
+            // argument widens the tuple type and fails to typecheck).
+        }).concat(...middlewares),
 });
 
 export const persistor = persistStore(store);
