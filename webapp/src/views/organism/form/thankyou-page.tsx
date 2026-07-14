@@ -48,18 +48,22 @@ export default function ThankyouPage({ isPreviewMode }: { isPreviewMode: boolean
             description: 'Copied'
         });
     };
+    // Forms created outside the builder (API/MCP) may have no thank-you page
+    // at all — every read below must survive null/[] (the `!` + index here
+    // crashed the post-submit screen with "Cannot read properties of null").
+    const thankyouPage = standardForm?.thankyouPage?.[0];
     return (
-        <div className={cn('flex h-full w-full flex-col justify-center bg-inherit', standardForm?.thankyouPage![0]?.layout === FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND_LEFT_ALIGN ? 'items-start' : 'items-center')}>
+        <div className={cn('flex h-full w-full flex-col justify-center bg-inherit', thankyouPage?.layout === FormSlideLayout.SINGLE_COLUMN_NO_BACKGROUND_LEFT_ALIGN ? 'items-start' : 'items-center')}>
             <UserAvatarDropDown disabled />
             <div className=" flex h-full w-full max-w-[800px] flex-col justify-between">
                 <div className="flex">
                     <span className="text-[40px] font-bold leading-[48px]">{getThankYouTitle()}</span>
                 </div>
                 <div className="p2-new text-black-700 mt-4">{getThankYouMessage()}</div>
-                {standardForm?.thankyouPage && standardForm?.thankyouPage[0].buttonText && (
+                {thankyouPage?.buttonText && (
                     <Button style={{ background: standardForm.theme?.secondary }} className="mt-14">
-                        <Link href={isPreviewMode ? '' : standardForm?.thankyouPage[0].buttonLink || 'https://bettercollected.com'} target="_blank" referrerPolicy="no-referrer">
-                            {standardForm?.thankyouPage[0].buttonText}
+                        <Link href={isPreviewMode ? '' : thankyouPage.buttonLink || 'https://bettercollected.com'} target="_blank" referrerPolicy="no-referrer">
+                            {thankyouPage.buttonText}
                         </Link>
                     </Button>
                 )}

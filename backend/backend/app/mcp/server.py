@@ -146,23 +146,31 @@ async def create_form(title: str, description: str = "") -> str:
     import uuid as _uuid
 
     from common.models.standard_form import (
+        LayoutType,
         StandardFieldProperty,
         StandardFormField,
         StandardFormFieldType,
+        ThankYouPageField,
+        WelcomePageField,
     )
 
     from backend.app.container import container
 
+    # Mirror the builder's defaultForm (webapp constants/form.ts): forms need a
+    # welcome + thank-you page — the responder's post-submit screen renders
+    # thankyouPage, and API-born forms must behave like builder-born ones.
     blank = StandardForm(
         title=title,
         description=description or None,
         builder_version="v2",
+        welcome_page=WelcomePageField(title="", layout=LayoutType.SINGLE_COLUMN_NO_BACKGROUND),
+        thankyou_page=[ThankYouPageField(layout=LayoutType.SINGLE_COLUMN_NO_BACKGROUND)],
         fields=[
             StandardFormField(
                 id=str(_uuid.uuid4()),
                 index=0,
                 type=StandardFormFieldType.SLIDE,
-                properties=StandardFieldProperty(fields=[]),
+                properties=StandardFieldProperty(fields=[], layout=LayoutType.SINGLE_COLUMN_NO_BACKGROUND),
             )
         ],
     )
