@@ -16,6 +16,8 @@ interface LayoutProps {
     showNavbar?: boolean;
     workspaceIdentity?: boolean;
     isFooter?: boolean;
+    /** Align the navbar content with the page body's container (padding classes). */
+    navContainerClassName?: string;
 }
 
 export default function TopNavLayout({
@@ -29,11 +31,24 @@ export default function TopNavLayout({
     showNavbar = false,
     workspaceIdentity = false,
     isFooter = false,
-    showAuthAccount
+    showAuthAccount,
+    navContainerClassName
 }: React.PropsWithChildren<LayoutProps>) {
     return (
         <div className="!bg-black-200 dark:bg-dark z-20 !min-h-screen !min-w-full">
-            {showNavbar && <AuthNavbar isFooter={isFooter} isCustomDomain={isCustomDomain} isClientDomain={isClientDomain} showHamburgerIcon={showHamburgerIcon} hideMenu={hideMenu} showPlans={false} showAuthAccount={showAuthAccount} workspaceIdentity={workspaceIdentity} />}
+            {showNavbar && (
+                <AuthNavbar
+                    isFooter={isFooter}
+                    isCustomDomain={isCustomDomain}
+                    isClientDomain={isClientDomain}
+                    showHamburgerIcon={showHamburgerIcon}
+                    hideMenu={hideMenu}
+                    showPlans={false}
+                    showAuthAccount={showAuthAccount}
+                    workspaceIdentity={workspaceIdentity}
+                    containerClassName={navContainerClassName}
+                />
+            )}
             <main
                 className={cn(
                     "bg-black-100 float-none flex w-full px-5 lg:float-right lg:px-10",

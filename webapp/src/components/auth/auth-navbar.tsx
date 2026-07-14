@@ -28,6 +28,9 @@ interface IAuthNavbarProps {
     showAuthAccount?: boolean;
     handleDrawerToggle?: () => void;
     workspaceIdentity?: boolean;
+    /** Constrain the navbar CONTENT to the same container as the page body
+     *  (pass the body's padding classes) so their left edges align. */
+    containerClassName?: string;
 }
 
 AuthNavbar.defaultProps = {
@@ -69,12 +72,12 @@ function WorkspaceIdentity() {
     );
 }
 
-function AuthNavbar({ showHamburgerIcon, showPlans, mobileOpen, handleDrawerToggle, isCustomDomain = false, isFooter = false, isClientDomain = false, hideMenu = false, showAuthAccount, workspaceIdentity = false }: IAuthNavbarProps) {
+function AuthNavbar({ showHamburgerIcon, showPlans, mobileOpen, handleDrawerToggle, isCustomDomain = false, isFooter = false, isClientDomain = false, hideMenu = false, showAuthAccount, workspaceIdentity = false, containerClassName }: IAuthNavbarProps) {
     const { t } = useTranslation();
     const inMobile = useIsMobile();
     return (
-        <Header className="!z-[1300]">
-            <div className="flex flex-row w-full h-full py-2 md:py-0 justify-between items-center">
+        <Header className={`!z-[1300] ${containerClassName ? '!px-0' : ''}`}>
+            <div className={`flex flex-row w-full h-full py-2 md:py-0 justify-between items-center ${containerClassName ?? ''}`}>
                 <div className="flex gap-4">
                     {inMobile && showHamburgerIcon && <Hamburger isOpen={mobileOpen} className="!shadow-none mr-2 !bg-white hover:!bg-white !text-black-900 !flex !justify-start" onClick={handleDrawerToggle} />}
                     {/* Admin surfaces lead with the WORKSPACE identity, not the
