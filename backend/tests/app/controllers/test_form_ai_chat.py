@@ -122,6 +122,91 @@ class TestFormAIChat:
         system = fake_provider.calls[0]["system"]
         assert "<form_snapshot>" in system and "dark patterns" in system
 
+    async def test_settings_op_updates_purpose_and_retention(
+        self,
+        client: AsyncClient,
+        workspace: Coroutine[Any, Any, WorkspaceDocument],
+        workspace_form: Coroutine[Any, Any, FormDocument],
+        test_user_cookies: dict[str, str],
+        fake_provider: FakeProvider,
+    ):
+        """The exact user journey that surfaced this gap: 'update the purpose
+        and retention for this form' must land in the Form tab's settings."""
+        form_doc = await FormDocument.find_one({"form_id": workspace_form.form_id})
+        await _make_v2(form_doc)
+        fake_provider.replies = [
+            json.dumps(
+                {
+                    "reply": "Set the purpose and retention.",
+                    "ops": [
+                        {
+                            "op": "update_form_settings",
+                            "patch": {"purpose": "To schedule your appointment", "retentionText": "kept for 90 days"},
+                        }
+                    ],
+                }
+            ),
+            json.dumps({"memories": []}),  # background extraction
+        ]
+
+        response = await client.post(
+            f"/api/v1/workspaces/{workspace.id}/forms/{workspace_form.form_id}/ai/chat",
+            cookies=test_user_cookies,
+            json={"message": "update the purpose and retention for this form"},
+        )
+        assert response.status_code == 200, response.text
+        body = response.json()
+        assert body["results"][0]["ok"] is True
+        assert "purpose" in body["results"][0]["message"] and "retention" in body["results"][0]["message"]
+        # The response carries the updated settings for the Form tab.
+        assert body["settings"]["purpose"] == "To schedule your appointment"
+        assert body["settings"]["retentionText"] == "kept for 90 days"
+
+        # Persisted on the workspace-form association (where the Form tab reads).
+        from backend.app.schemas.workspace_form import WorkspaceFormDocument
+
+        workspace_form_doc = await WorkspaceFormDocument.find_one(
+            WorkspaceFormDocument.form_id == workspace_form.form_id
+        )
+        assert workspace_form_doc.settings.purpose == "To schedule your appointment"
+        assert workspace_form_doc.settings.retention_text == "kept for 90 days"
+
+        # …and the model could SEE the current settings in its snapshot.
+        assert '"settings"' in fake_provider.calls[0]["system"]
+
+    async def test_settings_op_clears_with_empty_string(
+        self,
+        client: AsyncClient,
+        workspace: Coroutine[Any, Any, WorkspaceDocument],
+        workspace_form: Coroutine[Any, Any, FormDocument],
+        test_user_cookies: dict[str, str],
+        fake_provider: FakeProvider,
+    ):
+        form_doc = await FormDocument.find_one({"form_id": workspace_form.form_id})
+        await _make_v2(form_doc)
+        from backend.app.schemas.workspace_form import WorkspaceFormDocument
+
+        workspace_form_doc = await WorkspaceFormDocument.find_one(
+            WorkspaceFormDocument.form_id == workspace_form.form_id
+        )
+        workspace_form_doc.settings.purpose = "Old purpose"
+        await workspace_form_doc.save()
+
+        fake_provider.replies = [
+            json.dumps({"reply": "Cleared.", "ops": [{"op": "update_form_settings", "patch": {"purpose": ""}}]}),
+            json.dumps({"memories": []}),
+        ]
+        response = await client.post(
+            f"/api/v1/workspaces/{workspace.id}/forms/{workspace_form.form_id}/ai/chat",
+            cookies=test_user_cookies,
+            json={"message": "remove the purpose text"},
+        )
+        assert response.status_code == 200
+        refreshed = await WorkspaceFormDocument.find_one(
+            WorkspaceFormDocument.form_id == workspace_form.form_id
+        )
+        assert refreshed.settings.purpose is None
+
     async def test_second_turn_carries_history(
         self,
         client: AsyncClient,

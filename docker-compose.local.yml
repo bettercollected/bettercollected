@@ -3,6 +3,7 @@ version: '3.7'
 volumes:
     mongo-data:
     umami-db-data:
+    rustfs-data:
 
 services:
     mongodb:
@@ -54,6 +55,27 @@ services:
         environment:
             MP_SMTP_AUTH_ACCEPT_ANY: 'true'
             MP_SMTP_AUTH_ALLOW_INSECURE: 'true'
+
+    # S3-compatible object storage (file uploads, media library, workspace
+    # images). The backend's AWSS3Service points here via AWS_* env vars:
+    #   AWS_ENDPOINT_URL=http://localhost:9000  AWS_REGION=us-east-1
+    #   AWS_ACCESS_KEY_ID=rustfsadmin           AWS_SECRET_ACCESS_KEY=rustfsadmin
+    #   AWS_BUCKET=bettercollected
+    # Local-only credentials — deployments must override with real secrets.
+    rustfs:
+        image: rustfs/rustfs:latest
+        restart: unless-stopped
+        ports:
+            - '9000:9000' # S3 API
+            - '9001:9001' # web console — http://localhost:9001/rustfs/console/ (rustfsadmin/rustfsadmin)
+        environment:
+            RUSTFS_ACCESS_KEY: rustfsadmin
+            RUSTFS_SECRET_KEY: rustfsadmin
+            RUSTFS_VOLUMES: /data
+            RUSTFS_CONSOLE_ENABLE: 'true'
+            RUSTFS_CONSOLE_ADDRESS: ':9001'
+        volumes:
+            - rustfs-data:/data
 
     # Self-hosted product analytics (see plans/umami-self-hosted-form-analytics.md).
     # Admin UI: http://localhost:3003 — default login admin/umami, change it, then

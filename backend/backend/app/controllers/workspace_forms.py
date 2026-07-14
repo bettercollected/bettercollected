@@ -1,5 +1,6 @@
 import json
 from http import HTTPStatus
+from typing import Optional
 
 from beanie import PydanticObjectId
 from classy_fastapi import Routable, get, patch, post, delete
@@ -15,6 +16,10 @@ from starlette.requests import Request
 
 from backend.app.container import container
 from backend.app.services.ai.chat import FormAIChatRequest, FormAIChatResponse
+from backend.app.services.ai.insights import (
+    FormAIInsightsRequest,
+    FormAIInsightsResponse,
+)
 from backend.app.services.ai.review import (
     ApplyReviewFixRequest,
     ApplyReviewFixResponse,
@@ -159,6 +164,33 @@ class WorkspaceFormsRouter(Routable):
         """Compliance copilot: review the draft against the org's compliance
         profile + baseline privacy checks. Read-only — changes nothing."""
         return await container.form_ai_review_service().review(
+            workspace_id=workspace_id, form_id=form_id, request=request, user=user
+        )
+
+    @get("/{form_id}/ai/insights")
+    async def get_ai_insights(
+        self,
+        workspace_id: PydanticObjectId,
+        form_id: str,
+        user=Depends(get_logged_user),
+    ) -> Optional[FormAIInsightsResponse]:
+        """Cached response summary, if one was ever generated. Reads the
+        cache only — never respondent data."""
+        return await container.form_ai_insights_service().get_cached(
+            workspace_id=workspace_id, form_id=form_id, user=user
+        )
+
+    @post("/{form_id}/ai/insights")
+    async def generate_ai_insights(
+        self,
+        workspace_id: PydanticObjectId,
+        form_id: str,
+        request: FormAIInsightsRequest,
+        user=Depends(get_logged_user),
+    ) -> FormAIInsightsResponse:
+        """The explicit opt-in action (plan principle #2): the ONLY moment
+        the AI reads this form's responses. Result is cached."""
+        return await container.form_ai_insights_service().generate(
             workspace_id=workspace_id, form_id=form_id, request=request, user=user
         )
 

@@ -77,6 +77,11 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, group, worksp
 
     const isFormOpen = validateFormOpen(form?.settings?.formCloseDate);
 
+    // Provider only carries signal for IMPORTED forms — every native form
+    // showing the bettercollected logo was noise on the creator's own list.
+    const providerForIcon = form.settings?.provider === 'self' && form.importedFormId && form.settings.showOriginalForm ? 'google' : form?.settings?.provider;
+    const showProviderChip = !!providerForIcon && providerForIcon !== 'self';
+
     return (
         <div className={`hover:border-brand-200 shadow-formCardDefault hover:shadow-formCard flex h-full cursor-pointer flex-col  items-start justify-between rounded-lg border-[1px] border-transparent bg-white transition ${className}`}>
             <div className="group flex w-full items-center justify-between rounded px-5 py-4">
@@ -128,11 +133,11 @@ export default function WorkspaceFormCard({ form, hasCustomDomain, group, worksp
                         </div>
                     )}
                     <div className={`flex max-w-full flex-wrap items-center gap-2 ${isResponderPortal ? 'hidden' : ''}`}>
-                        <FormProviderIcon provider={form.settings?.provider === 'self' && form.importedFormId && form.settings.showOriginalForm ? 'google' : form?.settings?.provider} />
+                        {showProviderChip && <FormProviderIcon provider={providerForIcon} />}
                         {showVisibility && (
                             <Tooltip label={form?.settings?.private ? t(toolTipConstant.hideForm) : ''}>
                                 <div className="fap-2 flex items-center">
-                                    <DotIcon />
+                                    {showProviderChip && <DotIcon />}
                                     {form?.isPublished || isResponderPortal ? (
                                         <div className="text-black-600 flex items-center">
                                             {visibility().icon}

@@ -6,7 +6,7 @@ import { BookOpen, Check, Plus, Send, ShieldCheck, X } from 'lucide-react';
 
 import { StandardFormDto } from '@app/models/dtos/form';
 import { deepCopy } from '@app/utils/object-utils';
-import { selectForm, setForm } from '@app/store/forms/slice';
+import { selectForm, setForm, setFormSettings } from '@app/store/forms/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import useFormFieldsAtom from '@app/store/jotai/field-selectors';
 import { useFormState } from '@app/store/jotai/form';
@@ -165,10 +165,13 @@ export default function AIChatTab({ memoryPollDelaysMs = [4000, 10000] }: { memo
 
     // One canvas-apply path for chat turns and review fixes. deepCopy per
     // store is LOAD-BEARING — see the note in send().
-    const applyFormToCanvas = (form: any) => {
+    const applyFormToCanvas = (form: any, settings?: any) => {
         setFormFields(deepCopy(form.fields ?? []));
         setFormState({ ...formState, title: form.title ?? formState.title });
         dispatch(setForm({ ...standardForm, title: form.title, description: form.description, fields: deepCopy(form.fields ?? []) }));
+        // Settings (purpose/retention/… — the Form tab) live on the
+        // workspace-form association; the backend returns them separately.
+        if (settings) dispatch(setFormSettings(settings));
     };
 
     // Compliance copilot (plan §2, P2): read-only review; each finding's fix
@@ -197,7 +200,7 @@ export default function AIChatTab({ memoryPollDelaysMs = [4000, 10000] }: { memo
         const applied = !!response.data?.results?.some((r: TurnResult) => r.ok);
         if (applied) {
             patchFinding(turnIndex, findingIndex, { applying: false, applied: true });
-            applyFormToCanvas(response.data.form);
+            applyFormToCanvas(response.data.form, response.data.settings);
         } else {
             const failure = response.data?.results?.find((r: TurnResult) => !r.ok)?.message;
             patchFinding(turnIndex, findingIndex, { applying: false, applyError: failure ?? 'The fix could not be applied — please try again.' });
@@ -239,7 +242,7 @@ export default function AIChatTab({ memoryPollDelaysMs = [4000, 10000] }: { memo
         });
 
         if (response.data) {
-            const { reply, results, form, sessionId: sid } = response.data;
+            const { reply, results, form, settings, sessionId: sid } = response.data;
             setSessionId(sid);
             // Apply the AI's edit to the canvas — ONE setFormFields call = one
             // undo snapshot, so a whole turn reverts with a single Ctrl+Z.
@@ -252,7 +255,7 @@ export default function AIChatTab({ memoryPollDelaysMs = [4000, 10000] }: { memo
             // property". Each store gets its own copy (mirrors how the edit
             // page hydrates with deepCopy at mount).
             if (results?.some((r: TurnResult) => r.ok)) {
-                applyFormToCanvas(form);
+                applyFormToCanvas(form, settings);
             }
             setTurns((t) => [...t, { role: 'assistant', content: reply, results }]);
             surfaceNewMemories(memoryIdsBeforeTurn);

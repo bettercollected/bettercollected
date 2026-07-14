@@ -167,6 +167,76 @@ class TestMCPServer:
         ).to_list()
         assert any(log.tool == "update_form" and log.ok for log in logs)
 
+    async def test_create_form_blank_then_build_with_ops(
+        self,
+        client: AsyncClient,
+        workspace: Coroutine[Any, Any, WorkspaceDocument],
+    ):
+        token = await _make_key(workspace.id, ["forms:read", "forms:write"])
+        created = _tool_text(
+            await _call_tool(client, token, "create_form", {"title": "Import target", "description": "Built by ops"})
+        )
+        assert created["title"] == "Import target" and created["published"] is False
+
+        # The blank form has exactly one empty page, ready for precise ops.
+        form = _tool_text(await _call_tool(client, token, "get_form", {"form_id": created["formId"]}))
+        assert len(form["fields"]) == 1
+        page_id = form["fields"][0]["id"]
+        assert (form["fields"][0].get("properties", {}) or {}).get("fields", []) in ([], None)
+
+        result = _tool_text(
+            await _call_tool(
+                client, token, "update_form",
+                {"form_id": created["formId"],
+                 "ops": [
+                     {"op": "add_field", "pageId": page_id, "field": {"title": "Branch", "type": "short_text"}},
+                     {"op": "add_field", "pageId": page_id, "field": {"title": "Rented house?", "type": "yes_no"}},
+                 ]},
+            )
+        )
+        assert all(r["ok"] for r in result["results"])
+
+    async def test_logic_ops_work_over_mcp(
+        self,
+        client: AsyncClient,
+        workspace: Coroutine[Any, Any, WorkspaceDocument],
+        workspace_form: Coroutine[Any, Any, FormDocument],
+    ):
+        form_doc = await FormDocument.find_one({"form_id": workspace_form.form_id})
+        page_id = await _make_v2(form_doc)
+        token = await _make_key(workspace.id, ["forms:read", "forms:write"])
+
+        result = _tool_text(
+            await _call_tool(
+                client, token, "update_form",
+                {"form_id": workspace_form.form_id,
+                 "ops": [
+                     {"op": "add_field", "pageId": page_id, "field": {"title": "Rented?", "type": "yes_no"}},
+                     {"op": "add_field", "pageId": page_id, "field": {"title": "Landlord name", "type": "short_text"}},
+                 ]},
+            )
+        )
+        assert all(r["ok"] for r in result["results"])
+        form = _tool_text(await _call_tool(client, token, "get_form", {"form_id": workspace_form.form_id}))
+        fields = form["fields"][0]["properties"]["fields"]
+        rented = next(f for f in fields if f["title"] == "Rented?")
+        landlord = next(f for f in fields if f["title"] == "Landlord name")
+
+        result = _tool_text(
+            await _call_tool(
+                client, token, "update_form",
+                {"form_id": workspace_form.form_id,
+                 "ops": [{"op": "set_field_logic", "fieldId": landlord["id"],
+                          "logic": {"action": "SHOW", "conditions": [{"fieldId": rented["id"], "comparison": "IS_EQUAL", "value": "Yes"}]}}]},
+            )
+        )
+        assert result["results"][0]["ok"], result
+
+        # Persisted and visible in the snapshot external clients read.
+        form = _tool_text(await _call_tool(client, token, "get_form", {"form_id": workspace_form.form_id}))
+        landlord_after = next(f for f in form["fields"][0]["properties"]["fields"] if f["title"] == "Landlord name")
+        assert landlord_after["properties"]["logic"]["action"] == "SHOW"
+
     async def test_scope_is_enforced_per_tool(
         self,
         client: AsyncClient,

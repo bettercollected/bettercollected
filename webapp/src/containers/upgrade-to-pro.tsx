@@ -144,8 +144,11 @@ export default function UpgradeToProContainer({ featureText, isModal = true, cal
                                     toast({ description: 'Congratulations! You have been upgraded to PRO' });
                                 }
                                 if (response.error) {
+                                    // Say what actually failed — a 503 "Service is
+                                    // not enabled" is actionable; "Something went
+                                    // wrong" is not.
                                     toast({
-                                        description: 'Something went wrong',
+                                        description: typeof response.error?.data === 'string' ? response.error.data : 'Could not activate PRO — please try again.',
                                         variant: 'destructive'
                                     });
                                 }

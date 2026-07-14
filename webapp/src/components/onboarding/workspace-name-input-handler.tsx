@@ -75,21 +75,19 @@ const WorkspaceNameInputHandler = ({ formData, setFormData, handleOnChange, crea
             getAvailabilityStatusOfWorkspaceName(workspaceName).then((availability) => {
                 if (!availability) {
                     fetchSuggestionsForWorkspaceHandle(formData.title).then((suggestion) => {
-                        setFormData({
-                            ...formData,
-                            workspaceName: suggestion
-                        });
+                        // No suggestion (empty title / failed fetch) must not
+                        // write undefined — that flips the input to
+                        // uncontrolled and React logs an error.
+                        if (suggestion) setFormData({ ...formData, workspaceName: suggestion });
                     });
                 }
             });
         } else {
             fetchSuggestionsForWorkspaceHandle(formData.title.toLowerCase()).then((suggestion) => {
-                setFormData({
-                    ...formData,
-                    workspaceName: suggestion
-                });
+                if (suggestion) setFormData({ ...formData, workspaceName: suggestion });
             });
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     useEffect(() => {
@@ -117,8 +115,9 @@ const WorkspaceNameInputHandler = ({ formData, setFormData, handleOnChange, crea
                 if (data.includes(text)) {
                     return text;
                 } else {
-                    const suggestion = data[Math.floor(Math.random() * 4) + 1];
-                    setWorkspaceNameSuggestion(suggestion);
+                    // Fewer than 5 suggestions made this index out of range.
+                    const suggestion = data[Math.floor(Math.random() * 4) + 1] ?? data[0];
+                    if (suggestion) setWorkspaceNameSuggestion(suggestion);
                     return suggestion;
                 }
             }
@@ -134,7 +133,7 @@ const WorkspaceNameInputHandler = ({ formData, setFormData, handleOnChange, crea
                 required
                 id="workspaceName"
                 placeholder="Enter workspace handle name"
-                value={formData.workspaceName?.toLowerCase()}
+                value={formData.workspaceName?.toLowerCase() ?? ''}
                 onChange={handleOnChange}
                 className={errorMessage && formData.workspaceName ? 'border-red-500 focus-visible:ring-red-500 w-full' : 'w-full'}
             />

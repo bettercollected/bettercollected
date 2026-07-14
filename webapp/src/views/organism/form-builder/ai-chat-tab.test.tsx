@@ -315,6 +315,26 @@ describe('AIChatTab', () => {
         expect(chatEditMock.mock.calls[1][0].body.sessionId).toBe('session-1');
     });
 
+    it('a settings turn (purpose/retention) lands in the form slice for the Form tab', async () => {
+        chatEditMock.mockResolvedValue(
+            success({
+                reply: 'Set the purpose and retention.',
+                results: [{ index: 0, op: 'update_form_settings', ok: true, message: 'Updated form settings: purpose, retention' }],
+                settings: { purpose: 'To schedule your appointment', retentionText: 'kept for 90 days' }
+            })
+        );
+        renderPanel();
+
+        await sendMessage('update the purpose and retention for this form');
+        await waitFor(() => expect(screen.getByText('Set the purpose and retention.')).toBeDefined());
+
+        // The Form tab reads settings from the form slice — the turn must
+        // have dispatched them (this exact journey silently no-oped before).
+        const settings = (store.getState() as any).form.settings;
+        expect(settings.purpose).toBe('To schedule your appointment');
+        expect(settings.retentionText).toBe('kept for 90 days');
+    });
+
     it('REGRESSION: the conversation survives a tab switch (unmount/remount)', async () => {
         chatEditMock.mockResolvedValue(success());
         const { setForm } = await import('@app/store/forms/slice');

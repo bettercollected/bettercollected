@@ -138,6 +138,50 @@ async def get_form(form_id: str) -> str:
 
 
 @mcp.tool()
+async def create_form(title: str, description: str = "") -> str:
+    """Create a blank draft form (one empty page) — for building precisely
+    with update_form ops. Use create_form_with_ai when you want the platform
+    to design the form from a prompt instead."""
+    key = _key("forms:write")
+    import uuid as _uuid
+
+    from common.models.standard_form import (
+        LayoutType,
+        StandardFieldProperty,
+        StandardFormField,
+        StandardFormFieldType,
+        ThankYouPageField,
+        WelcomePageField,
+    )
+
+    from backend.app.container import container
+
+    # Mirror the builder's defaultForm (webapp constants/form.ts): forms need a
+    # welcome + thank-you page — the responder's post-submit screen renders
+    # thankyouPage, and API-born forms must behave like builder-born ones.
+    blank = StandardForm(
+        title=title,
+        description=description or None,
+        builder_version="v2",
+        welcome_page=WelcomePageField(title="", layout=LayoutType.SINGLE_COLUMN_NO_BACKGROUND),
+        thankyou_page=[ThankYouPageField(layout=LayoutType.SINGLE_COLUMN_NO_BACKGROUND)],
+        fields=[
+            StandardFormField(
+                id=str(_uuid.uuid4()),
+                index=0,
+                type=StandardFormFieldType.SLIDE,
+                properties=StandardFieldProperty(fields=[], layout=LayoutType.SINGLE_COLUMN_NO_BACKGROUND),
+            )
+        ],
+    )
+    form = await container.workspace_form_service().create_form(
+        workspace_id=key.workspace_id, form=blank, user=_acting_user(key)
+    )
+    await _audit("create_form", True, form.form_id)
+    return json.dumps({"formId": form.form_id, "title": form.title, "published": False})
+
+
+@mcp.tool()
 async def create_form_with_ai(prompt: str) -> str:
     """Create a new draft form from a natural-language prompt. Generation is
     grounded in the workspace's AI profile (guidelines + compliance)."""
@@ -163,7 +207,16 @@ async def update_form(form_id: str, ops: List[Dict[str, Any]]) -> str:
     {"op":"remove_field","fieldId":str} ·
     {"op":"move_field","fieldId":str,"toPageId"?:str,"index":int} ·
     {"op":"add_page","index"?:int,"fields"?:[field]} · {"op":"remove_page","pageId":str} ·
-    {"op":"update_form_info","title"?:str,"description"?:str}.
+    {"op":"update_form_info","title"?:str,"description"?:str} ·
+    {"op":"update_form_settings","patch":{"purpose"?:str,"retentionText"?:str,
+    "privacyPolicyUrl"?:str,"requireVerifiedIdentity"?:bool,"allowEditingResponse"?:bool,
+    "showSubmissionNumber"?:bool}} (trust metadata; "" clears a text value) ·
+    {"op":"set_field_logic","fieldId":str,"logic":{"action":"SHOW"|"HIDE","operator":"AND"|"OR",
+    "conditions":[{"fieldId":str,"comparison":"IS_EQUAL"|"IS_NOT_EQUAL"|"CONTAINS"|"IS_EMPTY"|...,
+    "value"?:any}]}|null} (conditional visibility; choice values use the LABEL, yes/no uses "Yes"/"No") ·
+    {"op":"set_page_jumps","pageId":str,"jumps":[{"operator":"AND"|"OR","conditions":[...],
+    "target":"<page id or __SUBMIT__>"}]|null} (branching) ·
+    {"op":"duplicate_page","pageId":str,"index"?:int} (clone a page, fresh ids).
     Field types: short_text, long_text, email, number, url, phone_number, date,
     yes_no, multiple_choice, dropdown, rating, linear_rating, file_upload, text."""
     key = _key("forms:write")
@@ -172,10 +225,10 @@ async def update_form(form_id: str, ops: List[Dict[str, Any]]) -> str:
     form_document = await FormDocument.find_one({"form_id": form_id})
     parsed = parse_ops(ops)
     form = StandardForm(**form_document.model_dump())
-    _, results = await persist_ops_to_form(form_document, form, parsed)
+    _, results, updated_settings = await persist_ops_to_form(form_document, form, parsed)
     payload = [r.model_dump(by_alias=True) for r in results]
     await _audit("update_form", all(r.ok for r in results), f"{form_id}: {len(results)} ops")
-    return json.dumps({"results": payload})
+    return json.dumps({"results": payload, "settings": updated_settings})
 
 
 @mcp.tool()
@@ -216,7 +269,9 @@ async def list_responses(form_id: str, limit: int = 20) -> str:
         {
             "responseId": r.response_id,
             "submittedAt": str(getattr(r, "created_at", "")),
-            "answerCount": len(r.answers or {}),
+            # Answers are encrypted at rest (str/bytes) — len() of ciphertext
+            # is meaningless, so only count when they are a readable dict.
+            "answerCount": len(r.answers) if isinstance(r.answers, dict) else None,
         }
         for r in responses
     ]
@@ -232,13 +287,22 @@ async def get_response(response_id: str) -> str:
     workspace_forms = await _workspace_form_ids(key.workspace_id)
     if not response or response.form_id not in workspace_forms:
         raise ValueError("Response not found in this workspace.")
+    # Answers are encrypted at rest — decrypt on this read path (the same
+    # rule as the dashboard's response views).
+    answers = response.answers
+    if isinstance(answers, (bytes, str)):
+        from common.services.crypto_service import crypto_service
+
+        answers = json.loads(
+            crypto_service.decrypt(workspace_id=key.workspace_id, form_id=response.form_id, data=answers)
+        )
     await _audit("get_response", True, response_id)
     return json.dumps(
         {
             "responseId": response.response_id,
             "formId": response.form_id,
             "submittedAt": str(getattr(response, "created_at", "")),
-            "answers": json.loads(json.dumps({k: v for k, v in (response.answers or {}).items()}, default=str)),
+            "answers": json.loads(json.dumps(answers if isinstance(answers, dict) else {}, default=str)),
         }
     )
 

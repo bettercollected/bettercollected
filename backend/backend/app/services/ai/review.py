@@ -21,6 +21,7 @@ from pydantic.alias_generators import to_camel
 from backend.app.exceptions import HTTPException
 from backend.app.models.dtos.response_dtos import StandardFormCamelModel
 from backend.app.schemas.standard_form import FormDocument
+from backend.app.schemas.workspace_form import WorkspaceFormDocument
 from backend.app.services.ai.chat import persist_ops_to_form
 from backend.app.services.ai.ops import OpResult, parse_ops
 from backend.app.services.ai.profile import AIProfileService, render_prompt_block
@@ -87,6 +88,8 @@ class ApplyReviewFixRequest(_CamelModel):
 class ApplyReviewFixResponse(_CamelModel):
     results: List[OpResult] = []
     form: dict
+    # Present when a fix changed form settings (purpose/retention/…).
+    settings: Optional[dict] = None
 
 
 def build_review_system_prompt(form_snapshot: str, profile) -> str:
@@ -156,10 +159,17 @@ class FormAIReviewService:
         await self._workspace_user_service.check_user_has_access_in_workspace(
             workspace_id=workspace_id, user=user
         )
-        form_document = await FormDocument.find_one({"form_id": form_id})
+        # The form must belong to THIS workspace (same rule as chat and MCP).
+        association = await WorkspaceFormDocument.find_one(
+            WorkspaceFormDocument.workspace_id == workspace_id,
+            WorkspaceFormDocument.form_id == form_id,
+        )
+        form_document = (
+            await FormDocument.find_one({"form_id": form_id}) if association else None
+        )
         if not form_document:
             raise HTTPException(status_code=HTTPStatus.NOT_FOUND, content="Form not found")
-        return form_document
+        return form_document, association
 
     async def review(
         self,
@@ -168,10 +178,14 @@ class FormAIReviewService:
         request: FormAIReviewRequest,
         user: User,
     ) -> FormAIReviewResponse:
-        form_document = await self._load_form(workspace_id, form_id, user)
+        form_document, association = await self._load_form(workspace_id, form_id, user)
         form = StandardForm(**form_document.model_dump())
         profile = await AIProfileService.get_profile_for_prompt(workspace_id)
-        system = build_review_system_prompt(project_form(form), profile)
+        # The snapshot includes trust settings — a review that can't see the
+        # stated purpose/retention would flag them as missing forever.
+        system = build_review_system_prompt(
+            project_form(form, settings=association.settings), profile
+        )
 
         provider = self._provider_resolver(request.provider)
         raw_reply = await provider.chat(
@@ -202,7 +216,7 @@ class FormAIReviewService:
         request: ApplyReviewFixRequest,
         user: User,
     ) -> ApplyReviewFixResponse:
-        form_document = await self._load_form(workspace_id, form_id, user)
+        form_document, _ = await self._load_form(workspace_id, form_id, user)
         try:
             ops = parse_ops(request.ops)
         except Exception:
@@ -210,10 +224,11 @@ class FormAIReviewService:
                 status_code=HTTPStatus.BAD_REQUEST, content="Invalid fix operations"
             )
         form = StandardForm(**form_document.model_dump())
-        new_form, results = await persist_ops_to_form(form_document, form, ops)
+        new_form, results, updated_settings = await persist_ops_to_form(form_document, form, ops)
         return ApplyReviewFixResponse(
             results=results,
             form=StandardFormCamelModel(**new_form.model_dump()).model_dump(
                 mode="json", by_alias=True
             ),
+            settings=updated_settings,
         )

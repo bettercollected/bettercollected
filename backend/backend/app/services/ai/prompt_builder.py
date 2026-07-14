@@ -63,6 +63,19 @@ Operations (camelCase keys, referencing the ids from the form snapshot):
 - {"op":"add_page","index":0?,"fields":[<field specs>]?}
 - {"op":"remove_page","pageId":"..."}
 - {"op":"update_form_info","title":"?","description":"?"}
+- {"op":"set_field_logic","fieldId":"...","logic":{"action":"SHOW"|"HIDE","operator":"AND"|"OR","conditions":[{"fieldId":"<earlier field>","comparison":"IS_EQUAL","value":"..."}]}}
+  (conditional visibility — "show X only when Y is ...". The rule sits on the TARGET field.
+  Comparisons: IS_EMPTY, IS_NOT_EMPTY, IS_EQUAL, IS_NOT_EQUAL, CONTAINS, DOES_NOT_CONTAIN,
+  LESS_THAN, LESS_THAN_EQUAL, GREATER_THAN, GREATER_THAN_EQUAL, STARTS_WITH, ENDS_WITH.
+  Choice conditions use the choice LABEL; yes/no uses "Yes"/"No". "logic":null clears.)
+- {"op":"set_page_jumps","pageId":"...","jumps":[{"operator":"AND","conditions":[...],"target":"<page id or __SUBMIT__>"}]}
+  (branching after a page; first matching jump wins, no match = next page. "jumps":null clears.)
+- {"op":"duplicate_page","pageId":"...","index":0?} (clones a page with all fields, fresh ids)
+- {"op":"update_form_settings","patch":{"purpose":"?","retentionText":"?","privacyPolicyUrl":"?","requireVerifiedIdentity":true?,"allowEditingResponse":true?,"showSubmissionNumber":true?}}
+  (the Form tab's trust & privacy metadata: "purpose" tells respondents why the
+  data is collected, "retentionText" how long it is kept — e.g. "kept for 90
+  days". An empty string clears a text value. Visibility/distribution settings
+  are not editable here.)
 
 Field types you may create: short_text, long_text, email, number, url,
 phone_number, date, yes_no, multiple_choice, dropdown, rating, linear_rating,
@@ -77,11 +90,13 @@ Rules:
 - If the request is unclear or nothing needs to change, return "ops": [] and ask in "reply"."""
 
 
-def project_form(form) -> str:
+def project_form(form, settings=None) -> str:
     """Compact JSON snapshot of a form for the chat context window.
 
     Ids, types, titles and the properties the ops can touch — never TipTap
     blobs, theme values or response data. Small enough to resend every turn.
+    ``settings`` (the workspace-form association's settings) contributes the
+    trust metadata so the model can see and edit purpose/retention.
     """
     import json
 
@@ -108,9 +123,40 @@ def project_form(form) -> str:
                     entry["placeholder"] = props.placeholder
                 if getattr(props, "col_span", None):
                     entry["colSpan"] = props.col_span
+                if getattr(props, "logic", None) and props.logic.conditions:
+                    entry["logic"] = {
+                        "action": props.logic.action,
+                        "operator": props.logic.operator,
+                        "conditions": [
+                            {"fieldId": c.field_id, "comparison": c.comparison, "value": c.value}
+                            for c in props.logic.conditions
+                        ],
+                    }
             fields.append(entry)
-        pages.append({"pageId": slide.id, "index": slide.index, "fields": fields})
+        page_entry = {"pageId": slide.id, "index": slide.index, "fields": fields}
+        if slide.properties and slide.properties.jumps:
+            page_entry["jumps"] = [
+                {
+                    "operator": j.operator,
+                    "target": j.target,
+                    "conditions": [
+                        {"fieldId": c.field_id, "comparison": c.comparison, "value": c.value}
+                        for c in (j.conditions or [])
+                    ],
+                }
+                for j in slide.properties.jumps
+            ]
+        pages.append(page_entry)
     snapshot = {"title": form.title, "description": form.description, "pages": pages}
+    if settings is not None:
+        snapshot["settings"] = {
+            "purpose": getattr(settings, "purpose", None),
+            "retentionText": getattr(settings, "retention_text", None),
+            "privacyPolicyUrl": getattr(settings, "privacy_policy_url", None),
+            "requireVerifiedIdentity": getattr(settings, "require_verified_identity", None),
+            "allowEditingResponse": getattr(settings, "allow_editing_response", None),
+            "showSubmissionNumber": getattr(settings, "show_submission_number", None),
+        }
     return json.dumps(snapshot, ensure_ascii=False)
 
 

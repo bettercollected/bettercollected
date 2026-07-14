@@ -48,6 +48,7 @@ from backend.app.services.ai.api_keys import APIKeyService
 from backend.app.services.ai.chat import FormAIChatService
 from backend.app.services.ai.memory import AIMemoryService
 from backend.app.services.ai.profile import AIProfileService
+from backend.app.services.ai.insights import FormAIInsightsService
 from backend.app.services.ai.review import FormAIReviewService
 from backend.app.services.openai_service import OpenAIService
 from backend.app.services.integration_action_service import IntegrationActionService
@@ -270,6 +271,14 @@ class AppContainer(containers.DeclarativeContainer):
 
     form_ai_review_service: FormAIReviewService = providers.Singleton(
         FormAIReviewService,
+        workspace_user_service=workspace_user_service,
+        provider_resolver=providers.Callable(
+            lambda svc: svc._get_provider, openai_service
+        ),
+    )
+
+    form_ai_insights_service: FormAIInsightsService = providers.Singleton(
+        FormAIInsightsService,
         workspace_user_service=workspace_user_service,
         provider_resolver=providers.Callable(
             lambda svc: svc._get_provider, openai_service
