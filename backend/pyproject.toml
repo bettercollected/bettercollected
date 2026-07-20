@@ -6,7 +6,7 @@ readme = "README.md"
 authors = [{ name = "Bibishan Pandey", email = "bibishan.b.pandey@gmail.com" }]
 requires-python = ">=3.10"
 dependencies = [
-    "fastapi>=0.129.0",
+    "fastapi>=0.139.2",
     "uvicorn[standard]>=0.50.2",
     "python-dotenv>=1.2.1",
     "aiohttp>=3.13.3",
@@ -22,7 +22,7 @@ dependencies = [
     "httpx>=0.28.1",
     "classy-fastapi==0.7.0",
     "pyjwt>=2.11.0",
-    "boto3>=1.43.40",
+    "boto3>=1.43.51",
     "python-multipart>=0.0.22",
     "cryptography>=46.0.5",
     "apscheduler>=3.11.3",
@@ -33,7 +33,7 @@ dependencies = [
     "temporalio>=1.30.0",
     "elastic-apm>=6.26.2",
     "common",
-    "openai>=2.44.0",
+    "openai>=2.46.0",
     "google-generativeai>=0.8.0",
     "typing-inspect>=0.9.0",
     "pymongo>=4.17.0",

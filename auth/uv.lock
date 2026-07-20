@@ -147,7 +147,7 @@ requires-dist = [
     { name = "cryptography", specifier = ">=44.0.0" },
     { name = "dependency-injector", specifier = ">=4.49.1" },
     { name = "elastic-apm", specifier = ">=6.26.2" },
-    { name = "fastapi", specifier = ">=0.115.0" },
+    { name = "fastapi", specifier = ">=0.139.2" },
     { name = "fastapi-mail", specifier = ">=1.4.1" },
     { name = "fastapi-users", extras = ["beanie", "oauth"], specifier = ">=15.0.5" },
     { name = "google-api-python-client", specifier = ">=2.198.0" },
@@ -158,7 +158,7 @@ requires-dist = [
     { name = "pyjwt", specifier = ">=2.10.0" },
     { name = "requests", specifier = ">=2.32.3" },
     { name = "sentry-sdk", extras = ["fastapi"], specifier = ">=2.64.0" },
-    { name = "stripe", specifier = ">=15.3.0" },
+    { name = "stripe", specifier = ">=15.3.1" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.50.2" },
 ]
 
@@ -837,7 +837,7 @@ wheels = [
 
 [[package]]
 name = "fastapi"
-version = "0.139.0"
+version = "0.139.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "annotated-doc" },
@@ -846,9 +846,9 @@ dependencies = [
     { name = "typing-extensions" },
     { name = "typing-inspection" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/d3/af/a5f50ccfa659ec1802cb4ca842c23f06d906a8cc9aef6016a2caeea3d4ed/fastapi-0.139.0.tar.gz", hash = "sha256:99ab7b2d92223c76d6cf10757ab3f89d45b38267fc20b2a136cf02f6beac3145", size = 423016, upload-time = "2026-07-01T16:35:33.436Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/cd/95/d3f0ae10836324a2eab98a52b61210ac609f08200bf4bb0dc8132d32f78a/fastapi-0.139.2.tar.gz", hash = "sha256:333145a6891e9b5b3cfceb69baf817e8240cde4d4588ae5a10bf56ffacb6255e", size = 423428, upload-time = "2026-07-16T15:06:17.912Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/9e/7c/8e3c6ad324ea5cb36604fc3f968554887891c316d9dfde57761611d907ad/fastapi-0.139.0-py3-none-any.whl", hash = "sha256:cf15e1e9e667ddb0ad63811e60bd11390d1aac838ca4a7a23f421807b2308189", size = 130339, upload-time = "2026-07-01T16:35:32.19Z" },
+    { url = "https://files.pythonhosted.org/packages/5f/c7/cb03251d9dfb177246a9809a76f189d21df32dbd4a845951881d11323b7f/fastapi-0.139.2-py3-none-any.whl", hash = "sha256:b9ad015a835173d59865e2f5d8296fbc2b317bf56a2ba1a5bfbdd03de2fd4b1c", size = 130234, upload-time = "2026-07-16T15:06:19.557Z" },
 ]
 
 [[package]]
@@ -2083,15 +2083,15 @@ wheels = [
 
 [[package]]
 name = "stripe"
-version = "15.3.0"
+version = "15.3.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "requests" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/eb/07/aed5656b3fd89a36e80835fe62c668692ee4ebf3a935095933d03f67a47b/stripe-15.3.0.tar.gz", hash = "sha256:ff05524255f51bf7df0e5bc4a99dbd0f737afd05587b7657c82e0d99c7fc45a4", size = 1514134, upload-time = "2026-06-24T22:49:40.276Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/b6/a0/52b623a5c07238af6282dfc07ba8c8a9b332f4d7ef69d0006e8a52e6b34d/stripe-15.3.1.tar.gz", hash = "sha256:2f9a8d961e5c2ec19149fb4e0b47d9709d014a68592cdb1f4efd044abc8d2359", size = 1516385, upload-time = "2026-07-16T00:47:46.829Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/54/f4/0dcf5bc464941132e3b109d26086a8a0aae7e4ed7e0243a1c47084b4de4b/stripe-15.3.0-py3-none-any.whl", hash = "sha256:99c427d306d9348123e73da3f4f2cae0a5732cac9b703155dba0418e32d3cf1c", size = 2172165, upload-time = "2026-06-24T22:49:38.18Z" },
+    { url = "https://files.pythonhosted.org/packages/eb/7a/58f266c262bbf903e2eca438ef752ed0fcc7273c9a4bc42edc20effa962f/stripe-15.3.1-py3-none-any.whl", hash = "sha256:f7c87a9a9072db7316e9ba497b4dbaa1dbae51f67ca201ba6155fe8b6487e5e3", size = 2173610, upload-time = "2026-07-16T00:47:45.173Z" },
 ]
 
 [[package]]

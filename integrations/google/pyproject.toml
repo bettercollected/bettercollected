@@ -16,7 +16,7 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
 ]
 dependencies = [
-    "fastapi>=0.115.0",
+    "fastapi>=0.139.2",
     "uvicorn[standard]>=0.50.2",
     "gunicorn>=26.0.0",
     "aiohttp>=3.13.3",
@@ -28,9 +28,9 @@ dependencies = [
     "classy-fastapi>=0.7.0",
     "pyjwt>=2.9.0",
     "cryptography>=44.0.0",
-    "google-api-core>=2.31.0",
+    "google-api-core>=2.32.0",
     "google-api-python-client>=2.198.0",
-    "google-auth>=2.55.1",
+    "google-auth>=2.56.0",
     "google-auth-httplib2>=0.4.0",
     "google-auth-oauthlib>=1.4.0",
     "googleapis-common-protos>=1.75.0",
