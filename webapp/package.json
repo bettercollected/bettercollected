@@ -75,7 +75,7 @@
         "micromatch": "^4.0.8",
         "minimatch": "^10.2.1",
         "moment": "^2.29.4",
-        "next": "16.2.10",
+        "next": "16.2.11",
         "next-nprogress-bar": "^2.3.11",
         "next-qrcode": "^2.5.1",
         "next-seo": "^5.5.0",
