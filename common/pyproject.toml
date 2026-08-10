@@ -33,7 +33,7 @@ requires-python = ">=3.10"
 dependencies = [
     "beanie>=2.1.0",
     "cryptography>=46.0.5",
-    "tink>=1.14.0",
+    "tink>=1.16.0",
 ]
 classifiers = [
     "Intended Audience :: Developers",
