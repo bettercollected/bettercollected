@@ -8,7 +8,7 @@ authors = [
     { name = "nabin6246", email = "nabin62246@gmail.com" },
 ]
 dependencies = [
-    "fastapi>=0.115.0",
+    "fastapi>=0.141.1",
     "uvicorn[standard]>=0.50.2",
     "fastapi-users[beanie,oauth]>=15.0.5",
     "dependency-injector>=4.49.1",
@@ -18,14 +18,14 @@ dependencies = [
     "google-auth-oauthlib>=1.4.0",
     "google-api-python-client>=2.198.0",
     "fastapi-mail>=1.4.1",
-    "stripe>=15.3.0",
+    "stripe>=15.5.0",
     "sentry-sdk[fastapi]>=2.64.0",
     "loguru>=0.7.2",
     "elastic-apm>=6.26.2",
     "cryptography>=44.0.0",
     "requests>=2.32.3",
     "common",
-    "pydantic-settings>=2.13.0",
+    "pydantic-settings>=2.15.0",
 ]
 
 [dependency-groups]
@@ -34,7 +34,7 @@ dev = [
     "pytest-cov>=7.1.0",
     "pytest-asyncio>=1.4.0",
     "black>=25.1.0",
-    "pre-commit>=4.6.0",
+    "pre-commit>=4.6.2",
     "mongomock-motor>=0.0.30",
 ]
 
