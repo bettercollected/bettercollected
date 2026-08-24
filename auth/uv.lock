@@ -147,18 +147,18 @@ requires-dist = [
     { name = "cryptography", specifier = ">=44.0.0" },
     { name = "dependency-injector", specifier = ">=4.49.1" },
     { name = "elastic-apm", specifier = ">=6.26.2" },
-    { name = "fastapi", specifier = ">=0.115.0" },
+    { name = "fastapi", specifier = ">=0.141.1" },
     { name = "fastapi-mail", specifier = ">=1.4.1" },
     { name = "fastapi-users", extras = ["beanie", "oauth"], specifier = ">=15.0.5" },
-    { name = "google-api-python-client", specifier = ">=2.198.0" },
+    { name = "google-api-python-client", specifier = ">=2.199.0" },
     { name = "google-auth-oauthlib", specifier = ">=1.4.0" },
     { name = "httpx", specifier = ">=0.27.0" },
     { name = "loguru", specifier = ">=0.7.2" },
-    { name = "pydantic-settings", specifier = ">=2.13.0" },
+    { name = "pydantic-settings", specifier = ">=2.15.0" },
     { name = "pyjwt", specifier = ">=2.10.0" },
     { name = "requests", specifier = ">=2.32.3" },
     { name = "sentry-sdk", extras = ["fastapi"], specifier = ">=2.64.0" },
-    { name = "stripe", specifier = ">=15.3.0" },
+    { name = "stripe", specifier = ">=15.5.1" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.50.2" },
 ]
 
@@ -166,7 +166,7 @@ requires-dist = [
 dev = [
     { name = "black", specifier = ">=25.1.0" },
     { name = "mongomock-motor", specifier = ">=0.0.30" },
-    { name = "pre-commit", specifier = ">=4.6.0" },
+    { name = "pre-commit", specifier = ">=4.6.2" },
     { name = "pytest", specifier = ">=8.0.0" },
     { name = "pytest-asyncio", specifier = ">=1.4.0" },
     { name = "pytest-cov", specifier = ">=7.1.0" },
@@ -828,7 +828,7 @@ name = "exceptiongroup"
 version = "1.3.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "typing-extensions", marker = "python_full_version < '3.13'" },
+    { name = "typing-extensions" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/50/79/66800aadf48771f6b62f7eb014e352e5d06856655206165d775e675a02c9/exceptiongroup-1.3.1.tar.gz", hash = "sha256:8b412432c6055b0b7d14c310000ae93352ed6754f70fa8f7c34141f91c4e3219", size = 30371, upload-time = "2025-11-21T23:01:54.787Z" }
 wheels = [
@@ -837,7 +837,7 @@ wheels = [
 
 [[package]]
 name = "fastapi"
-version = "0.139.0"
+version = "0.141.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "annotated-doc" },
@@ -846,9 +846,9 @@ dependencies = [
     { name = "typing-extensions" },
     { name = "typing-inspection" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/d3/af/a5f50ccfa659ec1802cb4ca842c23f06d906a8cc9aef6016a2caeea3d4ed/fastapi-0.139.0.tar.gz", hash = "sha256:99ab7b2d92223c76d6cf10757ab3f89d45b38267fc20b2a136cf02f6beac3145", size = 423016, upload-time = "2026-07-01T16:35:33.436Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/8a/02/91e3416a8fdd715abb903a952a6bec7cdd8d14eed55d415fc8595524c319/fastapi-0.141.1.tar.gz", hash = "sha256:e8822fc40db1e1858054d7a949a888695bc9bdce70139178e33bd2871a453ca1", size = 425799, upload-time = "2026-07-29T17:18:05.568Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/9e/7c/8e3c6ad324ea5cb36604fc3f968554887891c316d9dfde57761611d907ad/fastapi-0.139.0-py3-none-any.whl", hash = "sha256:cf15e1e9e667ddb0ad63811e60bd11390d1aac838ca4a7a23f421807b2308189", size = 130339, upload-time = "2026-07-01T16:35:32.19Z" },
+    { url = "https://files.pythonhosted.org/packages/cb/03/10388a42375ee7e4ac9b94eb2c5c569c8b5795e377e701c9ac3ad63de890/fastapi-0.141.1-py3-none-any.whl", hash = "sha256:bfb91aa2d334c61cb35ba9a116fc123b3d3df31640b801cf57a7a78ec3f603b3", size = 131954, upload-time = "2026-07-29T17:18:04.364Z" },
 ]
 
 [[package]]
@@ -938,7 +938,7 @@ wheels = [
 
 [[package]]
 name = "google-api-python-client"
-version = "2.198.0"
+version = "2.199.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "google-api-core" },
@@ -947,9 +947,9 @@ dependencies = [
     { name = "httplib2" },
     { name = "uritemplate" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/6b/53/0cd38e3a29d72ce45e27feba2ce1cd8049d69af9c48cb14fb164f1be9133/google_api_python_client-2.198.0.tar.gz", hash = "sha256:dfe3e16fb241af6e9c460a33f65085b3450e05cea09364f6b5d8997fb7e43e2a", size = 15060142, upload-time = "2026-06-25T14:32:42.953Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/13/ff/c58d475046b552754a5ee24d98912506b07ea7ac7f0a434b327ad194ca32/google_api_python_client-2.199.0.tar.gz", hash = "sha256:8150816e22e01b36aa4b7523cdc1a2d2164e81c4de8a9b338785d7ecb4390ec2", size = 15394941, upload-time = "2026-08-20T21:38:39.745Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/d5/92/0fc9e7a09eb240c31b879bd8d2e43f81ed1f86c4798b79ead4a083921ab3/google_api_python_client-2.198.0-py3-none-any.whl", hash = "sha256:fabac935474e817da5e662ff61bf7139439d6f92b32d332a7318a2d45931e03e", size = 15644203, upload-time = "2026-06-25T14:32:39.963Z" },
+    { url = "https://files.pythonhosted.org/packages/b5/42/c443badc33d972ee0e0adcd481c32a71f15d3e04c23a7a3d758e4018c633/google_api_python_client-2.199.0-py3-none-any.whl", hash = "sha256:1d2fa0e7f9d68f063b1a9ff7ed290d6e6c93176260487bf3a991e41534ca23a3", size = 15991965, upload-time = "2026-08-20T21:38:37.274Z" },
 ]
 
 [[package]]
@@ -1377,7 +1377,7 @@ wheels = [
 
 [[package]]
 name = "pre-commit"
-version = "4.6.0"
+version = "4.6.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "cfgv" },
@@ -1386,9 +1386,9 @@ dependencies = [
     { name = "pyyaml" },
     { name = "virtualenv" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/8e/22/2de9408ac81acbb8a7d05d4cc064a152ccf33b3d480ebe0cd292153db239/pre_commit-4.6.0.tar.gz", hash = "sha256:718d2208cef53fdc38206e40524a6d4d9576d103eb16f0fec11c875e7716e9d9", size = 198525, upload-time = "2026-04-21T20:31:41.613Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/74/89/1f3e8e1fc3e97de0fa963495832f581f025f29471602a309e48808244292/pre_commit-4.6.2.tar.gz", hash = "sha256:8f5d7bfb021ecdbcd9d49d89847082dd24172ccde534390081a679ad046e2441", size = 198670, upload-time = "2026-08-10T22:07:18.421Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/80/6e/4b28b62ecb6aae56769c34a8ff1d661473ec1e9519e2d5f8b2c150086b26/pre_commit-4.6.0-py2.py3-none-any.whl", hash = "sha256:e2cf246f7299edcabcf15f9b0571fdce06058527f0a06535068a86d38089f29b", size = 226472, upload-time = "2026-04-21T20:31:40.092Z" },
+    { url = "https://files.pythonhosted.org/packages/45/e2/bbb7129c9e7999a6b8ee9cca3b66486c25c423ab5a75f34071798b74ce94/pre_commit-4.6.2-py2.py3-none-any.whl", hash = "sha256:e2dde9a75d3bce11bd3831c26d134df00a2803c1d818be6a0383c3dcda25dc4e", size = 226202, upload-time = "2026-08-10T22:07:16.942Z" },
 ]
 
 [[package]]
@@ -1600,16 +1600,16 @@ wheels = [
 
 [[package]]
 name = "pydantic-settings"
-version = "2.14.2"
+version = "2.15.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "pydantic" },
     { name = "python-dotenv" },
     { name = "typing-inspection" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/5c/b5/8f48e906c3e0205276e8bd8cb7512217a87b2685304d64be27cad5b3019f/pydantic_settings-2.14.2.tar.gz", hash = "sha256:c19dd64b19097f1de80184f0cc7b0272a13ae6e170cbf240a3e27e381ed14a5f", size = 237700, upload-time = "2026-06-19T13:44:56.324Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/68/ca/31c57507b13119d7d3cfa1576dad2911a4861e3be07b579395f4e9d393f9/pydantic_settings-2.15.0.tar.gz", hash = "sha256:694b793e84f766ba76a90ebdefc01d0a9a045dab0382bee70393da93712ad117", size = 261253, upload-time = "2026-08-07T09:24:57.419Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/77/c1/6e422f34e569cf8e18df68d1939c81c099d2b61e4f7d9621c8a77560799c/pydantic_settings-2.14.2-py3-none-any.whl", hash = "sha256:a20c97b37910b6550d5ea50fbcc2d4187defe58cd57070b73863d069419c9440", size = 61715, upload-time = "2026-06-19T13:44:55.02Z" },
+    { url = "https://files.pythonhosted.org/packages/30/a4/2bffa9f8e804325a09867f0e9d30795c80ea9f8d62560bd1b6ad6220eb2f/pydantic_settings-2.15.0-py3-none-any.whl", hash = "sha256:0ba092c291c94baceb5eff768aa0d56400a457585bc0175925a5a5510303da42", size = 69413, upload-time = "2026-08-07T09:24:55.839Z" },
 ]
 
 [[package]]
@@ -2083,15 +2083,15 @@ wheels = [
 
 [[package]]
 name = "stripe"
-version = "15.3.0"
+version = "15.5.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "requests" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/eb/07/aed5656b3fd89a36e80835fe62c668692ee4ebf3a935095933d03f67a47b/stripe-15.3.0.tar.gz", hash = "sha256:ff05524255f51bf7df0e5bc4a99dbd0f737afd05587b7657c82e0d99c7fc45a4", size = 1514134, upload-time = "2026-06-24T22:49:40.276Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/22/57/56f7b33b31bba203b6e9cb502a24659206c1dbf64cf8aa00c3268410e831/stripe-15.5.1.tar.gz", hash = "sha256:ee87b696419f4d65a0637c3158393de8a2201de81b589632418517713e4ec8ed", size = 1544797, upload-time = "2026-08-18T23:52:28.921Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/54/f4/0dcf5bc464941132e3b109d26086a8a0aae7e4ed7e0243a1c47084b4de4b/stripe-15.3.0-py3-none-any.whl", hash = "sha256:99c427d306d9348123e73da3f4f2cae0a5732cac9b703155dba0418e32d3cf1c", size = 2172165, upload-time = "2026-06-24T22:49:38.18Z" },
+    { url = "https://files.pythonhosted.org/packages/58/48/8f018d19c6ecaee6881e8cc83484ba6f3b0f42fbf250808a5a1d171a0e77/stripe-15.5.1-py3-none-any.whl", hash = "sha256:5d76a311ae2ba636f3b42fa0766242cc7c9a844c5db73fe0b1702f81b5cdccd5", size = 2201139, upload-time = "2026-08-18T23:52:26.62Z" },
 ]
 
 [[package]]
