@@ -1,4 +1,5 @@
 import json
+import secrets
 
 import loguru
 
@@ -52,19 +53,31 @@ GOOGLE_SCOPES = [
     "https://www.googleapis.com/auth/userinfo.email",
     "https://www.googleapis.com/auth/userinfo.profile",
 ]
+PKCE_VERIFIER_STATE_KEY = "pkce_code_verifier"
 
 
 class GoogleAuthProvider(BaseAuthProvider):
     async def get_basic_auth_url(self, client_referer_url: str, *args, **kwargs):
         creator = kwargs.get("creator", False)
         prospective_pro_user = kwargs.get("prospective_pro_user", False)
+        # google-auth-oauthlib 1.4 generates a PKCE challenge by default. Keep
+        # its matching verifier in the encrypted state so the callback can use
+        # the same value when exchanging the authorization code.
+        code_verifier = secrets.token_urlsafe(64)
         state_json = json.dumps(
-            {"client_referer_url": client_referer_url, "creator": creator, "prospective_pro_user": prospective_pro_user}
+            {
+                "client_referer_url": client_referer_url,
+                "creator": creator,
+                "prospective_pro_user": prospective_pro_user,
+                PKCE_VERIFIER_STATE_KEY: code_verifier,
+            }
         )
         state = crypto.encrypt(state_json)
         flow = google_auth_oauthlib.flow.Flow.from_client_config(
             client_config=client_config,
             scopes=GOOGLE_SCOPES,
+            code_verifier=code_verifier,
+            autogenerate_code_verifier=False,
         )
         flow.redirect_uri = settings.google_settings.basic_auth_redirect
 
@@ -79,14 +92,17 @@ class GoogleAuthProvider(BaseAuthProvider):
         authorization_response = (
             tmp if tmp[0:5] == "https" else tmp.replace(tmp[0:4], "https", 1)
         )
-        state_decrypted = ""
         try:
-            state_decrypted = crypto.decrypt(state)
-        except (InvalidToken, ValueError):
+            state_json = json.loads(crypto.decrypt(state))
+            code_verifier = state_json.pop(PKCE_VERIFIER_STATE_KEY)
+            if not isinstance(code_verifier, str):
+                raise ValueError("Invalid PKCE code verifier")
+        except (InvalidToken, KeyError, TypeError, ValueError):
             raise HTTPException(400, "Bad request")
-        state_json = json.loads(state_decrypted)
         credentials = self.fetch_basic_token(
-            auth_code=authorization_response, state=state
+            auth_code=authorization_response,
+            state=state,
+            code_verifier=code_verifier,
         )
         if credentials is None:
             # Token exchange failed (fetch_basic_token logged the cause). Fail
@@ -114,12 +130,13 @@ class GoogleAuthProvider(BaseAuthProvider):
         state_json["user"] = user.dict()
         return state_json
 
-
-    def fetch_basic_token(self, auth_code: str, state):
+    def fetch_basic_token(self, auth_code: str, state: str, code_verifier: str):
         flow = google_auth_oauthlib.flow.Flow.from_client_config(
             client_config=client_config,
             scopes=GOOGLE_SCOPES,
             state=state,
+            code_verifier=code_verifier,
+            autogenerate_code_verifier=False,
         )
         flow.redirect_uri = settings.google_settings.basic_auth_redirect
         try:
