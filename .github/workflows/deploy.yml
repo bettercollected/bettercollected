@@ -78,18 +78,6 @@ jobs:
 
     deploy:
         needs: build-and-push
-        strategy:
-            # One service failing to converge must not cancel the others'
-            # deploys — each service updates independently.
-            fail-fast: false
-            matrix:
-                service:
-                    - auth
-                    - backend
-                    - integrations/google
-                    - webapp
-                    - temporal/worker
-                    - temporal/actions-executor
         runs-on: builder
         steps:
             - name: Select deployment target
@@ -99,25 +87,23 @@ jobs:
                   STAGING_MANAGER: ${{ vars.STAGING_MANAGER }}
                   PROD_MANAGER: ${{ vars.PROD_MANAGER }}
               run: |
-                  SERVICE_TAG=$(echo "${{ matrix.service }}" | tr '/' '-')
-
                   if [[ "${{ github.ref }}" == "refs/heads/develop" ]]; then
                     ENVIRONMENT="development"
                     DOCKER_STACK="${{ vars.DEVELOP_STACK }}"
                     DOCKER_MANAGER="${DEVELOP_MANAGER}"
-                    IMAGE="bettercollected/${SERVICE_TAG}:${{ github.sha }}"
+                    IMAGE_TAG="${{ github.sha }}"
 
                   elif [[ "${{ github.ref }}" == "refs/heads/master" ]]; then
                     ENVIRONMENT="staging"
                     DOCKER_STACK="${{ vars.STAGING_STACK }}"
                     DOCKER_MANAGER="${STAGING_MANAGER}"
-                    IMAGE="bettercollected/${SERVICE_TAG}:${{ github.sha }}"
+                    IMAGE_TAG="${{ github.sha }}"
 
                   elif [[ "${{ github.ref }}" == "refs/tags/"* ]]; then
                     ENVIRONMENT="production"
                     DOCKER_STACK="${{ vars.PROD_STACK }}"
                     DOCKER_MANAGER="${PROD_MANAGER}"
-                    IMAGE="bettercollected/${SERVICE_TAG}:${{ github.ref_name }}"
+                    IMAGE_TAG="${{ github.ref_name }}"
 
                   else
                     echo "Unexpected deployment ref: ${{ github.ref }}" >&2
@@ -134,18 +120,22 @@ jobs:
                     exit 1
                   fi
 
-                  echo "Deploying ${SERVICE_TAG} to ${ENVIRONMENT} stack ${DOCKER_STACK} using its configured Docker Manager"
+                  echo "Deploying all service images to ${ENVIRONMENT} stack ${DOCKER_STACK} using its configured Docker Manager"
                   {
                     echo "manager=${DOCKER_MANAGER}"
                     echo "stack=${DOCKER_STACK}"
-                    echo "image=${IMAGE}"
-                    echo "service=${SERVICE_TAG}"
+                    echo "images<<EOF"
+                    for SERVICE in auth backend integrations/google webapp temporal/worker temporal/actions-executor; do
+                      SERVICE_TAG=${SERVICE//\//-}
+                      echo "${SERVICE_TAG}=bettercollected/${SERVICE_TAG}:${IMAGE_TAG}"
+                    done
+                    echo "EOF"
                   } >> "$GITHUB_OUTPUT"
 
-            - name: Deploy / update service through Docker Manager
+            - name: Deploy / update services through Docker Manager
               uses: mesudip/docker-stack@v2
               with:
                   manager: ${{ steps.target.outputs.manager }}
                   stack: ${{ steps.target.outputs.stack }}
-                  images: ${{ steps.target.outputs.service }}=${{ steps.target.outputs.image }}
+                  images: ${{ steps.target.outputs.images }}
                   with-registry-auth: "true"
