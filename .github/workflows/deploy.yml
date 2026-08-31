@@ -2,6 +2,7 @@ name: Build and Deploy
 
 permissions:
     contents: read
+    id-token: write
 
 on:
     push:
@@ -91,36 +92,60 @@ jobs:
                     - temporal/actions-executor
         runs-on: builder
         steps:
-            - name: Deploy / update service
+            - name: Select deployment target
+              id: target
               env:
-                  DEVELOP_HOST: ${{ vars.DEVELOP_HOST }}
-                  PROD_HOST: ${{ vars.PROD_HOST }}
+                  DEVELOP_MANAGER: ${{ vars.DEVELOP_MANAGER }}
+                  STAGING_MANAGER: ${{ vars.STAGING_MANAGER }}
+                  PROD_MANAGER: ${{ vars.PROD_MANAGER }}
               run: |
                   SERVICE_TAG=$(echo "${{ matrix.service }}" | tr '/' '-')
 
                   if [[ "${{ github.ref }}" == "refs/heads/develop" ]]; then
+                    ENVIRONMENT="development"
                     DOCKER_STACK="${{ vars.DEVELOP_STACK }}"
-                    DOCKER_HOST="${DEVELOP_HOST}"
+                    DOCKER_MANAGER="${DEVELOP_MANAGER}"
+                    IMAGE="bettercollected/${SERVICE_TAG}:${{ github.sha }}"
 
-                    echo "Updating develop stack → ${DOCKER_STACK}_${SERVICE_TAG} on ${DOCKER_HOST} with image SHA ${{ github.sha }}"
-
-                    export DOCKER_HOST
-                    docker service update \
-                      --image bettercollected/${SERVICE_TAG}:${{ github.sha }} \
-                      ${DOCKER_STACK}_${SERVICE_TAG}
+                  elif [[ "${{ github.ref }}" == "refs/heads/master" ]]; then
+                    ENVIRONMENT="staging"
+                    DOCKER_STACK="${{ vars.STAGING_STACK }}"
+                    DOCKER_MANAGER="${STAGING_MANAGER}"
+                    IMAGE="bettercollected/${SERVICE_TAG}:${{ github.sha }}"
 
                   elif [[ "${{ github.ref }}" == "refs/tags/"* ]]; then
+                    ENVIRONMENT="production"
                     DOCKER_STACK="${{ vars.PROD_STACK }}"
-                    DOCKER_HOST="${PROD_HOST}"
-
-                    echo "Updating production stack → ${DOCKER_STACK}_${SERVICE_TAG} on ${DOCKER_HOST} with tag ${{ github.ref_name }}"
-
-                    export DOCKER_HOST
-                    docker service update \
-                      --image bettercollected/${SERVICE_TAG}:${{ github.ref_name }} \
-                      ${DOCKER_STACK}_${SERVICE_TAG}
+                    DOCKER_MANAGER="${PROD_MANAGER}"
+                    IMAGE="bettercollected/${SERVICE_TAG}:${{ github.ref_name }}"
 
                   else
-                    echo "Not develop branch nor a tag → skipping deployment"
-                    exit 0
+                    echo "Unexpected deployment ref: ${{ github.ref }}" >&2
+                    exit 1
                   fi
+
+                  if [[ -z "${DOCKER_MANAGER}" ]]; then
+                    echo "${ENVIRONMENT} deployment requires its manager variable to be set" >&2
+                    exit 1
+                  fi
+
+                  if [[ -z "${DOCKER_STACK}" ]]; then
+                    echo "${ENVIRONMENT} deployment requires its stack variable to be set" >&2
+                    exit 1
+                  fi
+
+                  echo "Deploying ${SERVICE_TAG} to ${ENVIRONMENT} stack ${DOCKER_STACK} using its configured Docker Manager"
+                  {
+                    echo "manager=${DOCKER_MANAGER}"
+                    echo "stack=${DOCKER_STACK}"
+                    echo "image=${IMAGE}"
+                    echo "service=${SERVICE_TAG}"
+                  } >> "$GITHUB_OUTPUT"
+
+            - name: Deploy / update service through Docker Manager
+              uses: mesudip/docker-stack@v2
+              with:
+                  manager: ${{ steps.target.outputs.manager }}
+                  stack: ${{ steps.target.outputs.stack }}
+                  images: ${{ steps.target.outputs.service }}=${{ steps.target.outputs.image }}
+                  with-registry-auth: "true"

@@ -113,6 +113,22 @@ defaults (including secrets) are for local evaluation only — generate fresh
 secrets before exposing an instance to the internet**, and put TLS or a
 reverse proxy in front of it yourself.
 
+### CI deployments
+
+GitHub Actions deploys updated service images through
+[Docker Stack](https://github.com/mesudip/docker-stack) and Docker Manager. Set
+these repository variables before enabling the workflow:
+
+| Environment | Ref | Manager variable | Stack variable |
+| --- | --- | --- | --- |
+| Development | `develop` | `DEVELOP_MANAGER` | `DEVELOP_STACK` |
+| Staging | `master` | `STAGING_MANAGER` | `STAGING_STACK` |
+| Production | a Git tag | `PROD_MANAGER` | `PROD_STACK` |
+
+Each manager variable must contain that environment's Docker Manager URL. The
+workflow authenticates with GitHub OIDC, so the matching Docker Manager must
+trust this repository as an OIDC client.
+
 ## Contributing
 
 Contributions are very welcome! Please read **[CONTRIBUTING.md](CONTRIBUTING.md)**
