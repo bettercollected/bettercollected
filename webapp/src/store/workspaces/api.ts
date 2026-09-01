@@ -192,6 +192,13 @@ export const workspacesApi = createApi({
             }),
             providesTags: [WORKSPACE_TAGS]
         }),
+        getWorkspaceByName: builder.query<WorkspaceDto, string>({
+            query: (workspaceName) => ({
+                url: '/workspaces',
+                method: 'GET',
+                params: { workspace_name: workspaceName }
+            })
+        }),
         verifyWorkspaceDomain: builder.query<any, string>({
             query: (workspaceId: string) => ({
                 url: `/workspaces/${workspaceId}/verify-domain`,
@@ -584,6 +591,7 @@ export const {
     useImportFormMutation,
     useGetWorkspaceQuery,
     useLazyGetWorkspaceQuery,
+    useGetWorkspaceByNameQuery,
     useGetWorkspaceFormsQuery,
     useGetWorkspaceFormQuery,
     useGetWorkspaceStatsQuery,
