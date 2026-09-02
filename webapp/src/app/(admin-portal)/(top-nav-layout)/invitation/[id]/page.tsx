@@ -2,18 +2,18 @@
 
 
 import { useTranslation } from 'react-i18next';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 
 import LoginView from '@app/app/(auth)/_components/login-view';
 import AuthNavbar from '@app/components/auth/auth-navbar';
 import ExpiredInvitation from '@app/components/invitation/expired';
-import InvalidUserInvitation from '@app/components/invitation/sender';
 import { invitationConstant } from '@app/constants/locales/invitations';
 import { workspaceConstant } from '@app/constants/locales/workspace';
 import { useLazyGetStatusQuery, useLogoutMutation } from '@app/store/auth/api';
 import { initialAuthState, selectAuth, setAuth } from '@app/store/auth/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import { useGetWorkspaceInvitationQuery } from '@app/store/workspaces/members-n-invitations-api';
+import { useGetWorkspaceByNameQuery } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import MainValidUser from '@Components/invitation/main-valid-user';
 
@@ -26,7 +26,9 @@ const isInvitationExpired = (createdAt: string, expiryTimestamp: number) => {
 
 export default function InvitationPage() {
     const params = useParams();
+    const searchParams = useSearchParams();
     const id = params?.id as string;
+    const invitationWorkspaceName = searchParams?.get('workspace_name');
     const { t } = useTranslation();
     const workspace = useAppSelector(selectWorkspace);
     const user = useAppSelector(selectAuth);
@@ -36,9 +38,25 @@ export default function InvitationPage() {
     const [logout] = useLogoutMutation();
     const [authTrigger] = useLazyGetStatusQuery();
 
-    const { data: invitation, isLoading } = useGetWorkspaceInvitationQuery(
-        { workspaceId: workspace?.id, invitationToken: id },
-        { skip: !workspace?.id || !id }
+    // An invited person has not joined the workspace yet, so the persisted
+    // workspace (if any) belongs to a different account/workspace. Resolve
+    // the workspace from the signed invitation link instead.
+    const {
+        data: invitationWorkspace,
+        isLoading: isInvitationWorkspaceLoading
+    } = useGetWorkspaceByNameQuery(invitationWorkspaceName || '', {
+        skip: !invitationWorkspaceName
+    });
+    const workspaceForInvitation = invitationWorkspaceName
+        ? invitationWorkspace
+        : workspace;
+
+    const { data: invitation, isLoading: isInvitationLoading } = useGetWorkspaceInvitationQuery(
+        {
+            workspaceId: workspaceForInvitation?.id || '',
+            invitationToken: id
+        },
+        { skip: !workspaceForInvitation?.id || !id }
     );
 
     const handleLogout = async () => {
@@ -49,7 +67,7 @@ export default function InvitationPage() {
         });
     };
 
-    if (isLoading) {
+    if (isInvitationWorkspaceLoading || isInvitationLoading) {
         return null; // Or a loader component
     }
 
@@ -57,7 +75,7 @@ export default function InvitationPage() {
         return <LoginView />;
     }
 
-    if (!invitation) {
+    if (!invitation || !workspaceForInvitation) {
         return (
             <div className="flex min-h-screen flex-col items-center justify-center bg-gray-100">
                 <AuthNavbar showHamburgerIcon={false} showPlans={false} />
@@ -80,18 +98,5 @@ export default function InvitationPage() {
         return <ExpiredInvitation />;
     }
 
-    const isInvalidUser = user?.email !== invitation?.email;
-    if (isInvalidUser) {
-        return (
-            <InvalidUserInvitation
-                invitation={{
-                    email: invitation?.email || '',
-                    invitationToken: invitation?.invitationToken || ''
-                }}
-                workspaceId={workspace.id}
-            />
-        );
-    }
-
-    return <MainValidUser workspace={workspace} user={user} invitation={invitation} />;
+    return <MainValidUser workspace={workspaceForInvitation} user={user} invitation={invitation} />;
 }
