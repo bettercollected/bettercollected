@@ -3,9 +3,11 @@ from typing import List, Optional
 from beanie import PydanticObjectId
 
 from backend.app.schemas.workspace_api_key import WorkspaceAPIKeyDocument
+from common.db.routing import write_op
 
 
 class WorkspaceAPIKeyRepository:
+    @write_op
     async def save(self, document: WorkspaceAPIKeyDocument) -> WorkspaceAPIKeyDocument:
         return await document.save()
 

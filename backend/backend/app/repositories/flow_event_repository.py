@@ -1,9 +1,11 @@
 from typing import List
 
 from backend.app.schemas.flow_event import FlowEventDocument
+from common.db.routing import write_op
 
 
 class FlowEventRepository:
+    @write_op
     async def add(
         self, form_id: str, session_id: str, from_page: str, to_page: str
     ) -> FlowEventDocument:

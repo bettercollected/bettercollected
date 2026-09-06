@@ -9,9 +9,11 @@ from backend.app.schemas.responder_group import (
     ResponderGroupMemberDocument,
     ResponderGroupFormDocument,
 )
+from common.db.routing import write_op
 
 
 class ResponderGroupsRepository:
+    @write_op
     async def create_group(
         self,
         workspace_id: PydanticObjectId,
@@ -42,6 +44,7 @@ class ResponderGroupsRepository:
             )
         return responder_group
 
+    @write_op
     async def update_group(
         self,
         workspace_id: PydanticObjectId,
@@ -87,6 +90,7 @@ class ResponderGroupsRepository:
             {"workspace_id": workspace_id, "_id": group_id}
         )
 
+    @write_op
     async def add_emails_to_group(
         self, group_id: PydanticObjectId, emails: List[EmailStr]
     ):
@@ -106,6 +110,7 @@ class ResponderGroupsRepository:
         if new_emails:
             await ResponderGroupMemberDocument.insert_many(new_emails)
 
+    @write_op
     async def remove_emails_from_group(
         self, group_id: PydanticObjectId, emails: List[EmailStr]
     ):
@@ -151,6 +156,7 @@ class ResponderGroupsRepository:
         )
         return responder_groups[0] if len(responder_groups) > 0 else None
 
+    @write_op
     async def remove_responder_group(self, group_id: PydanticObjectId):
         await ResponderGroupDocument.find({"_id": group_id}).delete()
         await ResponderGroupMemberDocument.find({"group_id": group_id}).delete()
@@ -194,6 +200,7 @@ class ResponderGroupsRepository:
             .to_list()
         )
 
+    @write_op
     async def add_group_to_form(self, form_id: str, group_id: PydanticObjectId):
         existing_document = await ResponderGroupFormDocument.find_one(
             {"form_id": form_id, "group_id": group_id}
@@ -204,6 +211,7 @@ class ResponderGroupsRepository:
             )
             return await responder_group_form_document.save()
 
+    @write_op
     async def add_groups_to_form(self, form_id: str, group_ids: List[PydanticObjectId]):
         ids_to_add = group_ids
         existing_groups = await ResponderGroupFormDocument.find(
@@ -260,14 +268,17 @@ class ResponderGroupsRepository:
         # ]
         # ).to_list()
 
+    @write_op
     async def remove_group_from_form(self, form_id: str, group_id: PydanticObjectId):
         await ResponderGroupFormDocument.find_one(
             {"form_id": form_id, "group_id": group_id}
         ).delete()
 
+    @write_op
     async def delete_workspace_form_groups(self, form_id: str):
         await ResponderGroupFormDocument.find({"form_id": form_id}).delete()
 
+    @write_op
     async def delete_responder_groups(self, workspace_ids: List[PydanticObjectId]):
         group_ids_query = ResponderGroupDocument.find(
             {"workspace_id": {"$in": workspace_ids}}

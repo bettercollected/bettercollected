@@ -14,6 +14,9 @@ from pymongo import AsyncMongoClient
 from backend.app.repositories.ai_preference_memory_repository import (
     AIPreferenceMemoryRepository,
 )
+from common.db import load_flags
+from common.db.routing import RoutingRepository
+
 from backend.app.repositories.action_repository import ActionRepository
 from backend.app.repositories.form_ai_insight_repository import FormAIInsightRepository
 from backend.app.repositories.form_ai_session_repository import FormAISessionRepository
@@ -98,8 +101,16 @@ class AppContainer(containers.DeclarativeContainer):
     http_client: HttpClient = providers.Singleton(HttpClient)
 
     database_client: AsyncMongoClient = providers.Object(None)
+    # Mongo/Postgres switching (plans/postgres-consolidation.md D5): read once at boot,
+    # validated; a bad combination refuses to start.
+    flags = providers.Singleton(load_flags)
 
-    user_tags_repo = providers.Singleton(UserTagsRepository)
+    user_tags_repo = providers.Singleton(
+        RoutingRepository,
+        group="identity",
+        flags=flags,
+        mongo=providers.Singleton(UserTagsRepository),
+    )
     user_tags_service = providers.Singleton(
         UserTagsService, user_tags_repo=user_tags_repo
     )
@@ -107,45 +118,123 @@ class AppContainer(containers.DeclarativeContainer):
 
     # Repositories
 
-    coupon_repository: CouponRepository = providers.Singleton(CouponRepository)
-    workspace_user_repo: WorkspaceUserRepository = providers.Singleton(
-        WorkspaceUserRepository
+    coupon_repository: CouponRepository = providers.Singleton(
+        RoutingRepository,
+        group="refdata",
+        flags=flags,
+        mongo=providers.Singleton(CouponRepository),
     )
-    workspace_repo: WorkspaceRepository = providers.Singleton(WorkspaceRepository)
+    workspace_user_repo: WorkspaceUserRepository = providers.Singleton(
+        RoutingRepository,
+        group="identity",
+        flags=flags,
+        mongo=providers.Singleton(WorkspaceUserRepository),
+    )
+    workspace_repo: WorkspaceRepository = providers.Singleton(
+        RoutingRepository,
+        group="identity",
+        flags=flags,
+        mongo=providers.Singleton(WorkspaceRepository),
+    )
     allowed_origins_repo: AllowedOriginsRepository = providers.Singleton(
-        AllowedOriginsRepository
+        RoutingRepository,
+        group="refdata",
+        flags=flags,
+        mongo=providers.Singleton(AllowedOriginsRepository),
     )
     blacklisted_refresh_token_repo: BlacklistedRefreshTokenRepository = (
-        providers.Singleton(BlacklistedRefreshTokenRepository)
+        providers.Singleton(
+            RoutingRepository,
+            group="identity",
+            flags=flags,
+            mongo=providers.Singleton(BlacklistedRefreshTokenRepository),
+        )
     )
 
-    form_repo: FormRepository = providers.Singleton(FormRepository)
-    form_response_repo: FormResponseRepository = providers.Singleton(
-        FormResponseRepository, crypto=crypto
+    form_repo: FormRepository = providers.Singleton(
+        RoutingRepository,
+        group="forms",
+        flags=flags,
+        mongo=providers.Singleton(FormRepository),
     )
-    flow_event_repo: FlowEventRepository = providers.Singleton(FlowEventRepository)
-    form_ai_insight_repo = providers.Singleton(FormAIInsightRepository)
-    form_ai_session_repo = providers.Singleton(FormAISessionRepository)
-    workspace_ai_profile_repo = providers.Singleton(WorkspaceAIProfileRepository)
-    workspace_api_key_repo = providers.Singleton(WorkspaceAPIKeyRepository)
-    ai_preference_memory_repo = providers.Singleton(AIPreferenceMemoryRepository)
+    form_response_repo: FormResponseRepository = providers.Singleton(
+        RoutingRepository,
+        group="responses",
+        flags=flags,
+        mongo=providers.Singleton(FormResponseRepository, crypto=crypto),
+    )
+    flow_event_repo: FlowEventRepository = providers.Singleton(
+        RoutingRepository,
+        group="analytics",
+        flags=flags,
+        mongo=providers.Singleton(FlowEventRepository),
+    )
+    form_ai_insight_repo = providers.Singleton(
+        RoutingRepository,
+        group="ai",
+        flags=flags,
+        mongo=providers.Singleton(FormAIInsightRepository),
+    )
+    form_ai_session_repo = providers.Singleton(
+        RoutingRepository,
+        group="ai",
+        flags=flags,
+        mongo=providers.Singleton(FormAISessionRepository),
+    )
+    workspace_ai_profile_repo = providers.Singleton(
+        RoutingRepository,
+        group="ai",
+        flags=flags,
+        mongo=providers.Singleton(WorkspaceAIProfileRepository),
+    )
+    workspace_api_key_repo = providers.Singleton(
+        RoutingRepository,
+        group="identity",
+        flags=flags,
+        mongo=providers.Singleton(WorkspaceAPIKeyRepository),
+    )
+    ai_preference_memory_repo = providers.Singleton(
+        RoutingRepository,
+        group="ai",
+        flags=flags,
+        mongo=providers.Singleton(AIPreferenceMemoryRepository),
+    )
     workspace_form_repo: WorkspaceFormRepository = providers.Singleton(
-        WorkspaceFormRepository
+        RoutingRepository,
+        group="forms",
+        flags=flags,
+        mongo=providers.Singleton(WorkspaceFormRepository),
     )
 
     form_provider_repo: FormPluginProviderRepository = providers.Singleton(
-        FormPluginProviderRepository
+        RoutingRepository,
+        group="refdata",
+        flags=flags,
+        mongo=providers.Singleton(FormPluginProviderRepository),
     )
 
-    responder_groups_repository = providers.Singleton(ResponderGroupsRepository)
+    responder_groups_repository = providers.Singleton(
+        RoutingRepository,
+        group="responses",
+        flags=flags,
+        mongo=providers.Singleton(ResponderGroupsRepository),
+    )
 
-    action_repository = providers.Singleton(ActionRepository, crypto=crypto)
+    action_repository = providers.Singleton(
+        RoutingRepository,
+        group="actions",
+        flags=flags,
+        mongo=providers.Singleton(ActionRepository, crypto=crypto),
+    )
 
     integration_action_service: IntegrationActionService = providers.Singleton(
         IntegrationActionService, form_repo=form_repo
     )
     mcp_audit_log_repo: McpAuditLogRepository = providers.Singleton(
-        McpAuditLogRepository
+        RoutingRepository,
+        group="ai",
+        flags=flags,
+        mongo=providers.Singleton(McpAuditLogRepository),
     )
 
     temporal_service = providers.Singleton(
@@ -354,7 +443,10 @@ class AppContainer(containers.DeclarativeContainer):
     )
 
     workspace_invitation_repo: WorkspaceInvitationRepo = providers.Singleton(
-        WorkspaceInvitationRepo
+        RoutingRepository,
+        group="identity",
+        flags=flags,
+        mongo=providers.Singleton(WorkspaceInvitationRepo),
     )
 
     workspace_members_service: WorkspaceMembersService = providers.Singleton(
@@ -375,14 +467,24 @@ class AppContainer(containers.DeclarativeContainer):
         workspace_service=workspace_service,
     )
 
-    workspace_responders_repo = providers.Singleton(WorkspaceRespondersRepository)
+    workspace_responders_repo = providers.Singleton(
+        RoutingRepository,
+        group="responses",
+        flags=flags,
+        mongo=providers.Singleton(WorkspaceRespondersRepository),
+    )
     workspace_responders_service = providers.Singleton(
         WorkspaceRespondersService,
         workspace_responders_repo=workspace_responders_repo,
         workspace_user_service=workspace_user_service,
         form_response_service=form_response_service,
     )
-    workspace_consent_repo = providers.Singleton(WorkspaceConsentRepo)
+    workspace_consent_repo = providers.Singleton(
+        RoutingRepository,
+        group="forms",
+        flags=flags,
+        mongo=providers.Singleton(WorkspaceConsentRepo),
+    )
 
     workspace_consent_service = providers.Singleton(
         WorkspaceConsentService,
@@ -390,7 +492,12 @@ class AppContainer(containers.DeclarativeContainer):
         workspace_consent_repo=workspace_consent_repo,
     )
 
-    form_template_repo = providers.Singleton(FormTemplateRepository)
+    form_template_repo = providers.Singleton(
+        RoutingRepository,
+        group="forms",
+        flags=flags,
+        mongo=providers.Singleton(FormTemplateRepository),
+    )
 
     form_template_service = providers.Singleton(
         FormTemplateService,
@@ -401,7 +508,12 @@ class AppContainer(containers.DeclarativeContainer):
         temporal_service=temporal_service,
     )
 
-    user_feedback_repo = providers.Singleton(UserFeedbackRepo)
+    user_feedback_repo = providers.Singleton(
+        RoutingRepository,
+        group="refdata",
+        flags=flags,
+        mongo=providers.Singleton(UserFeedbackRepo),
+    )
 
     user_feedback_service = providers.Singleton(
         UserFeedbackService, user_feedback_repo=user_feedback_repo
@@ -420,7 +532,12 @@ class AppContainer(containers.DeclarativeContainer):
         workspace_service=workspace_service,
     )
 
-    media_library_repo = providers.Singleton(MediaLibraryRepository)
+    media_library_repo = providers.Singleton(
+        RoutingRepository,
+        group="forms",
+        flags=flags,
+        mongo=providers.Singleton(MediaLibraryRepository),
+    )
 
     media_library_service = providers.Singleton(
         MediaLibraryService,

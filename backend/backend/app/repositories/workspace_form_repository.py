@@ -15,6 +15,7 @@ from pymongo.errors import (
 from backend.app.exceptions import HTTPException
 from backend.app.models.workspace import WorkspaceFormSettings
 from backend.app.schemas.workspace_form import WorkspaceFormDocument
+from common.db.routing import write_op
 
 
 class WorkspaceFormRepository:
@@ -38,11 +39,13 @@ class WorkspaceFormRepository:
             {"workspace_id": workspace_id}
         ).to_list()
 
+    @write_op
     async def save(
         self, workspace_form: WorkspaceFormDocument
     ) -> WorkspaceFormDocument:
         return await workspace_form.save()
 
+    @write_op
     async def update(
         self, item_id: str, item: WorkspaceFormDocument
     ) -> WorkspaceFormDocument:
@@ -53,6 +56,7 @@ class WorkspaceFormRepository:
             raise HTTPException(HTTPStatus.NOT_FOUND, "Form not found in ")
         return await item.save()
 
+    @write_op
     async def save_workspace_form(
         self,
         workspace_id: PydanticObjectId,
@@ -264,6 +268,7 @@ class WorkspaceFormRepository:
         ).to_list()
         return [workspace_form.workspace_id for workspace_form in workspace_forms]
 
+    @write_op
     async def delete_form_in_workspace(
         self, workspace_id: PydanticObjectId, form_id: str
     ):
@@ -308,6 +313,7 @@ class WorkspaceFormRepository:
         ).to_list()
         return [form.form_id for form in forms]
 
+    @write_op
     async def delete_forms(self, form_ids):
         return await WorkspaceFormDocument.find({"form_id": {"$in": form_ids}}).delete()
 

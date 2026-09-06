@@ -1,6 +1,7 @@
 from typing import List, Optional
 
 from backend.app.schemas.allowed_origin import AllowedOriginsDocument
+from common.db.routing import write_op
 
 
 class AllowedOriginsRepository:
@@ -13,8 +14,10 @@ class AllowedOriginsRepository:
     async def find_by_origin(self, origin: str) -> Optional[AllowedOriginsDocument]:
         return await AllowedOriginsDocument.find_one({"origin": origin})
 
+    @write_op
     async def add(self, origin: str) -> AllowedOriginsDocument:
         return await AllowedOriginsDocument(origin=origin).save()
 
+    @write_op
     async def delete_by_origin(self, origin: str) -> None:
         await AllowedOriginsDocument.find_one({"origin": origin}).delete()

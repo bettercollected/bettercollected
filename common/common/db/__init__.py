@@ -23,6 +23,15 @@ from common.db.canonical import (
 )
 from common.db.engine import DatabaseSettings, make_engine, make_sessionmaker, ping
 from common.db.flags import DbFlags, JobsBackend, ReadSource, WriteMode, load_flags
+from common.db.routing import (
+    MirrorFailure,
+    RoutingError,
+    RoutingMetrics,
+    RoutingRepository,
+    ShadowDiff,
+    is_write_op,
+    write_op,
+)
 from common.db.spine import SpineColumns
 from common.db.outbox import (
     MIRROR_OPS,

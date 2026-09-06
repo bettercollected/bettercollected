@@ -27,6 +27,7 @@ from backend.app.schemas.standard_form_response import (
     DeletionRequestStatus,
 )
 from backend.app.utils.aggregation_query_builder import create_filter_pipeline
+from common.db.routing import write_op
 
 
 class FormResponseRepository(BaseRepository):
@@ -266,6 +267,7 @@ class FormResponseRepository(BaseRepository):
     async def list_by_form_id(self, form_id: str) -> List[FormResponseDocument]:
         return await FormResponseDocument.find({"form_id": form_id}).to_list()
 
+    @write_op
     async def save(self, response: FormResponseDocument) -> FormResponseDocument:
         return await response.save()
 
@@ -274,6 +276,7 @@ class FormResponseRepository(BaseRepository):
     ) -> Optional[FormResponseDeletionRequest]:
         return await FormResponseDeletionRequest.find_one({"response_id": response_id})
 
+    @write_op
     async def delete_by_form_id_except(
         self, form_id: str, keep_response_ids: List[str]
     ):
@@ -281,6 +284,7 @@ class FormResponseRepository(BaseRepository):
             {"form_id": form_id, "response_id": {"$nin": keep_response_ids}}
         ).delete()
 
+    @write_op
     async def mark_deletion_requests_success_except(
         self, form_id: str, provider: str, keep_response_ids: List[str], now
     ) -> int:
@@ -296,20 +300,25 @@ class FormResponseRepository(BaseRepository):
         )
         return result.modified_count
 
+    @write_op
     async def delete_by_form_id(self, form_id):
         return await FormResponseDocument.find({"form_id": form_id}).delete()
 
+    @write_op
     async def delete_deletion_requests(self, form_id: str):
         return await FormResponseDeletionRequest.find({"form_id": form_id}).delete()
 
+    @write_op
     async def delete_by_form_ids(self, form_ids):
         return await FormResponseDocument.find({"form_id": {"$in": form_ids}}).delete()
 
+    @write_op
     async def delete_deletion_requests_by_form_ids(self, form_ids):
         return await FormResponseDeletionRequest.find(
             {"form_id": {"$in": form_ids}}
         ).delete()
 
+    @write_op
     async def save_form_response(
         self,
         form_id: PydanticObjectId,
@@ -337,6 +346,7 @@ class FormResponseRepository(BaseRepository):
         response_document.provider = "self"
         return await response_document.save()
 
+    @write_op
     async def patch_form_response(
         self,
         form_id: PydanticObjectId,
@@ -362,6 +372,7 @@ class FormResponseRepository(BaseRepository):
             )
         return await response_document.save()
 
+    @write_op
     async def delete_form_response(self, form_id: PydanticObjectId, response_id: str):
         await FormResponseDocument.find(
             {"form_id": str(form_id), "response_id": response_id}
@@ -379,6 +390,7 @@ class FormResponseRepository(BaseRepository):
             {"expiration_type": {"$in": ["date", "days"]}}
         ).to_list()
 
+    @write_op
     async def delete_response(self, response_id: str):
         await FormResponseDocument.find_one({"response_id": response_id}).delete()
         return response_id

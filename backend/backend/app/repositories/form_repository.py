@@ -11,6 +11,7 @@ from backend.app.schemas.form_versions import FormVersionsDocument
 from backend.app.schemas.standard_form import FormDocument
 from backend.app.models.dtos.form_actions_dto import FormActionsDto
 from backend.app.utils.aggregation_query_builder import create_filter_pipeline
+from common.db.routing import write_op
 
 
 class FormRepository:
@@ -281,14 +282,17 @@ class FormRepository:
             .to_list()
         )
 
+    @write_op
     async def save_form(self, form: FormDocument):
         return await form.save()
 
+    @write_op
     async def save_form_version(
         self, form_version: FormVersionsDocument
     ) -> FormVersionsDocument:
         return await form_version.save()
 
+    @write_op
     async def delete_versions_by_imported_form_id(self, imported_form_id: str):
         return await FormVersionsDocument.find(
             {"imported_form_id": imported_form_id}
@@ -297,19 +301,23 @@ class FormRepository:
     async def get_forms_by_form_ids(self, form_ids: List[str]) -> List[FormDocument]:
         return await FormDocument.find({"form_id": {"$in": form_ids}}).to_list()
 
+    @write_op
     async def delete_form(self, form_id: str):
         form = await FormDocument.find_one({"form_id": form_id})
         if not form:
             raise HTTPException(status_code=404, content="Form not found")
         return await form.delete()
 
+    @write_op
     async def delete_forms(self, form_ids: List[str]):
         return await FormDocument.find({"form_id": {"$in": form_ids}}).delete()
 
+    @write_op
     async def create_form(self, form: StandardForm) -> FormDocument:
-        form_document = FormDocument(**form.model_dump(mode='json'))
+        form_document = FormDocument(**form.model_dump(mode="json"))
         return await form_document.save()
 
+    @write_op
     async def update_form(self, form_id: PydanticObjectId, form: StandardForm):
         form_document = await FormDocument.find_one({"form_id": str(form_id)})
         form_document.fields = form.fields
@@ -349,14 +357,18 @@ class FormRepository:
             {"form_id": form_id, "version": version}
         )
 
+    @write_op
     async def publish_form(self, form: FormDocument, version: int):
-        new_form_version = FormVersionsDocument(**form.model_dump(mode='json'), version=version)
+        new_form_version = FormVersionsDocument(
+            **form.model_dump(mode="json"), version=version
+        )
         new_form_version.id = None
         return await new_form_version.save()
 
     async def get_form_by_id(self, form_id: PydanticObjectId):
         return await FormDocument.find_one({"form_id": str(form_id)})
 
+    @write_op
     async def update_form_actions(
         self,
         form_id: PydanticObjectId,

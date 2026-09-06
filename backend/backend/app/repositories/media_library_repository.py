@@ -1,6 +1,7 @@
 from beanie import PydanticObjectId
 from backend.app.exceptions.http import HTTPException
 from backend.app.schemas.media_library import MediaLibraryDocument
+from common.db.routing import write_op
 
 
 class MediaLibraryRepository:
@@ -41,6 +42,7 @@ class MediaLibraryRepository:
             {"workspace_id": workspace_id, "media_id": media_id}
         )
 
+    @write_op
     async def add_media_in_workspace_library(
         self,
         workspace_id: str,
@@ -60,6 +62,7 @@ class MediaLibraryRepository:
         await media.save()
         return media
 
+    @write_op
     async def delete_media_from_library(
         self, workspace_id: str, media_id: PydanticObjectId
     ):

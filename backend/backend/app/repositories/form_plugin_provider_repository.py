@@ -14,6 +14,7 @@ from backend.app.models.form_plugin_config import FormProviderConfigDto
 from backend.app.schemas.form_plugin_config import FormPluginConfigDocument
 from common.base.repo import BaseRepository
 from common.constants import MESSAGE_DATABASE_EXCEPTION
+from common.db.routing import write_op
 
 
 class FormPluginProviderRepository(BaseRepository):
@@ -22,7 +23,7 @@ class FormPluginProviderRepository(BaseRepository):
             document = await FormPluginConfigDocument.find_many().to_list()
             if document:
                 return [
-                    FormProviderConfigDto(**provider.model_dump(mode='json'))
+                    FormProviderConfigDto(**provider.model_dump(mode="json"))
                     for provider in document
                 ]
             return []
@@ -55,6 +56,7 @@ class FormPluginProviderRepository(BaseRepository):
             {"provider_name": provider_name}, projection_model=self.ProviderUrlProject
         )
 
+    @write_op
     async def add(self, item: FormPluginConfigDocument) -> FormPluginConfigDocument:
         try:
             return await item.save()
@@ -64,6 +66,7 @@ class FormPluginProviderRepository(BaseRepository):
                 content=MESSAGE_DATABASE_EXCEPTION,
             )
 
+    @write_op
     async def update(
         self, provider_name: str, item: FormPluginConfigDocument
     ) -> FormPluginConfigDocument:

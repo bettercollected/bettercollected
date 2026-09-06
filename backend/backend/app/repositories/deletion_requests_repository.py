@@ -52,7 +52,13 @@ class DeletionRequestsRepository:
                     "as": "response_doc",
                 },
             },
-            {"$set": {"submission_uuid": {"$arrayElemAt": ["$response_doc.submission_uuid", 0]}}},
+            {
+                "$set": {
+                    "submission_uuid": {
+                        "$arrayElemAt": ["$response_doc.submission_uuid", 0]
+                    }
+                }
+            },
             {"$unset": "response_doc"},
         ]
 

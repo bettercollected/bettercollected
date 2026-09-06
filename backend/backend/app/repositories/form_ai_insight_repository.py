@@ -3,6 +3,7 @@ from typing import Optional
 from beanie import PydanticObjectId
 
 from backend.app.schemas.form_ai_insight import FormAIInsightDocument
+from common.db.routing import write_op
 
 
 class FormAIInsightRepository:
@@ -13,5 +14,6 @@ class FormAIInsightRepository:
             {"workspace_id": workspace_id, "form_id": form_id}
         )
 
+    @write_op
     async def save(self, document: FormAIInsightDocument) -> FormAIInsightDocument:
         return await document.save()

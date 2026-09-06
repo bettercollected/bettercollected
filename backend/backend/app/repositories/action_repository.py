@@ -7,12 +7,14 @@ from common.models.user import User
 from backend.app.models.dtos.action_dto import ActionDto, ActionResponse
 from backend.app.schemas.action_document import ActionDocument, WorkspaceActionsDocument
 from backend.app.schemas.standard_form import FormDocument
+from common.db.routing import write_op
 
 
 class ActionRepository:
     def __init__(self, crypto: Crypto):
         self.crypto = crypto
 
+    @write_op
     async def create_action(
         self, workspace_id: PydanticObjectId, action: ActionDto, user: User
     ):
@@ -20,13 +22,14 @@ class ActionRepository:
             for secret in action.secrets:
                 secret.value = self.crypto.encrypt(secret.value)
         new_action = ActionDocument(
-            **action.model_dump(mode='json'),
+            **action.model_dump(mode="json"),
             created_by=PydanticObjectId(user.id),
             workspace_id=workspace_id,
         )
         new_action = await new_action.save()
-        return ActionResponse(**new_action.model_dump(mode='json'))
+        return ActionResponse(**new_action.model_dump(mode="json"))
 
+    @write_op
     async def delete_action(self, action_id: PydanticObjectId):
         await ActionDocument.find_one(ActionDocument.id == action_id).delete()
         return action_id
@@ -100,6 +103,7 @@ class ActionRepository:
         # return [ActionResponse(**action, id=action["_id"]) for action in actions]
 
     # TODO resolve circular deps with action_service and workspace_form_service and update in workspace form repo
+    @write_op
     async def remove_action_form_all_forms(self, action_id: PydanticObjectId):
         await FormDocument.find(
             {
@@ -118,6 +122,7 @@ class ActionRepository:
             }
         )
 
+    @write_op
     async def create_action_in_workspace_from_action(
         self,
         workspace_id: PydanticObjectId,
@@ -139,10 +144,11 @@ class ActionRepository:
         await workspace_action.save()
         return workspace_action
 
+    @write_op
     async def create_global_action(self, action: ActionDto, user: User):
         if action.secrets is not None:
             for secret in action.secrets:
                 secret.value = self.crypto.encrypt(secret.value)
         return await ActionDocument(
-            **action.model_dump(mode='json'), created_by=PydanticObjectId(user.id)
+            **action.model_dump(mode="json"), created_by=PydanticObjectId(user.id)
         ).save()
