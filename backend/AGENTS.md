@@ -71,6 +71,12 @@ plan and decisions in `plans/postgres-consolidation.md`. What that means when yo
 - **Mirror failures** land in the outbox (`mirror_write_failures`, Mongo doc or Postgres row — whichever store is
   primary); shadow-read diffs and counters are exposed on `GET /persistence/status` (admin) and the effective flags
   are logged at boot.
+- **Migration CLI:** `python -m backend.migrate {preflight,backfill,verify,reconcile,status,jobs-sweep}` (auth and
+  google have `python -m auth.migrate` / `python -m googleform.migrate`), the engine in `common/db/migrate/`. Raw
+  pymongo + SQLAlchemy Core, never Beanie, never decrypts. Backfill is resumable (checkpoints in `migration_progress`,
+  adaptive batches, `--max-minutes`, advisory lock) and never overwrites a row the application wrote
+  (`_bc_source = 'app'`); `verify` compares counts, per-row checksums and a sampled round-trip; `reconcile` fixes
+  drift with Mongo authoritative (`--direction postgres->mongo` for the fallback) and drains the outboxes.
 - **Tests run three ways in CI** (Mongo · everything mirrored · everything served from Postgres). Parity tests
   (`tests/app/repositories/test_*_parity.py`) run each method on both stores; test fixtures must go through
   `container.<repo>()`, never Beanie directly, or the Postgres-served mode fails.

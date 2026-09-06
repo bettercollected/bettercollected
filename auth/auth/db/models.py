@@ -4,6 +4,7 @@ from sqlalchemy import Index, UniqueConstraint
 
 from auth.db.base import S, Base
 from common.db import BaseRow, MirrorWriteFailureMixin
+from common.db.migrate import MigrationProgressMixin
 
 
 class UserRow(Base, BaseRow):
@@ -29,3 +30,9 @@ class ProviderRow(Base, BaseRow):
 
 class MirrorWriteFailure(Base, MirrorWriteFailureMixin):
     __tablename__ = "mirror_write_failures"
+
+
+class MigrationProgress(Base, MigrationProgressMixin):
+    """Checkpoints of the Mongo → Postgres backfill (python -m <service>.migrate)."""
+
+    __tablename__ = "migration_progress"
