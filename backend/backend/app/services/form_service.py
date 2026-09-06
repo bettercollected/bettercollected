@@ -273,8 +273,23 @@ class FormService:
         return minified_form
 
     async def save_form(self, form: StandardForm):
-        form_document = FormDocument(**form.model_dump(mode='json'))
-        form_version_document = FormVersionsDocument(**form.model_dump(mode='json'), version=1)
+        """Persist an imported form as version 1. Re-importing a form replaces
+        its document and its version 1 rather than adding duplicates: form_id
+        is unique in the forms store (and Mongo readers use find_one on it)."""
+        form_document = FormDocument(**form.model_dump(mode="json"))
+        existing = await self._form_repo.get_form_document_by_id(form_document.form_id)
+        if existing:
+            form_document.id = existing.id
+            form_document.created_at = existing.created_at
+        form_version_document = FormVersionsDocument(
+            **form.model_dump(mode="json"), version=1
+        )
+        existing_version = await self._form_repo.get_form_by_by_version(
+            form_document.form_id, 1
+        )
+        if existing_version:
+            form_version_document.id = existing_version.id
+            form_version_document.created_at = existing_version.created_at
         await self._form_repo.save_form_version(form_version_document)
         return await self._form_repo.save_form(form_document)
 

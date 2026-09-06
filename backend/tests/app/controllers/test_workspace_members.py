@@ -156,7 +156,9 @@ class TestWorkspaceMember:
     ):
         await create_invitation(workspace.id, InvitationRequest(**invitation_request))
 
-        invitations = await client.get(workspace_invitation_url, cookies=test_user_cookies)
+        invitations = await client.get(
+            workspace_invitation_url, cookies=test_user_cookies
+        )
 
         expected_invitations_number = 1
         actual_invitations_number = invitations.json().get("total")
@@ -171,7 +173,9 @@ class TestWorkspaceMember:
         test_user_cookies_1: dict[str, str],
         workspace_invitation_url: str,
     ):
-        invitations = await client.get(workspace_invitation_url, cookies=test_user_cookies_1)
+        invitations = await client.get(
+            workspace_invitation_url, cookies=test_user_cookies_1
+        )
 
         expected_response_message = MESSAGE_FORBIDDEN
         actual_response_message = invitations.json()
@@ -299,11 +303,11 @@ class TestWorkspaceMember:
     ):
         invitation = await container.workspace_invitation_repo().save(
             WorkspaceUserInvitesDocument(
-            workspace_id=workspace.id,
-            email="invited_daemon@gmail.com",
-            invitation_status="REMOVED",
-            invitation_token=secrets.token_hex(16),
-            expiry=1720156071,
+                workspace_id=workspace.id,
+                email="invited_daemon@gmail.com",
+                invitation_status="REMOVED",
+                invitation_token=secrets.token_hex(16),
+                expiry=1720156071,
             )
         )
         invitation_by_token_url = (
@@ -328,10 +332,10 @@ class TestWorkspaceMember:
     ):
         invitation = await container.workspace_invitation_repo().save(
             WorkspaceUserInvitesDocument(
-            workspace_id=workspace.id,
-            email="invited_daemon@gmail.com",
-            expiry=0,
-            invitation_token=secrets.token_hex(16),
+                workspace_id=workspace.id,
+                email="invited_daemon@gmail.com",
+                expiry=0,
+                invitation_token=secrets.token_hex(16),
             )
         )
         invitation_by_token_url = (
@@ -408,11 +412,11 @@ class TestWorkspaceMember:
     ):
         accepted_invitation = await container.workspace_invitation_repo().save(
             WorkspaceUserInvitesDocument(
-            workspace_id=workspace.id,
-            email="invited_daemon@gmail.com",
-            invitation_status="ACCEPTED",
-            invitation_token=secrets.token_hex(16),
-            expiry=1720156071,
+                workspace_id=workspace.id,
+                email="invited_daemon@gmail.com",
+                invitation_status="ACCEPTED",
+                invitation_token=secrets.token_hex(16),
+                expiry=1720156071,
             )
         )
         url = f"{workspace_invitation_url}/{accepted_invitation.invitation_token}?response_status=REJECTED"
@@ -433,10 +437,10 @@ class TestWorkspaceMember:
     ):
         accepted_invitation = await container.workspace_invitation_repo().save(
             WorkspaceUserInvitesDocument(
-            workspace_id=workspace.id,
-            email="invited_daemon@gmail.com",
-            expiry=0,
-            invitation_token=secrets.token_hex(16),
+                workspace_id=workspace.id,
+                email="invited_daemon@gmail.com",
+                expiry=0,
+                invitation_token=secrets.token_hex(16),
             )
         )
         url = f"{workspace_invitation_url}/{accepted_invitation.invitation_token}?response_status=REJECTED"

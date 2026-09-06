@@ -117,6 +117,18 @@ class PostgresRepositoryBase:
             )
         }
 
+    @staticmethod
+    def _check_collection(document: Any, row: Type[Any]) -> None:
+        """Mongo writes a document to its own collection whichever repository
+        saves it; here the twin picks the table, so refuse a mismatch loudly."""
+        get_settings = getattr(type(document), "get_settings", None)
+        collection = get_settings().name if get_settings else None
+        if collection is not None and collection != row.mongo_collection():
+            raise TypeError(
+                f"a {type(document).__name__} (collection {collection!r}) cannot be "
+                f"stored in table {row.__tablename__!r}"
+            )
+
     def _upsert_statement(
         self, values: dict[str, Any], row: Optional[Type[Any]] = None
     ):
@@ -137,6 +149,7 @@ class PostgresRepositoryBase:
     async def upsert(self, document: Any, row: Optional[Type[Any]] = None) -> Any:
         """Store ``document`` (minting an id if it has none); ``row`` selects
         another table of the group."""
+        self._check_collection(document, row or self.row)
         values = row_values(document)
         async with self._session() as session, session.begin():
             await session.execute(self._upsert_statement(values, row))
@@ -147,6 +160,7 @@ class PostgresRepositoryBase:
     ) -> None:
         async with self._session() as session, session.begin():
             for document in documents:
+                self._check_collection(document, row or self.row)
                 await session.execute(self._upsert_statement(row_values(document), row))
 
     async def replay_write(self, documents: Iterable[Any]) -> None:
@@ -165,21 +179,22 @@ class PostgresRepositoryBase:
             result = await session.execute(delete(row or self.row).where(*where))
         return result.rowcount or 0
 
-    async def delete_one_where(self, *where: Any) -> int:
+    async def delete_one_where(
+        self, *where: Any, row: Optional[Type[Any]] = None
+    ) -> int:
         """Delete the first matching row in Mongo's natural order — the twin of
         ``find_one(...).delete()``. Mongo's semantics, even where odd, are what
         verification compares against."""
+        row = row or self.row
         async with self._session() as session, session.begin():
             target = (
-                select(self.row.id)
+                select(row.id)
                 .where(*where)
-                .order_by(*self._order())
+                .order_by(row.created_at, row.id)
                 .limit(1)
                 .scalar_subquery()
             )
-            result = await session.execute(
-                delete(self.row).where(self.row.id == target)
-            )
+            result = await session.execute(delete(row).where(row.id == target))
         return result.rowcount or 0
 
     async def delete_by_id(self, document_id: Any) -> int:

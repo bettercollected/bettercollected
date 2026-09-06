@@ -27,7 +27,9 @@ class TestAPIKeys:
         assert body["prefix"] == body["token"][:11]
         assert body["scopes"] == ["forms:read", "forms:write"]
 
-        listed = await client.get(f"/api/v1/workspaces/{workspace.id}/api-keys", cookies=test_user_cookies)
+        listed = await client.get(
+            f"/api/v1/workspaces/{workspace.id}/api-keys", cookies=test_user_cookies
+        )
         assert listed.status_code == 200
         assert len(listed.json()) == 1
         # The token itself never appears again.
@@ -78,7 +80,8 @@ class TestAPIKeys:
 
         # Revocation kills authentication.
         revoked = await client.delete(
-            f"/api/v1/workspaces/{workspace.id}/api-keys/{key_id}", cookies=test_user_cookies
+            f"/api/v1/workspaces/{workspace.id}/api-keys/{key_id}",
+            cookies=test_user_cookies,
         )
         assert revoked.status_code == 200
         assert revoked.json()[0]["revoked"] is True

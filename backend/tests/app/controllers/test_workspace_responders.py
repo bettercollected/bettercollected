@@ -101,7 +101,9 @@ class TestWorkspaceResponders:
         workspace_tag_url: str,
         test_user_cookies_1: dict[str, str],
     ):
-        unauthorized_client = await client.get(workspace_tag_url, cookies=test_user_cookies_1)
+        unauthorized_client = await client.get(
+            workspace_tag_url, cookies=test_user_cookies_1
+        )
 
         expected_response_message = MESSAGE_FORBIDDEN
         actual_response_message = unauthorized_client.json()

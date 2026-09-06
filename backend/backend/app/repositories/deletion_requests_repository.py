@@ -61,7 +61,7 @@ class DeletionRequestsRepository:
                     }
                 }
             },
-            {"$unset": "response_doc"},
+            {"$unset": ["response_doc", "form", "workspace_form"]},
         ]
 
         aggregate_query.extend(

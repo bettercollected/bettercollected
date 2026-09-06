@@ -36,3 +36,23 @@ def postgres_repository(
 ) -> Optional[Any]:
     """The Postgres twin of a repository, or ``None`` when Postgres is not configured."""
     return None if session_factory is None else cls(session_factory, *args, **kwargs)
+
+
+class LazyRepository:
+    """Resolve a routed repository at first use, not at construction.
+
+    The forms and responses twins compose over each other's routed repository;
+    resolving either eagerly while the container builds the other recurses.
+    Attribute access is forwarded to the resolved repository.
+    """
+
+    def __init__(self, resolve):
+        self._resolve = resolve
+        self._target = None
+
+    def __getattr__(self, name):
+        if name.startswith("_"):  # copying/pickling probes must not resolve
+            raise AttributeError(name)
+        if self._target is None:
+            self._target = self._resolve()
+        return getattr(self._target, name)
