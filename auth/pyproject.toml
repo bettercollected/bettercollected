@@ -42,7 +42,7 @@ dev = [
 managed = true
 
 [tool.uv.sources]
-common = { path = "../common" }
+common = { path = "../common", editable = true }
 
 [build-system]
 requires = ["hatchling"]

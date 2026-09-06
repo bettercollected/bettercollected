@@ -9,7 +9,7 @@ round-trips losslessly to the Mongo document it mirrors.
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import Any, Optional
+from typing import Any, ClassVar, Optional
 
 from sqlalchemy import CheckConstraint, MetaData, Text, event, text
 from sqlalchemy.dialects.postgresql import JSONB, TIMESTAMP
@@ -29,6 +29,7 @@ NAMING_CONVENTION = {
 
 OBJECT_ID_PATTERN = r"^[0-9a-f]{24}$"
 ID_CHECK_NAME = "id_is_object_id"
+ID_DOC_CHECK_NAME = "id_matches_doc"
 
 SOURCE_APP = "app"
 SOURCE_BACKFILL = "backfill"
@@ -61,6 +62,15 @@ class BaseRow:
     values copied from Mongo.
     """
 
+    #: Mongo collection this table mirrors; defaults to the table name. Set it
+    #: where the two differ (Beanie names a collection after the class when no
+    #: ``Settings.name`` is given, e.g. ``GoogleFormDocument``).
+    __mongo_collection__: ClassVar[Optional[str]] = None
+
+    @classmethod
+    def mongo_collection(cls) -> str:
+        return cls.__mongo_collection__ or cls.__tablename__  # type: ignore[attr-defined]
+
     id: Mapped[str] = mapped_column(Text, primary_key=True)
     created_at: Mapped[Optional[datetime]] = mapped_column(TIMESTAMP(timezone=True))
     updated_at: Mapped[Optional[datetime]] = mapped_column(TIMESTAMP(timezone=True))
@@ -72,21 +82,25 @@ class BaseRow:
 
 
 @event.listens_for(BaseRow, "instrument_class", propagate=True)
-def _add_id_check(mapper, class_) -> None:
-    """Every concrete BaseRow table gets the ObjectId CHECK on ``id``.
+def _add_id_checks(mapper, class_) -> None:
+    """Every concrete BaseRow table gets the ``id`` CHECK constraints.
 
     Done here rather than via ``__table_args__`` so a model that declares its
-    own ``__table_args__`` (a unique constraint, an index) cannot lose it.
+    own ``__table_args__`` (a unique constraint, an index) cannot lose them.
+    The naming convention rewrites names to ck_<table>_<name>, hence the
+    suffix match.
     """
     table = class_.__table__
-    # The naming convention rewrites the name to ck_<table>_<name>; match on the suffix.
-    if any(
-        str(getattr(c, "name", "")).endswith(ID_CHECK_NAME) for c in table.constraints
-    ):
-        return
-    table.append_constraint(
-        CheckConstraint(f"id ~ '{OBJECT_ID_PATTERN}'", name=ID_CHECK_NAME)
-    )
+    existing = {str(getattr(c, "name", "")) for c in table.constraints}
+    if not any(n.endswith(ID_CHECK_NAME) for n in existing):
+        table.append_constraint(
+            CheckConstraint(f"id ~ '{OBJECT_ID_PATTERN}'", name=ID_CHECK_NAME)
+        )
+    # ``id`` is a copy of ``doc._id.$oid``; refuse rows where the two disagree.
+    if not any(n.endswith(ID_DOC_CHECK_NAME) for n in existing):
+        table.append_constraint(
+            CheckConstraint("id = (doc -> '_id' ->> '$oid')", name=ID_DOC_CHECK_NAME)
+        )
 
 
 def _stamp(target: BaseRow, *, inserting: bool) -> None:

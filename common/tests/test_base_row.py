@@ -112,6 +112,16 @@ async def test_backfilled_rows_keep_the_timestamps_copied_from_mongo(engine):
 async def test_id_must_be_a_24_hex_object_id(engine):
     Session = make_sessionmaker(engine)
     async with Session() as session:
-        session.add(Probe(id="not-an-object-id", doc={}))
-        with pytest.raises(IntegrityError, match="id_is_object_id"):
+        session.add(
+            Probe(id="not-an-object-id", doc={"_id": {"$oid": "not-an-object-id"}})
+        )
+        with pytest.raises(IntegrityError, match="id_is_object_id|id_matches_doc"):
+            await session.commit()
+
+
+async def test_id_must_match_the_documents_id(engine):
+    Session = make_sessionmaker(engine)
+    async with Session() as session:
+        session.add(Probe(id=str(ObjectId()), doc={"_id": {"$oid": str(ObjectId())}}))
+        with pytest.raises(IntegrityError, match="id_matches_doc"):
             await session.commit()

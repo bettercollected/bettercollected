@@ -9,6 +9,11 @@ Mongo except the Mongo-side outbox document.
 """
 
 from common.db.base import BaseRow, NAMING_CONVENTION, OBJECT_ID_PATTERN, make_base
+from common.db.ddl import (
+    HELPER_FUNCTIONS,
+    drop_helper_function_ddl,
+    helper_function_ddl,
+)
 from common.db.canonical import (
     canonical_document,
     canonical_json,
@@ -18,6 +23,7 @@ from common.db.canonical import (
 )
 from common.db.engine import DatabaseSettings, make_engine, make_sessionmaker, ping
 from common.db.flags import DbFlags, JobsBackend, ReadSource, WriteMode, load_flags
+from common.db.spine import SpineColumns
 from common.db.outbox import (
     MIRROR_OPS,
     MirrorWriteFailureDocument,
