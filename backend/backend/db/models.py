@@ -14,6 +14,7 @@ from sqlalchemy import Index, UniqueConstraint, text
 
 from backend.db.base import S, Base
 from common.db import BaseRow, MirrorWriteFailureMixin
+from common.db.migrate import MigrationProgressMixin
 
 
 class WorkspaceRow(Base, BaseRow):
@@ -369,3 +370,9 @@ class MirrorWriteFailure(Base, MirrorWriteFailureMixin):
 
 
 ROW_MODELS = [cls for cls in Base.__subclasses__() if issubclass(cls, BaseRow)]
+
+
+class MigrationProgress(Base, MigrationProgressMixin):
+    """Checkpoints of the Mongo → Postgres backfill (python -m <service>.migrate)."""
+
+    __tablename__ = "migration_progress"
