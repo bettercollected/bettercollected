@@ -31,6 +31,7 @@ from backend.app.schemas.workspace_user import (
     WorkspaceUserDocument,
 )
 from backend.app.schemas.flow_event import FlowEventDocument
+from common.db import MirrorWriteFailureDocument
 
 document_models = []
 
@@ -70,6 +71,7 @@ async def init_db(db: str, client: AsyncMongoClient):
             ResponderGroupMemberDocument,
             ResponderGroupDocument,
             FlowEventDocument,
+            MirrorWriteFailureDocument,
         ]
     )
     await init_beanie(

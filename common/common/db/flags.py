@@ -126,6 +126,20 @@ class DbFlags:
             return False
         return (rng or random).random() < self.shadow_read_sample
 
+    def serves_from_postgres(self) -> bool:
+        """Whether any group reads from or writes primarily to Postgres — i.e. an
+        unreachable Postgres would break requests, not just the mirror."""
+        groups = {"*"} | set(self.read_overrides) | set(self.write_overrides)
+        for group in groups:
+            read = self.default_read if group == "*" else self.read_source(group)
+            mode = self.default_write if group == "*" else self.write_mode(group)
+            if read is ReadSource.POSTGRES or mode in (
+                WriteMode.POSTGRES_PRIMARY_DUAL,
+                WriteMode.POSTGRES,
+            ):
+                return True
+        return False
+
     def requires_postgres(self) -> bool:
         """Whether the process needs a working DATABASE_URL at all."""
         if (
