@@ -22,7 +22,7 @@ dependencies = [
     "sentry-sdk[fastapi]>=2.64.0",
     "loguru>=0.7.2",
     "elastic-apm>=6.26.2",
-    "cryptography>=44.0.0",
+    "cryptography>=50.0.0",
     "requests>=2.32.3",
     "common",
     "pydantic-settings>=2.13.0",
