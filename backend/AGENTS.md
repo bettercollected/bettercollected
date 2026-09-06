@@ -23,7 +23,8 @@ backend/
       core/           # provider plugin system: base/, factory/, loader/, plugins/{google,typeform}.py
       handlers/       # startup wiring: database.py (Beanie init), logging
       middlewares/    # DynamicCORSMiddleware, timing
-      schedulers/     # APScheduler jobs (form_schedular.py)
+      schedulers/     # form_schedular.py: re-import + expired-response deletion, called by workers via /temporal
+      jobs/           # procrastinate app, tasks, worker and schema entrypoints (JOBS_BACKEND=postgres)
       container.py    # dependency-injector AppContainer (wires repos -> services)
       router.py       # aggregates all routers into root_api_router
       asgi.py         # get_application() app factory
@@ -51,7 +52,9 @@ Routers are registered in [backend/app/router.py](backend/app/router.py) via the
 Beanie Documents are registered in [backend/app/handlers/database.py](backend/app/handlers/database.py) `init_db`'s
 `document_models` list — **a new collection must be added there or it won't be initialized.** Core domain models
 (`User`, `StandardForm`, `StandardFormResponse`, `Consent`) come from the shared `common` package, not from here.
-APScheduler uses a separate DB (`init_scheduler_db`).
+Background jobs go through `services/temporal_service.py`, which dispatches per job kind (`JOBS_BACKEND__<job>`)
+to a Temporal workflow (default) or a procrastinate job on Postgres (`backend/jobs/`; worker:
+`python -m backend.jobs.worker`, queue tables in the `jobs` schema via `python -m backend.jobs.schema`).
 
 Response `answers` **and** `hidden_fields` (captured URL parameters, see `StandardForm.hidden_fields` for the
 declared names) are encrypted at rest via `crypto_service` in `form_response_repository.save_form_response` and
@@ -121,9 +124,10 @@ and architecture.
 
 - **Auth:** `services/auth_service.py` — OAuth state + OTP, JWT via `common.services.jwt_service`; refresh-token
   blacklist in Mongo; cookies via `auth_cookie_service.py`.
-- **Temporal:** `services/temporal_service.py` connects to the Temporal server, creates **Schedules**, and starts
-  workflows (form import, CSV export, response/user deletion, action code). On startup `migrate_schedule_to_temporal()`
-  can migrate legacy APScheduler jobs (gated by settings).
+- **Jobs:** `services/temporal_service.py` starts the three background jobs — user deletion, scheduled response
+  deletion (at the response's expiration), action-code execution — on Temporal (default) or, per job kind via
+  `JOBS_BACKEND__<job>=postgres`, as procrastinate jobs (`backend/jobs/tasks.py`; `run_action` is deferred by name and
+  executed by `temporal/actions-executor`). See plans/postgres-consolidation.md §7.
 - **Provider plugins:** `core/plugins/{google,typeform}.py` behind `plugin_proxy_service.py` — forwards standardized
   requests to the external provider microservices (:8003 / :8002).
 - **Third-party services:** `aws_service.py` (S3), `stripe_service.py`, `openai_service.py` (prompts/AI form gen),

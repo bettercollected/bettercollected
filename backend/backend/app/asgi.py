@@ -22,6 +22,7 @@ from backend.app.exceptions import HTTPException, http_exception_handler
 from backend.app.handlers import init_logging
 from backend.app.handlers.database import close_db, init_db
 from backend.db.startup import check_postgres_at_startup, dispose_postgres
+from backend.jobs.app import app as jobs_app, postgres_jobs_enabled
 from backend.app.mcp.server import build_mcp_asgi_app, mcp
 from backend.app.middlewares import DynamicCORSMiddleware, include_middlewares
 from backend.app.router import root_api_router
@@ -48,6 +49,9 @@ async def lifespan(app: FastAPI):
         container.database_client.override(providers.Object(client))
     await init_db(settings.mongo_settings.DB, client)
     await check_postgres_at_startup(container)
+    jobs_on_postgres = postgres_jobs_enabled(container.flags())
+    if jobs_on_postgres:
+        await jobs_app.open_async()
 
     # Auto-provision the Umami website (find-or-create by UMAMI_WEBSITE_NAME)
     # when UMAMI_WEBSITE_ID isn't already set — lets self-hosters skip creating
@@ -111,6 +115,8 @@ async def lifespan(app: FastAPI):
     mcp_stop.set()
     await mcp_task
     await close_db(client)
+    if jobs_on_postgres:
+        await jobs_app.close_async()
     await dispose_postgres(container)
     await AiohttpClient.close_aiohttp_client()
     await container.http_client().aclose()

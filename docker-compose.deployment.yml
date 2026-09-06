@@ -185,6 +185,26 @@ services:
       retries: 20
       start_period: 15s
 
+  # Consumes the procrastinate `default` queue (delete_user, delete_response) when
+  # JOBS_BACKEND routes those to Postgres; same image and env as the backend.
+  jobs-worker:
+    image: bettercollected/backend:nightly
+    command: ["/api/backend/.venv/bin/python", "-m", "backend.jobs.worker"]
+    environment:
+      AUTH_BASE_URL: http://auth:8000/api/v1
+      AUTH_CALLBACK_URI: http://auth:8000/api/v1/auth/callback
+      # Backend reaches Umami over the compose network; only UMAMI_USERNAME/
+      # UMAMI_PASSWORD/UMAMI_WEBSITE_ID need to come from .env.deployment.
+      UMAMI_URL: http://umami:3000
+      DATABASE_URL: postgresql+asyncpg://bc_app:${BC_APP_PASSWORD}@app-postgres:5432/bettercollected
+    env_file:
+      - .env.deployment
+    depends_on:
+      app-postgres:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
+
   auth:
     image: bettercollected/auth:nightly
     # image: bettercollected/auth:nightly

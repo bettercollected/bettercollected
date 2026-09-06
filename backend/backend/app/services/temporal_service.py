@@ -1,8 +1,14 @@
 import json
 from dataclasses import asdict
-from datetime import timedelta
+from datetime import timedelta, timezone
 from http import HTTPStatus
-from typing import List
+from typing import List, Optional
+
+from procrastinate import App
+from procrastinate.exceptions import AlreadyEnqueued
+
+from common.db.flags import DbFlags, JobsBackend
+from backend.jobs import tasks
 from bson import ObjectId
 
 import loguru
@@ -39,7 +45,18 @@ from backend.config import settings
 
 
 class TemporalService:
-    def __init__(self, server_uri: str, namespace: str, crypto: Crypto):
+    """Starts background jobs. Per job kind, ``JOBS_BACKEND__<job>`` picks the
+    Temporal workflow (today's default) or a procrastinate job on Postgres
+    (plans/postgres-consolidation.md §7); the callers do not know which."""
+
+    def __init__(
+        self,
+        server_uri: str,
+        namespace: str,
+        crypto: Crypto,
+        flags: Optional[DbFlags] = None,
+        jobs: Optional[App] = None,
+    ):
         self.server_uri = server_uri
         self.namespace = namespace
         self.crypto = crypto
@@ -51,6 +68,15 @@ class TemporalService:
         # cross-loop hazard (the same shape that broke the auth OTP send once
         # motor's cross-loop tolerance was dropped for pymongo).
         self.temporal_client = None
+        self.flags = flags
+        self.jobs = jobs
+
+    def _on_postgres(self, job: str) -> bool:
+        return (
+            self.flags is not None
+            and self.jobs is not None
+            and self.flags.jobs_backend(job) is JobsBackend.POSTGRES
+        )
 
     async def connect_to_temporal_server(self):
         try:
@@ -71,9 +97,20 @@ class TemporalService:
                 )
 
     async def start_user_deletion_workflow(self, user_tokens: UserTokens, user_id: str):
+        encrypted_tokens = self.crypto.encrypt(json.dumps(asdict(user_tokens)))
+        if self._on_postgres("delete_user"):
+            try:
+                await tasks.delete_user.configure(
+                    queueing_lock=f"delete_user:{user_id}"
+                ).defer_async(encrypted_tokens=encrypted_tokens, user_id=user_id)
+                return "Job Started"
+            except AlreadyEnqueued:
+                loguru.logger.error(
+                    "Deletion of user " + user_id + " has already been queued."
+                )
+                return None
         await self.check_temporal_client_and_try_to_connect_if_not_connected()
         try:
-            encrypted_tokens = self.crypto.encrypt(json.dumps(asdict(user_tokens)))
             await self.temporal_client.start_workflow(
                 "delete_user_workflow",
                 encrypted_tokens,
@@ -94,6 +131,15 @@ class TemporalService:
         self, response: StandardFormResponse
     ):
         expiration_date = get_formatted_date_from_str(response.expiration)
+        if self._on_postgres("delete_response"):
+            try:
+                await tasks.delete_response.configure(
+                    schedule_at=expiration_date.replace(tzinfo=timezone.utc),
+                    queueing_lock=f"delete_response:{response.response_id}",
+                ).defer_async(response_id=response.response_id)
+            except AlreadyEnqueued as e:
+                loguru.logger.info(e)
+            return
         try:
             await self.check_temporal_client_and_try_to_connect_if_not_connected()
             await self.temporal_client.create_schedule(
@@ -124,6 +170,15 @@ class TemporalService:
             loguru.logger.error(e)
 
     async def delete_response_delete_schedule(self, response_id: str):
+        if self._on_postgres("delete_response"):
+            pending = await self.jobs.job_manager.list_jobs_async(
+                queueing_lock=f"delete_response:{response_id}", status="todo"
+            )
+            for job in pending:
+                await self.jobs.job_manager.cancel_job_by_id_async(
+                    job.id, delete_job=True
+                )
+            return
         try:
             await self.check_temporal_client_and_try_to_connect_if_not_connected()
             schedule_id = "delete_response_" + response_id
@@ -154,6 +209,20 @@ class TemporalService:
             user_email=response.dataOwnerIdentifier if response is not None else "",
             workspace=workspace.json(),
         )
+        lock = (
+            "action_" + str(action.id) + str(form.form_id) + str(response.response_id)
+        )
+        if self._on_postgres("run_action"):
+            try:
+                await tasks.run_action_deferrer(queueing_lock=lock).defer_async(
+                    **asdict(run_action_params)
+                )
+                return "Job Started"
+            except AlreadyEnqueued:
+                raise HTTPException(
+                    status_code=HTTPStatus.CONFLICT,
+                    content="Workflow has already started.",
+                )
         try:
             await self.check_temporal_client_and_try_to_connect_if_not_connected()
             await self.temporal_client.start_workflow(

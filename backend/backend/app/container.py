@@ -3,8 +3,6 @@ from pathlib import Path
 
 from concurrent.futures.thread import ThreadPoolExecutor
 
-from apscheduler.jobstores.mongodb import MongoDBJobStore
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from common.configs.crypto import Crypto
 from common.services.http_client import HttpClient
 from common.services.jwt_service import JwtService
@@ -19,6 +17,7 @@ from common.db.routing import RoutingRepository
 
 from backend.db.outbox import OutboxRecorder
 from backend.db.groups import MONGO_JOINS
+from backend.jobs.app import app as jobs_app
 from backend.db.session import (
     LazyRepository,
     build_engine,
@@ -410,6 +409,8 @@ class AppContainer(containers.DeclarativeContainer):
         server_uri=settings.temporal_settings.server_uri,
         namespace=settings.temporal_settings.namespace,
         crypto=crypto,
+        flags=flags,
+        jobs=providers.Object(jobs_app),
     )
 
     aws_service: AWSS3Service = providers.Singleton(
@@ -465,15 +466,6 @@ class AppContainer(containers.DeclarativeContainer):
         workspace_repo=workspace_repo,
     )
 
-    job_store = providers.Singleton(MongoDBJobStore, host=settings.mongo_settings.URI)
-
-    job_stores = providers.Dict(default=job_store)
-
-    schedular = providers.Singleton(
-        AsyncIOScheduler,
-        jobstores=job_stores,
-    )
-
     form_import_service: FormImportService = providers.Singleton(
         FormImportService,
         form_service=form_service,
@@ -520,7 +512,6 @@ class AppContainer(containers.DeclarativeContainer):
         form_repo=form_repo,
         form_schedular=form_schedular,
         form_import_service=form_import_service,
-        schedular=schedular,
         form_response_service=form_response_service,
         responder_groups_service=responder_groups_service,
         user_tags_service=user_tags_service,
