@@ -479,7 +479,7 @@ class WorkspaceFormService:
                 workspace_id=workspace_id,
                 is_not_admin=True,
                 user=user,
-                match_query={"form_id": str(form_id)},
+                form_id=str(form_id),
             )
         )
 
@@ -529,12 +529,7 @@ class WorkspaceFormService:
                 workspace_id=workspace_id,
                 is_not_admin=True,
                 user=user,
-                match_query={
-                    "$or": [
-                        {"form_id": str(form_id)},
-                        {"settings.custom_url": str(form_id)},
-                    ]
-                },
+                form_id_or_slug=str(form_id),
             )
         )
         if not workspace_form_ids:

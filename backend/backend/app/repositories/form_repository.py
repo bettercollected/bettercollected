@@ -3,6 +3,8 @@ from typing import List
 from beanie import PydanticObjectId
 from beanie.odm.enums import SortDirection
 from beanie.odm.queries.aggregation import AggregationQuery
+from fastapi_pagination import Page
+from fastapi_pagination.ext.beanie import apaginate
 from common.models.standard_form import StandardForm
 
 from backend.app.exceptions import HTTPException
@@ -14,9 +16,20 @@ from backend.app.utils.aggregation_query_builder import create_filter_pipeline
 from common.db.routing import write_op
 
 
+# Arrays the $lookups leave behind once their values are folded into the
+# document; nothing reads them and they can be large (every version of a form).
+_LOOKUP_SCAFFOLDING = [
+    "workspace_form",
+    "form",
+    "form_groups",
+    "versions",
+    "responses_deletion_requests",
+]
+
+
 class FormRepository:
-    @staticmethod
-    def get_forms_in_workspace_query(
+    def _forms_in_workspace_query(
+        self,
         workspace_id: PydanticObjectId,
         form_id_list: List[str],
         is_admin: bool,
@@ -110,13 +123,38 @@ class FormRepository:
                     {"$set": {"is_published": {"$gt": [{"$size": "$versions"}, 0]}}},
                 ]
             )
-        forms = FormDocument.find({"form_id": {"$in": form_id_list}}).aggregate(
+        aggregation_pipeline.append({"$unset": _LOOKUP_SCAFFOLDING})
+        return FormDocument.find({"form_id": {"$in": form_id_list}}).aggregate(
             aggregation_pipeline
         )
-        return forms
 
-    @staticmethod
-    def get_published_forms_in_workspace(
+    async def get_forms_in_workspace(
+        self,
+        workspace_id: PydanticObjectId,
+        form_id_list: List[str],
+        is_admin: bool,
+        sort=None,
+    ) -> List[dict]:
+        """Draft forms of a workspace with their workspace settings, importer,
+        responder groups and — for admins — response/deletion counts and publish
+        state. Raw documents, shaped for ``FormDtoCamelModel``."""
+        return await self._forms_in_workspace_query(
+            workspace_id, form_id_list, is_admin, sort
+        ).to_list()
+
+    async def paginate_forms_in_workspace(
+        self,
+        workspace_id: PydanticObjectId,
+        form_id_list: List[str],
+        is_admin: bool,
+        sort=None,
+    ) -> Page:
+        return await apaginate(
+            self._forms_in_workspace_query(workspace_id, form_id_list, is_admin, sort)
+        )
+
+    def _published_forms_in_workspace_query(
+        self,
         workspace_id: PydanticObjectId,
         form_id_list: List[str],
         sort=None,
@@ -204,10 +242,37 @@ class FormRepository:
         if get_actions:
             aggregation_pipeline.extend(get_action_aggregation)
         aggregation_pipeline.extend(create_filter_pipeline(sort=sort))
-        form_versions_query = FormVersionsDocument.find(
+        aggregation_pipeline.append({"$unset": _LOOKUP_SCAFFOLDING})
+        return FormVersionsDocument.find(
             {"form_id": {"$in": form_id_list}}
         ).aggregate(aggregation_pipeline=aggregation_pipeline)
-        return form_versions_query
+
+    async def get_published_forms_in_workspace(
+        self,
+        workspace_id: PydanticObjectId,
+        form_id_list: List[str],
+        sort=None,
+        get_actions=False,
+    ) -> List[dict]:
+        """Latest published version of each form, with workspace settings and
+        response/deletion counts; ``get_actions`` adds the draft's actions,
+        parameters, secrets and responder groups."""
+        return await self._published_forms_in_workspace_query(
+            workspace_id, form_id_list, sort, get_actions
+        ).to_list()
+
+    async def paginate_published_forms_in_workspace(
+        self,
+        workspace_id: PydanticObjectId,
+        form_id_list: List[str],
+        sort=None,
+        get_actions=False,
+    ) -> Page:
+        return await apaginate(
+            self._published_forms_in_workspace_query(
+                workspace_id, form_id_list, sort, get_actions
+            )
+        )
 
     async def search_form_in_workspace(
         self,

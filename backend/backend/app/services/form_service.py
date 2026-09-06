@@ -16,7 +16,6 @@ from common.models.standard_form import (
 from common.models.user import User
 from common.services.http_client import HttpClient
 from fastapi_pagination import Page
-from fastapi_pagination.ext.beanie import paginate, apaginate
 from starlette.requests import Request
 
 from backend.app.constants.consents import default_consents
@@ -91,20 +90,18 @@ class FormService:
             filter_closed=published or pinned_only,
         )
         if published:
-            forms_query = self._form_repo.get_published_forms_in_workspace(
+            forms_page = await self._form_repo.paginate_published_forms_in_workspace(
                 workspace_id=workspace_id,
                 form_id_list=workspace_form_ids,
                 sort=sort,
             )
         else:
-            forms_query = self._form_repo.get_forms_in_workspace_query(
+            forms_page = await self._form_repo.paginate_forms_in_workspace(
                 workspace_id=workspace_id,
                 form_id_list=workspace_form_ids,
                 is_admin=has_access_to_workspace,
                 sort=sort,
             )
-
-        forms_page = await apaginate(forms_query)
 
         if not published:
             user_ids = [form.imported_by for form in forms_page.items]
@@ -203,23 +200,21 @@ class FormService:
             workspace_id=workspace_id,
             is_not_admin=not is_admin,
             user=user,
-            match_query={
-                "$or": [{"form_id": form_id}, {"settings.custom_url": form_id}]
-            },
+            form_id_or_slug=form_id,
         )
         if published:
             authorized_form = await self._form_repo.get_published_forms_in_workspace(
                 workspace_id=workspace_id,
                 form_id_list=workspace_form_ids,
                 get_actions=is_admin,
-            ).to_list()
+            )
             if not authorized_form:
                 if draft:
-                    form = await self._form_repo.get_forms_in_workspace_query(
+                    form = await self._form_repo.get_forms_in_workspace(
                         workspace_id=workspace_id,
                         form_id_list=workspace_form_ids,
                         is_admin=is_admin,
-                    ).to_list()
+                    )
                     if not form:
                         raise HTTPException(
                             status_code=HTTPStatus.NOT_FOUND, content="Form Not Found"
@@ -247,11 +242,11 @@ class FormService:
                 return authorized_form[0]
 
         else:
-            form = await self._form_repo.get_forms_in_workspace_query(
+            form = await self._form_repo.get_forms_in_workspace(
                 workspace_id=workspace_id,
                 form_id_list=workspace_form_ids,
                 is_admin=is_admin,
-            ).to_list()
+            )
         if not form:
             raise HTTPException(
                 status_code=HTTPStatus.NOT_FOUND, content="Form Not Found"
@@ -431,9 +426,7 @@ class FormService:
                 workspace_id=workspace_id,
                 is_not_admin=not is_admin,
                 user=user,
-                match_query={
-                    "$or": [{"form_id": form_id}, {"settings.custom_url": form_id}]
-                },
+                form_id_or_slug=form_id,
             )
         )
 
@@ -443,11 +436,11 @@ class FormService:
             )
         workspace_form = workspace_forms[0]
         if workspace_form["settings"]["provider"] != "self":
-            form = await self._form_repo.get_forms_in_workspace_query(
+            form = await self._form_repo.get_forms_in_workspace(
                 workspace_id=workspace_id,
                 form_id_list=[form_id],
                 is_admin=is_admin,
-            ).to_list()
+            )
 
             if not form:
                 raise HTTPException(
