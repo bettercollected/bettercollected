@@ -200,6 +200,7 @@ jobs:
                   AUTH_JWT_SECRET: c3c66ff889b1deabc35ebb3cf07374f1fd934f0f0185eec076b5bcd874de86d5
                   AUTH_AES_HEX_KEY: L5HuSlk0ijI3xzaccuy2x1jnzHNjtTw3zW53tjGHZG0=
                   ELASTIC_APM_DISABLE_SEND: "true"
+              run: uv run pytest
     google-tests:
         name: Google integration tests (pytest)
         # The google unit suite has pre-existing failures from aiohttp/pydantic API
