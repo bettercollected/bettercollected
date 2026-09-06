@@ -41,6 +41,13 @@ def get_get_form_responses_url(
 
 
 @pytest.fixture()
+def get_form_all_submissions_url(
+    common_url: str, workspace_form: Coroutine[Any, Any, FormDocument]
+):
+    return f"{common_url}/forms/{workspace_form.form_id}/all-submissions"
+
+
+@pytest.fixture()
 def get_all_workspace_responses_url(common_url: str):
     return f"{common_url}/all-submissions"
 
@@ -409,3 +416,79 @@ class TestWorkspaceFormSubmission:
         expected_response_message = "Form not found in this workspace"
         actual_response_message = single_form_response.json()
         assert actual_response_message == expected_response_message
+
+    async def test_anonymous_get_form_all_submissions_fails(
+        self,
+        client: AsyncClient,
+        published_form: Coroutine[Any, Any, FormDocument],
+        workspace_form_response: Coroutine[Any, Any, dict],
+        get_form_all_submissions_url: str,
+    ):
+        """Regression for GHSA-fxj7-cmmh-8c38: the route must never serve an
+        unauthenticated caller."""
+        form_responses = await client.get(get_form_all_submissions_url)
+
+        assert form_responses.status_code == 401
+
+    async def test_unauthorized_get_form_all_submissions_fails(
+        self,
+        client: AsyncClient,
+        test_user_cookies_1: dict[str, str],
+        published_form: Coroutine[Any, Any, FormDocument],
+        workspace_form_response: Coroutine[Any, Any, dict],
+        get_form_all_submissions_url: str,
+    ):
+        form_responses = await client.get(
+            get_form_all_submissions_url,
+            cookies=test_user_cookies_1,
+        )
+
+        expected_response = MESSAGE_FORBIDDEN
+        actual_response = form_responses.json()
+        assert form_responses.status_code == 403
+        assert actual_response == expected_response
+
+    async def test_get_form_all_submissions(
+        self,
+        client: AsyncClient,
+        test_user_cookies: dict[str, str],
+        published_form: Coroutine[Any, Any, FormDocument],
+        workspace_form_response: Coroutine[Any, Any, dict],
+        workspace_form_response_1: Coroutine[Any, Any, dict],
+        get_form_all_submissions_url: str,
+    ):
+        """A workspace member still gets the responses: the builder's Insights
+        overlay and the CSV export both read this endpoint."""
+        form_responses = await client.get(
+            get_form_all_submissions_url,
+            cookies=test_user_cookies,
+        )
+
+        expected_response_ids = {
+            workspace_form_response["response_id"],
+            workspace_form_response_1["response_id"],
+        }
+        actual_response_ids = {item["responseId"] for item in form_responses.json()}
+        assert form_responses.status_code == 200
+        assert actual_response_ids == expected_response_ids
+
+    async def test_non_workspace_form_fails_on_get_form_all_submissions(
+        self,
+        client: AsyncClient,
+        common_url: str,
+        test_user_cookies: dict[str, str],
+        workspace_form_1: Coroutine[Any, Any, FormDocument],
+    ):
+        get_non_workspace_form_url = (
+            f"{common_url}/forms/{workspace_form_1.form_id}/all-submissions"
+        )
+
+        form_responses = await client.get(
+            get_non_workspace_form_url,
+            cookies=test_user_cookies,
+        )
+
+        expected_response = "Form not found in the workspace."
+        actual_response = form_responses.json()
+        assert form_responses.status_code == 404
+        assert actual_response == expected_response

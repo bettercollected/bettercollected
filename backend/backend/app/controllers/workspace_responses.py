@@ -70,11 +70,14 @@ class WorkspaceResponsesRouter(CustomRoutable):
         response_model=List[StandardFormResponseCamelModel],
     )
     async def get_workspace_form_all_submissions(
-        self, workspace_id: PydanticObjectId, form_id: str
+        self,
+        workspace_id: PydanticObjectId,
+        form_id: str,
+        user: User = Depends(get_logged_user),
     ):
         responses = (
             await self._form_response_service.get_workspace_form_all_submissions(
-                form_id, workspace_id
+                form_id, workspace_id, user
             )
         )
         return responses
