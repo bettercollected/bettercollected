@@ -1,4 +1,5 @@
-from typing import List, Optional
+import re
+from typing import Dict, Set, List, Optional
 
 from beanie import PydanticObjectId
 from pydantic import EmailStr
@@ -9,6 +10,7 @@ from backend.app.schemas.responder_group import (
     ResponderGroupMemberDocument,
     ResponderGroupFormDocument,
 )
+from common.db import to_bson_dict
 from common.db.routing import write_op
 
 
@@ -199,6 +201,54 @@ class ResponderGroupsRepository:
             )
             .to_list()
         )
+
+    async def get_groups_by_form_ids(
+        self, form_ids: List[str]
+    ) -> Dict[str, List[dict]]:
+        """form_id -> the raw responder-group documents attached to it (the
+        shape a $lookup into responder_group yields), for the forms twins."""
+        links = await ResponderGroupFormDocument.find(
+            {"form_id": {"$in": form_ids}}
+        ).to_list()
+        groups = {
+            group.id: to_bson_dict(group)
+            for group in await ResponderGroupDocument.find(
+                {"_id": {"$in": list({link.group_id for link in links})}}
+            ).to_list()
+        }
+        by_form: Dict[str, List[dict]] = {form_id: [] for form_id in form_ids}
+        for link in links:
+            if link.group_id in groups:
+                by_form.setdefault(link.form_id, []).append(groups[link.group_id])
+        return by_form
+
+    async def get_form_ids_accessible_to(
+        self, form_ids: List[str], identifier: str
+    ) -> Set[str]:
+        """The subset of ``form_ids`` whose responder groups admit ``identifier``:
+        a member with that identifier, or a group regex it matches."""
+        links = await ResponderGroupFormDocument.find(
+            {"form_id": {"$in": form_ids}}
+        ).to_list()
+        group_ids = list({link.group_id for link in links})
+        if not group_ids:
+            return set()
+        member_of = {
+            member.group_id
+            for member in await ResponderGroupMemberDocument.find(
+                {"group_id": {"$in": group_ids}, "identifier": identifier}
+            ).to_list()
+        }
+        regex_groups = await ResponderGroupDocument.find(
+            {"_id": {"$in": group_ids}, "regex": {"$nin": [None, ""]}}
+        ).to_list()
+        for group in regex_groups:
+            try:
+                if re.search(group.regex, identifier):
+                    member_of.add(group.id)
+            except re.error:
+                continue
+        return {link.form_id for link in links if link.group_id in member_of}
 
     @write_op
     async def add_group_to_form(self, form_id: str, group_id: PydanticObjectId):

@@ -56,7 +56,7 @@ class WorkspaceFormRepository:
             raise HTTPException(HTTPStatus.NOT_FOUND, "Form not found in ")
         return await item.save()
 
-    @write_op
+    @write_op(replay=True)
     async def save_workspace_form(
         self,
         workspace_id: PydanticObjectId,
@@ -237,6 +237,10 @@ class WorkspaceFormRepository:
                 )
             if id_only:
                 aggregation_pipeline.extend([{"$project": {"form_id": 1, "_id": 0}}])
+            else:
+                aggregation_pipeline.append(
+                    {"$unset": ["groups_form", "emails", "groups", "regex"]}
+                )
             workspace_forms = (
                 await WorkspaceFormDocument.find(query)
                 .aggregate(aggregation_pipeline)
@@ -351,8 +355,8 @@ class WorkspaceFormRepository:
     async def check_if_form_exists_in_workspace(
         self, workspace_id: PydanticObjectId, form_id: str
     ):
+        # `and` between two Beanie expressions evaluated to the second only
         workspace_form = await WorkspaceFormDocument.find_one(
-            WorkspaceFormDocument.workspace_id == workspace_id
-            and WorkspaceFormDocument.form_id == form_id
+            {"workspace_id": workspace_id, "form_id": form_id}
         )
         return True if workspace_form is not None else False

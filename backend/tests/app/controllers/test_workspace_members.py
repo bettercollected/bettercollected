@@ -123,8 +123,8 @@ class TestWorkspaceMember:
         with mock_get_user_info:
             await client.delete(delete_url, cookies=test_user_cookies)
 
-        expected_form = await WorkspaceFormDocument.find_one(
-            {"form_id": workspace_form.form_id, "workspace_id": workspace.id}
+        expected_form = await container.workspace_form_repo().find_workspace_form(
+            workspace.id, workspace_form.form_id
         )
         expected_user = await container.workspace_user_repo().find_workspace_user(
             workspace.id, PydanticObjectId(testUser.id)

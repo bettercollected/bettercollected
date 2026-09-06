@@ -17,6 +17,18 @@ from backend.app.repositories.coupon_repository import CouponRepository
 from backend.app.repositories.form_plugin_provider_repository import (
     FormPluginProviderRepository,
 )
+from backend.app.repositories.form_repository import FormRepository
+from backend.app.repositories.media_library_repository import MediaLibraryRepository
+from backend.app.repositories.postgres.forms import (
+    PostgresFormRepository,
+    PostgresFormTemplateRepository,
+    PostgresMediaLibraryRepository,
+    PostgresWorkspaceConsentRepo,
+    PostgresWorkspaceFormRepository,
+)
+from backend.app.repositories.template import FormTemplateRepository
+from backend.app.repositories.workspace_consent_repo import WorkspaceConsentRepo
+from backend.app.repositories.workspace_form_repository import WorkspaceFormRepository
 from backend.app.repositories.postgres.identity import (
     PostgresBlacklistedRefreshTokenRepository,
     PostgresUserTagsRepository,
@@ -52,6 +64,11 @@ PAIRS = [
     (WorkspaceAPIKeyRepository, PostgresWorkspaceAPIKeyRepository),
     (BlacklistedRefreshTokenRepository, PostgresBlacklistedRefreshTokenRepository),
     (UserTagsRepository, PostgresUserTagsRepository),
+    (FormRepository, PostgresFormRepository),
+    (WorkspaceFormRepository, PostgresWorkspaceFormRepository),
+    (WorkspaceConsentRepo, PostgresWorkspaceConsentRepo),
+    (FormTemplateRepository, PostgresFormTemplateRepository),
+    (MediaLibraryRepository, PostgresMediaLibraryRepository),
 ]
 
 

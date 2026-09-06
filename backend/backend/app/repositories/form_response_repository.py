@@ -199,6 +199,30 @@ class FormResponseRepository(BaseRepository):
         else:
             return await self.get_form_responses(form_ids, extra_find_query)
 
+    async def count_responses_with_answers_by_form_ids(
+        self, form_ids: List[str]
+    ) -> Dict[str, int]:
+        """form_id -> responses that carry an ``answers`` field (the forms list's
+        response count; deletion-only stubs have none)."""
+        rows = (
+            await FormResponseDocument.find(
+                {"form_id": {"$in": form_ids}, "answers": {"$exists": True}}
+            )
+            .aggregate([{"$group": {"_id": "$form_id", "n": {"$sum": 1}}}])
+            .to_list()
+        )
+        return {row["_id"]: row["n"] for row in rows}
+
+    async def count_deletion_requests_by_form_ids(
+        self, form_ids: List[str]
+    ) -> Dict[str, int]:
+        rows = (
+            await FormResponseDeletionRequest.find({"form_id": {"$in": form_ids}})
+            .aggregate([{"$group": {"_id": "$form_id", "n": {"$sum": 1}}}])
+            .to_list()
+        )
+        return {row["_id"]: row["n"] for row in rows}
+
     async def count_responses_for_form_ids(self, form_ids: List[str]) -> int:
         return await FormResponseDocument.find({"form_id": {"$in": form_ids}}).count()
 

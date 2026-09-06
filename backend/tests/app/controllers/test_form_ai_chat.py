@@ -58,7 +58,7 @@ async def _make_v2(form_doc: FormDocument) -> str:
             ),
         )
     ]
-    await form_doc.save()
+    await container.form_repo().save_form(form_doc)
     return "page-1"
 
 
@@ -80,7 +80,9 @@ class TestFormAIChat:
         test_user_cookies: dict[str, str],
         fake_provider: FakeProvider,
     ):
-        form_doc = await FormDocument.find_one({"form_id": workspace_form.form_id})
+        form_doc = await container.form_repo().get_form_document_by_id(
+            workspace_form.form_id
+        )
         page_id = await _make_v2(form_doc)
         fake_provider.replies = [
             json.dumps(
@@ -90,7 +92,11 @@ class TestFormAIChat:
                         {
                             "op": "add_field",
                             "pageId": page_id,
-                            "field": {"title": "Work email", "type": "email", "required": True},
+                            "field": {
+                                "title": "Work email",
+                                "type": "email",
+                                "required": True,
+                            },
                         }
                     ],
                 }
@@ -109,7 +115,9 @@ class TestFormAIChat:
         assert "Work email" in body["results"][0]["message"]
 
         # Draft persisted
-        saved = await FormDocument.find_one({"form_id": workspace_form.form_id})
+        saved = await container.form_repo().get_form_document_by_id(
+            workspace_form.form_id
+        )
         assert "Work email" in _all_titles(saved)
 
         # Session recorded with the auditable ops + results
@@ -132,7 +140,9 @@ class TestFormAIChat:
     ):
         """The exact user journey that surfaced this gap: 'update the purpose
         and retention for this form' must land in the Form tab's settings."""
-        form_doc = await FormDocument.find_one({"form_id": workspace_form.form_id})
+        form_doc = await container.form_repo().get_form_document_by_id(
+            workspace_form.form_id
+        )
         await _make_v2(form_doc)
         fake_provider.replies = [
             json.dumps(
@@ -141,7 +151,10 @@ class TestFormAIChat:
                     "ops": [
                         {
                             "op": "update_form_settings",
-                            "patch": {"purpose": "To schedule your appointment", "retentionText": "kept for 90 days"},
+                            "patch": {
+                                "purpose": "To schedule your appointment",
+                                "retentionText": "kept for 90 days",
+                            },
                         }
                     ],
                 }
@@ -157,7 +170,10 @@ class TestFormAIChat:
         assert response.status_code == 200, response.text
         body = response.json()
         assert body["results"][0]["ok"] is True
-        assert "purpose" in body["results"][0]["message"] and "retention" in body["results"][0]["message"]
+        assert (
+            "purpose" in body["results"][0]["message"]
+            and "retention" in body["results"][0]["message"]
+        )
         # The response carries the updated settings for the Form tab.
         assert body["settings"]["purpose"] == "To schedule your appointment"
         assert body["settings"]["retentionText"] == "kept for 90 days"
@@ -165,8 +181,10 @@ class TestFormAIChat:
         # Persisted on the workspace-form association (where the Form tab reads).
         from backend.app.schemas.workspace_form import WorkspaceFormDocument
 
-        workspace_form_doc = await WorkspaceFormDocument.find_one(
-            WorkspaceFormDocument.form_id == workspace_form.form_id
+        workspace_form_doc = (
+            await container.workspace_form_repo().find_first_by_form_id(
+                workspace_form.form_id
+            )
         )
         assert workspace_form_doc.settings.purpose == "To schedule your appointment"
         assert workspace_form_doc.settings.retention_text == "kept for 90 days"
@@ -182,18 +200,27 @@ class TestFormAIChat:
         test_user_cookies: dict[str, str],
         fake_provider: FakeProvider,
     ):
-        form_doc = await FormDocument.find_one({"form_id": workspace_form.form_id})
+        form_doc = await container.form_repo().get_form_document_by_id(
+            workspace_form.form_id
+        )
         await _make_v2(form_doc)
         from backend.app.schemas.workspace_form import WorkspaceFormDocument
 
-        workspace_form_doc = await WorkspaceFormDocument.find_one(
-            WorkspaceFormDocument.form_id == workspace_form.form_id
+        workspace_form_doc = (
+            await container.workspace_form_repo().find_first_by_form_id(
+                workspace_form.form_id
+            )
         )
         workspace_form_doc.settings.purpose = "Old purpose"
-        await workspace_form_doc.save()
+        await container.workspace_form_repo().save(workspace_form_doc)
 
         fake_provider.replies = [
-            json.dumps({"reply": "Cleared.", "ops": [{"op": "update_form_settings", "patch": {"purpose": ""}}]}),
+            json.dumps(
+                {
+                    "reply": "Cleared.",
+                    "ops": [{"op": "update_form_settings", "patch": {"purpose": ""}}],
+                }
+            ),
             json.dumps({"memories": []}),
         ]
         response = await client.post(
@@ -202,8 +229,8 @@ class TestFormAIChat:
             json={"message": "remove the purpose text"},
         )
         assert response.status_code == 200
-        refreshed = await WorkspaceFormDocument.find_one(
-            WorkspaceFormDocument.form_id == workspace_form.form_id
+        refreshed = await container.workspace_form_repo().find_first_by_form_id(
+            workspace_form.form_id
         )
         assert refreshed.settings.purpose is None
 
@@ -223,10 +250,18 @@ class TestFormAIChat:
             json.dumps({"reply": "Done.", "ops": []}),
             json.dumps({"memories": []}),
         ]
-        url = f"/api/v1/workspaces/{workspace.id}/forms/{workspace_form.form_id}/ai/chat"
-        first = await client.post(url, cookies=test_user_cookies, json={"message": "hello"})
+        url = (
+            f"/api/v1/workspaces/{workspace.id}/forms/{workspace_form.form_id}/ai/chat"
+        )
+        first = await client.post(
+            url, cookies=test_user_cookies, json={"message": "hello"}
+        )
         session_id = first.json()["sessionId"]
-        second = await client.post(url, cookies=test_user_cookies, json={"message": "again", "sessionId": session_id})
+        second = await client.post(
+            url,
+            cookies=test_user_cookies,
+            json={"message": "again", "sessionId": session_id},
+        )
         assert second.status_code == 200
         assert second.json()["sessionId"] == session_id
         # Second CHAT call (calls[2]; calls[1] was turn 1's extraction)
@@ -261,7 +296,9 @@ class TestFormAIChat:
         body = response.json()
         assert body["results"][0]["ok"] is False
         assert body["results"][1]["ok"] is True
-        saved = await FormDocument.find_one({"form_id": workspace_form.form_id})
+        saved = await container.form_repo().get_form_document_by_id(
+            workspace_form.form_id
+        )
         assert saved.title == "Renamed by AI"
 
     async def test_unusable_model_reply_changes_nothing(
@@ -272,7 +309,9 @@ class TestFormAIChat:
         test_user_cookies: dict[str, str],
         fake_provider: FakeProvider,
     ):
-        before = (await FormDocument.find_one({"form_id": workspace_form.form_id})).model_dump()
+        before = (
+            await container.form_repo().get_form_document_by_id(workspace_form.form_id)
+        ).model_dump()
         fake_provider.replies = ["I refuse to speak JSON today."]
         response = await client.post(
             f"/api/v1/workspaces/{workspace.id}/forms/{workspace_form.form_id}/ai/chat",
@@ -280,7 +319,9 @@ class TestFormAIChat:
             json={"message": "do something"},
         )
         assert response.status_code == 502
-        after = (await FormDocument.find_one({"form_id": workspace_form.form_id})).model_dump()
+        after = (
+            await container.form_repo().get_form_document_by_id(workspace_form.form_id)
+        ).model_dump()
         assert after == before
 
     async def test_unknown_form_404(

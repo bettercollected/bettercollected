@@ -3,7 +3,7 @@ import random
 import pytest
 
 from common.db import JobsBackend, ReadSource, WriteMode, load_flags
-from common.db.flags import FlagError
+from common.db.flags import FlagError, FlagError
 
 
 def test_defaults_are_todays_behaviour():
@@ -124,3 +124,25 @@ def test_serves_from_postgres_distinguishes_mirror_only_from_serving():
         load_flags({"DB_WRITE_MODE": "postgres_primary_dual"}).serves_from_postgres()
         is True
     )
+
+
+def test_read_dependencies_enforce_cutover_order():
+    deps = {"forms": ["responses"]}
+    # responses still on mongo: forms may mirror but not serve
+    load_flags({"DB_WRITE_MODE__forms": "dual"}, deps)
+    with pytest.raises(FlagError, match="'responses' still read from mongo"):
+        load_flags(
+            {"DB_READ_SOURCE__forms": "postgres", "DB_WRITE_MODE__forms": "postgres"},
+            deps,
+        )
+    # together, or responses first, is fine
+    load_flags(
+        {
+            "DB_READ_SOURCE__forms": "postgres",
+            "DB_WRITE_MODE__forms": "postgres",
+            "DB_READ_SOURCE__responses": "postgres",
+            "DB_WRITE_MODE__responses": "postgres",
+        },
+        deps,
+    )
+    load_flags({"DB_READ_SOURCE": "postgres", "DB_WRITE_MODE": "postgres"}, deps)

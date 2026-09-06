@@ -44,8 +44,16 @@ def fake_insights_provider(monkeypatch):
 INSIGHTS_REPLY = {
     "summary": "Respondents are broadly happy with onboarding but struggle with billing.",
     "themes": [
-        {"title": "Billing confusion", "description": "Several responses mention unclear invoices.", "approxCount": 2},
-        {"title": "Smooth onboarding", "description": "Setup is repeatedly called easy.", "approxCount": 2},
+        {
+            "title": "Billing confusion",
+            "description": "Several responses mention unclear invoices.",
+            "approxCount": 2,
+        },
+        {
+            "title": "Smooth onboarding",
+            "description": "Setup is repeatedly called easy.",
+            "approxCount": 2,
+        },
     ],
     "actionable": ["Clarify the invoice layout."],
     "sentiment": "Mostly positive with one recurring frustration.",
@@ -54,7 +62,7 @@ INSIGHTS_REPLY = {
 
 async def _seed_form_and_responses(workspace_id, form_id: str) -> None:
     """Give the fixture form real questions and three answered responses."""
-    form_doc = await FormDocument.find_one({"form_id": form_id})
+    form_doc = await container.form_repo().get_form_document_by_id(form_id)
     form_doc.fields = [
         StandardFormField(
             id="page-1",
@@ -62,37 +70,70 @@ async def _seed_form_and_responses(workspace_id, form_id: str) -> None:
             type=StandardFormFieldType.SLIDE,
             properties=StandardFieldProperty(
                 fields=[
-                    StandardFormField(id="q-feedback", index=0, type=StandardFormFieldType.LONG_TEXT, title="Any feedback?", properties=StandardFieldProperty(fields=[])),
-                    StandardFormField(id="q-email", index=1, type=StandardFormFieldType.EMAIL, title="Your email?", properties=StandardFieldProperty(fields=[])),
-                    StandardFormField(id="q-score", index=2, type=StandardFormFieldType.NUMBER, title="Score 1-10?", properties=StandardFieldProperty(fields=[])),
+                    StandardFormField(
+                        id="q-feedback",
+                        index=0,
+                        type=StandardFormFieldType.LONG_TEXT,
+                        title="Any feedback?",
+                        properties=StandardFieldProperty(fields=[]),
+                    ),
+                    StandardFormField(
+                        id="q-email",
+                        index=1,
+                        type=StandardFormFieldType.EMAIL,
+                        title="Your email?",
+                        properties=StandardFieldProperty(fields=[]),
+                    ),
+                    StandardFormField(
+                        id="q-score",
+                        index=2,
+                        type=StandardFormFieldType.NUMBER,
+                        title="Score 1-10?",
+                        properties=StandardFieldProperty(fields=[]),
+                    ),
                     StandardFormField(
                         id="q-plan",
                         index=3,
                         type=StandardFormFieldType.DROPDOWN,
                         title="Which plan are you on?",
-                        properties=StandardFieldProperty(fields=[], choices=[StandardChoice(id="choice-free", value="Free"), StandardChoice(id="choice-pro", value="Pro")]),
+                        properties=StandardFieldProperty(
+                            fields=[],
+                            choices=[
+                                StandardChoice(id="choice-free", value="Free"),
+                                StandardChoice(id="choice-pro", value="Pro"),
+                            ],
+                        ),
                     ),
                 ]
             ),
         )
     ]
-    await form_doc.save()
+    await container.form_repo().save_form(form_doc)
 
     answer_sets = [
         {
-            "q-feedback": {"type": "text", "text": "Onboarding was easy but the invoice is confusing."},
+            "q-feedback": {
+                "type": "text",
+                "text": "Onboarding was easy but the invoice is confusing.",
+            },
             "q-email": {"type": "email", "email": "alice@example.com"},
             "q-score": {"type": "number", "number": 8},
             # Responses store choice IDs — the projection must resolve labels.
             "q-plan": {"type": "choice", "choice": {"value": "choice-pro"}},
         },
         {
-            "q-feedback": {"type": "text", "text": "Billing page needs work, rest is great."},
+            "q-feedback": {
+                "type": "text",
+                "text": "Billing page needs work, rest is great.",
+            },
             "q-email": {"type": "email", "email": "bob@example.com"},
             "q-score": {"type": "number", "number": 7},
         },
         {
-            "q-feedback": {"type": "text", "text": "Setup took five minutes. Loved it."},
+            "q-feedback": {
+                "type": "text",
+                "text": "Setup took five minutes. Loved it.",
+            },
             "q-email": {"type": "email", "email": "carol@example.com"},
             "q-score": {"type": "number", "number": 10},
         },
@@ -201,7 +242,12 @@ class TestFormAIInsights:
             json={},
         )
         assert response.status_code == 502
-        assert await FormAIInsightDocument.find_one(FormAIInsightDocument.form_id == workspace_form.form_id) is None
+        assert (
+            await FormAIInsightDocument.find_one(
+                FormAIInsightDocument.form_id == workspace_form.form_id
+            )
+            is None
+        )
 
 
 class TestAIFormAccessIsWorkspaceScoped:
@@ -219,20 +265,44 @@ class TestAIFormAccessIsWorkspaceScoped:
         # passes — the form-belongs-to-workspace check must be what stops it.
         await container.workspace_user_repo().save(
             WorkspaceUserDocument(
-                workspace_id=workspace_1.id, user_id=testUser.id, roles=[WorkspaceRoles.COLLABORATOR]
+                workspace_id=workspace_1.id,
+                user_id=testUser.id,
+                roles=[WorkspaceRoles.COLLABORATOR],
             )
         )
         foreign = workspace_form.form_id
         calls = [
-            ("post", f"/api/v1/workspaces/{workspace_1.id}/forms/{foreign}/ai/chat", {"message": "hi"}),
-            ("post", f"/api/v1/workspaces/{workspace_1.id}/forms/{foreign}/ai/review", {}),
-            ("post", f"/api/v1/workspaces/{workspace_1.id}/forms/{foreign}/ai/review/apply", {"ops": [{"op": "remove_field", "fieldId": "x"}]}),
-            ("post", f"/api/v1/workspaces/{workspace_1.id}/forms/{foreign}/ai/insights", {}),
-            ("get", f"/api/v1/workspaces/{workspace_1.id}/forms/{foreign}/ai/insights", None),
+            (
+                "post",
+                f"/api/v1/workspaces/{workspace_1.id}/forms/{foreign}/ai/chat",
+                {"message": "hi"},
+            ),
+            (
+                "post",
+                f"/api/v1/workspaces/{workspace_1.id}/forms/{foreign}/ai/review",
+                {},
+            ),
+            (
+                "post",
+                f"/api/v1/workspaces/{workspace_1.id}/forms/{foreign}/ai/review/apply",
+                {"ops": [{"op": "remove_field", "fieldId": "x"}]},
+            ),
+            (
+                "post",
+                f"/api/v1/workspaces/{workspace_1.id}/forms/{foreign}/ai/insights",
+                {},
+            ),
+            (
+                "get",
+                f"/api/v1/workspaces/{workspace_1.id}/forms/{foreign}/ai/insights",
+                None,
+            ),
         ]
         for method, url, body in calls:
             if method == "get":
                 response = await client.get(url, cookies=test_user_cookies)
             else:
                 response = await client.post(url, cookies=test_user_cookies, json=body)
-            assert response.status_code == 404, f"{method.upper()} {url} -> {response.status_code}: {response.text}"
+            assert (
+                response.status_code == 404
+            ), f"{method.upper()} {url} -> {response.status_code}: {response.text}"
