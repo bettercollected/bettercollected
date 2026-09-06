@@ -20,6 +20,7 @@ models.
 
 from __future__ import annotations
 
+import hashlib
 from datetime import datetime, timezone
 from typing import Any, Mapping, Optional, Type, TypeVar
 
@@ -37,6 +38,14 @@ def ensure_id(document: Document) -> Document:
     if document.id is None:
         document.id = PydanticObjectId()
     return document
+
+
+def derived_object_id(*parts: Any) -> PydanticObjectId:
+    """An ObjectId that is a function of ``parts`` — for documents whose identity
+    *is* a relation (a group member, a group↔form link). Two stores executing
+    the same write then produce the same row, so the mirror needs no replay."""
+    digest = hashlib.sha1("\x00".join(str(p) for p in parts).encode()).digest()
+    return PydanticObjectId(digest[:12])
 
 
 def to_bson_dict(document: Document) -> dict[str, Any]:

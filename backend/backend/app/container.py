@@ -18,7 +18,7 @@ from common.db import DatabaseSettings, load_flags
 from common.db.routing import RoutingRepository
 
 from backend.db.outbox import OutboxRecorder
-from backend.db.groups import READ_DEPENDENCIES
+from backend.db.groups import MONGO_JOINS
 from backend.db.session import build_engine, build_sessionmaker, postgres_repository
 from backend.app.repositories.postgres.forms import (
     PostgresFormRepository,
@@ -128,7 +128,7 @@ class AppContainer(containers.DeclarativeContainer):
     database_client: AsyncMongoClient = providers.Object(None)
     # Mongo/Postgres switching (plans/postgres-consolidation.md D5): read once at boot,
     # validated; a bad combination refuses to start.
-    flags = providers.Singleton(load_flags, read_dependencies=READ_DEPENDENCIES)
+    flags = providers.Singleton(load_flags, mongo_joins=MONGO_JOINS)
     # Postgres: engine and sessions exist only when DATABASE_URL is set; the
     # routing layer treats the store as absent otherwise. Mirror-write failures
     # land in the primary store's outbox (backend/db/outbox.py).
@@ -437,6 +437,7 @@ class AppContainer(containers.DeclarativeContainer):
     action_service = providers.Singleton(
         ActionService,
         action_repository=action_repository,
+        form_repo=form_repo,
         temporal_service=temporal_service,
         workspace_user_service=workspace_user_service,
         http_client=http_client,

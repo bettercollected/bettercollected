@@ -266,14 +266,7 @@ class FormResponseService:
                 + response_id,
             )
 
-        await FormResponseDeletionRequest(
-            form_id=response.form_id,
-            response_id=response_id,
-            dataOwnerIdentifier=response.dataOwnerIdentifier,
-            anonymous_identity=response.anonymous_identity,
-            provider=response.provider,
-            deleted_at=None,
-        ).save()
+        await self._form_response_repo.add_deletion_request(response, response_id)
 
     async def get_responses_count_in_workspace(self, workspace_form_ids: List[str]):
         return await self._form_response_repo.count_responses_for_form_ids(
@@ -447,14 +440,7 @@ class FormResponseService:
                 + response_id,
             )
 
-        await FormResponseDeletionRequest(
-            form_id=response.form_id,
-            response_id=response_id,
-            dataOwnerIdentifier=response.dataOwnerIdentifier,
-            anonymous_identity=response.anonymous_identity,
-            provider=response.provider,
-            deleted_at=None,
-        ).save()
+        await self._form_response_repo.add_deletion_request(response, response_id)
         pass
 
     def generate_presigned_url_for_each_response(

@@ -134,7 +134,8 @@ async def test_form_listings_search_and_versions(sessions):
         version(forms[0], 2),
     )
     # cross-group data, in Mongo only
-    group = await groups.create_group(ws, "Corp", form_id="f1", regex=".*@corp.com")
+    group = await groups.create_group(ws, "Corp", regex=".*@corp.com")
+    await groups.add_group_to_form("f1", group.id)
     await FormResponseDocument(form_id="f1", response_id="r1", answers={}).save()
     await FormResponseDocument(form_id="f1", response_id="r2", answers={}).save()
     await FormResponseDeletionRequest(form_id="f1", response_id="r1").save()
@@ -254,10 +255,11 @@ async def test_workspace_form_visibility(sessions):
         workspace_form(ws, "imported", "u1", 8, provider="google"),
         workspace_form(other, "elsewhere", "u1", 9),
     )
-    await groups.create_group(
-        ws, "Members", form_id="members", emails=["member@example.com"]
-    )
-    await groups.create_group(ws, "Corp", form_id="corp", regex=".*@corp.com")
+    members = await groups.create_group(ws, "Members")
+    await groups.add_emails_to_group(members.id, ["member@example.com"])
+    await groups.add_group_to_form("members", members.id)
+    corp_group = await groups.create_group(ws, "Corp", regex=".*@corp.com")
+    await groups.add_group_to_form("corp", corp_group.id)
 
     def listing(**kwargs):
         return lambda repo: repo.get_workspace_forms_in_workspace(ws, **kwargs)

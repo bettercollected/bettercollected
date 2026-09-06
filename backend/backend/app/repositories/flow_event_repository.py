@@ -5,7 +5,7 @@ from common.db.routing import write_op
 
 
 class FlowEventRepository:
-    @write_op
+    @write_op(replay=True)
     async def add(
         self, form_id: str, session_id: str, from_page: str, to_page: str
     ) -> FlowEventDocument:

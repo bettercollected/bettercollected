@@ -68,7 +68,7 @@ class ResponderGroupsService:
             workspace_id=workspace_id,
             regex=regex,
         )
-        return response.model_dump(mode='json')
+        return response.model_dump(mode="json")
 
     async def create_group(
         self,
@@ -83,14 +83,20 @@ class ResponderGroupsService:
         await self.workspace_user_service.check_is_admin_in_workspace(
             workspace_id=workspace_id, user=user
         )
-        return await self.responder_groups_repo.create_group(
-            workspace_id=workspace_id,
-            name=name,
-            emails=emails,
-            description=description,
-            form_id=form_id,
-            regex=regex,
+        group = await self.responder_groups_repo.create_group(
+            workspace_id=workspace_id, name=name, description=description, regex=regex
         )
+        if isinstance(group, dict):  # validation message from the repository
+            return group
+        if emails:
+            await self.responder_groups_repo.add_emails_to_group(
+                group_id=group.id, emails=emails
+            )
+        if form_id:
+            await self.responder_groups_repo.add_group_to_form(
+                form_id=form_id, group_id=group.id
+            )
+        return group
 
     async def add_emails_to_group(
         self,

@@ -35,16 +35,18 @@ class FormResponseRepository(BaseRepository):
         super().__init__()
         self.crypto = crypto
 
-    @staticmethod
     async def get_form_responses(
+        self,
         form_ids,
-        extra_find_query: Dict[str, Any] = None,
+        data_owner_identifier: Optional[str] = None,
         filter_query: FormResponseFilterQuery = None,
         sort: SortRequest = None,
     ) -> Page[StandardFormResponseCamelModel]:
+        """Responses with answers to ``form_ids`` (optionally one responder's),
+        each carrying its form's title and any deletion request's status."""
         find_query = {"form_id": {"$in": form_ids}, "answers": {"$exists": True}}
-        if extra_find_query is not None:
-            find_query.update(extra_find_query)
+        if data_owner_identifier is not None:
+            find_query["dataOwnerIdentifier"] = data_owner_identifier
         aggregate_query = [
             {
                 "$lookup": {
@@ -191,13 +193,14 @@ class FormResponseRepository(BaseRepository):
         # signed-in account listing must not link anonymous submissions back to
         # the account. The submission number (receipt) is the only key to an
         # anonymous response — which is exactly what the portal promises.
-        extra_find_query = {"dataOwnerIdentifier": user.sub}
         if request_for_deletion:
             return await DeletionRequestsRepository.get_deletion_requests(
-                form_ids=form_ids, extra_find_query=extra_find_query
+                form_ids=form_ids, data_owner_identifier=user.sub
             )
         else:
-            return await self.get_form_responses(form_ids, extra_find_query)
+            return await self.get_form_responses(
+                form_ids, data_owner_identifier=user.sub
+            )
 
     async def count_responses_with_answers_by_form_ids(
         self, form_ids: List[str]
@@ -300,6 +303,19 @@ class FormResponseRepository(BaseRepository):
     ) -> Optional[FormResponseDeletionRequest]:
         return await FormResponseDeletionRequest.find_one({"response_id": response_id})
 
+    @write_op(replay=True)
+    async def add_deletion_request(
+        self, response: FormResponseDocument, response_id: str
+    ) -> FormResponseDeletionRequest:
+        return await FormResponseDeletionRequest(
+            form_id=response.form_id,
+            response_id=response_id,
+            dataOwnerIdentifier=response.dataOwnerIdentifier,
+            anonymous_identity=response.anonymous_identity,
+            provider=response.provider,
+            deleted_at=None,
+        ).save()
+
     @write_op
     async def delete_by_form_id_except(
         self, form_id: str, keep_response_ids: List[str]
@@ -342,7 +358,7 @@ class FormResponseRepository(BaseRepository):
             {"form_id": {"$in": form_ids}}
         ).delete()
 
-    @write_op
+    @write_op(replay=True)
     async def save_form_response(
         self,
         form_id: PydanticObjectId,

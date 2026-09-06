@@ -5,6 +5,7 @@ from common.services.http_client import HttpClient
 from starlette.requests import Request
 
 from backend.app.models.dtos.action_dto import ActionDto, ActionResponse
+from backend.app.repositories.form_repository import FormRepository
 from backend.app.repositories.action_repository import ActionRepository
 from backend.app.repositories.workspace_repository import WorkspaceRepository
 from backend.app.schemas.standard_form import FormDocument
@@ -19,6 +20,7 @@ class ActionService:
     def __init__(
         self,
         action_repository: ActionRepository,
+        form_repo: FormRepository,
         temporal_service: TemporalService,
         http_client: HttpClient,
         form_provider_service: FormPluginProviderService,
@@ -27,6 +29,7 @@ class ActionService:
         workspace_repo=WorkspaceRepository,
     ):
         self.action_repository = action_repository
+        self.form_repo = form_repo
         self.temporal_service: TemporalService = temporal_service
         self.workspace_user_service = workspace_user_service
         self.http_client = http_client
@@ -43,9 +46,10 @@ class ActionService:
         await self.workspace_user_service.check_is_admin_in_workspace(
             workspace_id=workspace_id, user=user
         )
-        return await self.action_repository.create_action(
+        created = await self.action_repository.create_action(
             workspace_id=workspace_id, action=action, user=user
         )
+        return ActionResponse(**created.model_dump(mode="json"))
 
     async def get_all_actions(self):
         return await self.action_repository.get_all_actions()
@@ -89,7 +93,7 @@ class ActionService:
             )
 
     async def delete_action_from_workspace(self, action_id: PydanticObjectId):
-        await self.action_repository.remove_action_form_all_forms(action_id=action_id)
+        await self.form_repo.remove_action_from_all_forms(action_id=action_id)
         await self.action_repository.delete_action(action_id=action_id)
 
     async def create_action_in_workspace_from_action(
