@@ -23,9 +23,11 @@ from pydantic.alias_generators import to_camel
 
 from backend.app.exceptions import HTTPException
 from backend.app.models.dtos.response_dtos import StandardFormCamelModel
+from backend.app.repositories.form_ai_session_repository import FormAISessionRepository
+from backend.app.repositories.form_repository import FormRepository
+from backend.app.repositories.workspace_form_repository import WorkspaceFormRepository
 from backend.app.schemas.form_ai_session import FormAISessionDocument
 from backend.app.schemas.standard_form import FormDocument
-from backend.app.schemas.workspace_form import WorkspaceFormDocument
 from backend.app.services.ai.memory import AIMemoryService
 from backend.app.models.dtos.response_dtos import WorkspaceFormSettingsCamelModal
 from backend.app.services.ai.ops import (
@@ -73,7 +75,16 @@ def _clear_or_set(value: Optional[str]) -> Optional[str]:
     return value or None
 
 
-async def _persist_settings_ops(form_id: str, ops, results: List[OpResult]) -> Optional[dict]:
+def _c():
+    # Resolved at call time: the container imports this module.
+    from backend.app.container import container
+
+    return container
+
+
+async def _persist_settings_ops(
+    form_id: str, ops, results: List[OpResult]
+) -> Optional[dict]:
     """Write applied update_form_settings ops to the association document.
 
     Returns the camelised updated settings, or None when no settings op
@@ -85,9 +96,7 @@ async def _persist_settings_ops(form_id: str, ops, results: List[OpResult]) -> O
     ]
     if not patches:
         return None
-    workspace_form = await WorkspaceFormDocument.find_one(
-        WorkspaceFormDocument.form_id == form_id
-    )
+    workspace_form = await _c().workspace_form_repo().find_first_by_form_id(form_id)
     if not workspace_form:
         return None
     settings = workspace_form.settings
@@ -97,20 +106,24 @@ async def _persist_settings_ops(form_id: str, ops, results: List[OpResult]) -> O
         if patch.retention_text is not None:
             settings.retention_text = _clear_or_set(patch.retention_text.strip())
         if patch.privacy_policy_url is not None:
-            settings.privacy_policy_url = _clear_or_set(patch.privacy_policy_url.strip())
+            settings.privacy_policy_url = _clear_or_set(
+                patch.privacy_policy_url.strip()
+            )
         if patch.require_verified_identity is not None:
             settings.require_verified_identity = patch.require_verified_identity
         if patch.allow_editing_response is not None:
             settings.allow_editing_response = patch.allow_editing_response
         if patch.show_submission_number is not None:
             settings.show_submission_number = patch.show_submission_number
-    await workspace_form.save()
+    await _c().workspace_form_repo().save(workspace_form)
     return WorkspaceFormSettingsCamelModal(**settings.model_dump()).model_dump(
         mode="json", by_alias=True
     )
 
 
-async def persist_ops_to_form(form_document: FormDocument, form: StandardForm, ops) -> tuple:
+async def persist_ops_to_form(
+    form_document: FormDocument, form: StandardForm, ops
+) -> tuple:
     """Apply ops and persist when anything applied.
 
     The ONE write path for AI form mutation — the chat turn, review fixes and
@@ -125,7 +138,7 @@ async def persist_ops_to_form(form_document: FormDocument, form: StandardForm, o
         form_document.theme = new_form.theme
         form_document.welcome_page = new_form.welcome_page
         form_document.thankyou_page = new_form.thankyou_page
-        await form_document.save()
+        await _c().form_repo().save_form(form_document)
     settings = await _persist_settings_ops(form_document.form_id, ops, results)
     return new_form, results, settings
 
@@ -135,8 +148,14 @@ class FormAIChatService:
         self,
         workspace_user_service: WorkspaceUserService,
         provider_resolver: Callable,
+        workspace_form_repo: WorkspaceFormRepository,
+        form_repo: FormRepository,
+        session_repo: FormAISessionRepository,
     ):
         self._workspace_user_service = workspace_user_service
+        self._workspace_form_repo = workspace_form_repo
+        self._form_repo = form_repo
+        self._session_repo = session_repo
         # Injected so tests (and future per-workspace BYO keys) swap providers
         # without touching this flow. Signature: (provider_name|None) -> provider.
         self._provider_resolver = provider_resolver
@@ -155,22 +174,33 @@ class FormAIChatService:
 
         # The form must belong to THIS workspace — access to workspace A must
         # not allow editing workspace B's forms by id (MCP has the same rule).
-        association = await WorkspaceFormDocument.find_one(
-            WorkspaceFormDocument.workspace_id == workspace_id,
-            WorkspaceFormDocument.form_id == form_id,
+        association = await self._workspace_form_repo.find_workspace_form(
+            workspace_id, form_id
         )
         form_document = (
-            await FormDocument.find_one({"form_id": form_id}) if association else None
+            await self._form_repo.get_form_document_by_id(form_id)
+            if association
+            else None
         )
         if not form_document:
-            raise HTTPException(status_code=HTTPStatus.NOT_FOUND, content="Form not found")
+            raise HTTPException(
+                status_code=HTTPStatus.NOT_FOUND, content="Form not found"
+            )
 
         # Session: continue or start.
         session = None
         if request.session_id:
-            session = await FormAISessionDocument.get(PydanticObjectId(request.session_id))
-            if session and (session.form_id != form_id or str(session.workspace_id) != str(workspace_id)):
-                raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, content="Session does not belong to this form")
+            session = await self._session_repo.get_or_404(
+                PydanticObjectId(request.session_id)
+            )
+            if session and (
+                session.form_id != form_id
+                or str(session.workspace_id) != str(workspace_id)
+            ):
+                raise HTTPException(
+                    status_code=HTTPStatus.BAD_REQUEST,
+                    content="Session does not belong to this form",
+                )
         if session is None:
             session = FormAISessionDocument(
                 workspace_id=workspace_id, form_id=form_id, user_id=user.id, messages=[]
@@ -178,7 +208,9 @@ class FormAIChatService:
 
         form = StandardForm(**form_document.model_dump())
         profile = await AIProfileService.get_profile_for_prompt(workspace_id)
-        memory_entries = await AIMemoryService.get_entries_for_prompt(workspace_id, user.id)
+        memory_entries = await AIMemoryService.get_entries_for_prompt(
+            workspace_id, user.id
+        )
         system = build_chat_system_prompt(
             project_form(form, settings=association.settings), profile, memory_entries
         )
@@ -203,7 +235,9 @@ class FormAIChatService:
                 content="The AI returned an unusable reply — nothing was changed. Please try again.",
             )
 
-        new_form, results, updated_settings = await persist_ops_to_form(form_document, form, ops)
+        new_form, results, updated_settings = await persist_ops_to_form(
+            form_document, form, ops
+        )
 
         now = dt.datetime.now(dt.timezone.utc).isoformat()
         session.provider = request.provider or session.provider
@@ -217,7 +251,7 @@ class FormAIChatService:
                 "at": now,
             },
         ]
-        await session.save()
+        await self._session_repo.save(session)
 
         # Preference-memory extraction: cheap, best-effort, off the critical
         # path. Async background tasks run on the MAIN loop (single-loop
@@ -238,6 +272,8 @@ class FormAIChatService:
             reply=reply,
             results=results,
             # Camelised — the webapp's form DTOs are camelCase.
-            form=StandardFormCamelModel(**new_form.model_dump()).model_dump(mode="json", by_alias=True),
+            form=StandardFormCamelModel(**new_form.model_dump()).model_dump(
+                mode="json", by_alias=True
+            ),
             settings=updated_settings,
         )

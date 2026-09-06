@@ -11,7 +11,18 @@ from common.services.jwt_service import JwtService
 from dependency_injector import containers, providers
 from pymongo import AsyncMongoClient
 
+from backend.app.repositories.ai_preference_memory_repository import (
+    AIPreferenceMemoryRepository,
+)
 from backend.app.repositories.action_repository import ActionRepository
+from backend.app.repositories.form_ai_insight_repository import FormAIInsightRepository
+from backend.app.repositories.form_ai_session_repository import FormAISessionRepository
+from backend.app.repositories.workspace_ai_profile_repository import (
+    WorkspaceAIProfileRepository,
+)
+from backend.app.repositories.workspace_api_key_repository import (
+    WorkspaceAPIKeyRepository,
+)
 from backend.app.repositories.allowed_origins_repository import AllowedOriginsRepository
 from backend.app.repositories.blacklisted_refresh_token_repository import (
     BlacklistedRefreshTokenRepository,
@@ -113,6 +124,11 @@ class AppContainer(containers.DeclarativeContainer):
         FormResponseRepository, crypto=crypto
     )
     flow_event_repo: FlowEventRepository = providers.Singleton(FlowEventRepository)
+    form_ai_insight_repo = providers.Singleton(FormAIInsightRepository)
+    form_ai_session_repo = providers.Singleton(FormAISessionRepository)
+    workspace_ai_profile_repo = providers.Singleton(WorkspaceAIProfileRepository)
+    workspace_api_key_repo = providers.Singleton(WorkspaceAPIKeyRepository)
+    ai_preference_memory_repo = providers.Singleton(AIPreferenceMemoryRepository)
     workspace_form_repo: WorkspaceFormRepository = providers.Singleton(
         WorkspaceFormRepository
     )
@@ -271,13 +287,17 @@ class AppContainer(containers.DeclarativeContainer):
     )
 
     ai_profile_service: AIProfileService = providers.Singleton(
-        AIProfileService, workspace_user_service=workspace_user_service
+        AIProfileService,
+        workspace_user_service=workspace_user_service,
+        profile_repo=workspace_ai_profile_repo,
     )
 
     ai_memory_service: AIMemoryService = providers.Singleton(AIMemoryService)
 
     api_key_service: APIKeyService = providers.Singleton(
-        APIKeyService, workspace_user_service=workspace_user_service
+        APIKeyService,
+        workspace_user_service=workspace_user_service,
+        api_key_repo=workspace_api_key_repo,
     )
 
     openai_service: OpenAIService = providers.Singleton(
@@ -289,6 +309,9 @@ class AppContainer(containers.DeclarativeContainer):
     form_ai_chat_service: FormAIChatService = providers.Singleton(
         FormAIChatService,
         workspace_user_service=workspace_user_service,
+        workspace_form_repo=workspace_form_repo,
+        form_repo=form_repo,
+        session_repo=form_ai_session_repo,
         # Bound late so the resolver sees openai_service's registry (incl. the
         # OpenAI-compatible provider when configured).
         provider_resolver=providers.Callable(
@@ -299,6 +322,8 @@ class AppContainer(containers.DeclarativeContainer):
     form_ai_review_service: FormAIReviewService = providers.Singleton(
         FormAIReviewService,
         workspace_user_service=workspace_user_service,
+        workspace_form_repo=workspace_form_repo,
+        form_repo=form_repo,
         provider_resolver=providers.Callable(
             lambda svc: svc._get_provider, openai_service
         ),
@@ -307,6 +332,10 @@ class AppContainer(containers.DeclarativeContainer):
     form_ai_insights_service: FormAIInsightsService = providers.Singleton(
         FormAIInsightsService,
         workspace_user_service=workspace_user_service,
+        form_repo=form_repo,
+        workspace_form_repo=workspace_form_repo,
+        form_response_repo=form_response_repo,
+        insight_repo=form_ai_insight_repo,
         provider_resolver=providers.Callable(
             lambda svc: svc._get_provider, openai_service
         ),

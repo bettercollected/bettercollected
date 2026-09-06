@@ -61,15 +61,23 @@ class AddMemoryEntryDto(_CamelModel):
     text: str = Field(..., min_length=1, max_length=MAX_ENTRY_CHARS)
 
 
+def _c():
+    # Resolved at call time: the container imports this module.
+    from backend.app.container import container
+
+    return container
+
+
 class AIMemoryService:
     @staticmethod
-    async def _get_document(workspace_id: PydanticObjectId, user_id: str) -> Optional[UserAIPreferenceMemoryDocument]:
-        return await UserAIPreferenceMemoryDocument.find_one(
-            UserAIPreferenceMemoryDocument.workspace_id == workspace_id,
-            UserAIPreferenceMemoryDocument.user_id == user_id,
-        )
+    async def _get_document(
+        workspace_id: PydanticObjectId, user_id: str
+    ) -> Optional[UserAIPreferenceMemoryDocument]:
+        return await _c().ai_preference_memory_repo().find(workspace_id, user_id)
 
-    async def get_entries(self, workspace_id: PydanticObjectId, user: User) -> List[MemoryEntryDto]:
+    async def get_entries(
+        self, workspace_id: PydanticObjectId, user: User
+    ) -> List[MemoryEntryDto]:
         document = await self._get_document(workspace_id, user.id)
         return [MemoryEntryDto(**e) for e in (document.entries if document else [])]
 
@@ -79,16 +87,22 @@ class AIMemoryService:
         await self._append(workspace_id, user.id, [dto.text], source="manual")
         return await self.get_entries(workspace_id, user)
 
-    async def delete_entry(self, workspace_id: PydanticObjectId, user: User, entry_id: str) -> List[MemoryEntryDto]:
+    async def delete_entry(
+        self, workspace_id: PydanticObjectId, user: User, entry_id: str
+    ) -> List[MemoryEntryDto]:
         document = await self._get_document(workspace_id, user.id)
         if not document or not any(e.get("id") == entry_id for e in document.entries):
-            raise HTTPException(status_code=HTTPStatus.NOT_FOUND, content="Memory entry not found")
+            raise HTTPException(
+                status_code=HTTPStatus.NOT_FOUND, content="Memory entry not found"
+            )
         document.entries = [e for e in document.entries if e.get("id") != entry_id]
-        await document.save()
+        await _c().ai_preference_memory_repo().save(document)
         return [MemoryEntryDto(**e) for e in document.entries]
 
     @staticmethod
-    async def get_entries_for_prompt(workspace_id: PydanticObjectId, user_id: str) -> List[str]:
+    async def get_entries_for_prompt(
+        workspace_id: PydanticObjectId, user_id: str
+    ) -> List[str]:
         """Internal read for prompt building — the surrounding AI action is
         already authorized."""
         document = await AIMemoryService._get_document(workspace_id, user_id)
@@ -100,7 +114,9 @@ class AIMemoryService:
     ) -> None:
         document = await AIMemoryService._get_document(workspace_id, user_id)
         if document is None:
-            document = UserAIPreferenceMemoryDocument(workspace_id=workspace_id, user_id=user_id, entries=[])
+            document = UserAIPreferenceMemoryDocument(
+                workspace_id=workspace_id, user_id=user_id, entries=[]
+            )
 
         existing_normalized = {e["text"].strip().lower() for e in document.entries}
         now = dt.datetime.now(dt.timezone.utc).isoformat()
@@ -108,13 +124,15 @@ class AIMemoryService:
             text = (text or "").strip()[:MAX_ENTRY_CHARS]
             if not text or text.lower() in existing_normalized:
                 continue
-            document.entries.append({"id": str(uuid.uuid4()), "text": text, "at": now, "source": source})
+            document.entries.append(
+                {"id": str(uuid.uuid4()), "text": text, "at": now, "source": source}
+            )
             existing_normalized.add(text.lower())
 
         # Living document, not a landfill: oldest entries fall off first.
         if len(document.entries) > MAX_ENTRIES:
             document.entries = document.entries[-MAX_ENTRIES:]
-        await document.save()
+        await _c().ai_preference_memory_repo().save(document)
 
     async def extract_from_turn(
         self,
@@ -132,10 +150,17 @@ class AIMemoryService:
             )
             raw = await provider.chat(
                 system,
-                [{"role": "user", "content": f"Creator said: {user_message}\nAssistant did: {assistant_reply}"}],
+                [
+                    {
+                        "role": "user",
+                        "content": f"Creator said: {user_message}\nAssistant did: {assistant_reply}",
+                    }
+                ],
             )
             parsed = extract_json_object(raw)
-            memories = [m for m in (parsed.get("memories") or []) if isinstance(m, str)][:2]
+            memories = [
+                m for m in (parsed.get("memories") or []) if isinstance(m, str)
+            ][:2]
             if memories:
                 await self._append(workspace_id, user_id, memories, source="extracted")
         except Exception as e:  # noqa: BLE001 — memory must never break a turn

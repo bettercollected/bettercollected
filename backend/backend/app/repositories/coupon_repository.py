@@ -9,6 +9,9 @@ class CouponRepository:
         await CouponCodeDocument.insert_many(coupons)
         return "Created"
 
+    async def save(self, coupon: CouponCodeDocument) -> CouponCodeDocument:
+        return await coupon.save()
+
     async def get_all_coupons(self):
         return await CouponCodeDocument.find().to_list()
 

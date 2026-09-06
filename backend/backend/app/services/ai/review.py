@@ -20,8 +20,9 @@ from pydantic.alias_generators import to_camel
 
 from backend.app.exceptions import HTTPException
 from backend.app.models.dtos.response_dtos import StandardFormCamelModel
+from backend.app.repositories.form_repository import FormRepository
+from backend.app.repositories.workspace_form_repository import WorkspaceFormRepository
 from backend.app.schemas.standard_form import FormDocument
-from backend.app.schemas.workspace_form import WorkspaceFormDocument
 from backend.app.services.ai.chat import persist_ops_to_form
 from backend.app.services.ai.ops import OpResult, parse_ops
 from backend.app.services.ai.profile import AIProfileService, render_prompt_block
@@ -103,13 +104,16 @@ def build_review_system_prompt(form_snapshot: str, profile) -> str:
         "You are the compliance reviewer inside BetterCollected, a privacy-first form builder. "
         "Review the form below and report problems a privacy-conscious organization would want fixed before publishing.",
         BASELINE_CHECKS,
-        "## Current form snapshot\n<form_snapshot>\n" + form_snapshot + "\n</form_snapshot>",
+        "## Current form snapshot\n<form_snapshot>\n"
+        + form_snapshot
+        + "\n</form_snapshot>",
     ]
     block = render_prompt_block(profile)
     if block:
         parts.append(block)
     parts.append(
-        "When you propose a fix, use the typed operations described next.\n\n" + OPS_GUIDE
+        "When you propose a fix, use the typed operations described next.\n\n"
+        + OPS_GUIDE
     )
     parts.append(REVIEW_OUTPUT_CONTRACT)
     return "\n\n".join(parts)
@@ -130,7 +134,9 @@ def _coerce_finding(raw: Dict[str, Any]) -> Optional[ReviewFinding]:
         try:
             parse_ops(raw_fix["ops"])
             fix = ReviewFix(
-                description=str(raw_fix.get("description") or "Apply the suggested change"),
+                description=str(
+                    raw_fix.get("description") or "Apply the suggested change"
+                ),
                 ops=raw_fix["ops"],
             )
         except Exception:
@@ -149,9 +155,13 @@ class FormAIReviewService:
         self,
         workspace_user_service: WorkspaceUserService,
         provider_resolver: Callable,
+        workspace_form_repo: WorkspaceFormRepository,
+        form_repo: FormRepository,
     ):
         self._workspace_user_service = workspace_user_service
         self._provider_resolver = provider_resolver
+        self._workspace_form_repo = workspace_form_repo
+        self._form_repo = form_repo
 
     async def _load_form(
         self, workspace_id: PydanticObjectId, form_id: str, user: User
@@ -160,15 +170,18 @@ class FormAIReviewService:
             workspace_id=workspace_id, user=user
         )
         # The form must belong to THIS workspace (same rule as chat and MCP).
-        association = await WorkspaceFormDocument.find_one(
-            WorkspaceFormDocument.workspace_id == workspace_id,
-            WorkspaceFormDocument.form_id == form_id,
+        association = await self._workspace_form_repo.find_workspace_form(
+            workspace_id, form_id
         )
         form_document = (
-            await FormDocument.find_one({"form_id": form_id}) if association else None
+            await self._form_repo.get_form_document_by_id(form_id)
+            if association
+            else None
         )
         if not form_document:
-            raise HTTPException(status_code=HTTPStatus.NOT_FOUND, content="Form not found")
+            raise HTTPException(
+                status_code=HTTPStatus.NOT_FOUND, content="Form not found"
+            )
         return form_document, association
 
     async def review(
@@ -224,7 +237,9 @@ class FormAIReviewService:
                 status_code=HTTPStatus.BAD_REQUEST, content="Invalid fix operations"
             )
         form = StandardForm(**form_document.model_dump())
-        new_form, results, updated_settings = await persist_ops_to_form(form_document, form, ops)
+        new_form, results, updated_settings = await persist_ops_to_form(
+            form_document, form, ops
+        )
         return ApplyReviewFixResponse(
             results=results,
             form=StandardFormCamelModel(**new_form.model_dump()).model_dump(
