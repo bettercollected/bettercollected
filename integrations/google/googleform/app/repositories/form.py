@@ -16,6 +16,8 @@ from pymongo.errors import (
 
 from starlette.exceptions import HTTPException
 
+from common.db import write_op
+
 
 class FormRepository(BaseRepository):
     async def list(self) -> List[GoogleFormDocument]:
@@ -77,6 +79,7 @@ class FormRepository(BaseRepository):
         # TODO: Add data saving implementation
         return item
 
+    @write_op
     async def update(
         self, form_id: str, item: GoogleFormDocument
     ) -> GoogleFormDocument:

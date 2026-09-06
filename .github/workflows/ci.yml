@@ -180,6 +180,111 @@ jobs:
                   AUTH_AES_HEX_KEY: L5HuSlk0ijI3xzaccuy2x1jnzHNjtTw3zW53tjGHZG0=
                   ELASTIC_APM_DISABLE_SEND: "true"
               run: uv run pytest
+            - name: Run auth tests (mirrored to Postgres)
+              env:
+                  VIRTUAL_ENV: ""
+                  DOTENV_PATH: /nonexistent.env
+                  DB_WRITE_MODE: dual
+                  DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/bettercollected_test
+                  AUTH_JWT_SECRET: c3c66ff889b1deabc35ebb3cf07374f1fd934f0f0185eec076b5bcd874de86d5
+                  AUTH_AES_HEX_KEY: L5HuSlk0ijI3xzaccuy2x1jnzHNjtTw3zW53tjGHZG0=
+                  ELASTIC_APM_DISABLE_SEND: "true"
+              run: uv run pytest
+            - name: Run auth tests (served from Postgres)
+              env:
+                  VIRTUAL_ENV: ""
+                  DOTENV_PATH: /nonexistent.env
+                  DB_READ_SOURCE: postgres
+                  DB_WRITE_MODE: postgres
+                  DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/bettercollected_test
+                  AUTH_JWT_SECRET: c3c66ff889b1deabc35ebb3cf07374f1fd934f0f0185eec076b5bcd874de86d5
+                  AUTH_AES_HEX_KEY: L5HuSlk0ijI3xzaccuy2x1jnzHNjtTw3zW53tjGHZG0=
+                  ELASTIC_APM_DISABLE_SEND: "true"
+    google-tests:
+        name: Google integration tests (pytest)
+        # The google unit suite has pre-existing failures from aiohttp/pydantic API
+        # drift (tests/unit/app/utils/test_aiohttp_client.py, tests/unit/app/views,
+        # tests/unit/app/test_asgi.py) that predate the Postgres work and were never
+        # run in CI. This job runs everything else; repairing those is a follow-up.
+        needs: select-runner
+        runs-on: ${{ needs.select-runner.outputs.runner }}
+        services:
+            mongo:
+                image: mongo:7
+                ports:
+                    - 27017:27017
+                options: >-
+                    --health-cmd "mongosh --quiet --eval 'db.runCommand({ ping: 1 })'"
+                    --health-interval 10s
+                    --health-timeout 5s
+                    --health-retries 5
+            postgres:
+                image: postgres:16-alpine
+                env:
+                    POSTGRES_USER: postgres
+                    POSTGRES_PASSWORD: postgres
+                    POSTGRES_DB: bettercollected_test
+                ports:
+                    - 5432:5432
+                options: >-
+                    --health-cmd "pg_isready -U postgres -d bettercollected_test"
+                    --health-interval 5s
+                    --health-timeout 5s
+                    --health-retries 10
+        defaults:
+            run:
+                working-directory: integrations/google
+        steps:
+            - uses: actions/checkout@v7
+
+            - name: Set up uv
+              uses: astral-sh/setup-uv@v7
+              with:
+                  python-version: 3.11.12
+                  enable-cache: true
+
+            - name: Install dependencies
+              env:
+                  VIRTUAL_ENV: ""
+              run: uv sync --frozen
+
+            - name: Run google tests
+              env:
+                  VIRTUAL_ENV: ""
+                  DOTENV_PATH: /nonexistent.env
+                  DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/bettercollected_test
+                  AUTH_JWT_SECRET: c3c66ff889b1deabc35ebb3cf07374f1fd934f0f0185eec076b5bcd874de86d5
+                  AUTH_AES_HEX_KEY: L5HuSlk0ijI3xzaccuy2x1jnzHNjtTw3zW53tjGHZG0=
+                  ELASTIC_APM_DISABLE_SEND: "true"
+                  MONGO_URI: mongodb://localhost:27017
+                  MONGO_DB: bettercollected_google_test
+                  MASTER_ENCRYPTION_KEYSET: "ewogICAgICAgICAgImtleSI6IFt7CiAgICAgICAgICAgICAgImtleURhdGEiOiB7CiAgICAgICAgICAgICAgICAgICJrZXlNYXRlcmlhbFR5cGUiOgogICAgICAgICAgICAgICAgICAgICAgIlNZTU1FVFJJQyIsCiAgICAgICAgICAgICAgICAgICJ0eXBlVXJsIjoKICAgICAgICAgICAgICAgICAgICAgICJ0eXBlLmdvb2dsZWFwaXMuY29tL2dvb2dsZS5jcnlwdG8udGluay5BZXNHY21LZXkiLAogICAgICAgICAgICAgICAgICAidmFsdWUiOgogICAgICAgICAgICAgICAgICAgICAgIkdpQld5VWZHZ1lrM1JUUmhqL0xJVXpTdWRJV2x5akNmdENPeXBUcjBqQ05TTGc9PSIKICAgICAgICAgICAgICB9LAogICAgICAgICAgICAgICJrZXlJZCI6IDI5NDQwNjUwNCwKICAgICAgICAgICAgICAib3V0cHV0UHJlZml4VHlwZSI6ICJUSU5LIiwKICAgICAgICAgICAgICAic3RhdHVzIjogIkVOQUJMRUQiCiAgICAgICAgICB9XSwKICAgICAgICAgICJwcmltYXJ5S2V5SWQiOiAyOTQ0MDY1MDQKICAgICAgfQ=="
+              run: uv run pytest --ignore=tests/unit/app/utils/test_aiohttp_client.py --ignore=tests/unit/app/views --ignore=tests/unit/app/test_asgi.py
+            - name: Run google tests (mirrored to Postgres)
+              env:
+                  VIRTUAL_ENV: ""
+                  DOTENV_PATH: /nonexistent.env
+                  DB_WRITE_MODE: dual
+                  DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/bettercollected_test
+                  AUTH_JWT_SECRET: c3c66ff889b1deabc35ebb3cf07374f1fd934f0f0185eec076b5bcd874de86d5
+                  AUTH_AES_HEX_KEY: L5HuSlk0ijI3xzaccuy2x1jnzHNjtTw3zW53tjGHZG0=
+                  ELASTIC_APM_DISABLE_SEND: "true"
+                  MONGO_URI: mongodb://localhost:27017
+                  MONGO_DB: bettercollected_google_test
+                  MASTER_ENCRYPTION_KEYSET: "ewogICAgICAgICAgImtleSI6IFt7CiAgICAgICAgICAgICAgImtleURhdGEiOiB7CiAgICAgICAgICAgICAgICAgICJrZXlNYXRlcmlhbFR5cGUiOgogICAgICAgICAgICAgICAgICAgICAgIlNZTU1FVFJJQyIsCiAgICAgICAgICAgICAgICAgICJ0eXBlVXJsIjoKICAgICAgICAgICAgICAgICAgICAgICJ0eXBlLmdvb2dsZWFwaXMuY29tL2dvb2dsZS5jcnlwdG8udGluay5BZXNHY21LZXkiLAogICAgICAgICAgICAgICAgICAidmFsdWUiOgogICAgICAgICAgICAgICAgICAgICAgIkdpQld5VWZHZ1lrM1JUUmhqL0xJVXpTdWRJV2x5akNmdENPeXBUcjBqQ05TTGc9PSIKICAgICAgICAgICAgICB9LAogICAgICAgICAgICAgICJrZXlJZCI6IDI5NDQwNjUwNCwKICAgICAgICAgICAgICAib3V0cHV0UHJlZml4VHlwZSI6ICJUSU5LIiwKICAgICAgICAgICAgICAic3RhdHVzIjogIkVOQUJMRUQiCiAgICAgICAgICB9XSwKICAgICAgICAgICJwcmltYXJ5S2V5SWQiOiAyOTQ0MDY1MDQKICAgICAgfQ=="
+              run: uv run pytest --ignore=tests/unit/app/utils/test_aiohttp_client.py --ignore=tests/unit/app/views --ignore=tests/unit/app/test_asgi.py
+            - name: Run google tests (served from Postgres)
+              env:
+                  VIRTUAL_ENV: ""
+                  DOTENV_PATH: /nonexistent.env
+                  DB_READ_SOURCE: postgres
+                  DB_WRITE_MODE: postgres
+                  DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/bettercollected_test
+                  AUTH_JWT_SECRET: c3c66ff889b1deabc35ebb3cf07374f1fd934f0f0185eec076b5bcd874de86d5
+                  AUTH_AES_HEX_KEY: L5HuSlk0ijI3xzaccuy2x1jnzHNjtTw3zW53tjGHZG0=
+                  ELASTIC_APM_DISABLE_SEND: "true"
+
+              run: uv run pytest --ignore=tests/unit/app/utils/test_aiohttp_client.py --ignore=tests/unit/app/views --ignore=tests/unit/app/test_asgi.py
 
     common-tests:
         name: Common tests (pytest)

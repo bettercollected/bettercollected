@@ -1,5 +1,5 @@
 import json
-from datetime import datetime , timezone
+from datetime import datetime, timezone
 from http import HTTPStatus
 from typing import Any
 
@@ -13,6 +13,7 @@ from pymongo.errors import (
 )
 
 from common.constants import MESSAGE_DATABASE_EXCEPTION
+from common.db import WriteResult, write_op
 from common.enums.form_provider import FormProvider
 from common.services.crypto_service import crypto_service
 from googleform.app.models.oauth_credential import GoogleCredentialResponse
@@ -55,6 +56,7 @@ class OauthCredentialRepository:
                 detail=MESSAGE_DATABASE_EXCEPTION,
             )
 
+    @write_op(replay=True)
     async def add(
         self,
         email: str,
@@ -98,6 +100,7 @@ class OauthCredentialRepository:
                 detail=MESSAGE_DATABASE_EXCEPTION,
             )
 
+    @write_op(replay=True)
     async def update(
         self, email: str, item: Oauth2CredentialDocument
     ) -> Oauth2CredentialDocument:
@@ -129,8 +132,10 @@ class OauthCredentialRepository:
                     user_id=document.user_id, token=json.dumps(dict(item.credentials))
                 )
             await item.save()
+            # what was stored (encrypted) is not what the caller gets (decrypted)
+            stored = item.model_copy(deep=True)
             item.credentials = credentials
-            return item
+            return WriteResult(item, [stored])
 
         except (InvalidURI, NetworkTimeout, OperationFailure, InvalidOperation):
             raise HTTPException(
@@ -152,6 +157,17 @@ class OauthCredentialRepository:
         decrypted_token = str(decrypted_token, "utf-8")
         return GoogleCredentialResponse(**json.loads(decrypted_token))
 
+    async def list_all(self) -> list[Oauth2CredentialDocument]:
+        """Every credential, as stored (encrypted) — for housekeeping."""
+        return await Oauth2CredentialDocument.find().to_list()
+
+    @write_op
+    async def save(
+        self, document: Oauth2CredentialDocument
+    ) -> Oauth2CredentialDocument:
+        return await document.save()
+
+    @write_op
     async def delete_oauth_credential_for_user(self, email: EmailStr, user_id: str):
         return await Oauth2CredentialDocument.find(
             {"$or": [{"email": email}, {"user_id": user_id}]}

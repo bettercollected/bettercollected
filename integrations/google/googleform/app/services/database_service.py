@@ -5,6 +5,7 @@ from beanie import init_beanie
 from pymongo import AsyncMongoClient
 
 from googleform.config import settings
+from common.db import MirrorWriteFailureDocument
 
 log = logging.getLogger(__name__)
 mongo_settings = settings.mongo_settings
@@ -27,7 +28,9 @@ async def init_db():
     global _client
     _client = AsyncMongoClient(mongo_settings.URI)
     db = _client[mongo_settings.DB]
-    await init_beanie(database=db, document_models=document_models)
+    await init_beanie(
+        database=db, document_models=[*document_models, MirrorWriteFailureDocument]
+    )
     log.info("Database connected successfully.")
 
 

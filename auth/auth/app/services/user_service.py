@@ -19,10 +19,10 @@ class UserService:
         self.stripe_service: StripeService = stripe_service
 
     async def get_user_info_from_user_ids(self, user_ids: List[PydanticObjectId]):
-        return await UserRepository.get_users_by_ids(user_ids=user_ids)
+        return await self.user_repo.get_users_by_ids(user_ids=user_ids)
 
     async def get_users_info_from_emails(self, emails: List[EmailStr]):
-        return await UserRepository.get_users_by_emails(emails=emails)
+        return await self.user_repo.get_users_by_emails(emails=emails)
 
     async def send_mail_to_user_for_invitation(
         self,
@@ -65,7 +65,7 @@ class UserService:
         user = await self.user_repo.get_user_by_id(user_id=user_id)
         if user.stripe_customer_id:
             await run_sync(self.stripe_service.delete_customer, user.stripe_customer_id)
-        return await UserRepository.delete_user(user_id=user_id)
+        return await self.user_repo.delete_user(user_id=user_id)
 
     async def upgrade_user_to_pro(self, user_id):
         user = await self.user_repo.get_user_by_id(user_id=user_id)

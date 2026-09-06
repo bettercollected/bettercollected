@@ -1,5 +1,4 @@
 from auth.app.container import container
-from auth.app.repositories.user_repository import UserRepository
 
 from common.models.user import User, UserInfo
 
@@ -17,6 +16,5 @@ class TestAuthRouter:
         assert response.status_code == 200
 
         user = User(**response.json())
-        assert UserRepository.get_user_by_email(user.sub) is not None
         assert user.id is not None
         assert user.sub == user_email

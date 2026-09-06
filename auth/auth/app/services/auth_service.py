@@ -75,11 +75,19 @@ class AuthService:
         )
 
     async def get_basic_auth_url(
-        self, provider: str, client_referer_url: str, creator: bool, prospective_pro_user: bool
+        self,
+        provider: str,
+        client_referer_url: str,
+        creator: bool,
+        prospective_pro_user: bool,
     ):
         url = await self.auth_provider_factory.get_auth_provider(
             provider
-        ).get_basic_auth_url(client_referer_url, creator=creator, prospective_pro_user=prospective_pro_user)
+        ).get_basic_auth_url(
+            client_referer_url,
+            creator=creator,
+            prospective_pro_user=prospective_pro_user,
+        )
         return {"auth_url": url}
 
     async def validate_otp(self, email, otp_code):
@@ -96,7 +104,7 @@ class AuthService:
                         content="Error Verification code is expired. "
                         + "Please request for new code.",
                     )
-                await UserRepository.clear_user_otp(user)
+                await self.user_repository.clear_user_otp(user)
                 user = await self.user_repository.get_user_by_email(email)
                 return User(
                     id=str(user.id),
