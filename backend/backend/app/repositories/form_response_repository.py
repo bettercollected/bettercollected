@@ -1,6 +1,6 @@
 import json
 from http import HTTPStatus
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 from uuid import uuid4
 
 import fastapi_pagination.ext.beanie
@@ -245,6 +245,28 @@ class FormResponseRepository(BaseRepository):
 
     async def delete(self, item_id: str, provider: FormProvider):
         pass
+
+    async def find_by_response_id(
+        self, response_id: str
+    ) -> Optional[FormResponseDocument]:
+        return await FormResponseDocument.find_one({"response_id": response_id})
+
+    async def list_recent_by_form_id(
+        self, form_id: str, limit: int
+    ) -> List[FormResponseDocument]:
+        return (
+            await FormResponseDocument.find({"form_id": form_id})
+            .sort("-created_at")
+            .limit(limit)
+            .to_list()
+        )
+
+    async def list_deletion_requests_for_form_ids(
+        self, form_ids: List[str]
+    ) -> List[FormResponseDeletionRequest]:
+        return await FormResponseDeletionRequest.find(
+            {"form_id": {"$in": form_ids}}
+        ).to_list()
 
     async def delete_by_form_id(self, form_id):
         return await FormResponseDocument.find({"form_id": form_id}).delete()

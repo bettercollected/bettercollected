@@ -8,10 +8,10 @@ from common.services.http_client import HttpClient
 
 from backend.app.models.dtos.action_dto import AddActionToFormDto
 from backend.app.models.workspace import ParameterValue
-from backend.app.schemas.standard_form import FormDocument
 from backend.app.services.base_integration_provider import BaseIntegrationProvider
 from backend.app.services.form_plugin_provider_service import FormPluginProviderService
 from backend.app.services.integration_action_service import IntegrationActionService
+from backend.app.repositories.form_repository import FormRepository
 
 
 class GoogleSheetIntegrationProvider(BaseIntegrationProvider):
@@ -21,11 +21,13 @@ class GoogleSheetIntegrationProvider(BaseIntegrationProvider):
         crypto: Crypto,
         http_client: HttpClient,
         integration_action_service: IntegrationActionService,
+        form_repo: FormRepository,
     ):
         self.form_provider_service = form_provider_service
         self.crypto = crypto
         self.http_client = http_client
         self.integration_action_service = integration_action_service
+        self._form_repo = form_repo
 
     async def get_basic_integration_oauth_url(
         self, client_referer_url: str, *args, **kwargs
@@ -70,7 +72,7 @@ class GoogleSheetIntegrationProvider(BaseIntegrationProvider):
         create_google_sheet_url = (
             f"{provider_url}/{FormProvider.GOOGLE}/forms/create_google_sheet"
         )
-        form = await FormDocument.find_one({"form_id": form_id})
+        form = await self._form_repo.get_form_document_by_id(form_id)
         title = [
             params.value
             for params in action_params.parameters

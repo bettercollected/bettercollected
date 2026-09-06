@@ -119,6 +119,9 @@ class FormTemplateRepository:
         template.cover_image = template_body.cover_image
         return await template.save()
 
+    async def save(self, template: FormTemplateDocument) -> FormTemplateDocument:
+        return await template.save()
+
     async def delete_template(self, template_id: PydanticObjectId):
         template = await FormTemplateDocument.find_one({"_id": template_id})
         if not template:

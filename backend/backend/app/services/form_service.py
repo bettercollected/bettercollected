@@ -280,7 +280,7 @@ class FormService:
     async def save_form(self, form: StandardForm):
         form_document = FormDocument(**form.model_dump(mode='json'))
         form_version_document = FormVersionsDocument(**form.model_dump(mode='json'), version=1)
-        await form_version_document.save()
+        await self._form_repo.save_form_version(form_version_document)
         return await self._form_repo.save_form(form_document)
 
     async def patch_settings_in_workspace_form(
@@ -527,7 +527,7 @@ class FormService:
             else:
                 form.secrets = {str(add_action_to_form_params.action_id): secrets}
 
-        return await form.save()
+        return await self._form_repo.save_form(form)
 
     async def remove_action_from_form(
         self, form_id: PydanticObjectId, action_id: PydanticObjectId, trigger: Trigger
@@ -545,7 +545,7 @@ class FormService:
         if form.secrets and str(action_id) in form.secrets:
             del form.secrets[str(action_id)]
 
-        return (await form.save()).actions
+        return (await self._form_repo.save_form(form)).actions
 
     async def update_state_of_action_in_form(
         self, form_id: PydanticObjectId, update_action_dto: UpdateActionInFormDto
@@ -560,7 +560,7 @@ class FormService:
                         else False
                     )
 
-        return await form.save()
+        return await self._form_repo.save_form(form)
 
     async def handle_external_integrations_services(
         self,

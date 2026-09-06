@@ -284,6 +284,19 @@ class FormRepository:
     async def save_form(self, form: FormDocument):
         return await form.save()
 
+    async def save_form_version(
+        self, form_version: FormVersionsDocument
+    ) -> FormVersionsDocument:
+        return await form_version.save()
+
+    async def delete_versions_by_imported_form_id(self, imported_form_id: str):
+        return await FormVersionsDocument.find(
+            {"imported_form_id": imported_form_id}
+        ).delete()
+
+    async def get_forms_by_form_ids(self, form_ids: List[str]) -> List[FormDocument]:
+        return await FormDocument.find({"form_id": {"$in": form_ids}}).to_list()
+
     async def delete_form(self, form_id: str):
         form = await FormDocument.find_one({"form_id": form_id})
         if not form:

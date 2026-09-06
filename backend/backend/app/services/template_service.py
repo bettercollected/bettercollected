@@ -196,7 +196,7 @@ class FormTemplateService:
             )
         if settings is not None:
             template.settings.is_public = settings.is_public
-        template = await template.save()
+        template = await self.form_template_repo.save(template)
         return template
 
     async def delete_template(
@@ -230,4 +230,4 @@ class FormTemplateService:
             previous_image=template.preview_image,
         )
         template.preview_image = preview_image
-        return await template.save()
+        return await self.form_template_repo.save(template)

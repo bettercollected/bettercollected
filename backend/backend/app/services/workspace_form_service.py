@@ -29,9 +29,9 @@ from backend.app.models.dtos.response_dtos import (
     StandardFormResponseCamelModel,
 )
 from backend.app.models.workspace import WorkspaceFormSettings, WorkspaceRequestDto
+from backend.app.repositories.form_repository import FormRepository
 from backend.app.repositories.workspace_form_repository import WorkspaceFormRepository
 from backend.app.schedulers.form_schedular import FormSchedular
-from backend.app.schemas.form_versions import FormVersionsDocument
 from backend.app.schemas.standard_form import FormDocument
 from backend.app.schemas.template import FormTemplateDocument
 from backend.app.schemas.workspace_form import WorkspaceFormDocument
@@ -62,6 +62,7 @@ class WorkspaceFormService:
         workspace_user_service: WorkspaceUserService,
         form_service: FormService,
         workspace_form_repository: WorkspaceFormRepository,
+        form_repo: FormRepository,
         form_schedular: FormSchedular,
         form_import_service: FormImportService,
         schedular: AsyncIOScheduler,
@@ -78,6 +79,7 @@ class WorkspaceFormService:
         self.workspace_user_service = workspace_user_service
         self.form_service = form_service
         self.workspace_form_repository = workspace_form_repository
+        self._form_repo = form_repo
         self.form_schedular = form_schedular
         self.form_import_service = form_import_service
         self.schedular = schedular
@@ -228,9 +230,9 @@ class WorkspaceFormService:
 
         form = await self.form_service.get_form_document_by_id(form_id)
         if form and form.imported_form_id:
-            await FormVersionsDocument.find(
-                {"imported_form_id": form.imported_form_id}
-            ).delete()
+            await self._form_repo.delete_versions_by_imported_form_id(
+                form.imported_form_id
+            )
         await self.form_service.delete_form(form_id=form_id)
         await self.form_response_service.delete_form_responses(form_id=form_id)
         await self.form_response_service.delete_deletion_requests(form_id=form_id)
@@ -410,7 +412,7 @@ class WorkspaceFormService:
                 workspace_form.settings.response_expiration_type = (
                     form.settings.response_expiration_type
                 )
-            await workspace_form.save()
+            await self.workspace_form_repository.save(workspace_form)
 
         existing_form = await self.form_service.get_form_document_by_id(str(form_id))
 
@@ -633,7 +635,7 @@ class WorkspaceFormService:
         )
         if new_slug != current_slug:
             workspace_form.settings.custom_url = new_slug
-            await workspace_form.save()
+            await self.workspace_form_repository.save(workspace_form)
 
     async def get_form_workspace_by_id(self, workspace_id: PydanticObjectId):
         return await self.form_import_service.get_form_workspace_by_id(
@@ -680,7 +682,7 @@ class WorkspaceFormService:
             duplicated_form.created_by = user.id
         else:
             duplicated_form.form_id = str(PydanticObjectId())
-        duplicated_form = await duplicated_form.save()
+        duplicated_form = await self._form_repo.save_form(duplicated_form)
 
         if not is_template:
             workspace_form = WorkspaceFormDocument(
@@ -691,7 +693,7 @@ class WorkspaceFormService:
             )
             workspace_form.settings.provider = "self"
             workspace_form.settings.custom_url = str(duplicated_form.id)
-            workspace_form = await workspace_form.save()
+            workspace_form = await self.workspace_form_repository.save(workspace_form)
             duplicated_form.settings = workspace_form.settings
         return duplicated_form
 
@@ -816,5 +818,5 @@ class WorkspaceFormService:
             if action.id == action_id
         ][0]
         form_action.enabled = False
-        await form.save()
+        await self._form_repo.save_form(form)
         return form

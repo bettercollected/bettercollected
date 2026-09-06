@@ -23,6 +23,7 @@ from backend.app.repositories.form_plugin_provider_repository import (
 from backend.app.repositories.form_repository import FormRepository
 from backend.app.repositories.form_response_repository import FormResponseRepository
 from backend.app.repositories.media_library_repository import MediaLibraryRepository
+from backend.app.repositories.mcp_audit_log_repository import McpAuditLogRepository
 from backend.app.repositories.responder_groups_repository import (
     ResponderGroupsRepository,
 )
@@ -123,7 +124,10 @@ class AppContainer(containers.DeclarativeContainer):
     action_repository = providers.Singleton(ActionRepository, crypto=crypto)
 
     integration_action_service: IntegrationActionService = providers.Singleton(
-        IntegrationActionService
+        IntegrationActionService, form_repo=form_repo
+    )
+    mcp_audit_log_repo: McpAuditLogRepository = providers.Singleton(
+        McpAuditLogRepository
     )
 
     temporal_service = providers.Singleton(
@@ -157,6 +161,7 @@ class AppContainer(containers.DeclarativeContainer):
         crypto=crypto,
         http_client=http_client,
         integration_action_service=integration_action_service,
+        form_repo=form_repo,
     )
 
     form_service: FormService = providers.Singleton(
@@ -204,6 +209,7 @@ class AppContainer(containers.DeclarativeContainer):
         jwt_service=jwt_service,
         temporal_service=temporal_service,
         form_response_service=form_response_service,
+        workspace_form_repo=workspace_form_repo,
     )
 
     responder_groups_service = providers.Singleton(
@@ -231,6 +237,7 @@ class AppContainer(containers.DeclarativeContainer):
         workspace_user_service=workspace_user_service,
         form_service=form_service,
         workspace_form_repository=workspace_form_repo,
+        form_repo=form_repo,
         form_schedular=form_schedular,
         form_import_service=form_import_service,
         schedular=schedular,
@@ -399,6 +406,7 @@ class AppContainer(containers.DeclarativeContainer):
         crypto=crypto,
         http_client=http_client,
         integration_action_service=integration_action_service,
+        form_repo=form_repo,
     )
 
     form_actions_service: FormActionsService = providers.Singleton(

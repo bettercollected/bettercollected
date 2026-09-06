@@ -23,18 +23,19 @@ from mcp.server.transport_security import TransportSecuritySettings
 from backend.app.exceptions import HTTPException
 from backend.app.models.dtos.request_dtos import CreateFormWithAI
 from backend.app.models.dtos.response_dtos import StandardFormCamelModel
-from backend.app.schemas.mcp_audit_log import MCPAuditLogDocument
-from backend.app.schemas.standard_form import FormDocument
-from backend.app.schemas.standard_form_response import (
-    FormResponseDeletionRequest,
-    FormResponseDocument,
-)
 from backend.app.schemas.workspace_api_key import WorkspaceAPIKeyDocument
 from backend.app.schemas.workspace_form import WorkspaceFormDocument
 from backend.app.services.ai.api_keys import APIKeyService
 from backend.app.services.ai.chat import persist_ops_to_form
 from backend.app.services.ai.ops import parse_ops
 from backend.app.services.ai.profile import AIProfileService
+
+def _c():
+    # Resolved at call time: the container imports services this module depends on.
+    from backend.app.container import container
+
+    return container
+
 
 current_api_key: ContextVar[Optional[WorkspaceAPIKeyDocument]] = ContextVar(
     "current_api_key", default=None
@@ -79,22 +80,20 @@ async def _audit(tool: str, ok: bool, detail: str = "") -> None:
         key = current_api_key.get()
         if key is None:
             return
-        await MCPAuditLogDocument(
+        await _c().mcp_audit_log_repo().add(
             workspace_id=key.workspace_id,
             key_id=str(key.id),
             tool=tool,
             ok=ok,
             detail=detail[:300],
             at=dt.datetime.now(dt.timezone.utc),
-        ).save()
+        )
     except Exception:  # noqa: BLE001 — auditing must not break tool calls
         pass
 
 
 async def _workspace_form_ids(workspace_id: PydanticObjectId) -> Dict[str, WorkspaceFormDocument]:
-    docs = await WorkspaceFormDocument.find(
-        WorkspaceFormDocument.workspace_id == workspace_id
-    ).to_list()
+    docs = await _c().workspace_form_repo().list_in_workspace(workspace_id)
     return {d.form_id: d for d in docs}
 
 
@@ -108,7 +107,7 @@ async def list_forms() -> str:
     """List the workspace's forms: id, title, share slug and publish state."""
     key = _key("forms:read")
     workspace_forms = await _workspace_form_ids(key.workspace_id)
-    forms = await FormDocument.find({"form_id": {"$in": list(workspace_forms)}}).to_list()
+    forms = await _c().form_repo().get_forms_by_form_ids(list(workspace_forms))
     items = [
         {
             "formId": f.form_id,
@@ -128,7 +127,7 @@ async def get_form(form_id: str) -> str:
     key = _key("forms:read")
     workspace_forms = await _workspace_form_ids(key.workspace_id)
     _require_form_in_workspace(form_id, workspace_forms)
-    form = await FormDocument.find_one({"form_id": form_id})
+    form = await _c().form_repo().get_form_document_by_id(form_id)
     await _audit("get_form", True, form_id)
     return json.dumps(
         StandardFormCamelModel(**StandardForm(**form.model_dump()).model_dump()).model_dump(
@@ -222,7 +221,7 @@ async def update_form(form_id: str, ops: List[Dict[str, Any]]) -> str:
     key = _key("forms:write")
     workspace_forms = await _workspace_form_ids(key.workspace_id)
     _require_form_in_workspace(form_id, workspace_forms)
-    form_document = await FormDocument.find_one({"form_id": form_id})
+    form_document = await _c().form_repo().get_form_document_by_id(form_id)
     parsed = parse_ops(ops)
     form = StandardForm(**form_document.model_dump())
     _, results, updated_settings = await persist_ops_to_form(form_document, form, parsed)
@@ -242,10 +241,7 @@ async def publish_form(form_id: str) -> str:
     await container.workspace_form_service().publish_form(
         workspace_id=key.workspace_id, form_id=PydanticObjectId(form_id), user=_acting_user(key)
     )
-    refreshed = await WorkspaceFormDocument.find_one(
-        WorkspaceFormDocument.workspace_id == key.workspace_id,
-        WorkspaceFormDocument.form_id == form_id,
-    )
+    refreshed = await _c().workspace_form_repo().find_workspace_form(key.workspace_id, form_id)
     slug = refreshed.settings.custom_url if refreshed and refreshed.settings else None
     await _audit("publish_form", True, form_id)
     return json.dumps({"formId": form_id, "published": True, "slug": slug})
@@ -259,12 +255,7 @@ async def list_responses(form_id: str, limit: int = 20) -> str:
     workspace_forms = await _workspace_form_ids(key.workspace_id)
     _require_form_in_workspace(form_id, workspace_forms)
     limit = max(1, min(limit, 100))
-    responses = (
-        await FormResponseDocument.find(FormResponseDocument.form_id == form_id)
-        .sort("-created_at")
-        .limit(limit)
-        .to_list()
-    )
+    responses = await _c().form_response_repo().list_recent_by_form_id(form_id, limit)
     items = [
         {
             "responseId": r.response_id,
@@ -283,7 +274,7 @@ async def list_responses(form_id: str, limit: int = 20) -> str:
 async def get_response(response_id: str) -> str:
     """Get one response's full answers."""
     key = _key("responses:read")
-    response = await FormResponseDocument.find_one(FormResponseDocument.response_id == response_id)
+    response = await _c().form_response_repo().find_by_response_id(response_id)
     workspace_forms = await _workspace_form_ids(key.workspace_id)
     if not response or response.form_id not in workspace_forms:
         raise ValueError("Response not found in this workspace.")
@@ -313,9 +304,7 @@ async def list_deletion_requests() -> str:
     privacy queue an operator (or agent) should act on."""
     key = _key("deletion_requests:read")
     workspace_forms = await _workspace_form_ids(key.workspace_id)
-    requests = await FormResponseDeletionRequest.find(
-        {"form_id": {"$in": list(workspace_forms)}}
-    ).to_list()
+    requests = await _c().form_response_repo().list_deletion_requests_for_form_ids(list(workspace_forms))
     items = [
         {
             "responseId": r.response_id,

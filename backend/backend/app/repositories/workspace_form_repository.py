@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 from http import HTTPStatus
-from typing import Dict, Any, List
+from typing import Any, Dict, List, Optional
 
 from beanie import PydanticObjectId
 from common.constants import MESSAGE_DATABASE_EXCEPTION
@@ -18,6 +18,21 @@ from backend.app.schemas.workspace_form import WorkspaceFormDocument
 
 
 class WorkspaceFormRepository:
+    async def find_workspace_form(
+        self, workspace_id: PydanticObjectId, form_id: str
+    ) -> Optional[WorkspaceFormDocument]:
+        return await WorkspaceFormDocument.find_one(
+            {"form_id": form_id, "workspace_id": workspace_id}
+        )
+
+    async def list_in_workspace(
+        self, workspace_id: PydanticObjectId
+    ) -> List[WorkspaceFormDocument]:
+        return await WorkspaceFormDocument.find({"workspace_id": workspace_id}).to_list()
+
+    async def save(self, workspace_form: WorkspaceFormDocument) -> WorkspaceFormDocument:
+        return await workspace_form.save()
+
     async def update(
         self, item_id: str, item: WorkspaceFormDocument
     ) -> WorkspaceFormDocument:
