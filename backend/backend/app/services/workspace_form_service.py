@@ -4,7 +4,6 @@ import re
 from http import HTTPStatus
 from typing import List, Optional, Any
 
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from beanie import PydanticObjectId
 from common.configs.crypto import Crypto
 from common.constants import MESSAGE_NOT_FOUND, MESSAGE_FORBIDDEN
@@ -66,7 +65,6 @@ class WorkspaceFormService:
         form_repo: FormRepository,
         form_schedular: FormSchedular,
         form_import_service: FormImportService,
-        schedular: AsyncIOScheduler,
         form_response_service: FormResponseService,
         responder_groups_service: ResponderGroupsService,
         user_tags_service: UserTagsService,
@@ -85,7 +83,6 @@ class WorkspaceFormService:
         self.form_template_repo = form_template_repo
         self.form_schedular = form_schedular
         self.form_import_service = form_import_service
-        self.schedular = schedular
         self.form_response_service = form_response_service
         self.responder_groups_service = responder_groups_service
         self.user_tags_service = user_tags_service

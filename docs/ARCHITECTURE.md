@@ -96,8 +96,10 @@ creates **Schedules** on the Temporal server (PostgreSQL-backed). Three worker s
 | `temporal/csv-worker` | `ExportCSVWorkflow` | `export_as_csv` | Export form responses to CSV |
 | `temporal/actions-executor` | `RunActionCode` | `run_action_code` | Execute user-defined form-action / automation code |
 
-The backend can migrate legacy **APScheduler** jobs into Temporal Schedules on startup
-(`migrate_schedule_to_temporal()`, gated by temporal settings).
+Each job kind can instead run as a **procrastinate** job on Postgres (`JOBS_BACKEND__<job>=postgres`, tables in the
+`jobs` schema): the backend's `jobs-worker` consumes `delete_user` / `delete_response`, the actions-executor consumes
+`run_action` (`JOBS_BACKEND=postgres` in its entrypoint). Temporal stays the default until the cutover
+(plan: [plans/postgres-consolidation.md](../plans/postgres-consolidation.md) §7).
 
 ## Example end-to-end flows
 
@@ -106,7 +108,7 @@ The backend can migrate legacy **APScheduler** jobs into Temporal Schedules on s
 2. Backend `plugin_proxy` forwards to the google microservice (:8003), or enqueues an `ImportFormWorkflow` on Temporal.
 3. The google service (or the `import_form` activity) calls Google Forms + Drive APIs, converts the result via
    `POST /google/convert/standard_form`, and the form is stored as a `StandardForm` (`FormDocument`) under the workspace.
-4. Recurring re-imports are managed as Temporal Schedules.
+4. A re-import is triggered through the backend's `/temporal/import/{workspace_id}/form/{form_id}` callback.
 
 **Submitting a response (with consent)**
 1. Responder loads the public form (webapp `app/forms/[form_id]`), reviews the declared purpose/consent.
@@ -119,7 +121,7 @@ The backend can migrate legacy **APScheduler** jobs into Temporal Schedules on s
 
 - **MongoDB** — all application data via Beanie Documents. Backend collections are registered in
   [backend/app/handlers/database.py](../backend/backend/app/handlers/database.py) `init_db`; core models come from
-  `common/`. A separate `apscheduler` DB holds `APSchedulerDocument`.
+  `common/`.
 - **PostgreSQL (`app-postgres`)** — the application database that is replacing MongoDB and Temporal
   (plan: [plans/postgres-consolidation.md](../plans/postgres-consolidation.md)). One database, one schema per
   service (`app`, `auth`, `google`, `jobs`), one least-privilege role each — the actions-executor's role can reach

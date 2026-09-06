@@ -1,4 +1,5 @@
 import asyncio
+import os
 import random
 import string
 
@@ -36,4 +37,11 @@ async def main():
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    # JOBS_BACKEND=postgres: consume the procrastinate `actions` queue instead
+    # of Temporal (plans/postgres-consolidation.md §7). Temporal stays default.
+    if os.environ.get("JOBS_BACKEND", "temporal").lower() == "postgres":
+        from procrastinate_worker import main as run_procrastinate
+
+        asyncio.run(run_procrastinate())
+    else:
+        asyncio.run(main())
