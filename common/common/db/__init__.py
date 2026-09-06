@@ -9,7 +9,13 @@ Mongo except the Mongo-side outbox document.
 """
 
 from common.db.base import BaseRow, NAMING_CONVENTION, OBJECT_ID_PATTERN, make_base
-from common.db.beanie_bridge import ensure_id, from_row_doc, row_values, to_bson_dict
+from common.db.beanie_bridge import (
+    derived_object_id,
+    ensure_id,
+    from_row_doc,
+    row_values,
+    to_bson_dict,
+)
 from common.db.ddl import (
     HELPER_FUNCTIONS,
     drop_helper_function_ddl,

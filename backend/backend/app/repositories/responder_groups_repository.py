@@ -10,41 +10,45 @@ from backend.app.schemas.responder_group import (
     ResponderGroupMemberDocument,
     ResponderGroupFormDocument,
 )
-from common.db import to_bson_dict
+from common.db import derived_object_id, to_bson_dict
 from common.db.routing import write_op
 
 
 class ResponderGroupsRepository:
-    @write_op
+    @staticmethod
+    def member(
+        group_id: PydanticObjectId, identifier: str
+    ) -> ResponderGroupMemberDocument:
+        """A member's identity is the (group, identifier) pair; its id follows."""
+        return ResponderGroupMemberDocument(
+            id=derived_object_id("responder_group_member", group_id, identifier),
+            group_id=group_id,
+            identifier=identifier,
+        )
+
+    @staticmethod
+    def link(group_id: PydanticObjectId, form_id: str) -> ResponderGroupFormDocument:
+        return ResponderGroupFormDocument(
+            id=derived_object_id("responder_group_form", group_id, form_id),
+            group_id=group_id,
+            form_id=form_id,
+        )
+
+    @write_op(replay=True)
     async def create_group(
         self,
         workspace_id: PydanticObjectId,
         name: str,
         description: Optional[str] = None,
-        form_id: Optional[str] = None,
-        emails: List[EmailStr] = None,
         regex: Optional[str] = None,
     ):
+        """The group document only; members and forms are added by their own
+        calls (ResponderGroupsService.create_group orchestrates)."""
         if description and len(description) > 280:
             return {"message": "description should be less than 280 characters"}
-        responder_group = ResponderGroupDocument(
+        return await ResponderGroupDocument(
             name=name, workspace_id=workspace_id, description=description, regex=regex
-        )
-        responder_group = await responder_group.save()
-        responder_group_emails = []
-        if emails:
-            for email in emails:
-                responder_group_emails.append(
-                    ResponderGroupMemberDocument(
-                        group_id=responder_group.id, identifier=email
-                    )
-                )
-            await ResponderGroupMemberDocument.insert_many(responder_group_emails)
-        if form_id:
-            await ResponderGroupFormDocument.insert(
-                ResponderGroupFormDocument(group_id=responder_group.id, form_id=form_id)
-            )
-        return responder_group
+        ).save()
 
     @write_op
     async def update_group(
@@ -59,23 +63,12 @@ class ResponderGroupsRepository:
         responder_group = await ResponderGroupDocument.find_one(
             {"workspace_id": workspace_id, "_id": group_id}
         )
-        existing_group_members = await ResponderGroupMemberDocument.find(
-            {"group_id": group_id}
-        ).to_list()
         if emails and len(emails) != 0:
-            for existing_group_member in existing_group_members:
-                for email in existing_group_member:
-                    await ResponderGroupMemberDocument.find(
-                        {"group_id": group_id, "identifier": {"$in": email}}
-                    ).delete()
-            responder_group_emails = []
-            for email in emails:
-                responder_group_emails.append(
-                    ResponderGroupMemberDocument(
-                        group_id=responder_group.id, identifier=email
-                    )
-                )
-            await ResponderGroupMemberDocument.insert_many(responder_group_emails)
+            # replace the membership wholesale
+            await ResponderGroupMemberDocument.find({"group_id": group_id}).delete()
+            await ResponderGroupMemberDocument.insert_many(
+                [self.member(group_id, email) for email in set(emails)]
+            )
 
         if responder_group:
             if name:
@@ -101,14 +94,12 @@ class ResponderGroupsRepository:
             {"group_id": group_id, "identifier": {"$in": emails}}
         ).to_list()
         existing_emails = [
-            ex_document.email for ex_document in existing_email_documents
+            ex_document.identifier for ex_document in existing_email_documents
         ]
         new_emails = []
         for email in emails:
             if email not in existing_emails:
-                new_emails.append(
-                    ResponderGroupMemberDocument(group_id=group_id, identifier=email)
-                )
+                new_emails.append(self.member(group_id, email))
         if new_emails:
             await ResponderGroupMemberDocument.insert_many(new_emails)
 
@@ -256,10 +247,7 @@ class ResponderGroupsRepository:
             {"form_id": form_id, "group_id": group_id}
         )
         if not existing_document:
-            responder_group_form_document = ResponderGroupFormDocument(
-                form_id=form_id, group_id=group_id
-            )
-            return await responder_group_form_document.save()
+            return await self.link(group_id, form_id).save()
 
     @write_op
     async def add_groups_to_form(self, form_id: str, group_ids: List[PydanticObjectId]):

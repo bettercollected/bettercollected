@@ -435,6 +435,28 @@ class FormRepository:
         return await FormDocument.find_one({"form_id": str(form_id)})
 
     @write_op
+    async def remove_action_from_all_forms(self, action_id: PydanticObjectId):
+        """Detach a deleted action from every form: drop it from the on_submit
+        triggers and forget its parameters and secrets (moved here from the
+        actions repository — it writes forms, so it belongs to the forms group)."""
+        await FormDocument.find(
+            {
+                "$or": [
+                    {"actions.on_submit": {"$in": [action_id]}},
+                    {"actions.on_open": {"$in": [action_id]}},
+                ]
+            }
+        ).update(
+            {
+                "$pull": {"actions.on_submit": action_id},
+                "$unset": {
+                    f"parameters.{str(action_id)}": "",
+                    f"secrets.{str(action_id)}": "",
+                },
+            }
+        )
+
+    @write_op
     async def update_form_actions(
         self,
         form_id: PydanticObjectId,

@@ -158,12 +158,14 @@ class DbFlags:
             return True
         return self.shadow_read_sample > 0
 
-    def validate(self, read_dependencies: Mapping[str, Iterable[str]] = {}) -> None:
-        """``read_dependencies``: group -> groups that must be served from Postgres
-        before it may be. A group's *Mongo* repositories may ``$lookup`` into
-        another group's collections; once that other group is served from
-        Postgres those joins find nothing, so it has to cut over first (or
-        together). The application declares the map; the flags enforce it."""
+    def validate(self, mongo_joins: Mapping[str, Iterable[str]] = {}) -> None:
+        """``mongo_joins``: group -> groups whose collections its *Mongo*
+        repositories ``$lookup`` into. Such a join finds nothing once the joined
+        group stops writing Mongo, so while a group still reads from Mongo the
+        groups it joins into must keep writing Mongo (``dual`` or
+        ``postgres_primary_dual`` are fine, ``postgres`` is not). Once the
+        joining group is served from Postgres its twins compose instead and the
+        constraint lifts. The application declares the map; the flags enforce it."""
         groups = {"*"} | set(self.read_overrides) | set(self.write_overrides)
         for group in groups:
             read = self.default_read if group == "*" else self.read_source(group)
@@ -178,29 +180,25 @@ class DbFlags:
             raise FlagError(
                 f"{SAMPLE_KEY} must be between 0 and 1, got {self.shadow_read_sample}"
             )
-        for group, prerequisites in read_dependencies.items():
-            if self.read_source(group) is not ReadSource.POSTGRES:
-                continue
-            lagging = [
-                p
-                for p in prerequisites
-                if self.read_source(p) is not ReadSource.POSTGRES
-            ]
-            if lagging:
+        for group, joined in mongo_joins.items():
+            if self.read_source(group) is ReadSource.POSTGRES:
+                continue  # served by its twins, which compose over the routed repos
+            stopped = [g for g in joined if self.write_mode(g) is WriteMode.POSTGRES]
+            if stopped:
                 raise FlagError(
-                    f"group {group!r} cannot be served from postgres while "
-                    f"{', '.join(repr(p) for p in lagging)} still read from mongo: their "
-                    f"Mongo repositories join into {group!r}'s collections. Cut those "
-                    f"groups over first (or together)."
+                    f"group(s) {', '.join(repr(g) for g in stopped)} cannot stop writing "
+                    f"mongo (DB_WRITE_MODE=postgres) while group {group!r} still reads from "
+                    f"mongo: its Mongo repositories join into their collections. Serve "
+                    f"{group!r} from postgres first, or keep them on postgres_primary_dual."
                 )
 
 
 def load_flags(
     env: Mapping[str, str] = os.environ,
-    read_dependencies: Mapping[str, Iterable[str]] = {},
+    mongo_joins: Mapping[str, Iterable[str]] = {},
 ) -> DbFlags:
     """Parse and validate the flags from ``env``; raises :class:`FlagError` on a bad
-    value. ``read_dependencies`` is the cutover-order map (see ``DbFlags.validate``)."""
+    value. ``mongo_joins`` is the cutover-order map (see ``DbFlags.validate``)."""
     raw_sample = env.get(SAMPLE_KEY, "")
     try:
         sample = float(raw_sample) if raw_sample != "" else 0.0
@@ -221,5 +219,5 @@ def load_flags(
         ),
         jobs_overrides=_overrides(env, JOBS_KEY, JobsBackend),
     )
-    flags.validate(read_dependencies)
+    flags.validate(mongo_joins)
     return flags

@@ -1,4 +1,4 @@
-from typing import Dict, Any
+from typing import Optional
 
 from fastapi_pagination.ext.beanie import paginate
 
@@ -14,13 +14,15 @@ class DeletionRequestsRepository:
     @staticmethod
     async def get_deletion_requests(
         form_ids,
-        extra_find_query: Dict[str, Any] = None,
+        data_owner_identifier: Optional[str] = None,
         filter_query: FormResponseFilterQuery = None,
         sort: SortRequest = None,
     ):
+        """Deletion requests for ``form_ids`` (optionally one responder's), each
+        carrying its form's title and importer and the response's submission uuid."""
         find_query = {"form_id": {"$in": form_ids}}
-        if extra_find_query is not None:
-            find_query.update(extra_find_query)
+        if data_owner_identifier is not None:
+            find_query["dataOwnerIdentifier"] = data_owner_identifier
         aggregate_query = [
             {
                 "$lookup": {

@@ -126,16 +126,24 @@ def test_serves_from_postgres_distinguishes_mirror_only_from_serving():
     )
 
 
-def test_read_dependencies_enforce_cutover_order():
-    deps = {"forms": ["responses"]}
-    # responses still on mongo: forms may mirror but not serve
-    load_flags({"DB_WRITE_MODE__forms": "dual"}, deps)
-    with pytest.raises(FlagError, match="'responses' still read from mongo"):
+def test_mongo_joins_enforce_cutover_order():
+    joins = {"responses": ["forms"]}  # Mongo responses repos $lookup forms
+    # forms may mirror or be served from postgres as long as it keeps writing mongo
+    load_flags({"DB_WRITE_MODE__forms": "dual"}, joins)
+    load_flags(
+        {
+            "DB_READ_SOURCE__forms": "postgres",
+            "DB_WRITE_MODE__forms": "postgres_primary_dual",
+        },
+        joins,
+    )
+    # ...but cannot stop writing mongo while responses still reads there
+    with pytest.raises(FlagError, match="'forms' cannot stop writing mongo"):
         load_flags(
             {"DB_READ_SOURCE__forms": "postgres", "DB_WRITE_MODE__forms": "postgres"},
-            deps,
+            joins,
         )
-    # together, or responses first, is fine
+    # once responses is served from postgres the constraint lifts
     load_flags(
         {
             "DB_READ_SOURCE__forms": "postgres",
@@ -143,6 +151,6 @@ def test_read_dependencies_enforce_cutover_order():
             "DB_READ_SOURCE__responses": "postgres",
             "DB_WRITE_MODE__responses": "postgres",
         },
-        deps,
+        joins,
     )
-    load_flags({"DB_READ_SOURCE": "postgres", "DB_WRITE_MODE": "postgres"}, deps)
+    load_flags({"DB_READ_SOURCE": "postgres", "DB_WRITE_MODE": "postgres"}, joins)

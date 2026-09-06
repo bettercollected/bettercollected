@@ -134,7 +134,7 @@ jobs:
                   DB_READ_SOURCE__refdata: postgres
                   DB_WRITE_MODE__refdata: postgres
                   DB_READ_SOURCE__identity: postgres
-                  DB_WRITE_MODE__identity: postgres
+                  DB_WRITE_MODE__identity: postgres_primary_dual
               run: uv run pytest
 
     auth-tests:

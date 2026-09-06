@@ -6,7 +6,6 @@ from common.models.user import User
 
 from backend.app.models.dtos.action_dto import ActionDto, ActionResponse
 from backend.app.schemas.action_document import ActionDocument, WorkspaceActionsDocument
-from backend.app.schemas.standard_form import FormDocument
 from common.db.routing import write_op
 
 
@@ -14,10 +13,10 @@ class ActionRepository:
     def __init__(self, crypto: Crypto):
         self.crypto = crypto
 
-    @write_op
+    @write_op(replay=True)
     async def create_action(
         self, workspace_id: PydanticObjectId, action: ActionDto, user: User
-    ):
+    ) -> ActionDocument:
         if action.secrets is not None:
             for secret in action.secrets:
                 secret.value = self.crypto.encrypt(secret.value)
@@ -26,8 +25,7 @@ class ActionRepository:
             created_by=PydanticObjectId(user.id),
             workspace_id=workspace_id,
         )
-        new_action = await new_action.save()
-        return ActionResponse(**new_action.model_dump(mode="json"))
+        return await new_action.save()
 
     @write_op
     async def delete_action(self, action_id: PydanticObjectId):
@@ -110,26 +108,8 @@ class ActionRepository:
         # return [ActionResponse(**action, id=action["_id"]) for action in actions]
 
     # TODO resolve circular deps with action_service and workspace_form_service and update in workspace form repo
-    @write_op
-    async def remove_action_form_all_forms(self, action_id: PydanticObjectId):
-        await FormDocument.find(
-            {
-                "$or": [
-                    {"actions.on_submit": {"$in": [action_id]}},
-                    {"actions.on_open": {"$in": [action_id]}},
-                ]
-            }
-        ).update(
-            {
-                "$pull": {"actions.on_submit": action_id},
-                "$unset": {
-                    f"parameters.{str(action_id)}": "",
-                    f"secrets.{str(action_id)}": "",
-                },
-            }
-        )
 
-    @write_op
+    @write_op(replay=True)
     async def create_action_in_workspace_from_action(
         self,
         workspace_id: PydanticObjectId,
@@ -151,7 +131,7 @@ class ActionRepository:
         await workspace_action.save()
         return workspace_action
 
-    @write_op
+    @write_op(replay=True)
     async def create_global_action(self, action: ActionDto, user: User):
         if action.secrets is not None:
             for secret in action.secrets:

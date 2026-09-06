@@ -8,7 +8,7 @@ from common.db.routing import write_op
 
 
 class WorkspaceRespondersRepository:
-    @write_op
+    @write_op(replay=True)
     async def create_workspace_tag(self, workspace_id: PydanticObjectId, title: str):
         workspace_tag = await WorkspaceTags.find_one(
             {"workspace_id": workspace_id, "title": title}
@@ -20,7 +20,7 @@ class WorkspaceRespondersRepository:
     async def get_workspace_tags(self, workspace_id: PydanticObjectId):
         return await WorkspaceTags.find({"workspace_id": workspace_id}).to_list()
 
-    @write_op
+    @write_op(replay=True)
     async def get_responder_by_email_and_workspace_id(
         self, workspace_id: PydanticObjectId, email: str
     ):
