@@ -19,7 +19,7 @@ Public site: https://bettercollected.com · License: see [LICENSE](LICENSE).
 | Path | Stack | Port | Role |
 |---|---|---|---|
 | [webapp/](webapp/) | Next.js 14 + TS, Redux Toolkit / RTK Query | 3000 | All UI: builder, dashboards, responder portal, billing |
-| [backend/](backend/) | FastAPI + Beanie (MongoDB) | 8000 | Core API — the hub everything routes through |
+| [backend/](backend/) | FastAPI + Beanie (MongoDB) + SQLAlchemy (PostgreSQL) | 8000 | Core API — the hub everything routes through |
 | [auth/](auth/) | FastAPI + fastapi-users + Stripe | 8001 | Identity (OAuth / email-OTP / JWT) + Stripe billing |
 | [integrations/google/](integrations/google/) | FastAPI + Google APIs | 8003 | Google Forms/Drive/Sheets provider microservice |
 | `integrations/typeform/` | FastAPI (Typeform APIs) | 8002 | Typeform provider microservice — **not checked out in this clone** |
@@ -57,8 +57,11 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for request-level data flow.
 ## Layering conventions
 
 - **Python (FastAPI) services** follow `fastapi-mvc`: **Controllers** (class-based via `classy-fastapi`) →
-  **Services** (business logic, wired by `dependency-injector`) → **Repositories** → **Beanie Documents** (MongoDB).
-  Put business logic in services, DB access in repositories, HTTP shape in controllers. Do not query Mongo from a controller.
+  **Services** (business logic, wired by `dependency-injector`) → **Repositories** (routed: a Mongo implementation and
+  its Postgres twin behind one `RoutingRepository`, chosen per group by `DB_*` flags — see `backend/AGENTS.md`
+  "Persistence") → **Beanie Documents** (MongoDB) / **rows** (PostgreSQL, `<service>/db/models.py`).
+  Put business logic in services, DB access in repositories, HTTP shape in controllers. Never query a store from a
+  controller or service.
 - **Frontend** is Redux Toolkit + **RTK Query** for all server state (~16 API slices, all against `/api/v1`), plain
   slices + Jotai for client state. Add server calls as RTK Query endpoints, not ad-hoc `fetch`.
 

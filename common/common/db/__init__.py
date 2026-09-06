@@ -49,7 +49,10 @@ from common.db.runtime import (
     build_sessionmaker,
     check_postgres_at_startup,
     dispose_engine,
+    metrics_snapshot,
+    outbox_backlog,
     postgres_repository,
+    redact,
 )
 from common.db.spine import SpineColumns
 from common.db.pg_repository import PostgresNotConfigured, PostgresRepositoryBase

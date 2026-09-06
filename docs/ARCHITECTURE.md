@@ -119,13 +119,17 @@ Each job kind can instead run as a **procrastinate** job on Postgres (`JOBS_BACK
 
 ## Data stores
 
-- **MongoDB** — all application data via Beanie Documents. Backend collections are registered in
-  [backend/app/handlers/database.py](../backend/backend/app/handlers/database.py) `init_db`; core models come from
-  `common/`.
+- **MongoDB** — application data via Beanie Documents, today's authoritative store. Backend collections are
+  registered in [backend/app/handlers/database.py](../backend/backend/app/handlers/database.py) `init_db`; core
+  models come from `common/`.
 - **PostgreSQL (`app-postgres`)** — the application database that is replacing MongoDB and Temporal
   (plan: [plans/postgres-consolidation.md](../plans/postgres-consolidation.md)). One database, one schema per
   service (`app`, `auth`, `google`, `jobs`), one least-privilege role each — the actions-executor's role can reach
-  `jobs` only, because it runs user-authored code. Introduced empty; populated by dual-write and backfill.
+  `jobs` only, because it runs user-authored code. Every repository in backend, auth and the google integration has
+  a Postgres twin behind a `RoutingRepository`; per-group flags (`DB_READ_SOURCE__<g>`, `DB_WRITE_MODE__<g>`) move
+  a group from Mongo to mirrored (`dual`) to served-from-Postgres, with Mongo kept current by a reverse mirror until
+  removal. Mirror failures go to an outbox; shadow reads compare the stores on live traffic; the flags in effect
+  are logged at boot and served on `GET /persistence/status`.
 - **PostgreSQL (Temporal)** — used only by the Temporal server (auto-setup image), not by application code;
   goes away with Temporal.
 - **Redis** — caching (notably in `integrations/google`).

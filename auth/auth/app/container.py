@@ -18,6 +18,7 @@ from auth.db.models import MirrorWriteFailure
 from common.db import (
     DatabaseSettings,
     OutboxRecorder,
+    RoutingMetrics,
     RoutingRepository,
     build_engine,
     build_sessionmaker,
@@ -50,6 +51,7 @@ class AppContainer(containers.DeclarativeContainer):
     mirror_timeout_s = providers.Callable(
         lambda s: s.mirror_timeout_ms / 1000, db_settings
     )
+    routing_metrics = providers.Singleton(RoutingMetrics)
 
     provider_repository: ProviderRepository = providers.Singleton(
         RoutingRepository,
@@ -57,6 +59,7 @@ class AppContainer(containers.DeclarativeContainer):
         flags=flags,
         on_mirror_failure=outbox_recorder,
         mirror_timeout_s=mirror_timeout_s,
+        metrics=routing_metrics,
         mongo=providers.Singleton(ProviderRepository),
         postgres=providers.Singleton(
             postgres_repository, PostgresProviderRepository, pg_sessionmaker
@@ -68,6 +71,7 @@ class AppContainer(containers.DeclarativeContainer):
         flags=flags,
         on_mirror_failure=outbox_recorder,
         mirror_timeout_s=mirror_timeout_s,
+        metrics=routing_metrics,
         mongo=providers.Singleton(UserRepository),
         postgres=providers.Singleton(
             postgres_repository, PostgresUserRepository, pg_sessionmaker

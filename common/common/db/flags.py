@@ -120,6 +120,28 @@ class DbFlags:
     def jobs_backend(self, job: str) -> JobsBackend:
         return self.jobs_overrides.get(job.lower(), self.jobs_default)
 
+    def describe(self, groups: Iterable[str] = (), jobs: Iterable[str] = ()) -> dict:
+        """What is in effect, per group and job kind — logged at boot and served
+        by the status endpoints so a flip is auditable after the fact."""
+        names = sorted({*groups, *self.read_overrides, *self.write_overrides})
+        job_names = sorted({*jobs, *self.jobs_overrides})
+        return {
+            "defaults": {
+                "read_source": self.default_read.value,
+                "write_mode": self.default_write.value,
+                "jobs_backend": self.jobs_default.value,
+            },
+            "groups": {
+                g: {
+                    "read_source": self.read_source(g).value,
+                    "write_mode": self.write_mode(g).value,
+                }
+                for g in names
+            },
+            "jobs": {j: self.jobs_backend(j).value for j in job_names},
+            "shadow_read_sample": self.shadow_read_sample,
+        }
+
     # -- whole process -----------------------------------------------------
     def should_shadow_read(self, rng: random.Random | None = None) -> bool:
         if self.shadow_read_sample <= 0:

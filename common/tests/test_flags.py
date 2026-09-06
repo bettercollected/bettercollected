@@ -154,3 +154,26 @@ def test_mongo_joins_enforce_cutover_order():
         joins,
     )
     load_flags({"DB_READ_SOURCE": "postgres", "DB_WRITE_MODE": "postgres"}, joins)
+
+
+def test_describe_reports_what_is_in_effect():
+    flags = load_flags(
+        {"DB_WRITE_MODE__forms": "dual", "JOBS_BACKEND__delete_user": "postgres"}
+    )
+    described = flags.describe(
+        groups=["forms", "identity"], jobs=["delete_user", "run_action"]
+    )
+    assert described["defaults"] == {
+        "read_source": "mongo",
+        "write_mode": "mongo",
+        "jobs_backend": "temporal",
+    }
+    assert described["groups"]["forms"] == {
+        "read_source": "mongo",
+        "write_mode": "dual",
+    }
+    assert described["groups"]["identity"] == {
+        "read_source": "mongo",
+        "write_mode": "mongo",
+    }
+    assert described["jobs"] == {"delete_user": "postgres", "run_action": "temporal"}

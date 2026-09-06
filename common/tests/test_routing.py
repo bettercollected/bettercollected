@@ -286,3 +286,24 @@ async def test_write_result_replays_the_persisted_documents_and_returns_the_valu
     assert await r.rotate("k") == {"plain": "k"}  # the caller never sees the wrapper
     assert p.replayed == [["mongo-enc"]]  # the mirror stores the encrypted copy
     assert [c[0] for c in p.calls] == []
+
+
+def test_outbox_row_ids_redact_addresses_and_keep_ids():
+    from common.db import MirrorFailure, ReadSource, redact
+    from common.db.runtime import failure_ids
+
+    assert redact("6a9d7c30c3a01cadfd948543") == "6a9d7c30c3a01cadfd948543"
+    assert redact("someone@example.com").startswith("email:") and "@" not in redact(
+        "a@b.c"
+    )
+    failure = MirrorFailure(
+        "responses",
+        "ResponderGroupsRepository",
+        "add_emails_to_group",
+        ReadSource.POSTGRES,
+        ("6a9d7c30c3a01cadfd948543", ["a@x.com", "b@x.com"]),
+        {},
+        RuntimeError("down"),
+    )
+    ids = failure_ids(failure)
+    assert ids.startswith("6a9d7c30c3a01cadfd948543,email:") and "@" not in ids

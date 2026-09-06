@@ -21,6 +21,7 @@ from googleform.db.models import MirrorWriteFailure
 from common.db import (
     DatabaseSettings,
     OutboxRecorder,
+    RoutingMetrics,
     RoutingRepository,
     build_engine,
     build_sessionmaker,
@@ -53,6 +54,7 @@ class Container(containers.DeclarativeContainer):
     mirror_timeout_s = providers.Callable(
         lambda s: s.mirror_timeout_ms / 1000, db_settings
     )
+    routing_metrics = providers.Singleton(RoutingMetrics)
 
     # Google form repository and service
     form_repo = providers.Singleton(
@@ -61,6 +63,7 @@ class Container(containers.DeclarativeContainer):
         flags=flags,
         on_mirror_failure=outbox_recorder,
         mirror_timeout_s=mirror_timeout_s,
+        metrics=routing_metrics,
         mongo=providers.Singleton(FormRepository),
         postgres=providers.Singleton(
             postgres_repository, PostgresFormRepository, pg_sessionmaker
@@ -77,6 +80,7 @@ class Container(containers.DeclarativeContainer):
         flags=flags,
         on_mirror_failure=outbox_recorder,
         mirror_timeout_s=mirror_timeout_s,
+        metrics=routing_metrics,
         mongo=providers.Singleton(FormResponseRepository),
         postgres=providers.Singleton(
             postgres_repository, PostgresFormResponseRepository, pg_sessionmaker
@@ -96,6 +100,7 @@ class Container(containers.DeclarativeContainer):
         flags=flags,
         on_mirror_failure=outbox_recorder,
         mirror_timeout_s=mirror_timeout_s,
+        metrics=routing_metrics,
         mongo=providers.Singleton(OauthCredentialRepository),
         postgres=providers.Singleton(
             postgres_repository, PostgresOauthCredentialRepository, pg_sessionmaker

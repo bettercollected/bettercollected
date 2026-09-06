@@ -47,11 +47,38 @@ Routers are registered in [backend/app/router.py](backend/app/router.py) via the
 (classy-fastapi Routables) or `register_plugin_class` (the plugin proxy). Follow an existing controller
 (e.g. `workspace_forms.py`) as a template — constructor injection, `self.router` methods, camelCase response models.
 
-## Data / MongoDB
+## Persistence (MongoDB → PostgreSQL, in progress)
+
+Application data lives in MongoDB (Beanie Documents) **and** is moving to PostgreSQL (`app-postgres`, schema `app`);
+plan and decisions in `plans/postgres-consolidation.md`. What that means when you touch data code:
+
+- **Every repository is routed.** The container hands out `RoutingRepository` proxies over a Mongo implementation and
+  its Postgres *twin* (`app/repositories/postgres/*.py`, one class per Mongo repository, same public methods —
+  `tests/app/repositories/test_postgres_surface.py` enforces it). Repositories are grouped (`refdata`, `identity`,
+  `forms`, `responses`, `actions`, `ai`, `analytics`); `DB_READ_SOURCE__<group>` / `DB_WRITE_MODE__<group>`
+  (`mongo|dual|postgres_primary_dual|postgres`) choose the store per group, flips are restarts, and
+  `backend/db/groups.py` declares the cutover order the flags enforce at boot.
+- **Adding or changing a repository method:** implement it on both the Mongo class and the twin, mark writes
+  `@write_op` (`tests/app/repositories/test_write_markers.py` checks the AST), and `@write_op(replay=True)` for a write
+  that mints state the caller didn't pass in (a new document's id, a token) — the mirror then stores the returned
+  document instead of re-running the call. Return the *document* from such writes, not a DTO (`WriteResult` when the
+  return value must differ from what was stored). Relation documents get `derived_object_id` so both stores agree.
+- **Joins:** SQL joins only within a group; a `$lookup` into another group's collection is *composed* through that
+  group's routed repository (see `postgres/forms.py`). Never query Mongo or Postgres from a service or controller.
+- **Rows:** `backend/db/models.py` — one table per collection, typed spine columns `GENERATED` from the `doc` JSONB
+  (query only spine columns; add one + an Alembic revision under `backend/migrations/` when a query needs a new
+  field). Migrations run as the service role (`bc_app`), never as the superuser.
+- **Mirror failures** land in the outbox (`mirror_write_failures`, Mongo doc or Postgres row — whichever store is
+  primary); shadow-read diffs and counters are exposed on `GET /persistence/status` (admin) and the effective flags
+  are logged at boot.
+- **Tests run three ways in CI** (Mongo · everything mirrored · everything served from Postgres). Parity tests
+  (`tests/app/repositories/test_*_parity.py`) run each method on both stores; test fixtures must go through
+  `container.<repo>()`, never Beanie directly, or the Postgres-served mode fails.
 
 Beanie Documents are registered in [backend/app/handlers/database.py](backend/app/handlers/database.py) `init_db`'s
-`document_models` list — **a new collection must be added there or it won't be initialized.** Core domain models
-(`User`, `StandardForm`, `StandardFormResponse`, `Consent`) come from the shared `common` package, not from here.
+`document_models` list — **a new collection must be added there or it won't be initialized** (and needs a row +
+twin as above). Core domain models (`User`, `StandardForm`, `StandardFormResponse`, `Consent`) come from the shared
+`common` package, not from here.
 Background jobs go through `services/temporal_service.py`, which dispatches per job kind (`JOBS_BACKEND__<job>`)
 to a Temporal workflow (default) or a procrastinate job on Postgres (`backend/jobs/`; worker:
 `python -m backend.jobs.worker`, queue tables in the `jobs` schema via `python -m backend.jobs.schema`).
@@ -137,11 +164,13 @@ and architecture.
 
 ```bash
 ./run.sh                 # uvicorn backend.app:get_application --reload :8000  (needs Mongo up first)
-make install             # poetry install
-make test                # unit + integration
-make unit-test | make integration-test | make coverage
-make format              # black
-poetry run flake8 .      # lint
+uv sync                  # install (uv, never pip/poetry)
+DATABASE_URL=postgresql+asyncpg://bettercollected:bettercollected@localhost:5432/bettercollected_test uv run pytest
+# the same suite mirrored / served from Postgres (what CI runs):
+DB_WRITE_MODE=dual ... uv run pytest
+DB_READ_SOURCE=postgres DB_WRITE_MODE=postgres ... uv run pytest
+uv run alembic -c alembic.ini upgrade head   # as the service role (bc_app), see backend/.env.example
+python -m backend.jobs.worker                # procrastinate worker (JOBS_BACKEND=postgres)
 ```
 Prod entry: `backend serve` CLI → gunicorn with uvicorn workers.
 
