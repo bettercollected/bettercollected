@@ -26,10 +26,13 @@ from pydantic import BaseModel, ConfigDict
 from pydantic.alias_generators import to_camel
 
 from backend.app.exceptions import HTTPException
+from backend.app.repositories.form_ai_insight_repository import FormAIInsightRepository
+from backend.app.repositories.form_repository import FormRepository
+from backend.app.repositories.form_response_repository import FormResponseRepository
+from backend.app.repositories.workspace_form_repository import WorkspaceFormRepository
 from backend.app.schemas.form_ai_insight import FormAIInsightDocument
 from backend.app.schemas.standard_form import FormDocument
 from backend.app.schemas.standard_form_response import FormResponseDocument
-from backend.app.schemas.workspace_form import WorkspaceFormDocument
 from backend.app.services.ai.prompt_builder import extract_json_object
 from backend.app.services.workspace_user_service import WorkspaceUserService
 
@@ -110,7 +113,9 @@ def _choice_labels(form: StandardForm) -> Dict[str, str]:
     return labels
 
 
-_UUID_RE = re.compile(r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")
+_UUID_RE = re.compile(
+    r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+)
 
 
 def _resolve_choice(value: str, labels: Dict[str, str]) -> str:
@@ -124,7 +129,11 @@ def _resolve_choice(value: str, labels: Dict[str, str]) -> str:
 def _answer_text(raw: Any, choice_labels: Dict[str, str]) -> Optional[str]:
     """One answer -> plain text, with identifying value types redacted and
     choice IDs resolved to their labels."""
-    answer = raw if isinstance(raw, dict) else raw.model_dump() if hasattr(raw, "model_dump") else None
+    answer = (
+        raw
+        if isinstance(raw, dict)
+        else raw.model_dump() if hasattr(raw, "model_dump") else None
+    )
     if not answer:
         return None
     answer_type = str(answer.get("type") or "")
@@ -143,7 +152,9 @@ def _answer_text(raw: Any, choice_labels: Dict[str, str]) -> Optional[str]:
         return _resolve_choice(str(choice["value"]), choice_labels)
     choices = answer.get("choices")
     if isinstance(choices, dict) and choices.get("values"):
-        return ", ".join(_resolve_choice(str(v), choice_labels) for v in choices["values"])
+        return ", ".join(
+            _resolve_choice(str(v), choice_labels) for v in choices["values"]
+        )
     if answer.get("file_url") or answer.get("file_metadata"):
         return "[file uploaded]"
     if answer.get("url"):
@@ -169,7 +180,9 @@ def project_responses(
         answers = response.answers
         if isinstance(answers, (bytes, str)):
             answers = json.loads(
-                crypto_service.decrypt(workspace_id=workspace_id, form_id=response.form_id, data=answers)
+                crypto_service.decrypt(
+                    workspace_id=workspace_id, form_id=response.form_id, data=answers
+                )
             )
         if not isinstance(answers, dict):
             continue
@@ -196,33 +209,43 @@ class FormAIInsightsService:
         self,
         workspace_user_service: WorkspaceUserService,
         provider_resolver: Callable,
+        form_repo: FormRepository,
+        workspace_form_repo: WorkspaceFormRepository,
+        form_response_repo: FormResponseRepository,
+        insight_repo: FormAIInsightRepository,
     ):
         self._workspace_user_service = workspace_user_service
         self._provider_resolver = provider_resolver
+        self._form_repo = form_repo
+        self._workspace_form_repo = workspace_form_repo
+        self._form_response_repo = form_response_repo
+        self._insight_repo = insight_repo
 
-    async def _authorize(self, workspace_id: PydanticObjectId, form_id: str, user: User) -> FormDocument:
+    async def _authorize(
+        self, workspace_id: PydanticObjectId, form_id: str, user: User
+    ) -> FormDocument:
         await self._workspace_user_service.check_user_has_access_in_workspace(
             workspace_id=workspace_id, user=user
         )
-        association = await WorkspaceFormDocument.find_one(
-            WorkspaceFormDocument.workspace_id == workspace_id,
-            WorkspaceFormDocument.form_id == form_id,
+        association = await self._workspace_form_repo.find_workspace_form(
+            workspace_id, form_id
         )
         form_document = (
-            await FormDocument.find_one({"form_id": form_id}) if association else None
+            await self._form_repo.get_form_document_by_id(form_id)
+            if association
+            else None
         )
         if not form_document:
-            raise HTTPException(status_code=HTTPStatus.NOT_FOUND, content="Form not found")
+            raise HTTPException(
+                status_code=HTTPStatus.NOT_FOUND, content="Form not found"
+            )
         return form_document
 
     async def get_cached(
         self, workspace_id: PydanticObjectId, form_id: str, user: User
     ) -> Optional[FormAIInsightsResponse]:
         await self._authorize(workspace_id, form_id, user)
-        document = await FormAIInsightDocument.find_one(
-            FormAIInsightDocument.workspace_id == workspace_id,
-            FormAIInsightDocument.form_id == form_id,
-        )
+        document = await self._insight_repo.find(workspace_id, form_id)
         if not document:
             return None
         return FormAIInsightsResponse(
@@ -242,19 +265,14 @@ class FormAIInsightsService:
         """The explicit opt-in action — the only moment the AI reads answers."""
         form_document = await self._authorize(workspace_id, form_id, user)
 
-        total = await FormResponseDocument.find(
-            FormResponseDocument.form_id == form_id
-        ).count()
+        total = await self._form_response_repo.count_responses_for_form_ids([form_id])
         if total == 0:
             raise HTTPException(
                 status_code=HTTPStatus.BAD_REQUEST,
                 content="This form has no responses to summarize yet.",
             )
-        responses = (
-            await FormResponseDocument.find(FormResponseDocument.form_id == form_id)
-            .sort("-created_at")
-            .limit(MAX_RESPONSES)
-            .to_list()
+        responses = await self._form_response_repo.list_recent_by_form_id(
+            form_id, MAX_RESPONSES
         )
         form = StandardForm(**form_document.model_dump())
         projection, included = project_responses(workspace_id, form, responses)
@@ -283,12 +301,18 @@ class FormAIInsightsService:
                 InsightTheme(
                     title=str(t.get("title") or "").strip(),
                     description=str(t.get("description") or "").strip(),
-                    approx_count=t.get("approxCount") if isinstance(t.get("approxCount"), int) else None,
+                    approx_count=(
+                        t.get("approxCount")
+                        if isinstance(t.get("approxCount"), int)
+                        else None
+                    ),
                 )
                 for t in (parsed.get("themes") or [])
                 if isinstance(t, dict) and t.get("title")
             ]
-            actionable = [str(a) for a in (parsed.get("actionable") or []) if isinstance(a, str)]
+            actionable = [
+                str(a) for a in (parsed.get("actionable") or []) if isinstance(a, str)
+            ]
             sentiment = str(parsed["sentiment"]) if parsed.get("sentiment") else None
         except HTTPException:
             raise
@@ -305,10 +329,7 @@ class FormAIInsightsService:
             "sentiment": sentiment,
         }
         now = dt.datetime.now(dt.timezone.utc)
-        document = await FormAIInsightDocument.find_one(
-            FormAIInsightDocument.workspace_id == workspace_id,
-            FormAIInsightDocument.form_id == form_id,
-        )
+        document = await self._insight_repo.find(workspace_id, form_id)
         if document:
             document.payload = payload
             document.response_count = included
@@ -325,7 +346,7 @@ class FormAIInsightsService:
                 generated_by=user.id,
                 generated_at=now,
             )
-        await document.save()
+        await self._insight_repo.save(document)
         return FormAIInsightsResponse(
             **payload, response_count=included, total_responses=total, generated_at=now
         )

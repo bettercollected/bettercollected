@@ -7,6 +7,7 @@ from common.models.user import User
 from backend.app.exceptions import HTTPException
 from backend.app.models.template import StandardFormTemplate, StandardTemplateSetting
 from backend.app.schemas.template import FormTemplateDocument
+from common.db.routing import write_op
 
 
 class FormTemplateRepository:
@@ -83,11 +84,12 @@ class FormTemplateRepository:
 
         raise HTTPException(HTTPStatus.NOT_FOUND, content=MESSAGE_NOT_FOUND)
 
+    @write_op
     async def import_template_to_workspace(
         self, workspace_id: PydanticObjectId, template_id: PydanticObjectId
     ):
         template = await self.get_template_by_id(template_id)
-        imported_template = FormTemplateDocument(**template.model_dump(mode='json'))
+        imported_template = FormTemplateDocument(**template.model_dump(mode="json"))
         imported_template.id = None
         imported_template.imported_from = template.workspace_id
         imported_template.workspace_id = workspace_id
@@ -95,17 +97,19 @@ class FormTemplateRepository:
         imported_template = await imported_template.save()
         return imported_template
 
+    @write_op
     async def create_new_template(
         self,
         workspace_id: PydanticObjectId,
         template_body: StandardFormTemplate,
         user: User,
     ):
-        template = FormTemplateDocument(**template_body.model_dump(mode='json'))
+        template = FormTemplateDocument(**template_body.model_dump(mode="json"))
         template.workspace_id = workspace_id
         template.created_by = user.id
         return await template.save()
 
+    @write_op
     async def update_template(
         self, template_id: PydanticObjectId, template_body: StandardFormTemplate
     ):
@@ -119,6 +123,11 @@ class FormTemplateRepository:
         template.cover_image = template_body.cover_image
         return await template.save()
 
+    @write_op
+    async def save(self, template: FormTemplateDocument) -> FormTemplateDocument:
+        return await template.save()
+
+    @write_op
     async def delete_template(self, template_id: PydanticObjectId):
         template = await FormTemplateDocument.find_one({"_id": template_id})
         if not template:

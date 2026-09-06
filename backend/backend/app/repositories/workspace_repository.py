@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import List
+from typing import Any, Dict, List, Optional
 
 from beanie import PydanticObjectId
 
@@ -7,6 +7,7 @@ from backend.app.exceptions import HTTPException
 from backend.app.schemas.workspace import WorkspaceDocument
 from common.base.repo import BaseRepository, T, U
 from common.enums.form_provider import FormProvider
+from common.db.routing import write_op
 
 
 class WorkspaceRepository(BaseRepository):
@@ -22,6 +23,7 @@ class WorkspaceRepository(BaseRepository):
     async def delete(self, item_id: str, provider: FormProvider):
         pass
 
+    @write_op
     async def update(
         self, item_id: PydanticObjectId, item: WorkspaceDocument
     ) -> WorkspaceDocument:
@@ -40,6 +42,33 @@ class WorkspaceRepository(BaseRepository):
         if not workspace:
             raise HTTPException(HTTPStatus.NOT_FOUND)
         return workspace
+
+    async def find_by_id(
+        self, workspace_id: PydanticObjectId
+    ) -> Optional[WorkspaceDocument]:
+        return await WorkspaceDocument.find_one({"_id": workspace_id})
+
+    async def find_by_name(self, workspace_name: str) -> Optional[WorkspaceDocument]:
+        return await WorkspaceDocument.find_one({"workspace_name": workspace_name})
+
+    async def find_by_custom_domain(
+        self, custom_domain: str
+    ) -> Optional[WorkspaceDocument]:
+        return await WorkspaceDocument.find_one({"custom_domain": custom_domain})
+
+    async def get_or_404(self, workspace_id: PydanticObjectId) -> WorkspaceDocument:
+        """Like ``find_by_id`` but raises the document layer's NotFoundError when missing."""
+        return await WorkspaceDocument.get(workspace_id)
+
+    @write_op
+    async def save(self, workspace: WorkspaceDocument) -> WorkspaceDocument:
+        return await workspace.save()
+
+    @write_op
+    async def set_fields(
+        self, workspace: WorkspaceDocument, fields: Dict[str, Any]
+    ) -> None:
+        await workspace.update({"$set": fields})
 
     async def get_workspace_by_query(self, query: str):
         workspace = await WorkspaceDocument.find_one(
@@ -78,6 +107,7 @@ class WorkspaceRepository(BaseRepository):
     ) -> WorkspaceDocument:
         return await WorkspaceDocument.find_one({"owner_id": owner_id, "default": True})
 
+    @write_op
     async def delete_workspaces_with_ids(self, workspace_ids: List[PydanticObjectId]):
         return await WorkspaceDocument.find({"_id": {"$in": workspace_ids}}).delete()
 

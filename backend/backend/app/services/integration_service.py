@@ -5,6 +5,7 @@ from common.services.http_client import HttpClient
 from backend.app.models.enum.form_integration import FormIntegrationType
 from backend.app.services.form_plugin_provider_service import FormPluginProviderService
 from backend.app.services.integration_action_service import IntegrationActionService
+from backend.app.repositories.form_repository import FormRepository
 from backend.app.services.integration_provider_factory import IntegrationProviderFactory
 
 
@@ -15,9 +16,14 @@ class IntegrationService:
         crypto: Crypto,
         http_client: HttpClient,
         integration_action_service: IntegrationActionService,
+        form_repo: FormRepository,
     ):
         self.integration__provider_factory = IntegrationProviderFactory(
-            form_provider_service, crypto, http_client, integration_action_service
+            form_provider_service,
+            crypto,
+            http_client,
+            integration_action_service,
+            form_repo,
         )
 
     async def get_oauth_url(

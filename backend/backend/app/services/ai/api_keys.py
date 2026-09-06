@@ -17,6 +17,9 @@ from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
 
 from backend.app.exceptions import HTTPException
+from backend.app.repositories.workspace_api_key_repository import (
+    WorkspaceAPIKeyRepository,
+)
 from backend.app.schemas.workspace_api_key import WorkspaceAPIKeyDocument
 from backend.app.services.workspace_user_service import WorkspaceUserService
 
@@ -72,9 +75,21 @@ def _to_dto(document: WorkspaceAPIKeyDocument) -> APIKeyDto:
     )
 
 
+def _c():
+    # Resolved at call time: the container imports this module.
+    from backend.app.container import container
+
+    return container
+
+
 class APIKeyService:
-    def __init__(self, workspace_user_service: WorkspaceUserService):
+    def __init__(
+        self,
+        workspace_user_service: WorkspaceUserService,
+        api_key_repo: WorkspaceAPIKeyRepository,
+    ):
         self._workspace_user_service = workspace_user_service
+        self._api_key_repo = api_key_repo
 
     async def create_key(
         self, workspace_id: PydanticObjectId, dto: CreateAPIKeyDto, user: User
@@ -97,41 +112,48 @@ class APIKeyService:
             scopes=sorted(set(dto.scopes)),
             created_by=user.id,
         )
-        await document.save()
+        await self._api_key_repo.save(document)
         return CreatedAPIKeyDto(**_to_dto(document).model_dump(), token=token)
 
-    async def list_keys(self, workspace_id: PydanticObjectId, user: User) -> List[APIKeyDto]:
+    async def list_keys(
+        self, workspace_id: PydanticObjectId, user: User
+    ) -> List[APIKeyDto]:
         await self._workspace_user_service.check_is_admin_in_workspace(
             workspace_id=workspace_id, user=user
         )
-        documents = await WorkspaceAPIKeyDocument.find(
-            WorkspaceAPIKeyDocument.workspace_id == workspace_id
-        ).to_list()
+        documents = await self._api_key_repo.list_by_workspace(workspace_id)
         return [_to_dto(d) for d in documents]
 
-    async def revoke_key(self, workspace_id: PydanticObjectId, key_id: str, user: User) -> List[APIKeyDto]:
+    async def revoke_key(
+        self, workspace_id: PydanticObjectId, key_id: str, user: User
+    ) -> List[APIKeyDto]:
         await self._workspace_user_service.check_is_admin_in_workspace(
             workspace_id=workspace_id, user=user
         )
-        document = await WorkspaceAPIKeyDocument.get(PydanticObjectId(key_id))
+        document = await self._api_key_repo.get_or_404(PydanticObjectId(key_id))
         if not document or str(document.workspace_id) != str(workspace_id):
-            raise HTTPException(status_code=HTTPStatus.NOT_FOUND, content="API key not found")
+            raise HTTPException(
+                status_code=HTTPStatus.NOT_FOUND, content="API key not found"
+            )
         document.revoked = True
-        await document.save()
+        await self._api_key_repo.save(document)
         return await self.list_keys(workspace_id, user)
 
     @staticmethod
     async def authenticate(token: str) -> WorkspaceAPIKeyDocument:
         """Resolve a Bearer token to its key document, or 401."""
         if not token or not token.startswith(TOKEN_PREFIX):
-            raise HTTPException(status_code=HTTPStatus.UNAUTHORIZED, content="Invalid API key")
-        document = await WorkspaceAPIKeyDocument.find_one(
-            WorkspaceAPIKeyDocument.key_hash == _hash(token)
-        )
+            raise HTTPException(
+                status_code=HTTPStatus.UNAUTHORIZED, content="Invalid API key"
+            )
+        document = await _c().workspace_api_key_repo().find_by_key_hash(_hash(token))
         if not document or document.revoked:
-            raise HTTPException(status_code=HTTPStatus.UNAUTHORIZED, content="Invalid or revoked API key")
+            raise HTTPException(
+                status_code=HTTPStatus.UNAUTHORIZED,
+                content="Invalid or revoked API key",
+            )
         document.last_used_at = dt.datetime.now(dt.timezone.utc)
-        await document.save()
+        await _c().workspace_api_key_repo().save(document)
         return document
 
     @staticmethod

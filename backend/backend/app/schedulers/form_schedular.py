@@ -11,11 +11,11 @@ from loguru import logger
 
 from backend.app.exceptions import HTTPException
 from backend.app.models.enum.update_status import UpdateStatus
-from backend.app.schemas.workspace_form import WorkspaceFormDocument
 from backend.app.services.form_import_service import FormImportService
 from backend.app.services.form_plugin_provider_service import FormPluginProviderService
 from backend.app.services.form_response_service import FormResponseService
 from backend.app.services.temporal_service import TemporalService
+from backend.app.repositories.workspace_form_repository import WorkspaceFormRepository
 from backend.app.utils import AiohttpClient
 from backend.config import settings
 
@@ -28,12 +28,14 @@ class FormSchedular:
         jwt_service: JwtService,
         temporal_service: TemporalService,
         form_response_service: FormResponseService,
+        workspace_form_repo: WorkspaceFormRepository,
     ):
         self.form_provider_service = form_provider_service
         self.form_import_service = form_import_service
         self.jwt_service = jwt_service
         self.temporal_service = temporal_service
         self.form_response_service = form_response_service
+        self.workspace_form_repo = workspace_form_repo
 
     async def update_form(
         self,
@@ -41,8 +43,8 @@ class FormSchedular:
         form_id,
         workspace_id: PydanticObjectId = None,
     ):
-        workspace_form = await WorkspaceFormDocument.find_one(
-            {"form_id": form_id, "workspace_id": workspace_id}
+        workspace_form = await self.workspace_form_repo.find_workspace_form(
+            workspace_id, form_id
         )
         if not workspace_form:
             return
@@ -79,15 +81,15 @@ class FormSchedular:
             except HTTPException as e:
                 if e.status_code == HTTPStatus.NOT_FOUND:
                     workspace_form.last_update_status = UpdateStatus.NOT_FOUND
-                    await workspace_form.save()
+                    await self.workspace_form_repo.save(workspace_form)
                     return
                 elif e.status_code == HTTPStatus.UNAUTHORIZED:
                     workspace_form.last_update_status = UpdateStatus.INVALID_GRANT
-                    await workspace_form.save()
+                    await self.workspace_form_repo.save(workspace_form)
                     return
                 elif e.status_code == HTTPStatus.FORBIDDEN:
                     workspace_form.last_update_status = UpdateStatus.REVOKED
-                    await workspace_form.save()
+                    await self.workspace_form_repo.save(workspace_form)
                     return
             if not raw_form:
                 logger.info(
@@ -119,7 +121,7 @@ class FormSchedular:
         else:
             workspace_form.last_update_status = UpdateStatus.FAILED
             logger.info(f"Error while updating form with id {form_id} by schedular")
-        await workspace_form.save()
+        await self.workspace_form_repo.save(workspace_form)
 
     async def perform_conversion_request(
         self,

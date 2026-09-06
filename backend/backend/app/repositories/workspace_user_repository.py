@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import List
+from typing import List, Optional
 
 from beanie import PydanticObjectId
 
@@ -8,6 +8,7 @@ from backend.app.models.enum.workspace_roles import WorkspaceRoles
 from backend.app.schemas.workspace import WorkspaceDocument
 from backend.app.schemas.workspace_user import WorkspaceUserDocument
 from common.models.user import User
+from common.db.routing import write_op
 
 
 class WorkspaceUserRepository:
@@ -51,9 +52,18 @@ class WorkspaceUserRepository:
             {"workspace_id": workspace_id}
         ).to_list()
 
+    async def find_workspace_user(
+        self, workspace_id: PydanticObjectId, user_id: PydanticObjectId
+    ) -> Optional[WorkspaceUserDocument]:
+        return await WorkspaceUserDocument.find_one(
+            {"workspace_id": workspace_id, "user_id": user_id}
+        )
+
+    @write_op
     async def save(self, workspace_user: WorkspaceUserDocument):
         return await workspace_user.save()
 
+    @write_op
     async def disable_other_users_in_workspace(
         self, workspace_id: PydanticObjectId, user_id: PydanticObjectId
     ):
@@ -65,11 +75,13 @@ class WorkspaceUserRepository:
                 workspace_user.disabled = True
                 await workspace_user.save()
 
+    @write_op
     async def enable_all_user_in_workspace(self, workspace_id: PydanticObjectId):
         return await WorkspaceUserDocument.find(
             {"workspace_id": workspace_id}
         ).update_many({"$set": {"disabled": False}})
 
+    @write_op
     async def delete(self, workspace_id, user_id):
         workspace_user = await WorkspaceUserDocument.find_one(
             {
@@ -88,11 +100,13 @@ class WorkspaceUserRepository:
             {"user_id": PydanticObjectId(user_id)}
         ).to_list()
 
+    @write_op
     async def delete_user_form_all_workspaces(self, user):
         return await WorkspaceUserDocument.find(
             {"user_id": PydanticObjectId(user.id)}
         ).delete()
 
+    @write_op
     async def delete_all_workspaces_users(self, workspaces_ids: List[PydanticObjectId]):
         return await WorkspaceUserDocument.find(
             {"workspace_id": {"$in": workspaces_ids}}

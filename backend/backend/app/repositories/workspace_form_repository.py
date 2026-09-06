@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 from http import HTTPStatus
-from typing import Dict, Any, List
+from typing import Any, Dict, List, Optional
 
 from beanie import PydanticObjectId
 from common.constants import MESSAGE_DATABASE_EXCEPTION
@@ -15,9 +15,37 @@ from pymongo.errors import (
 from backend.app.exceptions import HTTPException
 from backend.app.models.workspace import WorkspaceFormSettings
 from backend.app.schemas.workspace_form import WorkspaceFormDocument
+from common.db.routing import write_op
 
 
 class WorkspaceFormRepository:
+    async def find_workspace_form(
+        self, workspace_id: PydanticObjectId, form_id: str
+    ) -> Optional[WorkspaceFormDocument]:
+        return await WorkspaceFormDocument.find_one(
+            {"form_id": form_id, "workspace_id": workspace_id}
+        )
+
+    async def find_first_by_form_id(
+        self, form_id: str
+    ) -> Optional[WorkspaceFormDocument]:
+        """Any workspace's row for this form (imported forms can live in several)."""
+        return await WorkspaceFormDocument.find_one({"form_id": form_id})
+
+    async def list_in_workspace(
+        self, workspace_id: PydanticObjectId
+    ) -> List[WorkspaceFormDocument]:
+        return await WorkspaceFormDocument.find(
+            {"workspace_id": workspace_id}
+        ).to_list()
+
+    @write_op
+    async def save(
+        self, workspace_form: WorkspaceFormDocument
+    ) -> WorkspaceFormDocument:
+        return await workspace_form.save()
+
+    @write_op
     async def update(
         self, item_id: str, item: WorkspaceFormDocument
     ) -> WorkspaceFormDocument:
@@ -28,6 +56,7 @@ class WorkspaceFormRepository:
             raise HTTPException(HTTPStatus.NOT_FOUND, "Form not found in ")
         return await item.save()
 
+    @write_op
     async def save_workspace_form(
         self,
         workspace_id: PydanticObjectId,
@@ -239,6 +268,7 @@ class WorkspaceFormRepository:
         ).to_list()
         return [workspace_form.workspace_id for workspace_form in workspace_forms]
 
+    @write_op
     async def delete_form_in_workspace(
         self, workspace_id: PydanticObjectId, form_id: str
     ):
@@ -283,6 +313,7 @@ class WorkspaceFormRepository:
         ).to_list()
         return [form.form_id for form in forms]
 
+    @write_op
     async def delete_forms(self, form_ids):
         return await WorkspaceFormDocument.find({"form_id": {"$in": form_ids}}).delete()
 

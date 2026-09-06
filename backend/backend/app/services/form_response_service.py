@@ -3,7 +3,6 @@ from http import HTTPStatus
 from typing import List, Sequence
 
 from beanie import PydanticObjectId
-from beanie.odm.enums import SortDirection
 from common.constants import MESSAGE_FORBIDDEN, MESSAGE_NOT_FOUND
 from common.models.standard_form import (
     StandardFormResponse,
@@ -25,16 +24,14 @@ from backend.app.models.dtos.response_dtos import (
 )
 from backend.app.models.filter_queries.form_responses import FormResponseFilterQuery
 from backend.app.models.filter_queries.sort import SortRequest
+from backend.app.repositories.form_repository import FormRepository
 from backend.app.repositories.form_response_repository import FormResponseRepository
 from backend.app.repositories.workspace_form_repository import WorkspaceFormRepository
 from backend.app.repositories.workspace_user_repository import WorkspaceUserRepository
-from backend.app.schemas.form_versions import FormVersionsDocument
-from backend.app.schemas.standard_form import FormDocument
 from backend.app.schemas.standard_form_response import (
     FormResponseDeletionRequest,
     FormResponseDocument,
 )
-from backend.app.schemas.workspace_form import WorkspaceFormDocument
 from backend.app.services.aws_service import AWSS3Service
 from backend.app.utils.hash import hash_string
 
@@ -43,11 +40,13 @@ class FormResponseService:
     def __init__(
         self,
         form_response_repo: FormResponseRepository,
+        form_repo: FormRepository,
         workspace_form_repo: WorkspaceFormRepository,
         workspace_user_repo: WorkspaceUserRepository,
         aws_service: AWSS3Service,
     ):
         self._form_response_repo = form_response_repo
+        self._form_repo = form_repo
         self._workspace_form_repo = workspace_form_repo
         self._workspace_user_repo = workspace_user_repo
         self._aws_service = aws_service
@@ -128,7 +127,7 @@ class FormResponseService:
         form_responses = await self._form_response_repo.list(
             [form_id], request_for_deletion, filter_query, sort
         )
-        form = await FormDocument.find_one({"form_id": form_id})
+        form = await self._form_repo.get_form_document_by_id(form_id)
         file_fields = []
         if form is not None:
             file_fields = get_fields_of_type_file_upload(form)
@@ -166,7 +165,7 @@ class FormResponseService:
             raise HTTPException(
                 HTTPStatus.NOT_FOUND, "Form not found in the workspace."
             )
-        form_responses = await FormResponseDocument.find({"form_id": form_id}).to_list()
+        form_responses = await self._form_response_repo.list_by_form_id(form_id)
         return self.decrypt_form_responses(
             workspace_id=workspace_id, responses=form_responses
         )
@@ -177,33 +176,25 @@ class FormResponseService:
         is_admin = await self._workspace_user_repo.has_user_access_in_workspace(
             workspace_id, user
         )
-        response = await FormResponseDocument.find_one({"response_id": response_id})
+        response = await self._form_response_repo.get_response(response_id)
         if not response:
             raise HTTPException(HTTPStatus.NOT_FOUND, MESSAGE_NOT_FOUND)
         if response.form_version:
-            form = await FormVersionsDocument.find_one(
-                {
-                    "form_id": response.form_id,
-                    "version": response.form_version if response.form_version else 1,
-                }
+            form = await self._form_repo.get_form_by_by_version(
+                response.form_id, response.form_version if response.form_version else 1
             )
         else:
-            form = (
-                await FormVersionsDocument.find({"form_id": response.form_id})
-                .sort(("version", SortDirection.DESCENDING))
-                .first_or_none()
-            )
-            form = await FormDocument.find_one({"form_id": response.form_id})
+            form = await self._form_repo.get_latest_version_of_form(response.form_id)
+            form = await self._form_repo.get_form_document_by_id(response.form_id)
         if not form:
-            form = await FormDocument.find_one({"form_id": response.form_id})
-        deletion_request = await FormResponseDeletionRequest.find_one(
-            {"response_id": response_id}
+            form = await self._form_repo.get_form_document_by_id(response.form_id)
+        deletion_request = (
+            await self._form_response_repo.find_deletion_request_by_response_id(
+                response_id
+            )
         )
-        workspace_form = await WorkspaceFormDocument.find_one(
-            {
-                "workspace_id": workspace_id,
-                "form_id": form.form_id,
-            }
+        workspace_form = await self._workspace_form_repo.find_workspace_form(
+            workspace_id, form.form_id
         )
         if not workspace_form:
             raise HTTPException(404, "Form not found in this workspace")
@@ -247,7 +238,7 @@ class FormResponseService:
             workspace_id, user
         )
         # TODO : Handle case for multiple form import by other user
-        response = await FormResponseDocument.find_one({"response_id": response_id})
+        response = await self._form_response_repo.get_response(response_id)
 
         # Anonymous responses carry no dataOwnerIdentifier — their owner is
         # recognisable only by the anonymous identity hash. Without this check
@@ -256,12 +247,17 @@ class FormResponseService:
         if not (
             is_admin
             or response.dataOwnerIdentifier == user.sub
-            or (response.anonymous_identity is not None and response.anonymous_identity == hash_string(user.sub))
+            or (
+                response.anonymous_identity is not None
+                and response.anonymous_identity == hash_string(user.sub)
+            )
         ):
             raise HTTPException(403, "You are not authorized to perform this action.")
 
-        deletion_request = await FormResponseDeletionRequest.find_one(
-            {"response_id": response_id}
+        deletion_request = (
+            await self._form_response_repo.find_deletion_request_by_response_id(
+                response_id
+            )
         )
         if deletion_request:
             raise HTTPException(
@@ -407,16 +403,15 @@ class FormResponseService:
         await self._form_response_repo.verify_response_exists_in_workspace(
             workspace_id=workspace_id, response_id=response.response_id
         )
-        form = await FormVersionsDocument.find_one(
-            {
-                "form_id": response.form_id,
-                "version": response.form_version if response.form_version else 1,
-            }
+        form = await self._form_repo.get_form_by_by_version(
+            response.form_id, response.form_version if response.form_version else 1
         )
         if not form:
-            form = await FormDocument.find_one({"form_id": response.form_id})
+            form = await self._form_repo.get_form_document_by_id(response.form_id)
 
-        workspace_form = await WorkspaceFormDocument.find_one({"form_id": form.form_id})
+        workspace_form = await self._workspace_form_repo.find_first_by_form_id(
+            form.form_id
+        )
         form.settings = workspace_form.settings
 
         decrypted_response = self.decrypt_form_response(
@@ -433,15 +428,17 @@ class FormResponseService:
     async def request_for_response_deletion_by_uuid(
         self, workspace_id, submission_uuid
     ):
-        response = await FormResponseDocument.find_one(
-            {"submission_uuid": submission_uuid}
+        response = await self._form_response_repo.get_by_submission_uuid(
+            submission_uuid
         )
         response_id = response.response_id
         await self._form_response_repo.verify_response_exists_in_workspace(
             workspace_id=workspace_id, response_id=response_id
         )
-        deletion_request = await FormResponseDeletionRequest.find_one(
-            {"response_id": response_id}
+        deletion_request = (
+            await self._form_response_repo.find_deletion_request_by_response_id(
+                response_id
+            )
         )
         if deletion_request:
             raise HTTPException(

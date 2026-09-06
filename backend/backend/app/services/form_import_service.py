@@ -6,10 +6,9 @@ from beanie import PydanticObjectId
 
 from backend.app.models.enum.user_tag_enum import UserTagType
 from backend.app.models.workspace import WorkspaceResponseDto
+from backend.app.repositories.form_response_repository import FormResponseRepository
 from backend.app.repositories.workspace_repository import WorkspaceRepository
 from backend.app.schemas.standard_form_response import (
-    DeletionRequestStatus,
-    FormResponseDeletionRequest,
     FormResponseDocument,
 )
 from backend.app.services.form_service import FormService
@@ -23,9 +22,11 @@ class FormImportService:
         self,
         form_service: FormService,
         workspace_repo: WorkspaceRepository,
+        form_response_repo: FormResponseRepository,
     ):
         self.form_service = form_service
         self._workspace_repo = workspace_repo
+        self._form_response_repo = form_response_repo
 
     async def get_form_workspace_by_id(self, workspace_id: PydanticObjectId):
         return await self._workspace_repo.get_workspace_by_id(workspace_id=workspace_id)
@@ -65,33 +66,22 @@ class FormImportService:
                     form_id=response_document.form_id,
                     data=json.dumps(response_document.answers),
                 )
-            await response_document.save()
+            await self._form_response_repo.save(response_document)
             updated_responses_id.append(response.response_id)
 
-        deletion_requests_query = {
-            "form_id": standard_form.form_id,
-            "provider": standard_form.settings.provider,
-            "response_id": {"$nin": updated_responses_id},
-        }
-
-        await FormResponseDocument.find(
-            {
-                "form_id": standard_form.form_id,
-                "response_id": {"$nin": updated_responses_id},
-            }
-        ).delete()
-
-        updated_result = await FormResponseDeletionRequest.find(
-            deletion_requests_query
-        ).update_many(
-            {
-                "$set": {
-                    "status": DeletionRequestStatus.SUCCESS,
-                    "updated_at": datetime.datetime.now(datetime.timezone.utc),
-                },
-            }
+        await self._form_response_repo.delete_by_form_id_except(
+            standard_form.form_id, updated_responses_id
         )
-        if updated_result.modified_count >= 1:
+
+        modified_count = (
+            await self._form_response_repo.mark_deletion_requests_success_except(
+                form_id=standard_form.form_id,
+                provider=standard_form.settings.provider,
+                keep_response_ids=updated_responses_id,
+                now=datetime.datetime.now(datetime.timezone.utc),
+            )
+        )
+        if modified_count >= 1:
             workspace = await self._workspace_repo.get_workspace_by_id(
                 workspace_id=workspace_id
             )

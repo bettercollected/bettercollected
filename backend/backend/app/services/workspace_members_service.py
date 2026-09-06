@@ -10,7 +10,7 @@ from backend.app.models.dtos.workspace_member_dto import WorkspaceMemberDto
 from backend.app.models.enum.invitation_response import InvitationResponse
 from backend.app.models.invitation_request import InvitationRequest
 from backend.app.repositories.workspace_invitation_repo import WorkspaceInvitationRepo
-from backend.app.schemas.workspace import WorkspaceDocument
+from backend.app.repositories.workspace_repository import WorkspaceRepository
 from backend.app.schemas.workspace_invitation import WorkspaceUserInvitesDocument
 from backend.app.services.auth_cookie_service import get_expiry_epoch_after
 from backend.app.services.workspace_form_service import WorkspaceFormService
@@ -28,11 +28,13 @@ class WorkspaceMembersService:
         self,
         workspace_user_service: WorkspaceUserService,
         workspace_invitation_repo: WorkspaceInvitationRepo,
+        workspace_repo: WorkspaceRepository,
         http_client: HttpClient,
         workspace_form_service: WorkspaceFormService,
     ):
         self.workspace_user_service = workspace_user_service
         self.workspace_invitation_repository = workspace_invitation_repo
+        self.workspace_repo = workspace_repo
         self.http_client = http_client
         self.workspace_form_service = workspace_form_service
 
@@ -64,7 +66,7 @@ class WorkspaceMembersService:
             workspace_id=workspace_id, user=user
         )
 
-        workspace = await WorkspaceDocument.get(workspace_id)
+        workspace = await self.workspace_repo.get_or_404(workspace_id)
 
         workspace_invitation = (
             await self.workspace_invitation_repository.create_workspace_invitation(
@@ -153,7 +155,7 @@ class WorkspaceMembersService:
 
         if invitation_request.expiry < get_expiry_epoch_after(time_delta=timedelta()):
             invitation_request.invitation_status = InvitationStatus.EXPIRED
-            await invitation_request.save()
+            await self.workspace_invitation_repository.save(invitation_request)
             raise HTTPException(
                 status_code=HTTPStatus.GONE, content="Token has expired"
             )
@@ -170,7 +172,7 @@ class WorkspaceMembersService:
 
         else:
             invitation_request.invitation_status = InvitationStatus.DECLINED
-        await invitation_request.save()
+        await self.workspace_invitation_repository.save(invitation_request)
         return "Request Processed Successfully."
 
     async def _get_user_info_from_ids(

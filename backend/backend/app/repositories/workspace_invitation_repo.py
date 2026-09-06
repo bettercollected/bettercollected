@@ -13,9 +13,17 @@ from backend.app.schemas.workspace_invitation import WorkspaceUserInvitesDocumen
 from backend.app.services.auth_cookie_service import get_expiry_epoch_after
 from common.constants import MESSAGE_NOT_FOUND
 from common.enums.workspace_invitation_status import InvitationStatus
+from common.db.routing import write_op
 
 
 class WorkspaceInvitationRepo:
+    @write_op
+    async def save(
+        self, invitation: WorkspaceUserInvitesDocument
+    ) -> WorkspaceUserInvitesDocument:
+        return await invitation.save()
+
+    @write_op
     async def create_workspace_invitation(
         self, workspace_id: PydanticObjectId, invitation: InvitationRequest
     ):
@@ -64,6 +72,7 @@ class WorkspaceInvitationRepo:
 
         return invitation_request
 
+    @write_op
     async def delete_invitation_by_token_if_pending_state(self, invitation_token):
         invitation_request = await WorkspaceUserInvitesDocument.find_one(
             {"invitation_token": invitation_token}
@@ -77,6 +86,7 @@ class WorkspaceInvitationRepo:
                 HTTPStatus.UNPROCESSABLE_ENTITY, "Invitation not in pending state"
             )
 
+    @write_op
     async def update_status_to_removed(
         self, workspace_id: PydanticObjectId, email: str
     ):

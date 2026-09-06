@@ -48,13 +48,11 @@ class CouponService:
             raise HTTPException(
                 status_code=HTTPStatus.BAD_REQUEST, content="Invalid coupon code"
             )
-        if (
-            coupon_document.created_at
-            + timedelta(days=settings.coupon_settings.EXPIRY_IN_DAYS)
-            < datetime.datetime.now(datetime.timezone.utc)
-        ):
+        if coupon_document.created_at + timedelta(
+            days=settings.coupon_settings.EXPIRY_IN_DAYS
+        ) < datetime.datetime.now(datetime.timezone.utc):
             coupon_document.status = CouponStatus.EXPIRED
-            await coupon_document.save()
+            await self.coupon_repository.save(coupon_document)
             raise HTTPException(
                 status_code=HTTPStatus.GONE, content="Coupon Code has been expired"
             )
@@ -66,4 +64,4 @@ class CouponService:
         coupon_document.status = CouponStatus.USED
         coupon_document.used_by = user.sub
         coupon_document.activated_at = datetime.datetime.now(datetime.timezone.utc)
-        await coupon_document.save()
+        await self.coupon_repository.save(coupon_document)
