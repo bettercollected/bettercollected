@@ -59,6 +59,18 @@ function dockerup() {
     fi
   done
 
+  # Schema migrations run once, here, before the services roll — never from
+  # application startup, where several replicas would race each other
+  # (plans/postgres-consolidation.md). Each service owns one schema and its own
+  # Alembic history; `run --rm --no-deps` executes inside the freshly pulled
+  # image with the same DATABASE_URL the service will use.
+  "$docker_compose_cmd" -f "docker-compose.deployment.yml" pull -q backend auth $([ "$googleform_flag" = true ] && echo integrations-googleform)
+  "$docker_compose_cmd" -f "docker-compose.deployment.yml" up -d --wait app-postgres
+  "$docker_compose_cmd" -f "docker-compose.deployment.yml" run --rm --no-deps backend /api/backend/.venv/bin/alembic -c /api/backend/alembic.ini upgrade head
+  "$docker_compose_cmd" -f "docker-compose.deployment.yml" run --rm --no-deps auth /api/auth/.venv/bin/alembic -c /api/auth/alembic.ini upgrade head
+  if [ "$googleform_flag" = true ]; then
+    "$docker_compose_cmd" -f "docker-compose.deployment.yml" run --rm --no-deps integrations-googleform alembic -c /api/integrations/google/alembic.ini upgrade head
+  fi
   GOOGLE_ENABLED="$googleform_flag" TYPEFORM_ENABLED="$typeform_flag" "$docker_compose_cmd" -f "docker-compose.deployment.yml" up --build -d "$@"
 }
 
