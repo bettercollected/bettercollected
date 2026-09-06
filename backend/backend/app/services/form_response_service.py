@@ -147,8 +147,25 @@ class FormResponseService:
         return form_responses
 
     async def get_workspace_form_all_submissions(
-        self, form_id: str, workspace_id: PydanticObjectId
+        self, form_id: str, workspace_id: PydanticObjectId, user: User
     ):
+        if not await self._workspace_user_repo.has_user_access_in_workspace(
+            workspace_id, user
+        ):
+            raise HTTPException(
+                status_code=HTTPStatus.FORBIDDEN, content=MESSAGE_FORBIDDEN
+            )
+        # Scope the form to the workspace as well: without this the caller could
+        # name any workspace they belong to and read another workspace's form.
+        workspace_form = (
+            await self._workspace_form_repo.get_workspace_form_in_workspace(
+                workspace_id, form_id
+            )
+        )
+        if not workspace_form:
+            raise HTTPException(
+                HTTPStatus.NOT_FOUND, "Form not found in the workspace."
+            )
         form_responses = await FormResponseDocument.find({"form_id": form_id}).to_list()
         return self.decrypt_form_responses(
             workspace_id=workspace_id, responses=form_responses
