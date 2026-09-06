@@ -12,7 +12,7 @@ from pymongo import AsyncMongoClient
 from backend.app.repositories.ai_preference_memory_repository import (
     AIPreferenceMemoryRepository,
 )
-from common.db import DatabaseSettings, load_flags
+from common.db import DatabaseSettings, RoutingMetrics, load_flags
 from common.db.routing import RoutingRepository
 
 from backend.db.outbox import OutboxRecorder
@@ -157,6 +157,9 @@ class AppContainer(containers.DeclarativeContainer):
     mirror_timeout_s = providers.Callable(
         lambda s: s.mirror_timeout_ms / 1000, db_settings
     )
+    routing_metrics = providers.Singleton(
+        RoutingMetrics
+    )  # shared: counters keyed by group
 
     user_tags_repo = providers.Singleton(
         RoutingRepository,
@@ -164,6 +167,7 @@ class AppContainer(containers.DeclarativeContainer):
         flags=flags,
         on_mirror_failure=outbox_recorder,
         mirror_timeout_s=mirror_timeout_s,
+        metrics=routing_metrics,
         mongo=providers.Singleton(UserTagsRepository),
         postgres=providers.Singleton(
             postgres_repository, PostgresUserTagsRepository, pg_sessionmaker
@@ -180,6 +184,7 @@ class AppContainer(containers.DeclarativeContainer):
         flags=flags,
         on_mirror_failure=outbox_recorder,
         mirror_timeout_s=mirror_timeout_s,
+        metrics=routing_metrics,
         mongo=providers.Singleton(ActionRepository, crypto=crypto),
         postgres=providers.Singleton(
             postgres_repository, PostgresActionRepository, pg_sessionmaker, crypto
@@ -194,6 +199,7 @@ class AppContainer(containers.DeclarativeContainer):
         flags=flags,
         on_mirror_failure=outbox_recorder,
         mirror_timeout_s=mirror_timeout_s,
+        metrics=routing_metrics,
         postgres=providers.Singleton(
             postgres_repository, PostgresCouponRepository, pg_sessionmaker
         ),
@@ -205,6 +211,7 @@ class AppContainer(containers.DeclarativeContainer):
         flags=flags,
         on_mirror_failure=outbox_recorder,
         mirror_timeout_s=mirror_timeout_s,
+        metrics=routing_metrics,
         mongo=providers.Singleton(WorkspaceUserRepository),
         postgres=providers.Singleton(
             postgres_repository, PostgresWorkspaceUserRepository, pg_sessionmaker
@@ -216,6 +223,7 @@ class AppContainer(containers.DeclarativeContainer):
         flags=flags,
         on_mirror_failure=outbox_recorder,
         mirror_timeout_s=mirror_timeout_s,
+        metrics=routing_metrics,
         mongo=providers.Singleton(WorkspaceRepository),
         postgres=providers.Singleton(
             postgres_repository,
@@ -230,6 +238,7 @@ class AppContainer(containers.DeclarativeContainer):
         flags=flags,
         on_mirror_failure=outbox_recorder,
         mirror_timeout_s=mirror_timeout_s,
+        metrics=routing_metrics,
         postgres=providers.Singleton(
             postgres_repository, PostgresAllowedOriginsRepository, pg_sessionmaker
         ),
@@ -242,6 +251,7 @@ class AppContainer(containers.DeclarativeContainer):
             flags=flags,
             on_mirror_failure=outbox_recorder,
             mirror_timeout_s=mirror_timeout_s,
+            metrics=routing_metrics,
             mongo=providers.Singleton(BlacklistedRefreshTokenRepository),
             postgres=providers.Singleton(
                 postgres_repository,
@@ -257,6 +267,7 @@ class AppContainer(containers.DeclarativeContainer):
         flags=flags,
         on_mirror_failure=outbox_recorder,
         mirror_timeout_s=mirror_timeout_s,
+        metrics=routing_metrics,
         mongo=providers.Singleton(FlowEventRepository),
         postgres=providers.Singleton(
             postgres_repository, PostgresFlowEventRepository, pg_sessionmaker
@@ -268,6 +279,7 @@ class AppContainer(containers.DeclarativeContainer):
         flags=flags,
         on_mirror_failure=outbox_recorder,
         mirror_timeout_s=mirror_timeout_s,
+        metrics=routing_metrics,
         mongo=providers.Singleton(FormAIInsightRepository),
         postgres=providers.Singleton(
             postgres_repository, PostgresFormAIInsightRepository, pg_sessionmaker
@@ -279,6 +291,7 @@ class AppContainer(containers.DeclarativeContainer):
         flags=flags,
         on_mirror_failure=outbox_recorder,
         mirror_timeout_s=mirror_timeout_s,
+        metrics=routing_metrics,
         mongo=providers.Singleton(FormAISessionRepository),
         postgres=providers.Singleton(
             postgres_repository, PostgresFormAISessionRepository, pg_sessionmaker
@@ -290,6 +303,7 @@ class AppContainer(containers.DeclarativeContainer):
         flags=flags,
         on_mirror_failure=outbox_recorder,
         mirror_timeout_s=mirror_timeout_s,
+        metrics=routing_metrics,
         mongo=providers.Singleton(WorkspaceAIProfileRepository),
         postgres=providers.Singleton(
             postgres_repository, PostgresWorkspaceAIProfileRepository, pg_sessionmaker
@@ -301,6 +315,7 @@ class AppContainer(containers.DeclarativeContainer):
         flags=flags,
         on_mirror_failure=outbox_recorder,
         mirror_timeout_s=mirror_timeout_s,
+        metrics=routing_metrics,
         mongo=providers.Singleton(WorkspaceAPIKeyRepository),
         postgres=providers.Singleton(
             postgres_repository, PostgresWorkspaceAPIKeyRepository, pg_sessionmaker
@@ -312,6 +327,7 @@ class AppContainer(containers.DeclarativeContainer):
         flags=flags,
         on_mirror_failure=outbox_recorder,
         mirror_timeout_s=mirror_timeout_s,
+        metrics=routing_metrics,
         mongo=providers.Singleton(AIPreferenceMemoryRepository),
         postgres=providers.Singleton(
             postgres_repository, PostgresAIPreferenceMemoryRepository, pg_sessionmaker
@@ -324,6 +340,7 @@ class AppContainer(containers.DeclarativeContainer):
         flags=flags,
         on_mirror_failure=outbox_recorder,
         mirror_timeout_s=mirror_timeout_s,
+        metrics=routing_metrics,
         postgres=providers.Singleton(
             postgres_repository, PostgresFormPluginProviderRepository, pg_sessionmaker
         ),
@@ -337,6 +354,7 @@ class AppContainer(containers.DeclarativeContainer):
         flags=flags,
         on_mirror_failure=outbox_recorder,
         mirror_timeout_s=mirror_timeout_s,
+        metrics=routing_metrics,
         mongo=providers.Singleton(FormResponseRepository, crypto=crypto),
         postgres=providers.Singleton(
             postgres_repository,
@@ -353,6 +371,7 @@ class AppContainer(containers.DeclarativeContainer):
         flags=flags,
         on_mirror_failure=outbox_recorder,
         mirror_timeout_s=mirror_timeout_s,
+        metrics=routing_metrics,
         mongo=providers.Singleton(ResponderGroupsRepository),
         postgres=providers.Singleton(
             postgres_repository, PostgresResponderGroupsRepository, pg_sessionmaker
@@ -365,6 +384,7 @@ class AppContainer(containers.DeclarativeContainer):
         flags=flags,
         on_mirror_failure=outbox_recorder,
         mirror_timeout_s=mirror_timeout_s,
+        metrics=routing_metrics,
         mongo=providers.Singleton(FormRepository),
         postgres=providers.Singleton(
             postgres_repository,
@@ -380,6 +400,7 @@ class AppContainer(containers.DeclarativeContainer):
         flags=flags,
         on_mirror_failure=outbox_recorder,
         mirror_timeout_s=mirror_timeout_s,
+        metrics=routing_metrics,
         mongo=providers.Singleton(WorkspaceFormRepository),
         postgres=providers.Singleton(
             postgres_repository,
@@ -398,6 +419,7 @@ class AppContainer(containers.DeclarativeContainer):
         flags=flags,
         on_mirror_failure=outbox_recorder,
         mirror_timeout_s=mirror_timeout_s,
+        metrics=routing_metrics,
         mongo=providers.Singleton(McpAuditLogRepository),
         postgres=providers.Singleton(
             postgres_repository, PostgresMcpAuditLogRepository, pg_sessionmaker
@@ -609,6 +631,7 @@ class AppContainer(containers.DeclarativeContainer):
         flags=flags,
         on_mirror_failure=outbox_recorder,
         mirror_timeout_s=mirror_timeout_s,
+        metrics=routing_metrics,
         mongo=providers.Singleton(WorkspaceInvitationRepo),
         postgres=providers.Singleton(
             postgres_repository, PostgresWorkspaceInvitationRepo, pg_sessionmaker
@@ -639,6 +662,7 @@ class AppContainer(containers.DeclarativeContainer):
         flags=flags,
         on_mirror_failure=outbox_recorder,
         mirror_timeout_s=mirror_timeout_s,
+        metrics=routing_metrics,
         mongo=providers.Singleton(WorkspaceRespondersRepository),
         postgres=providers.Singleton(
             postgres_repository, PostgresWorkspaceRespondersRepository, pg_sessionmaker
@@ -656,6 +680,7 @@ class AppContainer(containers.DeclarativeContainer):
         flags=flags,
         on_mirror_failure=outbox_recorder,
         mirror_timeout_s=mirror_timeout_s,
+        metrics=routing_metrics,
         mongo=providers.Singleton(WorkspaceConsentRepo),
         postgres=providers.Singleton(
             postgres_repository, PostgresWorkspaceConsentRepo, pg_sessionmaker
@@ -674,6 +699,7 @@ class AppContainer(containers.DeclarativeContainer):
         flags=flags,
         on_mirror_failure=outbox_recorder,
         mirror_timeout_s=mirror_timeout_s,
+        metrics=routing_metrics,
         mongo=providers.Singleton(FormTemplateRepository),
         postgres=providers.Singleton(
             postgres_repository,
@@ -698,6 +724,7 @@ class AppContainer(containers.DeclarativeContainer):
         flags=flags,
         on_mirror_failure=outbox_recorder,
         mirror_timeout_s=mirror_timeout_s,
+        metrics=routing_metrics,
         postgres=providers.Singleton(
             postgres_repository, PostgresUserFeedbackRepo, pg_sessionmaker
         ),
@@ -727,6 +754,7 @@ class AppContainer(containers.DeclarativeContainer):
         flags=flags,
         on_mirror_failure=outbox_recorder,
         mirror_timeout_s=mirror_timeout_s,
+        metrics=routing_metrics,
         mongo=providers.Singleton(MediaLibraryRepository),
         postgres=providers.Singleton(
             postgres_repository, PostgresMediaLibraryRepository, pg_sessionmaker

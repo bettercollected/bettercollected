@@ -9,6 +9,7 @@ first (backend/db); auth and the google integration use them from here.
 
 from __future__ import annotations
 
+import hashlib
 import logging
 from typing import Any, Callable, Optional, Type
 
@@ -97,9 +98,16 @@ async def dispose_engine(engine: Optional[AsyncEngine]) -> None:
 MAX_IDS = 20
 
 
+def redact(value: str) -> str:
+    """Outbox rows are read by operators: an address becomes a stable hash."""
+    if "@" in value:
+        return "email:" + hashlib.sha256(value.encode()).hexdigest()[:12]
+    return value
+
+
 def failure_ids(failure: MirrorFailure) -> str:
     """Best-effort: the ids a failed mirror write touched, from its arguments
-    and the documents a replay tried to store."""
+    and the documents a replay tried to store. Strings are redacted."""
     found: list[str] = []
     values = (
         list(failure.args) + list(failure.documents) + list(failure.kwargs.values())
@@ -110,13 +118,13 @@ def failure_ids(failure: MirrorFailure) -> str:
         elif type(value).__name__ in ("ObjectId", "PydanticObjectId"):
             found.append(str(value))
         elif isinstance(value, str) and len(value) <= 64:
-            found.append(value)
+            found.append(redact(value))
         elif isinstance(value, (list, tuple)):
             for item in list(value)[:MAX_IDS]:
                 if getattr(item, "id", None) is not None and hasattr(item, "save"):
                     found.append(str(item.id))
                 elif isinstance(item, str) and len(item) <= 64:
-                    found.append(item)
+                    found.append(redact(item))
     return ",".join(found[:MAX_IDS]) or "-"
 
 
@@ -164,3 +172,41 @@ class OutboxRecorder:
                     error=failure_error(failure.error),
                 )
             )
+
+
+def metrics_snapshot(metrics) -> dict:
+    """``RoutingMetrics`` counters as plain JSON, grouped by repository group."""
+    out: dict = {}
+    for name in (
+        "calls",
+        "mirror_failures",
+        "shadow_reads",
+        "shadow_diffs",
+        "shadow_errors",
+    ):
+        for (group, method), count in getattr(metrics, name).items():
+            out.setdefault(group, {}).setdefault(name, {})[method] = count
+    return out
+
+
+async def outbox_backlog(session_factory, row_cls) -> dict:
+    """Unresolved mirror-write failures in both stores (the outbox to drain)."""
+    from sqlalchemy import func, select
+
+    backlog = {
+        "mongo": await MirrorWriteFailureDocument.find(
+            MirrorWriteFailureDocument.resolved_at == None  # noqa: E711 — Beanie query
+        ).count()
+    }
+    if session_factory is None:
+        backlog["postgres"] = None
+        return backlog
+    async with session_factory() as session:
+        backlog["postgres"] = (
+            await session.execute(
+                select(func.count())
+                .select_from(row_cls)
+                .where(row_cls.resolved_at.is_(None))
+            )
+        ).scalar_one()
+    return backlog

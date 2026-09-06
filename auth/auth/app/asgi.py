@@ -1,5 +1,6 @@
 """Application implementation - ASGI."""
 
+import json
 import logging
 
 import auth
@@ -35,6 +36,10 @@ async def on_startup():
     log.debug("Execute FastAPI startup event handler.")
     database_client = container.database_client()
     await init_db(database_client)
+    log.info(
+        "persistence flags: %s",
+        json.dumps(container.flags().describe(["auth"]), sort_keys=True),
+    )
     await check_postgres_at_startup(container.flags(), container.pg_engine())
 
 

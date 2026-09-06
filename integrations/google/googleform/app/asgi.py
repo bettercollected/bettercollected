@@ -1,5 +1,6 @@
 """Application implementation - ASGI."""
 
+import json
 import logging
 
 from elasticapm.contrib.starlette import make_apm_client, ElasticAPM
@@ -37,6 +38,10 @@ async def on_startup():
     log.debug("Execute FastAPI startup event handler.")
 
     AiohttpClient.get_aiohttp_client()
+    log.info(
+        "persistence flags: %s",
+        json.dumps(Container.flags().describe(["google"]), sort_keys=True),
+    )
     await check_postgres_at_startup(Container.flags(), Container.pg_engine())
 
 
