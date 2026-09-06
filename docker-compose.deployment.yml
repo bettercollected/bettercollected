@@ -1,6 +1,7 @@
 version: '3.7'
 volumes:
   mongo-data:
+  app-postgres-data:
   umami-db-data:
   temporal-postgres-data:
 services:
@@ -103,6 +104,36 @@ services:
       retries: 20
       start_period: 30s
 
+  # Application database — the consolidation target for MongoDB and Temporal
+  # (plans/postgres-consolidation.md). One schema per service (app / auth /
+  # google / jobs), one least-privilege role each, created on the volume's first
+  # start by postgres/init/01-roles-schemas.sh from the passwords below.
+  # `deploy.sh` generates APP_POSTGRES_PASSWORD and the BC_*_PASSWORD values into
+  # the root `.env` on first run (compose's var-substitution file, exactly like
+  # UMAMI_APP_SECRET). Running the compose file directly? Set them yourself —
+  # the `:?` markers make compose refuse to start with them missing rather than
+  # bring up a database with empty passwords. Major version pinned for the same
+  # reason as the Temporal postgres above.
+  app-postgres:
+    image: postgres:16-alpine
+    restart: always
+    environment:
+      POSTGRES_DB: bettercollected
+      POSTGRES_USER: bettercollected
+      POSTGRES_PASSWORD: ${APP_POSTGRES_PASSWORD:?set by deploy.sh in the root .env}
+      BC_APP_PASSWORD: ${BC_APP_PASSWORD:?set by deploy.sh in the root .env}
+      BC_AUTH_PASSWORD: ${BC_AUTH_PASSWORD:?set by deploy.sh in the root .env}
+      BC_GOOGLE_PASSWORD: ${BC_GOOGLE_PASSWORD:?set by deploy.sh in the root .env}
+      BC_JOBS_EXEC_PASSWORD: ${BC_JOBS_EXEC_PASSWORD:?set by deploy.sh in the root .env}
+    volumes:
+      - app-postgres-data:/var/lib/postgresql/data
+      - ./postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U bettercollected -d bettercollected']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
   worker:
     image: bettercollected/temporal-worker:nightly
     environment:
@@ -133,12 +164,15 @@ services:
       # Backend reaches Umami over the compose network; only UMAMI_USERNAME/
       # UMAMI_PASSWORD/UMAMI_WEBSITE_ID need to come from .env.deployment.
       UMAMI_URL: http://umami:3000
+      DATABASE_URL: postgresql+asyncpg://bc_app:${BC_APP_PASSWORD}@app-postgres:5432/bettercollected
     env_file:
       - .env.deployment
     ports:
       - '8000:8000'
     depends_on:
       temporal:
+        condition: service_healthy
+      app-postgres:
         condition: service_healthy
       mongodb:
         condition: service_healthy
@@ -161,8 +195,11 @@ services:
       STRIPE_SUCCESS_URL: ${STRIPE_REDIRECT_URL}
       STRIPE_CANCEL_URL: ${STRIPE_REDIRECT_URL}
       STRIPE_RETURN_URL: ${STRIPE_REDIRECT_URL}
+      DATABASE_URL: postgresql+asyncpg://bc_auth:${BC_AUTH_PASSWORD}@app-postgres:5432/bettercollected
     depends_on:
       mongodb:
+        condition: service_healthy
+      app-postgres:
         condition: service_healthy
     healthcheck:
       # No curl/wget in this image — use python3 (present) against /ready.
@@ -182,8 +219,13 @@ services:
 
   integrations-googleform:
     image: bettercollected/integrations-google:nightly
+    environment:
+      DATABASE_URL: postgresql+asyncpg://bc_google:${BC_GOOGLE_PASSWORD}@app-postgres:5432/bettercollected
     env_file:
       - .env.deployment
+    depends_on:
+      app-postgres:
+        condition: service_healthy
 
   # Self-hosted product analytics (see plans/umami-self-hosted-form-analytics.md).
   # First-pass exposure: plain host port 3003, no TLS/reverse-proxy — put it

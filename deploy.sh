@@ -30,6 +30,17 @@ if [ ! -f .env ] || ! grep -q "^UMAMI_APP_SECRET=" .env 2>/dev/null; then
   echo "Generated a new UMAMI_APP_SECRET in .env (first run)."
 fi
 
+# Same mechanism for the application Postgres (plans/postgres-consolidation.md):
+# docker-compose.deployment.yml substitutes the superuser password and the four
+# per-service role passwords, and postgres/init/01-roles-schemas.sh reads them on
+# the volume's first start. Hex only, so they are safe inside DATABASE_URL.
+for var in APP_POSTGRES_PASSWORD BC_APP_PASSWORD BC_AUTH_PASSWORD BC_GOOGLE_PASSWORD BC_JOBS_EXEC_PASSWORD; do
+  if ! grep -q "^${var}=" .env 2>/dev/null; then
+    echo "${var}=$(openssl rand -hex 24)" >> .env
+    echo "Generated a new ${var} in .env (first run)."
+  fi
+done
+
 # Common docker function
 function dockerup() {
   typeform_flag=false

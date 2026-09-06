@@ -120,7 +120,12 @@ The backend can migrate legacy **APScheduler** jobs into Temporal Schedules on s
 - **MongoDB** — all application data via Beanie Documents. Backend collections are registered in
   [backend/app/handlers/database.py](../backend/backend/app/handlers/database.py) `init_db`; core models come from
   `common/`. A separate `apscheduler` DB holds `APSchedulerDocument`.
-- **PostgreSQL** — used only by the Temporal server (auto-setup image), not by application code.
+- **PostgreSQL (`app-postgres`)** — the application database that is replacing MongoDB and Temporal
+  (plan: [plans/postgres-consolidation.md](../plans/postgres-consolidation.md)). One database, one schema per
+  service (`app`, `auth`, `google`, `jobs`), one least-privilege role each — the actions-executor's role can reach
+  `jobs` only, because it runs user-authored code. Introduced empty; populated by dual-write and backfill.
+- **PostgreSQL (Temporal)** — used only by the Temporal server (auto-setup image), not by application code;
+  goes away with Temporal.
 - **Redis** — caching (notably in `integrations/google`).
 - **S3 (AWS/Wasabi)** — media/file uploads (`aws_service.py`); public assets on Wasabi.
 
