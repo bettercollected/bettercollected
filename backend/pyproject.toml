@@ -7,7 +7,7 @@ authors = [{ name = "Bibishan Pandey", email = "bibishan.b.pandey@gmail.com" }]
 requires-python = ">=3.10"
 dependencies = [
     "fastapi>=0.129.0",
-    "uvicorn[standard]>=0.50.2",
+    "uvicorn[standard]>=0.51.0",
     "python-dotenv>=1.2.1",
     "aiohttp>=3.14.3",
     "pycryptodome>=3.23.0",
@@ -28,7 +28,7 @@ dependencies = [
     "fastapi-pagination>=0.15.10",
     "python-whois>=0.9.6",
     "camel-converter>=5.1.0",
-    "sentry-sdk[fastapi]>=2.64.0",
+    "sentry-sdk[fastapi]>=2.66.0",
     "temporalio>=1.30.0",
     "elastic-apm>=6.26.2",
     "common",
