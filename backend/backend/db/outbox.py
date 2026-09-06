@@ -49,7 +49,7 @@ class OutboxRecorder:
         self._sessions = session_factory
 
     async def __call__(self, failure: MirrorFailure) -> None:
-        row_id = _ids(failure.args, failure.kwargs)
+        row_id = _ids(failure.args + tuple(failure.documents), failure.kwargs)
         if failure.store is ReadSource.POSTGRES:
             # the mirror was Postgres, so Mongo is primary: record there
             await MirrorWriteFailureDocument(

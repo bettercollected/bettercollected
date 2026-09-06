@@ -4,7 +4,8 @@ from common.db import MirrorWriteFailureDocument, RoutingRepository, load_flags
 
 
 class BrokenPostgres:
-    async def add(self, origin):
+    # add() is @write_op(replay=True): the mirror receives the saved document
+    async def replay_write(self, documents):
         raise ConnectionError("postgres is down")
 
 
@@ -26,6 +27,7 @@ async def test_a_failed_mirror_write_lands_in_the_mongo_outbox_and_the_request_s
     record = records[0]
     assert record.table_name == "AllowedOriginsRepository"
     assert record.op == "add"
-    assert record.row_id == "https://mirror-fails.example"
+    # the call's arguments and the document the replay tried to store
+    assert record.row_id == f"https://mirror-fails.example,{saved.id}"
     assert record.error.startswith("ConnectionError")
     assert record.attempts == 0 and record.resolved_at is None

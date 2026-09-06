@@ -29,7 +29,10 @@ def build_sessionmaker(
 
 
 def postgres_repository(
-    cls: Type[Any], session_factory: Optional[async_sessionmaker[AsyncSession]]
+    cls: Type[Any],
+    session_factory: Optional[async_sessionmaker[AsyncSession]],
+    *args: Any,
+    **kwargs: Any,
 ) -> Optional[Any]:
     """The Postgres twin of a repository, or ``None`` when Postgres is not configured."""
-    return None if session_factory is None else cls(session_factory)
+    return None if session_factory is None else cls(session_factory, *args, **kwargs)

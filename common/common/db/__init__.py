@@ -30,7 +30,9 @@ from common.db.routing import (
     RoutingMetrics,
     RoutingRepository,
     ShadowDiff,
+    is_replayed,
     is_write_op,
+    persisted_documents,
     write_op,
 )
 from common.db.spine import SpineColumns

@@ -173,12 +173,16 @@ async def client(_initialized_app):
 @pytest.fixture()
 async def workspace():
     await workspace_service.create_workspace(testUser)
-    workspace = (await WorkspaceDocument.find().to_list())[0]
-    await WorkspaceUserDocument(
-        workspace_id=workspace.id,
-        user_id=invited_user.id,
-        roles=[WorkspaceRoles.COLLABORATOR],
-    ).save()
+    workspace = await container.workspace_repo().get_default_workspace_by_owner_id(
+        testUser.id
+    )
+    await container.workspace_user_repo().save(
+        WorkspaceUserDocument(
+            workspace_id=workspace.id,
+            user_id=invited_user.id,
+            roles=[WorkspaceRoles.COLLABORATOR],
+        )
+    )
     return workspace
 
 
@@ -186,8 +190,9 @@ async def workspace():
 async def workspace_1():
     await workspace_service.create_workspace(testUser)
     await workspace_service.create_workspace(testUser1)
-    workspace = (await WorkspaceDocument.find().to_list())[1]
-    return workspace
+    return await container.workspace_repo().get_default_workspace_by_owner_id(
+        testUser1.id
+    )
 
 
 @pytest.fixture()
@@ -195,8 +200,7 @@ async def workspace_pro():
     await container.workspace_service().create_non_default_workspace(
         title="Title", description="description", workspace_name="name", user=proUser
     )
-    workspace = (await WorkspaceDocument.find().to_list())[0]
-    return workspace
+    return await container.workspace_repo().find_by_name("name")
 
 
 @pytest.fixture()

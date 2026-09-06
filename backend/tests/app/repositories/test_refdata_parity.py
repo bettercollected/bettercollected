@@ -8,6 +8,7 @@ Skipped unless DATABASE_URL points at a *_test database.
 from typing import Any
 
 import pytest
+from pymongo.results import DeleteResult, UpdateResult
 
 from backend.app.container import container
 from backend.app.models.types.coupon_code import CouponCode
@@ -32,6 +33,11 @@ VOLATILE = {"id", "_id", "created_at", "updated_at", "revision_id"}
 
 
 def strip(value: Any) -> Any:
+    # Mongo write results carry counts the callers ignore; the twins return the count.
+    if isinstance(value, DeleteResult):
+        return value.deleted_count
+    if isinstance(value, UpdateResult):
+        return value.matched_count
     value = normalise_result(value)
     if isinstance(value, dict):
         return {k: strip(v) for k, v in value.items() if k not in VOLATILE}

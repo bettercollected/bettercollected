@@ -42,10 +42,23 @@ class PostgresRepositoryBase:
         return (self.row.created_at, self.row.id)
 
     async def one(self, *where: Any) -> Optional[Any]:
+        return await self.one_of(self.row, self.document, *where)
+
+    async def one_of(self, row: Type[Any], document: Type[Any], *where: Any):
+        """``one`` against another table of the same group — for the places the
+        Mongo original reads a second collection inside one method."""
         async with self._session() as session:
-            stmt = select(self.row.doc).where(*where).order_by(*self._order()).limit(1)
+            stmt = (
+                select(row.doc).where(*where).order_by(row.created_at, row.id).limit(1)
+            )
             doc = (await session.execute(stmt)).scalar_one_or_none()
-        return None if doc is None else from_row_doc(self.document, doc)
+        return None if doc is None else from_row_doc(document, doc)
+
+    async def get_or_raise(self, document_id: Any) -> Any:
+        """The twin of ``Document.get``: the document, or the document layer's
+        ``NotFoundError`` with the same message."""
+        found = await self.one(self.row.id == str(document_id))
+        return self.document.verify_doc_exists(found, {"id": document_id})
 
     async def many(
         self,
@@ -112,6 +125,17 @@ class PostgresRepositoryBase:
         async with self._session() as session, session.begin():
             for document in documents:
                 await session.execute(self._upsert_statement(row_values(document)))
+
+    async def replay_write(self, documents: Iterable[Any]) -> None:
+        """Store what the primary persisted (``@write_op(replay=True)``)."""
+        documents = list(documents)
+        for document in documents:
+            if not isinstance(document, self.document):
+                raise TypeError(
+                    f"{type(self).__name__} cannot store a "
+                    f"{type(document).__name__}; expected {self.document.__name__}"
+                )
+        await self.upsert_many(documents)
 
     async def delete_where(self, *where: Any) -> int:
         async with self._session() as session, session.begin():

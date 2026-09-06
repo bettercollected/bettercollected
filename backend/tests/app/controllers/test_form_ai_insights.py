@@ -217,9 +217,11 @@ class TestAIFormAccessIsWorkspaceScoped:
     ):
         # Make the caller a member of workspace_1 so plain workspace access
         # passes — the form-belongs-to-workspace check must be what stops it.
-        await WorkspaceUserDocument(
-            workspace_id=workspace_1.id, user_id=testUser.id, roles=[WorkspaceRoles.COLLABORATOR]
-        ).save()
+        await container.workspace_user_repo().save(
+            WorkspaceUserDocument(
+                workspace_id=workspace_1.id, user_id=testUser.id, roles=[WorkspaceRoles.COLLABORATOR]
+            )
+        )
         foreign = workspace_form.form_id
         calls = [
             ("post", f"/api/v1/workspaces/{workspace_1.id}/forms/{foreign}/ai/chat", {"message": "hi"}),

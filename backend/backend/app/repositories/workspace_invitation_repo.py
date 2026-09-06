@@ -23,7 +23,7 @@ class WorkspaceInvitationRepo:
     ) -> WorkspaceUserInvitesDocument:
         return await invitation.save()
 
-    @write_op
+    @write_op(replay=True)
     async def create_workspace_invitation(
         self, workspace_id: PydanticObjectId, invitation: InvitationRequest
     ):

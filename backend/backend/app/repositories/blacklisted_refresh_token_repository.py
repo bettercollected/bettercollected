@@ -8,6 +8,6 @@ class BlacklistedRefreshTokenRepository:
     async def find_by_token(self, token: str) -> Optional[BlackListedRefreshTokens]:
         return await BlackListedRefreshTokens.find_one({"token": token})
 
-    @write_op
+    @write_op(replay=True)
     async def add(self, token: str, expiry) -> BlackListedRefreshTokens:
         return await BlackListedRefreshTokens(token=token, expiry=expiry).save()

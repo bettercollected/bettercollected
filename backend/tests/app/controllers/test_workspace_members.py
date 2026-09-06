@@ -126,8 +126,8 @@ class TestWorkspaceMember:
         expected_form = await WorkspaceFormDocument.find_one(
             {"form_id": workspace_form.form_id, "workspace_id": workspace.id}
         )
-        expected_user = await WorkspaceUserDocument.find_one(
-            {"workspace_id": workspace.id, "user_id": PydanticObjectId(testUser.id)}
+        expected_user = await container.workspace_user_repo().find_workspace_user(
+            workspace.id, PydanticObjectId(testUser.id)
         )
         actual_user_and_form = None
         assert actual_user_and_form == expected_user == expected_form
@@ -297,13 +297,15 @@ class TestWorkspaceMember:
         workspace: Coroutine[Any, Any, WorkspaceDocument],
         test_invited_user_cookies: dict[str, str],
     ):
-        invitation = await WorkspaceUserInvitesDocument(
+        invitation = await container.workspace_invitation_repo().save(
+            WorkspaceUserInvitesDocument(
             workspace_id=workspace.id,
             email="invited_daemon@gmail.com",
             invitation_status="REMOVED",
             invitation_token=secrets.token_hex(16),
             expiry=1720156071,
-        ).save()
+            )
+        )
         invitation_by_token_url = (
             f"{workspace_invitation_url}/{invitation.invitation_token}"
         )
@@ -324,12 +326,14 @@ class TestWorkspaceMember:
         workspace: Coroutine[Any, Any, WorkspaceDocument],
         test_invited_user_cookies: dict[str, str],
     ):
-        invitation = await WorkspaceUserInvitesDocument(
+        invitation = await container.workspace_invitation_repo().save(
+            WorkspaceUserInvitesDocument(
             workspace_id=workspace.id,
             email="invited_daemon@gmail.com",
             expiry=0,
             invitation_token=secrets.token_hex(16),
-        ).save()
+            )
+        )
         invitation_by_token_url = (
             f"{workspace_invitation_url}/{invitation.invitation_token}"
         )
@@ -402,13 +406,15 @@ class TestWorkspaceMember:
         workspace_invitation_url: str,
         test_invited_user_cookies: dict[str, str],
     ):
-        accepted_invitation = await WorkspaceUserInvitesDocument(
+        accepted_invitation = await container.workspace_invitation_repo().save(
+            WorkspaceUserInvitesDocument(
             workspace_id=workspace.id,
             email="invited_daemon@gmail.com",
             invitation_status="ACCEPTED",
             invitation_token=secrets.token_hex(16),
             expiry=1720156071,
-        ).save()
+            )
+        )
         url = f"{workspace_invitation_url}/{accepted_invitation.invitation_token}?response_status=REJECTED"
 
         responded_invitation = await client.post(url, cookies=test_invited_user_cookies)
@@ -425,12 +431,14 @@ class TestWorkspaceMember:
         workspace_invitation_url: str,
         test_invited_user_cookies: dict[str, str],
     ):
-        accepted_invitation = await WorkspaceUserInvitesDocument(
+        accepted_invitation = await container.workspace_invitation_repo().save(
+            WorkspaceUserInvitesDocument(
             workspace_id=workspace.id,
             email="invited_daemon@gmail.com",
             expiry=0,
             invitation_token=secrets.token_hex(16),
-        ).save()
+            )
+        )
         url = f"{workspace_invitation_url}/{accepted_invitation.invitation_token}?response_status=REJECTED"
 
         responded_invitation = await client.post(url, cookies=test_invited_user_cookies)
