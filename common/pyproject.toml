@@ -31,8 +31,10 @@ license = { text = "no" }
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
+    "asyncpg>=0.30.0",
     "beanie>=2.1.0",
     "cryptography>=50.0.0",
+    "sqlalchemy[asyncio]>=2.0.40",
     "tink>=1.14.0",
 ]
 classifiers = [
@@ -47,6 +49,8 @@ classifiers = [
 [dependency-groups]
 dev = [
     "black>=26.1.0",
+    "pytest>=8.0.0",
+    "pytest-asyncio>=1.4.0",
 ]
 
 [tool.uv]
@@ -65,3 +69,11 @@ packages = ["common"]
 exclude_lines = [
     "pass",
 ]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+# importlib mode: resolve `common` to the installed (editable) package instead of
+# prepending a parent directory to sys.path — this project dir has its own stray
+# __init__.py, which otherwise makes `import common` hit the directory, not the package.
+addopts = "--import-mode=importlib"

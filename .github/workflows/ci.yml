@@ -152,6 +152,50 @@ jobs:
                   ELASTIC_APM_DISABLE_SEND: "true"
               run: uv run pytest
 
+    common-tests:
+        name: Common tests (pytest)
+        needs: select-runner
+        runs-on: ${{ needs.select-runner.outputs.runner }}
+        # common/db is the Postgres foundation shared by the Python services
+        # (plans/postgres-consolidation.md); its integration tests need a live
+        # Postgres and skip themselves when DATABASE_URL is unset.
+        services:
+            postgres:
+                image: postgres:16-alpine
+                env:
+                    POSTGRES_USER: postgres
+                    POSTGRES_PASSWORD: postgres
+                    POSTGRES_DB: bettercollected_test
+                ports:
+                    - 5432:5432
+                options: >-
+                    --health-cmd "pg_isready -U postgres -d bettercollected_test"
+                    --health-interval 5s
+                    --health-timeout 5s
+                    --health-retries 10
+        defaults:
+            run:
+                working-directory: common
+        steps:
+            - uses: actions/checkout@v7
+
+            - name: Set up uv
+              uses: astral-sh/setup-uv@v7
+              with:
+                  python-version: 3.11.12
+                  enable-cache: true
+
+            - name: Install dependencies
+              env:
+                  VIRTUAL_ENV: ""
+              run: uv sync --frozen
+
+            - name: Run common tests
+              env:
+                  VIRTUAL_ENV: ""
+                  DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/bettercollected_test
+              run: uv run pytest
+
     webapp-build:
         name: Webapp build & type-check
         needs: select-runner
