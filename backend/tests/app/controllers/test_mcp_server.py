@@ -165,9 +165,7 @@ class TestMCPServer:
         assert "Work email" in titles
 
         # Every tool call is audited against the key.
-        logs = await MCPAuditLogDocument.find(
-            MCPAuditLogDocument.workspace_id == workspace.id
-        ).to_list()
+        logs = await container.mcp_audit_log_repo().list_by_workspace(workspace.id)
         assert any(log.tool == "update_form" and log.ok for log in logs)
 
     async def test_create_form_blank_then_build_with_ops(

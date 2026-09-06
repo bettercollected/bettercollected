@@ -17,6 +17,7 @@ from googleform.app.exceptions.http import (
 )
 from googleform.app.router import root_api_router
 from googleform.app.services.database_service import close_db, init_db
+from common.db import check_postgres_at_startup, dispose_engine
 from googleform.app.services.migration_service import (
     migrate_credentials_to_include_user_id,
 )
@@ -36,6 +37,7 @@ async def on_startup():
     log.debug("Execute FastAPI startup event handler.")
 
     AiohttpClient.get_aiohttp_client()
+    await check_postgres_at_startup(Container.flags(), Container.pg_engine())
 
 
 async def on_shutdown():
@@ -49,6 +51,7 @@ async def on_shutdown():
     # Gracefully close utilities.
     Container.executor = None
     await AiohttpClient.close_aiohttp_client()
+    await dispose_engine(Container.pg_engine())
 
 
 apm = make_apm_client()

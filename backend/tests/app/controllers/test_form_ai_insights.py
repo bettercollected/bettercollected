@@ -191,8 +191,8 @@ class TestFormAIInsights:
         assert cached.json()["summary"] == body["summary"]
         assert len(fake_insights_provider.calls) == 1
 
-        document = await FormAIInsightDocument.find_one(
-            FormAIInsightDocument.form_id == workspace_form.form_id
+        document = await container.form_ai_insight_repo().find(
+            workspace.id, workspace_form.form_id
         )
         assert document is not None and document.response_count == 3
 
@@ -243,8 +243,8 @@ class TestFormAIInsights:
         )
         assert response.status_code == 502
         assert (
-            await FormAIInsightDocument.find_one(
-                FormAIInsightDocument.form_id == workspace_form.form_id
+            await container.form_ai_insight_repo().find(
+                workspace.id, workspace_form.form_id
             )
             is None
         )

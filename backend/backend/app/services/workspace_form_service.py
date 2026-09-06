@@ -29,6 +29,7 @@ from backend.app.models.dtos.response_dtos import (
     StandardFormResponseCamelModel,
 )
 from backend.app.models.workspace import WorkspaceFormSettings, WorkspaceRequestDto
+from backend.app.repositories.template import FormTemplateRepository
 from backend.app.repositories.form_repository import FormRepository
 from backend.app.repositories.workspace_form_repository import WorkspaceFormRepository
 from backend.app.schedulers.form_schedular import FormSchedular
@@ -73,6 +74,7 @@ class WorkspaceFormService:
         aws_service: AWSS3Service,
         action_service: ActionService,
         crypto: Crypto,
+        form_template_repo: FormTemplateRepository,
     ):
         self.form_provider_service = form_provider_service
         self.plugin_proxy_service = plugin_proxy_service
@@ -80,6 +82,7 @@ class WorkspaceFormService:
         self.form_service = form_service
         self.workspace_form_repository = workspace_form_repository
         self._form_repo = form_repo
+        self.form_template_repo = form_template_repo
         self.form_schedular = form_schedular
         self.form_import_service = form_import_service
         self.schedular = schedular
@@ -677,7 +680,12 @@ class WorkspaceFormService:
             duplicated_form.created_by = user.id
         else:
             duplicated_form.form_id = str(PydanticObjectId())
-        duplicated_form = await self._form_repo.save_form(duplicated_form)
+        # a template is a different collection: save it through its own repository
+        duplicated_form = (
+            await self.form_template_repo.save(duplicated_form)
+            if is_template
+            else await self._form_repo.save_form(duplicated_form)
+        )
 
         if not is_template:
             workspace_form = WorkspaceFormDocument(

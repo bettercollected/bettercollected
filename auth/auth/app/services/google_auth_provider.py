@@ -4,7 +4,7 @@ import secrets
 import loguru
 
 from auth.app.exceptions import HTTPException
-from auth.app.repositories.user_repository import UserRepository
+from auth.app.repositories.user_repository import UserRepository  # noqa: F401
 from auth.app.services.base_auth_provider import BaseAuthProvider
 from auth.config import settings
 
@@ -114,7 +114,7 @@ class GoogleAuthProvider(BaseAuthProvider):
         if not user:
             return state_json
         creator = state_json.get("creator", False)
-        user_document = await UserRepository.save_user(
+        user_document = await _user_repository().save_user(
             user.get("email"),
             creator=creator,
             first_name=user.get("given_name"),
@@ -174,3 +174,11 @@ class GoogleAuthProvider(BaseAuthProvider):
                 "Fetching Google user info failed: {}: {}", type(e).__name__, e
             )
             raise HTTPException(401, "Could not retrieve your Google account info.")
+
+
+def _user_repository() -> UserRepository:
+    """The routed repository from the container, resolved at call time (this
+    provider is built by AuthProviderFactory, outside dependency injection)."""
+    from auth.app.container import container
+
+    return container.user_repository()

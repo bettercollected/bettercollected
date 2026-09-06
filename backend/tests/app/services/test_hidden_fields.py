@@ -20,9 +20,7 @@ async def test_submitted_hidden_fields_are_encrypted_at_rest_and_decrypted_on_re
     assert response.hidden_fields == hidden
 
     # ...but at rest the values are an encrypted blob, like answers.
-    stored = await FormResponseDocument.find_one(
-        {"response_id": response.response_id}
-    )
+    stored = await container.form_response_repo().get_response(response.response_id)
     assert isinstance(stored.hidden_fields, (bytes, str))
     assert json.dumps(hidden) != stored.hidden_fields
 
@@ -38,9 +36,7 @@ async def test_submission_without_hidden_fields_stays_none(workspace, workspace_
         StandardFormResponse(answers={}),
         workspace.id,
     )
-    stored = await FormResponseDocument.find_one(
-        {"response_id": response.response_id}
-    )
+    stored = await container.form_response_repo().get_response(response.response_id)
     assert stored.hidden_fields is None
 
 
@@ -91,9 +87,7 @@ async def test_anonymize_is_enforced_server_side(workspace, published_form):
         testUser,
     )
 
-    stored = await FormResponseDocument.find_one(
-        {"response_id": response.response_id}
-    )
+    stored = await container.form_response_repo().get_response(response.response_id)
     # The anonymity choice must hold at rest: no owner identifier, no email —
     # only the one-way hash that lets the responder find their own submission.
     assert stored.dataOwnerIdentifier is None
@@ -113,9 +107,7 @@ async def test_identity_is_kept_when_not_anonymized(workspace, published_form):
         testUser,
     )
 
-    stored = await FormResponseDocument.find_one(
-        {"response_id": response.response_id}
-    )
+    stored = await container.form_response_repo().get_response(response.response_id)
     assert stored.dataOwnerIdentifier == testUser.sub
 
 
@@ -170,11 +162,11 @@ async def test_anonymous_owner_can_request_deletion(workspace, published_form):
         workspace.id, response.response_id, testUser2
     )
 
-    stored_response = await FormResponseDocument.find_one(
-        {"response_id": response.response_id}
+    stored_response = await container.form_response_repo().get_response(
+        response.response_id
     )
-    request = await FormResponseDeletionRequest.find_one(
-        {"response_id": response.response_id}
+    request = await container.form_response_repo().find_deletion_request_by_response_id(
+        response.response_id
     )
     assert request is not None
     # Attribution survives: the request carries the same anonymous hash the

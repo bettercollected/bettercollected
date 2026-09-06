@@ -29,7 +29,11 @@ class TestWorkspaces:
         )
         assert response.status_code == 200
         body = response.json()
-        assert body["about"] == "" and body["guidelines"] == "" and body["compliance"] == ""
+        assert (
+            body["about"] == ""
+            and body["guidelines"] == ""
+            and body["compliance"] == ""
+        )
 
     async def test_ai_profile_update_and_roundtrip(
         self,
@@ -66,8 +70,8 @@ class TestWorkspaces:
 
         from backend.app.schemas.workspace_ai_profile import WorkspaceAIProfileDocument
 
-        document = await WorkspaceAIProfileDocument.find_one(
-            WorkspaceAIProfileDocument.workspace_id == workspace.id
+        document = await container.workspace_ai_profile_repo().find_by_workspace(
+            workspace.id
         )
         assert len(document.revisions) == 1
         assert document.revisions[0]["guidelines"] == payload["guidelines"]
@@ -104,7 +108,9 @@ class TestWorkspaces:
             json=[theme],
         )
         assert response.status_code == 200
-        assert response.json().get("customThemes") == [{**theme, "background": None, "style": None}]
+        assert response.json().get("customThemes") == [
+            {**theme, "background": None, "style": None}
+        ]
 
         # And it round-trips on the persisted document.
         saved = await container.workspace_repo().get_or_404(workspace.id)
@@ -191,7 +197,9 @@ class TestWorkspaces:
     ):
         get_workspace_url = f"{common_url}?workspace_name={testUser.id}"
         with mock_get_workspace_by_query:
-            fetched_workspace = await client.get(get_workspace_url, cookies=test_user_cookies)
+            fetched_workspace = await client.get(
+                get_workspace_url, cookies=test_user_cookies
+            )
 
             expected_workspace_id = str(workspace.id)
             actual_workspace_id = fetched_workspace.json().get("id")
@@ -261,7 +269,9 @@ class TestWorkspaces:
         self, client: AsyncClient, test_pro_user_cookies: dict[str, str]
     ):
         get_mine_workspace_url = f"{common_url}/mine"
-        await client.post(common_url, cookies=test_pro_user_cookies, data=workspace_attribute)
+        await client.post(
+            common_url, cookies=test_pro_user_cookies, data=workspace_attribute
+        )
         await client.post(
             common_url, cookies=test_pro_user_cookies, data=workspace_attribute_1
         )
@@ -411,7 +421,9 @@ class TestWorkspaces:
     ):
         suggest_handles_url = f"{common_url}/suggest-handle/test"
 
-        suggest_handle = await client.get(suggest_handles_url, cookies=test_user_cookies)
+        suggest_handle = await client.get(
+            suggest_handles_url, cookies=test_user_cookies
+        )
 
         expected_response = ["test", "test1", "test2", "test3", "test4", "test5"]
         actual_response = suggest_handle.json()
@@ -485,7 +497,9 @@ class TestWorkspaces:
     ):
         workspace_stats_url = f"{common_url}/{workspace.id}/stats"
 
-        workspace_stats = await client.get(workspace_stats_url, cookies=test_user_cookies)
+        workspace_stats = await client.get(
+            workspace_stats_url, cookies=test_user_cookies
+        )
 
         expected_response = {
             "deletionRequests": {"pending": 0, "success": 0, "total": 0},
@@ -505,7 +519,9 @@ class TestWorkspaces:
     ):
         workspace_stats_url = f"{common_url}/{workspace.id}/stats"
 
-        workspace_stats = await client.get(workspace_stats_url, cookies=test_user_cookies_1)
+        workspace_stats = await client.get(
+            workspace_stats_url, cookies=test_user_cookies_1
+        )
 
         expected_response_message = MESSAGE_FORBIDDEN
         actual_response_message = workspace_stats.json()

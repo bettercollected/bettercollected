@@ -6,6 +6,7 @@ from typing import Any, Coroutine
 import pytest
 from httpx import AsyncClient
 
+from tests.app.controllers.data import testUser
 from backend.app.container import container
 from backend.app.schemas.ai_preference_memory import UserAIPreferenceMemoryDocument
 from backend.app.schemas.workspace import WorkspaceDocument
@@ -38,7 +39,9 @@ class TestAIMemoryEndpoints:
         workspace: Coroutine[Any, Any, WorkspaceDocument],
         test_user_cookies: dict[str, str],
     ):
-        response = await client.get(f"/api/v1/workspaces/{workspace.id}/ai-memory", cookies=test_user_cookies)
+        response = await client.get(
+            f"/api/v1/workspaces/{workspace.id}/ai-memory", cookies=test_user_cookies
+        )
         assert response.status_code == 200
         assert response.json() == []
 
@@ -49,13 +52,17 @@ class TestAIMemoryEndpoints:
         test_user_cookies: dict[str, str],
     ):
         url = f"/api/v1/workspaces/{workspace.id}/ai-memory"
-        added = await client.post(url, cookies=test_user_cookies, json={"text": "Prefers short pages"})
+        added = await client.post(
+            url, cookies=test_user_cookies, json={"text": "Prefers short pages"}
+        )
         assert added.status_code == 200
         assert [e["text"] for e in added.json()] == ["Prefers short pages"]
         assert added.json()[0]["source"] == "manual"
 
         # Case-insensitive dedupe: no second copy.
-        again = await client.post(url, cookies=test_user_cookies, json={"text": "prefers SHORT pages"})
+        again = await client.post(
+            url, cookies=test_user_cookies, json={"text": "prefers SHORT pages"}
+        )
         assert len(again.json()) == 1
 
         entry_id = added.json()[0]["id"]
@@ -70,7 +77,8 @@ class TestAIMemoryEndpoints:
         test_user_cookies: dict[str, str],
     ):
         response = await client.delete(
-            f"/api/v1/workspaces/{workspace.id}/ai-memory/nope", cookies=test_user_cookies
+            f"/api/v1/workspaces/{workspace.id}/ai-memory/nope",
+            cookies=test_user_cookies,
         )
         assert response.status_code == 404
 
@@ -98,8 +106,12 @@ class TestExtractionThroughChat:
         fake_provider: FakeProvider,
     ):
         fake_provider.replies = [
-            json.dumps({"reply": "Done — no placeholders.", "ops": []}),  # the chat turn
-            json.dumps({"memories": ["Does not want placeholder text in inputs"]}),  # extraction
+            json.dumps(
+                {"reply": "Done — no placeholders.", "ops": []}
+            ),  # the chat turn
+            json.dumps(
+                {"memories": ["Does not want placeholder text in inputs"]}
+            ),  # extraction
         ]
         response = await client.post(
             f"/api/v1/workspaces/{workspace.id}/forms/{workspace_form.form_id}/ai/chat",
@@ -113,18 +125,22 @@ class TestExtractionThroughChat:
         # The extraction call must use THE extraction prompt, verbatim — a
         # substring check would let a rewired/garbled prompt pass silently.
         extraction_call = fake_provider.calls[1]
-        assert extraction_call["system"] == EXTRACTION_SYSTEM_PROMPT.format(existing="(empty)")
+        assert extraction_call["system"] == EXTRACTION_SYSTEM_PROMPT.format(
+            existing="(empty)"
+        )
         # …and it must be fed the actual turn (what the creator said and what
         # the assistant did), or extraction degrades into guessing.
         turn_payload = extraction_call["messages"][0]["content"]
         assert "never add placeholder text to my inputs" in turn_payload
         assert "Done — no placeholders." in turn_payload
 
-        document = await UserAIPreferenceMemoryDocument.find_one(
-            UserAIPreferenceMemoryDocument.workspace_id == workspace.id
+        document = await container.ai_preference_memory_repo().find(
+            workspace.id, testUser.id
         )
         assert document is not None
-        assert [e["text"] for e in document.entries] == ["Does not want placeholder text in inputs"]
+        assert [e["text"] for e in document.entries] == [
+            "Does not want placeholder text in inputs"
+        ]
         assert document.entries[0]["source"] == "extracted"
 
     async def test_extraction_failure_never_breaks_the_turn(
@@ -159,7 +175,10 @@ class TestExtractionThroughChat:
             cookies=test_user_cookies,
             json={"text": "Prefers British English"},
         )
-        fake_provider.replies = [json.dumps({"reply": "Noted.", "ops": []}), json.dumps({"memories": []})]
+        fake_provider.replies = [
+            json.dumps({"reply": "Noted.", "ops": []}),
+            json.dumps({"memories": []}),
+        ]
         await client.post(
             f"/api/v1/workspaces/{workspace.id}/forms/{workspace_form.form_id}/ai/chat",
             cookies=test_user_cookies,

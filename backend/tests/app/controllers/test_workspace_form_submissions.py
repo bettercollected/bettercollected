@@ -99,7 +99,9 @@ class TestWorkspaceFormSubmission:
         )
 
         form_response_deletion_request = (
-            await FormResponseDeletionRequest.find().to_list()
+            await container.form_response_repo().list_deletion_requests_for_form_ids(
+                [workspace_form_response["form_id"]]
+            )
         )
         actual_response = request_response_deletion.json()
         expected_response = {"message": "Request for deletion created successfully."}

@@ -1,4 +1,5 @@
 """Application implementation - ASGI."""
+
 import logging
 
 import auth
@@ -11,6 +12,7 @@ from auth.app.exceptions import (
 from auth.app.exceptions.http import not_found_error_handler
 from auth.app.router import root_api_router
 from auth.app.services.database_service import close_db, init_db
+from common.db import check_postgres_at_startup, dispose_engine
 from auth.config import settings
 from elasticapm.contrib.starlette import make_apm_client, ElasticAPM
 from fastapi import FastAPI
@@ -33,6 +35,7 @@ async def on_startup():
     log.debug("Execute FastAPI startup event handler.")
     database_client = container.database_client()
     await init_db(database_client)
+    await check_postgres_at_startup(container.flags(), container.pg_engine())
 
 
 async def on_shutdown():
@@ -47,6 +50,7 @@ async def on_shutdown():
 
     database_client = container.database_client()
     await close_db(database_client)
+    await dispose_engine(container.pg_engine())
 
 
 apm = make_apm_client()

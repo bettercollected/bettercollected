@@ -1,42 +1,44 @@
+"""Postgres twins of the auth repositories (plans/postgres-consolidation.md §4)."""
+
 import datetime
-from typing import Optional, List
+from typing import List, Optional
 
 from beanie import PydanticObjectId
-from common.enums.roles import Roles
 from pydantic import EmailStr
 
+from auth.app.schemas.provider import Provider
 from auth.app.schemas.user import UserDocument
-from common.db import write_op
+from auth.db.models import ProviderRow, UserRow
+from common.db import PostgresRepositoryBase
+from common.enums.roles import Roles
 
 
-class UserRepository:
+class PostgresUserRepository(PostgresRepositoryBase):
+    row = UserRow
+    document = UserDocument
+
     async def get_user_by_id(self, user_id: PydanticObjectId):
-        return await UserDocument.get(user_id)
+        return await self.get_or_raise(user_id)
 
     async def get_user_by_email(self, email: str) -> UserDocument:
-        return await UserDocument.find_one(UserDocument.email == email)
+        return await self.one(UserRow.email == email)
 
     async def get_user_by_stripe_payment_id(
         self, stripe_payment_id: str
     ) -> UserDocument:
-        return await UserDocument.find_one(
-            UserDocument.stripe_payment_id == stripe_payment_id
-        )
+        return await self.one(UserRow.stripe_payment_id == stripe_payment_id)
 
     async def get_user_by_stripe_customer_id(
         self, stripe_customer_id: str
     ) -> UserDocument:
-        return await UserDocument.find_one(
-            UserDocument.stripe_customer_id == stripe_customer_id
-        )
+        return await self.one(UserRow.stripe_customer_id == stripe_customer_id)
 
     async def get_users_by_emails(self, emails: List[EmailStr]):
-        return await UserDocument.find({"email": {"$in": emails}}).to_list()
+        return await self.many(UserRow.email.in_(list(emails)))
 
     async def get_users_by_ids(self, user_ids: List[PydanticObjectId]):
-        return await UserDocument.find({"_id": {"$in": user_ids}}).to_list()
+        return await self.many(UserRow.id.in_([str(i) for i in user_ids]))
 
-    @write_op(replay=True)
     async def save_otp_user(
         self,
         email: str,
@@ -49,19 +51,19 @@ class UserRepository:
             otp_code_for = Roles.FORM_RESPONDER
             if creator:
                 otp_code_for = Roles.FORM_CREATOR
-            user_document = UserDocument(
-                email=email,
-                otp_code=otp_code,
-                otp_expiry=otp_expiry,
-                otp_code_for=otp_code_for,
+            user_document = await self.upsert(
+                UserDocument(
+                    email=email,
+                    otp_code=otp_code,
+                    otp_expiry=otp_expiry,
+                    otp_code_for=otp_code_for,
+                )
             )
-            user_document = await user_document.save()
         if creator and Roles.FORM_CREATOR not in user_document.otp_code_for:
             user_document.otp_code_for = Roles.FORM_CREATOR
-            await user_document.save()
+            await self.upsert(user_document)
         return user_document
 
-    @write_op(replay=True)
     async def save_user(
         self,
         email: str,
@@ -78,10 +80,7 @@ class UserRepository:
             roles.append(Roles.FORM_CREATOR)
         if not user_document:
             user_document = UserDocument(
-                email=email,
-                roles=roles,
-                otp_code=otp_code,
-                otp_expiry=otp_expiry,
+                email=email, roles=roles, otp_code=otp_code, otp_expiry=otp_expiry
             )
         if user_document.roles:
             if creator and Roles.FORM_CREATOR not in user_document.roles:
@@ -102,26 +101,36 @@ class UserRepository:
             user_document.profile_image = (
                 profile_image if profile_image else user_document.profile_image
             )
-        return await user_document.save()
+        return await self.upsert(user_document)
 
-    @write_op
     async def clear_user_otp(self, user: UserDocument):
         user_roles = [Roles.FORM_RESPONDER]
         if user.otp_code_for == Roles.FORM_CREATOR:
             user_roles.append(Roles.FORM_CREATOR)
-        await UserDocument.find_one(UserDocument.id == user.id).update(
-            {
-                "$addToSet": {"roles": {"$each": user_roles}},
-                "$unset": {"otp_code": "", "otp_expiry": "", "otp_code_for": ""},
-            }
-        )
+        stored = await self.one(UserRow.id == str(user.id))
+        if stored is None:  # find_one(...).update() on no match is a no-op
+            return
+        for role in user_roles:  # $addToSet $each
+            if role not in (stored.roles or []):
+                stored.roles = [*(stored.roles or []), role]
+        stored.otp_code = stored.otp_expiry = stored.otp_code_for = None  # $unset
+        await self.upsert(stored)
 
-    @write_op
     async def delete_user(self, user_id: PydanticObjectId):
-        return await UserDocument.find({"_id": user_id}).delete()
+        return await self.delete_by_id(user_id)
 
-    @write_op
     async def update_last_logged_in(self, user_id: PydanticObjectId):
-        user_document = await UserDocument.find_one(UserDocument.id == user_id)
+        user_document = await self.one(UserRow.id == str(user_id))
         user_document.last_logged_in = datetime.datetime.now(datetime.timezone.utc)
-        return await user_document.save()
+        return await self.upsert(user_document)
+
+
+class PostgresProviderRepository(PostgresRepositoryBase):
+    row = ProviderRow
+    document = Provider
+
+    async def get_provider(self, provider_name: str) -> Provider:
+        return Provider.verify_doc_exists(
+            await self.one(ProviderRow.provider_name == provider_name),
+            Provider.provider_name == provider_name,
+        )

@@ -64,10 +64,22 @@ def is_replayed(fn) -> bool:
     return bool(getattr(fn, REPLAY_MARKER, False))
 
 
+@dataclass
+class WriteResult:
+    """Returned by a ``replay=True`` write whose return value is not what it
+    persisted — e.g. a document handed back decrypted while the stored copy is
+    encrypted. The mirror stores ``documents``; the caller receives ``value``."""
+
+    value: Any
+    documents: list
+
+
 def persisted_documents(result: Any) -> list:
     """The persisted document(s) in a replayed write's result: a document with
-    an id, or a list/tuple of them. Anything else yields ``[]`` and the mirror
-    falls back to re-executing the call."""
+    an id, a list/tuple of them, or a :class:`WriteResult`. Anything else
+    yields ``[]`` and the mirror falls back to re-executing the call."""
+    if isinstance(result, WriteResult):
+        return list(result.documents)
 
     def is_doc(v: Any) -> bool:
         return getattr(v, "id", None) is not None and callable(getattr(v, "save", None))
@@ -117,6 +129,8 @@ class RoutingMetrics:
 
 def normalise_result(value: Any) -> Any:
     """Shape a repository result for comparison: models to plain JSON data."""
+    if isinstance(value, WriteResult):
+        return normalise_result(value.value)
     if isinstance(value, BaseModel):
         return value.model_dump(mode="json")
     if isinstance(value, dict):
@@ -232,7 +246,7 @@ class RoutingRepository:
             if mirror is not None and self._stores[mirror] is not None:
                 documents = persisted_documents(result) if replay else []
                 await self._mirror(name, mirror, args, kwargs, documents)
-            return result
+            return result.value if isinstance(result, WriteResult) else result
 
         return method
 

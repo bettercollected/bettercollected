@@ -16,6 +16,8 @@ from pymongo.errors import (
 
 from starlette.exceptions import HTTPException
 
+from common.db import write_op
+
 
 class FormResponseRepository(BaseRepository):
     async def list(self) -> List[GoogleFormResponseDocument]:
@@ -38,8 +40,9 @@ class FormResponseRepository(BaseRepository):
                 detail=MESSAGE_DATABASE_EXCEPTION,
             )
 
-    @staticmethod
-    async def list_form_responses(form_id: str) -> List[GoogleFormResponseDocument]:
+    async def list_form_responses(
+        self, form_id: str
+    ) -> List[GoogleFormResponseDocument]:
         """
         Returns a list of google form responses of specific formId
         stored in the database.
@@ -85,6 +88,7 @@ class FormResponseRepository(BaseRepository):
                 detail=MESSAGE_DATABASE_EXCEPTION,
             )
 
+    @write_op(replay=True)
     async def add(self, item: GoogleFormResponseDocument) -> GoogleFormResponseDocument:
         """
         Adds a form response in the database.
@@ -106,6 +110,7 @@ class FormResponseRepository(BaseRepository):
                 detail=MESSAGE_DATABASE_EXCEPTION,
             )
 
+    @write_op
     async def update(
         self, response_id: str, item: GoogleFormResponseDocument
     ) -> GoogleFormResponseDocument:
@@ -135,6 +140,7 @@ class FormResponseRepository(BaseRepository):
                 detail=MESSAGE_DATABASE_EXCEPTION,
             )
 
+    @write_op
     async def delete(
         self, response_id: str, provider: FormProvider = FormProvider.GOOGLE
     ):

@@ -3,7 +3,7 @@ from http import HTTPStatus
 from typing import Any, Dict
 
 from auth.app.exceptions import HTTPException
-from auth.app.repositories.user_repository import UserRepository
+from auth.app.repositories.user_repository import UserRepository  # noqa: F401
 from auth.app.services.base_auth_provider import BaseAuthProvider
 from auth.config import settings
 
@@ -13,8 +13,6 @@ from common.models.user import User
 from cryptography.fernet import InvalidToken
 
 import requests
-
-
 
 crypto = Crypto(settings.AUTH_AES_HEX_KEY)
 
@@ -26,7 +24,11 @@ class TypeformAuthProvider(BaseAuthProvider):
         creator = kwargs.get("creator", False)
         prospective_pro_user = kwargs.get("prospective_pro_user", False)
         state_json = json.dumps(
-            {"client_referer_url": client_referer_url, "creator": creator, "prospective_pro_user": prospective_pro_user}
+            {
+                "client_referer_url": client_referer_url,
+                "creator": creator,
+                "prospective_pro_user": prospective_pro_user,
+            }
         )
         state = crypto.encrypt(state_json)
         authorization_url = typeform_settings.auth_uri.format(
@@ -75,10 +77,11 @@ class TypeformAuthProvider(BaseAuthProvider):
             return state_json
         name: str = user_response.get("alias").split()
         creator = state_json.get("creator", False)
-        user_document = await UserRepository.save_user(
+        user_document = await _user_repository().save_user(
             user_response.get("email"),
             creator=creator,
-            first_name=name[0], last_name=name[-1]
+            first_name=name[0],
+            last_name=name[-1],
         )
         user = User(
             id=str(user_document.id),
@@ -103,3 +106,11 @@ class TypeformAuthProvider(BaseAuthProvider):
                 HTTPStatus.BAD_REQUEST, "Error while fetching forms from typeform."
             )
         return api_response.json()
+
+
+def _user_repository() -> UserRepository:
+    """The routed repository from the container, resolved at call time (this
+    provider is built by AuthProviderFactory, outside dependency injection)."""
+    from auth.app.container import container
+
+    return container.user_repository()

@@ -270,10 +270,10 @@ class TestWorkspaceForm:
     ):
         delete_form = await client.delete(workspace_form_url, cookies=test_user_cookies)
 
-        actual_response = await FormResponseDocument.find_one(
-            {"form_id": workspace_form.form_id}
+        actual_response = await container.form_response_repo().list_by_form_id(
+            workspace_form.form_id
         )
-        expected_response = None
+        expected_response = []
         assert actual_response == expected_response
 
     async def test_delete_workspace_form_also_deletes_request_response_deletion(
@@ -291,8 +291,10 @@ class TestWorkspaceForm:
 
         delete_form = await client.delete(workspace_form_url, cookies=test_user_cookies)
 
-        actual_request_response_deletion = await FormResponseDeletionRequest.find_one(
-            {"response_id": workspace_form_response["response_id"]}
+        actual_request_response_deletion = (
+            await container.form_response_repo().find_deletion_request_by_response_id(
+                workspace_form_response["response_id"]
+            )
         )
         expected_request_response_deletion = None
         assert actual_request_response_deletion == expected_request_response_deletion
@@ -365,7 +367,7 @@ class TestWorkspaceForm:
 
         submission_uuid = response.json()
         expected_user_id = (
-            await FormResponseDocument.find_one({"submission_uuid": submission_uuid})
+            await container.form_response_repo().get_by_submission_uuid(submission_uuid)
         ).submission_uuid
         assert submission_uuid == expected_user_id
 
@@ -427,8 +429,8 @@ class TestWorkspaceForm:
         )
 
         actual_form_response_deletion_request = (
-            await FormResponseDeletionRequest.find_one(
-                {"response_id": workspace_form_response["response_id"]}
+            await container.form_response_repo().find_deletion_request_by_response_id(
+                workspace_form_response["response_id"]
             )
         )
         expected_form_response_deletion_request = None
@@ -563,9 +565,11 @@ class TestWorkspaceForm:
             json={"group_ids": [str(workspace_group.id)]},
         )
 
-        expected_added_form = (await ResponderGroupFormDocument.find().to_list())[
-            0
-        ].form_id
+        expected_added_form = (
+            await container.responder_groups_repository().get_emails_in_group(
+                workspace_group.id
+            )
+        )["forms"][0]
         actual_added_form = group_form.json()[0]["form_id"]
         assert group_form.status_code == 200
         assert actual_added_form == expected_added_form
@@ -607,10 +611,12 @@ class TestWorkspaceForm:
             delete_form_from_group_url, cookies=test_user_cookies
         )
 
-        actual_form = await ResponderGroupFormDocument.find_one(
-            {"form_id": workspace_form.form_id, "group_id": workspace_group.id}
-        )
-        expected_form = None
+        actual_form = (
+            await container.responder_groups_repository().get_emails_in_group(
+                workspace_group.id
+            )
+        )["forms"]
+        expected_form = []
         assert group_form.status_code == 200
         assert actual_form == expected_form
 

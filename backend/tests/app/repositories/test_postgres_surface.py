@@ -29,6 +29,38 @@ from backend.app.repositories.postgres.forms import (
 from backend.app.repositories.template import FormTemplateRepository
 from backend.app.repositories.workspace_consent_repo import WorkspaceConsentRepo
 from backend.app.repositories.workspace_form_repository import WorkspaceFormRepository
+from backend.app.repositories.action_repository import ActionRepository
+from backend.app.repositories.ai_preference_memory_repository import (
+    AIPreferenceMemoryRepository,
+)
+from backend.app.repositories.flow_event_repository import FlowEventRepository
+from backend.app.repositories.form_ai_insight_repository import FormAIInsightRepository
+from backend.app.repositories.form_ai_session_repository import FormAISessionRepository
+from backend.app.repositories.form_response_repository import FormResponseRepository
+from backend.app.repositories.mcp_audit_log_repository import McpAuditLogRepository
+from backend.app.repositories.postgres.actions import PostgresActionRepository
+from backend.app.repositories.postgres.ai import (
+    PostgresAIPreferenceMemoryRepository,
+    PostgresFlowEventRepository,
+    PostgresFormAIInsightRepository,
+    PostgresFormAISessionRepository,
+    PostgresMcpAuditLogRepository,
+    PostgresWorkspaceAIProfileRepository,
+)
+from backend.app.repositories.postgres.responses import (
+    PostgresFormResponseRepository,
+    PostgresResponderGroupsRepository,
+    PostgresWorkspaceRespondersRepository,
+)
+from backend.app.repositories.responder_groups_repository import (
+    ResponderGroupsRepository,
+)
+from backend.app.repositories.workspace_ai_profile_repository import (
+    WorkspaceAIProfileRepository,
+)
+from backend.app.repositories.workspace_responders_repository import (
+    WorkspaceRespondersRepository,
+)
 from backend.app.repositories.postgres.identity import (
     PostgresBlacklistedRefreshTokenRepository,
     PostgresUserTagsRepository,
@@ -69,6 +101,16 @@ PAIRS = [
     (WorkspaceConsentRepo, PostgresWorkspaceConsentRepo),
     (FormTemplateRepository, PostgresFormTemplateRepository),
     (MediaLibraryRepository, PostgresMediaLibraryRepository),
+    (FormResponseRepository, PostgresFormResponseRepository),
+    (ResponderGroupsRepository, PostgresResponderGroupsRepository),
+    (WorkspaceRespondersRepository, PostgresWorkspaceRespondersRepository),
+    (ActionRepository, PostgresActionRepository),
+    (FlowEventRepository, PostgresFlowEventRepository),
+    (FormAIInsightRepository, PostgresFormAIInsightRepository),
+    (FormAISessionRepository, PostgresFormAISessionRepository),
+    (WorkspaceAIProfileRepository, PostgresWorkspaceAIProfileRepository),
+    (AIPreferenceMemoryRepository, PostgresAIPreferenceMemoryRepository),
+    (McpAuditLogRepository, PostgresMcpAuditLogRepository),
 ]
 
 

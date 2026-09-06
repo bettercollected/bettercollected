@@ -5,6 +5,7 @@ import loguru
 from beanie import init_beanie
 
 from auth.config import settings
+from common.db import MirrorWriteFailureDocument
 
 log = logging.getLogger(__name__)
 
@@ -20,7 +21,9 @@ async def init_db(database_client):
     # No motor `get_io_loop` shim — beanie 2.x / pymongo's async client
     # doesn't use it, and it crashed init_beanie on the newer versions.
     db = database_client[settings.mongo_settings.DB]
-    await init_beanie(database=db, document_models=document_models)
+    await init_beanie(
+        database=db, document_models=[*document_models, MirrorWriteFailureDocument]
+    )
     loguru.logger.info("Database connected successfully.")
 
 

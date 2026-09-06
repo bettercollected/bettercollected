@@ -1,18 +1,18 @@
 import requests
 
-from googleform.app.schemas.oauth_credential import Oauth2CredentialDocument
+from googleform.app.containers import Container
 from googleform.config import settings
 
 
 async def migrate_credentials_to_include_user_id():
-    credentials_documents = await Oauth2CredentialDocument.find().to_list()
-    for credentials_document in credentials_documents:
+    repository = Container.oauth_credential_repo()
+    for credentials_document in await repository.list_all():
         if credentials_document.user_id is None:
             user_id = await fetch_user_id_for_email(email=credentials_document.email)
             if not user_id:
                 return
             credentials_document.user_id = user_id
-            await credentials_document.save()
+            await repository.save(credentials_document)
 
 
 async def fetch_user_id_for_email(email: str):

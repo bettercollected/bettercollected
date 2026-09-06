@@ -70,7 +70,7 @@ class FormResponseRepository(BaseRepository):
                 },
             },
             {"$set": {"status": {"$arrayElemAt": ["$deletion_request.status", 0]}}},
-            {"$unset": "deletion_request"},
+            {"$unset": ["deletion_request", "form"]},
             {"$sort": {"created_at": -1}},
         ]
 
@@ -136,6 +136,7 @@ class FormResponseRepository(BaseRepository):
                     "metadata": "$responder.metadata",
                 }
             },
+            {"$unset": "responder"},
             {
                 "$lookup": {
                     "from": "workspace_tags",

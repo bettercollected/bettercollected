@@ -268,3 +268,21 @@ def test_write_op_marks_replay():
     assert is_write_op(MintingStore.create) and is_replayed(MintingStore.create)
     assert is_write_op(FakeStore.save) and not is_replayed(FakeStore.save)
     assert not is_write_op(FakeStore.find)
+
+
+async def test_write_result_replays_the_persisted_documents_and_returns_the_value():
+    from common.db import WriteResult
+
+    class Store(MintingStore):
+        @write_op(replay=True)
+        async def rotate(self, key):
+            await self._go("rotate", key)
+            return WriteResult(
+                value={"plain": key}, documents=[Doc(f"{self.tag}-enc", "ciphertext")]
+            )
+
+    m, p = Store("mongo"), Store("postgres")
+    r = repo({"DB_WRITE_MODE": "dual"}, mongo=m, postgres=p)
+    assert await r.rotate("k") == {"plain": "k"}  # the caller never sees the wrapper
+    assert p.replayed == [["mongo-enc"]]  # the mirror stores the encrypted copy
+    assert [c[0] for c in p.calls] == []

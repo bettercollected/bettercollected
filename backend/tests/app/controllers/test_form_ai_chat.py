@@ -12,6 +12,7 @@ from common.models.standard_form import (
     StandardFormFieldType,
 )
 
+from beanie import PydanticObjectId
 from backend.app.container import container
 from backend.app.schemas.form_ai_session import FormAISessionDocument
 from backend.app.schemas.standard_form import FormDocument
@@ -121,7 +122,9 @@ class TestFormAIChat:
         assert "Work email" in _all_titles(saved)
 
         # Session recorded with the auditable ops + results
-        session = await FormAISessionDocument.get(body["sessionId"])
+        session = await container.form_ai_session_repo().get_or_404(
+            PydanticObjectId(body["sessionId"])
+        )
         assert session is not None
         assert session.messages[0]["role"] == "user"
         assert session.messages[1]["ops"][0]["op"] == "add_field"
