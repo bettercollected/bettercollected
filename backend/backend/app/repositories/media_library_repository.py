@@ -42,7 +42,7 @@ class MediaLibraryRepository:
             {"workspace_id": workspace_id, "media_id": media_id}
         )
 
-    @write_op
+    @write_op(replay=True)
     async def add_media_in_workspace_library(
         self,
         workspace_id: str,

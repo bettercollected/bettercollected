@@ -19,7 +19,7 @@ import os
 import random
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Mapping, Optional
+from typing import Iterable, Mapping, Optional
 
 
 class ReadSource(str, Enum):
@@ -158,7 +158,12 @@ class DbFlags:
             return True
         return self.shadow_read_sample > 0
 
-    def validate(self) -> None:
+    def validate(self, read_dependencies: Mapping[str, Iterable[str]] = {}) -> None:
+        """``read_dependencies``: group -> groups that must be served from Postgres
+        before it may be. A group's *Mongo* repositories may ``$lookup`` into
+        another group's collections; once that other group is served from
+        Postgres those joins find nothing, so it has to cut over first (or
+        together). The application declares the map; the flags enforce it."""
         groups = {"*"} | set(self.read_overrides) | set(self.write_overrides)
         for group in groups:
             read = self.default_read if group == "*" else self.read_source(group)
@@ -173,10 +178,29 @@ class DbFlags:
             raise FlagError(
                 f"{SAMPLE_KEY} must be between 0 and 1, got {self.shadow_read_sample}"
             )
+        for group, prerequisites in read_dependencies.items():
+            if self.read_source(group) is not ReadSource.POSTGRES:
+                continue
+            lagging = [
+                p
+                for p in prerequisites
+                if self.read_source(p) is not ReadSource.POSTGRES
+            ]
+            if lagging:
+                raise FlagError(
+                    f"group {group!r} cannot be served from postgres while "
+                    f"{', '.join(repr(p) for p in lagging)} still read from mongo: their "
+                    f"Mongo repositories join into {group!r}'s collections. Cut those "
+                    f"groups over first (or together)."
+                )
 
 
-def load_flags(env: Mapping[str, str] = os.environ) -> DbFlags:
-    """Parse and validate the flags from ``env``; raises :class:`FlagError` on a bad value."""
+def load_flags(
+    env: Mapping[str, str] = os.environ,
+    read_dependencies: Mapping[str, Iterable[str]] = {},
+) -> DbFlags:
+    """Parse and validate the flags from ``env``; raises :class:`FlagError` on a bad
+    value. ``read_dependencies`` is the cutover-order map (see ``DbFlags.validate``)."""
     raw_sample = env.get(SAMPLE_KEY, "")
     try:
         sample = float(raw_sample) if raw_sample != "" else 0.0
@@ -197,5 +221,5 @@ def load_flags(env: Mapping[str, str] = os.environ) -> DbFlags:
         ),
         jobs_overrides=_overrides(env, JOBS_KEY, JobsBackend),
     )
-    flags.validate()
+    flags.validate(read_dependencies)
     return flags

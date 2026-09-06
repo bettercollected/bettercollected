@@ -56,7 +56,7 @@ class WorkspaceFormRepository:
             raise HTTPException(HTTPStatus.NOT_FOUND, "Form not found in ")
         return await item.save()
 
-    @write_op
+    @write_op(replay=True)
     async def save_workspace_form(
         self,
         workspace_id: PydanticObjectId,
@@ -104,34 +104,51 @@ class WorkspaceFormRepository:
         workspace_id: PydanticObjectId,
         is_not_admin: bool = False,
         user: User = None,
-        match_query: Dict[str, Any] = None,
+        form_id: Optional[str] = None,
+        form_id_or_slug: Optional[str] = None,
         pinned_only: bool = False,
         id_only: bool = False,
         filter_closed=False,
     ) -> List[Dict[str, Any]]:
+        """Workspace-form rows a caller may see, as raw documents (``form_id``
+        only with ``id_only``). ``form_id`` narrows to one form; ``form_id_or_slug``
+        also accepts the form's custom URL. Anonymous visitors see public,
+        unhidden forms; a signed-in non-member additionally sees private forms
+        whose responder groups admit them (membership or the group's regex)."""
         try:
             query = {"workspace_id": workspace_id}
+            if form_id is not None:
+                query["form_id"] = form_id
+            if form_id_or_slug is not None:
+                query["$or"] = [
+                    {"form_id": form_id_or_slug},
+                    {"settings.custom_url": form_id_or_slug},
+                ]
             if pinned_only:
                 query["settings.pinned"] = True
 
             if not is_not_admin and user:
-                query["$or"] = [
+                visible = [
                     {"settings.hidden": False},
                     {"settings.hidden": {"$exists": False}},
                     {"user_id": user.id},
                 ]
+                if "$or" in query:
+                    query["$and"] = [{"$or": query.pop("$or")}, {"$or": visible}]
+                else:
+                    query["$or"] = visible
             if is_not_admin and not user:
-                query["$and"] = [
-                    {
-                        "$or": [
-                            {"settings.hidden": False},
-                            {"settings.hidden": {"$exists": False}},
-                        ]
-                    },
-                    {"settings.private": False},
-                ]
-            if match_query:
-                query.update(match_query)
+                query.setdefault("$and", []).extend(
+                    [
+                        {
+                            "$or": [
+                                {"settings.hidden": False},
+                                {"settings.hidden": {"$exists": False}},
+                            ]
+                        },
+                        {"settings.private": False},
+                    ]
+                )
             aggregation_pipeline = []
 
             if filter_closed:
@@ -220,12 +237,23 @@ class WorkspaceFormRepository:
                 )
             if id_only:
                 aggregation_pipeline.extend([{"$project": {"form_id": 1, "_id": 0}}])
+            else:
+                aggregation_pipeline.append(
+                    {"$unset": ["groups_form", "emails", "groups", "regex"]}
+                )
             workspace_forms = (
                 await WorkspaceFormDocument.find(query)
                 .aggregate(aggregation_pipeline)
                 .to_list()
             )
-            return workspace_forms
+            # the $unwind over group regexes yields one row per matching group
+            seen, unique = set(), []
+            for workspace_form in workspace_forms:
+                key = workspace_form.get("_id", workspace_form.get("form_id"))
+                if key not in seen:
+                    seen.add(key)
+                    unique.append(workspace_form)
+            return unique
         except (InvalidURI, NetworkTimeout, OperationFailure, InvalidOperation):
             raise HTTPException(
                 status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
@@ -238,14 +266,16 @@ class WorkspaceFormRepository:
         is_not_admin: bool = False,
         user: User = None,
         pinned_only: bool = False,
-        match_query: Dict[str, Any] = None,
+        form_id: Optional[str] = None,
+        form_id_or_slug: Optional[str] = None,
         filter_closed: bool = False,
     ):
         workspace_forms = await self.get_workspace_forms_in_workspace(
             workspace_id=workspace_id,
             is_not_admin=is_not_admin,
             user=user,
-            match_query=match_query,
+            form_id=form_id,
+            form_id_or_slug=form_id_or_slug,
             pinned_only=pinned_only,
             id_only=True,
             filter_closed=filter_closed,
@@ -325,8 +355,8 @@ class WorkspaceFormRepository:
     async def check_if_form_exists_in_workspace(
         self, workspace_id: PydanticObjectId, form_id: str
     ):
+        # `and` between two Beanie expressions evaluated to the second only
         workspace_form = await WorkspaceFormDocument.find_one(
-            WorkspaceFormDocument.workspace_id == workspace_id
-            and WorkspaceFormDocument.form_id == form_id
+            {"workspace_id": workspace_id, "form_id": form_id}
         )
         return True if workspace_form is not None else False

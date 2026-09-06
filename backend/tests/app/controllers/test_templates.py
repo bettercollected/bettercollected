@@ -5,6 +5,7 @@ from httpx import AsyncClient
 from beanie import PydanticObjectId
 from common.constants import MESSAGE_FORBIDDEN, MESSAGE_NOT_FOUND
 
+from backend.app.container import container
 from backend.app.schemas.template import FormTemplateDocument
 from backend.app.schemas.workspace import WorkspaceDocument
 from backend.app.schemas.workspace_form import WorkspaceFormDocument
@@ -24,32 +25,28 @@ private_template = {"title": "private_template", "settings": {"is_public": "fals
 async def predefined_workspace_template():
     template = FormTemplateDocument(**public_template)
     template.workspace_id = settings.default_workspace_settings.WORKSPACE_ID
-    await template.save()
-    return template
+    return await container.form_template_repo().save(template)
 
 
 @pytest.fixture()
 async def workspace_template(workspace: WorkspaceDocument):
     template = FormTemplateDocument(**public_template)
     template.workspace_id = workspace.id
-    template = await template.save()
-    return template
+    return await container.form_template_repo().save(template)
 
 
 @pytest.fixture()
 async def workspace_1_public_template(workspace_1: WorkspaceDocument):
     template = FormTemplateDocument(**public_template)
     template.workspace_id = workspace_1.id
-    template = await template.save()
-    return template
+    return await container.form_template_repo().save(template)
 
 
 @pytest.fixture()
 async def workspace_1_private_template(workspace_1: WorkspaceDocument):
     template = FormTemplateDocument(**private_template)
     template.workspace_id = workspace_1.id
-    template = await template.save()
-    return template
+    return await container.form_template_repo().save(template)
 
 
 class TestFormTemplates:
@@ -66,13 +63,12 @@ class TestFormTemplates:
 
         template = await client.post(create_template_url, cookies=test_user_cookies)
 
-        expected_template_id = (
-            ((await FormTemplateDocument.find().to_list())[0]).model_dump().get("id")
-        )
-
         assert template.status_code == 200
         actual_template_id = template.json().get("id")
-        assert actual_template_id == str(expected_template_id)
+        saved = await container.form_template_repo().get_template_by_id(
+            PydanticObjectId(actual_template_id)
+        )
+        assert saved is not None and saved.workspace_id == workspace.id
 
     async def test_unauthorized_user_create_template_from_form_fails(
         self,
@@ -103,11 +99,10 @@ class TestFormTemplates:
 
         imported_template = await client.post(import_url, cookies=test_user_cookies)
 
-        expected_template_id = str(
-            (await FormTemplateDocument.find({"workspace_id": workspace.id}).to_list())[
-                0
-            ].id
+        templates = await container.form_template_repo().get_templates_with_creator(
+            workspace_id=workspace.id
         )
+        expected_template_id = str(templates[0]["id"])
         actual_template_id = imported_template.json().get("id")
         assert actual_template_id == expected_template_id
 
@@ -157,9 +152,11 @@ class TestFormTemplates:
             data={"template_body": json.dumps(template)},
         )
 
-        expected_response = await FormTemplateDocument.find(
-            {"workspace_id": workspace.id}
-        ).to_list()
+        expected_response = (
+            await container.form_template_repo().get_templates_with_creator(
+                workspace_id=workspace.id
+            )
+        )
         assert expected_response is not None
 
     async def test_unauthorized_user_create_new_template(

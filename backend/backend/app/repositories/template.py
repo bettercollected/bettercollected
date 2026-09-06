@@ -58,6 +58,7 @@ class FormTemplateRepository:
                 }
             },
             {"$set": {"imported_from": "$workspace.title"}},
+            {"$unset": "workspace"},
             {"$sort": {"created_at": -1}},
         ]
         return await FormTemplateDocument.find(query).aggregate(pipeline).to_list()
@@ -84,7 +85,7 @@ class FormTemplateRepository:
 
         raise HTTPException(HTTPStatus.NOT_FOUND, content=MESSAGE_NOT_FOUND)
 
-    @write_op
+    @write_op(replay=True)
     async def import_template_to_workspace(
         self, workspace_id: PydanticObjectId, template_id: PydanticObjectId
     ):
@@ -97,7 +98,7 @@ class FormTemplateRepository:
         imported_template = await imported_template.save()
         return imported_template
 
-    @write_op
+    @write_op(replay=True)
     async def create_new_template(
         self,
         workspace_id: PydanticObjectId,

@@ -88,7 +88,7 @@ async def _make_v2(form_doc: FormDocument) -> str:
             ),
         )
     ]
-    await form_doc.save()
+    await container.form_repo().save_form(form_doc)
     return "page-1"
 
 
@@ -119,7 +119,9 @@ class TestMCPServer:
         assert [f["formId"] for f in forms] == [workspace_form.form_id]
 
         form = _tool_text(
-            await _call_tool(client, token, "get_form", {"form_id": workspace_form.form_id})
+            await _call_tool(
+                client, token, "get_form", {"form_id": workspace_form.form_id}
+            )
         )
         assert form["formId"] == workspace_form.form_id
         assert "fields" in form
@@ -130,7 +132,9 @@ class TestMCPServer:
         workspace: Coroutine[Any, Any, WorkspaceDocument],
         workspace_form: Coroutine[Any, Any, FormDocument],
     ):
-        form_doc = await FormDocument.find_one({"form_id": workspace_form.form_id})
+        form_doc = await container.form_repo().get_form_document_by_id(
+            workspace_form.form_id
+        )
         page_id = await _make_v2(form_doc)
         token = await _make_key(workspace.id, ["forms:read", "forms:write"])
 
@@ -154,11 +158,10 @@ class TestMCPServer:
         assert all(r["ok"] for r in result["results"]), result
 
         # The edit is persisted through the same write path as builder chat.
-        refreshed = await FormDocument.find_one({"form_id": workspace_form.form_id})
-        titles = [
-            f.title
-            for f in (refreshed.fields[0].properties.fields or [])
-        ]
+        refreshed = await container.form_repo().get_form_document_by_id(
+            workspace_form.form_id
+        )
+        titles = [f.title for f in (refreshed.fields[0].properties.fields or [])]
         assert "Work email" in titles
 
         # Every tool call is audited against the key.
@@ -174,24 +177,46 @@ class TestMCPServer:
     ):
         token = await _make_key(workspace.id, ["forms:read", "forms:write"])
         created = _tool_text(
-            await _call_tool(client, token, "create_form", {"title": "Import target", "description": "Built by ops"})
+            await _call_tool(
+                client,
+                token,
+                "create_form",
+                {"title": "Import target", "description": "Built by ops"},
+            )
         )
         assert created["title"] == "Import target" and created["published"] is False
 
         # The blank form has exactly one empty page, ready for precise ops.
-        form = _tool_text(await _call_tool(client, token, "get_form", {"form_id": created["formId"]}))
+        form = _tool_text(
+            await _call_tool(client, token, "get_form", {"form_id": created["formId"]})
+        )
         assert len(form["fields"]) == 1
         page_id = form["fields"][0]["id"]
-        assert (form["fields"][0].get("properties", {}) or {}).get("fields", []) in ([], None)
+        assert (form["fields"][0].get("properties", {}) or {}).get("fields", []) in (
+            [],
+            None,
+        )
 
         result = _tool_text(
             await _call_tool(
-                client, token, "update_form",
-                {"form_id": created["formId"],
-                 "ops": [
-                     {"op": "add_field", "pageId": page_id, "field": {"title": "Branch", "type": "short_text"}},
-                     {"op": "add_field", "pageId": page_id, "field": {"title": "Rented house?", "type": "yes_no"}},
-                 ]},
+                client,
+                token,
+                "update_form",
+                {
+                    "form_id": created["formId"],
+                    "ops": [
+                        {
+                            "op": "add_field",
+                            "pageId": page_id,
+                            "field": {"title": "Branch", "type": "short_text"},
+                        },
+                        {
+                            "op": "add_field",
+                            "pageId": page_id,
+                            "field": {"title": "Rented house?", "type": "yes_no"},
+                        },
+                    ],
+                },
             )
         )
         assert all(r["ok"] for r in result["results"])
@@ -202,39 +227,83 @@ class TestMCPServer:
         workspace: Coroutine[Any, Any, WorkspaceDocument],
         workspace_form: Coroutine[Any, Any, FormDocument],
     ):
-        form_doc = await FormDocument.find_one({"form_id": workspace_form.form_id})
+        form_doc = await container.form_repo().get_form_document_by_id(
+            workspace_form.form_id
+        )
         page_id = await _make_v2(form_doc)
         token = await _make_key(workspace.id, ["forms:read", "forms:write"])
 
         result = _tool_text(
             await _call_tool(
-                client, token, "update_form",
-                {"form_id": workspace_form.form_id,
-                 "ops": [
-                     {"op": "add_field", "pageId": page_id, "field": {"title": "Rented?", "type": "yes_no"}},
-                     {"op": "add_field", "pageId": page_id, "field": {"title": "Landlord name", "type": "short_text"}},
-                 ]},
+                client,
+                token,
+                "update_form",
+                {
+                    "form_id": workspace_form.form_id,
+                    "ops": [
+                        {
+                            "op": "add_field",
+                            "pageId": page_id,
+                            "field": {"title": "Rented?", "type": "yes_no"},
+                        },
+                        {
+                            "op": "add_field",
+                            "pageId": page_id,
+                            "field": {"title": "Landlord name", "type": "short_text"},
+                        },
+                    ],
+                },
             )
         )
         assert all(r["ok"] for r in result["results"])
-        form = _tool_text(await _call_tool(client, token, "get_form", {"form_id": workspace_form.form_id}))
+        form = _tool_text(
+            await _call_tool(
+                client, token, "get_form", {"form_id": workspace_form.form_id}
+            )
+        )
         fields = form["fields"][0]["properties"]["fields"]
         rented = next(f for f in fields if f["title"] == "Rented?")
         landlord = next(f for f in fields if f["title"] == "Landlord name")
 
         result = _tool_text(
             await _call_tool(
-                client, token, "update_form",
-                {"form_id": workspace_form.form_id,
-                 "ops": [{"op": "set_field_logic", "fieldId": landlord["id"],
-                          "logic": {"action": "SHOW", "conditions": [{"fieldId": rented["id"], "comparison": "IS_EQUAL", "value": "Yes"}]}}]},
+                client,
+                token,
+                "update_form",
+                {
+                    "form_id": workspace_form.form_id,
+                    "ops": [
+                        {
+                            "op": "set_field_logic",
+                            "fieldId": landlord["id"],
+                            "logic": {
+                                "action": "SHOW",
+                                "conditions": [
+                                    {
+                                        "fieldId": rented["id"],
+                                        "comparison": "IS_EQUAL",
+                                        "value": "Yes",
+                                    }
+                                ],
+                            },
+                        }
+                    ],
+                },
             )
         )
         assert result["results"][0]["ok"], result
 
         # Persisted and visible in the snapshot external clients read.
-        form = _tool_text(await _call_tool(client, token, "get_form", {"form_id": workspace_form.form_id}))
-        landlord_after = next(f for f in form["fields"][0]["properties"]["fields"] if f["title"] == "Landlord name")
+        form = _tool_text(
+            await _call_tool(
+                client, token, "get_form", {"form_id": workspace_form.form_id}
+            )
+        )
+        landlord_after = next(
+            f
+            for f in form["fields"][0]["properties"]["fields"]
+            if f["title"] == "Landlord name"
+        )
         assert landlord_after["properties"]["logic"]["action"] == "SHOW"
 
     async def test_scope_is_enforced_per_tool(

@@ -41,15 +41,26 @@ class PostgresRepositoryBase:
         # Mongo's natural order is insertion order; created_at then id reproduces it.
         return (self.row.created_at, self.row.id)
 
-    async def one(self, *where: Any) -> Optional[Any]:
-        return await self.one_of(self.row, self.document, *where)
+    async def one(
+        self, *where: Any, order_by: Optional[Sequence[Any]] = None
+    ) -> Optional[Any]:
+        return await self.one_of(self.row, self.document, *where, order_by=order_by)
 
-    async def one_of(self, row: Type[Any], document: Type[Any], *where: Any):
+    async def one_of(
+        self,
+        row: Type[Any],
+        document: Type[Any],
+        *where: Any,
+        order_by: Optional[Sequence[Any]] = None,
+    ):
         """``one`` against another table of the same group — for the places the
         Mongo original reads a second collection inside one method."""
         async with self._session() as session:
             stmt = (
-                select(row.doc).where(*where).order_by(row.created_at, row.id).limit(1)
+                select(row.doc)
+                .where(*where)
+                .order_by(*(order_by or (row.created_at, row.id)))
+                .limit(1)
             )
             doc = (await session.execute(stmt)).scalar_one_or_none()
         return None if doc is None else from_row_doc(document, doc)
@@ -65,17 +76,22 @@ class PostgresRepositoryBase:
         *where: Any,
         order_by: Optional[Sequence[Any]] = None,
         limit: Optional[int] = None,
+        row: Optional[Type[Any]] = None,
+        document: Optional[Type[Any]] = None,
     ) -> List[Any]:
+        """``row``/``document`` select another table of the group, for
+        repositories spanning two collections."""
+        row, document = row or self.row, document or self.document
         async with self._session() as session:
             stmt = (
-                select(self.row.doc)
+                select(row.doc)
                 .where(*where)
-                .order_by(*(order_by or self._order()))
+                .order_by(*(order_by or (row.created_at, row.id)))
             )
             if limit is not None:
                 stmt = stmt.limit(limit)
             docs = (await session.execute(stmt)).scalars().all()
-        return [from_row_doc(self.document, d) for d in docs]
+        return [from_row_doc(document, d) for d in docs]
 
     async def count(self, *where: Any) -> int:
         async with self._session() as session:
@@ -86,9 +102,9 @@ class PostgresRepositoryBase:
             ).scalar_one()
 
     # -- writes ----------------------------------------------------------------
-    def _column_names(self) -> dict[str, str]:
+    def _column_names(self, row: Optional[Type[Any]] = None) -> dict[str, str]:
         """attribute -> column name (``bc_source`` is stored as ``_bc_source``)."""
-        mapper = sa_inspect(self.row).mapper
+        mapper = sa_inspect(row or self.row).mapper
         return {
             attr: mapper.attrs[attr].columns[0].name
             for attr in (
@@ -101,9 +117,12 @@ class PostgresRepositoryBase:
             )
         }
 
-    def _upsert_statement(self, values: dict[str, Any]):
-        names = self._column_names()
-        stmt = pg_insert(self.row).values({names[k]: v for k, v in values.items()})
+    def _upsert_statement(
+        self, values: dict[str, Any], row: Optional[Type[Any]] = None
+    ):
+        row = row or self.row
+        names = self._column_names(row)
+        stmt = pg_insert(row).values({names[k]: v for k, v in values.items()})
         excluded = stmt.excluded
         return stmt.on_conflict_do_update(
             index_elements=[names["id"]],
@@ -115,16 +134,20 @@ class PostgresRepositoryBase:
             },
         )
 
-    async def upsert(self, document: Any) -> Any:
+    async def upsert(self, document: Any, row: Optional[Type[Any]] = None) -> Any:
+        """Store ``document`` (minting an id if it has none); ``row`` selects
+        another table of the group."""
         values = row_values(document)
         async with self._session() as session, session.begin():
-            await session.execute(self._upsert_statement(values))
+            await session.execute(self._upsert_statement(values, row))
         return document
 
-    async def upsert_many(self, documents: Iterable[Any]) -> None:
+    async def upsert_many(
+        self, documents: Iterable[Any], row: Optional[Type[Any]] = None
+    ) -> None:
         async with self._session() as session, session.begin():
             for document in documents:
-                await session.execute(self._upsert_statement(row_values(document)))
+                await session.execute(self._upsert_statement(row_values(document), row))
 
     async def replay_write(self, documents: Iterable[Any]) -> None:
         """Store what the primary persisted (``@write_op(replay=True)``)."""
@@ -137,9 +160,9 @@ class PostgresRepositoryBase:
                 )
         await self.upsert_many(documents)
 
-    async def delete_where(self, *where: Any) -> int:
+    async def delete_where(self, *where: Any, row: Optional[Type[Any]] = None) -> int:
         async with self._session() as session, session.begin():
-            result = await session.execute(delete(self.row).where(*where))
+            result = await session.execute(delete(row or self.row).where(*where))
         return result.rowcount or 0
 
     async def delete_one_where(self, *where: Any) -> int:

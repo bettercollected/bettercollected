@@ -11,7 +11,7 @@ class WorkspaceConsentRepo:
             {"workspace_id": workspace_id}
         ).to_list()
 
-    @write_op
+    @write_op(replay=True)
     async def create_workspace_consent(
         self, workspace_id: PydanticObjectId, consent: ConsentCamelModel
     ):

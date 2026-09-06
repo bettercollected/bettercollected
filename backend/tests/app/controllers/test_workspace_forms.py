@@ -49,8 +49,8 @@ def get_workspace_group_url(
     return f"{workspace_form_common_url}/{workspace_form.form_id}/groups/add"
 
 
-async def create_form_request_body():
-    form = (await FormDocument.find().to_list())[0]
+async def create_form_request_body(form_id: str):
+    form = await container.form_repo().get_form_document_by_id(form_id)
     form_dict = {**form.model_dump(), "formId": form.model_dump().get("form_id")}
     unwanted_keys = ["id", "updated_at", "created_at", "fields"]
     for key in unwanted_keys:
@@ -95,9 +95,11 @@ class TestWorkspaceForm:
         assert wf.settings.custom_url == str(blank_form.form_id)
 
         # ...until it's titled and published, when it gets a title-based slug.
-        form_doc = await FormDocument.find_one({"form_id": blank_form.form_id})
+        form_doc = await container.form_repo().get_form_document_by_id(
+            blank_form.form_id
+        )
         form_doc.title = "Customer Feedback"
-        await form_doc.save()
+        await container.form_repo().save_form(form_doc)
 
         publish_url = (
             f"/api/v1/workspaces/{workspace.id}/forms/{blank_form.form_id}/publish"
@@ -174,7 +176,9 @@ class TestWorkspaceForm:
         mock_aiohttp_get_request,
     ):
         with mock_aiohttp_get_request:
-            forms = await client.get(workspace_form_common_url, cookies=test_user_cookies)
+            forms = await client.get(
+                workspace_form_common_url, cookies=test_user_cookies
+            )
 
             expected_form_id = workspace_form.form_id
             actual_form_id = forms.json()["items"][0]["formId"]
@@ -248,7 +252,9 @@ class TestWorkspaceForm:
 
         expected_response_message = "Form deleted from workspace."
         actual_response_message = delete_form.json()
-        actual_form = await WorkspaceFormDocument.find_one({"id": workspace.id})
+        actual_form = await container.workspace_form_repo().find_workspace_form(
+            workspace.id, published_form.form_id
+        )
         expected_form = None
         assert delete_form.status_code == 200
         assert actual_response_message == expected_response_message
@@ -395,7 +401,9 @@ class TestWorkspaceForm:
             f"{workspace_form_url}/response/{workspace_form_response['response_id']}"
         )
 
-        delete_response = await client.delete(delete_response_url, cookies=test_user_cookies)
+        delete_response = await client.delete(
+            delete_response_url, cookies=test_user_cookies
+        )
 
         expected_deleted_response_id = workspace_form_response["response_id"]
         actual_deleted_response_id = delete_response.json()
@@ -414,7 +422,9 @@ class TestWorkspaceForm:
             f"{workspace_form_url}/response/{workspace_form_response['response_id']}"
         )
 
-        delete_response = await client.delete(delete_response_url, cookies=test_user_cookies)
+        delete_response = await client.delete(
+            delete_response_url, cookies=test_user_cookies
+        )
 
         actual_form_response_deletion_request = (
             await FormResponseDeletionRequest.find_one(
@@ -637,7 +647,7 @@ class TestWorkspaceForm:
         mock_aiohttp_post_request,
     ):
         with mock_aiohttp_post_request:
-            form_body = await create_form_request_body()
+            form_body = await create_form_request_body(workspace_form.form_id)
             import_form_url = f"{workspace_form_common_url}/import/google"
 
             import_form = await client.post(
@@ -677,7 +687,7 @@ class TestWorkspaceForm:
         mock_aiohttp_post_request,
     ):
         with mock_aiohttp_post_request:
-            form_body = await create_form_request_body()
+            form_body = await create_form_request_body(workspace_form_1.form_id)
             import_form_url = f"{workspace_form_common_url}/import/google"
 
             import_form = await client.post(
@@ -696,11 +706,13 @@ class TestWorkspaceForm:
         test_pro_user_cookies: dict[str, str],
         mock_aiohttp_post_request_for_pro,
     ):
+        first_form = None
         for i in range(101):
-            await container.workspace_form_service().create_form(
+            created = await container.workspace_form_service().create_form(
                 workspace_pro.id, StandardForm(**formData), proUser
             )
-        form_body = await create_form_request_body()
+            first_form = first_form or created
+        form_body = await create_form_request_body(first_form.form_id)
         import_form_url = f"/api/v1/workspaces/{workspace_pro.id}/forms/import/google"
 
         with mock_aiohttp_post_request_for_pro:
@@ -727,7 +739,7 @@ class TestWorkspaceForm:
             await container.workspace_form_service().create_form(
                 workspace.id, StandardForm(**formData), testUser
             )
-        form_body = await create_form_request_body()
+        form_body = await create_form_request_body(published_form.form_id)
         import_form_url = f"{workspace_form_common_url}/import/google"
 
         with mock_aiohttp_post_request:

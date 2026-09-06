@@ -18,7 +18,15 @@ from common.db import DatabaseSettings, load_flags
 from common.db.routing import RoutingRepository
 
 from backend.db.outbox import OutboxRecorder
+from backend.db.groups import READ_DEPENDENCIES
 from backend.db.session import build_engine, build_sessionmaker, postgres_repository
+from backend.app.repositories.postgres.forms import (
+    PostgresFormRepository,
+    PostgresFormTemplateRepository,
+    PostgresMediaLibraryRepository,
+    PostgresWorkspaceConsentRepo,
+    PostgresWorkspaceFormRepository,
+)
 from backend.app.repositories.postgres.identity import (
     PostgresBlacklistedRefreshTokenRepository,
     PostgresUserTagsRepository,
@@ -120,7 +128,7 @@ class AppContainer(containers.DeclarativeContainer):
     database_client: AsyncMongoClient = providers.Object(None)
     # Mongo/Postgres switching (plans/postgres-consolidation.md D5): read once at boot,
     # validated; a bad combination refuses to start.
-    flags = providers.Singleton(load_flags)
+    flags = providers.Singleton(load_flags, read_dependencies=READ_DEPENDENCIES)
     # Postgres: engine and sessions exist only when DATABASE_URL is set; the
     # routing layer treats the store as absent otherwise. Mirror-write failures
     # land in the primary store's outbox (backend/db/outbox.py).
@@ -217,14 +225,6 @@ class AppContainer(containers.DeclarativeContainer):
         )
     )
 
-    form_repo: FormRepository = providers.Singleton(
-        RoutingRepository,
-        group="forms",
-        flags=flags,
-        on_mirror_failure=outbox_recorder,
-        mirror_timeout_s=mirror_timeout_s,
-        mongo=providers.Singleton(FormRepository),
-    )
     form_response_repo: FormResponseRepository = providers.Singleton(
         RoutingRepository,
         group="responses",
@@ -284,14 +284,6 @@ class AppContainer(containers.DeclarativeContainer):
         mirror_timeout_s=mirror_timeout_s,
         mongo=providers.Singleton(AIPreferenceMemoryRepository),
     )
-    workspace_form_repo: WorkspaceFormRepository = providers.Singleton(
-        RoutingRepository,
-        group="forms",
-        flags=flags,
-        on_mirror_failure=outbox_recorder,
-        mirror_timeout_s=mirror_timeout_s,
-        mongo=providers.Singleton(WorkspaceFormRepository),
-    )
 
     form_provider_repo: FormPluginProviderRepository = providers.Singleton(
         RoutingRepository,
@@ -313,7 +305,29 @@ class AppContainer(containers.DeclarativeContainer):
         mirror_timeout_s=mirror_timeout_s,
         mongo=providers.Singleton(ResponderGroupsRepository),
     )
-
+    # after responder_groups_repository / form_response_repo: the forms twins compose over them
+    form_repo: FormRepository = providers.Singleton(
+        RoutingRepository,
+        group="forms",
+        flags=flags,
+        on_mirror_failure=outbox_recorder,
+        mirror_timeout_s=mirror_timeout_s,
+        mongo=providers.Singleton(FormRepository),
+        postgres=providers.Singleton(
+            postgres_repository, PostgresFormRepository, pg_sessionmaker, responder_groups_repository, form_response_repo
+        ),
+    )
+    workspace_form_repo: WorkspaceFormRepository = providers.Singleton(
+        RoutingRepository,
+        group="forms",
+        flags=flags,
+        on_mirror_failure=outbox_recorder,
+        mirror_timeout_s=mirror_timeout_s,
+        mongo=providers.Singleton(WorkspaceFormRepository),
+        postgres=providers.Singleton(
+            postgres_repository, PostgresWorkspaceFormRepository, pg_sessionmaker, responder_groups_repository
+        ),
+    )
 
     integration_action_service: IntegrationActionService = providers.Singleton(
         IntegrationActionService, form_repo=form_repo
@@ -583,6 +597,9 @@ class AppContainer(containers.DeclarativeContainer):
         on_mirror_failure=outbox_recorder,
         mirror_timeout_s=mirror_timeout_s,
         mongo=providers.Singleton(WorkspaceConsentRepo),
+        postgres=providers.Singleton(
+            postgres_repository, PostgresWorkspaceConsentRepo, pg_sessionmaker
+        ),
     )
 
     workspace_consent_service = providers.Singleton(
@@ -598,6 +615,9 @@ class AppContainer(containers.DeclarativeContainer):
         on_mirror_failure=outbox_recorder,
         mirror_timeout_s=mirror_timeout_s,
         mongo=providers.Singleton(FormTemplateRepository),
+        postgres=providers.Singleton(
+            postgres_repository, PostgresFormTemplateRepository, pg_sessionmaker, workspace_repo
+        ),
     )
 
     form_template_service = providers.Singleton(
@@ -645,6 +665,9 @@ class AppContainer(containers.DeclarativeContainer):
         on_mirror_failure=outbox_recorder,
         mirror_timeout_s=mirror_timeout_s,
         mongo=providers.Singleton(MediaLibraryRepository),
+        postgres=providers.Singleton(
+            postgres_repository, PostgresMediaLibraryRepository, pg_sessionmaker
+        ),
     )
 
     media_library_service = providers.Singleton(

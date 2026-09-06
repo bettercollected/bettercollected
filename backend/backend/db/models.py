@@ -138,10 +138,14 @@ class WorkspaceFormRow(Base, BaseRow):
 class MediaLibraryRow(Base, BaseRow):
     __tablename__ = "media_libraries"
     workspace_id = S.text("workspace_id")
+    media_id = S.text("media_id")
     media_name = S.text("media_name")
     media_type = S.text("media_type")
     s3_key = S.text("s3_key")
-    __table_args__ = (Index(None, "workspace_id"),)
+    __table_args__ = (
+        Index(None, "workspace_id"),
+        Index("ix_media_libraries_workspace_media", "workspace_id", "media_id"),
+    )
 
 
 class WorkspaceConsentRow(Base, BaseRow):

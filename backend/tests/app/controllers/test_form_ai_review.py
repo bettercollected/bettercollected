@@ -54,7 +54,7 @@ async def _make_v2(form_doc: FormDocument) -> str:
             ),
         )
     ]
-    await form_doc.save()
+    await container.form_repo().save_form(form_doc)
     return "page-1"
 
 
@@ -80,7 +80,11 @@ REVIEW_REPLY = {
                     {
                         "op": "add_field",
                         "pageId": "page-1",
-                        "field": {"title": "Which age range are you in?", "type": "dropdown", "choices": ["18-24", "25-34", "35+"]},
+                        "field": {
+                            "title": "Which age range are you in?",
+                            "type": "dropdown",
+                            "choices": ["18-24", "25-34", "35+"],
+                        },
                     },
                 ],
             },
@@ -98,7 +102,9 @@ class TestFormAIReview:
         test_user_cookies: dict[str, str],
         fake_review_provider: FakeProvider,
     ):
-        form_doc = await FormDocument.find_one({"form_id": workspace_form.form_id})
+        form_doc = await container.form_repo().get_form_document_by_id(
+            workspace_form.form_id
+        )
         await _make_v2(form_doc)
         fake_review_provider.replies = [json.dumps(REVIEW_REPLY)]
 
@@ -113,7 +119,10 @@ class TestFormAIReview:
         # Sorted most severe first regardless of model order.
         assert [f["severity"] for f in body["findings"]] == ["high", "info"]
         assert body["findings"][0]["fieldId"] == "field-age"
-        assert [o["op"] for o in body["findings"][0]["fix"]["ops"]] == ["remove_field", "add_field"]
+        assert [o["op"] for o in body["findings"][0]["fix"]["ops"]] == [
+            "remove_field",
+            "add_field",
+        ]
         assert body["findings"][1]["fix"] is None
 
         # The review prompt is grounded in the form snapshot + baseline checks.
@@ -122,8 +131,12 @@ class TestFormAIReview:
         assert "Baseline privacy checks" in system
 
         # Review is read-only: the draft must be untouched.
-        refreshed = await FormDocument.find_one({"form_id": workspace_form.form_id})
-        assert refreshed.fields[0].properties.fields[0].title == "What is your exact age?"
+        refreshed = await container.form_repo().get_form_document_by_id(
+            workspace_form.form_id
+        )
+        assert (
+            refreshed.fields[0].properties.fields[0].title == "What is your exact age?"
+        )
 
     async def test_apply_fix_persists_through_the_one_write_path(
         self,
@@ -132,13 +145,16 @@ class TestFormAIReview:
         workspace_form: Coroutine[Any, Any, FormDocument],
         test_user_cookies: dict[str, str],
     ):
-        form_doc = await FormDocument.find_one({"form_id": workspace_form.form_id})
+        form_doc = await container.form_repo().get_form_document_by_id(
+            workspace_form.form_id
+        )
         await _make_v2(form_doc)
 
         response = await client.post(
             f"/api/v1/workspaces/{workspace.id}/forms/{workspace_form.form_id}/ai/review/apply",
             cookies=test_user_cookies,
-            json=REVIEW_REPLY["findings"][1]["fix"] | {"ops": REVIEW_REPLY["findings"][1]["fix"]["ops"]},
+            json=REVIEW_REPLY["findings"][1]["fix"]
+            | {"ops": REVIEW_REPLY["findings"][1]["fix"]["ops"]},
         )
         assert response.status_code == 200, response.text
         body = response.json()
@@ -146,13 +162,21 @@ class TestFormAIReview:
         # Response form is camelised for the webapp stores.
         assert "welcomePage" in body["form"] or "fields" in body["form"]
 
-        refreshed = await FormDocument.find_one({"form_id": workspace_form.form_id})
+        refreshed = await container.form_repo().get_form_document_by_id(
+            workspace_form.form_id
+        )
         fields = refreshed.fields[0].properties.fields
         titles = [f.title for f in fields]
         assert "What is your exact age?" not in titles
-        replacement = next(f for f in fields if f.title == "Which age range are you in?")
+        replacement = next(
+            f for f in fields if f.title == "Which age range are you in?"
+        )
         assert str(getattr(replacement.type, "value", replacement.type)) == "dropdown"
-        assert [c.value for c in replacement.properties.choices] == ["18-24", "25-34", "35+"]
+        assert [c.value for c in replacement.properties.choices] == [
+            "18-24",
+            "25-34",
+            "35+",
+        ]
 
     async def test_apply_fix_fails_gracefully_on_stale_field(
         self,
@@ -161,7 +185,9 @@ class TestFormAIReview:
         workspace_form: Coroutine[Any, Any, FormDocument],
         test_user_cookies: dict[str, str],
     ):
-        form_doc = await FormDocument.find_one({"form_id": workspace_form.form_id})
+        form_doc = await container.form_repo().get_form_document_by_id(
+            workspace_form.form_id
+        )
         await _make_v2(form_doc)
 
         # The finding's target no longer exists (form edited since review).
@@ -197,7 +223,9 @@ class TestFormAIReview:
         test_user_cookies: dict[str, str],
         fake_review_provider: FakeProvider,
     ):
-        form_doc = await FormDocument.find_one({"form_id": workspace_form.form_id})
+        form_doc = await container.form_repo().get_form_document_by_id(
+            workspace_form.form_id
+        )
         await _make_v2(form_doc)
         fake_review_provider.replies = ["I looked at the form and it seems fine to me!"]
 
@@ -216,7 +244,9 @@ class TestFormAIReview:
         test_user_cookies: dict[str, str],
         fake_review_provider: FakeProvider,
     ):
-        form_doc = await FormDocument.find_one({"form_id": workspace_form.form_id})
+        form_doc = await container.form_repo().get_form_document_by_id(
+            workspace_form.form_id
+        )
         await _make_v2(form_doc)
         fake_review_provider.replies = [
             json.dumps(
@@ -226,7 +256,10 @@ class TestFormAIReview:
                         {
                             "severity": "medium",
                             "message": "This matters even though the fix is broken.",
-                            "fix": {"description": "bad", "ops": [{"op": "not_a_real_op"}]},
+                            "fix": {
+                                "description": "bad",
+                                "ops": [{"op": "not_a_real_op"}],
+                            },
                         }
                     ],
                 }
