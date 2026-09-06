@@ -5,9 +5,14 @@ proxy over the Mongo implementation and, once it exists, the Postgres one.
 Method calls are dispatched by the flags for the repository's group:
 
 * **writes** (methods marked with :func:`write_op`) go to the primary store;
-  the same call is then replayed on the mirror store, bounded by a timeout
-  and never allowed to fail the request — a failure is counted, logged
-  (redacted) and handed to ``on_mirror_failure`` for the outbox;
+  the mirror store is then brought in line, bounded by a timeout and never
+  allowed to fail the request — a failure is counted, logged (redacted) and
+  handed to ``on_mirror_failure`` for the outbox. By default the mirror
+  re-executes the call with the same arguments, which is only correct when
+  the call is deterministic in them; a write that mints state the caller did
+  not pass in (a new document's id, an invitation token) must be marked
+  ``@write_op(replay=True)`` and return the persisted document(s) — the
+  mirror then stores *those*, so both stores hold the same document;
 * **reads** go to the read source; with ``DB_SHADOW_READ_SAMPLE`` > 0 a
   sample is also issued to the other store and the results compared.
 
@@ -32,16 +37,46 @@ from common.db.flags import DbFlags, ReadSource
 logger = logging.getLogger(__name__)
 
 WRITE_MARKER = "__bc_write__"
+REPLAY_MARKER = "__bc_replay__"
 
 
-def write_op(fn):
-    """Mark a repository method as a write. Unmarked methods are reads."""
-    setattr(fn, WRITE_MARKER, True)
-    return fn
+def write_op(fn=None, *, replay: bool = False):
+    """Mark a repository method as a write. Unmarked methods are reads.
+
+    ``replay=True`` declares that the method returns the document(s) it
+    persisted and that the mirror must store that result rather than re-run
+    the method (see the module docstring). Usable bare or with arguments.
+    """
+
+    def mark(f):
+        setattr(f, WRITE_MARKER, True)
+        setattr(f, REPLAY_MARKER, replay)
+        return f
+
+    return mark if fn is None else mark(fn)
 
 
 def is_write_op(fn) -> bool:
     return bool(getattr(fn, WRITE_MARKER, False))
+
+
+def is_replayed(fn) -> bool:
+    return bool(getattr(fn, REPLAY_MARKER, False))
+
+
+def persisted_documents(result: Any) -> list:
+    """The persisted document(s) in a replayed write's result: a document with
+    an id, or a list/tuple of them. Anything else yields ``[]`` and the mirror
+    falls back to re-executing the call."""
+
+    def is_doc(v: Any) -> bool:
+        return getattr(v, "id", None) is not None and callable(getattr(v, "save", None))
+
+    if is_doc(result):
+        return [result]
+    if isinstance(result, (list, tuple)) and result and all(is_doc(v) for v in result):
+        return list(result)
+    return []
 
 
 class RoutingError(RuntimeError):
@@ -57,6 +92,7 @@ class MirrorFailure:
     args: tuple
     kwargs: dict
     error: BaseException
+    documents: tuple = ()  # what a replayed write tried to store on the mirror
 
 
 @dataclass
@@ -156,7 +192,9 @@ class RoutingRepository:
         if not callable(attr):
             return attr
         if inspect.iscoroutinefunction(attr):
-            return self._write(name) if is_write_op(attr) else self._read(name)
+            if is_write_op(attr):
+                return self._write(name, replay=is_replayed(attr))
+            return self._read(name)
         return self._sync(name)
 
     def _impl(self, source: ReadSource, name: str):
@@ -185,23 +223,37 @@ class RoutingRepository:
 
         return method
 
-    def _write(self, name: str):
+    def _write(self, name: str, *, replay: bool):
         async def method(*args, **kwargs):
             self._metrics.calls[(self._group, name)] += 1
             primary = self._flags.primary_store(self._group)
             result = await self._impl(primary, name)(*args, **kwargs)
             mirror = self._flags.mirror_store(self._group)
             if mirror is not None and self._stores[mirror] is not None:
-                await self._mirror(name, mirror, args, kwargs)
+                documents = persisted_documents(result) if replay else []
+                await self._mirror(name, mirror, args, kwargs, documents)
             return result
 
         return method
 
-    async def _mirror(self, name: str, store: ReadSource, args, kwargs) -> None:
+    async def _replay(self, store: ReadSource, documents: list) -> None:
+        impl = self._stores[store]
+        hook = getattr(impl, "replay_write", None)
+        if hook is not None:
+            await hook(documents)
+            return
+        for document in documents:  # a Beanie repository: save() is an upsert by id
+            await document.save()
+
+    async def _mirror(
+        self, name: str, store: ReadSource, args, kwargs, documents: list = ()
+    ) -> None:
         try:
-            await asyncio.wait_for(
-                self._impl(store, name)(*args, **kwargs), timeout=self._mirror_timeout_s
-            )
+            if documents:
+                coro = self._replay(store, documents)
+            else:
+                coro = self._impl(store, name)(*args, **kwargs)
+            await asyncio.wait_for(coro, timeout=self._mirror_timeout_s)
         except (
             BaseException
         ) as exc:  # noqa: BLE001 — the mirror must never fail the request
@@ -227,6 +279,7 @@ class RoutingRepository:
                             args,
                             kwargs,
                             exc,
+                            tuple(documents),
                         )
                     )
                     if inspect.isawaitable(maybe):

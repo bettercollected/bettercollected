@@ -1,5 +1,7 @@
 from typing import List
 
+from beanie import PydanticObjectId
+
 from backend.app.models.types.coupon_code import CouponCode
 from backend.app.schemas.coupon_codes import CouponCodeDocument
 from common.db.routing import write_op
@@ -8,6 +10,11 @@ from common.db.routing import write_op
 class CouponRepository:
     @write_op
     async def create_coupons(self, coupons: List[CouponCodeDocument]):
+        # insert_many does not write ids back; fix them here so the mirror
+        # store (which re-executes this call) gets the same documents.
+        for coupon in coupons:
+            if coupon.id is None:
+                coupon.id = PydanticObjectId()
         await CouponCodeDocument.insert_many(coupons)
         return "Created"
 

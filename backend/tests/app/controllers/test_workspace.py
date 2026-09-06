@@ -3,6 +3,7 @@ from typing import Any, Coroutine
 from httpx import AsyncClient
 from common.constants import MESSAGE_FORBIDDEN
 
+from backend.app.container import container
 from backend.app.schemas.standard_form import FormDocument
 from backend.app.schemas.workspace import WorkspaceDocument
 from backend.config import settings
@@ -106,7 +107,7 @@ class TestWorkspaces:
         assert response.json().get("customThemes") == [{**theme, "background": None, "style": None}]
 
         # And it round-trips on the persisted document.
-        saved = await WorkspaceDocument.get(workspace.id)
+        saved = await container.workspace_repo().get_or_404(workspace.id)
         assert [t.title for t in saved.custom_themes] == ["Brand 2026"]
 
     async def test_patch_theme_presets_round_trips_background(

@@ -21,6 +21,7 @@ from backend.app.container import container
 from backend.app.exceptions import HTTPException, http_exception_handler
 from backend.app.handlers import init_logging
 from backend.app.handlers.database import close_db, init_db
+from backend.db.startup import check_postgres_at_startup, dispose_postgres
 from backend.app.mcp.server import build_mcp_asgi_app, mcp
 from backend.app.middlewares import DynamicCORSMiddleware, include_middlewares
 from backend.app.router import root_api_router
@@ -46,6 +47,7 @@ async def lifespan(app: FastAPI):
         client = AsyncMongoClient(settings.mongo_settings.URI)
         container.database_client.override(providers.Object(client))
     await init_db(settings.mongo_settings.DB, client)
+    await check_postgres_at_startup(container)
 
     # Auto-provision the Umami website (find-or-create by UMAMI_WEBSITE_NAME)
     # when UMAMI_WEBSITE_ID isn't already set — lets self-hosters skip creating
@@ -53,7 +55,10 @@ async def lifespan(app: FastAPI):
     # PASSWORD; never blocks startup on failure (Umami may not be up yet on a
     # fresh deploy — analytics endpoints just stay unavailable until it is and
     # the backend is restarted). See backend/AGENTS.md "Analytics (Umami)".
-    if settings.umami_settings.has_credentials and not settings.umami_settings.WEBSITE_ID:
+    if (
+        settings.umami_settings.has_credentials
+        and not settings.umami_settings.WEBSITE_ID
+    ):
         try:
             settings.umami_settings.WEBSITE_ID = await provision_umami_website()
             logger.info(
@@ -61,7 +66,9 @@ async def lifespan(app: FastAPI):
                 f"(name={settings.umami_settings.WEBSITE_NAME!r})"
             )
         except Exception:
-            logger.exception("Umami website auto-provisioning failed; continuing startup.")
+            logger.exception(
+                "Umami website auto-provisioning failed; continuing startup."
+            )
 
     # Auto-seed the flow-native template gallery (idempotent — skips templates
     # that already exist). Gated by DEFAULT_SEED_FLOW_TEMPLATES (default on) and
@@ -104,6 +111,7 @@ async def lifespan(app: FastAPI):
     mcp_stop.set()
     await mcp_task
     await close_db(client)
+    await dispose_postgres(container)
     await AiohttpClient.close_aiohttp_client()
     await container.http_client().aclose()
 

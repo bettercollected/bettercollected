@@ -14,7 +14,7 @@ class AllowedOriginsRepository:
     async def find_by_origin(self, origin: str) -> Optional[AllowedOriginsDocument]:
         return await AllowedOriginsDocument.find_one({"origin": origin})
 
-    @write_op
+    @write_op(replay=True)
     async def add(self, origin: str) -> AllowedOriginsDocument:
         return await AllowedOriginsDocument(origin=origin).save()
 

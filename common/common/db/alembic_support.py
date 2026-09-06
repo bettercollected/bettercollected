@@ -61,10 +61,19 @@ def resolve_url(config) -> str:
     return normalise_url(url)
 
 
+def create_schema_if_missing_sql(schema: str) -> str:
+    """CREATE SCHEMA only when absent. Plain ``CREATE SCHEMA IF NOT EXISTS`` still
+    demands CREATE on the *database*, which the per-service roles (bc_app, ...)
+    deliberately lack; they own their schema, which the init script created.
+    CI and scratch databases run as a superuser and create it here."""
+    return (
+        "DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_namespace WHERE nspname = "
+        f"'{schema}') THEN EXECUTE 'CREATE SCHEMA \"{schema}\"'; END IF; END $$"
+    )
+
+
 def _run_sync(connection: Connection, context, metadata: MetaData, schema: str) -> None:
-    # The schema exists already in deployments (postgres/init/01-roles-schemas.sh);
-    # CI service containers and fresh test databases get it here.
-    connection.execute(text(f'CREATE SCHEMA IF NOT EXISTS "{schema}"'))
+    connection.execute(text(create_schema_if_missing_sql(schema)))
     context.configure(connection=connection, **context_options(metadata, schema))
     with context.begin_transaction():
         context.run_migrations()
@@ -98,7 +107,7 @@ def run_migrations(context, metadata: MetaData, schema: str) -> None:
 
 # -- helpers for revision files ---------------------------------------------
 def ensure_schema(op, schema: str) -> None:
-    op.execute(f'CREATE SCHEMA IF NOT EXISTS "{schema}"')
+    op.execute(create_schema_if_missing_sql(schema))
 
 
 def create_helper_functions(op, schema: str) -> None:

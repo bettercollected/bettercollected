@@ -104,3 +104,23 @@ def test_jobs_backend_per_job():
         load_flags({"JOBS_BACKEND": "postgres"}).jobs_backend("anything")
         is JobsBackend.POSTGRES
     )
+
+
+def test_serves_from_postgres_distinguishes_mirror_only_from_serving():
+    assert load_flags({}).serves_from_postgres() is False
+    assert (
+        load_flags({"DB_WRITE_MODE": "dual"}).serves_from_postgres() is False
+    )  # mirror only
+    assert (
+        load_flags({"DB_WRITE_MODE__refdata": "dual"}).serves_from_postgres() is False
+    )
+    assert (
+        load_flags(
+            {"DB_READ_SOURCE__refdata": "postgres", "DB_WRITE_MODE__refdata": "dual"}
+        ).serves_from_postgres()
+        is True
+    )
+    assert (
+        load_flags({"DB_WRITE_MODE": "postgres_primary_dual"}).serves_from_postgres()
+        is True
+    )

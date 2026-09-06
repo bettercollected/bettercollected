@@ -40,6 +40,13 @@ class ActionRepository:
     async def get_action_by_id(self, action_id: PydanticObjectId):
         return await ActionDocument.find_one(ActionDocument.id == action_id)
 
+    async def get_workspace_action(
+        self, workspace_id: PydanticObjectId, action_id: PydanticObjectId
+    ) -> WorkspaceActionsDocument | None:
+        return await WorkspaceActionsDocument.find_one(
+            {"workspace_id": workspace_id, "action_id": action_id}
+        )
+
     # query = {
     #     '_id': action_id,
     #     'workspace_id': workspace_id,

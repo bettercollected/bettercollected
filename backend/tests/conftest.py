@@ -1,3 +1,5 @@
+import asyncio
+from pathlib import Path
 import os
 from typing import Any, Coroutine
 from unittest.mock import patch
@@ -38,6 +40,57 @@ TEST_MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost")
 TEST_MONGO_DB = os.getenv("MONGO_TEST_DB", "bettercollected_test")
 
 
+TEST_DATABASE_URL = os.getenv("DATABASE_URL", "")
+
+
+def _postgres_configured() -> bool:
+    """A Postgres test database is available. Guarded: only databases whose name
+    contains "test" are ever migrated or truncated by the suite."""
+    if not TEST_DATABASE_URL:
+        return False
+    name = TEST_DATABASE_URL.rsplit("/", 1)[-1].split("?")[0]
+    return "test" in name
+
+
+def _alembic_upgrade_head() -> None:
+    from alembic import command
+    from alembic.config import Config
+
+    backend_dir = Path(__file__).resolve().parents[1]
+    config = Config(str(backend_dir / "alembic.ini"))
+    config.set_main_option(
+        "script_location", str(backend_dir / "backend" / "migrations")
+    )
+    config.set_main_option("sqlalchemy.url", TEST_DATABASE_URL)
+    command.upgrade(config, "head")
+
+
+async def _truncate_postgres() -> None:
+    """Reset the Postgres test tables between tests.
+
+    TRUNCATE has a fixed per-table cost (locks, relfilenode swap, WAL) that
+    across 35 tables ran to ~1.3 s per test and dominated the suite; deleting
+    from every table was not much better. So: one round trip asks which tables
+    hold rows at all, and only those are cleared. Typically a handful.
+    """
+    from sqlalchemy import text
+
+    import backend.db.models  # noqa: F401
+    from backend.db.base import Base
+
+    engine = container.pg_engine()
+    if engine is None:
+        return
+    tables = [f'"{t.schema}"."{t.name}"' for t in Base.metadata.sorted_tables]
+    probe = " UNION ALL ".join(
+        f"SELECT '{name}' AS t WHERE EXISTS (SELECT 1 FROM {name})" for name in tables
+    )
+    async with engine.begin() as conn:
+        non_empty = [row[0] for row in await conn.execute(text(probe))]
+        for name in non_empty:
+            await conn.execute(text(f"DELETE FROM {name}"))
+
+
 def _drop_test_db() -> None:
     """Drop the test database using a synchronous pymongo client.
 
@@ -66,6 +119,15 @@ async def _initialized_app():
 
     _drop_test_db()
 
+    if _postgres_configured():
+        # Alembic drives its own event loop; keep it off the session loop.
+        await asyncio.to_thread(_alembic_upgrade_head)
+    elif container.flags().requires_postgres():
+        raise RuntimeError(
+            "DB_*/JOBS_* flags require Postgres but DATABASE_URL is unset or does not "
+            "point at a database whose name contains 'test'"
+        )
+
     app = get_application(is_test_mode=True)
     async with lifespan(app):
         yield app
@@ -86,6 +148,17 @@ async def _clean_db(_initialized_app):
     db = container.database_client()[TEST_MONGO_DB]
     for name in await db.list_collection_names():
         await db[name].delete_many({})
+    if _postgres_configured() and container.flags().requires_postgres():
+        await _truncate_postgres()
+    yield
+
+
+@pytest_asyncio.fixture(loop_scope="session")
+async def clean_postgres(_initialized_app):
+    """For tests that drive the Postgres repositories directly, whatever the flags say."""
+    if not _postgres_configured():
+        pytest.skip("DATABASE_URL not set to a *_test database")
+    await _truncate_postgres()
     yield
 
 
@@ -100,12 +173,16 @@ async def client(_initialized_app):
 @pytest.fixture()
 async def workspace():
     await workspace_service.create_workspace(testUser)
-    workspace = (await WorkspaceDocument.find().to_list())[0]
-    await WorkspaceUserDocument(
-        workspace_id=workspace.id,
-        user_id=invited_user.id,
-        roles=[WorkspaceRoles.COLLABORATOR],
-    ).save()
+    workspace = await container.workspace_repo().get_default_workspace_by_owner_id(
+        testUser.id
+    )
+    await container.workspace_user_repo().save(
+        WorkspaceUserDocument(
+            workspace_id=workspace.id,
+            user_id=invited_user.id,
+            roles=[WorkspaceRoles.COLLABORATOR],
+        )
+    )
     return workspace
 
 
@@ -113,8 +190,9 @@ async def workspace():
 async def workspace_1():
     await workspace_service.create_workspace(testUser)
     await workspace_service.create_workspace(testUser1)
-    workspace = (await WorkspaceDocument.find().to_list())[1]
-    return workspace
+    return await container.workspace_repo().get_default_workspace_by_owner_id(
+        testUser1.id
+    )
 
 
 @pytest.fixture()
@@ -122,8 +200,7 @@ async def workspace_pro():
     await container.workspace_service().create_non_default_workspace(
         title="Title", description="description", workspace_name="name", user=proUser
     )
-    workspace = (await WorkspaceDocument.find().to_list())[0]
-    return workspace
+    return await container.workspace_repo().find_by_name("name")
 
 
 @pytest.fixture()

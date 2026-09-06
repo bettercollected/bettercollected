@@ -165,3 +165,106 @@ async def test_per_group_flags_apply_to_the_repository_group():
     assert (
         p.calls == []
     )  # the forms group is mongo-only even though the default is dual
+
+
+class Doc:
+    """Stands in for a Beanie document: has an id and an upserting save()."""
+
+    saved = []
+
+    def __init__(self, id, body):
+        self.id, self.body = id, body
+
+    async def save(self):
+        Doc.saved.append((self.id, self.body))
+        return self
+
+
+class MintingStore(FakeStore):
+    """A repository whose ``create`` mints an id and a token — non-deterministic
+    in its arguments, so the mirror must replay the result, not the call."""
+
+    def __init__(self, tag, **kw):
+        super().__init__(tag, **kw)
+        self.replayed = []
+        self.counter = 0
+
+    @write_op(replay=True)
+    async def create(self, body):
+        await self._go("create", body)
+        self.counter += 1
+        return Doc(f"{self.tag}-{self.counter}", body)
+
+    @write_op(replay=True)
+    async def create_many(self, n):
+        await self._go("create_many", n)
+        return [Doc(f"{self.tag}-{i}", i) for i in range(n)]
+
+    @write_op(replay=True)
+    async def touch(self, key):
+        await self._go("touch", key)
+        return None  # replay-marked but nothing persisted to hand over
+
+    async def replay_write(self, documents):
+        self.replayed.append([d.id for d in documents])
+
+
+class BeanieLikeStore(MintingStore):
+    replay_write = None  # a Mongo repository: no hook, documents save() themselves
+
+
+async def test_replayed_write_stores_the_primary_result_on_the_mirror():
+    m, p = MintingStore("mongo"), MintingStore("postgres")
+    r = repo({"DB_WRITE_MODE": "dual"}, mongo=m, postgres=p)
+    doc = await r.create({"a": 1})
+    assert doc.id == "mongo-1"
+    assert [c[0] for c in p.calls] == []  # the call itself was not re-executed
+    assert p.replayed == [["mongo-1"]]
+    assert (await r.create_many(2))[1].id == "mongo-1"
+    assert p.replayed[-1] == ["mongo-0", "mongo-1"]
+
+
+async def test_replay_falls_back_to_re_execution_when_nothing_was_persisted():
+    m, p = MintingStore("mongo"), MintingStore("postgres")
+    r = repo({"DB_WRITE_MODE": "dual"}, mongo=m, postgres=p)
+    await r.touch("k")
+    assert [c[0] for c in p.calls] == ["touch"]
+    assert p.replayed == []
+
+
+async def test_replay_onto_a_beanie_repository_saves_each_document():
+    Doc.saved.clear()
+    m, p = BeanieLikeStore("mongo"), MintingStore("postgres")
+    r = repo({"DB_WRITE_MODE": "postgres_primary_dual"}, mongo=m, postgres=p)
+    doc = await r.create({"b": 2})
+    assert doc.id == "postgres-1"
+    assert Doc.saved == [("postgres-1", {"b": 2})]
+    assert [c[0] for c in m.calls] == []
+
+
+async def test_replay_failure_is_reported_with_the_documents():
+    class Broken(MintingStore):
+        async def replay_write(self, documents):
+            raise RuntimeError("down")
+
+    failures = []
+    m, p = MintingStore("mongo"), Broken("postgres")
+    r = repo(
+        {"DB_WRITE_MODE": "dual"},
+        mongo=m,
+        postgres=p,
+        on_mirror_failure=failures.append,
+    )
+    doc = await r.create({"c": 3})
+    assert doc.id == "mongo-1"
+    assert len(failures) == 1
+    assert [d.id for d in failures[0].documents] == ["mongo-1"]
+    assert failures[0].method == "create"
+
+
+def test_write_op_marks_replay():
+    from common.db import is_replayed, is_write_op
+
+    assert is_write_op(MintingStore.create) and is_replayed(MintingStore.create)
+    assert is_write_op(FakeStore.save) and not is_replayed(FakeStore.save)
+    assert not is_write_op(FakeStore.find)
