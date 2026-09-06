@@ -30,6 +30,7 @@ from backend.app.services.ai.chat import persist_ops_to_form
 from backend.app.services.ai.ops import parse_ops
 from backend.app.services.ai.profile import AIProfileService
 
+
 def _c():
     # Resolved at call time: the container imports services this module depends on.
     from backend.app.container import container
@@ -92,7 +93,9 @@ async def _audit(tool: str, ok: bool, detail: str = "") -> None:
         pass
 
 
-async def _workspace_form_ids(workspace_id: PydanticObjectId) -> Dict[str, WorkspaceFormDocument]:
+async def _workspace_form_ids(
+    workspace_id: PydanticObjectId,
+) -> Dict[str, WorkspaceFormDocument]:
     docs = await _c().workspace_form_repo().list_in_workspace(workspace_id)
     return {d.form_id: d for d in docs}
 
@@ -112,7 +115,11 @@ async def list_forms() -> str:
         {
             "formId": f.form_id,
             "title": f.title,
-            "slug": workspace_forms[f.form_id].settings.custom_url if workspace_forms[f.form_id].settings else None,
+            "slug": (
+                workspace_forms[f.form_id].settings.custom_url
+                if workspace_forms[f.form_id].settings
+                else None
+            ),
             "published": f.published_at is not None,
         }
         for f in forms
@@ -130,9 +137,9 @@ async def get_form(form_id: str) -> str:
     form = await _c().form_repo().get_form_document_by_id(form_id)
     await _audit("get_form", True, form_id)
     return json.dumps(
-        StandardFormCamelModel(**StandardForm(**form.model_dump()).model_dump()).model_dump(
-            mode="json", by_alias=True, exclude_none=True
-        )
+        StandardFormCamelModel(
+            **StandardForm(**form.model_dump()).model_dump()
+        ).model_dump(mode="json", by_alias=True, exclude_none=True)
     )
 
 
@@ -162,14 +169,20 @@ async def create_form(title: str, description: str = "") -> str:
         title=title,
         description=description or None,
         builder_version="v2",
-        welcome_page=WelcomePageField(title="", layout=LayoutType.SINGLE_COLUMN_NO_BACKGROUND),
-        thankyou_page=[ThankYouPageField(layout=LayoutType.SINGLE_COLUMN_NO_BACKGROUND)],
+        welcome_page=WelcomePageField(
+            title="", layout=LayoutType.SINGLE_COLUMN_NO_BACKGROUND
+        ),
+        thankyou_page=[
+            ThankYouPageField(layout=LayoutType.SINGLE_COLUMN_NO_BACKGROUND)
+        ],
         fields=[
             StandardFormField(
                 id=str(_uuid.uuid4()),
                 index=0,
                 type=StandardFormFieldType.SLIDE,
-                properties=StandardFieldProperty(fields=[], layout=LayoutType.SINGLE_COLUMN_NO_BACKGROUND),
+                properties=StandardFieldProperty(
+                    fields=[], layout=LayoutType.SINGLE_COLUMN_NO_BACKGROUND
+                ),
             )
         ],
     )
@@ -224,9 +237,13 @@ async def update_form(form_id: str, ops: List[Dict[str, Any]]) -> str:
     form_document = await _c().form_repo().get_form_document_by_id(form_id)
     parsed = parse_ops(ops)
     form = StandardForm(**form_document.model_dump())
-    _, results, updated_settings = await persist_ops_to_form(form_document, form, parsed)
+    _, results, updated_settings = await persist_ops_to_form(
+        form_document, form, parsed
+    )
     payload = [r.model_dump(by_alias=True) for r in results]
-    await _audit("update_form", all(r.ok for r in results), f"{form_id}: {len(results)} ops")
+    await _audit(
+        "update_form", all(r.ok for r in results), f"{form_id}: {len(results)} ops"
+    )
     return json.dumps({"results": payload, "settings": updated_settings})
 
 
@@ -239,9 +256,13 @@ async def publish_form(form_id: str) -> str:
     workspace_forms = await _workspace_form_ids(key.workspace_id)
     _require_form_in_workspace(form_id, workspace_forms)
     await container.workspace_form_service().publish_form(
-        workspace_id=key.workspace_id, form_id=PydanticObjectId(form_id), user=_acting_user(key)
+        workspace_id=key.workspace_id,
+        form_id=PydanticObjectId(form_id),
+        user=_acting_user(key),
     )
-    refreshed = await _c().workspace_form_repo().find_workspace_form(key.workspace_id, form_id)
+    refreshed = (
+        await _c().workspace_form_repo().find_workspace_form(key.workspace_id, form_id)
+    )
     slug = refreshed.settings.custom_url if refreshed and refreshed.settings else None
     await _audit("publish_form", True, form_id)
     return json.dumps({"formId": form_id, "published": True, "slug": slug})
@@ -274,7 +295,7 @@ async def list_responses(form_id: str, limit: int = 20) -> str:
 async def get_response(response_id: str) -> str:
     """Get one response's full answers."""
     key = _key("responses:read")
-    response = await _c().form_response_repo().find_by_response_id(response_id)
+    response = await _c().form_response_repo().get_response(response_id)
     workspace_forms = await _workspace_form_ids(key.workspace_id)
     if not response or response.form_id not in workspace_forms:
         raise ValueError("Response not found in this workspace.")
@@ -285,7 +306,9 @@ async def get_response(response_id: str) -> str:
         from common.services.crypto_service import crypto_service
 
         answers = json.loads(
-            crypto_service.decrypt(workspace_id=key.workspace_id, form_id=response.form_id, data=answers)
+            crypto_service.decrypt(
+                workspace_id=key.workspace_id, form_id=response.form_id, data=answers
+            )
         )
     await _audit("get_response", True, response_id)
     return json.dumps(
@@ -293,7 +316,9 @@ async def get_response(response_id: str) -> str:
             "responseId": response.response_id,
             "formId": response.form_id,
             "submittedAt": str(getattr(response, "created_at", "")),
-            "answers": json.loads(json.dumps(answers if isinstance(answers, dict) else {}, default=str)),
+            "answers": json.loads(
+                json.dumps(answers if isinstance(answers, dict) else {}, default=str)
+            ),
         }
     )
 
@@ -304,7 +329,11 @@ async def list_deletion_requests() -> str:
     privacy queue an operator (or agent) should act on."""
     key = _key("deletion_requests:read")
     workspace_forms = await _workspace_form_ids(key.workspace_id)
-    requests = await _c().form_response_repo().list_deletion_requests_for_form_ids(list(workspace_forms))
+    requests = (
+        await _c()
+        .form_response_repo()
+        .list_deletion_requests_for_form_ids(list(workspace_forms))
+    )
     items = [
         {
             "responseId": r.response_id,
@@ -349,12 +378,17 @@ class MCPAuthMiddleware:
         try:
             key = await APIKeyService.authenticate(token)
         except HTTPException:
-            body = json.dumps({"error": "Provide a valid workspace API key as a Bearer token."}).encode()
+            body = json.dumps(
+                {"error": "Provide a valid workspace API key as a Bearer token."}
+            ).encode()
             await send(
                 {
                     "type": "http.response.start",
                     "status": 401,
-                    "headers": [(b"content-type", b"application/json"), (b"content-length", str(len(body)).encode())],
+                    "headers": [
+                        (b"content-type", b"application/json"),
+                        (b"content-length", str(len(body)).encode()),
+                    ],
                 }
             )
             await send({"type": "http.response.body", "body": body})

@@ -13,8 +13,8 @@ from backend.app.models.dtos.response_dtos import StandardFormResponseCamelModel
 from backend.app.models.enum.user_tag_enum import UserTagType
 from backend.app.models.filter_queries.form_responses import FormResponseFilterQuery
 from backend.app.models.filter_queries.sort import SortRequest
+from backend.app.repositories.flow_event_repository import FlowEventRepository
 from backend.app.router import router
-from backend.app.schemas.flow_event import FlowEventDocument
 from backend.app.services.form_response_service import FormResponseService
 from backend.app.services.user_service import get_logged_user
 from backend.app.utils.custom_routable import CustomRoutable
@@ -41,11 +41,13 @@ class WorkspaceResponsesRouter(CustomRoutable):
     def __init__(
         self,
         form_response_service: FormResponseService = container.form_response_service(),
+        flow_event_repo: FlowEventRepository = container.flow_event_repo(),
         *args,
         **kwargs
     ):
         super().__init__(*args, **kwargs)
         self._form_response_service = form_response_service
+        self._flow_event_repo = flow_event_repo
 
     @get(
         "/forms/{form_id}/submissions",
@@ -95,14 +97,18 @@ class WorkspaceResponsesRouter(CustomRoutable):
         FlowEventDocument. Inputs are length-capped so the open endpoint can't
         be used to store arbitrary payloads.
         """
-        if len(event.session_id) > 64 or len(event.from_page) > 64 or len(event.to_page) > 64:
+        if (
+            len(event.session_id) > 64
+            or len(event.from_page) > 64
+            or len(event.to_page) > 64
+        ):
             return {"ok": False}
-        await FlowEventDocument(
+        await self._flow_event_repo.add(
             form_id=form_id,
             session_id=event.session_id,
             from_page=event.from_page,
             to_page=event.to_page,
-        ).save()
+        )
         return {"ok": True}
 
     @get("/forms/{form_id}/flow-analytics")
@@ -113,9 +119,7 @@ class WorkspaceResponsesRouter(CustomRoutable):
         user: User = Depends(get_logged_user),
     ):
         """Aggregate drop-off + transition counts for the builder's Insights overlay."""
-        events = await FlowEventDocument.find(
-            FlowEventDocument.form_id == form_id
-        ).to_list()
+        events = await self._flow_event_repo.list_by_form_id(form_id)
         return aggregate_flow_events([e.model_dump() for e in events])
 
     @get(

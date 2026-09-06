@@ -246,11 +246,6 @@ class FormResponseRepository(BaseRepository):
     async def delete(self, item_id: str, provider: FormProvider):
         pass
 
-    async def find_by_response_id(
-        self, response_id: str
-    ) -> Optional[FormResponseDocument]:
-        return await FormResponseDocument.find_one({"response_id": response_id})
-
     async def list_recent_by_form_id(
         self, form_id: str, limit: int
     ) -> List[FormResponseDocument]:
@@ -267,6 +262,39 @@ class FormResponseRepository(BaseRepository):
         return await FormResponseDeletionRequest.find(
             {"form_id": {"$in": form_ids}}
         ).to_list()
+
+    async def list_by_form_id(self, form_id: str) -> List[FormResponseDocument]:
+        return await FormResponseDocument.find({"form_id": form_id}).to_list()
+
+    async def save(self, response: FormResponseDocument) -> FormResponseDocument:
+        return await response.save()
+
+    async def find_deletion_request_by_response_id(
+        self, response_id: str
+    ) -> Optional[FormResponseDeletionRequest]:
+        return await FormResponseDeletionRequest.find_one({"response_id": response_id})
+
+    async def delete_by_form_id_except(
+        self, form_id: str, keep_response_ids: List[str]
+    ):
+        return await FormResponseDocument.find(
+            {"form_id": form_id, "response_id": {"$nin": keep_response_ids}}
+        ).delete()
+
+    async def mark_deletion_requests_success_except(
+        self, form_id: str, provider: str, keep_response_ids: List[str], now
+    ) -> int:
+        """Imported-form refresh: responses gone at the source count as deleted."""
+        result = await FormResponseDeletionRequest.find(
+            {
+                "form_id": form_id,
+                "provider": provider,
+                "response_id": {"$nin": keep_response_ids},
+            }
+        ).update_many(
+            {"$set": {"status": DeletionRequestStatus.SUCCESS, "updated_at": now}}
+        )
+        return result.modified_count
 
     async def delete_by_form_id(self, form_id):
         return await FormResponseDocument.find({"form_id": form_id}).delete()
@@ -288,12 +316,12 @@ class FormResponseRepository(BaseRepository):
         response: StandardFormResponse,
         workspace_id: PydanticObjectId,
     ):
-        response_document = FormResponseDocument(**response.model_dump(mode='json'))
+        response_document = FormResponseDocument(**response.model_dump(mode="json"))
         response_document.submission_uuid = str(uuid4())
         if workspace_id:
             for k, v in response_document.answers.items():
                 if type(v) == StandardFormResponseAnswer:
-                    response_document.answers[k] = v.model_dump(mode='json')
+                    response_document.answers[k] = v.model_dump(mode="json")
             response_document.answers = crypto_service.encrypt(
                 workspace_id=workspace_id,
                 form_id=form_id,
@@ -326,7 +354,7 @@ class FormResponseRepository(BaseRepository):
             )
         for k, v in response.answers.items():
             if type(v) == StandardFormResponseAnswer:
-                response_document.answers[k] = v.model_dump(mode='json')
+                response_document.answers[k] = v.model_dump(mode="json")
             response_document.answers = crypto_service.encrypt(
                 workspace_id=workspace_id,
                 form_id=form_id,

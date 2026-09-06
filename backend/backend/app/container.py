@@ -22,6 +22,7 @@ from backend.app.repositories.form_plugin_provider_repository import (
 )
 from backend.app.repositories.form_repository import FormRepository
 from backend.app.repositories.form_response_repository import FormResponseRepository
+from backend.app.repositories.flow_event_repository import FlowEventRepository
 from backend.app.repositories.media_library_repository import MediaLibraryRepository
 from backend.app.repositories.mcp_audit_log_repository import McpAuditLogRepository
 from backend.app.repositories.responder_groups_repository import (
@@ -111,6 +112,7 @@ class AppContainer(containers.DeclarativeContainer):
     form_response_repo: FormResponseRepository = providers.Singleton(
         FormResponseRepository, crypto=crypto
     )
+    flow_event_repo: FlowEventRepository = providers.Singleton(FlowEventRepository)
     workspace_form_repo: WorkspaceFormRepository = providers.Singleton(
         WorkspaceFormRepository
     )
@@ -178,6 +180,7 @@ class AppContainer(containers.DeclarativeContainer):
     form_response_service: FormResponseService = providers.Singleton(
         FormResponseService,
         form_response_repo=form_response_repo,
+        form_repo=form_repo,
         workspace_form_repo=workspace_form_repo,
         workspace_user_repo=workspace_user_repo,
         aws_service=aws_service,
@@ -199,7 +202,10 @@ class AppContainer(containers.DeclarativeContainer):
     )
 
     form_import_service: FormImportService = providers.Singleton(
-        FormImportService, form_service=form_service, workspace_repo=workspace_repo
+        FormImportService,
+        form_service=form_service,
+        workspace_repo=workspace_repo,
+        form_response_repo=form_response_repo,
     )
 
     form_schedular = providers.Singleton(
