@@ -12,6 +12,10 @@ from dependency_injector import containers, providers
 from pymongo import AsyncMongoClient
 
 from backend.app.repositories.action_repository import ActionRepository
+from backend.app.repositories.allowed_origins_repository import AllowedOriginsRepository
+from backend.app.repositories.blacklisted_refresh_token_repository import (
+    BlacklistedRefreshTokenRepository,
+)
 from backend.app.repositories.coupon_repository import CouponRepository
 from backend.app.repositories.form_plugin_provider_repository import (
     FormPluginProviderRepository,
@@ -95,6 +99,12 @@ class AppContainer(containers.DeclarativeContainer):
         WorkspaceUserRepository
     )
     workspace_repo: WorkspaceRepository = providers.Singleton(WorkspaceRepository)
+    allowed_origins_repo: AllowedOriginsRepository = providers.Singleton(
+        AllowedOriginsRepository
+    )
+    blacklisted_refresh_token_repo: BlacklistedRefreshTokenRepository = (
+        providers.Singleton(BlacklistedRefreshTokenRepository)
+    )
 
     form_repo: FormRepository = providers.Singleton(FormRepository)
     form_response_repo: FormResponseRepository = providers.Singleton(
@@ -169,7 +179,9 @@ class AppContainer(containers.DeclarativeContainer):
     )
 
     workspace_user_service: WorkspaceUserService = providers.Singleton(
-        WorkspaceUserService, workspace_user_repository=workspace_user_repo
+        WorkspaceUserService,
+        workspace_user_repository=workspace_user_repo,
+        workspace_repo=workspace_repo,
     )
 
     job_store = providers.Singleton(MongoDBJobStore, host=settings.mongo_settings.URI)
@@ -235,6 +247,8 @@ class AppContainer(containers.DeclarativeContainer):
         WorkspaceService,
         http_client=http_client,
         workspace_repo=workspace_repo,
+        workspace_user_repo=workspace_user_repo,
+        allowed_origins_repo=allowed_origins_repo,
         aws_service=aws_service,
         workspace_user_service=workspace_user_service,
         workspace_form_service=workspace_form_service,
@@ -305,6 +319,7 @@ class AppContainer(containers.DeclarativeContainer):
         WorkspaceMembersService,
         workspace_user_service=workspace_user_service,
         workspace_invitation_repo=workspace_invitation_repo,
+        workspace_repo=workspace_repo,
         http_client=http_client,
         workspace_form_service=workspace_form_service,
     )

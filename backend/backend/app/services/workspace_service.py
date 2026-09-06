@@ -22,9 +22,10 @@ from backend.app.models.workspace import (
     WorkspaceResponseDto,
     WorkspaceThemeDto,
 )
+from backend.app.repositories.allowed_origins_repository import AllowedOriginsRepository
 from backend.app.repositories.workspace_repository import WorkspaceRepository
+from backend.app.repositories.workspace_user_repository import WorkspaceUserRepository
 from backend.app.middlewares.dynamic_cors_middleware import DynamicCORSMiddleware
-from backend.app.schemas.allowed_origin import AllowedOriginsDocument
 from backend.app.schemas.workspace import WorkspaceDocument
 from backend.app.schemas.workspace_user import WorkspaceUserDocument
 from backend.app.services.aws_service import AWSS3Service
@@ -42,6 +43,8 @@ class WorkspaceService:
         self,
         http_client: HttpClient,
         workspace_repo: WorkspaceRepository,
+        workspace_user_repo: WorkspaceUserRepository,
+        allowed_origins_repo: AllowedOriginsRepository,
         aws_service: AWSS3Service,
         workspace_user_service: WorkspaceUserService,
         workspace_form_service: WorkspaceFormService,
@@ -51,6 +54,8 @@ class WorkspaceService:
     ):
         self.http_client = http_client
         self._workspace_repo = workspace_repo
+        self._workspace_user_repo = workspace_user_repo
+        self._allowed_origins_repo = allowed_origins_repo
         self._aws_service = aws_service
         self._workspace_user_service = workspace_user_service
         self.workspace_form_service = workspace_form_service
@@ -99,8 +104,8 @@ class WorkspaceService:
                 status_code=HTTPStatus.CONFLICT, content="Cannot add more workspaces"
             )
         if workspace_name:
-            existing_workspace_with_name = await WorkspaceDocument.find_one(
-                {"workspace_name": workspace_name}
+            existing_workspace_with_name = await self._workspace_repo.find_by_name(
+                workspace_name
             )
             if existing_workspace_with_name is not None:
                 raise HTTPException(
@@ -119,20 +124,17 @@ class WorkspaceService:
             profile_image_file=profile_image_file,
             banner_image_file=banner_image_file,
         )
-        workspace_document = await workspace_document.save()
-        existing_workspace_user = await WorkspaceUserDocument.find_one(
-            {
-                "workspace_id": workspace_document.id,
-                "user_id": PydanticObjectId(user.id),
-            }
-        )
+        workspace_document = await self._workspace_repo.save(workspace_document)
+        existing_workspace_user = await self._workspace_user_repo.find_workspace_user(
+                workspace_document.id, PydanticObjectId(user.id)
+            )
         if not existing_workspace_user:
             workspace_user = WorkspaceUserDocument(
                 workspace_id=workspace_document.id,
                 user_id=user.id,
                 roles=[WorkspaceRoles.ADMIN],
             )
-            await workspace_user.save()
+            await self._workspace_user_repo.save(workspace_user)
         return WorkspaceResponseDto(**workspace_document.model_dump(mode='json'))
 
     async def patch_workspace(
@@ -164,8 +166,8 @@ class WorkspaceService:
             workspace_patch.workspace_name
             and workspace_patch.workspace_name != workspace_document.workspace_name
         ):
-            exists_by_handle = await WorkspaceDocument.find_one(
-                {"workspace_name": workspace_patch.workspace_name}
+            exists_by_handle = await self._workspace_repo.find_by_name(
+                workspace_patch.workspace_name
             )
             await self.user_tags_service.add_user_tag(
                 user_id=user.id, tag=UserTagType.WORKSPACE_HANDLE_CHANGE
@@ -192,8 +194,8 @@ class WorkspaceService:
                 raise HTTPException(status_code=403, content=MESSAGE_FORBIDDEN)
 
             try:
-                workspace = await WorkspaceDocument.find_one(
-                    {"custom_domain": workspace_patch.custom_domain}
+                workspace = await self._workspace_repo.find_by_custom_domain(
+                    workspace_patch.custom_domain
                 )
                 if not workspace:
                     existing_custom_domain = (
@@ -201,17 +203,15 @@ class WorkspaceService:
                         if workspace_document.custom_domain
                         else ""
                     )
-                    await AllowedOriginsDocument.find_one(
-                        {"origin": "https://" + existing_custom_domain or ""}
-                    ).delete()
-                    allowed_origin = await AllowedOriginsDocument.find_one(
-                        {"origin": "https://" + workspace_patch.custom_domain}
+                    await self._allowed_origins_repo.delete_by_origin(
+                        "https://" + existing_custom_domain or ""
+                    )
+                    allowed_origin = await self._allowed_origins_repo.find_by_origin(
+                        "https://" + workspace_patch.custom_domain
                     )
                     if not allowed_origin:
-                        await AllowedOriginsDocument.save(
-                            AllowedOriginsDocument(
-                                origin="https://" + workspace_patch.custom_domain
-                            )
+                        await self._allowed_origins_repo.add(
+                            "https://" + workspace_patch.custom_domain
                         )
                     await DynamicCORSMiddleware.force_refresh_origins()
                     await self.update_https_server_for_certificate(
@@ -312,7 +312,7 @@ class WorkspaceService:
         )
         workspace_document.custom_domain = ""
         await DynamicCORSMiddleware.force_refresh_origins()
-        saved_workspace = await workspace_document.save()
+        saved_workspace = await self._workspace_repo.save(workspace_document)
         return WorkspaceResponseDto(**saved_workspace.model_dump(mode='json'))
 
     async def generate_unique_names_from_the_workspace_handle(
@@ -344,11 +344,9 @@ class WorkspaceService:
         predefined_workspace_name = ["submissions", "forms", "templates"]
         if workspace_name in predefined_workspace_name:
             return False
-        existing_workspace = await WorkspaceDocument.find_one(
-            {"workspace_name": workspace_name}
-        )
+        existing_workspace = await self._workspace_repo.find_by_name(workspace_name)
         if workspace_id is not None:
-            current_workspace = await WorkspaceDocument.find_one({"_id": workspace_id})
+            current_workspace = await self._workspace_repo.find_by_id(workspace_id)
             if existing_workspace and not existing_workspace == current_workspace:
                 return False
             return True
@@ -411,7 +409,7 @@ class WorkspaceService:
                 workspace.disabled = True
             workspace.is_pro = False
             workspace.custom_domain_disabled = True
-            await workspace.save()
+            await self._workspace_repo.save(workspace)
             await self._workspace_user_service.disable_other_users_in_workspace(
                 workspace_id=workspace.id, user_id=PydanticObjectId(user_id)
             )
@@ -422,7 +420,7 @@ class WorkspaceService:
             workspace.disabled = False
             workspace.is_pro = True
             workspace.custom_domain_disabled = False
-            await workspace.save()
+            await self._workspace_repo.save(workspace)
             await self._workspace_user_service.enable_all_users_in_workspace(
                 workspace_id=workspace.id
             )
@@ -506,7 +504,7 @@ class WorkspaceService:
         await self._workspace_user_service.check_is_admin_in_workspace(
             workspace_id=workspace_id, user=user
         )
-        workspace = await WorkspaceDocument.find_one({"_id": workspace_id})
+        workspace = await self._workspace_repo.find_by_id(workspace_id)
         if (
             not workspace.custom_domain
             or workspace.custom_domain_disabled
@@ -525,7 +523,9 @@ class WorkspaceService:
             verified = False
             if response.get("domain_verified") and response.get("txt_verified"):
                 verified = True
-            await workspace.update({"$set": {"custom_domain_verified": verified}})
+            await self._workspace_repo.set_fields(
+                workspace, {"custom_domain_verified": verified}
+            )
             return response
         except Exception as e:
             loguru.logger.error(e)
@@ -533,7 +533,11 @@ class WorkspaceService:
 
 
 async def create_workspace(user: User):
-    workspace = await WorkspaceDocument.find_one({"owner_id": user.id, "default": True})
+    from backend.app.container import container  # at call time: container imports this module
+
+    workspace_repo = container.workspace_repo()
+    workspace_user_repo = container.workspace_user_repo()
+    workspace = await workspace_repo.get_default_workspace_by_owner_id(user.id)
     if not workspace:
         await event_logger_service.send_event(
             event_type=UserEventType.USER_CREATED, user_id=user.id, email=user.sub
@@ -548,13 +552,13 @@ async def create_workspace(user: User):
             workspace_name=str(user.id),
             custom_domain=None,
         )
-        await workspace.save()
+        await workspace_repo.save(workspace)
     # Save new workspace user if it is not associated yet
-    existing_workspace_user = await WorkspaceUserDocument.find_one(
-        {"workspace_id": workspace.id, "user_id": PydanticObjectId(user.id)}
+    existing_workspace_user = await workspace_user_repo.find_workspace_user(
+        workspace.id, PydanticObjectId(user.id)
     )
     if not existing_workspace_user:
         workspace_user = WorkspaceUserDocument(
             workspace_id=workspace.id, user_id=user.id, roles=[WorkspaceRoles.ADMIN]
         )
-        await workspace_user.save()
+        await workspace_user_repo.save(workspace_user)

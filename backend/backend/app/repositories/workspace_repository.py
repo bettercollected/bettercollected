@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import List
+from typing import Any, Dict, List, Optional
 
 from beanie import PydanticObjectId
 
@@ -40,6 +40,25 @@ class WorkspaceRepository(BaseRepository):
         if not workspace:
             raise HTTPException(HTTPStatus.NOT_FOUND)
         return workspace
+
+    async def find_by_id(self, workspace_id: PydanticObjectId) -> Optional[WorkspaceDocument]:
+        return await WorkspaceDocument.find_one({"_id": workspace_id})
+
+    async def find_by_name(self, workspace_name: str) -> Optional[WorkspaceDocument]:
+        return await WorkspaceDocument.find_one({"workspace_name": workspace_name})
+
+    async def find_by_custom_domain(self, custom_domain: str) -> Optional[WorkspaceDocument]:
+        return await WorkspaceDocument.find_one({"custom_domain": custom_domain})
+
+    async def get_or_404(self, workspace_id: PydanticObjectId) -> WorkspaceDocument:
+        """Like ``find_by_id`` but raises the document layer's NotFoundError when missing."""
+        return await WorkspaceDocument.get(workspace_id)
+
+    async def save(self, workspace: WorkspaceDocument) -> WorkspaceDocument:
+        return await workspace.save()
+
+    async def set_fields(self, workspace: WorkspaceDocument, fields: Dict[str, Any]) -> None:
+        await workspace.update({"$set": fields})
 
     async def get_workspace_by_query(self, query: str):
         workspace = await WorkspaceDocument.find_one(

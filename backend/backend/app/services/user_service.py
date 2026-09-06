@@ -8,7 +8,6 @@ from starlette.requests import Request
 from starlette.responses import Response
 
 from backend.app.exceptions import HTTPException
-from backend.app.schemas.blacklisted_refresh_tokens import BlackListedRefreshTokens
 from backend.app.services.auth_cookie_service import set_access_token_to_response
 from backend.config import settings
 
@@ -97,8 +96,10 @@ async def check_if_refresh_token_is_blacklisted(token: str):
         key=settings.auth_settings.JWT_SECRET,
         algorithms=["HS256"],
     )
-    blacklisted_tokens = await BlackListedRefreshTokens.find_one({"token": token})
-    if blacklisted_tokens:
+    from backend.app.container import container  # at call time: container imports this module
+
+    blacklisted = await container.blacklisted_refresh_token_repo().find_by_token(token)
+    if blacklisted:
         raise HTTPException(401, "Invalid JWT")
 
 
@@ -109,7 +110,8 @@ async def add_refresh_token_to_blacklist(request: Request):
         key=settings.auth_settings.JWT_SECRET,
         algorithms=["HS256"],
     )
-    token_to_save = BlackListedRefreshTokens(
+    from backend.app.container import container  # at call time: container imports this module
+
+    await container.blacklisted_refresh_token_repo().add(
         token=refresh_token, expiry=jwt_response.get("exp")
     )
-    await token_to_save.save()

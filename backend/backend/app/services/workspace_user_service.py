@@ -5,8 +5,8 @@ from beanie import PydanticObjectId
 
 from backend.app.exceptions import HTTPException
 from backend.app.models.enum.workspace_roles import WorkspaceRoles
+from backend.app.repositories.workspace_repository import WorkspaceRepository
 from backend.app.repositories.workspace_user_repository import WorkspaceUserRepository
-from backend.app.schemas.workspace import WorkspaceDocument
 from backend.app.schemas.workspace_user import WorkspaceUserDocument
 from backend.config import settings
 from common.constants import MESSAGE_FORBIDDEN
@@ -14,13 +14,18 @@ from common.models.user import User
 
 
 class WorkspaceUserService:
-    def __init__(self, workspace_user_repository: WorkspaceUserRepository):
+    def __init__(
+        self,
+        workspace_user_repository: WorkspaceUserRepository,
+        workspace_repo: WorkspaceRepository,
+    ):
         self.workspace_user_repository = workspace_user_repository
+        self.workspace_repo = workspace_repo
 
     async def check_user_has_access_in_workspace(
         self, workspace_id: PydanticObjectId, user: User
     ):
-        workspace = await WorkspaceDocument.find_one({"_id": workspace_id})
+        workspace = await self.workspace_repo.find_by_id(workspace_id)
         has_access = await self.workspace_user_repository.has_user_access_in_workspace(
             workspace_id, user
         )
@@ -32,7 +37,7 @@ class WorkspaceUserService:
     async def check_user_has_access_by_workspace_name(
         self, workspace_name: str, user: User
     ):
-        workspace = await WorkspaceDocument.find_one({"workspace_name": workspace_name})
+        workspace = await self.workspace_repo.find_by_name(workspace_name)
         has_access = await self.workspace_user_repository.has_user_access_in_workspace(
             workspace_id=workspace.id, user=user
         )
@@ -44,7 +49,7 @@ class WorkspaceUserService:
     async def check_is_admin_in_workspace(
         self, workspace_id: PydanticObjectId, user: User
     ):
-        workspace = await WorkspaceDocument.find_one({"_id": workspace_id})
+        workspace = await self.workspace_repo.find_by_id(workspace_id)
         is_admin = await self.workspace_user_repository.is_user_admin_in_workspace(
             workspace_id=workspace_id, user=user
         )
@@ -62,8 +67,8 @@ class WorkspaceUserService:
     async def add_user_to_workspace_with_role(
         self, workspace_id: PydanticObjectId, user: User, role: WorkspaceRoles
     ):
-        existing_user = await WorkspaceUserDocument.find_one(
-            {"workspace_id": workspace_id, "user_id": PydanticObjectId(user.id)}
+        existing_user = await self.workspace_user_repository.find_workspace_user(
+            workspace_id, PydanticObjectId(user.id)
         )
         if existing_user:
             return

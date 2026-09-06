@@ -3,7 +3,13 @@ import datetime
 from starlette.middleware.cors import CORSMiddleware
 from starlette.types import Receive, Scope, Send
 
-from backend.app.schemas.allowed_origin import AllowedOriginsDocument
+
+
+async def _allowed_origins() -> list[str]:
+    # Resolved at call time: the container imports services that import this module.
+    from backend.app.container import container
+
+    return await container.allowed_origins_repo().list_origins()
 
 
 class DynamicCORSMiddleware(CORSMiddleware):
@@ -22,15 +28,13 @@ class DynamicCORSMiddleware(CORSMiddleware):
         now = datetime.datetime.now(datetime.timezone.utc)
         if (now - self._cache_refreshed_at).total_seconds() < self._cache_ttl_seconds:
             return
-        docs = await AllowedOriginsDocument.find().to_list()
-        DynamicCORSMiddleware._allowed_origins = [doc.origin for doc in docs]
+        DynamicCORSMiddleware._allowed_origins = await _allowed_origins()
         DynamicCORSMiddleware._cache_refreshed_at = now
 
     @classmethod
     async def force_refresh_origins(cls) -> None:
         """Force reload allowed origins from the database, bypassing the cache TTL."""
-        docs = await AllowedOriginsDocument.find().to_list()
-        cls._allowed_origins = [doc.origin for doc in docs]
+        cls._allowed_origins = await _allowed_origins()
         cls._cache_refreshed_at = datetime.datetime.now(datetime.timezone.utc)
 
     def is_allowed_origin(self, origin: str) -> bool:

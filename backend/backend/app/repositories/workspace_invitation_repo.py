@@ -16,6 +16,11 @@ from common.enums.workspace_invitation_status import InvitationStatus
 
 
 class WorkspaceInvitationRepo:
+    async def save(
+        self, invitation: WorkspaceUserInvitesDocument
+    ) -> WorkspaceUserInvitesDocument:
+        return await invitation.save()
+
     async def create_workspace_invitation(
         self, workspace_id: PydanticObjectId, invitation: InvitationRequest
     ):
