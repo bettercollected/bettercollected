@@ -1964,10 +1964,15 @@
   dependencies:
     "@babel/runtime" "^7.12.5"
 
-"@tiptap/core@^2.27.2", "@tiptap/core@^2.7.2":
+"@tiptap/core@^2.27.2":
   version "2.27.2"
   resolved "https://registry.yarnpkg.com/@tiptap/core/-/core-2.27.2.tgz#679eef9ce673d7243ce28d303852a98cbd1844be"
   integrity sha512-ABL1N6eoxzDzC1bYvkMbvyexHacszsKdVPYqhl5GwHLOvpZcv9VE9QaKwDILTyz5voCA0lGcAAXZp+qnXOk5lQ==
+
+"@tiptap/core@^3.30.5":
+  version "3.30.5"
+  resolved "https://registry.yarnpkg.com/@tiptap/core/-/core-3.30.5.tgz#9929ae10a5e0892fb1a38a197ae8208cdd3801ea"
+  integrity sha512-3O7N0FyKIfuLV+xrdWyDM3V5eUY/q2CgLjhhMwOAbM1Pu7VPp9VP+TpEYOdH8aRyB+h1vj5hX5A747D8ZrPfHA==
 
 "@tiptap/extension-blockquote@^2.27.2":
   version "2.27.2"
