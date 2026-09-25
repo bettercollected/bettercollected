@@ -4,7 +4,7 @@ by the backend suite against both stores)."""
 from datetime import datetime, timezone
 
 from bson import ObjectId
-from sqlalchemy import Column, MetaData, Table, Text, UniqueConstraint, Computed
+from sqlalchemy import Column, Index, MetaData, Table, Text, UniqueConstraint, Computed
 
 from common.db.base import SOURCE_BACKFILL
 from common.db.canonical import checksum, canonical_document
@@ -67,13 +67,24 @@ def test_unique_keys_are_read_off_the_spine_columns():
             Computed("app.bc_text(doc -> 'settings' -> 'custom_url')", persisted=True),
         ),
         UniqueConstraint("workspace_id", "form_id"),
+        Index(
+            "uq_custom_url",
+            "custom_url",
+            unique=True,
+            postgresql_where="custom_url IS NOT NULL",
+        ),
+        Index("ix_form", "form_id"),
     )
     assert spine_paths(table) == {
         "workspace_id": ["workspace_id"],
         "form_id": ["form_id"],
         "custom_url": ["settings", "custom_url"],
     }
-    assert unique_key_paths(table) == [[["workspace_id"], ["form_id"]]]
+    # constraints and unique indexes both count; plain indexes do not
+    assert unique_key_paths(table) == [
+        [["workspace_id"], ["form_id"]],
+        [["settings", "custom_url"]],
+    ]
 
 
 def test_batch_size_adapts_within_bounds():

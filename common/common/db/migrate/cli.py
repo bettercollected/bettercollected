@@ -77,17 +77,16 @@ async def run(args: argparse.Namespace, target: Target) -> int:
             _print([r.as_dict() for r in reports])
             return 1 if any(r.invalid_ids or r.duplicates for r in reports) else 0
         if args.command == "backfill":
-            _print(
-                await runner.backfill(
-                    collections,
-                    dry_run=args.dry_run,
-                    max_minutes=args.max_minutes,
-                    max_batches=args.max_batches,
-                    restart=args.restart,
-                    batch_size=args.batch_size,
-                )
+            results = await runner.backfill(
+                collections,
+                dry_run=args.dry_run,
+                max_minutes=args.max_minutes,
+                max_batches=args.max_batches,
+                restart=args.restart,
+                batch_size=args.batch_size,
             )
-            return 0
+            _print(results)
+            return 1 if any(r.get("state") == "error" for r in results.values()) else 0
         if args.command == "verify":
             reports = await runner.verify(collections, sample_every=args.sample_every)
             _print([r.as_dict() for r in reports])

@@ -51,9 +51,18 @@ Start on staging; repeat on production only after the staging gate.
    `DB_MIRROR_TIMEOUT_MS` (2 s). A failing mirror never fails a request — it lands in the outbox.
    Watch `/persistence/status` → `metrics.<group>.mirror_failures` and `outbox`. Expected: zero.
 2. **Preflight:** `python -m backend.migrate preflight` (and for auth/google). Non-zero exit means
-   documents with non-ObjectId ids or duplicate unique keys (e.g. two `workspace_forms` rows for
-   one workspace+form); fix the data in Mongo first — backfill skips invalid ids and would fail on
-   duplicates.
+   documents with non-ObjectId ids or duplicate unique keys (constraints *and* unique indexes;
+   null and empty-string keys never collide); fix the data in Mongo first — backfill skips invalid
+   ids and stops that collection on a duplicate (the others still run). Known from the
+   2026-09-25 rehearsal on a production dump: two `forms` documents shared a `form_id` (a
+   re-import made a second copy in 2023; the app always served the first). Keep the document
+   `find_one` has always returned — the lowest `_id` — and remove the rest:
+
+   ```js
+   // mongosh, database bettercollected_backend
+   db.forms.aggregate([{$group:{_id:"$form_id", ids:{$push:"$_id"}}},{$match:{"ids.1":{$exists:true}}}])
+     .forEach(d => { const ids = d.ids.sort(); db.forms.deleteMany({_id:{$in: ids.slice(1)}}); });
+   ```
 3. **Backfill:** `python -m backend.migrate backfill --max-minutes 30` as many times as needed;
    each run resumes from its checkpoint (`status` shows per-collection state, rows copied,
    last id, and `stalled: true` if a run died mid-way). Use `--collections a,b` to order work,
@@ -64,6 +73,10 @@ Start on staging; repeat on production only after the staging gate.
    authoritative) and marks both outboxes resolved. Run `verify` again.
 6. **Shadow reads:** `DB_SHADOW_READ_SAMPLE=0.05` for a week. `metrics.<group>.shadow_diffs`
    must stay at zero; a diff names the repository and method, never the payload.
+
+Rehearsal numbers (production dump, 2026-09-25, laptop): backfill of the backend's 69k documents
+(182 MB of responses) in ~30 s, `verify` in 14 s, auth and google in about a second each — all
+clean once the two duplicate forms were removed.
 
 **Gate to Phase 2:** `verify` clean twice, 24 h apart; shadow diffs zero for 7 days; mirror
 failures zero for 7 days; the CI matrix (which runs the whole suite served from Postgres) green.
