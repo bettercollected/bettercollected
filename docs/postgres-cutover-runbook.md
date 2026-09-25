@@ -76,7 +76,13 @@ Start on staging; repeat on production only after the staging gate.
 
 Rehearsal numbers (production dump, 2026-09-25, laptop): backfill of the backend's 69k documents
 (182 MB of responses) in ~30 s, `verify` in 14 s, auth and google in about a second each — all
-clean once the two duplicate forms were removed.
+clean once the two duplicate forms were removed. An offline shadow-read sweep over the same
+dump (every identity/forms/responses/refdata read method, 50 workspaces, ~1,300 calls) found
+one real divergence, fixed since: three responder groups carry a glob (`*@…`) where a regex was
+expected, which made Mongo's `$regexMatch` fail the whole private-form listing for members of
+those workspaces while the twin quietly skipped the group. Both sides now match the pattern in
+Python and reject non-compiling patterns on save. Everything else was shape-only (absent vs
+null fields, `_id` vs `id` on raw documents, list order), invisible after serialisation.
 
 **Gate to Phase 2:** `verify` clean twice, 24 h apart; shadow diffs zero for 7 days; mirror
 failures zero for 7 days; the CI matrix (which runs the whole suite served from Postgres) green.

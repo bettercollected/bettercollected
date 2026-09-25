@@ -1,3 +1,4 @@
+import re
 from datetime import datetime, timezone
 from http import HTTPStatus
 from typing import Any, Dict, List, Optional
@@ -14,6 +15,7 @@ from pymongo.errors import (
 
 from backend.app.exceptions import HTTPException
 from backend.app.models.workspace import WorkspaceFormSettings
+from backend.app.schemas.responder_group import ResponderGroupDocument
 from backend.app.schemas.workspace_form import WorkspaceFormDocument
 from common.db.routing import write_op
 
@@ -169,6 +171,7 @@ class WorkspaceFormRepository:
                     }
                 )
             if is_not_admin and user:
+                admitting = await self._groups_admitting(workspace_id, user.sub)
                 aggregation_pipeline.extend(
                     [
                         {
@@ -188,21 +191,6 @@ class WorkspaceFormRepository:
                             }
                         },
                         {
-                            "$lookup": {
-                                "from": "responder_group",
-                                "localField": "groups_form.group_id",
-                                "foreignField": "_id",
-                                "as": "groups",
-                            }
-                        },
-                        {"$set": {"regex": "$groups.regex"}},
-                        {
-                            "$unwind": {
-                                "path": "$regex",
-                                "preserveNullAndEmptyArrays": True,
-                            }
-                        },
-                        {
                             "$match": {
                                 "$and": [
                                     {
@@ -216,17 +204,9 @@ class WorkspaceFormRepository:
                                             {"settings.private": False},
                                             {"emails.identifier": user.sub},
                                             {
-                                                "$and": [
-                                                    {
-                                                        "$expr": {
-                                                            "$regexMatch": {
-                                                                "input": user.sub,
-                                                                "regex": "$regex",
-                                                            }
-                                                        }
-                                                    },
-                                                    {"regex": {"$ne": ""}},
-                                                ]
+                                                "groups_form.group_id": {
+                                                    "$in": admitting
+                                                }
                                             },
                                         ]
                                     },
@@ -238,27 +218,37 @@ class WorkspaceFormRepository:
             if id_only:
                 aggregation_pipeline.extend([{"$project": {"form_id": 1, "_id": 0}}])
             else:
-                aggregation_pipeline.append(
-                    {"$unset": ["groups_form", "emails", "groups", "regex"]}
-                )
-            workspace_forms = (
+                aggregation_pipeline.append({"$unset": ["groups_form", "emails"]})
+            return (
                 await WorkspaceFormDocument.find(query)
                 .aggregate(aggregation_pipeline)
                 .to_list()
             )
-            # the $unwind over group regexes yields one row per matching group
-            seen, unique = set(), []
-            for workspace_form in workspace_forms:
-                key = workspace_form.get("_id", workspace_form.get("form_id"))
-                if key not in seen:
-                    seen.add(key)
-                    unique.append(workspace_form)
-            return unique
         except (InvalidURI, NetworkTimeout, OperationFailure, InvalidOperation):
             raise HTTPException(
                 status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
                 content=MESSAGE_DATABASE_EXCEPTION,
             )
+
+    @staticmethod
+    async def _groups_admitting(
+        workspace_id: PydanticObjectId, identifier: str
+    ) -> List[PydanticObjectId]:
+        """Ids of the workspace's responder groups whose regex admits the
+        identifier. Matched here, not with ``$regexMatch`` in the pipeline: a
+        pattern that does not compile skips its group instead of failing the
+        whole listing, and the dialect is the one the Postgres twin uses."""
+        groups = await ResponderGroupDocument.find(
+            {"workspace_id": workspace_id, "regex": {"$nin": [None, ""]}}
+        ).to_list()
+        admitting = []
+        for group in groups:
+            try:
+                if re.search(group.regex, identifier):
+                    admitting.append(group.id)
+            except re.error:
+                continue
+        return admitting
 
     async def get_form_ids_in_workspace(
         self,

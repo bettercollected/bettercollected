@@ -1,5 +1,6 @@
+import re
 from http import HTTPStatus
-from typing import List
+from typing import List, Optional
 
 from beanie import PydanticObjectId
 from pydantic import EmailStr
@@ -13,6 +14,20 @@ from backend.app.repositories.responder_groups_repository import (
 from backend.app.services.form_service import FormService
 from backend.app.services.workspace_user_service import WorkspaceUserService
 from common.models.user import User
+
+
+def validate_group_regex(regex: Optional[str]) -> None:
+    """A responder group's regex must compile: it is evaluated against every
+    responder's identifier when private forms are listed."""
+    if not regex:
+        return
+    try:
+        re.compile(regex)
+    except re.error as error:
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST,
+            content=f"Invalid regex: {error}",
+        )
 
 
 class ResponderGroupsService:
@@ -60,6 +75,7 @@ class ResponderGroupsService:
         await self.check_user_can_access_group(
             workspace_id=workspace_id, group_id=group_id, user=user
         )
+        validate_group_regex(regex)
         response = await self.responder_groups_repo.update_group(
             group_id=group_id,
             emails=emails,
@@ -83,6 +99,7 @@ class ResponderGroupsService:
         await self.workspace_user_service.check_is_admin_in_workspace(
             workspace_id=workspace_id, user=user
         )
+        validate_group_regex(regex)
         group = await self.responder_groups_repo.create_group(
             workspace_id=workspace_id, name=name, description=description, regex=regex
         )

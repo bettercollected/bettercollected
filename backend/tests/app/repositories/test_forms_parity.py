@@ -254,12 +254,17 @@ async def test_workspace_form_visibility(sessions):
         workspace_form(ws, "open", "u1", 7, form_close_date=""),
         workspace_form(ws, "imported", "u1", 8, provider="google"),
         workspace_form(other, "elsewhere", "u1", 9),
+        workspace_form(ws, "glob", "u1", 10, private=True),
     )
     members = await groups.create_group(ws, "Members")
     await groups.add_emails_to_group(members.id, ["member@example.com"])
     await groups.add_group_to_form("members", members.id)
     corp_group = await groups.create_group(ws, "Corp", regex=".*@corp.com")
     await groups.add_group_to_form("corp", corp_group.id)
+    # a glob typed where a regex was expected (seen in production): it must
+    # admit nobody and never break the listing for the workspace
+    glob_group = await groups.create_group(ws, "Glob", regex="*@corp.com")
+    await groups.add_group_to_form("glob", glob_group.id)
 
     def listing(**kwargs):
         return lambda repo: repo.get_workspace_forms_in_workspace(ws, **kwargs)

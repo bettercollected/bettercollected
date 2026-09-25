@@ -23,7 +23,7 @@ class PostgresAllowedOriginsRepository(PostgresRepositoryBase):
     document = AllowedOriginsDocument
 
     async def list_origins(self) -> List[str]:
-        return [doc.origin for doc in await self.many()]
+        return [doc.origin for doc in await self.many(order_by=(AllowedOriginRow.id,))]
 
     async def find_by_origin(self, origin: str) -> Optional[AllowedOriginsDocument]:
         return await self.one(AllowedOriginRow.origin == origin)
