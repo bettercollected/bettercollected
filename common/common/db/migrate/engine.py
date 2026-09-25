@@ -142,16 +142,17 @@ def spine_paths(table: Table) -> dict[str, list[str]]:
 
 
 def unique_key_paths(table: Table) -> list[list[list[str]]]:
-    """For every UNIQUE constraint: the document paths of its columns."""
+    """For every UNIQUE constraint *and* unique index: the document paths of
+    its columns. A partial index (``postgresql_where``) is checked as if it
+    were total — a false positive there is a report to read, a miss would be
+    a failed backfill."""
     paths = spine_paths(table)
     keys = []
-    for constraint in table.constraints:
-        cols = [c.name for c in getattr(constraint, "columns", [])]
-        if (
-            type(constraint).__name__ == "UniqueConstraint"
-            and cols
-            and all(c in paths for c in cols)
-        ):
+    uniques = [c for c in table.constraints if type(c).__name__ == "UniqueConstraint"]
+    uniques += [i for i in table.indexes if i.unique]
+    for unique in uniques:
+        cols = [c.name for c in getattr(unique, "columns", [])]
+        if cols and all(c in paths for c in cols):
             keys.append([paths[c] for c in cols])
     return keys
 
@@ -272,7 +273,9 @@ class Runner:
             )
             for key in unique_key_paths(table):
                 group = {"_".join(p): "$" + ".".join(p) for p in key}
+                present = {".".join(p): {"$nin": [None, ""]} for p in key}
                 pipeline = [
+                    {"$match": present},
                     {"$group": {"_id": group, "n": {"$sum": 1}}},
                     {"$match": {"n": {"$gt": 1}}},
                     {"$count": "groups"},
@@ -332,17 +335,30 @@ class Runner:
                         state["skipped"],
                         state["batch_size"],
                     )
-                results[name] = await self._backfill_collection(
-                    name,
-                    table,
-                    last_id,
-                    copied,
-                    skipped,
-                    size,
-                    dry_run=dry_run,
-                    deadline=deadline,
-                    max_batches=max_batches,
-                )
+                try:
+                    results[name] = await self._backfill_collection(
+                        name,
+                        table,
+                        last_id,
+                        copied,
+                        skipped,
+                        size,
+                        dry_run=dry_run,
+                        deadline=deadline,
+                        max_batches=max_batches,
+                    )
+                except Exception as exc:  # noqa: BLE001 — recorded; the run goes on
+                    logger.error(
+                        "backfill %s failed: %s: %s",
+                        name,
+                        type(exc).__name__,
+                        str(exc)[:300],
+                    )
+                    results[name] = {
+                        "state": STATE_ERROR,
+                        "error": f"{type(exc).__name__}: {str(exc)[:300]}",
+                    }
+                    continue
                 if (
                     results[name]["state"] == STATE_PAUSED
                     and deadline
