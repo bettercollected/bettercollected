@@ -1,22 +1,21 @@
-import Color from '@tiptap/extension-color';
-import TextStyle from '@tiptap/extension-text-style';
-import Underline from '@tiptap/extension-underline';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+
+import { ArrowDown } from '@Components/icons/arrow-down';
+import RequiredIcon from '@Components/icons/required';
+import { Color, TextStyle } from '@tiptap/extension-text-style';
 import { Editor, EditorProvider, JSONContent, useCurrentEditor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
+import { useDebounceValue } from 'usehooks-ts';
 
 import { FieldTypes, StandardFormFieldDto, V2InputFields } from '@app/models/dtos/form';
 import { cn } from '@app/shadcn/util/lib';
 import useFormFieldsAtom from '@app/store/jotai/field-selectors';
 import { useFormState } from '@app/store/jotai/form';
 import { AnswerPipe } from '@app/utils/richTextEditorExtenstion/answer-pipe';
-import { AnswerPipeSuggestion, filterPipeSuggestionItems, PipeSuggestionItem } from '@app/utils/richTextEditorExtenstion/answer-pipe-suggestion';
+import { AnswerPipeSuggestion, PipeSuggestionItem, filterPipeSuggestionItems } from '@app/utils/richTextEditorExtenstion/answer-pipe-suggestion';
 import { FontSize } from '@app/utils/richTextEditorExtenstion/font-size';
 import { getHtmlFromJson } from '@app/utils/richTextEditorExtenstion/get-html-from-json';
 import { buildSourceFields } from '@app/views/molecules/form-builder/condition-editor-shared';
-import { ArrowDown } from '@Components/icons/arrow-down';
-import RequiredIcon from '@Components/icons/required';
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { useDebounceValue } from 'usehooks-ts';
 
 export function getPlaceholderValueForTitle(fieldType: FieldTypes) {
     switch (fieldType) {
@@ -55,7 +54,9 @@ export function getPlaceholderValueForTitle(fieldType: FieldTypes) {
     }
 }
 
-export const Extenstions = [StarterKit, TextStyle, FontSize, Underline, Color, AnswerPipe];
+// TipTap 3: underline ships inside StarterKit; link is switched off so titles
+// keep the same stored JSON as before (no autolink marks).
+export const Extenstions = [StarterKit.configure({ link: false }), TextStyle, FontSize, Color, AnswerPipe];
 
 /**
  * Everything pipeable into `field`'s title: answers the responder will already
@@ -136,6 +137,9 @@ export function RichTextEditor({ field, slide, autofocus = false, isRequired = f
                 content={getContentForEditor()}
                 extensions={editorExtensions}
                 immediatelyRender={false}
+                // TipTap 3 stops re-rendering on every transaction by default; the
+                // menu bar reads editor.isActive() so it needs the v2 behaviour.
+                shouldRerenderOnTransaction
                 slotBefore={<TiptapMenuBar field={field} slide={slide} />}
                 autofocus={autofocus}
                 editorProps={{
@@ -188,7 +192,10 @@ const InsertPipeMenu = ({ editor, field, slide }: { editor: Editor; field: Stand
         editor
             .chain()
             .focus()
-            .insertContent([{ type: 'answerPipe', attrs: { kind: item.kind, pipeKey: item.pipeKey, label: item.label } }, { type: 'text', text: ' ' }])
+            .insertContent([
+                { type: 'answerPipe', attrs: { kind: item.kind, pipeKey: item.pipeKey, label: item.label } },
+                { type: 'text', text: ' ' }
+            ])
             .run();
         setOpen(false);
     };
@@ -215,8 +222,8 @@ const InsertPipeMenu = ({ editor, field, slide }: { editor: Editor; field: Stand
                         lastGroup = item.group;
                         return (
                             <React.Fragment key={`${item.kind}:${item.pipeKey}`}>
-                                {header && <div className="text-black-500 px-3 py-1 text-xs uppercase tracking-wide">{header}</div>}
-                                <div role="button" tabIndex={0} className="text-black-800 cursor-pointer truncate px-3 py-1.5 text-sm hover:bg-gray-100" onClick={() => insertPipe(item)}>
+                                {header && <div className="px-3 py-1 text-xs uppercase tracking-wide text-black-500">{header}</div>}
+                                <div role="button" tabIndex={0} className="cursor-pointer truncate px-3 py-1.5 text-sm text-black-800 hover:bg-gray-100" onClick={() => insertPipe(item)}>
                                     {item.label}
                                 </div>
                             </React.Fragment>
@@ -250,14 +257,11 @@ const TiptapMenuBar = ({ field, slide }: { field: StandardFormFieldDto; slide: S
     return (
         // A div, not a <button>: the bar hosts interactive children (the insert-
         // answer dropdown), and interactive elements can't nest inside a button.
-        <div
-            className={cn(`shadow-tooltip absolute -top-14 mb-2 hidden items-center rounded-lg bg-white px-4 py-1`, 'group-focus-within:flex')}
-            tabIndex={0}
-        >
+        <div className={cn(`absolute -top-14 mb-2 hidden items-center rounded-lg bg-white px-4 py-1 shadow-tooltip`, 'group-focus-within:flex')} tabIndex={0}>
             <div className="flex flex-row items-center justify-center gap-4">
                 <span className="p3-new font-medium">Text</span>
                 <div className="flex items-center gap-1">
-                    <span className="p3-new text-black-700 w-[21px]">{getActiveFontSize(editor) || 24}</span>
+                    <span className="p3-new w-[21px] text-black-700">{getActiveFontSize(editor) || 24}</span>
                     <div className="flex flex-col">
                         <div
                             className="cursor-pointer"

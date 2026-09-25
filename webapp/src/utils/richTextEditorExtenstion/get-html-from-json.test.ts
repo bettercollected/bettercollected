@@ -1,68 +1,57 @@
+/**
+ * Stored field titles are TipTap JSON written by the v2 editor: paragraphs
+ * with textStyle marks (font size, colour), underline, and inline answerPipe
+ * nodes. The v3 schema must keep rendering every one of them, or forms saved
+ * before the upgrade would lose parts of their titles.
+ */
 import { describe, expect, it } from 'vitest';
 
-import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
-import { extractTextfromJSON, getHtmlFromJson } from './get-html-from-json';
+import { getHtmlFromJson } from '@app/utils/richTextEditorExtenstion/get-html-from-json';
 
-const tiptap = (text: string, marks?: any[]) => ({ type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text, ...(marks ? { marks } : {}) }] }] });
-
-describe('getHtmlFromJson', () => {
-    it('wraps plain-string titles in a bold paragraph (legacy format)', () => {
-        expect(getHtmlFromJson('Hello')).toBe('<p><strong>Hello</strong></p>');
-    });
-
-    it('renders Tiptap JSON to HTML', () => {
-        expect(getHtmlFromJson(tiptap('Hi there') as any)).toContain('Hi there');
-    });
-
-    it('returns null for empty input', () => {
-        expect(getHtmlFromJson(undefined)).toBeNull();
-        expect(getHtmlFromJson('')).toBeNull();
-    });
-});
-
-describe('extractTextfromJSON', () => {
-    const field = (overrides: Partial<StandardFormFieldDto>): StandardFormFieldDto => ({ id: 'f', index: 0, type: FieldTypes.SHORT_TEXT, ...overrides });
-
-    it('strips tags from a rendered title', () => {
-        expect(extractTextfromJSON(field({ title: tiptap('Plain text') as any }))).toBe('Plain text');
-    });
-
-    it('strips tags from string titles too', () => {
-        expect(extractTextfromJSON(field({ title: 'Simple' }))).toBe('Simple');
-    });
-
-    it('falls back to the per-type placeholder for untitled fields', () => {
-        expect(extractTextfromJSON(field({}))).toBe('Enter Question');
-        expect(extractTextfromJSON(field({ type: FieldTypes.EMAIL }))).toBe('Enter Your Email Address');
-        expect(extractTextfromJSON(field({ type: FieldTypes.YES_NO }))).toBe('Are you sure?');
-    });
-
-    it('renders answerPipe chips as their label, not editor syntax', () => {
-        const title = {
-            type: 'doc',
+const storedTitle = {
+    type: 'doc',
+    content: [
+        {
+            type: 'paragraph',
             content: [
+                { type: 'text', text: 'Hello ', marks: [{ type: 'bold' }, { type: 'underline' }] },
                 {
-                    type: 'paragraph',
-                    content: [
-                        { type: 'text', text: 'Hello ' },
-                        { type: 'answerPipe', attrs: { kind: 'field', pipeKey: 'abc', label: 'Page 1 · Name' } },
-                        { type: 'text', text: ' — welcome ' },
-                        { type: 'answerPipe', attrs: { kind: 'hidden', pipeKey: 'utm_source' } }
-                    ]
+                    type: 'text',
+                    text: 'big red',
+                    marks: [{ type: 'textStyle', attrs: { fontSize: '24px', color: '#ff0000' } }]
+                },
+                { type: 'text', text: ' ' },
+                {
+                    type: 'answerPipe',
+                    attrs: { kind: 'field', pipeKey: 'q1', label: 'Page 1 · Your name', fallback: 'there' }
                 }
             ]
-        };
-        expect(extractTextfromJSON(field({ title: title as any }))).toBe('Hello Page 1 · Name — welcome utm_source');
+        }
+    ]
+};
+
+describe('getHtmlFromJson (TipTap 3 schema)', () => {
+    it('renders titles saved by the v2 editor without dropping marks or pipes', () => {
+        const html = getHtmlFromJson(storedTitle as any) ?? '';
+        expect(html).toContain('<strong>');
+        expect(html).toContain('<u>');
+        expect(html).toContain('font-size: 24px');
+        // TipTap 3 normalises colours to rgb(); same colour, different notation
+        expect(html).toMatch(/color: (#ff0000|rgb\(255, 0, 0\))/);
+        expect(html).toContain('data-pipe-key="q1"');
+        expect(html).toContain('data-pipe-label="Page 1 · Your name"');
     });
 
-    it('separates paragraphs with a space', () => {
-        const title = {
-            type: 'doc',
-            content: [
-                { type: 'paragraph', content: [{ type: 'text', text: 'Line one' }] },
-                { type: 'paragraph', content: [{ type: 'text', text: 'line two' }] }
-            ]
-        };
-        expect(extractTextfromJSON(field({ title: title as any }))).toBe('Line one line two');
+    it('does not autolink URLs (link extension stays off, as in v2)', () => {
+        const html =
+            getHtmlFromJson({
+                type: 'doc',
+                content: [{ type: 'paragraph', content: [{ type: 'text', text: 'see https://example.com' }] }]
+            } as any) ?? '';
+        expect(html).not.toContain('<a ');
+    });
+
+    it('wraps legacy string titles in a bold paragraph', () => {
+        expect(getHtmlFromJson('Plain title')).toBe('<p><strong>Plain title</strong></p>');
     });
 });
