@@ -108,6 +108,11 @@ class PostgresWorkspaceRepository(PostgresRepositoryBase):
     ) -> Optional[WorkspaceDocument]:
         return await self.one(WorkspaceRow.custom_domain == custom_domain)
 
+    async def find_by_custom_domain_id(
+        self, domain_id: str
+    ) -> Optional[WorkspaceDocument]:
+        return await self.one(WorkspaceRow.doc["custom_domain_id"].astext == domain_id)
+
     async def get_or_404(self, workspace_id: PydanticObjectId) -> WorkspaceDocument:
         return await self.get_or_raise(workspace_id)
 

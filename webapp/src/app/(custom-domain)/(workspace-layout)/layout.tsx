@@ -1,19 +1,20 @@
-import environments from '@app/configs/environments';
-import { getWorkspaceByDomain } from '@app/lib/server/api';
-import { Alert, AlertDescription, AlertTitle } from '@app/shadcn/components/ui/alert';
-import ResponderPortalLayoutClient from '@Components/responder-portal/responder-portal-layout-client';
-import { AlertCircle } from 'lucide-react';
+import React from 'react';
+
 import { Metadata } from 'next';
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
-import React from 'react';
+
+import ResponderPortalLayoutClient from '@Components/responder-portal/responder-portal-layout-client';
+import { AlertCircle } from 'lucide-react';
+
+import environments from '@app/configs/environments';
+import { resolveCustomDomainWorkspace } from '@app/lib/server/custom-domain';
+import { Alert, AlertDescription, AlertTitle } from '@app/shadcn/components/ui/alert';
+
 import { WorkspaceDispatcher } from '../../_dispatcher/workspace-dispatcher';
 
 export async function generateMetadata(): Promise<Metadata> {
-    const headerList = await headers();
-    const host = headerList.get('x-forwarded-host') || headerList.get('host') || '';
-
-    const workspace = await getWorkspaceByDomain(host);
+    const { workspace } = await resolveCustomDomainWorkspace();
 
     return {
         title: workspace?.name || 'Workspace',
@@ -31,7 +32,7 @@ export default async function CustomDomainLayout({ children }: { children: React
         redirect('/login');
     }
 
-    const workspace = await getWorkspaceByDomain(host);
+    const { workspace } = await resolveCustomDomainWorkspace();
 
     if (!workspace?.id) {
         return (
@@ -39,9 +40,7 @@ export default async function CustomDomainLayout({ children }: { children: React
                 <Alert variant="destructive" className="max-w-md">
                     <AlertCircle className="h-4 w-4" />
                     <AlertTitle>Error</AlertTitle>
-                    <AlertDescription>
-                        Workspace not found or custom domain not configured properly.
-                    </AlertDescription>
+                    <AlertDescription>Workspace not found or custom domain not configured properly.</AlertDescription>
                 </Alert>
             </div>
         );
@@ -49,9 +48,7 @@ export default async function CustomDomainLayout({ children }: { children: React
 
     return (
         <WorkspaceDispatcher workspace={workspace}>
-            <ResponderPortalLayoutClient hasCustomDomain={true}>
-                {children}
-            </ResponderPortalLayoutClient>
+            <ResponderPortalLayoutClient hasCustomDomain={true}>{children}</ResponderPortalLayoutClient>
         </WorkspaceDispatcher>
     );
 }

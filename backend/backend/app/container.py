@@ -128,6 +128,7 @@ from backend.app.services.workspace_consent_service import WorkspaceConsentServi
 from backend.app.services.workspace_form_service import WorkspaceFormService
 from backend.app.services.workspace_members_service import WorkspaceMembersService
 from backend.app.services.workspace_responders_service import WorkspaceRespondersService
+from backend.app.services.custom_domain_service import CustomDomainService
 from backend.app.services.workspace_service import WorkspaceService
 from backend.app.services.workspace_user_service import WorkspaceUserService
 from backend.app.services.umami_client import UmamiClient
@@ -544,9 +545,14 @@ class AppContainer(containers.DeclarativeContainer):
         form_template_repo=LazyRepository(lambda: container.form_template_repo()),
     )
 
+    custom_domain_service: CustomDomainService = providers.Singleton(
+        CustomDomainService, settings=settings.custom_domain
+    )
+
     workspace_service: WorkspaceService = providers.Singleton(
         WorkspaceService,
         http_client=http_client,
+        custom_domain_service=custom_domain_service,
         workspace_repo=workspace_repo,
         workspace_user_repo=workspace_user_repo,
         allowed_origins_repo=allowed_origins_repo,

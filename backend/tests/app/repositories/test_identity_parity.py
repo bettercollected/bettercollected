@@ -76,7 +76,9 @@ async def both_raise(exc_type, mongo_call, postgres_call):
 async def test_workspaces(sessions):
     owner = str(PydanticObjectId())
     default = workspace("acme", owner, default=True)
-    other = workspace("beta", owner, custom_domain="beta.example")
+    other = workspace(
+        "beta", owner, custom_domain="beta.example", custom_domain_id="dom-beta"
+    )
     hidden = workspace(
         "gamma", owner, custom_domain="gamma.example", custom_domain_disabled=True
     )
@@ -93,6 +95,8 @@ async def test_workspaces(sessions):
             ("find_by_id", lambda: (PydanticObjectId(),)),
             ("find_by_name", lambda: ("beta",)),
             ("find_by_custom_domain", lambda: ("beta.example",)),
+            ("find_by_custom_domain_id", lambda: ("dom-beta",)),
+            ("find_by_custom_domain_id", lambda: ("dom-missing",)),
             ("get_or_404", lambda: (other.id,)),
             ("get_workspace_by_id", lambda: (other.id,)),
             ("get_workspace_by_query", lambda: ("acme",)),

@@ -1,7 +1,8 @@
-import environments from '@app/configs/environments';
-import { getWorkspaceByDomain } from '@app/lib/server/api';
 import { headers } from 'next/headers';
 import { notFound, redirect } from 'next/navigation';
+
+import environments from '@app/configs/environments';
+import { resolveCustomDomainWorkspace } from '@app/lib/server/custom-domain';
 
 export default async function RootPage() {
     const headerList = await headers();
@@ -10,7 +11,7 @@ export default async function RootPage() {
     const hasCustomDomain = host !== environments.DASHBOARD_DOMAIN && host !== environments.FORM_DOMAIN;
 
     if (hasCustomDomain) {
-        const workspace = await getWorkspaceByDomain(host);
+        const { workspace } = await resolveCustomDomainWorkspace();
 
         if (!workspace?.id) {
             notFound();

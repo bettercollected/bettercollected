@@ -1,6 +1,24 @@
 // src/models/dtos/workspaceDto.ts
-
 import { FormTheme } from '@app/constants/theme';
+
+export type CustomDomainStatus = 'pending_dns' | 'provisioning' | 'ready' | 'attention_required' | 'suspended' | 'deleting';
+
+export interface CustomDomainDnsRecord {
+    name: string;
+    type: 'TXT' | 'CNAME' | string;
+    value: string;
+    purpose: 'ownership' | 'routing' | string;
+    help: string;
+}
+
+export interface CustomDomainCheck {
+    type: 'ownership' | 'routing' | 'certificate' | 'origin' | string;
+    status: 'pending' | 'passing' | 'failing' | string;
+    error_code: string | null;
+    message: string | null;
+    observed_at: string | null;
+    next_check_at: string | null;
+}
 
 export interface WorkspaceDto {
     title: string;
@@ -24,6 +42,12 @@ export interface WorkspaceDto {
     id: string;
     isPro?: boolean;
     customDomainVerified?: boolean;
+    // Mirrored from the custom-domain service when the workspace's domain is
+    // registered there (null on the legacy certificate-server path).
+    customDomainId?: string | null;
+    customDomainStatus?: CustomDomainStatus | null;
+    customDomainDnsRecords?: CustomDomainDnsRecord[] | null;
+    customDomainChecks?: CustomDomainCheck[] | null;
     // Saved custom form themes (workspace "brand kit" palettes).
     customThemes?: FormTheme[];
 }

@@ -8,6 +8,13 @@ const nextConfig = {
         emotion: true,
         removeConsole: false
     },
+    async rewrites() {
+        // custom-domain service probes (github.com/sireto/custom-domain)
+        return [
+            { source: '/.well-known/custom-domain-workspace', destination: '/api/custom-domain/workspace' },
+            { source: '/.well-known/custom-domain-origin-verification', destination: '/api/custom-domain/origin-verification' }
+        ];
+    },
     async headers() {
         return [
             {

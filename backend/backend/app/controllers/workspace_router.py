@@ -16,7 +16,11 @@ from backend.app.models.workspace import (
     WorkspaceThemeDto,
 )
 from backend.app.router import router
-from backend.app.services.ai.api_keys import APIKeyDto, CreateAPIKeyDto, CreatedAPIKeyDto
+from backend.app.services.ai.api_keys import (
+    APIKeyDto,
+    CreateAPIKeyDto,
+    CreatedAPIKeyDto,
+)
 from backend.app.services.ai.memory import AddMemoryEntryDto, MemoryEntryDto
 from backend.app.services.ai.profile import AIProfileDto, AIProfileResponseDto
 from backend.app.services.user_service import get_logged_user, get_user_if_logged_in
@@ -229,7 +233,9 @@ class WorkspaceRouter(Routable):
         entry_id: str,
         user: User = Depends(get_logged_user),
     ) -> List[MemoryEntryDto]:
-        return await container.ai_memory_service().delete_entry(workspace_id, user, entry_id)
+        return await container.ai_memory_service().delete_entry(
+            workspace_id, user, entry_id
+        )
 
     @patch("/{workspace_id}/theme-presets")
     async def patch_workspace_theme_presets(
@@ -277,5 +283,15 @@ class WorkspaceRouter(Routable):
         self, workspace_id: PydanticObjectId, user: User = Depends(get_logged_user)
     ):
         return await self.workspace_service.verify_workspace_domain(
+            workspace_id=workspace_id, user=user
+        )
+
+    @post("/{workspace_id}/custom-domain/recheck")
+    async def recheck_workspace_domain(
+        self, workspace_id: PydanticObjectId, user: User = Depends(get_logged_user)
+    ):
+        """Ask the custom-domain service to run the DNS, certificate and origin
+        checks again now (rate limited: 429 carries ``retry_after``)."""
+        return await self.workspace_service.recheck_workspace_domain(
             workspace_id=workspace_id, user=user
         )

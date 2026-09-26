@@ -12,6 +12,7 @@ from backend.config.auth_settings import AuthSettings
 from backend.config.aws import AWSSettings
 from backend.config.brevo_settings import BrevoSettings
 from backend.config.coupon_code_settings import CouponCodeSettings
+from backend.config.custom_domain import CustomDomainSettings
 from backend.config.database import MongoSettings
 from backend.config.events_webhook import EventsWebhook
 from backend.config.https_certificate import HttpsCertificateApiSettings
@@ -52,6 +53,7 @@ class Application(BaseSettings):
     mongo_settings: MongoSettings = MongoSettings()
     aws_settings: AWSSettings = AWSSettings()
     https_cert_api_settings: HttpsCertificateApiSettings = HttpsCertificateApiSettings()
+    custom_domain: CustomDomainSettings = CustomDomainSettings()
     sentry_settings: SentrySettings = SentrySettings()
     temporal_settings: TemporalSettings = TemporalSettings()
     default_workspace_settings: DefaultResourcesWorkspaceSettings = (

@@ -11,6 +11,11 @@ const environments = {
     UMAMI_SCRIPT_URL: process.env.UMAMI_SCRIPT_URL,
 
     CUSTOM_DOMAIN_IP: process.env.CUSTOM_DOMAIN_IP || '135.181.40.62',
+    // custom-domain service (server only): the edge's assertion keys, our
+    // application id and the origin verification token. Unset = legacy path.
+    CUSTOM_DOMAIN_ASSERTION_KEYS: process.env.CUSTOM_DOMAIN_ASSERTION_KEYS,
+    CUSTOM_DOMAIN_APPLICATION_ID: process.env.CUSTOM_DOMAIN_APPLICATION_ID,
+    CUSTOM_DOMAIN_ORIGIN_VERIFICATION_TOKEN: process.env.CUSTOM_DOMAIN_ORIGIN_VERIFICATION_TOKEN,
 
     ///Form Webbuilder
     FORM_PRIVACY_POLICY_URL: process.env.FORM_PRIVACY_POLICY_URL ?? 'https://bettercollected.com/privacy-policy',

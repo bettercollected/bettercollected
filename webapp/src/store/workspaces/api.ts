@@ -205,6 +205,12 @@ export const workspacesApi = createApi({
                 method: 'GET'
             })
         }),
+        recheckWorkspaceDomain: builder.mutation<any, string>({
+            query: (workspaceId: string) => ({
+                url: `/workspaces/${workspaceId}/custom-domain/recheck`,
+                method: 'POST'
+            })
+        }),
         getAllMineWorkspaces: builder.query<any, void>({
             query: () => ({
                 url: '/workspaces/mine',
@@ -643,5 +649,6 @@ export const {
     useRequestWorkspaceSubmissionDeletionByUUIDMutation,
     useGetFormAllSubmissionsQuery,
     useLazyGetFormAllSubmissionsQuery,
-    useVerifyWorkspaceDomainQuery
+    useVerifyWorkspaceDomainQuery,
+    useRecheckWorkspaceDomainMutation
 } = workspacesApi;

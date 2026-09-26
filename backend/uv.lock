@@ -347,6 +347,7 @@ dependencies = [
     { name = "classy-fastapi" },
     { name = "common" },
     { name = "cryptography" },
+    { name = "custom-domain-sdk" },
     { name = "dependency-injector" },
     { name = "elastic-apm" },
     { name = "fastapi" },
@@ -392,6 +393,7 @@ requires-dist = [
     { name = "classy-fastapi", specifier = "==0.7.0" },
     { name = "common", editable = "../common" },
     { name = "cryptography", specifier = ">=50.0.0" },
+    { name = "custom-domain-sdk", specifier = ">=0.5.0" },
     { name = "dependency-injector", specifier = ">=4.49.1" },
     { name = "elastic-apm", specifier = ">=6.26.2" },
     { name = "fastapi", specifier = ">=0.129.0" },
@@ -826,6 +828,18 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/1d/e0/e786934472e3ac4ecdecc7b129a0ca1a2a40dffdafcf2c3ea9d4397f8def/cryptography-50.0.1-pp311-pypy311_pp73-manylinux_2_34_aarch64.whl", hash = "sha256:d63ae8f6481fec907ac0f588eee8a90aefde112c633131fe540e5711ddbb5a4e", size = 4698378, upload-time = "2026-08-25T19:45:33.043Z" },
     { url = "https://files.pythonhosted.org/packages/51/cf/5b3f53a0b74d122f023476ede40ba5d3e70d5cf475f73b899740d26a4fb2/cryptography-50.0.1-pp311-pypy311_pp73-manylinux_2_34_x86_64.whl", hash = "sha256:804728ce710890870f3aaa344b2e161172d258d768ac139d02cfd9092d0d94e6", size = 4706889, upload-time = "2026-08-25T19:45:35.086Z" },
     { url = "https://files.pythonhosted.org/packages/71/44/711e61f7d014be825ef79b285b047292d1bf893732ac1bc030a351fb517f/cryptography-50.0.1-pp311-pypy311_pp73-win_amd64.whl", hash = "sha256:693c99b49bd37d0d096e4334c10232c77248c415b98d35236094cdf96d57258b", size = 3824006, upload-time = "2026-08-25T19:45:37.281Z" },
+]
+
+[[package]]
+name = "custom-domain-sdk"
+version = "0.5.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "httpx" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/0b/19/e01fd48b1faa3de53f36d03f75c5718936510b17cf9548df385a63d55323/custom_domain_sdk-0.5.0.tar.gz", hash = "sha256:69775e366fce380449db69d46ea1d75f7beb738337e8ee788cb814ad73f2b8a4", size = 15408, upload-time = "2026-09-26T18:58:29.458Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/a6/24/bb880e7451f9a40254aaab341c67e4e51b8e163b50c4054e2778e8331054/custom_domain_sdk-0.5.0-py3-none-any.whl", hash = "sha256:dd19001c99427b30ebf4118e23ac36c92180cf44abeb9dda4b7ad0769410276c", size = 18979, upload-time = "2026-09-26T18:58:28.308Z" },
 ]
 
 [[package]]
