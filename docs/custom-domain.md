@@ -97,8 +97,9 @@ Then in the backend environment set the five variables above, deploy, and
 subscribe to status events:
 
 ```bash
-python -m backend.custom_domain subscribe --url https://<api host>/api/v1/custom-domain/webhooks
-#   → prints the webhook secret once; put it in CUSTOM_DOMAIN_WEBHOOK_SECRETS and redeploy
+python -m backend.custom_domain subscribe --url https://<api host>/api/v1/custom-domain/webhooks --secret-file webhook.secret
+#   → the secret is written once to webhook.secret (mode 0600, never printed);
+#     put it in CUSTOM_DOMAIN_WEBHOOK_SECRETS, redeploy, delete the file
 ```
 
 ## Migrating the domains that exist today

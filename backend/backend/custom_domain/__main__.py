@@ -8,8 +8,10 @@ custom-domain service (docs/custom-domain.md):
   adopt                 after the import: store each imported domain's id and
                         status on its workspace (via the routed repository, so
                         both stores see it).
-  subscribe --url URL   create the webhook subscription; prints the secret
-                        once (put it in CUSTOM_DOMAIN_WEBHOOK_SECRETS).
+  subscribe --url URL --secret-file PATH
+                        create the webhook subscription; the secret is written
+                        once to PATH (mode 0600, never printed) — put it in
+                        CUSTOM_DOMAIN_WEBHOOK_SECRETS.
   sweep                 delete domains in the service that no workspace
                         references any more (replacements whose old domain
                         could not be deleted at the time).
@@ -18,6 +20,7 @@ custom-domain service (docs/custom-domain.md):
 import argparse
 import asyncio
 import json
+import os
 import sys
 
 from bson import ObjectId
@@ -94,10 +97,15 @@ async def adopt(dry_run: bool) -> int:
     return 0 if not (counts["hostname_mismatch"] or counts["unknown_workspace"]) else 1
 
 
-async def subscribe(url: str) -> int:
+async def subscribe(url: str, secret_file: str) -> int:
+    # the secret goes to a private file, never to stdout (terminal scrollback, CI logs)
+    fd = os.open(secret_file, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
     hook = await container.custom_domain_service().subscribe(url)
-    print(f"webhook {hook.id} for {', '.join(hook.events)}")
-    print("secret (shown once):", hook.secret)
+    with os.fdopen(fd, "w") as handle:
+        handle.write(hook.secret or "")
+    print(
+        f"webhook {hook.id} for {', '.join(hook.events)}; secret written to {secret_file}"
+    )
     return 0
 
 
@@ -128,6 +136,9 @@ def main(argv=None) -> int:
     p.add_argument("--dry-run", action="store_true")
     p = sub.add_parser("subscribe")
     p.add_argument("--url", required=True)
+    p.add_argument(
+        "--secret-file", required=True, help="written once, mode 0600; must not exist"
+    )
     p = sub.add_parser("sweep")
     p.add_argument("--dry-run", action="store_true")
     args = parser.parse_args(argv)
@@ -142,7 +153,7 @@ def main(argv=None) -> int:
     if args.command == "adopt":
         return asyncio.run(adopt(args.dry_run))
     if args.command == "subscribe":
-        return asyncio.run(subscribe(args.url))
+        return asyncio.run(subscribe(args.url, args.secret_file))
     return asyncio.run(sweep(args.dry_run))
 
 
