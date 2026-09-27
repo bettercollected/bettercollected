@@ -9,6 +9,7 @@ document's content).
 
 from __future__ import annotations
 
+import base64
 import collections
 import datetime as dt
 import json
@@ -25,14 +26,21 @@ from backend.app.schemas.form_import import (
 from backend.app.services.pdf_import.analysis import DocumentRefused
 from backend.app.services.pdf_import.sandbox import (
     SandboxUnavailable,
+    run_render,
     run_analysis,
     run_layout,
     run_text_layer,
 )
 from backend.app.services.pdf_import.storage import artifact_key
+from backend.app.services.pdf_import.structuring import (
+    merge,
+    page_context,
+    structure_page,
+)
 
 MESSAGE_FAILED = "The import failed unexpectedly. Please try again."
 MESSAGE_UNAVAILABLE = "The document reader is unavailable. Please try again later."
+RENDER_BATCH = 4
 
 
 def _now() -> dt.datetime:
@@ -40,10 +48,12 @@ def _now() -> dt.datetime:
 
 
 class ImportPipeline:
-    def __init__(self, repo, store, settings):
+    def __init__(self, repo, store, settings, provider_resolver=None):
         self._repo = repo
         self._store = store
         self._settings = settings
+        # returns the AI provider for imports, or None (resolved per run)
+        self._provider_resolver = provider_resolver
 
     def stages(
         self,
@@ -52,6 +62,8 @@ class ImportPipeline:
             ("analyze", self._analyze),
             ("text", self._text),
             ("layout", self._layout),
+            ("render", self._render),
+            ("structure", self._structure),
         ]
 
     async def _analyze(self, record: FormImportDocument, data: bytes) -> dict:
@@ -164,6 +176,103 @@ class ImportPipeline:
         await self._repo.save(record)
         logger.error("form import {} gave up waiting for the sandbox", import_id)
         return record
+
+    def _can_render(self) -> bool:
+        s = self._settings
+        return bool(s.SANDBOX_SOCKET) or bool(s.ALLOW_LOCAL_RENDERING)
+
+    async def _render(self, record: FormImportDocument, data: bytes) -> dict:
+        """Page images for the model and the review screen, stored next to the
+        original. Native code: only through the isolated sandbox."""
+        if not self._can_render():
+            record.report.setdefault("notes", []).append(
+                "Page images were not produced: the isolated document sandbox is not configured."
+            )
+            return {"skipped": "no isolated sandbox", "pages": []}
+        numbers = [p.number for p in record.pages] or [1]
+        stored = []
+        for start in range(0, len(numbers), RENDER_BATCH):
+            batch = numbers[start : start + RENDER_BATCH]
+            result = await run_render(
+                data,
+                record.content_type,
+                batch,
+                allow_local_native=self._settings.ALLOW_LOCAL_RENDERING,
+                render_max_side=self._settings.RENDER_MAX_SIDE,
+                **self._limits(),
+            )
+            for page in result.get("pages", []):
+                key = artifact_key(record.source_key, f"pages/{page['number']}.png")
+                await self._store.put(key, base64.b64decode(page["png"]), "image/png")
+                stored.append(
+                    {
+                        "number": page["number"],
+                        "key": key,
+                        "width_px": page["width_px"],
+                        "height_px": page["height_px"],
+                    }
+                )
+        return {"pages": stored}
+
+    async def _load_json(self, record: FormImportDocument, name: str) -> dict:
+        try:
+            return json.loads(
+                await self._store.get(artifact_key(record.source_key, name))
+            )
+        except Exception:  # noqa: BLE001 — a stage that did not run leaves no artifact
+            return {"pages": []}
+
+    async def _structure(self, record: FormImportDocument, data: bytes) -> dict:
+        """The Form Document Model: one model call per page, grounded on the
+        recovered words and layout items, merged across pages."""
+        text = {
+            p["number"]: p
+            for p in (await self._load_json(record, "text.json"))["pages"]
+        }
+        layout = {
+            p["number"]: p
+            for p in (await self._load_json(record, "layout.json"))["pages"]
+        }
+        rendered = {
+            p["number"]: p["key"]
+            for p in (record.stages.get("render") or {}).get("pages", [])
+        }
+        provider = None
+        if self._provider_resolver is not None:
+            try:
+                provider = self._provider_resolver()
+            except (
+                Exception
+            ):  # noqa: BLE001 — no provider: deterministic structuring only
+                provider = None
+        results = []
+        for page in record.pages or []:
+            ctx = page_context(
+                text.get(page.number), layout.get(page.number), page.number, page.route
+            )
+            image = None
+            if page.number in rendered:
+                try:
+                    image = await self._store.get(rendered[page.number])
+                except Exception:  # noqa: BLE001
+                    image = None
+            results.append(await structure_page(provider, ctx, image))
+        fdm = merge(results)
+        key = artifact_key(record.source_key, "fdm.json")
+        await self._store.put(
+            key, json.dumps(fdm, ensure_ascii=False).encode("utf-8"), "application/json"
+        )
+        questions = [e for e in fdm["elements"] if e["type"] == "question"]
+        summary = {
+            "questions": len(questions),
+            "sections": sum(1 for e in fdm["elements"] if e["type"] == "section"),
+            "statements": sum(1 for e in fdm["elements"] if e["type"] == "statement"),
+            "staff_only": sum(1 for e in fdm["elements"] if e["type"] == "staff_only"),
+            "pages": {str(p["number"]): p["source"] for p in fdm["pages"]},
+            "warnings": sum(len(p["warnings"]) for p in fdm["pages"]),
+        }
+        record.report["structure"] = summary
+        return {"artifact": key, **summary}
 
     async def run(self, import_id: PydanticObjectId) -> FormImportDocument:
         record = await self._repo.get(import_id)

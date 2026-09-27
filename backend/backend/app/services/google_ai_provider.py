@@ -167,12 +167,52 @@ class GoogleAIFormProvider(AIFormProvider):
         import google.generativeai as genai  # type: ignore
 
         genai.configure(api_key=self._api_key)
-        model = genai.GenerativeModel(model_name=self._model_name, system_instruction=system)
+        model = genai.GenerativeModel(
+            model_name=self._model_name, system_instruction=system
+        )
         history = [
-            {"role": "model" if m["role"] == "assistant" else "user", "parts": [m["content"]]}
+            {
+                "role": "model" if m["role"] == "assistant" else "user",
+                "parts": [m["content"]],
+            }
             for m in messages[:-1]
         ]
         session = model.start_chat(history=history)
         loop = asyncio.get_event_loop()
-        response = await loop.run_in_executor(None, lambda: session.send_message(messages[-1]["content"]))
+        response = await loop.run_in_executor(
+            None, lambda: session.send_message(messages[-1]["content"])
+        )
         return response.text
+
+    supports_vision = True
+
+    async def analyze_page(
+        self, system: str, prompt: str, image_png, schema: dict
+    ) -> dict:
+        import asyncio
+
+        import google.generativeai as genai  # type: ignore
+
+        genai.configure(api_key=self._api_key)
+        model = genai.GenerativeModel(
+            model_name=self._model_name,
+            system_instruction=system,
+            generation_config={"response_mime_type": "application/json"},
+        )
+        parts = [
+            prompt
+            + "\n\nAnswer with one JSON object that follows this schema:\n"
+            + json.dumps(schema)
+        ]
+        if image_png:
+            parts.append({"mime_type": "image/png", "data": image_png})
+        loop = asyncio.get_event_loop()
+        response = await loop.run_in_executor(
+            None, lambda: model.generate_content(parts)
+        )
+        text = (response.text or "{}").strip()
+        if text.startswith("```"):
+            text = text.strip("`")
+            if text.startswith("json"):
+                text = text[4:]
+        return json.loads(text)

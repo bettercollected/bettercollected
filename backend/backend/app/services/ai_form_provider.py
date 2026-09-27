@@ -1,4 +1,5 @@
 """Abstract interface for AI-based form generation providers."""
+
 import abc
 from typing import Any, Dict
 
@@ -26,7 +27,6 @@ class AIFormProvider(abc.ABC):
             Intermediate form dict.
         """
 
-
     async def chat(self, system: str, messages: "list[dict]") -> str:
         """Multi-turn chat completion (used by AI form editing).
 
@@ -39,3 +39,22 @@ class AIFormProvider(abc.ABC):
             The assistant's raw text reply.
         """
         raise NotImplementedError(f"{type(self).__name__} does not support chat yet.")
+
+    #: whether ``analyze_page`` can look at the page image
+    supports_vision: bool = False
+
+    async def analyze_page(
+        self, system: str, prompt: str, image_png: "bytes | None", schema: dict
+    ) -> dict:
+        """One structured-output call about a document page (PDF form import).
+
+        Args:
+            system: System prompt.
+            prompt: The page description (text, layout items, instructions).
+            image_png: The rendered page, or None when the provider has no vision.
+            schema: JSON schema the answer must follow.
+
+        Returns:
+            The parsed JSON answer.
+        """
+        raise NotImplementedError(f"{type(self).__name__} cannot analyze pages yet.")

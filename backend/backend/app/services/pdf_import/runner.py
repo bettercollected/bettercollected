@@ -27,9 +27,10 @@ MODES = ("analyze", "text", "layout", "render")
 MAX_HEADER_BYTES = 64 * 1024
 
 
-def child_env(home: str) -> Dict[str, str]:
+def child_env(home: str, render_max_side: int = 1600) -> Dict[str, str]:
     """Everything the child gets from its parent's environment: nothing secret."""
     return {
+        "BC_RENDER_MAX_SIDE": str(int(render_max_side)),
         "PATH": os.defpath,
         "HOME": home,
         "LANG": "C.UTF-8",
@@ -119,6 +120,7 @@ async def run_child(
     memory_mb: int,
     skip_pages: str = "",
     max_result_bytes: int = 16 * 1024 * 1024,
+    render_max_side: int = 1600,
 ) -> dict:
     """The child's JSON result, or raises DocumentRefused (including for
     crashes, timeouts and results larger than ``max_result_bytes``)."""
@@ -138,7 +140,7 @@ async def run_child(
             stdin=asyncio.subprocess.PIPE,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.DEVNULL,
-            env=child_env(scratch),
+            env=child_env(scratch, render_max_side),
             cwd=scratch,
         )
         try:

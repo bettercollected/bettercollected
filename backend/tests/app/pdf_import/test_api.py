@@ -362,3 +362,25 @@ async def test_the_import_job_fails_the_import_only_on_its_last_attempt(
     finally:
         settings_.SANDBOX_SOCKET = previous
         module.PdfImportService._dispatch = dispatch
+
+
+async def test_the_form_document_model_is_stored_and_summarised(
+    client, workspace, test_user_cookies, store, no_real_ai_provider
+):
+    response = await upload(
+        client, workspace, test_user_cookies, documents.form_pdf(), "form.pdf"
+    )
+    body = response.json()
+    done = await finished(client, workspace, test_user_cookies, body["id"])
+    assert done["status"] == ImportStatus.COMPLETED, done
+    summary = done["report"]["structure"]
+    assert summary["pages"] == {"1": "heuristic"} and summary["questions"] >= 5
+    assert "isolated document sandbox is not configured" in " ".join(
+        done["report"]["notes"]
+    )
+    import json
+
+    [key] = [k for k in store.objects if k.endswith("/fdm.json")]
+    fdm = json.loads(store.objects[key])
+    labels = {e["label"] for e in fdm["elements"] if e["type"] == "question"}
+    assert {"Full name", "Date of birth", "Account number", "Gender"} <= labels

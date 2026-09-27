@@ -94,3 +94,50 @@ class OpenAICompatibleFormProvider(AIFormProvider):
             messages=[{"role": "system", "content": system}, *messages],
         )
         return response.choices[0].message.content or ""
+
+    @property
+    def supports_vision(self) -> bool:
+        # self-hosted models often have no vision: opt in with AI_COMPAT_VISION=true
+        return bool(settings.ai.COMPAT_VISION)
+
+    async def analyze_page(
+        self, system: str, prompt: str, image_png, schema: dict
+    ) -> dict:
+        import base64
+
+        content = [
+            {
+                "type": "text",
+                "text": prompt
+                + "\n\nAnswer with one JSON object that follows this schema:\n"
+                + json.dumps(schema),
+            }
+        ]
+        if image_png and self.supports_vision:
+            content.append(
+                {
+                    "type": "image_url",
+                    "image_url": {
+                        "url": "data:image/png;base64,"
+                        + base64.b64encode(image_png).decode("ascii")
+                    },
+                }
+            )
+        response = await self.client.chat.completions.create(
+            model=self._model,
+            messages=[
+                {"role": "system", "content": system},
+                {"role": "user", "content": content},
+            ],
+            response_format={"type": "json_object"},
+        )
+        return _json_answer(response.choices[0].message.content or "{}")
+
+
+def _json_answer(text: str) -> dict:
+    text = (text or "").strip()
+    if text.startswith("```"):
+        text = text.strip("`")
+        if text.startswith("json"):
+            text = text[4:]
+    return json.loads(text)

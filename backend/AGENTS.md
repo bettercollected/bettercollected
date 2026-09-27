@@ -210,7 +210,15 @@ progress. Code: `app/services/pdf_import/` (stages), `app/services/pdf_import_se
   tables (a header row plus empty rows; grids of label/answer boxes are layout,
   not tables), photo/thumbprint boxes, signatures, staff-only regions, paragraphs
   and images. They reference words by index into the page's word list.
-- **Artifacts:** stage outputs (`text.json`, `layout.json`) are stored next to the original
+- **Rendering and structuring:** `render` (pdfium / Pillow, native, isolated sandbox
+  only; `PDF_IMPORT_ALLOW_LOCAL_RENDERING=true` for development) stores page PNGs;
+  `structure` (`pdf_import/structuring.py`) asks the instance's default AI provider
+  (`analyze_page`: page image + words and layout items by id, JSON schema; OpenAI uses
+  `PDF_IMPORT_OPENAI_MODEL`, default `gpt-6-luna`) for questions that reference those
+  ids. Labels are rebuilt from the referenced words; invalid answers are retried once,
+  then the page is structured deterministically. Result: `fdm.json`. Tests never call
+  a real provider (autouse fixture in `tests/app/pdf_import/conftest.py`).
+- **Artifacts:** stage outputs (`text.json`, `layout.json`, `pages/<n>.png`, `fdm.json`) are stored next to the original
   in the form's private folder, so they are deleted with the form.
 - Limits and the default model: `PDF_IMPORT_*` (`config/pdf_import_settings.py`).
 - Tests generate their own documents (`tests/app/pdf_import/documents.py`);
