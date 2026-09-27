@@ -282,6 +282,7 @@ def get_group_tables(form: Dict[str, Any], response: Dict[str, Any]) -> List[Dic
     """One table per rows-layout group: header + one row per item, keyed by
     the response id and the item number."""
     tables = []
+    used_sheet_titles: set = set()
     for field in get_fields_from_v2_form(form):
         repeat = get_repeat_settings(field)
         if repeat is None or repeat['export_layout'] != 'rows':
@@ -294,16 +295,37 @@ def get_group_tables(form: Dict[str, Any], response: Dict[str, Any]) -> List[Dic
         tables.append({
             'field_id': field['id'],
             'title': field['title'],
+            'sheet_title': unique_sheet_title(field['title'], field['id'], used_sheet_titles),
             'headers': [RESPONSE_ID_COLUMN, repeat['item_label']] + [child['title'] for child in children],
             'rows': rows,
         })
     return tables
 
 
+# Google Sheets limits tab names to 100 characters.
+SHEET_TITLE_MAX = 100
+
+
 def sheet_title_for(title: str) -> str:
-    """A valid, stable Google Sheets tab name for a group table."""
+    """A valid Google Sheets tab name for a group table."""
     cleaned = re.sub(r"[\[\]:*?/\\']", ' ', str(title or 'Group')).strip() or 'Group'
-    return cleaned[:95]
+    return cleaned[:SHEET_TITLE_MAX]
+
+
+def unique_sheet_title(title: str, field_id: str, used: set) -> str:
+    """A tab name no other group table of the form uses (tab names are
+    case-insensitive). On a clash the group id's start is appended, so the
+    name stays the same for every response of the form. Records the name
+    in ``used``."""
+    base = sheet_title_for(title)
+    candidate = base
+    attempt = 0
+    while candidate.lower() in used:
+        attempt += 1
+        suffix = f" ({str(field_id)[:8]})" if attempt == 1 else f" ({str(field_id)[:8]}-{attempt})"
+        candidate = base[: SHEET_TITLE_MAX - len(suffix)].rstrip() + suffix
+    used.add(candidate.lower())
+    return candidate
 
 
 def column_letter(count: int) -> str:

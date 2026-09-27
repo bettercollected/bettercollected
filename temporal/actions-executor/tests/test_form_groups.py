@@ -136,3 +136,21 @@ def test_column_letters_and_sheet_titles():
         "BA",
     ]
     assert sheet_title_for("Family: members/[all]") == "Family  members  all"
+
+
+def test_group_tabs_never_share_a_name():
+    form = form_with_group(max_items=10)
+    page = form["fields"][0]["properties"]["fields"]
+    long_title = "x" * 120
+    first = page[1]
+    first["title"] = long_title
+    page.append({**first, "id": "g2", "title": long_title + " (different tail)"})
+    page.append({**first, "id": "g3", "title": long_title.upper()})
+    titles = [t["sheet_title"] for t in get_group_tables(form, RESPONSE)]
+    assert len(titles) == 3
+    assert len({t.lower() for t in titles}) == 3
+    assert all(len(t) <= 100 for t in titles)
+    assert titles[0] == "x" * 100
+    assert titles[1].endswith("(g2)")
+    # Stable: the same form always yields the same names.
+    assert titles == [t["sheet_title"] for t in get_group_tables(form, RESPONSE)]

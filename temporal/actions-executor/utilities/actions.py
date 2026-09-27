@@ -522,7 +522,7 @@ async def run_action(
                 sheet["properties"]["title"] for sheet in spreadsheet.get("sheets", [])
             }
             for table in tables:
-                title = sheet_title_for(table["title"])
+                title = table.get("sheet_title") or sheet_title_for(table["title"])
                 if title not in existing:
                     service.spreadsheets().batchUpdate(
                         spreadsheetId=google_sheet_id,
