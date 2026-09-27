@@ -149,3 +149,83 @@ def encrypted_pdf() -> bytes:
     out = io.BytesIO()
     writer.write(out)
     return out.getvalue()
+
+
+def form_pdf() -> bytes:
+    """A vector form with one of each layout element (coordinates: PDF points,
+    origin bottom-left; 595 x 842 page)."""
+
+    def text(x, y, s, size=11, font="F1", grey=None, white=False):
+        colour = (
+            b"1 1 1 rg "
+            if white
+            else (f"{grey} g ".encode() if grey is not None else b"0 g ")
+        )
+        return (
+            colour
+            + f"BT /{font} {size} Tf {x} {y} Td (".encode()
+            + s.encode("latin-1")
+            + b") Tj ET 0 g\n"
+        )
+
+    ops = []
+    # section bar with a white heading
+    ops.append(b"1 0 0 rg 50 780 495 18 re f 0 g\n")
+    ops.append(text(56, 785, "Personal details", 12, "F2", white=True))
+    # text answer box
+    ops.append(text(56, 750, "Full name"))
+    ops.append(b"150 745 280 18 re S\n")
+    # date boxes with grey placeholders
+    ops.append(text(56, 720, "Date of birth"))
+    ops.append(b"150 715 30 18 re S 184 715 30 18 re S 218 715 50 18 re S\n")
+    ops.append(
+        text(156, 720, "DD", grey=0.75)
+        + text(190, 720, "MM", grey=0.75)
+        + text(226, 720, "YYYY", grey=0.75)
+    )
+    # ten character cells
+    ops.append(text(56, 690, "Account number"))
+    ops.append(
+        b"".join(f"{150 + 14 * i} 685 14 18 re S ".encode() for i in range(10)) + b"\n"
+    )
+    # square checkboxes and parenthesis checkboxes
+    ops.append(text(56, 662, "Gender"))
+    ops.append(b"150 660 12 12 re S 230 660 12 12 re S\n")
+    ops.append(text(166, 662, "Male") + text(246, 662, "Female"))
+    ops.append(text(56, 640, "Married?    (    ) Yes    (    ) No"))
+    # an underline answer and leader dots
+    ops.append(text(56, 612, "Remarks"))
+    ops.append(b"150 610 m 400 610 l S\n")
+    ops.append(text(56, 585, "Signature ..........................."))
+    # photo frame
+    ops.append(b"450 620 90 110 re S\n")
+    ops.append(text(475, 670, "Photo"))
+    # a data table: header + two empty rows, ruled with lines
+    for y in (560, 540, 520, 500):
+        ops.append(f"56 {y} m 500 {y} l S\n".encode())
+    for x in (56, 200, 350, 500):
+        ops.append(f"{x} 500 m {x} 560 l S\n".encode())
+    ops.append(
+        text(62, 546, "Name") + text(206, 546, "Relation") + text(356, 546, "Account")
+    )
+    # a paragraph of running text
+    sentence = "I declare that the information given in this form is true and complete to my knowledge"
+    for i in range(4):
+        ops.append(text(56, 440 - 13 * i, sentence, 10))
+    # a staff-only band and its field
+    ops.append(b"0.2 g 50 330 495 16 re f 0 g\n")
+    ops.append(text(56, 334, "For office use only", 11, "F2", white=True))
+    ops.append(text(56, 305, "Reviewed by"))
+    ops.append(b"150 300 200 18 re S\n")
+
+    content = b"".join(ops)
+    return _pdf(
+        [
+            b"<< /Type /Catalog /Pages 2 0 R >>",
+            b"<< /Type /Pages /Kids [5 0 R] /Count 1 >>",
+            b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+            b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>",
+            b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 6 0 R >>",
+            _stream(content),
+        ]
+    )

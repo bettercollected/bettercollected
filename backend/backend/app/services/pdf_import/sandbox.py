@@ -8,7 +8,8 @@ CPU-time and core-dump limits; the parent adds a wall-clock timeout. At most
 ``max_parallel`` children run at once in a process, whatever the number of
 workspaces importing, so a burst of heavy documents cannot exhaust the host.
 
-Modes: ``analyze`` (page signals and routes) and ``text`` (the text layer).
+Modes: ``analyze`` (page signals and routes), ``text`` (the text layer) and
+``layout`` (layout primitives).
 Not yet enough for native page rendering (#703: separate user, no network and
 a syscall filter come first).
 """
@@ -181,6 +182,17 @@ async def run_text_layer(data: bytes, skip_pages: Iterable[int] = (), **limits) 
     """Words of every page not in ``skip_pages``, legacy fonts decoded."""
     return await run_in_sandbox(
         "text",
+        data,
+        "application/pdf",
+        skip_pages=",".join(str(n) for n in skip_pages),
+        **limits,
+    )
+
+
+async def run_layout(data: bytes, skip_pages: Iterable[int] = (), **limits) -> dict:
+    """Layout primitives of every page not in ``skip_pages``."""
+    return await run_in_sandbox(
+        "layout",
         data,
         "application/pdf",
         skip_pages=",".join(str(n) for n in skip_pages),

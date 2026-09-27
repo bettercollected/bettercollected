@@ -190,7 +190,13 @@ progress. Code: `app/services/pdf_import/` (stages), `app/services/pdf_import_se
   and a page with too many of them switches route to `vision`. Add a font family
   by adding a decoder and tests of common words; never trust an unknown legacy
   font's text.
-- **Artifacts:** stage outputs (e.g. `text.json`) are stored next to the original
+- **Layout primitives** (`pdf_import/layout.py`) are deterministic geometry over the
+  drawing and the recovered words: section bars, answer slots (box, underline,
+  leader dots), character/date cell runs, checkboxes (squares, `( )`, glyphs), data
+  tables (a header row plus empty rows; grids of label/answer boxes are layout,
+  not tables), photo/thumbprint boxes, signatures, staff-only regions, paragraphs
+  and images. They reference words by index into the page's word list.
+- **Artifacts:** stage outputs (`text.json`, `layout.json`) are stored next to the original
   in the form's private folder, so they are deleted with the form.
 - Limits and the default model: `PDF_IMPORT_*` (`config/pdf_import_settings.py`).
 - Tests generate their own documents (`tests/app/pdf_import/documents.py`);

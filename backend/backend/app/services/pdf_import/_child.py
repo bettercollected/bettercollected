@@ -46,6 +46,10 @@ def main(argv) -> int:
                 from pdf_import.text_layer import extract_text_layer
 
                 result = extract_text_layer(data, skip_pages=skip)
+            elif mode == "layout":
+                from pdf_import.layout import extract_layout
+
+                result = extract_layout(data, skip_pages=skip)
             elif content_type == "application/pdf":
                 result = analyze_pdf(data, max_pages)
             else:
