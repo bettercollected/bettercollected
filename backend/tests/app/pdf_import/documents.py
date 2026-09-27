@@ -31,6 +31,22 @@ def _stream(content: bytes) -> bytes:
     )
 
 
+def _font(name: str) -> bytes:
+    """A simple font with widths and a descriptor, as real documents carry."""
+    widths = b" ".join([b"500"] * 224)
+    return (
+        b"<< /Type /Font /Subtype /Type1 /BaseFont /"
+        + name.encode()
+        + b" /FirstChar 32 /LastChar 255 /Widths ["
+        + widths
+        + b"]"
+        + b" /FontDescriptor << /Type /FontDescriptor /FontName /"
+        + name.encode()
+        + b" /Flags 32 /FontBBox [0 -200 1000 800] /ItalicAngle 0 /Ascent 800"
+        + b" /Descent -200 /CapHeight 700 /StemV 80 >> >>"
+    )
+
+
 def text_pdf(
     lines: Optional[List[str]] = None, font: str = "Helvetica", pages: int = 1
 ) -> bytes:
@@ -53,7 +69,7 @@ def text_pdf(
         + b"] /Count "
         + str(pages).encode()
         + b" >>",
-        b"<< /Type /Font /Subtype /Type1 /BaseFont /" + font.encode() + b" >>",
+        _font(font),
     ]
     for p in page_ids:
         objects.append(
@@ -77,10 +93,7 @@ def many_fonts_pdf(names) -> bytes:
         b"<< /Type /Catalog /Pages 2 0 R >>",
         f"<< /Type /Pages /Kids [{page} 0 R] /Count 1 >>".encode(),
     ]
-    objects += [
-        b"<< /Type /Font /Subtype /Type1 /BaseFont /" + name.encode() + b" >>"
-        for name in names
-    ]
+    objects += [_font(name) for name in names]
     objects.append(
         f"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << ".encode()
         + resources

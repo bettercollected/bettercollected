@@ -14,6 +14,11 @@ def source_key(workspace_id, form_id: str, import_id, extension: str) -> str:
     return f"private/{workspace_id}/{form_id}/imports/{import_id}/source.{extension}"
 
 
+def artifact_key(source: str, name: str) -> str:
+    """A stage's output, stored next to the original (and deleted with the form)."""
+    return source.rsplit("/", 1)[0] + f"/{name}"
+
+
 class ObjectStore:
     async def put(
         self, key: str, data: bytes, content_type: str
