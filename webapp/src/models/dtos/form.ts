@@ -157,6 +157,8 @@ export interface StandardFormResponseDto {
     /** Staff-entered values of the form's internal fields (members only). */
     internalAnswers?: { [fieldId: string]: AnswerDto };
     internalAnswersMeta?: { [fieldId: string]: InternalAnswerMeta };
+    /** Optimistic-concurrency counter for staff edits (0/absent = never edited). */
+    internalAnswersVersion?: number;
     responseId: string;
     formId?: string;
     formTitle?: string;

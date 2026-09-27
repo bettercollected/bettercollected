@@ -7,7 +7,6 @@ from beanie import PydanticObjectId
 from common.constants import MESSAGE_FORBIDDEN, MESSAGE_NOT_FOUND
 from common.models.standard_form import (
     InternalAnswerMeta,
-    StandardAnswerField,
     StandardFormResponse,
     StandardFormResponseAnswer,
     StandardFormField,
@@ -46,6 +45,7 @@ from backend.app.services.internal_fields import (
     internal_fields,
     strip_internal_answers,
     strip_internal_fields,
+    validate_internal_answer,
 )
 from backend.app.utils.hash import hash_string
 
@@ -517,12 +517,20 @@ class FormResponseService:
         response_id: str,
         answers: Dict[str, Optional[Dict[str, Any]]],
         user: User,
+        expected_version: Optional[int] = None,
     ) -> InternalAnswersResponse:
         """Staff fill in / edit / clear internal answers on one submission.
 
         Any active workspace member may do this — the same access that lets
         them edit the form itself. Each changed answer records who changed
-        it and when."""
+        it and when. Each answer is checked against its field's type and
+        options (422 otherwise).
+
+        Optimistic concurrency: ``expected_version`` is the
+        ``internal_answers_version`` the editor loaded; the save only lands
+        if nobody saved in between (409 with the current state otherwise).
+        Without it, the read-modify-write below is still conditional on the
+        version it read, so two simultaneous saves never lose one."""
         if not await self._workspace_user_repo.has_user_access_in_workspace(
             workspace_id, user
         ):
@@ -552,14 +560,27 @@ class FormResponseService:
                 f"'{unknown[0]}' is not an internal field of this form.",
             )
 
+        validated = {
+            field_id: (
+                None
+                if value is None
+                else validate_internal_answer(definitions[field_id], value)
+            )
+            for field_id, value in answers.items()
+        }
+
+        stored_version = response.internal_answers_version or 0
+        if expected_version is not None and expected_version != stored_version:
+            raise self._internal_answers_conflict(workspace_id, response)
+
         current = self._decrypted_internal_answers(workspace_id, response)
         meta = dict(response.internal_answers_meta or {})
         now = dt.datetime.now(dt.timezone.utc)
-        for field_id, value in answers.items():
+        for field_id, value in validated.items():
             if value is None:
                 current.pop(field_id, None)
             else:
-                current[field_id] = _validated_internal_answer(field_id, value)
+                current[field_id] = value
             meta[field_id] = InternalAnswerMeta(
                 updated_by=str(user.id), updated_by_email=user.sub, updated_at=now
             )
@@ -570,9 +591,35 @@ class FormResponseService:
             data=json.dumps(current),
         )
         response.internal_answers_meta = meta
-        await self._form_response_repo.save(response)
+        response.internal_answers_version = stored_version + 1
+        saved = await self._form_response_repo.save_internal_answers(
+            response, stored_version
+        )
+        if saved is None:
+            latest = await self._form_response_repo.get_response(response_id)
+            raise self._internal_answers_conflict(workspace_id, latest or response)
         return InternalAnswersResponse(
-            internal_answers=current, internal_answers_meta=meta
+            internal_answers=current,
+            internal_answers_meta=meta,
+            internal_answers_version=stored_version + 1,
+        )
+
+    def _internal_answers_conflict(
+        self, workspace_id: PydanticObjectId, response: StandardFormResponse
+    ) -> HTTPException:
+        """409 carrying the current state, so the editor can merge and retry."""
+        latest = InternalAnswersResponse(
+            internal_answers=self._decrypted_internal_answers(workspace_id, response),
+            internal_answers_meta=response.internal_answers_meta or {},
+            internal_answers_version=response.internal_answers_version or 0,
+        )
+        return HTTPException(
+            HTTPStatus.CONFLICT,
+            content={
+                "message": "Another team member saved these internal fields "
+                "just now. Review their changes and save again.",
+                **latest.model_dump(mode="json", by_alias=True),
+            },
         )
 
     def _decrypted_internal_answers(
@@ -640,25 +687,3 @@ def get_fields_of_type_file_upload(form: StandardFormCamelModel):
             ):
                 file_fields.append(field)
     return file_fields
-
-
-# One internal answer is a short staff note, never a document: cap its size so
-# the endpoint can't be used to park arbitrary payloads on a response.
-MAX_INTERNAL_ANSWER_BYTES = 10_000
-
-
-def _validated_internal_answer(field_id: str, value: Dict[str, Any]) -> Dict[str, Any]:
-    try:
-        answer = StandardFormResponseAnswer.model_validate(value)
-    except ValueError:
-        raise HTTPException(
-            HTTPStatus.BAD_REQUEST, f"Invalid answer for internal field '{field_id}'."
-        )
-    answer.field = StandardAnswerField(id=field_id)
-    dumped = answer.model_dump(mode="json", exclude_none=True)
-    if len(json.dumps(dumped)) > MAX_INTERNAL_ANSWER_BYTES:
-        raise HTTPException(
-            HTTPStatus.BAD_REQUEST,
-            f"The answer for internal field '{field_id}' is too long.",
-        )
-    return dumped

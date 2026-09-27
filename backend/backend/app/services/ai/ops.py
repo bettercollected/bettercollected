@@ -34,6 +34,8 @@ from common.models.standard_form import (
     Theme,
 )
 from pydantic import BaseModel, ConfigDict, Field
+
+from backend.app.services.internal_fields import INTERNAL_CAPABLE_TYPES
 from pydantic.alias_generators import to_camel
 
 
@@ -350,6 +352,8 @@ def _build_field(spec: NewFieldSpec, index: int) -> StandardFormField:
         properties.col_span = spec.col_span
 
     validations = StandardFieldValidations(required=spec.required) if spec.required is not None else StandardFieldValidations()
+    if spec.internal:
+        _ensure_can_be_internal(spec.type)
 
     return StandardFormField(
         id=str(uuid.uuid4()),
@@ -361,6 +365,16 @@ def _build_field(spec: NewFieldSpec, index: int) -> StandardFormField:
         validations=validations,
         internal=True if spec.internal else None,
     )
+
+
+def _ensure_can_be_internal(field_type) -> None:
+    value = getattr(field_type, "value", field_type)
+    if value not in INTERNAL_CAPABLE_TYPES:
+        raise OpError(
+            f"'{value}' fields can't be internal — staff fill internal fields in "
+            "from the dashboard (text, number, date, email, link, phone, yes/no, "
+            "choice and dropdown)."
+        )
 
 
 def _patch_field(field: StandardFormField, patch: FieldPatch) -> List[str]:
@@ -410,6 +424,8 @@ def _patch_field(field: StandardFormField, patch: FieldPatch) -> List[str]:
     if patch.col_span is not None:
         field.properties.col_span = patch.col_span
         changed.append("width")
+    if patch.internal:
+        _ensure_can_be_internal(field.type)
     if patch.internal is not None:
         field.internal = True if patch.internal else None
         changed.append("internal" if patch.internal else "respondent-facing")

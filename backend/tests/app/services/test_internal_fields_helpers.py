@@ -163,3 +163,22 @@ def test_ai_ops_refuse_to_make_a_logic_source_internal():
     )
     assert not results[0].ok
     assert NAME not in internal_field_ids(new_form)
+
+
+def test_ai_ops_refuse_internal_on_types_staff_cannot_fill():
+    form = StandardForm(**_form_payload())
+    new_form, results = apply_form_ops(
+        form,
+        [
+            AddFieldOp(
+                page_id="page-1",
+                field=NewFieldSpec(title="Scan", type="file_upload", internal=True),
+            ),
+            AddFieldOp(
+                page_id="page-1",
+                field=NewFieldSpec(title="Score", type="rating", internal=True),
+            ),
+        ],
+    )
+    assert [r.ok for r in results] == [False, False]
+    assert internal_field_ids(new_form) == {REFERENCE, STATUS, REVIEWER}

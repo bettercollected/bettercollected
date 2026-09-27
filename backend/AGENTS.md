@@ -101,7 +101,8 @@ afterwards; values live in `StandardFormResponse.internal_answers` (encrypted li
 (`PATCH /workspaces/{id}/forms/{form_id}/submissions/{response_id}/internal-answers`, any active workspace member).
 Rules live in `services/internal_fields.py`: every form payload served to a non-member goes through
 `strip_internal_fields`, every respondent-facing response through `strip_internal_answers`, respondent submissions
-carrying internal values get a 400, and logic (visibility/jumps) may not depend on an internal field (form save and
+never store internal values (they are dropped, not rejected, so a field made internal mid-fill doesn't fail
+anyone's submission), on-submit actions get the stripped form, and logic (visibility/jumps) may not depend on an internal field (form save and
 AI ops both refuse it). `validations.required` on an internal field is stored but not enforced (there is no
 staff-side "complete" state yet). A new endpoint that returns a form or a response to respondents must use the
 same two strip helpers.

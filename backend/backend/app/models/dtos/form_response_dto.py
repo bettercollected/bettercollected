@@ -27,8 +27,11 @@ class InternalAnswersPatch(CamelModel):
     Fields not named are left untouched."""
 
     answers: Dict[str, Optional[Dict[str, Any]]]
+    # The internal_answers_version the editor loaded (optimistic concurrency).
+    version: Optional[int] = None
 
 
 class InternalAnswersResponse(CamelModel):
     internal_answers: Dict[str, Any]
     internal_answers_meta: Dict[str, InternalAnswerMeta]
+    internal_answers_version: int = 0

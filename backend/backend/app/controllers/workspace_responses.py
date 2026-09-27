@@ -108,6 +108,7 @@ class WorkspaceResponsesRouter(CustomRoutable):
             response_id=submission_id,
             answers=body.answers,
             user=user,
+            expected_version=body.version,
         )
 
     @post("/forms/{form_id}/flow-events")

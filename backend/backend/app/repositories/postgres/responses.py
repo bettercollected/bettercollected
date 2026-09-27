@@ -57,6 +57,7 @@ from common.db import (
     from_row_doc,
     to_bson_dict,
 )
+from common.db.beanie_bridge import row_values
 from common.models.standard_form import StandardFormResponse, StandardFormResponseAnswer
 from common.models.user import User
 from common.services.crypto_service import crypto_service
@@ -565,6 +566,32 @@ class PostgresFormResponseRepository(PostgresRepositoryBase):
 
     async def get_response(self, response_id: str):
         return await self.one(FormResponseRow.response_id == response_id)
+
+    async def save_internal_answers(
+        self, response: FormResponseDocument, expected_version: int
+    ) -> Optional[FormResponseDocument]:
+        """Twin of the Mongo conditional ``$set``: the row is locked while the
+        version is compared and the three internal-answer keys are replaced."""
+        async with self._session() as session, session.begin():
+            doc = (
+                await session.execute(
+                    select(FormResponseRow.doc)
+                    .where(FormResponseRow.response_id == response.response_id)
+                    .order_by(FormResponseRow.created_at, FormResponseRow.id)
+                    .limit(1)
+                    .with_for_update()
+                )
+            ).scalar_one_or_none()
+            if doc is None:
+                return None
+            stored = from_row_doc(FormResponseDocument, doc)
+            if (stored.internal_answers_version or 0) != expected_version:
+                return None
+            stored.internal_answers = response.internal_answers
+            stored.internal_answers_meta = response.internal_answers_meta
+            stored.internal_answers_version = response.internal_answers_version
+            await session.execute(self._upsert_statement(row_values(stored)))
+        return stored
 
     async def get_by_submission_uuid(self, submission_uuid: str):
         return await self.one(FormResponseRow.submission_uuid == submission_uuid)

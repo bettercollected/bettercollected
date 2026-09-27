@@ -9,9 +9,9 @@ import { Button } from '@app/shadcn/components/ui/button';
 import { AppInput } from '@app/shadcn/components/ui/input';
 import { Textarea } from '@app/shadcn/components/ui/textarea';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
-import { useUpdateInternalAnswersMutation } from '@app/store/workspaces/api';
+import { InternalAnswersState, useUpdateInternalAnswersMutation } from '@app/store/workspaces/api';
 import { utcToLocalDateTIme } from '@app/utils/date-utils';
-import { buildInternalAnswer, InternalInputValue, internalAnswerChanged, internalAnswerToInput } from '@app/utils/internal-fields';
+import { buildInternalAnswer, conflictingInternalFields, InternalInputValue, internalAnswerChanged, internalAnswerToInput } from '@app/utils/internal-fields';
 import { fieldText, selectClass } from '@app/views/molecules/form-builder/condition-editor-shared';
 
 interface InternalFieldsPanelProps {
@@ -93,6 +93,7 @@ export default function InternalFieldsPanel({ fields, response, formId, workspac
 
     const [stored, setStored] = useState<Record<string, AnswerDto>>(response?.internalAnswers ?? {});
     const [meta, setMeta] = useState<Record<string, InternalAnswerMeta>>(response?.internalAnswersMeta ?? {});
+    const [version, setVersion] = useState<number>(response?.internalAnswersVersion ?? 0);
     const toInputs = (answers: Record<string, AnswerDto>) => Object.fromEntries(fields.map((f) => [f.id, internalAnswerToInput(f, answers[f.id])]));
     // Initialised once per mounted submission (the parent keys this panel by
     // response id); re-synced from the server's reply after each save.
@@ -103,18 +104,50 @@ export default function InternalFieldsPanel({ fields, response, formId, workspac
     const changedFields = fields.filter((f) => internalAnswerChanged(f, stored[f.id], values[f.id]));
     const missingRequired = fields.filter((f) => f.validations?.required && buildInternalAnswer(f, values[f.id]) === null);
 
+    const send = (changed: StandardFormFieldDto[], atVersion: number): Promise<any> =>
+        updateInternalAnswers({
+            workspaceId,
+            formId,
+            responseId: response.responseId,
+            answers: Object.fromEntries(changed.map((f) => [f.id, buildInternalAnswer(f, values[f.id])])),
+            version: atVersion
+        });
+
+    const applySaved = (state: InternalAnswersState) => {
+        const saved = state.internalAnswers ?? {};
+        setStored(saved);
+        setValues(toInputs(saved));
+        setMeta(state.internalAnswersMeta ?? {});
+        setVersion(state.internalAnswersVersion ?? 0);
+    };
+
     const save = async () => {
-        const answers = Object.fromEntries(changedFields.map((f) => [f.id, buildInternalAnswer(f, values[f.id])]));
-        const result: any = await updateInternalAnswers({ workspaceId, formId, responseId: response.responseId, answers });
+        let result: any = await send(changedFields, version);
+        if (result?.error?.status === 409) {
+            // Someone saved in between. Their changes to fields I didn't touch
+            // are kept by re-sending only mine against the new version; if they
+            // changed a field I changed too, show theirs and let me decide.
+            const latest = result.error.data as InternalAnswersState;
+            const clashes = conflictingInternalFields(fields, changedFields.map((f) => f.id), stored, latest?.internalAnswers ?? {});
+            if (clashes.length === 0) {
+                result = await send(changedFields, latest.internalAnswersVersion ?? 0);
+            } else {
+                const latestInputs = toInputs(latest.internalAnswers ?? {});
+                setStored(latest.internalAnswers ?? {});
+                setMeta(latest.internalAnswersMeta ?? {});
+                setVersion(latest.internalAnswersVersion ?? 0);
+                setValues((prev) => ({ ...latestInputs, ...Object.fromEntries(changedFields.filter((f) => !clashes.includes(f)).map((f) => [f.id, prev[f.id]])) }));
+                toast({ description: `${clashes.map((f) => fieldText(f)).join(', ')} ${clashes.length > 1 ? 'were' : 'was'} just changed by another team member. Review and save again.`, variant: 'destructive' });
+                return;
+            }
+        }
         if (result?.data) {
-            const saved = result.data.internalAnswers ?? {};
-            setStored(saved);
-            setValues(toInputs(saved));
-            setMeta(result.data.internalAnswersMeta ?? {});
+            applySaved(result.data);
             toast({ description: 'Internal fields saved' });
         } else {
             const detail = result?.error?.data;
-            toast({ description: typeof detail === 'string' && detail ? detail : 'Could not save the internal fields', variant: 'destructive' });
+            const message = typeof detail === 'string' ? detail : detail?.message;
+            toast({ description: message || 'Could not save the internal fields', variant: 'destructive' });
         }
     };
 

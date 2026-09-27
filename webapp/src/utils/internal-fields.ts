@@ -154,6 +154,15 @@ export function getInternalColumnTitle(field: StandardFormFieldDto): string {
     return INTERNAL_COLUMN_PREFIX + (extractTextfromJSON(field)?.trim() || 'Untitled field');
 }
 
+/**
+ * After a 409 (another team member saved in between): which of the fields I
+ * changed did they change too? Those need my attention; the rest can be
+ * re-sent against the new version without overwriting anyone.
+ */
+export function conflictingInternalFields(fields: StandardFormFieldDto[], changedIds: string[], baseline: Record<string, AnswerDto>, latest: Record<string, AnswerDto>): StandardFormFieldDto[] {
+    return fields.filter((f) => changedIds.includes(f.id) && internalAnswerChanged(f, baseline[f.id], internalAnswerToInput(f, latest[f.id])));
+}
+
 /** Is the stored internal answer different from what the editor now holds? */
 export function internalAnswerChanged(field: StandardFormFieldDto, stored: AnswerDto | undefined | null, value: InternalInputValue): boolean {
     return JSON.stringify(buildInternalAnswer(field, internalAnswerToInput(field, stored))) !== JSON.stringify(buildInternalAnswer(field, value));

@@ -6,7 +6,7 @@ import { buildSourceFields } from '@app/views/molecules/form-builder/condition-e
 import { getInputFieldsById, pruneOrphanedPipes } from './answer-piping';
 import { pruneOrphanedConditions } from './conditional-logic';
 import { getFieldsFromV2Form } from './form-utils';
-import { buildInternalAnswer, canBeInternal, getInternalFields, internalAnswerChanged, internalAnswerToInput, stripInternalFields } from './internal-fields';
+import { buildInternalAnswer, canBeInternal, conflictingInternalFields, getInternalFields, internalAnswerChanged, internalAnswerToInput, stripInternalFields } from './internal-fields';
 
 const field = (id: string, index: number, extra: Partial<StandardFormFieldDto> = {}): StandardFormFieldDto => ({ id, index, type: FieldTypes.SHORT_TEXT, title: id, ...extra }) as StandardFormFieldDto;
 
@@ -81,6 +81,17 @@ describe('internal answer editing', () => {
         expect(internalAnswerToInput(choiceField, stored)).toBe('c1');
         expect(internalAnswerChanged(choiceField, stored, 'c1')).toBe(false);
         expect(internalAnswerChanged(choiceField, stored, '')).toBe(true);
+    });
+
+    it('finds which of my changed fields someone else changed meanwhile', () => {
+        const ref = field('ref', 0);
+        const note = field('note', 1);
+        const baseline = { ref: buildInternalAnswer(ref, 'A') as any };
+        const latest = { ref: buildInternalAnswer(ref, 'A') as any, note: buildInternalAnswer(note, 'theirs') as any };
+        // they changed `note`, I changed `ref`: no clash, retry is safe
+        expect(conflictingInternalFields([ref, note], ['ref'], baseline, latest)).toEqual([]);
+        // we both changed `note`
+        expect(conflictingInternalFields([ref, note], ['note'], baseline, latest).map((f) => f.id)).toEqual(['note']);
     });
 
     it('only allows simple field types to be internal', () => {

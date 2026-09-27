@@ -42,8 +42,9 @@ from backend.app.services.form_plugin_provider_service import FormPluginProvider
 from backend.app.services.form_response_service import FormResponseService
 from backend.app.services.form_service import FormService
 from backend.app.services.internal_fields import (
+    drop_respondent_internal_answers,
     ensure_no_internal_logic,
-    reject_respondent_internal_answers,
+    strip_internal_fields,
 )
 from backend.app.services.brevo_service import event_logger_service
 from backend.app.services.plugin_proxy_service import PluginProxyService
@@ -509,7 +510,7 @@ class WorkspaceFormService:
             or not workspace_form.settings.allow_editing_response
         ):
             raise HTTPException(HTTPStatus.FORBIDDEN, content=MESSAGE_FORBIDDEN)
-        reject_respondent_internal_answers(
+        drop_respondent_internal_answers(
             response,
             await self.form_response_service.all_internal_field_ids(str(form_id)),
         )
@@ -532,9 +533,9 @@ class WorkspaceFormService:
         user: User,
         form_files: list[FormFileResponse] = None,
     ):
-        # Internal fields are filled in by staff afterwards — a respondent
-        # submission carrying their values is refused outright.
-        reject_respondent_internal_answers(
+        # Internal fields are filled in by staff afterwards — values a
+        # respondent submission carries for them are dropped, never stored.
+        drop_respondent_internal_answers(
             response,
             await self.form_response_service.all_internal_field_ids(str(form_id)),
         )
@@ -590,8 +591,10 @@ class WorkspaceFormService:
         # TODO resolve circular deps for workspace service to get workspace details
         # workspace = await WorkspaceDocument.find_one(WorkspaceDocument.id == workspace_id)
         # workspace = await self.workspace_repo.get_workspace_with_action_by_id(workspace_id)
+        # Actions reach respondents (their email copy) and third parties
+        # (webhooks, chat posts): they get the respondent view of the form.
         await self.action_service.start_actions_for_submission(
-            form=latest_version_of_form,
+            form=strip_internal_fields(latest_version_of_form.model_copy(deep=True)),
             response=form_response,
             workspace_id=workspace_id,
         )

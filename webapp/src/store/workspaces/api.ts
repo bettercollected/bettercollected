@@ -17,6 +17,12 @@ const GROUP_TAG = 'GROUP_TAG';
 const RESPONDER_TAG = 'RESPONDER_TAG';
 const FORM_TAG = 'FORM_TAG';
 
+export interface InternalAnswersState {
+    internalAnswers: Record<string, AnswerDto>;
+    internalAnswersMeta: Record<string, InternalAnswerMeta>;
+    internalAnswersVersion: number;
+}
+
 interface ImportFormQueryInterface {
     workspaceId: string;
     provider: string;
@@ -320,11 +326,13 @@ export const workspacesApi = createApi({
         }),
         // Staff fill in / clear a submission's internal ("office use") fields.
         // `answers` maps internal field id -> answer, or null to clear it.
-        updateInternalAnswers: builder.mutation<{ internalAnswers: Record<string, AnswerDto>; internalAnswersMeta: Record<string, InternalAnswerMeta> }, { workspaceId: string; formId: string; responseId: string; answers: Record<string, Record<string, any> | null> }>({
-            query: ({ workspaceId, formId, responseId, answers }) => ({
+        // `version` is the internalAnswersVersion the editor loaded; a stale one
+        // gets a 409 whose body carries the current state (see internal-fields-panel).
+        updateInternalAnswers: builder.mutation<InternalAnswersState, { workspaceId: string; formId: string; responseId: string; answers: Record<string, Record<string, any> | null>; version: number }>({
+            query: ({ workspaceId, formId, responseId, answers, version }) => ({
                 url: `/workspaces/${workspaceId}/forms/${formId}/submissions/${responseId}/internal-answers`,
                 method: 'PATCH',
-                body: { answers }
+                body: { answers, version }
             }),
             invalidatesTags: [SUBMISSION_TAG]
         }),

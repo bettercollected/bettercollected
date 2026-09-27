@@ -460,3 +460,48 @@ async def test_ai_and_analytics(sessions):
     assert strip(await mongo_l.list_by_workspace(ws)) == strip(
         await postgres_l.list_by_workspace(ws)
     )
+
+
+async def test_save_internal_answers_is_conditional_on_the_version(sessions):
+    """Optimistic concurrency for staff edits: both stores apply the write only
+    against the expected version, touch nothing but the three internal keys,
+    and return None on a stale version."""
+    from common.models.standard_form import InternalAnswerMeta
+
+    forms, workspace_forms = FormRepository(), WorkspaceFormRepository()
+    mongo = FormResponseRepository(crypto=container.crypto())
+    postgres = PostgresFormResponseRepository(sessions, forms, workspace_forms)
+    seed = response("f1", "r1", 1, answers={"a": {"text": "respondent"}})
+    await seed_both((mongo, postgres), "save", seed)
+
+    def edit(version, value):
+        edited = seed.model_copy(deep=True)
+        edited.answers = {"a": {"text": "must not be written"}}
+        edited.internal_answers = b"v1:" + value.encode()
+        edited.internal_answers_meta = {
+            "x": InternalAnswerMeta(updated_by="u1", updated_at=at(5))
+        }
+        edited.internal_answers_version = version + 1
+        return edited
+
+    await parity(
+        mongo,
+        postgres,
+        [
+            ("save_internal_answers", lambda: (edit(0, "first"), 0)),
+            ("save_internal_answers", lambda: (edit(0, "stale"), 0)),  # None
+            ("save_internal_answers", lambda: (edit(1, "second"), 1)),
+            ("save_internal_answers", lambda: (edit(7, "wrong"), 7)),  # None
+            ("get_response", lambda: ("r1",)),
+        ],
+    )
+    for repo in (mongo, postgres):
+        assert await repo.save_internal_answers(edit(0, "stale"), 0) is None
+        stored = await repo.get_response("r1")
+        assert stored.internal_answers_version == 2
+        assert stored.internal_answers == b"v1:second"
+        assert "respondent" in str(stored.answers)
+        assert "must not be written" not in str(stored.answers)
+        missing = edit(0, "x")
+        missing.response_id = "nope"
+        assert await repo.save_internal_answers(missing, 0) is None

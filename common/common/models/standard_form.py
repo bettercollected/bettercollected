@@ -572,6 +572,10 @@ class StandardFormResponse(BaseModel):
     ) = None
     # field id -> who last changed that internal answer and when (plaintext).
     internal_answers_meta: Optional[Dict[str, InternalAnswerMeta]] = None
+    # Optimistic-concurrency counter for staff edits of internal answers:
+    # bumped on every save, which only succeeds against the version the
+    # editor read (None = never edited = 0).
+    internal_answers_version: Optional[int] = None
     form_version: Optional[int] = None
     created_at: Optional[dt.datetime] = None
     updated_at: Optional[dt.datetime] = None

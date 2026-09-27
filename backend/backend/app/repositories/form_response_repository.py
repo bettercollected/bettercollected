@@ -27,6 +27,8 @@ from backend.app.schemas.standard_form_response import (
     DeletionRequestStatus,
 )
 from backend.app.utils.aggregation_query_builder import create_filter_pipeline
+from beanie.odm.queries.update import UpdateResponse
+from common.db import to_bson_dict
 from common.db.routing import write_op
 
 
@@ -438,6 +440,36 @@ class FormResponseRepository(BaseRepository):
 
     async def get_response(self, response_id: str):
         return await FormResponseDocument.find_one({"response_id": response_id})
+
+    @write_op(replay=True)
+    async def save_internal_answers(
+        self, response: FormResponseDocument, expected_version: int
+    ) -> Optional[FormResponseDocument]:
+        """Store ``response``'s internal answers, meta and version — only if the
+        stored version is still ``expected_version`` (optimistic concurrency:
+        two staff editing at once must not silently lose one edit). Returns
+        the stored document, or None when someone saved in between."""
+        encoded = to_bson_dict(response)
+        version_match = (
+            {"internal_answers_version": expected_version}
+            if expected_version
+            else {"internal_answers_version": {"$in": [None, 0]}}
+        )
+        return await FormResponseDocument.find_one(
+            {"response_id": response.response_id, **version_match}
+        ).update(
+            {
+                "$set": {
+                    key: encoded.get(key)
+                    for key in (
+                        "internal_answers",
+                        "internal_answers_meta",
+                        "internal_answers_version",
+                    )
+                }
+            },
+            response_type=UpdateResponse.NEW_DOCUMENT,
+        )
 
     async def get_by_submission_uuid(self, submission_uuid: str):
         return await FormResponseDocument.find_one({"submission_uuid": submission_uuid})
