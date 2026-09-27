@@ -54,4 +54,11 @@ describe('getHtmlFromJson (TipTap 3 schema)', () => {
     it('wraps legacy string titles in a bold paragraph', () => {
         expect(getHtmlFromJson('Plain title')).toBe('<p><strong>Plain title</strong></p>');
     });
+
+    it('treats string titles as text, never markup', () => {
+        const html = getHtmlFromJson('Name <iframe srcdoc="<script>alert(1)</script>"></iframe> & <a href="x">co</a>') ?? '';
+        expect(html).not.toContain('<iframe');
+        expect(html).not.toContain('<a ');
+        expect(html).toBe('<p><strong>Name &lt;iframe srcdoc=&quot;&lt;script&gt;alert(1)&lt;/script&gt;&quot;&gt;&lt;/iframe&gt; &amp; &lt;a href=&quot;x&quot;&gt;co&lt;/a&gt;</strong></p>');
+    });
 });

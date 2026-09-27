@@ -187,3 +187,52 @@ def test_plan_uses_verbatim_statements():
         "title": "I declare that the information is true.",
         "type": "text",
     }
+
+
+def test_a_huge_document_model_is_capped_and_the_cuts_reported():
+    from backend.app.services.pdf_import.compile import (
+        MAX_CHOICES,
+        MAX_FIELDS,
+        MAX_HELP_CHARS,
+    )
+
+    many = [q(f"q{i}", "short_text", f"Question {i}") for i in range(MAX_FIELDS + 40)]
+    choice = q(
+        "c1",
+        "single_choice",
+        "Pick one",
+        help="h" * 5000,
+        options=[{"label": f"Option {i}"} for i in range(MAX_CHOICES + 30)],
+    )
+    form, report = build_form(fdm(choice, *many), {}, "T")
+    count = sum(len(page.properties.fields) for page in form.fields)
+    assert count <= MAX_FIELDS
+    picked = field(form, "Pick one")
+    assert len(picked.properties.choices) == MAX_CHOICES
+    assert len(picked.description) <= MAX_HELP_CHARS
+    reasons = " ".join(d.get("reason", "") for d in report["dropped"])
+    assert "options were kept" in reasons and "cut at" in reasons
+
+
+def test_stable_ids_repeat_for_the_same_document_model():
+    from backend.app.services.pdf_import.compile import with_stable_ids
+
+    doc = fdm(
+        q("q1", "yes_no", "Any other account?"),
+        q(
+            "q2",
+            "short_text",
+            "Which bank?",
+            follow_up_of={"question": "q1", "when": "yes"},
+        ),
+    )
+    ids = []
+    for _ in range(2):
+        form, _ = build_form(doc, {}, "T")
+        form = with_stable_ids(form, "import-1")
+        ids.append(
+            [f.id for page in form.fields for f in [page, *page.properties.fields]]
+        )
+    assert ids[0] == ids[1]
+    other, _ = build_form(doc, {}, "T")
+    assert [f.id for f in with_stable_ids(other, "import-2").fields] != ids[0][:1]

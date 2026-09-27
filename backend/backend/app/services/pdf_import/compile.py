@@ -25,7 +25,9 @@ same form instead of adding to it.
 
 from __future__ import annotations
 
+import json
 import re
+import uuid
 from collections import Counter
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Tuple
@@ -81,9 +83,22 @@ class Plan:
         self.report["rules"][name] += 1
 
 
+# a large or adversarial FDM must still give a form the editor can open and a
+# document well under the database's size limit
+MAX_FIELDS = 500
+MAX_CHOICES = 50
+MAX_TABLE_CELLS = 100
+MAX_HELP_CHARS = 1000
+MAX_CHOICE_CHARS = 300
+
+
 def _spec(title: str, type_: str, **extra) -> Dict[str, Any]:
     spec = {"title": title.strip()[:500] or "Untitled question", "type": type_}
     spec.update({k: v for k, v in extra.items() if v is not None})
+    if isinstance(spec.get("description"), str):
+        spec["description"] = spec["description"][:MAX_HELP_CHARS]
+    if spec.get("choices"):
+        spec["choices"] = [str(c)[:MAX_CHOICE_CHARS] for c in spec["choices"]]
     return spec
 
 
@@ -140,6 +155,15 @@ def _fields_for(q: dict, plan: Plan) -> Tuple[List[PlannedField], List[Dict[str,
             if o.get("label", "").strip()
         ]
         options = list(dict.fromkeys(options))
+        if len(options) > MAX_CHOICES:
+            plan.report["dropped"].append(
+                {
+                    "element": q["id"],
+                    "label": label,
+                    "reason": f"only the first {MAX_CHOICES} of {len(options)} options were kept",
+                }
+            )
+            options = options[:MAX_CHOICES]
         if len(options) < 2:
             fields.append(
                 PlannedField(
@@ -336,6 +360,15 @@ def _table_fields(q: dict, label: str, plan: Plan) -> List[PlannedField]:
             }
         )
     plan.rule("table_to_rows_of_fields")
+    if len(out) > MAX_TABLE_CELLS:
+        plan.report["dropped"].append(
+            {
+                "element": q["id"],
+                "label": label,
+                "reason": f"only the first {MAX_TABLE_CELLS} of {len(out)} table cells were kept",
+            }
+        )
+        out = out[:MAX_TABLE_CELLS]
     return out
 
 
@@ -572,6 +605,20 @@ def _enrich_tables(fdm: dict, layout: dict) -> None:
                 }
 
 
+def _cap_fields(plan: Plan) -> None:
+    budget = MAX_FIELDS
+    cut = 0
+    for page in plan.pages:
+        cut += max(0, len(page.fields) - budget)
+        page.fields = page.fields[: max(0, budget)]
+        budget -= len(page.fields)
+    plan.pages = [page for page in plan.pages if page.fields]
+    if cut:
+        plan.report["dropped"].append(
+            {"reason": f"the form was cut at {MAX_FIELDS} questions ({cut} left out)"}
+        )
+
+
 def build_form(fdm: dict, layout: dict, title: str) -> Tuple[Any, Dict[str, Any]]:
     """The draft form (a StandardForm) and the compile report."""
     from common.models.standard_form import StandardForm
@@ -580,6 +627,7 @@ def build_form(fdm: dict, layout: dict, title: str) -> Tuple[Any, Dict[str, Any]
 
     _enrich_tables(fdm, layout)
     plan = plan_form(fdm)
+    _cap_fields(plan)
     form = StandardForm(title=title, fields=[])
     ops = [
         {"op": "add_page", "fields": [f.spec for f in page.fields]}
@@ -650,3 +698,26 @@ def build_form(fdm: dict, layout: dict, title: str) -> Tuple[Any, Dict[str, Any]
         "failures": failures[:20],
     }
     return form, report
+
+
+_UUID = re.compile(
+    r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}", re.IGNORECASE
+)
+
+
+def with_stable_ids(form, seed: str):
+    """The same form with every generated id (fields, choices, and the logic
+    that points at them) replaced by a uuid5 derived from ``seed`` and the id's
+    order of appearance. Compiling the same FDM again then yields the same ids,
+    so a retried compile recognises its own draft."""
+    namespace = uuid.uuid5(uuid.NAMESPACE_URL, f"bettercollected:form-import:{seed}")
+    mapping: Dict[str, str] = {}
+
+    def stable(match) -> str:
+        old = match.group(0).lower()
+        if old not in mapping:
+            mapping[old] = str(uuid.uuid5(namespace, str(len(mapping))))
+        return mapping[old]
+
+    text = _UUID.sub(stable, json.dumps(form.model_dump(mode="json")))
+    return type(form).model_validate(json.loads(text))

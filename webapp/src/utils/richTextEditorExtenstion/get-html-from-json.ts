@@ -3,12 +3,19 @@ import { generateHTML, JSONContent } from '@tiptap/react';
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import { Extenstions, getPlaceholderValueForTitle } from '@app/views/molecules/rich-text-editor';
 
+const HTML_ESCAPES: Record<string, string> = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+
+/** String titles are plain text (legacy titles, AI chat, PDF import): never markup. */
+export function escapeHtml(text: string): string {
+    return text.replace(/[&<>"']/g, (ch) => HTML_ESCAPES[ch]);
+}
+
 export function getHtmlFromJson(value: JSONContent | string | undefined) {
     if (!value) {
         return null;
     }
     if (typeof value === 'string') {
-        return `<p><strong>${value}</strong></p>`;
+        return `<p><strong>${escapeHtml(value)}</strong></p>`;
     }
     return generateHTML(value, Extenstions);
 }
