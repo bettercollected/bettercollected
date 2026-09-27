@@ -137,6 +137,19 @@ class WorkspaceFormRow(Base, BaseRow):
     )
 
 
+class FormImportRow(Base, BaseRow):
+    __tablename__ = "form_imports"
+    workspace_id = S.text("workspace_id")
+    form_id = S.text("form_id")
+    status = S.text("status")
+    sha256 = S.text("sha256")
+    # created_at is the base row's column (set on insert), which the daily limit reads
+    __table_args__ = (
+        Index(None, "workspace_id", "created_at"),
+        Index(None, "form_id"),
+    )
+
+
 class MediaLibraryRow(Base, BaseRow):
     __tablename__ = "media_libraries"
     workspace_id = S.text("workspace_id")

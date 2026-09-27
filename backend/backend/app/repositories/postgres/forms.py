@@ -33,6 +33,7 @@ from backend.app.models.filter_queries.sort import SortOrder, SortRequest
 from backend.app.models.template import StandardFormTemplate, StandardTemplateSetting
 from backend.app.models.workspace import WorkspaceFormSettings
 from backend.app.schemas.consent import WorkspaceConsentDocument
+from backend.app.schemas.form_import import FormImportDocument, ImportStatus
 from backend.app.schemas.form_versions import FormVersionsDocument
 from backend.app.schemas.media_library import MediaLibraryDocument
 from backend.app.schemas.standard_form import FormDocument
@@ -40,6 +41,7 @@ from backend.app.schemas.template import FormTemplateDocument
 from backend.app.schemas.workspace_form import WorkspaceFormDocument
 from backend.db.base import SCHEMA
 from backend.db.models import (
+    FormImportRow,
     FormRow,
     FormTemplateRow,
     FormVersionRow,
@@ -903,3 +905,40 @@ class PostgresMediaLibraryRepository(PostgresRepositoryBase):
             media.id
         )  # AttributeError when missing, as the original
         return media_id
+
+
+class PostgresFormImportRepository(PostgresRepositoryBase):
+    row = FormImportRow
+    document = FormImportDocument
+
+    async def save(self, document: FormImportDocument) -> FormImportDocument:
+        return await self.upsert(document)
+
+    async def get(self, import_id: PydanticObjectId) -> Optional[FormImportDocument]:
+        return await self.one(FormImportRow.id == _oid(import_id))
+
+    async def list_by_workspace(
+        self, workspace_id: PydanticObjectId, limit: int = 20
+    ) -> List[FormImportDocument]:
+        return await self.many(
+            FormImportRow.workspace_id == _oid(workspace_id),
+            order_by=(FormImportRow.created_at.desc(), FormImportRow.id.desc()),
+            limit=limit,
+        )
+
+    async def count_created_since(
+        self, workspace_id: PydanticObjectId, since: datetime
+    ) -> int:
+        return await self.count(
+            FormImportRow.workspace_id == _oid(workspace_id),
+            FormImportRow.created_at >= since,
+        )
+
+    async def count_active(self, workspace_id: PydanticObjectId) -> int:
+        return await self.count(
+            FormImportRow.workspace_id == _oid(workspace_id),
+            FormImportRow.status.in_(list(ImportStatus.ACTIVE)),
+        )
+
+    async def delete_by_form_ids(self, form_ids: List[str]) -> int:
+        return await self.delete_where(FormImportRow.form_id.in_(list(form_ids)))

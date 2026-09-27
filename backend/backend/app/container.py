@@ -39,6 +39,7 @@ from backend.app.repositories.postgres.responses import (
     PostgresWorkspaceRespondersRepository,
 )
 from backend.app.repositories.postgres.forms import (
+    PostgresFormImportRepository,
     PostgresFormRepository,
     PostgresFormTemplateRepository,
     PostgresMediaLibraryRepository,
@@ -80,6 +81,7 @@ from backend.app.repositories.form_plugin_provider_repository import (
 from backend.app.repositories.form_repository import FormRepository
 from backend.app.repositories.form_response_repository import FormResponseRepository
 from backend.app.repositories.flow_event_repository import FlowEventRepository
+from backend.app.repositories.form_import_repository import FormImportRepository
 from backend.app.repositories.media_library_repository import MediaLibraryRepository
 from backend.app.repositories.mcp_audit_log_repository import McpAuditLogRepository
 from backend.app.repositories.responder_groups_repository import (
@@ -129,6 +131,9 @@ from backend.app.services.workspace_form_service import WorkspaceFormService
 from backend.app.services.workspace_members_service import WorkspaceMembersService
 from backend.app.services.workspace_responders_service import WorkspaceRespondersService
 from backend.app.services.custom_domain_service import CustomDomainService
+from backend.app.services.pdf_import.pipeline import ImportPipeline
+from backend.app.services.pdf_import.storage import S3ObjectStore
+from backend.app.services.pdf_import_service import PdfImportService
 from backend.app.services.workspace_service import WorkspaceService
 from backend.app.services.workspace_user_service import WorkspaceUserService
 from backend.app.services.umami_client import UmamiClient
@@ -308,6 +313,18 @@ class AppContainer(containers.DeclarativeContainer):
         mongo=providers.Singleton(WorkspaceAIProfileRepository),
         postgres=providers.Singleton(
             postgres_repository, PostgresWorkspaceAIProfileRepository, pg_sessionmaker
+        ),
+    )
+    form_import_repo = providers.Singleton(
+        RoutingRepository,
+        group="forms",
+        flags=flags,
+        on_mirror_failure=outbox_recorder,
+        mirror_timeout_s=mirror_timeout_s,
+        metrics=routing_metrics,
+        mongo=providers.Singleton(FormImportRepository),
+        postgres=providers.Singleton(
+            postgres_repository, PostgresFormImportRepository, pg_sessionmaker
         ),
     )
     workspace_api_key_repo = providers.Singleton(
@@ -543,6 +560,27 @@ class AppContainer(containers.DeclarativeContainer):
         action_service=action_service,
         crypto=crypto,
         form_template_repo=LazyRepository(lambda: container.form_template_repo()),
+        pdf_import_repo=form_import_repo,
+    )
+
+    pdf_import_store = providers.Singleton(
+        S3ObjectStore, aws_service=aws_service, bucket=settings.aws_settings.BUCKET
+    )
+    pdf_import_pipeline = providers.Singleton(
+        ImportPipeline,
+        repo=form_import_repo,
+        store=pdf_import_store,
+        settings=settings.pdf_import,
+    )
+    pdf_import_service: PdfImportService = providers.Singleton(
+        PdfImportService,
+        repo=form_import_repo,
+        store=pdf_import_store,
+        pipeline=pdf_import_pipeline,
+        workspace_form_service=workspace_form_service,
+        workspace_user_service=workspace_user_service,
+        settings=settings.pdf_import,
+        flags=flags,
     )
 
     custom_domain_service: CustomDomainService = providers.Singleton(

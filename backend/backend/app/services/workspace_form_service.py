@@ -73,8 +73,11 @@ class WorkspaceFormService:
         action_service: ActionService,
         crypto: Crypto,
         form_template_repo: FormTemplateRepository,
+        pdf_import_repo=None,
     ):
         self.form_provider_service = form_provider_service
+        # import records of PDF imports go with their forms
+        self._pdf_import_repo = pdf_import_repo
         self.plugin_proxy_service = plugin_proxy_service
         self.workspace_user_service = workspace_user_service
         self.form_service = form_service
@@ -240,6 +243,8 @@ class WorkspaceFormService:
             form_id=form_id
         )
         self._aws_service.delete_folder_from_s3(f"private/{workspace_id}/{form_id}")
+        if self._pdf_import_repo is not None:
+            await self._pdf_import_repo.delete_by_form_ids([form_id])
 
         return "Form deleted from workspace."
 
@@ -303,6 +308,8 @@ class WorkspaceFormService:
             form_ids=form_ids
         )
         await self.form_service.delete_forms(form_ids=form_ids)
+        if self._pdf_import_repo is not None and form_ids:
+            await self._pdf_import_repo.delete_by_form_ids(list(form_ids))
         return await self.workspace_form_repository.delete_forms(form_ids=form_ids)
 
     def generate_presigned_file_url(
