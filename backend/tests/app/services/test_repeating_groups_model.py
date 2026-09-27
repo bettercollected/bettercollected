@@ -17,6 +17,7 @@ from backend.app.controllers.workspace_forms import _parse_form_body
 from backend.app.exceptions import HTTPException
 from backend.app.models.dtos.minified_form import FormDtoCamelModel
 from backend.app.services.repeating_groups import (
+    drop_hidden_group_answers,
     evaluate_conditions,
     validate_group_answers,
 )
@@ -309,6 +310,42 @@ def test_group_hidden_by_its_own_rule_is_not_validated():
     yes = {"has_applicants": {"type": "boolean", "boolean": True}, **stale}
     assert validate_group_answers(form, no) == []
     assert validate_group_answers(form, yes) == ["Applicant 1: 'Name' is required."]
+    # ...and its answer is dropped before saving.
+    assert "g" not in drop_hidden_group_answers(form, no)
+    assert "g" in drop_hidden_group_answers(form, yes)
+
+
+def _hidden_group_form():
+    hidden_group = group_field()
+    hidden_group["properties"]["logic"] = {
+        "action": "SHOW",
+        "operator": "AND",
+        "conditions": [
+            {
+                "fieldId": "has_applicants",
+                "fieldType": "yes_no",
+                "comparison": "IS_EQUAL",
+                "value": "Yes",
+            }
+        ],
+    }
+    return form_with({"id": "has_applicants", "type": "yes_no"}, hidden_group)
+
+
+@pytest.mark.parametrize(
+    "junk",
+    [
+        {"type": "group", "items": ["not a dict", 3]},
+        {"type": "group", "items": [{"other": {"type": "text", "text": "x"}}]},
+        {"type": "group", "items": [{"name": {"type": "text", "text": "x"}}] * 60},
+        {"type": "group", "items": [{"name": {"type": "group", "items": [{}]}}]},
+        {"type": "group", "items": [{"name": "plain string"}]},
+        "not an answer",
+    ],
+)
+def test_hidden_groups_still_get_structural_checks(junk):
+    answers = {"has_applicants": {"type": "boolean", "boolean": False}, "g": junk}
+    assert validate_group_answers(_hidden_group_form(), answers)
 
 
 def test_items_are_typed_and_bounded():

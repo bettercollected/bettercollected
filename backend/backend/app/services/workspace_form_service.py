@@ -50,7 +50,10 @@ from backend.app.services.internal_fields import (
 from backend.app.services.brevo_service import event_logger_service
 from backend.app.services.plugin_proxy_service import PluginProxyService
 from backend.app.services.responder_groups_service import ResponderGroupsService
-from backend.app.services.repeating_groups import validate_group_answers
+from backend.app.services.repeating_groups import (
+    drop_hidden_group_answers,
+    validate_group_answers,
+)
 from backend.app.services.temporal_service import TemporalService
 from backend.app.services.user_tags_service import UserTagsService
 from backend.app.services.workspace_user_service import WorkspaceUserService
@@ -542,7 +545,7 @@ class WorkspaceFormService:
                 len(unknown),
             )
 
-        _reject_invalid_group_answers(form, response.answers)
+        response.answers = _checked_group_answers(form, response.answers)
 
         if form_files:
             response = await self.upload_files_to_s3_and_update_url(
@@ -574,13 +577,6 @@ class WorkspaceFormService:
             await self.form_response_service.all_internal_field_ids(str(form_id)),
         )
         response.response_id = str(PydanticObjectId())
-        if form_files:
-            response = await self.upload_files_to_s3_and_update_url(
-                form_files,
-                response,
-                workspace_id=str(workspace_id),
-                form_id=str(form_id),
-            )
 
         workspace_form_ids = (
             await self.workspace_form_repository.get_form_ids_in_workspace(
@@ -599,7 +595,18 @@ class WorkspaceFormService:
             form_id=form_id
         )
         # Respondents fill the published version; check against what they saw.
-        _reject_invalid_group_answers(latest_version_of_form or form, response.answers)
+        response.answers = _checked_group_answers(
+            latest_version_of_form or form, response.answers
+        )
+        # Files go up only once the submission is known to be accepted, so a
+        # rejected one leaves no orphan uploads behind.
+        if form_files:
+            response = await self.upload_files_to_s3_and_update_url(
+                form_files,
+                response,
+                workspace_id=str(workspace_id),
+                form_id=str(form_id),
+            )
         # Honour the responder's anonymity choice server-side. Previously the
         # webapp's `anonymize` flag was accepted but never enforced: the UI said
         # "anonymously submitted" while dataOwnerIdentifier still recorded the
@@ -893,13 +900,16 @@ def _question_ids(fields) -> set:
     return ids
 
 
-def _reject_invalid_group_answers(form, answers) -> None:
-    """Enforce repeating-group limits and per-item required questions on the
-    server, so a crafted submission cannot bypass the webapp's checks."""
+def _checked_group_answers(form, answers):
+    """Enforce repeating-group structure, limits and per-item required
+    questions on the server, so a crafted submission cannot bypass the
+    webapp's checks (422 otherwise), then drop the answers of groups hidden
+    by their visibility rule: nothing a hidden group submits is stored."""
     if form is None:
-        return
+        return answers
     problems = validate_group_answers(form, answers)
     if problems:
         raise HTTPException(
             status_code=HTTPStatus.UNPROCESSABLE_ENTITY, content=" ".join(problems)
         )
+    return drop_hidden_group_answers(form, answers)

@@ -1,12 +1,15 @@
 """Repeating groups end to end through the services: form save, publish,
 submission (limits enforced server side) and encrypted storage."""
 
+from unittest.mock import AsyncMock, patch
+
 import pytest
 from common.models.standard_form import StandardForm
 
 from backend.app.container import container
 from backend.app.exceptions import HTTPException
 from backend.app.models.dtos.response_dtos import StandardFormResponseCamelModel
+from backend.app.services.workspace_form_service import WorkspaceFormService
 from tests.app.controllers.data import testUser
 
 pytestmark = pytest.mark.asyncio
@@ -30,7 +33,7 @@ GROUP = {
 }
 
 
-async def _published_group_form(workspace):
+async def _published_group_form(workspace, fields=None):
     service = container.workspace_form_service()
     form = await service.create_form(
         workspace.id,
@@ -42,7 +45,7 @@ async def _published_group_form(workspace):
                     "id": "s1",
                     "type": "slide",
                     "index": 0,
-                    "properties": {"fields": [GROUP]},
+                    "properties": {"fields": fields or [GROUP]},
                 }
             ],
         ),
@@ -122,3 +125,73 @@ async def test_saved_form_keeps_repeat_settings(workspace):
     group = loaded.fields[0].properties.fields[0]
     assert group.properties.repeat.max_items == 2
     assert [c.id for c in group.properties.fields] == ["name", "income"]
+
+
+HAS_APPLICANTS = {"id": "has_applicants", "type": "yes_no", "title": "Applicants?"}
+HIDDEN_GROUP = {
+    **GROUP,
+    "properties": {
+        **GROUP["properties"],
+        "logic": {
+            "action": "SHOW",
+            "operator": "AND",
+            "conditions": [
+                {
+                    "fieldId": "has_applicants",
+                    "fieldType": "yes_no",
+                    "comparison": "IS_EQUAL",
+                    "value": "Yes",
+                }
+            ],
+        },
+    },
+}
+NO = {"has_applicants": {"type": "boolean", "boolean": False}}
+
+
+async def _submit(workspace, form, answers, form_files=None):
+    return await container.workspace_form_service().submit_response(
+        workspace.id,
+        form.form_id,
+        StandardFormResponseCamelModel(answers=answers),
+        testUser,
+        form_files=form_files,
+    )
+
+
+@pytest.mark.parametrize(
+    "junk",
+    [
+        {"type": "group", "items": ["not a dict"]},
+        {"type": "group", "items": [{"unknown": {"type": "text", "text": "x"}}]},
+        {"type": "group", "items": [_item("A")] * 60},
+    ],
+)
+async def test_hidden_group_with_junk_items_is_rejected(workspace, junk):
+    form = await _published_group_form(workspace, [HAS_APPLICANTS, HIDDEN_GROUP])
+    with pytest.raises(HTTPException) as error:
+        await _submit(workspace, form, {**NO, "applicants": junk})
+    assert error.value.status_code == 422
+
+
+async def test_hidden_group_answer_is_not_stored(workspace):
+    form = await _published_group_form(workspace, [HAS_APPLICANTS, HIDDEN_GROUP])
+    answers = {**NO, "applicants": {"type": "group", "items": [_item("Sita")]}}
+    response = await _submit(workspace, form, answers)
+    stored = await container.form_response_repo().get_response(response.response_id)
+    decrypted = container.form_response_service().decrypt_form_response(
+        workspace_id=workspace.id, response=stored
+    )
+    assert "applicants" not in decrypted.answers
+    assert decrypted.answers["has_applicants"]["boolean"] is False
+
+
+async def test_rejected_submission_uploads_no_files(workspace):
+    form = await _published_group_form(workspace)
+    too_many = {"applicants": {"type": "group", "items": [_item("A")] * 3}}
+    with patch.object(
+        WorkspaceFormService, "upload_files_to_s3_and_update_url", new=AsyncMock()
+    ) as upload:
+        with pytest.raises(HTTPException):
+            await _submit(workspace, form, too_many, form_files=[object()])
+    upload.assert_not_called()

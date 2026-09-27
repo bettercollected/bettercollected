@@ -232,12 +232,11 @@ def validate_group_answers(form: StandardForm, answers: Any) -> List[str]:
     for group in groups.values():
         if group.id not in answers:
             continue
-        # A group hidden by its own rule submits nothing that counts.
-        if is_hidden_by_logic(group, answers):
-            continue
         repeat = group.properties.repeat
         label = repeat.item_label or "item"
         raw = answers.get(group.id)
+        # Structure first, for every group answer present — hidden or not:
+        # the respondent controls the answers that decide visibility.
         try:
             # Items are typed like top-level answers, and bounded.
             StandardFormResponseAnswer.model_validate(raw)
@@ -245,10 +244,6 @@ def validate_group_answers(form: StandardForm, answers: Any) -> List[str]:
             problems.append(f"The answer to '{_title(group)}' is malformed.")
             continue
         items = group_items(raw)
-        if len(items) < repeat.effective_min:
-            problems.append(
-                f"'{_title(group)}' needs at least {repeat.effective_min} {label}(s)."
-            )
         if len(items) > repeat.effective_max:
             problems.append(
                 f"'{_title(group)}' allows at most {repeat.effective_max} {label}(s)."
@@ -256,19 +251,29 @@ def validate_group_answers(form: StandardForm, answers: Any) -> List[str]:
             continue
         children = (group.properties.fields or []) if group.properties else []
         child_ids = {c.id for c in children}
+        structural = []
         for position, item in enumerate(items, start=1):
-            unknown = set(item) - child_ids
-            if unknown:
-                problems.append(
+            if set(item) - child_ids:
+                structural.append(
                     f"{label} {position} of '{_title(group)}' answers unknown questions."
                 )
-                continue
-            if any(
+            elif any(
                 isinstance(a, dict) and a.get("items") is not None
                 for a in item.values()
             ):
-                problems.append("Repeating groups cannot contain another group.")
-                continue
+                structural.append("Repeating groups cannot contain another group.")
+        if structural:
+            problems.extend(structural)
+            continue
+        # A group hidden by its own rule is dropped before saving
+        # (``drop_hidden_group_answers``): no minimum, nothing required.
+        if is_hidden_by_logic(group, answers):
+            continue
+        if len(items) < repeat.effective_min:
+            problems.append(
+                f"'{_title(group)}' needs at least {repeat.effective_min} {label}(s)."
+            )
+        for position, item in enumerate(items, start=1):
             scope = {**answers, **item}
             for child in children:
                 required = bool(child.validations and child.validations.required)
@@ -279,3 +284,20 @@ def validate_group_answers(form: StandardForm, answers: Any) -> List[str]:
                         f"{label} {position}: '{_title(child)}' is required."
                     )
     return problems
+
+
+def drop_hidden_group_answers(form: StandardForm, answers: Any) -> Any:
+    """Remove the answers of repeating groups hidden by their own visibility
+    rule, so nothing a hidden group submits is stored. Returns the answers
+    (a new dict when something was dropped)."""
+    if not isinstance(answers, dict):
+        return answers
+    plain = {k: _as_dict(v) for k, v in answers.items()}
+    hidden = {
+        group.id
+        for group in iter_repeating_groups(form)
+        if group.id in answers and is_hidden_by_logic(group, plain)
+    }
+    if not hidden:
+        return answers
+    return {k: v for k, v in answers.items() if k not in hidden}
