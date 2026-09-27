@@ -113,6 +113,14 @@ class PdfImportRouter(Routable):
         records = await container.pdf_import_service().list(workspace_id, user)
         return [PdfImportDto.of(r) for r in records]
 
+    @get("/ai")
+    async def ai_provider(
+        self, workspace_id: PydanticObjectId, user: User = Depends(get_logged_user)
+    ):
+        """Which AI provider an import with consent would use, for the upload
+        screen's disclosure. Nothing is sent anywhere by this call."""
+        return await container.pdf_import_service().ai_provider(workspace_id, user)
+
     @get("/{import_id}", response_model=PdfImportDto)
     async def get_import(
         self,
@@ -145,9 +153,13 @@ class PdfImportRouter(Routable):
         data = await container.pdf_import_service().page_image(
             workspace_id, import_id, number, user
         )
-        # private and per user: never cached by shared caches
+        # a page can show filled-in personal data: never stored by any cache,
+        # and never sniffed as anything but a PNG
         return Response(
             content=data,
             media_type="image/png",
-            headers={"Cache-Control": "private, max-age=300"},
+            headers={
+                "Cache-Control": "private, no-store",
+                "X-Content-Type-Options": "nosniff",
+            },
         )

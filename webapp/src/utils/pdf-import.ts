@@ -74,3 +74,13 @@ export function validateUpload(file: { type: string; size: number; name: string 
     if (file.size > MAX_UPLOAD_BYTES) return 'This file is larger than 15 MB.';
     return null;
 }
+
+/** A review box whose wording the AI wrote (not found in the document's text). */
+export function isAiWording(box: { grounded?: boolean | null }): boolean {
+    return box.grounded === false;
+}
+
+/** The progress and review screens say whether the AI read the document. */
+export function aiStructuringNote(aiConsent: boolean | undefined): string {
+    return aiConsent ? 'AI structuring: on' : 'AI structuring: off (built-in reader only)';
+}

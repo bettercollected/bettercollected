@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { STAGES, describeRules, placeBox, progressPercent, stageStates, validateUpload } from '@app/utils/pdf-import';
+import { STAGES, aiStructuringNote, describeRules, isAiWording, placeBox, progressPercent, stageStates, validateUpload } from '@app/utils/pdf-import';
 
 describe('stageStates', () => {
     it('marks finished, current and waiting stages', () => {
@@ -35,5 +35,21 @@ describe('validateUpload', () => {
         expect(validateUpload({ type: '', size: 1000, name: 'scan.JPG' })).toBeNull();
         expect(validateUpload({ type: 'text/plain', size: 10, name: 'a.txt' })).toMatch(/PDF/);
         expect(validateUpload({ type: 'application/pdf', size: 20 * 1024 * 1024, name: 'big.pdf' })).toMatch(/15 MB/);
+    });
+});
+
+describe('isAiWording', () => {
+    it('marks only boxes whose wording the AI wrote', () => {
+        expect(isAiWording({ grounded: false })).toBe(true);
+        expect(isAiWording({ grounded: true })).toBe(false);
+        expect(isAiWording({})).toBe(false);
+    });
+});
+
+describe('aiStructuringNote', () => {
+    it('says whether the AI read the document', () => {
+        expect(aiStructuringNote(true)).toBe('AI structuring: on');
+        expect(aiStructuringNote(false)).toBe('AI structuring: off (built-in reader only)');
+        expect(aiStructuringNote(undefined)).toBe('AI structuring: off (built-in reader only)');
     });
 });

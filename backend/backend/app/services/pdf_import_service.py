@@ -192,6 +192,24 @@ class PdfImportService:
         if form_ids:
             await self._repo.delete_by_form_ids(list(form_ids))
 
+    async def ai_provider(self, workspace_id, user) -> dict:
+        """The provider page text and images would go to with consent: its
+        public name and whether this instance has it configured."""
+        from backend.config import settings
+
+        await self._workspace_users.check_user_has_access_in_workspace(
+            workspace_id=workspace_id, user=user
+        )
+        default = (settings.ai.DEFAULT_PROVIDER or "openai").lower()
+        if default == "google":
+            name, available = "Google Gemini", bool(settings.google_ai.API_KEY)
+        elif default == "compatible":
+            name = "this instance's own AI model"
+            available = bool(settings.ai.COMPAT_BASE_URL and settings.ai.COMPAT_MODEL)
+        else:
+            name, available = "OpenAI", bool(settings.open_ai.API_KEY)
+        return {"provider": name, "available": available}
+
     async def page_image(self, workspace_id, import_id, number: int, user) -> bytes:
         """A rendered page, for the review screen (members of the workspace only)."""
         record = await self.get(workspace_id, import_id, user)
@@ -212,16 +230,21 @@ class PdfImportService:
 
         record = await self.get(workspace_id, import_id, user)
 
-        async def load(name):
+        async def load(name, stage):
+            if stage not in record.stages:
+                return {}  # that stage has not run (yet): no artifact
+            key = artifact_key(record.source_key, name)
             try:
-                return json.loads(
-                    await self._store.get(artifact_key(record.source_key, name))
-                )
-            except Exception:  # noqa: BLE001 — a stage that did not run
-                return {}
+                return json.loads(await self._store.get(key))
+            except Exception:
+                # a finished stage's artifact must be there: a store outage or
+                # a corrupt file is an error, not "no boxes" (key only, no content)
+                logger.error("form import {} could not read {}", record.id, key)
+                raise
 
-        fdm, layout = await load("fdm.json"), await load("layout.json")
-        text = await load("text.json")
+        fdm = await load("fdm.json", "structure")
+        layout = await load("layout.json", "layout")
+        text = await load("text.json", "text")
         primitives = {
             p["id"]: p
             for page in layout.get("pages") or []
@@ -237,7 +260,9 @@ class PdfImportService:
         for page in record.pages:
             boxes = []
             for e in fdm.get("elements") or []:
-                if e.get("page") != page.number or e["type"] not in (
+                if not isinstance(e, dict):
+                    continue
+                if e.get("page") != page.number or e.get("type") not in (
                     "question",
                     "staff_only",
                 ):
@@ -264,11 +289,14 @@ class PdfImportService:
                 ]
                 boxes.append(
                     {
-                        "id": e["id"],
-                        "type": e["type"],
+                        "id": e.get("id"),
+                        "type": e.get("type"),
                         "kind": e.get("kind"),
                         "label": clean_label(e.get("label") or e.get("heading") or ""),
                         "confidence": e.get("confidence"),
+                        # False: the wording is the model's, not found on the page
+                        "grounded": e.get("grounded") is not False
+                        and e.get("text_source") != "model",
                         "bbox": [round(v, 1) for v in box],
                     }
                 )

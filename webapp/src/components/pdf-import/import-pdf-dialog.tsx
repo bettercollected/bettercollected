@@ -6,7 +6,7 @@ import { useRouter } from 'next-nprogress-bar';
 
 import { Button } from '@app/shadcn/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@app/shadcn/components/ui/dialog';
-import { useStartPdfImportMutation } from '@app/store/redux/pdf-import-api';
+import { useGetPdfImportAiQuery, useStartPdfImportMutation } from '@app/store/redux/pdf-import-api';
 import { validateUpload } from '@app/utils/pdf-import';
 
 interface ImportPdfDialogProps {
@@ -24,6 +24,9 @@ export default function ImportPdfDialog({ open, onOpenChange, workspaceId, works
     const [error, setError] = useState<string | null>(null);
     const [dragging, setDragging] = useState(false);
     const [startImport, { isLoading }] = useStartPdfImportMutation();
+    const { data: ai } = useGetPdfImportAiQuery({ workspaceId }, { skip: !open || !workspaceId });
+    // unchecked by default: nothing goes to the AI provider without a tick
+    const [aiConsent, setAiConsent] = useState(false);
 
     const choose = (chosen: File | undefined | null) => {
         if (!chosen) return;
@@ -34,7 +37,7 @@ export default function ImportPdfDialog({ open, onOpenChange, workspaceId, works
 
     const submit = async () => {
         if (!file) return;
-        const result: any = await startImport({ workspaceId, file });
+        const result: any = await startImport({ workspaceId, file, aiConsent: aiConsent && !!ai?.available });
         if (result.data?.id) {
             onOpenChange(false);
             router.push(`/${workspaceName}/dashboard/forms/import/${result.data.id}`);
@@ -80,7 +83,22 @@ export default function ImportPdfDialog({ open, onOpenChange, workspaceId, works
                 </button>
                 <input ref={input} type="file" accept="application/pdf,image/png,image/jpeg,image/webp" className="hidden" onChange={(e) => choose(e.target.files?.[0])} />
                 {error && <p className="text-sm text-red-600">{error}</p>}
-                <p className="text-xs text-black-600">Upload a blank form if you can: the text on the pages, including anything filled in, is read to recognise the questions. Page images are read by your workspace&apos;s AI provider. The file is kept with the draft form until you delete the form.</p>
+                {ai?.available ? (
+                    <div className="rounded-md border border-black-200 p-3">
+                        <label className="flex cursor-pointer items-start gap-2 text-sm text-black-800">
+                            <input type="checkbox" className="mt-0.5" checked={aiConsent} onChange={(e) => setAiConsent(e.target.checked)} />
+                            <span>Let {ai.provider} read this document to recognise the questions</span>
+                        </label>
+                        <p className="mt-2 text-xs text-black-600">
+                            {aiConsent
+                                ? `The page text and page images of this file are sent to ${ai.provider} to recognise its questions. Don't upload forms that hold other people's personal data unless you're allowed to share it.`
+                                : 'Without this, the import uses the built-in reader only. The draft may need more manual review.'}
+                        </p>
+                    </div>
+                ) : (
+                    <p className="text-xs text-black-600">No AI provider is set up on this server, so the import uses the built-in reader only. The draft may need more manual review.</p>
+                )}
+                <p className="text-xs text-black-600">Upload a blank form if you can. The file is kept with the draft form until you delete the form.</p>
                 <div className="flex justify-end gap-2">
                     <Button variant="v2Button" onClick={() => onOpenChange(false)}>
                         Cancel

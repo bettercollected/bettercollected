@@ -6,7 +6,7 @@ import Link from 'next/link';
 
 import { Button } from '@app/shadcn/components/ui/button';
 import { pageImageUrl, useGetPdfImportQuery, useGetPdfImportReviewQuery } from '@app/store/redux/pdf-import-api';
-import { STAGES, describeRules, placeBox, progressPercent, stageStates } from '@app/utils/pdf-import';
+import { STAGES, aiStructuringNote, describeRules, isAiWording, placeBox, progressPercent, stageStates } from '@app/utils/pdf-import';
 
 const POLL_MS = 2000;
 
@@ -53,7 +53,7 @@ function PageWithBoxes({ workspaceId, importId, page, selected, onSelect }: any)
                             type="button"
                             title={b.label}
                             onClick={() => onSelect(b.id)}
-                            className={`absolute rounded-sm border-2 ${b.type === 'staff_only' ? 'border-amber-500 bg-amber-500/10' : (b.confidence ?? 1) < 0.5 ? 'border-orange-500 bg-orange-500/10' : 'border-blue-500 bg-blue-500/10'} ${isSelected ? 'ring-2 ring-blue-700' : ''}`}
+                            className={`absolute rounded-sm border-2 ${b.type === 'staff_only' ? 'border-amber-500 bg-amber-500/10' : (b.confidence ?? 1) < 0.5 ? 'border-orange-500 bg-orange-500/10' : 'border-blue-500 bg-blue-500/10'} ${isAiWording(b) ? 'border-dashed' : ''} ${isSelected ? 'ring-2 ring-blue-700' : ''}`}
                             style={pos}
                         />
                     );
@@ -93,6 +93,7 @@ export default function ImportProgressReview({ workspaceId, workspaceName, impor
                     </div>
                 )}
                 <StageList states={states} />
+                <p className="text-xs text-black-600">{aiStructuringNote(data.aiConsent)}</p>
                 {data.error && <p className="rounded-md bg-red-50 p-3 text-sm text-red-700">{data.error}</p>}
                 {data.status === 'failed' && (
                     <Link href={`/${workspaceName}/dashboard/forms/create`}>
@@ -108,7 +109,7 @@ export default function ImportProgressReview({ workspaceId, workspaceName, impor
         <div className="mx-auto flex max-w-[1330px] flex-col gap-6 p-6 md:p-10 lg:flex-row">
             <div className="flex w-full flex-col gap-4 lg:w-3/5">
                 <p className="text-sm text-black-600">
-                    Each outlined area became a question in your draft. <span className="text-orange-600">Orange</span> means the reading was uncertain; <span className="text-amber-600">amber</span> marks staff-only parts.
+                    Each outlined area became a question in your draft. <span className="text-orange-600">Orange</span> means the reading was uncertain; <span className="text-amber-600">amber</span> marks staff-only parts. A dashed outline means the AI wrote the wording: check it.
                 </p>
                 {review?.pages.map((page) => (
                     <div key={page.number} className="flex flex-col gap-1">
@@ -127,10 +128,12 @@ export default function ImportProgressReview({ workspaceId, workspaceName, impor
                 <Link href={`/${workspaceName}/dashboard/forms/${data.formId}/edit`}>
                     <Button className="w-full">Open in builder</Button>
                 </Link>
+                <p className="text-xs text-black-600">{aiStructuringNote(data.aiConsent)}</p>
                 {selectedBox && (
                     <div className="rounded-md border border-black-200 p-3 text-sm">
                         <div className="font-medium text-black-800">{selectedBox.label || 'Untitled'}</div>
                         <div className="text-xs text-black-600">{selectedBox.type === 'staff_only' ? 'Staff-only part' : selectedBox.kind?.replace(/_/g, ' ')}</div>
+                        {isAiWording(selectedBox) && <div className="mt-1 text-xs text-orange-700">Wording written by the AI, not copied from the document. Check it.</div>}
                     </div>
                 )}
                 {rules.length > 0 && (
