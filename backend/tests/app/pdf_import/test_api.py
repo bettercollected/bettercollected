@@ -439,3 +439,27 @@ async def test_with_consent_the_ai_provider_reads_the_pages(
     record = await container.form_import_repo().get(done["id"])
     assert record.ai_consent is True and record.ai_consent_at is not None
     assert record.ai_consent_by
+
+
+async def test_the_draft_form_is_filled_from_the_document(
+    client, workspace, test_user_cookies, store
+):
+    response = await upload(
+        client,
+        workspace,
+        test_user_cookies,
+        documents.form_pdf(),
+        "Membership form.pdf",
+    )
+    body = response.json()
+    done = await finished(client, workspace, test_user_cookies, body["id"])
+    assert done["status"] == ImportStatus.COMPLETED, done
+    compiled = done["report"]["compile"]
+    assert (
+        compiled["pages"] >= 1 and compiled["fields"] >= 10 and not compiled["failures"]
+    )
+    assert compiled["staff_only"][0]["heading"] == "For office use only"
+    form = await container.form_repo().get_form_document_by_id(body["formId"])
+    titles = [f.title for page in form.fields for f in page.properties.fields]
+    assert {"Full name", "Date of birth", "Account number", "Gender"} <= set(titles)
+    assert form.theme is not None and form.theme.accent == "#ff0000"

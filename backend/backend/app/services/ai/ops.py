@@ -92,6 +92,8 @@ class NewFieldSpec(_CamelModel):
     # Internal ("for office use only"): hidden from respondents, filled in by
     # staff on each submission afterwards.
     internal: Optional[bool] = None
+    # multiple_choice only: respondents may pick several choices
+    allow_multiple: Optional[bool] = None
 
 
 class FieldPatch(_CamelModel):
@@ -339,6 +341,8 @@ def _build_field(spec: NewFieldSpec, index: int) -> StandardFormField:
         if not spec.choices or len(spec.choices) < 2:
             raise OpError(f"'{spec.type.value}' needs at least 2 choices.")
         properties.choices = [StandardChoice(id=str(uuid.uuid4()), value=v) for v in spec.choices]
+        if spec.allow_multiple and spec.type == StandardFormFieldType.MULTIPLE_CHOICE:
+            properties.allow_multiple_selection = True
     elif spec.type in RATING_FIELD_TYPES:
         properties.steps = spec.steps or (5 if spec.type == StandardFormFieldType.RATING else 10)
         if spec.start_from is not None:

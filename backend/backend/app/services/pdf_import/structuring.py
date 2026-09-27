@@ -627,6 +627,32 @@ def _kind_for(label: str, primitive: dict) -> str:
     return "short_text"
 
 
+def _top_of(ctx: PageContext, e: dict) -> float:
+    prims = ctx.primitive_ids
+    tops = [prims[r]["bbox"][1] for r in e.get("slot_refs") or [] if r in prims]
+    for ref in (e.get("refs") or []) + (e.get("label_refs") or []):
+        if ref in prims:
+            tops.append(prims[ref]["bbox"][1])
+        else:
+            i = _word_index(ref)
+            if i is not None and i < len(ctx.words):
+                tops.append(ctx.words[i]["top"])
+    return min(tops) if tops else 1e9
+
+
+def _in_reading_order(ctx: PageContext, elements: List[dict]) -> List[dict]:
+    """Top to bottom, each question and statement under the section heading
+    above it (the deterministic fallback has no other notion of sections)."""
+    ordered = sorted(elements, key=lambda e: _top_of(ctx, e))
+    current = None
+    for e in ordered:
+        if e["type"] == "section":
+            current = e["id"]
+        elif e["type"] in ("question", "statement") and not e.get("section"):
+            e["section"] = current
+    return ordered
+
+
 def heuristic(ctx: PageContext) -> List[dict]:
     """Structure a page from geometry alone: a label for every answer place,
     checkbox rows as choices, tables as tables, bars as sections."""
@@ -806,7 +832,7 @@ def heuristic(ctx: PageContext) -> List[dict]:
                 ),
             }
         )
-    return elements
+    return _in_reading_order(ctx, elements)
 
 
 # --- the stage ----------------------------------------------------------------------
@@ -879,9 +905,15 @@ def merge(pages: List[PageResult]) -> dict:
                     e["merged_into"] = last_section
                     continue
                 last_section = e["id"]
+            if (
+                e["type"] in ("question", "statement")
+                and not e.get("section")
+                and last_section
+            ):
+                # content at the top of a page without its own heading continues
+                # the section the previous page ended with
+                e["section"] = last_section
             if e["type"] == "question":
-                if not e.get("section") and last_section:
-                    e["section"] = last_section
                 if e["kind"] == "signature":
                     key = (e["label"].strip().lower(), e.get("applicant_index"))
                     if key in seen_signatures:

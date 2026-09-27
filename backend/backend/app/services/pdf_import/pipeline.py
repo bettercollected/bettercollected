@@ -31,6 +31,7 @@ from backend.app.services.pdf_import.sandbox import (
     run_layout,
     run_text_layer,
 )
+from backend.app.services.pdf_import.compile import build_form
 from backend.app.services.pdf_import.storage import artifact_key
 from backend.app.services.pdf_import.structuring import (
     merge,
@@ -72,8 +73,10 @@ def _now() -> dt.datetime:
 
 
 class ImportPipeline:
-    def __init__(self, repo, store, settings, provider_resolver=None):
+    def __init__(self, repo, store, settings, provider_resolver=None, form_repo=None):
         self._repo = repo
+        # the draft form the import fills (compile stage)
+        self._form_repo = form_repo
         self._store = store
         self._settings = settings
         # returns the AI provider for imports, or None (resolved per run)
@@ -88,6 +91,7 @@ class ImportPipeline:
             ("layout", self._layout),
             ("render", self._render),
             ("structure", self._structure),
+            ("compile", self._compile),
         ]
 
     async def _analyze(self, record: FormImportDocument, data: bytes) -> dict:
@@ -307,6 +311,34 @@ class ImportPipeline:
         }
         record.report["structure"] = summary
         return {"artifact": key, **summary}
+
+    async def _compile(self, record: FormImportDocument, data: bytes) -> dict:
+        """Fill the draft form from the FDM: the redesign rules, the brand
+        theme, then one save. Built from an empty form each time, so a retry
+        produces the same draft instead of adding to it."""
+        fdm = await self._load_json(record, "fdm.json")
+        layout = await self._load_json(record, "layout.json")
+        if not fdm.get("elements"):
+            record.report["compile"] = {
+                "pages": 0,
+                "fields": 0,
+                "note": "nothing to compile",
+            }
+            return {"pages": 0}
+        document = (
+            await self._form_repo.get_form_document_by_id(record.form_id)
+            if self._form_repo
+            else None
+        )
+        if document is None:
+            raise RuntimeError("the draft form is missing")
+        form, report = build_form(fdm, layout, document.title or "Imported form")
+        document.fields = form.fields
+        if form.theme is not None:
+            document.theme = form.theme
+        await self._form_repo.save_form(document)
+        record.report["compile"] = report
+        return {k: report[k] for k in ("pages", "fields", "logic_rules")}
 
     async def run(self, import_id: PydanticObjectId) -> FormImportDocument:
         record = await self._repo.get(import_id)
