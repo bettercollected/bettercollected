@@ -209,6 +209,35 @@ class _Page:
 # --- detectors -------------------------------------------------------------------
 
 
+def _style(word: dict) -> Tuple[str, int]:
+    return (str(word.get("font") or ""), round(float(word.get("size") or 0)))
+
+
+def _filled_in(pg: "_Page", box: Box, inside: Sequence[int]) -> bool:
+    """Words in an answer-shaped box or on an answer line are a filled-in value
+    when a label sits just left of it in another style (font or size): typed
+    or flattened answers rarely share the printed form's font. Same style =
+    printed text (a label cell), so nothing is taken away on a blank form."""
+    if not inside or len(inside) > 12:
+        return False
+    inside_set = set(inside)
+    top, bottom = box[1], box[3]
+    label = None
+    for i, b in enumerate(pg.boxes):
+        if i in inside_set or pg.is_placeholder(i):
+            continue
+        cy = (b[1] + b[3]) / 2
+        if not (top - 3 <= cy <= bottom + 3):
+            continue
+        if box[0] - 150 <= b[2] <= box[0] + 2:
+            if label is None or b[2] > pg.boxes[label][2]:
+                label = i
+    if label is None:
+        return False
+    styles = {_style(pg.words[i]) for i in inside}
+    return _style(pg.words[label]) not in styles
+
+
 def _rects(pg: _Page) -> List[dict]:
     """Rectangles, deduplicated: many producers draw each box twice (fill, stroke)."""
     page_area = pg.width * pg.height
@@ -481,6 +510,10 @@ def _classify_boxes(
         elif w >= SLOT_MIN_WIDTH and not real:
             pg.add("answer_slot", b, words, slot="box", placeholder=placeholder)
             slots.append(b)
+        elif w >= SLOT_MIN_WIDTH and _filled_in(pg, b, real):
+            # a filled-in form: the words are someone's answer, not question text
+            pg.add("answer_slot", b, real, slot="box", filled=True)
+            slots.append(b)
         else:
             continue
         pg.used_words.update(words)
@@ -536,8 +569,11 @@ def _underlines(pg: _Page, frames: List[Box]):
         if on_frame:
             continue
         above = (b[0], y - 12, b[2], y - 0.5)
-        if [i for i in pg.words_in(above, pad=0) if not pg.is_placeholder(i)]:
-            continue
+        written = [i for i in pg.words_in(above, pad=0) if not pg.is_placeholder(i)]
+        if written:
+            if _filled_in(pg, above, written):
+                pg.add("answer_slot", b, written, slot="underline", filled=True)
+            continue  # otherwise underlined text, not an answer line
         pg.add("answer_slot", b, [], slot="underline")
 
 

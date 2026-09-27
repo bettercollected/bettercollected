@@ -151,9 +151,10 @@ def encrypted_pdf() -> bytes:
     return out.getvalue()
 
 
-def form_pdf() -> bytes:
+def form_pdf(filled: bool = False) -> bytes:
     """A vector form with one of each layout element (coordinates: PDF points,
-    origin bottom-left; 595 x 842 page)."""
+    origin bottom-left; 595 x 842 page). ``filled`` writes answers into it in
+    another font, as a typed-in and flattened form would have."""
 
     def text(x, y, s, size=11, font="F1", grey=None, white=False):
         colour = (
@@ -218,6 +219,11 @@ def form_pdf() -> bytes:
     ops.append(text(56, 305, "Reviewed by"))
     ops.append(b"150 300 200 18 re S\n")
 
+    if filled:
+        ops.append(text(156, 750, "Asha Kumari Rai", 10, "F3"))
+        ops.append(text(156, 614, "Moving abroad soon", 10, "F3"))
+        ops.append(text(206, 526, "Brother", 10, "F3"))
+
     content = b"".join(ops)
     return _pdf(
         [
@@ -225,7 +231,8 @@ def form_pdf() -> bytes:
             b"<< /Type /Pages /Kids [5 0 R] /Count 1 >>",
             b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
             b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>",
-            b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 6 0 R >>",
+            b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 7 0 R >> >> /Contents 6 0 R >>",
             _stream(content),
+            b"<< /Type /Font /Subtype /Type1 /BaseFont /Courier >>",
         ]
     )
