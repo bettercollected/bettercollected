@@ -32,7 +32,13 @@ MCP_HEADERS = {
 
 async def _make_key(workspace_id, scopes, user=testUser):
     created = await container.api_key_service().create_key(
-        workspace_id, CreateAPIKeyDto(name="test key", scopes=scopes), user
+        workspace_id,
+        CreateAPIKeyDto(
+            name="test key",
+            scopes=scopes,
+            acknowledge_unredacted_responses="responses:read" in scopes,
+        ),
+        user,
     )
     return created.token
 

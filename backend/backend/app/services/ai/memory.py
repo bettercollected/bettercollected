@@ -100,6 +100,29 @@ class AIMemoryService:
         return [MemoryEntryDto(**e) for e in document.entries]
 
     @staticmethod
+    async def learns_preferences(workspace_id: PydanticObjectId, user_id: str) -> bool:
+        """The user's "Learn my preferences" setting (default off)."""
+        document = await AIMemoryService._get_document(workspace_id, user_id)
+        return bool(document and document.learn_preferences)
+
+    async def set_learn_preferences(
+        self, workspace_id: PydanticObjectId, user: User, enabled: bool
+    ) -> bool:
+        """Turn extraction from chat turns on or off for the caller."""
+        await _c().workspace_user_service().check_user_has_access_in_workspace(
+            workspace_id=workspace_id, user=user
+        )
+        document = await self._get_document(workspace_id, user.id)
+        if document is None:
+            document = UserAIPreferenceMemoryDocument(
+                workspace_id=workspace_id, user_id=user.id, entries=[]
+            )
+        document.learn_preferences = bool(enabled)
+        document.learn_preferences_at = dt.datetime.now(dt.timezone.utc)
+        await _c().ai_preference_memory_repo().save(document)
+        return document.learn_preferences
+
+    @staticmethod
     async def get_entries_for_prompt(
         workspace_id: PydanticObjectId, user_id: str
     ) -> List[str]:
@@ -142,8 +165,14 @@ class AIMemoryService:
         user_message: str,
         assistant_reply: str,
     ) -> None:
-        """Best-effort background extraction after a chat turn."""
+        """Best-effort background extraction after a chat turn. Runs only
+        when the user turned on "Learn my preferences" and the workspace
+        still has AI enabled (#715)."""
         try:
+            if not await self.learns_preferences(workspace_id, user_id):
+                return
+            if not await _c().ai_consent_service().consented_provider(workspace_id):
+                return
             existing = await self.get_entries_for_prompt(workspace_id, user_id)
             system = EXTRACTION_SYSTEM_PROMPT.format(
                 existing="\n".join(f"- {t}" for t in existing) or "(empty)"

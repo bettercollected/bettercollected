@@ -14,28 +14,18 @@ from common.models.standard_form import (
 
 from beanie import PydanticObjectId
 from backend.app.container import container
+from tests.app.ai_helpers import FakeProvider, enable_ai, use_fake_provider
 from backend.app.schemas.form_ai_session import FormAISessionDocument
 from backend.app.schemas.standard_form import FormDocument
 from backend.app.schemas.workspace import WorkspaceDocument
 
 
-class FakeProvider:
-    """Scripted provider: returns queued replies, records what it was asked."""
-
-    def __init__(self):
-        self.replies = []
-        self.calls = []
-
-    async def chat(self, system: str, messages: list) -> str:
-        self.calls.append({"system": system, "messages": messages})
-        return self.replies.pop(0)
-
-
 @pytest.fixture()
-def fake_provider(monkeypatch):
+async def fake_provider(monkeypatch, workspace):
+    # AI on for the fixture workspace (#715); the provider is a fake
     fake = FakeProvider()
-    service = container.form_ai_chat_service()
-    monkeypatch.setattr(service, "_provider_resolver", lambda name: fake)
+    use_fake_provider(monkeypatch, fake)
+    await enable_ai(workspace)
     return fake
 
 
@@ -245,13 +235,11 @@ class TestFormAIChat:
         test_user_cookies: dict[str, str],
         fake_provider: FakeProvider,
     ):
-        # Each turn consumes TWO replies: the chat itself, then the
-        # background memory extraction that follows it.
+        # "Learn my preferences" is off by default, so each turn is exactly
+        # one provider call (no memory extraction afterwards).
         fake_provider.replies = [
             json.dumps({"reply": "Okay.", "ops": []}),
-            json.dumps({"memories": []}),
             json.dumps({"reply": "Done.", "ops": []}),
-            json.dumps({"memories": []}),
         ]
         url = (
             f"/api/v1/workspaces/{workspace.id}/forms/{workspace_form.form_id}/ai/chat"
@@ -267,9 +255,9 @@ class TestFormAIChat:
         )
         assert second.status_code == 200
         assert second.json()["sessionId"] == session_id
-        # Second CHAT call (calls[2]; calls[1] was turn 1's extraction)
-        # includes the first exchange.
-        second_messages = fake_provider.calls[2]["messages"]
+        # The second chat call includes the first exchange.
+        assert len(fake_provider.calls) == 2
+        second_messages = fake_provider.calls[1]["messages"]
         assert [m["content"] for m in second_messages] == ["hello", "Okay.", "again"]
 
     async def test_failed_op_reported_not_fatal(

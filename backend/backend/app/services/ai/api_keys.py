@@ -33,6 +33,8 @@ VALID_SCOPES = {
 }
 
 TOKEN_PREFIX = "bc_"
+# Scopes that hand respondents' answers, unredacted, to whatever holds the key.
+UNREDACTED_RESPONSE_SCOPES = {"responses:read"}
 
 
 class _CamelModel(BaseModel):
@@ -42,6 +44,9 @@ class _CamelModel(BaseModel):
 class CreateAPIKeyDto(_CamelModel):
     name: str = Field(..., min_length=1, max_length=60)
     scopes: List[str] = Field(..., min_length=1)
+    # required with responses:read: the admin acknowledges that the key gives
+    # an external AI client full, unredacted answers
+    acknowledge_unredacted_responses: bool = False
 
 
 class APIKeyDto(_CamelModel):
@@ -52,6 +57,8 @@ class APIKeyDto(_CamelModel):
     revoked: bool
     created_by: Optional[str] = None
     last_used_at: Optional[dt.datetime] = None
+    responses_read_acknowledged_by: Optional[str] = None
+    responses_read_acknowledged_at: Optional[dt.datetime] = None
 
 
 class CreatedAPIKeyDto(APIKeyDto):
@@ -72,6 +79,8 @@ def _to_dto(document: WorkspaceAPIKeyDocument) -> APIKeyDto:
         revoked=document.revoked,
         created_by=document.created_by,
         last_used_at=document.last_used_at,
+        responses_read_acknowledged_by=document.responses_read_acknowledged_by,
+        responses_read_acknowledged_at=document.responses_read_acknowledged_at,
     )
 
 
@@ -103,6 +112,15 @@ class APIKeyService:
                 status_code=HTTPStatus.BAD_REQUEST,
                 content=f"Unknown scopes: {', '.join(sorted(invalid))}. Valid: {', '.join(sorted(VALID_SCOPES))}",
             )
+        reads_responses = bool(set(dto.scopes) & UNREDACTED_RESPONSE_SCOPES)
+        if reads_responses and not dto.acknowledge_unredacted_responses:
+            raise HTTPException(
+                status_code=HTTPStatus.BAD_REQUEST,
+                content=(
+                    "A key with responses:read gives the AI client that uses it "
+                    "full, unredacted answers. Acknowledge this to create the key."
+                ),
+            )
         token = TOKEN_PREFIX + secrets.token_hex(32)
         document = WorkspaceAPIKeyDocument(
             workspace_id=workspace_id,
@@ -111,6 +129,10 @@ class APIKeyService:
             prefix=token[: len(TOKEN_PREFIX) + 8],
             scopes=sorted(set(dto.scopes)),
             created_by=user.id,
+            responses_read_acknowledged_by=str(user.id) if reads_responses else None,
+            responses_read_acknowledged_at=(
+                dt.datetime.now(dt.timezone.utc) if reads_responses else None
+            ),
         )
         await self._api_key_repo.save(document)
         return CreatedAPIKeyDto(**_to_dto(document).model_dump(), token=token)

@@ -111,6 +111,7 @@ from backend.app.services.form_service import FormService
 from backend.app.services.media_library_service import MediaLibraryService
 from backend.app.services.ai.api_keys import APIKeyService
 from backend.app.services.ai.chat import FormAIChatService
+from backend.app.services.ai.consent import AIConsentService
 from backend.app.services.ai.memory import AIMemoryService
 from backend.app.services.ai.profile import AIProfileService
 from backend.app.services.ai.insights import FormAIInsightsService
@@ -571,11 +572,13 @@ class AppContainer(containers.DeclarativeContainer):
         repo=form_import_repo,
         store=pdf_import_store,
         settings=settings.pdf_import,
-        # the instance's default AI provider (AI_DEFAULT_PROVIDER), looked up per
-        # run: openai_service is defined further down this container
+        # provider id -> AI provider, looked up per run (openai_service is
+        # defined further down this container); the workspace opt-in is
+        # checked by the pipeline through ai_consent
         provider_resolver=providers.Object(
-            lambda: container.openai_service()._get_provider(None)
+            lambda provider: container.openai_service()._get_provider(provider)
         ),
+        ai_consent=providers.Object(lambda: container.ai_consent_service()),
         form_repo=form_repo,
         workspace_form_service=workspace_form_service,
     )
@@ -623,10 +626,18 @@ class AppContainer(containers.DeclarativeContainer):
         api_key_repo=workspace_api_key_repo,
     )
 
+    ai_consent_service: AIConsentService = providers.Singleton(
+        AIConsentService,
+        workspace_repo=workspace_repo,
+        workspace_user_service=workspace_user_service,
+    )
+
     openai_service: OpenAIService = providers.Singleton(
         OpenAIService,
         workspace_service=workspace_service,
         workspace_form_service=workspace_form_service,
+        workspace_user_service=workspace_user_service,
+        ai_consent_service=ai_consent_service,
     )
 
     form_ai_chat_service: FormAIChatService = providers.Singleton(
@@ -638,7 +649,7 @@ class AppContainer(containers.DeclarativeContainer):
         # Bound late so the resolver sees openai_service's registry (incl. the
         # OpenAI-compatible provider when configured).
         provider_resolver=providers.Callable(
-            lambda svc: svc._get_provider, openai_service
+            lambda svc: svc.provider_for_workspace, openai_service
         ),
     )
 
@@ -648,7 +659,7 @@ class AppContainer(containers.DeclarativeContainer):
         workspace_form_repo=workspace_form_repo,
         form_repo=form_repo,
         provider_resolver=providers.Callable(
-            lambda svc: svc._get_provider, openai_service
+            lambda svc: svc.provider_for_workspace, openai_service
         ),
     )
 
@@ -660,7 +671,7 @@ class AppContainer(containers.DeclarativeContainer):
         form_response_repo=form_response_repo,
         insight_repo=form_ai_insight_repo,
         provider_resolver=providers.Callable(
-            lambda svc: svc._get_provider, openai_service
+            lambda svc: svc.provider_for_workspace, openai_service
         ),
     )
 

@@ -228,21 +228,28 @@ class PdfImportService:
 
     async def ai_provider(self, workspace_id, user) -> dict:
         """The provider page text and images would go to with consent: its
-        public name and whether this instance has it configured."""
-        from backend.config import settings
+        public name, whether this instance has it configured, and whether the
+        workspace has opted in to AI (#715). Without the opt-in it names the
+        instance default, which is what an admin would be asked to allow."""
+        from backend.app.container import container
+        from backend.app.services.ai.consent import (
+            default_provider,
+            provider_configured,
+            provider_name,
+        )
 
         await self._workspace_users.check_user_has_access_in_workspace(
             workspace_id=workspace_id, user=user
         )
-        default = (settings.ai.DEFAULT_PROVIDER or "openai").lower()
-        if default == "google":
-            name, available = "Google Gemini", bool(settings.google_ai.API_KEY)
-        elif default == "compatible":
-            name = "this instance's own AI model"
-            available = bool(settings.ai.COMPAT_BASE_URL and settings.ai.COMPAT_MODEL)
-        else:
-            name, available = "OpenAI", bool(settings.open_ai.API_KEY)
-        return {"provider": name, "available": available}
+        consented = await container.ai_consent_service().consented_provider(
+            workspace_id
+        )
+        provider = consented or default_provider()
+        return {
+            "provider": provider_name(provider),
+            "available": provider_configured(provider),
+            "enabled": consented is not None,
+        }
 
     async def page_image(self, workspace_id, import_id, number: int, user) -> bytes:
         """A rendered page, for the review screen (members of the workspace only)."""

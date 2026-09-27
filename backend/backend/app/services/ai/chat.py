@@ -152,7 +152,9 @@ class FormAIChatService:
         self._form_repo = form_repo
         self._session_repo = session_repo
         # Injected so tests (and future per-workspace BYO keys) swap providers
-        # without touching this flow. Signature: (provider_name|None) -> provider.
+        # without touching this flow. Signature:
+        # async (workspace_id, provider_name|None) -> provider, 403 when the
+        # workspace has not opted in to AI.
         self._provider_resolver = provider_resolver
 
     async def chat_edit(
@@ -201,6 +203,10 @@ class FormAIChatService:
                 workspace_id=workspace_id, form_id=form_id, user_id=user.id, messages=[]
             )
 
+        # The workspace's AI opt-in (#715), before anything is loaded into a
+        # prompt: 403 ai_not_enabled when it is off.
+        provider = await self._provider_resolver(workspace_id, request.provider)
+
         form = StandardForm(**form_document.model_dump())
         profile = await AIProfileService.get_profile_for_prompt(workspace_id)
         memory_entries = await AIMemoryService.get_entries_for_prompt(
@@ -216,7 +222,6 @@ class FormAIChatService:
         ]
         messages = history + [{"role": "user", "content": request.message}]
 
-        provider = self._provider_resolver(request.provider)
         raw_reply = await provider.chat(system, messages)
 
         try:
@@ -252,7 +257,9 @@ class FormAIChatService:
         # path. Async background tasks run on the MAIN loop (single-loop
         # pymongo client — see the OTP lesson), and extraction failures are
         # swallowed inside the service.
-        if background_tasks is not None:
+        if background_tasks is not None and await AIMemoryService.learns_preferences(
+            workspace_id, user.id
+        ):
             background_tasks.add_task(
                 AIMemoryService().extract_from_turn,
                 provider,

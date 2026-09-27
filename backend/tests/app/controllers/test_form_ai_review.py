@@ -13,25 +13,17 @@ from common.models.standard_form import (
 )
 
 from backend.app.container import container
+from tests.app.ai_helpers import FakeProvider, enable_ai, use_fake_provider
 from backend.app.schemas.standard_form import FormDocument
 from backend.app.schemas.workspace import WorkspaceDocument
 
 
-class FakeProvider:
-    def __init__(self):
-        self.replies = []
-        self.calls = []
-
-    async def chat(self, system: str, messages: list) -> str:
-        self.calls.append({"system": system, "messages": messages})
-        return self.replies.pop(0)
-
-
 @pytest.fixture()
-def fake_review_provider(monkeypatch):
+async def fake_review_provider(monkeypatch, workspace):
+    # AI on for the fixture workspace (#715); the provider is a fake
     fake = FakeProvider()
-    service = container.form_ai_review_service()
-    monkeypatch.setattr(service, "_provider_resolver", lambda name: fake)
+    use_fake_provider(monkeypatch, fake)
+    await enable_ai(workspace)
     return fake
 
 

@@ -26,6 +26,10 @@ class WorkspaceAPIKeyDocument(MongoDocument):
     scopes: List[str] = []
     created_by: str
     revoked: bool = False
+    # A key with responses:read gives an external AI client full, unredacted
+    # answers; the admin who created it acknowledged that (#715).
+    responses_read_acknowledged_by: Optional[str] = None
+    responses_read_acknowledged_at: Optional[dt.datetime] = None
     last_used_at: Optional[dt.datetime] = None
 
     class Settings:
