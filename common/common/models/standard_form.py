@@ -1,11 +1,11 @@
 import datetime as dt
 import enum
 from enum import Enum
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Literal, Optional, Union
 
 from beanie import PydanticObjectId
 from common.models.consent import Consent, ConsentResponse, ResponseRetentionType
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 from pydantic.alias_generators import to_camel
 
 
@@ -174,6 +174,9 @@ class StandardResponseType(str, Enum):
     FILE_URL = "file_url"
     PAYMENT = "payment"
     TABULAR_INPUT = "tabular_input"
+    # A repeating group: the answer carries one answers-dict per item in
+    # ``StandardFormResponseAnswer.items``.
+    GROUP = "group"
 
 
 class StandardAttachmentProperties(BaseModel):
@@ -319,6 +322,13 @@ class FieldLogicCondition(BaseModel):
     field_type: Optional[str] = None
     comparison: Optional[str] = None
     value: Optional[Any] = None
+    # Group-level conditions (``field_id`` is a repeating group): ``COUNT``
+    # compares the number of items with ``value``; ``ANY`` / ``ALL`` apply
+    # ``comparison``/``value`` to ``child_field_id`` in each item. There is
+    # deliberately no condition on a specific item position.
+    group_mode: Optional[str] = None
+    child_field_id: Optional[str] = None
+    child_field_type: Optional[str] = None
 
     model_config = ConfigDict(populate_by_name=True, alias_generator=to_camel)
 
@@ -359,6 +369,77 @@ class FieldPosition(BaseModel):
     y: Optional[float] = None
 
 
+# Hard ceiling on items per repeating group, whatever the creator asks for.
+REPEAT_MAX_ITEMS_LIMIT = 50
+# Up to this many items a group exports as columns per item by default;
+# above it, as a separate table with one row per item.
+REPEAT_COLUMNS_EXPORT_MAX = 5
+
+# Child question types a repeating group may contain (v1). Nested groups,
+# internal fields (hidden/calculated) and fields whose answers live outside
+# the answers dict (uploads) or span several answers (matrix, table) are not
+# supported inside a group.
+REPEAT_CHILD_FIELD_TYPES = {
+    "short_text",
+    "long_text",
+    "email",
+    "number",
+    "url",
+    "phone_number",
+    "date",
+    "yes_no",
+    "multiple_choice",
+    "dropdown",
+    "rating",
+    "linear_rating",
+    "text",
+}
+
+
+class RepeatSettings(BaseModel):
+    """Makes a ``group`` field repeatable: respondents fill its child questions
+    once per item (one block per applicant, employer, ...), between
+    ``min_items`` and ``max_items`` times. ``item_label`` names one item
+    ("Applicant") and labels the add button; ``item_title`` is an optional
+    header template that may pipe a sibling answer (``{{field:<child id>}}``).
+    ``export_layout`` overrides the default export shape (columns per item
+    when ``max_items <= 5``, else a separate table of rows)."""
+
+    min_items: Optional[int] = Field(1, ge=0, le=REPEAT_MAX_ITEMS_LIMIT)
+    max_items: Optional[int] = Field(3, ge=1, le=REPEAT_MAX_ITEMS_LIMIT)
+    item_label: Optional[str] = Field(None, max_length=80)
+    item_title: Optional[str] = Field(None, max_length=300)
+    export_layout: Optional[Literal["columns", "rows"]] = None
+
+    model_config = ConfigDict(populate_by_name=True, alias_generator=to_camel)
+
+    @model_validator(mode="after")
+    def _check_bounds(self):
+        if (
+            self.min_items is not None
+            and self.max_items is not None
+            and self.min_items > self.max_items
+        ):
+            raise ValueError(
+                "A repeating group's minimum number of items cannot exceed its maximum."
+            )
+        return self
+
+    @property
+    def effective_min(self) -> int:
+        return self.min_items if self.min_items is not None else 1
+
+    @property
+    def effective_max(self) -> int:
+        return self.max_items if self.max_items is not None else 3
+
+    @property
+    def effective_export_layout(self) -> str:
+        if self.export_layout:
+            return self.export_layout
+        return "columns" if self.effective_max <= REPEAT_COLUMNS_EXPORT_MAX else "rows"
+
+
 class StandardFieldProperty(BaseModel):
     hidden: Optional[bool] = None
     logic: Optional[FieldLogic] = None
@@ -390,8 +471,11 @@ class StandardFieldProperty(BaseModel):
     # 12-grid width of the field on desktop (12 = full row, 6 = half…); the
     # webapp sends camelCase colSpan via the alias generator.
     col_span: Optional[int] = Field(None, ge=1, le=12)
+    # Present only on a repeating ``group`` field (see RepeatSettings).
+    repeat: Optional[RepeatSettings] = None
 
     model_config = ConfigDict(populate_by_name=True, alias_generator=to_camel)
+
 
 class StandardFieldValidations(BaseModel):
     required: Optional[bool] = None
@@ -429,6 +513,41 @@ class StandardFormField(BaseModel):
     # filled in by workspace members on each submission afterwards. Its values
     # live in ``StandardFormResponse.internal_answers``, never in ``answers``.
     internal: Optional[bool] = None
+
+    @model_validator(mode="after")
+    def _check_repeating_group(self):
+        check_repeating_group_structure(self)
+        return self
+
+
+def _type_value(field_type: Any) -> Optional[str]:
+    return getattr(field_type, "value", field_type)
+
+
+def check_repeating_group_structure(field: Any) -> None:
+    """Validate a repeating group's children (v1 rules). Only fields that
+    carry ``properties.repeat`` are checked, so legacy/imported ``group``
+    fields are untouched. Raises ``ValueError`` with a readable message."""
+    properties = getattr(field, "properties", None)
+    repeat = getattr(properties, "repeat", None) if properties else None
+    if repeat is None:
+        return
+    if _type_value(getattr(field, "type", None)) != StandardFormFieldType.GROUP.value:
+        raise ValueError("Only a group field can repeat.")
+    children = getattr(properties, "fields", None) or []
+    seen = set()
+    for child in children:
+        child_type = _type_value(getattr(child, "type", None))
+        if child_type == StandardFormFieldType.GROUP.value:
+            raise ValueError("Repeating groups cannot contain another group.")
+        if child_type not in REPEAT_CHILD_FIELD_TYPES:
+            raise ValueError(
+                f"A '{child_type}' question cannot be placed inside a repeating group."
+            )
+        child_id = getattr(child, "id", None)
+        if child_id and child_id in seen:
+            raise ValueError("Questions inside a repeating group need unique ids.")
+        seen.add(child_id)
 
 
 StandardFieldProperty.model_rebuild()
@@ -532,6 +651,10 @@ class StandardFormResponseAnswer(BaseModel):
     phone_number: Optional[str] = None
     file_metadata: Optional[FileMetadata] = None
     tabular_value: Optional[List[List[str]]] = None
+    # Repeating group answer (type ``group``): one answers-dict per item, keyed
+    # by child field id, each value shaped like a top-level answer. Kept as
+    # plain dicts so child answers round-trip verbatim.
+    items: Optional[List[Dict[str, Any]]] = None
 
 
 class InternalAnswerMeta(BaseModel):

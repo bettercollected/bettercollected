@@ -12,11 +12,13 @@ from common.models.standard_form import (
     PageJump,
     LogicalOperator,
     LayoutType,
+    RepeatSettings,
     Theme,
+    check_repeating_group_structure,
 )
 from fastapi import UploadFile
 from fastapi_camelcase import CamelModel
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, model_validator
 
 from backend.app.models.dtos.consent import ConsentResponseCamelModel
 from backend.app.models.workspace import WorkspaceFormSettings
@@ -92,6 +94,8 @@ class StandardFieldPropertyCamelModel(CamelModel):
     row_titles: Optional[List[str]] = None
     column_titles: Optional[List[str]] = None
     tabular_value: Optional[List[List[str]]] = None
+    col_span: Optional[int] = Field(None, ge=1, le=12)
+    repeat: Optional[RepeatSettings] = None
 
 
 class StandardFormFieldCamelModel(CamelModel):
@@ -108,6 +112,11 @@ class StandardFormFieldCamelModel(CamelModel):
     attachment: Optional[StandardFieldAttachment] = None
     image_url: Optional[str] = None
     internal: Optional[bool] = None
+
+    @model_validator(mode="after")
+    def _check_repeating_group(self):
+        check_repeating_group_structure(self)
+        return self
 
 
 StandardFieldPropertyCamelModel.model_rebuild()
