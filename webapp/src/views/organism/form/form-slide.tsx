@@ -124,7 +124,8 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
         const postBody = {
             form_id: standardForm?.formId,
             // Repeating groups the responder saw carry at least their minimum items.
-            answers: normalizeGroupAnswersForSubmit(standardForm?.fields, formResponse.answers ?? {}),
+            // ...and groups hidden by logic or off the visited path are dropped.
+            answers: normalizeGroupAnswersForSubmit(standardForm?.fields, formResponse.answers ?? {}, [...(responderState.history || []), currentSlide]),
             // Hidden-field (URL parameter) values captured when the form loaded.
             ...(Object.keys(hiddenValues).length ? { hidden_fields: hiddenValues } : {}),
             anonymize: effectiveAnonymize,

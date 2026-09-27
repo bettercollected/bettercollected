@@ -98,6 +98,30 @@ describe('add / remove within limits', () => {
         expect(removeGroupItem(one, g, 0).g.items).toHaveLength(1);
     });
 
+    it('drops a seen group that logic hid afterwards, or whose page is off the visited path', () => {
+        const hiddenLater = group();
+        hiddenLater.properties!.logic = { action: 'SHOW', operator: LogicalOperator.AND, conditions: [{ fieldId: 'intro', fieldType: FieldTypes.SHORT_TEXT, comparison: Comparison.IS_EQUAL, value: 'yes' }] };
+        const stale = { intro: text('no'), g: { type: 'group', items: [{}] } };
+        const submitted = normalizeGroupAnswersForSubmit(slides(hiddenLater), stale);
+        expect(submitted.g).toBeUndefined();
+        expect(submitted.intro).toEqual(text('no'));
+        expect(normalizeGroupAnswersForSubmit(slides(hiddenLater), { ...stale, intro: text('yes') }).g.items).toHaveLength(1);
+
+        const twoPages: StandardFormFieldDto[] = [
+            { id: 's0', index: 0, type: FieldTypes.SLIDE, properties: { fields: [intro] } },
+            { id: 's1', index: 1, type: FieldTypes.SLIDE, properties: { fields: [group()] } }
+        ];
+        const answers = { g: { type: 'group', items: [{ name: text('A') }] } };
+        expect(normalizeGroupAnswersForSubmit(twoPages, answers, [-1, 0]).g).toBeUndefined();
+        expect(normalizeGroupAnswersForSubmit(twoPages, answers, [-1, 0, 1]).g.items).toHaveLength(1);
+    });
+
+    it('treats null limits as unset and empty child answers as missing', () => {
+        expect(getRepeatSettings(group({ minItems: null, maxItems: null }))).toMatchObject({ minItems: 1, maxItems: 3 });
+        const invalid = validateGroupAnswer(group({ maxItems: 4 }), answersWith({ name: {} }, { name: { type: 'text', text: '' } }, { name: { choice: {} } }, { name: text('ok') }));
+        expect(Object.keys(invalid)).toEqual([scopedFieldId('name', 0), scopedFieldId('name', 1), scopedFieldId('name', 2)]);
+    });
+
     it('pads seen groups to the minimum on submit and leaves unseen groups absent', () => {
         const g2 = group({ minItems: 2 });
         expect(normalizeGroupAnswersForSubmit(slides(g2), { g: { type: 'group', items: [{ name: text('A') }] } }).g.items).toHaveLength(2);

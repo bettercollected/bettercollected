@@ -4,7 +4,7 @@ import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import { RepeatSettings } from '@app/models/types/form-builder-shared';
 import { groupPipeKey, PipeContext, resolvePipesInText } from '@app/utils/answer-piping';
 import { GROUP_AGGREGATE_LABELS, NUMERIC_AGGREGATES, NUMERIC_FIELD_TYPES } from '@app/utils/group-aggregates';
-import { getGroupAnswerItems, getHiddenFieldIds } from '@app/utils/conditional-logic';
+import { getGroupAnswerItems, getHiddenFieldIds, isFieldHiddenByLogic } from '@app/utils/conditional-logic';
 
 /**
  * Repeating groups — a set of questions respondents fill several times (one
@@ -64,6 +64,8 @@ export function isRepeatingGroup(field: StandardFormFieldDto | undefined | null)
 }
 
 const clampInt = (value: any, min: number, max: number, fallback: number) => {
+    // null / '' mean "not set" (as on the server), not 0.
+    if (value === null || value === undefined || value === '') return fallback;
     const n = Math.floor(Number(value));
     return Number.isFinite(n) ? Math.min(max, Math.max(min, n)) : fallback;
 };
@@ -187,17 +189,41 @@ export function getRepeatingGroups(slides: Array<StandardFormFieldDto> | undefin
 }
 
 /**
- * Shape group answers for submission: a group the respondent saw is padded to
- * its minimum (an untouched optional item is still an item) and cut to its
- * maximum. Groups never shown (hidden by logic, skipped pages) stay absent.
+ * Shape group answers for submission: a group the respondent can see is
+ * padded to its minimum (an untouched optional item is still an item) and cut
+ * to its maximum. A group they cannot see any more — hidden by its visibility
+ * rule, or on a page that is not on the path they took (`visitedSlideIndexes`,
+ * when known) — is dropped, even if it was filled in earlier.
  */
-export function normalizeGroupAnswersForSubmit(slides: Array<StandardFormFieldDto> | undefined, answers: Record<string, any>): Record<string, any> {
+export function normalizeGroupAnswersForSubmit(slides: Array<StandardFormFieldDto> | undefined, answers: Record<string, any>, visitedSlideIndexes?: Iterable<number>): Record<string, any> {
     let next = { ...(answers || {}) };
-    getRepeatingGroups(slides).forEach((group) => {
-        if (next[group.id] === undefined) return;
-        next = ensureGroupItems(next, group);
+    const visited = visitedSlideIndexes ? new Set(visitedSlideIndexes) : null;
+    (slides ?? []).forEach((slide, slideIndex) => {
+        slide?.properties?.fields?.forEach((group) => {
+            if (!isRepeatingGroup(group) || next[group.id] === undefined) return;
+            if ((visited && !visited.has(slideIndex)) || isFieldHiddenByLogic(group, next)) {
+                delete next[group.id];
+                return;
+            }
+            next = ensureGroupItems(next, group);
+        });
     });
     return next;
+}
+
+/**
+ * Does an answer carry a value? `{}`, `{type}`, empty text or an empty choice
+ * do not. Twin of the backend's `has_answer_value`.
+ */
+export function hasAnswerValue(answer: any): boolean {
+    if (!answer || typeof answer !== 'object') return false;
+    const filled = (value: any): boolean => {
+        if (value === undefined || value === null || value === '') return false;
+        if (Array.isArray(value)) return value.length > 0;
+        if (typeof value === 'object') return Object.values(value).some(filled);
+        return true;
+    };
+    return Object.entries(answer).some(([key, value]) => key !== 'field' && key !== 'type' && filled(value));
 }
 
 /** Child questions hidden right now in item `index` (item-scoped visibility rules). */
@@ -224,7 +250,7 @@ export function validateGroupAnswer(field: StandardFormFieldDto, answers: Record
         const item = items[index] ?? {};
         const hidden = getItemHiddenChildIds(field, answers, index);
         getGroupChildren(field).forEach((child) => {
-            if (child?.validations?.required && !hidden.has(child.id) && !item[child.id]) invalid[scopedFieldId(child.id, index)] = ['REQUIRED'];
+            if (child?.validations?.required && !hidden.has(child.id) && !hasAnswerValue(item[child.id])) invalid[scopedFieldId(child.id, index)] = ['REQUIRED'];
         });
     }
     return invalid;
