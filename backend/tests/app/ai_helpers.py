@@ -51,6 +51,20 @@ async def enable_ai(workspace, provider: str = "openai") -> None:
     )
 
 
+async def allow_insights(workspace_id, form_id, provider: str = "openai") -> None:
+    """Turn on the form's "Allow AI insights on responses" (#716) now: only
+    responses submitted after this moment are analysed."""
+    association = await container.workspace_form_repo().find_workspace_form(
+        workspace_id, form_id
+    )
+    association.settings.ai_insights_enabled = True
+    association.settings.ai_insights_provider = provider
+    association.settings.ai_insights_provider_name = "OpenAI"
+    association.settings.ai_insights_enabled_by = testUser.id
+    association.settings.ai_insights_enabled_at = dt.datetime.now(dt.timezone.utc)
+    await container.workspace_form_repo().save(association)
+
+
 async def disable_ai(workspace) -> None:
     await container.workspace_repo().set_fields(
         workspace, {"ai_enabled": False, "ai_provider": None}

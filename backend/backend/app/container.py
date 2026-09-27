@@ -674,6 +674,7 @@ class AppContainer(containers.DeclarativeContainer):
         provider_resolver=providers.Callable(
             lambda svc: svc.provider_for_workspace, openai_service
         ),
+        ai_consent_service=ai_consent_service,
     )
 
     auth_service: AuthService = providers.Singleton(

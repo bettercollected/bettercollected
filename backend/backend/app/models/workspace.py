@@ -190,6 +190,14 @@ class WorkspaceFormSettings(BaseModel):
     show_submission_number: Optional[bool] = None
     allow_editing_response: Optional[bool] = None
     show_original_form: Optional[bool] = None
+    # "Allow AI insights on responses" (#716): off by default, admins only.
+    # While on, respondents see a notice naming the provider, and only
+    # responses submitted after ai_insights_enabled_at are ever analysed.
+    ai_insights_enabled: Optional[bool] = None
+    ai_insights_provider: Optional[str] = None
+    ai_insights_provider_name: Optional[str] = None
+    ai_insights_enabled_by: Optional[str] = None
+    ai_insights_enabled_at: Optional[dt.datetime] = None
 
 
 class WorkspaceResponseDto(WorkspaceRequestDto, CamelModel):

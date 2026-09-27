@@ -221,6 +221,17 @@ documents) goes to an AI provider until the workspace has opted in. Code:
   preferences" (`UserAIPreferenceMemoryDocument.learn_preferences`, default off,
   `PUT /workspaces/{id}/ai-memory/settings`); `extract_from_turn` re-checks both.
 - **PDF import** needs the per-upload `ai_consent` on top (see below).
+- **Response insights (#716)** also need the form's own "Allow AI insights on
+  responses" (`WorkspaceFormSettings.ai_insights_*`: enabled, the provider id and
+  name the respondent notice shows, who and when;
+  `PUT …/forms/{id}/ai/insights/settings`, admins only, needs the workspace
+  opt-in to turn on) and are admins-only to run or read. While on, the respondent
+  form's trust strip names the provider. Only responses with `created_at` at or
+  after `ai_insights_enabled_at` are analysed (turning it off and on again moves
+  that moment), and a workspace provider other than the one the notice named is
+  refused (403 `ai_insights_not_enabled`) until the form setting is renewed. The
+  projection redacts email/phone answers and leaves out internal fields and their
+  answers; free-text answers are sent as written, and the UI says so.
 - **MCP API keys with `responses:read`** hand full, unredacted answers to an
   external AI client: creating one requires `acknowledgeUnredactedResponses`,
   stored as `responses_read_acknowledged_by`/`_at` on the key.

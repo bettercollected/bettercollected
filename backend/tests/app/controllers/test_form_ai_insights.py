@@ -15,7 +15,12 @@ from common.models.standard_form import (
 )
 
 from backend.app.container import container
-from tests.app.ai_helpers import FakeProvider, enable_ai, use_fake_provider
+from tests.app.ai_helpers import (
+    FakeProvider,
+    allow_insights,
+    enable_ai,
+    use_fake_provider,
+)
 from backend.app.models.enum.workspace_roles import WorkspaceRoles
 from backend.app.schemas.form_ai_insight import FormAIInsightDocument
 from backend.app.schemas.standard_form import FormDocument
@@ -52,8 +57,14 @@ INSIGHTS_REPLY = {
 }
 
 
-async def _seed_form_and_responses(workspace_id, form_id: str) -> None:
-    """Give the fixture form real questions and three answered responses."""
+async def _seed_form_and_responses(
+    workspace_id, form_id: str, allow: bool = True
+) -> None:
+    """Give the fixture form real questions and three answered responses,
+    submitted after AI insights were allowed for it (unless ``allow`` is
+    False)."""
+    if allow:
+        await allow_insights(workspace_id, form_id)
     form_doc = await container.form_repo().get_form_document_by_id(form_id)
     form_doc.fields = [
         StandardFormField(
@@ -210,6 +221,7 @@ class TestFormAIInsights:
         test_user_cookies: dict[str, str],
         fake_insights_provider: FakeProvider,
     ):
+        await allow_insights(workspace.id, workspace_form.form_id)
         response = await client.post(
             f"/api/v1/workspaces/{workspace.id}/forms/{workspace_form.form_id}/ai/insights",
             cookies=test_user_cookies,
@@ -260,7 +272,7 @@ class TestAIFormAccessIsWorkspaceScoped:
             WorkspaceUserDocument(
                 workspace_id=workspace_1.id,
                 user_id=testUser.id,
-                roles=[WorkspaceRoles.COLLABORATOR],
+                roles=[WorkspaceRoles.ADMIN],
             )
         )
         foreign = workspace_form.form_id
@@ -299,3 +311,250 @@ class TestAIFormAccessIsWorkspaceScoped:
             assert (
                 response.status_code == 404
             ), f"{method.upper()} {url} -> {response.status_code}: {response.text}"
+
+
+def _insights_url(workspace, form_id):
+    return f"/api/v1/workspaces/{workspace.id}/forms/{form_id}/ai/insights"
+
+
+async def _submit(workspace_id, form_id, answers):
+    await container.form_response_service().submit_form_response(
+        form_id, StandardFormResponse(answers=answers), workspace_id
+    )
+
+
+class TestInsightsConsent:
+    """#716: the workspace opt-in, the form's own setting, admins only, and
+    only responses submitted after respondents saw the notice."""
+
+    async def test_refused_without_the_form_setting(
+        self,
+        client: AsyncClient,
+        workspace: Coroutine[Any, Any, WorkspaceDocument],
+        workspace_form: Coroutine[Any, Any, FormDocument],
+        test_user_cookies: dict[str, str],
+        fake_insights_provider: FakeProvider,
+    ):
+        await _seed_form_and_responses(
+            workspace.id, workspace_form.form_id, allow=False
+        )
+        response = await client.post(
+            _insights_url(workspace, workspace_form.form_id),
+            cookies=test_user_cookies,
+            json={},
+        )
+        assert response.status_code == 403
+        assert response.json()["code"] == "ai_insights_not_enabled"
+        assert fake_insights_provider.calls == []
+
+    async def test_refused_without_the_workspace_opt_in(
+        self,
+        client: AsyncClient,
+        workspace: Coroutine[Any, Any, WorkspaceDocument],
+        workspace_form: Coroutine[Any, Any, FormDocument],
+        test_user_cookies: dict[str, str],
+        fake_insights_provider: FakeProvider,
+    ):
+        from tests.app.ai_helpers import disable_ai
+
+        await _seed_form_and_responses(workspace.id, workspace_form.form_id)
+        await disable_ai(workspace)
+        response = await client.post(
+            _insights_url(workspace, workspace_form.form_id),
+            cookies=test_user_cookies,
+            json={},
+        )
+        assert response.status_code == 403
+        assert response.json()["code"] == "ai_not_enabled"
+        assert fake_insights_provider.calls == []
+
+    async def test_admins_only(
+        self,
+        client: AsyncClient,
+        workspace: Coroutine[Any, Any, WorkspaceDocument],
+        workspace_form: Coroutine[Any, Any, FormDocument],
+        test_invited_user_cookies: dict[str, str],
+        fake_insights_provider: FakeProvider,
+    ):
+        await _seed_form_and_responses(workspace.id, workspace_form.form_id)
+        url = _insights_url(workspace, workspace_form.form_id)
+        collaborator = test_invited_user_cookies
+        assert (
+            await client.post(url, cookies=collaborator, json={})
+        ).status_code == 403
+        assert (await client.get(url, cookies=collaborator)).status_code == 403
+        settings = await client.put(
+            f"{url}/settings", cookies=collaborator, json={"enabled": False}
+        )
+        assert settings.status_code == 403
+        assert fake_insights_provider.calls == []
+
+    async def test_the_setting_is_admin_only_recorded_and_needs_the_opt_in(
+        self,
+        client: AsyncClient,
+        workspace: Coroutine[Any, Any, WorkspaceDocument],
+        workspace_form: Coroutine[Any, Any, FormDocument],
+        test_user_cookies: dict[str, str],
+    ):
+        url = f"{_insights_url(workspace, workspace_form.form_id)}/settings"
+        # workspace AI is off: the form setting cannot be turned on
+        refused = await client.put(
+            url, cookies=test_user_cookies, json={"enabled": True}
+        )
+        assert refused.status_code == 403
+        assert refused.json()["code"] == "ai_not_enabled"
+
+        await enable_ai(workspace)
+        enabled = await client.put(
+            url, cookies=test_user_cookies, json={"enabled": True}
+        )
+        assert enabled.status_code == 200, enabled.text
+        body = enabled.json()
+        assert body["enabled"] is True and body["providerName"] == "OpenAI"
+        assert body["enabledBy"] == testUser.id and body["enabledAt"]
+        stored = await container.workspace_form_repo().find_workspace_form(
+            workspace.id, workspace_form.form_id
+        )
+        assert stored.settings.ai_insights_enabled is True
+        assert stored.settings.ai_insights_provider == "openai"
+        assert stored.settings.ai_insights_enabled_by == testUser.id
+        assert stored.settings.ai_insights_enabled_at
+
+        disabled = await client.put(
+            url, cookies=test_user_cookies, json={"enabled": False}
+        )
+        assert disabled.json()["enabled"] is False
+        stored = await container.workspace_form_repo().find_workspace_form(
+            workspace.id, workspace_form.form_id
+        )
+        assert not stored.settings.ai_insights_enabled
+        assert stored.settings.ai_insights_provider_name is None
+
+    async def test_respondents_see_the_notice_naming_the_provider(
+        self,
+        client: AsyncClient,
+        workspace: Coroutine[Any, Any, WorkspaceDocument],
+        published_form,
+        test_user_cookies: dict[str, str],
+    ):
+        form_id = published_form.form_id
+        public_url = f"/api/v1/workspaces/{workspace.id}/forms/{form_id}"
+        before = await client.get(public_url, params={"published": "true"})
+        assert not (before.json().get("settings") or {}).get("aiInsightsEnabled")
+
+        await enable_ai(workspace)
+        await client.put(
+            f"{_insights_url(workspace, form_id)}/settings",
+            cookies=test_user_cookies,
+            json={"enabled": True},
+        )
+        public = await client.get(public_url, params={"published": "true"})
+        assert public.status_code == 200
+        settings = public.json()["settings"]
+        assert settings["aiInsightsEnabled"] is True
+        assert settings["aiInsightsProviderName"] == "OpenAI"
+
+    async def test_only_responses_after_the_notice_and_nothing_sensitive(
+        self,
+        client: AsyncClient,
+        workspace: Coroutine[Any, Any, WorkspaceDocument],
+        workspace_form: Coroutine[Any, Any, FormDocument],
+        test_user_cookies: dict[str, str],
+        fake_insights_provider: FakeProvider,
+    ):
+        form_id = workspace_form.form_id
+        # three responses before the setting was turned on
+        await _seed_form_and_responses(workspace.id, form_id, allow=False)
+        form_doc = await container.form_repo().get_form_document_by_id(form_id)
+        page = form_doc.fields[0]
+        page.properties.fields += [
+            StandardFormField(
+                id="q-phone",
+                index=4,
+                type=StandardFormFieldType.PHONE_NUMBER,
+                title="Your phone?",
+                properties=StandardFieldProperty(fields=[]),
+            ),
+            StandardFormField(
+                id="q-staff",
+                index=5,
+                type=StandardFormFieldType.SHORT_TEXT,
+                title="Case worker notes",
+                properties=StandardFieldProperty(fields=[]),
+            ),
+        ]
+        await container.form_repo().save_form(form_doc)
+
+        await allow_insights(workspace.id, form_id)
+        await _submit(
+            workspace.id,
+            form_id,
+            {
+                "q-feedback": {"type": "text", "text": "After the notice: all good."},
+                "q-email": {"type": "email", "email": "dave@example.com"},
+                "q-phone": {"type": "phone_number", "phone_number": "+15550100"},
+                "q-staff": {"type": "text", "text": "STAFF-ONLY-VALUE"},
+            },
+        )
+        # the field becomes staff-only after answers were collected for it
+        form_doc = await container.form_repo().get_form_document_by_id(form_id)
+        form_doc.fields[0].properties.fields[5].internal = True
+        await container.form_repo().save_form(form_doc)
+
+        fake_insights_provider.replies = [json.dumps(INSIGHTS_REPLY)]
+        response = await client.post(
+            _insights_url(workspace, form_id), cookies=test_user_cookies, json={}
+        )
+        assert response.status_code == 200, response.text
+        body = response.json()
+        assert body["responseCount"] == 1 and body["totalResponses"] == 4
+        assert body["analysedSince"]
+
+        sent = json.dumps(fake_insights_provider.calls)
+        # only the post-notice response
+        assert "After the notice" in sent
+        assert "invoice is confusing" not in sent and "Loved it" not in sent
+        # no email or phone values, no internal field or its answer
+        assert "dave@example.com" not in sent and "+15550100" not in sent
+        assert "[email provided]" in sent and "[phone provided]" in sent
+        assert "STAFF-ONLY-VALUE" not in sent and "Case worker notes" not in sent
+
+    async def test_no_post_notice_responses_is_a_clear_400(
+        self,
+        client: AsyncClient,
+        workspace: Coroutine[Any, Any, WorkspaceDocument],
+        workspace_form: Coroutine[Any, Any, FormDocument],
+        test_user_cookies: dict[str, str],
+        fake_insights_provider: FakeProvider,
+    ):
+        await _seed_form_and_responses(
+            workspace.id, workspace_form.form_id, allow=False
+        )
+        await allow_insights(workspace.id, workspace_form.form_id)
+        response = await client.post(
+            _insights_url(workspace, workspace_form.form_id),
+            cookies=test_user_cookies,
+            json={},
+        )
+        assert response.status_code == 400
+        assert "since AI insights were allowed" in response.text
+        assert fake_insights_provider.calls == []
+
+    async def test_a_changed_workspace_provider_needs_a_fresh_notice(
+        self,
+        client: AsyncClient,
+        workspace: Coroutine[Any, Any, WorkspaceDocument],
+        workspace_form: Coroutine[Any, Any, FormDocument],
+        test_user_cookies: dict[str, str],
+        fake_insights_provider: FakeProvider,
+    ):
+        await _seed_form_and_responses(workspace.id, workspace_form.form_id)
+        await enable_ai(workspace, provider="google")
+        response = await client.post(
+            _insights_url(workspace, workspace_form.form_id),
+            cookies=test_user_cookies,
+            json={},
+        )
+        assert response.status_code == 403
+        assert response.json()["code"] == "ai_insights_not_enabled"
+        assert fake_insights_provider.calls == []
