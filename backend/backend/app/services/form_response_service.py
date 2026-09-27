@@ -410,7 +410,7 @@ class FormResponseService:
             workspace_id=workspace_id,
             user=user,
         )
-        return updated_response.response_uuid
+        return updated_response
 
     async def delete_form_response(
         self,

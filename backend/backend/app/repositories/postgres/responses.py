@@ -525,20 +525,40 @@ class PostgresFormResponseRepository(PostgresRepositoryBase):
         user=User,
     ):
         response_document = await self.one(
-            FormResponseRow.response_id == _oid(response_id)
+            FormResponseRow.form_id == _oid(form_id),
+            FormResponseRow.response_id == _oid(response_id),
         )
-        if not response_document.dataOwnerIdentifier != user.sub:
+        if response_document is None:
+            raise HTTPException(
+                status_code=HTTPStatus.NOT_FOUND, content="Response not found"
+            )
+        # only the verified respondent who submitted it may edit a response
+        if not user or response_document.dataOwnerIdentifier != user.sub:
             raise HTTPException(
                 status_code=HTTPStatus.FORBIDDEN, content=MESSAGE_FORBIDDEN
             )
-        for k, v in response.answers.items():
-            if type(v) == StandardFormResponseAnswer:
-                response_document.answers[k] = v.model_dump(mode="json")
-            response_document.answers = crypto_service.encrypt(
-                workspace_id=workspace_id,
-                form_id=form_id,
-                data=json.dumps(response_document.answers),
+        answers = response_document.answers
+        if not isinstance(answers, dict):
+            answers = (
+                json.loads(
+                    crypto_service.decrypt(
+                        workspace_id=workspace_id, form_id=form_id, data=answers
+                    )
+                )
+                if answers
+                else {}
             )
+        for k, v in (response.answers or {}).items():
+            answers[k] = (
+                v.model_dump(mode="json")
+                if isinstance(v, StandardFormResponseAnswer)
+                else v
+            )
+        response_document.answers = crypto_service.encrypt(
+            workspace_id=workspace_id,
+            form_id=form_id,
+            data=json.dumps(answers),
+        )
         return await self.upsert(response_document)
 
     async def delete_form_response(self, form_id: PydanticObjectId, response_id: str):
