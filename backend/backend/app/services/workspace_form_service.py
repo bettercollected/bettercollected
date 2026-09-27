@@ -5,6 +5,7 @@ from http import HTTPStatus
 from typing import List, Optional, Any
 
 from beanie import PydanticObjectId
+from loguru import logger
 from common.configs.crypto import Crypto
 from common.constants import MESSAGE_NOT_FOUND, MESSAGE_FORBIDDEN
 from common.models.form_import import FormImportRequestBody
@@ -484,10 +485,6 @@ class WorkspaceFormService:
         response: StandardFormResponseCamelModel,
         user: User,
     ):
-        if form_files:
-            response = await self.upload_files_to_s3_and_update_url(
-                form_files=form_files, response=response
-            )
         workspace_forms = (
             await self.workspace_form_repository.get_workspace_forms_in_workspace(
                 workspace_id=workspace_id,
@@ -514,6 +511,37 @@ class WorkspaceFormService:
             response,
             await self.form_response_service.all_internal_field_ids(str(form_id)),
         )
+
+        # refuse before anything is stored: only the respondent of this form's
+        # response may edit it (checked again, atomically, by the repository)
+        existing = await self.form_response_service.get_response_by_id(str(response_id))
+        if (
+            existing is None
+            or str(existing.form_id) != str(form_id)
+            or not user
+            or existing.dataOwnerIdentifier != user.sub
+        ):
+            raise HTTPException(HTTPStatus.FORBIDDEN, content=MESSAGE_FORBIDDEN)
+
+        # only answers to this form's own questions are merged
+        form = await self.form_service.get_latest_version_of_form(
+            form_id
+        ) or await self.form_service.get_form_document_by_id(str(form_id))
+        allowed = _question_ids(getattr(form, "fields", None) or [])
+        unknown = [k for k in (response.answers or {}) if k not in allowed]
+        for key in unknown:
+            response.answers.pop(key)
+        if unknown:
+            logger.info(
+                "response edit {}: dropped {} unknown answer keys",
+                response_id,
+                len(unknown),
+            )
+
+        if form_files:
+            response = await self.upload_files_to_s3_and_update_url(
+                form_files=form_files, response=response
+            )
 
         form_response = await self.form_response_service.patch_form_response(
             workspace_id=workspace_id,
@@ -846,3 +874,15 @@ class WorkspaceFormService:
         form_action.enabled = False
         await self._form_repo.save_form(form)
         return form
+
+
+def _question_ids(fields) -> set:
+    """Ids of every question in a form's field tree (pages and groups included)."""
+    ids = set()
+    for field in fields or []:
+        field_id = getattr(field, "id", None)
+        if field_id:
+            ids.add(str(field_id))
+        children = getattr(getattr(field, "properties", None), "fields", None)
+        ids |= _question_ids(children)
+    return ids

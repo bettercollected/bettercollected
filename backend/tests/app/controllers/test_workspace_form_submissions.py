@@ -527,7 +527,13 @@ async def test_only_the_respondent_can_edit_their_response(
     form_id = published_form.form_id
     response_id = workspace_form_response["response_id"]
     await _allow_editing(client, common_url, form_id, test_user_cookies)
-    answer = {"q1": {"field": {"id": "q1"}, "text": "edited"}}
+    from backend.app.services.workspace_form_service import _question_ids
+
+    question = sorted(_question_ids(published_form.fields))[0]
+    answer = {
+        question: {"field": {"id": question}, "text": "edited"},
+        "not-a-question": {"field": {"id": "not-a-question"}, "text": "x"},
+    }
 
     other = await _edit(
         client, common_url, form_id, response_id, answer, test_user_cookies_1
@@ -548,7 +554,8 @@ async def test_only_the_respondent_can_edit_their_response(
             workspace_id=workspace.id, form_id=form_id, data=document.answers
         )
     )
-    assert stored["q1"]["text"] == "edited"
+    assert stored[question]["text"] == "edited"
+    assert "not-a-question" not in stored  # only the form's own questions
 
 
 async def test_a_response_is_only_edited_through_its_own_form(
@@ -574,4 +581,42 @@ async def test_a_response_is_only_edited_through_its_own_form(
         {"q1": {"field": {"id": "q1"}, "text": "x"}},
         test_user_cookies,
     )
-    assert edited.status_code == 404, edited.text
+    assert edited.status_code in (403, 404), edited.text
+
+
+async def test_a_refused_edit_uploads_no_files(
+    client: AsyncClient,
+    common_url: str,
+    published_form: Coroutine[Any, Any, FormDocument],
+    workspace_form_response: Coroutine[Any, Any, dict],
+    test_user_cookies: dict[str, str],
+    test_user_cookies_1: dict[str, str],
+    monkeypatch,
+):
+    import json
+
+    from backend.app.services.workspace_form_service import WorkspaceFormService
+
+    form_id = published_form.form_id
+    await _allow_editing(client, common_url, form_id, test_user_cookies)
+    uploads = []
+
+    async def fake_upload(self, form_files, response):
+        uploads.append(form_files)
+        return response
+
+    monkeypatch.setattr(
+        WorkspaceFormService, "upload_files_to_s3_and_update_url", fake_upload
+    )
+    refused = await client.patch(
+        f"{common_url}/forms/{form_id}/response/{workspace_form_response['response_id']}",
+        data={
+            "response": json.dumps({"answers": {}}),
+            "file_field_ids": ["f"],
+            "file_ids": ["1"],
+        },
+        files={"files": ("a.txt", b"hello", "text/plain")},
+        cookies=test_user_cookies_1,
+    )
+    assert refused.status_code in (403, 404), refused.text
+    assert uploads == []
