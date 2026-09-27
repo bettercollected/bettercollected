@@ -74,6 +74,9 @@ def get_fields_from_v2_form(form: Dict[str, Any]) -> List[Dict[str, Any]]:
         filtered_fields = [
             field for field in slide.get('properties', {}).get('fields', [])
             if field['type'] not in IgnoredResponsesFieldType
+            # Internal ("for office use only") fields belong to the
+            # organisation: never in respondent copies, webhooks or chat posts.
+            and not field.get('internal')
         ]
         for field in filtered_fields:
             field["title"] = extract_text_from_json(field)
