@@ -13,7 +13,7 @@ import { styleTokens } from '@app/views/molecules/theme/theme-shared';
 import { RenderImage } from '@app/views/organism/form-builder/fields/render-field';
 import { getPlaceholderValueForTitle } from '../rich-text-editor';
 
-export default function QuestionWrapper({ field, children }: { field: StandardFormFieldDto; children?: React.ReactNode }) {
+export default function QuestionWrapper({ field, children, errorMessage }: { field: StandardFormFieldDto; children?: React.ReactNode; errorMessage?: string }) {
     const { formResponse } = useFormResponse();
     const { theme } = useFormState();
     const tokens = styleTokens(theme?.style);
@@ -21,7 +21,8 @@ export default function QuestionWrapper({ field, children }: { field: StandardFo
     const standardForm = useAppSelector(selectForm);
 
     const { invalidFields } = formResponse;
-    const hasError = !!(invalidFields && invalidFields[field.id] && invalidFields[field.id].length);
+    // A caller may own the error (e.g. a repeating group's item-count message).
+    const hasError = errorMessage !== undefined ? !!errorMessage : !!(invalidFields && invalidFields[field.id] && invalidFields[field.id].length);
 
     // A field that collects an answer is either required or optional — never
     // ambiguous. We mark required fields (asterisk) AND label optional ones, so
@@ -83,7 +84,7 @@ export default function QuestionWrapper({ field, children }: { field: StandardFo
                 and avoid alarm colours/urgency (Design-Language.md §5). */}
             {hasError && (
                 <div id={`q-error-${field.id}`} role="alert" className="mt-2 text-sm text-amber-700">
-                    Please answer this question to continue.
+                    {errorMessage || 'Please answer this question to continue.'}
                 </div>
             )}
         </div>
