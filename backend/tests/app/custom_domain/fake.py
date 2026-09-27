@@ -127,6 +127,24 @@ class FakeClient:
         self.domains[data.id]["dns_records"] = []
         return Domain.from_dict(self.domains[data.id])
 
+    def list_domains(
+        self, *, reference=None, status=None, include_deleted=False, limit=50, offset=0
+    ):
+        from custom_domain import Page
+
+        items = [
+            Domain.from_dict(d)
+            for d in list(self.domains.values())
+            if (reference is None or d["reference"] == reference)
+            and (include_deleted or d["status"] != "deleting")
+        ]
+        return Page(
+            items=items[offset : offset + limit],
+            limit=limit,
+            offset=offset,
+            next_offset=None,
+        )
+
     def iter_domains(self, **kwargs):
         for data in list(self.domains.values()):
             if data["status"] != "deleting":

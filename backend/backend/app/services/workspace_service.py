@@ -310,10 +310,20 @@ class WorkspaceService:
             workspace_id=workspace_id
         )
         if self._custom_domain_enabled:
-            if workspace_document.custom_domain_id:
-                await self.custom_domain_service.delete(
-                    workspace_document.custom_domain_id
+            domain_id = workspace_document.custom_domain_id
+            if not domain_id and workspace_document.custom_domain:
+                # set before the service was in use: the import may already
+                # hold the hostname for this workspace, and the legacy server
+                # may still serve it; release both so nothing stays claimed
+                live = await self.custom_domain_service.find_live(
+                    workspace_document.id, workspace_document.custom_domain
                 )
+                domain_id = live.id if live else None
+                await self.update_https_server_for_certificate(
+                    old_domain=workspace_document.custom_domain
+                )
+            if domain_id:
+                await self.custom_domain_service.delete(domain_id)
             for field, value in cleared_fields().items():
                 setattr(workspace_document, field, value)
         else:
@@ -439,6 +449,8 @@ class WorkspaceService:
     async def update_https_server_for_certificate(
         self, old_domain: str = None, new_domain: str = None
     ):
+        if not settings.https_cert_api_settings.host:
+            return
         try:
             if old_domain:
                 await self.http_client.delete(

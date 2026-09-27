@@ -27,8 +27,11 @@ customer browser ──► edge (edge.bettercollected.com, Caddy)
 ```
 
 The workspace is never selected from the `Host` header on the custom-domain
-path. A request without a valid assertion is refused (the layout renders the
-"not configured" alert), which also covers direct calls that bypass the edge.
+path once `CUSTOM_DOMAIN_ASSERTION_MODE=required`: a request without a valid
+assertion is refused (the layout renders the "not configured" alert), which
+also covers direct calls that bypass the edge. In `optional` mode (migration
+only) a request that carries no assertion at all falls back to the host
+lookup; an invalid one is still refused.
 
 Two probe paths on the webapp exist for the service (Next.js rewrites to
 route handlers under `src/app/api/custom-domain/`):
@@ -74,6 +77,7 @@ Webapp (server-side environment):
 ```
 CUSTOM_DOMAIN_ASSERTION_KEYS=1:<secret>                # same value as the backend
 CUSTOM_DOMAIN_APPLICATION_ID=<uuid>
+CUSTOM_DOMAIN_ASSERTION_MODE=optional                  # during migration; `required` (default) afterwards
 CUSTOM_DOMAIN_ORIGIN_VERIFICATION_TOKEN=<token>        # printed by `custom-domain origin register`
 ```
 
@@ -104,11 +108,11 @@ python -m backend.custom_domain subscribe --url https://<api host>/api/v1/custom
 
 ## Migrating the domains that exist today
 
-The 2026-09-26 audit (memory: custom-domain-migration) found 140 workspaces
-with a `custom_domain`, 15 of them working through the legacy server at
-135.181.40.62 and 4 more pointing there without a certificate. Customers of
-those domains must change DNS: an A record to the old IP becomes a CNAME to
-`edge.bettercollected.com` plus the ownership TXT record.
+The domains currently served by the legacy server keep working until step 5
+below. Their customers must change DNS: the A record to the legacy server's
+IP becomes a CNAME to `edge.bettercollected.com` plus the ownership TXT
+record. Send that notice with a date before step 2: a grandfathered domain
+whose TXT record is still missing 24 hours after import is suspended.
 
 1. Export the reference map (hostname → workspace id) while Mongo is
    authoritative:
@@ -126,8 +130,35 @@ those domains must change DNS: an A record to the old IP becomes a CNAME to
    adopt a domain whose reference or hostname does not match the workspace.
 4. Tell the affected customers to publish the two records; their settings
    page now shows them.
-5. Only then set `ENABLE_LEGACY_API=false` on the service. Until step 5 the
+5. Only then set `ENABLE_LEGACY_API=false` on the service and
+   `CUSTOM_DOMAIN_ASSERTION_MODE=required` on the webapp. Until step 5 the
    legacy path still serves domains whose DNS was not changed.
+
+### The one supported order of switches
+
+The backend switch (`CUSTOM_DOMAIN_API_URL` + credential) and the webapp
+switch (assertion keys + application id) are independent; only this order
+keeps every domain serving throughout:
+
+| Step | Webapp | Backend | Service |
+| --- | --- | --- | --- |
+| a | `CUSTOM_DOMAIN_ORIGIN_VERIFICATION_TOKEN` | – | `origin register`, then `origin verify` |
+| b | `CUSTOM_DOMAIN_ASSERTION_KEYS`, `CUSTOM_DOMAIN_APPLICATION_ID`, `CUSTOM_DOMAIN_ASSERTION_MODE=optional` | – | – |
+| c | – | `CUSTOM_DOMAIN_API_URL`, `_API_CREDENTIAL`, `_APPLICATION_ID`, `_ASSERTION_KEYS`, then `_WEBHOOK_SECRETS` after `subscribe` | `legacy import`, then `adopt` on the backend |
+| d | – | – | customers change DNS; domains reach `ready` |
+| e | `CUSTOM_DOMAIN_ASSERTION_MODE=required` | – | `ENABLE_LEGACY_API=false` |
+
+While the service's legacy `/domains` path is live it adds no assertion to
+the requests it proxies. In `optional` mode the webapp refuses an invalid
+assertion but serves a request without one from the legacy host lookup, so
+domains that have not moved yet keep working. `required` (the default when
+the mode is unset) refuses requests without an assertion; set it only after
+every domain is served by the new edge.
+
+Between steps c and d a legacy domain that `adopt` has not matched yet shows
+"being migrated" on its settings page; the customer needs to do nothing until
+the DNS notice arrives. Only a domain the service has deleted (`removed`)
+asks the customer to set it again.
 
 `python -m backend.custom_domain sweep --dry-run` lists domains in the
 service that no workspace references (a replacement whose old domain could

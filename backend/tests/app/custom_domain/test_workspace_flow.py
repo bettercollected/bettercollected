@@ -192,6 +192,37 @@ async def test_a_domain_set_before_the_service_reports_unregistered(
     )
 
 
+async def test_removing_an_unregistered_domain_releases_the_imported_claim(
+    client: AsyncClient,
+    workspace_pro: Coroutine[Any, Any, WorkspaceDocument],
+    test_pro_user_cookies: dict,
+    fake_client: FakeClient,
+):
+    """A legacy domain the import already holds for this workspace (not yet
+    adopted) must not stay claimed after the customer removes it, or re-adding
+    it would be refused as taken."""
+    await container.workspace_repo().set_fields(
+        workspace_pro, {"custom_domain": "legacy.customer.example"}
+    )
+    imported = fake_client.create_domain(
+        "legacy.customer.example", str(workspace_pro.id)
+    )
+    url = f"{WORKSPACES}/{workspace_pro.id}"
+    response = await client.delete(
+        f"{url}/custom-domain", cookies=test_pro_user_cookies
+    )
+    assert response.status_code == 200, response.text
+    assert response.json()["customDomain"] == ""
+    assert fake_client.domains[imported.id]["status"] == "deleting"
+    again = await client.patch(
+        url,
+        cookies=test_pro_user_cookies,
+        data={"custom_domain": "legacy.customer.example"},
+    )
+    assert again.status_code == 200, again.text
+    assert again.json()["customDomainId"] != imported.id
+
+
 async def test_hostname_taken_by_the_service_is_a_conflict(
     client: AsyncClient,
     workspace_pro: Coroutine[Any, Any, WorkspaceDocument],

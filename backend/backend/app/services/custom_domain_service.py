@@ -176,6 +176,17 @@ class CustomDomainService:
             idempotency_key=idempotency_key(workspace_id, hostname, attempt),
         )
 
+    async def find_live(self, workspace_id: Any, hostname: str) -> Optional[Domain]:
+        """The live domain the service holds for this workspace and hostname,
+        if any: an imported domain the workspace has not adopted yet."""
+        page = await self._call(
+            self.client().list_domains, reference=str(workspace_id), limit=200
+        )
+        for domain in page.items:
+            if domain.hostname == hostname and domain.status != "deleting":
+                return domain
+        return None
+
     async def fetch(self, domain_id: str) -> Optional[Domain]:
         try:
             return await self._call(self.client().get_domain, domain_id)
