@@ -425,6 +425,10 @@ class StandardFormField(BaseModel):
     )
     attachment: Optional[StandardFieldAttachment] = None
     image_url: Optional[str] = None
+    # Internal ("for office use only") field: never served to respondents,
+    # filled in by workspace members on each submission afterwards. Its values
+    # live in ``StandardFormResponse.internal_answers``, never in ``answers``.
+    internal: Optional[bool] = None
 
 
 StandardFieldProperty.model_rebuild()
@@ -530,6 +534,14 @@ class StandardFormResponseAnswer(BaseModel):
     tabular_value: Optional[List[List[str]]] = None
 
 
+class InternalAnswerMeta(BaseModel):
+    """Who last changed one internal answer on a submission, and when."""
+
+    updated_by: Optional[str] = None
+    updated_by_email: Optional[str] = None
+    updated_at: Optional[dt.datetime] = None
+
+
 class ResponseState(BaseModel):
     global_state: Optional[Dict[str, Any]] = Field({})
     processor_state: Optional[Dict[PydanticObjectId, Dict[str, Any]]] = Field({})
@@ -553,6 +565,13 @@ class StandardFormResponse(BaseModel):
     # the declared name. Encrypted at rest alongside `answers` (bytes/str once
     # persisted), decrypted on the same read path.
     hidden_fields: Optional[Dict[str, str] | bytes | str] = None
+    # Staff-entered values of the form's internal fields, keyed by field id.
+    # Encrypted at rest like `answers`; never returned to respondents.
+    internal_answers: (
+        Optional[Dict[str, StandardFormResponseAnswer | Dict[str, Any]]] | bytes | str
+    ) = None
+    # field id -> who last changed that internal answer and when (plaintext).
+    internal_answers_meta: Optional[Dict[str, InternalAnswerMeta]] = None
     form_version: Optional[int] = None
     created_at: Optional[dt.datetime] = None
     updated_at: Optional[dt.datetime] = None

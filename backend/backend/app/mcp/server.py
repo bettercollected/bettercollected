@@ -214,7 +214,9 @@ async def update_form(form_id: str, ops: List[Dict[str, Any]]) -> str:
     """Edit a form with typed operations — the same pipeline the builder's AI
     chat uses. Reference page/field ids from get_form. Op shapes (camelCase):
     {"op":"add_field","pageId":str,"field":{"title":str,"type":str,"required"?:bool,
-    "placeholder"?:str,"choices"?:[str],"steps"?:int},"afterFieldId"?:str,"index"?:int} ·
+    "placeholder"?:str,"choices"?:[str],"steps"?:int,"internal"?:bool},"afterFieldId"?:str,"index"?:int} ·
+    ("internal": a staff-only "for office use" field, never shown to respondents;
+    logic cannot depend on it) ·
     {"op":"update_field","fieldId":str,"patch":{...same keys as field}} ·
     {"op":"remove_field","fieldId":str} ·
     {"op":"move_field","fieldId":str,"toPageId"?:str,"index":int} ·
@@ -310,6 +312,16 @@ async def get_response(response_id: str) -> str:
                 workspace_id=key.workspace_id, form_id=response.form_id, data=answers
             )
         )
+    # Staff-entered values of the form's internal fields (same encryption).
+    internal = response.internal_answers
+    if isinstance(internal, (bytes, str)):
+        from common.services.crypto_service import crypto_service
+
+        internal = json.loads(
+            crypto_service.decrypt(
+                workspace_id=key.workspace_id, form_id=response.form_id, data=internal
+            )
+        )
     await _audit("get_response", True, response_id)
     return json.dumps(
         {
@@ -318,6 +330,9 @@ async def get_response(response_id: str) -> str:
             "submittedAt": str(getattr(response, "created_at", "")),
             "answers": json.loads(
                 json.dumps(answers if isinstance(answers, dict) else {}, default=str)
+            ),
+            "internalAnswers": json.loads(
+                json.dumps(internal if isinstance(internal, dict) else {}, default=str)
             ),
         }
     )

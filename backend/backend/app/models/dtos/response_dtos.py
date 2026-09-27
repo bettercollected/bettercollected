@@ -107,6 +107,7 @@ class StandardFormFieldCamelModel(CamelModel):
     validations: Optional[StandardFieldValidationsCamelModal] = None
     attachment: Optional[StandardFieldAttachment] = None
     image_url: Optional[str] = None
+    internal: Optional[bool] = None
 
 
 StandardFieldPropertyCamelModel.model_rebuild()
