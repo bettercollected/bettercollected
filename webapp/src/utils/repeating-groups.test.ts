@@ -281,6 +281,16 @@ describe('exports', () => {
         ]);
     });
 
+    it('keeps internal (staff) columns after the respondent answers', () => {
+        const staff: StandardFormFieldDto = { id: 'ref', index: 2, type: FieldTypes.SHORT_TEXT, title: 'Reference', internal: true };
+        const withStaff = form(group({ maxItems: 10 }));
+        withStaff.fields[0].properties!.fields!.push(staff);
+        const staffResponses = [{ ...responses[0], internalAnswers: { ref: text('R-1') } }] as unknown as StandardFormResponseDto[];
+        const { main } = buildResponsesExport(withStaff, staffResponses);
+        expect(main.headers).toEqual(['Responder ID', 'Household', 'Applicants (Applicant count)', 'Internal: Reference', 'Response ID']);
+        expect(main.rows[0]).toEqual(['a@x.org', 'Sharma', 2, 'R-1', 'r1']);
+    });
+
     it('the creator can override the layout', () => {
         expect(buildResponsesExport(form(group({ maxItems: 2, exportLayout: 'rows' })), responses).groupTables).toHaveLength(1);
         expect(buildResponsesExport(form(group({ maxItems: 10, exportLayout: 'columns' })), responses).groupTables).toHaveLength(0);
