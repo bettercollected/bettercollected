@@ -18,7 +18,12 @@ from settings.application import settings
 from utilities.exceptions import HTTPException
 from utilities.google_service import build_google_service, fetch_oauth_token
 from wrappers.thread_pool_executor import thread_pool_executor
-from utilities.form import get_questions_and_answers
+from utilities.form import (
+    column_letter,
+    get_group_tables,
+    get_questions_and_answers,
+    sheet_title_for,
+)
 from settings.application import settings
 
 
@@ -209,7 +214,7 @@ async def run_action(
                 # Update the first row (questions)
                 service.spreadsheets().values().update(
                     spreadsheetId=google_sheet_id,
-                    range=f"A1:{chr(ord('A') + len(existing_questions)-1)}1",
+                    range=f"A1:{column_letter(len(existing_questions))}1",
                     valueInputOption="USER_ENTERED",
                     body={"values": [existing_questions]},
                 ).execute()
@@ -494,11 +499,78 @@ async def run_action(
         data = get_simple_form_response()
         send_data_slack(URL, data=data)
 
+    def append_group_tables_in_sheet(google_sheet_id: str, credentials: str, tables):
+        """Rows-layout repeating groups: one tab per group, one row per item."""
+        if not tables:
+            return "Nothing to append"
+        credential = fetch_oauth_token(
+            oauth_credential=json.loads(credentials),
+            action_id=action["id"],
+            form_id=form["form_id"],
+        )
+        credential["scopes"] = credential.get("scopes").split(" ")[1:]
+        try:
+            service = build_google_service(
+                credentials=credential, service_name="sheets", version="v4"
+            )
+            spreadsheet = (
+                service.spreadsheets()
+                .get(spreadsheetId=google_sheet_id, fields="sheets.properties.title")
+                .execute()
+            )
+            existing = {
+                sheet["properties"]["title"] for sheet in spreadsheet.get("sheets", [])
+            }
+            for table in tables:
+                title = sheet_title_for(table["title"])
+                if title not in existing:
+                    service.spreadsheets().batchUpdate(
+                        spreadsheetId=google_sheet_id,
+                        body={
+                            "requests": [{"addSheet": {"properties": {"title": title}}}]
+                        },
+                    ).execute()
+                    existing.add(title)
+                service.spreadsheets().values().update(
+                    spreadsheetId=google_sheet_id,
+                    range=f"'{title}'!A1:{column_letter(len(table['headers']))}1",
+                    valueInputOption="USER_ENTERED",
+                    body={"values": [table["headers"]]},
+                ).execute()
+                if table["rows"]:
+                    service.spreadsheets().values().append(
+                        spreadsheetId=google_sheet_id,
+                        range=f"'{title}'!A2",
+                        valueInputOption="USER_ENTERED",
+                        insertDataOption="INSERT_ROWS",
+                        body={"values": table["rows"]},
+                    ).execute()
+            return "Appended"
+        except HttpError as e:
+            if e.status_code == HTTPStatus.NOT_FOUND:
+                raise HTTPException(
+                    status_code=HTTPStatus.NOT_FOUND,
+                    content=ExceptionType.GOOGLE_SHEET_MISSING,
+                )
+            raise
+        except RefreshError:
+            raise HTTPException(
+                status_code=HTTPStatus.EXPECTATION_FAILED,
+                content=ExceptionType.OAUTH_TOKEN_MISSING,
+            )
+
     def integrate_google_sheets_append_action():
         Google_sheet_id = get_parameter("Google Sheet Id")
         credentials = get_secret("Credentials")
-        data = get_simple_form_response()
+        # Fixed columns: a repeating group's columns do not depend on how many
+        # items this response has, so rows of different responses line up.
+        data = get_questions_and_answers(
+            form=form, response=response, fixed_columns=True
+        )
         append_in_sheet(Google_sheet_id, credentials, data)
+        append_group_tables_in_sheet(
+            Google_sheet_id, credentials, get_group_tables(form=form, response=response)
+        )
 
     if action.get("predefined"):
         match action.get("name"):

@@ -169,13 +169,148 @@ def get_placeholder_value_for_title(field_type):
     return placeholders.get(field_type, 'No Field Selected')
 
 
-def get_questions_and_answers(form: Dict[str, Any], response: Dict[str, Any]) -> List[Dict[str, Any]]:
-    fields = get_fields_from_v2_form(form)
+# ---------------------------------------------------------------------------
+# Repeating groups
+#
+# A repeating group is a ``group`` field with ``properties.repeat``; its
+# answer is ``{"type": "group", "items": [{<child id>: <answer>}, ...]}``.
+# Exports follow one rule (same as the webapp CSV export,
+# ``webapp/src/utils/repeating-groups.ts``): groups of at most
+# ``REPEAT_COLUMNS_EXPORT_MAX`` items become columns per item
+# ("Applicant 1 – Name"), larger ones a separate table with one row per item,
+# unless the creator chose ``export_layout`` explicitly.
+# ---------------------------------------------------------------------------
+
+REPEAT_COLUMNS_EXPORT_MAX = 5
+GROUP_TYPE = 'group'
+RESPONSE_ID_COLUMN = 'Response ID'
+
+
+def _get(mapping: Dict[str, Any], snake: str, camel: str, default=None):
+    if not isinstance(mapping, dict):
+        return default
+    value = mapping.get(snake, mapping.get(camel))
+    return default if value is None else value
+
+
+def get_repeat_settings(field: Dict[str, Any]) -> Dict[str, Any] | None:
+    """Normalised repeat settings of a repeating group field, else None."""
+    if field.get('type') != GROUP_TYPE:
+        return None
+    repeat = (field.get('properties') or {}).get('repeat')
+    if not isinstance(repeat, dict):
+        return None
+    max_items = int(_get(repeat, 'max_items', 'maxItems', 3))
+    layout = _get(repeat, 'export_layout', 'exportLayout')
+    if layout not in ('columns', 'rows'):
+        layout = 'columns' if max_items <= REPEAT_COLUMNS_EXPORT_MAX else 'rows'
+    return {
+        'min_items': int(_get(repeat, 'min_items', 'minItems', 1)),
+        'max_items': max_items,
+        'item_label': _get(repeat, 'item_label', 'itemLabel', 'Item'),
+        'export_layout': layout,
+    }
+
+
+def get_group_children(field: Dict[str, Any]) -> List[Dict[str, Any]]:
+    children = (field.get('properties') or {}).get('fields') or []
     return [
-        {
+        {**child, 'title': extract_text_from_json(child)}
+        for child in children
+        if child.get('type') not in IgnoredResponsesFieldType
+    ]
+
+
+def get_group_items(response: Dict[str, Any], field: Dict[str, Any]) -> List[Dict[str, Any]]:
+    answer = (response.get('answers') or {}).get(field['id']) or {}
+    items = answer.get('items') if isinstance(answer, dict) else None
+    return [item if isinstance(item, dict) else {} for item in items] if isinstance(items, list) else []
+
+
+def _item_answer(item: Dict[str, Any], child: Dict[str, Any]):
+    answer = get_answer_for_field({'answers': item}, child)
+    return '' if answer is None else answer
+
+
+def get_questions_and_answers(
+    form: Dict[str, Any], response: Dict[str, Any], fixed_columns: bool = False
+) -> List[Dict[str, Any]]:
+    """Question/answer pairs of a response.
+
+    Repeating groups expand per item ("Applicant 2 – Name"). With
+    ``fixed_columns`` (spreadsheets) the column set does not depend on the
+    response: columns-layout groups expand to their maximum, rows-layout groups
+    contribute only their item count (the items go to ``get_group_tables``),
+    and a trailing Response ID column links the two.
+    """
+    entries: List[Dict[str, Any]] = []
+    has_row_tables = False
+    for field in get_fields_from_v2_form(form):
+        repeat = get_repeat_settings(field)
+        if repeat is None:
+            entries.append({
+                'field_id': field['id'],
+                'title': field['title'],
+                'answer': get_answer_for_field(response, field)
+            })
+            continue
+        items = get_group_items(response, field)
+        if fixed_columns and repeat['export_layout'] == 'rows':
+            has_row_tables = True
+            entries.append({
+                'field_id': field['id'],
+                'title': f"{field['title']} ({repeat['item_label']} count)",
+                'answer': len(items),
+            })
+            continue
+        count = repeat['max_items'] if fixed_columns else len(items)
+        children = get_group_children(field)
+        for position in range(count):
+            item = items[position] if position < len(items) else {}
+            for child in children:
+                entries.append({
+                    'field_id': f"{field['id']}.{position}.{child['id']}",
+                    'title': f"{repeat['item_label']} {position + 1} – {child['title']}",
+                    'answer': _item_answer(item, child),
+                })
+    if fixed_columns and has_row_tables:
+        entries.append({'field_id': 'response_id', 'title': RESPONSE_ID_COLUMN, 'answer': response.get('response_id', '')})
+    return entries
+
+
+def get_group_tables(form: Dict[str, Any], response: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """One table per rows-layout group: header + one row per item, keyed by
+    the response id and the item number."""
+    tables = []
+    for field in get_fields_from_v2_form(form):
+        repeat = get_repeat_settings(field)
+        if repeat is None or repeat['export_layout'] != 'rows':
+            continue
+        children = get_group_children(field)
+        rows = [
+            [response.get('response_id', ''), position + 1] + [_item_answer(item, child) for child in children]
+            for position, item in enumerate(get_group_items(response, field))
+        ]
+        tables.append({
             'field_id': field['id'],
             'title': field['title'],
-            'answer': get_answer_for_field(response, field)
-        }
-        for field in fields
-    ]
+            'headers': [RESPONSE_ID_COLUMN, repeat['item_label']] + [child['title'] for child in children],
+            'rows': rows,
+        })
+    return tables
+
+
+def sheet_title_for(title: str) -> str:
+    """A valid, stable Google Sheets tab name for a group table."""
+    cleaned = re.sub(r"[\[\]:*?/\\']", ' ', str(title or 'Group')).strip() or 'Group'
+    return cleaned[:95]
+
+
+def column_letter(count: int) -> str:
+    """Spreadsheet column name of the ``count``-th column (1 → A, 27 → AA)."""
+    count = max(1, int(count))
+    letters = ''
+    while count:
+        count, remainder = divmod(count - 1, 26)
+        letters = chr(ord('A') + remainder) + letters
+    return letters
