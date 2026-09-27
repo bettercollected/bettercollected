@@ -73,3 +73,43 @@ async def test_form_imports(sessions):
     assert (
         await PostgresFormImportRepository(sessions).count_created_since(ws, since) == 1
     )
+
+
+@pytest.mark.parametrize("store", ["mongo", "postgres"])
+async def test_parallel_creates_respect_the_limits(sessions, store):
+    """Each store's create_within_limits is atomic on its own (the Mongo lock
+    document, the Postgres advisory lock), whichever one is primary."""
+    import asyncio
+
+    from backend.app.repositories.form_import_repository import ImportLimitReached
+
+    repo = (
+        FormImportRepository()
+        if store == "mongo"
+        else PostgresFormImportRepository(sessions)
+    )
+    since = dt.datetime.now(dt.timezone.utc) - dt.timedelta(days=1)
+
+    async def attempt(ws, max_active, max_per_day):
+        try:
+            await repo.create_within_limits(
+                record(ws, f"f-{PydanticObjectId()}", ImportStatus.QUEUED),
+                max_active,
+                max_per_day,
+                since,
+            )
+            return "ok"
+        except ImportLimitReached as reached:
+            return reached.code
+
+    ws = PydanticObjectId()
+    results = await asyncio.gather(*[attempt(ws, 1, 10) for _ in range(6)])
+    assert sorted(results) == ["import_in_progress"] * 5 + ["ok"]
+    assert await repo.count_active(ws) == 1
+
+    ws = PydanticObjectId()
+    results = await asyncio.gather(*[attempt(ws, 10, 2) for _ in range(6)])
+    assert sorted(results) == ["daily_limit"] * 4 + ["ok"] * 2
+    assert await repo.count_created_since(ws, since) == 2
+    # other workspaces are not held up
+    assert await attempt(PydanticObjectId(), 1, 1) == "ok"

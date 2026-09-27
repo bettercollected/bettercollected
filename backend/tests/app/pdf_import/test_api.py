@@ -664,3 +664,73 @@ async def test_answers_on_a_filled_in_form_never_become_questions(
     assert {"Full name", "Remarks"} <= set(titles)
     # the review screen can say where words were held back
     assert done["report"]["structure"]["withheld_words"].get("1", 0) >= 3
+
+
+async def _forms_in(workspace):
+    return set(
+        await container.workspace_form_repo().get_form_ids_in_workspace(workspace.id)
+    )
+
+
+async def _gone(form_id):
+    return await container.form_repo().get_form_document_by_id(form_id) is None
+
+
+async def test_parallel_uploads_cannot_both_pass_the_limits(
+    client, workspace, test_user_cookies, store
+):
+    """The limits hold without the early look: the insert itself is atomic,
+    and a refused start takes its draft form away again."""
+    import asyncio
+
+    import backend.app.services.pdf_import_service as module
+
+    settings_ = limits()
+    previous = (
+        settings_.CONCURRENT_IMPORTS_PER_WORKSPACE,
+        settings_.IMPORTS_PER_WORKSPACE_PER_DAY,
+    )
+    service_class = module.PdfImportService
+    dispatch, check = service_class._dispatch, service_class._check_limits
+
+    async def nothing(self, *args):
+        return None
+
+    # imports stay queued (nothing frees a slot), and every start reaches the insert
+    service_class._dispatch = service_class._check_limits = nothing
+    before = await _forms_in(workspace)
+    try:
+        settings_.CONCURRENT_IMPORTS_PER_WORKSPACE = 1
+        responses = await asyncio.gather(
+            *[
+                upload(client, workspace, test_user_cookies, documents.text_pdf())
+                for _ in range(4)
+            ]
+        )
+        codes = sorted(r.status_code for r in responses)
+        assert codes == [202, 429, 429, 429], [r.text for r in responses]
+        refused = {r.json()["code"] for r in responses if r.status_code == 429}
+        assert refused == {"import_in_progress"}
+        accepted = next(r.json() for r in responses if r.status_code == 202)
+        assert await _forms_in(workspace) - before == {accepted["formId"]}
+
+        # the daily limit, with room for parallel imports
+        settings_.CONCURRENT_IMPORTS_PER_WORKSPACE = 10
+        settings_.IMPORTS_PER_WORKSPACE_PER_DAY = 3
+        responses = await asyncio.gather(
+            *[
+                upload(client, workspace, test_user_cookies, documents.text_pdf())
+                for _ in range(5)
+            ]
+        )
+        codes = sorted(r.status_code for r in responses)
+        assert codes == [202, 202, 429, 429, 429], [r.text for r in responses]
+        refused = {r.json()["code"] for r in responses if r.status_code == 429}
+        assert refused == {"daily_limit"}
+        assert len(await _forms_in(workspace) - before) == 3
+    finally:
+        (
+            settings_.CONCURRENT_IMPORTS_PER_WORKSPACE,
+            settings_.IMPORTS_PER_WORKSPACE_PER_DAY,
+        ) = previous
+        service_class._dispatch, service_class._check_limits = dispatch, check

@@ -33,6 +33,7 @@ from backend.app.models.filter_queries.sort import SortOrder, SortRequest
 from backend.app.models.template import StandardFormTemplate, StandardTemplateSetting
 from backend.app.models.workspace import WorkspaceFormSettings
 from backend.app.schemas.consent import WorkspaceConsentDocument
+from backend.app.repositories.form_import_repository import check_import_limits
 from backend.app.schemas.form_import import FormImportDocument, ImportStatus
 from backend.app.schemas.form_versions import FormVersionsDocument
 from backend.app.schemas.media_library import MediaLibraryDocument
@@ -51,6 +52,7 @@ from backend.db.models import (
 )
 from common.constants import MESSAGE_DATABASE_EXCEPTION, MESSAGE_NOT_FOUND
 from common.db import PostgresRepositoryBase, from_canonical_document
+from common.db.beanie_bridge import row_values
 from common.models.standard_form import StandardForm
 from common.models.user import User
 
@@ -913,6 +915,50 @@ class PostgresFormImportRepository(PostgresRepositoryBase):
 
     async def save(self, document: FormImportDocument) -> FormImportDocument:
         return await self.upsert(document)
+
+    async def create_within_limits(
+        self,
+        document: FormImportDocument,
+        max_active: int,
+        max_per_day: int,
+        since: datetime,
+    ) -> FormImportDocument:
+        """Twin of the Mongo lock document: a transaction-scoped advisory lock
+        per workspace serialises starts, then the counts and the insert run in
+        the same transaction."""
+        self._check_collection(document, FormImportRow)
+        workspace_id = _oid(document.workspace_id)
+        async with self._session() as session, session.begin():
+            await session.execute(
+                select(
+                    func.pg_advisory_xact_lock(
+                        func.hashtextextended(f"form_imports:{workspace_id}", 0)
+                    )
+                )
+            )
+            active = (
+                await session.execute(
+                    select(func.count())
+                    .select_from(FormImportRow)
+                    .where(
+                        FormImportRow.workspace_id == workspace_id,
+                        FormImportRow.status.in_(list(ImportStatus.ACTIVE)),
+                    )
+                )
+            ).scalar_one()
+            today = (
+                await session.execute(
+                    select(func.count())
+                    .select_from(FormImportRow)
+                    .where(
+                        FormImportRow.workspace_id == workspace_id,
+                        FormImportRow.created_at >= since,
+                    )
+                )
+            ).scalar_one()
+            check_import_limits(active, today, max_active, max_per_day)
+            await session.execute(self._upsert_statement(row_values(document)))
+        return document
 
     async def get(self, import_id: PydanticObjectId) -> Optional[FormImportDocument]:
         return await self.one(FormImportRow.id == _oid(import_id))

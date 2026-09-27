@@ -211,6 +211,14 @@ progress. Code: `app/services/pdf_import/` (stages), `app/services/pdf_import_se
   first (separate user, no network, syscall filter).
 - **Licences:** pypdf (BSD), pdfplumber/pdfminer (MIT), pypdfium2 (BSD/Apache),
   Pillow. Do not add PyMuPDF (AGPL) or GPL converters.
+- **Workspace limits are enforced by the insert** (`form_import_repo.create_within_limits`):
+  one running import and imports per day are counted and the record inserted
+  under a per-workspace lock, a lease document in `form_import_locks` (unique
+  `_id`) on Mongo and `pg_advisory_xact_lock` in the same transaction on Postgres,
+  so parallel uploads cannot both pass. The write is `replay=True` and raises
+  `ImportLimitReached` on refusal, so the mirror never re-runs the check. The
+  service's earlier count is only a cheap look; a start refused at the insert
+  deletes the draft it created.
 - **The draft form is created at upload**, and the original is stored under
   `private/<workspace>/<form>/imports/<import>/`, so deleting the form deletes it.
   Import records are deleted with their forms (`WorkspaceFormService`).
