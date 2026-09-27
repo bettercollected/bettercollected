@@ -376,9 +376,9 @@ REPEAT_MAX_ITEMS_LIMIT = 50
 REPEAT_COLUMNS_EXPORT_MAX = 5
 
 # Child question types a repeating group may contain (v1). Nested groups,
-# internal fields (hidden/calculated) and fields whose answers live outside
-# the answers dict (uploads) or span several answers (matrix, table) are not
-# supported inside a group.
+# hidden/calculated fields, fields marked `internal` ("for office use") and
+# fields whose answers live outside the answers dict (uploads) or span several
+# answers (matrix, table) are not supported inside a group.
 REPEAT_CHILD_FIELD_TYPES = {
     "short_text",
     "long_text",
@@ -534,6 +534,8 @@ def check_repeating_group_structure(field: Any) -> None:
         return
     if _type_value(getattr(field, "type", None)) != StandardFormFieldType.GROUP.value:
         raise ValueError("Only a group field can repeat.")
+    if getattr(field, "internal", None):
+        raise ValueError("A repeating group cannot be an internal field.")
     children = getattr(properties, "fields", None) or []
     seen = set()
     for child in children:
@@ -543,6 +545,12 @@ def check_repeating_group_structure(field: Any) -> None:
         if child_type not in REPEAT_CHILD_FIELD_TYPES:
             raise ValueError(
                 f"A '{child_type}' question cannot be placed inside a repeating group."
+            )
+        if getattr(child, "internal", None):
+            # Internal ("for office use") fields are filled in per submission,
+            # not per item: not supported inside a repeating group.
+            raise ValueError(
+                "Internal fields cannot be placed inside a repeating group."
             )
         child_id = getattr(child, "id", None)
         if child_id and child_id in seen:

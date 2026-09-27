@@ -381,10 +381,18 @@ def _find_group(form: StandardForm, group_id: str) -> Tuple[StandardFormField, S
     return page, field
 
 
-def _check_child_type(field_type: Any) -> None:
+INTERNAL_IN_GROUP_MESSAGE = (
+    "Internal fields cannot be placed inside a repeating group — staff fill them "
+    "in once per submission, not per item."
+)
+
+
+def _check_child_type(field_type: Any, internal: Optional[bool] = None) -> None:
     value = getattr(field_type, "value", field_type)
     if value == StandardFormFieldType.GROUP.value:
         raise OpError("Repeating groups cannot contain another group.")
+    if internal:
+        raise OpError(INTERNAL_IN_GROUP_MESSAGE)
     if value not in REPEAT_CHILD_FIELD_TYPES:
         raise OpError(
             f"A '{value}' question cannot be placed inside a repeating group (allowed: "
@@ -568,7 +576,7 @@ def _insert_position(fields: List[StandardFormField], after_field_id: Optional[s
 def _apply_add_field(form: StandardForm, op: AddFieldOp) -> str:
     if op.group_id is not None:
         _, group = _find_group(form, op.group_id)
-        _check_child_type(op.field.type)
+        _check_child_type(op.field.type, op.field.internal)
         children = _children(group)
         insert_at = _insert_position(children, op.after_field_id, op.index, f"group '{op.group_id}'")
         children.insert(insert_at, _build_field(op.field, insert_at))
@@ -595,8 +603,16 @@ def _logic_sources(form: StandardForm) -> set:
         for jump in (page.properties.jumps if page.properties else None) or []:
             sources.update(c.field_id for c in jump.conditions or [])
         for field in (page.properties.fields if page.properties else None) or []:
-            logic = field.properties.logic if field.properties else None
-            sources.update(c.field_id for c in (logic.conditions if logic else None) or [])
+            questions = [field] + (_children(field) if _is_repeating_group(field) else [])
+            for question in questions:
+                logic = question.properties.logic if question.properties else None
+                for c in (logic.conditions if logic else None) or []:
+                    sources.add(c.field_id)
+                    if c.child_field_id:
+                        sources.add(c.child_field_id)
+    for page in _pages(form):
+        for jump in (page.properties.jumps if page.properties else None) or []:
+            sources.update(c.child_field_id for c in jump.conditions or [] if c.child_field_id)
     return sources
 
 
@@ -619,7 +635,7 @@ def _apply_add_group(form: StandardForm, op: AddGroupOp) -> str:
         raise OpError(_validation_message(e))
     children = []
     for i, spec in enumerate(op.fields):
-        _check_child_type(spec.type)
+        _check_child_type(spec.type, spec.internal)
         children.append(_build_field(spec, i))
     insert_at = _insert_position(fields, op.after_field_id, op.index, f"page '{op.page_id}'")
     group = StandardFormField(
@@ -639,7 +655,9 @@ def _apply_add_group(form: StandardForm, op: AddGroupOp) -> str:
 
 
 def _apply_update_field(form: StandardForm, op: UpdateFieldOp) -> str:
-    _, field, _ = _find_field(form, op.field_id)
+    _, parent, _, field, _ = _locate_field(form, op.field_id)
+    if op.patch.internal and parent is not None:
+        raise OpError(INTERNAL_IN_GROUP_MESSAGE)
     if op.patch.internal and op.field_id in _logic_sources(form):
         raise OpError(
             f"'{_title_text(field)}' is used by conditional logic, so it cannot become "
@@ -661,7 +679,7 @@ def _apply_move_field(form: StandardForm, op: MoveFieldOp) -> str:
         _, group = _find_group(form, op.to_group_id)
         if group is field:
             raise OpError("A group cannot be moved into itself.")
-        _check_child_type(field.type)
+        _check_child_type(field.type, field.internal)
         target = _children(group)
         where = f"the group '{_title_text(group)}'"
     elif op.to_page_id is not None or parent is None:

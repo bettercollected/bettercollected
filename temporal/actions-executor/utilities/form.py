@@ -218,6 +218,8 @@ def get_group_children(field: Dict[str, Any]) -> List[Dict[str, Any]]:
         {**child, 'title': extract_text_from_json(child)}
         for child in children
         if child.get('type') not in IgnoredResponsesFieldType
+        # Internal fields are never allowed in groups; skip one regardless.
+        and not child.get('internal')
     ]
 
 

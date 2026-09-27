@@ -37,6 +37,7 @@ from loguru import logger
 from backend.app.exceptions import HTTPException
 
 SLIDE_TYPE = "slide"
+GROUP_TYPE = "group"
 _INTERNAL_ANSWER_KEYS = (
     "internal_answers",
     "internal_answers_meta",
@@ -69,14 +70,28 @@ def is_internal(field: Any) -> bool:
     return bool(_get(field, "internal"))
 
 
+def _group_children(field: Any) -> List[Any]:
+    if _type_value(field) != GROUP_TYPE:
+        return []
+    return _get(_get(field, "properties"), "fields") or []
+
+
 def iter_question_fields(form: Any) -> Iterator[Any]:
     """Every question of a form: the fields inside v2 slides, or the top-level
-    fields of a flat (v1/imported) form."""
+    fields of a flat (v1/imported) form — and the questions inside groups.
+
+    Internal fields are not allowed inside repeating groups (the model rejects
+    them); walking group children anyway means strip/drop would still cover
+    one if it ever got there."""
     for field in _get(form, "fields") or []:
-        if _type_value(field) == SLIDE_TYPE:
-            yield from _get(_get(field, "properties"), "fields") or []
-        else:
-            yield field
+        questions = (
+            _get(_get(field, "properties"), "fields") or []
+            if _type_value(field) == SLIDE_TYPE
+            else [field]
+        )
+        for question in questions:
+            yield question
+            yield from _group_children(question)
 
 
 def internal_fields(form: Any) -> List[Any]:
@@ -100,13 +115,26 @@ def strip_internal_fields(form: Any) -> Any:
     fields = _get(form, "fields")
     if not fields:
         return form
+
+    def _strip_group_children(question: Any) -> None:
+        children = _group_children(question)
+        if children and any(is_internal(child) for child in children):
+            _set(
+                _get(question, "properties"),
+                "fields",
+                [child for child in children if not is_internal(child)],
+            )
+
     kept_top: List[Any] = []
     for field in fields:
         if is_internal(field):
             continue
+        _strip_group_children(field)
         properties = _get(field, "properties")
         children = _get(properties, "fields") if properties is not None else None
         if _type_value(field) == SLIDE_TYPE and children:
+            for child in children:
+                _strip_group_children(child)
             kept_children = [child for child in children if not is_internal(child)]
             if len(kept_children) != len(children):
                 if not kept_children:
@@ -190,6 +218,14 @@ def drop_respondent_internal_answers(response: Any, internal_ids: Set[str]) -> i
         for field_id in internal_ids.intersection(answers.keys()):
             answers.pop(field_id, None)
             dropped += 1
+        # ...and inside repeating-group items (keyed by child field id).
+        for answer in answers.values():
+            items = _get(answer, "items")
+            for item in items if isinstance(items, list) else []:
+                if isinstance(item, dict):
+                    for field_id in internal_ids.intersection(item.keys()):
+                        item.pop(field_id, None)
+                        dropped += 1
     if dropped:
         logger.info(
             f"Dropped {dropped} internal answer(s) from a respondent submission."
