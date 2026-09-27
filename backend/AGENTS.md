@@ -176,7 +176,13 @@ progress. Code: `app/services/pdf_import/` (stages), `app/services/pdf_import_se
 - **Stages checkpoint** on the import record (`stages`); a retried job skips
   finished ones. Runs on procrastinate with `JOBS_BACKEND__import_form=postgres`,
   otherwise as a background task in the API process.
-- **Structure only:** never store values found in an uploaded document.
+- **Document text stays in private import artifacts** (`text.json`, `layout.json`,
+  next to the original, deleted with the form). Never copy values found in an
+  uploaded document into the form, import records or logs, and send the model only
+  what a stage needs to recognise questions.
+- **Output of the sandbox is capped in the parent** (`PDF_IMPORT_MAX_RESULT_BYTES`):
+  the API/worker has no memory limit of its own. Word counts are capped too; an
+  over-limit document is refused as `too_complex`, never silently truncated.
 - **Legacy fonts:** `pdf_import/legacy_decode.py` decodes Preeti-layout Devanagari
   fonts (Preeti, Aakriti) with our own tables (the known converters are GPL).
   Decoded words are trusted per page (plausibility) and per line (one malformed

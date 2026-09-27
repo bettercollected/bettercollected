@@ -9,7 +9,9 @@ document's content).
 
 from __future__ import annotations
 
+import collections
 import datetime as dt
+import json
 from typing import Awaitable, Callable, List, Tuple
 
 from beanie import PydanticObjectId
@@ -21,9 +23,6 @@ from backend.app.schemas.form_import import (
     PageAnalysis,
 )
 from backend.app.services.pdf_import.analysis import DocumentRefused
-import collections
-import json
-
 from backend.app.services.pdf_import.sandbox import run_analysis, run_text_layer
 from backend.app.services.pdf_import.storage import artifact_key
 
@@ -64,6 +63,7 @@ class ImportPipeline:
             timeout_s=s.SANDBOX_TIMEOUT_S,
             memory_mb=s.SANDBOX_MEMORY_MB,
             max_parallel=s.MAX_PARALLEL_SANDBOXES,
+            max_result_bytes=s.MAX_RESULT_BYTES,
         )
 
     async def _text(self, record: FormImportDocument, data: bytes) -> dict:

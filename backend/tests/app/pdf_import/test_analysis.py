@@ -185,17 +185,19 @@ async def test_sandboxes_are_capped_across_all_imports(monkeypatch):
         running += 1
         peak = max(peak, running)
         process = await real(*args, **kwargs)
-        original_communicate = process.communicate
+        original_wait = process.wait
+        done = False
 
-        async def communicate(data):
-            nonlocal running
-            try:
-                await asyncio.sleep(0.05)
-                return await original_communicate(data)
-            finally:
+        async def wait():
+            nonlocal running, done
+            await asyncio.sleep(0.05)
+            code = await original_wait()
+            if not done:
+                done = True
                 running -= 1
+            return code
 
-        process.communicate = communicate
+        process.wait = wait
         return process
 
     monkeypatch.setattr(sandbox.asyncio, "create_subprocess_exec", counting)

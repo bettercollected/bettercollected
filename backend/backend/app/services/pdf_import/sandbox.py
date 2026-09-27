@@ -72,6 +72,46 @@ def child_command(
     ]
 
 
+class _TooMuchOutput(Exception):
+    pass
+
+
+async def _kill(process) -> None:
+    if process.returncode is None:
+        process.kill()
+    await process.wait()
+
+
+async def _exchange(process, data: bytes, cap: int) -> bytes:
+    """Feed the document to the child and read its result, never holding more
+    than ``cap`` bytes of it: the parent has no memory limit of its own."""
+
+    async def feed():
+        try:
+            process.stdin.write(data)
+            await process.stdin.drain()
+        except (BrokenPipeError, ConnectionResetError):
+            pass  # the child stopped reading (refused, or crashed): its output says why
+        finally:
+            process.stdin.close()
+
+    feeder = asyncio.create_task(feed())
+    chunks, total = [], 0
+    try:
+        while True:
+            chunk = await process.stdout.read(64 * 1024)
+            if not chunk:
+                break
+            total += len(chunk)
+            if total > cap:
+                raise _TooMuchOutput()
+            chunks.append(chunk)
+        await process.wait()
+    finally:
+        await asyncio.gather(feeder, return_exceptions=True)
+    return b"".join(chunks)
+
+
 async def run_in_sandbox(
     mode: str,
     data: bytes,
@@ -83,9 +123,10 @@ async def run_in_sandbox(
     memory_mb: int,
     max_parallel: int = 2,
     skip_pages: str = "",
+    max_result_bytes: int = 16 * 1024 * 1024,
 ) -> dict:
     """The child's JSON result, or raises DocumentRefused (including for
-    crashes and timeouts)."""
+    crashes, timeouts and results larger than ``max_result_bytes``)."""
     async with _semaphore(max_parallel):
         with tempfile.TemporaryDirectory(prefix="bc-import-") as scratch:
             process = await asyncio.create_subprocess_exec(
@@ -105,11 +146,18 @@ async def run_in_sandbox(
                 cwd=scratch,
             )
             try:
-                stdout, _ = await asyncio.wait_for(process.communicate(data), timeout_s)
+                stdout = await asyncio.wait_for(
+                    _exchange(process, data, max_result_bytes), timeout_s
+                )
             except asyncio.TimeoutError:
-                process.kill()
-                await process.wait()
+                await _kill(process)
                 raise DocumentRefused("timeout", "This document took too long to read.")
+            except _TooMuchOutput:
+                await _kill(process)
+                raise DocumentRefused(
+                    "too_complex",
+                    "This document holds more content than a form import can handle.",
+                )
     try:
         result = json.loads(stdout.decode("utf-8") or "{}")
     except ValueError:

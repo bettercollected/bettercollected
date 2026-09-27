@@ -21,8 +21,14 @@ PAGE_PLAUSIBILITY = 0.9
 # a page with a larger share of untrusted words is read from its image instead
 PAGE_UNTRUSTED_SHARE_FOR_VISION = 0.1
 LINE_TOLERANCE = 2.0
-MAX_WORDS_PER_PAGE = 20_000
+# a dense page of legal terms has ~1,500 words; these caps are far above real forms
+MAX_WORDS_PER_PAGE = 5_000
+MAX_WORDS_PER_DOCUMENT = 50_000
 MAX_WORD_CHARS = 200
+
+
+class TooMuchText(Exception):
+    """More text than any form: refused rather than silently cut."""
 
 
 def colour_hex(value) -> Optional[str]:
@@ -113,7 +119,9 @@ def page_words(page) -> dict:
         extra_attrs=["fontname", "size", "non_stroking_color"],
         keep_blank_chars=False,
         use_text_flow=False,
-    )[:MAX_WORDS_PER_PAGE]
+    )
+    if len(raw) > MAX_WORDS_PER_PAGE:
+        raise TooMuchText()
     fallback_font = _resource_legacy_font(page)
     words: List[dict] = []
     legacy_raw: List[str] = []
@@ -188,6 +196,7 @@ def extract_text_layer(data: bytes, skip_pages: Optional[set] = None) -> dict:
     import pdfplumber
 
     pages = []
+    total = 0
     with pdfplumber.open(io.BytesIO(data)) as pdf:
         for index, page in enumerate(pdf.pages):
             number = index + 1
@@ -203,4 +212,7 @@ def extract_text_layer(data: bytes, skip_pages: Optional[set] = None) -> dict:
                     **page_words(page),
                 }
             )
+            total += len(pages[-1]["words"])
+            if total > MAX_WORDS_PER_DOCUMENT:
+                raise TooMuchText()
     return {"pages": pages}

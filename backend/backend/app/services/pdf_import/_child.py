@@ -52,6 +52,17 @@ def main(argv) -> int:
                 result = analyze_image(data, max_pixels)
         except DocumentRefused as refused:
             result = {"refused": {"code": refused.code, "message": refused.message}}
+        except (
+            Exception
+        ) as error:  # noqa: BLE001 — only the known refusal is reported by name
+            if type(error).__name__ != "TooMuchText":
+                raise
+            result = {
+                "refused": {
+                    "code": "too_complex",
+                    "message": "This document holds more text than a form import can handle.",
+                }
+            }
     except MemoryError:
         result = {
             "refused": {

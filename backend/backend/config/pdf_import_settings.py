@@ -20,5 +20,8 @@ class PdfImportSettings(BaseSettings):
     SANDBOX_MEMORY_MB: int = 1536
     # sandbox children running at once in one process, across all workspaces
     MAX_PARALLEL_SANDBOXES: int = 2
+    # the most output the parent reads from one sandbox child: the parent has no
+    # memory limit of its own, so a document's result must not be able to exhaust it
+    MAX_RESULT_BYTES: int = 16 * 1024 * 1024
 
     model_config = SettingsConfigDict(env_prefix="PDF_IMPORT_")

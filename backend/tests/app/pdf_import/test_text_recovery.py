@@ -125,3 +125,55 @@ def test_routes_for_decodable_and_unknown_legacy_fonts():
 def test_scanned_pages_are_skipped():
     result = extract_text_layer(documents.text_pdf(pages=2), skip_pages={2})
     assert [p["skipped"] for p in result["pages"]] == [False, True]
+
+
+def _dense_pdf(words_per_line=60, lines=100) -> bytes:
+    """A page full of tiny words: far more than any real form."""
+    line = " ".join("ab" for _ in range(words_per_line))
+    return documents.text_pdf([line] * lines)
+
+
+@pytest.mark.asyncio
+async def test_a_page_with_more_words_than_any_form_is_refused():
+    from backend.app.services.pdf_import.analysis import DocumentRefused
+    from backend.app.services.pdf_import.sandbox import run_text_layer
+
+    limits = dict(
+        max_pages=30,
+        max_pixels=60_000_000,
+        timeout_s=60,
+        memory_mb=1536,
+        max_parallel=2,
+    )
+    with pytest.raises(DocumentRefused) as raised:
+        await run_text_layer(_dense_pdf(), **limits)
+    assert raised.value.code == "too_complex"
+
+
+def test_the_document_word_cap(monkeypatch):
+    from backend.app.services.pdf_import import text_layer
+
+    monkeypatch.setattr(text_layer, "MAX_WORDS_PER_DOCUMENT", 5)
+    with pytest.raises(text_layer.TooMuchText):
+        text_layer.extract_text_layer(documents.text_pdf(pages=3))
+
+
+@pytest.mark.asyncio
+async def test_the_parent_reads_at_most_the_result_cap():
+    from backend.app.services.pdf_import.analysis import DocumentRefused
+    from backend.app.services.pdf_import.sandbox import run_text_layer
+
+    limits = dict(
+        max_pages=30,
+        max_pixels=60_000_000,
+        timeout_s=60,
+        memory_mb=1536,
+        max_parallel=2,
+    )
+    result = await run_text_layer(documents.text_pdf(), **limits)
+    assert result["pages"][0]["words"]
+    with pytest.raises(DocumentRefused) as raised:
+        await run_text_layer(
+            documents.text_pdf(pages=3), max_result_bytes=500, **limits
+        )
+    assert raised.value.code == "too_complex"
