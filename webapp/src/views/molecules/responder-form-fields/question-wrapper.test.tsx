@@ -102,3 +102,22 @@ describe('QuestionWrapper — answer piping', () => {
         expect(screen.getByText('You came from newsletter.')).toBeInTheDocument();
     });
 });
+
+describe('QuestionWrapper — string titles are text, never markup', () => {
+    it('renders markup in a string title literally', () => {
+        const { container } = renderWrapper(field({ title: 'Applicants <iframe srcdoc="<script>alert(1)</script>"></iframe>' }));
+        expect(container.querySelector('iframe')).toBeNull();
+        expect(screen.getByText(/Applicants <iframe srcdoc=/)).toBeInTheDocument();
+    });
+
+    it('renders a piped value in a string title as text', () => {
+        const { container } = renderWrapper(field({ title: 'Hello {{hidden:name}}!' }), { hiddenValues: { name: '<img src=x onerror="alert(1)">' } });
+        expect(container.querySelector('img')).toBeNull();
+        expect(screen.getByText('Hello <img src=x onerror="alert(1)">!')).toBeInTheDocument();
+    });
+
+    it('keeps plain string titles bold', () => {
+        const { container } = renderWrapper(field({ title: 'Your name?' }));
+        expect(container.querySelector('strong')?.textContent).toBe('Your name?');
+    });
+});

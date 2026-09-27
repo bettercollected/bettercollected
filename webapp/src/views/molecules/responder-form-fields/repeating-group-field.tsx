@@ -12,7 +12,6 @@ import { useFormState } from '@app/store/jotai/form';
 import { GroupItemScopeContext } from '@app/store/jotai/group-item-scope';
 import { useFormResponse } from '@app/store/jotai/responder-form-response';
 import { useHiddenFieldValues } from '@app/store/jotai/responder-hidden-fields';
-import { stringTitleToDoc } from '@app/utils/answer-piping';
 import {
     addGroupItem,
     canAddItem,
@@ -80,10 +79,7 @@ function GroupItem({
                             {renderChild({
                                 ...child,
                                 id: scopedFieldId(child.id, index),
-                                index: CHILD_INDEX_OFFSET + (child.index ?? 0),
-                                // Plain-string titles (the group editor's) render through the
-                                // JSON path so piped answers are escaped text.
-                                title: typeof child.title === 'string' && child.title ? stringTitleToDoc(child.title) : child.title
+                                index: CHILD_INDEX_OFFSET + (child.index ?? 0)
                             })}
                         </div>
                     ))}

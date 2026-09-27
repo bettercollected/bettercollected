@@ -112,17 +112,18 @@ const TEXT_PIPE_PATTERN = /\{\{\s*(field|hidden|group)\s*:\s*([^}|]+?)\s*(?:\|([
  * nodes. Rendering then goes through the JSON path, where piped answers are
  * text nodes (escaped when turned into HTML) instead of raw HTML.
  */
-export function stringTitleToDoc(text: string): JSONContent {
+export function stringTitleToDoc(text: string, marks?: JSONContent['marks']): JSONContent {
     const content: JSONContent[] = [];
+    const withMarks = (node: JSONContent): JSONContent => (marks?.length ? { ...node, marks } : node);
     let last = 0;
     TEXT_PIPE_PATTERN.lastIndex = 0;
     let match: RegExpExecArray | null;
     while ((match = TEXT_PIPE_PATTERN.exec(text)) !== null) {
-        if (match.index > last) content.push({ type: 'text', text: text.slice(last, match.index) });
-        content.push({ type: ANSWER_PIPE_NODE, attrs: { kind: match[1], pipeKey: match[2].trim(), label: match[2].trim(), fallback: (match[3] ?? '').trim() } });
+        if (match.index > last) content.push(withMarks({ type: 'text', text: text.slice(last, match.index) }));
+        content.push(withMarks({ type: ANSWER_PIPE_NODE, attrs: { kind: match[1], pipeKey: match[2].trim(), label: match[2].trim(), fallback: (match[3] ?? '').trim() } }));
         last = match.index + match[0].length;
     }
-    if (last < text.length) content.push({ type: 'text', text: text.slice(last) });
+    if (last < text.length) content.push(withMarks({ type: 'text', text: text.slice(last) }));
     TEXT_PIPE_PATTERN.lastIndex = 0;
     return { type: 'doc', content: [{ type: 'paragraph', content }] };
 }
