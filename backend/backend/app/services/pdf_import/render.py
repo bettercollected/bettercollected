@@ -1,8 +1,8 @@
 """Render pages to PNG for the image-reading stages.
 
 Native code (pdfium for PDFs, Pillow's decoders for photos) parses the
-document here, so this only ever runs in the isolated sandbox (#703) or, in
-development, behind PDF_IMPORT_ALLOW_LOCAL_RENDERING.
+document here, so this only ever runs in the isolated sandbox container (#703),
+never in a local child.
 
 Import-safe for the sandbox child: no imports from the backend package.
 """
@@ -58,6 +58,13 @@ def render_image(data: bytes, max_side: int, max_pixels: int) -> dict:
 
     Image.MAX_IMAGE_PIXELS = max_pixels
     with Image.open(io.BytesIO(data)) as image:
+        # Pillow only raises at twice MAX_IMAGE_PIXELS: check the header's size
+        # before anything decodes the pixels
+        width, height = image.size
+        if width * height > max_pixels:
+            from .analysis import DocumentRefused
+
+            raise DocumentRefused("too_large", "This image is too large to import.")
         image = ImageOps.exif_transpose(
             image
         )  # phone photos carry their rotation in EXIF

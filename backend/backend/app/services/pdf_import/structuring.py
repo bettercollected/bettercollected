@@ -321,18 +321,59 @@ class PageResult:
     warnings: List[str] = field(default_factory=list)
 
 
+MAX_ITEMS_PER_KIND = 300  # sections, questions, statements... per page
+MAX_REFS_PER_ITEM = 400
+MAX_REFS_PER_PAGE = 6000
+MAX_TEXT_CHARS = 500  # model-written label/title/option text
+
+
+def _objects(answer: dict, key: str) -> List[dict]:
+    """The dict items of a list in the model's answer; anything else is dropped."""
+    items = answer.get(key)
+    if not isinstance(items, list):
+        return []
+    return [item for item in items[:MAX_ITEMS_PER_KIND] if isinstance(item, dict)]
+
+
+def _refs(value) -> List[str]:
+    """A ref list from the model's answer: strings only, capped."""
+    if not isinstance(value, list):
+        return []
+    return [ref for ref in value[:MAX_REFS_PER_ITEM] if isinstance(ref, str)]
+
+
+def _text(value) -> str:
+    return value.strip()[:MAX_TEXT_CHARS] if isinstance(value, str) else ""
+
+
 def validate(answer: Any, ctx: PageContext) -> Tuple[List[dict], List[str], List[str]]:
     """(elements, errors, warnings). Errors make the answer unusable."""
     errors: List[str] = []
     warnings: List[str] = []
     if not isinstance(answer, dict):
         return [], ["the answer is not a JSON object"], []
+    for key in ("sections", "questions", "statements", "staff_only", "ignore"):
+        items = answer.get(key)
+        wanted = str if key == "ignore" else dict
+        if items is not None and (
+            not isinstance(items, list)
+            or not all(isinstance(item, wanted) for item in items)
+        ):
+            errors.append(
+                f"{key}: must be a list of {'ids' if wanted is str else 'objects'}"
+            )
+    if errors:
+        return [], errors, []
     prims = ctx.primitive_ids
     n_words = len(ctx.words)
 
+    budget = [MAX_REFS_PER_PAGE]
+
     def check_refs(refs, where) -> List[str]:
         good = []
-        for ref in expand_refs(refs):
+        expanded = expand_refs(refs)[: max(0, budget[0])]
+        budget[0] -= len(expanded)
+        for ref in expanded:
             idx = _word_index(ref)
             if idx is not None:
                 if idx < n_words:
@@ -347,11 +388,11 @@ def validate(answer: Any, ctx: PageContext) -> Tuple[List[dict], List[str], List
 
     elements: List[dict] = []
     section_ids = set()
-    for s in answer.get("sections") or []:
+    for s in _objects(answer, "sections"):
         sid = str(s.get("id") or f"s{len(section_ids) + 1}")
         section_ids.add(sid)
-        refs = check_refs(s.get("title_refs") or [], f"section {sid}")
-        title = ctx.word_text(refs) if refs else (s.get("title") or "").strip()
+        refs = check_refs(_refs(s.get("title_refs")), f"section {sid}")
+        title = ctx.word_text(refs) if refs else _text(s.get("title"))
         if refs and not title:
             errors.append(f"section {sid}: empty title")
         grounded = bool(refs) or not ctx.has_text_layer
@@ -372,23 +413,21 @@ def validate(answer: Any, ctx: PageContext) -> Tuple[List[dict], List[str], List
         )
     claimed: Dict[str, str] = {}
     question_ids = set()
-    for q in answer.get("questions") or []:
+    for q in _objects(answer, "questions"):
         qid = str(q.get("id") or f"q{len(question_ids) + 1}")
         question_ids.add(qid)
         kind = q.get("kind")
         if kind not in QUESTION_KINDS:
             errors.append(f"question {qid}: unknown kind {kind!r}")
             continue
-        label_refs = check_refs(q.get("label_refs") or [], f"question {qid}")
-        label = (
-            ctx.word_text(label_refs) if label_refs else (q.get("label") or "").strip()
-        )
+        label_refs = check_refs(_refs(q.get("label_refs")), f"question {qid}")
+        label = ctx.word_text(label_refs) if label_refs else _text(q.get("label"))
         if not label:
             errors.append(f"question {qid}: no label")
         if not label_refs and ctx.has_text_layer:
             warnings.append(f"question {qid}: label not grounded on the text layer")
         slot_refs = []
-        for ref in q.get("slot_refs") or []:
+        for ref in _refs(q.get("slot_refs")):
             if ref not in prims:
                 errors.append(f"question {qid}: unknown layout item {ref}")
                 continue
@@ -397,9 +436,9 @@ def validate(answer: Any, ctx: PageContext) -> Tuple[List[dict], List[str], List
             claimed[ref] = qid
             slot_refs.append(ref)
         options = []
-        for o in q.get("options") or []:
-            orefs = check_refs(o.get("refs") or [], f"question {qid} option")
-            text = ctx.word_text(orefs) if orefs else (o.get("text") or "").strip()
+        for o in _objects(q, "options"):
+            orefs = check_refs(_refs(o.get("refs")), f"question {qid} option")
+            text = ctx.word_text(orefs) if orefs else _text(o.get("text"))
             if text:
                 options.append(
                     {"label": text, "refs": orefs, "is_other": bool(o.get("is_other"))}
@@ -418,7 +457,7 @@ def validate(answer: Any, ctx: PageContext) -> Tuple[List[dict], List[str], List
                 "label": label,
                 "label_refs": label_refs,
                 "help": ctx.word_text(
-                    check_refs(q.get("help_refs") or [], f"question {qid} help")
+                    check_refs(_refs(q.get("help_refs")), f"question {qid} help")
                 )
                 or None,
                 "slot_refs": slot_refs,
@@ -454,10 +493,10 @@ def validate(answer: Any, ctx: PageContext) -> Tuple[List[dict], List[str], List
                 ),
             }
         )
-    for st in answer.get("statements") or []:
+    for st in _objects(answer, "statements"):
         sid = str(st.get("id") or f"t{len(elements) + 1}")
-        refs = check_refs(st.get("refs") or [], f"statement {sid}")
-        text = ctx.word_text(refs) if refs else (st.get("text") or "").strip()
+        refs = check_refs(_refs(st.get("refs")), f"statement {sid}")
+        text = ctx.word_text(refs) if refs else _text(st.get("text"))
         if not text:
             continue
         elements.append(
@@ -477,11 +516,11 @@ def validate(answer: Any, ctx: PageContext) -> Tuple[List[dict], List[str], List
                 ),
             }
         )
-    for so in answer.get("staff_only") or []:
-        refs = [r for r in (so.get("refs") or []) if r in prims]
+    for so in _objects(answer, "staff_only"):
+        refs = [r for r in (_refs(so.get("refs"))) if r in prims]
         for r in refs:
             claimed.setdefault(r, "staff_only")
-        heading = ctx.word_text(check_refs(so.get("heading_refs") or [], "staff_only"))
+        heading = ctx.word_text(check_refs(_refs(so.get("heading_refs")), "staff_only"))
         elements.append(
             {
                 "type": "staff_only",
@@ -490,7 +529,7 @@ def validate(answer: Any, ctx: PageContext) -> Tuple[List[dict], List[str], List
                 "heading": heading,
             }
         )
-    for r in answer.get("ignore") or []:
+    for r in _refs(answer.get("ignore")):
         if r in prims:
             claimed.setdefault(r, "ignore")
     for p in ctx.primitives:
@@ -800,7 +839,11 @@ async def structure_page(
             except Exception as error:  # noqa: BLE001 — provider errors fall back below
                 errors = [f"provider error: {type(error).__name__}"]
                 break
-            elements, errors, warnings = validate(answer, ctx)
+            try:
+                elements, errors, warnings = validate(answer, ctx)
+            except Exception as error:  # noqa: BLE001 — a malformed answer is unusable
+                elements, warnings = [], []
+                errors = [f"malformed answer: {type(error).__name__}"]
             if not errors:
                 return PageResult(ctx.number, "model", elements, warnings)
         fallback = heuristic(ctx)

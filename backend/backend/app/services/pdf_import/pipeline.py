@@ -40,7 +40,31 @@ from backend.app.services.pdf_import.structuring import (
 
 MESSAGE_FAILED = "The import failed unexpectedly. Please try again."
 MESSAGE_UNAVAILABLE = "The document reader is unavailable. Please try again later."
-RENDER_BATCH = 4
+PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
+
+
+def _checked_render(result: dict, number: int, max_bytes: int):
+    """The sandbox's render of page ``number`` as (png, width, height), or None
+    when the answer is not a plausible PNG of that page (untrusted output)."""
+    pages = result.get("pages") if isinstance(result, dict) else None
+    if not isinstance(pages, list) or len(pages) != 1 or not isinstance(pages[0], dict):
+        return None
+    page = pages[0]
+    try:
+        if int(page["number"]) != number:
+            return None
+        width, height = int(page["width_px"]), int(page["height_px"])
+        encoded = page["png"]
+        if not isinstance(encoded, str) or len(encoded) > max_bytes:
+            return None
+        png = base64.b64decode(encoded, validate=True)
+    except (KeyError, TypeError, ValueError):
+        return None
+    if not png.startswith(PNG_SIGNATURE) or not (
+        0 < width <= 10000 and 0 < height <= 10000
+    ):
+        return None
+    return png, width, height
 
 
 def _now() -> dt.datetime:
@@ -177,42 +201,46 @@ class ImportPipeline:
         logger.error("form import {} gave up waiting for the sandbox", import_id)
         return record
 
-    def _can_render(self) -> bool:
-        s = self._settings
-        return bool(s.SANDBOX_SOCKET) or bool(s.ALLOW_LOCAL_RENDERING)
-
     async def _render(self, record: FormImportDocument, data: bytes) -> dict:
         """Page images for the model and the review screen, stored next to the
-        original. Native code: only through the isolated sandbox."""
-        if not self._can_render():
+        original. Native code: only through the isolated sandbox, one page per
+        call so a heavy scan stays under the result cap on its own."""
+        if not self._settings.SANDBOX_SOCKET:
             record.report.setdefault("notes", []).append(
                 "Page images were not produced: the isolated document sandbox is not configured."
             )
             return {"skipped": "no isolated sandbox", "pages": []}
         numbers = [p.number for p in record.pages] or [1]
-        stored = []
-        for start in range(0, len(numbers), RENDER_BATCH):
-            batch = numbers[start : start + RENDER_BATCH]
-            result = await run_render(
-                data,
-                record.content_type,
-                batch,
-                allow_local_native=self._settings.ALLOW_LOCAL_RENDERING,
-                render_max_side=self._settings.RENDER_MAX_SIDE,
-                **self._limits(),
-            )
-            for page in result.get("pages", []):
-                key = artifact_key(record.source_key, f"pages/{page['number']}.png")
-                await self._store.put(key, base64.b64decode(page["png"]), "image/png")
-                stored.append(
-                    {
-                        "number": page["number"],
-                        "key": key,
-                        "width_px": page["width_px"],
-                        "height_px": page["height_px"],
-                    }
+        stored, skipped = [], []
+        for number in numbers:
+            try:
+                result = await run_render(
+                    data,
+                    record.content_type,
+                    [number],
+                    render_max_side=self._settings.RENDER_MAX_SIDE,
+                    **self._limits(),
                 )
-        return {"pages": stored}
+            except DocumentRefused as refused:
+                if refused.code != "too_complex":
+                    raise
+                skipped.append(number)
+                continue
+            image = _checked_render(result, number, self._settings.MAX_RESULT_BYTES)
+            if image is None:
+                skipped.append(number)
+                continue
+            png, width, height = image
+            key = artifact_key(record.source_key, f"pages/{number}.png")
+            await self._store.put(key, png, "image/png")
+            stored.append(
+                {"number": number, "key": key, "width_px": width, "height_px": height}
+            )
+        if skipped:
+            record.report.setdefault("notes", []).append(
+                f"{len(skipped)} page image(s) could not be produced."
+            )
+        return {"pages": stored, "skipped_pages": skipped}
 
     async def _load_json(self, record: FormImportDocument, name: str) -> dict:
         try:

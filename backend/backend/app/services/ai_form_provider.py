@@ -4,6 +4,11 @@ import abc
 from typing import Any, Dict
 
 
+
+# form import page analysis: bounded answer size and wall-clock time per call
+PAGE_MAX_TOKENS = 16000
+PAGE_TIMEOUT_S = 120
+
 class AIFormProvider(abc.ABC):
     """Base contract that all AI provider implementations must satisfy."""
 

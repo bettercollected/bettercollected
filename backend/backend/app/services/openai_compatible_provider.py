@@ -15,7 +15,11 @@ from typing import Any, Dict, Optional
 
 from openai import AsyncOpenAI
 
-from backend.app.services.ai_form_provider import AIFormProvider
+from backend.app.services.ai_form_provider import (
+    PAGE_MAX_TOKENS,
+    PAGE_TIMEOUT_S,
+    AIFormProvider,
+)
 from backend.config import settings
 
 GENERATION_SYSTEM_PROMPT = """
@@ -130,6 +134,8 @@ class OpenAICompatibleFormProvider(AIFormProvider):
                 {"role": "user", "content": content},
             ],
             response_format={"type": "json_object"},
+            max_tokens=PAGE_MAX_TOKENS,
+            timeout=PAGE_TIMEOUT_S,
         )
         return _json_answer(response.choices[0].message.content or "{}")
 

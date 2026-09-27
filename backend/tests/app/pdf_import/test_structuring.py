@@ -224,3 +224,40 @@ def test_merge_joins_continued_sections_and_repeated_signatures():
     assert "p2-s1" not in ids and ids.count("p1-sig") == 1 and "p2-sig" not in ids
     city = next(e for e in fdm["elements"] if e["id"] == "p2-q1")
     assert city["section"] == "p1-s1" and city["page"] == 2
+
+
+@pytest.mark.parametrize(
+    "malformed",
+    [
+        ["not", "an", "object"],
+        {"questions": ["x"]},
+        {"questions": "x"},
+        {"sections": [1, 2]},
+        {"questions": [{"id": "q1", "kind": "short_text", "label_refs": 5}]},
+        {"questions": [{"id": "q1", "kind": "single_choice", "options": ["a", "b"]}]},
+        {"questions": [{"id": "q1", "kind": "short_text", "label": {"x": 1}}]},
+        {"staff_only": [{"refs": "p1-staff_region-1"}], "ignore": [{"id": 1}]},
+        {
+            "questions": [
+                {"id": "q1", "kind": "short_text", "label_refs": ["w0-w999999"]}
+            ]
+        },
+    ],
+)
+async def test_malformed_answers_fall_back_instead_of_failing_the_import(
+    ctx, malformed
+):
+    result = await structure_page(FakeProvider([malformed, malformed]), ctx, None)
+    assert result.source in ("model", "heuristic")
+    for element in result.elements:
+        assert isinstance(element.get("label", element.get("title", "")), str)
+
+
+def test_model_text_and_refs_are_capped(ctx):
+    answer = good_answer(ctx)
+    answer["questions"][0]["label_refs"] = []
+    answer["questions"][0]["label"] = "x" * 10000
+    answer["questions"][1]["label_refs"] = ["w0-w2000"] * 50
+    elements, _, _ = validate(answer, ctx)
+    q1 = next(e for e in elements if e["id"] == "p1-q1")
+    assert len(q1["label"]) <= 500

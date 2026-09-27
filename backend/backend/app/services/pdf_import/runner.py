@@ -23,6 +23,8 @@ from typing import Dict
 from .analysis import DocumentRefused
 
 CHILD = os.path.join(os.path.dirname(os.path.abspath(__file__)), "_child.py")
+# refusal code of a sandbox that predates a mode (deploy version skew)
+UNSUPPORTED_MODE = "unsupported_mode"
 MODES = ("analyze", "text", "layout", "render")
 MAX_HEADER_BYTES = 64 * 1024
 
@@ -125,7 +127,7 @@ async def run_child(
     """The child's JSON result, or raises DocumentRefused (including for
     crashes, timeouts and results larger than ``max_result_bytes``)."""
     if mode not in MODES:
-        raise DocumentRefused("unreadable", "Unknown reading mode.")
+        raise DocumentRefused(UNSUPPORTED_MODE, "Unknown reading mode.")
     with tempfile.TemporaryDirectory(prefix="bc-import-") as scratch:
         process = await asyncio.create_subprocess_exec(
             *child_command(

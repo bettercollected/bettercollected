@@ -27,8 +27,6 @@ class PdfImportSettings(BaseSettings):
     SANDBOX_SOCKET: str = ""
     # refuse the local child transport (set wherever the container is deployed)
     REQUIRE_ISOLATED_SANDBOX: bool = False
-    # development only: render pages (native code) in a local child without the container
-    ALLOW_LOCAL_RENDERING: bool = False
     # structuring model when the provider is OpenAI (others use their configured model)
     OPENAI_MODEL: str = "gpt-6-luna"
     # longest side of a rendered page image sent to the model (pixels)

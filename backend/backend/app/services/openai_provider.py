@@ -5,7 +5,11 @@ from typing import Any, Dict, Optional
 
 from openai import AsyncOpenAI
 
-from backend.app.services.ai_form_provider import AIFormProvider
+from backend.app.services.ai_form_provider import (
+    PAGE_MAX_TOKENS,
+    PAGE_TIMEOUT_S,
+    AIFormProvider,
+)
 from backend.app.services.ai_form_tools import OPENAI_TOOLS, execute_tool
 from backend.app.services.unsplash_service import UnsplashService
 from backend.config import settings
@@ -201,6 +205,8 @@ class OpenAIFormProvider(AIFormProvider):
                 "type": "json_schema",
                 "json_schema": {"name": "form_page", "schema": schema, "strict": False},
             },
+            max_completion_tokens=PAGE_MAX_TOKENS,
+            timeout=PAGE_TIMEOUT_S,
         )
         return _json_answer(response.choices[0].message.content or "{}")
 

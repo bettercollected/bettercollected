@@ -3,7 +3,11 @@
 import json
 from typing import Any, Dict
 
-from backend.app.services.ai_form_provider import AIFormProvider
+from backend.app.services.ai_form_provider import (
+    PAGE_MAX_TOKENS,
+    PAGE_TIMEOUT_S,
+    AIFormProvider,
+)
 from backend.app.services.ai_form_tools import execute_tool, _gemini_tools
 from backend.app.services.unsplash_service import UnsplashService
 from backend.config import settings
@@ -197,7 +201,10 @@ class GoogleAIFormProvider(AIFormProvider):
         model = genai.GenerativeModel(
             model_name=self._model_name,
             system_instruction=system,
-            generation_config={"response_mime_type": "application/json"},
+            generation_config={
+                "response_mime_type": "application/json",
+                "max_output_tokens": PAGE_MAX_TOKENS,
+            },
         )
         parts = [
             prompt
@@ -208,7 +215,10 @@ class GoogleAIFormProvider(AIFormProvider):
             parts.append({"mime_type": "image/png", "data": image_png})
         loop = asyncio.get_event_loop()
         response = await loop.run_in_executor(
-            None, lambda: model.generate_content(parts)
+            None,
+            lambda: model.generate_content(
+                parts, request_options={"timeout": PAGE_TIMEOUT_S}
+            ),
         )
         text = (response.text or "{}").strip()
         if text.startswith("```"):

@@ -211,7 +211,8 @@ progress. Code: `app/services/pdf_import/` (stages), `app/services/pdf_import_se
   not tables), photo/thumbprint boxes, signatures, staff-only regions, paragraphs
   and images. They reference words by index into the page's word list.
 - **Rendering and structuring:** `render` (pdfium / Pillow, native, isolated sandbox
-  only; `PDF_IMPORT_ALLOW_LOCAL_RENDERING=true` for development) stores page PNGs;
+  container only, never a local child: for development run the `document-sandbox`
+  compose service; one page per call) stores page PNGs;
   `structure` (`pdf_import/structuring.py`) asks the instance's default AI provider
   (`analyze_page`: page image + words and layout items by id, JSON schema; OpenAI uses
   `PDF_IMPORT_OPENAI_MODEL`, default `gpt-6-luna`) for questions that reference those
