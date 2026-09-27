@@ -17,6 +17,7 @@ from dataclasses import asdict, dataclass, field
 from typing import List
 
 from .fonts import base_font_name, is_legacy_font
+from .legacy_decode import decoder_for
 
 # a page whose raster images cover more than this share, with little text, is a scan
 SCAN_IMAGE_COVERAGE = 0.5
@@ -70,8 +71,14 @@ def choose_route(page: PageSignals) -> PageSignals:
             f"images cover {page.image_coverage:.0%} of the page with no text layer"
         )
     elif page.chars and page.legacy_chars / page.chars >= LEGACY_SHARE_FOR_VISION:
-        page.route = "vision"
-        reasons.append("text set in legacy fonts: " + ", ".join(page.legacy_fonts[:3]))
+        if page.legacy_fonts and all(decoder_for(f) for f in page.legacy_fonts):
+            page.route = "text"
+            reasons.append("legacy fonts decoded: " + ", ".join(page.legacy_fonts[:3]))
+        else:
+            page.route = "vision"
+            reasons.append(
+                "text set in legacy fonts: " + ", ".join(page.legacy_fonts[:3])
+            )
     elif page.chars == 0 and page.vector_objects == 0 and page.images == 0:
         page.route = "text"
         reasons.append("blank page")

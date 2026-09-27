@@ -44,14 +44,18 @@ def test_text_pdf_is_read_from_its_text_layer():
     )
 
 
-def test_legacy_font_pages_are_read_from_the_image():
+def test_legacy_font_pages_are_flagged():
     # "kl/ro kqsf] ljj/0f" is how a Preeti-layout font stores a Devanagari heading
     result = analyze_pdf(
         documents.text_pdf(["kl/ro kqsf] ljj/0f"], font="ABCDEF+Preeti"), max_pages=30
     )
     page = result["pages"][0]
-    assert page["route"] == "vision" and page["legacy_fonts"] == ["Preeti"]
-    assert "legacy fonts" in page["reasons"][0]
+    assert page["legacy_fonts"] == ["Preeti"]
+    assert page["route"] == "text" and "legacy fonts decoded" in page["reasons"][0]
+    unknown = analyze_pdf(
+        documents.text_pdf(["kl/ro"], font="KrutiDev010"), max_pages=30
+    )
+    assert unknown["pages"][0]["route"] == "vision"
 
 
 def test_fillable_pdf_is_read_from_its_fields():
@@ -141,7 +145,6 @@ def test_titles_and_legacy_font_names():
 def test_font_names_from_the_document_are_bounded():
     names = [f"Preeti{'X' * 200}{i}" for i in range(20)]
     page = analyze_pdf(documents.many_fonts_pdf(names), max_pages=30)["pages"][0]
-    assert page["route"] == "vision"
     assert len(page["legacy_fonts"]) <= 8 and len(page["fonts"]) <= 8
     assert all(len(name) <= 64 for name in page["legacy_fonts"] + page["fonts"])
 

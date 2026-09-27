@@ -177,6 +177,15 @@ progress. Code: `app/services/pdf_import/` (stages), `app/services/pdf_import_se
   finished ones. Runs on procrastinate with `JOBS_BACKEND__import_form=postgres`,
   otherwise as a background task in the API process.
 - **Structure only:** never store values found in an uploaded document.
+- **Legacy fonts:** `pdf_import/legacy_decode.py` decodes Preeti-layout Devanagari
+  fonts (Preeti, Aakriti) with our own tables (the known converters are GPL).
+  Decoded words are trusted per page (plausibility) and per line (one malformed
+  word taints its line); untrusted lines are left for the image-reading stage,
+  and a page with too many of them switches route to `vision`. Add a font family
+  by adding a decoder and tests of common words; never trust an unknown legacy
+  font's text.
+- **Artifacts:** stage outputs (e.g. `text.json`) are stored next to the original
+  in the form's private folder, so they are deleted with the form.
 - Limits and the default model: `PDF_IMPORT_*` (`config/pdf_import_settings.py`).
 - Tests generate their own documents (`tests/app/pdf_import/documents.py`);
   do not add real-world forms to the repository.

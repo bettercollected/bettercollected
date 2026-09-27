@@ -21,7 +21,11 @@ from backend.app.schemas.form_import import (
     PageAnalysis,
 )
 from backend.app.services.pdf_import.analysis import DocumentRefused
-from backend.app.services.pdf_import.sandbox import run_analysis
+import collections
+import json
+
+from backend.app.services.pdf_import.sandbox import run_analysis, run_text_layer
+from backend.app.services.pdf_import.storage import artifact_key
 
 MESSAGE_FAILED = "The import failed unexpectedly. Please try again."
 
@@ -39,19 +43,10 @@ class ImportPipeline:
     def stages(
         self,
     ) -> List[Tuple[str, Callable[[FormImportDocument, bytes], Awaitable[dict]]]]:
-        return [("analyze", self._analyze)]
+        return [("analyze", self._analyze), ("text", self._text)]
 
     async def _analyze(self, record: FormImportDocument, data: bytes) -> dict:
-        s = self._settings
-        result = await run_analysis(
-            data,
-            record.content_type,
-            max_pages=s.MAX_PAGES,
-            max_pixels=s.MAX_IMAGE_PIXELS,
-            timeout_s=s.SANDBOX_TIMEOUT_S,
-            memory_mb=s.SANDBOX_MEMORY_MB,
-            max_parallel=s.MAX_PARALLEL_SANDBOXES,
-        )
+        result = await run_analysis(data, record.content_type, **self._limits())
         record.page_count = result["page_count"]
         record.pages = [PageAnalysis(**page) for page in result["pages"]]
         record.report["routes"] = result["routes"]
@@ -60,6 +55,66 @@ class ImportPipeline:
                 "The PDF uses XFA forms; its pages are read from their images."
             )
         return {"page_count": result["page_count"], "routes": result["routes"]}
+
+    def _limits(self) -> dict:
+        s = self._settings
+        return dict(
+            max_pages=s.MAX_PAGES,
+            max_pixels=s.MAX_IMAGE_PIXELS,
+            timeout_s=s.SANDBOX_TIMEOUT_S,
+            memory_mb=s.SANDBOX_MEMORY_MB,
+            max_parallel=s.MAX_PARALLEL_SANDBOXES,
+        )
+
+    async def _text(self, record: FormImportDocument, data: bytes) -> dict:
+        """The text layer of every page that has one, stored as an artifact next
+        to the original. Pages whose recovered text cannot be trusted enough
+        switch to being read from their image."""
+        if record.content_type != "application/pdf":
+            return {"skipped": "image upload: no text layer", "words": 0}
+        skip = [p.number for p in record.pages if p.route == "scan"]
+        result = await run_text_layer(data, skip_pages=skip, **self._limits())
+        key = artifact_key(record.source_key, "text.json")
+        await self._store.put(
+            key,
+            json.dumps(result, ensure_ascii=False).encode("utf-8"),
+            "application/json",
+        )
+        by_number = {p.number: p for p in record.pages}
+        words = decoded = untrusted = 0
+        switched = []
+        for page in result["pages"]:
+            if page.get("skipped"):
+                continue
+            words += len(page["words"])
+            decoded += sum(1 for w in page["words"] if w["source"] == "decoded")
+            untrusted += page.get("untrusted_words", 0)
+            analysed = by_number.get(page["number"])
+            if (
+                analysed is not None
+                and page.get("read_from_image")
+                and analysed.route == "text"
+            ):
+                analysed.route = "vision"
+                analysed.reasons = analysed.reasons + [
+                    "recovered text not reliable enough"
+                ]
+                switched.append(page["number"])
+        record.report["routes"] = dict(
+            collections.Counter(p.route for p in record.pages)
+        )
+        record.report["text"] = {
+            "words": words,
+            "decoded_words": decoded,
+            "untrusted_words": untrusted,
+        }
+        return {
+            "artifact": key,
+            "words": words,
+            "decoded_words": decoded,
+            "untrusted_words": untrusted,
+            "switched_to_image": switched,
+        }
 
     async def run(self, import_id: PydanticObjectId) -> FormImportDocument:
         record = await self._repo.get(import_id)

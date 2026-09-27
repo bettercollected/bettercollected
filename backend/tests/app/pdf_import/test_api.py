@@ -104,6 +104,10 @@ async def test_each_kind_of_document_gets_its_route(
             "photo.png": (documents.photo_png(), ["scan"]),
             "legacy.pdf": (
                 documents.text_pdf(["kl/ro kqsf] ljj/0f"], font="Preeti"),
+                ["text"],
+            ),
+            "unknown-legacy.pdf": (
+                documents.text_pdf(["kl/ro"], font="Kantipur"),
                 ["vision"],
             ),
         }
@@ -218,3 +222,41 @@ async def test_a_retried_job_resumes_after_its_last_finished_stage(
     rerun = await container.pdf_import_pipeline().run(record.id)
     assert rerun.status == ImportStatus.COMPLETED
     assert rerun.stages["analyze"]["finished_at"] == finished_at
+
+
+async def test_the_text_layer_is_stored_next_to_the_original(
+    client, workspace, test_user_cookies, store
+):
+    data = documents.text_pdf(["kl/ro kqsf] ljj/0f"], font="Preeti")
+    response = await upload(client, workspace, test_user_cookies, data, "nepali.pdf")
+    body = response.json()
+    done = await finished(client, workspace, test_user_cookies, body["id"])
+    assert done["status"] == ImportStatus.COMPLETED, done
+    assert done["report"]["text"] == {
+        "words": 3,
+        "decoded_words": 3,
+        "untrusted_words": 0,
+    }
+    [text_key] = [k for k in store.objects if k.endswith("/text.json")]
+    assert text_key.startswith(
+        f"private/{workspace.id}/{body['formId']}/imports/{body['id']}/"
+    )
+    import json
+
+    stored = json.loads(store.objects[text_key])
+    assert [w["text"] for w in stored["pages"][0]["words"]] == [
+        "परिचय",
+        "पत्रको",
+        "विवरण",
+    ]
+
+
+async def test_photo_uploads_have_no_text_stage_work(
+    client, workspace, test_user_cookies, store
+):
+    response = await upload(
+        client, workspace, test_user_cookies, documents.photo_png(), "photo.png"
+    )
+    done = await finished(client, workspace, test_user_cookies, response.json()["id"])
+    assert done["status"] == ImportStatus.COMPLETED
+    assert not [k for k in store.objects if k.endswith("/text.json")]

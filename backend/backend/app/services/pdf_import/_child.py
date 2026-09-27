@@ -25,13 +25,15 @@ def _apply_limits(memory_mb: int, cpu_s: int) -> None:
 
 
 def main(argv) -> int:
-    content_type, max_pages, max_pixels, memory_mb, cpu_s = (
+    mode, content_type, max_pages, max_pixels, memory_mb, cpu_s = (
         argv[0],
-        int(argv[1]),
+        argv[1],
         int(argv[2]),
         int(argv[3]),
         int(argv[4]),
+        int(argv[5]),
     )
+    skip = {int(n) for n in argv[6].split(",") if n} if len(argv) > 6 else set()
     _apply_limits(memory_mb, cpu_s)
     # the package directory's parent, so "pdf_import" imports as a top-level package
     sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -40,7 +42,11 @@ def main(argv) -> int:
 
         data = sys.stdin.buffer.read()
         try:
-            if content_type == "application/pdf":
+            if mode == "text":
+                from pdf_import.text_layer import extract_text_layer
+
+                result = extract_text_layer(data, skip_pages=skip)
+            elif content_type == "application/pdf":
                 result = analyze_pdf(data, max_pages)
             else:
                 result = analyze_image(data, max_pixels)
