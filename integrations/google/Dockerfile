@@ -3,6 +3,7 @@ FROM python:3.12 AS builder
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
 ENV PYTHONUNBUFFERED=1 \
+    LOGURU_DIAGNOSE=NO \
     PYTHONHASHSEED=0 \
     PYTHONDONTWRITEBYTECODE=1 \
     UV_PROJECT_ENVIRONMENT="/api/integrations/google/.venv" \

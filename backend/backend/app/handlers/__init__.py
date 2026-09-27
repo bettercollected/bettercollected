@@ -1,4 +1,5 @@
 """Application implementation - handlers."""
+
 import logging
 import sys
 
@@ -48,7 +49,16 @@ def init_logging():
     logging.getLogger("asgi_correlation_id").handlers = [intercept_handler]
 
     # set logs output, level and format
+    # diagnose=False: tracebacks never print local variable values, which can
+    # hold request bodies, answers or uploaded-document text
     logger.configure(
-        handlers=[{"sink": sys.stdout, "level": logging.DEBUG, "format": format_record}]
+        handlers=[
+            {
+                "sink": sys.stdout,
+                "level": logging.DEBUG,
+                "format": format_record,
+                "diagnose": False,
+            }
+        ]
     )
     return logger
