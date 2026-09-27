@@ -190,6 +190,11 @@ progress. Code: `app/services/pdf_import/` (stages), `app/services/pdf_import_se
 - **Stages checkpoint** on the import record (`stages`); a retried job skips
   finished ones. Runs on procrastinate with `JOBS_BACKEND__import_form=postgres`,
   otherwise as a background task in the API process.
+- **AI needs consent per import:** nothing from an uploaded document (page text,
+  layout text, page images) goes to an AI provider unless the uploader sent
+  `ai_consent=true` with that upload (stored with `ai_consent_at`/`_by`). Without it
+  `_structure` passes no provider and only the deterministic structuring runs. The
+  workspace AI opt-in (#715) will be required on top of it.
 - **Document text stays in private import artifacts** (`text.json`, `layout.json`,
   next to the original, deleted with the form). Never copy values found in an
   uploaded document into the form, import records or logs, and send the model only
@@ -210,7 +215,16 @@ progress. Code: `app/services/pdf_import/` (stages), `app/services/pdf_import_se
   tables (a header row plus empty rows; grids of label/answer boxes are layout,
   not tables), photo/thumbprint boxes, signatures, staff-only regions, paragraphs
   and images. They reference words by index into the page's word list.
-- **Artifacts:** stage outputs (`text.json`, `layout.json`) are stored next to the original
+- **Rendering and structuring:** `render` (pdfium / Pillow, native, isolated sandbox
+  container only, never a local child: for development run the `document-sandbox`
+  compose service; one page per call) stores page PNGs;
+  `structure` (`pdf_import/structuring.py`) asks the instance's default AI provider
+  (`analyze_page`: page image + words and layout items by id, JSON schema; OpenAI uses
+  `PDF_IMPORT_OPENAI_MODEL`, default `gpt-6-luna`) for questions that reference those
+  ids. Labels are rebuilt from the referenced words; invalid answers are retried once,
+  then the page is structured deterministically. Result: `fdm.json`. Tests never call
+  a real provider (autouse fixture in `tests/app/pdf_import/conftest.py`).
+- **Artifacts:** stage outputs (`text.json`, `layout.json`, `pages/<n>.png`, `fdm.json`) are stored next to the original
   in the form's private folder, so they are deleted with the form.
 - Limits and the default model: `PDF_IMPORT_*` (`config/pdf_import_settings.py`).
 - Tests generate their own documents (`tests/app/pdf_import/documents.py`);

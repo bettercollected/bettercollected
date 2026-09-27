@@ -23,13 +23,16 @@ from typing import Dict
 from .analysis import DocumentRefused
 
 CHILD = os.path.join(os.path.dirname(os.path.abspath(__file__)), "_child.py")
+# refusal code of a sandbox that predates a mode (deploy version skew)
+UNSUPPORTED_MODE = "unsupported_mode"
 MODES = ("analyze", "text", "layout", "render")
 MAX_HEADER_BYTES = 64 * 1024
 
 
-def child_env(home: str) -> Dict[str, str]:
+def child_env(home: str, render_max_side: int = 1600) -> Dict[str, str]:
     """Everything the child gets from its parent's environment: nothing secret."""
     return {
+        "BC_RENDER_MAX_SIDE": str(int(render_max_side)),
         "PATH": os.defpath,
         "HOME": home,
         "LANG": "C.UTF-8",
@@ -119,11 +122,12 @@ async def run_child(
     memory_mb: int,
     skip_pages: str = "",
     max_result_bytes: int = 16 * 1024 * 1024,
+    render_max_side: int = 1600,
 ) -> dict:
     """The child's JSON result, or raises DocumentRefused (including for
     crashes, timeouts and results larger than ``max_result_bytes``)."""
     if mode not in MODES:
-        raise DocumentRefused("unreadable", "Unknown reading mode.")
+        raise DocumentRefused(UNSUPPORTED_MODE, "Unknown reading mode.")
     with tempfile.TemporaryDirectory(prefix="bc-import-") as scratch:
         process = await asyncio.create_subprocess_exec(
             *child_command(
@@ -138,7 +142,7 @@ async def run_child(
             stdin=asyncio.subprocess.PIPE,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.DEVNULL,
-            env=child_env(scratch),
+            env=child_env(scratch, render_max_side),
             cwd=scratch,
         )
         try:

@@ -18,5 +18,7 @@ class AISettings(BaseSettings):
     COMPAT_BASE_URL: Optional[str] = ""
     COMPAT_API_KEY: Optional[str] = "not-needed"  # many local servers ignore it
     COMPAT_MODEL: Optional[str] = ""
+    # whether the compatible endpoint's model accepts images (PDF form import)
+    COMPAT_VISION: Optional[bool] = False
 
     model_config = SettingsConfigDict(env_prefix="AI_")

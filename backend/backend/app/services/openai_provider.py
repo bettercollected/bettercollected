@@ -5,7 +5,11 @@ from typing import Any, Dict, Optional
 
 from openai import AsyncOpenAI
 
-from backend.app.services.ai_form_provider import AIFormProvider
+from backend.app.services.ai_form_provider import (
+    PAGE_MAX_TOKENS,
+    PAGE_TIMEOUT_S,
+    AIFormProvider,
+)
 from backend.app.services.ai_form_tools import OPENAI_TOOLS, execute_tool
 from backend.app.services.unsplash_service import UnsplashService
 from backend.config import settings
@@ -169,3 +173,48 @@ class OpenAIFormProvider(AIFormProvider):
             messages=[{"role": "system", "content": system}, *messages],
         )
         return response.choices[0].message.content or ""
+
+    supports_vision = True
+
+    async def analyze_page(
+        self, system: str, prompt: str, image_png, schema: dict
+    ) -> dict:
+        """Page analysis for the form import, with the page image and a strict schema.
+        Uses the import model (PDF_IMPORT_OPENAI_MODEL), not the chat model."""
+        import base64
+
+        content = [{"type": "text", "text": prompt}]
+        if image_png:
+            content.append(
+                {
+                    "type": "image_url",
+                    "image_url": {
+                        "url": "data:image/png;base64,"
+                        + base64.b64encode(image_png).decode("ascii"),
+                        "detail": "high",
+                    },
+                }
+            )
+        response = await self.client.chat.completions.create(
+            model=settings.pdf_import.OPENAI_MODEL,
+            messages=[
+                {"role": "system", "content": system},
+                {"role": "user", "content": content},
+            ],
+            response_format={
+                "type": "json_schema",
+                "json_schema": {"name": "form_page", "schema": schema, "strict": False},
+            },
+            max_completion_tokens=PAGE_MAX_TOKENS,
+            timeout=PAGE_TIMEOUT_S,
+        )
+        return _json_answer(response.choices[0].message.content or "{}")
+
+
+def _json_answer(text: str) -> dict:
+    text = (text or "").strip()
+    if text.startswith("```"):
+        text = text.strip("`")
+        if text.startswith("json"):
+            text = text[4:]
+    return json.loads(text)

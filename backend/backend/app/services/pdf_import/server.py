@@ -38,6 +38,7 @@ CEILING = {
     "timeout_s": 300,
     "memory_mb": 2048,
     "max_result_bytes": 64 * 1024 * 1024,
+    "render_max_side": 2400,
 }
 _slots = asyncio.Semaphore(max(1, PARALLEL))
 

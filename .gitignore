@@ -4,3 +4,5 @@ webapp/.yarn
 .env
 .env.local
 .DS_Store
+# local document-sandbox socket (docker-compose.local.yml)
+/.run/

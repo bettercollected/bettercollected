@@ -6,3 +6,5 @@
 **/.env
 **/.env.*
 !**/.env.example
+# local document-sandbox socket
+.run/

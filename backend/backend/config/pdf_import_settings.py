@@ -27,5 +27,9 @@ class PdfImportSettings(BaseSettings):
     SANDBOX_SOCKET: str = ""
     # refuse the local child transport (set wherever the container is deployed)
     REQUIRE_ISOLATED_SANDBOX: bool = False
+    # structuring model when the provider is OpenAI (others use their configured model)
+    OPENAI_MODEL: str = "gpt-6-luna"
+    # longest side of a rendered page image sent to the model (pixels)
+    RENDER_MAX_SIDE: int = 1600
 
     model_config = SettingsConfigDict(env_prefix="PDF_IMPORT_")

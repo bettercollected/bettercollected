@@ -160,6 +160,7 @@ def test_the_child_gets_no_secrets_and_runs_isolated():
             "LC_ALL",
             "PYTHONDONTWRITEBYTECODE",
             "PYTHONHASHSEED",
+            "BC_RENDER_MAX_SIDE",
         }
         assert "should-not-leak" not in env.values()
     finally:

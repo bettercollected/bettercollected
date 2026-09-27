@@ -50,6 +50,16 @@ def main(argv) -> int:
                 from pdf_import.layout import extract_layout
 
                 result = extract_layout(data, skip_pages=skip)
+            elif mode == "render":
+                # for rendering, the page list names the pages TO render; the
+                # longest side in pixels travels in the max_pixels slot's place
+                from pdf_import.render import render_image, render_pdf
+
+                side = int(os.environ.get("BC_RENDER_MAX_SIDE", "1600"))
+                if content_type == "application/pdf":
+                    result = render_pdf(data, sorted(skip), side)
+                else:
+                    result = render_image(data, side, max_pixels)
             elif content_type == "application/pdf":
                 result = analyze_pdf(data, max_pages)
             else:

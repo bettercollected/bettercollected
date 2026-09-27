@@ -123,3 +123,58 @@ def test_server_modules_never_import_the_backend_package():
     for name in ("server.py", "runner.py"):
         source = (folder / name).read_text()
         assert "from backend" not in source and "import backend" not in source, name
+
+
+def test_render_output_is_checked_before_it_is_stored():
+    import base64
+
+    from backend.app.services.pdf_import.pipeline import PNG_SIGNATURE, _checked_render
+
+    png = base64.b64encode(PNG_SIGNATURE + b"rest").decode()
+
+    def answer(**page):
+        return {
+            "pages": [
+                {"number": 2, "width_px": 10, "height_px": 20, "png": png, **page}
+            ]
+        }
+
+    assert _checked_render(answer(), 2, 1 << 20) == (PNG_SIGNATURE + b"rest", 10, 20)
+    assert _checked_render(answer(number="../../x"), 2, 1 << 20) is None
+    assert _checked_render(answer(number=3), 2, 1 << 20) is None
+    assert (
+        _checked_render(answer(png=base64.b64encode(b"<svg/>").decode()), 2, 1 << 20)
+        is None
+    )
+    assert _checked_render(answer(png="not base64!"), 2, 1 << 20) is None
+    assert _checked_render(answer(width_px=-1), 2, 1 << 20) is None
+    assert _checked_render(answer(), 2, 4) is None
+    assert _checked_render({"pages": "x"}, 2, 1 << 20) is None
+
+
+async def test_a_sandbox_without_the_mode_is_unavailable_not_a_refusal(tmp_path):
+    import asyncio
+
+    from backend.app.services.pdf_import.runner import encode_response, read_request
+
+    path = str(tmp_path / "old.sock")
+
+    async def old_sandbox(reader, writer):
+        await read_request(reader, 1 << 24)
+        refusal = {"code": "unsupported_mode", "message": "Unknown reading mode."}
+        writer.write(encode_response({"refused": refusal}))
+        await writer.drain()
+        writer.close()
+
+    server = await asyncio.start_unix_server(old_sandbox, path=path)
+    try:
+        with pytest.raises(SandboxUnavailable):
+            await run_in_sandbox(
+                "render",
+                documents.text_pdf(),
+                "application/pdf",
+                socket_path=path,
+                **LIMITS,
+            )
+    finally:
+        server.close()

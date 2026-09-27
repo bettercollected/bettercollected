@@ -136,3 +136,30 @@ services:
         depends_on:
             umami-postgresql:
                 condition: service_healthy
+
+    # Isolated reader for uploaded PDFs (PDF form import). Page rendering only
+    # runs here, never in the backend process. For a backend running on the host:
+    #   mkdir -p .run/doc-sandbox
+    #   UID=$(id -u) GID=$(id -g) docker compose -f docker-compose.local.yml up document-sandbox
+    #   PDF_IMPORT_SANDBOX_SOCKET=$PWD/.run/doc-sandbox/sandbox.sock (backend env)
+    # It runs as your user so the host backend can open the socket.
+    document-sandbox:
+        build:
+            context: .
+            dockerfile: backend/Dockerfile
+        command: ["/api/backend/.venv/bin/python", "-I", "/api/backend/backend/app/services/pdf_import/server.py", "/run/doc-sandbox/sandbox.sock"]
+        user: "${UID:-1000}:${GID:-1000}"
+        network_mode: none
+        read_only: true
+        tmpfs:
+            - /tmp:size=256m,noexec,nosuid,nodev
+        cap_drop: [ALL]
+        security_opt:
+            - no-new-privileges:true
+        pids_limit: 64
+        mem_limit: 3584m
+        environment:
+            DOC_SANDBOX_PARALLEL: "2"
+        volumes:
+            - ./.run/doc-sandbox:/run/doc-sandbox
+        restart: unless-stopped

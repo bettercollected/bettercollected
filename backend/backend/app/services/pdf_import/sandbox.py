@@ -22,6 +22,7 @@ from typing import Iterable, Optional
 
 from .analysis import DocumentRefused
 from .runner import (
+    UNSUPPORTED_MODE,
     TooMuchOutput,
     child_command,  # noqa: F401 — re-exported for tests
     child_env,  # noqa: F401 — re-exported for tests
@@ -84,6 +85,9 @@ async def _over_socket(
     finally:
         writer.close()
     if "refused" in result:
+        if result["refused"].get("code") == UNSUPPORTED_MODE:
+            # an older sandbox image than this backend: not the document's fault
+            raise SandboxUnavailable(f"the sandbox does not support {mode}")
         raise DocumentRefused(result["refused"]["code"], result["refused"]["message"])
     return result
 
@@ -102,6 +106,7 @@ async def run_in_sandbox(
     max_result_bytes: int = 16 * 1024 * 1024,
     socket_path: str = "",
     require_isolated: bool = False,
+    render_max_side: int = 1600,
 ) -> dict:
     """The sandbox's result, or raises DocumentRefused (the document) or
     SandboxUnavailable (the sandbox)."""
@@ -112,6 +117,7 @@ async def run_in_sandbox(
         memory_mb=memory_mb,
         skip_pages=skip_pages,
         max_result_bytes=max_result_bytes,
+        render_max_side=render_max_side,
     )
     async with _semaphore(max_parallel):
         if socket_path:
@@ -153,5 +159,18 @@ async def run_layout(data: bytes, skip_pages: Iterable[int] = (), **limits) -> d
         data,
         "application/pdf",
         skip_pages=",".join(str(n) for n in skip_pages),
+        **limits,
+    )
+
+
+async def run_render(
+    data: bytes, content_type: str, pages: Iterable[int], **limits
+) -> dict:
+    """PNG renders (base64) of ``pages``; native code, isolated sandbox only."""
+    return await run_in_sandbox(
+        "render",
+        data,
+        content_type,
+        skip_pages=",".join(str(n) for n in pages),
         **limits,
     )

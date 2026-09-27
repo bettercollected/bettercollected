@@ -61,6 +61,7 @@ class PdfImportService:
         data: bytes,
         file_name: Optional[str],
         user: User,
+        ai_consent: bool = False,
     ) -> FormImportDocument:
         await self._workspace_users.check_user_has_access_in_workspace(
             workspace_id=workspace_id, user=user
@@ -92,6 +93,11 @@ class PdfImportService:
             size_bytes=upload.size_bytes,
             sha256=upload.sha256,
             source_key=key,
+            ai_consent=ai_consent is True,
+            ai_consent_at=(
+                dt.datetime.now(dt.timezone.utc) if ai_consent is True else None
+            ),
+            ai_consent_by=str(user.id) if ai_consent is True else None,
         )
         record = await self._repo.save(record)
         await self._dispatch(record.id)

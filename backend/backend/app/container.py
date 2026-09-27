@@ -571,6 +571,11 @@ class AppContainer(containers.DeclarativeContainer):
         repo=form_import_repo,
         store=pdf_import_store,
         settings=settings.pdf_import,
+        # the instance's default AI provider (AI_DEFAULT_PROVIDER), looked up per
+        # run: openai_service is defined further down this container
+        provider_resolver=providers.Object(
+            lambda: container.openai_service()._get_provider(None)
+        ),
     )
     pdf_import_service: PdfImportService = providers.Singleton(
         PdfImportService,
