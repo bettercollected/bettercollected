@@ -576,6 +576,7 @@ class AppContainer(containers.DeclarativeContainer):
         provider_resolver=providers.Object(
             lambda: container.openai_service()._get_provider(None)
         ),
+        form_repo=form_repo,
     )
     pdf_import_service: PdfImportService = providers.Singleton(
         PdfImportService,

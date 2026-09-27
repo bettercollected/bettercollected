@@ -439,3 +439,82 @@ async def test_with_consent_the_ai_provider_reads_the_pages(
     record = await container.form_import_repo().get(done["id"])
     assert record.ai_consent is True and record.ai_consent_at is not None
     assert record.ai_consent_by
+
+
+async def test_the_draft_form_is_filled_from_the_document(
+    client, workspace, test_user_cookies, store
+):
+    response = await upload(
+        client,
+        workspace,
+        test_user_cookies,
+        documents.form_pdf(),
+        "Membership form.pdf",
+    )
+    body = response.json()
+    done = await finished(client, workspace, test_user_cookies, body["id"])
+    assert done["status"] == ImportStatus.COMPLETED, done
+    compiled = done["report"]["compile"]
+    assert (
+        compiled["pages"] >= 1 and compiled["fields"] >= 10 and not compiled["failures"]
+    )
+    assert compiled["staff_only"][0]["heading"] == "For office use only"
+    form = await container.form_repo().get_form_document_by_id(body["formId"])
+    titles = [f.title for page in form.fields for f in page.properties.fields]
+    assert {"Full name", "Date of birth", "Account number", "Gender"} <= set(titles)
+    assert form.theme is not None and form.theme.accent == "#ff0000"
+
+
+async def test_compile_never_overwrites_a_draft_the_user_changed(
+    client, workspace, test_user_cookies, store
+):
+    import backend.app.services.pdf_import_service as module
+    from common.models.standard_form import StandardFormField
+
+    dispatch = module.PdfImportService._dispatch
+
+    async def no_dispatch(self, import_id):
+        return None
+
+    module.PdfImportService._dispatch = no_dispatch
+    try:
+        response = await upload(
+            client, workspace, test_user_cookies, documents.form_pdf(), "form.pdf"
+        )
+    finally:
+        module.PdfImportService._dispatch = dispatch
+    body = response.json()
+    forms = container.form_repo()
+    draft = await forms.get_form_document_by_id(body["formId"])
+    draft.fields = [StandardFormField(id="mine", type="short_text", title="Mine")]
+    await forms.save_form(draft)
+
+    done = await container.pdf_import_pipeline().run(body["id"])
+    assert done.status == ImportStatus.COMPLETED
+    assert done.report["compile"]["skipped"] == "form was edited"
+    kept = await forms.get_form_document_by_id(body["formId"])
+    assert [f.id for f in kept.fields] == ["mine"]
+
+
+async def test_a_retried_compile_gives_the_same_draft(
+    client, workspace, test_user_cookies, store
+):
+    response = await upload(
+        client, workspace, test_user_cookies, documents.form_pdf(), "form.pdf"
+    )
+    body = response.json()
+    done = await finished(client, workspace, test_user_cookies, body["id"])
+    assert done["status"] == ImportStatus.COMPLETED, done
+    forms = container.form_repo()
+    first = await forms.get_form_document_by_id(body["formId"])
+
+    # the form was saved but the record was not: the compile stage runs again
+    record = await container.form_import_repo().get(body["id"])
+    record.stages.pop("compile")
+    record.status = ImportStatus.RUNNING
+    await container.form_import_repo().save(record)
+    again = await container.pdf_import_pipeline().run(record.id)
+    assert again.status == ImportStatus.COMPLETED
+    assert again.report["compile"].get("note") == "already compiled"
+    second = await forms.get_form_document_by_id(body["formId"])
+    assert [f.id for f in second.fields] == [f.id for f in first.fields]

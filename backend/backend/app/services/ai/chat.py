@@ -37,6 +37,7 @@ from backend.app.services.ai.ops import (
     parse_ops,
 )
 from backend.app.services.ai.profile import AIProfileService
+from backend.app.services.form_writes import persist_form
 from backend.app.services.ai.prompt_builder import (
     build_chat_system_prompt,
     extract_json_object,
@@ -132,13 +133,7 @@ async def persist_ops_to_form(
     """
     new_form, results = apply_form_ops(form, ops)
     if any(r.ok for r in results):
-        form_document.title = new_form.title
-        form_document.description = new_form.description
-        form_document.fields = new_form.fields
-        form_document.theme = new_form.theme
-        form_document.welcome_page = new_form.welcome_page
-        form_document.thankyou_page = new_form.thankyou_page
-        await _c().form_repo().save_form(form_document)
+        await persist_form(_c().form_repo(), form_document, new_form)
     settings = await _persist_settings_ops(form_document.form_id, ops, results)
     return new_form, results, settings
 

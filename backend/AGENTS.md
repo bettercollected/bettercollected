@@ -236,6 +236,13 @@ progress. Code: `app/services/pdf_import/` (stages), `app/services/pdf_import_se
   ids. Labels are rebuilt from the referenced words; invalid answers are retried once,
   then the page is structured deterministically. Result: `fdm.json`. Tests never call
   a real provider (autouse fixture in `tests/app/pdf_import/conftest.py`).
+- **Compile** (`pdf_import/compile.py`) turns `fdm.json` into the draft form with explicit
+  redesign rules (pages per section, other+specify and follow-up visibility, verbatim
+  statements and a terms page, typed-name signatures, B.S./A.D. as two dates, location
+  questions, tables as rows of fields for now) and the brand theme from section-bar
+  colours (darkened to WCAG AA for white text). Built from an empty form through
+  `apply_form_ops` and saved once, so a retry is idempotent. Every applied rule, drop,
+  interim mapping and staff-only part is listed in `report.compile`.
 - **Artifacts:** stage outputs (`text.json`, `layout.json`, `pages/<n>.png`, `fdm.json`) are stored next to the original
   in the form's private folder, so they are deleted with the form.
 - Limits and the default model: `PDF_IMPORT_*` (`config/pdf_import_settings.py`).
