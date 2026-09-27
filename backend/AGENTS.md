@@ -107,6 +107,16 @@ AI ops both refuse it). `validations.required` on an internal field is stored bu
 staff-side "complete" state yet). A new endpoint that returns a form or a response to respondents must use the
 same two strip helpers.
 
+**Repeating groups:** a `group` field with `properties.repeat` (`RepeatSettings`: min/max items ≤ 50,
+item label/title, `export_layout`) in `common/models/standard_form.py`; the model rejects nested groups and
+unsupported child types (`REPEAT_CHILD_FIELD_TYPES`) — legacy imported groups without `repeat` are untouched.
+The answer is `answers[<group id>] = {type: "group", items: [{<child id>: <answer>}, ...]}`, encrypted with
+the rest of `answers`. `services/repeating_groups.py` checks submissions and edits against the published
+form (item limits, required questions per item, item-scoped visibility evaluated like the webapp's
+`utils/repeating-groups.ts` — keep the two in step). AI ops: `add_group`, `add_field.groupId`,
+`move_field.toGroupId`, group conditions via `groupMode` COUNT/ANY/ALL. Internal fields are not allowed
+inside a repeating group (model, builder save and AI ops refuse it).
+
 ## Seed scripts
 
 `backend/scripts/` holds idempotent seed scripts that populate collections a fresh (or already-running) environment
