@@ -207,8 +207,8 @@ progress. Code: `app/services/pdf_import/` (stages), `app/services/pdf_import_se
   wall-clock timeout, and at most `PDF_IMPORT_MAX_PARALLEL_SANDBOXES` at once.
   `analysis.py` and `fonts.py` must stay importable without the `backend`
   package (relative imports only). Never run pypdf/pdfplumber/pypdfium2 work in
-  the API or worker process directly. Native rendering needs stronger isolation
-  first (separate user, no network, syscall filter).
+  the API or worker process directly. Native rendering only runs in the isolated
+  container (separate user, no network, seccomp filter; see above).
 - **Licences:** pypdf (BSD), pdfplumber/pdfminer (MIT), pypdfium2 (BSD/Apache),
   Pillow. Do not add PyMuPDF (AGPL) or GPL converters.
 - **Workspace limits are enforced by the insert** (`form_import_repo.create_within_limits`):

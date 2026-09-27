@@ -2,7 +2,8 @@
 
 Runs in its own container (see docker-compose.deployment.yml,
 ``document-sandbox``): an unprivileged user, no network, a read-only
-filesystem, all capabilities dropped, no environment file. It listens on a
+filesystem, all capabilities dropped, a seccomp syscall allowlist
+(deploy/seccomp/document-sandbox.json), no environment file. It listens on a
 Unix socket on a volume shared with the backend and the jobs worker, and runs
 each request in the usual child (isolated Python, scrubbed environment,
 resource limits, timeout). It never imports the backend package, so it holds
