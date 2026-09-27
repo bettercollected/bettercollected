@@ -46,7 +46,8 @@ class FormImportDocument(MongoDocument):
     """
 
     workspace_id: PydanticObjectId
-    form_id: str
+    # None once a failed import has removed its empty draft (see report notes)
+    form_id: Optional[str] = None
     created_by: str
     status: str = ImportStatus.QUEUED
     stage: Optional[str] = None

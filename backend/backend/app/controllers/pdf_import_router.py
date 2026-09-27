@@ -31,7 +31,8 @@ STAGE_ORDER = ("analyze", "text", "layout", "render", "structure", "compile")
 
 class PdfImportDto(CamelModel):
     id: str
-    form_id: str
+    # None when a failed import removed its empty draft form
+    form_id: Optional[str] = None
     status: str
     stage: Optional[str] = None
     error: Optional[str] = None

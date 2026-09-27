@@ -97,9 +97,21 @@ export default function ImportProgressReview({ workspaceId, workspaceName, impor
                 <p className="text-xs text-black-600">{aiStructuringNote(data.aiConsent)}</p>
                 {data.error && <p className="rounded-md bg-red-50 p-3 text-sm text-red-700">{data.error}</p>}
                 {data.status === 'failed' && (
-                    <Link href={`/${workspaceName}/dashboard/forms/create`}>
-                        <Button variant="v2Button">Try another file</Button>
-                    </Link>
+                    <>
+                        <p className="text-sm text-black-600">
+                            {data.formId ? 'Your draft form was kept: it already had changes.' : 'Nothing was left in your forms list: the empty draft form was removed.'}
+                        </p>
+                        <div className="flex flex-wrap gap-3">
+                            <Link href={`/${workspaceName}/dashboard/forms/create`}>
+                                <Button variant="v2Button">Try another file</Button>
+                            </Link>
+                            {data.formId && (
+                                <Link href={`/${workspaceName}/dashboard/forms/${data.formId}/edit`}>
+                                    <Button>Open the draft</Button>
+                                </Link>
+                            )}
+                        </div>
+                    </>
                 )}
             </div>
         );

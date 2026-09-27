@@ -204,6 +204,16 @@ class PdfImportService:
             raise HTTPException(HTTPStatus.NOT_FOUND, "Import not found.")
         return record
 
+    async def _with_draft(self, workspace_id, import_id, user) -> FormImportDocument:
+        """The import, if its draft form (and so its files) still exists: a
+        failed import removes its empty draft together with the files."""
+        record = await self.get(workspace_id, import_id, user)
+        if not record.form_id:
+            raise HTTPException(
+                HTTPStatus.NOT_FOUND, "This import has no draft form any more."
+            )
+        return record
+
     async def list(self, workspace_id: PydanticObjectId, user: User):
         await self._workspace_users.check_user_has_access_in_workspace(
             workspace_id=workspace_id, user=user
@@ -236,7 +246,7 @@ class PdfImportService:
 
     async def page_image(self, workspace_id, import_id, number: int, user) -> bytes:
         """A rendered page, for the review screen (members of the workspace only)."""
-        record = await self.get(workspace_id, import_id, user)
+        record = await self._with_draft(workspace_id, import_id, user)
         pages = {
             p["number"]: p["key"]
             for p in (record.stages.get("render") or {}).get("pages", [])
@@ -252,7 +262,7 @@ class PdfImportService:
 
         from backend.app.services.pdf_import.storage import artifact_key
 
-        record = await self.get(workspace_id, import_id, user)
+        record = await self._with_draft(workspace_id, import_id, user)
 
         async def load(name, stage):
             if stage not in record.stages:

@@ -577,6 +577,7 @@ class AppContainer(containers.DeclarativeContainer):
             lambda: container.openai_service()._get_provider(None)
         ),
         form_repo=form_repo,
+        workspace_form_service=workspace_form_service,
     )
     pdf_import_service: PdfImportService = providers.Singleton(
         PdfImportService,

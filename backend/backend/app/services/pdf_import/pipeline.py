@@ -42,6 +42,9 @@ from backend.app.services.pdf_import.structuring import (
 
 MESSAGE_FAILED = "The import failed unexpectedly. Please try again."
 MESSAGE_UNAVAILABLE = "The document reader is unavailable. Please try again later."
+NOTE_DRAFT_REMOVED = (
+    "The empty draft form was removed because the import did not finish."
+)
 PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
 
 
@@ -69,15 +72,31 @@ def _checked_render(result: dict, number: int, max_bytes: int):
     return png, width, height
 
 
+def untouched(form) -> bool:
+    """The draft is as the import created it: no fields and never published.
+    Only such a draft may be filled by compile or removed by a failed import."""
+    return not form.fields and form.published_at is None
+
+
 def _now() -> dt.datetime:
     return dt.datetime.now(dt.timezone.utc)
 
 
 class ImportPipeline:
-    def __init__(self, repo, store, settings, provider_resolver=None, form_repo=None):
+    def __init__(
+        self,
+        repo,
+        store,
+        settings,
+        provider_resolver=None,
+        form_repo=None,
+        workspace_form_service=None,
+    ):
         self._repo = repo
         # the draft form the import fills (compile stage)
         self._form_repo = form_repo
+        # removes that draft again when the import fails before filling it
+        self._workspace_forms = workspace_form_service
         self._store = store
         self._settings = settings
         # returns the AI provider for imports, or None (resolved per run)
@@ -202,6 +221,7 @@ class ImportPipeline:
         record.error = MESSAGE_UNAVAILABLE
         record.report["refused"] = "unavailable"
         record.finished_at = _now()
+        await self.discard_draft(record)
         await self._repo.save(record)
         logger.error("form import {} gave up waiting for the sandbox", import_id)
         return record
@@ -340,7 +360,7 @@ class ImportPipeline:
         ids = [f.id for f in form.fields or []]
         if [f.id for f in document.fields or []] == ids:
             report["note"] = "already compiled"  # a retry after the form was saved
-        elif document.fields or document.published_at is not None:
+        elif not untouched(document):
             record.report["compile"] = {
                 "pages": 0,
                 "fields": 0,
@@ -356,8 +376,7 @@ class ImportPipeline:
                 document,
                 form,
                 parts=parts,
-                guard=lambda current: not current.fields
-                and current.published_at is None,
+                guard=untouched,
             )
             if not saved:
                 record.report["compile"] = {
@@ -429,5 +448,31 @@ class ImportPipeline:
                 "form import {} failed at stage {}", record.id, record.stage
             )
         record.finished_at = _now()
+        if record.status == ImportStatus.FAILED:
+            await self.discard_draft(record)
         await self._repo.save(record)
         return record
+
+    async def discard_draft(self, record: FormImportDocument) -> None:
+        """A failed import takes its draft form away again if the draft is
+        still untouched (the compile guard's test), so nothing empty is left
+        in the forms list; a draft the user already worked on stays. The
+        record is kept, with its form cleared and a note; the caller saves
+        it. Never raises: the import's own failure is what gets reported."""
+        if not record.form_id or self._form_repo is None:
+            return
+        if self._workspace_forms is None:
+            return
+        try:
+            draft = await self._form_repo.get_form_document_by_id(record.form_id)
+            if draft is not None and not untouched(draft):
+                return
+            if draft is not None:
+                await self._workspace_forms.delete_draft_form(
+                    record.workspace_id, record.form_id
+                )
+        except Exception:  # noqa: BLE001
+            logger.exception("form import {} could not remove its draft", record.id)
+            return
+        record.form_id = None
+        record.report.setdefault("notes", []).append(NOTE_DRAFT_REMOVED)

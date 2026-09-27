@@ -222,6 +222,13 @@ progress. Code: `app/services/pdf_import/` (stages), `app/services/pdf_import_se
 - **The draft form is created at upload**, and the original is stored under
   `private/<workspace>/<form>/imports/<import>/`, so deleting the form deletes it.
   Import records are deleted with their forms (`WorkspaceFormService`).
+- **A failed import removes its empty draft** (`ImportPipeline.discard_draft`, on
+  refusal, unexpected failure and `give_up`): only while the draft is `untouched`
+  (no fields, never published: the same test as the compile guard), through
+  `WorkspaceFormService.delete_draft_form`, which keeps the import record. The
+  record stays with `form_id = None` and a note in `report.notes`; review and page
+  images then answer 404, and the webapp's failed screen says the draft was
+  removed. A draft the user already edited or published is kept.
 - **Stages checkpoint** on the import record (`stages`); a retried job skips
   finished ones. Runs on procrastinate with `JOBS_BACKEND__import_form=postgres`,
   otherwise as a background task in the API process.

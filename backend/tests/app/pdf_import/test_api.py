@@ -734,3 +734,113 @@ async def test_parallel_uploads_cannot_both_pass_the_limits(
             settings_.IMPORTS_PER_WORKSPACE_PER_DAY,
         ) = previous
         service_class._dispatch, service_class._check_limits = dispatch, check
+
+
+async def test_a_refused_document_removes_its_empty_draft(
+    client, workspace, test_user_cookies, store
+):
+    response = await upload(
+        client, workspace, test_user_cookies, documents.encrypted_pdf()
+    )
+    body = response.json()
+    done = await finished(client, workspace, test_user_cookies, body["id"])
+    assert done["status"] == ImportStatus.FAILED and done["report"]["refused"]
+    # the record stays, without its form; the draft and its folder are gone
+    assert done["formId"] is None
+    assert "The empty draft form was removed" in " ".join(done["report"]["notes"])
+    assert await _gone(body["formId"])
+    assert body["formId"] not in await _forms_in(workspace)
+    review = await client.get(
+        f"{url(workspace)}/{body['id']}/review", cookies=test_user_cookies
+    )
+    assert review.status_code == 404
+    listed = await client.get(url(workspace), cookies=test_user_cookies)
+    assert body["id"] in {i["id"] for i in listed.json()}
+
+
+async def test_a_failed_import_removes_its_empty_draft(
+    client, workspace, test_user_cookies, store
+):
+    from backend.app.services.pdf_import.pipeline import MESSAGE_FAILED
+
+    pipeline = container.pdf_import_pipeline()
+
+    async def broken(record, data):
+        raise RuntimeError("boom")
+
+    pipeline.stages = lambda: [("analyze", broken)]
+    try:
+        response = await upload(
+            client, workspace, test_user_cookies, documents.text_pdf()
+        )
+        body = response.json()
+        done = await finished(client, workspace, test_user_cookies, body["id"])
+    finally:
+        del pipeline.stages  # back to the class's stages
+    assert done["status"] == ImportStatus.FAILED and done["error"] == MESSAGE_FAILED
+    assert done["formId"] is None and await _gone(body["formId"])
+
+
+async def test_a_failed_import_keeps_a_draft_the_user_already_edited(
+    client, workspace, test_user_cookies, store
+):
+    import backend.app.services.pdf_import_service as module
+    from common.models.standard_form import StandardFormField
+
+    dispatch = module.PdfImportService._dispatch
+
+    async def no_dispatch(self, import_id):
+        return None
+
+    module.PdfImportService._dispatch = no_dispatch
+    try:
+        response = await upload(
+            client, workspace, test_user_cookies, documents.encrypted_pdf()
+        )
+    finally:
+        module.PdfImportService._dispatch = dispatch
+    body = response.json()
+    forms = container.form_repo()
+    draft = await forms.get_form_document_by_id(body["formId"])
+    draft.fields = [StandardFormField(id="mine", type="short_text", title="Mine")]
+    await forms.save_form(draft)
+
+    done = await container.pdf_import_pipeline().run(body["id"])
+    assert done.status == ImportStatus.FAILED
+    assert done.form_id == body["formId"]
+    kept = await forms.get_form_document_by_id(body["formId"])
+    assert [f.id for f in kept.fields] == ["mine"]
+
+    # a published draft counts as touched too
+    kept.fields, kept.published_at = [], dt.datetime.now(dt.timezone.utc)
+    await forms.save_form(kept)
+    done.status = ImportStatus.QUEUED
+    await container.form_import_repo().save(done)
+    again = await container.pdf_import_pipeline().run(body["id"])
+    assert again.status == ImportStatus.FAILED and again.form_id == body["formId"]
+    assert not await _gone(body["formId"])
+
+
+async def test_giving_up_on_the_sandbox_removes_the_empty_draft(
+    client, workspace, test_user_cookies, store
+):
+    import backend.app.services.pdf_import_service as module
+
+    settings_ = limits()
+    previous = settings_.SANDBOX_SOCKET
+    settings_.SANDBOX_SOCKET = "/nonexistent/sandbox.sock"
+    delays = module.RETRY_DELAYS_S
+    module.RETRY_DELAYS_S = ()
+    try:
+        response = await upload(
+            client, workspace, test_user_cookies, documents.text_pdf()
+        )
+        body = response.json()
+        done = await finished(client, workspace, test_user_cookies, body["id"])
+    finally:
+        settings_.SANDBOX_SOCKET = previous
+        module.RETRY_DELAYS_S = delays
+    assert done["status"] == ImportStatus.FAILED
+    assert done["report"]["refused"] == "unavailable"
+    assert "try again later" in done["error"]
+    assert done["formId"] is None and await _gone(body["formId"])
