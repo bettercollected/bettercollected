@@ -15,6 +15,7 @@ const environments = {
     // application id and the origin verification token. Unset = legacy path.
     CUSTOM_DOMAIN_ASSERTION_KEYS: process.env.CUSTOM_DOMAIN_ASSERTION_KEYS,
     CUSTOM_DOMAIN_APPLICATION_ID: process.env.CUSTOM_DOMAIN_APPLICATION_ID,
+    CUSTOM_DOMAIN_ASSERTION_MODE: process.env.CUSTOM_DOMAIN_ASSERTION_MODE, // 'optional' during migration, 'required' (default) after
     CUSTOM_DOMAIN_ORIGIN_VERIFICATION_TOKEN: process.env.CUSTOM_DOMAIN_ORIGIN_VERIFICATION_TOKEN,
 
     ///Form Webbuilder

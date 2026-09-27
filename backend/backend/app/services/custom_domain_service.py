@@ -95,9 +95,29 @@ def domain_payload(domain: Domain) -> Dict[str, Any]:
     }
 
 
-def idempotency_key(workspace_id: Any, hostname: str) -> str:
+def idempotency_key(workspace_id: Any, hostname: str, attempt: str) -> str:
+    """Unique per registration attempt (``attempt`` is a nonce the workspace
+    keeps until the call succeeds); the service replays a key for 24 hours."""
     digest = hashlib.sha256(hostname.encode("utf-8")).hexdigest()[:32]
-    return f"ws-{workspace_id}-{digest}"
+    return f"ws-{workspace_id}-{digest}-{attempt}"
+
+
+def unregistered_payload(workspace) -> Dict[str, Any]:
+    """Status for a hostname the service does not hold: ``removed`` when a
+    ``domain.deleted`` event cleared it, ``unregistered`` when it was set
+    before the service was in use."""
+    removed = workspace.custom_domain_status == "deleting"
+    updated = workspace.custom_domain_updated_at
+    return {
+        "provider": "custom-domain",
+        "id": None,
+        "hostname": workspace.custom_domain,
+        "status": "removed" if removed else "unregistered",
+        "verified": False,
+        "dns_records": [],
+        "checks": [],
+        "updated_at": updated.isoformat() if updated else None,
+    }
 
 
 class CustomDomainService:
@@ -145,14 +165,15 @@ class CustomDomainService:
             logger.error("custom-domain service call failed: {}", error)
             raise HTTPException(HTTPStatus.SERVICE_UNAVAILABLE, MESSAGE_UNAVAILABLE)
 
-    async def register(self, hostname: str, workspace_id: Any) -> Domain:
-        """Register ``hostname`` for the workspace; safe to retry."""
+    async def register(self, hostname: str, workspace_id: Any, attempt: str) -> Domain:
+        """Register ``hostname`` for the workspace; a retry with the same
+        ``attempt`` is replayed by the service, never registered twice."""
         return await self._call(
             self.client().create_domain,
             hostname,
             str(workspace_id),
             metadata={"workspace_id": str(workspace_id)},
-            idempotency_key=idempotency_key(workspace_id, hostname),
+            idempotency_key=idempotency_key(workspace_id, hostname, attempt),
         )
 
     async def fetch(self, domain_id: str) -> Optional[Domain]:

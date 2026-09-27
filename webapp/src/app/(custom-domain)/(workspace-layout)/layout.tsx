@@ -14,7 +14,10 @@ import { Alert, AlertDescription, AlertTitle } from '@app/shadcn/components/ui/a
 import { WorkspaceDispatcher } from '../../_dispatcher/workspace-dispatcher';
 
 export async function generateMetadata(): Promise<Metadata> {
-    const { workspace } = await resolveCustomDomainWorkspace();
+    const headerList = await headers();
+    const host = headerList.get('x-forwarded-host') || headerList.get('host') || '';
+    const hasCustomDomain = host !== environments.DASHBOARD_DOMAIN && host !== environments.FORM_DOMAIN && !host.includes(environments.DASHBOARD_DOMAIN);
+    const { workspace } = hasCustomDomain ? await resolveCustomDomainWorkspace() : { workspace: null };
 
     return {
         title: workspace?.name || 'Workspace',

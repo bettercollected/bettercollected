@@ -154,6 +154,8 @@ class Workspace(WorkspaceRequestDto):
     custom_domain_dns_records: Optional[List[Dict[str, Any]]] = None
     custom_domain_checks: Optional[List[Dict[str, Any]]] = None
     custom_domain_updated_at: Optional[dt.datetime] = None
+    # nonce of the registration in progress (idempotency), cleared on success
+    custom_domain_attempt: Optional[str] = None
 
 
 class WorkspaceFormSettings(BaseModel):
@@ -203,3 +205,5 @@ class WorkspaceResponseDto(WorkspaceRequestDto, CamelModel):
     custom_domain_dns_records: Optional[List[Dict[str, Any]]] = None
     custom_domain_checks: Optional[List[Dict[str, Any]]] = None
     custom_domain_updated_at: Optional[dt.datetime] = None
+    # nonce of the registration in progress (idempotency), cleared on success
+    custom_domain_attempt: Optional[str] = None

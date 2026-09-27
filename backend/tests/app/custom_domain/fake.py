@@ -77,6 +77,9 @@ class FakeClient:
         self.calls: List[tuple] = []
         self.fail_next: Optional[Exception] = None
         self.webhooks: List[Webhook] = []
+        self.replays: Dict[str, str] = (
+            {}
+        )  # idempotency key -> domain id, deleted or not
 
     def _maybe_fail(self):
         if self.fail_next is not None:
@@ -88,6 +91,8 @@ class FakeClient:
     ):
         self.calls.append(("create", hostname, reference, idempotency_key))
         self._maybe_fail()
+        if idempotency_key and idempotency_key in self.replays:
+            return Domain.from_dict(self.domains[self.replays[idempotency_key]])
         for existing in self.domains.values():
             if existing["hostname"] == hostname and existing["status"] != "deleting":
                 raise ConflictError(
@@ -95,6 +100,8 @@ class FakeClient:
                 )
         data = domain_dict(hostname, reference)
         self.domains[data["id"]] = data
+        if idempotency_key:
+            self.replays[idempotency_key] = data["id"]
         return Domain.from_dict(data)
 
     def get_domain(self, domain_id, *, include_deleted=False):

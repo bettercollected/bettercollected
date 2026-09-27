@@ -41,16 +41,23 @@ def test_settings_parse_keys_and_secrets():
     assert not CustomDomainSettings(api_url="", api_credential="").enabled
 
 
-def test_idempotency_key_is_stable_and_bounded():
-    key = idempotency_key("64ae38bcdea80b08417d058a", "forms.customer.example")
-    assert key == idempotency_key("64ae38bcdea80b08417d058a", "forms.customer.example")
-    assert key != idempotency_key("64ae38bcdea80b08417d058a", "other.customer.example")
-    assert len(idempotency_key("x" * 24, "a" * 253 + ".example")) <= 255
+def test_idempotency_key_is_stable_per_attempt_and_bounded():
+    key = idempotency_key("64ae38bcdea80b08417d058a", "forms.customer.example", "n1")
+    assert key == idempotency_key(
+        "64ae38bcdea80b08417d058a", "forms.customer.example", "n1"
+    )
+    assert key != idempotency_key(
+        "64ae38bcdea80b08417d058a", "other.customer.example", "n1"
+    )
+    assert key != idempotency_key(
+        "64ae38bcdea80b08417d058a", "forms.customer.example", "n2"
+    )
+    assert len(idempotency_key("x" * 24, "a" * 253 + ".example", "f" * 32)) <= 255
 
 
 async def test_register_mirrors_the_domain_onto_workspace_fields():
     client = FakeClient()
-    domain = await service(client).register("Forms.Customer.Example", "ws1")
+    domain = await service(client).register("Forms.Customer.Example", "ws1", "n1")
     assert client.calls[0][0] == "create" and client.calls[0][3].startswith("ws-ws1-")
     fields = domain_fields(domain)
     assert fields["custom_domain_id"] == domain.id
@@ -71,7 +78,7 @@ async def test_register_mirrors_the_domain_onto_workspace_fields():
 
 async def test_ready_domain_is_verified():
     client = FakeClient()
-    domain = await service(client).register("forms.customer.example", "ws1")
+    domain = await service(client).register("forms.customer.example", "ws1", "n1")
     client.set_status(domain.id, "ready")
     refreshed = await service(client).fetch(domain.id)
     assert domain_fields(refreshed)["custom_domain_verified"] is True
@@ -80,16 +87,16 @@ async def test_ready_domain_is_verified():
 async def test_error_mapping():
     client = FakeClient()
     svc = service(client)
-    await svc.register("taken.example", "ws1")
+    await svc.register("taken.example", "ws1", "n1")
     with pytest.raises(HTTPException) as raised:
-        await svc.register("taken.example", "ws2")
+        await svc.register("taken.example", "ws2", "n2")
     assert raised.value.status_code == HTTPStatus.CONFLICT
 
     client.fail_next = ValidationError(
         422, "apex_not_supported", "apex domains are not supported"
     )
     with pytest.raises(HTTPException) as raised:
-        await svc.register("example.com", "ws1")
+        await svc.register("example.com", "ws1", "n3")
     assert raised.value.status_code == HTTPStatus.BAD_REQUEST
     assert "apex" in raised.value.content
 

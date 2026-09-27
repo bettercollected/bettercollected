@@ -5,7 +5,7 @@
 import { createHmac } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 
-import { AssertionInvalid, parseAssertionKeys, verifyAssertion } from '@app/lib/server/custom-domain';
+import { AssertionInvalid, decideAssertion, parseAssertionKeys, verifyAssertion } from '@app/lib/server/custom-domain';
 
 const KEYS = { '1': 'a-very-long-secret-for-key-one-0123456789', '2': 'previous-key-secret-abcdefghijklmnopqrstu' };
 const NOW = 1_800_000_000;
@@ -55,6 +55,25 @@ describe('verifyAssertion', () => {
     it('tolerates clock skew of 30 seconds', () => {
         expect(code(() => verifyAssertion(token({ ...payload, exp: NOW - 20 }), KEYS, options))).toBe('ok');
         expect(code(() => verifyAssertion(token({ ...payload, exp: NOW - 40 }), KEYS, options))).toBe('expired');
+    });
+});
+
+describe('decideAssertion', () => {
+    const config = { keys: KEYS, applicationId: 'app-1' };
+    it('required: a missing assertion is refused', () => {
+        expect(decideAssertion(null, { ...config, mode: 'required' }, 'forms.customer.example', NOW)).toEqual({ kind: 'refused', error: 'missing' });
+    });
+    it('optional: a missing assertion falls back to the legacy host lookup, an invalid one is still refused', () => {
+        expect(decideAssertion(null, { ...config, mode: 'optional' }, 'forms.customer.example', NOW)).toEqual({ kind: 'legacy' });
+        expect(decideAssertion(token(payload, '1', 'forged'), { ...config, mode: 'optional' }, 'forms.customer.example', NOW)).toEqual({ kind: 'refused', error: 'bad_signature' });
+        expect(decideAssertion(token({ ...payload, exp: NOW - 100 }), { ...config, mode: 'optional' }, 'forms.customer.example', NOW)).toEqual({ kind: 'refused', error: 'expired' });
+    });
+    it('a valid assertion selects the workspace in both modes', () => {
+        for (const mode of ['optional', 'required'] as const) {
+            const decision = decideAssertion(token(payload), { ...config, mode }, 'forms.customer.example', NOW);
+            expect(decision.kind).toBe('assertion');
+            if (decision.kind === 'assertion') expect(decision.assertion.reference).toBe(payload.ref);
+        }
     });
 });
 

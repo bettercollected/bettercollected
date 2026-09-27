@@ -1,5 +1,6 @@
 import os
 import re
+import uuid
 from http import HTTPStatus
 from typing import Optional
 
@@ -34,6 +35,7 @@ from backend.app.services.custom_domain_service import (
     cleared_fields,
     domain_fields,
     domain_payload,
+    unregistered_payload,
 )
 from backend.app.services.form_response_service import FormResponseService
 from backend.app.services.brevo_service import event_logger_service
@@ -210,24 +212,13 @@ class WorkspaceService:
                     workspace_patch.custom_domain
                 )
                 if not workspace:
-                    existing_custom_domain = (
-                        workspace_document.custom_domain
-                        if workspace_document.custom_domain
-                        else ""
-                    )
-                    await self._allowed_origins_repo.delete_by_origin(
-                        "https://" + existing_custom_domain or ""
-                    )
-                    allowed_origin = await self._allowed_origins_repo.find_by_origin(
-                        "https://" + workspace_patch.custom_domain
-                    )
-                    if not allowed_origin:
-                        await self._allowed_origins_repo.add(
-                            "https://" + workspace_patch.custom_domain
-                        )
-                    await DynamicCORSMiddleware.force_refresh_origins()
                     await self._provision_custom_domain(
                         workspace_document, workspace_patch.custom_domain
+                    )
+                    # CORS follows a successful registration: a refused hostname
+                    # is never allowed and the working one keeps its origin
+                    await self._swap_allowed_origin(
+                        workspace_document.custom_domain, workspace_patch.custom_domain
                     )
                     await self.user_tags_service.add_user_tag(
                         user_id=user.id, tag=UserTagType.CUSTOM_DOMAIN_UPDATED
@@ -490,11 +481,22 @@ class WorkspaceService:
             )
             return
         previous_id = workspace_document.custom_domain_id
+        # One nonce per registration attempt, kept until the call succeeds: a
+        # retry after a transport failure replays the same request, while a
+        # later re-registration of the same hostname (delete → add, A → B → A)
+        # gets a fresh domain instead of the service replaying a deleted one.
+        attempt = workspace_document.custom_domain_attempt
+        if not attempt:
+            attempt = uuid.uuid4().hex
+            await self._workspace_repo.set_fields(
+                workspace_document, {"custom_domain_attempt": attempt}
+            )
         domain = await self.custom_domain_service.register(
-            hostname, workspace_document.id
+            hostname, workspace_document.id, attempt
         )
         for field, value in domain_fields(domain).items():
             setattr(workspace_document, field, value)
+        workspace_document.custom_domain_attempt = None
         if previous_id and previous_id != domain.id:
             try:
                 await self.custom_domain_service.delete(previous_id)
@@ -504,6 +506,15 @@ class WorkspaceService:
                 logger.warning(
                     "custom domain {} replaced but not deleted: {}", previous_id, error
                 )
+
+    async def _swap_allowed_origin(
+        self, previous: Optional[str], hostname: str
+    ) -> None:
+        if previous and previous != hostname:
+            await self._allowed_origins_repo.delete_by_origin("https://" + previous)
+        if not await self._allowed_origins_repo.find_by_origin("https://" + hostname):
+            await self._allowed_origins_repo.add("https://" + hostname)
+        await DynamicCORSMiddleware.force_refresh_origins()
 
     async def recheck_workspace_domain(
         self, workspace_id: PydanticObjectId, user: User
@@ -549,7 +560,18 @@ class WorkspaceService:
         if seen is not None and event.created_at <= seen:
             return "stale"
         if event.type == "domain.deleted":
-            fields = cleared_fields()
+            # the hostname stays so the settings page can say the domain was
+            # removed on the service side and offer to set it again
+            fields = {
+                **cleared_fields(),
+                "custom_domain_status": "deleting",
+                "custom_domain_updated_at": event.created_at,
+            }
+            if workspace.custom_domain:
+                await self._allowed_origins_repo.delete_by_origin(
+                    "https://" + workspace.custom_domain
+                )
+                await DynamicCORSMiddleware.force_refresh_origins()
         else:
             fields = domain_fields(event.domain)
             fields["custom_domain_updated_at"] = max(
@@ -627,10 +649,8 @@ class WorkspaceService:
             )
         if self._custom_domain_enabled:
             if not workspace.custom_domain_id:
-                raise HTTPException(
-                    status_code=HTTPStatus.BAD_REQUEST,
-                    content="This domain is not registered with the custom domain service.",
-                )
+                # removed on the service side, or set before the service existed
+                return unregistered_payload(workspace)
             domain = await self.custom_domain_service.fetch(workspace.custom_domain_id)
             if domain is None:
                 raise HTTPException(

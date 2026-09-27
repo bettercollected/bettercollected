@@ -62,6 +62,10 @@ const WorkspaceDomainStatus = () => {
         return <DomainVerifiedStatus workspace={workspace} txtRecord={isService ? data?.dns_records?.find((r: CustomDomainDnsRecord) => r.purpose === 'ownership') : undefined} />;
     }
 
+    if (isService && (data?.status === 'removed' || data?.status === 'unregistered')) {
+        return <ServiceDomainGone workspace={workspace} status={data.status} />;
+    }
+
     if (isService) {
         return <ServiceDomainPending workspace={workspace} status={data?.status} records={data?.dns_records ?? []} checks={data?.checks ?? []} isFetching={isFetching} refetch={refetch} />;
     }
@@ -166,6 +170,24 @@ const DomainVerifiedStatus = ({ workspace, txtRecord }: { workspace: WorkspaceDt
         </div>
     );
 };
+
+/** The service does not hold this hostname: removed there, or set up before
+ *  the service was in use. The only way forward is to remove it here and set
+ *  it again, which registers it and shows the new DNS records. */
+const ServiceDomainGone = ({ workspace, status }: { workspace: WorkspaceDto; status: 'removed' | 'unregistered' }) => (
+    <div className="mt-4 flex flex-col text-sm">
+        <div className="flex items-center gap-2">
+            <span className="text-black-600">Your domain: </span>
+            <span className="font-semibold text-blue-500">{workspace.customDomain}</span>
+            <StatusPill tone="bad">{status === 'removed' ? 'Removed' : 'Needs setup'}</StatusPill>
+            <DeleteDomainDropdown />
+        </div>
+        <div className="mt-4 text-xs text-black-700">
+            {status === 'removed' ? 'This domain was removed from the custom domain service, so it no longer serves your forms.' : 'This domain was set up on the previous system and has no DNS instructions here yet.'} Remove it from the menu above and add
+            it again to get the DNS records to publish.
+        </div>
+    </div>
+);
 
 const ServiceDomainPending = ({ workspace, status, records, checks, isFetching, refetch }: { workspace: WorkspaceDto; status?: string; records: CustomDomainDnsRecord[]; checks: CustomDomainCheck[]; isFetching: boolean; refetch: () => void }) => {
     const { toast } = useToast();

@@ -101,6 +101,10 @@ async def test_register_replace_and_delete(
     stored = await container.workspace_repo().find_by_id(workspace_pro.id)
     assert stored.custom_domain == "new.customer.example"
     assert stored.custom_domain_id == second_id
+    origins = container.allowed_origins_repo()
+    assert await origins.find_by_origin("https://new.customer.example")
+    assert not await origins.find_by_origin("https://third.customer.example")
+    assert not await origins.find_by_origin("https://forms.customer.example")
 
     # recheck is rate limited by the service; the UI gets retry_after
     fake_client.fail_next = RateLimitedError(
@@ -125,6 +129,67 @@ async def test_register_replace_and_delete(
     assert response.json()["customDomain"] == ""
     assert response.json()["customDomainId"] is None
     assert fake_client.domains[second_id]["status"] == "deleting"
+
+
+async def test_delete_then_re_add_gets_a_fresh_domain(
+    client: AsyncClient,
+    workspace_pro: Coroutine[Any, Any, WorkspaceDocument],
+    test_pro_user_cookies: dict,
+    fake_client: FakeClient,
+):
+    """The service replays an idempotency key for 24 hours; re-registering the
+    same hostname must not hand back the deleted domain."""
+    url = f"{WORKSPACES}/{workspace_pro.id}"
+    first = await client.patch(
+        url,
+        cookies=test_pro_user_cookies,
+        data={"custom_domain": "forms.customer.example"},
+    )
+    first_id = first.json()["customDomainId"]
+    await client.delete(f"{url}/custom-domain", cookies=test_pro_user_cookies)
+    again = await client.patch(
+        url,
+        cookies=test_pro_user_cookies,
+        data={"custom_domain": "forms.customer.example"},
+    )
+    assert again.status_code == 200, again.text
+    assert again.json()["customDomainId"] != first_id
+    assert again.json()["customDomainStatus"] == "pending_dns"
+    assert fake_client.domains[first_id]["status"] == "deleting"
+    # A -> B -> A within the window: a fresh domain each time
+    await client.patch(
+        url, cookies=test_pro_user_cookies, data={"custom_domain": "b.customer.example"}
+    )
+    back = await client.patch(
+        url,
+        cookies=test_pro_user_cookies,
+        data={"custom_domain": "forms.customer.example"},
+    )
+    assert back.status_code == 200 and back.json()["customDomainId"] not in (
+        first_id,
+        again.json()["customDomainId"],
+    )
+    stored = await container.workspace_repo().find_by_id(workspace_pro.id)
+    assert stored.custom_domain_attempt is None
+
+
+async def test_a_domain_set_before_the_service_reports_unregistered(
+    client: AsyncClient,
+    workspace_pro: Coroutine[Any, Any, WorkspaceDocument],
+    test_pro_user_cookies: dict,
+    fake_client: FakeClient,
+):
+    await container.workspace_repo().set_fields(
+        workspace_pro, {"custom_domain": "legacy.customer.example"}
+    )
+    status = await client.get(
+        f"{WORKSPACES}/{workspace_pro.id}/verify-domain", cookies=test_pro_user_cookies
+    )
+    assert status.status_code == 200, status.text
+    assert (
+        status.json()["status"] == "unregistered"
+        and status.json()["hostname"] == "legacy.customer.example"
+    )
 
 
 async def test_hostname_taken_by_the_service_is_a_conflict(
@@ -222,3 +287,11 @@ async def test_webhooks_update_the_workspace(
     assert deleted.json()["outcome"] == "applied"
     stored = await container.workspace_repo().find_by_id(workspace_pro.id)
     assert stored.custom_domain_id is None and stored.custom_domain_verified is False
+    # the hostname stays so the customer sees what happened; CORS no longer allows it
+    assert stored.custom_domain == "forms.customer.example"
+    assert stored.custom_domain_status == "deleting"
+    assert not await container.allowed_origins_repo().find_by_origin(
+        "https://forms.customer.example"
+    )
+    status = await client.get(f"{url}/verify-domain", cookies=test_pro_user_cookies)
+    assert status.json()["status"] == "removed" and status.json()["dns_records"] == []

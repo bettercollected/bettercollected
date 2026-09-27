@@ -107,16 +107,39 @@ export function parseAssertionKeys(value: string | undefined): Record<string, st
     return keys;
 }
 
+/**
+ * `required`: every custom-domain request needs a valid assertion (the
+ * default). `optional`: migration only — while the service's legacy path
+ * still proxies some domains without an assertion, a request that carries
+ * none falls back to the host lookup; an invalid one is still refused.
+ */
+export type AssertionMode = 'optional' | 'required';
+
 export interface CustomDomainConfig {
     keys: Record<string, string>;
     applicationId: string;
+    mode: AssertionMode;
 }
 
 export function customDomainConfig(): CustomDomainConfig | null {
     const keys = parseAssertionKeys(process.env.CUSTOM_DOMAIN_ASSERTION_KEYS);
     const applicationId = process.env.CUSTOM_DOMAIN_APPLICATION_ID || '';
     if (!applicationId || Object.keys(keys).length === 0) return null;
-    return { keys, applicationId };
+    const mode: AssertionMode = process.env.CUSTOM_DOMAIN_ASSERTION_MODE === 'optional' ? 'optional' : 'required';
+    return { keys, applicationId, mode };
+}
+
+export type AssertionDecision = { kind: 'assertion'; assertion: Assertion } | { kind: 'legacy' } | { kind: 'refused'; error: AssertionErrorCode };
+
+/** What to do with a custom-domain request, given the header and the mode. Pure. */
+export function decideAssertion(token: string | null | undefined, config: CustomDomainConfig, host: string | null, now?: number): AssertionDecision {
+    try {
+        return { kind: 'assertion', assertion: verifyAssertion(token, config.keys, { applicationId: config.applicationId, hostname: host, now }) };
+    } catch (error) {
+        const code = error instanceof AssertionInvalid ? error.code : 'malformed';
+        if (code === 'missing' && config.mode === 'optional') return { kind: 'legacy' };
+        return { kind: 'refused', error: code };
+    }
 }
 
 export type ResolvedCustomDomain = { workspace: any | null; assertion: Assertion | null; error?: AssertionErrorCode };
@@ -133,14 +156,14 @@ export async function resolveCustomDomainWorkspace(): Promise<ResolvedCustomDoma
     if (!config) {
         return { workspace: await getWorkspaceByDomain(host), assertion: null };
     }
-    let assertion: Assertion;
-    try {
-        assertion = verifyAssertion(headerList.get(ASSERTION_HEADER), config.keys, { applicationId: config.applicationId, hostname: host });
-    } catch (error) {
-        const code = error instanceof AssertionInvalid ? error.code : 'malformed';
-        console.warn(`custom domain request refused: ${code}`);
-        return { workspace: null, assertion: null, error: code };
+    const decision = decideAssertion(headerList.get(ASSERTION_HEADER), config, host);
+    if (decision.kind === 'legacy') {
+        return { workspace: await getWorkspaceByDomain(host), assertion: null };
     }
-    const workspace = await getWorkspaceById(assertion.reference);
-    return { workspace: workspace?.id ? workspace : null, assertion };
+    if (decision.kind === 'refused') {
+        console.warn(`custom domain request refused: ${decision.error}`);
+        return { workspace: null, assertion: null, error: decision.error };
+    }
+    const workspace = await getWorkspaceById(decision.assertion.reference);
+    return { workspace: workspace?.id ? workspace : null, assertion: decision.assertion };
 }
