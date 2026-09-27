@@ -134,3 +134,23 @@ function getFilteredInputFields(form: StandardFormDto) {
         return [];
     }
 }
+
+/**
+ * Columns for a responses table whose rows may come from different form
+ * versions: the given form's fields first, then any field that only exists in
+ * another version, so a response's answers always have a column. Answers are
+ * keyed by field id, so a question that was re-created gets its own column.
+ */
+export function mergeFieldsAcrossVersions(base: StandardFormFieldDto[], others: StandardFormFieldDto[][]): StandardFormFieldDto[] {
+    const seen = new Set(base.map((field) => field.id));
+    const merged = [...base];
+    for (const fields of others) {
+        for (const field of fields) {
+            if (field?.id && !seen.has(field.id)) {
+                seen.add(field.id);
+                merged.push(field);
+            }
+        }
+    }
+    return merged;
+}

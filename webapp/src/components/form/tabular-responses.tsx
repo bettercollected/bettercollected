@@ -12,12 +12,12 @@ import globalConstants from '@app/constants/global';
 import { FieldTypes, StandardFormDto, StandardFormFieldDto, StandardFormResponseDto } from '@app/models/dtos/form';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { useAppSelector } from '@app/store/hooks';
-import { useGetFormsSubmissionsQuery, useLazyGetWorkspaceSubmissionQuery } from '@app/store/workspaces/api';
+import { useGetFormsSubmissionsQuery, useLazyGetWorkspaceFormVersionQuery, useLazyGetWorkspaceSubmissionQuery } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { IGetFormSubmissionsQuery } from '@app/store/workspaces/types';
 import { utcToLocalDateTIme } from '@app/utils/date-utils';
 import { downloadFile } from '@app/utils/file-utils';
-import { getAnswerForField, getFormFields, getTitleForHeader } from '@app/utils/form-builder-block-utils';
+import { getAnswerForField, getFormFields, getTitleForHeader, mergeFieldsAcrossVersions } from '@app/utils/form-builder-block-utils';
 import { getInternalAnswerText, getInternalColumnTitle, getInternalFields } from '@app/utils/internal-fields';
 import { dataTableCustomStyles } from '@Components/datatable/datatable-styles';
 import { ExpandIcon } from '@Components/icons/expanded-icon';
@@ -59,6 +59,9 @@ export default function TabularResponses({ form }: TabularResponsesProps) {
     const [page, setPage] = useState(1);
 
     const [triggerSingleResponse] = useLazyGetWorkspaceSubmissionQuery();
+    const [triggerFormVersion] = useLazyGetWorkspaceFormVersionQuery();
+    // other form versions the listed responses were submitted against
+    const [versionForms, setVersionForms] = useState<Record<number, StandardFormDto>>({});
 
     const { t } = useTranslation();
 
@@ -143,6 +146,24 @@ export default function TabularResponses({ form }: TabularResponsesProps) {
         overflow: 'hidden'
     };
 
+    const { data } = useGetFormsSubmissionsQuery(query, { skip: !workspace.id });
+
+    useEffect(() => {
+        const missing = Array.from(new Set((data?.items ?? []).map((r) => r.formVersion).filter((v): v is number => typeof v === 'number' && v !== form.version && !versionForms[v])));
+        if (!workspace?.id || missing.length === 0) return;
+        missing.forEach((version) =>
+            triggerFormVersion({ workspaceId: workspace.id, formId: form.formId, version }, true).then((result: any) => {
+                if (result?.data) setVersionForms((current) => ({ ...current, [version]: result.data }));
+            })
+        );
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [data, form.version, workspace?.id]);
+
+    const tableFields = mergeFieldsAcrossVersions(
+        getFormFields(form),
+        Object.values(versionForms).map((versionForm) => getFormFields(versionForm))
+    );
+
     const columns: any = [
         {
             name: '',
@@ -164,7 +185,7 @@ export default function TabularResponses({ form }: TabularResponsesProps) {
             style: cellStyle,
             width: '224px'
         },
-        ...getFormFields(form).map((field: any) => ({
+        ...tableFields.map((field: any) => ({
             name: getTitleForHeaderForTable(field),
             selector: (response: StandardFormResponseDto) => getAnswerField(response, field),
             style: cellStyle,
@@ -187,7 +208,6 @@ export default function TabularResponses({ form }: TabularResponsesProps) {
     const handlePageChange = (e: any, page: number) => {
         setPage(page);
     };
-    const { data } = useGetFormsSubmissionsQuery(query, { skip: !workspace.id });
 
     return (
         <>
