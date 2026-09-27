@@ -26,6 +26,9 @@ from common.models.user import User
 READ_CHUNK = 1024 * 1024
 
 
+STAGE_ORDER = ("analyze", "text", "layout", "render", "structure", "compile")
+
+
 class PdfImportDto(CamelModel):
     id: str
     form_id: str
@@ -58,7 +61,14 @@ class PdfImportDto(CamelModel):
             pages=record.pages,
             report=record.report,
             ai_consent=bool(record.ai_consent),
-            finished_stages=list(record.stages.keys()),
+            # JSONB does not keep key order: report them in pipeline order
+            finished_stages=sorted(
+                record.stages,
+                key=lambda n: (
+                    STAGE_ORDER.index(n) if n in STAGE_ORDER else len(STAGE_ORDER),
+                    n,
+                ),
+            ),
             created_at=record.created_at,
             finished_at=record.finished_at,
         )

@@ -19,6 +19,7 @@ from loguru import logger
 
 from backend.app.exceptions import HTTPException
 from backend.app.schemas.form_import import FormImportDocument, ImportStatus
+from backend.app.services.pdf_import.compile import clean_label
 from backend.app.services.pdf_import.analysis import DocumentRefused
 from backend.app.services.pdf_import.intake import inspect_upload
 from backend.app.services.pdf_import.storage import source_key
@@ -266,7 +267,7 @@ class PdfImportService:
                         "id": e["id"],
                         "type": e["type"],
                         "kind": e.get("kind"),
-                        "label": e.get("label") or e.get("heading") or "",
+                        "label": clean_label(e.get("label") or e.get("heading") or ""),
                         "confidence": e.get("confidence"),
                         "bbox": [round(v, 1) for v in box],
                     }

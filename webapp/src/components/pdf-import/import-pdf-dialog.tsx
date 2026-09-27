@@ -46,7 +46,7 @@ export default function ImportPdfDialog({ open, onOpenChange, workspaceId, works
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-lg bg-white">
+            <DialogContent className="max-w-lg bg-white" title="Import a PDF form">
                 <DialogHeader>
                     <DialogTitle>Import a PDF form</DialogTitle>
                     <DialogDescription>Upload a fillable or printed PDF, or a photo of a paper form. We turn it into a draft form you can review and edit before publishing.</DialogDescription>
@@ -80,7 +80,7 @@ export default function ImportPdfDialog({ open, onOpenChange, workspaceId, works
                 </button>
                 <input ref={input} type="file" accept="application/pdf,image/png,image/jpeg,image/webp" className="hidden" onChange={(e) => choose(e.target.files?.[0])} />
                 {error && <p className="text-sm text-red-600">{error}</p>}
-                <p className="text-xs text-black-600">Only the questions are imported, never what someone has filled in. Page images are read by your workspace&apos;s AI provider. The file is kept with the draft form until you delete the form.</p>
+                <p className="text-xs text-black-600">Upload a blank form if you can: the text on the pages, including anything filled in, is read to recognise the questions. Page images are read by your workspace&apos;s AI provider. The file is kept with the draft form until you delete the form.</p>
                 <div className="flex justify-end gap-2">
                     <Button variant="v2Button" onClick={() => onOpenChange(false)}>
                         Cancel
