@@ -2,3 +2,7 @@
 **/node_modules/
 **/.venv/
 **/venv/
+# never bake environment files (secrets) into an image
+**/.env
+**/.env.*
+!**/.env.example

@@ -23,5 +23,9 @@ class PdfImportSettings(BaseSettings):
     # the most output the parent reads from one sandbox child: the parent has no
     # memory limit of its own, so a document's result must not be able to exhaust it
     MAX_RESULT_BYTES: int = 16 * 1024 * 1024
+    # the isolated document-sandbox container's socket (#703); empty = local child
+    SANDBOX_SOCKET: str = ""
+    # refuse the local child transport (set wherever the container is deployed)
+    REQUIRE_ISOLATED_SANDBOX: bool = False
 
     model_config = SettingsConfigDict(env_prefix="PDF_IMPORT_")

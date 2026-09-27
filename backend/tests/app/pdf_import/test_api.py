@@ -287,3 +287,78 @@ async def test_layout_primitives_are_stored_next_to_the_original(
         "photo_box",
         "signature",
     } <= kinds
+
+
+async def test_an_unreachable_sandbox_fails_the_import_once_retries_are_exhausted(
+    client, workspace, test_user_cookies, store
+):
+    settings_ = limits()
+    previous = (settings_.SANDBOX_SOCKET, settings_.CONCURRENT_IMPORTS_PER_WORKSPACE)
+    settings_.SANDBOX_SOCKET = "/nonexistent/sandbox.sock"
+    settings_.CONCURRENT_IMPORTS_PER_WORKSPACE = 1
+    service = container.pdf_import_service()
+    import backend.app.services.pdf_import_service as module
+
+    delays = module.RETRY_DELAYS_S
+    module.RETRY_DELAYS_S = ()
+    try:
+        response = await upload(
+            client, workspace, test_user_cookies, documents.text_pdf()
+        )
+        import_id = response.json()["id"]
+        await service.wait_for_background_imports()
+        given_up = await container.form_import_repo().get(import_id)
+        assert given_up.status == ImportStatus.FAILED
+        assert "try again later" in given_up.error
+        assert given_up.finished_at is not None
+        # the failed import no longer holds the workspace's only import slot
+        settings_.SANDBOX_SOCKET = previous[0]
+        second = await upload(
+            client, workspace, test_user_cookies, documents.text_pdf()
+        )
+        assert second.status_code == 202, second.text
+        done = await finished(client, workspace, test_user_cookies, second.json()["id"])
+        assert done["status"] == ImportStatus.COMPLETED, done
+    finally:
+        settings_.SANDBOX_SOCKET, settings_.CONCURRENT_IMPORTS_PER_WORKSPACE = previous
+        module.RETRY_DELAYS_S = delays
+
+
+async def test_the_import_job_fails_the_import_only_on_its_last_attempt(
+    client, workspace, test_user_cookies, store
+):
+    from types import SimpleNamespace
+
+    import backend.app.services.pdf_import_service as module
+    from backend.app.services.pdf_import.sandbox import SandboxUnavailable
+    from backend.jobs import tasks
+
+    settings_ = limits()
+    previous = settings_.SANDBOX_SOCKET
+    dispatch = module.PdfImportService._dispatch
+
+    async def no_dispatch(self, import_id):
+        return None
+
+    module.PdfImportService._dispatch = no_dispatch
+    settings_.SANDBOX_SOCKET = "/nonexistent/sandbox.sock"
+    try:
+        response = await upload(
+            client, workspace, test_user_cookies, documents.text_pdf()
+        )
+        import_id = response.json()["id"]
+        run = tasks.import_form.func
+        first = SimpleNamespace(job=SimpleNamespace(attempts=0))
+        with pytest.raises(SandboxUnavailable):
+            await run(first, import_id)
+        waiting = await container.form_import_repo().get(import_id)
+        assert waiting.status == ImportStatus.QUEUED
+        last = SimpleNamespace(
+            job=SimpleNamespace(attempts=tasks.IMPORT_FORM_ATTEMPTS - 1)
+        )
+        assert await run(last, import_id) == ImportStatus.FAILED
+        failed = await container.form_import_repo().get(import_id)
+        assert "try again later" in failed.error
+    finally:
+        settings_.SANDBOX_SOCKET = previous
+        module.PdfImportService._dispatch = dispatch

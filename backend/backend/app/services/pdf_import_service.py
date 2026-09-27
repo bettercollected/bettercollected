@@ -27,6 +27,8 @@ from common.models.standard_form import StandardForm
 from common.models.user import User
 
 JOB_NAME = "import_form"
+# waits before retrying an import whose sandbox was unreachable (in-process path)
+RETRY_DELAYS_S = (5, 15, 30, 60, 120)
 
 
 class PdfImportService:
@@ -140,10 +142,20 @@ class PdfImportService:
         task.add_done_callback(self._running.discard)
 
     async def _run_in_process(self, import_id: PydanticObjectId) -> None:
-        try:
-            await self._pipeline.run(import_id)
-        except Exception:  # noqa: BLE001 — the pipeline records its own failures
-            logger.exception("form import {} could not run", import_id)
+        from backend.app.services.pdf_import.sandbox import SandboxUnavailable
+
+        for delay in RETRY_DELAYS_S + (None,):
+            try:
+                await self._pipeline.run(import_id)
+                return
+            except SandboxUnavailable:
+                if delay is None:
+                    await self._pipeline.give_up(import_id)
+                    return
+                await asyncio.sleep(delay)
+            except Exception:  # noqa: BLE001 — the pipeline records its own failures
+                logger.exception("form import {} could not run", import_id)
+                return
 
     async def wait_for_background_imports(self) -> None:
         """Tests and shutdown: let in-process imports finish."""

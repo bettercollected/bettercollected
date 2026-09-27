@@ -64,17 +64,31 @@ async def delete_response(response_id: str) -> str:
     return response_id
 
 
+IMPORT_FORM_ATTEMPTS = 3
+
+
 @app.task(
     name="import_form",
     queue=DEFAULT_QUEUE,
-    retry=RetryStrategy(max_attempts=3, exponential_wait=5),
+    retry=RetryStrategy(max_attempts=IMPORT_FORM_ATTEMPTS, exponential_wait=5),
+    pass_context=True,
 )
-async def import_form(import_id: str) -> str:
+async def import_form(context, import_id: str) -> str:
     """Run (or resume) a PDF form import; finished stages are checkpointed on
-    the import record, so a retry only redoes the stage that failed."""
+    the import record, so a retry only redoes the stage that failed. On the
+    last attempt an unreachable sandbox fails the import instead of leaving
+    it queued."""
     from beanie import PydanticObjectId
 
-    record = await _container().pdf_import_pipeline().run(PydanticObjectId(import_id))
+    from backend.app.services.pdf_import.sandbox import SandboxUnavailable
+
+    pipeline = _container().pdf_import_pipeline()
+    try:
+        record = await pipeline.run(PydanticObjectId(import_id))
+    except SandboxUnavailable:
+        if context.job.attempts + 1 < IMPORT_FORM_ATTEMPTS:
+            raise
+        record = await pipeline.give_up(PydanticObjectId(import_id))
     return record.status if record else "missing"
 
 

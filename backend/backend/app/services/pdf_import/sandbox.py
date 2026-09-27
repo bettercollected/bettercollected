@@ -1,34 +1,44 @@
-"""Open untrusted documents in a resource-limited subprocess.
+"""Open untrusted documents only inside a sandbox.
 
-``run_in_sandbox`` starts ``_child.py`` as a script in Python's isolated mode,
-with a scrubbed environment and a throwaway working directory: the child
-never sees the API's secrets (database URIs, storage and AI keys) and never
-loads the backend's settings or .env. The child applies its own address-space,
-CPU-time and core-dump limits; the parent adds a wall-clock timeout. At most
-``max_parallel`` children run at once in a process, whatever the number of
-workspaces importing, so a burst of heavy documents cannot exhaust the host.
+Two transports, same result:
 
-Modes: ``analyze`` (page signals and routes), ``text`` (the text layer) and
-``layout`` (layout primitives).
-Not yet enough for native page rendering (#703: separate user, no network and
-a syscall filter come first).
+``socket`` (production)  the isolated ``document-sandbox`` container, reached
+    over a Unix socket (``PDF_IMPORT_SANDBOX_SOCKET``): unprivileged user, no
+    network, read-only filesystem, no capabilities, no secrets (#703).
+``local`` (development, tests)  a child process of this one: isolated Python,
+    scrubbed environment, temporary working directory, resource limits.
+
+With ``require_isolated`` the local transport is refused, and modes that run
+native code on the document (``render``) only ever use the socket. The result
+is capped by size on both transports: the API and worker processes have no
+memory limit of their own. At most ``max_parallel`` documents are in flight
+per process.
 """
 
 from __future__ import annotations
 
 import asyncio
-import json
-import os
-import sys
-import tempfile
-from typing import Dict, Iterable, Optional
+from typing import Iterable, Optional
 
 from .analysis import DocumentRefused
+from .runner import (
+    TooMuchOutput,
+    child_command,  # noqa: F401 — re-exported for tests
+    child_env,  # noqa: F401 — re-exported for tests
+    encode_request,
+    read_response,
+    run_child,
+    too_complex,
+)
 
-CHILD = os.path.join(os.path.dirname(os.path.abspath(__file__)), "_child.py")
+NATIVE_MODES = ("render",)
 
 _slots: Optional[asyncio.Semaphore] = None
 _slots_size = 0
+
+
+class SandboxUnavailable(Exception):
+    """The isolated sandbox could not be reached: retry later, the document is not at fault."""
 
 
 def _semaphore(size: int) -> asyncio.Semaphore:
@@ -38,79 +48,44 @@ def _semaphore(size: int) -> asyncio.Semaphore:
     return _slots
 
 
-def child_env(home: str) -> Dict[str, str]:
-    """Everything the child gets from its parent's environment: nothing secret."""
-    return {
-        "PATH": os.defpath,
-        "HOME": home,
-        "LANG": "C.UTF-8",
-        "LC_ALL": "C.UTF-8",
-        "PYTHONDONTWRITEBYTECODE": "1",
-        "PYTHONHASHSEED": "0",
-    }
-
-
-def child_command(
-    content_type: str,
-    max_pages: int,
-    max_pixels: int,
-    memory_mb: int,
-    cpu_s: int,
-    mode: str = "analyze",
-    skip_pages: str = "",
-):
-    return [
-        sys.executable,
-        "-I",  # isolated: ignore PYTHON* variables, user site and the working directory
-        CHILD,
-        mode,
-        content_type,
-        str(max_pages),
-        str(max_pixels),
-        str(memory_mb),
-        str(cpu_s),
-        skip_pages,
-    ]
-
-
-class _TooMuchOutput(Exception):
-    pass
-
-
-async def _kill(process) -> None:
-    if process.returncode is None:
-        process.kill()
-    await process.wait()
-
-
-async def _exchange(process, data: bytes, cap: int) -> bytes:
-    """Feed the document to the child and read its result, never holding more
-    than ``cap`` bytes of it: the parent has no memory limit of its own."""
-
-    async def feed():
-        try:
-            process.stdin.write(data)
-            await process.stdin.drain()
-        except (BrokenPipeError, ConnectionResetError):
-            pass  # the child stopped reading (refused, or crashed): its output says why
-        finally:
-            process.stdin.close()
-
-    feeder = asyncio.create_task(feed())
-    chunks, total = [], 0
+async def _over_socket(
+    path: str, mode: str, data: bytes, content_type: str, limits: dict
+) -> dict:
+    header = {"mode": mode, "content_type": content_type, **limits}
+    cap = limits["max_result_bytes"]
     try:
-        while True:
-            chunk = await process.stdout.read(64 * 1024)
-            if not chunk:
-                break
-            total += len(chunk)
-            if total > cap:
-                raise _TooMuchOutput()
-            chunks.append(chunk)
-        await process.wait()
+        reader, writer = await asyncio.open_unix_connection(path)
+    except (
+        FileNotFoundError,
+        ConnectionRefusedError,
+        PermissionError,
+        OSError,
+    ) as error:
+        raise SandboxUnavailable(type(error).__name__) from error
+    try:
+        writer.write(encode_request(header, data))
+        await writer.drain()
+        result = await asyncio.wait_for(
+            read_response(reader, cap), limits["timeout_s"] + 15
+        )
+    except TooMuchOutput:
+        raise too_complex()
+    except asyncio.TimeoutError as error:
+        # the server enforces the document's own timeout and answers with a
+        # refusal; no answer at all means it is overloaded or stuck
+        raise SandboxUnavailable("no reply from the sandbox") from error
+    except (
+        asyncio.IncompleteReadError,
+        ConnectionResetError,
+        BrokenPipeError,
+        ValueError,
+    ) as error:
+        raise SandboxUnavailable(type(error).__name__) from error
     finally:
-        await asyncio.gather(feeder, return_exceptions=True)
-    return b"".join(chunks)
+        writer.close()
+    if "refused" in result:
+        raise DocumentRefused(result["refused"]["code"], result["refused"]["message"])
+    return result
 
 
 async def run_in_sandbox(
@@ -125,49 +100,31 @@ async def run_in_sandbox(
     max_parallel: int = 2,
     skip_pages: str = "",
     max_result_bytes: int = 16 * 1024 * 1024,
+    socket_path: str = "",
+    require_isolated: bool = False,
 ) -> dict:
-    """The child's JSON result, or raises DocumentRefused (including for
-    crashes, timeouts and results larger than ``max_result_bytes``)."""
+    """The sandbox's result, or raises DocumentRefused (the document) or
+    SandboxUnavailable (the sandbox)."""
+    limits = dict(
+        max_pages=max_pages,
+        max_pixels=max_pixels,
+        timeout_s=timeout_s,
+        memory_mb=memory_mb,
+        skip_pages=skip_pages,
+        max_result_bytes=max_result_bytes,
+    )
     async with _semaphore(max_parallel):
-        with tempfile.TemporaryDirectory(prefix="bc-import-") as scratch:
-            process = await asyncio.create_subprocess_exec(
-                *child_command(
-                    content_type,
-                    max_pages,
-                    max_pixels,
-                    memory_mb,
-                    timeout_s,
-                    mode,
-                    skip_pages,
-                ),
-                stdin=asyncio.subprocess.PIPE,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.DEVNULL,
-                env=child_env(scratch),
-                cwd=scratch,
+        if socket_path:
+            return await _over_socket(socket_path, mode, data, content_type, limits)
+        if require_isolated or mode in NATIVE_MODES:
+            raise SandboxUnavailable(
+                "the isolated document sandbox is required but not configured"
             )
-            try:
-                stdout = await asyncio.wait_for(
-                    _exchange(process, data, max_result_bytes), timeout_s
-                )
-            except asyncio.TimeoutError:
-                await _kill(process)
-                raise DocumentRefused("timeout", "This document took too long to read.")
-            except _TooMuchOutput:
-                await _kill(process)
-                raise DocumentRefused(
-                    "too_complex",
-                    "This document holds more content than a form import can handle.",
-                )
-    try:
-        result = json.loads(stdout.decode("utf-8") or "{}")
-    except ValueError:
-        result = {}
-    if "refused" in result:
-        raise DocumentRefused(result["refused"]["code"], result["refused"]["message"])
-    if process.returncode != 0 or not result:
-        raise DocumentRefused("unreadable", "This document could not be read.")
-    return result
+        return await run_child(mode, data, content_type, **limits)
+
+
+def isolated(socket_path: str) -> bool:
+    return bool(socket_path)
 
 
 async def run_analysis(data: bytes, content_type: str, **limits) -> dict:

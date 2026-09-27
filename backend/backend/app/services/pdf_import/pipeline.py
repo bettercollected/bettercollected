@@ -24,6 +24,7 @@ from backend.app.schemas.form_import import (
 )
 from backend.app.services.pdf_import.analysis import DocumentRefused
 from backend.app.services.pdf_import.sandbox import (
+    SandboxUnavailable,
     run_analysis,
     run_layout,
     run_text_layer,
@@ -31,6 +32,7 @@ from backend.app.services.pdf_import.sandbox import (
 from backend.app.services.pdf_import.storage import artifact_key
 
 MESSAGE_FAILED = "The import failed unexpectedly. Please try again."
+MESSAGE_UNAVAILABLE = "The document reader is unavailable. Please try again later."
 
 
 def _now() -> dt.datetime:
@@ -72,6 +74,8 @@ class ImportPipeline:
             memory_mb=s.SANDBOX_MEMORY_MB,
             max_parallel=s.MAX_PARALLEL_SANDBOXES,
             max_result_bytes=s.MAX_RESULT_BYTES,
+            socket_path=s.SANDBOX_SOCKET,
+            require_isolated=s.REQUIRE_ISOLATED_SANDBOX,
         )
 
     async def _text(self, record: FormImportDocument, data: bytes) -> dict:
@@ -144,6 +148,23 @@ class ImportPipeline:
         record.report["layout"] = totals
         return {"artifact": key, "primitives": sum(totals.values()), "counts": totals}
 
+    async def give_up(self, import_id: PydanticObjectId) -> FormImportDocument:
+        """Retries are exhausted: the sandbox stayed unreachable. Fail the
+        import so it no longer holds the workspace's import slot."""
+        record = await self._repo.get(import_id)
+        if record is None or record.status in (
+            ImportStatus.COMPLETED,
+            ImportStatus.FAILED,
+        ):
+            return record
+        record.status = ImportStatus.FAILED
+        record.error = MESSAGE_UNAVAILABLE
+        record.report["refused"] = "unavailable"
+        record.finished_at = _now()
+        await self._repo.save(record)
+        logger.error("form import {} gave up waiting for the sandbox", import_id)
+        return record
+
     async def run(self, import_id: PydanticObjectId) -> FormImportDocument:
         record = await self._repo.get(import_id)
         if record is None or record.status in (
@@ -176,6 +197,15 @@ class ImportPipeline:
             record.error = refused.message
             record.report["refused"] = refused.code
             logger.info("form import {} refused: {}", record.id, refused.code)
+        except SandboxUnavailable as unavailable:
+            # the sandbox, not the document: the job retries; checkpoints keep progress
+            record.status = ImportStatus.QUEUED
+            record.error = "Waiting for the document reader to become available."
+            logger.warning(
+                "form import {} waiting for the sandbox: {}", record.id, unavailable
+            )
+            await self._repo.save(record)
+            raise
         except (
             Exception
         ):  # noqa: BLE001 — reported on the record, logged without content

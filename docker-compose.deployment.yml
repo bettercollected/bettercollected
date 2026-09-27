@@ -1,5 +1,6 @@
 version: '3.7'
 volumes:
+  doc-sandbox:
   mongo-data:
   app-postgres-data:
   umami-db-data:
@@ -165,8 +166,13 @@ services:
       # UMAMI_PASSWORD/UMAMI_WEBSITE_ID need to come from .env.deployment.
       UMAMI_URL: http://umami:3000
       DATABASE_URL: postgresql+asyncpg://bc_app:${BC_APP_PASSWORD}@app-postgres:5432/bettercollected
+      # PDF form import: documents are only opened by the isolated document-sandbox
+      PDF_IMPORT_SANDBOX_SOCKET: /run/doc-sandbox/sandbox.sock
+      PDF_IMPORT_REQUIRE_ISOLATED_SANDBOX: "true"
     env_file:
       - .env.deployment
+    volumes:
+      - doc-sandbox:/run/doc-sandbox
     ports:
       - '8000:8000'
     depends_on:
@@ -185,6 +191,36 @@ services:
       retries: 20
       start_period: 15s
 
+  # Opens uploaded PDF forms for the import (#698, #703). Isolated on purpose:
+  # unprivileged user, no network, read-only filesystem, no capabilities and no
+  # environment file (it holds no secrets). The backend and the jobs worker reach
+  # it over a Unix socket on the doc-sandbox volume.
+  document-sandbox:
+    image: bettercollected/backend:nightly
+    command: ["/api/backend/.venv/bin/python", "-I", "/api/backend/backend/app/services/pdf_import/server.py", "/run/doc-sandbox/sandbox.sock"]
+    user: "65534:65534"
+    network_mode: none
+    read_only: true
+    tmpfs:
+      - /tmp:size=256m,noexec,nosuid,nodev
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 64
+    # DOC_SANDBOX_PARALLEL x PDF_IMPORT_SANDBOX_MEMORY_MB (1536) + 512m for the server
+    mem_limit: 3584m
+    cpus: 2
+    environment:
+      DOC_SANDBOX_PARALLEL: "2"
+    volumes:
+      - doc-sandbox:/run/doc-sandbox
+    healthcheck:
+      test: ["CMD", "/api/backend/.venv/bin/python", "-I", "-c", "import socket; s = socket.socket(socket.AF_UNIX); s.connect('/run/doc-sandbox/sandbox.sock')"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+    restart: unless-stopped
+
   # Consumes the procrastinate `default` queue (delete_user, delete_response) when
   # JOBS_BACKEND routes those to Postgres; same image and env as the backend.
   jobs-worker:
@@ -197,8 +233,13 @@ services:
       # UMAMI_PASSWORD/UMAMI_WEBSITE_ID need to come from .env.deployment.
       UMAMI_URL: http://umami:3000
       DATABASE_URL: postgresql+asyncpg://bc_app:${BC_APP_PASSWORD}@app-postgres:5432/bettercollected
+      # PDF form import: documents are only opened by the isolated document-sandbox
+      PDF_IMPORT_SANDBOX_SOCKET: /run/doc-sandbox/sandbox.sock
+      PDF_IMPORT_REQUIRE_ISOLATED_SANDBOX: "true"
     env_file:
       - .env.deployment
+    volumes:
+      - doc-sandbox:/run/doc-sandbox
     depends_on:
       app-postgres:
         condition: service_healthy
