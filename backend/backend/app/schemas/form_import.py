@@ -62,6 +62,11 @@ class FormImportDocument(MongoDocument):
     report: Dict[str, Any] = {}
     started_at: Optional[dt.datetime] = None
     finished_at: Optional[dt.datetime] = None
+    # the uploading user's explicit consent to send this document's page text
+    # and images to the AI provider; without it only the built-in reader runs
+    ai_consent: bool = False
+    ai_consent_at: Optional[dt.datetime] = None
+    ai_consent_by: Optional[str] = None
 
     class Settings:
         # native dates (no ISO-string encoders): the limits query compares them

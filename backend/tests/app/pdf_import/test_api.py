@@ -384,3 +384,58 @@ async def test_the_form_document_model_is_stored_and_summarised(
     fdm = json.loads(store.objects[key])
     labels = {e["label"] for e in fdm["elements"] if e["type"] == "question"}
     assert {"Full name", "Date of birth", "Account number", "Gender"} <= labels
+
+
+class CountingProvider:
+    """Stands in for the AI provider: counts calls, answers nothing usable."""
+
+    supports_vision = False
+
+    def __init__(self):
+        self.calls = 0
+
+    async def analyze_page(self, system, prompt, image, schema):
+        self.calls += 1
+        return {}
+
+
+async def _import_with(client, workspace, cookies, no_real_ai_provider, **form):
+    provider = CountingProvider()
+    no_real_ai_provider._provider_resolver = lambda: provider
+    response = await client.post(
+        url(workspace),
+        cookies=cookies,
+        files={"file": ("form.pdf", documents.form_pdf(), "application/pdf")},
+        data=form,
+    )
+    assert response.status_code == 202, response.text
+    done = await finished(client, workspace, cookies, response.json()["id"])
+    assert done["status"] == ImportStatus.COMPLETED, done
+    return done, provider
+
+
+async def test_without_consent_nothing_goes_to_the_ai_provider(
+    client, workspace, test_user_cookies, store, no_real_ai_provider
+):
+    for form in ({}, {"ai_consent": "false"}):
+        done, provider = await _import_with(
+            client, workspace, test_user_cookies, no_real_ai_provider, **form
+        )
+        assert provider.calls == 0
+        assert done["aiConsent"] is False
+        assert "AI structuring not used: no consent" in done["report"]["notes"]
+        record = await container.form_import_repo().get(done["id"])
+        assert record.ai_consent is False and record.ai_consent_at is None
+
+
+async def test_with_consent_the_ai_provider_reads_the_pages(
+    client, workspace, test_user_cookies, store, no_real_ai_provider
+):
+    done, provider = await _import_with(
+        client, workspace, test_user_cookies, no_real_ai_provider, ai_consent="true"
+    )
+    assert provider.calls >= 1
+    assert done["aiConsent"] is True
+    record = await container.form_import_repo().get(done["id"])
+    assert record.ai_consent is True and record.ai_consent_at is not None
+    assert record.ai_consent_by

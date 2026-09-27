@@ -190,6 +190,11 @@ progress. Code: `app/services/pdf_import/` (stages), `app/services/pdf_import_se
 - **Stages checkpoint** on the import record (`stages`); a retried job skips
   finished ones. Runs on procrastinate with `JOBS_BACKEND__import_form=postgres`,
   otherwise as a background task in the API process.
+- **AI needs consent per import:** nothing from an uploaded document (page text,
+  layout text, page images) goes to an AI provider unless the uploader sent
+  `ai_consent=true` with that upload (stored with `ai_consent_at`/`_by`). Without it
+  `_structure` passes no provider and only the deterministic structuring runs. The
+  workspace AI opt-in (#715) will be required on top of it.
 - **Document text stays in private import artifacts** (`text.json`, `layout.json`,
   next to the original, deleted with the form). Never copy values found in an
   uploaded document into the form, import records or logs, and send the model only

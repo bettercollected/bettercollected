@@ -10,7 +10,7 @@ from typing import Any, Dict, List, Optional
 
 from beanie import PydanticObjectId
 from classy_fastapi import Routable, get, post
-from fastapi import Depends, File, UploadFile
+from fastapi import Depends, File, Form, UploadFile
 from fastapi_camelcase import CamelModel
 
 from backend.app.container import container
@@ -37,6 +37,7 @@ class PdfImportDto(CamelModel):
     page_count: Optional[int] = None
     pages: List[PageAnalysis] = []
     report: Dict[str, Any] = {}
+    ai_consent: bool = False
     created_at: Optional[dt.datetime] = None
     finished_at: Optional[dt.datetime] = None
 
@@ -54,6 +55,7 @@ class PdfImportDto(CamelModel):
             page_count=record.page_count,
             pages=record.pages,
             report=record.report,
+            ai_consent=bool(record.ai_consent),
             created_at=record.created_at,
             finished_at=record.finished_at,
         )
@@ -79,12 +81,16 @@ class PdfImportRouter(Routable):
         self,
         workspace_id: PydanticObjectId,
         file: UploadFile = File(...),
+        # off unless the client sends it: consent to use the AI provider
+        ai_consent: bool = Form(False),
         user: User = Depends(get_logged_user),
     ):
         service = container.pdf_import_service()
         limit = service.max_bytes
         data = await _read_capped(file, limit)
-        record = await service.start(workspace_id, data, file.filename, user)
+        record = await service.start(
+            workspace_id, data, file.filename, user, ai_consent=ai_consent
+        )
         return PdfImportDto.of(record)
 
     @get("", response_model=List[PdfImportDto])

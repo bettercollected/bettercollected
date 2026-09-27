@@ -266,7 +266,13 @@ class ImportPipeline:
             for p in (record.stages.get("render") or {}).get("pages", [])
         }
         provider = None
-        if self._provider_resolver is not None:
+        if not record.ai_consent:
+            # no consent for this import: nothing from the document goes to an
+            # AI provider, only the deterministic structuring runs
+            record.report.setdefault("notes", []).append(
+                "AI structuring not used: no consent"
+            )
+        elif self._provider_resolver is not None:
             try:
                 provider = self._provider_resolver()
             except (
