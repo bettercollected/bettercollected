@@ -6,7 +6,7 @@ import { FormSlideLayout } from '@app/models/enums/form';
 import { Button } from '@app/shadcn/components/ui/button';
 import { cn } from '@app/shadcn/util/lib';
 import { selectAuth } from '@app/store/auth/slice';
-import { selectForm } from '@app/store/forms/slice';
+import { selectResponderForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { useResponderState } from '@app/store/jotai/responder-form-state';
 import { selectWorkspace } from '@app/store/workspaces/slice';
@@ -24,7 +24,7 @@ export default function WelcomePage({
     welcomePageData?: any;
     theme?: FormTheme;
 }>) {
-    const standardForm = useAppSelector(selectForm);
+    const standardForm = useAppSelector(selectResponderForm);
     const { nextSlide } = useResponderState();
     const router = useRouter();
     const pathname = usePathname();

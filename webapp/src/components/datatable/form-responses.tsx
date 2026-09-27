@@ -18,6 +18,7 @@ import ResponsesTable from './responses-table';
 import { StandardFormResponseDto } from '@app/models/dtos/form';
 import { selectAuth } from '@app/store/auth/slice';
 import { getAnswerForField, getFormFields, getTitleForHeader } from '@app/utils/form-builder-block-utils';
+import { getInternalAnswerText, getInternalColumnTitle, getInternalFields } from '@app/utils/internal-fields';
 import { CSVLink } from 'react-csv';
 
 export default function FormResponsesTable({ props }: any) {
@@ -57,6 +58,7 @@ export default function FormResponsesTable({ props }: any) {
             const fieldResponse: Array<number | string> = [response?.dataOwnerIdentifier || '- -'];
             const singleFieldResponses = getFormFields(form).map((field) => field && (getAnswerForField(response, field) ?? ''));
             singleFieldResponses.forEach((response) => fieldResponse.push(response ?? ''));
+            getInternalFields(form).forEach((field) => fieldResponse.push(getInternalAnswerText(response, field) ?? ''));
             return fieldResponse;
         });
     };
@@ -65,6 +67,8 @@ export default function FormResponsesTable({ props }: any) {
         const fieldTitles = ['Responder ID'];
         const fieldQuestions = getFormFields(form);
         fieldQuestions.forEach((field) => fieldTitles.push(getTitleForHeader(field, form) ?? ''));
+        // Internal (staff-entered) columns, after the respondent's answers.
+        getInternalFields(form).forEach((field) => fieldTitles.push(getInternalColumnTitle(field)));
         return fieldTitles;
     };
 

@@ -18,6 +18,7 @@ import { IGetFormSubmissionsQuery } from '@app/store/workspaces/types';
 import { utcToLocalDateTIme } from '@app/utils/date-utils';
 import { downloadFile } from '@app/utils/file-utils';
 import { getAnswerForField, getFormFields, getTitleForHeader } from '@app/utils/form-builder-block-utils';
+import { getInternalAnswerText, getInternalColumnTitle, getInternalFields } from '@app/utils/internal-fields';
 import { dataTableCustomStyles } from '@Components/datatable/datatable-styles';
 import { ExpandIcon } from '@Components/icons/expanded-icon';
 
@@ -130,7 +131,7 @@ export default function TabularResponses({ form }: TabularResponsesProps) {
             workspace_id: workspace?.id ?? '',
             submission_id: response.responseId
         }).then((result: any) => {
-            openModal('VIEW_RESPONSE', { response: result.data.response, formFields: getFormFields(result.data.form), form: result.data.form, formId: result.data.form.formId, workspaceId: workspace.id });
+            openModal('VIEW_RESPONSE', { response: result.data.response, formFields: getFormFields(result.data.form), form: result.data.form, formId: result.data.form.formId, workspaceId: workspace.id, internalFields: result.data.internalFields });
         });
     };
 
@@ -166,6 +167,18 @@ export default function TabularResponses({ form }: TabularResponsesProps) {
         ...getFormFields(form).map((field: any) => ({
             name: getTitleForHeaderForTable(field),
             selector: (response: StandardFormResponseDto) => getAnswerField(response, field),
+            style: cellStyle,
+            width: '200px'
+        })),
+        // Staff-only "office use" fields, filled in per response — clearly
+        // labelled so they are never mistaken for what the respondent said.
+        ...getInternalFields(form).map((field) => ({
+            name: (
+                <span title={getInternalColumnTitle(field)} className="p3-new !text-black-600 w-[180px] truncate italic">
+                    {getInternalColumnTitle(field)}
+                </span>
+            ),
+            selector: (response: StandardFormResponseDto) => <div className={cn('!text-black-600 p2-new w-[180px] truncate')}>{getInternalAnswerText(response, field)}</div>,
             style: cellStyle,
             width: '200px'
         }))

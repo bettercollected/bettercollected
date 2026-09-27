@@ -10,10 +10,11 @@ import { useActiveFieldComponent } from '@app/store/jotai/active-builder-compone
 import { extractTextfromJSON } from '@app/utils/richTextEditorExtenstion/get-html-from-json';
 import { formFieldsList } from '@app/constants/form-fields';
 import FieldConditionalLogicEditor from '@app/views/molecules/form-builder/field-conditional-logic';
+import { canBeInternal } from '@app/utils/internal-fields';
 
 export default function FieldSettings() {
     const { setActiveFieldComponent } = useActiveFieldComponent();
-    const { updateFieldRequired, activeSlide, activeField, updateDescription, updateFieldProperty, updateFieldColSpan, updateRatingSteps, updateFieldImage, updateAllowMultipleSelectionMatrixField } = useFormFieldsAtom();
+    const { updateFieldRequired, updateFieldInternal, activeSlide, activeField, updateDescription, updateFieldProperty, updateFieldColSpan, updateRatingSteps, updateFieldImage, updateAllowMultipleSelectionMatrixField } = useFormFieldsAtom();
 
     const [errorMsg, setErrorMsg] = useState('');
     const [stepValue, setStepValue] = useState(activeField?.properties?.steps);
@@ -109,6 +110,25 @@ export default function FieldSettings() {
                     />
                 </div>
             )}
+            {canBeInternal(activeField) && (
+                <div className="flex w-full flex-col gap-1">
+                    <div className="flex w-full items-center justify-between">
+                        <div className="text-black-700 mr-4 text-xs">Internal (staff only)</div>
+                        <Switch
+                            aria-label="Internal field, filled in by your team"
+                            checked={!!activeField?.internal}
+                            onCheckedChange={(checked) => {
+                                updateFieldInternal(activeField!.index, activeSlide!.index, checked);
+                            }}
+                        />
+                    </div>
+                    <p className="text-black-500 text-[11px] leading-relaxed">
+                        {activeField?.internal
+                            ? 'Respondents never see this field. Your team fills it in on each response. Required applies to your team, not respondents.'
+                            : 'For office use only: hide this field from respondents and fill it in on each response.'}
+                    </p>
+                </div>
+            )}
             {!NonImageFieldType.includes(activeField?.type) && (
                 <div className="flex w-full items-center justify-between">
                     <div className="text-black-700 text-xs">Field Image</div>
@@ -169,7 +189,7 @@ export default function FieldSettings() {
                 </div>
             )}
 
-            <FieldConditionalLogicEditor />
+            {!activeField?.internal && <FieldConditionalLogicEditor />}
         </div>
     );
 }

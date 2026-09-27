@@ -1,6 +1,6 @@
 import { atom, useAtom } from 'jotai';
 
-import { selectForm } from '../forms/slice';
+import { selectResponderForm } from '../forms/slice';
 import { useAppSelector } from '../hooks';
 
 export interface ResponderFormState {
@@ -27,7 +27,7 @@ const responderFormStateAtom = atom<ResponderFormState>(initialresponderState);
 export const useResponderState = () => {
     const [responderState, setResponderState] = useAtom(responderFormStateAtom);
 
-    const standardForm = useAppSelector(selectForm);
+    const standardForm = useAppSelector(selectResponderForm);
 
     // Move to an arbitrary slide (linear next or a page-jump target), recording the
     // slide we came from so Back can retrace it.

@@ -6,7 +6,7 @@ import { Button } from '@app/shadcn/components/ui/button';
 import { useToast } from '@app/shadcn/components/ui/use-toast';
 import { cn } from '@app/shadcn/util/lib';
 import { selectAuth } from '@app/store/auth/slice';
-import { selectForm } from '@app/store/forms/slice';
+import { selectResponderForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { useFormResponse } from '@app/store/jotai/responder-form-response';
 import { useHiddenFieldValues } from '@app/store/jotai/responder-hidden-fields';
@@ -19,7 +19,7 @@ import useCopyToClipboard from 'react-use/lib/useCopyToClipboard';
 
 export default function ThankyouPage({ isPreviewMode }: { isPreviewMode: boolean }) {
     const { toast } = useToast();
-    const standardForm = useAppSelector(selectForm);
+    const standardForm = useAppSelector(selectResponderForm);
     const workspace = useAppSelector(selectWorkspace);
     const auth = useAppSelector(selectAuth);
     const submissionUrl = window.PUBLIC_CONFIG?.HTTP_SCHEME + window.PUBLIC_CONFIG?.FORM_DOMAIN + '/' + workspace.workspaceName;

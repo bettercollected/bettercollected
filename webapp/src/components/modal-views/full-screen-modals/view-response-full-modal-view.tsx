@@ -12,6 +12,8 @@ import { utcToLocalDateTIme } from '@app/utils/date-utils';
 import { downloadFile } from '@app/utils/file-utils';
 import { resolvePipesInTitle, titleHasPipes } from '@app/utils/answer-piping';
 import { getAnswerForField, getTitleForHeader } from '@app/utils/form-builder-block-utils';
+import { getInternalFields } from '@app/utils/internal-fields';
+import InternalFieldsPanel from '@Components/form/internal-fields-panel';
 import DeleteIcon from '@Components/icons/delete';
 import { motion } from 'framer-motion';
 import { MoreVertical } from 'lucide-react';
@@ -27,9 +29,13 @@ interface IViewResponseFullModalView {
     form?: StandardFormDto;
     formId: string;
     workspaceId: string;
+    // The form's current internal ("office use") fields, from the submission
+    // endpoint (members only). Falls back to the ones on `form`.
+    internalFields?: StandardFormFieldDto[];
 }
 
-const ViewResponseFullModalView = ({ response, formFields, form, formId, workspaceId }: IViewResponseFullModalView) => {
+const ViewResponseFullModalView = ({ response, formFields, form, formId, workspaceId, internalFields }: IViewResponseFullModalView) => {
+    const staffFields = internalFields ?? getInternalFields(form);
     const { toast } = useToast();
     const { closeModal } = useFullScreenModal();
 
@@ -53,7 +59,14 @@ const ViewResponseFullModalView = ({ response, formFields, form, formId, workspa
                 </div>
             </div>
             <Separator />
-            <IndividualFormResponse className="h-[90vh] overflow-y-auto" formFields={formFields} response={response} form={form} />
+            <div className="h-[90vh] overflow-y-auto">
+                <IndividualFormResponse formFields={formFields} response={response} form={form} />
+                {staffFields.length > 0 && (
+                    <div className="px-4 pb-8">
+                        <InternalFieldsPanel key={response.responseId} fields={staffFields} response={response} formId={formId} workspaceId={workspaceId} />
+                    </div>
+                )}
+            </div>
         </motion.div>
     );
 };

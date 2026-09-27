@@ -1,7 +1,7 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 
 import environments from '@app/configs/environments';
-import { StandardFormDto, StandardFormResponseDto, WorkspaceResponderDto } from '@app/models/dtos/form';
+import { AnswerDto, InternalAnswerMeta, StandardFormDto, StandardFormResponseDto, WorkspaceResponderDto } from '@app/models/dtos/form';
 import { ResponderGroupDto } from '@app/models/dtos/groups';
 import { Page } from '@app/models/dtos/page';
 import { WorkspaceDto } from '@app/models/dtos/workspace-dto';
@@ -317,6 +317,16 @@ export const workspacesApi = createApi({
                 method: 'GET'
             }),
             providesTags: [WORKSPACE_TAGS, SUBMISSION_TAG]
+        }),
+        // Staff fill in / clear a submission's internal ("office use") fields.
+        // `answers` maps internal field id -> answer, or null to clear it.
+        updateInternalAnswers: builder.mutation<{ internalAnswers: Record<string, AnswerDto>; internalAnswersMeta: Record<string, InternalAnswerMeta> }, { workspaceId: string; formId: string; responseId: string; answers: Record<string, Record<string, any> | null> }>({
+            query: ({ workspaceId, formId, responseId, answers }) => ({
+                url: `/workspaces/${workspaceId}/forms/${formId}/submissions/${responseId}/internal-answers`,
+                method: 'PATCH',
+                body: { answers }
+            }),
+            invalidatesTags: [SUBMISSION_TAG]
         }),
         getWorkspaceStats: builder.query<WorkspaceStatsDto, string>({
             query: (id) => ({
@@ -650,5 +660,6 @@ export const {
     useGetFormAllSubmissionsQuery,
     useLazyGetFormAllSubmissionsQuery,
     useVerifyWorkspaceDomainQuery,
-    useRecheckWorkspaceDomainMutation
+    useRecheckWorkspaceDomainMutation,
+    useUpdateInternalAnswersMutation
 } = workspacesApi;

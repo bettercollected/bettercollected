@@ -38,9 +38,10 @@ export function getPlaceholderValueForField(fieldType?: FieldTypes) {
 
 const IgnoredResponsesFieldType = [FieldTypes.TEXT, null, FieldTypes.IMAGE_CONTENT, FieldTypes.VIDEO_CONTENT];
 
+/** The respondent-answered questions of a v2 form (internal fields excluded — see utils/internal-fields). */
 export const getFieldsFromV2Form = (form: StandardFormDto): StandardFormFieldDto[] => {
     const fields = form.fields.map((slide) => {
-        const filteredFields = slide?.properties?.fields?.filter((field: StandardFormFieldDto) => !IgnoredResponsesFieldType.includes(field.type));
+        const filteredFields = slide?.properties?.fields?.filter((field: StandardFormFieldDto) => !IgnoredResponsesFieldType.includes(field.type) && !field?.internal);
         const filteredFieldsWithMatrix = filteredFields?.map((field: StandardFormFieldDto) => {
             if (field?.type !== FieldTypes.MATRIX) {
                 return field;

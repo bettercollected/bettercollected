@@ -1,4 +1,4 @@
-import { createSlice } from '@reduxjs/toolkit';
+import { createSelector, createSlice } from '@reduxjs/toolkit';
 import { persistReducer } from 'redux-persist';
 import storage from 'redux-persist/lib/storage';
 
@@ -6,6 +6,7 @@ import { StandardFormDto } from '@app/models/dtos/form';
 import { Plan } from '@app/models/dtos/user-status';
 import { FormSlideLayout } from '@app/models/enums/form';
 import { RootState } from '@app/store/store';
+import { stripInternalFields } from '@app/utils/internal-fields';
 
 export const initFormState: StandardFormDto = {
     formId: '',
@@ -79,6 +80,12 @@ const formReducer = persistReducer(
 const reducerObj = { reducerPath: slice.name, reducer: formReducer };
 
 export const selectForm = (state: RootState) => state.form;
+/**
+ * The form as respondents see it — internal fields removed. Every responder
+ * surface (public page, preview) reads this, so a workspace member opening
+ * their own form never sees staff-only fields either.
+ */
+export const selectResponderForm = createSelector([selectForm], (form) => stripInternalFields(form));
 export const { setForm, setFormSettings, resetSingleForm } = slice.actions;
 
 export default reducerObj;
