@@ -4,15 +4,29 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { Provider as ReduxProvider } from 'react-redux';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { setForm } from '@app/store/forms/slice';
+import { store } from '@app/store/store';
+
+import AIInsightsCard from './ai-insights-card';
+
 const cachedQueryMock: { data: any } = { data: undefined };
 const generateMock = vi.fn();
+const updateInsightsSettingsMock = vi.fn();
 vi.mock('@app/store/redux/form-api', async (importOriginal) => {
     const actual: any = await importOriginal();
     return {
         ...actual,
         useGetAIInsightsQuery: () => cachedQueryMock,
-        useGenerateAIInsightsMutation: () => [generateMock, { isLoading: false }]
+        useGenerateAIInsightsMutation: () => [generateMock, { isLoading: false }],
+        useUpdateAIInsightsSettingsMutation: () => [updateInsightsSettingsMock, { isLoading: false }]
     };
+});
+
+// Insights are for workspace admins only (#716).
+const auth = { isAdmin: true };
+vi.mock('@app/store/auth/slice', async (importOriginal) => {
+    const actual: any = await importOriginal();
+    return { ...actual, selectIsAdmin: () => auth.isAdmin };
 });
 
 // Workspace AI opt-in (#715): on unless a test turns it off.
@@ -38,8 +52,8 @@ vi.mock('@app/store/workspaces/api', async (importOriginal) => {
     };
 });
 
-import { store } from '@app/store/store';
-import AIInsightsCard from './ai-insights-card';
+const ALLOWED = { aiInsightsEnabled: true, aiInsightsProvider: 'openai', aiInsightsProviderName: 'OpenAI', aiInsightsEnabledAt: '2026-07-01T09:00:00Z' };
+const withFormSettings = (settings: Record<string, any>) => store.dispatch(setForm({ formId: 'form-insights-1', title: 'Feedback', settings }));
 
 const INSIGHT = {
     summary: 'Respondents love onboarding but find billing confusing.',
@@ -63,6 +77,9 @@ describe('AIInsightsCard', () => {
         generateMock.mockReset();
         cachedQueryMock.data = undefined;
         aiSettingsMock.data = { ...AI_ON };
+        auth.isAdmin = true;
+        updateInsightsSettingsMock.mockReset();
+        withFormSettings({ ...ALLOWED });
     });
 
     it('empty state states the opt-in contract and offers one explicit action', () => {
@@ -102,6 +119,28 @@ describe('AIInsightsCard', () => {
         expect(screen.getByText('AI is off for this workspace')).toBeDefined();
         expect(screen.queryByRole('button', { name: /Summarize responses/ })).toBeNull();
         expect(generateMock).not.toHaveBeenCalled();
+    });
+
+    it('while the form does not allow AI insights, an admin can allow them, and is told what respondents will see', async () => {
+        withFormSettings({});
+        updateInsightsSettingsMock.mockResolvedValue({ data: { enabled: true, provider: 'openai', providerName: 'OpenAI', enabledAt: '2026-07-10T09:00:00Z' } });
+        renderCard();
+
+        expect(screen.getByText(/respondents see a notice/)).toBeDefined();
+        expect(screen.getByText(/Responses already\s+collected are not analysed/)).toBeDefined();
+        expect(screen.queryByRole('button', { name: /Summarize responses/ })).toBeNull();
+
+        fireEvent.click(screen.getByRole('button', { name: 'Allow AI insights on responses' }));
+        await waitFor(() => expect(updateInsightsSettingsMock).toHaveBeenCalledWith(expect.objectContaining({ enabled: true })));
+        await waitFor(() => expect(screen.getByRole('button', { name: /Summarize responses/ })).toBeDefined());
+        expect(generateMock).not.toHaveBeenCalled();
+    });
+
+    it('members who are not admins cannot run insights', () => {
+        auth.isAdmin = false;
+        renderCard();
+        expect(screen.getByText(/Only workspace admins/)).toBeDefined();
+        expect(screen.queryByRole('button', { name: /Summarize responses/ })).toBeNull();
     });
 
     it('errors are stated honestly in place', async () => {

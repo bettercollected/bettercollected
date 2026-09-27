@@ -19,6 +19,14 @@ describe('TrustLayer — the privacy story on every form (Design-Language §4)',
         expect(screen.queryByRole('link', { name: /how your data is used/i })).not.toBeInTheDocument();
     });
 
+    it('tells respondents when responses may be analysed by an AI provider, naming it', () => {
+        const { rerender } = render(<TrustLayer ownerName="Acme" aiProviderName="OpenAI" />);
+        expect(screen.getByText(/may be analysed by an AI provider \(OpenAI\)/)).toBeInTheDocument();
+
+        rerender(<TrustLayer ownerName="Acme" />);
+        expect(screen.queryByText(/AI provider/)).not.toBeInTheDocument();
+    });
+
     it('always states the right to view or delete the response', () => {
         render(<TrustLayer ownerName="Acme" />);
         expect(screen.getByText(/view or delete your response/i)).toBeInTheDocument();
