@@ -107,6 +107,26 @@ export function resolvePipeValue(kind: PipeKind | string, pipeKey: string, conte
 // `{{field:<id>}}` / `{{hidden:<name>|fallback}}` — key stops at `|` or `}`.
 const TEXT_PIPE_PATTERN = /\{\{\s*(field|hidden|group)\s*:\s*([^}|]+?)\s*(?:\|([^}]*))?\}\}/g;
 
+/**
+ * Turn a plain-string title into TipTap JSON, text tokens becoming pipe
+ * nodes. Rendering then goes through the JSON path, where piped answers are
+ * text nodes (escaped when turned into HTML) instead of raw HTML.
+ */
+export function stringTitleToDoc(text: string): JSONContent {
+    const content: JSONContent[] = [];
+    let last = 0;
+    TEXT_PIPE_PATTERN.lastIndex = 0;
+    let match: RegExpExecArray | null;
+    while ((match = TEXT_PIPE_PATTERN.exec(text)) !== null) {
+        if (match.index > last) content.push({ type: 'text', text: text.slice(last, match.index) });
+        content.push({ type: ANSWER_PIPE_NODE, attrs: { kind: match[1], pipeKey: match[2].trim(), label: match[2].trim(), fallback: (match[3] ?? '').trim() } });
+        last = match.index + match[0].length;
+    }
+    if (last < text.length) content.push({ type: 'text', text: text.slice(last) });
+    TEXT_PIPE_PATTERN.lastIndex = 0;
+    return { type: 'doc', content: [{ type: 'paragraph', content }] };
+}
+
 /** Resolve text-token pipes in a plain string (descriptions, thank-you text). */
 export function resolvePipesInText(text: string | null | undefined, context: PipeContext): string | null | undefined {
     if (!text || typeof text !== 'string') return text;
