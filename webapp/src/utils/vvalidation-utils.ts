@@ -283,6 +283,8 @@ export const validateConditionsAndReturnUpdatedForm = (formToUpdate: StandardFor
 export function validateSlide(slide: StandardFormFieldDto, answers: Record<string, any>) {
     const invalidFields: Record<string, Array<Invalidations>> = {};
     slide?.properties?.fields?.forEach((field) => {
+        // Repeating groups validate per item (utils/repeating-groups.ts).
+        if ((field.type as string) === 'group' && field.properties?.repeat) return;
         if (field.type === FieldType.MATRIX && field?.validations?.required) {
             field.properties?.fields?.map((row: StandardFormFieldDto) => {
                 if (field.properties?.allowMultipleSelection) {

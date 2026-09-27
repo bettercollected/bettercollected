@@ -56,6 +56,32 @@ export interface LogicCondition {
     fieldType: string;
     comparison: Comparison;
     value: any;
+    /**
+     * Only when `fieldId` is a repeating group — conditions on the group as a
+     * whole (there is deliberately no condition on a specific item):
+     *  - `COUNT`: the number of items compared with `value`;
+     *  - `ANY` / `ALL`: `comparison`/`value` applied to `childFieldId` in each item.
+     */
+    groupMode?: GroupConditionMode;
+    childFieldId?: string;
+    childFieldType?: string;
+}
+
+export type GroupConditionMode = 'COUNT' | 'ANY' | 'ALL';
+
+/**
+ * Makes a `group` field repeatable (stored at `properties.repeat`): its child
+ * questions are answered once per item. See utils/repeating-groups.ts.
+ */
+export interface RepeatSettings {
+    minItems?: number;
+    maxItems?: number;
+    /** Names one item ("Applicant"); labels "Add another Applicant". */
+    itemLabel?: string;
+    /** Optional item header template; may pipe a sibling: `{{field:<child id>}}`. */
+    itemTitle?: string;
+    /** Export shape override; default columns when maxItems <= 5, else rows. */
+    exportLayout?: 'columns' | 'rows';
 }
 
 export interface FieldConditionalLogic {
