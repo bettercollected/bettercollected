@@ -57,9 +57,17 @@ object — no markdown fences, no extra text:
 
 Operations (camelCase keys, referencing the ids from the form snapshot):
 - {"op":"add_field","pageId":"...","field":{"title":"...","type":"<type>","required":true?,"placeholder":"?","choices":["?"],"steps":5?,"colSpan":6?,"internal":true?},"afterFieldId":"?","index":0?}
+  (use "groupId" instead of "pageId" to add the question into a repeating group; internal
+  fields cannot go inside a group)
+- {"op":"add_group","pageId":"...","title":"...","itemLabel":"Applicant","minItems":1,"maxItems":3,"itemTitle":"{{field:<child id>}}"?,"exportLayout":"columns"|"rows"?,"fields":[<field specs>],"afterFieldId":"?","index":0?}
+  (a repeating group: respondents fill its questions once per item — one block per
+  applicant, employer, item — between minItems and maxItems times; "Add another <itemLabel>"
+  appears automatically. Use it for "list each ...". Groups cannot be nested; file_upload
+  and internal fields cannot go inside a group.)
 - {"op":"update_field","fieldId":"...","patch":{"title":"?","description":"?","required":true?,"placeholder":"?","choices":["?"],"steps":5?,"colSpan":6?,"internal":true?}}
+  (on a group the patch may also set "minItems","maxItems","itemLabel","itemTitle","exportLayout")
 - {"op":"remove_field","fieldId":"..."}
-- {"op":"move_field","fieldId":"...","toPageId":"?","index":0}
+- {"op":"move_field","fieldId":"...","toPageId":"?","toGroupId":"?","index":0}
 - {"op":"add_page","index":0?,"fields":[<field specs>]?}
 - {"op":"remove_page","pageId":"..."}
 - {"op":"update_form_info","title":"?","description":"?"}
@@ -67,7 +75,12 @@ Operations (camelCase keys, referencing the ids from the form snapshot):
   (conditional visibility — "show X only when Y is ...". The rule sits on the TARGET field.
   Comparisons: IS_EMPTY, IS_NOT_EMPTY, IS_EQUAL, IS_NOT_EQUAL, CONTAINS, DOES_NOT_CONTAIN,
   LESS_THAN, LESS_THAN_EQUAL, GREATER_THAN, GREATER_THAN_EQUAL, STARTS_WITH, ENDS_WITH.
-  Choice conditions use the choice LABEL; yes/no uses "Yes"/"No". "logic":null clears.)
+  Choice conditions use the choice LABEL; yes/no uses "Yes"/"No". "logic":null clears.
+  Inside a repeating group, a condition on a sibling question means "in the same item".
+  Outside the group, refer to the group itself: {"fieldId":"<group id>","groupMode":"COUNT",
+  "comparison":"GREATER_THAN_EQUAL","value":2} (number of items), or "groupMode":"ANY"|"ALL"
+  with "childFieldId":"<question in the group>" plus comparison/value. There is no
+  condition on a specific item position.)
 - {"op":"set_page_jumps","pageId":"...","jumps":[{"operator":"AND","conditions":[...],"target":"<page id or __SUBMIT__>"}]}
   (branching after a page; first matching jump wins, no match = next page. "jumps":null clears.)
 - {"op":"duplicate_page","pageId":"...","index":0?} (clones a page with all fields, fresh ids)
@@ -93,6 +106,56 @@ Rules:
 - If the request is unclear or nothing needs to change, return "ops": [] and ask in "reply"."""
 
 
+def _project_condition(c) -> dict:
+    entry = {"fieldId": c.field_id, "comparison": c.comparison, "value": c.value}
+    if getattr(c, "group_mode", None):
+        entry["groupMode"] = c.group_mode
+        if c.child_field_id:
+            entry["childFieldId"] = c.child_field_id
+    return entry
+
+
+def _project_field(f) -> dict:
+    entry = {
+        "id": f.id,
+        "type": getattr(f.type, "value", f.type),
+        "title": f.title if isinstance(f.title, str) else "(rich text)",
+    }
+    if f.validations and f.validations.required:
+        entry["required"] = True
+    if getattr(f, "internal", None):
+        entry["internal"] = True
+    props = f.properties
+    if props:
+        if props.choices:
+            entry["choices"] = [c.value for c in props.choices]
+        if props.steps:
+            entry["steps"] = props.steps
+        if props.placeholder:
+            entry["placeholder"] = props.placeholder
+        if getattr(props, "col_span", None):
+            entry["colSpan"] = props.col_span
+        if getattr(props, "logic", None) and props.logic.conditions:
+            entry["logic"] = {
+                "action": props.logic.action,
+                "operator": props.logic.operator,
+                "conditions": [
+                    _project_condition(c)
+                    for c in props.logic.conditions
+                ],
+            }
+    repeat = getattr(props, "repeat", None) if props else None
+    if repeat is not None:
+        entry["repeatingGroup"] = {
+            "itemLabel": repeat.item_label,
+            "minItems": repeat.effective_min,
+            "maxItems": repeat.effective_max,
+            "exportLayout": repeat.effective_export_layout,
+        }
+        entry["fields"] = [_project_field(c) for c in (props.fields or [])]
+    return entry
+
+
 def project_form(form, settings=None) -> str:
     """Compact JSON snapshot of a form for the chat context window.
 
@@ -109,35 +172,7 @@ def project_form(form, settings=None) -> str:
             continue
         fields = []
         for f in (slide.properties.fields if slide.properties else None) or []:
-            entry = {
-                "id": f.id,
-                "type": getattr(f.type, "value", f.type),
-                "title": f.title if isinstance(f.title, str) else "(rich text)",
-            }
-            if f.validations and f.validations.required:
-                entry["required"] = True
-            if getattr(f, "internal", None):
-                entry["internal"] = True
-            props = f.properties
-            if props:
-                if props.choices:
-                    entry["choices"] = [c.value for c in props.choices]
-                if props.steps:
-                    entry["steps"] = props.steps
-                if props.placeholder:
-                    entry["placeholder"] = props.placeholder
-                if getattr(props, "col_span", None):
-                    entry["colSpan"] = props.col_span
-                if getattr(props, "logic", None) and props.logic.conditions:
-                    entry["logic"] = {
-                        "action": props.logic.action,
-                        "operator": props.logic.operator,
-                        "conditions": [
-                            {"fieldId": c.field_id, "comparison": c.comparison, "value": c.value}
-                            for c in props.logic.conditions
-                        ],
-                    }
-            fields.append(entry)
+            fields.append(_project_field(f))
         page_entry = {"pageId": slide.id, "index": slide.index, "fields": fields}
         if slide.properties and slide.properties.jumps:
             page_entry["jumps"] = [
@@ -145,7 +180,7 @@ def project_form(form, settings=None) -> str:
                     "operator": j.operator,
                     "target": j.target,
                     "conditions": [
-                        {"fieldId": c.field_id, "comparison": c.comparison, "value": c.value}
+                        _project_condition(c)
                         for c in (j.conditions or [])
                     ],
                 }

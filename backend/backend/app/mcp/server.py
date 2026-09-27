@@ -216,10 +216,14 @@ async def update_form(form_id: str, ops: List[Dict[str, Any]]) -> str:
     {"op":"add_field","pageId":str,"field":{"title":str,"type":str,"required"?:bool,
     "placeholder"?:str,"choices"?:[str],"steps"?:int,"internal"?:bool},"afterFieldId"?:str,"index"?:int} ·
     ("internal": a staff-only "for office use" field, never shown to respondents;
-    logic cannot depend on it) ·
+    logic cannot depend on it; not allowed inside a repeating group)
+    (or "groupId" instead of "pageId": add into a repeating group) ·
+    {"op":"add_group","pageId":str,"title":str,"itemLabel":str,"minItems":int,"maxItems":int,
+    "itemTitle"?:str,"exportLayout"?:"columns"|"rows","fields":[field]} (repeating group:
+    questions filled once per item, e.g. per applicant; no nesting, no file_upload inside) ·
     {"op":"update_field","fieldId":str,"patch":{...same keys as field}} ·
     {"op":"remove_field","fieldId":str} ·
-    {"op":"move_field","fieldId":str,"toPageId"?:str,"index":int} ·
+    {"op":"move_field","fieldId":str,"toPageId"?:str,"toGroupId"?:str,"index":int} ·
     {"op":"add_page","index"?:int,"fields"?:[field]} · {"op":"remove_page","pageId":str} ·
     {"op":"update_form_info","title"?:str,"description"?:str} ·
     {"op":"update_form_settings","patch":{"purpose"?:str,"retentionText"?:str,
@@ -227,7 +231,9 @@ async def update_form(form_id: str, ops: List[Dict[str, Any]]) -> str:
     "showSubmissionNumber"?:bool}} (trust metadata; "" clears a text value) ·
     {"op":"set_field_logic","fieldId":str,"logic":{"action":"SHOW"|"HIDE","operator":"AND"|"OR",
     "conditions":[{"fieldId":str,"comparison":"IS_EQUAL"|"IS_NOT_EQUAL"|"CONTAINS"|"IS_EMPTY"|...,
-    "value"?:any}]}|null} (conditional visibility; choice values use the LABEL, yes/no uses "Yes"/"No") ·
+    "value"?:any}]}|null} (conditional visibility; choice values use the LABEL, yes/no uses "Yes"/"No";
+    a repeating group is referenced as a whole: "groupMode":"COUNT"|"ANY"|"ALL", with
+    "childFieldId" for ANY/ALL; siblings inside a group refer to the same item) ·
     {"op":"set_page_jumps","pageId":str,"jumps":[{"operator":"AND"|"OR","conditions":[...],
     "target":"<page id or __SUBMIT__>"}]|null} (branching) ·
     {"op":"duplicate_page","pageId":str,"index"?:int} (clone a page, fresh ids).
