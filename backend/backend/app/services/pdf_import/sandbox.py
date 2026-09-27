@@ -70,8 +70,10 @@ async def _over_socket(
         )
     except TooMuchOutput:
         raise too_complex()
-    except asyncio.TimeoutError:
-        raise DocumentRefused("timeout", "This document took too long to read.")
+    except asyncio.TimeoutError as error:
+        # the server enforces the document's own timeout and answers with a
+        # refusal; no answer at all means it is overloaded or stuck
+        raise SandboxUnavailable("no reply from the sandbox") from error
     except (
         asyncio.IncompleteReadError,
         ConnectionResetError,

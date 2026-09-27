@@ -207,7 +207,8 @@ services:
     security_opt:
       - no-new-privileges:true
     pids_limit: 64
-    mem_limit: 3g
+    # DOC_SANDBOX_PARALLEL x PDF_IMPORT_SANDBOX_MEMORY_MB (1536) + 512m for the server
+    mem_limit: 3584m
     cpus: 2
     environment:
       DOC_SANDBOX_PARALLEL: "2"

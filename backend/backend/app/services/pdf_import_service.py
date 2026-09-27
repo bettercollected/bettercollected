@@ -150,9 +150,7 @@ class PdfImportService:
                 return
             except SandboxUnavailable:
                 if delay is None:
-                    logger.error(
-                        "form import {} gave up waiting for the sandbox", import_id
-                    )
+                    await self._pipeline.give_up(import_id)
                     return
                 await asyncio.sleep(delay)
             except Exception:  # noqa: BLE001 — the pipeline records its own failures
