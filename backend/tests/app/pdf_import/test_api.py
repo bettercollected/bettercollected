@@ -260,3 +260,30 @@ async def test_photo_uploads_have_no_text_stage_work(
     done = await finished(client, workspace, test_user_cookies, response.json()["id"])
     assert done["status"] == ImportStatus.COMPLETED
     assert not [k for k in store.objects if k.endswith("/text.json")]
+
+
+async def test_layout_primitives_are_stored_next_to_the_original(
+    client, workspace, test_user_cookies, store
+):
+    response = await upload(
+        client, workspace, test_user_cookies, documents.form_pdf(), "form.pdf"
+    )
+    body = response.json()
+    done = await finished(client, workspace, test_user_cookies, body["id"])
+    assert done["status"] == ImportStatus.COMPLETED, done
+    layout = done["report"]["layout"]
+    assert (
+        layout["section_bar"] == 2 and layout["cell_run"] == 2 and layout["table"] == 1
+    )
+    [key] = [k for k in store.objects if k.endswith("/layout.json")]
+    import json
+
+    stored = json.loads(store.objects[key])
+    kinds = {p["kind"] for p in stored["pages"][0]["primitives"]}
+    assert {
+        "answer_slot",
+        "checkbox",
+        "staff_region",
+        "photo_box",
+        "signature",
+    } <= kinds

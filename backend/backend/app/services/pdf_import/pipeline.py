@@ -23,7 +23,11 @@ from backend.app.schemas.form_import import (
     PageAnalysis,
 )
 from backend.app.services.pdf_import.analysis import DocumentRefused
-from backend.app.services.pdf_import.sandbox import run_analysis, run_text_layer
+from backend.app.services.pdf_import.sandbox import (
+    run_analysis,
+    run_layout,
+    run_text_layer,
+)
 from backend.app.services.pdf_import.storage import artifact_key
 
 MESSAGE_FAILED = "The import failed unexpectedly. Please try again."
@@ -42,7 +46,11 @@ class ImportPipeline:
     def stages(
         self,
     ) -> List[Tuple[str, Callable[[FormImportDocument, bytes], Awaitable[dict]]]]:
-        return [("analyze", self._analyze), ("text", self._text)]
+        return [
+            ("analyze", self._analyze),
+            ("text", self._text),
+            ("layout", self._layout),
+        ]
 
     async def _analyze(self, record: FormImportDocument, data: bytes) -> dict:
         result = await run_analysis(data, record.content_type, **self._limits())
@@ -115,6 +123,26 @@ class ImportPipeline:
             "untrusted_words": untrusted,
             "switched_to_image": switched,
         }
+
+    async def _layout(self, record: FormImportDocument, data: bytes) -> dict:
+        """Layout primitives of the pages read from their drawing (the image
+        routes get theirs from the vision stage), stored next to the original."""
+        if record.content_type != "application/pdf":
+            return {"skipped": "image upload: no drawing", "primitives": 0}
+        skip = [p.number for p in record.pages if p.route in ("scan", "vision")]
+        result = await run_layout(data, skip_pages=skip, **self._limits())
+        key = artifact_key(record.source_key, "layout.json")
+        await self._store.put(
+            key,
+            json.dumps(result, ensure_ascii=False).encode("utf-8"),
+            "application/json",
+        )
+        totals: dict = {}
+        for page in result["pages"]:
+            for kind, n in page.get("counts", {}).items():
+                totals[kind] = totals.get(kind, 0) + n
+        record.report["layout"] = totals
+        return {"artifact": key, "primitives": sum(totals.values()), "counts": totals}
 
     async def run(self, import_id: PydanticObjectId) -> FormImportDocument:
         record = await self._repo.get(import_id)
