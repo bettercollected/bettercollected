@@ -11,6 +11,8 @@ import { extractTextfromJSON } from '@app/utils/richTextEditorExtenstion/get-htm
 import { formFieldsList } from '@app/constants/form-fields';
 import FieldConditionalLogicEditor from '@app/views/molecules/form-builder/field-conditional-logic';
 import { canBeInternal } from '@app/utils/internal-fields';
+import RepeatingGroupSettings from '@app/views/molecules/form-builder/repeating-group-settings';
+import { isRepeatingGroup } from '@app/utils/repeating-groups';
 
 export default function FieldSettings() {
     const { setActiveFieldComponent } = useActiveFieldComponent();
@@ -33,7 +35,7 @@ export default function FieldSettings() {
         setStepValue(e.target.value);
     };
 
-    const NonImageFieldType = [FieldTypes.TEXT, null, FieldTypes.IMAGE_CONTENT, FieldTypes.VIDEO_CONTENT];
+    const NonImageFieldType = [FieldTypes.TEXT, null, FieldTypes.IMAGE_CONTENT, FieldTypes.VIDEO_CONTENT, FieldTypes.GROUP];
 
     function getImageValue(checked: boolean): string {
         if (checked) {
@@ -99,7 +101,7 @@ export default function FieldSettings() {
                     }}
                 />
             </div>
-            {activeField?.type !== FieldTypes.TEXT && (
+            {activeField?.type !== FieldTypes.TEXT && !isRepeatingGroup(activeField) && (
                 <div className="flex w-full items-center justify-between">
                     <div className="text-black-700 text-xs mr-4">{activeField?.type === FieldTypes.MATRIX ? 'Require a response in each row' : 'Required'}</div>
                     <Switch
@@ -188,6 +190,8 @@ export default function FieldSettings() {
                     {errorMsg && <span className="text-xs text-red-500">{errorMsg}</span>}
                 </div>
             )}
+
+            {activeField && activeSlide && isRepeatingGroup(activeField) && <RepeatingGroupSettings field={activeField} slide={activeSlide} />}
 
             {!activeField?.internal && <FieldConditionalLogicEditor />}
         </div>

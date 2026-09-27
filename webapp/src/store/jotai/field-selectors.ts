@@ -6,9 +6,10 @@ import { v4 } from 'uuid';
 
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import { FormSlideLayout } from '@app/models/enums/form';
-import { FieldConditionalLogic, NodePosition, PageJump } from '@app/models/types/form-builder-shared';
+import { FieldConditionalLogic, NodePosition, PageJump, RepeatSettings } from '@app/models/types/form-builder-shared';
 import { pruneOrphanedPipes } from '@app/utils/answer-piping';
 import { pruneOrphanedConditions } from '@app/utils/conditional-logic';
+import { newRepeatingGroup, remapGroupChildIds, remapTextTokens } from '@app/utils/repeating-groups';
 import { useActiveFieldComponent, useActiveSlideComponent } from '@app/store/jotai/active-builder-component';
 import { reorder } from '@app/utils/array-utils';
 
@@ -159,14 +160,20 @@ export default function useFormFieldsAtom() {
             const newId = v4();
             idMap[field.id] = newId;
             field.id = newId;
+            // Questions of a repeating group get fresh ids too.
+            if (field.type === FieldTypes.GROUP && field.properties?.repeat) Object.assign(idMap, remapGroupChildIds(field));
         });
 
-        const remapConditions = (conditions?: Array<{ fieldId: string }>) => {
+        const remapConditions = (conditions?: Array<{ fieldId: string; childFieldId?: string }>) => {
             conditions?.forEach((condition) => {
                 if (condition && idMap[condition.fieldId]) condition.fieldId = idMap[condition.fieldId];
+                if (condition?.childFieldId && idMap[condition.childFieldId]) condition.childFieldId = idMap[condition.childFieldId];
             });
         };
-        clone.properties?.fields?.forEach((field) => remapConditions(field.properties?.logic?.conditions));
+        clone.properties?.fields?.forEach((field) => {
+            remapConditions(field.properties?.logic?.conditions);
+            field.properties?.fields?.forEach((child) => field.type === FieldTypes.GROUP && remapConditions(child.properties?.logic?.conditions));
+        });
         clone.properties?.jumps?.forEach((jump) => {
             remapConditions(jump.conditions);
             if (jump.target === oldSlideId) jump.target = clone.id;
@@ -174,10 +181,13 @@ export default function useFormFieldsAtom() {
 
         const remapPipes = (node: any): void => {
             if (node?.type === 'answerPipe' && node.attrs && idMap[node.attrs.pipeKey]) node.attrs.pipeKey = idMap[node.attrs.pipeKey];
+            // Group pipes (`<groupId>:<aggregate>:<fieldId>`) remap per segment.
+            if (node?.type === 'answerPipe' && node.attrs?.kind === 'group') node.attrs.pipeKey = String(node.attrs.pipeKey ?? '').split(':').map((part: string) => idMap[part] ?? part).join(':');
             node?.content?.forEach(remapPipes);
         };
         clone.properties?.fields?.forEach((field) => {
             if (field.title && typeof field.title !== 'string') remapPipes(field.title);
+            if (field.type === FieldTypes.GROUP && field.properties?.repeat?.itemTitle) field.properties.repeat.itemTitle = remapTextTokens(field.properties.repeat.itemTitle, idMap);
         });
 
         // The flow-canvas position belongs to the original node.
@@ -396,6 +406,31 @@ export default function useFormFieldsAtom() {
         setFormFields([...formFields]);
     };
 
+    // Repeating groups: the group's questions are edited as one list (add,
+    // edit, reorder, remove). Removing a question sweeps rules/pipes that
+    // referenced it, like deleting a page question does.
+    const findField = (slideIndex: number, fieldId: string) => formFields?.[slideIndex]?.properties?.fields?.find((f) => f.id === fieldId);
+
+    const updateGroupChildren = (slideIndex: number, groupId: string, children: StandardFormFieldDto[]) => {
+        const group = findField(slideIndex, groupId);
+        if (!group) return;
+        const previousIds = (group.properties?.fields ?? []).map((child) => child.id);
+        group.properties = { ...(group.properties || {}), fields: children.map((child, index) => ({ ...child, index })) };
+        if (previousIds.some((id) => !children.some((child) => child.id === id))) {
+            pruneOrphanedConditions(formFields);
+            pruneOrphanedPipes(formFields);
+        }
+        setFormFields([...formFields]);
+    };
+
+    // Item limits, item label/title and export layout of a repeating group.
+    const updateGroupRepeat = (slideIndex: number, groupId: string, repeat: RepeatSettings) => {
+        const group = findField(slideIndex, groupId);
+        if (!group) return;
+        group.properties = { ...(group.properties || {}), repeat: { ...(group.properties?.repeat || {}), ...repeat } };
+        setFormFields([...formFields]);
+    };
+
     // Page-jump / branching rules for a slide. Persists via slide `properties.jumps`.
     const updateSlideJumps = (slideIndex: number, jumps: PageJump[] | undefined) => {
         formFields![slideIndex]!.properties = {
@@ -431,6 +466,9 @@ export default function useFormFieldsAtom() {
         if (!source) return;
         const clone = JSON.parse(JSON.stringify(source));
         clone.id = v4();
+        // A duplicated repeating group gets its own questions; rules and
+        // pipes between siblings follow them into the copy.
+        if (clone.type === FieldTypes.GROUP && clone.properties?.repeat) remapGroupChildIds(clone);
         formFields[slideIndex]!.properties!.fields!.splice(fieldIndex + 1, 0, clone);
         formFields[slideIndex]!.properties!.fields = formFields[slideIndex]!.properties!.fields!.map((field, index) => ({
             ...field,
@@ -572,6 +610,8 @@ export default function useFormFieldsAtom() {
                     ]
                 }
             };
+        } else if (field.type === FieldTypes.GROUP) {
+            return newRepeatingGroup(fieldId, fieldIndex);
         } else if (field.type === FieldTypes.TABULAR_INPUT) {
             return {
                 id: fieldId,
@@ -799,6 +839,8 @@ export default function useFormFieldsAtom() {
         updateFieldValidation,
         updateFieldProperty,
         updateFieldConditionalLogic,
+        updateGroupChildren,
+        updateGroupRepeat,
         updateSlideJumps,
         updateSlidePosition,
         clearSlidePositions,

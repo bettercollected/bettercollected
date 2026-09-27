@@ -15,6 +15,7 @@ import { AnswerPipe } from '@app/utils/richTextEditorExtenstion/answer-pipe';
 import { AnswerPipeSuggestion, PipeSuggestionItem, filterPipeSuggestionItems } from '@app/utils/richTextEditorExtenstion/answer-pipe-suggestion';
 import { FontSize } from '@app/utils/richTextEditorExtenstion/font-size';
 import { getHtmlFromJson } from '@app/utils/richTextEditorExtenstion/get-html-from-json';
+import { getGroupPipeOptions, isRepeatingGroup } from '@app/utils/repeating-groups';
 import { buildSourceFields } from '@app/views/molecules/form-builder/condition-editor-shared';
 
 export function getPlaceholderValueForTitle(fieldType: FieldTypes) {
@@ -49,6 +50,8 @@ export function getPlaceholderValueForTitle(fieldType: FieldTypes) {
             return 'Matrix Field';
         case FieldTypes.TABULAR_INPUT:
             return 'Tabular Input Field';
+        case FieldTypes.GROUP:
+            return 'Repeating group';
         default:
             return 'No Field Selected';
     }
@@ -71,8 +74,14 @@ function buildPipeItems(formFields: StandardFormFieldDto[], hiddenNames: string[
         if (slideIndex < slide.index) return true;
         return slideIndex === slide.index && sourceField.index < field.index;
     });
+    // Earlier repeating groups pipe as a whole: item count, lists, aggregates.
+    const groups = buildSourceFields(formFields, (sourceSlide, slideIndex, sourceField) => {
+        if (!isRepeatingGroup(sourceField) || sourceField.id === field.id) return false;
+        return slideIndex < slide.index || (slideIndex === slide.index && sourceField.index < field.index);
+    });
     return [
         ...sources.map(({ field: sourceField, label }): PipeSuggestionItem => ({ kind: 'field', pipeKey: sourceField.id, label, group: 'Answers' })),
+        ...groups.flatMap(({ field: group, label }) => getGroupPipeOptions(group, label).map((option): PipeSuggestionItem => ({ kind: 'group', ...option, group: 'Repeating groups' }))),
         ...hiddenNames.map((name): PipeSuggestionItem => ({ kind: 'hidden', pipeKey: name, label: name, group: 'Hidden fields' }))
     ];
 }

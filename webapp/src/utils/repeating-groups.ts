@@ -1,6 +1,9 @@
+import { v4 } from 'uuid';
+
 import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
 import { RepeatSettings } from '@app/models/types/form-builder-shared';
-import { PipeContext, resolvePipesInText } from '@app/utils/answer-piping';
+import { groupPipeKey, PipeContext, resolvePipesInText } from '@app/utils/answer-piping';
+import { GROUP_AGGREGATE_LABELS, NUMERIC_AGGREGATES, NUMERIC_FIELD_TYPES } from '@app/utils/group-aggregates';
 import { getGroupAnswerItems, getHiddenFieldIds } from '@app/utils/conditional-logic';
 
 /**
@@ -232,6 +235,34 @@ export function validateGroupsInSlide(fields: Array<StandardFormFieldDto> | unde
     return (fields ?? []).filter(isRepeatingGroup).reduce((acc, group) => ({ ...acc, ...validateGroupAnswer(group, answers) }), {} as Record<string, GroupInvalidation[]>);
 }
 
+/** A question's title as plain text (string or TipTap JSON), without UI imports. */
+export function plainTitle(field: StandardFormFieldDto | undefined): string {
+    const title = field?.title;
+    if (typeof title === 'string') return title.trim() || 'Untitled question';
+    const walk = (node: any): string => (node?.type === 'text' ? node.text ?? '' : node?.type === 'answerPipe' ? node.attrs?.label ?? '' : (node?.content ?? []).map(walk).join(''));
+    const text = title ? ((title as any).content ?? []).map(walk).join(' ').trim() : '';
+    return text || (typeof field?.value === 'string' && field.value.trim()) || 'Untitled question';
+}
+
+/**
+ * What a question after the group can pipe from it: the item count, a joined
+ * list of each question, and sum / average / minimum / maximum of numeric
+ * questions. `label` is what the builder chip shows.
+ */
+export function getGroupPipeOptions(field: StandardFormFieldDto, groupLabel: string): Array<{ pipeKey: string; label: string }> {
+    const options = [{ pipeKey: groupPipeKey(field.id, 'count'), label: `${groupLabel} · number of items` }];
+    getGroupChildren(field)
+        .filter((child) => child.type !== FieldTypes.TEXT)
+        .forEach((child) => {
+            const childLabel = plainTitle(child);
+            options.push({ pipeKey: groupPipeKey(field.id, 'list', child.id), label: `${groupLabel} · list of ${childLabel}` });
+            if (NUMERIC_FIELD_TYPES.includes(child.type)) {
+                NUMERIC_AGGREGATES.forEach((aggregate) => options.push({ pipeKey: groupPipeKey(field.id, aggregate, child.id), label: `${groupLabel} · ${GROUP_AGGREGATE_LABELS[aggregate]} ${childLabel}` }));
+            }
+        });
+    return options;
+}
+
 /**
  * Header of item `index`: "<label> <n>", plus the resolved item title
  * template when it has content ("Applicant 2: Sita Sharma"). The template's
@@ -247,4 +278,78 @@ export function getItemHeader(field: StandardFormFieldDto, index: number, contex
     const slides = [...(context.slides ?? []), { id: `${field.id}-scope`, index: -1, type: FieldTypes.SLIDE, properties: { fields: [field] } } as StandardFormFieldDto];
     const resolved = resolvePipesInText(itemTitle, { ...context, slides, answers: itemScopeAnswers(context.answers, scope) })?.trim();
     return resolved ? `${base}: ${resolved}` : base;
+}
+
+// `{{field:<id>}}` / `{{group:<id>:<aggregate>:<id>}}` tokens with an optional `|fallback`.
+const TEXT_TOKEN_PATTERN = /\{\{\s*(field|group|hidden)\s*:\s*([^}|]+?)\s*(\|[^}]*)?\}\}/g;
+
+const remapKey = (key: string, idMap: Record<string, string>) =>
+    key
+        .split(':')
+        .map((part) => idMap[part.trim()] ?? part)
+        .join(':');
+
+/** Rewrite the field ids inside plain-text pipe tokens (hidden-field names are left alone). */
+export function remapTextTokens(text: string, idMap: Record<string, string>): string {
+    return text.replace(TEXT_TOKEN_PATTERN, (match, kind: string, key: string, fallback?: string) => (kind === 'hidden' ? match : `{{${kind}:${remapKey(key, idMap)}${fallback ?? ''}}}`));
+}
+
+/**
+ * Give a repeating group's questions (and their choices) fresh ids, in place,
+ * remapping what refers to them inside the group: sibling visibility rules,
+ * sibling pipes in titles/descriptions and the item title. Returns old → new ids.
+ */
+export function remapGroupChildIds(group: StandardFormFieldDto, newId: () => string = v4): Record<string, string> {
+    const idMap: Record<string, string> = {};
+    const children = getGroupChildren(group);
+    children.forEach((child) => {
+        const id = newId();
+        idMap[child.id] = id;
+        child.id = id;
+        child.properties?.choices?.forEach((choice) => (choice.id = newId()));
+    });
+    const remapNode = (node: any): void => {
+        if (node?.type === 'answerPipe' && node.attrs?.pipeKey && node.attrs.kind !== 'hidden') node.attrs.pipeKey = remapKey(String(node.attrs.pipeKey), idMap);
+        node?.content?.forEach(remapNode);
+    };
+    children.forEach((child) => {
+        child.properties?.logic?.conditions?.forEach((condition) => {
+            if (idMap[condition.fieldId]) condition.fieldId = idMap[condition.fieldId];
+        });
+        if (child.title && typeof child.title !== 'string') remapNode(child.title);
+        else if (typeof child.title === 'string') child.title = remapTextTokens(child.title, idMap);
+        if (typeof child.description === 'string') child.description = remapTextTokens(child.description, idMap);
+    });
+    if (group.properties?.repeat?.itemTitle) group.properties.repeat.itemTitle = remapTextTokens(group.properties.repeat.itemTitle, idMap);
+    return idMap;
+}
+
+/** A child question as the builder creates it inside a group. */
+export function newGroupChild(type: string, index: number, newId: () => string = v4): StandardFormFieldDto {
+    const child: StandardFormFieldDto = { id: newId(), index, type, title: '', properties: {} };
+    if (type === FieldTypes.YES_NO)
+        child.properties!.choices = [
+            { id: newId(), value: 'Yes' },
+            { id: newId(), value: 'No' }
+        ];
+    if (type === FieldTypes.MULTIPLE_CHOICE || type === FieldTypes.DROP_DOWN)
+        child.properties!.choices = [
+            { id: newId(), value: 'Option 1' },
+            { id: newId(), value: 'Option 2' }
+        ];
+    if (type === FieldTypes.RATING) child.properties!.steps = 5;
+    if (type === FieldTypes.LINEAR_RATING) child.properties!.steps = 10;
+    return child;
+}
+
+/** A new repeating group as inserted from the builder's Insert menu. */
+export function newRepeatingGroup(id: string, index: number, newId: () => string = v4): StandardFormFieldDto {
+    const nameQuestion: StandardFormFieldDto = { ...newGroupChild(FieldTypes.SHORT_TEXT, 0, newId), title: 'Full name', validations: { required: true } };
+    return {
+        id,
+        index,
+        type: FieldTypes.GROUP,
+        title: 'Tell us about each person',
+        properties: { fields: [nameQuestion], repeat: { minItems: 1, maxItems: 3, itemLabel: 'Person', itemTitle: `{{field:${nameQuestion.id}}}` } }
+    };
 }

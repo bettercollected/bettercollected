@@ -10,11 +10,11 @@ import Suggestion, { SuggestionKeyDownProps, SuggestionProps } from '@tiptap/sug
  */
 
 export interface PipeSuggestionItem {
-    kind: 'field' | 'hidden';
+    kind: 'field' | 'hidden' | 'group';
     pipeKey: string;
     label: string;
     /** Section header the item renders under. */
-    group: 'Answers' | 'Hidden fields';
+    group: 'Answers' | 'Repeating groups' | 'Hidden fields';
 }
 
 /** Case-insensitive filter of pipeable items against the typed query. */

@@ -1,10 +1,9 @@
 'use client';
 
-import { V2InputFields } from '@app/models/dtos/form';
 import { FieldConditionalLogic, LogicalOperator, LogicCondition } from '@app/models/types/form-builder-shared';
 import { Switch } from '@app/shadcn/components/ui/switch';
 import useFormFieldsAtom from '@app/store/jotai/field-selectors';
-import { buildSourceFields, ConditionRow, newConditionFor, selectClass } from './condition-editor-shared';
+import { buildSourceFields, ConditionRow, isConditionSource, newConditionFor, selectClass } from './condition-editor-shared';
 
 export default function FieldConditionalLogicEditor() {
     const { formFields, activeSlide, activeField, updateFieldConditionalLogic } = useFormFieldsAtom();
@@ -15,7 +14,7 @@ export default function FieldConditionalLogicEditor() {
     const sources = buildSourceFields(formFields || [], (_slide, sIdx, field) => {
         if (sIdx > activeSlide.index) return false;
         const isEarlier = sIdx < activeSlide.index || field.index < activeField.index;
-        return isEarlier && field.id !== activeField.id && V2InputFields.includes(field.type);
+        return isEarlier && field.id !== activeField.id && isConditionSource(field);
     });
 
     const logic = activeField?.properties?.logic as FieldConditionalLogic | undefined;

@@ -1,11 +1,10 @@
 'use client';
 
-import { V2InputFields } from '@app/models/dtos/form';
 import { JUMP_TARGET_SUBMIT, LogicalOperator, LogicCondition, PageJump } from '@app/models/types/form-builder-shared';
 import useFormFieldsAtom from '@app/store/jotai/field-selectors';
 import { isJumpTargetValid } from '@app/utils/conditional-logic';
 import { ChevronDown, ChevronUp, X } from 'lucide-react';
-import { buildSourceFields, ConditionRow, newConditionFor, pageLabel, selectClass } from './condition-editor-shared';
+import { buildSourceFields, ConditionRow, isConditionSource, newConditionFor, pageLabel, selectClass } from './condition-editor-shared';
 
 const MISSING = '__MISSING_TARGET__';
 
@@ -16,7 +15,7 @@ export default function PageJumpEditor() {
 
     // Conditions can reference any input field answerable by the time the responder
     // leaves this page: everything on this slide and every earlier slide.
-    const sources = buildSourceFields(formFields || [], (_slide, sIdx, field) => sIdx <= activeSlide.index && V2InputFields.includes(field.type));
+    const sources = buildSourceFields(formFields || [], (_slide, sIdx, field) => sIdx <= activeSlide.index && isConditionSource(field));
 
     // Jump targets: every other page (stable content-derived label), plus "submit".
     const slideIds = new Set((formFields || []).map((s) => s.id));
