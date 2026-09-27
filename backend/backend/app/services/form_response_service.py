@@ -1,10 +1,12 @@
+import datetime as dt
 import json
 from http import HTTPStatus
-from typing import List, Sequence
+from typing import Any, Dict, List, Optional, Sequence, Set
 
 from beanie import PydanticObjectId
 from common.constants import MESSAGE_FORBIDDEN, MESSAGE_NOT_FOUND
 from common.models.standard_form import (
+    InternalAnswerMeta,
     StandardFormResponse,
     StandardFormResponseAnswer,
     StandardFormField,
@@ -16,10 +18,14 @@ from fastapi_pagination import Page
 
 from backend.app.constants.consents import default_consent_responses
 from backend.app.exceptions import HTTPException
-from backend.app.models.dtos.form_response_dto import SingleSubmissionResponse
+from backend.app.models.dtos.form_response_dto import (
+    InternalAnswersResponse,
+    SingleSubmissionResponse,
+)
 from backend.app.models.dtos.minified_form import FormDtoCamelModel
 from backend.app.models.dtos.response_dtos import (
     StandardFormCamelModel,
+    StandardFormFieldCamelModel,
     StandardFormResponseCamelModel,
 )
 from backend.app.models.filter_queries.form_responses import FormResponseFilterQuery
@@ -33,6 +39,14 @@ from backend.app.schemas.standard_form_response import (
     FormResponseDocument,
 )
 from backend.app.services.aws_service import AWSS3Service
+from backend.app.services.internal_fields import (
+    fields_by_id,
+    internal_field_ids,
+    internal_fields,
+    strip_internal_answers,
+    strip_internal_fields,
+    validate_internal_answer,
+)
 from backend.app.utils.hash import hash_string
 
 
@@ -94,6 +108,9 @@ class FormResponseService:
         user_responses = await self._form_response_repo.get_user_submissions(
             form_ids=form_ids, user=user, request_for_deletion=request_for_deletion
         )
+        # A respondent's own listing never carries staff-entered values.
+        for item in user_responses.items:
+            strip_internal_answers(item)
         if not request_for_deletion:
             return self.decrypt_response_page(
                 workspace_id=workspace_id, responses_page=user_responses
@@ -207,12 +224,23 @@ class FormResponseService:
             raise HTTPException(403, "You are not authorized to perform this action.")
 
         response = StandardFormResponseCamelModel(**response.model_dump())
+        if not is_admin:
+            # The respondent's "view my submission": no internal values.
+            strip_internal_answers(response)
         if response.consent is None:
             response.consent = default_consent_responses
         if deletion_request is not None:
             response.deletion_status = deletion_request.status
         form = FormDtoCamelModel(**form.model_dump())
         form.settings = workspace_form.settings
+        staff_internal_fields = None
+        if is_admin:
+            staff_internal_fields = [
+                StandardFormFieldCamelModel(**field.model_dump())
+                for field in await self.internal_field_definitions(response.form_id)
+            ]
+        else:
+            strip_internal_fields(form)
         response.form_title = form.title
         decrypted_response = self.decrypt_form_response(
             workspace_id=workspace_id, response=response
@@ -229,7 +257,11 @@ class FormResponseService:
                 )
                 decrypted_response.answers[key]["file_metadata"]["url"] = file_url
 
-        return SingleSubmissionResponse(form=form, response=decrypted_response)
+        return SingleSubmissionResponse(
+            form=form,
+            response=decrypted_response,
+            internal_fields=staff_internal_fields,
+        )
 
     async def request_for_response_deletion(
         self, workspace_id: PydanticObjectId, response_id: str, user: User
@@ -341,6 +373,14 @@ class FormResponseService:
                     data=response.hidden_fields,
                 )
             )
+        if isinstance(getattr(response, "internal_answers", None), (bytes, str)):
+            response.internal_answers = json.loads(
+                crypto_service.decrypt(
+                    workspace_id=workspace_id,
+                    form_id=response.form_id,
+                    data=response.internal_answers,
+                )
+            )
         return response
 
     async def submit_form_response(
@@ -407,12 +447,18 @@ class FormResponseService:
         )
         form.settings = workspace_form.settings
 
+        # The submission-number receipt is public by design (whoever holds
+        # the number) — so it is always the respondent view: no internal
+        # fields and no internal values, which are never even decrypted here.
+        strip_internal_answers(response)
         decrypted_response = self.decrypt_form_response(
             workspace_id=workspace_id, response=response
         )
 
         return {
-            "form": StandardFormCamelModel(**form.model_dump(mode="json")),
+            "form": strip_internal_fields(
+                StandardFormCamelModel(**form.model_dump(mode="json"))
+            ),
             "response": StandardFormResponseCamelModel(
                 **decrypted_response.model_dump(mode="json")
             ),
@@ -442,6 +488,158 @@ class FormResponseService:
 
         await self._form_response_repo.add_deletion_request(response, response_id)
         pass
+
+    async def internal_field_definitions(self, form_id: str) -> List[StandardFormField]:
+        """The internal fields staff fill in on this form's submissions: those
+        of the latest published version, or of the draft when the form was
+        never published (the same form the dashboard shows)."""
+        form = await self._form_repo.get_latest_version_of_form(form_id)
+        if form is None:
+            form = await self._form_repo.get_form_document_by_id(str(form_id))
+        return internal_fields(form) if form else []
+
+    async def all_internal_field_ids(self, form_id: str) -> Set[str]:
+        """Ids that are internal in the draft or the latest published version
+        — used to refuse respondent input for them whichever version the
+        respondent was served."""
+        ids: Set[str] = set()
+        latest = await self._form_repo.get_latest_version_of_form(form_id)
+        draft = await self._form_repo.get_form_document_by_id(str(form_id))
+        for form in (latest, draft):
+            if form is not None:
+                ids |= internal_field_ids(form)
+        return ids
+
+    async def update_internal_answers(
+        self,
+        workspace_id: PydanticObjectId,
+        form_id: str,
+        response_id: str,
+        answers: Dict[str, Optional[Dict[str, Any]]],
+        user: User,
+        expected_version: Optional[int] = None,
+    ) -> InternalAnswersResponse:
+        """Staff fill in / edit / clear internal answers on one submission.
+
+        Any active workspace member may do this — the same access that lets
+        them edit the form itself. Each changed answer records who changed
+        it and when. Each answer is checked against its field's type and
+        options (422 otherwise).
+
+        Optimistic concurrency: ``expected_version`` is the
+        ``internal_answers_version`` the editor loaded; the save only lands
+        if nobody saved in between (409 with the current state otherwise).
+        Without it, the read-modify-write below is still conditional on the
+        version it read, so two simultaneous saves never lose one."""
+        if not await self._workspace_user_repo.has_user_access_in_workspace(
+            workspace_id, user
+        ):
+            raise HTTPException(HTTPStatus.FORBIDDEN, content=MESSAGE_FORBIDDEN)
+        workspace_form = (
+            await self._workspace_form_repo.get_workspace_form_in_workspace(
+                workspace_id, form_id
+            )
+        )
+        if not workspace_form:
+            raise HTTPException(
+                HTTPStatus.NOT_FOUND, "Form not found in the workspace."
+            )
+        response = await self._form_response_repo.get_response(response_id)
+        if not response or str(response.form_id) != str(workspace_form.form_id):
+            raise HTTPException(HTTPStatus.NOT_FOUND, MESSAGE_NOT_FOUND)
+        if not answers:
+            raise HTTPException(HTTPStatus.BAD_REQUEST, "No internal answers given.")
+
+        definitions = fields_by_id(
+            await self.internal_field_definitions(str(workspace_form.form_id))
+        )
+        unknown = [field_id for field_id in answers if field_id not in definitions]
+        if unknown:
+            raise HTTPException(
+                HTTPStatus.BAD_REQUEST,
+                f"'{unknown[0]}' is not an internal field of this form.",
+            )
+
+        validated = {
+            field_id: (
+                None
+                if value is None
+                else validate_internal_answer(definitions[field_id], value)
+            )
+            for field_id, value in answers.items()
+        }
+
+        stored_version = response.internal_answers_version or 0
+        if expected_version is not None and expected_version != stored_version:
+            raise self._internal_answers_conflict(workspace_id, response)
+
+        current = self._decrypted_internal_answers(workspace_id, response)
+        meta = dict(response.internal_answers_meta or {})
+        now = dt.datetime.now(dt.timezone.utc)
+        for field_id, value in validated.items():
+            if value is None:
+                current.pop(field_id, None)
+            else:
+                current[field_id] = value
+            meta[field_id] = InternalAnswerMeta(
+                updated_by=str(user.id), updated_by_email=user.sub, updated_at=now
+            )
+
+        response.internal_answers = crypto_service.encrypt(
+            workspace_id=workspace_id,
+            form_id=response.form_id,
+            data=json.dumps(current),
+        )
+        response.internal_answers_meta = meta
+        response.internal_answers_version = stored_version + 1
+        saved = await self._form_response_repo.save_internal_answers(
+            response, stored_version
+        )
+        if saved is None:
+            latest = await self._form_response_repo.get_response(response_id)
+            raise self._internal_answers_conflict(workspace_id, latest or response)
+        return InternalAnswersResponse(
+            internal_answers=current,
+            internal_answers_meta=meta,
+            internal_answers_version=stored_version + 1,
+        )
+
+    def _internal_answers_conflict(
+        self, workspace_id: PydanticObjectId, response: StandardFormResponse
+    ) -> HTTPException:
+        """409 carrying the current state, so the editor can merge and retry."""
+        latest = InternalAnswersResponse(
+            internal_answers=self._decrypted_internal_answers(workspace_id, response),
+            internal_answers_meta=response.internal_answers_meta or {},
+            internal_answers_version=response.internal_answers_version or 0,
+        )
+        return HTTPException(
+            HTTPStatus.CONFLICT,
+            content={
+                "message": "Another team member saved these internal fields "
+                "just now. Review their changes and save again.",
+                **latest.model_dump(mode="json", by_alias=True),
+            },
+        )
+
+    def _decrypted_internal_answers(
+        self, workspace_id: PydanticObjectId, response: StandardFormResponse
+    ) -> Dict[str, Any]:
+        stored = response.internal_answers
+        if isinstance(stored, (bytes, str)):
+            stored = json.loads(
+                crypto_service.decrypt(
+                    workspace_id=workspace_id, form_id=response.form_id, data=stored
+                )
+            )
+        return {
+            key: (
+                value.model_dump(mode="json", exclude_none=True)
+                if isinstance(value, StandardFormResponseAnswer)
+                else value
+            )
+            for key, value in (stored or {}).items()
+        }
 
     def generate_presigned_url_for_each_response(
         self,

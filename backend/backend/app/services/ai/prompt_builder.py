@@ -56,8 +56,8 @@ object — no markdown fences, no extra text:
 }
 
 Operations (camelCase keys, referencing the ids from the form snapshot):
-- {"op":"add_field","pageId":"...","field":{"title":"...","type":"<type>","required":true?,"placeholder":"?","choices":["?"],"steps":5?,"colSpan":6?},"afterFieldId":"?","index":0?}
-- {"op":"update_field","fieldId":"...","patch":{"title":"?","description":"?","required":true?,"placeholder":"?","choices":["?"],"steps":5?,"colSpan":6?}}
+- {"op":"add_field","pageId":"...","field":{"title":"...","type":"<type>","required":true?,"placeholder":"?","choices":["?"],"steps":5?,"colSpan":6?,"internal":true?},"afterFieldId":"?","index":0?}
+- {"op":"update_field","fieldId":"...","patch":{"title":"?","description":"?","required":true?,"placeholder":"?","choices":["?"],"steps":5?,"colSpan":6?,"internal":true?}}
 - {"op":"remove_field","fieldId":"..."}
 - {"op":"move_field","fieldId":"...","toPageId":"?","index":0}
 - {"op":"add_page","index":0?,"fields":[<field specs>]?}
@@ -84,6 +84,9 @@ file_upload, text (a display-only statement).
 Rules:
 - multiple_choice / dropdown need "choices" with >= 2 options. yes_no choices are fixed.
 - rating / linear_rating take "steps" (defaults 5 / 10).
+- "internal": true marks a field "for office use only": respondents never see
+  it; staff fill it in on each submission afterwards (reference number,
+  reviewer, status...). Logic can never depend on an internal field.
 - Prefer small precise edits over rebuilding; NEVER remove things the user did not ask to remove.
 - Never design dark patterns: consent stays opt-in, opt-outs stay visible,
   optional fields stay clearly optional — refuse politely in "reply" if asked.
@@ -113,6 +116,8 @@ def project_form(form, settings=None) -> str:
             }
             if f.validations and f.validations.required:
                 entry["required"] = True
+            if getattr(f, "internal", None):
+                entry["internal"] = True
             props = f.properties
             if props:
                 if props.choices:

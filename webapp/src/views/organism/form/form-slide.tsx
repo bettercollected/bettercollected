@@ -31,7 +31,7 @@ import QuestionWrapper from '@app/views/molecules/responder-form-fields/question
 import RatingField from '@app/views/molecules/responder-form-fields/rating-field';
 import YesNoField from '@app/views/molecules/responder-form-fields/yes-no-field';
 
-import { selectForm } from '@app/store/forms/slice';
+import { selectResponderForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
 import { selectWorkspace } from '@app/store/workspaces/slice';
 import { scrollToDivById } from '@app/utils/scroll-utils';
@@ -93,7 +93,7 @@ export function FormFieldComponent({ field, slideIndex }: { field: StandardFormF
 
 export default function FormSlide({ index, formSlideData, isPreviewMode = false, showDesktopLayout }: { index: number; isPreviewMode: boolean; formSlideData?: any; showDesktopLayout?: boolean }) {
     const { toast } = useToast();
-    const standardForm = useAppSelector(selectForm);
+    const standardForm = useAppSelector(selectResponderForm);
     const formSlideFromState = standardForm.fields[index];
     const formSlide = formSlideData ? formSlideData : formSlideFromState;
 

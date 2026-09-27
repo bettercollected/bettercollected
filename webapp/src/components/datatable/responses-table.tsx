@@ -68,7 +68,7 @@ const ResponsesTable = ({ requestForDeletion, submissions, formId, page, setPage
                 workspace_id: workspace?.id ?? '',
                 submission_id: response.responseId
             }).then((result: any) => {
-                openModal('VIEW_RESPONSE', { response: result.data.response, formFields: getFormFields(result.data.form), form: result.data.form, formId: result.data.form.formId, workspaceId: workspace.id });
+                openModal('VIEW_RESPONSE', { response: result.data.response, formFields: getFormFields(result.data.form), form: result.data.form, formId: result.data.form.formId, workspaceId: workspace.id, internalFields: result.data.internalFields });
             });
         }
     };
@@ -140,7 +140,7 @@ const ResponsesTable = ({ requestForDeletion, submissions, formId, page, setPage
                                 workspace_id: workspace?.id ?? '',
                                 submission_id: response.responseId
                             }).then((result: any) => {
-                                openModal('VIEW_RESPONSE', { response: result.data.response, formFields: getFormFields(result.data.form), form: result.data.form, formId: result.data.form.formId, workspaceId: workspace.id });
+                                openModal('VIEW_RESPONSE', { response: result.data.response, formFields: getFormFields(result.data.form), form: result.data.form, formId: result.data.form.formId, workspaceId: workspace.id, internalFields: result.data.internalFields });
                             });
                         }}
                     >

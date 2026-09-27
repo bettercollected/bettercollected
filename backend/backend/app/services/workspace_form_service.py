@@ -41,6 +41,11 @@ from backend.app.services.form_import_service import FormImportService
 from backend.app.services.form_plugin_provider_service import FormPluginProviderService
 from backend.app.services.form_response_service import FormResponseService
 from backend.app.services.form_service import FormService
+from backend.app.services.internal_fields import (
+    drop_respondent_internal_answers,
+    ensure_no_internal_logic,
+    strip_internal_fields,
+)
 from backend.app.services.brevo_service import event_logger_service
 from backend.app.services.plugin_proxy_service import PluginProxyService
 from backend.app.services.responder_groups_service import ResponderGroupsService
@@ -329,6 +334,7 @@ class WorkspaceFormService:
         await self.workspace_user_service.check_user_has_access_in_workspace(
             workspace_id=workspace_id, user=user
         )
+        ensure_no_internal_logic(form)
         form.form_id = str(PydanticObjectId())
 
         if logo:
@@ -392,6 +398,7 @@ class WorkspaceFormService:
         await self.workspace_user_service.check_user_has_access_in_workspace(
             workspace_id=workspace_id, user=user
         )
+        ensure_no_internal_logic(form)
         workspace_forms = (
             await self.workspace_form_repository.get_workspace_forms_form_ids(
                 [str(form_id)]
@@ -503,6 +510,10 @@ class WorkspaceFormService:
             or not workspace_form.settings.allow_editing_response
         ):
             raise HTTPException(HTTPStatus.FORBIDDEN, content=MESSAGE_FORBIDDEN)
+        drop_respondent_internal_answers(
+            response,
+            await self.form_response_service.all_internal_field_ids(str(form_id)),
+        )
 
         form_response = await self.form_response_service.patch_form_response(
             workspace_id=workspace_id,
@@ -522,6 +533,12 @@ class WorkspaceFormService:
         user: User,
         form_files: list[FormFileResponse] = None,
     ):
+        # Internal fields are filled in by staff afterwards — values a
+        # respondent submission carries for them are dropped, never stored.
+        drop_respondent_internal_answers(
+            response,
+            await self.form_response_service.all_internal_field_ids(str(form_id)),
+        )
         response.response_id = str(PydanticObjectId())
         if form_files:
             response = await self.upload_files_to_s3_and_update_url(
@@ -574,8 +591,10 @@ class WorkspaceFormService:
         # TODO resolve circular deps for workspace service to get workspace details
         # workspace = await WorkspaceDocument.find_one(WorkspaceDocument.id == workspace_id)
         # workspace = await self.workspace_repo.get_workspace_with_action_by_id(workspace_id)
+        # Actions reach respondents (their email copy) and third parties
+        # (webhooks, chat posts): they get the respondent view of the form.
         await self.action_service.start_actions_for_submission(
-            form=latest_version_of_form,
+            form=strip_internal_fields(latest_version_of_form.model_copy(deep=True)),
             response=form_response,
             workspace_id=workspace_id,
         )

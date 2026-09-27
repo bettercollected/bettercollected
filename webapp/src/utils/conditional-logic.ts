@@ -207,14 +207,14 @@ export function computeFlowTraffic(slides: Array<StandardFormFieldDto>, answersL
 
 /**
  * Drop logic that can no longer evaluate after a page/question is deleted:
- * conditions pointing at fields that no longer exist (and any rule left with zero
- * conditions). Mutates the slide array in place and returns it. Jump targets that
+ * conditions pointing at fields that no longer exist — or that became internal
+ * (respondents never answer those) — and any rule left with zero conditions. Mutates the slide array in place and returns it. Jump targets that
  * point at a deleted page are left intact so the UI can surface them as broken
  * rather than silently rewriting where a rule sends people.
  */
 export function pruneOrphanedConditions(slides: Array<StandardFormFieldDto>): Array<StandardFormFieldDto> {
     const fieldIds = new Set<string>();
-    slides.forEach((slide) => slide?.properties?.fields?.forEach((f) => fieldIds.add(f.id)));
+    slides.forEach((slide) => slide?.properties?.fields?.forEach((f) => !f.internal && fieldIds.add(f.id)));
     const liveConditions = (conditions: LogicCondition[] | undefined) => (conditions ?? []).filter((c) => c && fieldIds.has(c.fieldId));
 
     slides.forEach((slide) => {

@@ -34,6 +34,8 @@ from common.models.standard_form import (
     Theme,
 )
 from pydantic import BaseModel, ConfigDict, Field
+
+from backend.app.services.internal_fields import INTERNAL_CAPABLE_TYPES
 from pydantic.alias_generators import to_camel
 
 
@@ -87,6 +89,9 @@ class NewFieldSpec(_CamelModel):
     steps: Optional[int] = None
     start_from: Optional[int] = None
     col_span: Optional[int] = Field(None, ge=1, le=12)
+    # Internal ("for office use only"): hidden from respondents, filled in by
+    # staff on each submission afterwards.
+    internal: Optional[bool] = None
 
 
 class FieldPatch(_CamelModel):
@@ -100,6 +105,7 @@ class FieldPatch(_CamelModel):
     steps: Optional[int] = None
     start_from: Optional[int] = None
     col_span: Optional[int] = Field(None, ge=1, le=12)
+    internal: Optional[bool] = None
 
 
 class AddFieldOp(_CamelModel):
@@ -346,6 +352,8 @@ def _build_field(spec: NewFieldSpec, index: int) -> StandardFormField:
         properties.col_span = spec.col_span
 
     validations = StandardFieldValidations(required=spec.required) if spec.required is not None else StandardFieldValidations()
+    if spec.internal:
+        _ensure_can_be_internal(spec.type)
 
     return StandardFormField(
         id=str(uuid.uuid4()),
@@ -355,7 +363,18 @@ def _build_field(spec: NewFieldSpec, index: int) -> StandardFormField:
         description=spec.description,
         properties=properties,
         validations=validations,
+        internal=True if spec.internal else None,
     )
+
+
+def _ensure_can_be_internal(field_type) -> None:
+    value = getattr(field_type, "value", field_type)
+    if value not in INTERNAL_CAPABLE_TYPES:
+        raise OpError(
+            f"'{value}' fields can't be internal — staff fill internal fields in "
+            "from the dashboard (text, number, date, email, link, phone, yes/no, "
+            "choice and dropdown)."
+        )
 
 
 def _patch_field(field: StandardFormField, patch: FieldPatch) -> List[str]:
@@ -405,6 +424,11 @@ def _patch_field(field: StandardFormField, patch: FieldPatch) -> List[str]:
     if patch.col_span is not None:
         field.properties.col_span = patch.col_span
         changed.append("width")
+    if patch.internal:
+        _ensure_can_be_internal(field.type)
+    if patch.internal is not None:
+        field.internal = True if patch.internal else None
+        changed.append("internal" if patch.internal else "respondent-facing")
     if not changed:
         raise OpError("The update contained no changes.")
     return changed
@@ -438,8 +462,25 @@ def _apply_add_field(form: StandardForm, op: AddFieldOp) -> str:
     return f"Added '{op.field.title}' ({op.field.type.value}) to page {page.index + 1 if page.index is not None else '?'}"
 
 
+def _logic_sources(form: StandardForm) -> set:
+    """Ids of every field some respondent logic (visibility or jump) reads."""
+    sources = set()
+    for page in _pages(form):
+        for jump in (page.properties.jumps if page.properties else None) or []:
+            sources.update(c.field_id for c in jump.conditions or [])
+        for field in (page.properties.fields if page.properties else None) or []:
+            logic = field.properties.logic if field.properties else None
+            sources.update(c.field_id for c in (logic.conditions if logic else None) or [])
+    return sources
+
+
 def _apply_update_field(form: StandardForm, op: UpdateFieldOp) -> str:
     _, field, _ = _find_field(form, op.field_id)
+    if op.patch.internal and op.field_id in _logic_sources(form):
+        raise OpError(
+            f"'{_title_text(field)}' is used by conditional logic, so it cannot become "
+            "internal — respondents never answer internal fields. Remove the rule first."
+        )
     changed = _patch_field(field, op.patch)
     return f"Updated '{_title_text(field)}' ({', '.join(changed)})"
 
@@ -546,6 +587,11 @@ def _validated_conditions(form: StandardForm, specs: List[LogicConditionSpec]) -
     conditions: List[FieldLogicCondition] = []
     for spec in specs:
         _, source, _ = _find_field(form, spec.field_id)
+        if source.internal:
+            raise OpError(
+                f"'{_title_text(source)}' is an internal field — respondents never "
+                "answer it, so logic cannot depend on it."
+            )
         source_type = getattr(source.type, "value", source.type)
         if spec.comparison in VALUELESS_COMPARISONS:
             value = None

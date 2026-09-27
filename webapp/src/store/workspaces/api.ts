@@ -1,7 +1,7 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 
 import environments from '@app/configs/environments';
-import { StandardFormDto, StandardFormResponseDto, WorkspaceResponderDto } from '@app/models/dtos/form';
+import { AnswerDto, InternalAnswerMeta, StandardFormDto, StandardFormResponseDto, WorkspaceResponderDto } from '@app/models/dtos/form';
 import { ResponderGroupDto } from '@app/models/dtos/groups';
 import { Page } from '@app/models/dtos/page';
 import { WorkspaceDto } from '@app/models/dtos/workspace-dto';
@@ -16,6 +16,12 @@ const WORKSPACE_UPDATE_TAG = 'WORKSPACE_UPDATE_TAG';
 const GROUP_TAG = 'GROUP_TAG';
 const RESPONDER_TAG = 'RESPONDER_TAG';
 const FORM_TAG = 'FORM_TAG';
+
+export interface InternalAnswersState {
+    internalAnswers: Record<string, AnswerDto>;
+    internalAnswersMeta: Record<string, InternalAnswerMeta>;
+    internalAnswersVersion: number;
+}
 
 interface ImportFormQueryInterface {
     workspaceId: string;
@@ -317,6 +323,18 @@ export const workspacesApi = createApi({
                 method: 'GET'
             }),
             providesTags: [WORKSPACE_TAGS, SUBMISSION_TAG]
+        }),
+        // Staff fill in / clear a submission's internal ("office use") fields.
+        // `answers` maps internal field id -> answer, or null to clear it.
+        // `version` is the internalAnswersVersion the editor loaded; a stale one
+        // gets a 409 whose body carries the current state (see internal-fields-panel).
+        updateInternalAnswers: builder.mutation<InternalAnswersState, { workspaceId: string; formId: string; responseId: string; answers: Record<string, Record<string, any> | null>; version: number }>({
+            query: ({ workspaceId, formId, responseId, answers, version }) => ({
+                url: `/workspaces/${workspaceId}/forms/${formId}/submissions/${responseId}/internal-answers`,
+                method: 'PATCH',
+                body: { answers, version }
+            }),
+            invalidatesTags: [SUBMISSION_TAG]
         }),
         getWorkspaceStats: builder.query<WorkspaceStatsDto, string>({
             query: (id) => ({
@@ -650,5 +668,6 @@ export const {
     useGetFormAllSubmissionsQuery,
     useLazyGetFormAllSubmissionsQuery,
     useVerifyWorkspaceDomainQuery,
-    useRecheckWorkspaceDomainMutation
+    useRecheckWorkspaceDomainMutation,
+    useUpdateInternalAnswersMutation
 } = workspacesApi;

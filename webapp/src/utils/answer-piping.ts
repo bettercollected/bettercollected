@@ -40,7 +40,8 @@ export function getInputFieldsById(slides?: Array<StandardFormFieldDto>): Record
     const byId: Record<string, StandardFormFieldDto> = {};
     (slides ?? []).forEach((slide) => {
         slide?.properties?.fields?.forEach((field) => {
-            if (field?.id) byId[field.id] = field;
+            // Internal fields are staff-only: never piped, never prefilled.
+            if (field?.id && !field.internal) byId[field.id] = field;
         });
     });
     return byId;
@@ -125,7 +126,7 @@ export function titleHasPipes(title: JSONContent | string | undefined): boolean 
  */
 export function pruneOrphanedPipes(slides: Array<StandardFormFieldDto>, hiddenFieldNames?: string[]): Array<StandardFormFieldDto> {
     const fieldIds = new Set<string>();
-    slides.forEach((slide) => slide?.properties?.fields?.forEach((f) => fieldIds.add(f.id)));
+    slides.forEach((slide) => slide?.properties?.fields?.forEach((f) => !f.internal && fieldIds.add(f.id)));
     const hiddenNames = hiddenFieldNames ? new Set(hiddenFieldNames) : null;
 
     const isOrphan = (node: JSONContent): boolean => {

@@ -28,13 +28,17 @@ export function pageLabel(slide: StandardFormFieldDto | undefined, index: number
     return text ? `Page ${index + 1} · ${text}` : `Page ${index + 1}`;
 }
 
-/** Build labelled sources from slides, adding a "Page N ·" prefix when the form has more than one page. */
+/**
+ * Build labelled sources from slides, adding a "Page N ·" prefix when the form has more than one page.
+ * Internal fields are never sources: respondents never answer them, so no
+ * respondent logic or pipe may depend on them (the backend refuses it too).
+ */
 export function buildSourceFields(slides: Array<StandardFormFieldDto>, predicate: (slide: StandardFormFieldDto, slideIndex: number, field: StandardFormFieldDto) => boolean): SourceField[] {
     const multiPage = (slides || []).length > 1;
     const sources: SourceField[] = [];
     (slides || []).forEach((slide, sIdx) => {
         slide?.properties?.fields?.forEach((field) => {
-            if (!predicate(slide, sIdx, field)) return;
+            if (field?.internal || !predicate(slide, sIdx, field)) return;
             const text = fieldText(field);
             sources.push({ field, label: multiPage ? `Page ${sIdx + 1} · ${text}` : text });
         });

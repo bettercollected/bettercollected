@@ -4,7 +4,7 @@ import { Progress } from '@app/shadcn/components/ui/progress';
 import { cn } from '@app/shadcn/util/lib';
 import { useResponderState } from '@app/store/jotai/responder-form-state';
 
-import { selectForm } from '@app/store/forms/slice';
+import { selectResponderForm } from '@app/store/forms/slice';
 import { useAppSelector } from '@app/store/hooks';
 import LayoutWrapper from '../layout/layout-wrapper';
 import FormSlide from './form-slide';
@@ -40,7 +40,7 @@ const Form = ({ isPreviewMode = false, showDesktopLayout }: { isPreviewMode?: bo
     const { currentSlide, prevActiveSlide: previousSlide } = useResponderState();
     const prefersReducedMotion = useReducedMotion();
 
-    const standardForm = useAppSelector(selectForm);
+    const standardForm = useAppSelector(selectResponderForm);
 
     const getProgressValue = () => {
         const totalSlides = (standardForm?.fields?.length || 0) + 2;

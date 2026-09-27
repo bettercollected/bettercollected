@@ -65,6 +65,18 @@ export interface StandardFormFieldDto {
     answer?: any;
     index: number;
     imageUrl?: string;
+    /**
+     * Internal ("for office use only") field: never shown to respondents;
+     * workspace members fill it in on each submission (see utils/internal-fields).
+     */
+    internal?: boolean;
+}
+
+/** Who last changed one internal answer on a submission, and when. */
+export interface InternalAnswerMeta {
+    updated_by?: string;
+    updated_by_email?: string;
+    updated_at?: string;
 }
 
 export interface StandardFormDto {
@@ -142,6 +154,11 @@ export interface StandardFormResponseDto {
     };
     /** Captured hidden-field (URL parameter) values for this submission. */
     hiddenFields?: Record<string, string>;
+    /** Staff-entered values of the form's internal fields (members only). */
+    internalAnswers?: { [fieldId: string]: AnswerDto };
+    internalAnswersMeta?: { [fieldId: string]: InternalAnswerMeta };
+    /** Optimistic-concurrency counter for staff edits (0/absent = never edited). */
+    internalAnswersVersion?: number;
     responseId: string;
     formId?: string;
     formTitle?: string;

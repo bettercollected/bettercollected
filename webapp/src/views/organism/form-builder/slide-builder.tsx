@@ -12,7 +12,7 @@ import MoveUpDown from '@app/views/molecules/form-builder/move-up-down';
 import { fieldHasLogic } from '@app/utils/conditional-logic';
 import { LogicOutlinedIcon } from '@Components/icons/logic-outlined-icon';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Copy, Trash } from 'lucide-react';
+import { Copy, Lock as LockIcon, Trash } from 'lucide-react';
 
 import { formFieldsList } from '@app/constants/form-fields';
 
@@ -91,7 +91,13 @@ const SlideBuilder = ({ slide, isScaledDown = false, disabled = false }: { slide
                                             }}
                                         >
                                             <div className={'relative flex flex-col items-start'}>
-                                                {!isScaledDown && fieldHasLogic(field) && (
+                                                {!isScaledDown && field.internal && (
+                                                    <div className="text-black-700 bg-black-200 absolute -top-6 left-0 z-10 inline-flex items-center gap-1 rounded px-1.5 py-[2px] text-[10px] font-semibold" title="Respondents never see this field — your team fills it in on each response">
+                                                        <LockIcon className="h-3 w-3" aria-hidden="true" />
+                                                        Internal · staff only
+                                                    </div>
+                                                )}
+                                                {!isScaledDown && !field.internal && fieldHasLogic(field) && (
                                                     <div className="text-brand-500 bg-brand-100 absolute -top-6 left-0 z-10 inline-flex items-center gap-1 rounded px-1.5 py-[2px] text-[10px] font-semibold" title="This field is shown/hidden by a logic rule">
                                                         <LogicOutlinedIcon className="h-3 w-3" />
                                                         Logic

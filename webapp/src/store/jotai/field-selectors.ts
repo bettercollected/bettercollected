@@ -316,6 +316,22 @@ export default function useFormFieldsAtom() {
         setFormFields([...formFields]);
     };
 
+    // Internal ("for office use only"): hidden from respondents, filled in by
+    // staff on each submission. Respondents never answer such a field, so any
+    // logic or piping that read it is swept (the backend refuses it too).
+    const updateFieldInternal = (fieldIndex: number, slideIndex: number, internal: boolean) => {
+        const target = formFields[slideIndex].properties!.fields![fieldIndex];
+        if (internal) target.internal = true;
+        else delete target.internal;
+        if (internal) {
+            // Its own show/hide rule is moot too: staff always see it.
+            if (target.properties?.logic) delete target.properties.logic;
+            pruneOrphanedConditions(formFields);
+            pruneOrphanedPipes(formFields);
+        }
+        setFormFields([...formFields]);
+    };
+
     const updateFieldValidation = (fieldIndex: number, slideIndex: number, validation: any) => {
         formFields[slideIndex].properties!.fields![fieldIndex].validations = {
             ...formFields[slideIndex].properties!.fields![fieldIndex].validations,
@@ -779,6 +795,7 @@ export default function useFormFieldsAtom() {
         updateChoiceFieldValue,
         addChoiceField,
         updateFieldRequired,
+        updateFieldInternal,
         updateFieldValidation,
         updateFieldProperty,
         updateFieldConditionalLogic,

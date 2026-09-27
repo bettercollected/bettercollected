@@ -1,7 +1,7 @@
 from typing import Any, List
 
 from beanie import PydanticObjectId
-from classy_fastapi import delete, get, post
+from classy_fastapi import delete, get, patch, post
 from common.models.user import User
 from fastapi import Depends
 from fastapi_camelcase import CamelModel
@@ -9,6 +9,10 @@ from fastapi_pagination import Page
 
 from backend.app.container import container
 from backend.app.decorators.user_tag_decorators import user_tag_from_workspace
+from backend.app.models.dtos.form_response_dto import (
+    InternalAnswersPatch,
+    InternalAnswersResponse,
+)
 from backend.app.models.dtos.response_dtos import StandardFormResponseCamelModel
 from backend.app.models.enum.user_tag_enum import UserTagType
 from backend.app.models.filter_queries.form_responses import FormResponseFilterQuery
@@ -83,6 +87,29 @@ class WorkspaceResponsesRouter(CustomRoutable):
             )
         )
         return responses
+
+    @patch(
+        "/forms/{form_id}/submissions/{submission_id}/internal-answers",
+        response_model=InternalAnswersResponse,
+    )
+    async def update_internal_answers(
+        self,
+        workspace_id: PydanticObjectId,
+        form_id: str,
+        submission_id: str,
+        body: InternalAnswersPatch,
+        user: User = Depends(get_logged_user),
+    ):
+        """Staff fill in the form's internal fields on one submission. Only
+        workspace members; respondents can neither read nor write these."""
+        return await self._form_response_service.update_internal_answers(
+            workspace_id=workspace_id,
+            form_id=form_id,
+            response_id=submission_id,
+            answers=body.answers,
+            user=user,
+            expected_version=body.version,
+        )
 
     @post("/forms/{form_id}/flow-events")
     async def record_flow_event(

@@ -42,6 +42,7 @@ from backend.app.schemas.form_versions import FormVersionsDocument
 from backend.app.schemas.standard_form import FormDocument
 from backend.app.services.brevo_service import event_logger_service
 from backend.app.services.integration_provider_factory import IntegrationProviderFactory
+from backend.app.services.internal_fields import strip_internal_fields
 from backend.app.services.user_tags_service import UserTagsService
 from backend.app.utils import AiohttpClient
 from backend.config import settings
@@ -103,6 +104,11 @@ class FormService:
                 sort=sort,
             )
 
+        if not has_access_to_workspace:
+            # Public listing: internal fields belong to the organisation.
+            for form in forms_page.items:
+                strip_internal_fields(form)
+
         if not published:
             user_ids = [form.imported_by for form in forms_page.items]
             user_details = (
@@ -145,6 +151,11 @@ class FormService:
             query=query,
             published=published,
         )
+        if not await self._workspace_user_repo.has_user_access_in_workspace(
+            workspace_id=workspace_id, user=user
+        ):
+            for form in forms:
+                strip_internal_fields(form)
 
         if not published:
             user_ids = [form["imported_by"] for form in forms]
@@ -173,6 +184,26 @@ class FormService:
         is_admin = await self._workspace_user_repo.has_user_access_in_workspace(
             workspace_id=workspace_id, user=user
         )
+        form = await self._get_form_by_id(
+            workspace_id=workspace_id,
+            form_id=form_id,
+            user=user,
+            is_admin=is_admin,
+            published=published,
+            draft=draft,
+        )
+        # Respondents and the public never receive internal fields.
+        return form if is_admin else strip_internal_fields(form)
+
+    async def _get_form_by_id(
+        self,
+        workspace_id: PydanticObjectId,
+        form_id: str,
+        user: User,
+        is_admin: bool,
+        published: bool = False,
+        draft: bool = False,
+    ):
         workspace_form = (
             await self._workspace_form_repo.get_workspace_form_with_custom_slug_form_id(
                 workspace_id=workspace_id, custom_url=form_id
@@ -426,6 +457,21 @@ class FormService:
         is_admin = await self._workspace_user_repo.has_user_access_in_workspace(
             workspace_id=workspace_id, user=user
         )
+        form = await self._get_form_by_version(
+            workspace_id, form_id, version, user, is_admin
+        )
+        if is_admin or isinstance(form, HTTPException):
+            return form
+        return strip_internal_fields(form)
+
+    async def _get_form_by_version(
+        self,
+        workspace_id: PydanticObjectId,
+        form_id: str,
+        version: str | int,
+        user: User,
+        is_admin: bool,
+    ):
         if not user:
             workspace_forms = await self._workspace_form_repo.get_workspace_form_with_custom_slug_form_id(
                 workspace_id=workspace_id, custom_url=form_id
