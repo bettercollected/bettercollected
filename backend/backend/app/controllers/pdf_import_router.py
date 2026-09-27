@@ -11,6 +11,7 @@ from typing import Any, Dict, List, Optional
 from beanie import PydanticObjectId
 from classy_fastapi import Routable, get, post
 from fastapi import Depends, File, Form, UploadFile
+from fastapi.responses import Response
 from fastapi_camelcase import CamelModel
 
 from backend.app.container import container
@@ -38,6 +39,7 @@ class PdfImportDto(CamelModel):
     pages: List[PageAnalysis] = []
     report: Dict[str, Any] = {}
     ai_consent: bool = False
+    finished_stages: List[str] = []
     created_at: Optional[dt.datetime] = None
     finished_at: Optional[dt.datetime] = None
 
@@ -56,6 +58,7 @@ class PdfImportDto(CamelModel):
             pages=record.pages,
             report=record.report,
             ai_consent=bool(record.ai_consent),
+            finished_stages=list(record.stages.keys()),
             created_at=record.created_at,
             finished_at=record.finished_at,
         )
@@ -109,3 +112,32 @@ class PdfImportRouter(Routable):
     ):
         record = await container.pdf_import_service().get(workspace_id, import_id, user)
         return PdfImportDto.of(record)
+
+    @get("/{import_id}/review")
+    async def review(
+        self,
+        workspace_id: PydanticObjectId,
+        import_id: PydanticObjectId,
+        user: User = Depends(get_logged_user),
+    ):
+        return await container.pdf_import_service().review(
+            workspace_id, import_id, user
+        )
+
+    @get("/{import_id}/pages/{number}")
+    async def page_image(
+        self,
+        workspace_id: PydanticObjectId,
+        import_id: PydanticObjectId,
+        number: int,
+        user: User = Depends(get_logged_user),
+    ):
+        data = await container.pdf_import_service().page_image(
+            workspace_id, import_id, number, user
+        )
+        # private and per user: never cached by shared caches
+        return Response(
+            content=data,
+            media_type="image/png",
+            headers={"Cache-Control": "private, max-age=300"},
+        )

@@ -4,9 +4,14 @@ import React, { use, useEffect } from 'react';
 
 import { useRouter } from 'next-nprogress-bar';
 
+import AIIcon from '@Components/icons/ai-icon';
+import { GoogleFormIcon } from '@Components/icons/google-form';
+import useDrivePicker from '@fyelci/react-google-drive-picker';
 import cn from 'classnames';
+import { FileText } from 'lucide-react';
 
 import { useModal } from '@app/components/modal-views/context';
+import ImportPdfDialog from '@app/components/pdf-import/import-pdf-dialog';
 import { defaultForm } from '@app/constants/form';
 import { useIsMobile } from '@app/lib/hooks/use-breakpoint';
 import { useDialogModal } from '@app/lib/hooks/use-dialog-modal';
@@ -21,9 +26,6 @@ import FormTypeSelectionComponent from '@app/views/molecules/form-builder/form-t
 import NavBar from '@app/views/molecules/form-builder/navbar';
 import WelcomePage from '@app/views/organism/form/welcome-page';
 import LayoutWrapper from '@app/views/organism/layout/layout-wrapper';
-import AIIcon from '@Components/icons/ai-icon';
-import { GoogleFormIcon } from '@Components/icons/google-form';
-import useDrivePicker from '@fyelci/react-google-drive-picker';
 
 const CardVariants = {
     blue: 'text-blue-500 hover:bg-blue-100 transition hover:border-blue-100',
@@ -44,6 +46,7 @@ export default function CreateFormPage(props: { searchParams: Promise<{ modal?: 
     const authState = useAppSelector(selectAuth);
 
     const showModal = searchParams.modal;
+    const [pdfImportOpen, setPdfImportOpen] = React.useState(false);
 
     useEffect(() => {
         if (showModal === 'true') {
@@ -82,22 +85,22 @@ export default function CreateFormPage(props: { searchParams: Promise<{ modal?: 
     };
 
     return (
-        <div className="min-h-screen  bg-white">
+        <div className="min-h-screen bg-white">
             <NavBar />
-            <div className="px-auto h-body-content overflow-auto ">
+            <div className="px-auto h-body-content overflow-auto">
                 <div className="mx-auto flex w-full max-w-[1330px] flex-col px-5 md:px-10">
-                    <div className="h3-new text-black-800 mb-4 mt-6">New Form</div>
+                    <div className="h3-new mb-4 mt-6 text-black-800">New Form</div>
                     <div className="flex w-full flex-col flex-wrap gap-6 lg:flex-row">
                         {isMobile ? (
-                            <Card variant={'blue'} icon={<PlusIcon />} content={'Create New Form'} onClick={() => { }} />
+                            <Card variant={'blue'} icon={<PlusIcon />} content={'Create New Form'} onClick={() => {}} />
                         ) : (
                             <Sheet>
                                 <SheetTrigger asChild>
-                                    <Card variant={'blue'} icon={<PlusIcon />} content={'Create New Form'} onClick={() => { }} />
+                                    <Card variant={'blue'} icon={<PlusIcon />} content={'Create New Form'} onClick={() => {}} />
                                 </SheetTrigger>
-                                <SheetContent className=" shadow-v2 h-full w-full p-0 drop-shadow-2xl" side={'top'} hideCloseIcon>
-                        <SheetTitle className="sr-only">Select form type</SheetTitle>
-                                    <div className="h-full w-full bg-white ">
+                                <SheetContent className="h-full w-full p-0 shadow-v2 drop-shadow-2xl" side={'top'} hideCloseIcon>
+                                    <SheetTitle className="sr-only">Select form type</SheetTitle>
+                                    <div className="h-full w-full bg-white">
                                         <NavBar isModal />
                                         <FormTypeSelectionComponent handleCreateForm={handleCreateForm} />
                                     </div>
@@ -113,6 +116,7 @@ export default function CreateFormPage(props: { searchParams: Promise<{ modal?: 
                                 openModal('IMPORT_FORMS', { nonClosable: true });
                             }}
                         />
+                        <Card variant={'blue'} icon={<FileText className="mb-2 h-[30px] w-full text-blue-500" />} content={'Import a PDF form'} onClick={() => setPdfImportOpen(true)} />
                         <Card
                             variant={'pink'}
                             icon={<AIIcon className="text-[#FE3678]" />}
@@ -123,10 +127,11 @@ export default function CreateFormPage(props: { searchParams: Promise<{ modal?: 
                         />
                     </div>
 
+                    <ImportPdfDialog open={pdfImportOpen} onOpenChange={setPdfImportOpen} workspaceId={workspace?.id} workspaceName={workspace?.workspaceName} />
                     {!isMobile && (
                         <>
-                            <div className="h3-new text-black-800 mb-4 mt-12">Templates</div>
-                            <div className="flex w-full flex-row flex-wrap gap-x-6 gap-y-10  ">
+                            <div className="h3-new mb-4 mt-12 text-black-800">Templates</div>
+                            <div className="flex w-full flex-row flex-wrap gap-x-6 gap-y-10">
                                 {templates?.map((template) => (
                                     // Plain div: the scaled WelcomePage preview inside contains buttons,
                                     // and <button> can't nest inside <button> (hydration error).
@@ -135,7 +140,7 @@ export default function CreateFormPage(props: { searchParams: Promise<{ modal?: 
                                             <div
                                                 data-umami-event={'Create Form With Template'}
                                                 data-umami-event-email={authState.email}
-                                                className="border-black-200 relative  h-[157px] w-[281px] cursor-pointer  overflow-hidden rounded-md border"
+                                                className="relative h-[157px] w-[281px] cursor-pointer overflow-hidden rounded-md border border-black-200"
                                                 onClick={() => createFormFromTemplate(template.id)}
                                             >
                                                 <div className="pointer-events-none h-[810px] w-[1440px] scale-[0.195]" style={{ transformOrigin: 'top left' }}>
@@ -143,7 +148,7 @@ export default function CreateFormPage(props: { searchParams: Promise<{ modal?: 
                                                         <WelcomePage isPreviewMode theme={template?.theme} welcomePageData={template?.welcomePage} />
                                                     </LayoutWrapper>
                                                 </div>
-                                                <div className="bg-black-800 absolute inset-0 z-10 opacity-0 hover:opacity-20" />
+                                                <div className="absolute inset-0 z-10 bg-black-800 opacity-0 hover:opacity-20" />
                                             </div>
                                             <div className="p2-new mt-2 !font-medium">{template.title}</div>
                                         </div>
@@ -174,31 +179,31 @@ const Card = ({ icon, content, onClick, variant, addSoon, soonMsg }: CardWrapper
         <div
             data-umami-event={content}
             data-umami-event-email={authState.email}
-            className={cn('border-black-300 relative flex h-[170px] w-full cursor-pointer flex-col items-center justify-center overflow-hidden rounded-lg border bg-white lg:h-[117px] lg:w-[220px]', CardVariants[variant])}
+            className={cn('relative flex h-[170px] w-full cursor-pointer flex-col items-center justify-center overflow-hidden rounded-lg border border-black-300 bg-white lg:h-[117px] lg:w-[220px]', CardVariants[variant])}
             onClick={onClick}
         >
             {icon}
-            <span className="p3-new text-black-800 mb-1 mt-2">{content}</span>
-            {content !== 'Import Google Form' && <OnlyAvailableInDesktopVersion />}
+            <span className="p3-new mb-1 mt-2 text-black-800">{content}</span>
+            {content !== 'Import Google Form' && content !== 'Import a PDF form' && <OnlyAvailableInDesktopVersion />}
             {addSoon && <SoonComponent msg={soonMsg} />}
-            {content === 'Start with AI' && <div className="bg-new-pink absolute -right-0.5 -top-0.5 hidden rounded-lg px-2 py-1 text-xs font-semibold text-white lg:flex">beta</div>}
+            {content === 'Start with AI' && <div className="absolute -right-0.5 -top-0.5 hidden rounded-lg bg-new-pink px-2 py-1 text-xs font-semibold text-white lg:flex">beta</div>}
         </div>
     );
 };
 
 const SoonComponent = ({ msg }: { msg?: string }) => {
     return (
-        <div className="bg-new-pink absolute bottom-0 left-1/3 flex h-fit w-full -rotate-[30deg] items-center justify-center text-[10px] font-medium leading-none text-white">
-            <span className=" ml-14 md:ml-4">{msg || 'Soon'}</span>
+        <div className="absolute bottom-0 left-1/3 flex h-fit w-full -rotate-[30deg] items-center justify-center bg-new-pink text-[10px] font-medium leading-none text-white">
+            <span className="ml-14 md:ml-4">{msg || 'Soon'}</span>
         </div>
     );
 };
 
 const OnlyAvailableInDesktopVersion = () => {
     return (
-        <div className="bg-new-pink absolute -right-10 bottom-3 flex h-auto w-[200px] -rotate-[30deg] flex-col items-center justify-center gap-1 py-2 text-[10px] font-medium leading-none text-white lg:hidden">
-            <span className="  md:ml-4">Only available in</span>
-            <span className="  md:ml-4">desktop version</span>
+        <div className="absolute -right-10 bottom-3 flex h-auto w-[200px] -rotate-[30deg] flex-col items-center justify-center gap-1 bg-new-pink py-2 text-[10px] font-medium leading-none text-white lg:hidden">
+            <span className="md:ml-4">Only available in</span>
+            <span className="md:ml-4">desktop version</span>
         </div>
     );
 };

@@ -1,4 +1,4 @@
-import { combineReducers, configureStore, Reducer } from '@reduxjs/toolkit';
+import { Reducer, combineReducers, configureStore } from '@reduxjs/toolkit';
 import { setupListeners } from '@reduxjs/toolkit/query';
 import { persistStore } from 'redux-persist';
 
@@ -8,24 +8,24 @@ import authSlice from '@app/store/auth/slice';
 import { couponCodeApi } from '@app/store/coupon-code/api';
 import fillFormSlice from '@app/store/fill-form/slice';
 import formSlice from '@app/store/forms/slice';
+import { integrationApi } from '@app/store/integration-apis';
 import { plansApi } from '@app/store/plans/api';
 import { providerApi } from '@app/store/providers/api';
+import { formsApi } from '@app/store/redux/form-api';
+import { importApi } from '@app/store/redux/import-api';
+import { pdfImportApi } from '@app/store/redux/pdf-import-api';
+import { templatesApi } from '@app/store/redux/template-api';
 import { templateApi } from '@app/store/template/api';
 import { workspacesApi } from '@app/store/workspaces/api';
 import { membersNInvitationsApi } from '@app/store/workspaces/members-n-invitations-api';
 import workspaceSlice from '@app/store/workspaces/slice';
 
+import { analyticsApi } from './analytics/api';
 import { apiActionsApi } from './api-actions-api';
+import { mediaLibraryApi } from './media-library/api';
 import mutationStatusSlice from './mutations/slice';
 import { priceSuggestionApi } from './price-suggestion/api';
 
-import { integrationApi } from '@app/store/integration-apis';
-import { templatesApi } from '@app/store/redux/template-api';
-
-import { formsApi } from '@app/store/redux/form-api';
-import { importApi } from '@app/store/redux/import-api';
-import { analyticsApi } from './analytics/api';
-import { mediaLibraryApi } from './media-library/api';
 // Add more middlewares here
 // const middlewares = [loggerMiddleware, authApi.middleware, membersNInvitationsApi.middleware, plansApi.middleware, providerApi.middleware, workspacesApi.middleware];
 const middlewares = [
@@ -41,6 +41,7 @@ const middlewares = [
     formsApi.middleware,
     templatesApi.middleware,
     importApi.middleware,
+    pdfImportApi.middleware,
     mediaLibraryApi.middleware,
     analyticsApi.middleware,
     integrationApi.middleware
@@ -67,6 +68,7 @@ const reducers = {
     [formsApi.reducerPath]: formsApi.reducer,
     [templatesApi.reducerPath]: templatesApi.reducer,
     [importApi.reducerPath]: importApi.reducer,
+    [pdfImportApi.reducerPath]: pdfImportApi.reducer,
     [mediaLibraryApi.reducerPath]: mediaLibraryApi.reducer,
     [analyticsApi.reducerPath]: analyticsApi.reducer,
     [integrationApi.reducerPath]: integrationApi.reducer
@@ -89,7 +91,7 @@ export const store = configureStore({
             serializableCheck: false
             // RTK 2's Tuple.concat needs the middlewares spread (an array
             // argument widens the tuple type and fails to typecheck).
-        }).concat(...middlewares),
+        }).concat(...middlewares)
 });
 
 export const persistor = persistStore(store);

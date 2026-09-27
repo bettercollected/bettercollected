@@ -190,3 +190,101 @@ class PdfImportService:
         with the form's private folder)."""
         if form_ids:
             await self._repo.delete_by_form_ids(list(form_ids))
+
+    async def page_image(self, workspace_id, import_id, number: int, user) -> bytes:
+        """A rendered page, for the review screen (members of the workspace only)."""
+        record = await self.get(workspace_id, import_id, user)
+        pages = {
+            p["number"]: p["key"]
+            for p in (record.stages.get("render") or {}).get("pages", [])
+        }
+        if number not in pages:
+            raise HTTPException(HTTPStatus.NOT_FOUND, "No image for this page.")
+        return await self._store.get(pages[number])
+
+    async def review(self, workspace_id, import_id, user) -> dict:
+        """What the review screen shows: per page its size, whether an image
+        exists, and where each imported question came from."""
+        import json
+
+        from backend.app.services.pdf_import.storage import artifact_key
+
+        record = await self.get(workspace_id, import_id, user)
+
+        async def load(name):
+            try:
+                return json.loads(
+                    await self._store.get(artifact_key(record.source_key, name))
+                )
+            except Exception:  # noqa: BLE001 — a stage that did not run
+                return {}
+
+        fdm, layout = await load("fdm.json"), await load("layout.json")
+        text = await load("text.json")
+        primitives = {
+            p["id"]: p
+            for page in layout.get("pages") or []
+            for p in page.get("primitives") or []
+        }
+        words = {
+            page["number"]: page.get("words") or [] for page in text.get("pages") or []
+        }
+        images = {
+            p["number"] for p in (record.stages.get("render") or {}).get("pages", [])
+        }
+        pages = []
+        for page in record.pages:
+            boxes = []
+            for e in fdm.get("elements") or []:
+                if e.get("page") != page.number or e["type"] not in (
+                    "question",
+                    "staff_only",
+                ):
+                    continue
+                parts = [
+                    primitives[r]["bbox"]
+                    for r in e.get("slot_refs") or e.get("refs") or []
+                    if r in primitives
+                ]
+                for ref in e.get("label_refs") or []:
+                    if ref.startswith("w") and ref[1:].isdigit():
+                        i = int(ref[1:])
+                        page_words = words.get(page.number) or []
+                        if i < len(page_words):
+                            w = page_words[i]
+                            parts.append([w["x0"], w["top"], w["x1"], w["bottom"]])
+                if not parts:
+                    continue
+                box = [
+                    min(b[0] for b in parts),
+                    min(b[1] for b in parts),
+                    max(b[2] for b in parts),
+                    max(b[3] for b in parts),
+                ]
+                boxes.append(
+                    {
+                        "id": e["id"],
+                        "type": e["type"],
+                        "kind": e.get("kind"),
+                        "label": e.get("label") or e.get("heading") or "",
+                        "confidence": e.get("confidence"),
+                        "bbox": [round(v, 1) for v in box],
+                    }
+                )
+            pages.append(
+                {
+                    "number": page.number,
+                    "width": page.width,
+                    "height": page.height,
+                    "route": page.route,
+                    "has_image": page.number in images,
+                    "boxes": boxes,
+                }
+            )
+        return {
+            "id": str(record.id),
+            "form_id": record.form_id,
+            "status": record.status,
+            "pages": pages,
+            "report": record.report,
+        }
