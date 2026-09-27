@@ -3,7 +3,7 @@ import { JSONContent } from '@tiptap/react';
 import { FormTheme } from '@app/constants/theme';
 import { Parameters } from '@app/models/dtos/actions';
 import { UserStatus } from '@app/models/dtos/user-status';
-import { FieldConditionalLogic, IFormFieldValidation, NodePosition, PageJump } from '@app/models/types/form-builder-shared';
+import { FieldConditionalLogic, IFormFieldValidation, NodePosition, PageJump, RepeatSettings } from '@app/models/types/form-builder-shared';
 
 import { FormSlideLayout } from '../enums/form';
 import { FileMetadata } from '../types/file-types';
@@ -40,6 +40,8 @@ export interface StandardFormFieldProperties {
     rowTitles?: Array<string>;
     columnTitles?: Array<string>;
     tabular_value?: Array<Array<string>>;
+    /** Present on a repeating group field (see utils/repeating-groups.ts). */
+    repeat?: RepeatSettings;
 }
 
 export interface StandardFormFieldDto {
@@ -201,6 +203,8 @@ export interface AnswerDto {
     phoneNumber?: string;
     phone_number?: string;
     tabular_value?: string[][];
+    /** Repeating group answer: one answers map (child field id → answer) per item. */
+    items?: Array<Record<string, any>>;
     choice?: {
         id?: string;
         label?: string;

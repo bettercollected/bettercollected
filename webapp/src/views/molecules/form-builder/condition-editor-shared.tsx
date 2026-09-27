@@ -1,7 +1,8 @@
 'use client';
 
-import { FieldTypes, StandardFormFieldDto } from '@app/models/dtos/form';
-import { Comparison, LogicCondition } from '@app/models/types/form-builder-shared';
+import { FieldTypes, StandardFormFieldDto, V2InputFields } from '@app/models/dtos/form';
+import { Comparison, GroupConditionMode, LogicCondition } from '@app/models/types/form-builder-shared';
+import { getGroupChildren, isRepeatingGroup } from '@app/utils/repeating-groups';
 import { extractTextfromJSON } from '@app/utils/richTextEditorExtenstion/get-html-from-json';
 import { X } from 'lucide-react';
 
@@ -89,9 +90,30 @@ export function comparisonsForField(field?: StandardFormFieldDto): Comparison[] 
 
 export const needsValue = (c: Comparison) => c !== Comparison.IS_EMPTY && c !== Comparison.IS_NOT_EMPTY;
 
+/** Item-count comparisons offered for a repeating group ("number of items is / at least / at most"). */
+export const COUNT_COMPARISON_LABELS: Record<string, string> = {
+    [Comparison.IS_EQUAL]: 'is',
+    [Comparison.GREATER_THAN_EQUAL]: 'is at least',
+    [Comparison.LESS_THAN_EQUAL]: 'is at most'
+};
+
+export const GROUP_MODE_LABELS: Record<GroupConditionMode, string> = {
+    COUNT: 'Number of items',
+    ANY: 'Any item',
+    ALL: 'All items'
+};
+
+/** Group-level condition defaults when a repeating group is picked as the source. */
+export function groupConditionFor(group: StandardFormFieldDto, groupMode: GroupConditionMode = 'COUNT'): Partial<LogicCondition> {
+    if (groupMode === 'COUNT') return { fieldId: group.id, fieldType: FieldTypes.GROUP, groupMode, comparison: Comparison.GREATER_THAN_EQUAL, value: '', childFieldId: undefined, childFieldType: undefined };
+    const child = getGroupChildren(group).find((c) => c.type !== FieldTypes.TEXT);
+    return { fieldId: group.id, fieldType: FieldTypes.GROUP, groupMode, childFieldId: child?.id, childFieldType: child?.type, comparison: comparisonsForField(child)[0], value: '' };
+}
+
 /** A condition is complete only if it names a field, a comparison, and (when required) a value. */
 export function isConditionComplete(c: LogicCondition | undefined): boolean {
     if (!c?.fieldId || !c?.comparison) return false;
+    if ((c.groupMode === 'ANY' || c.groupMode === 'ALL') && !c.childFieldId) return false;
     if (needsValue(c.comparison) && (c.value === undefined || c.value === null || String(c.value).trim() === '')) return false;
     return true;
 }
@@ -112,7 +134,13 @@ export function ConditionRow({
     onRemove?: () => void;
 }) {
     const src = sources.find((s) => s.field.id === condition.fieldId)?.field;
-    const comparisons = comparisonsForField(src);
+    const group = isRepeatingGroup(src) ? src : undefined;
+    const groupChildren = group ? getGroupChildren(group).filter((c) => c.type !== FieldTypes.TEXT) : [];
+    const child = group && condition.groupMode !== 'COUNT' ? groupChildren.find((c) => c.id === condition.childFieldId) : undefined;
+    // A group condition compares the item count, or one question in any/all items.
+    const valueField: StandardFormFieldDto | undefined = group ? (condition.groupMode === 'COUNT' ? ({ id: 'count', index: 0, type: FieldTypes.NUMBER } as StandardFormFieldDto) : child) : src;
+    const comparisons = group && condition.groupMode === 'COUNT' ? (Object.keys(COUNT_COMPARISON_LABELS) as Comparison[]) : comparisonsForField(valueField);
+    const labels = group && condition.groupMode === 'COUNT' ? COUNT_COMPARISON_LABELS : COMPARISON_LABELS;
     const valueMissing = needsValue(condition.comparison) && (condition.value === undefined || condition.value === null || String(condition.value).trim() === '');
     return (
         <div className="border-black-200 bg-new-white-200 relative flex flex-col gap-1.5 rounded-md border p-2">
@@ -126,7 +154,8 @@ export function ConditionRow({
                 value={condition.fieldId}
                 onChange={(e) => {
                     const f = sources.find((s) => s.field.id === e.target.value)?.field;
-                    onChange({ fieldId: e.target.value, fieldType: f?.type ?? '', comparison: comparisonsForField(f)[0], value: '' });
+                    if (f && isRepeatingGroup(f)) onChange(groupConditionFor(f));
+                    else onChange({ fieldId: e.target.value, fieldType: f?.type ?? '', comparison: comparisonsForField(f)[0], value: '', groupMode: undefined, childFieldId: undefined, childFieldType: undefined });
                 }}
             >
                 {sources.map((s) => (
@@ -135,14 +164,40 @@ export function ConditionRow({
                     </option>
                 ))}
             </select>
+            {group && (
+                <select aria-label="Group condition" className={selectClass} value={condition.groupMode ?? 'COUNT'} onChange={(e) => onChange(groupConditionFor(group, e.target.value as GroupConditionMode))}>
+                    {(Object.keys(GROUP_MODE_LABELS) as GroupConditionMode[]).map((mode) => (
+                        <option key={mode} value={mode} disabled={mode !== 'COUNT' && groupChildren.length === 0}>
+                            {GROUP_MODE_LABELS[mode]}
+                        </option>
+                    ))}
+                </select>
+            )}
+            {group && condition.groupMode !== 'COUNT' && (
+                <select
+                    aria-label="Question in each item"
+                    className={selectClass}
+                    value={condition.childFieldId ?? ''}
+                    onChange={(e) => {
+                        const next = groupChildren.find((c) => c.id === e.target.value);
+                        onChange({ childFieldId: next?.id, childFieldType: next?.type, comparison: comparisonsForField(next)[0], value: '' });
+                    }}
+                >
+                    {groupChildren.map((c) => (
+                        <option key={c.id} value={c.id}>
+                            {fieldText(c)}
+                        </option>
+                    ))}
+                </select>
+            )}
             <select className={selectClass} value={condition.comparison} onChange={(e) => onChange({ comparison: e.target.value as Comparison, value: '' })}>
                 {comparisons.map((c) => (
                     <option key={c} value={c}>
-                        {COMPARISON_LABELS[c]}
+                        {labels[c]}
                     </option>
                 ))}
             </select>
-            {needsValue(condition.comparison) && <ConditionValueInput field={src} value={condition.value} invalid={valueMissing} onChange={(v) => onChange({ value: v })} />}
+            {needsValue(condition.comparison) && <ConditionValueInput field={valueField} value={condition.value} invalid={valueMissing} onChange={(v) => onChange({ value: v })} />}
             {valueMissing && <span className="text-[11px] text-amber-700">Enter a value for this rule to work.</span>}
         </div>
     );
@@ -179,5 +234,11 @@ export function ConditionValueInput({ field, value, onChange, invalid }: { field
 
 export function newConditionFor(sources: SourceField[]): LogicCondition {
     const first = sources[0]?.field;
+    if (first && isRepeatingGroup(first)) return groupConditionFor(first) as LogicCondition;
     return { fieldId: first?.id ?? '', fieldType: first?.type ?? '', comparison: Comparison.IS_EQUAL, value: '' };
+}
+
+/** Condition sources: answerable questions plus repeating groups (conditioned on as a whole). */
+export function isConditionSource(field: StandardFormFieldDto): boolean {
+    return V2InputFields.includes(field.type) || isRepeatingGroup(field);
 }

@@ -6,14 +6,14 @@ import { useAppSelector } from '@app/store/hooks';
 import { useFormState } from '@app/store/jotai/form';
 import { useFormResponse } from '@app/store/jotai/responder-form-response';
 import { useHiddenFieldValues } from '@app/store/jotai/responder-hidden-fields';
-import { resolvePipesInText, resolvePipesInTitle } from '@app/utils/answer-piping';
+import { resolvePipesInText, resolvePipesInTitle, stringTitleToDoc } from '@app/utils/answer-piping';
 import { getHtmlFromJson } from '@app/utils/richTextEditorExtenstion/get-html-from-json';
 
 import { styleTokens } from '@app/views/molecules/theme/theme-shared';
 import { RenderImage } from '@app/views/organism/form-builder/fields/render-field';
 import { getPlaceholderValueForTitle } from '../rich-text-editor';
 
-export default function QuestionWrapper({ field, children }: { field: StandardFormFieldDto; children?: React.ReactNode }) {
+export default function QuestionWrapper({ field, children, errorMessage }: { field: StandardFormFieldDto; children?: React.ReactNode; errorMessage?: string }) {
     const { formResponse } = useFormResponse();
     const { theme } = useFormState();
     const tokens = styleTokens(theme?.style);
@@ -21,7 +21,8 @@ export default function QuestionWrapper({ field, children }: { field: StandardFo
     const standardForm = useAppSelector(selectForm);
 
     const { invalidFields } = formResponse;
-    const hasError = !!(invalidFields && invalidFields[field.id] && invalidFields[field.id].length);
+    // A caller may own the error (e.g. a repeating group's item-count message).
+    const hasError = errorMessage !== undefined ? !!errorMessage : !!(invalidFields && invalidFields[field.id] && invalidFields[field.id].length);
 
     // A field that collects an answer is either required or optional — never
     // ambiguous. We mark required fields (asterisk) AND label optional ones, so
@@ -34,7 +35,11 @@ export default function QuestionWrapper({ field, children }: { field: StandardFo
     // Answer piping: swap pipe tokens for the responder's earlier answers (or
     // captured hidden-field values) before the title/description hit the DOM.
     const pipeContext = { slides: standardForm?.fields, answers: formResponse.answers ?? {}, hiddenValues };
-    const resolvedTitle = resolvePipesInTitle(field?.title, pipeContext);
+    // Plain-string titles (groups, AI/MCP-created fields) go through the TipTap
+    // path as text nodes — never as raw HTML — so neither the title nor a piped
+    // answer or URL prefill can inject markup. Bold keeps the string path's look.
+    const title = typeof field?.title === 'string' && field.title ? stringTitleToDoc(field.title, [{ type: 'bold' }]) : field?.title;
+    const resolvedTitle = resolvePipesInTitle(title, pipeContext);
     const resolvedDescription = resolvePipesInText(field?.description, pipeContext);
 
     return (
@@ -83,7 +88,7 @@ export default function QuestionWrapper({ field, children }: { field: StandardFo
                 and avoid alarm colours/urgency (Design-Language.md §5). */}
             {hasError && (
                 <div id={`q-error-${field.id}`} role="alert" className="mt-2 text-sm text-amber-700">
-                    Please answer this question to continue.
+                    {errorMessage || 'Please answer this question to continue.'}
                 </div>
             )}
         </div>

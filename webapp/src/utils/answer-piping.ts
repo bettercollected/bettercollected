@@ -1,7 +1,8 @@
 import { JSONContent } from '@tiptap/react';
 
-import { StandardFormFieldDto, V2InputFields } from '@app/models/dtos/form';
+import { FieldTypes, StandardFormFieldDto, V2InputFields } from '@app/models/dtos/form';
 import { getComparableAnswerValue } from '@app/utils/conditional-logic';
+import { GroupAggregate, resolveGroupAggregate } from '@app/utils/group-aggregates';
 
 /**
  * Answer piping ("recall") — reference an earlier answer or a hidden field
@@ -22,7 +23,15 @@ import { getComparableAnswerValue } from '@app/utils/conditional-logic';
  * Hidden-field values are the URL parameters captured when the form loaded.
  */
 
-export type PipeKind = 'field' | 'hidden';
+/**
+ * `group` pipes summarise a repeating group outside it:
+ *   `<groupId>:count`            → number of items
+ *   `<groupId>:list:<fieldId>`   → "A, B and C" (one question across items)
+ *   `<groupId>:sum|avg|min|max:<fieldId>` → aggregate of a numeric question
+ * Inside an item, a plain `field` pipe to a sibling question resolves to the
+ * same item's answer (the item's answers are layered over the form's).
+ */
+export type PipeKind = 'field' | 'hidden' | 'group';
 
 export const ANSWER_PIPE_NODE = 'answerPipe';
 
@@ -35,16 +44,39 @@ export interface PipeContext {
     hiddenValues?: Record<string, string>;
 }
 
-/** Flatten slides into an id → field map for answerable fields. */
-export function getInputFieldsById(slides?: Array<StandardFormFieldDto>): Record<string, StandardFormFieldDto> {
+/**
+ * Flatten slides into an id → field map for answerable fields. Questions of
+ * repeating groups are included (a sibling pipe inside an item needs its
+ * type) unless `includeGroupChildren` is false.
+ */
+export function getInputFieldsById(slides?: Array<StandardFormFieldDto>, includeGroupChildren = true): Record<string, StandardFormFieldDto> {
     const byId: Record<string, StandardFormFieldDto> = {};
     (slides ?? []).forEach((slide) => {
         slide?.properties?.fields?.forEach((field) => {
             // Internal fields are staff-only: never piped, never prefilled.
             if (field?.id && !field.internal) byId[field.id] = field;
+            if (includeGroupChildren && field?.type === FieldTypes.GROUP && field.properties?.repeat) {
+                field.properties.fields?.forEach((child) => {
+                    if (child?.id && !child.internal) byId[child.id] = child;
+                });
+            }
         });
     });
     return byId;
+}
+
+/** Build a `group` pipe key (see PipeKind). */
+export function groupPipeKey(groupId: string, aggregate: GroupAggregate, childId?: string): string {
+    return aggregate === 'count' || !childId ? `${groupId}:count` : `${groupId}:${aggregate}:${childId}`;
+}
+
+function resolveGroupPipe(pipeKey: string, context: PipeContext): string | undefined {
+    const [groupId, aggregate, childId] = pipeKey.split(':');
+    const group = getInputFieldsById(context.slides, false)[groupId];
+    if (!group || group.type !== FieldTypes.GROUP) return undefined;
+    const child = childId ? group.properties?.fields?.find((f) => f.id === childId) : undefined;
+    if (childId && !child) return undefined;
+    return resolveGroupAggregate(context.answers?.[groupId], (aggregate as GroupAggregate) || 'count', childId, child?.type);
 }
 
 /** Render a comparable answer value as display text. Empty-ish → undefined. */
@@ -64,13 +96,37 @@ export function resolvePipeValue(kind: PipeKind | string, pipeKey: string, conte
     if (kind === 'hidden') {
         return formatPipeValue(context.hiddenValues?.[pipeKey]);
     }
+    if (kind === 'group') {
+        return resolveGroupPipe(pipeKey, context);
+    }
     const field = getInputFieldsById(context.slides)[pipeKey];
     if (!field) return undefined;
     return formatPipeValue(getComparableAnswerValue(context.answers?.[pipeKey], field.type));
 }
 
 // `{{field:<id>}}` / `{{hidden:<name>|fallback}}` — key stops at `|` or `}`.
-const TEXT_PIPE_PATTERN = /\{\{\s*(field|hidden)\s*:\s*([^}|]+?)\s*(?:\|([^}]*))?\}\}/g;
+const TEXT_PIPE_PATTERN = /\{\{\s*(field|hidden|group)\s*:\s*([^}|]+?)\s*(?:\|([^}]*))?\}\}/g;
+
+/**
+ * Turn a plain-string title into TipTap JSON, text tokens becoming pipe
+ * nodes. Rendering then goes through the JSON path, where piped answers are
+ * text nodes (escaped when turned into HTML) instead of raw HTML.
+ */
+export function stringTitleToDoc(text: string, marks?: JSONContent['marks']): JSONContent {
+    const content: JSONContent[] = [];
+    const withMarks = (node: JSONContent): JSONContent => (marks?.length ? { ...node, marks } : node);
+    let last = 0;
+    TEXT_PIPE_PATTERN.lastIndex = 0;
+    let match: RegExpExecArray | null;
+    while ((match = TEXT_PIPE_PATTERN.exec(text)) !== null) {
+        if (match.index > last) content.push(withMarks({ type: 'text', text: text.slice(last, match.index) }));
+        content.push(withMarks({ type: ANSWER_PIPE_NODE, attrs: { kind: match[1], pipeKey: match[2].trim(), label: match[2].trim(), fallback: (match[3] ?? '').trim() } }));
+        last = match.index + match[0].length;
+    }
+    if (last < text.length) content.push(withMarks({ type: 'text', text: text.slice(last) }));
+    TEXT_PIPE_PATTERN.lastIndex = 0;
+    return { type: 'doc', content: [{ type: 'paragraph', content }] };
+}
 
 /** Resolve text-token pipes in a plain string (descriptions, thank-you text). */
 export function resolvePipesInText(text: string | null | undefined, context: PipeContext): string | null | undefined {
@@ -125,14 +181,19 @@ export function titleHasPipes(title: JSONContent | string | undefined): boolean 
  * Mutates field titles in place, like the conditions pruner does.
  */
 export function pruneOrphanedPipes(slides: Array<StandardFormFieldDto>, hiddenFieldNames?: string[]): Array<StandardFormFieldDto> {
-    const fieldIds = new Set<string>();
-    slides.forEach((slide) => slide?.properties?.fields?.forEach((f) => !f.internal && fieldIds.add(f.id)));
+    const byId = getInputFieldsById(slides);
+    const fieldIds = new Set<string>(Object.keys(byId));
     const hiddenNames = hiddenFieldNames ? new Set(hiddenFieldNames) : null;
 
     const isOrphan = (node: JSONContent): boolean => {
         if (node?.type !== ANSWER_PIPE_NODE) return false;
         const attrs = node.attrs ?? {};
         if (attrs.kind === 'hidden') return hiddenNames !== null && !hiddenNames.has(attrs.pipeKey);
+        if (attrs.kind === 'group') {
+            const [groupId, , childId] = String(attrs.pipeKey ?? '').split(':');
+            const group = byId[groupId];
+            return !group || group.type !== FieldTypes.GROUP || (!!childId && !group.properties?.fields?.some((f) => f.id === childId));
+        }
         return !fieldIds.has(attrs.pipeKey);
     };
 
@@ -142,9 +203,13 @@ export function pruneOrphanedPipes(slides: Array<StandardFormFieldDto>, hiddenFi
         node.content.forEach(pruneNode);
     };
 
+    const pruneTitle = (field: StandardFormFieldDto) => {
+        if (field?.title && typeof field.title !== 'string') pruneNode(field.title);
+    };
     slides.forEach((slide) => {
         slide?.properties?.fields?.forEach((field) => {
-            if (field?.title && typeof field.title !== 'string') pruneNode(field.title);
+            pruneTitle(field);
+            if (field?.type === FieldTypes.GROUP && field.properties?.repeat) field.properties.fields?.forEach(pruneTitle);
         });
     });
 
@@ -172,7 +237,7 @@ export function captureHiddenFieldValues(declaredNames: string[] | undefined, se
  */
 export function getPrefillEntries(slides: Array<StandardFormFieldDto> | undefined, search: string | URLSearchParams): Array<{ field: StandardFormFieldDto; value: string }> {
     const params = typeof search === 'string' ? new URLSearchParams(search) : search;
-    const byId = getInputFieldsById(slides);
+    const byId = getInputFieldsById(slides, false);
     const entries: Array<{ field: StandardFormFieldDto; value: string }> = [];
     params.forEach((value, key) => {
         if (!key.startsWith('field_') || value === '') return;

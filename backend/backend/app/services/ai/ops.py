@@ -25,6 +25,8 @@ from common.models.standard_form import (
     FieldLogicCondition,
     LayoutType,
     PageJump,
+    REPEAT_CHILD_FIELD_TYPES,
+    RepeatSettings,
     StandardChoice,
     StandardFieldProperty,
     StandardFieldValidations,
@@ -97,7 +99,9 @@ class NewFieldSpec(_CamelModel):
 
 
 class FieldPatch(_CamelModel):
-    """Partial update of an existing field. Absent = unchanged."""
+    """Partial update of an existing field. Absent = unchanged. The
+    ``*_items`` / ``item_*`` / ``export_layout`` keys only apply to
+    repeating groups."""
 
     title: Optional[str] = None
     description: Optional[str] = None
@@ -108,11 +112,20 @@ class FieldPatch(_CamelModel):
     start_from: Optional[int] = None
     col_span: Optional[int] = Field(None, ge=1, le=12)
     internal: Optional[bool] = None
+    min_items: Optional[int] = None
+    max_items: Optional[int] = None
+    item_label: Optional[str] = None
+    item_title: Optional[str] = None
+    export_layout: Optional[Literal["columns", "rows"]] = None
 
 
 class AddFieldOp(_CamelModel):
+    """Add a question to a page, or (with ``group_id``) into a repeating
+    group, where it is asked once per item."""
+
     op: Literal["add_field"] = "add_field"
-    page_id: str
+    page_id: Optional[str] = None
+    group_id: Optional[str] = None
     field: NewFieldSpec
     # Placement: after a specific sibling, at an index, or appended (default).
     after_field_id: Optional[str] = None
@@ -125,6 +138,25 @@ class UpdateFieldOp(_CamelModel):
     patch: FieldPatch
 
 
+class AddGroupOp(_CamelModel):
+    """Create a repeating group on a page: child questions respondents fill
+    once per item ("Applicant 1", "Applicant 2", ...), between ``min_items``
+    and ``max_items`` times."""
+
+    op: Literal["add_group"] = "add_group"
+    page_id: str
+    title: str
+    description: Optional[str] = None
+    item_label: str = "Item"
+    min_items: int = 1
+    max_items: int = 3
+    item_title: Optional[str] = None
+    export_layout: Optional[Literal["columns", "rows"]] = None
+    fields: List[NewFieldSpec] = Field(default_factory=list)
+    after_field_id: Optional[str] = None
+    index: Optional[int] = None
+
+
 class RemoveFieldOp(_CamelModel):
     op: Literal["remove_field"] = "remove_field"
     field_id: str
@@ -133,7 +165,10 @@ class RemoveFieldOp(_CamelModel):
 class MoveFieldOp(_CamelModel):
     op: Literal["move_field"] = "move_field"
     field_id: str
-    to_page_id: Optional[str] = None  # default: same page
+    to_page_id: Optional[str] = None  # default: same page (or group)
+    # Move into a repeating group (asked once per item). A child moved with
+    # ``to_page_id`` leaves its group.
+    to_group_id: Optional[str] = None
     index: int
 
 
@@ -175,6 +210,10 @@ class LogicConditionSpec(_CamelModel):
         "GREATER_THAN_EQUAL", "STARTS_WITH", "ENDS_WITH",
     ]
     value: Optional[Any] = None
+    # When ``field_id`` is a repeating group: COUNT compares the number of
+    # items; ANY / ALL test ``child_field_id`` in the items.
+    group_mode: Optional[Literal["COUNT", "ANY", "ALL"]] = None
+    child_field_id: Optional[str] = None
 
 
 class FieldLogicSpec(_CamelModel):
@@ -248,6 +287,7 @@ class UpdateThemeOp(_CamelModel):
 FormOp = Annotated[
     Union[
         AddFieldOp,
+        AddGroupOp,
         UpdateFieldOp,
         RemoveFieldOp,
         MoveFieldOp,
@@ -293,14 +333,72 @@ def _find_page(form: StandardForm, page_id: str) -> StandardFormField:
     raise OpError(f"Page '{page_id}' was not found — it may have been removed.")
 
 
-def _find_field(form: StandardForm, field_id: str) -> Tuple[StandardFormField, StandardFormField, int]:
-    """Return (page, field, position-in-page) for a non-page field id."""
+def _is_repeating_group(field: Optional[StandardFormField]) -> bool:
+    return bool(
+        field is not None
+        and field.type == StandardFormFieldType.GROUP
+        and field.properties is not None
+        and field.properties.repeat is not None
+    )
+
+
+def _children(field: StandardFormField) -> List[StandardFormField]:
+    if field.properties is None:
+        field.properties = StandardFieldProperty(fields=[])
+    if field.properties.fields is None:
+        field.properties.fields = []
+    return field.properties.fields
+
+
+def _locate_field(
+    form: StandardForm, field_id: str
+) -> Tuple[StandardFormField, Optional[StandardFormField], List[StandardFormField], StandardFormField, int]:
+    """Return (page, parent group or None, containing list, field, position)
+    for a non-page field id — page questions and repeating-group children."""
     for page in _pages(form):
         fields = (page.properties.fields if page.properties else None) or []
         for position, field in enumerate(fields):
             if field.id == field_id:
-                return page, field, position
+                return page, None, fields, field, position
+            if _is_repeating_group(field):
+                children = _children(field)
+                for child_position, child in enumerate(children):
+                    if child.id == field_id:
+                        return page, field, children, child, child_position
     raise OpError(f"Field '{field_id}' was not found — it may have been removed.")
+
+
+def _find_field(form: StandardForm, field_id: str) -> Tuple[StandardFormField, StandardFormField, int]:
+    """Return (page, field, position-in-container) for a non-page field id."""
+    page, _, _, field, position = _locate_field(form, field_id)
+    return page, field, position
+
+
+def _find_group(form: StandardForm, group_id: str) -> Tuple[StandardFormField, StandardFormField]:
+    page, parent, _, field, _ = _locate_field(form, group_id)
+    if parent is not None or not _is_repeating_group(field):
+        raise OpError(f"'{_title_text(field)}' is not a repeating group.")
+    return page, field
+
+
+INTERNAL_IN_GROUP_MESSAGE = (
+    "Internal fields cannot be placed inside a repeating group — staff fill them "
+    "in once per submission, not per item."
+)
+
+
+def _check_child_type(field_type: Any, internal: Optional[bool] = None) -> None:
+    value = getattr(field_type, "value", field_type)
+    if value == StandardFormFieldType.GROUP.value:
+        raise OpError("Repeating groups cannot contain another group.")
+    if internal:
+        raise OpError(INTERNAL_IN_GROUP_MESSAGE)
+    if value not in REPEAT_CHILD_FIELD_TYPES:
+        raise OpError(
+            f"A '{value}' question cannot be placed inside a repeating group (allowed: "
+            + ", ".join(sorted(REPEAT_CHILD_FIELD_TYPES))
+            + ")."
+        )
 
 
 def _title_text(field: StandardFormField) -> str:
@@ -314,6 +412,9 @@ def _renumber(form: StandardForm) -> None:
         page.index = slide_index
         for field_index, field in enumerate((page.properties.fields if page.properties else None) or []):
             field.index = field_index
+            if _is_repeating_group(field):
+                for child_index, child in enumerate(_children(field)):
+                    child.index = child_index
 
 
 # ---------------------------------------------------------------------------
@@ -433,6 +534,17 @@ def _patch_field(field: StandardFormField, patch: FieldPatch) -> List[str]:
     if patch.internal is not None:
         field.internal = True if patch.internal else None
         changed.append("internal" if patch.internal else "respondent-facing")
+    group_keys = ("min_items", "max_items", "item_label", "item_title", "export_layout")
+    group_patch = {k: getattr(patch, k) for k in group_keys if getattr(patch, k) is not None}
+    if group_patch:
+        if not _is_repeating_group(field):
+            raise OpError("Item limits and labels only apply to repeating groups.")
+        merged = {**field.properties.repeat.model_dump(), **group_patch}
+        try:
+            field.properties.repeat = RepeatSettings(**merged)
+        except ValueError as e:
+            raise OpError(_validation_message(e))
+        changed.extend(k.replace("_", " ") for k in group_patch)
     if not changed:
         raise OpError("The update contained no changes.")
     return changed
@@ -443,23 +555,41 @@ def _patch_field(field: StandardFormField, patch: FieldPatch) -> List[str]:
 # ---------------------------------------------------------------------------
 
 
+def _validation_message(error: Exception) -> str:
+    errors = getattr(error, "errors", None)
+    if callable(errors):
+        return "; ".join(str(e.get("msg", "")).removeprefix("Value error, ") for e in errors())
+    return str(error)
+
+
+def _insert_position(fields: List[StandardFormField], after_field_id: Optional[str], index: Optional[int], where: str) -> int:
+    if after_field_id is not None:
+        positions = [i for i, f in enumerate(fields) if f.id == after_field_id]
+        if not positions:
+            raise OpError(f"Field '{after_field_id}' is not in {where}.")
+        return positions[0] + 1
+    if index is not None:
+        return max(0, min(index, len(fields)))
+    return len(fields)
+
+
 def _apply_add_field(form: StandardForm, op: AddFieldOp) -> str:
+    if op.group_id is not None:
+        _, group = _find_group(form, op.group_id)
+        _check_child_type(op.field.type, op.field.internal)
+        children = _children(group)
+        insert_at = _insert_position(children, op.after_field_id, op.index, f"group '{op.group_id}'")
+        children.insert(insert_at, _build_field(op.field, insert_at))
+        return f"Added '{op.field.title}' ({op.field.type.value}) to the group '{_title_text(group)}'"
+    if op.page_id is None:
+        raise OpError("add_field needs a pageId (or a groupId to add into a repeating group).")
     page = _find_page(form, op.page_id)
     if page.properties is None:
         page.properties = StandardFieldProperty(fields=[])
     if page.properties.fields is None:
         page.properties.fields = []
     fields = page.properties.fields
-
-    if op.after_field_id is not None:
-        positions = [i for i, f in enumerate(fields) if f.id == op.after_field_id]
-        if not positions:
-            raise OpError(f"Field '{op.after_field_id}' is not on page '{op.page_id}'.")
-        insert_at = positions[0] + 1
-    elif op.index is not None:
-        insert_at = max(0, min(op.index, len(fields)))
-    else:
-        insert_at = len(fields)
+    insert_at = _insert_position(fields, op.after_field_id, op.index, f"page '{op.page_id}'")
 
     field = _build_field(op.field, insert_at)
     fields.insert(insert_at, field)
@@ -473,13 +603,61 @@ def _logic_sources(form: StandardForm) -> set:
         for jump in (page.properties.jumps if page.properties else None) or []:
             sources.update(c.field_id for c in jump.conditions or [])
         for field in (page.properties.fields if page.properties else None) or []:
-            logic = field.properties.logic if field.properties else None
-            sources.update(c.field_id for c in (logic.conditions if logic else None) or [])
+            questions = [field] + (_children(field) if _is_repeating_group(field) else [])
+            for question in questions:
+                logic = question.properties.logic if question.properties else None
+                for c in (logic.conditions if logic else None) or []:
+                    sources.add(c.field_id)
+                    if c.child_field_id:
+                        sources.add(c.child_field_id)
+    for page in _pages(form):
+        for jump in (page.properties.jumps if page.properties else None) or []:
+            sources.update(c.child_field_id for c in jump.conditions or [] if c.child_field_id)
     return sources
 
 
+def _apply_add_group(form: StandardForm, op: AddGroupOp) -> str:
+    page = _find_page(form, op.page_id)
+    if page.properties is None:
+        page.properties = StandardFieldProperty(fields=[])
+    if page.properties.fields is None:
+        page.properties.fields = []
+    fields = page.properties.fields
+    try:
+        repeat = RepeatSettings(
+            min_items=op.min_items,
+            max_items=op.max_items,
+            item_label=op.item_label,
+            item_title=op.item_title,
+            export_layout=op.export_layout,
+        )
+    except ValueError as e:
+        raise OpError(_validation_message(e))
+    children = []
+    for i, spec in enumerate(op.fields):
+        _check_child_type(spec.type, spec.internal)
+        children.append(_build_field(spec, i))
+    insert_at = _insert_position(fields, op.after_field_id, op.index, f"page '{op.page_id}'")
+    group = StandardFormField(
+        id=str(uuid.uuid4()),
+        index=insert_at,
+        type=StandardFormFieldType.GROUP,
+        title=op.title,
+        description=op.description,
+        properties=StandardFieldProperty(fields=children, repeat=repeat, description=op.description),
+        validations=StandardFieldValidations(),
+    )
+    fields.insert(insert_at, group)
+    return (
+        f"Added the repeating group '{op.title}' ({repeat.effective_min}-{repeat.effective_max} "
+        f"x {op.item_label}, {len(children)} question(s)) as '{group.id}'"
+    )
+
+
 def _apply_update_field(form: StandardForm, op: UpdateFieldOp) -> str:
-    _, field, _ = _find_field(form, op.field_id)
+    _, parent, _, field, _ = _locate_field(form, op.field_id)
+    if op.patch.internal and parent is not None:
+        raise OpError(INTERNAL_IN_GROUP_MESSAGE)
     if op.patch.internal and op.field_id in _logic_sources(form):
         raise OpError(
             f"'{_title_text(field)}' is used by conditional logic, so it cannot become "
@@ -490,25 +668,42 @@ def _apply_update_field(form: StandardForm, op: UpdateFieldOp) -> str:
 
 
 def _apply_remove_field(form: StandardForm, op: RemoveFieldOp) -> str:
-    page, field, position = _find_field(form, op.field_id)
-    page.properties.fields.pop(position)
+    _, _, container, field, position = _locate_field(form, op.field_id)
+    container.pop(position)
     return f"Removed '{_title_text(field)}'"
 
 
 def _apply_move_field(form: StandardForm, op: MoveFieldOp) -> str:
-    page, field, position = _find_field(form, op.field_id)
-    target_page = _find_page(form, op.to_page_id) if op.to_page_id else page
-    if target_page.properties is None:
-        target_page.properties = StandardFieldProperty(fields=[])
-    if target_page.properties.fields is None:
-        target_page.properties.fields = []
+    page, parent, container, field, position = _locate_field(form, op.field_id)
+    if op.to_group_id is not None:
+        _, group = _find_group(form, op.to_group_id)
+        if group is field:
+            raise OpError("A group cannot be moved into itself.")
+        _check_child_type(field.type, field.internal)
+        target = _children(group)
+        where = f"the group '{_title_text(group)}'"
+    elif op.to_page_id is not None or parent is None:
+        target_page = _find_page(form, op.to_page_id) if op.to_page_id else page
+        if target_page.properties is None:
+            target_page.properties = StandardFieldProperty(fields=[])
+        if target_page.properties.fields is None:
+            target_page.properties.fields = []
+        target = target_page.properties.fields
+        where = (
+            f"page {target_page.index + 1 if target_page.index is not None else '?'}"
+            if target_page is not page or parent is not None
+            else None
+        )
+    else:
+        target = container  # reorder within its group
+        where = None
 
-    page.properties.fields.pop(position)
-    insert_at = max(0, min(op.index, len(target_page.properties.fields)))
-    target_page.properties.fields.insert(insert_at, field)
-    if target_page is page:
+    container.pop(position)
+    insert_at = max(0, min(op.index, len(target)))
+    target.insert(insert_at, field)
+    if where is None:
         return f"Moved '{_title_text(field)}' to position {insert_at + 1}"
-    return f"Moved '{_title_text(field)}' to page {target_page.index + 1 if target_page.index is not None else '?'}"
+    return f"Moved '{_title_text(field)}' to {where}"
 
 
 def _apply_add_page(form: StandardForm, op: AddPageOp) -> str:
@@ -582,43 +777,95 @@ def _apply_update_form_settings(form: StandardForm, op: UpdateFormSettingsOp) ->
 CHOICE_TYPES = {StandardFormFieldType.MULTIPLE_CHOICE, StandardFormFieldType.DROPDOWN}
 
 
-def _validated_conditions(form: StandardForm, specs: List[LogicConditionSpec]) -> List[FieldLogicCondition]:
+COUNT_COMPARISONS = {"IS_EQUAL", "IS_NOT_EQUAL", "GREATER_THAN", "GREATER_THAN_EQUAL", "LESS_THAN", "LESS_THAN_EQUAL"}
+
+
+def _validated_value(source: StandardFormField, comparison: str, raw: Any) -> Any:
+    if comparison in VALUELESS_COMPARISONS:
+        return None
+    if raw in (None, ""):
+        raise OpError(f"Comparison '{comparison}' needs a value.")
+    if source.type in CHOICE_TYPES:
+        labels = [c.value for c in ((source.properties.choices if source.properties else None) or [])]
+        if str(raw) not in labels:
+            raise OpError(f"'{raw}' is not a choice of '{_title_text(source)}'. Choices: {', '.join(labels)}")
+    if source.type == StandardFormFieldType.YES_NO and str(raw) not in ("Yes", "No"):
+        raise OpError("Yes/No conditions take the value 'Yes' or 'No'.")
+    return raw
+
+
+def _validated_conditions(
+    form: StandardForm, specs: List[LogicConditionSpec], scope_group_id: Optional[str] = None
+) -> List[FieldLogicCondition]:
     """Resolve and validate condition sources against the actual form.
 
     Mirrors the builder's logic editor: fieldType is stamped from the source
     field; choice values must be one of the source's labels; yes/no values
-    must be "Yes"/"No"; IS_EMPTY/IS_NOT_EMPTY take no value."""
+    must be "Yes"/"No"; IS_EMPTY/IS_NOT_EMPTY take no value.
+
+    Repeating groups: a question of a group can only be referenced by a
+    sibling in the same group (``scope_group_id``) — it then means "this
+    item's answer". Elsewhere the group is referenced as a whole
+    (``groupMode`` COUNT / ANY / ALL), never by item position."""
     conditions: List[FieldLogicCondition] = []
     for spec in specs:
-        _, source, _ = _find_field(form, spec.field_id)
+        _, parent, _, source, _ = _locate_field(form, spec.field_id)
         if source.internal:
             raise OpError(
                 f"'{_title_text(source)}' is an internal field — respondents never "
                 "answer it, so logic cannot depend on it."
             )
         source_type = getattr(source.type, "value", source.type)
-        if spec.comparison in VALUELESS_COMPARISONS:
-            value = None
-        else:
-            if spec.value in (None, ""):
-                raise OpError(f"Comparison '{spec.comparison}' needs a value.")
-            value = spec.value
-            if source.type in CHOICE_TYPES:
-                labels = [c.value for c in ((source.properties.choices if source.properties else None) or [])]
-                if str(value) not in labels:
-                    raise OpError(
-                        f"'{value}' is not a choice of '{_title_text(source)}'. Choices: {', '.join(labels)}"
+        if parent is not None and parent.id != scope_group_id:
+            raise OpError(
+                f"'{_title_text(source)}' is asked once per item of '{_title_text(parent)}'. Outside the group, "
+                "refer to the group itself with groupMode COUNT, ANY or ALL."
+            )
+        if _is_repeating_group(source):
+            if spec.group_mode is None:
+                raise OpError(
+                    f"'{_title_text(source)}' is a repeating group: set groupMode to COUNT (number of items), "
+                    "ANY or ALL (with childFieldId)."
+                )
+            if spec.group_mode == "COUNT":
+                if spec.comparison not in COUNT_COMPARISONS:
+                    raise OpError("Item-count conditions compare a number (e.g. IS_EQUAL, GREATER_THAN_EQUAL).")
+                try:
+                    count = int(spec.value)
+                except (TypeError, ValueError):
+                    raise OpError("Item-count conditions need a whole number as value.")
+                conditions.append(
+                    FieldLogicCondition(
+                        field_id=spec.field_id, field_type=source_type, comparison=spec.comparison, value=count,
+                        group_mode="COUNT",
                     )
-            if source.type == StandardFormFieldType.YES_NO and str(value) not in ("Yes", "No"):
-                raise OpError("Yes/No conditions take the value 'Yes' or 'No'.")
+                )
+                continue
+            child = next((c for c in _children(source) if c.id == spec.child_field_id), None)
+            if child is None:
+                raise OpError(f"ANY/ALL conditions need childFieldId: a question of '{_title_text(source)}'.")
+            conditions.append(
+                FieldLogicCondition(
+                    field_id=spec.field_id, field_type=source_type, comparison=spec.comparison,
+                    value=_validated_value(child, spec.comparison, spec.value),
+                    group_mode=spec.group_mode, child_field_id=child.id,
+                    child_field_type=getattr(child.type, "value", child.type),
+                )
+            )
+            continue
+        if spec.group_mode is not None:
+            raise OpError(f"groupMode only applies to repeating groups, not '{_title_text(source)}'.")
         conditions.append(
-            FieldLogicCondition(field_id=spec.field_id, field_type=source_type, comparison=spec.comparison, value=value)
+            FieldLogicCondition(
+                field_id=spec.field_id, field_type=source_type, comparison=spec.comparison,
+                value=_validated_value(source, spec.comparison, spec.value),
+            )
         )
     return conditions
 
 
 def _apply_set_field_logic(form: StandardForm, op: SetFieldLogicOp) -> str:
-    _, field, _ = _find_field(form, op.field_id)
+    _, parent, _, field, _ = _locate_field(form, op.field_id)
     if field.properties is None:
         field.properties = StandardFieldProperty()
     if op.logic is None:
@@ -627,7 +874,7 @@ def _apply_set_field_logic(form: StandardForm, op: SetFieldLogicOp) -> str:
     for spec in op.logic.conditions:
         if spec.field_id == op.field_id:
             raise OpError("A field's visibility cannot depend on its own answer.")
-    conditions = _validated_conditions(form, op.logic.conditions)
+    conditions = _validated_conditions(form, op.logic.conditions, parent.id if parent is not None else None)
     field.properties.logic = FieldLogic(action=op.logic.action, operator=op.logic.operator, conditions=conditions)
     verb = "Show" if op.logic.action == "SHOW" else "Hide"
     return f"{verb} '{_title_text(field)}' when {len(conditions)} condition(s) match"
@@ -658,7 +905,9 @@ def _apply_duplicate_page(form: StandardForm, op: DuplicatePageOp) -> str:
     clone = original.model_copy(deep=True)
     clone.id = str(uuid.uuid4())
     id_map: Dict[str, str] = {}
-    for field in (clone.properties.fields if clone.properties else None) or []:
+    page_fields = (clone.properties.fields if clone.properties else None) or []
+    all_fields = list(page_fields) + [c for f in page_fields if _is_repeating_group(f) for c in _children(f)]
+    for field in all_fields:
         new_id = str(uuid.uuid4())
         id_map[field.id] = new_id
         field.id = new_id
@@ -667,11 +916,17 @@ def _apply_duplicate_page(form: StandardForm, op: DuplicatePageOp) -> str:
                 choice.id = str(uuid.uuid4())
     # Remap in-page logic references onto the cloned fields; references to
     # fields outside the page stay as they are.
-    for field in (clone.properties.fields if clone.properties else None) or []:
+    for field in all_fields:
         logic = field.properties.logic if field.properties else None
         for condition in (logic.conditions if logic else None) or []:
             if condition.field_id in id_map:
                 condition.field_id = id_map[condition.field_id]
+            if condition.child_field_id in id_map:
+                condition.child_field_id = id_map[condition.child_field_id]
+        repeat = field.properties.repeat if field.properties else None
+        if repeat is not None and repeat.item_title:
+            for old_id, new_id in id_map.items():
+                repeat.item_title = repeat.item_title.replace(old_id, new_id)
     # Cloned jumps would re-branch from the copy in surprising ways — drop them.
     if clone.properties:
         clone.properties.jumps = None
@@ -692,6 +947,7 @@ def _apply_update_theme(form: StandardForm, op: UpdateThemeOp) -> str:
 
 _HANDLERS = {
     "add_field": _apply_add_field,
+    "add_group": _apply_add_group,
     "update_field": _apply_update_field,
     "remove_field": _apply_remove_field,
     "move_field": _apply_move_field,

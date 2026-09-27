@@ -12,6 +12,7 @@ from common.models.user import User
 from fastapi import Depends, UploadFile, Form, BackgroundTasks
 from fastapi_pagination import Page
 from loguru import logger
+from pydantic import ValidationError
 from starlette.requests import Request
 
 from backend.app.container import container
@@ -57,6 +58,24 @@ from backend.app.services.user_service import (
 )
 from backend.app.services.workspace_form_service import WorkspaceFormService
 from backend.config import settings
+
+
+def _parse_form_body(form_body: str) -> StandardForm:
+    """Parse a builder form payload (camelCase) into the stored snake_case
+    model. Structural errors (e.g. a nested repeating group) are the
+    client's fault: answer 422 with the reason instead of a 500."""
+    try:
+        minified_form = FormDtoCamelModel(**json.loads(form_body))
+        return StandardForm(**minified_form.model_dump(mode="json"))
+    except ValidationError as e:
+        reasons = "; ".join(
+            str(error.get("msg", "")).removeprefix("Value error, ")
+            for error in e.errors()
+        )
+        raise HTTPException(
+            status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
+            content=reasons or "The form is not valid.",
+        )
 
 
 @router(
@@ -122,13 +141,11 @@ class WorkspaceFormsRouter(Routable):
         if not settings.api_settings.ENABLE_FORM_CREATION:
             raise HTTPException(status_code=HTTPStatus.NOT_FOUND)
 
-        form = json.loads(form_body)
-
-        minified_form = FormDtoCamelModel(**form)
+        form = _parse_form_body(form_body)
         # Camel model is converted to basic modal so that camel case is not stored in db
         response = await self.workspace_form_service.create_form(
             workspace_id=workspace_id,
-            form=StandardForm(**minified_form.model_dump(mode='json')),
+            form=form,
             user=user,
             logo=logo,
             cover_image=cover_image,
@@ -276,14 +293,12 @@ class WorkspaceFormsRouter(Routable):
         if not settings.api_settings.ENABLE_FORM_CREATION:
             raise HTTPException(status_code=HTTPStatus.NOT_FOUND)
 
-        form = json.loads(form_body)
-
-        minified_form = FormDtoCamelModel(**form)
+        form = _parse_form_body(form_body)
         # Camel model is converted to basic modal so that camel case is not stored in db
         response = await self.workspace_form_service.update_form(
             workspace_id=workspace_id,
             form_id=form_id,
-            form=StandardForm(**minified_form.model_dump(mode='json')),
+            form=form,
             user=user,
             logo=logo,
             cover_image=cover_image,

@@ -1,7 +1,10 @@
 
 import { atom, useAtom } from 'jotai';
+import { useMemo } from 'react';
 
 import { FileMetadata } from '@app/models/types/field-types';
+import { useGroupItemScope } from '@app/store/jotai/group-item-scope';
+import { itemScopeAnswers, writeItemAnswers } from '@app/utils/repeating-groups';
 import { Invalidations } from '@app/utils/vvalidation-utils';
 
 enum AnswerType {
@@ -20,7 +23,8 @@ enum AnswerType {
     FILE_UPLOAD = 'file_upload',
     RATING = 'rating',
     LINEAR_RATING = 'linear_rating',
-    TABULAR_INPUT = 'tabular_input'
+    TABULAR_INPUT = 'tabular_input',
+    GROUP = 'group'
 }
 
 export interface ChoicesAnswer {
@@ -54,9 +58,11 @@ export interface FormResponse {
             boolean?: boolean;
             file_metadata?: FileMetadata;
             tabular_value?: string[][];
+            // Repeating group: one answers map (child id → answer) per item.
+            items?: Array<Record<string, any>>;
         };
     };
-    invalidFields?: Record<string, Array<Invalidations>>;
+    invalidFields?: Record<string, Array<Invalidations | string>>;
     anonymize?: boolean;
 }
 
@@ -71,8 +77,27 @@ const initialFormResponse: FormResponse = {
 
 const formResponseAtom = atom<FormResponse>(initialFormResponse);
 
+type FormResponseUpdate = FormResponse | ((previous: FormResponse) => FormResponse);
+
 export const useFormResponse = () => {
-    const [formResponse, setFormResponse] = useAtom(formResponseAtom);
+    const [rootFormResponse, setRootFormResponse] = useAtom(formResponseAtom);
+    const itemScope = useGroupItemScope();
+
+    // Inside a repeating-group item, the setters below read and write the
+    // item's answers through a scoped view (see utils/repeating-groups.ts);
+    // everywhere else they work on the form's answers directly.
+    const scopedView = (response: FormResponse): FormResponse => (itemScope ? { ...response, answers: itemScopeAnswers(response.answers, itemScope) as FormResponse['answers'] } : response);
+    const formResponse = useMemo(() => scopedView(rootFormResponse), [rootFormResponse, itemScope]);
+    const setFormResponse = (update: FormResponseUpdate) => {
+        if (!itemScope) {
+            setRootFormResponse(update as any);
+            return;
+        }
+        setRootFormResponse((previous) => {
+            const next = typeof update === 'function' ? update(scopedView(previous)) : update;
+            return { ...previous, ...next, answers: writeItemAnswers(previous.answers, itemScope, next.answers || {}) as FormResponse['answers'] };
+        });
+    };
 
     const addFieldTextAnswer = (fieldId: string, text: string) => {
         setFormResponse({
@@ -279,7 +304,7 @@ export const useFormResponse = () => {
         });
     };
 
-    const setInvalidFields = (invalidFields: Record<string, Array<Invalidations>>) => {
+    const setInvalidFields = (invalidFields: Record<string, Array<Invalidations | string>>) => {
         setFormResponse({
             ...formResponse,
             invalidFields

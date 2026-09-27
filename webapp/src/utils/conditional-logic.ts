@@ -51,11 +51,40 @@ const isEmpty = (v: any): boolean => v === undefined || v === null || v === '' |
 
 const toNumber = (v: any): number => (Array.isArray(v) ? NaN : Number(v));
 
-function evaluateCondition(answers: Record<string, any>, condition: LogicCondition): boolean {
-    const value = getComparableAnswerValue(answers?.[condition.fieldId], condition.fieldType);
-    const target = condition.value;
+/** Items of a repeating group answer (`{type: 'group', items: [...]}`), never undefined. */
+export function getGroupAnswerItems(answer: any): Array<Record<string, any>> {
+    const items = answer?.items;
+    return Array.isArray(items) ? items.map((item) => (item && typeof item === 'object' ? item : {})) : [];
+}
 
-    switch (condition.comparison) {
+/**
+ * Conditions on a repeating group as a whole (the group is the condition's
+ * field): the number of items, or whether ANY / ALL items match a condition on
+ * one of the group's questions. Each item is evaluated with its own answers
+ * layered over the rest of the form's, exactly like visibility inside an item.
+ * ALL over zero items does not match (there is nothing to match).
+ */
+function evaluateGroupCondition(answers: Record<string, any>, condition: LogicCondition): boolean {
+    const items = getGroupAnswerItems(answers?.[condition.fieldId]);
+    if (condition.groupMode === 'COUNT') {
+        return compareValue(items.length, condition.comparison, condition.value);
+    }
+    if (!condition.childFieldId) return false;
+    const child: LogicCondition = { fieldId: condition.childFieldId, fieldType: condition.childFieldType ?? '', comparison: condition.comparison, value: condition.value };
+    const matches = items.map((item) => evaluateCondition({ ...(answers || {}), ...item }, child));
+    if (condition.groupMode === 'ANY') return matches.some(Boolean);
+    if (condition.groupMode === 'ALL') return matches.length > 0 && matches.every(Boolean);
+    return false;
+}
+
+function evaluateCondition(answers: Record<string, any>, condition: LogicCondition): boolean {
+    if (condition.groupMode) return evaluateGroupCondition(answers, condition);
+    const value = getComparableAnswerValue(answers?.[condition.fieldId], condition.fieldType);
+    return compareValue(value, condition.comparison, condition.value);
+}
+
+function compareValue(value: any, comparison: Comparison, target: any): boolean {
+    switch (comparison) {
         case Comparison.IS_EMPTY:
             return isEmpty(value);
         case Comparison.IS_NOT_EMPTY:
@@ -214,8 +243,23 @@ export function computeFlowTraffic(slides: Array<StandardFormFieldDto>, answersL
  */
 export function pruneOrphanedConditions(slides: Array<StandardFormFieldDto>): Array<StandardFormFieldDto> {
     const fieldIds = new Set<string>();
-    slides.forEach((slide) => slide?.properties?.fields?.forEach((f) => !f.internal && fieldIds.add(f.id)));
-    const liveConditions = (conditions: LogicCondition[] | undefined) => (conditions ?? []).filter((c) => c && fieldIds.has(c.fieldId));
+    slides.forEach((slide) =>
+        slide?.properties?.fields?.forEach((f) => {
+            // Internal fields are never answered by respondents: not a logic source.
+            if (!f.internal) fieldIds.add(f.id);
+            // Questions of a repeating group can be referenced by their siblings.
+            if (f?.type === FieldTypes.GROUP && f.properties?.repeat) f.properties.fields?.forEach((child) => !child.internal && fieldIds.add(child.id));
+        })
+    );
+    const isLive = (c: LogicCondition) => !!c && fieldIds.has(c.fieldId) && (!c.groupMode || c.groupMode === 'COUNT' || (!!c.childFieldId && fieldIds.has(c.childFieldId)));
+    const liveConditions = (conditions: LogicCondition[] | undefined) => (conditions ?? []).filter(isLive);
+    const pruneFieldLogic = (field: StandardFormFieldDto) => {
+        const logic = field?.properties?.logic;
+        if (!logic) return;
+        const conditions = liveConditions(logic.conditions);
+        if (conditions.length) field.properties!.logic = { ...logic, conditions };
+        else delete field.properties!.logic;
+    };
 
     slides.forEach((slide) => {
         const props = slide?.properties;
@@ -228,11 +272,8 @@ export function pruneOrphanedConditions(slides: Array<StandardFormFieldDto>): Ar
         }
 
         props.fields?.forEach((field) => {
-            const logic = field?.properties?.logic;
-            if (!logic) return;
-            const conditions = liveConditions(logic.conditions);
-            if (conditions.length) field.properties!.logic = { ...logic, conditions };
-            else delete field.properties!.logic;
+            pruneFieldLogic(field);
+            if (field?.type === FieldTypes.GROUP && field.properties?.repeat) field.properties.fields?.forEach(pruneFieldLogic);
         });
     });
 

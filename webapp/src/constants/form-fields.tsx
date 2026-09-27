@@ -12,7 +12,7 @@ import RatingIcon from '@Components/icons/rating-icon';
 import { TextIcon } from '@Components/icons/text';
 import UploadIcon from '@Components/icons/upload-icon';
 import { YesNoIcon } from '@Components/icons/yes-no-icon';
-import { Table2 } from 'lucide-react';
+import { Repeat, Table2 } from 'lucide-react';
 
 // One quiet treatment for every field type. The picker used to give each type
 // its own pastel tile + coloured icon — a rainbow, which is exactly what the
@@ -78,5 +78,11 @@ export const formFieldsList = [
         type: FieldTypes.NUMBER,
         icon: <NumberIcon className="h-8 w-8" style={{ color: INK_2 }} />
     },
-    { name: 'Link', type: FieldTypes.LINK, icon: <LinkIcon className="h-8 w-8" style={{ color: INK_2 }} /> }
+    { name: 'Link', type: FieldTypes.LINK, icon: <LinkIcon className="h-8 w-8" style={{ color: INK_2 }} /> },
+    {
+        // Questions answered once per item (applicant, employer, ...).
+        name: 'Repeating group',
+        type: FieldTypes.GROUP,
+        icon: <Repeat size={30} strokeWidth={1.5} style={{ color: INK_2 }} />
+    }
 ];

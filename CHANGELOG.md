@@ -13,6 +13,21 @@ See [RELEASING.md](RELEASING.md) for how releases are cut.
 
 ### Added
 
+- **Repeating groups**: a group of questions respondents fill several times
+  (one block per applicant, family member, employer, item) between a minimum
+  and maximum, with "Add another <item>" / "Remove" controls and required
+  questions per item. Answers are stored per item under the group
+  (`{type: "group", items: [...]}`, additive — existing responses are
+  unchanged) and limits are enforced on the server too. Inside an item, logic
+  and pipes that refer to a sibling question use the same item; outside, logic
+  works on the group as a whole (number of items, any item, all items) and
+  pipes offer the item count, a joined list of one question and
+  sum / average / minimum / maximum of a numeric question. The submission view
+  shows one card per item. CSV and Google Sheets exports use columns per item
+  for groups of up to 5 items and a separate table (one row per item) above
+  that, overridable per group. The AI form-edit ops (chat, MCP) can create
+  groups and add questions into them. Not yet: nested groups, hidden or
+  calculated fields and file uploads inside groups, prefilling items.
 - **Answer piping / recall**: question titles can reference earlier answers or
   hidden fields ("Thanks, @name!") via an "@ Answer" menu in the builder's
   title toolbar — stored as inline TipTap nodes, resolved live in the

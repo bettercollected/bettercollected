@@ -14,6 +14,8 @@ import FileUpload from './file-upload-field';
 import ImageField from './image-field';
 import InputField from './input-field';
 import MatrixFieldBuilderWrapper from './matrix-field-builder-wrapper';
+import RepeatingGroupBuilder from './repeating-group-builder';
+import { isRepeatingGroup } from '@app/utils/repeating-groups';
 import TabularInputFieldBuilderWrapper from './tabular-input-field-builder-wrapper';
 import VideoField from './video-field';
 import YesNoField from './yes-no-field';
@@ -87,6 +89,8 @@ function renderField(field: StandardFormFieldDto, slide: StandardFormFieldDto, d
             return <MatrixFieldBuilderWrapper field={field} />;
         case FieldTypes.TABULAR_INPUT:
             return <TabularInputFieldBuilderWrapper field={field} />;
+        case FieldTypes.GROUP:
+            return isRepeatingGroup(field) ? <RepeatingGroupBuilder field={field} slide={slide} disabled={disabled} /> : null;
         default:
             return null;
     }

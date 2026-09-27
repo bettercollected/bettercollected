@@ -43,6 +43,8 @@ import VideoField from '../form-builder/fields/video-field';
 import TabularInputResponderField from '@app/views/molecules/responder-form-fields/tabular-input-responder-field';
 import SlideLayoutWrapper from '../layout/slide-layout-wrapper';
 import { Shield } from 'lucide-react';
+import RepeatingGroupField from '@app/views/molecules/responder-form-fields/repeating-group-field';
+import { isRepeatingGroup, normalizeGroupAnswersForSubmit, parseScopedFieldId, validateGroupsInSlide } from '@app/utils/repeating-groups';
 
 export function FormFieldComponent({ field, slideIndex }: { field: StandardFormFieldDto; slideIndex: number }) {
     switch (field.type) {
@@ -86,6 +88,9 @@ export function FormFieldComponent({ field, slideIndex }: { field: StandardFormF
             );
         case FieldTypes.TABULAR_INPUT:
             return <TabularInputResponderField field={field} />;
+        case FieldTypes.GROUP:
+            if (isRepeatingGroup(field)) return <RepeatingGroupField field={field} renderChild={(child) => <FormFieldComponent field={child} slideIndex={slideIndex} />} />;
+            return <QuestionWrapper field={field} />;
         default:
             return <QuestionWrapper field={field} />;
     }
@@ -118,7 +123,9 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
 
         const postBody = {
             form_id: standardForm?.formId,
-            answers: formResponse.answers ?? {},
+            // Repeating groups the responder saw carry at least their minimum items.
+            // ...and groups hidden by logic or off the visited path are dropped.
+            answers: normalizeGroupAnswersForSubmit(standardForm?.fields, formResponse.answers ?? {}, [...(responderState.history || []), currentSlide]),
             // Hidden-field (URL parameter) values captured when the form loaded.
             ...(Object.keys(hiddenValues).length ? { hidden_fields: hiddenValues } : {}),
             anonymize: effectiveAnonymize,
@@ -177,11 +184,20 @@ export default function FormSlide({ index, formSlideData, isPreviewMode = false,
     const onNext = () => {
         // Only validate fields the responder can actually see.
         const visibleSlide = { ...formSlide, properties: { ...formSlide?.properties, fields: (formSlide?.properties?.fields || []).filter((f: StandardFormFieldDto) => !hiddenFieldIds.has(f.id)) } };
-        const invalidations = validateSlide(visibleSlide as StandardFormFieldDto, formResponse.answers || {});
+        const invalidations = {
+            ...validateSlide(visibleSlide as StandardFormFieldDto, formResponse.answers || {}),
+            // Repeating groups: item limits, and required questions per item
+            // (keyed by the item-scoped id the question renders under).
+            ...validateGroupsInSlide(visibleSlide.properties.fields, formResponse.answers || {})
+        };
         setInvalidFields(invalidations);
         if (Object.keys(invalidations).length !== 0) {
-            const firstInvalidField = formSlide?.properties?.fields?.find((field: StandardFormFieldDto) => Object.keys(invalidations)[0] === field.id);
-            if (firstInvalidField) scrollToDivById(firstInvalidField.id);
+            // Every key is the id of the element to bring into view; questions
+            // inside a group item sit in nested containers, so let the browser
+            // find their scroll position.
+            const firstKey = Object.keys(invalidations)[0];
+            if (parseScopedFieldId(firstKey)) document.getElementById(firstKey)?.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
+            else scrollToDivById(firstKey);
             return;
         }
 
