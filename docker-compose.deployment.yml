@@ -192,8 +192,8 @@ services:
       start_period: 15s
 
   # Opens uploaded PDF forms for the import (#698, #703). Isolated on purpose:
-  # unprivileged user, no network, read-only filesystem, no capabilities and no
-  # environment file (it holds no secrets). The backend and the jobs worker reach
+  # unprivileged user, no network, read-only filesystem, no capabilities, a
+  # seccomp syscall allowlist and no environment file (it holds no secrets). The backend and the jobs worker reach
   # it over a Unix socket on the doc-sandbox volume.
   document-sandbox:
     image: bettercollected/backend:nightly
@@ -206,6 +206,9 @@ services:
     cap_drop: [ALL]
     security_opt:
       - no-new-privileges:true
+      # only the syscalls parsing and rendering need, no network sockets
+      # (deploy/seccomp/README.md); path relative to the repository root
+      - seccomp=./deploy/seccomp/document-sandbox.json
     pids_limit: 64
     # DOC_SANDBOX_PARALLEL x PDF_IMPORT_SANDBOX_MEMORY_MB (1536) + 512m for the server
     mem_limit: 3584m

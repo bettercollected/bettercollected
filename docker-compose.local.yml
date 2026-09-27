@@ -156,6 +156,8 @@ services:
         cap_drop: [ALL]
         security_opt:
             - no-new-privileges:true
+            # the same syscall allowlist as in deployment (deploy/seccomp/README.md)
+            - seccomp=./deploy/seccomp/document-sandbox.json
         pids_limit: 64
         mem_limit: 3584m
         environment:

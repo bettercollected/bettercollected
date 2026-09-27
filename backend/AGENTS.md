@@ -184,7 +184,12 @@ progress. Code: `app/services/pdf_import/` (stages), `app/services/pdf_import_se
 
 - **Isolated sandbox in deployment (#703):** the `document-sandbox` compose service
   (same image, `pdf_import/server.py`) runs as `nobody` with no network, a
-  read-only filesystem, no capabilities and no env file; backend and jobs worker
+  read-only filesystem, no capabilities, no env file and a seccomp allowlist
+  (`deploy/seccomp/document-sandbox.json`, see its README: EPERM for anything
+  unlisted, `socket` only `AF_UNIX`, no ptrace/mount/namespaces/keyctl/bpf). A new
+  mode or library that needs another syscall shows up as "could not read"; find
+  it with strace as the README says, then run `test_sandbox_container.py` (needs
+  the image `bettercollected/backend:sandbox-test`, skipped otherwise). Backend and jobs worker
   reach it over `PDF_IMPORT_SANDBOX_SOCKET` with `PDF_IMPORT_REQUIRE_ISOLATED_SANDBOX=true`.
   `server.py` and `runner.py` must never import the backend package. Native modes
   (`render`) never run in a local child. An unreachable or unresponsive sandbox
