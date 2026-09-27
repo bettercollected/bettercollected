@@ -287,3 +287,66 @@ def test_group_level_conditions():
     assert not evaluate_conditions(
         "AND", all_minor, {"g": {"type": "group", "items": []}}
     )
+
+
+def test_group_hidden_by_its_own_rule_is_not_validated():
+    hidden_group = group_field()
+    hidden_group["properties"]["logic"] = {
+        "action": "SHOW",
+        "operator": "AND",
+        "conditions": [
+            {
+                "fieldId": "has_applicants",
+                "fieldType": "yes_no",
+                "comparison": "IS_EQUAL",
+                "value": "Yes",
+            }
+        ],
+    }
+    form = form_with({"id": "has_applicants", "type": "yes_no"}, hidden_group)
+    stale = {"g": {"type": "group", "items": [{}]}}
+    no = {"has_applicants": {"type": "boolean", "boolean": False}, **stale}
+    yes = {"has_applicants": {"type": "boolean", "boolean": True}, **stale}
+    assert validate_group_answers(form, no) == []
+    assert validate_group_answers(form, yes) == ["Applicant 1: 'Name' is required."]
+
+
+def test_items_are_typed_and_bounded():
+    with pytest.raises(ValidationError):
+        StandardFormResponseAnswer(type="group", items=[{"age": {"number": {"x": 1}}}])
+    with pytest.raises(ValidationError):
+        StandardFormResponseAnswer(type="group", items=[{}] * 51)
+    form = form_with(group_field(maxItems=50))
+    crafted = {"g": {"type": "group", "items": [{"age": {"number": {"x": 1}}}]}}
+    assert "malformed" in validate_group_answers(form, crafted)[0]
+
+
+def test_items_on_other_keys_are_rejected():
+    form = form_with(
+        {"id": "plain", "type": "short_text"},
+        {"id": "legacy", "type": "group", "properties": {"fields": []}},
+        group_field(),
+    )
+    for key in ("plain", "legacy", "unknown"):
+        answers = {key: {"type": "group", "items": [{}]}}
+        assert validate_group_answers(form, answers) == [
+            "Only repeating groups can have items."
+        ]
+    nested = {
+        "g": {"type": "group", "items": [{"name": {"type": "group", "items": [{}]}}]}
+    }
+    assert validate_group_answers(form, nested)
+
+
+@pytest.mark.parametrize(
+    "empty", [{}, {"type": "text"}, {"type": "text", "text": ""}, {"choice": {}}]
+)
+def test_empty_child_answers_count_as_missing(empty):
+    form = form_with(group_field())
+    answers = {"g": {"type": "group", "items": [{"name": empty}]}}
+    assert validate_group_answers(form, answers) == ["Applicant 1: 'Name' is required."]
+
+
+def test_repeat_settings_null_limits_use_defaults():
+    repeat = RepeatSettings(min_items=None, max_items=None)
+    assert (repeat.effective_min, repeat.effective_max) == (1, 3)

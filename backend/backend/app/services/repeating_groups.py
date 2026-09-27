@@ -18,8 +18,12 @@ page navigation), but a submitted one must respect the limits.
 
 from typing import Any, Dict, Iterable, List, Optional
 
-from common.models.standard_form import StandardForm, StandardFormFieldType
-from pydantic import BaseModel
+from common.models.standard_form import (
+    StandardForm,
+    StandardFormFieldType,
+    StandardFormResponseAnswer,
+)
+from pydantic import BaseModel, ValidationError
 
 GROUP = StandardFormFieldType.GROUP.value
 
@@ -197,21 +201,47 @@ def _title(field: Any) -> str:
     return "a question"
 
 
+def has_answer_value(answer: Any) -> bool:
+    """Does an answer carry a value? ``{}`` or ``{"type": "text"}`` does not.
+    Twin of the webapp's ``hasAnswerValue``."""
+    answer = _as_dict(answer)
+    if not isinstance(answer, dict):
+        return False
+
+    def filled(value: Any) -> bool:
+        if isinstance(value, dict):
+            return any(filled(v) for v in value.values())
+        return not _is_empty(value)
+
+    return any(filled(v) for k, v in answer.items() if k not in ("field", "type"))
+
+
 def validate_group_answers(form: StandardForm, answers: Any) -> List[str]:
     """Return human-readable problems with the submitted group answers."""
     if not isinstance(answers, dict):
         return []
     answers = {k: _as_dict(v) for k, v in answers.items()}
     problems: List[str] = []
-    for group in iter_repeating_groups(form):
+    groups = {group.id: group for group in iter_repeating_groups(form)}
+    # ``items`` belongs to repeating groups only (not to other questions,
+    # nor to imported non-repeating groups).
+    for key, raw in answers.items():
+        if key not in groups and isinstance(raw, dict) and raw.get("items") is not None:
+            problems.append("Only repeating groups can have items.")
+            break
+    for group in groups.values():
         if group.id not in answers:
+            continue
+        # A group hidden by its own rule submits nothing that counts.
+        if is_hidden_by_logic(group, answers):
             continue
         repeat = group.properties.repeat
         label = repeat.item_label or "item"
         raw = answers.get(group.id)
-        if not isinstance(raw, dict) or (
-            raw.get("items") is not None and not isinstance(raw.get("items"), list)
-        ):
+        try:
+            # Items are typed like top-level answers, and bounded.
+            StandardFormResponseAnswer.model_validate(raw)
+        except ValidationError:
             problems.append(f"The answer to '{_title(group)}' is malformed.")
             continue
         items = group_items(raw)
@@ -233,14 +263,18 @@ def validate_group_answers(form: StandardForm, answers: Any) -> List[str]:
                     f"{label} {position} of '{_title(group)}' answers unknown questions."
                 )
                 continue
+            if any(
+                isinstance(a, dict) and a.get("items") is not None
+                for a in item.values()
+            ):
+                problems.append("Repeating groups cannot contain another group.")
+                continue
             scope = {**answers, **item}
             for child in children:
                 required = bool(child.validations and child.validations.required)
                 if not required or is_hidden_by_logic(child, scope):
                     continue
-                # Same rule as the webapp's validateSlide: a required
-                # question needs an answer object (cleared inputs remove it).
-                if not item.get(child.id):
+                if not has_answer_value(item.get(child.id)):
                     problems.append(
                         f"{label} {position}: '{_title(child)}' is required."
                     )

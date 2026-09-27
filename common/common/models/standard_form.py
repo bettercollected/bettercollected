@@ -652,9 +652,14 @@ class StandardFormResponseAnswer(BaseModel):
     file_metadata: Optional[FileMetadata] = None
     tabular_value: Optional[List[List[str]]] = None
     # Repeating group answer (type ``group``): one answers-dict per item, keyed
-    # by child field id, each value shaped like a top-level answer. Kept as
-    # plain dicts so child answers round-trip verbatim.
-    items: Optional[List[Dict[str, Any]]] = None
+    # by child field id, each value validated like a top-level answer. Only
+    # valid on a repeating group's key (enforced against the form on submit).
+    items: Optional[List[Dict[str, "StandardFormResponseAnswer"]]] = Field(
+        None, max_length=REPEAT_MAX_ITEMS_LIMIT
+    )
+
+
+StandardFormResponseAnswer.model_rebuild()
 
 
 class InternalAnswerMeta(BaseModel):
