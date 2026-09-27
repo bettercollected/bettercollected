@@ -19,6 +19,7 @@ from loguru import logger
 
 from backend.app.exceptions import HTTPException
 from backend.app.schemas.form_import import FormImportDocument, ImportStatus
+from backend.app.services.pdf_import.compile import clean_label
 from backend.app.services.pdf_import.analysis import DocumentRefused
 from backend.app.services.pdf_import.intake import inspect_upload
 from backend.app.services.pdf_import.storage import source_key
@@ -190,3 +191,129 @@ class PdfImportService:
         with the form's private folder)."""
         if form_ids:
             await self._repo.delete_by_form_ids(list(form_ids))
+
+    async def ai_provider(self, workspace_id, user) -> dict:
+        """The provider page text and images would go to with consent: its
+        public name and whether this instance has it configured."""
+        from backend.config import settings
+
+        await self._workspace_users.check_user_has_access_in_workspace(
+            workspace_id=workspace_id, user=user
+        )
+        default = (settings.ai.DEFAULT_PROVIDER or "openai").lower()
+        if default == "google":
+            name, available = "Google Gemini", bool(settings.google_ai.API_KEY)
+        elif default == "compatible":
+            name = "this instance's own AI model"
+            available = bool(settings.ai.COMPAT_BASE_URL and settings.ai.COMPAT_MODEL)
+        else:
+            name, available = "OpenAI", bool(settings.open_ai.API_KEY)
+        return {"provider": name, "available": available}
+
+    async def page_image(self, workspace_id, import_id, number: int, user) -> bytes:
+        """A rendered page, for the review screen (members of the workspace only)."""
+        record = await self.get(workspace_id, import_id, user)
+        pages = {
+            p["number"]: p["key"]
+            for p in (record.stages.get("render") or {}).get("pages", [])
+        }
+        if number not in pages:
+            raise HTTPException(HTTPStatus.NOT_FOUND, "No image for this page.")
+        return await self._store.get(pages[number])
+
+    async def review(self, workspace_id, import_id, user) -> dict:
+        """What the review screen shows: per page its size, whether an image
+        exists, and where each imported question came from."""
+        import json
+
+        from backend.app.services.pdf_import.storage import artifact_key
+
+        record = await self.get(workspace_id, import_id, user)
+
+        async def load(name, stage):
+            if stage not in record.stages:
+                return {}  # that stage has not run (yet): no artifact
+            key = artifact_key(record.source_key, name)
+            try:
+                return json.loads(await self._store.get(key))
+            except Exception:
+                # a finished stage's artifact must be there: a store outage or
+                # a corrupt file is an error, not "no boxes" (key only, no content)
+                logger.error("form import {} could not read {}", record.id, key)
+                raise
+
+        fdm = await load("fdm.json", "structure")
+        layout = await load("layout.json", "layout")
+        text = await load("text.json", "text")
+        primitives = {
+            p["id"]: p
+            for page in layout.get("pages") or []
+            for p in page.get("primitives") or []
+        }
+        words = {
+            page["number"]: page.get("words") or [] for page in text.get("pages") or []
+        }
+        images = {
+            p["number"] for p in (record.stages.get("render") or {}).get("pages", [])
+        }
+        pages = []
+        for page in record.pages:
+            boxes = []
+            for e in fdm.get("elements") or []:
+                if not isinstance(e, dict):
+                    continue
+                if e.get("page") != page.number or e.get("type") not in (
+                    "question",
+                    "staff_only",
+                ):
+                    continue
+                parts = [
+                    primitives[r]["bbox"]
+                    for r in e.get("slot_refs") or e.get("refs") or []
+                    if r in primitives
+                ]
+                for ref in e.get("label_refs") or []:
+                    if ref.startswith("w") and ref[1:].isdigit():
+                        i = int(ref[1:])
+                        page_words = words.get(page.number) or []
+                        if i < len(page_words):
+                            w = page_words[i]
+                            parts.append([w["x0"], w["top"], w["x1"], w["bottom"]])
+                if not parts:
+                    continue
+                box = [
+                    min(b[0] for b in parts),
+                    min(b[1] for b in parts),
+                    max(b[2] for b in parts),
+                    max(b[3] for b in parts),
+                ]
+                boxes.append(
+                    {
+                        "id": e.get("id"),
+                        "type": e.get("type"),
+                        "kind": e.get("kind"),
+                        "label": clean_label(e.get("label") or e.get("heading") or ""),
+                        "confidence": e.get("confidence"),
+                        # False: the wording is the model's, not found on the page
+                        "grounded": e.get("grounded") is not False
+                        and e.get("text_source") != "model",
+                        "bbox": [round(v, 1) for v in box],
+                    }
+                )
+            pages.append(
+                {
+                    "number": page.number,
+                    "width": page.width,
+                    "height": page.height,
+                    "route": page.route,
+                    "has_image": page.number in images,
+                    "boxes": boxes,
+                }
+            )
+        return {
+            "id": str(record.id),
+            "form_id": record.form_id,
+            "status": record.status,
+            "pages": pages,
+            "report": record.report,
+        }

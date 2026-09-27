@@ -111,6 +111,9 @@ def _clean(label: str) -> str:
     return label.rstrip(":：").strip()
 
 
+clean_label = _clean  # leader dots and trailing colons off a label from the document
+
+
 # --- planning ---------------------------------------------------------------------------
 
 
@@ -356,7 +359,7 @@ def _table_fields(q: dict, label: str, plan: Plan) -> List[PlannedField]:
             {
                 "element": q["id"],
                 "label": label,
-                "as": f"{rows} numbered rows (repeating groups later)",
+                "as": f"{rows} numbered {'row' if rows == 1 else 'rows'} (repeating groups later)",
             }
         )
     plan.rule("table_to_rows_of_fields")

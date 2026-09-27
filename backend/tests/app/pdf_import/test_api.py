@@ -518,3 +518,122 @@ async def test_a_retried_compile_gives_the_same_draft(
     assert again.report["compile"].get("note") == "already compiled"
     second = await forms.get_form_document_by_id(body["formId"])
     assert [f.id for f in second.fields] == [f.id for f in first.fields]
+
+
+async def test_review_data_places_questions_on_their_pages(
+    client, workspace, test_user_cookies, test_user_cookies_1, store
+):
+    response = await upload(
+        client, workspace, test_user_cookies, documents.form_pdf(), "form.pdf"
+    )
+    body = response.json()
+    await finished(client, workspace, test_user_cookies, body["id"])
+    review = await client.get(
+        f"{url(workspace)}/{body['id']}/review", cookies=test_user_cookies
+    )
+    assert review.status_code == 200, review.text
+    data = review.json()
+    [page] = data["pages"]
+    assert page["width"] == 595.0 and page["has_image"] is False
+    labels = {b["label"] for b in page["boxes"] if b["type"] == "question"}
+    assert {"Full name", "Gender"} <= labels
+    full_name = next(b for b in page["boxes"] if b["label"] == "Full name")
+    x0, top, x1, bottom = full_name["bbox"]
+    assert x0 < 100 and x1 > 400 and 70 < top < 100  # label and box together
+    # no image without the isolated sandbox; other users see nothing
+    image = await client.get(
+        f"{url(workspace)}/{body['id']}/pages/1", cookies=test_user_cookies
+    )
+    assert image.status_code == 404
+    other = await client.get(
+        f"{url(workspace)}/{body['id']}/review", cookies=test_user_cookies_1
+    )
+    assert other.status_code in (401, 403, 404)
+
+
+async def test_page_images_are_served_privately(
+    client, workspace, test_user_cookies, store
+):
+    response = await upload(
+        client, workspace, test_user_cookies, documents.form_pdf(), "form.pdf"
+    )
+    body = response.json()
+    await finished(client, workspace, test_user_cookies, body["id"])
+    record = await container.form_import_repo().get(body["id"])
+    key = f"private/x/{body['id']}/pages/1.png"
+    store.objects[key] = b"\x89PNG fake"
+    record.stages["render"] = {
+        "pages": [{"number": 1, "key": key, "width_px": 10, "height_px": 10}]
+    }
+    await container.form_import_repo().save(record)
+    image = await client.get(
+        f"{url(workspace)}/{body['id']}/pages/1", cookies=test_user_cookies
+    )
+    assert image.status_code == 200 and image.content == b"\x89PNG fake"
+    assert image.headers["content-type"] == "image/png"
+    assert image.headers["cache-control"] == "private, no-store"
+    assert image.headers["x-content-type-options"] == "nosniff"
+
+
+async def test_progress_lists_finished_stages(
+    client, workspace, test_user_cookies, store
+):
+    response = await upload(client, workspace, test_user_cookies, documents.text_pdf())
+    done = await finished(client, workspace, test_user_cookies, response.json()["id"])
+    assert done["finishedStages"] == [
+        "analyze",
+        "text",
+        "layout",
+        "render",
+        "structure",
+        "compile",
+    ]
+
+
+async def test_the_upload_screen_learns_the_ai_provider_without_sending_anything(
+    client, workspace, test_user_cookies, test_user_cookies_1, no_real_ai_provider
+):
+    from backend.config import settings
+
+    calls = []
+    no_real_ai_provider._provider_resolver = lambda: calls.append(1)
+    previous = (settings.ai.DEFAULT_PROVIDER, settings.open_ai.API_KEY)
+    try:
+        settings.ai.DEFAULT_PROVIDER, settings.open_ai.API_KEY = "openai", "sk-test"
+        info = await client.get(f"{url(workspace)}/ai", cookies=test_user_cookies)
+        assert info.status_code == 200, info.text
+        assert info.json() == {"provider": "OpenAI", "available": True}
+        settings.open_ai.API_KEY = ""
+        info = await client.get(f"{url(workspace)}/ai", cookies=test_user_cookies)
+        assert info.json()["available"] is False
+        other = await client.get(f"{url(workspace)}/ai", cookies=test_user_cookies_1)
+        assert other.status_code in (401, 403, 404)
+        assert calls == []
+    finally:
+        settings.ai.DEFAULT_PROVIDER, settings.open_ai.API_KEY = previous
+
+
+async def test_review_marks_model_wording_and_tolerates_malformed_elements(
+    client, workspace, test_user_cookies, store
+):
+    import json
+
+    response = await upload(
+        client, workspace, test_user_cookies, documents.form_pdf(), "form.pdf"
+    )
+    body = response.json()
+    await finished(client, workspace, test_user_cookies, body["id"])
+    [key] = [k for k in store.objects if k.endswith("/fdm.json")]
+    fdm = json.loads(store.objects[key])
+    question = next(e for e in fdm["elements"] if e.get("type") == "question")
+    question["text_source"] = "model"
+    fdm["elements"] += ["not an element", {"page": 1}, {"type": "question"}]
+    store.objects[key] = json.dumps(fdm).encode()
+    review = await client.get(
+        f"{url(workspace)}/{body['id']}/review", cookies=test_user_cookies
+    )
+    assert review.status_code == 200, review.text
+    boxes = review.json()["pages"][0]["boxes"]
+    marked = [b for b in boxes if b["id"] == question["id"]]
+    assert marked and marked[0]["grounded"] is False
+    assert any(b["grounded"] for b in boxes)
