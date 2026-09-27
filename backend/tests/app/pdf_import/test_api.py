@@ -637,3 +637,30 @@ async def test_review_marks_model_wording_and_tolerates_malformed_elements(
     marked = [b for b in boxes if b["id"] == question["id"]]
     assert marked and marked[0]["grounded"] is False
     assert any(b["grounded"] for b in boxes)
+
+
+async def test_answers_on_a_filled_in_form_never_become_questions(
+    client, workspace, test_user_cookies, store
+):
+    import json
+
+    response = await upload(
+        client,
+        workspace,
+        test_user_cookies,
+        documents.form_pdf(filled=True),
+        "filled.pdf",
+    )
+    body = response.json()
+    done = await finished(client, workspace, test_user_cookies, body["id"])
+    assert done["status"] == ImportStatus.COMPLETED, done
+    [key] = [k for k in store.objects if k.endswith("/fdm.json")]
+    fdm = json.dumps(json.loads(store.objects[key]), ensure_ascii=False)
+    form = await container.form_repo().get_form_document_by_id(body["formId"])
+    titles = [f.title for page in form.fields for f in page.properties.fields]
+    compiled = json.dumps([str(t) for t in titles])
+    for value in ("Asha", "Kumari", "abroad", "Brother"):
+        assert value not in fdm and value not in compiled, value
+    assert {"Full name", "Remarks"} <= set(titles)
+    # the review screen can say where words were held back
+    assert done["report"]["structure"]["withheld_words"].get("1", 0) >= 3

@@ -285,10 +285,14 @@ class ImportPipeline:
             ):  # noqa: BLE001 — no provider: deterministic structuring only
                 provider = None
         results = []
+        withheld = {}
         for page in record.pages or []:
             ctx = page_context(
                 text.get(page.number), layout.get(page.number), page.number, page.route
             )
+            if ctx.values:
+                # words that look like filled-in answers, kept out of the questions
+                withheld[str(page.number)] = len(ctx.values)
             image = None
             if page.number in rendered:
                 try:
@@ -309,6 +313,7 @@ class ImportPipeline:
             "staff_only": sum(1 for e in fdm["elements"] if e["type"] == "staff_only"),
             "pages": {str(p["number"]): p["source"] for p in fdm["pages"]},
             "warnings": sum(len(p["warnings"]) for p in fdm["pages"]),
+            "withheld_words": withheld,
         }
         record.report["structure"] = summary
         return {"artifact": key, **summary}

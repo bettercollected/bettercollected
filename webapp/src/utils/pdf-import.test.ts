@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { STAGES, aiStructuringNote, describeRules, isAiWording, placeBox, progressPercent, stageStates, validateUpload } from '@app/utils/pdf-import';
+import { STAGES, aiStructuringNote, describeRules, describeWithheld, isAiWording, placeBox, progressPercent, stageStates, validateUpload } from '@app/utils/pdf-import';
 
 describe('stageStates', () => {
     it('marks finished, current and waiting stages', () => {
@@ -51,5 +51,16 @@ describe('aiStructuringNote', () => {
         expect(aiStructuringNote(true)).toBe('AI structuring: on');
         expect(aiStructuringNote(false)).toBe('AI structuring: off (built-in reader only)');
         expect(aiStructuringNote(undefined)).toBe('AI structuring: off (built-in reader only)');
+    });
+});
+
+
+describe('describeWithheld', () => {
+    it('lists pages with withheld words in page order', () => {
+        expect(describeWithheld({ '3': 1, '1': 4, '2': 0 })).toEqual([
+            { page: 1, text: 'Page 1: 4 words inside answer boxes looked like filled-in answers and were left out of the questions. Check the questions there.' },
+            { page: 3, text: 'Page 3: 1 word inside answer boxes looked like filled-in answers and was left out of the questions. Check the questions there.' }
+        ]);
+        expect(describeWithheld(undefined)).toEqual([]);
     });
 });

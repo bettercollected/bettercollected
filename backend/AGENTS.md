@@ -207,6 +207,11 @@ progress. Code: `app/services/pdf_import/` (stages), `app/services/pdf_import_se
   `ai_consent=true` with that upload (stored with `ai_consent_at`/`_by`). Without it
   `_structure` passes no provider and only the deterministic structuring runs. The
   workspace AI opt-in (#715) will be required on top of it.
+- **Answers on filled-in forms never become questions:** words inside answer
+  boxes, on answer lines and in table answer cells (`structuring.value_words`)
+  are left out of the model prompt, of labels/options and of the heuristic. A box
+  or line holding text counts as filled when it is in another font or size than
+  the label beside it (`layout._filled_in`); same style means printed text.
 - **Document text stays in private import artifacts** (`text.json`, `layout.json`,
   next to the original, deleted with the form). Never copy values found in an
   uploaded document into the form, import records or logs, and send the model only

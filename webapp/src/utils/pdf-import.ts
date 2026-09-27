@@ -84,3 +84,15 @@ export function isAiWording(box: { grounded?: boolean | null }): boolean {
 export function aiStructuringNote(aiConsent: boolean | undefined): string {
     return aiConsent ? 'AI structuring: on' : 'AI structuring: off (built-in reader only)';
 }
+
+/** Pages where words were kept out of the questions because they looked like filled-in answers. */
+export function describeWithheld(withheld: Record<string, number> | undefined | null): { page: number; text: string }[] {
+    return Object.entries(withheld ?? {})
+        .map(([page, count]) => ({ page: Number(page), count: Number(count) }))
+        .filter((w) => w.page > 0 && w.count > 0)
+        .sort((a, b) => a.page - b.page)
+        .map(({ page, count }) => ({
+            page,
+            text: `Page ${page}: ${count} ${count === 1 ? 'word' : 'words'} inside answer boxes looked like filled-in answers and ${count === 1 ? 'was' : 'were'} left out of the questions. Check the questions there.`
+        }));
+}

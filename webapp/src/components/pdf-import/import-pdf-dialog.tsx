@@ -91,7 +91,7 @@ export default function ImportPdfDialog({ open, onOpenChange, workspaceId, works
                         </label>
                         <p className="mt-2 text-xs text-black-600">
                             {aiConsent
-                                ? `The page text and page images of this file are sent to ${ai.provider} to recognise its questions. Don't upload forms that hold other people's personal data unless you're allowed to share it.`
+                                ? `The page text and page images of this file are sent to ${ai.provider} to recognise its questions. On a filled-in form, the answers written on it are visible to ${ai.provider} in the page images. Don't upload forms that hold other people's personal data unless you're allowed to share it.`
                                 : 'Without this, the import uses the built-in reader only. The draft may need more manual review.'}
                         </p>
                     </div>

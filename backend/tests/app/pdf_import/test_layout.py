@@ -93,3 +93,18 @@ def test_skipped_pages_have_no_primitives():
     result = extract_layout(documents.text_pdf(pages=2), skip_pages={1})
     assert result["pages"][0]["skipped"] and result["pages"][0]["primitives"] == []
     assert not result["pages"][1]["skipped"]
+
+
+def test_filled_in_boxes_and_lines_are_answer_slots_holding_values():
+    from backend.app.services.pdf_import.layout import extract_layout
+    from backend.app.services.pdf_import.text_layer import extract_text_layer
+
+    data = documents.form_pdf(filled=True)
+    [page] = extract_layout(data)["pages"]
+    [words] = [p["words"] for p in extract_text_layer(data)["pages"]]
+    filled = [p for p in page["primitives"] if p.get("filled")]
+    texts = {" ".join(words[i]["text"] for i in p["words"]) for p in filled}
+    assert "Asha Kumari Rai" in texts and "Moving abroad soon" in texts
+    # the blank form has the same slots, none of them filled
+    [blank] = extract_layout(documents.form_pdf())["pages"]
+    assert not [p for p in blank["primitives"] if p.get("filled")]

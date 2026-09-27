@@ -179,6 +179,9 @@ class PageContext:
     primitives: List[dict]
     has_text_layer: bool
     placeholders: set = field(default_factory=set)
+    # words written inside answer boxes or table answer cells: on a filled-in
+    # form these are someone's answers, never question text
+    values: set = field(default_factory=set)
 
     @property
     def primitive_ids(self) -> Dict[str, dict]:
@@ -233,7 +236,64 @@ def page_context(
         primitives=primitives,
         has_text_layer=route in ("text", "widgets") and bool(usable),
         placeholders=set((page_layout or {}).get("placeholder_words") or []),
+        values=value_words(
+            words, primitives, (page_layout or {}).get("placeholder_words")
+        ),
     )
+
+
+ANSWER_KINDS = (
+    "answer_slot",
+    "cell_run",
+    "checkbox",
+    "area",
+    "photo_box",
+    "thumbprint_box",
+)
+
+
+def _answer_regions(primitives: Sequence[dict]) -> List[Sequence[float]]:
+    regions: List[Sequence[float]] = []
+    for p in primitives:
+        box = p.get("bbox")
+        if not isinstance(box, (list, tuple)) or len(box) != 4:
+            continue
+        if p.get("kind") in ANSWER_KINDS:
+            if p.get("slot") == "dots":
+                continue  # the dots share a word with the label before them
+            if p.get("slot") == "underline":
+                # what is written on the line sits just above it
+                box = (box[0], box[1] - 12, box[2], box[3])
+            regions.append(box)
+        elif p.get("kind") == "table" and isinstance(p.get("cells"), list):
+            open_rows = not p.get("row_labels")
+            for row in p["cells"][1:]:
+                for c, cell in enumerate(row or []):
+                    if cell and (c > 0 or open_rows):
+                        regions.append(cell)
+    return regions
+
+
+def value_words(
+    words: Sequence[dict], primitives: Sequence[dict], placeholders=None
+) -> set:
+    """Indices of words inside answer regions (placeholders excluded)."""
+    skip = set(placeholders or [])
+    regions = _answer_regions(primitives)
+    out = set()
+    for i, w in enumerate(words):
+        if i in skip:
+            continue
+        try:
+            cx = (float(w["x0"]) + float(w["x1"])) / 2
+            cy = (float(w["top"]) + float(w["bottom"])) / 2
+        except (KeyError, TypeError, ValueError):
+            continue
+        if any(
+            r[0] - 1 <= cx <= r[2] + 1 and r[1] - 1 <= cy <= r[3] + 1 for r in regions
+        ):
+            out.add(i)
+    return out
 
 
 def describe(ctx: PageContext, max_words: int = 6000) -> str:
@@ -260,6 +320,8 @@ def describe(ctx: PageContext, max_words: int = 6000) -> str:
             continue
         if w.get("source") == "untrusted":
             continue  # read from the image instead
+        if i in ctx.values:
+            continue  # an answer on a filled-in form: never sent as text
         if last_top is not None and abs(w["top"] - last_top) > 3:
             lines.append(" ".join(row))
             row = []
@@ -368,6 +430,7 @@ def validate(answer: Any, ctx: PageContext) -> Tuple[List[dict], List[str], List
     n_words = len(ctx.words)
 
     budget = [MAX_REFS_PER_PAGE]
+    dropped_values = [0]
 
     def check_refs(refs, where) -> List[str]:
         good = []
@@ -376,12 +439,17 @@ def validate(answer: Any, ctx: PageContext) -> Tuple[List[dict], List[str], List
         for ref in expanded:
             idx = _word_index(ref)
             if idx is not None:
-                if idx < n_words:
+                if idx in ctx.values:
+                    dropped_values[0] += 1  # an answer, not question text
+                elif idx < n_words:
                     good.append(ref)
                 else:
                     errors.append(f"{where}: unknown word id {ref}")
             elif ref in prims:
-                good.extend(ctx.words_of(ref) or [ref])
+                inside = [
+                    w for w in ctx.words_of(ref) if _word_index(w) not in ctx.values
+                ]
+                good.extend(inside or ([] if ctx.words_of(ref) else [ref]))
             else:
                 errors.append(f"{where}: unknown id {ref}")
         return good
@@ -547,6 +615,10 @@ def validate(answer: Any, ctx: PageContext) -> Tuple[List[dict], List[str], List
         ):
             e["follow_up_of"] = None
             warnings.append(f"{e['id']}: follow-up of an unknown question dropped")
+    if dropped_values[0]:
+        warnings.append(
+            f"{dropped_values[0]} word(s) inside answer boxes were left out of labels"
+        )
     return elements, errors, warnings
 
 
@@ -572,7 +644,7 @@ _NUMBER = re.compile(r"\bno\.?$|number|नं\.?|संख्या|amount|र�
 def _label_near(ctx: PageContext, box: Sequence[float], used: set) -> List[int]:
     """Words on the slot's line ending left of it, else the line just above."""
     x0, top, x1, bottom = box
-    used = set(used) | ctx.placeholders
+    used = set(used) | ctx.placeholders | ctx.values
     same_line = [
         i
         for i, w in enumerate(ctx.words)
@@ -718,6 +790,7 @@ def heuristic(ctx: PageContext) -> List[dict]:
                 for i, w in enumerate(ctx.words)
                 if i not in used
                 and i not in ctx.placeholders
+                and i not in ctx.values
                 and w["x0"] >= c["bbox"][2] - 1
                 and w["x1"] <= right_edge + 1
                 and abs(
