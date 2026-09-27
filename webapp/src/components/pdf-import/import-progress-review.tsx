@@ -6,7 +6,7 @@ import Link from 'next/link';
 
 import { Button } from '@app/shadcn/components/ui/button';
 import { pageImageUrl, useGetPdfImportQuery, useGetPdfImportReviewQuery } from '@app/store/redux/pdf-import-api';
-import { STAGES, aiStructuringNote, describeRules, describeWithheld, isAiWording, placeBox, progressPercent, stageStates } from '@app/utils/pdf-import';
+import { STAGES, aiStructuringNote, describeRules, describeStaffPart, describeWithheld, isAiWording, placeBox, progressPercent, stageStates } from '@app/utils/pdf-import';
 
 const POLL_MS = 2000;
 
@@ -110,7 +110,8 @@ export default function ImportProgressReview({ workspaceId, workspaceName, impor
         <div className="mx-auto flex max-w-[1330px] flex-col gap-6 p-6 md:p-10 lg:flex-row">
             <div className="flex w-full flex-col gap-4 lg:w-3/5">
                 <p className="text-sm text-black-600">
-                    Each outlined area became a question in your draft. <span className="text-orange-600">Orange</span> means the reading was uncertain; <span className="text-amber-600">amber</span> marks staff-only parts. A dashed outline means the AI wrote the wording: check it.
+                    Each outlined area became a question in your draft. <span className="text-orange-600">Orange</span> means the reading was uncertain; <span className="text-amber-600">amber</span> marks staff-only parts, which became internal fields. A
+                    dashed outline means the AI wrote the wording: check it.
                 </p>
                 {review?.pages.map((page) => (
                     <div key={page.number} className="flex flex-col gap-1">
@@ -152,27 +153,23 @@ export default function ImportProgressReview({ workspaceId, workspaceName, impor
                         <h2 className="mb-2 text-sm font-semibold text-black-800">Set aside for staff</h2>
                         <ul className="list-disc space-y-1 pl-5 text-sm text-black-700">
                             {compile.staff_only.map((s: any) => (
-                                <li key={s.element}>{s.heading || 'Staff-only part'} — not shown to respondents</li>
+                                <li key={s.element}>{describeStaffPart(s)}</li>
                             ))}
                         </ul>
+                        {(compile.internal_fields ?? 0) > 0 && <p className="mt-2 text-xs text-black-600">Internal fields are on the last page of the form. Workspace members who can edit the form fill them in on each submission.</p>}
                     </section>
                 )}
-                {((compile.dropped?.length ?? 0) > 0 || (compile.interim?.length ?? 0) > 0 || withheld.length > 0) && (
+                {((compile.dropped?.length ?? 0) > 0 || withheld.length > 0) && (
                     <section>
                         <h2 className="mb-2 text-sm font-semibold text-black-800">Worth a look</h2>
                         <ul className="list-disc space-y-1 pl-5 text-sm text-black-700">
-                            {(compile.dropped ?? []).map((d: any) => (
-                                <li key={d.element}>
+                            {(compile.dropped ?? []).map((d: any, i: number) => (
+                                <li key={`${d.element ?? 'dropped'}-${i}`}>
                                     {d.label || 'An item'}: {d.reason}
                                 </li>
                             ))}
                             {withheld.map((w) => (
                                 <li key={`withheld-${w.page}`}>{w.text}</li>
-                            ))}
-                            {(compile.interim ?? []).map((i: any) => (
-                                <li key={i.element}>
-                                    {i.label || 'A table'} was imported as {i.as}.
-                                </li>
                             ))}
                         </ul>
                     </section>
