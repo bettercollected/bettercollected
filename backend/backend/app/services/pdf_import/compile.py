@@ -14,9 +14,13 @@ vibes"), each recorded in the import report:
 - B.S./A.D. date pairs become two date fields for now (D6);
 - a location sketch becomes landmark, distance and direction questions plus an
   optional map upload; photo boxes become image uploads;
-- tables become rows of fields (interim until tables and repeating groups can
-  be created by the edit operations); staff-only parts are listed in the
-  report (interim until internal fields exist).
+- a table with open rows becomes a repeating group (one question per column,
+  at most as many items as the paper has rows); a table with labelled rows
+  stays a grid of fields; joint-applicant blocks asking the same questions
+  become one repeating group with an item per applicant (D7);
+- the labelled answer places of staff-only parts become internal fields on a
+  page of their own at the end: never shown to respondents, filled in by
+  staff on each submission, and never used by logic (D5, D10).
 
 Everything goes through the typed edit operations (``apply_form_ops``), built
 from an empty form in memory and saved once, so compiling again produces the
@@ -35,7 +39,10 @@ from typing import Any, Dict, List, Optional, Tuple
 MAX_FIELDS_PER_PAGE = 12
 TINY_SECTION = 2
 LONG_STATEMENT_WORDS = 150
-MAX_OPEN_TABLE_ROWS = 5
+DEFAULT_OPEN_TABLE_ROWS = 5  # items of a table whose row count is unknown
+MAX_GROUP_ITEMS = 50  # RepeatSettings' limit
+MAX_GROUP_QUESTIONS = 20
+INTERNAL_PAGE_TITLE = "For office use"
 
 FIELD_TYPE = {
     "short_text": "short_text",
@@ -58,12 +65,21 @@ class PlannedField:
     key: str
     spec: Dict[str, Any]
     source: Optional[str] = None
+    # a repeating group: its settings (add_group) and its child questions
+    group: Optional[Dict[str, Any]] = None
+    children: List["PlannedField"] = field(default_factory=list)
+
+    @property
+    def weight(self) -> int:
+        """How much of a page it takes: a group counts its questions."""
+        return 1 + len(self.children) if self.group is not None else 1
 
 
 @dataclass
 class PlannedPage:
     title: str
     fields: List[PlannedField] = field(default_factory=list)
+    internal: bool = False  # only internal fields: never shown to respondents
 
 
 @dataclass
@@ -74,8 +90,8 @@ class Plan:
         default_factory=lambda: {
             "rules": Counter(),
             "dropped": [],
-            "interim": [],
             "staff_only": [],
+            "groups": [],
         }
     )
 
@@ -117,11 +133,18 @@ clean_label = _clean  # leader dots and trailing colons off a label from the doc
 # --- planning ---------------------------------------------------------------------------
 
 
-def _fields_for(q: dict, plan: Plan) -> Tuple[List[PlannedField], List[Dict[str, Any]]]:
-    """Fields for one FDM question, plus visibility rules that refer to them."""
+def _fields_for(
+    q: dict, plan: Plan, in_group: bool = False
+) -> Tuple[List[PlannedField], List[Dict[str, Any]]]:
+    """Fields for one FDM question, plus visibility rules that refer to them.
+    ``in_group``: asked once per item of an applicant group, so unprefixed."""
     kind = q["kind"]
     label = _clean(q.get("label") or "")
-    if q.get("applicant_index") and q["applicant_index"] > 1:
+    if (
+        not in_group
+        and isinstance(q.get("applicant_index"), int)
+        and q["applicant_index"] > 1
+    ):
         label = f"Applicant {q['applicant_index']}: {label}"
         plan.rule("applicant_blocks_prefixed")
     required = q.get("required") if isinstance(q.get("required"), bool) else None
@@ -314,12 +337,31 @@ def _fields_for(q: dict, plan: Plan) -> Tuple[List[PlannedField], List[Dict[str,
     return fields, logic
 
 
+_COLUMN_TYPES = (
+    (re.compile(r"e-?mail|ईमेल|इमेल", re.I), "email"),
+    (
+        re.compile(r"\b(?:phone|mobile|telephone)\b|फोन|मोबाइल|टेलिफोन", re.I),
+        "phone_number",
+    ),
+    (re.compile(r"\bdate\b|\bdob\b|मिति", re.I), "date"),
+)
+
+
+def _column_type(header: str) -> str:
+    for pattern, type_ in _COLUMN_TYPES:
+        if pattern.search(header):
+            return type_
+    return "short_text"
+
+
 def _table_fields(q: dict, label: str, plan: Plan) -> List[PlannedField]:
     table = q.get("table") or {}
-    header = [h for h in (table.get("header") or []) if h]
+    header = [_clean(str(h)) for h in (table.get("header") or []) if h]
+    header = [h for h in header if h]
     row_labels = [r for r in (table.get("row_labels") or []) if r]
-    out: List[PlannedField] = []
     if q["kind"] == "table_fixed_rows" and row_labels and len(header) >= 2:
+        # labelled rows (Father, Mother...): each cell is its own question
+        out: List[PlannedField] = []
         columns = header[1:]
         span = max(4, 12 // max(1, len(columns)))
         for r, row in enumerate(row_labels):
@@ -327,71 +369,217 @@ def _table_fields(q: dict, label: str, plan: Plan) -> List[PlannedField]:
                 out.append(
                     PlannedField(
                         f"{q['id']}:r{r}c{c}",
-                        _spec(
-                            f"{_clean(row)} – {_clean(col)}",
-                            "short_text",
-                            col_span=span,
-                        ),
+                        _spec(f"{_clean(row)} – {col}", "short_text", col_span=span),
                         q["id"],
                     )
                 )
-        plan.report["interim"].append(
-            {
-                "element": q["id"],
-                "label": label,
-                "as": f"{len(row_labels)} rows × {len(columns)} fields",
-            }
-        )
-    else:
-        columns = header or [label or "Entry"]
-        rows = max(1, min(MAX_OPEN_TABLE_ROWS, (table.get("rows") or 2) - 1))
-        span = max(4, 12 // max(1, len(columns)))
-        for r in range(rows):
-            for c, col in enumerate(columns):
-                out.append(
-                    PlannedField(
-                        f"{q['id']}:r{r}c{c}",
-                        _spec(f"{_clean(col)} ({r + 1})", "short_text", col_span=span),
-                        q["id"],
-                    )
-                )
-        plan.report["interim"].append(
-            {
-                "element": q["id"],
-                "label": label,
-                "as": f"{rows} numbered {'row' if rows == 1 else 'rows'} (repeating groups later)",
-            }
-        )
-    plan.rule("table_to_rows_of_fields")
-    if len(out) > MAX_TABLE_CELLS:
+        plan.rule("fixed_table_to_fields")
+        if len(out) > MAX_TABLE_CELLS:
+            plan.report["dropped"].append(
+                {
+                    "element": q["id"],
+                    "label": label,
+                    "reason": f"only the first {MAX_TABLE_CELLS} of {len(out)} table cells were kept",
+                }
+            )
+            out = out[:MAX_TABLE_CELLS]
+        return out
+
+    # open rows: one item per row the respondent fills, one question per column
+    columns = header or [label or "Entry"]
+    if len(columns) > MAX_GROUP_QUESTIONS:
         plan.report["dropped"].append(
             {
                 "element": q["id"],
                 "label": label,
-                "reason": f"only the first {MAX_TABLE_CELLS} of {len(out)} table cells were kept",
+                "reason": f"only the first {MAX_GROUP_QUESTIONS} of {len(columns)} table columns were kept",
             }
         )
-        out = out[:MAX_TABLE_CELLS]
+        columns = columns[:MAX_GROUP_QUESTIONS]
+    rows = table.get("rows")
+    rows = rows - 1 if isinstance(rows, int) and rows > 1 else DEFAULT_OPEN_TABLE_ROWS
+    max_items = max(1, min(MAX_GROUP_ITEMS, rows))
+    has_label = bool(label) and label != " / ".join(header)
+    item_label = (label if has_label else columns[0])[:80]
+    span = max(4, 12 // max(1, len(columns)))
+    children = [
+        PlannedField(
+            f"{q['id']}:c{c}",
+            _spec(col, _column_type(col), col_span=span if len(columns) > 1 else None),
+            q["id"],
+        )
+        for c, col in enumerate(columns)
+    ]
+    plan.rule("open_table_to_repeating_group")
+    plan.report["groups"].append(
+        {"element": q["id"], "label": label, "from": "table", "max_items": max_items}
+    )
+    return [
+        PlannedField(
+            q["id"],
+            _spec(label or " / ".join(columns), "group"),
+            q["id"],
+            group={
+                "item_label": item_label,
+                "min_items": 1 if q.get("required") is True else 0,
+                "max_items": max_items,
+            },
+            children=children,
+        )
+    ]
+
+
+# a question that cannot be asked inside a repeating group (uploads, tables,
+# a location sketch with its map upload, a dropped thumbprint)
+NOT_GROUPABLE = {
+    "file",
+    "image",
+    "location_sketch",
+    "table_fixed_rows",
+    "table_open_rows",
+    "thumbprint",
+}
+
+
+def _question_key(q: dict) -> Tuple[str, str]:
+    """What makes two applicants' questions the same question."""
+    text = (q.get("label") or "").lower()
+    text = re.sub(r"applicant|आवेदक|[0-9०-९]+", " ", text)
+    text = re.sub(r"[\s:：.…_()\-–/]+", " ", text)
+    return (q.get("kind") or "", text.strip())
+
+
+def _applicant_group(questions: List[dict], plan: Plan) -> Tuple[Dict[str, Any], set]:
+    """Joint-applicant blocks that ask the same questions become one repeating
+    group with an item per applicant: (group, ids of the questions it
+    replaces). The group holds applicant 1's questions; applicants 2..n are
+    its further items. Blocks that differ keep their "Applicant N:" prefixes."""
+    blocks: Dict[int, List[dict]] = {}
+    for q in questions:
+        index = q.get("applicant_index")
+        if isinstance(index, int) and 1 <= index <= MAX_GROUP_ITEMS:
+            if q.get("kind") not in NOT_GROUPABLE:
+                blocks.setdefault(index, []).append(q)
+    indices = sorted(blocks)
+    if len(indices) < 2 or indices != list(range(1, len(indices) + 1)):
+        return {}, set()
+    first = [_question_key(q) for q in blocks[1]]
+    if not first or any(
+        [_question_key(q) for q in blocks[i]] != first for i in indices[1:]
+    ):
+        return {}, set()
+    members = blocks[1]
+    if len(members) > MAX_GROUP_QUESTIONS:
+        return {}, set()
+    replaced = {q["id"] for i in indices for q in blocks[i]}
+    plan.rule("applicant_blocks_to_repeating_group")
+    plan.report["groups"].append(
+        {
+            "element": members[0]["id"],
+            "label": "Applicants",
+            "from": "applicant_blocks",
+            "max_items": len(indices),
+        }
+    )
+    return {
+        "anchor": members[0]["id"],
+        "members": members,
+        "max_items": len(indices),
+    }, replaced
+
+
+# staff-only answer place (structuring.staff_fields) -> internal field type;
+# only types staff can fill in from the dashboard (INTERNAL_CAPABLE_TYPES)
+INTERNAL_TYPE = {
+    "short_text": "short_text",
+    "char_cells": "short_text",
+    "signature": "short_text",
+    "long_text": "long_text",
+    "number": "number",
+    "date": "date",
+    "email": "email",
+    "phone": "phone_number",
+    "url": "url",
+    "yes_no": "yes_no",
+}
+
+
+def _internal_fields(e: dict, plan: Plan) -> List[PlannedField]:
+    """Internal fields for the labelled answer places of a staff-only part."""
+    out: List[PlannedField] = []
+    for n, f in enumerate(e.get("fields") or []):
+        if not isinstance(f, dict):
+            continue
+        label = _clean(str(f.get("label") or ""))
+        kind = f.get("kind")
+        if not label:
+            continue
+        options = [
+            str(o.get("label") or "").strip()
+            for o in f.get("options") or []
+            if isinstance(o, dict)
+        ]
+        options = list(dict.fromkeys(o for o in options if o))[:MAX_CHOICES]
+        if kind in ("single_choice", "multi_choice") and len(options) >= 2:
+            spec = _spec(
+                label,
+                "multiple_choice",
+                choices=options,
+                allow_multiple=kind == "multi_choice" or None,
+            )
+        elif kind in INTERNAL_TYPE:
+            spec = _spec(label, INTERNAL_TYPE[kind])
+        elif kind in ("single_choice", "multi_choice"):
+            spec = _spec(label, "short_text")
+        else:
+            plan.report["dropped"].append(
+                {
+                    "element": e["id"],
+                    "label": label,
+                    "reason": "Staff can only fill in text, dates, numbers and choices online.",
+                }
+            )
+            continue
+        spec["internal"] = True
+        out.append(PlannedField(f"{e['id']}:f{n}", spec, e["id"]))
+    return out
+
+
+def _chunks(fields: List[PlannedField]) -> List[List[PlannedField]]:
+    """Fields packed into pages of at most MAX_FIELDS_PER_PAGE questions (a
+    repeating group counts its questions and is never split)."""
+    out: List[List[PlannedField]] = [[]]
+    size = 0
+    for f in fields:
+        if out[-1] and size + f.weight > MAX_FIELDS_PER_PAGE:
+            out.append([])
+            size = 0
+        out[-1].append(f)
+        size += f.weight
     return out
 
 
 def plan_form(fdm: dict) -> Plan:
     plan = Plan()
-    elements = fdm.get("elements") or []
+    elements = [e for e in fdm.get("elements") or [] if isinstance(e, dict)]
     staff_headings = {
         (e.get("heading") or "").strip().lower()
         for e in elements
-        if e["type"] == "staff_only"
+        if e.get("type") == "staff_only"
     }
     sections: Dict[str, dict] = {
         e["id"]: e
         for e in elements
-        if e["type"] == "section"
+        if e.get("type") == "section"
         and (e.get("title") or "").strip().lower() not in staff_headings
     }
     order: List[str] = []
     buckets: Dict[str, List[Tuple[str, dict]]] = {}
     terms: List[dict] = []
+    internal: List[PlannedField] = []
+    applicants, replaced = _applicant_group(
+        [e for e in elements if e.get("type") == "question"], plan
+    )
 
     def bucket(section_id: Optional[str]) -> str:
         sid = section_id if section_id in sections else "__none__"
@@ -401,26 +589,52 @@ def plan_form(fdm: dict) -> Plan:
         return sid
 
     for e in elements:
-        if e["type"] == "staff_only":
+        if e.get("type") == "staff_only":
+            fields = _internal_fields(e, plan)
+            internal.extend(fields)
             plan.report["staff_only"].append(
                 {
                     "element": e["id"],
                     "heading": e.get("heading") or "",
                     "layout_items": len(e.get("refs") or []),
+                    "internal_fields": len(fields),
                 }
             )
-            plan.rule("staff_only_listed")
-        elif e["type"] == "statement":
+            if fields:
+                plan.report["rules"]["staff_only_to_internal_fields"] += len(fields)
+            else:
+                plan.rule("staff_only_listed")
+        elif e.get("type") == "statement":
             words = len((e.get("text") or "").split())
             if e.get("legal") and words >= LONG_STATEMENT_WORDS:
                 terms.append(e)
                 plan.rule("long_terms_to_terms_page")
             else:
                 buckets[bucket(e.get("section"))].append(("statement", e))
-        elif e["type"] == "question":
+        elif e.get("type") == "question":
+            if e["id"] in replaced and e["id"] != applicants["anchor"]:
+                continue  # asked inside the applicant group
             buckets[bucket(e.get("section"))].append(("question", e))
-        elif e["type"] == "section":
+        elif e.get("type") == "section":
             bucket(e["id"])
+
+    def follow_up(e: dict, fields: List[PlannedField]) -> None:
+        if e.get("follow_up_of") and fields:
+            parent = e["follow_up_of"]["question"]
+            plan.logic.append(
+                {
+                    "target": fields[0].key,
+                    "parent": parent,
+                    "comparison": "IS_EQUAL",
+                    "value": (
+                        "Yes"
+                        if e["follow_up_of"].get("when", "yes").lower()
+                        in ("yes", "हो", "true")
+                        else e["follow_up_of"]["when"]
+                    ),
+                }
+            )
+            plan.rule("follow_up_shown_on_yes")
 
     pending: List[PlannedPage] = []
     for sid in order:
@@ -439,25 +653,31 @@ def plan_form(fdm: dict) -> Plan:
                 )
                 plan.rule("statement_verbatim")
                 continue
+            if applicants and e["id"] == applicants["anchor"]:
+                children: List[PlannedField] = []
+                for member in applicants["members"]:
+                    fields, logic = _fields_for(member, plan, in_group=True)
+                    children.extend(fields)
+                    plan.logic.extend(logic)
+                    follow_up(member, fields)
+                page.fields.append(
+                    PlannedField(
+                        f"{e['id']}:applicants",
+                        _spec("Applicants", "group"),
+                        e["id"],
+                        group={
+                            "item_label": "Applicant",
+                            "min_items": 1,
+                            "max_items": applicants["max_items"],
+                        },
+                        children=children,
+                    )
+                )
+                continue
             fields, logic = _fields_for(e, plan)
             page.fields.extend(fields)
             plan.logic.extend(logic)
-            if e.get("follow_up_of") and fields:
-                parent = e["follow_up_of"]["question"]
-                plan.logic.append(
-                    {
-                        "target": fields[0].key,
-                        "parent": parent,
-                        "comparison": "IS_EQUAL",
-                        "value": (
-                            "Yes"
-                            if e["follow_up_of"].get("when", "yes").lower()
-                            in ("yes", "हो", "true")
-                            else e["follow_up_of"]["when"]
-                        ),
-                    }
-                )
-                plan.rule("follow_up_shown_on_yes")
+            follow_up(e, fields)
         pending.append(page)
 
     # merge tiny sections into the previous page; split long ones
@@ -467,7 +687,8 @@ def plan_form(fdm: dict) -> Plan:
         if (
             merged
             and len(questions) <= TINY_SECTION
-            and len(merged[-1].fields) + len(page.fields) <= MAX_FIELDS_PER_PAGE + 2
+            and sum(f.weight for f in merged[-1].fields + page.fields)
+            <= MAX_FIELDS_PER_PAGE + 2
         ):
             merged[-1].fields.extend(page.fields)
             plan.rule("tiny_section_merged")
@@ -475,23 +696,17 @@ def plan_form(fdm: dict) -> Plan:
             merged.append(page)
     for page in merged:
         heading, rest = page.fields[:1], page.fields[1:]
-        while len(rest) > MAX_FIELDS_PER_PAGE:
-            plan.pages.append(
-                PlannedPage(page.title, heading + rest[:MAX_FIELDS_PER_PAGE])
-            )
-            rest = rest[MAX_FIELDS_PER_PAGE:]
-            heading = (
-                [
+        chunks = _chunks(rest)
+        for n, chunk in enumerate(chunks):
+            if n:
+                heading = [
                     PlannedField(
-                        f"{heading[0].key}:cont{len(plan.pages)}",
+                        f"{page.fields[0].key}:cont{len(plan.pages)}",
                         {"title": f"{page.title} (continued)", "type": "text"},
                     )
                 ]
-                if heading
-                else []
-            )
-            plan.rule("long_section_split")
-        plan.pages.append(PlannedPage(page.title, heading + rest))
+                plan.rule("long_section_split")
+            plan.pages.append(PlannedPage(page.title, heading + chunk))
 
     if terms:
         page = PlannedPage(
@@ -517,6 +732,12 @@ def plan_form(fdm: dict) -> Plan:
         )
         # before the final page, which usually holds the signature
         plan.pages.insert(max(0, len(plan.pages) - 1), page)
+
+    # staff-only parts: internal fields on pages of their own at the end (no
+    # heading statement: respondents would see a page with only that on it)
+    if internal:
+        for chunk in _chunks(internal):
+            plan.pages.append(PlannedPage(INTERNAL_PAGE_TITLE, chunk, internal=True))
     return plan
 
 
@@ -612,9 +833,15 @@ def _cap_fields(plan: Plan) -> None:
     budget = MAX_FIELDS
     cut = 0
     for page in plan.pages:
-        cut += max(0, len(page.fields) - budget)
-        page.fields = page.fields[: max(0, budget)]
-        budget -= len(page.fields)
+        kept: List[PlannedField] = []
+        for f in page.fields:
+            if f.weight <= budget:
+                kept.append(f)
+                budget -= f.weight
+            else:
+                cut += f.weight
+                budget = 0
+        page.fields = kept
     plan.pages = [page for page in plan.pages if page.fields]
     if cut:
         plan.report["dropped"].append(
@@ -622,18 +849,41 @@ def _cap_fields(plan: Plan) -> None:
         )
 
 
+def _type(field) -> str:
+    return str(getattr(field.type, "value", field.type))
+
+
+def _align(
+    planned: List[PlannedField], created: List[Any]
+) -> List[Tuple[PlannedField, Any]]:
+    """Planned fields paired with the fields the operations created, in page
+    order; a planned group whose operation failed is skipped."""
+    pairs = []
+    j = 0
+    for pf in planned:
+        if j >= len(created):
+            break
+        if (_type(created[j]) == "group") == (pf.group is not None):
+            pairs.append((pf, created[j]))
+            j += 1
+    return pairs
+
+
 def build_form(fdm: dict, layout: dict, title: str) -> Tuple[Any, Dict[str, Any]]:
     """The draft form (a StandardForm) and the compile report."""
     from common.models.standard_form import StandardForm
 
     from backend.app.services.ai.ops import FormOps, apply_form_ops
+    from backend.app.services.internal_fields import internal_logic_violations
 
     _enrich_tables(fdm, layout)
     plan = plan_form(fdm)
     _cap_fields(plan)
     form = StandardForm(title=title, fields=[])
+    # pages first; groups go in once their page exists (add_page takes plain
+    # questions only), at their planned position
     ops = [
-        {"op": "add_page", "fields": [f.spec for f in page.fields]}
+        {"op": "add_page", "fields": [f.spec for f in page.fields if f.group is None]}
         for page in plan.pages
     ]
     theme = theme_from(layout)
@@ -642,25 +892,52 @@ def build_form(fdm: dict, layout: dict, title: str) -> Tuple[Any, Dict[str, Any]
         plan.rule("theme_from_document")
     form, results = apply_form_ops(form, FormOps.model_validate({"ops": ops}).ops)
     failures = [r.message for r in results if not r.ok]
+    pages = [f for f in (form.fields or []) if _type(f) == "slide"]
+    group_ops = [
+        {
+            "op": "add_group",
+            "page_id": page.id,
+            "index": position,
+            "title": pf.spec["title"],
+            **pf.group,
+            "fields": [c.spec for c in pf.children],
+        }
+        for planned, page in zip(plan.pages, pages)
+        for position, pf in enumerate(planned.fields)
+        if pf.group is not None
+    ]
+    if group_ops:
+        form, results = apply_form_ops(
+            form, FormOps.model_validate({"ops": group_ops}).ops
+        )
+        failures += [r.message for r in results if not r.ok]
+        pages = [f for f in (form.fields or []) if _type(f) == "slide"]
 
     # map planned keys to the field ids the pages were given
     ids: Dict[str, str] = {}
+    group_of: Dict[str, str] = {}  # child key -> its group's key
     choice_values: Dict[str, List[str]] = {}
-    pages = [
-        f
-        for f in (form.fields or [])
-        if str(getattr(f.type, "value", f.type)) == "slide"
-    ]
     for planned, page in zip(plan.pages, pages):
-        for pf, created in zip(planned.fields, page.properties.fields or []):
-            ids[pf.key] = created.id
-            choices = getattr(created.properties, "choices", None) or []
-            choice_values[pf.key] = [c.value for c in choices]
+        for pf, created in _align(planned.fields, page.properties.fields or []):
+            pairs = [(pf, created)]
+            if pf.group is not None:
+                children = created.properties.fields or []
+                pairs += list(zip(pf.children, children))
+                for child in pf.children:
+                    group_of[child.key] = pf.key
+            for p, c in pairs:
+                ids[p.key] = c.id
+                choices = getattr(c.properties, "choices", None) or []
+                choice_values[p.key] = [x.value for x in choices]
     logic_ops = []
     for rule in plan.logic:
         target, parent = ids.get(rule["target"]), ids.get(rule["parent"])
         if not target or not parent:
             continue
+        if rule["parent"] in group_of and group_of[rule["parent"]] != group_of.get(
+            rule["target"]
+        ):
+            continue  # a group's question is only seen by its own item
         value = rule["value"]
         if (
             choice_values.get(rule["parent"])
@@ -689,14 +966,26 @@ def build_form(fdm: dict, layout: dict, title: str) -> Tuple[Any, Dict[str, Any]
             form, FormOps.model_validate({"ops": logic_ops}).ops
         )
         failures += [r.message for r in results if not r.ok]
+    # the ops refuse logic on internal fields; say so loudly if any got through
+    failures += internal_logic_violations(form)
+
+    pages = [f for f in (form.fields or []) if _type(f) == "slide"]
+    questions = [
+        q
+        for page in pages
+        for f in page.properties.fields or []
+        for q in [f, *(f.properties.fields or [] if _type(f) == "group" else [])]
+    ]
     report = {
         "pages": len(pages),
-        "fields": sum(len(p.properties.fields or []) for p in pages),
+        "fields": len(questions),
+        "internal_fields": sum(1 for q in questions if q.internal),
+        "repeating_groups": sum(1 for q in questions if _type(q) == "group"),
         "logic_rules": len(logic_ops),
         "rules": dict(plan.report["rules"]),
         "dropped": plan.report["dropped"],
-        "interim": plan.report["interim"],
         "staff_only": plan.report["staff_only"],
+        "groups": plan.report["groups"],
         "theme": theme,
         "failures": failures[:20],
     }

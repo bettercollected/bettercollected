@@ -459,10 +459,51 @@ async def test_the_draft_form_is_filled_from_the_document(
         compiled["pages"] >= 1 and compiled["fields"] >= 10 and not compiled["failures"]
     )
     assert compiled["staff_only"][0]["heading"] == "For office use only"
+    assert compiled["staff_only"][0]["internal_fields"] == 1
     form = await container.form_repo().get_form_document_by_id(body["formId"])
     titles = [f.title for page in form.fields for f in page.properties.fields]
     assert {"Full name", "Date of birth", "Account number", "Gender"} <= set(titles)
     assert form.theme is not None and form.theme.accent == "#ff0000"
+
+
+async def test_an_import_makes_staff_parts_internal_and_tables_repeat(
+    client, workspace, test_user_cookies, store
+):
+    from backend.app.services.internal_fields import (
+        internal_logic_violations,
+        strip_internal_fields,
+    )
+
+    response = await upload(
+        client, workspace, test_user_cookies, documents.form_pdf(), "form.pdf"
+    )
+    body = response.json()
+    done = await finished(client, workspace, test_user_cookies, body["id"])
+    assert done["status"] == ImportStatus.COMPLETED, done
+    compiled = done["report"]["compile"]
+    assert compiled["internal_fields"] == 1 and compiled["repeating_groups"] == 1
+    assert compiled["rules"]["open_table_to_repeating_group"] == 1
+    assert not compiled["failures"] and "interim" not in compiled
+    form = await container.form_repo().get_form_document_by_id(body["formId"])
+    # the staff part: an internal field on the last page, alone
+    office = form.fields[-1].properties.fields
+    assert [(f.title, f.internal) for f in office] == [("Reviewed by", True)]
+    # the table: a repeating group, one question per column, a row per paper row
+    [table] = [
+        f
+        for page in form.fields
+        for f in page.properties.fields
+        if f.type.value == "group"
+    ]
+    assert [c.title for c in table.properties.fields] == ["Name", "Relation", "Account"]
+    assert table.properties.repeat.max_items == 2
+    assert not internal_logic_violations(form)
+    # respondents get the form without the staff page
+    shown = strip_internal_fields(form.model_copy(deep=True))
+    assert len(shown.fields) == len(form.fields) - 1
+    assert "Reviewed by" not in [
+        f.title for page in shown.fields for f in page.properties.fields
+    ]
 
 
 async def test_compile_never_overwrites_a_draft_the_user_changed(
