@@ -161,8 +161,13 @@ progress. Code: `app/services/pdf_import/` (stages), `app/services/pdf_import_se
 (start, limits, dispatch), `app/controllers/pdf_import_router.py`.
 
 - **Untrusted documents are only opened in the sandbox** (`pdf_import/sandbox.py`):
-  a subprocess with address-space and CPU limits and a wall-clock timeout. Never
-  import pypdf/pdfplumber/pypdfium2 work into the API or worker process directly.
+  `_child.py` runs in Python isolated mode with a scrubbed environment (no
+  secrets), a temporary working directory, its own memory/CPU/core limits, a
+  wall-clock timeout, and at most `PDF_IMPORT_MAX_PARALLEL_SANDBOXES` at once.
+  `analysis.py` and `fonts.py` must stay importable without the `backend`
+  package (relative imports only). Never run pypdf/pdfplumber/pypdfium2 work in
+  the API or worker process directly. Native rendering needs stronger isolation
+  first (separate user, no network, syscall filter).
 - **Licences:** pypdf (BSD), pdfplumber/pdfminer (MIT), pypdfium2 (BSD/Apache),
   Pillow. Do not add PyMuPDF (AGPL) or GPL converters.
 - **The draft form is created at upload**, and the original is stored under

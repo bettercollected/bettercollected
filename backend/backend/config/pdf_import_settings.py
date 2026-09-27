@@ -8,7 +8,9 @@ class PdfImportSettings(BaseSettings):
     limits bound what a hostile PDF can cost the worker that parses it.
     """
 
-    MAX_BYTES: int = 25 * 1024 * 1024
+    # matches the proxy's body limit on /api/v1 (client_max_body_size 15M), so an
+    # oversized upload gets our message instead of the proxy's 413 page
+    MAX_BYTES: int = 15 * 1024 * 1024
     MAX_PAGES: int = 30
     IMPORTS_PER_WORKSPACE_PER_DAY: int = 10
     CONCURRENT_IMPORTS_PER_WORKSPACE: int = 1
@@ -16,7 +18,7 @@ class PdfImportSettings(BaseSettings):
     MAX_IMAGE_PIXELS: int = 60_000_000
     SANDBOX_TIMEOUT_S: int = 120
     SANDBOX_MEMORY_MB: int = 1536
-    # structuring model used when the workspace's provider is OpenAI
-    OPENAI_MODEL: str = "gpt-6-luna"
+    # sandbox children running at once in one process, across all workspaces
+    MAX_PARALLEL_SANDBOXES: int = 2
 
     model_config = SettingsConfigDict(env_prefix="PDF_IMPORT_")

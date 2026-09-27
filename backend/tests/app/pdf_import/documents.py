@@ -65,6 +65,31 @@ def text_pdf(
     return _pdf(objects)
 
 
+def many_fonts_pdf(names) -> bytes:
+    """One line per font, each font a separate resource (attacker-chosen names)."""
+    resources = b" ".join(f"/F{i} {3 + i} 0 R".encode() for i in range(len(names)))
+    text = b"".join(
+        f"BT /F{i} 10 Tf 72 {800 - 12 * i} Td (kl/ro) Tj ET\n".encode()
+        for i in range(len(names))
+    )
+    page = 3 + len(names)
+    objects = [
+        b"<< /Type /Catalog /Pages 2 0 R >>",
+        f"<< /Type /Pages /Kids [{page} 0 R] /Count 1 >>".encode(),
+    ]
+    objects += [
+        b"<< /Type /Font /Subtype /Type1 /BaseFont /" + name.encode() + b" >>"
+        for name in names
+    ]
+    objects.append(
+        f"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << ".encode()
+        + resources
+        + f" >> >> /Contents {page + 1} 0 R >>".encode()
+    )
+    objects.append(_stream(text))
+    return _pdf(objects)
+
+
 def fillable_pdf() -> bytes:
     """One page with a label and a text field widget (AcroForm)."""
     content = b"BT /F1 12 Tf 72 720 Td (Full name) Tj ET\n"

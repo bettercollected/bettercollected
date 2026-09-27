@@ -19,8 +19,9 @@ from backend.app.schemas.form_import import FormImportDocument, PageAnalysis
 from backend.app.services.user_service import get_logged_user
 from common.models.user import User
 
-# read at most this much plus one byte, so an oversized upload is refused
-# without holding the whole body in memory
+# Starlette has already received and spooled the whole body before the handler
+# runs; the proxy's body limit is the real guard. Reading in chunks only keeps
+# us from copying more than the limit into memory here.
 READ_CHUNK = 1024 * 1024
 
 

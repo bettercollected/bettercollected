@@ -50,6 +50,7 @@ class ImportPipeline:
             max_pixels=s.MAX_IMAGE_PIXELS,
             timeout_s=s.SANDBOX_TIMEOUT_S,
             memory_mb=s.SANDBOX_MEMORY_MB,
+            max_parallel=s.MAX_PARALLEL_SANDBOXES,
         )
         record.page_count = result["page_count"]
         record.pages = [PageAnalysis(**page) for page in result["pages"]]

@@ -1,6 +1,12 @@
 """Page analysis and routing, on synthetic documents, in-process and through the sandbox."""
 
+import asyncio
+import os
+import pathlib
+
 import pytest
+
+from backend.app.services.pdf_import import sandbox
 
 from backend.app.services.pdf_import.analysis import (
     DocumentRefused,
@@ -18,7 +24,9 @@ from tests.app.pdf_import import documents
 
 pytestmark = pytest.mark.asyncio
 
-LIMITS = dict(max_pages=30, max_pixels=60_000_000, timeout_s=60, memory_mb=1536)
+LIMITS = dict(
+    max_pages=30, max_pixels=60_000_000, timeout_s=60, memory_mb=1536, max_parallel=2
+)
 
 
 def routes(result):
@@ -128,3 +136,71 @@ def test_titles_and_legacy_font_names():
         assert is_legacy_font(name), name
     for name in ("ArialMT", "Helvetica", "NotoSansDevanagari-Regular", "Mangal"):
         assert not is_legacy_font(name), name
+
+
+def test_font_names_from_the_document_are_bounded():
+    names = [f"Preeti{'X' * 200}{i}" for i in range(20)]
+    page = analyze_pdf(documents.many_fonts_pdf(names), max_pages=30)["pages"][0]
+    assert page["route"] == "vision"
+    assert len(page["legacy_fonts"]) <= 8 and len(page["fonts"]) <= 8
+    assert all(len(name) <= 64 for name in page["legacy_fonts"] + page["fonts"])
+
+
+def test_the_child_gets_no_secrets_and_runs_isolated():
+    os.environ["BC_TEST_CANARY_SECRET"] = "should-not-leak"
+    try:
+        env = sandbox.child_env("/tmp/scratch")
+        assert set(env) == {
+            "PATH",
+            "HOME",
+            "LANG",
+            "LC_ALL",
+            "PYTHONDONTWRITEBYTECODE",
+            "PYTHONHASHSEED",
+        }
+        assert "should-not-leak" not in env.values()
+    finally:
+        del os.environ["BC_TEST_CANARY_SECRET"]
+    command = sandbox.child_command("application/pdf", 30, 1000, 512, 30)
+    assert command[1] == "-I" and command[2].endswith("_child.py")
+
+
+def test_child_modules_never_import_the_backend_package():
+    """The child must not load the backend's settings or .env."""
+    folder = pathlib.Path(sandbox.__file__).parent
+    for name in ("_child.py", "analysis.py", "fonts.py"):
+        source = (folder / name).read_text()
+        assert "from backend" not in source and "import backend" not in source, name
+
+
+async def test_sandboxes_are_capped_across_all_imports(monkeypatch):
+    real = asyncio.create_subprocess_exec
+    running, peak = 0, 0
+
+    async def counting(*args, **kwargs):
+        nonlocal running, peak
+        running += 1
+        peak = max(peak, running)
+        process = await real(*args, **kwargs)
+        original_communicate = process.communicate
+
+        async def communicate(data):
+            nonlocal running
+            try:
+                await asyncio.sleep(0.05)
+                return await original_communicate(data)
+            finally:
+                running -= 1
+
+        process.communicate = communicate
+        return process
+
+    monkeypatch.setattr(sandbox.asyncio, "create_subprocess_exec", counting)
+    results = await asyncio.gather(
+        *[
+            run_analysis(documents.text_pdf(), "application/pdf", **LIMITS)
+            for _ in range(6)
+        ]
+    )
+    assert len(results) == 6 and all(r["page_count"] == 1 for r in results)
+    assert peak <= 2

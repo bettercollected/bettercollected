@@ -16,13 +16,16 @@ import io
 from dataclasses import asdict, dataclass, field
 from typing import List
 
-from backend.app.services.pdf_import.fonts import base_font_name, is_legacy_font
+from .fonts import base_font_name, is_legacy_font
 
 # a page whose raster images cover more than this share, with little text, is a scan
 SCAN_IMAGE_COVERAGE = 0.5
 SCAN_MAX_CHARS = 40
 # a page this share of whose characters are in legacy fonts is read from the image
 LEGACY_SHARE_FOR_VISION = 0.2
+# font names come from the document: bound what is stored on the record
+MAX_FONTS_LISTED = 8
+MAX_FONT_NAME = 64
 
 
 class DocumentRefused(Exception):
@@ -68,7 +71,7 @@ def choose_route(page: PageSignals) -> PageSignals:
         )
     elif page.chars and page.legacy_chars / page.chars >= LEGACY_SHARE_FOR_VISION:
         page.route = "vision"
-        reasons.append("text set in legacy fonts: " + ", ".join(page.legacy_fonts))
+        reasons.append("text set in legacy fonts: " + ", ".join(page.legacy_fonts[:3]))
     elif page.chars == 0 and page.vector_objects == 0 and page.images == 0:
         page.route = "text"
         reasons.append("blank page")
@@ -174,8 +177,13 @@ def analyze_pdf(data: bytes, max_pages: int) -> dict:
                 images=len(page.images),
                 image_coverage=round(min(1.0, covered / area), 3),
                 vector_objects=len(page.lines) + len(page.rects) + len(page.curves),
-                fonts=[name for name, _ in fonts.most_common(8)],
-                legacy_fonts=sorted(legacy),
+                fonts=[
+                    name[:MAX_FONT_NAME]
+                    for name, _ in fonts.most_common(MAX_FONTS_LISTED)
+                ],
+                legacy_fonts=[
+                    name[:MAX_FONT_NAME] for name in sorted(legacy)[:MAX_FONTS_LISTED]
+                ],
                 legacy_chars=sum(n for name, n in fonts.items() if name in legacy),
             )
             pages.append(choose_route(signals).as_dict())
