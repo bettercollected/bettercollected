@@ -153,6 +153,34 @@ and architecture.
   docker network) automatically — only `UMAMI_USERNAME`/`UMAMI_PASSWORD`/`UMAMI_WEBSITE_ID` need to come from
   `.env.deployment`.
 
+## PDF form import (in progress)
+
+`POST /workspaces/{id}/form-imports` (multipart `file`) turns an uploaded PDF or
+photo of a form into a draft form; `GET …/form-imports/{import_id}` reports
+progress. Code: `app/services/pdf_import/` (stages), `app/services/pdf_import_service.py`
+(start, limits, dispatch), `app/controllers/pdf_import_router.py`.
+
+- **Untrusted documents are only opened in the sandbox** (`pdf_import/sandbox.py`):
+  `_child.py` runs in Python isolated mode with a scrubbed environment (no
+  secrets), a temporary working directory, its own memory/CPU/core limits, a
+  wall-clock timeout, and at most `PDF_IMPORT_MAX_PARALLEL_SANDBOXES` at once.
+  `analysis.py` and `fonts.py` must stay importable without the `backend`
+  package (relative imports only). Never run pypdf/pdfplumber/pypdfium2 work in
+  the API or worker process directly. Native rendering needs stronger isolation
+  first (separate user, no network, syscall filter).
+- **Licences:** pypdf (BSD), pdfplumber/pdfminer (MIT), pypdfium2 (BSD/Apache),
+  Pillow. Do not add PyMuPDF (AGPL) or GPL converters.
+- **The draft form is created at upload**, and the original is stored under
+  `private/<workspace>/<form>/imports/<import>/`, so deleting the form deletes it.
+  Import records are deleted with their forms (`WorkspaceFormService`).
+- **Stages checkpoint** on the import record (`stages`); a retried job skips
+  finished ones. Runs on procrastinate with `JOBS_BACKEND__import_form=postgres`,
+  otherwise as a background task in the API process.
+- **Structure only:** never store values found in an uploaded document.
+- Limits and the default model: `PDF_IMPORT_*` (`config/pdf_import_settings.py`).
+- Tests generate their own documents (`tests/app/pdf_import/documents.py`);
+  do not add real-world forms to the repository.
+
 ## Cross-service integration points
 
 - **Auth:** `services/auth_service.py` — OAuth state + OTP, JWT via `common.services.jwt_service`; refresh-token

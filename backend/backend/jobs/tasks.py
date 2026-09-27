@@ -64,6 +64,20 @@ async def delete_response(response_id: str) -> str:
     return response_id
 
 
+@app.task(
+    name="import_form",
+    queue=DEFAULT_QUEUE,
+    retry=RetryStrategy(max_attempts=3, exponential_wait=5),
+)
+async def import_form(import_id: str) -> str:
+    """Run (or resume) a PDF form import; finished stages are checkpointed on
+    the import record, so a retry only redoes the stage that failed."""
+    from beanie import PydanticObjectId
+
+    record = await _container().pdf_import_pipeline().run(PydanticObjectId(import_id))
+    return record.status if record else "missing"
+
+
 def run_action_deferrer(queueing_lock: str):
     """Defer ``run_action`` to the actions queue without importing its body."""
     return app.configure_task(

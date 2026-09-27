@@ -19,6 +19,7 @@ from backend.config.https_certificate import HttpsCertificateApiSettings
 from backend.config.ai_settings import AISettings
 from backend.config.google_ai_settings import GoogleAISettings
 from backend.config.OpenAISettings import OpenAISettings
+from backend.config.pdf_import_settings import PdfImportSettings
 from backend.config.unsplash_settings import UnsplashSettings
 from backend.config.sentry_setting import SentrySettings
 from backend.config.template_settings import DefaultResourcesWorkspaceSettings
@@ -67,6 +68,7 @@ class Application(BaseSettings):
     unsplash: UnsplashSettings = UnsplashSettings()
     brevo_settings: BrevoSettings = BrevoSettings()
     umami_settings: UmamiSettings = UmamiSettings()
+    pdf_import: PdfImportSettings = PdfImportSettings()
     # All your additional application configuration should go either here or in
     # separate file in this submodule.
 

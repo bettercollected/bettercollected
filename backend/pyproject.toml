@@ -40,6 +40,10 @@ dependencies = [
     "mcp>=1.28.1",
     "procrastinate>=3.9,<4",
     "custom-domain-sdk>=0.5.0",
+    "pypdf>=6.0",
+    "pdfplumber>=0.11",
+    "pypdfium2>=4.30",
+    "pillow>=11",
 ]
 
 [dependency-groups]
