@@ -31,6 +31,7 @@ from backend.app.services.pdf_import.sandbox import (
     run_layout,
     run_text_layer,
 )
+from backend.app.services.form_writes import persist_form
 from backend.app.services.pdf_import.compile import build_form, with_stable_ids
 from backend.app.services.pdf_import.storage import artifact_key
 from backend.app.services.pdf_import.structuring import (
@@ -342,10 +343,24 @@ class ImportPipeline:
             }
             return {"pages": 0, "skipped": "form was edited"}
         else:
-            document.fields = form.fields
+            parts = ["fields"]
             if form.theme is not None and document.theme is None:
-                document.theme = form.theme
-            await self._form_repo.save_form(document)
+                parts.append("theme")  # the brand theme only if the form has none
+            saved = await persist_form(
+                self._form_repo,
+                document,
+                form,
+                parts=parts,
+                guard=lambda current: not current.fields
+                and current.published_at is None,
+            )
+            if not saved:
+                record.report["compile"] = {
+                    "pages": 0,
+                    "fields": 0,
+                    "skipped": "form was edited",
+                }
+                return {"pages": 0, "skipped": "form was edited"}
         record.report["compile"] = report
         return {k: report[k] for k in ("pages", "fields", "logic_rules")}
 
