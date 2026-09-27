@@ -228,6 +228,9 @@ def get_group_items(response: Dict[str, Any], field: Dict[str, Any]) -> List[Dic
 
 
 def _item_answer(item: Dict[str, Any], child: Dict[str, Any]):
+    # Only answer objects are read (a malformed stored value is skipped).
+    if not isinstance(item.get(child['id'], {}), dict):
+        return ''
     answer = get_answer_for_field({'answers': item}, child)
     return '' if answer is None else answer
 
@@ -336,3 +339,15 @@ def column_letter(count: int) -> str:
         count, remainder = divmod(count - 1, 26)
         letters = chr(ord('A') + remainder) + letters
     return letters
+
+
+FORMULA_PREFIXES = ('=', '+', '-', '@', '\t', '\r')
+
+
+def formula_safe(value: Any) -> Any:
+    """Spreadsheets run cells starting with = + - @ (or tab / CR) as
+    formulas. Such strings get a leading ``'`` so they stay text; numbers
+    and other values are returned unchanged."""
+    if isinstance(value, str) and value.startswith(FORMULA_PREFIXES):
+        return "'" + value
+    return value

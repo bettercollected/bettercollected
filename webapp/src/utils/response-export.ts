@@ -100,10 +100,20 @@ export function buildResponsesExport(form: StandardFormDto, responses: StandardF
     };
 }
 
-/** RFC 4180 CSV text of a table. */
+/**
+ * Spreadsheet apps run cells starting with = + - @ (or tab / CR) as formulas.
+ * Respondent text must never become one: such string cells get a leading `'`,
+ * which spreadsheets treat as "this is text". Numbers are left as they are.
+ */
+export function formulaSafeCell(value: ExportCell): ExportCell {
+    if (typeof value !== 'string') return value;
+    return /^[=+\-@\t\r]/.test(value) ? `'${value}` : value;
+}
+
+/** RFC 4180 CSV text of a table, with formula-like cells neutralised. */
 export function tableToCsv(table: ExportTable): string {
     const escape = (value: ExportCell) => {
-        const text = String(value ?? '');
+        const text = String(formulaSafeCell(value) ?? '');
         return /[",\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
     };
     return [table.headers, ...table.rows].map((row) => row.map(escape).join(',')).join('\r\n');

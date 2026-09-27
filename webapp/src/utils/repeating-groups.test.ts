@@ -21,7 +21,7 @@ import {
     validateGroupAnswer,
     writeItemAnswers
 } from '@app/utils/repeating-groups';
-import { buildResponsesExport, tableToCsv } from '@app/utils/response-export';
+import { buildResponsesExport, formulaSafeCell, tableToCsv } from '@app/utils/response-export';
 import { validateSlide } from '@app/utils/vvalidation-utils';
 
 const name: StandardFormFieldDto = { id: 'name', index: 0, type: FieldTypes.SHORT_TEXT, title: 'Name', validations: { required: true } };
@@ -284,6 +284,14 @@ describe('exports', () => {
     it('the creator can override the layout', () => {
         expect(buildResponsesExport(form(group({ maxItems: 2, exportLayout: 'rows' })), responses).groupTables).toHaveLength(1);
         expect(buildResponsesExport(form(group({ maxItems: 10, exportLayout: 'columns' })), responses).groupTables).toHaveLength(0);
+    });
+
+    it('neutralises formula-like text cells, leaving numbers and dates alone', () => {
+        const csv = tableToCsv({ name: 't', headers: ['=HEADER'], rows: [['=HYPERLINK("x")', '+1', '-2', '@SUM(A1)', '\tx', '\rx', -5, 3, '2026-09-27', 'plain']] });
+        const [, row] = csv.split('\r\n');
+        expect(row).toBe(`"'=HYPERLINK(""x"")",'+1,'-2,'@SUM(A1),'\tx,"'\rx",-5,3,2026-09-27,plain`);
+        expect(csv.startsWith("'=HEADER")).toBe(true);
+        expect(formulaSafeCell(-5)).toBe(-5);
     });
 
     it('writes valid CSV', () => {

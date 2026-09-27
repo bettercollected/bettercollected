@@ -18,7 +18,6 @@ import ResponsesTable from './responses-table';
 import { StandardFormResponseDto } from '@app/models/dtos/form';
 import { selectAuth } from '@app/store/auth/slice';
 import { buildResponsesExport, exportFileName, tableToCsv } from '@app/utils/response-export';
-import { CSVLink } from 'react-csv';
 
 function downloadCsv(csv: string, fileName: string) {
     // BOM so spreadsheet apps read UTF-8 names correctly.
@@ -62,26 +61,16 @@ export default function FormResponsesTable({ props }: any) {
         }
     };
 
-    const [csvDatas, setCsvDatas] = useState<any>([]);
-
     const handleClickExportCSV = () => {
         trigger({ formId: form.formId, workspaceId: workspace?.id }).then((result) => {
             // One row per submission; repeating groups become columns per item,
             // or (large groups) a CSV of their own with one row per item.
             const { main, groupTables } = buildResponsesExport(form, (result.data ?? []) as Array<StandardFormResponseDto>);
+            // Every file goes through tableToCsv, which neutralises formula-like cells.
+            downloadCsv(tableToCsv(main), exportFileName(form.title));
             groupTables.forEach((table) => downloadCsv(tableToCsv(table), exportFileName(form.title, table.name)));
-            setCsvDatas([main.headers, ...main.rows]);
         });
     };
-
-    useEffect(() => {
-        if (csvDatas.length > 0) {
-            document.getElementById('csv_link')?.click();
-            setTimeout(() => {
-                setCsvDatas([]);
-            }, 0);
-        }
-    }, [csvDatas]);
 
     if (isLoading)
         return (
@@ -92,7 +81,6 @@ export default function FormResponsesTable({ props }: any) {
 
     return (
         <div>
-            <CSVLink data={csvDatas} filename={`${form.title}.csv`} className="btn btn-primary" target="_blank" id="csv_link" />
             <div className={`mb-6 flex flex-col gap-2 lg:flex-row lg:justify-between`}>
                 <div className="flex w-full flex-row justify-between">
                     {(isSubmission && form.responses) || (!isSubmission && form.deletionRequests) ? (

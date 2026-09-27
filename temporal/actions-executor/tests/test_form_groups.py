@@ -154,3 +154,21 @@ def test_group_tabs_never_share_a_name():
     assert titles[1].endswith("(g2)")
     # Stable: the same form always yields the same names.
     assert titles == [t["sheet_title"] for t in get_group_tables(form, RESPONSE)]
+
+
+def test_formula_like_text_is_kept_as_text():
+    from utilities.form import formula_safe
+
+    for text in ('=HYPERLINK("x")', "+1", "-2", "@SUM(A1)", "\tx", "\rx"):
+        assert formula_safe(text) == "'" + text
+    for value in (-5, 3.5, "2026-09-27", "plain", "", None):
+        assert formula_safe(value) == value
+
+
+def test_malformed_item_answers_do_not_crash():
+    response = {
+        "response_id": "r1",
+        "answers": {"g": {"type": "group", "items": [{"name": "plain string"}]}},
+    }
+    [table] = get_group_tables(form_with_group(max_items=10), response)
+    assert table["rows"] == [["r1", 1, "", ""]]

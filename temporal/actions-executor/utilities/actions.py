@@ -20,6 +20,7 @@ from utilities.google_service import build_google_service, fetch_oauth_token
 from wrappers.thread_pool_executor import thread_pool_executor
 from utilities.form import (
     column_letter,
+    formula_safe,
     get_group_tables,
     get_questions_and_answers,
     sheet_title_for,
@@ -177,8 +178,10 @@ async def run_action(
         credential["scopes"] = credential.get("scopes").split(" ")[1:]
 
         # Extract questions and answers from the response
-        question_array = [qa["title"] for qa in data]
-        response_array = [qa["answer"] for qa in data]
+        # USER_ENTERED runs cells starting with = + - @ as formulas: never
+        # let a title or a respondent's answer become one.
+        question_array = [formula_safe(qa["title"]) for qa in data]
+        response_array = [formula_safe(qa["answer"]) for qa in data]
 
         # Prepare the data to append (first row: questions, second row: responses)
         question_data = {"values": [question_array]}
@@ -535,7 +538,7 @@ async def run_action(
                     spreadsheetId=google_sheet_id,
                     range=f"'{title}'!A1:{column_letter(len(table['headers']))}1",
                     valueInputOption="USER_ENTERED",
-                    body={"values": [table["headers"]]},
+                    body={"values": [[formula_safe(v) for v in table["headers"]]]},
                 ).execute()
                 if table["rows"]:
                     service.spreadsheets().values().append(
@@ -543,7 +546,11 @@ async def run_action(
                         range=f"'{title}'!A2",
                         valueInputOption="USER_ENTERED",
                         insertDataOption="INSERT_ROWS",
-                        body={"values": table["rows"]},
+                        body={
+                            "values": [
+                                [formula_safe(v) for v in row] for row in table["rows"]
+                            ]
+                        },
                     ).execute()
             return "Appended"
         except HttpError as e:
