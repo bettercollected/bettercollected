@@ -45,3 +45,42 @@ def test_a_missing_file_gets_no_link_instead_of_a_broken_one(monkeypatch):
     assert service.file_download_url("ws", "form", "resp", "gone") == ""
     assert service.file_download_url("ws", "form", "resp", "") == ""
     assert store.signed == []
+
+
+def test_an_id_that_names_another_key_gets_no_link(monkeypatch):
+    victim = "private/other-ws/form/imports/abc/source.pdf"
+    service, store = service_with(
+        monkeypatch, [victim, "private/" + victim, "other-ws/form/x"]
+    )
+    for crafted in (victim, "other-ws/form/x", "..", ".", "a" * 129, None, 7):
+        assert service.file_download_url("ws", "form", "resp", crafted) == ""
+    assert store.signed == []
+
+
+async def test_uploads_with_a_crafted_file_id_are_refused(
+    client, workspace, published_form, monkeypatch
+):
+    import json
+
+    from backend.app.services.workspace_form_service import WorkspaceFormService
+
+    uploads = []
+
+    async def fake_upload(self, *args, **kwargs):
+        uploads.append(args)
+        return args[1] if len(args) > 1 else kwargs.get("response")
+
+    monkeypatch.setattr(
+        WorkspaceFormService, "upload_files_to_s3_and_update_url", fake_upload
+    )
+    refused = await client.post(
+        f"/api/v1/workspaces/{workspace.id}/forms/{published_form.form_id}/response",
+        data={
+            "response": json.dumps({"answers": {}}),
+            "file_field_ids": ["f"],
+            "file_ids": ["other-ws/form/imports/abc/source.pdf"],
+        },
+        files={"files": ("a.pdf", b"%PDF-1.4", "application/pdf")},
+    )
+    assert refused.status_code == 422, refused.text
+    assert uploads == []

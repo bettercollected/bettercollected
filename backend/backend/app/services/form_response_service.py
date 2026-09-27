@@ -1,5 +1,6 @@
 import datetime as dt
 import json
+import re
 from http import HTTPStatus
 from typing import Any, Dict, List, Optional, Sequence, Set
 
@@ -48,6 +49,19 @@ from backend.app.services.internal_fields import (
     validate_internal_answer,
 )
 from backend.app.utils.hash import hash_string
+
+# An uploaded answer file's id is client-supplied: only a plain id (no "/",
+# not "." or "..") may ever become part of a storage key, so it can't name
+# another workspace's object.
+_PLAIN_FILE_ID = re.compile(r"[A-Za-z0-9._-]{1,128}")
+
+
+def is_plain_file_id(value) -> bool:
+    return (
+        isinstance(value, str)
+        and _PLAIN_FILE_ID.fullmatch(value) is not None
+        and value not in (".", "..")
+    )
 
 
 class FormResponseService:
@@ -650,7 +664,7 @@ class FormResponseService:
         file is actually stored under: the response's own folder (submissions),
         the shared private folder (older edits) or the bare id (oldest uploads).
         An empty string when the file is in none of them."""
-        if not file_id:
+        if not is_plain_file_id(file_id):
             return ""
         for key in (
             f"private/{workspace_id}/{form_id}/{response_id}/{file_id}",
