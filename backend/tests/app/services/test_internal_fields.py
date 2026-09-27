@@ -719,3 +719,38 @@ async def test_version_conflict_detected_at_the_write(
     )
     assert decrypted.internal_answers[REVIEWER]["text"] == "first"
     assert REFERENCE not in decrypted.internal_answers
+
+
+async def test_a_respondent_edit_never_writes_an_internal_field(
+    client, workspace, internal_form, respondent_response
+):
+    from common.services.crypto_service import crypto_service
+
+    base = f"/api/v1/workspaces/{workspace.id}/forms/{internal_form.form_id}"
+    patched = await client.patch(
+        f"{base}/settings",
+        json={"require_verified_identity": True, "allow_editing_response": True},
+        cookies=_cookies(testUser),
+    )
+    assert patched.status_code == 200, patched.text
+    response_id = respondent_response.response_id
+    edit = {
+        NAME: {"field": {"id": NAME}, "type": "text", "text": "Ada L."},
+        REFERENCE: {"field": {"id": REFERENCE}, "type": "text", "text": "forged"},
+    }
+    edited = await client.patch(
+        f"{base}/response/{response_id}",
+        data={"response": json.dumps({"answers": edit})},
+        cookies=_cookies(testUser2),
+    )
+    assert edited.status_code == 200, edited.text
+    document = await container.form_response_repo().get_response(response_id)
+    answers = json.loads(
+        crypto_service.decrypt(
+            workspace_id=workspace.id,
+            form_id=internal_form.form_id,
+            data=document.answers,
+        )
+    )
+    assert answers[NAME]["text"] == "Ada L."
+    assert REFERENCE not in answers

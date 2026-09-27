@@ -527,7 +527,10 @@ class WorkspaceFormService:
         form = await self.form_service.get_latest_version_of_form(
             form_id
         ) or await self.form_service.get_form_document_by_id(str(form_id))
-        allowed = _question_ids(getattr(form, "fields", None) or [])
+        # internal fields are the staff's: a respondent's edit never writes them
+        allowed = _question_ids(getattr(form, "fields", None) or []) - (
+            await self.form_response_service.all_internal_field_ids(str(form_id))
+        )
         unknown = [k for k in (response.answers or {}) if k not in allowed]
         for key in unknown:
             response.answers.pop(key)
