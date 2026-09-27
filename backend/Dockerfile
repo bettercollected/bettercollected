@@ -17,6 +17,11 @@ WORKDIR /api/backend
 # Install dependencies using uv
 RUN /uv/bin/uv sync --no-dev
 
+# Socket directory for the isolated document sandbox (docker-compose.deployment.yml
+# "document-sandbox"): owned by the unprivileged user it runs as, so a fresh
+# named volume mounted here inherits that ownership.
+RUN mkdir -p /run/doc-sandbox && chown 65534:65534 /run/doc-sandbox && chmod 0770 /run/doc-sandbox
+
 EXPOSE 8000/tcp
 
 HEALTHCHECK CMD curl http://localhost:8000 || exit 1

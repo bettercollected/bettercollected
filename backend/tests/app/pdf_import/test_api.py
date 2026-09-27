@@ -287,3 +287,32 @@ async def test_layout_primitives_are_stored_next_to_the_original(
         "photo_box",
         "signature",
     } <= kinds
+
+
+async def test_an_unreachable_sandbox_leaves_the_import_queued_for_a_retry(
+    client, workspace, test_user_cookies, store
+):
+    settings_ = limits()
+    previous = settings_.SANDBOX_SOCKET
+    settings_.SANDBOX_SOCKET = "/nonexistent/sandbox.sock"
+    service = container.pdf_import_service()
+    import backend.app.services.pdf_import_service as module
+
+    delays = module.RETRY_DELAYS_S
+    module.RETRY_DELAYS_S = ()
+    try:
+        response = await upload(
+            client, workspace, test_user_cookies, documents.text_pdf()
+        )
+        import_id = response.json()["id"]
+        await service.wait_for_background_imports()
+        waiting = await container.form_import_repo().get(import_id)
+        assert (
+            waiting.status == ImportStatus.QUEUED and "document reader" in waiting.error
+        )
+    finally:
+        settings_.SANDBOX_SOCKET = previous
+        module.RETRY_DELAYS_S = delays
+    # once the sandbox is back, the same import runs to completion
+    done = await container.pdf_import_pipeline().run(waiting.id)
+    assert done.status == ImportStatus.COMPLETED and done.error is None

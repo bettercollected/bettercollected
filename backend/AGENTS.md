@@ -160,6 +160,13 @@ photo of a form into a draft form; `GET …/form-imports/{import_id}` reports
 progress. Code: `app/services/pdf_import/` (stages), `app/services/pdf_import_service.py`
 (start, limits, dispatch), `app/controllers/pdf_import_router.py`.
 
+- **Isolated sandbox in deployment (#703):** the `document-sandbox` compose service
+  (same image, `pdf_import/server.py`) runs as `nobody` with no network, a
+  read-only filesystem, no capabilities and no env file; backend and jobs worker
+  reach it over `PDF_IMPORT_SANDBOX_SOCKET` with `PDF_IMPORT_REQUIRE_ISOLATED_SANDBOX=true`.
+  `server.py` and `runner.py` must never import the backend package. Native modes
+  (`render`) never run in a local child. An unreachable sandbox leaves the import
+  queued for a retry (`SandboxUnavailable`), it is not the document's fault.
 - **Untrusted documents are only opened in the sandbox** (`pdf_import/sandbox.py`):
   `_child.py` runs in Python isolated mode with a scrubbed environment (no
   secrets), a temporary working directory, its own memory/CPU/core limits, a
