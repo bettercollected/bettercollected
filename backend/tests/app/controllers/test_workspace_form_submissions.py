@@ -494,3 +494,84 @@ class TestWorkspaceFormSubmission:
         actual_response = form_responses.json()
         assert form_responses.status_code == 404
         assert actual_response == expected_response
+
+
+async def _allow_editing(client, common_url, form_id, cookies):
+    patched = await client.patch(
+        f"{common_url}/forms/{form_id}/settings",
+        json={"require_verified_identity": True, "allow_editing_response": True},
+        cookies=cookies,
+    )
+    assert patched.status_code == 200, patched.text
+
+
+async def _edit(client, common_url, form_id, response_id, answers, cookies):
+    import json
+
+    return await client.patch(
+        f"{common_url}/forms/{form_id}/response/{response_id}",
+        data={"response": json.dumps({"answers": answers})},
+        cookies=cookies,
+    )
+
+
+async def test_only_the_respondent_can_edit_their_response(
+    client: AsyncClient,
+    common_url: str,
+    workspace: Coroutine[Any, Any, WorkspaceDocument],
+    published_form: Coroutine[Any, Any, FormDocument],
+    workspace_form_response: Coroutine[Any, Any, dict],
+    test_user_cookies: dict[str, str],
+    test_user_cookies_1: dict[str, str],
+):
+    form_id = published_form.form_id
+    response_id = workspace_form_response["response_id"]
+    await _allow_editing(client, common_url, form_id, test_user_cookies)
+    answer = {"q1": {"field": {"id": "q1"}, "text": "edited"}}
+
+    other = await _edit(
+        client, common_url, form_id, response_id, answer, test_user_cookies_1
+    )
+    assert other.status_code in (403, 404), other.text
+
+    own = await _edit(
+        client, common_url, form_id, response_id, answer, test_user_cookies
+    )
+    assert own.status_code == 200, own.text
+    import json
+
+    from common.services.crypto_service import crypto_service
+
+    document = await container.form_response_repo().get_response(response_id)
+    stored = json.loads(
+        crypto_service.decrypt(
+            workspace_id=workspace.id, form_id=form_id, data=document.answers
+        )
+    )
+    assert stored["q1"]["text"] == "edited"
+
+
+async def test_a_response_is_only_edited_through_its_own_form(
+    client: AsyncClient,
+    common_url: str,
+    workspace: Coroutine[Any, Any, WorkspaceDocument],
+    published_form: Coroutine[Any, Any, FormDocument],
+    workspace_form_response: Coroutine[Any, Any, dict],
+    test_user_cookies: dict[str, str],
+):
+    other_form = await container.workspace_form_service().create_form(
+        workspace.id, StandardForm(**formData_2), testUser
+    )
+    await container.workspace_form_service().publish_form(
+        workspace.id, other_form.form_id, testUser
+    )
+    await _allow_editing(client, common_url, other_form.form_id, test_user_cookies)
+    edited = await _edit(
+        client,
+        common_url,
+        other_form.form_id,
+        workspace_form_response["response_id"],
+        {"q1": {"field": {"id": "q1"}, "text": "x"}},
+        test_user_cookies,
+    )
+    assert edited.status_code == 404, edited.text
