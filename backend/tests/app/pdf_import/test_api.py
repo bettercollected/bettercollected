@@ -662,3 +662,5 @@ async def test_answers_on_a_filled_in_form_never_become_questions(
     for value in ("Asha", "Kumari", "abroad", "Brother"):
         assert value not in fdm and value not in compiled, value
     assert {"Full name", "Remarks"} <= set(titles)
+    # the review screen can say where words were held back
+    assert done["report"]["structure"]["withheld_words"].get("1", 0) >= 3

@@ -6,7 +6,7 @@ import Link from 'next/link';
 
 import { Button } from '@app/shadcn/components/ui/button';
 import { pageImageUrl, useGetPdfImportQuery, useGetPdfImportReviewQuery } from '@app/store/redux/pdf-import-api';
-import { STAGES, aiStructuringNote, describeRules, isAiWording, placeBox, progressPercent, stageStates } from '@app/utils/pdf-import';
+import { STAGES, aiStructuringNote, describeRules, describeWithheld, isAiWording, placeBox, progressPercent, stageStates } from '@app/utils/pdf-import';
 
 const POLL_MS = 2000;
 
@@ -77,6 +77,7 @@ export default function ImportProgressReview({ workspaceId, workspaceName, impor
     const report = review?.report ?? data?.report ?? {};
     const compile = report.compile ?? {};
     const rules = describeRules(compile.rules);
+    const withheld = describeWithheld(report.structure?.withheld_words);
 
     if (!data) return <div className="p-10 text-sm text-black-600">Loading…</div>;
 
@@ -156,7 +157,7 @@ export default function ImportProgressReview({ workspaceId, workspaceName, impor
                         </ul>
                     </section>
                 )}
-                {((compile.dropped?.length ?? 0) > 0 || (compile.interim?.length ?? 0) > 0) && (
+                {((compile.dropped?.length ?? 0) > 0 || (compile.interim?.length ?? 0) > 0 || withheld.length > 0) && (
                     <section>
                         <h2 className="mb-2 text-sm font-semibold text-black-800">Worth a look</h2>
                         <ul className="list-disc space-y-1 pl-5 text-sm text-black-700">
@@ -164,6 +165,9 @@ export default function ImportProgressReview({ workspaceId, workspaceName, impor
                                 <li key={d.element}>
                                     {d.label || 'An item'}: {d.reason}
                                 </li>
+                            ))}
+                            {withheld.map((w) => (
+                                <li key={`withheld-${w.page}`}>{w.text}</li>
                             ))}
                             {(compile.interim ?? []).map((i: any) => (
                                 <li key={i.element}>
@@ -176,7 +180,9 @@ export default function ImportProgressReview({ workspaceId, workspaceName, impor
                 {(report.notes ?? []).length > 0 && (
                     <section className="text-xs text-black-600">
                         {report.notes.map((n: string) => (
-                            <p key={n}>{n}</p>
+                            <p key={n} className="text-xs text-black-600">
+                                {n}
+                            </p>
                         ))}
                     </section>
                 )}
