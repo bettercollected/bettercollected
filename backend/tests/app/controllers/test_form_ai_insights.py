@@ -453,6 +453,8 @@ class TestInsightsConsent:
         settings = public.json()["settings"]
         assert settings["aiInsightsEnabled"] is True
         assert settings["aiInsightsProviderName"] == "OpenAI"
+        # who allowed it is staff information, never sent to respondents
+        assert settings.get("aiInsightsEnabledBy") is None
 
     async def test_only_responses_after_the_notice_and_nothing_sensitive(
         self,
