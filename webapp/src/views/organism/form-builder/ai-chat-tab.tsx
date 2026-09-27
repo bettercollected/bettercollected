@@ -4,15 +4,16 @@ import { useEffect, useRef, useState } from 'react';
 
 import { BookOpen, Check, Plus, Send, ShieldCheck, X } from 'lucide-react';
 
+import { AIDisclosure, AIOptIn, aiErrorMessage, isAINotEnabledError, useWorkspaceAI } from '@app/components/ai/ai-consent';
 import { StandardFormDto } from '@app/models/dtos/form';
-import { deepCopy } from '@app/utils/object-utils';
 import { selectForm, setForm, setFormSettings } from '@app/store/forms/slice';
 import { useAppDispatch, useAppSelector } from '@app/store/hooks';
 import useFormFieldsAtom from '@app/store/jotai/field-selectors';
 import { useFormState } from '@app/store/jotai/form';
 import { useApplyAIReviewFixMutation, useChatEditFormWithAIMutation, useReviewFormWithAIMutation } from '@app/store/redux/form-api';
-import { useAddAIMemoryEntryMutation, useDeleteAIMemoryEntryMutation, useGetAIMemoryQuery } from '@app/store/workspaces/api';
+import { useAddAIMemoryEntryMutation, useDeleteAIMemoryEntryMutation, useGetAIMemoryQuery, useUpdateAIMemorySettingsMutation } from '@app/store/workspaces/api';
 import { selectWorkspace } from '@app/store/workspaces/slice';
+import { deepCopy } from '@app/utils/object-utils';
 
 interface TurnResult {
     ok: boolean;
@@ -45,6 +46,8 @@ interface ChatTurn {
 
 const MAX_MESSAGE_CHARS = 4000; // mirrors the backend's FormAIChatRequest limit
 const MAX_PERSISTED_TURNS = 100;
+// What a chat turn sends (backend services/ai/chat.py builds the prompt).
+const CHAT_SENDS = "this form's questions and settings, your messages, the workspace AI profile and your AI memory";
 
 const EXAMPLE_PROMPTS = ['Add a required work email question on page 1', 'Make everything on page 2 optional', 'Rename the form to Customer check-in'];
 
@@ -87,12 +90,18 @@ export default function AIChatTab({ memoryPollDelaysMs = [4000, 10000] }: { memo
     const { data: memoryEntries = [], refetch: refetchMemory } = useGetAIMemoryQuery(workspace?.id, { skip: !workspace?.id });
     const [deleteMemoryEntry] = useDeleteAIMemoryEntryMutation();
     const [addMemoryEntry, { isLoading: isAddingMemory }] = useAddAIMemoryEntryMutation();
+    const [updateLearning] = useUpdateAIMemorySettingsMutation();
+    // Workspace AI opt-in (#715): nothing is sent while it is off.
+    const { settings: aiSettings, enabled: aiEnabled, refetch: refetchAISettings } = useWorkspaceAI();
+    const learnPreferences = !!aiSettings?.learnPreferences;
 
     const [turns, setTurns] = useState<ChatTurn[]>([]);
     const [sessionId, setSessionId] = useState<string | null>(null);
     const [input, setInput] = useState('');
     const [showMemory, setShowMemory] = useState(false);
     const [memoryDraft, setMemoryDraft] = useState('');
+    // A Start-with-AI prompt waiting in the input for the user to send.
+    const [pendingPrompt, setPendingPrompt] = useState(false);
     const listRef = useRef<HTMLDivElement>(null);
 
     // The tab unmounts whenever the user switches to Page/Form/Design (Radix
@@ -182,7 +191,8 @@ export default function AIChatTab({ memoryPollDelaysMs = [4000, 10000] }: { memo
         if (response.data) {
             setTurns((t) => [...t, { role: 'review', content: response.data.summary, findings: response.data.findings ?? [] }]);
         } else {
-            const detail = typeof response.error?.data === 'string' ? response.error.data : 'The review failed — nothing was changed. Please try again.';
+            if (isAINotEnabledError(response.error)) refetchAISettings();
+            const detail = aiErrorMessage(response.error, 'The review failed — nothing was changed. Please try again.');
             setTurns((t) => [...t, { role: 'assistant', content: detail, error: true }]);
         }
         scrollToEnd();
@@ -212,8 +222,8 @@ export default function AIChatTab({ memoryPollDelaysMs = [4000, 10000] }: { memo
     };
 
     // Start-with-AI handoff: the dashboard dialog stashes the creation prompt
-    // and routes here — consume it exactly once and send it as the first turn
-    // (removeItem BEFORE sending guards strict-mode double-mount).
+    // and routes here — consume it exactly once and put it in the input. It
+    // is NOT sent: the user reads the disclosure and presses send (#715).
     const consumedRef = useRef(false);
     useEffect(() => {
         if (!standardForm?.formId || consumedRef.current) return;
@@ -222,7 +232,8 @@ export default function AIChatTab({ memoryPollDelaysMs = [4000, 10000] }: { memo
         if (pending) {
             consumedRef.current = true;
             sessionStorage.removeItem(key);
-            send(pending);
+            setInput(pending.slice(0, MAX_MESSAGE_CHARS));
+            setPendingPrompt(true);
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [standardForm?.formId]);
@@ -231,6 +242,7 @@ export default function AIChatTab({ memoryPollDelaysMs = [4000, 10000] }: { memo
         const message = (messageOverride ?? input).trim();
         if (!message || isLoading) return;
         setInput('');
+        setPendingPrompt(false);
         setTurns((t) => [...t, { role: 'user', content: message }]);
         scrollToEnd();
         const memoryIdsBeforeTurn = new Set(entriesRef.current.map((entry) => entry.id));
@@ -258,9 +270,11 @@ export default function AIChatTab({ memoryPollDelaysMs = [4000, 10000] }: { memo
                 applyFormToCanvas(form, settings);
             }
             setTurns((t) => [...t, { role: 'assistant', content: reply, results }]);
-            surfaceNewMemories(memoryIdsBeforeTurn);
+            // extraction only runs with "Learn my preferences" on
+            if (learnPreferences) surfaceNewMemories(memoryIdsBeforeTurn);
         } else {
-            const detail = typeof response.error?.data === 'string' ? response.error.data : 'Something went wrong — nothing was changed. Please try again.';
+            if (isAINotEnabledError(response.error)) refetchAISettings();
+            const detail = aiErrorMessage(response.error, 'Something went wrong — nothing was changed. Please try again.');
             // Keep the failed message on the turn so one click retries it.
             setTurns((t) => [...t, { role: 'assistant', content: detail, error: true, retryMessage: message }]);
         }
@@ -271,13 +285,14 @@ export default function AIChatTab({ memoryPollDelaysMs = [4000, 10000] }: { memo
         <div className="flex h-full flex-col">
             <div className="px-4 pb-3">
                 <div className="flex items-center justify-between gap-2">
-                    <div className="text-black-600 text-xs font-semibold uppercase tracking-wide">Assistant</div>
+                    <div className="text-xs font-semibold uppercase tracking-wide text-black-600">Assistant</div>
                     <div className="flex items-center gap-1.5">
                         <button
                             type="button"
-                            disabled={isReviewing}
+                            disabled={isReviewing || (!!aiSettings && !aiEnabled)}
                             onClick={runReview}
-                            className="border-black-200 text-black-600 hover:bg-black-100 disabled:text-black-400 flex items-center gap-1.5 rounded-md border bg-white px-2 py-1 text-[11px] font-medium transition-colors"
+                            title="Sends this form's questions and settings and the workspace AI profile to the AI provider"
+                            className="flex items-center gap-1.5 rounded-md border border-black-200 bg-white px-2 py-1 text-[11px] font-medium text-black-600 transition-colors disabled:text-black-400 hover:bg-black-100"
                         >
                             <ShieldCheck className="h-3 w-3" />
                             {isReviewing ? 'Reviewing…' : 'Review'}
@@ -286,36 +301,40 @@ export default function AIChatTab({ memoryPollDelaysMs = [4000, 10000] }: { memo
                             type="button"
                             aria-expanded={showMemory}
                             onClick={() => setShowMemory((open) => !open)}
-                            className={`flex items-center gap-1.5 rounded-md border px-2 py-1 text-[11px] font-medium transition-colors ${showMemory ? 'border-brand-200 bg-brand-100 text-brand-600' : 'border-black-200 text-black-600 hover:bg-black-100 bg-white'}`}
+                            className={`flex items-center gap-1.5 rounded-md border px-2 py-1 text-[11px] font-medium transition-colors ${showMemory ? 'border-brand-200 bg-brand-100 text-brand-600' : 'border-black-200 bg-white text-black-600 hover:bg-black-100'}`}
                         >
                             <BookOpen className="h-3 w-3" />
                             Memory{memoryEntries.length > 0 ? ` (${memoryEntries.length})` : ''}
                         </button>
                     </div>
                 </div>
-                <p className="text-black-600 mt-1 text-xs leading-relaxed">Describe a change — it lands on the canvas, and every change is listed. Undo reverts a whole turn.</p>
+                <p className="mt-1 text-xs leading-relaxed text-black-600">Describe a change — it lands on the canvas, and every change is listed. Undo reverts a whole turn.</p>
             </div>
 
             {showMemory && (
-                <div className="border-black-200 mx-3 mb-3 flex max-h-56 flex-col gap-2 overflow-y-auto rounded-lg border bg-white p-3">
-                    <p className="text-black-600 text-[11px] leading-relaxed">
+                <div className="mx-3 mb-3 flex max-h-56 flex-col gap-2 overflow-y-auto rounded-lg border border-black-200 bg-white p-3">
+                    <p className="text-[11px] leading-relaxed text-black-600">
                         Everything the assistant remembers about your style — used at the lowest priority, below your request and your organization&apos;s rules. Nothing here is hidden; forget any line, anytime.
                     </p>
+                    <label className="flex cursor-pointer items-start gap-2 text-[11px] leading-relaxed text-black-700">
+                        <input type="checkbox" className="mt-0.5 h-3.5 w-3.5" checked={learnPreferences} onChange={(e) => updateLearning({ workspace_id: workspace.id, body: { learnPreferences: e.target.checked } })} />
+                        <span>Learn my preferences: after each turn, your message and the reply are sent once more to note lasting style preferences here. Off unless you turn it on.</span>
+                    </label>
                     {(memoryEntries as MemoryEntry[]).length === 0 ? (
-                        <p className="text-black-500 border-black-200 rounded-md border border-dashed px-2 py-2.5 text-center text-[11px]">Nothing remembered yet — it fills in as you work.</p>
+                        <p className="rounded-md border border-dashed border-black-200 px-2 py-2.5 text-center text-[11px] text-black-500">Nothing remembered yet — it fills in as you work.</p>
                     ) : (
                         <ul className="flex flex-col gap-1">
                             {(memoryEntries as MemoryEntry[]).map((entry) => (
-                                <li key={entry.id} className="border-black-100 flex items-start justify-between gap-2 rounded-md border px-2 py-1.5">
+                                <li key={entry.id} className="flex items-start justify-between gap-2 rounded-md border border-black-100 px-2 py-1.5">
                                     <div className="min-w-0">
-                                        <p className="text-black-800 text-xs leading-relaxed">{entry.text}</p>
-                                        <p className="text-black-400 text-[10px]">{entry.source === 'manual' ? 'Added by you' : 'Learned from a session'}</p>
+                                        <p className="text-xs leading-relaxed text-black-800">{entry.text}</p>
+                                        <p className="text-[10px] text-black-400">{entry.source === 'manual' ? 'Added by you' : 'Learned from a session'}</p>
                                     </div>
                                     <button
                                         type="button"
                                         aria-label={`Forget "${entry.text}"`}
                                         onClick={() => deleteMemoryEntry({ workspace_id: workspace.id, entry_id: entry.id })}
-                                        className="text-black-400 mt-0.5 shrink-0 rounded p-0.5 transition-colors hover:bg-[#FBEFEF] hover:text-[#C43D3D]"
+                                        className="mt-0.5 shrink-0 rounded p-0.5 text-black-400 transition-colors hover:bg-[#FBEFEF] hover:text-[#C43D3D]"
                                     >
                                         <X className="h-3 w-3" />
                                     </button>
@@ -332,151 +351,173 @@ export default function AIChatTab({ memoryPollDelaysMs = [4000, 10000] }: { memo
                             onKeyDown={(e) => {
                                 if (e.key === 'Enter') handleAddMemory();
                             }}
-                            className="border-black-200 text-black-900 placeholder:text-black-400 focus:border-brand-500 h-7 w-full rounded-md border bg-white px-2 text-[11px] outline-none transition"
+                            className="h-7 w-full rounded-md border border-black-200 bg-white px-2 text-[11px] text-black-900 outline-none transition placeholder:text-black-400 focus:border-brand-500"
                         />
-                        <button type="button" aria-label="Add preference" disabled={!memoryDraft.trim() || isAddingMemory} onClick={handleAddMemory} className="border-black-200 text-black-600 hover:bg-black-100 disabled:text-black-300 flex h-7 w-7 shrink-0 items-center justify-center rounded-md border transition">
+                        <button
+                            type="button"
+                            aria-label="Add preference"
+                            disabled={!memoryDraft.trim() || isAddingMemory}
+                            onClick={handleAddMemory}
+                            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-black-200 text-black-600 transition disabled:text-black-300 hover:bg-black-100"
+                        >
                             <Plus className="h-3.5 w-3.5" />
                         </button>
                     </div>
                 </div>
             )}
 
-            <div ref={listRef} aria-live="polite" className="flex-1 overflow-y-auto border-t px-3 py-3">
-                {turns.length === 0 && !isLoading && (
-                    <div className="text-black-500 flex flex-col items-start gap-2 px-1 py-2 text-xs leading-relaxed">
-                        <span>Try:</span>
-                        {EXAMPLE_PROMPTS.map((prompt) => (
-                            <button
-                                key={prompt}
-                                type="button"
-                                onClick={() => send(prompt)}
-                                className="border-black-200 hover:border-brand-300 hover:text-black-800 rounded-md border bg-white px-2.5 py-1.5 text-left transition-colors hover:bg-[#F6F9FF]"
-                            >
-                                “{prompt}”
-                            </button>
-                        ))}
-                    </div>
-                )}
-                <div className="flex flex-col gap-3">
-                    {turns.map((turn, i) =>
-                        turn.role === 'user' ? (
-                            <div key={i} className="bg-brand-100 text-black-900 ml-6 self-end rounded-lg rounded-br-sm px-3 py-2 text-[13px] leading-relaxed">
-                                {turn.content}
-                            </div>
-                        ) : turn.role === 'review' ? (
-                            <div key={i} className="border-black-200 self-stretch rounded-lg border bg-white px-3 py-2.5 text-[13px] leading-relaxed">
-                                <div className="text-black-800 flex items-start gap-1.5 font-medium">
-                                    <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#0E8A5F]" />
-                                    <span>Compliance review</span>
-                                </div>
-                                <p className="text-black-700 mt-1">{turn.content}</p>
-                                {turn.findings?.length === 0 && <p className="mt-1.5 text-xs text-[#0E8A5F]">No issues found.</p>}
-                                {!!turn.findings?.length && (
-                                    <ul className="border-black-100 mt-2 flex flex-col gap-2 border-t pt-2">
-                                        {turn.findings.map((finding, j) => (
-                                            <li key={j} className="flex flex-col gap-1">
-                                                <div className="flex items-start gap-1.5">
-                                                    <span className={`mt-0.5 shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold ${SEVERITY_STYLES[finding.severity].chip}`}>{SEVERITY_STYLES[finding.severity].label}</span>
-                                                    <span className="text-black-700 text-xs leading-relaxed">{finding.message}</span>
-                                                </div>
-                                                {finding.fix &&
-                                                    (finding.applied ? (
-                                                        <span className="ml-1 flex items-center gap-1 text-xs text-[#0E8A5F]">
-                                                            <Check className="h-3 w-3" strokeWidth={3} /> Fixed — {finding.fix.description}
-                                                        </span>
-                                                    ) : (
-                                                        <div className="ml-1 flex flex-wrap items-center gap-2">
-                                                            <button
-                                                                type="button"
-                                                                disabled={finding.applying}
-                                                                onClick={() => applyFix(i, j)}
-                                                                className="border-black-300 text-black-800 hover:bg-black-100 disabled:text-black-400 rounded-md border bg-white px-2 py-0.5 text-[11px] font-medium transition-colors disabled:cursor-wait"
-                                                            >
-                                                                {finding.applying ? 'Applying…' : `Fix: ${finding.fix.description}`}
-                                                            </button>
-                                                            {finding.applyError && <span className="text-xs text-[#7A2E2E]">{finding.applyError}</span>}
-                                                        </div>
-                                                    ))}
-                                            </li>
-                                        ))}
-                                    </ul>
-                                )}
-                            </div>
-                        ) : turn.role === 'memory' ? (
-                            <div key={i} className="border-black-200 bg-black-50 self-stretch rounded-md border border-dashed px-3 py-2 text-xs leading-relaxed">
-                                {turn.forgotten ? (
-                                    <span className="text-black-500">Forgotten — the assistant won&apos;t keep that.</span>
-                                ) : (
-                                    <>
-                                        <span className="text-black-600">
-                                            <BookOpen className="mr-1.5 inline h-3 w-3 align-[-1px]" />
-                                            Remembered: <span className="text-black-800">“{turn.content}”</span>
-                                        </span>
-                                        <span className="text-black-400"> · shapes future AI edits</span>
-                                        <button type="button" onClick={() => forgetFromNotice(i, turn.entryId!)} className="text-black-600 ml-2 font-medium underline decoration-dotted underline-offset-2 hover:text-[#C43D3D]">
-                                            Forget
-                                        </button>
-                                    </>
-                                )}
-                            </div>
-                        ) : (
-                            <div key={i} className={`mr-6 self-start rounded-lg rounded-bl-sm border px-3 py-2 text-[13px] leading-relaxed ${turn.error ? 'border-[#E9CFCF] bg-[#FBEFEF] text-[#7A2E2E]' : 'border-black-200 text-black-800 bg-white'}`}>
-                                <div>{turn.content}</div>
-                                {turn.error && turn.retryMessage && (
-                                    <button type="button" onClick={() => send(turn.retryMessage)} className="mt-1.5 rounded-md border border-[#E9CFCF] bg-white px-2 py-0.5 text-[11px] font-medium text-[#7A2E2E] transition-colors hover:bg-[#FBEFEF]">
-                                        Try again
-                                    </button>
-                                )}
-                                {!!turn.results?.length && (
-                                    <ul className="border-black-100 mt-2 flex flex-col gap-1 border-t pt-2">
-                                        {turn.results.map((result, j) => (
-                                            <li key={j} className="flex items-start gap-1.5 text-xs">
-                                                {result.ok ? <Check className="mt-0.5 h-3 w-3 shrink-0 text-[#0E8A5F]" strokeWidth={3} /> : <X className="mt-0.5 h-3 w-3 shrink-0 text-[#C43D3D]" strokeWidth={3} />}
-                                                <span className={result.ok ? 'text-black-700' : 'text-[#7A2E2E]'}>{result.message}</span>
-                                            </li>
-                                        ))}
-                                    </ul>
-                                )}
-                            </div>
-                        )
-                    )}
-                    {isLoading && <div className="text-black-500 mr-6 animate-pulse self-start px-1 text-xs">Thinking…</div>}
-                    {isReviewing && (
-                        <div className="border-black-200 text-black-600 animate-pulse self-stretch rounded-lg border bg-white px-3 py-2.5 text-xs leading-relaxed">
-                            <ShieldCheck className="mr-1.5 inline h-3.5 w-3.5 align-[-2px] text-[#0E8A5F]" />
-                            Reviewing this form against your organization&apos;s compliance profile and baseline privacy checks — usually under half a minute…
+            {aiSettings && !aiEnabled ? (
+                <div className="flex-1 overflow-y-auto border-t px-3 py-3">
+                    <AIOptIn feature="The form assistant" sends={CHAT_SENDS} compact />
+                    {input && <p className="mt-3 px-1 text-xs leading-relaxed text-black-500">Your Start with AI prompt is kept. It is only sent when you press send, once AI is on.</p>}
+                </div>
+            ) : (
+                <div ref={listRef} aria-live="polite" className="flex-1 overflow-y-auto border-t px-3 py-3">
+                    {turns.length === 0 && !isLoading && (
+                        <div className="flex flex-col items-start gap-2 px-1 py-2 text-xs leading-relaxed text-black-500">
+                            <span>Try:</span>
+                            {EXAMPLE_PROMPTS.map((prompt) => (
+                                <button
+                                    key={prompt}
+                                    type="button"
+                                    onClick={() => send(prompt)}
+                                    className="rounded-md border border-black-200 bg-white px-2.5 py-1.5 text-left transition-colors hover:border-brand-300 hover:bg-[#F6F9FF] hover:text-black-800"
+                                >
+                                    “{prompt}”
+                                </button>
+                            ))}
                         </div>
                     )}
+                    <div className="flex flex-col gap-3">
+                        {turns.map((turn, i) =>
+                            turn.role === 'user' ? (
+                                <div key={i} className="ml-6 self-end rounded-lg rounded-br-sm bg-brand-100 px-3 py-2 text-[13px] leading-relaxed text-black-900">
+                                    {turn.content}
+                                </div>
+                            ) : turn.role === 'review' ? (
+                                <div key={i} className="self-stretch rounded-lg border border-black-200 bg-white px-3 py-2.5 text-[13px] leading-relaxed">
+                                    <div className="flex items-start gap-1.5 font-medium text-black-800">
+                                        <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#0E8A5F]" />
+                                        <span>Compliance review</span>
+                                    </div>
+                                    <p className="mt-1 text-black-700">{turn.content}</p>
+                                    {turn.findings?.length === 0 && <p className="mt-1.5 text-xs text-[#0E8A5F]">No issues found.</p>}
+                                    {!!turn.findings?.length && (
+                                        <ul className="mt-2 flex flex-col gap-2 border-t border-black-100 pt-2">
+                                            {turn.findings.map((finding, j) => (
+                                                <li key={j} className="flex flex-col gap-1">
+                                                    <div className="flex items-start gap-1.5">
+                                                        <span className={`mt-0.5 shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold ${SEVERITY_STYLES[finding.severity].chip}`}>{SEVERITY_STYLES[finding.severity].label}</span>
+                                                        <span className="text-xs leading-relaxed text-black-700">{finding.message}</span>
+                                                    </div>
+                                                    {finding.fix &&
+                                                        (finding.applied ? (
+                                                            <span className="ml-1 flex items-center gap-1 text-xs text-[#0E8A5F]">
+                                                                <Check className="h-3 w-3" strokeWidth={3} /> Fixed — {finding.fix.description}
+                                                            </span>
+                                                        ) : (
+                                                            <div className="ml-1 flex flex-wrap items-center gap-2">
+                                                                <button
+                                                                    type="button"
+                                                                    disabled={finding.applying}
+                                                                    onClick={() => applyFix(i, j)}
+                                                                    className="rounded-md border border-black-300 bg-white px-2 py-0.5 text-[11px] font-medium text-black-800 transition-colors disabled:cursor-wait disabled:text-black-400 hover:bg-black-100"
+                                                                >
+                                                                    {finding.applying ? 'Applying…' : `Fix: ${finding.fix.description}`}
+                                                                </button>
+                                                                {finding.applyError && <span className="text-xs text-[#7A2E2E]">{finding.applyError}</span>}
+                                                            </div>
+                                                        ))}
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    )}
+                                </div>
+                            ) : turn.role === 'memory' ? (
+                                <div key={i} className="bg-black-50 self-stretch rounded-md border border-dashed border-black-200 px-3 py-2 text-xs leading-relaxed">
+                                    {turn.forgotten ? (
+                                        <span className="text-black-500">Forgotten — the assistant won&apos;t keep that.</span>
+                                    ) : (
+                                        <>
+                                            <span className="text-black-600">
+                                                <BookOpen className="mr-1.5 inline h-3 w-3 align-[-1px]" />
+                                                Remembered: <span className="text-black-800">“{turn.content}”</span>
+                                            </span>
+                                            <span className="text-black-400"> · shapes future AI edits</span>
+                                            <button type="button" onClick={() => forgetFromNotice(i, turn.entryId!)} className="ml-2 font-medium text-black-600 underline decoration-dotted underline-offset-2 hover:text-[#C43D3D]">
+                                                Forget
+                                            </button>
+                                        </>
+                                    )}
+                                </div>
+                            ) : (
+                                <div key={i} className={`mr-6 self-start rounded-lg rounded-bl-sm border px-3 py-2 text-[13px] leading-relaxed ${turn.error ? 'border-[#E9CFCF] bg-[#FBEFEF] text-[#7A2E2E]' : 'border-black-200 bg-white text-black-800'}`}>
+                                    <div>{turn.content}</div>
+                                    {turn.error && turn.retryMessage && (
+                                        <button type="button" onClick={() => send(turn.retryMessage)} className="mt-1.5 rounded-md border border-[#E9CFCF] bg-white px-2 py-0.5 text-[11px] font-medium text-[#7A2E2E] transition-colors hover:bg-[#FBEFEF]">
+                                            Try again
+                                        </button>
+                                    )}
+                                    {!!turn.results?.length && (
+                                        <ul className="mt-2 flex flex-col gap-1 border-t border-black-100 pt-2">
+                                            {turn.results.map((result, j) => (
+                                                <li key={j} className="flex items-start gap-1.5 text-xs">
+                                                    {result.ok ? <Check className="mt-0.5 h-3 w-3 shrink-0 text-[#0E8A5F]" strokeWidth={3} /> : <X className="mt-0.5 h-3 w-3 shrink-0 text-[#C43D3D]" strokeWidth={3} />}
+                                                    <span className={result.ok ? 'text-black-700' : 'text-[#7A2E2E]'}>{result.message}</span>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    )}
+                                </div>
+                            )
+                        )}
+                        {isLoading && <div className="mr-6 animate-pulse self-start px-1 text-xs text-black-500">Thinking…</div>}
+                        {isReviewing && (
+                            <div className="animate-pulse self-stretch rounded-lg border border-black-200 bg-white px-3 py-2.5 text-xs leading-relaxed text-black-600">
+                                <ShieldCheck className="mr-1.5 inline h-3.5 w-3.5 align-[-2px] text-[#0E8A5F]" />
+                                Reviewing this form against your organization&apos;s compliance profile and baseline privacy checks — usually under half a minute…
+                            </div>
+                        )}
+                    </div>
                 </div>
-            </div>
+            )}
 
-            <div className="border-t p-3">
-                <div className="border-black-300 focus-within:border-brand-500 flex items-end gap-2 rounded-lg border bg-white px-2.5 py-2 transition duration-150 focus-within:shadow-[0_0_0_3px_rgba(36,86,204,0.15)]">
-                    <textarea
-                        rows={2}
-                        value={input}
-                        maxLength={MAX_MESSAGE_CHARS}
-                        placeholder="Describe a change to this form…"
-                        onChange={(e) => {
-                            setInput(e.target.value);
-                            // Grow with the draft, up to max-h-32.
-                            e.target.style.height = 'auto';
-                            e.target.style.height = `${Math.min(e.target.scrollHeight, 128)}px`;
-                        }}
-                        onKeyDown={(e) => {
-                            if (e.key === 'Enter' && !e.shiftKey) {
-                                e.preventDefault();
-                                send();
-                            }
-                        }}
-                        className="placeholder:text-black-400 text-black-900 max-h-32 w-full resize-none bg-transparent text-[13px] leading-relaxed outline-none"
-                    />
-                    <button type="button" aria-label="Send" onClick={() => send()} disabled={isLoading || !input.trim()} className="bg-brand-500 hover:bg-brand-600 disabled:bg-black-300 mb-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-white transition">
-                        <Send className="h-3.5 w-3.5" />
-                    </button>
+            {(!aiSettings || aiEnabled) && (
+                <div className="border-t p-3">
+                    {pendingPrompt && <p className="mb-1.5 px-1 text-xs leading-relaxed text-black-600">Your Start with AI prompt is below. Nothing has been sent yet: review it and press send.</p>}
+                    <div className="flex items-end gap-2 rounded-lg border border-black-300 bg-white px-2.5 py-2 transition duration-150 focus-within:border-brand-500 focus-within:shadow-[0_0_0_3px_rgba(36,86,204,0.15)]">
+                        <textarea
+                            rows={2}
+                            value={input}
+                            maxLength={MAX_MESSAGE_CHARS}
+                            placeholder="Describe a change to this form…"
+                            onChange={(e) => {
+                                setInput(e.target.value);
+                                // Grow with the draft, up to max-h-32.
+                                e.target.style.height = 'auto';
+                                e.target.style.height = `${Math.min(e.target.scrollHeight, 128)}px`;
+                            }}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter' && !e.shiftKey) {
+                                    e.preventDefault();
+                                    send();
+                                }
+                            }}
+                            className="max-h-32 w-full resize-none bg-transparent text-[13px] leading-relaxed text-black-900 outline-none placeholder:text-black-400"
+                        />
+                        <button
+                            type="button"
+                            aria-label="Send"
+                            onClick={() => send()}
+                            disabled={isLoading || !input.trim()}
+                            className="mb-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-brand-500 text-white transition disabled:bg-black-300 hover:bg-brand-600"
+                        >
+                            <Send className="h-3.5 w-3.5" />
+                        </button>
+                    </div>
+                    <AIDisclosure sends={`${CHAT_SENDS}. No responses are sent`} className="mt-1.5 px-1 text-[10.5px] leading-relaxed text-black-400" />
                 </div>
-                <p className="text-black-400 mt-1.5 px-1 text-[10.5px] leading-relaxed">Grounded in your workspace AI profile. Nothing is sent from responses — only this form’s structure.</p>
-            </div>
+            )}
         </div>
     );
 }

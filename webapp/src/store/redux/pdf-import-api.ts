@@ -58,6 +58,8 @@ export interface PdfImportAi {
     provider: string;
     /** Whether this server has that provider configured. */
     available: boolean;
+    /** Whether the workspace has opted in to AI (#715); required on top of the per-upload consent. */
+    enabled?: boolean;
 }
 
 export const pdfImportApi = createApi({

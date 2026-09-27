@@ -24,10 +24,27 @@ vi.mock('@app/store/redux/form-api', async (importOriginal) => {
 const memoryQueryMock: { data: any[]; refetch: ReturnType<typeof vi.fn> } = { data: [], refetch: vi.fn() };
 const deleteMemoryMock = vi.fn();
 const addMemoryMock = vi.fn();
+// Workspace AI opt-in (#715): on unless a test turns it off.
+const aiSettingsMock: { data: any; refetch: ReturnType<typeof vi.fn> } = { data: undefined, refetch: vi.fn() };
+const updateAISettingsMock = vi.fn();
+const updateLearningMock = vi.fn();
+const AI_ON = {
+    enabled: true,
+    provider: 'openai',
+    providerName: 'OpenAI',
+    defaultProvider: 'openai',
+    defaultProviderName: 'OpenAI',
+    providers: [{ id: 'openai', name: 'OpenAI', configured: true }],
+    canManage: true,
+    learnPreferences: true
+};
 vi.mock('@app/store/workspaces/api', async (importOriginal) => {
     const actual: any = await importOriginal();
     return {
         ...actual,
+        useGetAISettingsQuery: () => aiSettingsMock,
+        useUpdateAISettingsMutation: () => [updateAISettingsMock, { isLoading: false }],
+        useUpdateAIMemorySettingsMutation: () => [updateLearningMock],
         useGetAIMemoryQuery: () => memoryQueryMock,
         useDeleteAIMemoryEntryMutation: () => [deleteMemoryMock],
         useAddAIMemoryEntryMutation: () => [addMemoryMock, { isLoading: false }]
@@ -99,6 +116,10 @@ describe('AIChatTab', () => {
         addMemoryMock.mockReset().mockResolvedValue({ data: [] });
         memoryQueryMock.data = [];
         memoryQueryMock.refetch = vi.fn().mockResolvedValue({ data: [] });
+        aiSettingsMock.data = { ...AI_ON };
+        aiSettingsMock.refetch = vi.fn();
+        updateAISettingsMock.mockReset();
+        updateLearningMock.mockReset();
         // The panel persists conversations per formId — isolate tests.
         sessionStorage.clear();
     });
@@ -170,7 +191,7 @@ describe('AIChatTab', () => {
         expect(probe.fields).toBe(before);
     });
 
-    it('consumes a pending Start-with-AI prompt exactly once and auto-sends it', async () => {
+    it('puts a pending Start-with-AI prompt in the input, and sends it only on send', async () => {
         chatEditMock.mockResolvedValue(success());
         // Hydrate the form slice (the guard requires a real formId, exactly
         // as the edit page provides before the tab mounts).
@@ -180,10 +201,52 @@ describe('AIChatTab', () => {
 
         renderPanel();
 
+        await waitFor(() => expect((screen.getByPlaceholderText('Describe a change to this form…') as HTMLTextAreaElement).value).toBe('Build me an RSVP form'));
+        // Nothing is sent before the user presses send (#715)…
+        expect(chatEditMock).not.toHaveBeenCalled();
+        expect(screen.getByText(/Nothing has been sent yet/)).toBeDefined();
+        // …and the disclosure names the provider and what goes to it.
+        expect(screen.getByText(/Sent to OpenAI: .*workspace AI profile and your AI memory/)).toBeDefined();
+        // Consumed: the stash is gone, so a remount cannot resurrect it.
+        expect(sessionStorage.getItem('bc:ai-prompt:form-handoff-1')).toBeNull();
+
+        fireEvent.click(screen.getByLabelText('Send'));
         await waitFor(() => expect(chatEditMock).toHaveBeenCalledTimes(1));
         expect(chatEditMock.mock.calls[0][0].body.message).toBe('Build me an RSVP form');
-        // Consumed: the stash is gone, so a remount cannot double-send.
-        expect(sessionStorage.getItem('bc:ai-prompt:form-handoff-1')).toBeNull();
+    });
+
+    it('while AI is off for the workspace, shows the opt-in instead of the chat and sends nothing', async () => {
+        aiSettingsMock.data = { ...AI_ON, enabled: false, provider: null, providerName: null };
+        updateAISettingsMock.mockResolvedValue({ data: { ...AI_ON } });
+        renderPanel();
+
+        expect(screen.getByText('AI is off for this workspace')).toBeDefined();
+        expect(screen.queryByPlaceholderText('Describe a change to this form…')).toBeNull();
+        expect(screen.getByRole('button', { name: /Review/ }).hasAttribute('disabled')).toBe(true);
+        fireEvent.click(screen.getByRole('button', { name: 'Turn on AI with OpenAI' }));
+        await waitFor(() => expect(updateAISettingsMock).toHaveBeenCalledWith(expect.objectContaining({ body: { enabled: true } })));
+        expect(chatEditMock).not.toHaveBeenCalled();
+    });
+
+    it('a member who is not an admin is told who can turn AI on', () => {
+        aiSettingsMock.data = { ...AI_ON, enabled: false, provider: null, providerName: null, canManage: false };
+        renderPanel();
+        expect(screen.getByText(/Ask a workspace admin/)).toBeDefined();
+        expect(screen.queryByRole('button', { name: /Turn on AI/ })).toBeNull();
+    });
+
+    it('does not look for learned memories while "Learn my preferences" is off', async () => {
+        aiSettingsMock.data = { ...AI_ON, learnPreferences: false };
+        chatEditMock.mockResolvedValue(success());
+        renderPanel();
+
+        await sendMessage('add a work email question');
+        await waitFor(() => expect(screen.getByText('Added an email question.')).toBeDefined());
+        expect(memoryQueryMock.refetch).not.toHaveBeenCalled();
+
+        fireEvent.click(screen.getByRole('button', { name: /Memory/ }));
+        fireEvent.click(screen.getByLabelText(/Learn my preferences/));
+        expect(updateLearningMock).toHaveBeenCalledWith(expect.objectContaining({ body: { learnPreferences: true } }));
     });
 
     it('memory panel shows every remembered entry with its source, and forgets in place', async () => {

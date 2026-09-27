@@ -33,9 +33,23 @@ interface ImportFormQueryInterface {
     };
 }
 
+/** The workspace's AI consent (backend services/ai/consent.py). */
+export interface WorkspaceAISettings {
+    enabled: boolean;
+    provider?: string | null;
+    providerName?: string | null;
+    enabledBy?: string | null;
+    enabledAt?: string | null;
+    defaultProvider: string;
+    defaultProviderName: string;
+    providers: Array<{ id: string; name: string; configured: boolean }>;
+    canManage: boolean;
+    learnPreferences: boolean;
+}
+
 export const workspacesApi = createApi({
     reducerPath: WORKSPACES_REDUCER_PATH,
-    tagTypes: [WORKSPACE_TAGS, WORKSPACE_UPDATE_TAG, SUBMISSION_TAG, GROUP_TAG, RESPONDER_TAG, FORM_TAG, 'AI_PROFILE_TAG', 'AI_MEMORY_TAG', 'API_KEYS_TAG'],
+    tagTypes: [WORKSPACE_TAGS, WORKSPACE_UPDATE_TAG, SUBMISSION_TAG, GROUP_TAG, RESPONDER_TAG, FORM_TAG, 'AI_PROFILE_TAG', 'AI_MEMORY_TAG', 'API_KEYS_TAG', 'AI_SETTINGS_TAG'],
     refetchOnMountOrArgChange: true,
     refetchOnReconnect: true,
     refetchOnFocus: true,
@@ -445,6 +459,31 @@ export const workspacesApi = createApi({
             }),
             invalidatesTags: ['AI_PROFILE_TAG']
         }),
+        getAISettings: builder.query<WorkspaceAISettings, string>({
+            query: (workspaceId) => ({
+                url: `/workspaces/${workspaceId}/ai-settings`,
+                method: 'GET'
+            }),
+            providesTags: ['AI_SETTINGS_TAG']
+        }),
+        updateAISettings: builder.mutation<WorkspaceAISettings, { workspace_id: string; body: { enabled: boolean; provider?: string } }>({
+            query: (request) => ({
+                url: `/workspaces/${request.workspace_id}/ai-settings`,
+                method: 'PUT',
+                body: request.body,
+                credentials: 'include'
+            }),
+            invalidatesTags: ['AI_SETTINGS_TAG']
+        }),
+        updateAIMemorySettings: builder.mutation<{ learnPreferences: boolean }, { workspace_id: string; body: { learnPreferences: boolean } }>({
+            query: (request) => ({
+                url: `/workspaces/${request.workspace_id}/ai-memory/settings`,
+                method: 'PUT',
+                body: request.body,
+                credentials: 'include'
+            }),
+            invalidatesTags: ['AI_SETTINGS_TAG']
+        }),
         getAIMemory: builder.query<any, string>({
             query: (workspaceId) => ({
                 url: `/workspaces/${workspaceId}/ai-memory`,
@@ -647,6 +686,9 @@ export const {
     usePatchWorkspaceThemesMutation,
     useGetAIProfileQuery,
     useUpdateAIProfileMutation,
+    useGetAISettingsQuery,
+    useUpdateAISettingsMutation,
+    useUpdateAIMemorySettingsMutation,
     useGetAIMemoryQuery,
     useAddAIMemoryEntryMutation,
     useDeleteAIMemoryEntryMutation,

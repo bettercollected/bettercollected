@@ -152,6 +152,15 @@ const WorkspaceDashboardLayout: React.FC<{ children: React.ReactNode }> = ({ chi
                     icon: <Palette className="h-5 w-5 stroke-2" />
                 },
                 {
+                    // Not adminOnly: members see whether AI is on and set
+                    // their own "Learn my preferences"; only admins change
+                    // the workspace opt-in (#715).
+                    key: 'ai-settings',
+                    name: 'AI settings',
+                    url: `${commonWorkspaceUrl}/ai-settings`,
+                    icon: <Sparkles className="h-5 w-5 stroke-2" />
+                },
+                {
                     key: 'ai-profile',
                     name: 'AI profile',
                     url: `${commonWorkspaceUrl}/ai-profile`,

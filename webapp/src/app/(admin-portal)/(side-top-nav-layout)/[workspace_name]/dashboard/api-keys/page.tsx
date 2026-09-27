@@ -19,13 +19,14 @@ interface APIKey {
     scopes: string[];
     revoked: boolean;
     lastUsedAt?: string | null;
+    responsesReadAcknowledgedAt?: string | null;
 }
 
 // Mirrors the backend's VALID_SCOPES — what a key is allowed to do.
 const SCOPES: Array<{ key: string; label: string; hint: string }> = [
     { key: 'forms:read', label: 'Read forms', hint: 'List forms and read their structure' },
     { key: 'forms:write', label: 'Create & edit forms', hint: 'Create forms with AI, edit and publish them' },
-    { key: 'responses:read', label: 'Read responses', hint: 'List and read form responses' },
+    { key: 'responses:read', label: 'Read responses', hint: 'List and read form responses, in full' },
     { key: 'deletion_requests:read', label: 'Read deletion requests', hint: 'See pending response-deletion requests' },
     { key: 'deletion_requests:write', label: 'Act on deletion requests', hint: 'Process response-deletion requests' }
 ];
@@ -64,6 +65,9 @@ export default function APIKeysPage() {
 
     const [name, setName] = useState('');
     const [scopes, setScopes] = useState<string[]>(['forms:read']);
+    // responses:read hands full, unredacted answers to the AI client (#715)
+    const [acknowledged, setAcknowledged] = useState(false);
+    const readsResponses = scopes.includes('responses:read');
     // The one and only time the full token is visible.
     const [freshToken, setFreshToken] = useState<{ name: string; token: string } | null>(null);
 
@@ -74,11 +78,12 @@ export default function APIKeysPage() {
     };
 
     const handleCreate = async () => {
-        const response: any = await createKey({ workspace_id: workspace.id, body: { name: name.trim(), scopes } });
+        const response: any = await createKey({ workspace_id: workspace.id, body: { name: name.trim(), scopes, acknowledgeUnredactedResponses: readsResponses && acknowledged } });
         if (response.data) {
             setFreshToken({ name: response.data.name, token: response.data.token });
             setName('');
             setScopes(['forms:read']);
+            setAcknowledged(false);
         } else {
             toast({ description: response.error?.data || 'Could not create the API key. Please try again.', variant: 'destructive' });
         }
@@ -155,8 +160,21 @@ export default function APIKeysPage() {
                         </label>
                     ))}
                 </div>
+                {readsResponses && (
+                    <div className="flex flex-col gap-2 rounded-md border border-[#F0D9B5] bg-[#FDF8EF] p-3" role="alert">
+                        <p className="text-black-900 text-[13px] font-semibold">This key gives an external AI client your respondents&apos; full answers</p>
+                        <p className="text-black-700 text-xs leading-relaxed">
+                            With “Read responses”, the AI tool that holds this key (and the AI provider behind it) receives every answer in full: names, email addresses, phone numbers and anything typed into free-text answers, plus staff-only answers. Nothing is
+                            redacted. Only create it if your respondents&apos; consent and your data processing agreements allow that.
+                        </p>
+                        <label className="text-black-800 flex cursor-pointer items-start gap-2 text-xs">
+                            <input type="checkbox" checked={acknowledged} onChange={(e) => setAcknowledged(e.target.checked)} className="mt-0.5 h-4 w-4" />
+                            <span>I understand that this key shares full, unredacted answers with an external AI client. My acknowledgement is recorded with the key.</span>
+                        </label>
+                    </div>
+                )}
                 <div>
-                    <Button size="medium" variant="primary" isLoading={isCreating} disabled={!name.trim() || scopes.length === 0} onClick={handleCreate}>
+                    <Button size="medium" variant="primary" isLoading={isCreating} disabled={!name.trim() || scopes.length === 0 || (readsResponses && !acknowledged)} onClick={handleCreate}>
                         Create key
                     </Button>
                 </div>
@@ -186,6 +204,7 @@ export default function APIKeysPage() {
                                             </span>
                                         ))}
                                         <span className="text-black-400 text-[10.5px]">{key.lastUsedAt ? `Last used ${new Date(key.lastUsedAt).toLocaleString()}` : 'Never used'}</span>
+                                        {key.responsesReadAcknowledgedAt && <span className="text-black-400 text-[10.5px]">· unredacted answers acknowledged {new Date(key.responsesReadAcknowledgedAt).toLocaleDateString()}</span>}
                                     </div>
                                 </div>
                                 {!key.revoked && (

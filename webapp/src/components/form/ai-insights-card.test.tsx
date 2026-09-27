@@ -15,6 +15,29 @@ vi.mock('@app/store/redux/form-api', async (importOriginal) => {
     };
 });
 
+// Workspace AI opt-in (#715): on unless a test turns it off.
+const aiSettingsMock: { data: any; refetch: ReturnType<typeof vi.fn> } = { data: undefined, refetch: vi.fn() };
+const updateAISettingsMock = vi.fn();
+const updateLearningMock = vi.fn();
+const AI_ON = {
+    enabled: true,
+    provider: 'openai',
+    providerName: 'OpenAI',
+    defaultProvider: 'openai',
+    defaultProviderName: 'OpenAI',
+    providers: [{ id: 'openai', name: 'OpenAI', configured: true }],
+    canManage: true,
+    learnPreferences: false
+};
+vi.mock('@app/store/workspaces/api', async (importOriginal) => {
+    const actual: any = await importOriginal();
+    return {
+        ...actual,
+        useGetAISettingsQuery: () => aiSettingsMock,
+        useUpdateAISettingsMutation: () => [updateAISettingsMock, { isLoading: false }]
+    };
+});
+
 import { store } from '@app/store/store';
 import AIInsightsCard from './ai-insights-card';
 
@@ -39,11 +62,15 @@ describe('AIInsightsCard', () => {
     beforeEach(() => {
         generateMock.mockReset();
         cachedQueryMock.data = undefined;
+        aiSettingsMock.data = { ...AI_ON };
     });
 
     it('empty state states the opt-in contract and offers one explicit action', () => {
         renderCard();
         expect(screen.getByText(/only when you click/)).toBeDefined();
+        // honest about free text, and names the provider
+        expect(screen.getByText(/Free-text answers are sent as/)).toBeDefined();
+        expect(screen.getByText(/Answers are sent to OpenAI/)).toBeDefined();
         expect(screen.getByRole('button', { name: /Summarize responses/ })).toBeDefined();
     });
 
@@ -57,7 +84,7 @@ describe('AIInsightsCard', () => {
         expect(screen.getByText('~2')).toBeDefined();
         expect(screen.getByText(/Clarify the invoice layout/)).toBeDefined();
         expect(screen.getByText(/all 3 responses/)).toBeDefined();
-        expect(screen.getByText(/never shared with the AI/)).toBeDefined();
+        expect(screen.getByText(/sent to OpenAI: .*free-text answers as written/)).toBeDefined();
     });
 
     it('a cached insight renders without any generate call', () => {
@@ -67,6 +94,14 @@ describe('AIInsightsCard', () => {
         expect(generateMock).not.toHaveBeenCalled();
         // Regeneration stays available.
         expect(screen.getByRole('button', { name: /Refresh/ })).toBeDefined();
+    });
+
+    it('while AI is off for the workspace, offers the opt-in and no summarize action', () => {
+        aiSettingsMock.data = { ...AI_ON, enabled: false, provider: null, providerName: null };
+        renderCard();
+        expect(screen.getByText('AI is off for this workspace')).toBeDefined();
+        expect(screen.queryByRole('button', { name: /Summarize responses/ })).toBeNull();
+        expect(generateMock).not.toHaveBeenCalled();
     });
 
     it('errors are stated honestly in place', async () => {
