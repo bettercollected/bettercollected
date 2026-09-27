@@ -1,12 +1,11 @@
 import datetime as dt
 import re
-from typing import Optional, Dict, List
+from typing import Any, Optional, Dict, List
 
 from beanie import PydanticObjectId
 from common.models.consent import ResponseRetentionType
 from fastapi_camelcase import CamelModel
 from pydantic import BaseModel, Field, field_validator, model_serializer
-
 
 HEX_COLOUR = re.compile(r"#[0-9a-fA-F]{6}")
 
@@ -29,7 +28,9 @@ class WorkspaceThemeBackgroundDto(BaseModel):
     @classmethod
     def _known_type(cls, v: str) -> str:
         if v not in ("color", "gradient", "pattern", "image"):
-            raise ValueError("Background type must be color, gradient, pattern or image.")
+            raise ValueError(
+                "Background type must be color, gradient, pattern or image."
+            )
         return v
 
     @field_validator("gradientFrom", "gradientTo")
@@ -144,6 +145,17 @@ class Workspace(WorkspaceRequestDto):
     created_at: Optional[dt.datetime] = None
     updated_at: Optional[dt.datetime] = None
     is_pro: Optional[bool] = None
+    # Mirror of the custom-domain service's domain resource (docs/custom-domain.md):
+    # the domain id we registered, its lifecycle status, the DNS records the
+    # customer must publish and the four checks. ``custom_domain_verified`` is
+    # derived (status == ready). All None on the legacy certificate-server path.
+    custom_domain_id: Optional[str] = None
+    custom_domain_status: Optional[str] = None
+    custom_domain_dns_records: Optional[List[Dict[str, Any]]] = None
+    custom_domain_checks: Optional[List[Dict[str, Any]]] = None
+    custom_domain_updated_at: Optional[dt.datetime] = None
+    # nonce of the registration in progress (idempotency), cleared on success
+    custom_domain_attempt: Optional[str] = None
 
 
 class WorkspaceFormSettings(BaseModel):
@@ -184,4 +196,12 @@ class WorkspaceResponseDto(WorkspaceRequestDto, CamelModel):
     privacy_policy: Optional[str] = None
     terms_of_service: Optional[str] = None
     custom_domain_verified: Optional[bool] = False
-
+    # Mirror of the custom-domain service's domain resource (docs/custom-domain.md):
+    # the domain id we registered, its lifecycle status, the DNS records the
+    # customer must publish and the four checks. ``custom_domain_verified`` is
+    # derived (status == ready). All None on the legacy certificate-server path.
+    custom_domain_id: Optional[str] = None
+    custom_domain_status: Optional[str] = None
+    custom_domain_dns_records: Optional[List[Dict[str, Any]]] = None
+    custom_domain_checks: Optional[List[Dict[str, Any]]] = None
+    custom_domain_updated_at: Optional[dt.datetime] = None

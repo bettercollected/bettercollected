@@ -56,6 +56,12 @@ class WorkspaceRepository(BaseRepository):
     ) -> Optional[WorkspaceDocument]:
         return await WorkspaceDocument.find_one({"custom_domain": custom_domain})
 
+    async def find_by_custom_domain_id(
+        self, domain_id: str
+    ) -> Optional[WorkspaceDocument]:
+        """The workspace that registered ``domain_id`` with the custom-domain service."""
+        return await WorkspaceDocument.find_one({"custom_domain_id": domain_id})
+
     async def get_or_404(self, workspace_id: PydanticObjectId) -> WorkspaceDocument:
         """Like ``find_by_id`` but raises the document layer's NotFoundError when missing."""
         return await WorkspaceDocument.get(workspace_id)

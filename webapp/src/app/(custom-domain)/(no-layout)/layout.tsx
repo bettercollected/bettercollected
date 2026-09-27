@@ -1,10 +1,14 @@
-import environments from '@app/configs/environments';
-import { getWorkspaceByDomain } from '@app/lib/server/api';
-import { Alert, AlertDescription, AlertTitle } from '@app/shadcn/components/ui/alert';
-import { AlertCircle } from 'lucide-react';
+import React from 'react';
+
 import { headers } from 'next/headers';
 import { notFound, redirect } from 'next/navigation';
-import React from 'react';
+
+import { AlertCircle } from 'lucide-react';
+
+import environments from '@app/configs/environments';
+import { resolveCustomDomainWorkspace } from '@app/lib/server/custom-domain';
+import { Alert, AlertDescription, AlertTitle } from '@app/shadcn/components/ui/alert';
+
 import { WorkspaceDispatcher } from '../../_dispatcher/workspace-dispatcher';
 
 export default async function CustomDomainLayout({ children }: { children: React.ReactNode }) {
@@ -21,7 +25,7 @@ export default async function CustomDomainLayout({ children }: { children: React
         }
     }
 
-    const workspace = await getWorkspaceByDomain(host);
+    const { workspace } = hasCustomDomain ? await resolveCustomDomainWorkspace() : { workspace: null };
 
     if (!workspace?.id) {
         return (
@@ -29,17 +33,11 @@ export default async function CustomDomainLayout({ children }: { children: React
                 <Alert variant="destructive" className="max-w-md">
                     <AlertCircle className="h-4 w-4" />
                     <AlertTitle>Error</AlertTitle>
-                    <AlertDescription>
-                        Workspace not found or custom domain not configured properly.
-                    </AlertDescription>
+                    <AlertDescription>Workspace not found or custom domain not configured properly.</AlertDescription>
                 </Alert>
             </div>
         );
     }
 
-    return (
-        <WorkspaceDispatcher workspace={workspace}>
-            {children}
-        </WorkspaceDispatcher>
-    );
+    return <WorkspaceDispatcher workspace={workspace}>{children}</WorkspaceDispatcher>;
 }
