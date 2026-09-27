@@ -17,9 +17,20 @@ import ResponsesTable from './responses-table';
 //@ts-ignore
 import { StandardFormResponseDto } from '@app/models/dtos/form';
 import { selectAuth } from '@app/store/auth/slice';
-import { getAnswerForField, getFormFields, getTitleForHeader } from '@app/utils/form-builder-block-utils';
-import { getInternalAnswerText, getInternalColumnTitle, getInternalFields } from '@app/utils/internal-fields';
+import { buildResponsesExport, exportFileName, tableToCsv } from '@app/utils/response-export';
 import { CSVLink } from 'react-csv';
+
+function downloadCsv(csv: string, fileName: string) {
+    // BOM so spreadsheet apps read UTF-8 names correctly.
+    const url = URL.createObjectURL(new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
 
 export default function FormResponsesTable({ props }: any) {
     const form = useAppSelector(selectForm);
@@ -53,35 +64,13 @@ export default function FormResponsesTable({ props }: any) {
 
     const [csvDatas, setCsvDatas] = useState<any>([]);
 
-    const extractFormResponses = (responses: Array<StandardFormResponseDto>) => {
-        return responses.map((response: StandardFormResponseDto) => {
-            const fieldResponse: Array<number | string> = [response?.dataOwnerIdentifier || '- -'];
-            const singleFieldResponses = getFormFields(form).map((field) => field && (getAnswerForField(response, field) ?? ''));
-            singleFieldResponses.forEach((response) => fieldResponse.push(response ?? ''));
-            getInternalFields(form).forEach((field) => fieldResponse.push(getInternalAnswerText(response, field) ?? ''));
-            return fieldResponse;
-        });
-    };
-
-    const extractFormFieldTitles = () => {
-        const fieldTitles = ['Responder ID'];
-        const fieldQuestions = getFormFields(form);
-        fieldQuestions.forEach((field) => fieldTitles.push(getTitleForHeader(field, form) ?? ''));
-        // Internal (staff-entered) columns, after the respondent's answers.
-        getInternalFields(form).forEach((field) => fieldTitles.push(getInternalColumnTitle(field)));
-        return fieldTitles;
-    };
-
     const handleClickExportCSV = () => {
         trigger({ formId: form.formId, workspaceId: workspace?.id }).then((result) => {
-            const fieldTitles = extractFormFieldTitles();
-            const responses = result.data && extractFormResponses(result?.data);
-            const csv_list = [];
-            csv_list.push(fieldTitles);
-            responses?.forEach((response) => {
-                csv_list.push(response);
-            });
-            setCsvDatas(csv_list);
+            // One row per submission; repeating groups become columns per item,
+            // or (large groups) a CSV of their own with one row per item.
+            const { main, groupTables } = buildResponsesExport(form, (result.data ?? []) as Array<StandardFormResponseDto>);
+            groupTables.forEach((table) => downloadCsv(tableToCsv(table), exportFileName(form.title, table.name)));
+            setCsvDatas([main.headers, ...main.rows]);
         });
     };
 

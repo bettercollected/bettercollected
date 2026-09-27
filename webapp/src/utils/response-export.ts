@@ -1,5 +1,6 @@
 import { FieldTypes, StandardFormDto, StandardFormFieldDto, StandardFormResponseDto } from '@app/models/dtos/form';
 import { getAnswerForField, getFormFields, getTitleForHeader } from '@app/utils/form-builder-block-utils';
+import { getInternalAnswerText, getInternalColumnTitle, getInternalFields } from '@app/utils/internal-fields';
 import { getGroupChildren, getGroupItems, getRepeatSettings, isRepeatingGroup } from '@app/utils/repeating-groups';
 
 /**
@@ -65,6 +66,9 @@ export function buildResponsesExport(form: StandardFormDto, responses: StandardF
         }
         for (let i = 0; i < maxItems; i++) children.forEach((child) => headers.push(`${itemLabel} ${i + 1} – ${title(child)}`));
     });
+    // Internal (staff-entered) columns, after the respondent's answers.
+    const internalFields = getInternalFields(form);
+    internalFields.forEach((field) => headers.push(getInternalColumnTitle(field)));
     if (groupTables.length) headers.push(RESPONSE_ID_COLUMN);
 
     const rows = responses.map((response) => {
@@ -85,6 +89,7 @@ export function buildResponsesExport(form: StandardFormDto, responses: StandardF
             const children = exportableChildren(field);
             for (let i = 0; i < maxItems; i++) children.forEach((child) => row.push(getItemAnswer(items[i], child)));
         });
+        internalFields.forEach((field) => row.push(cell(getInternalAnswerText(response, field))));
         if (groupTables.length) row.push(response.responseId);
         return row;
     });

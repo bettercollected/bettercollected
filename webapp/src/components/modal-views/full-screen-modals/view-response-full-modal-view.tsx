@@ -14,6 +14,8 @@ import { resolvePipesInTitle, titleHasPipes } from '@app/utils/answer-piping';
 import { getAnswerForField, getTitleForHeader } from '@app/utils/form-builder-block-utils';
 import { getInternalFields } from '@app/utils/internal-fields';
 import InternalFieldsPanel from '@Components/form/internal-fields-panel';
+import { getGroupChildren, getGroupItems, getItemHeader, isRepeatingGroup, itemScopeAnswers } from '@app/utils/repeating-groups';
+import { getItemAnswer } from '@app/utils/response-export';
 import DeleteIcon from '@Components/icons/delete';
 import { motion } from 'framer-motion';
 import { MoreVertical } from 'lucide-react';
@@ -105,6 +107,36 @@ export const IndividualFormResponse = ({ formFields, response, form, className }
         <div className={cn('flex w-full flex-col gap-8 p-4 pt-6', className)}>
             {formFields.map((field) => {
                 const ans = response.answers[field.id];
+
+                if (isRepeatingGroup(field)) {
+                    // One card per item, each with that item's answers.
+                    const items = getGroupItems(response.answers, field.id);
+                    const children = getGroupChildren(field).filter((child) => child.type !== FieldTypes.TEXT);
+                    return (
+                        <div className="flex flex-col gap-2" key={field.id}>
+                            {getTitleForHeaderForTable(field)}
+                            {items.length === 0 && <span className="text-black-500 text-sm italic">No answer</span>}
+                            {items.map((item, index) => {
+                                const itemContext = { ...pipeContext, answers: itemScopeAnswers(response.answers, { groupId: field.id, index, childIds: children.map((c) => c.id) }) };
+                                return (
+                                    <section key={index} className="border-black-300 flex flex-col gap-3 rounded-lg border bg-white p-3" aria-label={getItemHeader(field, index, pipeContext)}>
+                                        <span className="text-black-800 text-[13px] font-semibold">{getItemHeader(field, index, pipeContext)}</span>
+                                        {children.map((child) => {
+                                            const answerText = getItemAnswer(item, child);
+                                            const childTitle = getTitleForHeader(titleHasPipes(child.title) ? ({ ...child, title: resolvePipesInTitle(child.title, itemContext) } as StandardFormFieldDto) : child, standardForm);
+                                            return (
+                                                <div className="flex flex-col gap-1" key={child.id}>
+                                                    <span className="text-black-600 text-[13px] font-medium leading-snug">{childTitle}</span>
+                                                    {answerText !== '' ? <span className="text-black-900 text-base leading-relaxed">{answerText}</span> : <span className="text-black-500 text-sm italic">No answer</span>}
+                                                </div>
+                                            );
+                                        })}
+                                    </section>
+                                );
+                            })}
+                        </div>
+                    );
+                }
 
                 if (field.type === FieldTypes.TABULAR_INPUT) {
                     const rowTitles = field.properties?.rowTitles;
