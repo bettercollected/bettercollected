@@ -230,6 +230,17 @@ class WorkspaceFormService:
         await self.workspace_user_service.check_user_has_access_in_workspace(
             workspace_id=workspace_id, user=user
         )
+        return await self._delete_form(workspace_id, form_id)
+
+    async def delete_draft_form(self, workspace_id: PydanticObjectId, form_id: str):
+        """Remove a draft the system created for the user (a PDF import that
+        did not finish): no access check, and the import record stays (its
+        caller clears the record's form)."""
+        return await self._delete_form(workspace_id, form_id, with_imports=False)
+
+    async def _delete_form(
+        self, workspace_id: PydanticObjectId, form_id: str, with_imports: bool = True
+    ):
         workspace_ids = (
             await self.workspace_form_repository.get_workspace_ids_for_form_id(form_id)
         )
@@ -253,7 +264,7 @@ class WorkspaceFormService:
             form_id=form_id
         )
         self._aws_service.delete_folder_from_s3(f"private/{workspace_id}/{form_id}")
-        if self._pdf_import_repo is not None:
+        if with_imports and self._pdf_import_repo is not None:
             await self._pdf_import_repo.delete_by_form_ids([form_id])
 
         return "Form deleted from workspace."

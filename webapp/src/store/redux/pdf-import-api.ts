@@ -16,7 +16,8 @@ export interface PdfImportPage {
 
 export interface PdfImport {
     id: string;
-    formId: string;
+    /** null once a failed import has removed its empty draft form. */
+    formId: string | null;
     status: PdfImportStatus;
     stage?: string | null;
     error?: string | null;

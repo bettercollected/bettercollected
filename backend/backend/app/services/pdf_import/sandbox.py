@@ -4,7 +4,8 @@ Two transports, same result:
 
 ``socket`` (production)  the isolated ``document-sandbox`` container, reached
     over a Unix socket (``PDF_IMPORT_SANDBOX_SOCKET``): unprivileged user, no
-    network, read-only filesystem, no capabilities, no secrets (#703).
+    network, read-only filesystem, no capabilities, a seccomp allowlist, no
+    secrets (#703).
 ``local`` (development, tests)  a child process of this one: isolated Python,
     scrubbed environment, temporary working directory, resource limits.
 

@@ -184,7 +184,12 @@ progress. Code: `app/services/pdf_import/` (stages), `app/services/pdf_import_se
 
 - **Isolated sandbox in deployment (#703):** the `document-sandbox` compose service
   (same image, `pdf_import/server.py`) runs as `nobody` with no network, a
-  read-only filesystem, no capabilities and no env file; backend and jobs worker
+  read-only filesystem, no capabilities, no env file and a seccomp allowlist
+  (`deploy/seccomp/document-sandbox.json`, see its README: EPERM for anything
+  unlisted, `socket` only `AF_UNIX`, no ptrace/mount/namespaces/keyctl/bpf). A new
+  mode or library that needs another syscall shows up as "could not read"; find
+  it with strace as the README says, then run `test_sandbox_container.py` (needs
+  the image `bettercollected/backend:sandbox-test`, skipped otherwise). Backend and jobs worker
   reach it over `PDF_IMPORT_SANDBOX_SOCKET` with `PDF_IMPORT_REQUIRE_ISOLATED_SANDBOX=true`.
   `server.py` and `runner.py` must never import the backend package. Native modes
   (`render`) never run in a local child. An unreachable or unresponsive sandbox
@@ -202,13 +207,28 @@ progress. Code: `app/services/pdf_import/` (stages), `app/services/pdf_import_se
   wall-clock timeout, and at most `PDF_IMPORT_MAX_PARALLEL_SANDBOXES` at once.
   `analysis.py` and `fonts.py` must stay importable without the `backend`
   package (relative imports only). Never run pypdf/pdfplumber/pypdfium2 work in
-  the API or worker process directly. Native rendering needs stronger isolation
-  first (separate user, no network, syscall filter).
+  the API or worker process directly. Native rendering only runs in the isolated
+  container (separate user, no network, seccomp filter; see above).
 - **Licences:** pypdf (BSD), pdfplumber/pdfminer (MIT), pypdfium2 (BSD/Apache),
   Pillow. Do not add PyMuPDF (AGPL) or GPL converters.
+- **Workspace limits are enforced by the insert** (`form_import_repo.create_within_limits`):
+  one running import and imports per day are counted and the record inserted
+  under a per-workspace lock, a lease document in `form_import_locks` (unique
+  `_id`) on Mongo and `pg_advisory_xact_lock` in the same transaction on Postgres,
+  so parallel uploads cannot both pass. The write is `replay=True` and raises
+  `ImportLimitReached` on refusal, so the mirror never re-runs the check. The
+  service's earlier count is only a cheap look; a start refused at the insert
+  deletes the draft it created.
 - **The draft form is created at upload**, and the original is stored under
   `private/<workspace>/<form>/imports/<import>/`, so deleting the form deletes it.
   Import records are deleted with their forms (`WorkspaceFormService`).
+- **A failed import removes its empty draft** (`ImportPipeline.discard_draft`, on
+  refusal, unexpected failure and `give_up`): only while the draft is `untouched`
+  (no fields, never published: the same test as the compile guard), through
+  `WorkspaceFormService.delete_draft_form`, which keeps the import record. The
+  record stays with `form_id = None` and a note in `report.notes`; review and page
+  images then answer 404, and the webapp's failed screen says the draft was
+  removed. A draft the user already edited or published is kept.
 - **Stages checkpoint** on the import record (`stages`); a retried job skips
   finished ones. Runs on procrastinate with `JOBS_BACKEND__import_form=postgres`,
   otherwise as a background task in the API process.

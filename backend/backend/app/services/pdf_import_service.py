@@ -18,6 +18,10 @@ from beanie import PydanticObjectId
 from loguru import logger
 
 from backend.app.exceptions import HTTPException
+from backend.app.repositories.form_import_repository import (
+    ImportLimitReached,
+    check_import_limits,
+)
 from backend.app.schemas.form_import import FormImportDocument, ImportStatus
 from backend.app.services.pdf_import.compile import clean_label
 from backend.app.services.pdf_import.analysis import DocumentRefused
@@ -30,6 +34,10 @@ from common.models.user import User
 JOB_NAME = "import_form"
 # waits before retrying an import whose sandbox was unreachable (in-process path)
 RETRY_DELAYS_S = (5, 15, 30, 60, 120)
+
+
+def _day_ago() -> dt.datetime:
+    return dt.datetime.now(dt.timezone.utc) - dt.timedelta(days=1)
 
 
 class PdfImportService:
@@ -74,6 +82,8 @@ class PdfImportService:
                 HTTPStatus.BAD_REQUEST,
                 {"code": refused.code, "message": refused.message},
             )
+        # a cheap early look, so a refused upload creates nothing; the real
+        # check is the atomic insert below
         await self._check_limits(workspace_id)
 
         form = await self._workspace_forms.create_form(
@@ -83,7 +93,6 @@ class PdfImportService:
         )
         import_id = PydanticObjectId()
         key = source_key(workspace_id, form.form_id, import_id, upload.extension)
-        await self._store.put(key, data, upload.content_type)
         record = FormImportDocument(
             id=import_id,
             workspace_id=workspace_id,
@@ -100,35 +109,50 @@ class PdfImportService:
             ),
             ai_consent_by=str(user.id) if ai_consent is True else None,
         )
-        record = await self._repo.save(record)
+        try:
+            await self._store.put(key, data, upload.content_type)
+            record = await self._repo.create_within_limits(
+                record,
+                self._settings.CONCURRENT_IMPORTS_PER_WORKSPACE,
+                self._settings.IMPORTS_PER_WORKSPACE_PER_DAY,
+                _day_ago(),
+            )
+        except BaseException as error:
+            # nothing was imported: take the new draft (and the original in
+            # its folder) away again
+            await self._remove_draft(workspace_id, form.form_id)
+            if isinstance(error, ImportLimitReached):
+                raise self._limit_error(error.code) from None
+            raise
         await self._dispatch(record.id)
         return record
 
+    async def _remove_draft(self, workspace_id, form_id: str) -> None:
+        try:
+            await self._workspace_forms.delete_draft_form(workspace_id, form_id)
+        except Exception:  # noqa: BLE001 — never hide why the start failed
+            logger.exception("could not remove the draft form of a refused import")
+
     async def _check_limits(self, workspace_id: PydanticObjectId) -> None:
         s = self._settings
-        if (
-            await self._repo.count_active(workspace_id)
-            >= s.CONCURRENT_IMPORTS_PER_WORKSPACE
-        ):
-            raise HTTPException(
-                HTTPStatus.TOO_MANY_REQUESTS,
-                {
-                    "code": "import_in_progress",
-                    "message": "Another import is still running in this workspace. Please wait for it to finish.",
-                },
+        try:
+            check_import_limits(
+                await self._repo.count_active(workspace_id),
+                await self._repo.count_created_since(workspace_id, _day_ago()),
+                s.CONCURRENT_IMPORTS_PER_WORKSPACE,
+                s.IMPORTS_PER_WORKSPACE_PER_DAY,
             )
-        since = dt.datetime.now(dt.timezone.utc) - dt.timedelta(days=1)
-        if (
-            await self._repo.count_created_since(workspace_id, since)
-            >= s.IMPORTS_PER_WORKSPACE_PER_DAY
-        ):
-            raise HTTPException(
-                HTTPStatus.TOO_MANY_REQUESTS,
-                {
-                    "code": "daily_limit",
-                    "message": f"This workspace has reached {s.IMPORTS_PER_WORKSPACE_PER_DAY} imports in the last 24 hours. Please try again later.",
-                },
-            )
+        except ImportLimitReached as reached:
+            raise self._limit_error(reached.code) from None
+
+    def _limit_error(self, code: str) -> HTTPException:
+        if code == "daily_limit":
+            message = f"This workspace has reached {self._settings.IMPORTS_PER_WORKSPACE_PER_DAY} imports in the last 24 hours. Please try again later."
+        else:
+            message = "Another import is still running in this workspace. Please wait for it to finish."
+        return HTTPException(
+            HTTPStatus.TOO_MANY_REQUESTS, {"code": code, "message": message}
+        )
 
     def _on_postgres(self) -> bool:
         return (
@@ -180,6 +204,16 @@ class PdfImportService:
             raise HTTPException(HTTPStatus.NOT_FOUND, "Import not found.")
         return record
 
+    async def _with_draft(self, workspace_id, import_id, user) -> FormImportDocument:
+        """The import, if its draft form (and so its files) still exists: a
+        failed import removes its empty draft together with the files."""
+        record = await self.get(workspace_id, import_id, user)
+        if not record.form_id:
+            raise HTTPException(
+                HTTPStatus.NOT_FOUND, "This import has no draft form any more."
+            )
+        return record
+
     async def list(self, workspace_id: PydanticObjectId, user: User):
         await self._workspace_users.check_user_has_access_in_workspace(
             workspace_id=workspace_id, user=user
@@ -212,7 +246,7 @@ class PdfImportService:
 
     async def page_image(self, workspace_id, import_id, number: int, user) -> bytes:
         """A rendered page, for the review screen (members of the workspace only)."""
-        record = await self.get(workspace_id, import_id, user)
+        record = await self._with_draft(workspace_id, import_id, user)
         pages = {
             p["number"]: p["key"]
             for p in (record.stages.get("render") or {}).get("pages", [])
@@ -228,7 +262,7 @@ class PdfImportService:
 
         from backend.app.services.pdf_import.storage import artifact_key
 
-        record = await self.get(workspace_id, import_id, user)
+        record = await self._with_draft(workspace_id, import_id, user)
 
         async def load(name, stage):
             if stage not in record.stages:
